@@ -28,14 +28,21 @@ runtime schema switching.
 
 Design principles:
 
-- keep critical keys typed and validated
-- allow forward-compatible keys with `extra="allow"`
-- add nested models for known nested structures (`INFO.CSQ`, `filters`, coverage gene trees, etc.)
-- keep seed fixtures in `tests/fixtures/db_dummy/all_collections_dummy` in plain JSON contract shape (no Mongo Extended JSON wrappers)
+- collection document shapes are defined in Pydantic contracts
+- write paths validate and normalize against those contracts before any DB write
+- nested structures are modeled explicitly (`INFO.CSQ`, `filters`, coverage gene trees, etc.)
+- seed fixtures in `tests/fixtures/db_dummy/all_collections_dummy` use plain JSON contract shape (no Mongo Extended JSON wrappers)
+
+Sample ingestion contract ownership:
+
+- `api/contracts/schemas/samples.py` defines DNA/RNA ingest file-key groups and source-path keys
+- `api/services/internal_ingest_service.py` consumes those schema-defined constants directly
+- sample documents persist canonical file path fields from the ingest payload
+- dependent writes use registry-owned mappings in `api/contracts/schemas/registry.py`
 
 ## Validation flow
 
-- internal ingest validates documents via `validate_collection_document(collection, payload)`
+- internal ingest normalizes and validates documents via collection contracts in `api/contracts/schemas/registry.py`
 - admin create/update for ASP, ASPC, ISGL, users, roles, and permissions validates via collection contracts before DB write
 - managed admin resource-to-schema/collection mapping is centralized in `api/contracts/managed_resources.py`
 - unsupported collection names fail fast
@@ -53,7 +60,7 @@ Design principles:
 - Persist `version` and `version_history` on managed resources.
 - Increment `version` on update.
 - Append `version_history` entries on create/update.
-- Keep contracts additive when possible to preserve stable behavior across releases.
+- Evolve contracts intentionally and keep DB writes contract-valid at all times.
 
 ## Fixture-driven validation
 

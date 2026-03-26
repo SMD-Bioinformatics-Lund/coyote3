@@ -6,6 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+from api.contracts.schemas.samples import SamplesDoc
+
 
 class RoleLevelsPayload(BaseModel):
     """Represent the role levels payload."""
@@ -51,56 +53,11 @@ class InternalIngestDependentsPayload(BaseModel):
     written: dict[str, int]
 
 
-class InternalSampleIngestSpec(BaseModel):
-    """Represent structured fields for sample-bundle ingestion."""
-
-    model_config = ConfigDict(extra="allow")
-
-    name: str
-    genome_build: int | None = None
-    assay: str | None = None
-    profile: str | None = None
-    subpanel: str | None = None
-    vcf_files: str | None = None
-    cnv: str | None = None
-    biomarkers: str | None = None
-    transloc: str | None = None
-    lowcov: str | None = None
-    cov: str | None = None
-    fusion_files: str | None = None
-    expression_path: str | None = None
-    classification_path: str | None = None
-    qc: str | None = None
-    increment: bool = False
-
-
 class InternalIngestSampleBundleRequest(BaseModel):
-    """Represent internal sample+analysis bundle ingest request payload."""
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "spec": {
-                        "name": "DEMO_SAMPLE_001",
-                        "assay": "ASSAY_A",
-                        "profile": "test",
-                        "genome_build": 38,
-                        "vcf_files": "/data/demo.vcf",
-                    },
-                    "update_existing": False,
-                },
-                {
-                    "yaml_content": "name: DEMO_SAMPLE_001\nassay: ASSAY_A\nprofile: test\n",
-                    "update_existing": False,
-                },
-            ]
-        }
-    )
-
-    spec: InternalSampleIngestSpec | None = None
+    sample: SamplesDoc | None = None
     yaml_content: str | None = None
     update_existing: bool = False
+    increment: bool = False
 
 
 class InternalIngestSampleBundlePayload(BaseModel):
@@ -164,6 +121,42 @@ class InternalCollectionInsertPayload(BaseModel):
     collection: str
     inserted_count: int
     inserted_id: str | None = None
+
+
+class InternalCollectionUpsertRequest(BaseModel):
+    """Represent request body for replace/update in one collection."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "collection": "asp_configs",
+                "match": {"aspc_id": "assay_1:production"},
+                "document": {
+                    "aspc_id": "assay_1:production",
+                    "assay_name": "assay_1",
+                    "environment": "production",
+                    "asp_group": "hematology",
+                    "is_active": True,
+                },
+                "upsert": False,
+            }
+        }
+    )
+
+    collection: str
+    match: dict[str, Any]
+    document: dict[str, Any]
+    upsert: bool = False
+
+
+class InternalCollectionUpsertPayload(BaseModel):
+    """Represent collection replace/update response payload."""
+
+    status: str
+    collection: str
+    matched_count: int
+    modified_count: int
+    upserted_id: str | None = None
 
 
 class InternalCollectionSupportPayload(BaseModel):

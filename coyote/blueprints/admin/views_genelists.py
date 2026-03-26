@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from flask import Response, abort, g, redirect, render_template, request, url_for
+from flask import Response, abort, g, jsonify, redirect, render_template, request, url_for
 from flask import current_app as app
 from flask_login import login_required
 
@@ -156,7 +156,6 @@ def create_genelist() -> Response | str:
         config = util.admin.process_form_to_config(form_data, context.schema)
         config["_id"] = config["name"]
         config["genes"] = genes
-        config["gene_count"] = len(genes)
         try:
             get_web_api_client().post_json(
                 api_endpoints.admin("genelists"),
@@ -173,6 +172,22 @@ def create_genelist() -> Response | str:
         schema=context.schema,
         assay_group_map=context.assay_group_map,
     )
+
+
+@admin_bp.route("/genelists/validate_isgl_id", methods=["POST"])
+@login_required
+def validate_isgl_id() -> Response:
+    """Validate whether an isgl_id already exists."""
+    isgl_id = str((request.json or {}).get("isgl_id", "")).strip()
+    try:
+        payload = get_web_api_client().post_json(
+            api_endpoints.admin("genelists", "validate_isgl_id"),
+            headers=forward_headers(),
+            json_body={"isgl_id": isgl_id},
+        )
+        return jsonify({"exists": bool(payload.get("exists", False))})
+    except ApiRequestError as exc:
+        return jsonify({"exists": False, "error": str(exc)}), 502
 
 
 @admin_bp.route("/genelists/<genelist_id>/edit", methods=["GET", "POST"])
@@ -217,7 +232,11 @@ def edit_genelist(genelist_id: str) -> Response | str:
         updated = util.admin.process_form_to_config(form_data, context.schema)
         genes = _extract_genes_from_request(form_data, genelist.get("genes", []))
         updated["genes"] = genes
-        updated["gene_count"] = len(genes)
+        # Keep required relationship fields when form submission omits/empties them.
+        if not updated.get("assays"):
+            updated["assays"] = list(genelist.get("assays", []))
+        if not updated.get("assay_groups"):
+            updated["assay_groups"] = list(genelist.get("assay_groups", []))
         try:
             get_web_api_client().put_json(
                 api_endpoints.admin("genelists", genelist_id),

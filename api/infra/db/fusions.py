@@ -230,7 +230,12 @@ class FusionsHandler(BaseHandler):
                 return int(result[0].get("uniqueFusionCount", 0) or 0)
             return 0
         except Exception as e:
-            app.logger.error(f"An error occurred: {e}")
+            app.logger.error(
+                "Failed to compute unique fusion count from collection '%s': %s",
+                self.get_collection().name,
+                e,
+                exc_info=True,
+            )
             return 0
 
     def mark_false_positive_fusion(self, fusion_id: str, fp: bool = True) -> None:

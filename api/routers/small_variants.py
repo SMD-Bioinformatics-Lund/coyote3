@@ -13,7 +13,7 @@ from api.contracts.dna import (
 from api.contracts.samples import SampleMutationPayload
 from api.core.dna.dna_filters import get_filter_conseq_terms
 from api.core.dna.dna_variants import get_variant_nomenclature
-from api.core.dna.query_builders import build_query
+from api.core.dna.varqueries import build_query
 from api.core.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
 from api.core.interpretation.report_summary import (
     create_comment_doc,

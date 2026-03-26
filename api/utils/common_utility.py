@@ -352,10 +352,14 @@ class CommonUtility:
             for key, value in filters_config.items():
                 # If the key already exists and is non-empty in the sample's filters, keep it
                 if key in sample_filters and sample_filters[key] is not None:
-                    print(f"Using sample filter for key - {key}: {sample_filters[key]}")
+                    app.logger.debug(
+                        "Using sample-specific filter override for key '%s': %r",
+                        key,
+                        sample_filters[key],
+                    )
                     merged_filters[key] = sample_filters[key]
                 else:
-                    print(f"Using default filter for key - {key}: {value}")
+                    app.logger.debug("Using assay default filter for key '%s': %r", key, value)
                     merged_filters[key] = value
 
         if adhoc_genes:

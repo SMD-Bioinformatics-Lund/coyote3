@@ -140,7 +140,7 @@ name: "DEMO_SAMPLE_001"
 case_id: "DEMO_CASE_001"
 control_id: "DEMO_CTRL_001"
 genome_build: 38
-assay: "ASSAY_A"
+assay: "assay_1"
 profile: "production"
 vcf_files: "/data/demo.vcf"
 cnv: "/data/demo.cnv.json"

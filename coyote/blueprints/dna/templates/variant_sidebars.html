@@ -143,10 +143,12 @@
         <!-- Genelist Dropdown Options -->
         <div id="genelists_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
           {% for panel in assay_panels %}
-            {% if panel.list_type == 'genelist' %}
+            {% set panel_list_types = panel.list_type if panel.list_type is sequence and panel.list_type is not string else [panel.list_type] %}
+            {% set panel_type_values = panel_list_types | map('string') | map('lower') | list %}
+            {% if 'small_variants_genelist' in panel_type_values or 'genelist' in panel_type_values %}
               {% set show=False %}
               <label for="{{ panel.displayname }}" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">
-                {{ form['genelist_' ~ panel._id](checked=show) }} <span class="{%if panel.adhoc %}text-pink-800{% endif %}">{{ panel.displayname }} {%if panel.adhoc %} <i>(Adhoc)</i>{% endif %}</span>
+                {{ form['genelist_' ~ panel.isgl_id](checked=show) }} <span class="{%if panel.adhoc %}text-pink-800{% endif %}">{{ panel.displayname }} {%if panel.adhoc %} <i>(Adhoc)</i>{% endif %}</span>
               </label>
             {% endif %}
           {% endfor %}
@@ -196,6 +198,28 @@
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&le;</span>
           {{ form.cnv_loss_cutoff(size=3, type="number", step="0.01", default=sample.filters.cnv_loss_cutoff, class="border border-gray-300 rounded px-2 py-0.5 w-24 bg-gray-50") }}
+        </div>
+      </div>
+
+      <!-- CNV Effect Dropdown -->
+      <div class="relative">
+        <label class="block text-gray-900 text-xs mb-1">CNV Gene Lists</label>
+
+        <div class="border border-gray-400 rounded bg-gray-50 cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('cnv_genelists_checkboxes', 'cnv-genelist-dropdown-icon')">
+          <span class="text-xs text-gray-700">Select CNV Gene Lists</span>
+          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-500 transition-transform duration-200" id="cnv-genelist-dropdown-icon" alt="CNV GeneList Dropdown Icon">
+        </div>
+
+        <div id="cnv_genelists_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
+          {% for panel in assay_panels %}
+            {% set panel_list_types = panel.list_type if panel.list_type is sequence and panel.list_type is not string else [panel.list_type] %}
+            {% set panel_type_values = panel_list_types | map('string') | map('lower') | list %}
+            {% if 'cnv_genelist' in panel_type_values or 'cnvlist' in panel_type_values %}
+              <label for="{{ panel.displayname }}" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">
+                {{ form['cnv_genelist_' ~ panel.isgl_id](checked=False) }} <span class="{%if panel.adhoc %}text-pink-800{% endif %}">{{ panel.displayname }} {%if panel.adhoc %}<i>(Adhoc)</i>{% endif %}</span>
+              </label>
+            {% endif %}
+          {% endfor %}
         </div>
       </div>
 

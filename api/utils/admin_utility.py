@@ -6,6 +6,7 @@ This module provides static methods for configuration management, form processin
 
 import hashlib
 import json
+from datetime import date, datetime
 from typing import Any, Union
 
 from bson import ObjectId
@@ -60,7 +61,6 @@ class AdminUtility:
             not in [
                 "list",
                 "multi-select",
-                "select",
                 "checkbox-group",
                 "checkbox",
                 "json",
@@ -87,10 +87,16 @@ class AdminUtility:
                 except (ValueError, TypeError):
                     return None
             return value
+        elif field_type == "select":
+            if isinstance(value, list):
+                return value[0] if value else None
+            if isinstance(value, str):
+                stripped = value.strip()
+                return stripped or None
+            return value
         elif field_type in [
             "list",
             "multi-select",
-            "select",
             "checkbox",
             "checkbox-group",
         ]:
@@ -189,6 +195,12 @@ class AdminUtility:
                 return {k: sanitize(value[k]) for k in sorted(value)}
             elif isinstance(value, list):
                 return [sanitize(v) for v in value]
+            elif isinstance(value, tuple):
+                return [sanitize(v) for v in value]
+            elif isinstance(value, ObjectId):
+                return str(value)
+            elif isinstance(value, (datetime, date)):
+                return value.isoformat()
             return value
 
         # Strip volatile metadata keys (if any)

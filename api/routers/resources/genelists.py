@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.admin import (
+    AdminExistsPayload,
     AdminGenelistContextPayload,
     AdminGenelistCreateContextPayload,
     AdminGenelistsListPayload,
@@ -227,3 +228,18 @@ def delete_genelist_mutation(
     """
     _ = user
     return util.common.convert_to_serializable(service.delete(genelist_id=genelist_id))
+
+
+@router.post("/api/v1/resources/genelists/validate_isgl_id", response_model=AdminExistsPayload)
+def validate_isgl_id_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(
+        require_access(permission="create_isgl", min_role="manager", min_level=99)
+    ),
+    service: AdminGenelistService = Depends(get_admin_genelist_service),
+):
+    """Validate whether an isgl_id already exists."""
+    _ = user
+    return util.common.convert_to_serializable(
+        {"exists": service.genelist_exists(isgl_id=str(payload.get("isgl_id", "")))}
+    )

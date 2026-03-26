@@ -54,6 +54,7 @@ Optional keys:
 - `platform` (str | None)
 - `verification_samples` (dict[str, list[int]])
 - `use_diagnosis_genelist` (bool)
+- `query` (AspcQueryDoc)
 - `version` (int)
 - `created_by` (str | None)
 - `created_on` (datetime)
@@ -252,8 +253,6 @@ Required keys:
 - `status` (str)
 - `locus` (str)
 - `locus_sortable` (str)
-- `date_approved_reserved` (datetime)
-- `date_modified` (datetime)
 - `entrez_id` (int)
 - `ensembl_gene_id` (str)
 - `ensembl_mane_select` (str)
@@ -270,8 +269,10 @@ Optional keys:
 - `alias_name` (list[str])
 - `prev_symbol` (list[str])
 - `prev_name` (list[str])
+- `date_approved_reserved` (datetime.datetime | None)
 - `date_symbol_changed` (datetime.datetime | None)
 - `date_name_changed` (datetime.datetime | None)
+- `date_modified` (datetime.datetime | None)
 - `refseq_accession` (list[str])
 - `cosmic` (list[str])
 - `omim_id` (list[int])
@@ -524,22 +525,19 @@ Optional keys:
 - `cnv` (str | None)
 - `cnvprofile` (str | None)
 - `cov` (str | None)
-- `lowcov` (str | None)
 - `transloc` (str | None)
 - `biomarkers` (str | None)
 - `fusion_files` (str | None)
 - `expression_path` (str | None)
 - `classification_path` (str | None)
 - `qc` (str | None)
-- `filters` (api.contracts.schemas.dna.DnaFiltersDoc | api.contracts.schemas.rna.RnaFiltersDoc | None)
-- `comments` (list[api.contracts.schemas.samples.SampleCommentDoc] | None)
-- `reports` (list[api.contracts.schemas.samples.SampleReportDoc] | None)
-- `case` (api.contracts.schemas.samples.SampleCaseControlDoc | None)
+- `filters` (api.contracts.schemas.dna.DnaFiltersDoc | api.contracts.schemas.rna.RnaFiltersDoc)
+- `comments` (list[api.contracts.schemas.samples.SampleCommentDoc])
+- `reports` (list[api.contracts.schemas.samples.SampleReportDoc])
+- `case` (SampleCaseControlDoc)
 - `control` (api.contracts.schemas.samples.SampleCaseControlDoc | None)
 - `report_num` (int)
 - `time_added` (datetime)
-- `clarity_sample_id` (str | None)
-- `clarity_pool_id` (str | None)
 
 ## `translocations`
 
@@ -550,13 +548,13 @@ Required keys:
 - `REF` (str)
 - `ALT` (str)
 - `ID` (str)
-- `QUAL` (float)
 - `GT` (list[api.contracts.schemas.dna.TranslocationGtDoc])
 - `INFO` (list[api.contracts.schemas.dna.TranslocationInfoDoc])
 
 Optional keys:
 - `FILTER` (list[str])
 - `FORMAT` (list[str])
+- `QUAL` (Optional[float])
 
 ## `users`
 
@@ -571,6 +569,7 @@ Required keys:
 
 Optional keys:
 - `id_` (Any | None)
+- `user_id` (str | None)
 - `auth_type` (Optional[Literal['coyote3', 'ldap']])
 - `password` (str | None)
 - `last_login` (datetime.datetime | None)
@@ -603,12 +602,12 @@ Required keys:
 - `REF` (str)
 - `ALT` (str)
 - `ID` (str)
-- `QUAL` (float)
 - `INFO` (VariantInfoDoc)
 - `simple_id` (str)
 - `simple_id_hash` (str)
 
 Optional keys:
+- `QUAL` (Optional[float])
 - `FILTER` (list[str])
 - `GT` (list[api.contracts.schemas.dna.VariantGtDoc])
 - `gnomad_frequency` (float | None)

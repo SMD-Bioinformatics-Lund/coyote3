@@ -12,7 +12,6 @@ dashboard_bp = Blueprint(
     static_url_path="dashboard/static",
 )
 
-# print(dashboard_bp.static)
 from coyote.blueprints.dashboard import views  # noqa: F401, E402
 
 app.dashboard_logger = logging.getLogger("coyote.dashboard")

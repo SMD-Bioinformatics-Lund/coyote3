@@ -1,5 +1,5 @@
 ---
-subpanel: 'Hem'
+subpanel: 'hematology_myeloid'
 name: 'CASE_DEMO'
 clarity_case_id: 'GEN_DEMO_CASE'
 clarity_control_id: 'GEN_DEMO_CTRL'
@@ -11,7 +11,7 @@ sample_no: 2
 case_id: 'CASE_DEMO'
 control_id: 'CTRL_DEMO'
 profile: 'production'
-assay: 'ASSAY_A'
+assay: 'assay_1'
 sequencing_scope: 'panel'
 omics_layer: 'DNA'
 sequencing_technology: 'Illumina'

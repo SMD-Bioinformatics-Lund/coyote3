@@ -17,7 +17,7 @@
           </h1>
         </div>
 
-        <form method="POST" class="space-y-6 text-sm text-gray-700">
+        <form method="POST" action="{{ url_for('admin_bp.create_role') }}" class="space-y-6 text-sm text-gray-700">
           {% for section, keys in schema.sections.items() %}
           <div class="mb-6 border-l-4 border-blue-300 bg-blue-50 rounded-xl shadow-lg p-4">
             <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') | title }}</h2>
@@ -66,6 +66,7 @@
                       {% else %}
                         class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm"
                       {% endif %}>
+                    {% if key == "name" %}<p id="role_id_check" class="text-xs mt-1"></p>{% endif %}
                   </div>
                 {% endif %}
               {% endfor %}
@@ -84,4 +85,61 @@
     </section>
   </main>
 </div>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.querySelector("form");
+    const saveBtn = form?.querySelector("button[type='submit']");
+    const nameInput = form?.querySelector("input[name='name']");
+    const status = document.getElementById("role_id_check");
+    let exists = false;
+    let pending = false;
+    let timer = null;
+
+    function setStatus(message, css, disable) {
+      if (!status) return;
+      status.textContent = message;
+      status.className = `text-xs mt-1 ${css}`;
+      if (saveBtn) saveBtn.disabled = !!disable;
+    }
+
+    async function checkRoleId() {
+      const roleId = (nameInput?.value || "").trim().toLowerCase();
+      exists = false;
+      if (!roleId) {
+        setStatus("", "", false);
+        return;
+      }
+      pending = true;
+      setStatus(`Checking role_id: ${roleId} ...`, "text-gray-500", true);
+      try {
+        const res = await fetch("{{ url_for('admin_bp.validate_role_id') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role_id: roleId })
+        });
+        const data = await res.json();
+        exists = !!data.exists;
+        if (exists) setStatus(`role_id '${roleId}' already exists.`, "text-red-500", true);
+        else setStatus(`role_id '${roleId}' is available.`, "text-green-600", false);
+      } catch (_) {
+        exists = false;
+        setStatus("Unable to validate role_id right now.", "text-yellow-600", false);
+      } finally {
+        pending = false;
+      }
+    }
+
+    nameInput?.addEventListener("input", () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(checkRoleId, 250);
+    });
+
+    form?.addEventListener("submit", (event) => {
+      if (pending || exists) {
+        event.preventDefault();
+        setStatus("Use a unique role_id before saving.", "text-red-500", true);
+      }
+    });
+  });
+</script>
 {% endblock %}

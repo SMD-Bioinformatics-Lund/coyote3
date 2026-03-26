@@ -16,6 +16,7 @@ from api.services.admin_resource_service import (
     AdminAspcService,
     AdminGenelistService,
     AdminPanelService,
+    AdminQueryProfileService,
     AdminSampleService,
 )
 from api.services.admin_role_service import AdminRoleService
@@ -107,6 +108,12 @@ def get_admin_sample_service() -> AdminSampleService:
         The service used by admin sample routes.
     """
     return AdminSampleService(repository=get_admin_repository())
+
+
+@lru_cache
+def get_admin_query_profile_service() -> AdminQueryProfileService:
+    """Return the shared query-profile options service."""
+    return AdminQueryProfileService(repository=get_admin_repository())
 
 
 @lru_cache

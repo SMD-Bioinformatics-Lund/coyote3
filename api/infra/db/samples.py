@@ -18,6 +18,7 @@ from bson.objectid import ObjectId
 
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.db.base import BaseHandler
+from api.infra.samples_cache import invalidate_samples_cache, samples_cache_version
 from api.runtime import current_username
 from api.utils.common_utility import CommonUtility
 
@@ -161,6 +162,7 @@ class SampleHandler(BaseHandler):
         cache = getattr(app_obj, "cache", None)
 
         cache_key = CommonUtility.generate_sample_cache_key(
+            cache_version=samples_cache_version(app_obj),
             user_assays=user_assays,
             user_envs=user_envs,
             status=status,
@@ -338,6 +340,7 @@ class SampleHandler(BaseHandler):
             {"_id": ObjectId(sample_id)},
             {"$set": {"filters": default_filters}},
         )
+        invalidate_samples_cache(self.adapter)
         invalidate_dashboard_summary_cache(self.adapter)
 
     def update_sample_filters(self, sample_id: str, filters: dict) -> None:
@@ -357,6 +360,7 @@ class SampleHandler(BaseHandler):
             {"_id": ObjectId(sample_id)},
             {"$set": {"filters": filters}},
         )
+        invalidate_samples_cache(self.adapter)
         invalidate_dashboard_summary_cache(self.adapter)
 
     def update_sample(self, sample_id: ObjectId, sample_doc: dict) -> None:
@@ -364,6 +368,7 @@ class SampleHandler(BaseHandler):
         Update sample document
         """
         result = self.get_collection().replace_one({"_id": sample_id}, sample_doc)
+        invalidate_samples_cache(self.adapter)
         invalidate_dashboard_summary_cache(self.adapter)
         return result
 
@@ -725,6 +730,7 @@ class SampleHandler(BaseHandler):
             None
         """
         result = self.get_collection().delete_one({"_id": ObjectId(sample_oid)})
+        invalidate_samples_cache(self.adapter)
         invalidate_dashboard_summary_cache(self.adapter)
         return result
 
@@ -763,6 +769,7 @@ class SampleHandler(BaseHandler):
             },
         )
         if result.acknowledged and result.matched_count > 0:
+            invalidate_samples_cache(self.adapter)
             invalidate_dashboard_summary_cache(self.adapter)
             return report_oid
         return None

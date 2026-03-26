@@ -15,7 +15,7 @@
           <div class="flex flex-col gap-1">
             <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 items-center">
               <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="Configuration Edit Icon" class="h-6 w-6">
-              Edit Panel – <i>{{ panel._id }}</i>
+              Edit Panel – <i>{{ panel.asp_id or panel.assay_name }}</i>
             </h1>
 
             {% if panel.version_history %}

@@ -102,9 +102,33 @@ def list_dna_findings(sample_id: str) -> Response | str:
                 exc,
             )
 
+    snv_genelist_names: list[str] = []
+    cnv_genelist_names: list[str] = []
+    for panel in insilico_panel_genelists or []:
+        panel_id = str(panel.get("isgl_id") or "").strip()
+        if not panel_id:
+            continue
+        raw_list_type = panel.get("list_type") or []
+        if isinstance(raw_list_type, str):
+            list_types = {raw_list_type.strip().lower()}
+        else:
+            list_types = {
+                str(value).strip().lower() for value in raw_list_type if str(value).strip()
+            }
+        if "small_variants_genelist" in list_types or "genelist" in list_types:
+            snv_genelist_names.append(panel_id)
+        if "cnv_genelist" in list_types or "cnvlist" in list_types:
+            cnv_genelist_names.append(panel_id)
+
     if all_panel_genelist_names:
         for gene_list in all_panel_genelist_names:
-            setattr(DNAFilterForm, f"genelist_{gene_list}", BooleanField())
+            if gene_list not in snv_genelist_names and gene_list not in cnv_genelist_names:
+                snv_genelist_names.append(gene_list)
+
+    for gene_list in sorted(set(snv_genelist_names)):
+        setattr(DNAFilterForm, f"genelist_{gene_list}", BooleanField())
+    for gene_list in sorted(set(cnv_genelist_names)):
+        setattr(DNAFilterForm, f"cnv_genelist_{gene_list}", BooleanField())
 
     form = DNAFilterForm()
 
@@ -166,6 +190,7 @@ def list_dna_findings(sample_id: str) -> Response | str:
             **{f"vep_{k}": True for k in sample_filters.get("vep_consequences", [])},
             **{f"cnveffect_{k}": True for k in sample_filters.get("cnveffects", [])},
             **{f"genelist_{k}": True for k in checked_genelists},
+            **{f"cnv_genelist_{k}": True for k in sample_filters.get("cnv_genelists", [])},
             **{assay_group: True},
         }
     )

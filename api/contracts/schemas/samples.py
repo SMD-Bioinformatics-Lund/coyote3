@@ -5,11 +5,28 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import AliasChoices, Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from api.contracts.schemas.base import _DocBase
 from api.contracts.schemas.dna import DnaFiltersDoc
 from api.contracts.schemas.rna import RnaFiltersDoc
+
+DNA_SAMPLE_FILE_KEYS: tuple[str, ...] = (
+    "vcf_files",
+    "cnv",
+    "cnvprofile",
+    "cov",
+    "transloc",
+    "biomarkers",
+    "lowcov",
+)
+RNA_SAMPLE_FILE_KEYS: tuple[str, ...] = (
+    "fusion_files",
+    "expression_path",
+    "classification_path",
+    "qc",
+)
+SAMPLE_SOURCE_PATH_KEYS: tuple[str, ...] = DNA_SAMPLE_FILE_KEYS + RNA_SAMPLE_FILE_KEYS
 
 
 class SampleCaseControlDoc(_DocBase):
@@ -60,32 +77,30 @@ class SamplesDoc(_DocBase):
     cnv: str | None = None
     cnvprofile: str | None = None
     cov: str | None = None
-    lowcov: str | None = None
     transloc: str | None = None
     biomarkers: str | None = None
     fusion_files: str | None = None
     expression_path: str | None = None
     classification_path: str | None = None
     qc: str | None = None
-    filters: DnaFiltersDoc | RnaFiltersDoc | None = None
-    comments: list[SampleCommentDoc] | None = None
-    reports: list[SampleReportDoc] | None = None
-    case: SampleCaseControlDoc | None = None
+    filters: DnaFiltersDoc | RnaFiltersDoc = Field(default_factory=dict)
+    comments: list[SampleCommentDoc] = Field(default_factory=list)
+    reports: list[SampleReportDoc] = Field(default_factory=list)
+    case: SampleCaseControlDoc = Field(default_factory=dict)
     control: SampleCaseControlDoc | None = None
     report_num: int = 0
     time_added: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    clarity_sample_id: str | None = Field(
-        validation_alias=AliasChoices("clarity_sample_id", "clarity-sample-id"),
-        default=None,
-    )
-    clarity_pool_id: str | None = Field(
-        validation_alias=AliasChoices("clarity_pool_id", "clarity-pool-id"),
-        default=None,
-    )
 
     @field_validator("sequencing_scope", "omics_layer", mode="before")
     @classmethod
     def _normalize_lowercase(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return value.strip().lower()
+        return value
+
+    @field_validator("assay", "subpanel", mode="before")
+    @classmethod
+    def _normalize_assay_identifiers(cls, value: Any) -> Any:
         if isinstance(value, str):
             return value.strip().lower()
         return value
@@ -153,20 +168,8 @@ class SamplesDoc(_DocBase):
 
     @model_validator(mode="after")
     def _validate_omics_payload_consistency(self) -> "SamplesDoc":
-        dna_fields = (
-            self.vcf_files,
-            self.cnv,
-            self.cov,
-            self.lowcov,
-            self.biomarkers,
-            self.transloc,
-        )
-        rna_fields = (
-            self.fusion_files,
-            self.expression_path,
-            self.classification_path,
-            self.qc,
-        )
+        dna_fields = tuple(getattr(self, key, None) for key in DNA_SAMPLE_FILE_KEYS)
+        rna_fields = tuple(getattr(self, key, None) for key in RNA_SAMPLE_FILE_KEYS)
         has_dna = any(bool(v) for v in dna_fields)
         has_rna = any(bool(v) for v in rna_fields)
 

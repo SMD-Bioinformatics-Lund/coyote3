@@ -18,8 +18,8 @@ class RnaFiltersDoc(_StrictDocBase):
     fusion_callers: list[str] = Field(default_factory=list)
     fusion_effects: list[str] = Field(default_factory=list)
     fusion_genelists: list[str] = Field(default_factory=list)
-    spanning_pairs: int = 0
-    spanning_reads: int = 0
+    min_spanning_pairs: int = 0
+    min_spanning_reads: int = 0
 
 
 class FusionCallDoc(_DocBase):

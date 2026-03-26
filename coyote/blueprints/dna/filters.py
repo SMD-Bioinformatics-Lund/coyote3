@@ -633,7 +633,7 @@ def pubmed_links(st: str | None) -> str:
 
 
 @app.template_filter()
-def three_dec(val: float | int) -> str:
+def three_dec(val: float | int | None) -> str:
     """
     Converts a numeric value to a percentage string with up to 3 significant digits.
 
@@ -643,6 +643,8 @@ def three_dec(val: float | int) -> str:
     Returns:
         str: The value multiplied by 100, rounded to 3 significant digits, as a string.
     """
+    if val is None:
+        return ""
     return str(round_to_3(float(val) * 100))
 
 

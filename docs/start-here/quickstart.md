@@ -56,6 +56,26 @@ Edit env files and set real values for:
   up -d --build
 ```
 
+## First-load bootstrap (all environments)
+
+Run once per new environment after compose is up:
+
+```bash
+scripts/center_first_run.sh \
+  --env-file <ENV_FILE> \
+  --compose-file <COMPOSE_FILE> \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:<API_PORT>" \
+  --admin-email "admin@your-center.org" \
+  --admin-password "<ADMIN_PASSWORD>" \
+  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
+  --seed-data-pack tests/data/seed_data \
+  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
+  --with-optional
+```
+
+For full quality, seed, smoke, and operational command sets, use:
+[Operations / Maintenance And Quality](../operations/maintenance-and-quality.md).
+
 Optional local mongo profile for prod compose:
 
 ```bash

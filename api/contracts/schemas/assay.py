@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import Field, computed_field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
 from api.contracts.schemas.base import VersionHistoryEntryDoc, _DocBase, _StrictDocBase
 from api.contracts.schemas.dna import DnaFiltersDoc
@@ -53,6 +53,17 @@ class AspcReportingDoc(_StrictDocBase):
         return self
 
 
+class AspcQueryDoc(BaseModel):
+    """ASPC query override buckets by domain."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    snv: dict[str, Any] = Field(default_factory=dict)
+    cnv: dict[str, Any] = Field(default_factory=dict)
+    fusion: dict[str, Any] = Field(default_factory=dict)
+    transloc: dict[str, Any] = Field(default_factory=dict)
+
+
 class AspConfigDoc(_StrictDocBase):
     aspc_id: str
     assay_name: str
@@ -69,6 +80,7 @@ class AspConfigDoc(_StrictDocBase):
     use_diagnosis_genelist: bool = False
 
     filters: DnaFiltersDoc | RnaFiltersDoc
+    query: AspcQueryDoc = Field(default_factory=AspcQueryDoc)
     reporting: AspcReportingDoc
 
     # Versioning
@@ -96,6 +108,19 @@ class AspConfigDoc(_StrictDocBase):
         key = str(value).strip().lower()
         if key not in aliases:
             raise ValueError("environment must be in: production, development, testing, validation")
+        return aliases[key]
+
+    @field_validator("asp_category", mode="before")
+    @classmethod
+    def _normalize_asp_category(cls, value: Any) -> str:
+        aliases = {
+            "dna": "dna",
+            "somatic": "dna",
+            "rna": "rna",
+        }
+        key = str(value or "").strip().lower()
+        if key not in aliases:
+            raise ValueError("asp_category must be either 'dna' or 'rna'")
         return aliases[key]
 
     @field_validator("aspc_id")
@@ -169,6 +194,19 @@ class AssaySpecificPanelsDoc(_StrictDocBase):
     updated_by: str | None = None
     updated_on: datetime | None = None
     version_history: list[VersionHistoryEntryDoc] = Field(default_factory=list)
+
+    @field_validator("asp_category", mode="before")
+    @classmethod
+    def _normalize_asp_category(cls, value: Any) -> str:
+        aliases = {
+            "dna": "dna",
+            "somatic": "dna",
+            "rna": "rna",
+        }
+        key = str(value or "").strip().lower()
+        if key not in aliases:
+            raise ValueError("asp_category must be either 'dna' or 'rna'")
+        return aliases[key]
 
     @property
     @computed_field

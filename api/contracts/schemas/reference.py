@@ -227,10 +227,10 @@ class HgncGenesDoc(_DocBase):
     prev_symbol: list[str] = Field(default_factory=list)
     prev_name: list[str] = Field(default_factory=list)
 
-    date_approved_reserved: datetime
+    date_approved_reserved: datetime | None = None
     date_symbol_changed: datetime | None = None
     date_name_changed: datetime | None = None
-    date_modified: datetime
+    date_modified: datetime | None = None
 
     entrez_id: int
     ensembl_gene_id: str

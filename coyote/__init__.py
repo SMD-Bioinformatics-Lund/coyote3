@@ -240,7 +240,7 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
             {% endif %}
 
             {% if has_access(permission="config:edit", min_role="admin") %}
-                <a href="/admin/config">Edit Config</a>
+                <a href="{{ url_for('admin_bp.create_dna_assay_config') }}">Edit Config</a>
             {% endif %}
             ```
 

@@ -56,6 +56,7 @@ def normalize_dna_filter_keys(filters: dict | None) -> dict:
         {
             "vep_": "vep_consequences",
             "genelist_": "genelists",
+            "cnv_genelist_": "cnv_genelists",
             "cnveffect_": "cnveffects",
         },
     )

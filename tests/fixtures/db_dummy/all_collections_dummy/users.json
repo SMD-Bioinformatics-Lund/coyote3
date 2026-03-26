@@ -17,10 +17,10 @@
       "validation"
     ],
     "assays": [
-      "ASSAY_A"
+      "assay_1"
     ],
     "assay_groups": [
-      "GROUP_A"
+      "hematology"
     ],
     "permissions": [
       "edit_sample"

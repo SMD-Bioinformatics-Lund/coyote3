@@ -125,6 +125,11 @@ class AdminRoleService:
         role_id = lower(role.get("name"))
         role.setdefault("is_active", True)
         role["role_id"] = role_id
+        existing_role = self.repository.get_role(role_id)
+        if isinstance(existing_role, dict) and (
+            existing_role.get("role_id") or existing_role.get("_id")
+        ):
+            raise api_error(409, "Role already exists")
         if role_id in CANONICAL_ROLE_LEVELS:
             role["level"] = CANONICAL_ROLE_LEVELS[role_id]
         role = inject_version_history(
@@ -211,3 +216,11 @@ class AdminRoleService:
             raise api_error(404, "Role not found")
         self.repository.delete_role(role_id)
         return mutation_payload(resource="role", resource_id=role_id, action="delete")
+
+    def role_exists(self, *, role_id: str) -> bool:
+        """Return whether a role business key already exists."""
+        normalized = lower(role_id)
+        if not normalized:
+            return False
+        role = self.repository.get_role(normalized)
+        return bool(isinstance(role, dict) and (role.get("role_id") or role.get("_id")))

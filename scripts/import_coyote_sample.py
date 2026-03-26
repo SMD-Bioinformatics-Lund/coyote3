@@ -16,7 +16,7 @@ import sys
 from argparse import ArgumentParser, Namespace
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Generator, Literal, Optional, Protocol, Tuple
 
 import httpx
@@ -30,6 +30,16 @@ from pysam import VariantFile
 # - config (mongo URIs, db names, data_types mapping, mane path)
 # - cli.cli_parser (arg parser)
 import config
+from api.contracts.schemas.registry import (
+    INGEST_DEPENDENT_COLLECTIONS,
+    INGEST_SINGLE_DOCUMENT_KEYS,
+    normalize_collection_document,
+)
+from api.contracts.schemas.samples import (
+    DNA_SAMPLE_FILE_KEYS,
+    RNA_SAMPLE_FILE_KEYS,
+    SamplesDoc,
+)
 from api.core.dna.variant_identity import ensure_variant_identity_fields
 from api.parsers import cmdvcf
 
@@ -191,26 +201,24 @@ def build_sample_meta_dict(args_dict: Dict[str, Any]) -> Dict[str, Any]:
 def data_typer(args_dict: Dict[str, Any]) -> Optional[str]:
     """
     Determines the data type based on the keys in the provided dictionary.
-    This function iterates through the keys in the input dictionary and checks if they
-    match any of the predefined data types in the `config.data_types` mapping. If multiple
-    data types are found and they conflict (e.g., both RNA and DNA), the program exits with
-    an error message. If a single data type is identified, it is returned.
+    This function checks known schema-backed DNA and RNA file keys and identifies the
+    payload layer. If both layers are present it exits with an error.
     Args:
-        args_dict (Dict[str, Any]): A dictionary where the keys are checked against
-            predefined data types in `config.data_types`.
+        args_dict (Dict[str, Any]): Input payload dictionary.
     Returns:
         Optional[str]: The identified data type if found, otherwise `None`.
     Raises:
         SystemExit: If conflicting data types (e.g., RNA and DNA) are found in the input.
     """
-    dtype = None
-    for k in args_dict:
-        if k in config.data_types:
-            if dtype is None:
-                dtype: str = config.data_types[k]
-            elif config.data_types[k] != dtype:
-                exit("Data types conflict: both RNA and DNA detected. Check your input.")
-    return dtype
+    has_dna = any(bool(args_dict.get(k)) for k in DNA_SAMPLE_FILE_KEYS)
+    has_rna = any(bool(args_dict.get(k)) for k in RNA_SAMPLE_FILE_KEYS)
+    if has_dna and has_rna:
+        exit("Data types conflict: both RNA and DNA detected. Check your input.")
+    if has_dna:
+        return "DNA"
+    if has_rna:
+        return "RNA"
+    return None
 
 
 def validate_yaml(yaml_file: str) -> Dict[str, Any]:
@@ -355,22 +363,6 @@ def _require_exists(label: str, path: Optional[str]) -> None:
     """
     if not _exists(path):
         raise FileNotFoundError(f"{label} missing or not readable: {path}")
-
-
-def _is_no_update(val: Optional[str]) -> bool:
-    """
-    Checks if the given value is a string that, when stripped of whitespace
-    and converted to lowercase, matches the string "no_update".
-
-    Args:
-        val (Optional[str]): The value to check. It can be a string or None.
-
-    Returns:
-        bool: True if the value is a string equal to "no_update"
-            (case-insensitive and ignoring surrounding whitespace),
-            otherwise False.
-    """
-    return isinstance(val, str) and val.strip().lower() == "no_update"
 
 
 def refseq_noversion(acc: str) -> str:
@@ -975,13 +967,11 @@ class DnaParser:
 
         Notes:
             - The method uses helper functions to validate file existence and parse specific data types.
-            - The method supports an "update" flag to skip parsing SNVs if the value is
-                "no_update".
             - The method ensures that only one of lowcov or cov options is provided to avoid conflicts.
         """
         preload: Dict[str, Any] = {}
         vcf: Any | None = args.get("vcf_files")
-        if not args.get("update") or not _is_no_update(vcf):
+        if vcf:
             _require_exists("VCF", vcf)
             preload["snvs"] = self._parse_snvs_only(vcf, args.get("assay"))
 
@@ -1268,12 +1258,10 @@ class RnaParser:
         Notes:
             - The method uses helper functions to validate file existence and parse
             specific data types.
-            - The method supports an "update" flag to skip parsing fusions if the value
-                is "no_update".
         """
         preload: Dict[str, Any] = {}
         fusions: Any | None = args.get("fusion_files")
-        if not args.get("update") or not _is_no_update(fusions):
+        if fusions:
             _require_exists("Fusions JSON", fusions)
             with open(fusions, "r") as f:
                 preload["fusions"] = json.load(f)
@@ -1316,18 +1304,7 @@ class DependentWriter:
             and self.internal_token
             and os.getenv("COYOTE3_INGEST_VIA_API", "1") != "0"
         )
-        self.collection_binds: Dict[str, str] = {
-            # preload key : collection name
-            "snvs": "variants",
-            "cnvs": "cnvs",
-            "biomarkers": "biomarkers",
-            "transloc": "transloc",
-            "cov": "panel_coverage",
-            "fusions": "fusions",
-            "rna_expr": "rna_expression",
-            "rna_class": "rna_classification",
-            "rna_qc": "rna_qc",
-        }
+        self.collection_binds: Dict[str, str] = dict(INGEST_DEPENDENT_COLLECTIONS)
 
     def _write_via_internal_api(
         self,
@@ -1415,13 +1392,14 @@ class DependentWriter:
             wipe(col)
 
             # dict-shaped payloads
-            if key in ("biomarkers", "cov", "rna_expr", "rna_class", "rna_qc"):
+            if key in INGEST_SINGLE_DOCUMENT_KEYS:
                 if not isinstance(payload, dict):
                     raise TypeError(f"{key} expected dict, got {type(payload).__name__}")
                 payload["SAMPLE_ID"] = sid
                 if key == "cov":
                     payload["sample"] = sample_name
-                self.repos.col(col).insert_one(payload)
+                normalized_doc = normalize_collection_document(col, payload)
+                self.repos.col(col).insert_one(normalized_doc)
                 logging.info(f"Inserted {key} data for sample {sample_name} ({sid})")
                 continue
 
@@ -1436,7 +1414,7 @@ class DependentWriter:
                 rec["SAMPLE_ID"] = sid
                 if key == "snvs":
                     rec = ensure_variant_identity_fields(rec)
-                normalized_payload.append(rec)
+                normalized_payload.append(normalize_collection_document(col, rec))
             if normalized_payload:
                 self.repos.col(col).insert_many(normalized_payload)
                 logging.info(
@@ -1614,14 +1592,15 @@ class IngestionService:
                     "_id": sample_id,
                     "name": name,
                     "data_counts": data_counts,
-                    "time_added": datetime.utcnow(),
+                    "time_added": datetime.now(timezone.utc),
                     "ingest_status": "ready",
                 }
             )
+            normalized_sample = SamplesDoc.model_validate(meta).model_dump(exclude_none=True)
             if self.use_api_ingest:
-                self._upsert_sample_via_internal_api(meta, set_fields_only=False)
+                self._upsert_sample_via_internal_api(normalized_sample, set_fields_only=False)
             else:
-                self.repos.samples.insert_one(meta)
+                self.repos.samples.insert_one(normalized_sample)
             logging.info(f"Ingest complete for {name} ({sample_id}).")
         return sample_id
 
@@ -1653,8 +1632,8 @@ class IngestionService:
             8. Logs the completion of the update process.
 
         Notes:
-            - The function enforces strict DNA/RNA consistency and allows bypassing updates
-                for mandatory files using the "no_update" keyword.
+            - The function enforces strict DNA/RNA consistency and validates payload shape
+              against backend schema contracts.
             - The `data_typer` function is used to determine the type of data (DNA/RNA) in `args`.
             - The `parser`, `_update_meta`, `get_data_counts`, and `writer` are assumed to be
                 components of the class or external utilities used for parsing, updating, and writing data.
@@ -1665,19 +1644,20 @@ class IngestionService:
 
         sample_id: ObjectId = doc["_id"]
 
-        # Enforce DNA/RNA consistency and allow "no_update" bypass for mandatory files
-        if "fusion_files" in doc:  # existing RNA
-            if data_typer(args) == "DNA":
-                exit("you are trying to add DNA data to a RNA sample. BAD PERSON!")
-            if "fusion_files" not in args:
-                args["fusion_files"] = "no_update"
-        elif "vcf_files" in doc:  # existing DNA
-            if data_typer(args) == "RNA":
-                exit("you are trying to add RNA data to a DNA sample. BAD PERSON!")
-            if "vcf_files" not in args:
-                args["vcf_files"] = "no_update"
-        else:
+        existing_layer = str(doc.get("omics_layer") or "").strip().lower()
+        if existing_layer not in {"dna", "rna"}:
             exit("update function could not determine if the case is DNA or RNA")
+
+        incoming_layer = data_typer(args)
+        if incoming_layer == "DNA" and existing_layer == "rna":
+            exit("you are trying to add DNA data to a RNA sample. BAD PERSON!")
+        if incoming_layer == "RNA" and existing_layer == "dna":
+            exit("you are trying to add RNA data to a DNA sample. BAD PERSON!")
+
+        merged_doc = dict(doc)
+        merged_doc.update(build_sample_meta_dict(args))
+        merged_doc["name"] = doc["name"]
+        SamplesDoc.model_validate(merged_doc)
 
         # Parse first (preflight)
         preload: Dict[str, Any] = self.parser.parse(args)

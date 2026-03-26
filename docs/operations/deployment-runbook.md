@@ -2,7 +2,7 @@
 
 ## Scope
 
-- First-time center bootstrap: use [Center Onboarding Pack](center-onboarding-pack.md)
+- First-time center bootstrap: use [Center Deployment Guide](center-deployment-guide.md)
 - Day-2+ deployments and upgrades: use this runbook
 
 ## Release metadata

@@ -37,6 +37,7 @@ nav:
       - UI Action Effects Reference: product/ui-action-effects-reference.md
       - Clinical Terms And Flags: product/clinical-semantics-reference.md
       - Application Reference By Domain: product/application-reference-by-domain.md
+      - ASPC-Driven Query Strategy: product/aspc-driven-query-strategy.md
       - DNA And RNA Workflow Chain: product/workflow-dna-rna.md
   - Architecture:
       - System Overview: architecture/system-overview.md
@@ -49,20 +50,23 @@ nav:
   - API:
       - API Reference And Workflows: api/reference-and-workflows.md
       - Ingestion API: api/ingestion-api.md
+      - Collection Operations And Permissions: api/collection-operations-and-permissions.md
       - Collection Contracts: api/collection-contracts.md
   - Testing:
       - Testing And Quality: testing/testing-and-quality.md
       - Test Data And Fixtures: testing/test-data-and-fixtures.md
   - Operations:
       - Environments And Secrets: operations/environments-and-secrets.md
-      - Center Onboarding Pack: operations/center-onboarding-pack.md
+      - Center Deployment Guide: operations/center-deployment-guide.md
+      - Maintenance And Quality: operations/maintenance-and-quality.md
       - Minimum Production Baseline: operations/minimum-production-baseline.md
       - Observability SLOs And Alerts: operations/observability-slos-and-alerts.md
-      - First Day Runbook: operations/first-day-runbook.md
+      - Initial Deployment Checklist: operations/initial-deployment-checklist.md
       - Deployment Runbook: operations/deployment-runbook.md
       - Backup Restore And Snapshots: operations/backup-restore-and-snapshots.md
       - Troubleshooting: operations/troubleshooting.md
   - Engineering:
       - Maintainer Guide: maintainers/maintainer-playbook.md
       - Refactor Guidelines: maintainers/refactor-guidelines.md
+      - Repo Cleanup Ledger: maintainers/repo-cleanup-ledger.md
       - Developer Task Reference: maintainers/developer-cookbook.md

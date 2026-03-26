@@ -5,8 +5,9 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from api.core.dna.cnvqueries import build_cnv_query
 from api.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
-from api.core.dna.query_builders import build_cnv_query
+from api.core.dna.translocqueries import build_transloc_query
 from api.http import api_error, get_formatted_assay_config
 from api.repositories.dna_repository import DnaRouteRepository
 
@@ -47,7 +48,11 @@ class DnaStructuralService:
         }
 
     def load_cnvs_for_sample(
-        self, *, sample: dict, sample_filters: dict, filter_genes: list[str]
+        self,
+        *,
+        sample: dict,
+        sample_filters: dict,
+        filter_genes: list[str],
     ) -> list[dict]:
         """Load cnvs for sample.
 
@@ -60,7 +65,11 @@ class DnaStructuralService:
             list[dict]: The function result.
         """
         cnv_query = build_cnv_query(
-            str(sample["_id"]), filters={**sample_filters, "filter_genes": filter_genes}
+            str(sample["_id"]),
+            filters={
+                **sample_filters,
+                "filter_genes": filter_genes,
+            },
         )
         cnvs = list(self.repository.cnv_handler.get_sample_cnvs(cnv_query))
         filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))
@@ -86,15 +95,17 @@ class DnaStructuralService:
         sample = util_module.common.merge_sample_settings_with_assay_config(sample, assay_config)
         sample_filters = deepcopy(sample.get("filters", {}))
         assay_panel_doc = self.repository.asp_handler.get_asp(asp_name=sample.get("assay"))
-        checked_genelists = sample_filters.get("genelists", [])
-        checked_genelists_genes_dict = self.repository.isgl_handler.get_isgl_by_ids(
-            checked_genelists
+        checked_cnv_genelists = sample_filters.get("cnv_genelists", [])
+        checked_cnv_genelists_genes_dict = self.repository.isgl_handler.get_isgl_by_ids(
+            checked_cnv_genelists
         )
         _genes_covered_in_panel, filter_genes = util_module.common.get_sample_effective_genes(
-            sample, assay_panel_doc, checked_genelists_genes_dict
+            sample, assay_panel_doc, checked_cnv_genelists_genes_dict
         )
         cnvs = self.load_cnvs_for_sample(
-            sample=sample, sample_filters=sample_filters, filter_genes=filter_genes
+            sample=sample,
+            sample_filters=sample_filters,
+            filter_genes=filter_genes,
         )
         return {
             "sample": {
@@ -164,7 +175,9 @@ class DnaStructuralService:
             dict[str, Any]: The function result.
         """
         translocs = list(
-            self.repository.transloc_handler.get_sample_translocations(sample_id=str(sample["_id"]))
+            self.repository.transloc_handler.get_sample_translocations(
+                build_transloc_query(str(sample["_id"]))
+            )
         )
         return {
             "sample": {

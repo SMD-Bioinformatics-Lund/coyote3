@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.admin import (
+    AdminExistsPayload,
     AdminMutationPayload,
     AdminPermissionContextPayload,
     AdminPermissionCreateContextPayload,
@@ -273,6 +274,21 @@ def delete_permission(
     return _delete_permission(permission_id=perm_id, service=service)
 
 
+@router.post("/api/v1/permissions/validate_permission_id", response_model=AdminExistsPayload)
+def validate_permission_id_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(
+        require_access(permission="create_permission_policy", min_role="admin", min_level=99999)
+    ),
+    service: PermissionManagementService = Depends(get_permission_management_service),
+):
+    """Validate whether a permission_id already exists."""
+    _ = user
+    return util.common.convert_to_serializable(
+        {"exists": service.permission_exists(permission_id=str(payload.get("permission_id", "")))}
+    )
+
+
 __all__ = [
     "_service",
     "create_permission_context_read",
@@ -282,4 +298,5 @@ __all__ = [
     "permission_context_read",
     "toggle_permission_status",
     "update_permission",
+    "validate_permission_id_mutation",
 ]

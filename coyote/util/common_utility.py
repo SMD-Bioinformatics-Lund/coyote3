@@ -43,6 +43,7 @@ class CommonUtility:
         vep_consequences: list[str] = []
         genelists: list[str] = []
         fusionlists: list[str] = []
+        cnv_genelists: list[str] = []
         fusion_callers: list[str] = []
         fusion_effects: list[str] = []
         cnveffects: list[str] = []
@@ -50,6 +51,7 @@ class CommonUtility:
         prefix_map = {
             "vep_": vep_consequences,
             "genelist_": genelists,
+            "cnv_genelist_": cnv_genelists,
             "fusionlist_": fusionlists,
             "fusioncaller_": fusion_callers,
             "fusioneffect_": fusion_effects,
@@ -69,6 +71,8 @@ class CommonUtility:
                 filters["genelists"] = genelists
             elif field_name == "fusionlists":
                 filters["fusionlists"] = fusionlists
+            elif field_name == "cnv_genelists":
+                filters["cnv_genelists"] = cnv_genelists
             elif field_name == "fusion_callers":
                 filters["fusion_callers"] = fusion_callers
             elif field_name == "fusion_effects":

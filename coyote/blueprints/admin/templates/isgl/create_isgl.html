@@ -15,7 +15,7 @@
           </h1>
         </div>
 
-        <form method="POST" enctype="multipart/form-data" class="space-y-6 text-sm text-gray-700">
+        <form method="POST" action="{{ url_for('admin_bp.create_genelist') }}" enctype="multipart/form-data" class="space-y-6 text-sm text-gray-700">
           {% for section, keys in schema.sections.items() %}
           <div class="mb-6 border-l-4 border-blue-300 bg-blue-50 rounded-xl shadow-lg p-4">
             <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') | title }}</h2>
@@ -88,8 +88,7 @@
                     <input type="text" name="{{ key }}" id="{{ key }}" placeholder="{{ field.placeholder }}" value="{% if value is iterable and value is not string %}{{ value | join(', ') }}{% else %}{{ value }}{% endif %}"
                       {% if is_readonly %}readonly class="w-full bg-blue-50 border border-blue-300 text-gray-500 rounded-md p-2 text-sm"{% else %}
                       class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm"{% endif %}>
-                    {% if key == "username" %}<p id="username_check" class="text-xs mt-1"></p>{% endif %}
-                    {% if key == "email" %}<p id="email_check" class="text-xs mt-1"></p>{% endif %}
+                    {% if key == "name" %}<p id="isgl_id_check" class="text-xs mt-1"></p>{% endif %}
                   </div>
                 {% endif %}
               {% endfor %}
@@ -110,8 +109,55 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", () => {
+    const form = document.querySelector("form[enctype='multipart/form-data']");
+    const saveBtn = form?.querySelector("button[type='submit']");
+    const idInput = document.getElementById("isgl_id");
+    const nameInput = document.getElementById("name");
+    const status = document.getElementById("isgl_id_check");
+    let exists = false;
+    let pending = false;
+    let timer = null;
+
     const groupToggles = document.querySelectorAll('.group-toggle');
     const assayBlocks = document.querySelectorAll('.assay-block');
+
+    function currentIsglId() {
+      return (idInput?.value || nameInput?.value || "").trim();
+    }
+
+    function setStatus(message, css, disable) {
+      if (!status) return;
+      status.textContent = message;
+      status.className = `text-xs mt-1 ${css}`;
+      if (saveBtn) saveBtn.disabled = !!disable;
+    }
+
+    async function checkIsglId() {
+      const isglId = currentIsglId();
+      exists = false;
+      if (!isglId) {
+        setStatus("", "", false);
+        return;
+      }
+      pending = true;
+      setStatus(`Checking isgl_id: ${isglId} ...`, "text-gray-500", true);
+      try {
+        const res = await fetch("{{ url_for('admin_bp.validate_isgl_id') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isgl_id: isglId })
+        });
+        const data = await res.json();
+        exists = !!data.exists;
+        if (exists) setStatus(`isgl_id '${isglId}' already exists.`, "text-red-500", true);
+        else setStatus(`isgl_id '${isglId}' is available.`, "text-green-600", false);
+      } catch (_) {
+        exists = false;
+        setStatus("Unable to validate isgl_id right now.", "text-yellow-600", false);
+      } finally {
+        pending = false;
+      }
+    }
 
     // ========== Assay Visibility Toggle Based on Groups ==========
     function updateAssayVisibility() {
@@ -134,9 +180,23 @@
 
     // ========== Event Bindings ==========
     groupToggles.forEach(cb => cb.addEventListener("change", updateAssayVisibility));
+    [idInput, nameInput].forEach((el) => {
+      el?.addEventListener("input", () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(checkIsglId, 250);
+      });
+    });
 
     // ========== Initial Execution ==========
     updateAssayVisibility();
+    checkIsglId();
+
+    form?.addEventListener("submit", (event) => {
+      if (pending || exists) {
+        event.preventDefault();
+        setStatus("Use a unique isgl_id before saving.", "text-red-500", true);
+      }
+    });
 
   });
 </script>

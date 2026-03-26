@@ -99,7 +99,7 @@ It is intended for users, QA, and developers.
 | `Toggle` role/permission | Admin pages | patch status endpoints | Flips `is_active` | Active status updates |
 | `Delete` role/permission | Admin pages | delete endpoints | Removes selected document | Removed from listing |
 | `Save Panel` (`ASP`) | Admin assay panel page | create/update ASP endpoints | Updates assay panel doc | Panel catalog and config context update |
-| `Save Assay Config` (`ASPC`) | Admin assay config page | create/update ASPC endpoints | Updates assay+environment config doc | Runtime filter/report config updates |
+| `Save Assay Config` (`ASPC`) | Admin assay config page | create/update ASPC endpoints | Updates assay+environment config doc, including default ISGL selection (`genelists`, `cnv_genelists`, `fusion_genelists`) and diagnosis auto-select behavior (`use_diagnosis_genelist`) | Runtime filter/report config updates; samples under that assay+environment use the configured default list behavior |
 | `Save ISGL` | Admin genelists page | create/update ISGL endpoints | Updates curated gene list docs | ISGL options and gene coverage context update |
 | `Delete Sample` (admin) | Admin samples | sample delete endpoint | Removes sample and dependent resources | Sample disappears from admin and user views |
 

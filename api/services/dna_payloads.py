@@ -10,6 +10,7 @@ from api.contracts.managed_ui_schemas import build_managed_schema
 from api.core.dna.dna_reporting import hotspot_variant
 from api.core.dna.dna_variants import format_pon
 from api.core.dna.notation import one_letter_p
+from api.core.dna.translocqueries import build_transloc_query
 from api.http import api_error
 from api.services.dna_export import consequence_terms
 
@@ -38,6 +39,7 @@ def _build_display_and_summary_sections(
     sample: dict,
     sample_filters: dict,
     filter_genes: list[str],
+    cnv_filter_genes: list[str],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Build display and summary section dictionaries for report payloads."""
     display_sections_data: dict[str, Any] = {"snvs": deepcopy(variants)}
@@ -45,7 +47,9 @@ def _build_display_and_summary_sections(
 
     if "CNV" in analysis_sections:
         cnvs = service.load_cnvs_for_sample(
-            sample=sample, sample_filters=sample_filters, filter_genes=filter_genes
+            sample=sample,
+            sample_filters=sample_filters,
+            filter_genes=cnv_filter_genes,
         )
         display_sections_data["cnvs"] = deepcopy(cnvs)
         summary_sections_data["cnvs"] = [cnv for cnv in cnvs if cnv.get("interesting")]
@@ -58,10 +62,11 @@ def _build_display_and_summary_sections(
         summary_sections_data["biomarkers"] = biomarkers
 
     if "TRANSLOCATION" in analysis_sections:
+        transloc_query = build_transloc_query(
+            str(sample["_id"]),
+        )
         display_sections_data["translocs"] = list(
-            service.repository.transloc_handler.get_sample_translocations(
-                sample_id=str(sample["_id"])
-            )
+            service.repository.transloc_handler.get_sample_translocations(transloc_query)
         )
 
     if "FUSION" in analysis_sections:
@@ -105,6 +110,13 @@ def list_variants_payload(
     )
     genes_covered_in_panel, filter_genes = util_module.common.get_sample_effective_genes(
         sample, assay_panel_doc, checked_genelists_genes_dict
+    )
+    checked_cnv_genelists = sample_filters.get("cnv_genelists", [])
+    checked_cnv_genelists_genes_dict = service.repository.isgl_handler.get_isgl_by_ids(
+        checked_cnv_genelists
+    )
+    _cnv_genes_covered_in_panel, cnv_filter_genes = util_module.common.get_sample_effective_genes(
+        sample, assay_panel_doc, checked_cnv_genelists_genes_dict
     )
     filter_conseq = get_filter_conseq_terms_fn(sample_filters.get("vep_consequences", []))
 
@@ -164,6 +176,7 @@ def list_variants_payload(
         sample=sample,
         sample_filters=sample_filters,
         filter_genes=filter_genes,
+        cnv_filter_genes=cnv_filter_genes,
     )
 
     if "cnv" in sample and str(sample["cnv"]).lower().endswith((".png", ".jpg", ".jpeg")):

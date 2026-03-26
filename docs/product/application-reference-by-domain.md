@@ -39,6 +39,37 @@ In runtime:
 - `sample.assay + sample.profile` resolves `aspc`.
 - `sample.filters.genelists[]` resolves selected `isgl` documents.
 
+## Admin ID naming and uniqueness
+
+Admin-managed resources use business IDs (not Mongo `_id`) for create/edit/view/delete routes and lookups.
+
+| Resource | ID key | Naming rule | Uniqueness |
+|---|---|---|---|
+| User | `user_id` (mirrors `username`) | lowercase login identifier | unique |
+| Role | `role_id` | lowercase role slug (for example `viewer`, `admin`) | unique |
+| Permission | `permission_id` | stable permission key (for example `edit_sample`) | unique |
+| ASP | `asp_id` | assay identifier used by samples (`sample.assay`) | unique |
+| ASPC | `aspc_id` | `<assay>:<environment>` | unique |
+| ISGL | `isgl_id` | center-defined genelist identifier | unique |
+
+Create operations validate these IDs before insert:
+
+- If the ID already exists, API returns `409 Conflict`.
+- If required IDs are missing, API returns `400`.
+- UI routes always pass business IDs for `view`, `edit`, `toggle active`, and `delete`.
+- Create forms perform immediate inline uniqueness checks while typing and block submit until IDs are unique.
+
+### ASPC default list policy
+
+For each `aspc_id` (`assay:environment`), ASPC can define default list selection policy:
+
+- `filters.genelists` default SNV genelists
+- `filters.cnv_genelists` default CNV genelists
+- `filters.fusion_genelists` default fusion genelists
+- `use_diagnosis_genelist` diagnosis/subpanel-driven auto-selection toggle
+
+If those default list fields are empty, samples start with manual list selection only.
+
 ## Sample settings page: what it controls
 
 The sample settings UI (`/edit/<sample_id>`) controls:
@@ -88,6 +119,8 @@ Primary API routes behind that page:
 ## DNA filter keys (sample-level)
 
 Stored under `samples.filters.*`.
+SNV base behavior is configured by these filter keys. Assay-specific operator overrides are configured with:
+`asp_configs.query.snv`, `asp_configs.query.cnv`, `asp_configs.query.fusion`, `asp_configs.query.transloc`.
 
 | Key | Type | Meaning | Used by |
 |---|---|---|---|
@@ -106,6 +139,7 @@ Stored under `samples.filters.*`.
 | `vep_consequences` | list[str] | Consequence groups expanded to SO terms | SNV query |
 | `cnveffects` | list[str] | CNV effect groups (`loss`, `gain`) | CNV post-filtering |
 | `genelists` | list[str] | Selected ISGL ids | Effective gene scope + query filtering |
+| `cnv_genelists` | list[str] | Selected CNV ISGL ids | CNV gene-scope filtering |
 
 ## RNA filter keys (sample-level)
 
@@ -130,7 +164,7 @@ Stored under `samples.filters.*`.
 
 ## Query operators used in backend filters
 
-Mongo operators used by DNA/RNA query builders include:
+Mongo operators used by DNA/RNA query logic include:
 
 - `$gte`, `$lte` for threshold bounds
 - `$in` for selected lists (genes, consequence terms, callers/effects)
@@ -138,6 +172,10 @@ Mongo operators used by DNA/RNA query builders include:
 - `$or`, `$and` for combined criteria
 - `$exists`, `$type`, `$not` for missing/typed value handling
 - `$regex` (RNA fusion list descriptors such as known/mitelman)
+
+ASPC query overrides under `asp_configs.query.<domain>` accept Mongo operator objects directly
+(for example `$or`, `$and`, `$nor`, `$expr`, field predicates), where `<domain>` is
+`snv`, `cnv`, `fusion`, or `transloc`.
 
 ## 4) Pagination domain
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from flask import Response, abort, g, redirect, render_template, request, url_for
+from flask import Response, abort, g, jsonify, redirect, render_template, request, url_for
 from flask import current_app as app
 from flask_login import login_required
 
@@ -145,6 +145,22 @@ def create_permission() -> Response | str:
         "permissions/create_permission.html",
         schema=context.schema,
     )
+
+
+@admin_bp.route("/permissions/validate_permission_id", methods=["POST"])
+@login_required
+def validate_permission_id() -> Response:
+    """Validate whether a permission id already exists."""
+    permission_id = str((request.json or {}).get("permission_id", "")).strip()
+    try:
+        payload = get_web_api_client().post_json(
+            api_endpoints.admin("permissions", "validate_permission_id"),
+            headers=forward_headers(),
+            json_body={"permission_id": permission_id},
+        )
+        return jsonify({"exists": bool(payload.get("exists", False))})
+    except ApiRequestError as exc:
+        return jsonify({"exists": False, "error": str(exc)}), 502
 
 
 @admin_bp.route("/permissions/<perm_id>/edit", methods=["GET", "POST"])

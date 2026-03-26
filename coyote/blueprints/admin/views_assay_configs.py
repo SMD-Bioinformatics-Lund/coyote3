@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from copy import deepcopy
 
-from flask import Response, abort, g, redirect, render_template, request, url_for
+from flask import Response, abort, g, jsonify, redirect, render_template, request, url_for
 from flask import current_app as app
 from flask_login import login_required
 
@@ -120,7 +120,6 @@ def _render_create_form(category: str) -> Response | str:
             form_data["verification_samples"] = json.loads(
                 request.form.get("verification_samples", "{}")
             )
-            form_data["query"] = json.loads(request.form.get("query", "{}"))
 
         config = util.admin.process_form_to_config(form_data, context.schema)
         config.update(
@@ -153,6 +152,29 @@ def _render_create_form(category: str) -> Response | str:
         category=category,
         prefill_map_json=json.dumps(context.prefill_map),
     )
+
+
+@admin_bp.route("/aspc/validate_aspc_id", methods=["POST"])
+@login_required
+def validate_aspc_id() -> Response:
+    """Validate whether an aspc_id already exists."""
+    body = request.json or {}
+    aspc_id = str(body.get("aspc_id", "")).strip()
+    assay_name = str(body.get("assay_name", "")).strip()
+    environment = str(body.get("environment", "")).strip()
+    try:
+        payload = get_web_api_client().post_json(
+            api_endpoints.admin("aspc", "validate_aspc_id"),
+            headers=forward_headers(),
+            json_body={
+                "aspc_id": aspc_id,
+                "assay_name": assay_name,
+                "environment": environment,
+            },
+        )
+        return jsonify({"exists": bool(payload.get("exists", False))})
+    except ApiRequestError as exc:
+        return jsonify({"exists": False, "error": str(exc)}), 502
 
 
 @admin_bp.route("/aspc")
@@ -244,7 +266,6 @@ def edit_assay_config(assay_id: str) -> Response | str:
         form_data["verification_samples"] = util.common.safe_json_load(
             request.form.get("verification_samples", "{}")
         )
-        form_data["query"] = util.common.safe_json_load(request.form.get("query", "{}"))
 
         updated_config = util.admin.process_form_to_config(form_data, context.schema)
         updated_config["_id"] = assay_config.get("_id")

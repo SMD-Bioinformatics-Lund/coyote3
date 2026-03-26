@@ -1,8 +1,7 @@
 # Schema Contracts And Versioning
 
-## Why this exists
-
-Coyote3 uses domain-oriented Pydantic DB contracts for collection writes. Admin/resource creation is validated by backend contracts before DB writes.
+Coyote3 enforces collection contracts through domain-oriented Pydantic models.
+All managed admin writes and ingest writes are contract-validated before persistence.
 
 Managed-resource wiring lives in one registry:
 
@@ -52,7 +51,11 @@ Create/update flows validate and normalize payloads against contracts before DB 
   - Roles (`roles`)
   - Permissions (`permissions`)
 
-This gives strict key/type checks while still allowing forward-compatible extra keys.
+Contract ownership for ingestion is explicit:
+
+- sample file-key groups (`DNA_SAMPLE_FILE_KEYS`, `RNA_SAMPLE_FILE_KEYS`, `SAMPLE_SOURCE_PATH_KEYS`) are defined in `api/contracts/schemas/samples.py`
+- dependent ingest collection bindings are defined in `api/contracts/schemas/registry.py`
+- ingest service consumes those contract-owned constants and writes normalized documents only
 
 ## UI schema source
 
@@ -92,7 +95,7 @@ Collection validation is enforced by Pydantic contracts in `api/contracts/schema
 
 - Keep `version` increments on updates.
 - Keep `version_history` entries on create/update mutations.
-- Prefer additive contract changes and explicit migration plans for breaking changes.
+- Apply explicit contract changes and maintain strict write-path validation.
 - Use strict contracts where key-level lock is required (`_StrictDocBase`).
 
 ## Recommended evolution pattern
@@ -104,4 +107,4 @@ Collection validation is enforced by Pydantic contracts in `api/contracts/schema
 5. Update docs generated from contracts (`scripts/export_collection_contracts_doc.py`) and relevant developer/product pages.
 6. Add/update tests in `tests/unit/test_db_documents.py` and admin-service tests.
 7. Run `bash scripts/check_contract_integrity.sh` before merge.
-7. If a breaking key change is unavoidable, add migration script and runbook entry.
+7. For breaking key changes, add migration script and runbook entry.

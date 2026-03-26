@@ -181,6 +181,7 @@ Admins can:
 1. Create, edit, view, toggle, and delete roles.
 2. Create, edit, view, toggle, and delete permissions.
 3. Work with versioned resource edits in role/permission management.
+4. Open **Data Ingestion** workspace to upload YAML + files and run collection add/update operations (developer/admin access).
 
 ## Assay resources
 

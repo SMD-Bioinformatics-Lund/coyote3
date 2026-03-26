@@ -175,7 +175,7 @@ class _AdminRepoStub:
         Returns:
             The function result.
         """
-        if user_id == "missing":
+        if user_id in {"missing", "newtester"}:
             return None
         return {
             "_id": "tester",
@@ -267,7 +267,7 @@ class _AdminRepoStub:
         Returns:
             The function result.
         """
-        if role_id == "missing":
+        if role_id in {"missing", "developer"}:
             return None
         return {
             "_id": "admin",
@@ -366,7 +366,7 @@ class _AdminRepoStub:
         Returns:
             The function result.
         """
-        if permission_id == "missing":
+        if permission_id in {"missing", "perm.create"}:
             return None
         return {
             "_id": permission_id,
@@ -838,8 +838,8 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
     payload = service.create_user(
         payload={
             "form_data": {
-                "username": "Tester",
-                "email": "Tester@Example.com",
+                "username": "NewTester",
+                "email": "NewTester@Example.com",
                 "role": "admin",
                 "permissions": ["perm.a", "perm.b"],
             }
@@ -848,8 +848,8 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
     )
 
     assert payload["resource"] == "user"
-    assert repo.created_user["username"] == "tester"
-    assert repo.created_user["email"] == "tester@example.com"
+    assert repo.created_user["username"] == "newtester"
+    assert repo.created_user["email"] == "newtester@example.com"
     assert repo.created_user["password"] == "H:secret"
     assert repo.created_user["permissions"] == ["perm.b"]
 
@@ -901,13 +901,13 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
     )
 
     payload = service.create_role(
-        payload={"form_data": {"name": "Admin"}}, actor_username="actor@example.com"
+        payload={"form_data": {"name": "Developer"}}, actor_username="actor@example.com"
     )
 
     assert payload["resource"] == "role"
-    assert repo.created_role["role_id"] == "admin"
-    assert repo.created_role["name"] == "Admin"
-    assert repo.created_role["level"] == 99999
+    assert repo.created_role["role_id"] == "developer"
+    assert repo.created_role["name"] == "Developer"
+    assert repo.created_role["level"] == 9999
 
 
 def test_admin_role_service_delete_role_removes_existing_role():

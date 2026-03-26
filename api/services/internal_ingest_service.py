@@ -17,8 +17,18 @@ from pymongo.errors import BulkWriteError, DuplicateKeyError
 from pysam import VariantFile
 
 import config
-from api.contracts.schemas.registry import supported_collections, validate_collection_document
-from api.contracts.schemas.samples import SamplesDoc
+from api.contracts.schemas.registry import (
+    INGEST_DEPENDENT_COLLECTIONS,
+    INGEST_SINGLE_DOCUMENT_KEYS,
+    normalize_collection_document,
+    supported_collections,
+)
+from api.contracts.schemas.samples import (
+    DNA_SAMPLE_FILE_KEYS,
+    RNA_SAMPLE_FILE_KEYS,
+    SAMPLE_SOURCE_PATH_KEYS,
+    SamplesDoc,
+)
 from api.core.dna.variant_identity import ensure_variant_identity_fields
 from api.extensions import store
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
@@ -43,19 +53,6 @@ _CASE_CONTROL_KEYS = [
     "control_purity",
 ]
 
-_INGEST_DATA_TYPES: dict[str, str] = {
-    "vcf_files": "DNA",
-    "cnv": "DNA",
-    "biomarkers": "DNA",
-    "transloc": "DNA",
-    "lowcov": "DNA",
-    "cov": "DNA",
-    "fusion_files": "RNA",
-    "expression_path": "RNA",
-    "classification_path": "RNA",
-    "qc": "RNA",
-}
-
 
 def _exists(path: str | None) -> bool:
     return bool(path) and os.path.exists(path)
@@ -64,10 +61,6 @@ def _exists(path: str | None) -> bool:
 def _require_exists(label: str, path: str | None) -> None:
     if not _exists(path):
         raise FileNotFoundError(f"{label} missing or not readable: {path}")
-
-
-def _is_no_update(value: Any) -> bool:
-    return isinstance(value, str) and value.strip().lower() == "no_update"
 
 
 def _validate_yaml_payload_like_import_script(payload: dict[str, Any]) -> None:
@@ -108,6 +101,7 @@ def build_sample_meta_dict(args: dict[str, Any]) -> dict[str, Any]:
         "increment",
         "update",
         "dev",
+        "_runtime_files",
     }
     for key, value in args.items():
         if key in blocked:
@@ -122,16 +116,26 @@ def build_sample_meta_dict(args: dict[str, Any]) -> dict[str, Any]:
     return sample_dict
 
 
-def _data_typer(args: dict[str, Any]) -> str | None:
-    dtype = None
-    for key in args:
-        if key in _INGEST_DATA_TYPES:
-            mapped = _INGEST_DATA_TYPES[key]
-            if dtype is None:
-                dtype = mapped
-            elif mapped != dtype:
-                raise ValueError("Data types conflict: both RNA and DNA detected.")
-    return dtype
+def _runtime_file_path(args: dict[str, Any], key: str) -> str | None:
+    runtime = args.get("_runtime_files")
+    if isinstance(runtime, dict):
+        value = runtime.get(key)
+        if value:
+            return str(value)
+    value = args.get(key)
+    return str(value) if value else None
+
+
+def _infer_omics_layer(args: dict[str, Any]) -> str | None:
+    has_dna = any(bool(args.get(key)) for key in DNA_SAMPLE_FILE_KEYS)
+    has_rna = any(bool(args.get(key)) for key in RNA_SAMPLE_FILE_KEYS)
+    if has_dna and has_rna:
+        raise ValueError("Data types conflict: both RNA and DNA detected.")
+    if has_dna:
+        return "dna"
+    if has_rna:
+        return "rna"
+    return None
 
 
 def _catch_left_right(case_id: str, name: str) -> tuple[str, str, str]:
@@ -414,34 +418,33 @@ class DnaIngestParser:
 
     def parse(self, args: dict[str, Any]) -> dict[str, Any]:
         preload: dict[str, Any] = {}
-        vcf = args.get("vcf_files")
-        if not args.get("update") or not _is_no_update(vcf):
+        vcf = _runtime_file_path(args, "vcf_files")
+        if vcf:
             _require_exists("VCF", vcf)
             preload["snvs"] = self._parse_snvs_only(vcf)
 
         if "cnv" in args:
-            _require_exists("CNV JSON", args["cnv"])
-            with open(args["cnv"], "r", encoding="utf-8") as handle:
+            cnv_path = _runtime_file_path(args, "cnv")
+            _require_exists("CNV JSON", cnv_path)
+            with open(cnv_path, "r", encoding="utf-8") as handle:
                 cnv_doc = json.load(handle)
             preload["cnvs"] = [cnv_doc[key] for key in cnv_doc]
 
         if "biomarkers" in args:
-            _require_exists("Biomarkers JSON", args["biomarkers"])
-            with open(args["biomarkers"], "r", encoding="utf-8") as handle:
+            biomarkers_path = _runtime_file_path(args, "biomarkers")
+            _require_exists("Biomarkers JSON", biomarkers_path)
+            with open(biomarkers_path, "r", encoding="utf-8") as handle:
                 preload["biomarkers"] = json.load(handle)
 
         if "transloc" in args:
-            _require_exists("DNA translocations VCF", args["transloc"])
-            preload["transloc"] = self._parse_transloc_only(args["transloc"])
+            transloc_path = _runtime_file_path(args, "transloc")
+            _require_exists("DNA translocations VCF", transloc_path)
+            preload["transloc"] = self._parse_transloc_only(transloc_path)
 
-        if "lowcov" in args and "cov" in args:
-            raise ValueError("Both lowcov and cov present; choose one")
-        if "lowcov" in args:
-            _require_exists("Low coverage BED", args["lowcov"])
-            preload["lowcov"] = self._parse_lowcov_only(args["lowcov"], args.get("name"))
         if "cov" in args:
-            _require_exists("Coverage JSON", args["cov"])
-            with open(args["cov"], "r", encoding="utf-8") as handle:
+            cov_path = _runtime_file_path(args, "cov")
+            _require_exists("Coverage JSON", cov_path)
+            with open(cov_path, "r", encoding="utf-8") as handle:
                 preload["cov"] = json.load(handle)
 
         return preload
@@ -599,23 +602,26 @@ class RnaIngestParser:
     @staticmethod
     def parse(args: dict[str, Any]) -> dict[str, Any]:
         preload: dict[str, Any] = {}
-        fusions = args.get("fusion_files")
-        if not args.get("update") or not _is_no_update(fusions):
+        fusions = _runtime_file_path(args, "fusion_files")
+        if fusions:
             _require_exists("Fusions JSON", fusions)
             with open(fusions, "r", encoding="utf-8") as handle:
                 preload["fusions"] = json.load(handle)
 
         if "expression_path" in args:
-            _require_exists("Expression JSON", args["expression_path"])
-            with open(args["expression_path"], "r", encoding="utf-8") as handle:
+            expr_path = _runtime_file_path(args, "expression_path")
+            _require_exists("Expression JSON", expr_path)
+            with open(expr_path, "r", encoding="utf-8") as handle:
                 preload["rna_expr"] = json.load(handle)
         if "classification_path" in args:
-            _require_exists("Classification JSON", args["classification_path"])
-            with open(args["classification_path"], "r", encoding="utf-8") as handle:
+            class_path = _runtime_file_path(args, "classification_path")
+            _require_exists("Classification JSON", class_path)
+            with open(class_path, "r", encoding="utf-8") as handle:
                 preload["rna_class"] = json.load(handle)
         if "qc" in args:
-            _require_exists("QC JSON", args["qc"])
-            with open(args["qc"], "r", encoding="utf-8") as handle:
+            qc_path = _runtime_file_path(args, "qc")
+            _require_exists("QC JSON", qc_path)
+            with open(qc_path, "r", encoding="utf-8") as handle:
                 preload["rna_qc"] = json.load(handle)
 
         return preload
@@ -623,18 +629,6 @@ class RnaIngestParser:
 
 class InternalIngestService:
     """API-side service that ingests a fresh sample plus analysis data atomically."""
-
-    collection_binds: dict[str, str] = {
-        "snvs": "variants",
-        "cnvs": "cnvs",
-        "biomarkers": "biomarkers",
-        "transloc": "transloc",
-        "cov": "panel_coverage",
-        "fusions": "fusions",
-        "rna_expr": "rna_expression",
-        "rna_class": "rna_classification",
-        "rna_qc": "rna_qc",
-    }
 
     @staticmethod
     def _invalidate_dashboard_cache_after_ingest() -> None:
@@ -692,17 +686,23 @@ class InternalIngestService:
 
     @classmethod
     def _parse_preload(cls, args: dict[str, Any]) -> dict[str, Any]:
-        dtype = _data_typer(args)
-        if dtype == "DNA":
+        omics_layer = str(args.get("omics_layer") or "").strip().lower()
+        if not omics_layer:
+            omics_layer = _infer_omics_layer(args) or ""
+        if omics_layer == "dna":
             return DnaIngestParser(cls._canonical_map()).parse(args)
-        if dtype == "RNA":
+        if omics_layer == "rna":
             return RnaIngestParser.parse(args)
         raise ValueError("Could not determine data type (DNA/RNA) from payload")
 
     @classmethod
-    def _validate_collection_docs(cls, collection: str, docs: list[dict[str, Any]]) -> None:
+    def _normalize_collection_docs(
+        cls, collection: str, docs: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        normalized: list[dict[str, Any]] = []
         for doc in docs:
-            validate_collection_document(collection, doc)
+            normalized.append(normalize_collection_document(collection, doc))
+        return normalized
 
     @classmethod
     def _write_dependents(
@@ -714,21 +714,21 @@ class InternalIngestService:
     ) -> dict[str, int]:
         sid = str(sample_id)
         written: dict[str, int] = {}
-        for key, col_name in cls.collection_binds.items():
+        for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
             if key not in preload:
                 continue
             payload = preload[key]
             col = cls._resolve_collection(col_name)
 
-            if key in {"biomarkers", "cov", "rna_expr", "rna_class", "rna_qc"}:
+            if key in INGEST_SINGLE_DOCUMENT_KEYS:
                 if not isinstance(payload, dict):
                     raise TypeError(f"{key} expected dict, got {type(payload).__name__}")
                 doc = dict(payload)
                 doc["SAMPLE_ID"] = sid
                 if key == "cov":
                     doc["sample"] = sample_name
-                cls._validate_collection_docs(col_name, [doc])
-                col.insert_one(doc)
+                normalized_doc = cls._normalize_collection_docs(col_name, [doc])[0]
+                col.insert_one(normalized_doc)
                 written[key] = 1
                 continue
 
@@ -743,10 +743,10 @@ class InternalIngestService:
                 if key == "snvs":
                     doc = ensure_variant_identity_fields(doc)
                 docs.append(doc)
-            cls._validate_collection_docs(col_name, docs)
-            if docs:
-                col.insert_many(docs)
-            written[key] = len(docs)
+            normalized_docs = cls._normalize_collection_docs(col_name, docs)
+            if normalized_docs:
+                col.insert_many(normalized_docs)
+            written[key] = len(normalized_docs)
         return written
 
     @classmethod
@@ -761,8 +761,7 @@ class InternalIngestService:
         """Insert dependent analysis payload for an existing sample id."""
         sid = str(sample_id)
         written: dict[str, int] = {}
-        dict_payload_keys = {"biomarkers", "cov", "rna_expr", "rna_class", "rna_qc"}
-        for key, col_name in cls.collection_binds.items():
+        for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
             if key not in preload:
                 continue
             col = cls._resolve_collection(col_name)
@@ -770,15 +769,15 @@ class InternalIngestService:
                 col.delete_many({"SAMPLE_ID": sid})
 
             raw_payload: Any = preload[key]
-            if key in dict_payload_keys:
+            if key in INGEST_SINGLE_DOCUMENT_KEYS:
                 if not isinstance(raw_payload, dict):
                     raise ValueError(f"{key} expected dict payload")
                 doc = dict(raw_payload)
                 doc["SAMPLE_ID"] = sid
                 if key == "cov":
                     doc["sample"] = sample_name
-                cls._validate_collection_docs(col_name, [doc])
-                col.insert_one(doc)
+                normalized_doc = cls._normalize_collection_docs(col_name, [doc])[0]
+                col.insert_one(normalized_doc)
                 written[key] = 1
                 continue
 
@@ -793,16 +792,16 @@ class InternalIngestService:
                 if key == "snvs":
                     doc = ensure_variant_identity_fields(doc)
                 docs.append(doc)
-            cls._validate_collection_docs(col_name, docs)
-            if docs:
-                col.insert_many(docs)
-            written[key] = len(docs)
+            normalized_docs = cls._normalize_collection_docs(col_name, docs)
+            if normalized_docs:
+                col.insert_many(normalized_docs)
+            written[key] = len(normalized_docs)
         return written
 
     @classmethod
     def _cleanup(cls, sample_id: ObjectId) -> None:
         sid = str(sample_id)
-        for collection in cls.collection_binds.values():
+        for collection in INGEST_DEPENDENT_COLLECTIONS.values():
             try:
                 store.coyote_db[collection].delete_many({"SAMPLE_ID": sid})
             except Exception:
@@ -825,7 +824,7 @@ class InternalIngestService:
     ) -> dict[str, list[dict[str, Any]]]:
         sid = str(sample_id)
         backup: dict[str, list[dict[str, Any]]] = {}
-        for key, col_name in cls.collection_binds.items():
+        for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
             if key in keys:
                 backup[key] = list(store.coyote_db[col_name].find({"SAMPLE_ID": sid}))
         return backup
@@ -835,7 +834,7 @@ class InternalIngestService:
         cls, *, sample_id: ObjectId, sample_name: str, backup: dict[str, list[dict[str, Any]]]
     ) -> None:
         sid = str(sample_id)
-        for key, col_name in cls.collection_binds.items():
+        for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
             if key not in backup:
                 continue
             col = store.coyote_db[col_name]
@@ -859,7 +858,7 @@ class InternalIngestService:
         keys_to_replace = set(preload.keys())
         backup = cls._snapshot_dependents(sample_id=sample_id, keys=keys_to_replace)
         try:
-            for key, col_name in cls.collection_binds.items():
+            for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
                 if key in keys_to_replace:
                     store.coyote_db[col_name].delete_many({"SAMPLE_ID": sid})
             return cls._write_dependents(
@@ -874,20 +873,26 @@ class InternalIngestService:
         cls, *, sample_doc: dict[str, Any], payload: dict[str, Any]
     ) -> dict[str, Any]:
         normalized = dict(payload)
-        dtype = _data_typer(normalized)
-        if "fusion_files" in sample_doc:
-            if dtype == "DNA":
-                raise ValueError("Cannot add DNA data to an existing RNA sample")
-            if "fusion_files" not in normalized:
-                normalized["fusion_files"] = "no_update"
-        elif "vcf_files" in sample_doc:
-            if dtype == "RNA":
-                raise ValueError("Cannot add RNA data to an existing DNA sample")
-            if "vcf_files" not in normalized:
-                normalized["vcf_files"] = "no_update"
-        else:
+        existing_layer = str(sample_doc.get("omics_layer") or "").strip().lower()
+        if existing_layer not in {"dna", "rna"}:
+            existing_layer = _infer_omics_layer(sample_doc) or ""
+        if existing_layer not in {"dna", "rna"}:
             raise ValueError("Cannot determine existing sample data type for update")
-        normalized["update"] = True
+
+        requested_layer = str(normalized.get("omics_layer") or existing_layer).strip().lower()
+        if requested_layer != existing_layer:
+            raise ValueError(
+                f"Sample omics_layer is '{existing_layer}' and cannot be changed to '{requested_layer}'"
+            )
+
+        forbidden_keys = RNA_SAMPLE_FILE_KEYS if existing_layer == "dna" else DNA_SAMPLE_FILE_KEYS
+        bad_keys = [key for key in forbidden_keys if normalized.get(key)]
+        if bad_keys:
+            raise ValueError(
+                f"Cannot add {'RNA' if existing_layer == 'dna' else 'DNA'} data to an existing {existing_layer.upper()} sample"
+            )
+
+        normalized["omics_layer"] = existing_layer
         return normalized
 
     @classmethod
@@ -916,34 +921,77 @@ class InternalIngestService:
     @classmethod
     def _ingest_update(cls, payload: dict[str, Any]) -> dict[str, Any]:
         sample_col = store.sample_handler.get_collection()
+
+        if not payload:
+            raise ValueError("sample payload is required")
+        if not payload.get("name"):
+            raise ValueError("name is required for update")
+
         current_doc = sample_col.find_one({"name": payload["name"]})
         if not current_doc:
             raise ValueError("Sample not found for update")
 
         sample_id = current_doc["_id"]
-        parsed_payload = cls._prepare_update_payload(sample_doc=current_doc, payload=payload)
-        preload = cls._parse_preload(parsed_payload)
+
+        # Prepare update payload using existing sample context
+        parsed_payload = cls._prepare_update_payload(
+            sample_doc=current_doc,
+            payload=dict(payload),
+        )
+
+        # Strip DB-managed / operation-only fields before validation
+        parsed_payload.pop("_id", None)
+        parsed_payload.pop("data_counts", None)
+        parsed_payload.pop("time_added", None)
+        parsed_payload.pop("ingest_status", None)
+        parsed_payload.pop("report_num", None)
+        parsed_payload.pop("increment", None)
+        parsed_payload.pop("update_existing", None)
+
+        # Validate merged document shape through the strict contract.
+        merged_doc = dict(current_doc)
+        merged_doc.update(parsed_payload)
+        validated_merged = SamplesDoc.model_validate(merged_doc)
+        validated_payload = validated_merged.model_dump(exclude_none=True)
+
+        preload_payload: dict[str, Any] = {"omics_layer": validated_payload["omics_layer"]}
+        runtime_files = parsed_payload.get("_runtime_files")
+        if isinstance(runtime_files, dict) and runtime_files:
+            preload_payload["_runtime_files"] = dict(runtime_files)
+        for key in SAMPLE_SOURCE_PATH_KEYS:
+            if key in parsed_payload and parsed_payload.get(key):
+                preload_payload[key] = parsed_payload[key]
+
+        preload = cls._parse_preload(preload_payload)
+        data_counts = dict(current_doc.get("data_counts") or {})
+        data_counts.update(cls._data_counts(preload))
 
         # Keep the same update flow ordering as scripts/import_coyote_sample.py:
         # update sample metadata + counts/status first, then rewrite dependents.
-        meta_update = build_sample_meta_dict(parsed_payload)
+        merged_doc["name"] = current_doc["name"]
+        merged_doc["data_counts"] = data_counts
+        merged_doc["ingest_status"] = "ready"
+
         cls._update_meta_fields(
             sample_id=sample_id,
-            payload_meta=meta_update,
+            payload_meta=build_sample_meta_dict(validated_merged.model_dump(exclude_none=True)),
             block_fields={"assay"},
         )
-        data_counts = cls._data_counts(preload)
+
         sample_col.update_one(
             {"_id": sample_id},
             {"$set": {"ingest_status": "ready", "data_counts": data_counts}},
             upsert=False,
         )
+
         written = cls._replace_dependents(
             preload=preload,
             sample_id=sample_id,
-            sample_name=current_doc["name"],
+            sample_name=str(current_doc["name"]),
         )
+
         cls._invalidate_dashboard_cache_after_ingest()
+
         return {
             "status": "ok",
             "sample_id": str(sample_id),
@@ -954,18 +1002,37 @@ class InternalIngestService:
 
     @classmethod
     def ingest_sample_bundle(
-        cls, payload: dict[str, Any], *, allow_update: bool = False
+        cls,
+        payload: dict[str, Any],
+        *,
+        allow_update: bool = False,
+        increment: bool = False,
     ) -> dict[str, Any]:
-        if "name" not in payload or not payload.get("name"):
-            raise ValueError("name is required")
-        if allow_update:
-            return cls._ingest_update(payload)
+        if not payload:
+            raise ValueError("sample payload is required")
 
         parsed_payload = dict(payload)
-        parsed_payload["increment"] = bool(payload.get("increment", False))
-        preload = cls._parse_preload(parsed_payload)
-        sample_name = _next_unique_name(str(parsed_payload["name"]), parsed_payload["increment"])
+        parsed_payload.pop("_id", None)
+        parsed_payload.pop("data_counts", None)
+        parsed_payload.pop("time_added", None)
+        parsed_payload.pop("ingest_status", None)
+        parsed_payload.pop("report_num", None)
+        parsed_payload.pop("increment", None)
+        parsed_payload.pop("update_existing", None)
+
+        if not parsed_payload.get("name"):
+            raise ValueError("name is required")
+
+        if allow_update:
+            return cls._ingest_update(parsed_payload)
+
+        validated_sample = SamplesDoc.model_validate(parsed_payload)
+        validated_payload = validated_sample.model_dump(exclude_none=True)
+
+        preload = cls._parse_preload(validated_payload)
+        sample_name = _next_unique_name(str(validated_payload["name"]), bool(increment))
         sample_id = ObjectId()
+        data_counts = cls._data_counts(preload)
 
         try:
             written = cls._write_dependents(
@@ -973,19 +1040,25 @@ class InternalIngestService:
                 sample_id=sample_id,
                 sample_name=sample_name,
             )
-            meta = build_sample_meta_dict(parsed_payload)
+
+            meta = build_sample_meta_dict(validated_payload)
             meta.update(
                 {
                     "_id": sample_id,
                     "name": sample_name,
-                    "data_counts": cls._data_counts(preload),
+                    "data_counts": data_counts,
                     "time_added": datetime.now(timezone.utc),
                     "ingest_status": "ready",
                 }
             )
-            validated_meta = SamplesDoc.model_validate(meta)
-            store.sample_handler.get_collection().insert_one(validated_meta.model_dump())
+
+            final_sample = SamplesDoc.model_validate(meta)
+            store.sample_handler.get_collection().insert_one(
+                final_sample.model_dump(exclude_none=True)
+            )
+
             cls._invalidate_dashboard_cache_after_ingest()
+
         except Exception:
             cls._cleanup(sample_id)
             raise
@@ -995,7 +1068,7 @@ class InternalIngestService:
             "sample_id": str(sample_id),
             "sample_name": sample_name,
             "written": written,
-            "data_counts": cls._data_counts(preload),
+            "data_counts": data_counts,
         }
 
     @classmethod
@@ -1003,9 +1076,9 @@ class InternalIngestService:
         cls, *, collection: str, document: dict[str, Any], ignore_duplicate: bool = False
     ) -> dict[str, Any]:
         """Validate and insert one document into a supported collection."""
-        validate_collection_document(collection, document)
+        normalized_doc = normalize_collection_document(collection, document)
         try:
-            result = cls._resolve_collection(collection).insert_one(dict(document))
+            result = cls._resolve_collection(collection).insert_one(dict(normalized_doc))
         except DuplicateKeyError:
             if ignore_duplicate:
                 return {
@@ -1028,11 +1101,11 @@ class InternalIngestService:
         """Validate and insert many documents into a supported collection."""
         if not documents:
             return {"status": "ok", "collection": collection, "inserted_count": 0}
-        cls._validate_collection_docs(collection, documents)
+        normalized_docs = cls._normalize_collection_docs(collection, documents)
         inserted_count = 0
         try:
             result = cls._resolve_collection(collection).insert_many(
-                [dict(doc) for doc in documents], ordered=False
+                [dict(doc) for doc in normalized_docs], ordered=False
             )
             inserted_count = len(result.inserted_ids)
         except BulkWriteError as exc:
@@ -1048,4 +1121,30 @@ class InternalIngestService:
             "status": "ok",
             "collection": collection,
             "inserted_count": inserted_count,
+        }
+
+    @classmethod
+    def upsert_collection_document(
+        cls,
+        *,
+        collection: str,
+        match: dict[str, Any],
+        document: dict[str, Any],
+        upsert: bool = False,
+    ) -> dict[str, Any]:
+        """Validate and replace one document in a supported collection."""
+        if not isinstance(match, dict) or not match:
+            raise ValueError("match must be a non-empty object")
+        normalized_doc = normalize_collection_document(collection, document)
+        result = cls._resolve_collection(collection).replace_one(
+            filter=match,
+            replacement=normalized_doc,
+            upsert=bool(upsert),
+        )
+        return {
+            "status": "ok",
+            "collection": collection,
+            "matched_count": int(result.matched_count or 0),
+            "modified_count": int(result.modified_count or 0),
+            "upserted_id": str(result.upserted_id) if result.upserted_id else None,
         }

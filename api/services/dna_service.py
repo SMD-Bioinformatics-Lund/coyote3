@@ -5,8 +5,8 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from api.core.dna.cnvqueries import build_cnv_query
 from api.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
-from api.core.dna.query_builders import build_cnv_query
 from api.http import api_error
 from api.repositories.dna_repository import DnaRouteRepository
 from api.services.dna_export import (
@@ -93,7 +93,11 @@ class DnaService:
         }
 
     def load_cnvs_for_sample(
-        self, *, sample: dict, sample_filters: dict, filter_genes: list[str]
+        self,
+        *,
+        sample: dict,
+        sample_filters: dict,
+        filter_genes: list[str],
     ) -> list[dict]:
         """Load cnvs for sample.
 
@@ -106,7 +110,8 @@ class DnaService:
             list[dict]: The function result.
         """
         cnv_query = build_cnv_query(
-            str(sample["_id"]), filters={**sample_filters, "filter_genes": filter_genes}
+            str(sample["_id"]),
+            filters={**sample_filters, "filter_genes": filter_genes},
         )
         cnvs = list(self.repository.cnv_handler.get_sample_cnvs(cnv_query))
         filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))

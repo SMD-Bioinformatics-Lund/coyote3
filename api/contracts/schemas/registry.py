@@ -79,6 +79,22 @@ COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "asp_to_groups": TypeAdapter(AssayPanelToAssayGroupMappingDoc),
 }
 
+INGEST_DEPENDENT_COLLECTIONS: dict[str, str] = {
+    "snvs": "variants",
+    "cnvs": "cnvs",
+    "biomarkers": "biomarkers",
+    "transloc": "translocations",
+    "cov": "panel_coverage",
+    "fusions": "fusions",
+    "rna_expr": "rna_expression",
+    "rna_class": "rna_classification",
+    "rna_qc": "rna_qc",
+}
+
+INGEST_SINGLE_DOCUMENT_KEYS: frozenset[str] = frozenset(
+    {"biomarkers", "cov", "rna_expr", "rna_class", "rna_qc"}
+)
+
 
 def validate_collection_document(collection: str, payload: dict[str, Any]) -> None:
     """Validate one document against the mapped collection model."""
@@ -94,7 +110,10 @@ def normalize_collection_document(collection: str, payload: dict[str, Any]) -> d
     if not adapter:
         raise ValueError(f"No DB document model registered for collection '{collection}'")
     parsed = adapter.validate_python(payload)
-    return parsed.model_dump(by_alias=True, exclude_none=False)
+    normalized = parsed.model_dump(by_alias=True, exclude_none=False)
+    if normalized.get("_id") is None:
+        normalized.pop("_id", None)
+    return normalized
 
 
 def supported_collections() -> list[str]:

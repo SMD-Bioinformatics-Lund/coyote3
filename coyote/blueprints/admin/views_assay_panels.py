@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from flask import Response, abort, g, redirect, render_template, request, url_for
+from flask import Response, abort, g, jsonify, redirect, render_template, request, url_for
 from flask import current_app as app
 from flask_login import login_required
 
@@ -164,9 +164,7 @@ def create_assay_panel():
         config = util.admin.process_form_to_config(form_data, context.schema)
         config["_id"] = config["assay_name"]
         config["covered_genes"] = covered_genes
-        config["covered_genes_count"] = len(covered_genes)
         config["germline_genes"] = germline_genes
-        config["germline_genes_count"] = len(germline_genes)
         try:
             get_web_api_client().post_json(
                 api_endpoints.admin("asp"),
@@ -183,6 +181,22 @@ def create_assay_panel():
         "asp/create_asp.html",
         schema=context.schema,
     )
+
+
+@admin_bp.route("/asp/validate_asp_id", methods=["POST"])
+@login_required
+def validate_asp_id() -> Response:
+    """Validate whether an asp_id already exists."""
+    asp_id = str((request.json or {}).get("asp_id", "")).strip()
+    try:
+        payload = get_web_api_client().post_json(
+            api_endpoints.admin("asp", "validate_asp_id"),
+            headers=forward_headers(),
+            json_body={"asp_id": asp_id},
+        )
+        return jsonify({"exists": bool(payload.get("exists", False))})
+    except ApiRequestError as exc:
+        return jsonify({"exists": False, "error": str(exc)}), 502
 
 
 @admin_bp.route("/asp/<assay_panel_id>/edit", methods=["GET", "POST"])
@@ -226,9 +240,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
         updated = util.admin.process_form_to_config(form_data, context.schema)
         updated["_id"] = panel["_id"]
         updated["covered_genes"] = covered_genes
-        updated["covered_genes_count"] = len(covered_genes)
         updated["germline_genes"] = germline_genes
-        updated["germline_genes_count"] = len(germline_genes)
         try:
             get_web_api_client().put_json(
                 api_endpoints.admin("asp", assay_panel_id),

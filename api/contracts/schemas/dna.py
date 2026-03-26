@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 
@@ -157,7 +157,7 @@ class VariantsDoc(_DocBase):
     REF: str
     ALT: str
     ID: str
-    QUAL: float
+    QUAL: Optional[float] = None
     FILTER: list[str] = Field(default_factory=list)
     INFO: VariantInfoDoc
     GT: list[VariantGtDoc] = Field(default_factory=list)
@@ -300,7 +300,7 @@ class TranslocationsDoc(_DocBase):
     FILTER: list[str] = Field(default_factory=list)
     FORMAT: list[str] = Field(default_factory=list)
     ID: str
-    QUAL: float
+    QUAL: Optional[float] = None
     GT: list[TranslocationGtDoc]
     INFO: list[TranslocationInfoDoc]
 

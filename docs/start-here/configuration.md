@@ -76,6 +76,9 @@ Operational behavior:
 - Cache backend is not an in-process memory cache replacement for production.
 - Dashboard summary uses a two-layer cache: Redis (hot) + Mongo `dashboard_metrics` snapshot (warm).
 - Snapshot retention is enforced by a Mongo TTL index on `dashboard_metrics.updated_at`.
+- Sample home lists use Redis keys with a version token (`samples:list:version`).
+- Sample mutations (delete, report save, sample/filter updates) bump the version token immediately.
+- As a result, sample-home pages reflect state changes right after write operations without waiting for TTL expiry.
 
 Dashboard summary cache controls (different purposes):
 
@@ -182,3 +185,6 @@ bash scripts/validate_env_secrets.sh .coyote3_env
 bash scripts/validate_env_secrets.sh .coyote3_stage_env
 bash scripts/validate_env_secrets.sh .coyote3_dev_env
 ```
+
+For end-to-end operational checks (contract integrity, seed validation, first-run bootstrap, and smoke commands), see:
+[Operations / Maintenance And Quality](../operations/maintenance-and-quality.md).

@@ -289,7 +289,12 @@ class CNVsHandler(BaseHandler):
                 return int(result[0].get("uniqueCnvCount", 0) or 0)
             return 0
         except Exception as e:
-            app.logger.error(f"An error occurred: {e}")
+            app.logger.error(
+                "Failed to compute unique CNV count from collection '%s': %s",
+                self.get_collection().name,
+                e,
+                exc_info=True,
+            )
             return 0
 
     def delete_sample_cnvs(self, sample_oid: str) -> None:

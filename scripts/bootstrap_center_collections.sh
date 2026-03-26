@@ -10,6 +10,7 @@ Usage:
     --api-base-url <url> \
     (--bearer-token <token> | --username <user> --password <pass>) \
     [--seed-file <path>] \
+    [--reference-seed-data <path>] \
     [--seed-actor <email>] \
     [--with-optional] \
     [--skip-existing] \
@@ -22,6 +23,8 @@ Options:
   --password       API password (password mode)
   --seed-file      Seed directory path containing one <collection>.json file per collection
                    default: tests/fixtures/db_dummy/all_collections_dummy
+  --reference-seed-data  Directory containing compressed NDJSON reference pack files
+                   (for example hgnc_genes.seed.ndjson.gz, roles.seed.ndjson.gz)
   --seed-actor     Value used for created_by/updated_by seed metadata.
                    default: --username value, otherwise admin@coyote3.local
   --with-optional  Seed optional knowledge collections after required baseline
@@ -43,6 +46,7 @@ BEARER_TOKEN=""
 USERNAME=""
 PASSWORD=""
 SEED_FILE="tests/fixtures/db_dummy/all_collections_dummy"
+REFERENCE_SEED_DATA=""
 SEED_ACTOR=""
 WITH_OPTIONAL=0
 SKIP_EXISTING=0
@@ -57,6 +61,7 @@ while [[ $# -gt 0 ]]; do
     --username) USERNAME="$2"; shift 2 ;;
     --password) PASSWORD="$2"; shift 2 ;;
     --seed-file) SEED_FILE="$2"; shift 2 ;;
+    --reference-seed-data) REFERENCE_SEED_DATA="$2"; shift 2 ;;
     --seed-actor) SEED_ACTOR="$2"; shift 2 ;;
     --with-optional) WITH_OPTIONAL=1; shift ;;
     --skip-existing) SKIP_EXISTING=1; shift ;;
@@ -74,6 +79,10 @@ fi
 
 if [[ ! -d "$SEED_FILE" ]]; then
   echo "ERROR: seed source not found: $SEED_FILE" >&2
+  exit 2
+fi
+if [[ -n "$REFERENCE_SEED_DATA" && ! -d "$REFERENCE_SEED_DATA" ]]; then
+  echo "ERROR: reference seed data source not found: $REFERENCE_SEED_DATA" >&2
   exit 2
 fi
 
@@ -129,8 +138,9 @@ PY
 SEED_BUNDLE_DIR="$(mktemp -d)"
 trap 'rm -rf "$SEED_BUNDLE_DIR"' EXIT
 echo "[step] preparing seed bundle from ${SEED_FILE}"
-"$PYTHON_BIN" - "$SEED_FILE" "$SEED_BUNDLE_DIR" "$SEED_ACTOR" "$SEED_NOW" <<'PY'
+"$PYTHON_BIN" - "$SEED_FILE" "$SEED_BUNDLE_DIR" "$SEED_ACTOR" "$SEED_NOW" "$REFERENCE_SEED_DATA" <<'PY'
 import json
+import gzip
 import sys
 from pathlib import Path
 
@@ -138,6 +148,7 @@ source = Path(sys.argv[1])
 dest_dir = Path(sys.argv[2])
 seed_actor = sys.argv[3]
 seed_time = sys.argv[4]
+reference_seed_data = Path(sys.argv[5]) if len(sys.argv) > 5 and sys.argv[5] else None
 
 def load_seed(path: Path) -> dict[str, list[dict]]:
     payload: dict[str, list[dict]] = {}
@@ -146,6 +157,37 @@ def load_seed(path: Path) -> dict[str, list[dict]]:
         if not isinstance(value, list):
             raise SystemExit(f"Collection seed file must contain a JSON list: {file}")
         payload[file.stem] = value
+    return payload
+
+def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
+    required_pack = {
+        "hgnc_genes": "hgnc_genes.seed.ndjson.gz",
+        "permissions": "permissions.seed.ndjson.gz",
+        "refseq_canonical": "refseq_canonical.seed.ndjson.gz",
+        "roles": "roles.seed.ndjson.gz",
+        "vep_metadata": "vep_metadata.seed.ndjson.gz",
+    }
+    def load_ndjson_gzip(file_path: Path) -> list[dict]:
+        docs: list[dict] = []
+        with gzip.open(file_path, "rt", encoding="utf-8") as handle:
+            for line in handle:
+                text = line.strip()
+                if not text:
+                    continue
+                value = json.loads(text)
+                if not isinstance(value, dict):
+                    raise SystemExit(
+                        f"Reference seed file must contain JSON objects per line: {file_path}"
+                    )
+                docs.append(value)
+        return docs
+
+    payload: dict[str, list[dict]] = {}
+    for collection, filename in required_pack.items():
+        file_path = path / filename
+        if not file_path.exists():
+            raise SystemExit(f"Missing reference seed file: {file_path}")
+        payload[collection] = load_ndjson_gzip(file_path)
     return payload
 
 def normalize_extended_json(value):
@@ -158,6 +200,33 @@ def normalize_extended_json(value):
     if isinstance(value, list):
         return [normalize_extended_json(v) for v in value]
     return value
+
+def lower_business_keys(seed: dict[str, list[dict]]) -> None:
+    lowercase_fields = {
+        "permissions": ("permission_id",),
+        "roles": ("role_id",),
+        "users": ("username", "email", "role", "assay_groups", "assays", "permissions", "deny_permissions"),
+        "asp_configs": ("aspc_id", "assay_name", "asp_group"),
+        "assay_specific_panels": ("asp_id", "assay_name", "asp_group"),
+        "insilico_genelists": ("isgl_id", "diagnosis", "assay_groups", "assays"),
+        "blacklist": ("assay_group", "assay"),
+        "samples": ("assay", "subpanel"),
+    }
+
+    def normalize_item(value):
+        if isinstance(value, str):
+            return value.strip().lower()
+        if isinstance(value, list):
+            return [normalize_item(item) for item in value]
+        return value
+
+    for collection, fields in lowercase_fields.items():
+        for doc in seed.get(collection, []) or []:
+            if not isinstance(doc, dict):
+                continue
+            for field in fields:
+                if field in doc and doc[field] is not None:
+                    doc[field] = normalize_item(doc[field])
 
 def stamp_docs(seed: dict[str, list[dict]]) -> None:
     for docs in seed.values():
@@ -174,6 +243,9 @@ def stamp_docs(seed: dict[str, list[dict]]) -> None:
                 doc["updated_on"] = seed_time
 
 seed = load_seed(source)
+if reference_seed_data is not None:
+    seed.update(load_reference_seed_pack(reference_seed_data))
+lower_business_keys(seed)
 stamp_docs(seed)
 for collection, docs in seed.items():
     (dest_dir / f"{collection}.json").write_text(
@@ -182,28 +254,38 @@ for collection, docs in seed.items():
 print(f"[ok] normalized seed bundle: {dest_dir}")
 PY
 
+echo "[step] validating source seed naming"
+if [[ -n "$REFERENCE_SEED_DATA" ]]; then
+  "$PYTHON_BIN" scripts/validate_assay_consistency.py \
+    --seed-file "$SEED_FILE" \
+    --reference-seed-data "$REFERENCE_SEED_DATA"
+else
+  "$PYTHON_BIN" scripts/validate_assay_consistency.py \
+    --seed-file "$SEED_FILE"
+fi
+
 echo "[step] validating assay consistency in seed directory"
 "$PYTHON_BIN" scripts/validate_assay_consistency.py --seed-file "$SEED_BUNDLE_DIR"
 
 required_collections=(
   permissions
   roles
-  asp_configs
-  assay_specific_panels
-  insilico_genelists
   refseq_canonical
   hgnc_genes
+  vep_metadata
+  asp_configs
+  assay_specific_panels
 )
 
 optional_collections=(
+  insilico_genelists
   civic_genes
   civic_variants
-  oncokb_genes
-  oncokb_actionable
-  brcaexchange
-  iarc_tp53
   cosmic
-  vep_metadata
+  hpaexpr
+  iarc_tp53
+  oncokb_actionable
+  oncokb_genes
 )
 
 collection_count() {
@@ -220,23 +302,30 @@ print(len(value) if isinstance(value, list) else 0)
 PY
 }
 
-make_payload() {
-  "$PYTHON_BIN" - "$SEED_BUNDLE_DIR" "$1" <<'PY'
+write_payload_file() {
+  local collection="$1"
+  local ignore_duplicates="${2:-0}"
+  local out_file="$3"
+  "$PYTHON_BIN" - "$SEED_BUNDLE_DIR" "$collection" "$ignore_duplicates" >"$out_file" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 seed_dir = Path(sys.argv[1])
 collection = sys.argv[2]
+ignore_duplicates = str(sys.argv[3]).strip() == "1"
 path = seed_dir / f"{collection}.json"
 docs = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
-print(json.dumps({"collection": collection, "documents": docs}, separators=(",", ":")))
+payload = {"collection": collection, "documents": docs}
+if ignore_duplicates:
+    payload["ignore_duplicates"] = True
+print(json.dumps(payload, separators=(",", ":")))
 PY
 }
 
 post_bulk() {
   local collection="$1"
-  local payload="$2"
+  local payload_file="$2"
   local resp_file
   resp_file="$(mktemp)"
 
@@ -245,7 +334,7 @@ post_bulk() {
     -X POST "${API_BASE_URL%/}/api/v1/internal/ingest/collection/bulk" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ${BEARER_TOKEN}" \
-    --data "$payload")"
+    --data-binary "@${payload_file}")"
 
   # When caller did not request skip-existing, retry once with duplicate-tolerant
   # mode. Internal API may return generic 500 payloads, so duplicate details are
@@ -253,19 +342,15 @@ post_bulk() {
   if [[ "$status" -lt 200 || "$status" -ge 300 ]]; then
     if [[ "$SKIP_EXISTING" -eq 0 && "$STRICT_NO_RETRY" -eq 0 ]]; then
       echo "[warn] ${collection}: initial seed attempt failed; retrying with ignore_duplicates=true"
-      payload="$("$PYTHON_BIN" - <<'PY' "$payload"
-import json
-import sys
-p = json.loads(sys.argv[1])
-p["ignore_duplicates"] = True
-print(json.dumps(p, separators=(",", ":")))
-PY
-      )"
+      local retry_payload_file
+      retry_payload_file="$(mktemp)"
+      write_payload_file "$collection" "1" "$retry_payload_file"
       status="$(curl -sS -o "$resp_file" -w "%{http_code}" \
         -X POST "${API_BASE_URL%/}/api/v1/internal/ingest/collection/bulk" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer ${BEARER_TOKEN}" \
-        --data "$payload")"
+        --data-binary "@${retry_payload_file}")"
+      rm -f "$retry_payload_file"
     fi
   fi
 
@@ -284,25 +369,17 @@ PY
 seed_one() {
   local collection="$1"
   local count
-  local payload
+  local payload_file
   count="$(collection_count "$collection")"
   if [[ "$count" -eq 0 ]]; then
     echo "[skip] ${collection}: no docs in ${SEED_FILE}"
     return 0
   fi
   echo "[step] seeding ${collection} (${count} docs)"
-  payload="$(make_payload "$collection")"
-  if [[ "$SKIP_EXISTING" -eq 1 ]]; then
-    payload="$("$PYTHON_BIN" - <<'PY' "$payload"
-import json
-import sys
-p = json.loads(sys.argv[1])
-p["ignore_duplicates"] = True
-print(json.dumps(p, separators=(",", ":")))
-PY
-    )"
-  fi
-  post_bulk "$collection" "$payload"
+  payload_file="$(mktemp)"
+  write_payload_file "$collection" "$SKIP_EXISTING" "$payload_file"
+  post_bulk "$collection" "$payload_file"
+  rm -f "$payload_file"
 }
 
 echo "[step] API health check"

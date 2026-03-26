@@ -1,8 +1,8 @@
 [
   {
-    "asp_id": "ASSAY_A",
-    "assay_name": "ASSAY_A",
-    "asp_group": "GROUP_A",
+    "asp_id": "assay_1",
+    "assay_name": "assay_1",
+    "asp_group": "hematology",
     "asp_family": "panel-dna",
     "asp_category": "dna",
     "display_name": "Hema GMS v1",

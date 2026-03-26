@@ -27,6 +27,7 @@ from api.infra.db.fusions import FusionsHandler
 from api.infra.db.group_coverage import GroupCoverageHandler
 from api.infra.db.isgl import ISGLHandler
 from api.infra.db.permissions import PermissionsHandler
+from api.infra.db.query_profiles import QueryProfilesHandler
 from api.infra.db.reported_variants import ReportedVariantsHandler
 from api.infra.db.rna_classification import RNAClassificationHandler
 from api.infra.db.rna_expression import RNAExpressionHandler
@@ -181,6 +182,7 @@ class MongoAdapter:
         self.aspc_handler = ASPConfigHandler(self)
         self.roles_handler = RolesHandler(self)
         self.permissions_handler = PermissionsHandler(self)
+        self.query_profiles_handler = QueryProfilesHandler(self)
         self.vep_meta_handler = VEPMetaHandler(self)
         self.isgl_handler = ISGLHandler(self)
         self.hgnc_handler = HGNCHandler(self)
@@ -191,6 +193,7 @@ class MongoAdapter:
         self._ensure_handler_indexes("users", self.user_handler)
         self._ensure_handler_indexes("roles", self.roles_handler)
         self._ensure_handler_indexes("permissions", self.permissions_handler)
+        self._ensure_handler_indexes("query_profiles", self.query_profiles_handler)
         self._ensure_handler_indexes("asp", self.asp_handler)
         self._ensure_handler_indexes("aspc", self.aspc_handler)
         self._ensure_handler_indexes("isgl", self.isgl_handler)

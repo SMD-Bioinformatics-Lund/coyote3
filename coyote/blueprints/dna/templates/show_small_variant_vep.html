@@ -216,7 +216,7 @@
           <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Pop. Freq %</th>
             <td class="p-1 text-right font-medium break-all">
-              {% if variant.gnomad_frequency != "" %}
+              {% if variant.gnomad_frequency is number %}
                 {{ '%.3f' | format(100*variant.gnomad_frequency)}}
               {% else %}
                 -
@@ -942,8 +942,8 @@
               <tbody id="population-frequencies-info-body">
                 <tr class="hover:bg-purple-50 border-t border-gray-400 text-left align-top">
                   <td class="p-2 font-medium">gnomAD (default)</td>
-                  <td class="p-2 {% if variant.gnomad_frequency and variant.gnomad_frequency > sample.filters.max_popfreq %}text-red-500 font-semibold{% else %}text-gray-800{% endif %}">
-                    {% if variant.gnomad_frequency != "" %}
+                  <td class="p-2 {% if variant.gnomad_frequency is number and variant.gnomad_frequency > sample.filters.max_popfreq %}text-red-500 font-semibold{% else %}text-gray-800{% endif %}">
+                    {% if variant.gnomad_frequency is number %}
                       {{ '%.3f' | format(100*variant.gnomad_frequency)}}
                     {% else %}
                       -
@@ -952,8 +952,8 @@
                 </tr>
                 <tr class="hover:bg-purple-50 border-t border-gray-400 text-left align-top">
                   <td class="p-2 font-medium">gnomAD MAX</td>
-                  <td class="p-2 {% if variant.gnomad_max and variant.gnomad_max > sample.filters.max_popfreq %}text-red-500 font-semibold{% else %}text-gray-800{% endif %}">
-                    {% if variant.gnomad_max != "" %}
+                  <td class="p-2 {% if variant.gnomad_max is number and variant.gnomad_max > sample.filters.max_popfreq %}text-red-500 font-semibold{% else %}text-gray-800{% endif %}">
+                    {% if variant.gnomad_max is number %}
                       {{ '%.3f' | format(100*variant.gnomad_max)}}
                     {% else %}
                       -
@@ -962,8 +962,8 @@
                 </tr>
                 <tr class="hover:bg-purple-50 border-t border-gray-400 text-left align-top">
                   <td class="p-2 font-medium">1000 Genome</td>
-                  <td class="p-2 {% if variant.thousandG_frequency and variant.thousandG_frequency > sample.filters.max_popfreq %}text-red-500 font-semibold{% else %}text-gray-800{% endif %}">
-                    {% if variant.thousandG_frequency != "" %}
+                  <td class="p-2 {% if variant.thousandG_frequency is number and variant.thousandG_frequency > sample.filters.max_popfreq %}text-red-500 font-semibold{% else %}text-gray-800{% endif %}">
+                    {% if variant.thousandG_frequency is number %}
                       {{ '%.3f' | format(100*variant.thousandG_frequency)}}
                     {% else %}
                       -
@@ -972,8 +972,8 @@
                 </tr>
                 <tr class="hover:bg-purple-50 border-t border-gray-400 text-left align-top">
                   <td class="p-2 font-medium">ExAC</td>
-                  <td class="p-2 {% if variant.exac_frequency and variant.exac_frequency > sample.filters.max_popfreq %}text-red-500 font-semibold{% else %}text-gray-800{% endif %}">
-                    {% if variant.exac_frequency != "" %}
+                  <td class="p-2 {% if variant.exac_frequency is number and variant.exac_frequency > sample.filters.max_popfreq %}text-red-500 font-semibold{% else %}text-gray-800{% endif %}">
+                    {% if variant.exac_frequency is number %}
                       {{ '%.3f' | format(100*variant.exac_frequency)}}
                     {% else %}
                       -

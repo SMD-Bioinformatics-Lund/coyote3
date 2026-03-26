@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from flask import Response, abort, g, redirect, render_template, request, url_for
+from flask import Response, abort, g, jsonify, redirect, render_template, request, url_for
 from flask import current_app as app
 from flask_login import login_required
 
@@ -144,6 +144,22 @@ def create_role() -> Response | str:
         "roles/create_role.html",
         schema=context.schema,
     )
+
+
+@admin_bp.route("/roles/validate_role_id", methods=["POST"])
+@login_required
+def validate_role_id() -> Response:
+    """Validate whether a role id already exists."""
+    role_id = str((request.json or {}).get("role_id", "")).strip().lower()
+    try:
+        payload = get_web_api_client().post_json(
+            api_endpoints.admin("roles", "validate_role_id"),
+            headers=forward_headers(),
+            json_body={"role_id": role_id},
+        )
+        return jsonify({"exists": bool(payload.get("exists", False))})
+    except ApiRequestError as exc:
+        return jsonify({"exists": False, "error": str(exc)}), 502
 
 
 @admin_bp.route("/roles/<role_id>/edit", methods=["GET", "POST"])

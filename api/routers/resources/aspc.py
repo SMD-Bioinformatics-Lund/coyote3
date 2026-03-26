@@ -8,6 +8,7 @@ from api.contracts.admin import (
     AdminAspcContextPayload,
     AdminAspcCreateContextPayload,
     AdminAspcListPayload,
+    AdminExistsPayload,
     AdminMutationPayload,
 )
 from api.deps.services import get_admin_aspc_service
@@ -195,3 +196,24 @@ def delete_aspc_mutation(
     """
     _ = user
     return util.common.convert_to_serializable(service.delete(assay_id=assay_id))
+
+
+@router.post("/api/v1/resources/aspc/validate_aspc_id", response_model=AdminExistsPayload)
+def validate_aspc_id_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(
+        require_access(permission="create_aspc", min_role="manager", min_level=99)
+    ),
+    service: AdminAspcService = Depends(get_admin_aspc_service),
+):
+    """Validate whether an aspc_id already exists."""
+    _ = user
+    return util.common.convert_to_serializable(
+        {
+            "exists": service.assay_config_exists(
+                aspc_id=str(payload.get("aspc_id", "") or ""),
+                assay_name=str(payload.get("assay_name", "") or ""),
+                environment=str(payload.get("environment", "") or ""),
+            )
+        }
+    )

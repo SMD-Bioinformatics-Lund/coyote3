@@ -11,8 +11,8 @@ from api.core.dna.dna_filters import (
 )
 from api.core.dna.notation import one_letter_p, standard_hgvs
 from api.core.dna.ports import DNAReportingRepository
-from api.core.dna.query_builders import build_query
 from api.core.dna.variant_identity import build_simple_id_hash_from_simple_id, normalize_simple_id
+from api.core.dna.varqueries import build_query
 from api.core.interpretation.annotation_enrichment import (
     add_global_annotations as shared_add_global_annotations,
 )

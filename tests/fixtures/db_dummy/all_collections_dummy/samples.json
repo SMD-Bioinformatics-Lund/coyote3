@@ -1,8 +1,8 @@
 [
   {
     "name": "DEMO_SAMPLE_001",
-    "assay": "ASSAY_A",
-    "subpanel": "DIAGNOSIS_A",
+    "assay": "assay_1",
+    "subpanel": "hematology_myeloid",
     "profile": "test",
     "genome_build": 38,
     "case_id": "DEMO_CASE_001",

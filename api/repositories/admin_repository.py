@@ -73,6 +73,15 @@ class AdminRepository:
         return store.aspc_handler
 
     @property
+    def query_profiles_handler(self):
+        """Query profiles handler.
+
+        Returns:
+            The function result.
+        """
+        return store.query_profiles_handler
+
+    @property
     def sample_handler(self):
         """Sample handler.
 
@@ -622,6 +631,14 @@ class AdminRepository:
             None.
         """
         self.aspc_handler.delete_aspc(assay_id)
+
+    def list_query_profiles(self, *, is_active: bool | None = None) -> list[dict[str, Any]]:
+        """List query profiles."""
+        return [
+            dict(item)
+            for item in (self.query_profiles_handler.list_query_profiles(is_active=is_active) or [])
+            if isinstance(item, dict)
+        ]
 
     def get_available_assay_envs(self, assay_id: str, allowed_envs: list[str]) -> list[str]:
         """Return available assay envs.

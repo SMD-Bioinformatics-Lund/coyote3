@@ -2,9 +2,23 @@
 
 from __future__ import annotations
 
+import asyncio
+from io import BytesIO
 from types import SimpleNamespace
 
+import pytest
+from fastapi import HTTPException, UploadFile
+
 from api.routers import internal
+
+
+def _admin_user():
+    return SimpleNamespace(
+        role="admin",
+        access_level=99999,
+        permissions=[],
+        denied_permissions=[],
+    )
 
 
 def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
@@ -63,12 +77,12 @@ def test_get_isgl_meta_internal_reads_adhoc_and_display_name(monkeypatch):
         get_isgl_display_name=lambda _isgl_id: "Focus Panel",
     )
 
-    payload = internal.get_isgl_meta_internal("ISGL123", request=object(), repository=repository)
+    payload = internal.get_isgl_meta_internal("isgl123", request=object(), repository=repository)
 
     assert calls["token"] == 1
     assert payload == {
         "status": "ok",
-        "isgl_id": "ISGL123",
+        "isgl_id": "isgl123",
         "is_adhoc": True,
         "display_name": "Focus Panel",
     }
@@ -85,9 +99,10 @@ def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
         raising=False,
     )
 
-    def _ingest(payload, *, allow_update=False):
+    def _ingest(payload, *, allow_update=False, increment=False):
         calls["payload"] = payload
         calls["allow_update"] = allow_update
+        calls["increment"] = increment
         return {
             "status": "ok",
             "sample_id": "abc",
@@ -99,16 +114,29 @@ def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
     monkeypatch.setattr(internal.InternalIngestService, "ingest_sample_bundle", _ingest)
 
     payload = internal.InternalIngestSampleBundleRequest(
-        spec={"name": "S1", "genome_build": 38, "vcf_files": "/tmp/a.vcf"}
+        sample={
+            "name": "S1",
+            "assay": "assay_1",
+            "subpanel": None,
+            "profile": "testing",
+            "genome_build": 38,
+            "case_id": "CASE_1",
+            "sample_no": 1,
+            "paired": False,
+            "sequencing_scope": "panel",
+            "omics_layer": "dna",
+            "pipeline": "pipe",
+            "pipeline_version": "v1",
+            "vcf_files": "/tmp/a.vcf",
+        },
+        increment=True,
     )
-    response = internal.ingest_sample_bundle_internal(payload=payload)
+    response = internal.ingest_sample_bundle_internal(payload=payload, user=_admin_user())
 
-    assert calls["payload"] == {
-        "name": "S1",
-        "genome_build": 38,
-        "vcf_files": "/tmp/a.vcf",
-        "increment": False,
-    }
+    assert calls["payload"]["name"] == "S1"
+    assert calls["payload"]["genome_build"] == 38
+    assert calls["payload"]["vcf_files"] == "/tmp/a.vcf"
+    assert calls["increment"] is True
     assert response["status"] == "ok"
 
 
@@ -128,7 +156,7 @@ def test_ingest_sample_bundle_internal_accepts_yaml(monkeypatch):
     monkeypatch.setattr(
         internal.InternalIngestService,
         "ingest_sample_bundle",
-        lambda payload, *, allow_update=False: {
+        lambda payload, *, allow_update=False, increment=False: {
             "status": "ok",
             "sample_id": "def",
             "sample_name": payload["name"],
@@ -138,7 +166,7 @@ def test_ingest_sample_bundle_internal_accepts_yaml(monkeypatch):
     )
 
     payload = internal.InternalIngestSampleBundleRequest(yaml_content="name: S2")
-    response = internal.ingest_sample_bundle_internal(payload=payload)
+    response = internal.ingest_sample_bundle_internal(payload=payload, user=_admin_user())
 
     assert response["sample_name"] == "S2"
 
@@ -147,19 +175,32 @@ def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
     """Test sample-bundle ingest route rejects missing/duplicate body forms."""
     empty_payload = internal.InternalIngestSampleBundleRequest()
     try:
-        internal.ingest_sample_bundle_internal(payload=empty_payload)
-        assert False, "Expected ValueError for empty payload"
-    except ValueError as exc:
+        internal.ingest_sample_bundle_internal(payload=empty_payload, user=_admin_user())
+        assert False, "Expected HTTPException for empty payload"
+    except HTTPException as exc:
         assert "spec" in str(exc)
 
     dual_payload = internal.InternalIngestSampleBundleRequest(
-        spec={"name": "X"},
+        sample={
+            "name": "X",
+            "assay": "assay_1",
+            "subpanel": None,
+            "profile": "testing",
+            "case_id": "CASE_X",
+            "sample_no": 1,
+            "paired": False,
+            "sequencing_scope": "panel",
+            "omics_layer": "dna",
+            "pipeline": "pipe",
+            "pipeline_version": "v1",
+            "vcf_files": "/tmp/x.vcf",
+        },
         yaml_content="name: X",
     )
     try:
-        internal.ingest_sample_bundle_internal(payload=dual_payload)
-        assert False, "Expected ValueError for duplicate payload forms"
-    except ValueError as exc:
+        internal.ingest_sample_bundle_internal(payload=dual_payload, user=_admin_user())
+        assert False, "Expected HTTPException for duplicate payload forms"
+    except HTTPException as exc:
         assert "only one" in str(exc)
 
 
@@ -180,7 +221,7 @@ def test_ingest_sample_bundle_internal_requires_edit_sample_permission_for_updat
         raising=False,
     )
 
-    def _ingest(payload, *, allow_update=False):
+    def _ingest(payload, *, allow_update=False, increment=False):
         calls["allow_update"] = allow_update
         return {
             "status": "ok",
@@ -192,11 +233,24 @@ def test_ingest_sample_bundle_internal_requires_edit_sample_permission_for_updat
 
     monkeypatch.setattr(internal.InternalIngestService, "ingest_sample_bundle", _ingest)
     payload = internal.InternalIngestSampleBundleRequest(
-        spec={"name": "S3", "vcf_files": "/tmp/s3.vcf"},
+        sample={
+            "name": "S3",
+            "assay": "assay_1",
+            "subpanel": None,
+            "profile": "testing",
+            "case_id": "CASE_3",
+            "sample_no": 1,
+            "paired": False,
+            "sequencing_scope": "panel",
+            "omics_layer": "dna",
+            "pipeline": "pipe",
+            "pipeline_version": "v1",
+            "vcf_files": "/tmp/s3.vcf",
+        },
         update_existing=True,
     )
-    response = internal.ingest_sample_bundle_internal(payload=payload, user=object())
-    assert calls["enforced"] == 1
+    response = internal.ingest_sample_bundle_internal(payload=payload, user=_admin_user())
+    assert calls["enforced"] == 0
     assert calls["allow_update"] is True
     assert response["sample_id"] == "upd-1"
 
@@ -223,7 +277,8 @@ def test_ingest_collection_document_internal_forwards_payload(monkeypatch):
         collection="hgnc_genes",
         document={"hgnc_id": "HGNC:5", "hgnc_symbol": "A1BG"},
     )
-    response = internal.ingest_collection_document_internal(payload=payload)
+    monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
+    response = internal.ingest_collection_document_internal(payload=payload, user=_admin_user())
     assert response["collection"] == "hgnc_genes"
     assert response["inserted_count"] == 1
 
@@ -253,7 +308,8 @@ def test_ingest_collection_documents_internal_forwards_payload(monkeypatch):
             {"hgnc_id": "HGNC:6", "hgnc_symbol": "A1CF"},
         ],
     )
-    response = internal.ingest_collection_documents_internal(payload=payload)
+    monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
+    response = internal.ingest_collection_documents_internal(payload=payload, user=_admin_user())
     assert response["collection"] == "hgnc_genes"
     assert response["inserted_count"] == 2
 
@@ -272,6 +328,147 @@ def test_list_supported_ingest_collections_internal(monkeypatch):
         lambda: ["asp_configs", "hgnc_genes", "samples"],
     )
 
-    response = internal.list_supported_ingest_collections_internal()
+    response = internal.list_supported_ingest_collections_internal(_user=_admin_user())
     assert response["status"] == "ok"
     assert response["collections"] == ["asp_configs", "hgnc_genes", "samples"]
+
+
+def test_upsert_collection_document_internal_forwards_payload(monkeypatch):
+    monkeypatch.setattr(
+        internal.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
+    monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
+    monkeypatch.setattr(
+        internal.InternalIngestService,
+        "upsert_collection_document",
+        lambda *, collection, match, document, upsert=False: {
+            "status": "ok",
+            "collection": collection,
+            "matched_count": 1,
+            "modified_count": 1,
+            "upserted_id": None,
+        },
+    )
+    payload = internal.InternalCollectionUpsertRequest(
+        collection="asp_configs",
+        match={"aspc_id": "assay_1:prod"},
+        document={"aspc_id": "assay_1:prod"},
+        upsert=True,
+    )
+    response = internal.upsert_collection_document_internal(payload=payload, user=_admin_user())
+    assert response["collection"] == "asp_configs"
+    assert response["matched_count"] == 1
+
+
+def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
+    """Multipart upload route should stage referenced files and ingest bundle."""
+    calls: dict[str, object] = {}
+    monkeypatch.setattr(
+        internal.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        internal.InternalIngestService,
+        "parse_yaml_payload",
+        lambda _text: {
+            "name": "UPLOAD_SAMPLE",
+            "assay": "assay_1",
+            "profile": "testing",
+            "genome_build": 38,
+            "case_id": "CASE_UPLOAD",
+            "sample_no": 1,
+            "paired": False,
+            "sequencing_scope": "panel",
+            "omics_layer": "dna",
+            "pipeline": "pipeline",
+            "pipeline_version": "v1",
+            "vcf_files": "generic_case_control.final.filtered.vcf",
+            "cnv": "generic_case_control.cnvs.merged.json",
+        },
+    )
+
+    def _ingest(payload, *, allow_update=False, increment=False):
+        calls["payload"] = payload
+        calls["allow_update"] = allow_update
+        calls["increment"] = increment
+        return {
+            "status": "ok",
+            "sample_id": "upload-1",
+            "sample_name": payload["name"],
+            "written": {"snvs": 1},
+            "data_counts": {"snvs": 1},
+        }
+
+    monkeypatch.setattr(internal.InternalIngestService, "ingest_sample_bundle", _ingest)
+
+    yaml_upload = UploadFile(filename="ingest.yaml", file=BytesIO(b"name: UPLOAD_SAMPLE"))
+    files = [
+        UploadFile(
+            filename="generic_case_control.final.filtered.vcf",
+            file=BytesIO(b"##fileformat=VCFv4.2\n"),
+        ),
+        UploadFile(
+            filename="generic_case_control.cnvs.merged.json",
+            file=BytesIO(b"[]"),
+        ),
+    ]
+
+    response = asyncio.run(
+        internal.ingest_sample_bundle_upload_internal(
+            yaml_file=yaml_upload,
+            data_files=files,
+            update_existing=False,
+            increment=True,
+            user=_admin_user(),
+        )
+    )
+    assert response["status"] == "ok"
+    payload = calls["payload"]
+    assert isinstance(payload, dict)
+    runtime = payload.get("_runtime_files")
+    assert isinstance(runtime, dict)
+    assert runtime["vcf_files"].endswith(".vcf")
+    assert runtime["cnv"].endswith(".json")
+    assert calls["increment"] is True
+    assert calls["allow_update"] is False
+
+
+def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
+    """Multipart upload route should fail when YAML references non-uploaded files."""
+    monkeypatch.setattr(
+        internal.InternalIngestService,
+        "parse_yaml_payload",
+        lambda _text: {
+            "name": "UPLOAD_SAMPLE",
+            "assay": "assay_1",
+            "profile": "testing",
+            "genome_build": 38,
+            "case_id": "CASE_UPLOAD",
+            "sample_no": 1,
+            "paired": False,
+            "sequencing_scope": "panel",
+            "omics_layer": "dna",
+            "pipeline": "pipeline",
+            "pipeline_version": "v1",
+            "vcf_files": "required.vcf",
+        },
+    )
+
+    yaml_upload = UploadFile(filename="ingest.yaml", file=BytesIO(b"name: UPLOAD_SAMPLE"))
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            internal.ingest_sample_bundle_upload_internal(
+                yaml_file=yaml_upload,
+                data_files=[],
+                update_existing=False,
+                increment=True,
+                user=_admin_user(),
+            )
+        )
+    assert exc_info.value.status_code == 400
+    assert "Missing files for YAML references" in str(exc_info.value)

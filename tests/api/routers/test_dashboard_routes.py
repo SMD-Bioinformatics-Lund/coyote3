@@ -135,7 +135,7 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
                 "total_samples": 10 if assays is None else 1,
                 "analysed_samples": 9 if assays is None else 1,
                 "pending_samples": 1 if assays is None else 0,
-                "user_samples_stats": {"RNA-fusion": {"total": 1, "analysed": 1, "pending": 0}},
+                "user_samples_stats": {"rna-fusion": {"total": 1, "analysed": 1, "pending": 0}},
                 "sample_stats": {"profiles": {"production": 10}},
             }
         ),
@@ -143,7 +143,7 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
     monkeypatch.setattr(
         service.repository,
         "resolve_active_asp_ids_for_scope",
-        lambda assays, groups: ["myeloid_GMSv1"] if "myeloid" in groups else [],
+        lambda assays, groups: ["myeloid_gmsv1"] if "myeloid" in groups else [],
     )
     monkeypatch.setattr(
         service.repository,
@@ -197,14 +197,14 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
 
     user = fx.api_user()
     user.role = "user"
-    user.assays = ["RNA-fusion"]
+    user.assays = ["rna-fusion"]
     user.assay_groups = ["myeloid"]
     payload = dashboard.dashboard_summary(user=user, service=service)
 
     scoped_assays = captured["calls"][1]
     assert captured["calls"][0] is None
-    assert "RNA-fusion" in scoped_assays
-    assert "myeloid_GMSv1" in scoped_assays
+    assert "rna-fusion" in scoped_assays
+    assert "myeloid_gmsv1" in scoped_assays
     assert payload["dashboard_meta"]["scope_assays"] == scoped_assays
     assert payload["total_samples"] == 10
     assert payload["sample_stats"]["profiles"]["production"] == 10
@@ -290,7 +290,7 @@ def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
 
     user = fx.api_user()
     user.role = "admin"
-    user.assays = ["solid_GMSv3"]
+    user.assays = ["solid_gmsv3"]
     user.assay_groups = ["solid"]
     payload = dashboard.dashboard_summary(user=user, service=service)
 

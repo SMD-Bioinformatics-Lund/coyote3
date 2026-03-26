@@ -18,6 +18,7 @@ from coyote.blueprints.admin import (  # noqa: E402,F401
     views_audit,  # noqa: F401, E402
     views_genelists,  # noqa: F401, E402
     views_home,  # noqa: F401, E402
+    views_ingest,  # noqa: F401, E402
     views_permissions,  # noqa: F401, E402
     views_roles,  # noqa: F401, E402
     views_samples,  # noqa: F401, E402

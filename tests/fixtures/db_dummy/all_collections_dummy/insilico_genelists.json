@@ -1,8 +1,8 @@
 [
   {
-    "isgl_id": "ISGL_A",
+    "isgl_id": "hematology_myeloid",
     "diagnosis": [
-      "DIAGNOSIS_A"
+      "hematology_myeloid"
     ],
     "name": "List A",
     "displayname": "List A",
@@ -15,14 +15,14 @@
     "is_public": true,
     "is_active": true,
     "assay_groups": [
-      "GROUP_A"
+      "hematology"
     ],
     "genes": [
       "EGFR",
       "TP53"
     ],
     "assays": [
-      "ASSAY_A"
+      "assay_1"
     ]
   }
 ]

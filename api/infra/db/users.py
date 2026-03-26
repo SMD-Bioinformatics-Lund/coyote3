@@ -58,6 +58,13 @@ class UsersHandler(BaseHandler):
             background=True,
             partialFilterExpression={"email": {"$exists": True, "$type": "string"}},
         )
+        col.create_index(
+            [("user_id", 1)],
+            name="user_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"user_id": {"$exists": True, "$type": "string"}},
+        )
         col.create_index([("is_active", 1)], name="is_active_1", background=True)
         col.create_index([("firstname", 1)], name="firstname_1", background=True)
 
@@ -133,6 +140,7 @@ class UsersHandler(BaseHandler):
         normalized = self._normalize_user_id(user_data.get("username"))
         if normalized:
             user_data["username"] = normalized
+            user_data["user_id"] = normalized
             return user_data
         raise ValueError("users.username is required in strict business-key mode")
 

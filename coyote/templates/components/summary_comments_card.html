@@ -15,7 +15,7 @@
             </tr>
           </thead>
           <tbody>
-            {% if sample.comments|length > 0 %}
+            {% if sample.comments is not none and sample.comments|length > 0 %}
               {% for comment in sample.comments|sort(attribute='time_created', reverse=True) %}
                 {% if comment.hidden != 1 %}
                   <tr class="hover:bg-green-50 border-t border-gray-400 text-left" id="comment-table-row">

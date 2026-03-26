@@ -48,7 +48,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
-    from api.contracts.internal import InternalSampleIngestSpec
+    from api.contracts.schemas.samples import SamplesDoc
 
     args = parse_args()
     spec_path = Path(args.yaml)
@@ -64,7 +64,7 @@ def main() -> int:
             raise SystemExit(f"At least one of {choices} is required")
 
     try:
-        model = InternalSampleIngestSpec.model_validate(payload)
+        model = SamplesDoc.model_validate(payload)
     except ValidationError as exc:
         raise SystemExit(f"Spec validation failed:\n{exc}") from exc
 
@@ -72,7 +72,7 @@ def main() -> int:
         missing: list[str] = []
         for field in FILE_FIELDS:
             value = getattr(model, field, None)
-            if value in (None, "", "no_update", "NO_UPDATE"):
+            if value in (None, ""):
                 continue
             path = Path(str(value))
             if not path.exists():
@@ -83,7 +83,13 @@ def main() -> int:
 
     print("[ok] ingest spec is valid")
     if args.json:
-        print(json.dumps(model.model_dump(exclude_none=True), indent=2, sort_keys=True))
+        print(
+            json.dumps(
+                model.model_dump(mode="json", exclude_none=True),
+                indent=2,
+                sort_keys=True,
+            )
+        )
     return 0
 
 

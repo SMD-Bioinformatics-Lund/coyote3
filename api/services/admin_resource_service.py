@@ -33,6 +33,51 @@ def _normalize_asp_category(value: Any) -> str:
     return mapping.get(raw, str(value or "").strip().upper() or "DNA")
 
 
+def _normalize_asp_category_doc(value: Any) -> str:
+    """Normalize ASP category labels for persisted document payloads."""
+    raw = str(value or "").strip().lower()
+    mapping = {
+        "dna": "dna",
+        "somatic": "dna",
+        "rna": "rna",
+    }
+    return mapping.get(raw, raw or "dna")
+
+
+_DEPRECATED_SNV_FILTER_KEYS: tuple[str, ...] = (
+    "snv_mode",
+    "snv_require_case_gt_type",
+    "snv_enable_control_guard",
+    "snv_enable_popfreq_guard",
+    "snv_enable_consequence_guard",
+    "snv_allow_germline_escape",
+    "snv_allow_cebpa_germline_escape",
+    "snv_allow_flt3_large_indel_escape",
+    "snv_allow_tert_nfkbie_regulatory_escape",
+    "snv_gene_region_allow",
+    "snv_gene_consequence_allow",
+    "cnv_mode",
+    "cnv_enable_normal_guard",
+    "cnv_enable_ratio_guard",
+    "cnv_enable_size_guard",
+    "cnv_enable_panel_gene_guard",
+    "fusion_mode",
+    "fusion_enable_callers_guard",
+    "fusion_enable_effects_guard",
+    "fusion_enable_spanning_guard",
+    "fusion_enable_gene_scope_guard",
+    "fusion_enable_desc_guard",
+)
+
+
+def _sanitize_aspc_filters(config: dict[str, Any]) -> None:
+    filters = config.get("filters")
+    if not isinstance(filters, dict):
+        return
+    for key in _DEPRECATED_SNV_FILTER_KEYS:
+        filters.pop(key, None)
+
+
 def _validated_doc(collection: str, payload: dict[str, Any]) -> dict[str, Any]:
     """Validate + normalize payload using collection Pydantic contract."""
     try:
@@ -120,6 +165,11 @@ class AdminPanelService:
         config["asp_id"] = config.get("asp_id") or config.get("assay_name")
         if not config.get("asp_id"):
             raise api_error(400, "Missing asp_id")
+        existing_panel = self.repository.get_panel(str(config["asp_id"]))
+        if isinstance(existing_panel, dict) and (
+            existing_panel.get("asp_id") or existing_panel.get("_id")
+        ):
+            raise api_error(409, "Assay panel already exists")
         selected_schema_id = payload.get("schema_id")
         if selected_schema_id and selected_schema_id != self._spec.schema_id:
             raise api_error(404, "Selected schema not found")
@@ -128,6 +178,7 @@ class AdminPanelService:
         config.setdefault("created_on", now)
         config["updated_by"] = current_actor(actor_username)
         config["updated_on"] = now
+        config.pop("gene_count", None)
         config = inject_version_history(
             actor_username=current_actor(actor_username),
             new_config=config,
@@ -205,6 +256,14 @@ class AdminPanelService:
             raise api_error(404, "Panel not found")
         self.repository.delete_panel(panel_id)
         return mutation_payload(resource="asp", resource_id=panel_id, action="delete")
+
+    def panel_exists(self, *, asp_id: str) -> bool:
+        """Return whether an assay panel business key already exists."""
+        normalized = str(asp_id or "").strip()
+        if not normalized:
+            return False
+        panel = self.repository.get_panel(normalized)
+        return bool(isinstance(panel, dict) and (panel.get("asp_id") or panel.get("_id")))
 
 
 class AdminGenelistService:
@@ -328,6 +387,11 @@ class AdminGenelistService:
         config["isgl_id"] = config.get("isgl_id") or config.get("name")
         if not config.get("isgl_id"):
             raise api_error(400, "Missing isgl_id")
+        existing_genelist = self.repository.get_genelist(str(config["isgl_id"]))
+        if isinstance(existing_genelist, dict) and (
+            existing_genelist.get("isgl_id") or existing_genelist.get("_id")
+        ):
+            raise api_error(409, "Genelist already exists")
         selected_schema_id = payload.get("schema_id")
         if selected_schema_id and selected_schema_id != self._spec.schema_id:
             raise api_error(404, "Genelist schema not found")
@@ -368,6 +432,12 @@ class AdminGenelistService:
         updated_doc = {**genelist, **updated}
         updated_doc["isgl_id"] = genelist.get("isgl_id", genelist_id)
         updated_doc["_id"] = genelist.get("_id")
+        updated_doc.pop("gene_count", None)
+        # Required contract fields should not be unintentionally blanked by partial form submits.
+        if not updated_doc.get("assays"):
+            updated_doc["assays"] = list(genelist.get("assays", []))
+        if not updated_doc.get("assay_groups"):
+            updated_doc["assay_groups"] = list(genelist.get("assay_groups", []))
         updated_doc["updated_by"] = current_actor(actor_username)
         updated_doc["updated_on"] = utc_now()
         updated_doc["version"] = int(genelist.get("version", 1) or 1) + 1
@@ -414,6 +484,14 @@ class AdminGenelistService:
         self.repository.delete_genelist(genelist_id)
         return mutation_payload(resource="genelist", resource_id=genelist_id, action="delete")
 
+    def genelist_exists(self, *, isgl_id: str) -> bool:
+        """Return whether a genelist business key already exists."""
+        normalized = str(isgl_id or "").strip()
+        if not normalized:
+            return False
+        genelist = self.repository.get_genelist(normalized)
+        return bool(isinstance(genelist, dict) and (genelist.get("isgl_id") or genelist.get("_id")))
+
 
 class AdminAspcService:
     """Own assay-configuration resource-management workflows."""
@@ -425,6 +503,147 @@ class AdminAspcService:
                 repository: Repository. Optional argument.
         """
         self.repository = repository or AdminRepository()
+
+    @staticmethod
+    def _set_group_field_options(
+        schema: dict[str, Any], *, top_field: str, subfield_key: str, options: list[str]
+    ) -> None:
+        top = schema.get("fields", {}).get(top_field, {})
+        for group in top.get("groups", []) or []:
+            for subfield in group.get("fields", []) or []:
+                if subfield.get("key") == subfield_key:
+                    subfield["options"] = list(dict.fromkeys([str(o) for o in options if str(o)]))
+                    return
+
+    def _resolve_isgl_options(self, *, assay_name: str | None) -> dict[str, list[str]]:
+        docs = self.repository.list_genelists()
+        assay = str(assay_name or "").strip()
+        result: dict[str, list[str]] = {
+            "genelists": [],
+            "cnv_genelists": [],
+            "fusion_genelists": [],
+        }
+        for doc in docs:
+            if not doc.get("is_active", True):
+                continue
+            doc_assays = [str(v) for v in (doc.get("assays") or []) if str(v)]
+            if assay and doc_assays and assay not in doc_assays:
+                continue
+            isgl_id = str(doc.get("isgl_id") or "").strip()
+            if not isgl_id:
+                continue
+            list_types = {str(v).strip().lower() for v in (doc.get("list_type") or []) if str(v)}
+            if "small_variants_genelist" in list_types:
+                result["genelists"].append(isgl_id)
+            if "cnv_genelist" in list_types:
+                result["cnv_genelists"].append(isgl_id)
+            if "fusion_genelist" in list_types or "fusionlist" in list_types:
+                result["fusion_genelists"].append(isgl_id)
+        return {k: list(dict.fromkeys(v)) for k, v in result.items()}
+
+    def _resolve_query_profile_options(
+        self, *, assay_name: str | None, environment: str | None = None
+    ) -> dict[str, list[str]]:
+        assay = str(assay_name or "").strip()
+        env = str(environment or "").strip().lower()
+        profiles = self.repository.list_query_profiles(is_active=True)
+        by_type: dict[str, list[str]] = {
+            "snv": [],
+            "cnv": [],
+            "fusion": [],
+            "transloc": [],
+        }
+        for doc in profiles:
+            profile_id = str(doc.get("query_profile_id") or "").strip()
+            if not profile_id:
+                continue
+            if assay and str(doc.get("assay_name") or "").strip() not in {"", assay}:
+                continue
+            if env and str(doc.get("environment") or "").strip().lower() not in {"", env}:
+                continue
+            resource_type = str(doc.get("resource_type") or "").strip().lower()
+            if resource_type in by_type:
+                by_type[resource_type].append(profile_id)
+        return {k: list(dict.fromkeys(v)) for k, v in by_type.items()}
+
+    def _attach_query_profile_refs(self, config: dict[str, Any]) -> None:
+        """Move UI helper fields into query.profiles persistent shape."""
+        snv = str(config.pop("snv_query_profile_id", "") or "").strip()
+        cnv = str(config.pop("cnv_query_profile_id", "") or "").strip()
+        fusion = str(config.pop("fusion_query_profile_id", "") or "").strip()
+        transloc = str(config.pop("transloc_query_profile_id", "") or "").strip()
+        query_payload = config.get("query")
+        if not isinstance(query_payload, dict):
+            query_payload = {}
+        profiles = query_payload.get("profiles")
+        if not isinstance(profiles, dict):
+            profiles = {}
+        if snv:
+            profiles["snv"] = snv
+            query_payload.pop("snv", None)
+        else:
+            profiles.pop("snv", None)
+        if cnv:
+            profiles["cnv"] = cnv
+            query_payload.pop("cnv", None)
+        else:
+            profiles.pop("cnv", None)
+        if fusion:
+            profiles["fusion"] = fusion
+            query_payload.pop("fusion", None)
+        else:
+            profiles.pop("fusion", None)
+        if transloc:
+            profiles["transloc"] = transloc
+            query_payload.pop("transloc", None)
+        else:
+            profiles.pop("transloc", None)
+        if profiles:
+            query_payload["profiles"] = profiles
+        else:
+            query_payload.pop("profiles", None)
+        config["query"] = query_payload
+
+    def _decorate_aspc_schema_options(
+        self, *, schema: dict[str, Any], schema_category: str, assay_name: str | None
+    ) -> None:
+        if schema_category == "DNA":
+            conseq_options = list(runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys())
+            self._set_group_field_options(
+                schema, top_field="filters", subfield_key="vep_consequences", options=conseq_options
+            )
+            isgl_options = self._resolve_isgl_options(assay_name=assay_name)
+            self._set_group_field_options(
+                schema,
+                top_field="filters",
+                subfield_key="genelists",
+                options=isgl_options.get("genelists", []),
+            )
+            self._set_group_field_options(
+                schema,
+                top_field="filters",
+                subfield_key="cnv_genelists",
+                options=isgl_options.get("cnv_genelists", []),
+            )
+        else:
+            isgl_options = self._resolve_isgl_options(assay_name=assay_name)
+            self._set_group_field_options(
+                schema,
+                top_field="filters",
+                subfield_key="fusion_genelists",
+                options=isgl_options.get("fusion_genelists", []),
+            )
+        query_profile_options = self._resolve_query_profile_options(assay_name=assay_name)
+        if "snv_query_profile_id" in schema.get("fields", {}):
+            schema["fields"]["snv_query_profile_id"]["options"] = query_profile_options["snv"]
+        if "cnv_query_profile_id" in schema.get("fields", {}):
+            schema["fields"]["cnv_query_profile_id"]["options"] = query_profile_options["cnv"]
+        if "fusion_query_profile_id" in schema.get("fields", {}):
+            schema["fields"]["fusion_query_profile_id"]["options"] = query_profile_options["fusion"]
+        if "transloc_query_profile_id" in schema.get("fields", {}):
+            schema["fields"]["transloc_query_profile_id"]["options"] = query_profile_options[
+                "transloc"
+            ]
 
     def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """List payload.
@@ -475,6 +694,7 @@ class AdminAspcService:
                     continue
                 envs = self.repository.get_available_assay_envs(assay_id, env_options)
                 if envs:
+                    isgl_options = self._resolve_isgl_options(assay_name=assay_id)
                     valid_assay_ids.append(assay_id)
                     prefill_map[assay_id] = {
                         "display_name": panel.get("display_name"),
@@ -482,12 +702,17 @@ class AdminAspcService:
                         "asp_category": panel_category,
                         "platform": panel.get("platform"),
                         "environment": envs,
+                        "genelists": isgl_options.get("genelists", []),
+                        "cnv_genelists": isgl_options.get("cnv_genelists", []),
+                        "fusion_genelists": isgl_options.get("fusion_genelists", []),
                     }
         schema["fields"]["assay_name"]["options"] = valid_assay_ids
-        if schema_category == "DNA" and "vep_consequences" in schema.get("fields", {}):
-            schema["fields"]["vep_consequences"]["options"] = list(
-                runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
-            )
+        self._decorate_aspc_schema_options(
+            schema=schema,
+            schema_category=schema_category,
+            assay_name=None,
+        )
+        query_profile_options = self._resolve_query_profile_options(assay_name=None)
         schema["fields"]["created_by"]["default"] = current_actor(actor_username)
         schema["fields"]["created_on"]["default"] = utc_now()
         schema["fields"]["updated_by"]["default"] = current_actor(actor_username)
@@ -498,6 +723,7 @@ class AdminAspcService:
             "selected_schema": selected_schema,
             "schema": schema,
             "prefill_map": prefill_map,
+            "query_profile_options": query_profile_options,
         }
 
     def context_payload(self, *, assay_id: str) -> dict[str, Any]:
@@ -512,15 +738,32 @@ class AdminAspcService:
         assay_config = self.repository.get_assay_config(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
+        assay_config = deepcopy(assay_config)
+        query_payload = assay_config.get("query")
+        profile_refs = query_payload.get("profiles", {}) if isinstance(query_payload, dict) else {}
+        if isinstance(profile_refs, dict):
+            assay_config["snv_query_profile_id"] = profile_refs.get("snv", "")
+            assay_config["cnv_query_profile_id"] = profile_refs.get("cnv", "")
+            assay_config["fusion_query_profile_id"] = profile_refs.get("fusion", "")
+            assay_config["transloc_query_profile_id"] = profile_refs.get("transloc", "")
         panel = self.repository.get_panel(str(assay_config.get("assay_name", "")))
         category = _normalize_asp_category((panel or {}).get("asp_category"))
         spec = aspc_spec_for_category(category)
         schema = self.repository.clone_schema(build_managed_schema(spec))
-        if "vep_consequences" in schema.get("fields", {}):
-            schema["fields"]["vep_consequences"]["options"] = list(
-                runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
-            )
-        return {"assay_config": assay_config, "schema": schema}
+        self._decorate_aspc_schema_options(
+            schema=schema,
+            schema_category=category,
+            assay_name=str(assay_config.get("assay_name", "") or ""),
+        )
+        query_profile_options = self._resolve_query_profile_options(
+            assay_name=str(assay_config.get("assay_name", "") or ""),
+            environment=str(assay_config.get("environment", "") or ""),
+        )
+        return {
+            "assay_config": assay_config,
+            "schema": schema,
+            "query_profile_options": query_profile_options,
+        }
 
     def create(
         self, *, payload: dict[str, Any], actor_username: str = "admin-ui"
@@ -536,7 +779,10 @@ class AdminAspcService:
         config = payload.get("config", {})
         if not config:
             raise api_error(400, "Missing assay config payload")
+        _sanitize_aspc_filters(config)
+        self._attach_query_profile_refs(config)
         config.setdefault("is_active", True)
+        config["asp_category"] = _normalize_asp_category_doc(config.get("asp_category"))
         config["aspc_id"] = (
             config.get("aspc_id")
             or f"{str(config.get('assay_name', '')).strip()}:{str(config.get('environment', '')).strip().lower()}"
@@ -587,6 +833,9 @@ class AdminAspcService:
         if not updated_config:
             raise api_error(400, "Missing assay config payload")
         updated_doc = {**assay_config, **updated_config}
+        _sanitize_aspc_filters(updated_doc)
+        self._attach_query_profile_refs(updated_doc)
+        updated_doc["asp_category"] = _normalize_asp_category_doc(updated_doc.get("asp_category"))
         updated_doc["aspc_id"] = assay_config.get("aspc_id", assay_id)
         updated_doc["_id"] = assay_config.get("_id")
         updated_doc["updated_by"] = current_actor(actor_username)
@@ -637,6 +886,101 @@ class AdminAspcService:
             raise api_error(404, "Assay config not found")
         self.repository.delete_assay_config(assay_id)
         return mutation_payload(resource="aspc", resource_id=assay_id, action="delete")
+
+    def assay_config_exists(
+        self,
+        *,
+        aspc_id: str | None = None,
+        assay_name: str | None = None,
+        environment: str | None = None,
+    ) -> bool:
+        """Return whether an assay config business key already exists."""
+        resolved_id = str(aspc_id or "").strip()
+        if not resolved_id:
+            assay = str(assay_name or "").strip()
+            env = str(environment or "").strip().lower()
+            if assay and env:
+                resolved_id = f"{assay}:{env}"
+        if not resolved_id:
+            return False
+        doc = self.repository.get_assay_config(resolved_id)
+        return bool(isinstance(doc, dict) and (doc.get("aspc_id") or doc.get("_id")))
+
+    def _resolve_query_profile_options(
+        self,
+        *,
+        assay_name: str | None = None,
+        assay_group: str | None = None,
+        environment: str | None = None,
+    ) -> dict[str, list[str]]:
+        assay = str(assay_name or "").strip()
+        group = str(assay_group or "").strip()
+        env = str(environment or "").strip().lower()
+        profiles = self.repository.list_query_profiles(is_active=True)
+        assay_group_map = self.repository.get_assay_group_map()
+        assay_to_groups: dict[str, set[str]] = {}
+        for group_name, assays in assay_group_map.items():
+            normalized_group = str(group_name or "").strip()
+            if not normalized_group:
+                continue
+            for assay_doc in assays or []:
+                assay_name_value = str(
+                    (assay_doc or {}).get("assay_name") or (assay_doc or {}).get("asp_id") or ""
+                ).strip()
+                if not assay_name_value:
+                    continue
+                assay_to_groups.setdefault(assay_name_value, set()).add(normalized_group)
+        by_type: dict[str, list[str]] = {"snv": [], "cnv": [], "fusion": [], "transloc": []}
+        for doc in profiles:
+            profile_id = str(doc.get("query_profile_id") or "").strip()
+            if not profile_id:
+                continue
+            assay_groups = {
+                str(v).strip() for v in (doc.get("assay_groups") or []) if str(v).strip()
+            }
+            assays = {str(v).strip() for v in (doc.get("assays") or []) if str(v).strip()}
+            selected_groups = set()
+            if assay:
+                selected_groups.update(assay_to_groups.get(assay, set()))
+            if group:
+                selected_groups.add(group)
+            if assay or selected_groups:
+                matches_assays = bool(assays and assay and assay in assays)
+                matches_groups = bool(
+                    assay_groups and selected_groups and assay_groups.intersection(selected_groups)
+                )
+                if not matches_assays and not matches_groups and (assays or assay_groups):
+                    continue
+            if env and str(doc.get("environment") or "").strip().lower() not in {"", env}:
+                continue
+            resource_type = str(doc.get("resource_type") or "").strip().lower()
+            if resource_type in by_type:
+                by_type[resource_type].append(profile_id)
+        return {k: list(dict.fromkeys(v)) for k, v in by_type.items()}
+
+
+class AdminQueryProfileService:
+    """Own query-profile option lookups for ASPC forms."""
+
+    def __init__(self, repository: AdminRepository | None = None) -> None:
+        self.repository = repository or AdminRepository()
+        self._aspc_service = AdminAspcService(repository=self.repository)
+
+    def options_payload(
+        self,
+        *,
+        assay_name: str | None = None,
+        assay_group: str | None = None,
+        environment: str | None = None,
+    ) -> dict[str, Any]:
+        """Return active query-profile options filtered by assay/group/environment."""
+        return {
+            "options": self._aspc_service._resolve_query_profile_options(
+                assay_name=assay_name,
+                assay_group=assay_group,
+                environment=environment,
+            )
+        }
 
 
 class AdminSampleService:

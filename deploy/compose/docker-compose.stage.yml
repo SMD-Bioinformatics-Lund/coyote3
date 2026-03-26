@@ -111,6 +111,38 @@ services:
       redis_coyote3_stage:
         condition: service_started
 
+  coyote3_stage_first_run:
+    container_name: coyote3_stage_first_run_${COYOTE3_VERSION:-local}
+    image: coyote3:${COYOTE3_VERSION:-local}
+    profiles: ["first-run"]
+    env_file:
+      - ../../.coyote3_stage_env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+      - COYOTE3_FIRST_RUN=${COYOTE3_FIRST_RUN:-0}
+      - FIRST_RUN_ADMIN_EMAIL=${FIRST_RUN_ADMIN_EMAIL:-}
+      - FIRST_RUN_ADMIN_PASSWORD=${FIRST_RUN_ADMIN_PASSWORD:-}
+      - FIRST_RUN_API_BASE_URL=${FIRST_RUN_API_BASE_URL:-http://coyote3_stage_api:8001}
+      - FIRST_RUN_MONGO_URI=${FIRST_RUN_MONGO_URI:-}
+      - FIRST_RUN_DB_NAME=${FIRST_RUN_DB_NAME:-}
+      - FIRST_RUN_SEED_FILE=${FIRST_RUN_SEED_FILE:-tests/fixtures/db_dummy/all_collections_dummy}
+      - FIRST_RUN_REFERENCE_SEED_DATA=${FIRST_RUN_REFERENCE_SEED_DATA:-}
+      - FIRST_RUN_YAML_FILE=${FIRST_RUN_YAML_FILE:-tests/data/ingest_demo/generic_case_control.yaml}
+      - FIRST_RUN_ASSAY_GROUP=${FIRST_RUN_ASSAY_GROUP:-GROUP_A}
+      - FIRST_RUN_ASSAY=${FIRST_RUN_ASSAY:-ASSAY_A}
+      - FIRST_RUN_WITH_OPTIONAL=${FIRST_RUN_WITH_OPTIONAL:-0}
+      - FIRST_RUN_SKIP_EXISTING=${FIRST_RUN_SKIP_EXISTING:-1}
+      - FIRST_RUN_RUN_SMOKE=${FIRST_RUN_RUN_SMOKE:-1}
+    restart: "no"
+    networks:
+      - coyote3-stage-net
+    command: "bash scripts/compose_first_run.sh"
+    depends_on:
+      coyote3_stage_api:
+        condition: service_healthy
+
   redis_coyote3_stage:
     container_name: redis_coyote3_stage_${COYOTE3_VERSION:-local}
     image: redis:7.4.3

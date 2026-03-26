@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.admin import (
+    AdminExistsPayload,
     AdminMutationPayload,
     AdminRoleContextPayload,
     AdminRoleCreateContextPayload,
@@ -254,6 +255,21 @@ def delete_role(
     return _delete_role(role_id=role_id, service=service)
 
 
+@router.post("/api/v1/roles/validate_role_id", response_model=AdminExistsPayload)
+def validate_role_id_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(
+        require_access(permission="create_role", min_role="admin", min_level=99999)
+    ),
+    service: AdminRoleService = Depends(get_admin_role_service),
+):
+    """Validate whether a role_id already exists."""
+    _ = user
+    return util.common.convert_to_serializable(
+        {"exists": service.role_exists(role_id=str(payload.get("role_id", "")))}
+    )
+
+
 __all__ = [
     "_service",
     "create_role_context_read",
@@ -263,4 +279,5 @@ __all__ = [
     "role_context_read",
     "toggle_role_status",
     "update_role",
+    "validate_role_id_mutation",
 ]

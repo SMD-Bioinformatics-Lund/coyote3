@@ -160,6 +160,11 @@
     const passwordMsg = document.getElementById("password_match_msg");
     const authSource = document.querySelector('[name="auth_type"]');
     const passwordWrapper = document.getElementById("password-wrapper");
+    let usernameExists = false;
+    let emailExists = false;
+    let usernamePending = false;
+    let emailPending = false;
+    let permissionConflict = false;
 
     /* --------------------------------------------------------------------
      * 1. AUTO FULLNAME + USERNAME
@@ -191,15 +196,21 @@
       const msg = document.getElementById("username_check");
       if (!msg) return;
 
-      const res = await fetch("{{ url_for('admin_bp.validate_username') }}", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: value })
-      });
-
-      const data = await res.json();
-      msg.textContent = data.exists ? "❌ Username already exists." : "✅ Username available.";
-      msg.className = data.exists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+      usernamePending = true;
+      try {
+        const res = await fetch("{{ url_for('admin_bp.validate_username') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: value })
+        });
+        const data = await res.json();
+        usernameExists = !!data.exists;
+        msg.textContent = usernameExists ? "Username already exists." : "Username available.";
+        msg.className = usernameExists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+      } finally {
+        usernamePending = false;
+        syncSaveButtonState();
+      }
     }
 
     async function checkEmail() {
@@ -209,20 +220,28 @@
 
       const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
       if (!isEmail) {
+        emailExists = true;
         msg.textContent = "❌ Invalid email format.";
         msg.className = "text-xs mt-1 text-red-500";
+        syncSaveButtonState();
         return;
       }
 
-      const res = await fetch("{{ url_for('admin_bp.validate_email') }}", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: val })
-      });
-
-      const data = await res.json();
-      msg.textContent = data.exists ? "❌ Email already in use." : "✅ Email available.";
-      msg.className = data.exists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+      emailPending = true;
+      try {
+        const res = await fetch("{{ url_for('admin_bp.validate_email') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: val })
+        });
+        const data = await res.json();
+        emailExists = !!data.exists;
+        msg.textContent = emailExists ? "Email already in use." : "Email available.";
+        msg.className = emailExists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+      } finally {
+        emailPending = false;
+        syncSaveButtonState();
+      }
     }
 
     /* --------------------------------------------------------------------
@@ -400,11 +419,23 @@
 
       if (hasConflict) {
         conflictWarning.classList.remove("hidden");
-        saveBtn.disabled = true;
+        permissionConflict = true;
       } else {
         conflictWarning.classList.add("hidden");
-        saveBtn.disabled = false;
+        permissionConflict = false;
       }
+      syncSaveButtonState();
+    }
+
+    function syncSaveButtonState() {
+      if (!saveBtn) return;
+      saveBtn.disabled = !!(
+        permissionConflict ||
+        usernameExists ||
+        emailExists ||
+        usernamePending ||
+        emailPending
+      );
     }
 
     permissionCheckboxes.forEach(cb => cb.addEventListener("change", highlightConflicts));
@@ -412,6 +443,13 @@
     if (roleSelect) roleSelect.addEventListener("change", () => updatePermissionsFromRole(roleSelect.value));
 
     if (roleSelect?.value) updatePermissionsFromRole(roleSelect.value);
+
+    document.getElementById("userForm")?.addEventListener("submit", (event) => {
+      syncSaveButtonState();
+      if (saveBtn?.disabled) {
+        event.preventDefault();
+      }
+    });
 
     /* --------------------------------------------------------------------
      * 6. BIND EVENTS + INITIALIZE
@@ -428,6 +466,7 @@
     updateFullAndUsername();
     updatePasswordVisibility();
     setupAssayBehavior();
+    syncSaveButtonState();
 
   });
   </script>

@@ -192,6 +192,7 @@ class AdminAspcCreateContextPayload(BaseModel):
     selected_schema: dict[str, Any]
     schema_payload: dict[str, Any] = Field(alias="schema")
     prefill_map: dict[str, dict[str, Any]]
+    query_profile_options: dict[str, list[str]] | None = None
 
 
 class AdminAspcContextPayload(BaseModel):
@@ -201,6 +202,13 @@ class AdminAspcContextPayload(BaseModel):
 
     assay_config: dict[str, Any]
     schema_payload: dict[str, Any] = Field(alias="schema")
+    query_profile_options: dict[str, list[str]] | None = None
+
+
+class AdminQueryProfileOptionsPayload(BaseModel):
+    """Represent filtered query-profile options for ASPC form dropdowns."""
+
+    options: dict[str, list[str]]
 
 
 class AdminExistsPayload(BaseModel):

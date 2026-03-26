@@ -105,8 +105,14 @@ def test_small_helpers_and_build_meta(tmp_path):
     with pytest.raises(FileNotFoundError):
         ingest._require_exists("A", str(tmp_path / "missing"))
 
-    assert ingest._is_no_update(" NO_UPDATE ")
-    assert not ingest._is_no_update(None)
+    assert ingest._runtime_file_path({"vcf_files": "/tmp/a.vcf"}, "vcf_files") == "/tmp/a.vcf"
+    assert (
+        ingest._runtime_file_path(
+            {"vcf_files": "/tmp/a.vcf", "_runtime_files": {"vcf_files": "/staged/a.vcf"}},
+            "vcf_files",
+        )
+        == "/staged/a.vcf"
+    )
 
     norm_case, norm_ctrl = ingest._normalize_case_control(
         {
@@ -137,15 +143,10 @@ def test_small_helpers_and_build_meta(tmp_path):
 
 
 def test_type_and_string_helpers(monkeypatch):
-    monkeypatch.setattr(
-        ingest.config,
-        "data_types",
-        {"vcf_files": "DNA", "fusion_files": "RNA"},
-        raising=False,
-    )
-    assert ingest._data_typer({"vcf_files": "x"}) == "DNA"
+    _ = monkeypatch
+    assert ingest._infer_omics_layer({"vcf_files": "x"}) == "dna"
     with pytest.raises(ValueError):
-        ingest._data_typer({"vcf_files": "x", "fusion_files": "y"})
+        ingest._infer_omics_layer({"vcf_files": "x", "fusion_files": "y"})
 
     left, right, true = ingest._catch_left_right("CASE", "CASE-2")
     assert (left, right, true) == ("", "-2", "CASE")
@@ -308,8 +309,9 @@ def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
     monkeypatch.setattr(parser, "_parse_snvs_only", lambda _: [{"CHROM": "1"}])
     monkeypatch.setattr(parser, "_parse_transloc_only", lambda _: [{"CHROM": "2"}])
 
-    with pytest.raises(ValueError):
-        parser.parse({"vcf_files": str(vcf), "lowcov": str(lowcov), "cov": str(cov)})
+    legacy_lowcov = parser.parse({"vcf_files": str(vcf), "lowcov": str(lowcov), "cov": str(cov)})
+    assert "cov" in legacy_lowcov
+    assert "lowcov" not in legacy_lowcov
 
     out = parser.parse(
         {
@@ -341,14 +343,9 @@ def test_service_resolution_and_validation(monkeypatch):
     col = ingest.InternalIngestService._resolve_collection("variants")
     assert isinstance(col, _Col)
 
-    collected = []
-    monkeypatch.setattr(
-        ingest,
-        "validate_collection_document",
-        lambda collection, doc: collected.append((collection, doc)),
-    )
-    ingest.InternalIngestService._validate_collection_docs("variants", [{"a": 1}, {"b": 2}])
-    assert len(collected) == 2
+    monkeypatch.setattr(ingest, "normalize_collection_document", lambda _c, doc: dict(doc))
+    out = ingest.InternalIngestService._normalize_collection_docs("variants", [{"a": 1}, {"b": 2}])
+    assert out == [{"a": 1}, {"b": 2}]
 
 
 def test_service_canonical_and_parse_preload(monkeypatch):
@@ -357,15 +354,16 @@ def test_service_canonical_and_parse_preload(monkeypatch):
     assert ingest.InternalIngestService._canonical_map() == {"EGFR": "NM_005228"}
     assert "samples" in ingest.InternalIngestService.list_supported_collections()
 
-    monkeypatch.setattr(ingest, "_data_typer", lambda _: "DNA")
     monkeypatch.setattr(ingest.DnaIngestParser, "parse", lambda self, args: {"snvs": [args]})
-    assert "snvs" in ingest.InternalIngestService._parse_preload({"vcf_files": "x"})
+    assert "snvs" in ingest.InternalIngestService._parse_preload(
+        {"omics_layer": "dna", "vcf_files": "x"}
+    )
 
-    monkeypatch.setattr(ingest, "_data_typer", lambda _: "RNA")
     monkeypatch.setattr(ingest.RnaIngestParser, "parse", lambda args: {"fusions": [args]})
-    assert "fusions" in ingest.InternalIngestService._parse_preload({"fusion_files": "x"})
+    assert "fusions" in ingest.InternalIngestService._parse_preload(
+        {"omics_layer": "rna", "fusion_files": "x"}
+    )
 
-    monkeypatch.setattr(ingest, "_data_typer", lambda _: None)
     with pytest.raises(ValueError):
         ingest.InternalIngestService._parse_preload({})
 
@@ -373,7 +371,7 @@ def test_service_canonical_and_parse_preload(monkeypatch):
 def test_write_and_ingest_dependents(monkeypatch):
     stub = _store_stub()
     monkeypatch.setattr(ingest, "store", stub)
-    monkeypatch.setattr(ingest, "validate_collection_document", lambda *_: None)
+    monkeypatch.setattr(ingest, "normalize_collection_document", lambda _c, doc: dict(doc))
     monkeypatch.setattr(
         ingest,
         "ensure_variant_identity_fields",
@@ -458,17 +456,17 @@ def test_replace_dependents_restores_on_failure(monkeypatch):
     assert called["restored"]
 
 
-def test_update_compatibility_and_meta_update(monkeypatch):
-    monkeypatch.setattr(ingest, "_data_typer", lambda _: "RNA")
+def test_update_payload_guard_and_meta_update(monkeypatch):
     out = ingest.InternalIngestService._prepare_update_payload(
-        sample_doc={"fusion_files": "x"}, payload={"name": "S1"}
+        sample_doc={"omics_layer": "rna", "fusion_files": "x"},
+        payload={"name": "S1"},
     )
-    assert out["fusion_files"] == "no_update" and out["update"] is True
+    assert out["omics_layer"] == "rna"
 
-    monkeypatch.setattr(ingest, "_data_typer", lambda _: "DNA")
     with pytest.raises(ValueError):
         ingest.InternalIngestService._prepare_update_payload(
-            sample_doc={"fusion_files": "x"}, payload={"name": "S1"}
+            sample_doc={"omics_layer": "rna", "fusion_files": "x"},
+            payload={"name": "S1", "vcf_files": "/tmp/a.vcf"},
         )
 
     sample_col = _Col([{"_id": "id1", "name": "S1", "assay": "A", "x": 1}])
@@ -493,14 +491,43 @@ def test_update_compatibility_and_meta_update(monkeypatch):
 
 def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
     sample_id = ingest.ObjectId()
-    sample_col = _Col([{"_id": sample_id, "name": "S1", "vcf_files": "x"}])
+    sample_col = _Col(
+        [
+            {
+                "_id": sample_id,
+                "name": "S1",
+                "assay": "assay_1",
+                "subpanel": "Hem",
+                "profile": "production",
+                "case_id": "CASE_DEMO",
+                "sample_no": 1,
+                "sequencing_scope": "panel",
+                "omics_layer": "dna",
+                "pipeline": "SomaticPanelPipeline",
+                "pipeline_version": "1.0.0",
+                "vcf_files": "x",
+            }
+        ]
+    )
     stub = _store_stub()
     stub.sample_handler = _Handler(sample_col)
     monkeypatch.setattr(ingest, "store", stub)
     monkeypatch.setattr(
         ingest.InternalIngestService,
         "_prepare_update_payload",
-        lambda sample_doc, payload: payload,
+        lambda sample_doc, payload: {
+            "name": payload["name"],
+            "assay": "assay_1",
+            "subpanel": "Hem",
+            "profile": "production",
+            "case_id": "CASE_DEMO",
+            "sample_no": 1,
+            "sequencing_scope": "panel",
+            "omics_layer": "dna",
+            "pipeline": "SomaticPanelPipeline",
+            "pipeline_version": "1.0.0",
+            "vcf_files": "x",
+        },
     )
     monkeypatch.setattr(
         ingest.InternalIngestService, "_parse_preload", lambda _: {"snvs": [{"a": 1}]}
@@ -521,8 +548,21 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
         ingest.InternalIngestService.ingest_sample_bundle({}, allow_update=False)
 
     monkeypatch.setattr(ingest.InternalIngestService, "_ingest_update", lambda _: {"status": "ok"})
+    update_payload = {
+        "name": "S1",
+        "assay": "assay_1",
+        "subpanel": "Hem",
+        "profile": "production",
+        "case_id": "CASE_DEMO",
+        "sample_no": 1,
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
+        "pipeline": "SomaticPanelPipeline",
+        "pipeline_version": "1.0.0",
+        "vcf_files": "x",
+    }
     assert (
-        ingest.InternalIngestService.ingest_sample_bundle({"name": "S1"}, allow_update=True)[
+        ingest.InternalIngestService.ingest_sample_bundle(update_payload, allow_update=True)[
             "status"
         ]
         == "ok"
@@ -539,7 +579,8 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     monkeypatch.setattr(ingest.InternalIngestService, "_write_dependents", lambda **_: {"snvs": 0})
 
     class _Valid:
-        def model_dump(self):
+        def model_dump(self, *args, **kwargs):
+            _ = args, kwargs
             return {"name": "S1", "assay": "A", "case_id": "C", "sample_no": 1}
 
     monkeypatch.setattr(ingest.SamplesDoc, "model_validate", lambda _: _Valid())
@@ -565,7 +606,7 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
 
     col = _Col()
     monkeypatch.setattr(ingest.InternalIngestService, "_resolve_collection", lambda _n: col)
-    monkeypatch.setattr(ingest, "validate_collection_document", lambda *_: None)
+    monkeypatch.setattr(ingest, "normalize_collection_document", lambda _c, doc: dict(doc))
 
     one = ingest.InternalIngestService.insert_collection_document(
         collection="variants", document={"a": 1}

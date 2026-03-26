@@ -6,6 +6,7 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any, Literal, Union, get_args, get_origin
 
+from pydantic import BaseModel
 from pydantic.fields import PydanticUndefined
 
 from api.contracts.managed_resources import ManagedResourceSpec
@@ -40,6 +41,8 @@ def _field_data_type(annotation: Any) -> tuple[str, list[Any] | None]:
         return "int", None
     if inner is float:
         return "float", None
+    if isinstance(inner, type) and issubclass(inner, BaseModel):
+        return "json", None
     return "text", None
 
 
@@ -72,12 +75,39 @@ RESOURCE_EXTRA_FIELDS: dict[str, dict[str, dict[str, Any]]] = {
             "required": False,
             "default": {},
         },
-        "query": {
-            "label": "Query",
-            "data_type": "json",
-            "display_type": "jsoneditor",
+        "snv_query_profile_id": {
+            "label": "SNV Query Profile",
+            "data_type": "select",
+            "display_type": "select",
             "required": False,
-            "default": {},
+            "options": [],
+            "default": "",
+        },
+        "cnv_query_profile_id": {
+            "label": "CNV Query Profile",
+            "data_type": "select",
+            "display_type": "select",
+            "required": False,
+            "options": [],
+            "default": "",
+        },
+        "transloc_query_profile_id": {
+            "label": "Translocation Query Profile",
+            "data_type": "select",
+            "display_type": "select",
+            "required": False,
+            "options": [],
+            "default": "",
+        },
+    },
+    "aspc_rna": {
+        "fusion_query_profile_id": {
+            "label": "Fusion Query Profile",
+            "data_type": "select",
+            "display_type": "select",
+            "required": False,
+            "options": [],
+            "default": "",
         },
     },
 }
@@ -101,16 +131,201 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     },
     "aspc_dna": {
         "assay_name": {"display_type": "select"},
+        "use_diagnosis_genelist": {
+            "display_type": "checkbox",
+            "label": "Auto Select Diagnosis/Sub Panel Genelists",
+            "default": True,
+        },
         "environment": {
             "display_type": "select",
             "options": ["production", "development", "test", "validation"],
         },
-        "analysis_types": {"display_type": "checkbox-group"},
-        "report_sections": {"display_type": "checkbox-group"},
-        "vep_consequences": {"display_type": "checkbox-group"},
-        "cnveffects": {"display_type": "checkbox-group"},
+        "analysis_types": {
+            "display_type": "checkbox-group",
+            "options": ["SNV", "CNV", "TRANSLOCATION", "BIOMARKER", "FUSION", "CNV_PROFILE"],
+            "default": ["SNV", "CNV"],
+        },
+        "filters": {
+            "label": "Filters (SNV and CNV strategy)",
+            "display_type": "filters-structured",
+            "placeholder": "Configure threshold keys for SNV/CNV filtering",
+            "groups": [
+                {
+                    "title": "SNV Thresholds",
+                    "fields": [
+                        {
+                            "key": "min_alt_reads",
+                            "label": "Min Alt Reads",
+                            "type": "int",
+                            "default": 5,
+                        },
+                        {"key": "min_depth", "label": "Min Depth", "type": "int", "default": 100},
+                        {"key": "min_freq", "label": "Min AF", "type": "float", "default": 0.03},
+                        {"key": "max_freq", "label": "Max AF", "type": "float", "default": 1.0},
+                        {
+                            "key": "max_control_freq",
+                            "label": "Max Control AF",
+                            "type": "float",
+                            "default": 0.05,
+                        },
+                        {
+                            "key": "max_popfreq",
+                            "label": "Max Population AF",
+                            "type": "float",
+                            "default": 0.01,
+                        },
+                    ],
+                },
+                {
+                    "title": "CNV Thresholds",
+                    "fields": [
+                        {
+                            "key": "min_cnv_size",
+                            "label": "Min CNV Size",
+                            "type": "int",
+                            "default": 100,
+                        },
+                        {
+                            "key": "max_cnv_size",
+                            "label": "Max CNV Size",
+                            "type": "int",
+                            "default": 1000000,
+                        },
+                        {
+                            "key": "cnv_loss_cutoff",
+                            "label": "CNV Loss Cutoff",
+                            "type": "float",
+                            "default": -0.3,
+                        },
+                        {
+                            "key": "cnv_gain_cutoff",
+                            "label": "CNV Gain Cutoff",
+                            "type": "float",
+                            "default": 0.3,
+                        },
+                        {
+                            "key": "warn_cov",
+                            "label": "Warn Coverage",
+                            "type": "int",
+                            "default": 500,
+                        },
+                        {
+                            "key": "error_cov",
+                            "label": "Error Coverage",
+                            "type": "int",
+                            "default": 100,
+                        },
+                        {
+                            "key": "cnv_genelists",
+                            "label": "CNV Gene Lists",
+                            "type": "checkbox-group",
+                            "options": [],
+                        },
+                    ],
+                },
+                {
+                    "title": "Gene Scope And Consequences",
+                    "fields": [
+                        {
+                            "key": "genelists",
+                            "label": "SNV Gene Lists",
+                            "type": "checkbox-group",
+                            "options": [],
+                        },
+                        {
+                            "key": "vep_consequences",
+                            "label": "VEP Consequences",
+                            "type": "checkbox-group",
+                            "options": [],
+                        },
+                        {
+                            "key": "cnveffects",
+                            "label": "CNV Effects (gain/loss)",
+                            "type": "checkbox-group",
+                            "options": ["gain", "loss"],
+                            "default": ["gain", "loss"],
+                        },
+                    ],
+                },
+            ],
+        },
+        "reporting": {
+            "display_type": "reporting-structured",
+            "groups": [
+                {
+                    "title": "Report Sections",
+                    "fields": [
+                        {
+                            "key": "report_sections",
+                            "label": "Report Sections",
+                            "type": "checkbox-group",
+                            "options": [
+                                "SNV",
+                                "CNV",
+                                "TRANSLOCATION",
+                                "BIOMARKER",
+                                "FUSION",
+                                "CNV_PROFILE",
+                            ],
+                            "default": ["SNV", "CNV"],
+                        }
+                    ],
+                },
+                {
+                    "title": "Report Text",
+                    "fields": [
+                        {
+                            "key": "report_header",
+                            "label": "Report Header",
+                            "type": "text",
+                            "default": "Coyote3 DNA Report",
+                        },
+                        {
+                            "key": "report_method",
+                            "label": "Report Method",
+                            "type": "text",
+                            "default": "NGS panel analysis",
+                        },
+                        {
+                            "key": "report_description",
+                            "label": "Report Description",
+                            "type": "textarea",
+                            "default": "DNA panel summary report",
+                        },
+                        {
+                            "key": "general_report_summary",
+                            "label": "General Summary",
+                            "type": "textarea",
+                            "default": "Automated summary generated from configured assay filters.",
+                        },
+                    ],
+                },
+                {
+                    "title": "Report Paths",
+                    "fields": [
+                        {
+                            "key": "plots_path",
+                            "label": "Plots Path",
+                            "type": "text",
+                            "default": "/tmp",
+                        },
+                        {
+                            "key": "report_folder",
+                            "label": "Report Folder",
+                            "type": "text",
+                            "default": "reports",
+                        },
+                    ],
+                },
+            ],
+        },
+        "query": {
+            "label": "Query Overrides",
+            "display_type": "jsoneditor",
+            "placeholder": "Optional Mongo query overrides. Keys: snv/cnv/fusion/transloc",
+            "default": {},
+        },
         "verification_samples": {"display_type": "jsoneditor"},
-        "query": {"display_type": "jsoneditor"},
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
         "created_on": {"readonly": True},
@@ -120,14 +335,138 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     },
     "aspc_rna": {
         "assay_name": {"display_type": "select"},
+        "use_diagnosis_genelist": {
+            "display_type": "checkbox",
+            "label": "Auto Select Diagnosis/Sub Panel Genelists",
+            "default": True,
+        },
         "environment": {
             "display_type": "select",
             "options": ["production", "development", "test", "validation"],
         },
-        "analysis_types": {"display_type": "checkbox-group"},
-        "report_sections": {"display_type": "checkbox-group"},
-        "vep_consequences": {"display_type": "checkbox-group"},
-        "cnveffects": {"display_type": "checkbox-group"},
+        "analysis_types": {
+            "display_type": "checkbox-group",
+            "options": ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC"],
+            "default": ["FUSION"],
+        },
+        "filters": {
+            "label": "Filters (Fusion strategy)",
+            "display_type": "filters-structured",
+            "placeholder": "Configure RNA thresholds and fusion_* strategy keys",
+            "groups": [
+                {
+                    "title": "Fusion Thresholds",
+                    "fields": [
+                        {
+                            "key": "min_spanning_reads",
+                            "label": "Min Spanning Reads",
+                            "type": "int",
+                            "default": 5,
+                        },
+                        {
+                            "key": "min_spanning_pairs",
+                            "label": "Min Spanning Pairs",
+                            "type": "int",
+                            "default": 5,
+                        },
+                    ],
+                },
+                {
+                    "title": "Fusion Lists",
+                    "fields": [
+                        {
+                            "key": "fusion_callers",
+                            "label": "Fusion Callers",
+                            "type": "checkbox-group",
+                            "options": ["arriba", "starfusion", "fusioncatcher"],
+                            "default": ["arriba", "starfusion"],
+                        },
+                        {
+                            "key": "fusion_effects",
+                            "label": "Fusion Effects",
+                            "type": "checkbox-group",
+                            "options": ["in-frame", "out-of-frame"],
+                            "default": ["in-frame", "out-of-frame"],
+                        },
+                        {
+                            "key": "fusion_genelists",
+                            "label": "Fusion Gene Lists",
+                            "type": "checkbox-group",
+                            "options": [],
+                        },
+                    ],
+                },
+            ],
+        },
+        "reporting": {
+            "display_type": "reporting-structured",
+            "groups": [
+                {
+                    "title": "Report Sections",
+                    "fields": [
+                        {
+                            "key": "report_sections",
+                            "label": "Report Sections",
+                            "type": "checkbox-group",
+                            "options": ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC"],
+                            "default": ["FUSION"],
+                        }
+                    ],
+                },
+                {
+                    "title": "Report Text",
+                    "fields": [
+                        {
+                            "key": "report_header",
+                            "label": "Report Header",
+                            "type": "text",
+                            "default": "Coyote3 RNA Report",
+                        },
+                        {
+                            "key": "report_method",
+                            "label": "Report Method",
+                            "type": "text",
+                            "default": "RNA fusion analysis",
+                        },
+                        {
+                            "key": "report_description",
+                            "label": "Report Description",
+                            "type": "textarea",
+                            "default": "RNA fusion summary report",
+                        },
+                        {
+                            "key": "general_report_summary",
+                            "label": "General Summary",
+                            "type": "textarea",
+                            "default": "Automated summary generated from configured assay filters.",
+                        },
+                    ],
+                },
+                {
+                    "title": "Report Paths",
+                    "fields": [
+                        {
+                            "key": "plots_path",
+                            "label": "Plots Path",
+                            "type": "text",
+                            "default": "/tmp",
+                        },
+                        {
+                            "key": "report_folder",
+                            "label": "Report Folder",
+                            "type": "text",
+                            "default": "reports",
+                        },
+                    ],
+                },
+            ],
+        },
+        "query": {
+            "label": "Query Overrides",
+            "display_type": "jsoneditor",
+            "placeholder": "Optional Mongo query overrides. Keys: snv/cnv/fusion/transloc",
+            "default": {},
+        },
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
         "created_on": {"readonly": True},
@@ -207,14 +546,22 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
     ],
     "aspc_dna": [
         ("identity", ["assay_name", "environment", "asp_group"]),
-        ("analysis", ["analysis_types", "report_sections", "vep_consequences", "cnveffects"]),
-        ("advanced_json", ["verification_samples", "query"]),
+        ("analysis", ["analysis_types"]),
+        ("filters", ["filters"]),
+        (
+            "query",
+            ["snv_query_profile_id", "cnv_query_profile_id", "transloc_query_profile_id", "query"],
+        ),
+        ("reporting", ["reporting", "verification_samples"]),
         ("status", ["is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "aspc_rna": [
         ("identity", ["assay_name", "environment", "asp_group"]),
-        ("analysis", ["analysis_types", "report_sections"]),
+        ("analysis", ["analysis_types"]),
+        ("filters", ["filters"]),
+        ("query", ["fusion_query_profile_id", "query"]),
+        ("reporting", ["reporting"]),
         ("status", ["is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
@@ -248,12 +595,11 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
 
 RESOURCE_EXCLUDED_FIELDS: dict[str, set[str]] = {
     "asp": {"asp_id", "version_history"},
-    "aspc_dna": {"aspc_id", "version_history"},
+    "aspc_dna": {"aspc_id", "id_", "version_history"},
     "aspc_rna": {
         "aspc_id",
+        "id_",
         "version_history",
-        "vep_consequences",
-        "cnveffects",
     },
     "isgl": {"isgl_id", "version_history"},
     "user": {
@@ -300,6 +646,8 @@ def build_managed_schema(spec: ManagedResourceSpec) -> dict[str, Any]:
     model_fields = getattr(model_cls, "model_fields", {})
     excluded_fields = RESOURCE_EXCLUDED_FIELDS.get(spec.key, set())
     for field_name, field_info in model_fields.items():
+        if field_name in {"id_", "id", "_id"}:
+            continue
         if field_name in excluded_fields:
             continue
         data_type, options = _field_data_type(field_info.annotation)

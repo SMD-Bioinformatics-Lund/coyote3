@@ -21,8 +21,8 @@ def _user(*, role: str, level: int, permissions: list[str] | None = None) -> Api
         access_level=level,
         permissions=list(permissions or []),
         denied_permissions=[],
-        assays=["ASSAY_A"],
-        assay_groups=["GROUP_A"],
+        assays=["assay_1"],
+        assay_groups=["hematology"],
         envs=["production"],
         asp_map={},
     )
@@ -68,11 +68,11 @@ def test_internal_ingest_collection_requires_auth_and_admin(monkeypatch):
 
 
 def test_internal_ingest_sample_bundle_update_requires_edit_sample_permission(monkeypatch):
-    """Update mode requires edit_sample permission even for admin role."""
-    monkeypatch.setattr(access, "_role_levels", lambda: {"admin": 100})
+    """Update mode requires edit_sample for developer-level operators."""
+    monkeypatch.setattr(access, "_role_levels", lambda: {"developer": 50, "admin": 100})
     calls: dict[str, object] = {}
 
-    def _ingest(payload, *, allow_update=False):
+    def _ingest(payload, *, allow_update=False, increment=False):
         calls["allow_update"] = allow_update
         return {
             "status": "ok",
@@ -84,19 +84,35 @@ def test_internal_ingest_sample_bundle_update_requires_edit_sample_permission(mo
 
     monkeypatch.setattr(InternalIngestService, "ingest_sample_bundle", _ingest)
     client = TestClient(app)
-    payload = {"spec": {"name": "DEMO_SAMPLE_001"}, "update_existing": True}
+    payload = {
+        "sample": {
+            "name": "DEMO_SAMPLE_001",
+            "assay": "assay_1",
+            "subpanel": None,
+            "profile": "testing",
+            "case_id": "CASE_001",
+            "sample_no": 1,
+            "paired": False,
+            "sequencing_scope": "panel",
+            "omics_layer": "dna",
+            "pipeline": "pipe",
+            "pipeline_version": "v1",
+            "vcf_files": "/tmp/demo.vcf",
+        },
+        "update_existing": True,
+    }
 
     monkeypatch.setattr(
         access,
         "_decode_session_user",
-        lambda _request: _user(role="admin", level=100, permissions=[]),
+        lambda _request: _user(role="developer", level=50, permissions=[]),
     )
     assert client.post("/api/v1/internal/ingest/sample-bundle", json=payload).status_code == 403
 
     monkeypatch.setattr(
         access,
         "_decode_session_user",
-        lambda _request: _user(role="admin", level=100, permissions=["edit_sample"]),
+        lambda _request: _user(role="developer", level=50, permissions=["edit_sample"]),
     )
     response = client.post("/api/v1/internal/ingest/sample-bundle", json=payload)
     assert response.status_code == 200

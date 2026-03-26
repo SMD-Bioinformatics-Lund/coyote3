@@ -163,6 +163,19 @@ class AdminUserService:
         user_data = util.admin.process_form_to_config(form_data, schema)
         username = lower(user_data.get("username"))
         email = lower(user_data.get("email"))
+        existing_user = self.repository.get_user(username)
+        if isinstance(existing_user, dict) and (
+            existing_user.get("username")
+            or existing_user.get("user_id")
+            or existing_user.get("email")
+            or existing_user.get("_id")
+        ):
+            raise api_error(409, "User already exists")
+        email_exists = False
+        if hasattr(self.repository, "user_handler"):
+            email_exists = bool(self.repository.user_handler.user_exists(email=email))
+        if email_exists:
+            raise api_error(409, "Email already exists")
         user_data.setdefault("is_active", True)
         user_data["email"] = email
         user_data["username"] = username

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any
 
 import httpx
@@ -105,6 +106,21 @@ def _to_builtin(value: Any) -> Any:
     return value
 
 
+def _to_json_compatible(value: Any) -> Any:
+    """Convert nested values to JSON-serializable builtins for httpx."""
+    if isinstance(value, ApiPayload):
+        return {k: _to_json_compatible(v) for k, v in value.items()}
+    if isinstance(value, dict):
+        return {k: _to_json_compatible(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_to_json_compatible(v) for v in value]
+    if isinstance(value, tuple):
+        return [_to_json_compatible(v) for v in value]
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    return value
+
+
 class BaseApiClient:
     """Provide the base api client type."""
 
@@ -154,7 +170,7 @@ class BaseApiClient:
                 url=url,
                 headers=headers or {},
                 params=params or None,
-                json=json_body,
+                json=_to_json_compatible(json_body) if json_body is not None else None,
             )
         except httpx.RequestError as exc:
             raise ApiRequestError(message=f"API request failed: {exc}") from exc
@@ -180,6 +196,58 @@ class BaseApiClient:
                 payload=payload,
             )
 
+        if not isinstance(payload, dict):
+            raise ApiRequestError(
+                message="API returned invalid payload format.",
+                status_code=response.status_code,
+                payload=payload,
+            )
+        return payload
+
+    def _request_multipart(
+        self,
+        method: str,
+        path: str,
+        *,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        files: list[tuple[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Send multipart/form-data request and decode JSON payload."""
+        url = f"{self._base_url}{path}"
+        try:
+            response = self._client.request(
+                method=method,
+                url=url,
+                headers=headers or {},
+                params=params or None,
+                data=data or None,
+                files=files or None,
+            )
+        except httpx.RequestError as exc:
+            raise ApiRequestError(message=f"API request failed: {exc}") from exc
+
+        response_headers = getattr(response, "headers", {}) or {}
+        response_cookies = getattr(response, "cookies", {}) or {}
+        self._last_response_headers = dict(response_headers)
+        if hasattr(response_cookies, "items"):
+            self._last_response_cookies = {name: value for name, value in response_cookies.items()}
+        else:
+            self._last_response_cookies = {}
+
+        try:
+            payload = response.json()
+        except Exception:
+            payload = {"error": response.text}
+
+        if response.status_code >= 400:
+            message = self._safe_error_message(payload, response.status_code)
+            raise ApiRequestError(
+                message=message,
+                status_code=response.status_code,
+                payload=payload,
+            )
         if not isinstance(payload, dict):
             raise ApiRequestError(
                 message="API returned invalid payload format.",
@@ -410,6 +478,27 @@ class BaseApiClient:
             ApiPayload: The function result.
         """
         return self._delete(path, headers=headers, params=params, json_body=json_body)
+
+    def post_multipart(
+        self,
+        path: str,
+        *,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        files: list[tuple[str, Any]] | None = None,
+    ) -> ApiPayload:
+        """Post multipart form-data payload."""
+        return _as_api_payload(
+            self._request_multipart(
+                "POST",
+                path,
+                headers=headers,
+                params=params,
+                data=data,
+                files=files,
+            )
+        )
 
     def close(self) -> None:
         """Close.

@@ -59,16 +59,18 @@ class TranslocsHandler(BaseHandler):
             background=True,
         )
 
-    def get_sample_translocations(self, sample_id: str) -> list:
+    def get_sample_translocations(self, sample_id: str | dict) -> list:
         """
         Retrieve all translocations for a given sample.
 
         Args:
-            sample_id (str): The unique identifier of the sample.
+            sample_id (str | dict): Sample id or full Mongo query.
 
         Returns:
             list: A list of translocations matching the sample ID.
         """
+        if isinstance(sample_id, dict):
+            return list(self.get_collection().find(sample_id))
         return list(self.get_collection().find({"SAMPLE_ID": sample_id}))
 
     def get_interesting_sample_translocations(
@@ -290,7 +292,12 @@ class TranslocsHandler(BaseHandler):
                 return int(result[0].get("uniqueTranslocCount", 0) or 0)
             return 0
         except Exception as e:
-            app.logger.error(f"An error occurred: {e}")
+            app.logger.error(
+                "Failed to compute unique translocation count from collection '%s': %s",
+                self.get_collection().name,
+                e,
+                exc_info=True,
+            )
             return 0
 
     def delete_sample_translocs(self, sample_oid: str) -> None:

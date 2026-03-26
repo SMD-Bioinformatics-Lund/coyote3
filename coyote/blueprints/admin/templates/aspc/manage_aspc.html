@@ -37,6 +37,7 @@
               </thead>
               <tbody id="assay-config-list-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
                 {% for assay in assay_configs %}
+                {% set assay_ref = assay.aspc_id or assay._id %}
                 <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
                   <td class="p-2 font-medium">{{ assay.assay_name }}</td>
                   <td class="p-2 font-medium">{{ assay.display_name }}</td>
@@ -69,16 +70,16 @@
                     {% endif %}
                   </td>
                   <td class="p-2 font-medium flex gap-2 flex-wrap">
-                    <a href="{{ url_for('admin_bp.view_assay_config', assay_id=assay._id) }}"
+                    <a href="{{ url_for('admin_bp.view_assay_config', assay_id=assay_ref) }}"
                       title="View"
                       class="font-medium text-gray-700 hover:text-blue-600">
                       <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
                     </a>
                     {% if has_access("edit_assay_config", min_role="manager", min_level=99) %}
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.edit_assay_config', assay_id=assay._id) }}',
+                          url: '{{ url_for('admin_bp.edit_assay_config', assay_id=assay_ref) }}',
                           title: 'Edit assay configuration',
-                          message: 'Are you sure you want to edit <b>{{ assay._id }} </b> assay configuration?',
+                          message: 'Are you sure you want to edit <b>{{ assay_ref }} </b> assay configuration?',
                           confirmText: 'Edit',
                           confirmColor: 'blue'
                         })"
@@ -87,9 +88,9 @@
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
                       </button>
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.toggle_assay_config_active', assay_id=assay._id) }}',
+                          url: '{{ url_for('admin_bp.toggle_assay_config_active', assay_id=assay_ref) }}',
                           title: '{{ 'Deactivate' if assay.is_active else 'Activate' }} Configuration',
-                          message: 'Are you sure you want to {{ 'deactivate' if assay.is_active else 'activate' }} <b>{{ assay._id }}</b>?',
+                          message: 'Are you sure you want to {{ 'deactivate' if assay.is_active else 'activate' }} <b>{{ assay_ref }}</b>?',
                           confirmText: '{{ 'Deactivate' if assay.is_active else 'Activate' }}',
                           confirmColor: '{{ 'red' if assay.is_active else 'green' }}'
                         })"
@@ -100,9 +101,9 @@
                     {% endif %}
                     {% if has_access("delete_assay_config", min_role="admin", min_level=99999) %}
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.delete_assay_config', assay_id=assay._id) }}',
+                          url: '{{ url_for('admin_bp.delete_assay_config', assay_id=assay_ref) }}',
                           title: 'Delete Assay',
-                          message: 'Are you sure you want to delete <b>{{ assay._id }}</b> assay configuration?',
+                          message: 'Are you sure you want to delete <b>{{ assay_ref }}</b> assay configuration?',
                           confirmText: 'Delete',
                           confirmColor: 'red'
                         })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">

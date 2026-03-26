@@ -1,9 +1,9 @@
 [
   {
-    "aspc_id": "ASSAY_A:production",
-    "assay_name": "ASSAY_A",
+    "aspc_id": "assay_1:production",
+    "assay_name": "assay_1",
     "display_name": "Hema GMS v1",
-    "asp_group": "GROUP_A",
+    "asp_group": "hematology",
     "asp_category": "dna",
     "description": "Demo ASP config for first-run DNA sample workflows",
     "reference_genome": "GRCh38",
@@ -44,6 +44,70 @@
       ],
       "genelists": []
     },
+    "query": {
+      "snv": {
+        "$or": [
+          {
+            "INFO.MYELOID_GERMLINE": 1
+          },
+          {
+            "FILTER": {
+              "$in": [
+                "GERMLINE"
+              ]
+            },
+            "INFO.CSQ": {
+              "$elemMatch": {
+                "SYMBOL": "CEBPA"
+              }
+            }
+          },
+          {
+            "$and": [
+              {
+                "POS": {
+                  "$gt": 115256520
+                }
+              },
+              {
+                "POS": {
+                  "$lt": 115256538
+                }
+              },
+              {
+                "CHROM": 1
+              }
+            ]
+          },
+          {
+            "$and": [
+              {
+                "genes": {
+                  "$in": [
+                    "FLT3"
+                  ]
+                }
+              },
+              {
+                "$or": [
+                  {
+                    "INFO.SVTYPE": {
+                      "$exists": "true"
+                    }
+                  },
+                  {
+                    "ALT": {
+                      "$regex": "\\w{10,200}",
+                      "$options": "i"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
     "reporting": {
       "report_sections": [
         "SNV",
@@ -51,7 +115,7 @@
       ],
       "report_header": "Demo report header",
       "report_method": "Demo method",
-      "report_description": "DNA panel summary report for ASSAY_A",
+      "report_description": "DNA panel summary report for assay_1",
       "general_report_summary": "Automated summary generated from curated panel filters.",
       "plots_path": "/tmp",
       "report_folder": "demo"
@@ -59,10 +123,10 @@
     "verification_samples": {}
   },
   {
-    "aspc_id": "ASSAY_A:testing",
-    "assay_name": "ASSAY_A",
+    "aspc_id": "assay_1:testing",
+    "assay_name": "assay_1",
     "display_name": "Hema GMS v1",
-    "asp_group": "GROUP_A",
+    "asp_group": "hematology",
     "asp_category": "dna",
     "description": "Demo ASP config for test profile",
     "reference_genome": "GRCh38",
@@ -103,6 +167,70 @@
       ],
       "genelists": []
     },
+    "query": {
+      "snv": {
+        "$or": [
+          {
+            "INFO.MYELOID_GERMLINE": 1
+          },
+          {
+            "FILTER": {
+              "$in": [
+                "GERMLINE"
+              ]
+            },
+            "INFO.CSQ": {
+              "$elemMatch": {
+                "SYMBOL": "CEBPA"
+              }
+            }
+          },
+          {
+            "$and": [
+              {
+                "POS": {
+                  "$gt": 115256520
+                }
+              },
+              {
+                "POS": {
+                  "$lt": 115256538
+                }
+              },
+              {
+                "CHROM": 1
+              }
+            ]
+          },
+          {
+            "$and": [
+              {
+                "genes": {
+                  "$in": [
+                    "FLT3"
+                  ]
+                }
+              },
+              {
+                "$or": [
+                  {
+                    "INFO.SVTYPE": {
+                      "$exists": "true"
+                    }
+                  },
+                  {
+                    "ALT": {
+                      "$regex": "\\w{10,200}",
+                      "$options": "i"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
     "reporting": {
       "report_sections": [
         "SNV",
@@ -110,7 +238,7 @@
       ],
       "report_header": "Demo report header",
       "report_method": "Demo method",
-      "report_description": "DNA panel summary report for ASSAY_A",
+      "report_description": "DNA panel summary report for assay_1",
       "general_report_summary": "Automated summary generated from curated panel filters.",
       "plots_path": "/tmp",
       "report_folder": "demo"

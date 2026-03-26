@@ -118,7 +118,7 @@ class _Repo:
         }
 
     def get_permission(self, permission_id):
-        if permission_id == "missing":
+        if permission_id in {"missing", "perm.create"}:
             return None
         return {
             "_id": "oid-perm",

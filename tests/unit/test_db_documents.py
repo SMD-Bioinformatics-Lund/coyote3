@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -10,6 +11,21 @@ import pytest
 
 from api.contracts.schemas.dna import VariantsDoc
 from api.contracts.schemas.registry import supported_collections, validate_collection_document
+
+
+def _load_seed_list(path: Path) -> list[dict]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _load_reference_seed_list(filename: str) -> list[dict]:
+    path = Path("tests/data/seed_data") / filename
+    docs: list[dict] = []
+    with gzip.open(path, "rt", encoding="utf-8") as handle:
+        for line in handle:
+            text = line.strip()
+            if text:
+                docs.append(json.loads(text))
+    return docs
 
 
 def test_variant_info_accepts_selected_csq_fields():
@@ -64,22 +80,21 @@ def test_variant_info_normalizes_variant_callers_string():
 
 def test_collection_validator_accepts_hgnc_genes_shape():
     """hgnc_genes strict model should accept the curated fixture shape."""
-    fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/hgnc_genes.json")
-    payload = json.loads(fixture.read_text(encoding="utf-8"))[0]
+    payload = _load_reference_seed_list("hgnc_genes.seed.ndjson.gz")[0]
     validate_collection_document("hgnc_genes", payload)
 
 
 def test_collection_validator_accepts_oncokb_actionable_shape():
     """OncoKB actionable strict model should accept curated fixture docs."""
     fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/oncokb_actionable.json")
-    payload = json.loads(fixture.read_text(encoding="utf-8"))[0]
+    payload = _load_seed_list(fixture)[0]
     validate_collection_document("oncokb_actionable", payload)
 
 
 def test_collection_validator_accepts_nested_sample_shape():
     """samples collection should validate nested case/control/filter/comment/report blocks."""
     fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/samples.json")
-    payload = json.loads(fixture.read_text(encoding="utf-8"))[0]
+    payload = _load_seed_list(fixture)[0]
     validate_collection_document("samples", payload)
 
 
@@ -90,7 +105,7 @@ def test_collection_validator_rejects_dna_sample_with_rna_keys():
             "samples",
             {
                 "name": "S1",
-                "assay": "hema_GMSv1",
+                "assay": "assay_1",
                 "profile": "prod",
                 "case_id": "S1",
                 "sample_no": 1,
@@ -122,7 +137,7 @@ def test_collection_validator_rejects_rna_sample_with_dna_keys():
 def test_collection_validator_accepts_nested_panel_coverage_shape():
     """panel_coverage strict model should accept curated fixture docs."""
     fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/panel_coverage.json")
-    payload = json.loads(fixture.read_text(encoding="utf-8"))[0]
+    payload = _load_seed_list(fixture)[0]
     validate_collection_document("panel_coverage", payload)
 
 
@@ -148,10 +163,10 @@ def test_collection_validator_rejects_invalid_aspc_id_environment_mismatch():
         validate_collection_document(
             "asp_configs",
             {
-                "aspc_id": "ASSAY_A:production",
-                "assay_name": "ASSAY_A",
+                "aspc_id": "assay_1:production",
+                "assay_name": "assay_1",
                 "environment": "development",
-                "asp_group": "GROUP_A",
+                "asp_group": "hematology",
             },
         )
 
@@ -175,6 +190,10 @@ def test_collection_validator_accepts_strict_ready_fixture_subset():
         file.stem: json.loads(file.read_text(encoding="utf-8"))
         for file in sorted(fixture_dir.glob("*.json"))
     }
+    payload["permissions"] = _load_reference_seed_list("permissions.seed.ndjson.gz")
+    payload["roles"] = _load_reference_seed_list("roles.seed.ndjson.gz")
+    payload["refseq_canonical"] = _load_reference_seed_list("refseq_canonical.seed.ndjson.gz")
+    payload["hgnc_genes"] = _load_reference_seed_list("hgnc_genes.seed.ndjson.gz")
     strict_ready = {
         "cnvs",
         "mane_select",

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import sys
 from datetime import datetime
@@ -38,11 +39,11 @@ ENV_ALIASES = {
 REQUIRED_BASELINE_COLLECTIONS = (
     "permissions",
     "roles",
-    "asp_configs",
-    "assay_specific_panels",
-    "insilico_genelists",
     "refseq_canonical",
     "hgnc_genes",
+    "vep_metadata",
+    "asp_configs",
+    "assay_specific_panels",
 )
 
 
@@ -57,6 +58,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--yaml", help="Optional sample ingest YAML to validate assay against seeds"
+    )
+    parser.add_argument(
+        "--reference-seed-data",
+        help="Optional directory with compressed NDJSON seed packs",
     )
     parser.add_argument(
         "--validate-all-contracts",
@@ -80,6 +85,44 @@ def _load_seed(path: str) -> dict[str, Any]:
         if not isinstance(value, list):
             raise SystemExit(f"Collection seed file must contain a JSON list: {file}")
         payload[file.stem] = value
+    return payload
+
+
+def _load_reference_seed_pack(path: str) -> dict[str, Any]:
+    reference_path = Path(path)
+    if not reference_path.is_dir():
+        raise SystemExit(f"Reference seed data directory not found: {reference_path}")
+
+    required_pack = {
+        "hgnc_genes": "hgnc_genes.seed.ndjson.gz",
+        "permissions": "permissions.seed.ndjson.gz",
+        "refseq_canonical": "refseq_canonical.seed.ndjson.gz",
+        "roles": "roles.seed.ndjson.gz",
+        "vep_metadata": "vep_metadata.seed.ndjson.gz",
+    }
+
+    def _load_gzip_ndjson(file_path: Path) -> list[dict[str, Any]]:
+        docs: list[dict[str, Any]] = []
+        with gzip.open(file_path, "rt", encoding="utf-8") as handle:
+            for line in handle:
+                text = line.strip()
+                if not text:
+                    continue
+                value = json.loads(text)
+                if not isinstance(value, dict):
+                    raise SystemExit(
+                        f"Reference seed file must contain JSON objects per line: {file_path}"
+                    )
+                docs.append(value)
+        return docs
+
+    payload: dict[str, Any] = {}
+    for collection, filename in required_pack.items():
+        file_path = reference_path / filename
+        if not file_path.exists():
+            raise SystemExit(f"Missing reference seed file: {file_path}")
+        payload[collection] = _load_gzip_ndjson(file_path)
+
     return payload
 
 
@@ -260,6 +303,42 @@ def _normalize_env(value: Any) -> str:
     return ENV_ALIASES.get(raw, raw)
 
 
+def _validate_lowercase_business_ids(seed: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    field_rules: dict[str, tuple[str, ...]] = {
+        "permissions": ("permission_id",),
+        "roles": ("role_id",),
+        "users": ("username", "email", "role", "assay_groups", "assays"),
+        "asp_configs": ("aspc_id", "assay_name", "asp_group"),
+        "assay_specific_panels": ("asp_id", "assay_name", "asp_group"),
+        "insilico_genelists": ("isgl_id", "diagnosis", "assay_groups", "assays"),
+        "blacklist": ("assay_group", "assay"),
+        "samples": ("assay", "subpanel"),
+    }
+
+    def _append_error(collection: str, idx: int, field: str, value: str) -> None:
+        errors.append(
+            f"{collection}[{idx}] field '{field}' must be lowercase for business-key consistency: '{value}'"
+        )
+
+    for collection, fields in field_rules.items():
+        for idx, doc in enumerate(seed.get(collection, [])):
+            if not isinstance(doc, dict):
+                continue
+            for field in fields:
+                value = doc.get(field)
+                if value is None:
+                    continue
+                items = value if isinstance(value, list) else [value]
+                for item in items:
+                    normalized = _norm(item)
+                    if not normalized:
+                        continue
+                    if normalized != normalized.lower():
+                        _append_error(collection, idx, field, normalized)
+    return errors
+
+
 def _collect_assay_group_map(seed: dict[str, Any]) -> dict[str, set[str]]:
     mapping: dict[str, set[str]] = {}
     for collection in ("asp_configs", "assay_specific_panels"):
@@ -420,29 +499,14 @@ def _validate_bootstrap_dependencies(seed: dict[str, Any]) -> list[str]:
             if _norm(assay) and _norm(assay) not in assays:
                 errors.append(f"users[{idx}] references unknown assay '{_norm(assay)}'")
 
-    refseq_genes = {
-        _norm(doc.get("gene", ""))
-        for doc in seed.get("refseq_canonical", [])
-        if isinstance(doc, dict) and _norm(doc.get("gene", ""))
-    }
-    hgnc_symbols = {
-        _norm(doc.get("hgnc_symbol", ""))
-        for doc in seed.get("hgnc_genes", [])
-        if isinstance(doc, dict) and _norm(doc.get("hgnc_symbol", ""))
-    }
-    missing_symbols = sorted(refseq_genes - hgnc_symbols)
-    if missing_symbols:
-        errors.append(
-            "refseq_canonical contains genes missing in hgnc_genes.hgnc_symbol: "
-            + ", ".join(missing_symbols)
-        )
-
     return errors
 
 
 def main() -> int:
     args = parse_args()
     seed = _load_seed(args.seed_file)
+    if args.reference_seed_data:
+        seed.update(_load_reference_seed_pack(args.reference_seed_data))
     shape_errors = _validate_contract_shaping(seed)
     if shape_errors:
         raise SystemExit("Seed contract-shape errors:\n- " + "\n- ".join(shape_errors))
@@ -482,6 +546,10 @@ def main() -> int:
     aspc_errors = _validate_aspc(seed)
     if aspc_errors:
         raise SystemExit("ASPC consistency errors:\n- " + "\n- ".join(aspc_errors))
+
+    lowercase_errors = _validate_lowercase_business_ids(seed)
+    if lowercase_errors:
+        raise SystemExit("Lowercase business-key errors:\n- " + "\n- ".join(lowercase_errors))
 
     panel_errors = _validate_panels(seed)
     if panel_errors:

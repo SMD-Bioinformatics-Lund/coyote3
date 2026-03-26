@@ -39,6 +39,7 @@
             </thead>
             <tbody id="panels-list-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
               {% for panel in panels %}
+                {% set panel_ref = panel.asp_id or panel._id %}
                 <tr class="border-t border-gray-300 hover:bg-blue-100">
                   <td class="p-2 font-medium">{{ panel.assay_name }}</td>
                   <td class="p-2 font-medium">{{ panel.display_name }}</td>
@@ -72,7 +73,7 @@
                   </td>
                   <!-- Actions Column -->
                   <td class="p-2 font-medium flex gap-2 flex-wrap">
-                    <a href="{{ url_for('admin_bp.view_assay_panel', assay_panel_id=panel._id) }}"
+                    <a href="{{ url_for('admin_bp.view_assay_panel', assay_panel_id=panel_ref) }}"
                       title="View"
                       class="font-medium text-gray-700 hover:text-blue-600">
                       <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
@@ -80,9 +81,9 @@
 
                     {% if has_access("edit_asp", min_role="manager", min_level=99) %}
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.edit_assay_panel', assay_panel_id=panel._id) }}',
+                          url: '{{ url_for('admin_bp.edit_assay_panel', assay_panel_id=panel_ref) }}',
                           title: 'Edit assay_panel configuration',
-                          message: 'Are you sure you want to edit <b>{{ panel._id }} </b> assay_panel configuration?',
+                          message: 'Are you sure you want to edit <b>{{ panel_ref }} </b> assay_panel configuration?',
                           confirmText: 'Edit',
                           confirmColor: 'blue'
                         })"
@@ -91,9 +92,9 @@
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
                       </button>
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.toggle_assay_panel_active', assay_panel_id=panel._id) }}',
+                          url: '{{ url_for('admin_bp.toggle_assay_panel_active', assay_panel_id=panel_ref) }}',
                           title: '{{ 'Deactivate' if panel.is_active else 'Activate' }} Configuration',
-                          message: 'Are you sure you want to {{ 'deactivate' if panel.is_active else 'activate' }} <b>{{ panel._id }}</b>?',
+                          message: 'Are you sure you want to {{ 'deactivate' if panel.is_active else 'activate' }} <b>{{ panel_ref }}</b>?',
                           confirmText: '{{ 'Deactivate' if panel.is_active else 'Activate' }}',
                           confirmColor: '{{ 'red' if panel.is_active else 'green' }}'
                         })"
@@ -104,9 +105,9 @@
                     {% endif %}
                     {% if has_access("delete_asp", min_role="admin", min_level=99999) %}
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.delete_assay_panel', assay_panel_id=panel._id) }}',
+                          url: '{{ url_for('admin_bp.delete_assay_panel', assay_panel_id=panel_ref) }}',
                           title: 'Delete assay_panel',
-                          message: 'Are you sure you want to delete <b>{{ panel._id }}</b> assay_panel configuration?',
+                          message: 'Are you sure you want to delete <b>{{ panel_ref }}</b> assay_panel configuration?',
                           confirmText: 'Delete',
                           confirmColor: 'red'
                         })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">

@@ -10,8 +10,8 @@ Seeding policy:
 
 - `permissions` and `roles` ship as a complete out-of-the-box RBAC baseline.
 - Admin bootstrap collections (`asp_configs`, `assay_specific_panels`,
-  `insilico_genelists`) use demo-safe neutral placeholders
-  (`ASSAY_A`, `GROUP_A`, `DIAGNOSIS_A`) and are expected to be customized per center.
+  `insilico_genelists`) use lowercase center-style identifiers by default:
+  `assay_1`, `hematology`, and `hematology_myeloid`.
 
 Purpose:
 
@@ -23,6 +23,8 @@ Contract rules:
 
 - Shared baseline collections (`permissions`, `roles`, `users`, `asp_configs`,
   `assay_specific_panels`, `insilico_genelists`) should keep aligned key-shapes across environments.
+- All business identifiers are lowercase in the curated seed baseline, except sample document IDs
+  where the sample-specific identifier is intentionally preserved.
 - `all_collections_dummy/` is the first-load seed baseline used by onboarding scripts.
 - Seed files use plain JSON scalar values for IDs/timestamps (for example ISO-8601 datetime strings),
   not Mongo Extended JSON wrappers such as `$date` / `$oid`.

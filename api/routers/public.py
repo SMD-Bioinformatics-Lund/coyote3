@@ -297,7 +297,7 @@ def public_assay_catalog_context_read(
             hydrated_cat.get("asp_id"), selected_isgl
         )
 
-    genes = service.apply_drug_info(genes=deepcopy(genes), druglist_name="Drug_Addon")
+    genes = service.apply_drug_info(genes=deepcopy(genes), druglist_name="drug_addon")
     vm = {
         "meta": {
             "version": catalog.get("version"),

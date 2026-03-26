@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.admin import (
+    AdminExistsPayload,
     AdminMutationPayload,
     AdminPanelContextPayload,
     AdminPanelCreateContextPayload,
@@ -193,3 +194,18 @@ def delete_asp_mutation(
     """
     _ = user
     return util.common.convert_to_serializable(service.delete(panel_id=assay_panel_id))
+
+
+@router.post("/api/v1/resources/asp/validate_asp_id", response_model=AdminExistsPayload)
+def validate_asp_id_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(
+        require_access(permission="create_asp", min_role="manager", min_level=99)
+    ),
+    service: AdminPanelService = Depends(get_admin_panel_service),
+):
+    """Validate whether an asp_id already exists."""
+    _ = user
+    return util.common.convert_to_serializable(
+        {"exists": service.panel_exists(asp_id=str(payload.get("asp_id", "")))}
+    )

@@ -49,7 +49,7 @@
         </div>
         {% endif %}
 
-        <form method="POST" enctype="multipart/form-data" class="space-y-6 text-sm text-gray-700">
+        <form method="POST" enctype="multipart/form-data" class="space-y-6 text-sm text-gray-700" id="assay-config-edit-form">
           {% for section, keys in schema.sections.items() %}
             <div class="mb-6 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-lg">
               <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') | title }}</h2>
@@ -62,7 +62,7 @@
                   {% endif %}
 
                   {% set is_changed = delta and key in delta.changed %}
-                  {% set fullspan = field.display_type in ['textarea', 'jsoneditor-or-upload'] or field.data_type in ['json', 'dict'] %}
+                  {% set fullspan = field.display_type in ['textarea', 'jsoneditor-or-upload', 'filters-structured', 'reporting-structured'] or field.data_type in ['json', 'dict'] %}
 
                   <div class="{% if is_changed %}ring-2 ring-yellow-400 rounded-md p-1{% endif %}{% if fullspan %} col-span-3{% endif %}">
                     <label class="text-xs font-semibold block mb-1">
@@ -71,10 +71,10 @@
                     </label>
 
                     {% if field.readonly or 'edit' in field.readonly_mode or key in ['assay_name', 'type'] %}
-                      <input type="text" name="{{ key }}" value="{{ value }}" readonly class="w-full bg-blue-50 border border-blue-300 rounded-md p-2 text-sm text-gray-600 cursor-not-allowed">
+                      <input type="text" name="{{ key }}" id="{{ key }}" value="{{ value }}" readonly class="w-full bg-blue-50 border border-blue-300 rounded-md p-2 text-sm text-gray-600 cursor-not-allowed">
 
                     {% elif field.display_type == 'select' %}
-                      <select name="{{ key }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                      <select name="{{ key }}" id="{{ key }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
                         {% for opt in field.options %}
                           <option value="{{ opt }}" {% if opt == value %}selected{% endif %}>{{ opt }}</option>
                         {% endfor %}
@@ -113,6 +113,154 @@
                     {% elif field.display_type == 'textarea' %}
                       <textarea name="{{ key }}" rows="4" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">{{ value }}</textarea>
 
+                    {% elif field.display_type == 'filters-structured' %}
+                      <textarea name="{{ key }}" id="{{ key }}" class="hidden structured-json-value">{{ value | tojson if value else '{}' }}</textarea>
+                      <div class="space-y-3 structured-json-block" data-target-field="{{ key }}">
+                        {% for group in field.groups or [] %}
+                          <div class="border border-blue-200 rounded-md bg-white p-3">
+                            <h3 class="text-xs font-semibold text-blue-700 mb-2">{{ group.title }}</h3>
+                            <div class="grid grid-cols-3 gap-3">
+                              {% for subfield in group.fields %}
+                                {% set subvalue = (value.get(subfield.key) if value else None) %}
+                                {% set subdefault = subfield.default if subfield.default is defined else none %}
+                                {% if subvalue is none %}
+                                  {% set subvalue = subdefault %}
+                                {% endif %}
+                                <div class="{% if subfield.type in ['json', 'list'] %}col-span-3{% endif %}">
+                                  <label class="text-[11px] font-semibold text-gray-700 block mb-1">{{ subfield.label }}</label>
+                                  {% if subfield.type == 'bool' %}
+                                    <input type="checkbox"
+                                           class="accent-blue-600 rounded structured-filter-input"
+                                           data-structured-field
+                                           data-key="{{ subfield.key }}"
+                                           data-type="bool"
+                                           {% if subvalue %}checked{% endif %}>
+                                  {% elif subfield.type == 'select' %}
+                                    <select class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs structured-filter-input"
+                                            data-structured-field
+                                            data-key="{{ subfield.key }}"
+                                            data-type="select">
+                                      {% for opt in subfield.options or [] %}
+                                        <option value="{{ opt }}" {% if subvalue == opt %}selected{% endif %}>{{ opt }}</option>
+                                      {% endfor %}
+                                    </select>
+                                  {% elif subfield.type == 'checkbox-group' %}
+                                    <div class="flex flex-wrap gap-3">
+                                      {% for opt in subfield.options or [] %}
+                                        <label class="inline-flex items-center gap-1 text-xs">
+                                          <input type="checkbox"
+                                                 class="accent-blue-600 rounded"
+                                                 data-structured-field
+                                                 data-key="{{ subfield.key }}"
+                                                 data-type="checkbox-group"
+                                                 value="{{ opt }}"
+                                                 {% if subvalue and opt in subvalue %}checked{% endif %}>
+                                          <span>{{ opt }}</span>
+                                        </label>
+                                      {% endfor %}
+                                    </div>
+                                  {% elif subfield.type == 'list' %}
+                                    <textarea rows="3"
+                                              class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y structured-filter-input"
+                                              data-structured-field
+                                              data-key="{{ subfield.key }}"
+                                              data-type="list"
+                                              placeholder="One value per line">{{ (subvalue or []) | join('\n') }}</textarea>
+                                  {% elif subfield.type == 'json' %}
+                                    <textarea rows="4"
+                                              class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y structured-filter-input"
+                                              data-structured-field
+                                              data-key="{{ subfield.key }}"
+                                              data-type="json"
+                                              placeholder="JSON array">{{ subvalue | tojson if subvalue else '[]' }}</textarea>
+                                  {% else %}
+                                    <input type="{{ 'number' if subfield.type in ['int', 'float'] else 'text' }}"
+                                           step="{% if subfield.type == 'float' %}any{% endif %}"
+                                           class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs structured-filter-input"
+                                           data-structured-field
+                                           data-key="{{ subfield.key }}"
+                                           data-type="{{ subfield.type }}"
+                                           value="{{ subvalue if subvalue is not none else '' }}">
+                                  {% endif %}
+                                </div>
+                              {% endfor %}
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+
+                    {% elif field.display_type == 'reporting-structured' %}
+                      <textarea name="{{ key }}" id="{{ key }}" class="hidden structured-json-value">{{ value | tojson if value else '{}' }}</textarea>
+                      <div class="space-y-3 structured-json-block" data-target-field="{{ key }}">
+                        {% for group in field.groups or [] %}
+                          <div class="border border-blue-200 rounded-md bg-white p-3">
+                            <h3 class="text-xs font-semibold text-blue-700 mb-2">{{ group.title }}</h3>
+                            <div class="grid grid-cols-3 gap-3">
+                              {% for subfield in group.fields %}
+                                {% set subvalue = (value.get(subfield.key) if value else None) %}
+                                {% set subdefault = subfield.default if subfield.default is defined else none %}
+                                {% if subvalue is none %}
+                                  {% set subvalue = subdefault %}
+                                {% endif %}
+                                <div class="{% if subfield.type in ['textarea', 'checkbox-group'] %}col-span-3{% endif %}">
+                                  <label class="text-[11px] font-semibold text-gray-700 block mb-1">{{ subfield.label }}</label>
+                                  {% if subfield.type == 'checkbox-group' %}
+                                    <div class="flex flex-wrap gap-3">
+                                      {% for opt in subfield.options or [] %}
+                                        <label class="inline-flex items-center gap-1 text-xs">
+                                          <input type="checkbox"
+                                                 class="accent-blue-600 rounded"
+                                                 data-structured-field
+                                                 data-key="{{ subfield.key }}"
+                                                 data-type="checkbox-group"
+                                                 value="{{ opt }}"
+                                                 {% if subvalue and opt in subvalue %}checked{% endif %}>
+                                          <span>{{ opt }}</span>
+                                        </label>
+                                      {% endfor %}
+                                    </div>
+                                  {% elif subfield.type == 'textarea' %}
+                                    <textarea rows="3"
+                                              class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs resize-y"
+                                              data-structured-field
+                                              data-key="{{ subfield.key }}"
+                                              data-type="textarea">{{ subvalue or '' }}</textarea>
+                                  {% else %}
+                                    <input type="text"
+                                           class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs"
+                                           data-structured-field
+                                           data-key="{{ subfield.key }}"
+                                           data-type="text"
+                                           value="{{ subvalue if subvalue is not none else '' }}">
+                                  {% endif %}
+                                </div>
+                              {% endfor %}
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+
+                    {% elif key == 'query' and field.display_type in ['json', 'jsoneditor'] %}
+                      <textarea name="{{ key }}" id="{{ key }}" rows="10" placeholder="{{ field.placeholder }}"
+                                class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y">{{ value | tojson(indent=2) if value else '{}' }}
+                      </textarea>
+                      <div class="mt-2 text-xs text-gray-700 space-y-2">
+                        <div class="flex flex-wrap gap-2">
+                          <button type="button" class="px-2 py-1 bg-blue-100 border border-blue-300 rounded"
+                                  onclick='setQueryPreset("{{ key }}","snv_hema")'>Load SNV Hematology Preset</button>
+                          <button type="button" class="px-2 py-1 bg-blue-100 border border-blue-300 rounded"
+                                  onclick='setQueryPreset("{{ key }}","cnv_base")'>Load CNV Preset</button>
+                          <button type="button" class="px-2 py-1 bg-blue-100 border border-blue-300 rounded"
+                                  onclick='setQueryPreset("{{ key }}","fusion_base")'>Load Fusion Preset</button>
+                          <button type="button" class="px-2 py-1 bg-gray-100 border border-gray-300 rounded"
+                                  onclick='setQueryPreset("{{ key }}","empty")'>Clear</button>
+                        </div>
+                        <p class="text-gray-600">
+                          Preferred workflow: select query profiles above (SNV/CNV/Fusion/Translocation).
+                          Keep raw JSON overrides here only for advanced center-specific scenarios.
+                        </p>
+                      </div>
+
                     {% elif field.display_type in ['json', 'jsoneditor'] %}
                       <textarea name="{{ key }}" id="{{ key }}" rows="6" placeholder="{{ field.placeholder }}"
                                 class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y">{{ value | tojson(indent=2) if value else '' }}
@@ -146,4 +294,148 @@
     </section>
   </main>
 </div>
+
+<script>
+  const QUERY_PRESETS = {
+    empty: {},
+    snv_hema: {
+      snv: {
+        $or: [
+          {"INFO.MYELOID_GERMLINE": 1},
+          {"FILTER": {"$in": ["GERMLINE"]}, "INFO.CSQ": {"$elemMatch": {"SYMBOL": "CEBPA"}}},
+          {"$and": [{"POS": {"$gt": 115256520}}, {"POS": {"$lt": 115256538}}, {"CHROM": 1}]},
+          {"$and": [{"genes": {"$in": ["FLT3"]}}, {"$or": [{"INFO.SVTYPE": {"$exists": "true"}}, {"ALT": {"$regex": "\\\\w{10,200}", "$options": "i"}}]}]}
+        ]
+      }
+    },
+    cnv_base: {
+      cnv: {
+        $nor: [{"NORMAL": 1}]
+      }
+    },
+    fusion_base: {
+      fusion: {
+        $and: [{"calls": {"$elemMatch": {"caller": "arriba"}}}]
+      }
+    }
+  };
+
+  function setQueryPreset(fieldId, presetKey) {
+    const el = document.getElementById(fieldId);
+    if (!el) return;
+    const preset = QUERY_PRESETS[presetKey] || {};
+    el.value = JSON.stringify(preset, null, 2);
+  }
+
+  function _parseStructuredFieldValue(rawValue, valueType) {
+    if (valueType === 'bool') return !!rawValue;
+    if (valueType === 'int') {
+      const parsed = parseInt(rawValue, 10);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    }
+    if (valueType === 'float') {
+      const parsed = parseFloat(rawValue);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    }
+    if (valueType === 'list') {
+      return String(rawValue || '')
+        .split(/\n|,/)
+        .map(v => v.trim())
+        .filter(Boolean);
+    }
+    if (valueType === 'json') {
+      const text = String(rawValue || '').trim();
+      if (!text) return [];
+      return JSON.parse(text);
+    }
+    if (valueType === 'textarea') return String(rawValue || '');
+    return rawValue;
+  }
+
+  function serializeStructuredJsonBlocks(formEl) {
+    const blocks = formEl.querySelectorAll('.structured-json-block');
+    for (const block of blocks) {
+      const targetField = block.getAttribute('data-target-field');
+      const hidden = formEl.querySelector(`#${targetField}.structured-json-value`);
+      if (!hidden) continue;
+
+      const payload = {};
+      const inputs = Array.from(block.querySelectorAll('[data-structured-field]'));
+      const grouped = {};
+      for (const input of inputs) {
+        const key = input.getAttribute('data-key');
+        grouped[key] = grouped[key] || [];
+        grouped[key].push(input);
+      }
+
+      for (const [key, fieldInputs] of Object.entries(grouped)) {
+        const type = fieldInputs[0].getAttribute('data-type');
+        if (type === 'checkbox-group') {
+          payload[key] = fieldInputs
+            .filter(el => el.checked)
+            .map(el => el.value)
+            .filter(Boolean);
+          continue;
+        }
+        const input = fieldInputs[0];
+        const raw = type === 'bool' ? input.checked : input.value;
+        const parsed = _parseStructuredFieldValue(raw, type);
+        if (parsed !== undefined) payload[key] = parsed;
+      }
+      hidden.value = JSON.stringify(payload);
+    }
+  }
+
+  document.getElementById('assay-config-edit-form').addEventListener('submit', function (event) {
+    try {
+      serializeStructuredJsonBlocks(event.target);
+    } catch (error) {
+      event.preventDefault();
+      alert(`Invalid structured JSON input: ${error.message}`);
+    }
+  });
+
+  function setSelectOptions(selectId, options) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = '';
+    const emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.textContent = '-- none --';
+    select.appendChild(emptyOpt);
+    for (const value of (options || [])) {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = value;
+      if (value === current) opt.selected = true;
+      select.appendChild(opt);
+    }
+  }
+
+  async function refreshQueryProfileOptions() {
+    const assayName = (document.getElementById('assay_name')?.value || '').trim();
+    const environment = (document.getElementById('environment')?.value || '').trim();
+    try {
+      const params = new URLSearchParams({ assay_name: assayName, environment });
+      const response = await fetch(`/api/v1/resources/query_profiles/options?${params.toString()}`, {
+        headers: { Accept: 'application/json' }
+      });
+      if (!response.ok) return;
+      const payload = await response.json();
+      const options = payload.options || {};
+      setSelectOptions('snv_query_profile_id', options.snv || []);
+      setSelectOptions('cnv_query_profile_id', options.cnv || []);
+      setSelectOptions('fusion_query_profile_id', options.fusion || []);
+      setSelectOptions('transloc_query_profile_id', options.transloc || []);
+    } catch (_error) {
+      // keep current options on transient failures
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    refreshQueryProfileOptions();
+    document.getElementById('environment')?.addEventListener('change', refreshQueryProfileOptions);
+  });
+</script>
 {% endblock %}

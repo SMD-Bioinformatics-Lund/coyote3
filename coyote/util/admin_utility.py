@@ -6,6 +6,7 @@ This module provides static methods for configuration management, form processin
 
 import hashlib
 import json
+from datetime import date, datetime
 from typing import Any, Union
 
 from dateutil.parser import parse as parse_datetime
@@ -26,6 +27,12 @@ class AdminUtility:
 
     All methods are stateless and designed for use in admin-related workflows.
     """
+
+    @staticmethod
+    def _is_object_id_like(value: Any) -> bool:
+        """Return True when value behaves like a BSON ObjectId without importing bson in UI layer."""
+        cls = value.__class__
+        return cls.__name__ == "ObjectId" and cls.__module__.startswith("bson")
 
     @staticmethod
     def cast_value(value: Any, field_type: str) -> Union[str, int, float, bool, list, dict, None]:
@@ -59,7 +66,6 @@ class AdminUtility:
             not in [
                 "list",
                 "multi-select",
-                "select",
                 "checkbox-group",
                 "checkbox",
                 "json",
@@ -82,14 +88,23 @@ class AdminUtility:
         elif field_type == "datetime":
             if isinstance(value, str):
                 try:
-                    return parse_datetime(value)
+                    parsed = parse_datetime(value)
+                    return parsed.isoformat()
                 except (ValueError, TypeError):
                     return None
+            if hasattr(value, "isoformat"):
+                return value.isoformat()
+            return value
+        elif field_type == "select":
+            if isinstance(value, list):
+                return value[0] if value else None
+            if isinstance(value, str):
+                stripped = value.strip()
+                return stripped or None
             return value
         elif field_type in [
             "list",
             "multi-select",
-            "select",
             "checkbox",
             "checkbox-group",
         ]:
@@ -188,6 +203,12 @@ class AdminUtility:
                 return {k: sanitize(value[k]) for k in sorted(value)}
             elif isinstance(value, list):
                 return [sanitize(v) for v in value]
+            elif isinstance(value, tuple):
+                return [sanitize(v) for v in value]
+            elif AdminUtility._is_object_id_like(value):
+                return str(value)
+            elif isinstance(value, (datetime, date)):
+                return value.isoformat()
             return value
 
         # Strip volatile metadata keys (if any)

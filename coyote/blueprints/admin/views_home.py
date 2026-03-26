@@ -173,6 +173,17 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
         "category": "Audit",
         "color": "brown",
     },
+    {
+        "endpoint": "admin_bp.ingest_workspace",
+        "permission": "edit_sample",
+        "min_role": "developer",
+        "min_level": 9999,
+        "icon": "arrow-up-tray.svg",
+        "title": "Data Ingestion",
+        "desc": "Upload sample bundles and manage collection data",
+        "category": "Ingestion",
+        "color": "purple",
+    },
 ]
 
 

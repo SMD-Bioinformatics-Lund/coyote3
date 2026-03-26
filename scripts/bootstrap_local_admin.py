@@ -10,14 +10,16 @@ from datetime import datetime, timezone
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash
 
+from api.contracts.schemas.registry import normalize_collection_document
+
 ROLE_PROFILES = {
-    "external": {"name": "External", "level": 1},
-    "viewer": {"name": "Viewer", "level": 5},
-    "intern": {"name": "Intern", "level": 7},
-    "user": {"name": "User", "level": 9},
-    "manager": {"name": "Manager", "level": 99},
-    "developer": {"name": "Developer", "level": 9999},
-    "admin": {"name": "Administrator", "level": 99999},
+    "external": {"name": "External", "level": 1, "color": "#64748B"},
+    "viewer": {"name": "Viewer", "level": 5, "color": "#3B82F6"},
+    "intern": {"name": "Intern", "level": 7, "color": "#8B5CF6"},
+    "user": {"name": "User", "level": 9, "color": "#16A34A"},
+    "manager": {"name": "Manager", "level": 99, "color": "#F59E0B"},
+    "developer": {"name": "Developer", "level": 9999, "color": "#DC2626"},
+    "admin": {"name": "Administrator", "level": 99999, "color": "#111827"},
 }
 
 BASE_PERMISSION_IDS = [
@@ -189,8 +191,8 @@ def parse_args() -> argparse.Namespace:
         default="edit_sample",
         help="Permission id for sample updates (default: edit_sample)",
     )
-    parser.add_argument("--assay-group", default="GROUP_A", help="Initial assay group")
-    parser.add_argument("--assay", default="ASSAY_A", help="Initial assay id")
+    parser.add_argument("--assay-group", default="hematology", help="Initial assay group")
+    parser.add_argument("--assay", default="assay_1", help="Initial assay id")
     return parser.parse_args()
 
 
@@ -231,32 +233,46 @@ def _upsert_permission(db, permission_id: str) -> None:
         if permission_id.startswith(prefix):
             category = value
             break
+    doc = normalize_collection_document(
+        "permissions",
+        {
+            "permission_id": permission_id,
+            "permission_name": permission_id,
+            "label": permission_id.replace("_", " ").title(),
+            "category": category,
+            "description": f"{permission_id.replace('_', ' ')} permission",
+            "tags": [category],
+            "is_active": True,
+        },
+    )
     db["permissions"].update_one(
         {"permission_id": permission_id},
-        {
-            "$setOnInsert": {
-                "permission_name": permission_id,
-                "category": category,
-                "is_active": True,
-            }
-        },
+        {"$set": doc},
         upsert=True,
     )
 
 
 def _upsert_role(db, role_id: str, permission_ids: list[str]) -> None:
-    profile = ROLE_PROFILES.get(role_id, {"name": role_id.capitalize(), "level": 9})
+    profile = ROLE_PROFILES.get(
+        role_id, {"name": role_id.capitalize(), "level": 9, "color": "#374151"}
+    )
+    doc = normalize_collection_document(
+        "roles",
+        {
+            "role_id": role_id,
+            "name": profile["name"],
+            "label": profile["name"],
+            "description": f"{profile['name']} role",
+            "color": profile["color"],
+            "level": profile["level"],
+            "is_active": True,
+            "permissions": sorted(set(permission_ids)),
+            "deny_permissions": [],
+        },
+    )
     db["roles"].update_one(
         {"role_id": role_id},
-        {
-            "$set": {
-                "name": profile["name"],
-                "level": profile["level"],
-                "is_active": True,
-                "permissions": sorted(set(permission_ids)),
-            },
-            "$setOnInsert": {"deny_permissions": []},
-        },
+        {"$set": doc},
         upsert=True,
     )
 
@@ -274,34 +290,33 @@ def _upsert_user(
     fullname = " ".join(part.capitalize() for part in username.split("@")[0].split(".")) or username
     actor = "bootstrap_local_admin"
     now_utc = datetime.now(timezone.utc)
+    user_doc = normalize_collection_document(
+        "users",
+        {
+            "email": username,
+            "username": username,
+            "fullname": fullname,
+            "firstname": fullname.split(" ")[0],
+            "lastname": " ".join(fullname.split(" ")[1:]) if len(fullname.split(" ")) > 1 else "",
+            "job_title": "Center Administrator",
+            "auth_type": "coyote3",
+            "password": generate_password_hash(password, method="pbkdf2:sha256"),
+            "role": role_id,
+            "is_active": True,
+            "permissions": [],
+            "deny_permissions": [],
+            "environments": ["production", "development", "testing", "validation"],
+            "assay_groups": [assay_group],
+            "assays": [assay],
+            "created_by": actor,
+            "created_on": now_utc,
+            "updated_by": actor,
+            "updated_on": now_utc,
+        },
+    )
     db["users"].update_one(
         {"email": username},
-        {
-            "$setOnInsert": {
-                "created_by": actor,
-                "created_on": now_utc,
-            },
-            "$set": {
-                "email": username,
-                "username": username,
-                "fullname": fullname,
-                "firstname": fullname.split(" ")[0],
-                "lastname": (
-                    " ".join(fullname.split(" ")[1:]) if len(fullname.split(" ")) > 1 else ""
-                ),
-                "auth_type": "coyote3",
-                "password": generate_password_hash(password, method="pbkdf2:sha256"),
-                "role": role_id,
-                "is_active": True,
-                "permissions": [],
-                "deny_permissions": [],
-                "environments": ["production", "development", "test", "validation"],
-                "assay_groups": [assay_group],
-                "assays": [assay],
-                "updated_by": actor,
-                "updated_on": now_utc,
-            },
-        },
+        {"$set": user_doc},
         upsert=True,
     )
 
@@ -309,6 +324,10 @@ def _upsert_user(
 def main() -> int:
     args = parse_args()
     _fail_if_placeholder_values(args)
+    args.role_id = str(args.role_id).strip().lower()
+    args.permission_id = str(args.permission_id).strip().lower()
+    args.assay_group = str(args.assay_group).strip().lower()
+    args.assay = str(args.assay).strip().lower()
     client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000)
     client.admin.command("ping")
     db = client[args.db]

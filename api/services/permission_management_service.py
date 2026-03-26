@@ -114,6 +114,11 @@ class PermissionManagementService:
         policy.setdefault("is_active", True)
         policy_id = str(policy["permission_name"]).strip()
         policy["permission_id"] = policy_id
+        existing_policy = self.repository.get_permission(policy_id)
+        if isinstance(existing_policy, dict) and (
+            existing_policy.get("permission_id") or existing_policy.get("_id")
+        ):
+            raise api_error(409, "Permission policy already exists")
         policy = inject_version_history(
             actor_username=current_actor(actor_username),
             new_config=policy,
@@ -200,3 +205,11 @@ class PermissionManagementService:
             raise api_error(404, "Permission policy not found")
         self.repository.delete_permission(permission_id)
         return mutation_payload(resource="permission", resource_id=permission_id, action="delete")
+
+    def permission_exists(self, *, permission_id: str) -> bool:
+        """Return whether a permission business key already exists."""
+        normalized = str(permission_id or "").strip()
+        if not normalized:
+            return False
+        policy = self.repository.get_permission(normalized)
+        return bool(isinstance(policy, dict) and (policy.get("permission_id") or policy.get("_id")))

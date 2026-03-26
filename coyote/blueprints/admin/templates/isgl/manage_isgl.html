@@ -42,11 +42,41 @@
             </thead>
             <tbody id="genelists-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
               {% for genelist in genelists %}
+                {% set genelist_ref = genelist.isgl_id or genelist._id %}
                 <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
                   <td class="p-2 font-medium">{{ genelist.name }}</td>
                   <td class="p-2 font-medium">{{ genelist.displayname }}</td>
                   <td class="p-2 font-medium">
-                    <span class="bg-{{genelist.list_type}} text-black rounded-full px-2 py-1 text-xs">{{ genelist.list_type }}</span>
+                    {% set raw_list_types = genelist.list_type if genelist.list_type is not none else [] %}
+                    {% if raw_list_types is string %}
+                      {% set list_types = [raw_list_types] %}
+                    {% else %}
+                      {% set list_types = raw_list_types %}
+                    {% endif %}
+                    {% if list_types %}
+                      <div class="flex flex-wrap gap-1">
+                        {% for list_type in list_types %}
+                          {% set normalized_type = (list_type|string)|trim|lower %}
+                          {% set badge_class = "bg-gray-300 text-gray-800" %}
+                          {% if normalized_type in ["small_variants_genelist", "snv_genelist", "genelist"] %}
+                            {% set badge_class = "bg-genelist text-black" %}
+                          {% elif normalized_type in ["cnv_genelist", "cnvlist"] %}
+                            {% set badge_class = "bg-cnvlist text-black" %}
+                          {% elif normalized_type in ["fusion_genelist", "fusionlist"] %}
+                            {% set badge_class = "bg-fusionlist text-black" %}
+                          {% elif normalized_type == "dna" %}
+                            {% set badge_class = "bg-dna text-black" %}
+                          {% elif normalized_type == "rna" %}
+                            {% set badge_class = "bg-rna text-black" %}
+                          {% elif normalized_type == "panel" %}
+                            {% set badge_class = "bg-panel text-white" %}
+                          {% endif %}
+                          <span class="rounded-full px-2 py-1 text-xs font-semibold {{ badge_class }}">{{ list_type }}</span>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      -
+                    {% endif %}
                   </td>
                   <td class="p-2 font-medium">
                     {% if genelist.is_public %}
@@ -95,7 +125,7 @@
                     {% endif %}
                   </td>
                   <td class="p-2 font-medium flex gap-2 flex-wrap">
-                    <a href="{{ url_for('admin_bp.view_genelist', genelist_id=genelist._id) }}"
+                    <a href="{{ url_for('admin_bp.view_genelist', genelist_id=genelist_ref) }}"
                       title="View"
                       class="font-medium text-gray-700 hover:text-blue-600">
                       <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
@@ -104,9 +134,9 @@
 
                     {% if has_access("edit_isgl", min_role="manager", min_level=99) and not is_public %}
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.edit_genelist', genelist_id=genelist._id) }}',
+                          url: '{{ url_for('admin_bp.edit_genelist', genelist_id=genelist_ref) }}',
                           title: 'Edit genelist configuration',
-                          message: 'Are you sure you want to edit <b>{{ genelist._id }} </b> genelist configuration?',
+                          message: 'Are you sure you want to edit <b>{{ genelist_ref }} </b> genelist configuration?',
                           confirmText: 'Edit',
                           confirmColor: 'blue'
                         })"
@@ -115,9 +145,9 @@
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
                       </button>
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.toggle_genelist', genelist_id=genelist._id) }}',
+                          url: '{{ url_for('admin_bp.toggle_genelist', genelist_id=genelist_ref) }}',
                           title: '{{ 'Deactivate' if genelist.is_active else 'Activate' }} Configuration',
-                          message: 'Are you sure you want to {{ 'deactivate' if genelist.is_active else 'activate' }} <b>{{ genelist._id }}</b>?',
+                          message: 'Are you sure you want to {{ 'deactivate' if genelist.is_active else 'activate' }} <b>{{ genelist_ref }}</b>?',
                           confirmText: '{{ 'Deactivate' if genelist.is_active else 'Activate' }}',
                           confirmColor: '{{ 'red' if genelist.is_active else 'green' }}'
                         })"
@@ -128,9 +158,9 @@
                     {% endif %}
                     {% if has_access("delete_isgl", min_role="admin", min_level=99999) and not is_public %}
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.delete_genelist', genelist_id=genelist._id) }}',
+                          url: '{{ url_for('admin_bp.delete_genelist', genelist_id=genelist_ref) }}',
                           title: 'Delete genelist',
-                          message: 'Are you sure you want to delete <b>{{ genelist._id }}</b> genelist configuration?',
+                          message: 'Are you sure you want to delete <b>{{ genelist_ref }}</b> genelist configuration?',
                           confirmText: 'Delete',
                           confirmColor: 'red'
                         })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">

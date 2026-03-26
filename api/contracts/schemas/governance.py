@@ -13,6 +13,7 @@ from api.contracts.schemas.base import VersionHistoryEntryDoc, _StrictDocBase
 class UsersDoc(_StrictDocBase):
     email: str
     username: str
+    user_id: str | None = None
     firstname: str
     lastname: str
     fullname: str
@@ -52,6 +53,14 @@ class UsersDoc(_StrictDocBase):
         if "@" not in value:
             raise ValueError("email must contain '@'")
         return value.strip().lower()
+
+    @field_validator("username")
+    @classmethod
+    def _validate_username(cls, value: str) -> str:
+        normalized = str(value).strip().lower()
+        if not normalized:
+            raise ValueError("username is required")
+        return normalized
 
     @field_validator("environments", mode="before")
     @classmethod

@@ -16,7 +16,39 @@
           <div class="grid grid-cols-4 gap-4 text-sm text-gray-800">
             <div><span class="font-semibold">Name:</span> {{ genelist.name }}</div>
             <div><span class="font-semibold">Display Name:</span> {{ genelist.displayname }}</div>
-            <div><span class="font-semibold">List Type:</span> {{ genelist.list_type }}</div>
+            <div>
+              <span class="font-semibold">List Type:</span>
+              {% set raw_list_types = genelist.list_type if genelist.list_type is not none else [] %}
+              {% if raw_list_types is string %}
+                {% set list_types = [raw_list_types] %}
+              {% else %}
+                {% set list_types = raw_list_types %}
+              {% endif %}
+              {% if list_types %}
+                <span class="inline-flex flex-wrap gap-1 align-middle ml-1">
+                  {% for list_type in list_types %}
+                    {% set normalized_type = (list_type|string)|trim|lower %}
+                    {% set badge_class = "bg-gray-300 text-gray-800" %}
+                    {% if normalized_type in ["small_variants_genelist", "snv_genelist", "genelist"] %}
+                      {% set badge_class = "bg-genelist text-black" %}
+                    {% elif normalized_type in ["cnv_genelist", "cnvlist"] %}
+                      {% set badge_class = "bg-cnvlist text-black" %}
+                    {% elif normalized_type in ["fusion_genelist", "fusionlist"] %}
+                      {% set badge_class = "bg-fusionlist text-black" %}
+                    {% elif normalized_type == "dna" %}
+                      {% set badge_class = "bg-dna text-black" %}
+                    {% elif normalized_type == "rna" %}
+                      {% set badge_class = "bg-rna text-black" %}
+                    {% elif normalized_type == "panel" %}
+                      {% set badge_class = "bg-panel text-white" %}
+                    {% endif %}
+                    <span class="rounded-full px-2 py-1 text-xs font-semibold {{ badge_class }}">{{ list_type }}</span>
+                  {% endfor %}
+                </span>
+              {% else %}
+                -
+              {% endif %}
+            </div>
             <div><span class="font-semibold">Version:</span> {{ genelist.version }}</div>
             <div><span class="font-semibold">Is Active:</span> {% if genelist.is_active %}✅{% else %}❌{% endif %}</div>
             <div><span class="font-semibold">Is Public:</span> {% if genelist.is_public %}✅{% else %}❌{% endif %}</div>
