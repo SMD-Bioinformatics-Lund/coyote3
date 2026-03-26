@@ -146,7 +146,7 @@ services:
       start_period: 10s
     depends_on:
       coyote3_dev_mongo:
-        condition: service_started
+        condition: service_healthy
       redis_coyote3_dev:
         condition: service_started
 
@@ -244,6 +244,12 @@ services:
       - dev-mongodb:/data/db
       - /data/coyote3/dev/backups/mongo:/backup
       - ./mongo-init/create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand({ ping: 1 }).ok\" | grep 1 >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 10s
 
 networks:
   coyote3-dev-net:
