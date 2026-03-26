@@ -25,14 +25,11 @@ RUN pip install --no-cache-dir -r requirements-docs.txt
 COPY docs/ ./docs/
 RUN mkdocs build --strict
 
-# Stage 3: App Build
-FROM python:3.12.0-slim-bullseye as coyote3_app
+# Stage 3: Shared runtime base
+FROM python:3.12.0-slim-bullseye as coyote3_runtime_base
 
 LABEL base_image="python:3.12-slim"
 LABEL about.home="https://github.com/Clinical-Genomics-Lund/coyote3"
-
-# Expose Flask app port
-EXPOSE 8000
 
 # Set working directory
 WORKDIR /app
@@ -63,23 +60,35 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 RUN mkdir ./logs
 RUN mkdir ./redis_data
 
-# Copy source code
+# Stage 4: Web runtime image
+FROM coyote3_runtime_base as coyote3_web
+
+EXPOSE 8000
+
 COPY config/ ./config/
-COPY config.py wsgi.py asgi.py run_api.py logging_setup.py cache_backend.py ./
+COPY config.py wsgi.py logging_setup.py cache_backend.py ./
 COPY deploy/gunicorn/gunicorn.conf.py ./gunicorn.conf.py
 COPY coyote/ ./coyote/
-COPY api/ ./api/
 COPY shared/ ./shared/
 COPY docs/ ./docs/
 COPY CHANGELOG.md README.md LICENSE.txt ./
 COPY --from=mkdocs_builder /app/site/ /app/site/
-
-# Copy pre-built Tailwind output into runtime image
 COPY --from=tailwind_builder /app/coyote/static/css/tailwind.css /app/coyote/static/css/tailwind.css
 
-# Runtime environment variables that should be overridden by docker-compose.yml or .env file
 ENV SCRIPT_NAME="/coyote3"
-
-# Gunicorn command (you can override with `command:` in docker-compose if needed)
-#CMD ["gunicorn", "--timeout", "120", "-w", "2", "-e", "SCRIPT_NAME", "--log-level", "INFO", "--bind", "0.0.0.0:8000", "wsgi:app"]
 CMD gunicorn --timeout 240 -w 2 --threads 2 -e SCRIPT_NAME=${SCRIPT_NAME} --log-level INFO --bind 0.0.0.0:8000 wsgi:app
+
+# Stage 5: API runtime image
+FROM coyote3_runtime_base as coyote3_api
+
+EXPOSE 8001
+
+COPY config/ ./config/
+COPY config.py asgi.py run_api.py logging_setup.py cache_backend.py ./
+COPY api/ ./api/
+COPY shared/ ./shared/
+COPY coyote/__version__.py ./coyote/__version__.py
+COPY coyote/static/data/ ./coyote/static/data/
+COPY scripts/ ./scripts/
+
+CMD python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8001 --workers 4

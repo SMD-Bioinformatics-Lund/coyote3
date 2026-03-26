@@ -6,10 +6,11 @@ name: coyote3-stage
 services:
   coyote3_stage_web:
     container_name: coyote3_stage_web_${COYOTE3_VERSION:-local}
-    image: coyote3:${COYOTE3_VERSION:-local}
+    image: coyote3-web:${COYOTE3_VERSION:-local}
     build:
       context: ../..
       dockerfile: docker/Dockerfile
+      target: coyote3_web
       network: host
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
@@ -65,10 +66,11 @@ services:
 
   coyote3_stage_api:
     container_name: coyote3_stage_api_${COYOTE3_VERSION:-local}
-    image: coyote3:${COYOTE3_VERSION:-local}
+    image: coyote3-api:${COYOTE3_VERSION:-local}
     build:
       context: ../..
       dockerfile: docker/Dockerfile
+      target: coyote3_api
       network: host
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
@@ -113,7 +115,7 @@ services:
 
   coyote3_stage_first_run:
     container_name: coyote3_stage_first_run_${COYOTE3_VERSION:-local}
-    image: coyote3:${COYOTE3_VERSION:-local}
+    image: coyote3-api:${COYOTE3_VERSION:-local}
     profiles: ["first-run"]
     env_file:
       - ../../.coyote3_stage_env
