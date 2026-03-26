@@ -73,6 +73,66 @@ for key in COYOTE3_DB MONGO_URI CACHE_REDIS_URL SECRET_KEY INTERNAL_API_TOKEN CO
   fi
 done
 
+echo "[check] mongo URI consistency"
+PYTHON_BIN="${PYTHON_BIN:-}"
+if [[ -z "$PYTHON_BIN" ]]; then
+  if command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python)"
+  elif command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python3)"
+  else
+    echo "ERROR: python/python3 not found in PATH. Set PYTHON_BIN." >&2
+    exit 2
+  fi
+fi
+
+"$PYTHON_BIN" - "$ENV_FILE" <<'PY'
+import sys
+from urllib.parse import parse_qs, unquote, urlparse
+
+env_file = sys.argv[1]
+data = {}
+with open(env_file, "r", encoding="utf-8") as fh:
+    for raw in fh:
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        data[k.strip()] = v.strip().strip("'\"")
+
+db = data.get("COYOTE3_DB", "")
+uri = data.get("MONGO_URI", "")
+app_user = data.get("MONGO_APP_USER", "")
+app_password = data.get("MONGO_APP_PASSWORD", "")
+if not db or not uri:
+    raise SystemExit("ERROR: COYOTE3_DB and MONGO_URI must be set")
+
+parsed = urlparse(uri)
+uri_db = parsed.path.lstrip("/")
+if uri_db and uri_db != db:
+    raise SystemExit(
+        f"ERROR: MONGO_URI db '{uri_db}' does not match COYOTE3_DB '{db}'."
+    )
+
+qs = parse_qs(parsed.query)
+auth_source = (qs.get("authSource") or [""])[0]
+if auth_source and auth_source != db:
+    raise SystemExit(
+        f"ERROR: MONGO_URI authSource '{auth_source}' does not match COYOTE3_DB '{db}'."
+    )
+
+if app_user and parsed.username and unquote(parsed.username) != app_user:
+    raise SystemExit(
+        f"ERROR: MONGO_URI username '{unquote(parsed.username)}' does not match MONGO_APP_USER '{app_user}'."
+    )
+
+if app_password and parsed.password and unquote(parsed.password) != app_password:
+    raise SystemExit(
+        "ERROR: MONGO_URI password does not match MONGO_APP_PASSWORD. "
+        "If password has special chars, URL-encode it in MONGO_URI."
+    )
+PY
+
 echo "[check] endpoint ports"
 for key in COYOTE3_WEB_PORT COYOTE3_API_PORT COYOTE3_STAGE_WEB_PORT COYOTE3_STAGE_API_PORT COYOTE3_DEV_WEB_PORT COYOTE3_DEV_API_PORT; do
   if grep -qE "^${key}=" "$ENV_FILE"; then
