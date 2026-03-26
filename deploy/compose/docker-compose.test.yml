@@ -151,7 +151,11 @@ services:
       - test-mongodb:/data/db
       - ./mongo-init/create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand({ ping: 1 }).ok\" | grep 1 >/dev/null"]
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh \"mongodb://$$MONGO_INITDB_ROOT_USERNAME:$$MONGO_INITDB_ROOT_PASSWORD@127.0.0.1:27017/admin?authSource=admin\" --quiet --eval \"db.getSiblingDB('$$COYOTE3_DB').runCommand({ usersInfo: '$$MONGO_APP_USER' }).users.length\" | grep 1 >/dev/null",
+        ]
       interval: 5s
       timeout: 3s
       retries: 40
