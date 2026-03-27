@@ -14,18 +14,7 @@ COPY coyote/blueprints ./coyote/blueprints
 
 RUN npm install && npm run build:css
 
-# Stage 2: MkDocs static site build
-FROM python:3.12.0-slim-bullseye AS mkdocs_builder
-
-WORKDIR /app
-
-COPY requirements-docs.txt mkdocs.yml ./
-RUN pip install --no-cache-dir -r requirements-docs.txt
-
-COPY docs/ ./docs/
-RUN mkdocs build --strict
-
-# Stage 3: Shared runtime base
+# Stage 2: Shared runtime base
 FROM python:3.12.0-slim-bullseye as coyote3_runtime_base
 
 LABEL base_image="python:3.12-slim"
@@ -60,7 +49,7 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 RUN mkdir ./logs
 RUN mkdir ./redis_data
 
-# Stage 4: Web runtime image
+# Stage 3: Web runtime image
 FROM coyote3_runtime_base as coyote3_web
 
 EXPOSE 8000
@@ -70,15 +59,13 @@ COPY config.py wsgi.py logging_setup.py cache_backend.py ./
 COPY deploy/gunicorn/gunicorn.conf.py ./gunicorn.conf.py
 COPY coyote/ ./coyote/
 COPY shared/ ./shared/
-COPY docs/ ./docs/
 COPY CHANGELOG.md README.md LICENSE.txt ./
-COPY --from=mkdocs_builder /app/site/ /app/site/
 COPY --from=tailwind_builder /app/coyote/static/css/tailwind.css /app/coyote/static/css/tailwind.css
 
 ENV SCRIPT_NAME="/coyote3"
 CMD gunicorn --timeout 240 -w 2 --threads 2 -e SCRIPT_NAME=${SCRIPT_NAME} --log-level INFO --bind 0.0.0.0:8000 wsgi:app
 
-# Stage 5: API runtime image
+# Stage 4: API runtime image
 FROM coyote3_runtime_base as coyote3_api
 
 EXPOSE 8001

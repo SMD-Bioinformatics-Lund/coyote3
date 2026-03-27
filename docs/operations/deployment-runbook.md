@@ -46,6 +46,13 @@ export BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   up -d --build
 ```
 
+Production guardrails:
+
+- `.coyote3_env` is mandatory for production deployment.
+- `COYOTE3_VERSION` is mandatory for production compose naming/tags (no `local` fallback).
+- Production volume deletion guard: `./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml down -v`
+  is blocked unless `COYOTE3_ALLOW_PROD_VOLUME_PRUNE=1` is explicitly set.
+
 ## Post-deploy checks
 
 ```bash

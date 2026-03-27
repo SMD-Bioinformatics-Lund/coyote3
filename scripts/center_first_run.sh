@@ -220,6 +220,15 @@ start_compose_stack() {
 
 cleanup() {
   if [[ "$TEARDOWN" -eq 1 ]]; then
+    resolved_compose="$(realpath "$COMPOSE_FILE")"
+    script_path="$(realpath "$0")"
+    app_dir="$(dirname "$(dirname "$script_path")")"
+    prod_compose="$(realpath "$app_dir/deploy/compose/docker-compose.yml")"
+    if [[ "$resolved_compose" == "$prod_compose" && "${COYOTE3_ALLOW_PROD_VOLUME_PRUNE:-0}" != "1" ]]; then
+      echo "ERROR: refusing teardown with volume removal for production compose." >&2
+      echo "Set COYOTE3_ALLOW_PROD_VOLUME_PRUNE=1 only when intentional." >&2
+      exit 2
+    fi
     echo "[step] teardown compose stack"
     docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down -v || true
   fi

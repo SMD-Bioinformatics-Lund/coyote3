@@ -1,15 +1,4 @@
-# Stage 1: MkDocs static site build
-FROM python:3.12.0-slim-bullseye AS mkdocs_builder
-
-WORKDIR /app
-
-COPY requirements-docs.txt mkdocs.yml ./
-RUN pip install --no-cache-dir -r requirements-docs.txt
-
-COPY docs/ ./docs/
-RUN mkdocs build --strict
-
-# Stage 2: Dev runtime base
+# Stage 1: Dev runtime base
 FROM python:3.12.0-slim-bullseye as coyote3_dev_runtime_base
 
 LABEL base_image="python:3.12-slim"
@@ -44,7 +33,7 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 RUN mkdir ./logs
 RUN mkdir ./redis_data
 
-# Stage 3: Dev web runtime image
+# Stage 2: Dev web runtime image
 FROM coyote3_dev_runtime_base as coyote3_dev_web
 
 EXPOSE 8000
@@ -56,12 +45,11 @@ COPY coyote/ ./coyote/
 COPY shared/ ./shared/
 COPY docs/ ./docs/
 COPY CHANGELOG.md README.md LICENSE.txt ./
-COPY --from=mkdocs_builder /app/site/ /app/site/
 
 ENV SCRIPT_NAME="/coyote3_dev"
 CMD gunicorn --timeout 240 -w 2 --threads 2 -e SCRIPT_NAME=${SCRIPT_NAME} --log-level DEBUG --bind 0.0.0.0:8000 wsgi:app
 
-# Stage 4: Dev API runtime image
+# Stage 3: Dev API runtime image
 FROM coyote3_dev_runtime_base as coyote3_dev_api
 
 EXPOSE 8001
@@ -77,7 +65,7 @@ COPY tests/ ./tests/
 
 CMD python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8001 --workers 2
 
-# Stage 5: Dev all-in-one image for test runner convenience
+# Stage 4: Dev all-in-one image for test runner convenience
 FROM coyote3_dev_runtime_base as coyote3_dev_all
 
 COPY config/ ./config/
@@ -90,7 +78,6 @@ COPY docs/ ./docs/
 COPY tests/ ./tests/
 COPY scripts/ ./scripts/
 COPY CHANGELOG.md README.md LICENSE.txt ./
-COPY --from=mkdocs_builder /app/site/ /app/site/
 
 ENV SCRIPT_NAME="/coyote3_dev"
 CMD gunicorn --timeout 240 -w 2 --threads 2 -e SCRIPT_NAME=${SCRIPT_NAME} --log-level DEBUG --bind 0.0.0.0:8000 wsgi:app

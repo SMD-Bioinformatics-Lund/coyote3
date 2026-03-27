@@ -37,34 +37,27 @@ if [[ "${USE_LOCAL_MONGO:-0}" == "1" ]]; then
     PROFILE_ARGS=(--profile with-mongo)
 fi
 
-# Source the env file if it exists so compose variable interpolation can use it
-if [[ -f "$ENV_FILE" ]]; then
-    echo ".coyote3_env file found. Loading environment variables..."
-    set -a
-    # shellcheck disable=SC1090
-    source "$ENV_FILE"
-    set +a
-else
-    echo "No .coyote3_env file found in project root."
-    read -r -p "Enter the file path to load environment variables or type N/No to continue without: " env_path
-    if [[ "$env_path" =~ ^([Nn]|[Nn][Oo])$ ]]; then
-        echo "Continuing without environment variables."
-    elif [[ -f "$env_path" ]]; then
-        echo "File found at $env_path. Loading environment variables..."
-        ENV_FILE="$env_path"
-        set -a
-        # shellcheck disable=SC1090
-        source "$env_path"
-        set +a
-    else
-        echo "File not found at $env_path. Exiting."
-        exit 1
-    fi
+# Source env file (mandatory for production deploy)
+if [[ ! -f "$ENV_FILE" ]]; then
+    echo "ERROR: .coyote3_env is required for production deployment: $ENV_FILE" >&2
+    echo "Create it from deploy/env/example.prod.env and set real values." >&2
+    exit 1
 fi
+echo ".coyote3_env file found. Loading environment variables..."
+set -a
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+set +a
 
 # Read and export compose build/runtime metadata
-COYOTE3_VERSION="$(python3 "$APP_DIR/coyote/__version__.py")"
-export COYOTE3_VERSION
+if [[ -z "${COYOTE3_VERSION:-}" ]]; then
+    COYOTE3_VERSION="$(python3 "$APP_DIR/coyote/__version__.py")"
+    export COYOTE3_VERSION
+fi
+if [[ -z "${COYOTE3_VERSION:-}" ]]; then
+    echo "ERROR: COYOTE3_VERSION is required for production deployment." >&2
+    exit 1
+fi
 echo "Deploying Coyote3 version: $COYOTE3_VERSION"
 
 # GIT Commit and build time
