@@ -78,8 +78,11 @@ Notes:
 - For `scripts/center_first_run.sh`, pass admin credentials via CLI (`--admin-email`, `--admin-password`).
 - Canonical first-day operational procedure is maintained in [Operations / Initial Deployment Checklist](../operations/initial-deployment-checklist.md).
 
-For full quality, seed, smoke, and operational command sets, use:
-[Operations / Maintenance And Quality](../operations/maintenance-and-quality.md).
+Operational references:
+
+- Full first-day procedure: [Operations / Initial Deployment Checklist](../operations/initial-deployment-checklist.md)
+- Day-2 deployment/upgrade flow: [Operations / Deployment Runbook](../operations/deployment-runbook.md)
+- Compact quality/ops command set: [Operations / Maintenance And Quality](../operations/maintenance-and-quality.md)
 
 Optional local mongo profile for prod compose:
 

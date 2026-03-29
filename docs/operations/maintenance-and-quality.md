@@ -3,6 +3,12 @@
 Use this page as the single operational checklist for code quality, seed integrity,
 bootstrap validation, and environment smoke checks.
 
+Scope note:
+
+- Use this page as the compact command reference.
+- For first-day end-to-end sequencing and rationale, use
+  [Initial Deployment Checklist](initial-deployment-checklist.md) as canonical.
+
 ## Daily Quality Gate
 
 Run the full contract/seed/quality checks before opening a PR:
@@ -42,7 +48,7 @@ Validate all registered collection contracts from the seed bundle:
 
 ## First Bootstrap (Clean Environment)
 
-For a clean environment bootstrap:
+Minimal first-bootstrap command (stage example):
 
 ```bash
 scripts/center_first_run.sh \
@@ -60,7 +66,6 @@ scripts/center_first_run.sh \
 Credential source rule:
 
 - For `scripts/center_first_run.sh`, pass `--admin-email` and `--admin-password` as CLI args.
-- Canonical first-day sequence remains [Initial Deployment Checklist](initial-deployment-checklist.md); this page is the compact command reference.
 
 Notes:
 

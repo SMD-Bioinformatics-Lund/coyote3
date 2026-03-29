@@ -60,7 +60,8 @@ forgot password (local user)
   -> same SMTP/fallback behavior as invite
 ```
 
-TODO:
+### Planned hardening items
+
 - Add LDAP/IdP-native self-service password change integration endpoint/UI where supported by center policy.
 - Harden email delivery with center-approved SMTP/API provider configuration and monitoring.
 

@@ -5,6 +5,12 @@
 - First-time center bootstrap: use [Center Deployment Guide](center-deployment-guide.md)
 - Day-2+ deployments and upgrades: use this runbook
 
+Canonical boundaries:
+
+- First-day onboarding/bootstrap command sequence lives in
+  [Initial Deployment Checklist](initial-deployment-checklist.md).
+- This runbook is intentionally for repeatable deployments after bootstrap is complete.
+
 ## Release metadata
 
 ```bash

@@ -20,7 +20,7 @@ For the full, detailed procedure, use:
 
 That checklist is the single source of truth for:
 
-- exact commands
+- exact commands and command order
 - required collection order
 - seed-source policy (`--seed-file` and `--reference-seed-data`)
 - smoke ingest and verification steps
@@ -52,7 +52,7 @@ Before first sample ingest, ensure these are seeded:
 - Use `scripts/center_first_run.sh` for first-time bootstrap.
 - Pass admin credentials via CLI args (`--admin-email`, `--admin-password`).
 
-Standard first-load command (works for `prod`/`stage`/`dev`/`test` by swapping env, compose, and API port):
+Standard first-load command shape:
 
 ```bash
 scripts/center_first_run.sh \
@@ -66,6 +66,11 @@ scripts/center_first_run.sh \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
   --with-optional
 ```
+
+For environment-specific concrete command values and verification gates, use:
+
+- [Initial Deployment Checklist](initial-deployment-checklist.md)
+- [Maintenance And Quality](maintenance-and-quality.md)
 
 ASPC contract rule for first-load data:
 
