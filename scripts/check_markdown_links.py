@@ -7,7 +7,6 @@ import re
 import sys
 from pathlib import Path
 
-
 LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 
@@ -62,4 +61,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
