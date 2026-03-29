@@ -82,6 +82,12 @@ if [[ -d tests/data/seed_data ]]; then
 fi
 "$PYTHON_BIN" scripts/validate_assay_consistency.py "${seed_check_args[@]}"
 
+echo "[check] shell script static analysis"
+bash scripts/check_shell_quality.sh
+
+echo "[check] docs internal links"
+"$PYTHON_BIN" scripts/check_markdown_links.py
+
 echo "[check] regenerate collection contracts doc"
 preexisting_doc_changes=0
 if command -v git >/dev/null 2>&1; then

@@ -139,124 +139,12 @@ trap 'rm -rf "$SEED_BUNDLE_DIR"' EXIT
 
 echo "[step] preparing seed bundle from ${SEED_FILE}"
 
-"$PYTHON_BIN" -c '
-import json
-import gzip
-import sys
-from pathlib import Path
-
-source = Path(sys.argv[1])
-dest_dir = Path(sys.argv[2])
-seed_actor = sys.argv[3]
-seed_time = sys.argv[4]
-reference_seed_data = Path(sys.argv[5]) if len(sys.argv) > 5 and sys.argv[5] else None
-
-def load_seed(path: Path) -> dict[str, list[dict]]:
-    payload: dict[str, list[dict]] = {}
-    for file in sorted(path.glob("*.json")):
-        value = json.loads(file.read_text(encoding="utf-8"))
-        if not isinstance(value, list):
-            raise SystemExit(f"Collection seed file must contain a JSON list: {file}")
-        payload[file.stem] = value
-    return payload
-
-def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
-    required_pack = {
-        "hgnc_genes": "hgnc_genes.seed.ndjson.gz",
-        "permissions": "permissions.seed.ndjson.gz",
-        "refseq_canonical": "refseq_canonical.seed.ndjson.gz",
-        "roles": "roles.seed.ndjson.gz",
-        "vep_metadata": "vep_metadata.seed.ndjson.gz",
-    }
-
-    def load_ndjson_gzip(file_path: Path) -> list[dict]:
-        docs: list[dict] = []
-        with gzip.open(file_path, "rt", encoding="utf-8") as handle:
-            for line in handle:
-                text = line.strip()
-                if not text:
-                    continue
-                value = json.loads(text)
-                if not isinstance(value, dict):
-                    raise SystemExit(
-                        f"Reference seed file must contain JSON objects per line: {file_path}"
-                    )
-                docs.append(value)
-        return docs
-
-    payload: dict[str, list[dict]] = {}
-    for collection, filename in required_pack.items():
-        file_path = path / filename
-        if not file_path.exists():
-            raise SystemExit(f"Missing reference seed file: {file_path}")
-        payload[collection] = load_ndjson_gzip(file_path)
-    return payload
-
-def normalize_extended_json(value):
-    if isinstance(value, dict):
-        if set(value.keys()) == {"$date"}:
-            return value.get("$date")
-        if set(value.keys()) == {"$oid"}:
-            return value.get("$oid")
-        return {k: normalize_extended_json(v) for k, v in value.items()}
-    if isinstance(value, list):
-        return [normalize_extended_json(v) for v in value]
-    return value
-
-def lower_business_keys(seed: dict[str, list[dict]]) -> None:
-    lowercase_fields = {
-        "permissions": ("permission_id",),
-        "roles": ("role_id",),
-        "users": ("username", "email", "role", "assay_groups", "assays", "permissions", "deny_permissions"),
-        "asp_configs": ("aspc_id", "assay_name", "asp_group"),
-        "assay_specific_panels": ("asp_id", "assay_name", "asp_group"),
-        "insilico_genelists": ("isgl_id", "diagnosis", "assay_groups", "assays"),
-        "blacklist": ("assay_group", "assay"),
-        "samples": ("assay", "subpanel"),
-    }
-
-    def normalize_item(value):
-        if isinstance(value, str):
-            return value.strip().lower()
-        if isinstance(value, list):
-            return [normalize_item(item) for item in value]
-        return value
-
-    for collection, fields in lowercase_fields.items():
-        for doc in seed.get(collection, []) or []:
-            if not isinstance(doc, dict):
-                continue
-            for field in fields:
-                if field in doc and doc[field] is not None:
-                    doc[field] = normalize_item(doc[field])
-
-def stamp_docs(seed: dict[str, list[dict]]) -> None:
-    for docs in seed.values():
-        if not isinstance(docs, list):
-            continue
-        for i, doc in enumerate(docs):
-            if isinstance(doc, dict):
-                normalized_doc = normalize_extended_json(doc)
-                docs[i] = normalized_doc
-                doc = normalized_doc
-                doc["created_by"] = seed_actor
-                doc["updated_by"] = seed_actor
-                doc["created_on"] = seed_time
-                doc["updated_on"] = seed_time
-
-seed = load_seed(source)
-if reference_seed_data is not None:
-    seed.update(load_reference_seed_pack(reference_seed_data))
-lower_business_keys(seed)
-stamp_docs(seed)
-
-for collection, docs in seed.items():
-    (dest_dir / f"{collection}.json").write_text(
-        json.dumps(docs, ensure_ascii=False), encoding="utf-8"
-    )
-
-print(f"[ok] normalized seed bundle: {dest_dir}")
-' "$SEED_FILE" "$SEED_BUNDLE_DIR" "$SEED_ACTOR" "$SEED_NOW" "$REFERENCE_SEED_DATA"
+"$PYTHON_BIN" scripts/build_seed_bundle.py \
+  --seed-source "$SEED_FILE" \
+  --dest-dir "$SEED_BUNDLE_DIR" \
+  --seed-actor "$SEED_ACTOR" \
+  --seed-time "$SEED_NOW" \
+  --reference-seed-data "$REFERENCE_SEED_DATA"
 
 echo "[step] validating source seed naming"
 if [[ -n "$REFERENCE_SEED_DATA" ]]; then
@@ -293,38 +181,24 @@ optional_collections=(
 )
 
 collection_count() {
-  "$PYTHON_BIN" -c '
-import json
-import sys
-from pathlib import Path
-
-seed_dir = Path(sys.argv[1])
-collection = sys.argv[2]
-path = seed_dir / f"{collection}.json"
-value = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
-print(len(value) if isinstance(value, list) else 0)
-' "$SEED_BUNDLE_DIR" "$1"
+  "$PYTHON_BIN" scripts/seed_payload_utils.py count \
+    --seed-dir "$SEED_BUNDLE_DIR" \
+    --collection "$1"
 }
 
 write_payload_file() {
   local collection="$1"
   local ignore_duplicates="${2:-0}"
   local out_file="$3"
-  "$PYTHON_BIN" -c '
-import json
-import sys
-from pathlib import Path
-
-seed_dir = Path(sys.argv[1])
-collection = sys.argv[2]
-ignore_duplicates = str(sys.argv[3]).strip() == "1"
-path = seed_dir / f"{collection}.json"
-docs = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
-payload = {"collection": collection, "documents": docs}
-if ignore_duplicates:
-    payload["ignore_duplicates"] = True
-print(json.dumps(payload, separators=(",", ":")))
-' "$SEED_BUNDLE_DIR" "$collection" "$ignore_duplicates" >"$out_file"
+  local payload_args=(
+    scripts/seed_payload_utils.py payload
+    --seed-dir "$SEED_BUNDLE_DIR"
+    --collection "$collection"
+  )
+  if [[ "$ignore_duplicates" == "1" ]]; then
+    payload_args+=(--ignore-duplicates)
+  fi
+  "$PYTHON_BIN" "${payload_args[@]}" >"$out_file"
 }
 
 post_bulk() {
