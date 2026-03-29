@@ -72,12 +72,11 @@ if [[ -z "$BEARER_TOKEN" ]]; then
     --username "$USERNAME" \
     --password "$PASSWORD" \
     --print-token)"
-  BEARER_TOKEN="$("$PYTHON_BIN" - <<'PY' "$AUTH_JSON"
+  BEARER_TOKEN="$("$PYTHON_BIN" -c '
 import json
 import sys
 print(json.loads(sys.argv[1]).get("session_token", ""))
-PY
-  )"
+' "$AUTH_JSON")"
 fi
 
 if [[ -z "$BEARER_TOKEN" ]]; then
@@ -101,7 +100,7 @@ else
 fi
 
 echo "[step] collect data files referenced by YAML"
-mapfile -t UPLOAD_FILES < <("$PYTHON_BIN" - <<'PY' "$YAML_FILE"
+mapfile -t UPLOAD_FILES < <("$PYTHON_BIN" -c '
 import sys
 from pathlib import Path
 import yaml
@@ -139,8 +138,7 @@ for key in keys:
     if text not in seen:
         seen.add(text)
         print(text)
-PY
-)
+' "$YAML_FILE")
 
 echo "[step] submit ingest sample-bundle upload"
 CURL_ARGS=(

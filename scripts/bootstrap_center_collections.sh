@@ -110,12 +110,11 @@ if [[ -z "$BEARER_TOKEN" ]]; then
     --username "$USERNAME" \
     --password "$PASSWORD" \
     --print-token)"
-  BEARER_TOKEN="$("$PYTHON_BIN" - <<'PY' "$AUTH_JSON"
+  BEARER_TOKEN="$("$PYTHON_BIN" -c '
 import json
 import sys
 print(json.loads(sys.argv[1]).get("session_token", ""))
-PY
-  )"
+' "$AUTH_JSON")"
 fi
 
 if [[ -z "$BEARER_TOKEN" ]]; then
@@ -130,15 +129,17 @@ if [[ -z "$SEED_ACTOR" ]]; then
     SEED_ACTOR="admin@coyote3.local"
   fi
 fi
-SEED_NOW="$("$PYTHON_BIN" - <<'PY'
+SEED_NOW="$("$PYTHON_BIN" -c '
 from datetime import datetime, timezone
 print(datetime.now(timezone.utc).isoformat())
-PY
-)"
+')"
+
 SEED_BUNDLE_DIR="$(mktemp -d)"
 trap 'rm -rf "$SEED_BUNDLE_DIR"' EXIT
+
 echo "[step] preparing seed bundle from ${SEED_FILE}"
-"$PYTHON_BIN" - "$SEED_FILE" "$SEED_BUNDLE_DIR" "$SEED_ACTOR" "$SEED_NOW" "$REFERENCE_SEED_DATA" <<'PY'
+
+"$PYTHON_BIN" -c '
 import json
 import gzip
 import sys
@@ -167,6 +168,7 @@ def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
         "roles": "roles.seed.ndjson.gz",
         "vep_metadata": "vep_metadata.seed.ndjson.gz",
     }
+
     def load_ndjson_gzip(file_path: Path) -> list[dict]:
         docs: list[dict] = []
         with gzip.open(file_path, "rt", encoding="utf-8") as handle:
@@ -247,12 +249,14 @@ if reference_seed_data is not None:
     seed.update(load_reference_seed_pack(reference_seed_data))
 lower_business_keys(seed)
 stamp_docs(seed)
+
 for collection, docs in seed.items():
     (dest_dir / f"{collection}.json").write_text(
         json.dumps(docs, ensure_ascii=False), encoding="utf-8"
     )
+
 print(f"[ok] normalized seed bundle: {dest_dir}")
-PY
+' "$SEED_FILE" "$SEED_BUNDLE_DIR" "$SEED_ACTOR" "$SEED_NOW" "$REFERENCE_SEED_DATA"
 
 echo "[step] validating source seed naming"
 if [[ -n "$REFERENCE_SEED_DATA" ]]; then
@@ -289,7 +293,7 @@ optional_collections=(
 )
 
 collection_count() {
-  "$PYTHON_BIN" - "$SEED_BUNDLE_DIR" "$1" <<'PY'
+  "$PYTHON_BIN" -c '
 import json
 import sys
 from pathlib import Path
@@ -299,14 +303,14 @@ collection = sys.argv[2]
 path = seed_dir / f"{collection}.json"
 value = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
 print(len(value) if isinstance(value, list) else 0)
-PY
+' "$SEED_BUNDLE_DIR" "$1"
 }
 
 write_payload_file() {
   local collection="$1"
   local ignore_duplicates="${2:-0}"
   local out_file="$3"
-  "$PYTHON_BIN" - "$SEED_BUNDLE_DIR" "$collection" "$ignore_duplicates" >"$out_file" <<'PY'
+  "$PYTHON_BIN" -c '
 import json
 import sys
 from pathlib import Path
@@ -320,7 +324,7 @@ payload = {"collection": collection, "documents": docs}
 if ignore_duplicates:
     payload["ignore_duplicates"] = True
 print(json.dumps(payload, separators=(",", ":")))
-PY
+' "$SEED_BUNDLE_DIR" "$collection" "$ignore_duplicates" >"$out_file"
 }
 
 post_bulk() {

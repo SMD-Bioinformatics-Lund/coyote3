@@ -145,7 +145,7 @@ fi
 
 echo "[step] restoring snapshot into ${TARGET_URI}/${TARGET_DB}"
 export SNAPSHOT_DIR TARGET_URI TARGET_DB DROP_TARGET PYTHON_BIN
-"$PYTHON_BIN" - <<'PY'
+"$PYTHON_BIN" -c '
 import json
 import os
 from pathlib import Path
@@ -191,6 +191,6 @@ for entry in manifest.get("collections", []):
     print(f"[ok] restored {collection}: {len(docs)} docs")
 
 print(f"[ok] restore complete db={target_db} total_docs={total_docs}")
-PY
+'
 
 echo "[ok] snapshot+restore done"
