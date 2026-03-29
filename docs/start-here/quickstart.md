@@ -76,6 +76,7 @@ scripts/center_first_run.sh \
 Notes:
 
 - For `scripts/center_first_run.sh`, pass admin credentials via CLI (`--admin-email`, `--admin-password`).
+- Canonical first-day operational procedure is maintained in [Operations / Initial Deployment Checklist](../operations/initial-deployment-checklist.md).
 
 For full quality, seed, smoke, and operational command sets, use:
 [Operations / Maintenance And Quality](../operations/maintenance-and-quality.md).

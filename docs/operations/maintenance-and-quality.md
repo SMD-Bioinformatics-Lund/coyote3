@@ -60,6 +60,7 @@ scripts/center_first_run.sh \
 Credential source rule:
 
 - For `scripts/center_first_run.sh`, pass `--admin-email` and `--admin-password` as CLI args.
+- Canonical first-day sequence remains [Initial Deployment Checklist](initial-deployment-checklist.md); this page is the compact command reference.
 
 Notes:
 
