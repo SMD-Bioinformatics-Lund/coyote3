@@ -14,4 +14,3 @@ echo "[check] shellcheck on scripts"
 shellcheck scripts/*.sh
 
 echo "[ok] shell quality checks passed"
-
