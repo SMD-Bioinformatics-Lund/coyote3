@@ -41,7 +41,7 @@ if [[ -f "$ENV_FILE" ]]; then
     set +a
 else
     echo "No .coyote3_dev_env file found in project root."
-    read -p "Enter the file path to load environment variables or type N/No to continue without: " env_path
+    read -r -p "Enter the file path to load environment variables or type N/No to continue without: " env_path
     if [[ "$env_path" =~ ^([Nn]|[Nn][Oo])$ ]]; then
         echo "Continuing without environment variables."
     elif [[ -f "$env_path" ]]; then

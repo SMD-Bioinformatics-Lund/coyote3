@@ -35,6 +35,7 @@ cp deploy/env/example.dev.env .coyote3_dev_env
 ## Local quality checks
 
 ```bash
+bash scripts/setup_git_hooks.sh
 PYTHONPATH=. python -m ruff check api coyote tests scripts
 PYTHONPATH=. python -m pytest -q
 PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_gates.sh

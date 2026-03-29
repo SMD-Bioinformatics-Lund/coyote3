@@ -51,14 +51,37 @@ PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
 
 ## Pre-commit
 
-Install hooks once:
+Enable repository-managed hooks once per clone:
 
 ```bash
-python -m pre_commit install
+bash scripts/setup_git_hooks.sh
 ```
 
-Run all hooks:
+This config blocks commits unless pre-commit checks pass.
+
+Run all hooks manually:
 
 ```bash
+python -m pre_commit run --all-files
+```
+
+Cross-machine notes:
+
+```bash
+# Always run from an activated project virtualenv
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip -r requirements.txt
+
+# Verify pre-commit is available and hooks are installed
+python -m pre_commit --version
+bash scripts/setup_git_hooks.sh
+```
+
+The pre-commit config is portable and does not rely on machine-specific absolute Python paths.
+If you want to force a specific interpreter for hooks, set:
+
+```bash
+export PYTHON_BIN="$(command -v python3)"
 python -m pre_commit run --all-files
 ```

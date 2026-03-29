@@ -1,0 +1,59 @@
+name: pr-format-tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: pr-format-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format-and-tests:
+    runs-on: ubuntu-latest
+    env:
+      TESTING: "1"
+      DEVELOPMENT: "0"
+      COYOTE3_DB: coyote3_test
+      MONGO_URI: mongodb://localhost:27017
+      MONGO_ROOT_USERNAME: coyote3_root
+      MONGO_ROOT_PASSWORD: ci-test-root-password
+      MONGO_APP_USER: coyote3_app
+      MONGO_APP_PASSWORD: ci-test-app-password
+      COYOTE3_FERNET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      SECRET_KEY: ci-test-secret-key
+      INTERNAL_API_TOKEN: ci-test-internal-token
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "requirements.txt"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Ruff check
+        run: PYTHONPATH=. ruff check api coyote tests scripts
+
+      - name: Black format check
+        run: PYTHONPATH=. black --check --line-length 100 api coyote tests scripts
+
+      - name: Unit tests
+        run: PYTHONPATH=. pytest -q -m unit tests/unit
+
+      - name: Web boundary tests
+        run: PYTHONPATH=. pytest -q -m web tests/ui/test_web_api_boundary.py
+
+      - name: API smoke tests
+        run: PYTHONPATH=. pytest -q -m api tests/api/routers/test_system_routes.py tests/api/routers/test_reports_routes.py tests/api/test_api_latency_concurrency.py
+
+      - name: Contract tests
+        run: PYTHONPATH=. pytest -q -m contract tests/integration

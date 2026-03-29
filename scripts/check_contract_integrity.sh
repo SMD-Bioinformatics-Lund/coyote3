@@ -6,10 +6,10 @@ cd "$ROOT_DIR"
 
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "$PYTHON_BIN" ]]; then
-  if command -v python >/dev/null 2>&1; then
-    PYTHON_BIN="$(command -v python)"
-  elif command -v python3 >/dev/null 2>&1; then
+  if command -v python3 >/dev/null 2>&1; then
     PYTHON_BIN="$(command -v python3)"
+  elif command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python)"
   else
     echo "ERROR: python/python3 not found in PATH. Set PYTHON_BIN." >&2
     exit 2

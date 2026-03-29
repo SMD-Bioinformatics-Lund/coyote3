@@ -43,6 +43,18 @@ At minimum, validate:
 
 Automated test coverage is evolving in this repository. Treat manual validation quality as a release-critical responsibility.
 
+## Commit gate requirement
+
+This repository uses a tracked Git pre-commit hook under `.githooks/` to block commits when checks fail.
+
+Run once per clone:
+
+```bash
+bash scripts/setup_git_hooks.sh
+```
+
+After this, `git commit` is blocked unless pre-commit checks pass.
+
 ## Documentation requirements
 
 For behavior changes, update relevant handbook chapters under `docs/handbook/`:
@@ -63,6 +75,14 @@ A PR should include:
 - rollback considerations for risky changes
 
 Use the repository PR template and link related issues.
+
+## PR CI gates
+
+Every PR runs GitHub Actions formatting and test gates via:
+
+- `.github/workflows/pr-format-tests.yml`
+
+To enforce merge blocking, configure branch protection on your main integration branch and mark this workflow check as required.
 
 ## Change types with extra care
 

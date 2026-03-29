@@ -5,7 +5,8 @@ SCRIPT_PATH="$(realpath "$0")"
 APP_DIR="$(dirname "$(dirname "$SCRIPT_PATH")")"
 VALIDATE_SCRIPT="$APP_DIR/scripts/validate_env_secrets.sh"
 
-export COYOTE3_VERSION="$(python3 "$APP_DIR/coyote/__version__.py")"
+COYOTE3_VERSION="$(python3 "$APP_DIR/coyote/__version__.py")"
+export COYOTE3_VERSION
 echo "Using COYOTE3_VERSION=${COYOTE3_VERSION}"
 
 DEFAULT_COMPOSE_FILE="$APP_DIR/deploy/compose/docker-compose.yml"
