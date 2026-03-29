@@ -19,6 +19,30 @@ Use isolated stacks and databases for each environment:
 
 These defaults are encoded in both compose files and example env templates.
 
+## Host Drive Mounts Per Center
+
+Centers can have different host filesystem layouts. For deployment, edit the
+compose file for that environment and set bind mounts to the center-specific
+drive paths.
+
+Examples:
+
+- Stage: `deploy/compose/docker-compose.stage.yml`
+- Prod: `deploy/compose/docker-compose.yml`
+- Dev: `deploy/compose/docker-compose.dev.yml`
+
+For each volume mount, define both source path and access mode:
+
+- Read-write (default): `"/center/data:/data"`
+- Read-only: `"/center/reference:/reference:ro"`
+
+Recommendation:
+
+- Keep writable paths (`/data`, backups, runtime output) as `rw`.
+- Use `:ro` for reference-only inputs that must not be modified by containers.
+- Validate after edits with:
+  `docker compose --env-file <env-file> -f <compose-file> config -q`
+
 ## Redis runtime policy
 
 - All compose stacks pin Redis to `redis:7.4.3`.

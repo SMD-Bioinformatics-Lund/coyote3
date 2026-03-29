@@ -73,6 +73,10 @@ scripts/center_first_run.sh \
   --with-optional
 ```
 
+Notes:
+
+- For `scripts/center_first_run.sh`, pass admin credentials via CLI (`--admin-email`, `--admin-password`).
+
 For full quality, seed, smoke, and operational command sets, use:
 [Operations / Maintenance And Quality](../operations/maintenance-and-quality.md).
 

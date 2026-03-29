@@ -76,17 +76,26 @@ done
 echo "[check] mongo URI consistency"
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "$PYTHON_BIN" ]]; then
-  if command -v python >/dev/null 2>&1; then
-    PYTHON_BIN="$(command -v python)"
-  elif command -v python3 >/dev/null 2>&1; then
+  if command -v python3 >/dev/null 2>&1; then
     PYTHON_BIN="$(command -v python3)"
+  elif command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python)"
   else
     echo "ERROR: python/python3 not found in PATH. Set PYTHON_BIN." >&2
     exit 2
   fi
 fi
 
-"$PYTHON_BIN" - "$ENV_FILE" <<'PY'
+echo "[check] python version"
+echo "Using Python: $PYTHON_BIN"
+"$PYTHON_BIN" --version
+echo "Env file: $ENV_FILE"
+if ! "$PYTHON_BIN" --version >/dev/null 2>&1; then
+  echo "ERROR: Python interpreter is not runnable: $PYTHON_BIN" >&2
+  exit 2
+fi
+
+"$PYTHON_BIN" -c '
 import sys
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -98,7 +107,7 @@ with open(env_file, "r", encoding="utf-8") as fh:
         if not line or line.startswith("#") or "=" not in line:
             continue
         k, v = line.split("=", 1)
-        data[k.strip()] = v.strip().strip("'\"")
+        data[k.strip()] = v.strip().strip("'"'"'\"")
 
 db = data.get("COYOTE3_DB", "")
 uri = data.get("MONGO_URI", "")
@@ -110,28 +119,19 @@ if not db or not uri:
 parsed = urlparse(uri)
 uri_db = parsed.path.lstrip("/")
 if uri_db and uri_db != db:
-    raise SystemExit(
-        f"ERROR: MONGO_URI db '{uri_db}' does not match COYOTE3_DB '{db}'."
-    )
+    raise SystemExit(f"ERROR: MONGO_URI db '"'"'{uri_db}'"'"' does not match COYOTE3_DB '"'"'{db}'"'"'.")
 
 qs = parse_qs(parsed.query)
 auth_source = (qs.get("authSource") or [""])[0]
 if auth_source and auth_source != db:
-    raise SystemExit(
-        f"ERROR: MONGO_URI authSource '{auth_source}' does not match COYOTE3_DB '{db}'."
-    )
+    raise SystemExit(f"ERROR: MONGO_URI authSource '"'"'{auth_source}'"'"' does not match COYOTE3_DB '"'"'{db}'"'"'.")
 
 if app_user and parsed.username and unquote(parsed.username) != app_user:
-    raise SystemExit(
-        f"ERROR: MONGO_URI username '{unquote(parsed.username)}' does not match MONGO_APP_USER '{app_user}'."
-    )
+    raise SystemExit(f"ERROR: MONGO_URI username '"'"'{unquote(parsed.username)}'"'"' does not match MONGO_APP_USER '"'"'{app_user}'"'"'.")
 
 if app_password and parsed.password and unquote(parsed.password) != app_password:
-    raise SystemExit(
-        "ERROR: MONGO_URI password does not match MONGO_APP_PASSWORD. "
-        "If password has special chars, URL-encode it in MONGO_URI."
-    )
-PY
+    raise SystemExit("ERROR: MONGO_URI password does not match MONGO_APP_PASSWORD. If password has special chars, URL-encode it in MONGO_URI.")
+' "$ENV_FILE"
 
 echo "[check] endpoint ports"
 for key in COYOTE3_WEB_PORT COYOTE3_API_PORT COYOTE3_STAGE_WEB_PORT COYOTE3_STAGE_API_PORT COYOTE3_DEV_WEB_PORT COYOTE3_DEV_API_PORT; do

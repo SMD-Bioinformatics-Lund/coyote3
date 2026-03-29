@@ -47,11 +47,10 @@ Before first sample ingest, ensure these are seeded:
 - `asp_configs` and `assay_specific_panels` are seeded from onboarding/demo input (default `--seed-file`).
 - `permissions`, `roles`, `refseq_canonical`, `hgnc_genes`, and `vep_metadata` are loaded from `--reference-seed-data` only when that argument is provided.
 
-## Compose First-Run Profile
+## First-Run Method
 
-- All compose stacks (`prod`, `stage`, `dev`, `test`) support profile `first-run`.
-- Enable with `COYOTE3_FIRST_RUN=1` and provide admin credentials via `FIRST_RUN_ADMIN_EMAIL` and `FIRST_RUN_ADMIN_PASSWORD`.
-- Keep `FIRST_RUN_REFERENCE_SEED_DATA` empty to skip compressed baseline packs for that environment.
+- Use `scripts/center_first_run.sh` for first-time bootstrap.
+- Pass admin credentials via CLI args (`--admin-email`, `--admin-password`).
 
 Standard first-load command (works for `prod`/`stage`/`dev`/`test` by swapping env, compose, and API port):
 

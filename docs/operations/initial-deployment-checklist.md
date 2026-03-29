@@ -195,6 +195,10 @@ scripts/center_first_run.sh \
   --with-optional
 ```
 
+Credential source rule:
+
+- For `scripts/center_first_run.sh`, always pass `--admin-email` and `--admin-password` explicitly.
+
 Execution mode notes:
 
 - Default mode retries one failed collection seed once with `ignore_duplicates=true`.
@@ -309,29 +313,3 @@ scripts/center_first_run.sh \
   --skip-existing \
   --strict-no-retry
 ```
-
-## 11. Compose-native first run (optional)
-
-You can trigger first-run bootstrap directly from compose with the `first-run` profile
-for stage, dev, test, and prod compose files.
-
-1. Set these in your active env file (`.coyote3_stage_env`, `.coyote3_dev_env`,
-   `.coyote3_test_env`, or `.coyote3_env`):
-   - `COYOTE3_FIRST_RUN=1`
-   - `FIRST_RUN_ADMIN_EMAIL`
-   - `FIRST_RUN_ADMIN_PASSWORD`
-   - `FIRST_RUN_REFERENCE_SEED_DATA` (set only when you want compressed baseline packs loaded)
-2. Start the stack with profile:
-
-```bash
-docker compose --env-file .coyote3_stage_env \
-  -f deploy/compose/docker-compose.stage.yml \
-  --profile first-run up -d --build
-```
-
-Behavior:
-
-- Service `<env>_first_run` runs `bootstrap_local_admin.py`, then `bootstrap_center_collections.sh`, then demo ingest (optional).
-- `permissions`, `roles`, `refseq_canonical`, `hgnc_genes`, and `vep_metadata` load only when `FIRST_RUN_REFERENCE_SEED_DATA` is set.
-- Idempotent mode is controlled by `FIRST_RUN_SKIP_EXISTING=1` (recommended).
-- Disable auto-bootstrap by setting `COYOTE3_FIRST_RUN=0`.

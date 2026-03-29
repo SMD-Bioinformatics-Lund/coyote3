@@ -57,27 +57,15 @@ scripts/center_first_run.sh \
   --with-optional
 ```
 
+Credential source rule:
+
+- For `scripts/center_first_run.sh`, pass `--admin-email` and `--admin-password` as CLI args.
+
 Notes:
 
 - demo assay id is `assay_1`
 - demo assay group is `hematology`
 - ISGL demo collection is optional and requires `--with-optional`
-
-## Compose-Native First Run
-
-If you use compose-native bootstrap:
-
-```bash
-COYOTE3_FIRST_RUN=1 \
-FIRST_RUN_ADMIN_EMAIL="admin@coyote3.local" \
-FIRST_RUN_ADMIN_PASSWORD="CHANGE_ME" \
-FIRST_RUN_API_BASE_URL="http://localhost:8806" \
-FIRST_RUN_MONGO_URI="mongodb://<app-user>:<app-pass>@localhost:8808/coyote3?authSource=coyote3" \
-FIRST_RUN_REFERENCE_SEED_DATA="tests/data/seed_data" \
-FIRST_RUN_WITH_OPTIONAL=1 \
-PYTHON_BIN=.venv/bin/python \
-bash scripts/compose_first_run.sh
-```
 
 ## Smoke Verification
 
