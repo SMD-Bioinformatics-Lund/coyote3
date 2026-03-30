@@ -64,7 +64,7 @@ dependencies = [
     "typing_extensions==4.12.2",
     "weasyprint==63.0",
     "webencodings==0.5.1",
-    "Werkzeug==3.0.6",
+    "Werkzeug==3.1.6",
     "WTForms==3.1.2",
     "rich-click==1.8.4"
 ]
