@@ -50,8 +50,6 @@ def when_ready(server):
 
 def post_worker_stop(worker, worker_pid, exit_code) -> None:
     """
-    post_worker_stop(worker, worker_pid, exit_code) -> None
-
     Gunicorn worker lifecycle hook that executes after a worker process stops.
 
     Args:

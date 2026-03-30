@@ -40,11 +40,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
       - name: Ruff check
         run: PYTHONPATH=. ruff check api coyote tests scripts
 
       - name: Black format check
         run: PYTHONPATH=. black --check --line-length 100 api coyote tests scripts
+
+      - name: Contract integrity checks
+        env:
+          PYTHON_BIN: python
+        run: bash scripts/check_contract_integrity.sh
 
       - name: Unit tests
         run: PYTHONPATH=. pytest -q -m unit tests/unit

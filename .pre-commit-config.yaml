@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3.12  # or python3
+  python: python3
 default_stages: [pre-commit]
 
 repos:
@@ -35,25 +35,25 @@ repos:
         stages: [pre-commit]
     -   id: pytest-unit
         name: pytest unit quick
-        entry: bash -c 'set -euo pipefail; PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python)}"; PYTHONPATH=. "$PYTHON_BIN" -m pytest -q -m unit tests/unit'
+        entry: bash -c 'set -euo pipefail; if [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/python" ]]; then PYTHON_BIN="${VIRTUAL_ENV}/bin/python"; elif [[ -x ".venv/bin/python" ]]; then PYTHON_BIN=".venv/bin/python"; else PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python)}"; fi; PYTHONPATH=. "$PYTHON_BIN" -m pytest -q -m unit tests/unit'
         language: system
         pass_filenames: false
         stages: [pre-commit]
     -   id: pytest-web-boundary
         name: pytest web boundary
-        entry: bash -c 'set -euo pipefail; PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python)}"; PYTHONPATH=. "$PYTHON_BIN" -m pytest -q -m web tests/ui/test_web_api_boundary.py'
+        entry: bash -c 'set -euo pipefail; if [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/python" ]]; then PYTHON_BIN="${VIRTUAL_ENV}/bin/python"; elif [[ -x ".venv/bin/python" ]]; then PYTHON_BIN=".venv/bin/python"; else PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python)}"; fi; PYTHONPATH=. "$PYTHON_BIN" -m pytest -q -m web tests/ui/test_web_api_boundary.py'
         language: system
         pass_filenames: false
         stages: [pre-commit]
     -   id: pytest-api-smoke
         name: pytest api smoke
-        entry: bash -c 'set -euo pipefail; PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python)}"; PYTHONPATH=. "$PYTHON_BIN" -m pytest -q -m api tests/api/routers/test_system_routes.py tests/api/routers/test_reports_routes.py'
+        entry: bash -c 'set -euo pipefail; if [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/python" ]]; then PYTHON_BIN="${VIRTUAL_ENV}/bin/python"; elif [[ -x ".venv/bin/python" ]]; then PYTHON_BIN=".venv/bin/python"; else PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python)}"; fi; PYTHONPATH=. "$PYTHON_BIN" -m pytest -q -m api tests/api/routers/test_system_routes.py tests/api/routers/test_reports_routes.py'
         language: system
         pass_filenames: false
         stages: [pre-commit]
     -   id: pytest-contract
         name: pytest contract boundary
-        entry: bash -c 'set -euo pipefail; PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python)}"; PYTHONPATH=. "$PYTHON_BIN" -m pytest -q -m contract tests/integration'
+        entry: bash -c 'set -euo pipefail; if [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/python" ]]; then PYTHON_BIN="${VIRTUAL_ENV}/bin/python"; elif [[ -x ".venv/bin/python" ]]; then PYTHON_BIN=".venv/bin/python"; else PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python)}"; fi; PYTHONPATH=. "$PYTHON_BIN" -m pytest -q -m contract tests/integration'
         language: system
         pass_filenames: false
         stages: [pre-commit]

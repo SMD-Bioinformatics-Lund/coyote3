@@ -46,13 +46,13 @@ Required keys:
 - `reporting` (AspcReportingDoc)
 
 Optional keys:
-- `id_` (Any | None)
-- `analysis_types` (list[str])
+- `id_` (Optional[Any])
+- `analysis_types` (list)
 - `is_active` (bool)
 - `description` (str | None)
 - `reference_genome` (str | None)
 - `platform` (str | None)
-- `verification_samples` (dict[str, list[int]])
+- `verification_samples` (dict)
 - `use_diagnosis_genelist` (bool)
 - `query` (AspcQueryDoc)
 - `version` (int)
@@ -60,7 +60,7 @@ Optional keys:
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
-- `version_history` (list[api.contracts.schemas.base.VersionHistoryEntryDoc])
+- `version_history` (list)
 
 ## `asp_to_groups`
 
@@ -82,10 +82,10 @@ Required keys:
 - `display_name` (str)
 
 Optional keys:
-- `id_` (Any | None)
+- `id_` (Optional[Any])
 - `description` (str | None)
-- `covered_genes` (list[str])
-- `germline_genes` (list[str])
+- `covered_genes` (list)
+- `germline_genes` (list)
 - `accredited` (bool)
 - `kit_name` (str | None)
 - `kit_type` (str | None)
@@ -101,7 +101,7 @@ Optional keys:
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
-- `version_history` (list[api.contracts.schemas.base.VersionHistoryEntryDoc])
+- `version_history` (list)
 
 ## `biomarkers`
 
@@ -120,7 +120,7 @@ Required keys:
 - `pos` (str)
 
 Optional keys:
-- `id_` (Any | None)
+- `id_` (Optional[Any])
 - `assay_group` (str | None)
 - `in_normal_perc` (float | None)
 
@@ -178,7 +178,7 @@ Required keys:
 - `representative_transcript2` (str)
 - `reference_bases` (str)
 - `variant_bases` (str)
-- `hgvs_expressions` (list[str])
+- `hgvs_expressions` (list)
 - `civic_actionability_score` (float)
 - `variant_civic_url` (str)
 - `last_review_date` (datetime)
@@ -199,8 +199,8 @@ Required keys:
 Optional keys:
 - `ratio` (float | None)
 - `type` (str | None)
-- `genes` (list[api.contracts.schemas.dna.CnvGeneDoc])
-- `callers` (list[str])
+- `genes` (list)
+- `callers` (list)
 
 ## `cosmic`
 
@@ -265,25 +265,25 @@ Required keys:
 - `ensembl_canonical` (bool)
 
 Optional keys:
-- `alias_symbol` (list[str])
-- `alias_name` (list[str])
-- `prev_symbol` (list[str])
-- `prev_name` (list[str])
+- `alias_symbol` (list)
+- `alias_name` (list)
+- `prev_symbol` (list)
+- `prev_name` (list)
 - `date_approved_reserved` (datetime.datetime | None)
 - `date_symbol_changed` (datetime.datetime | None)
 - `date_name_changed` (datetime.datetime | None)
 - `date_modified` (datetime.datetime | None)
-- `refseq_accession` (list[str])
-- `cosmic` (list[str])
-- `omim_id` (list[int])
-- `pseudogene_org` (list[str])
+- `refseq_accession` (list)
+- `cosmic` (list)
+- `omim_id` (list)
+- `pseudogene_org` (list)
 - `imgt` (str | None)
 - `lncrnadb` (str | None)
 - `lncipedia` (str | None)
 - `other_chromosome` (str | None)
-- `gene_type` (list[str])
-- `refseq_mane_plus_clinical` (list[str])
-- `addtional_transcript_info` (dict[str, api.contracts.schemas.reference.HgncAdditionalTranscriptInfoDoc])
+- `gene_type` (list)
+- `refseq_mane_plus_clinical` (list)
+- `addtional_transcript_info` (dict)
 
 ## `hpaexpr`
 
@@ -291,7 +291,7 @@ Required keys:
 - `tid` (str)
 
 Optional keys:
-- `expr` (dict[str, float])
+- `expr` (dict)
 
 ## `iarc_tp53`
 
@@ -321,21 +321,21 @@ Required keys:
 - `displayname` (str)
 
 Optional keys:
-- `id_` (Any | None)
-- `diagnosis` (list[str])
-- `list_type` (list[str])
+- `id_` (Optional[Any])
+- `diagnosis` (list)
+- `list_type` (list)
 - `adhoc` (bool)
 - `is_public` (bool)
 - `is_active` (bool)
-- `assay_groups` (list[str])
-- `genes` (list[str])
-- `assays` (list[str])
+- `assay_groups` (list)
+- `genes` (list)
+- `assays` (list)
 - `version` (int)
 - `created_by` (str | None)
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
-- `version_history` (list[api.contracts.schemas.base.VersionHistoryEntryDoc])
+- `version_history` (list)
 
 ## `mane_select`
 
@@ -390,10 +390,10 @@ Required keys:
 - `permission_name` (str)
 - `label` (str)
 - `category` (str)
-- `tags` (list[str])
+- `tags` (list)
 
 Optional keys:
-- `id_` (Any | None)
+- `id_` (Optional[Any])
 - `description` (str | None)
 - `is_active` (bool)
 - `version` (int)
@@ -401,7 +401,7 @@ Optional keys:
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
-- `version_history` (list[api.contracts.schemas.base.VersionHistoryEntryDoc])
+- `version_history` (list)
 
 ## `refseq_canonical`
 
@@ -441,7 +441,7 @@ Optional keys:
 ## `rna_classification`
 
 Required keys:
-- `classifier_results` (list[api.contracts.schemas.rna.ClassifierResultDoc])
+- `classifier_results` (list)
 - `classifier_version` (str)
 - `SAMPLE_ID` (str)
 
@@ -451,8 +451,8 @@ Optional keys:
 ## `rna_expression`
 
 Required keys:
-- `sample` (list[api.contracts.schemas.rna.ExpressionSampleEntryDoc])
-- `reference` (list[api.contracts.schemas.rna.ExpressionReferenceEntryDoc])
+- `sample` (list)
+- `reference` (list)
 - `expression_version` (str)
 - `SAMPLE_ID` (str)
 
@@ -490,17 +490,17 @@ Required keys:
 - `level` (int | float)
 
 Optional keys:
-- `id_` (Any | None)
+- `id_` (Optional[Any])
 - `description` (str | None)
 - `is_active` (bool)
-- `permissions` (list[str])
-- `deny_permissions` (list[str])
+- `permissions` (list)
+- `deny_permissions` (list)
 - `version` (int)
 - `created_by` (str | None)
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
-- `version_history` (list[api.contracts.schemas.base.VersionHistoryEntryDoc])
+- `version_history` (list)
 
 ## `samples`
 
@@ -532,8 +532,8 @@ Optional keys:
 - `classification_path` (str | None)
 - `qc` (str | None)
 - `filters` (api.contracts.schemas.dna.DnaFiltersDoc | api.contracts.schemas.rna.RnaFiltersDoc)
-- `comments` (list[api.contracts.schemas.samples.SampleCommentDoc])
-- `reports` (list[api.contracts.schemas.samples.SampleReportDoc])
+- `comments` (list)
+- `reports` (list)
 - `case` (SampleCaseControlDoc)
 - `control` (api.contracts.schemas.samples.SampleCaseControlDoc | None)
 - `report_num` (int)
@@ -548,12 +548,12 @@ Required keys:
 - `REF` (str)
 - `ALT` (str)
 - `ID` (str)
-- `GT` (list[api.contracts.schemas.dna.TranslocationGtDoc])
-- `INFO` (list[api.contracts.schemas.dna.TranslocationInfoDoc])
+- `GT` (list)
+- `INFO` (list)
 
 Optional keys:
-- `FILTER` (list[str])
-- `FORMAT` (list[str])
+- `FILTER` (list)
+- `FORMAT` (list)
 - `QUAL` (Optional[float])
 
 ## `users`
@@ -568,7 +568,7 @@ Required keys:
 - `role` (str)
 
 Optional keys:
-- `id_` (Any | None)
+- `id_` (Optional[Any])
 - `user_id` (str | None)
 - `auth_type` (Optional[Literal['coyote3', 'ldap']])
 - `password` (str | None)
@@ -580,18 +580,18 @@ Optional keys:
 - `password_action_expires_at` (datetime.datetime | None)
 - `password_action_issued_at` (datetime.datetime | None)
 - `password_action_issued_by` (str | None)
-- `environments` (list[Literal['production', 'development', 'testing', 'validation']])
-- `assays` (list[str])
-- `assay_groups` (list[str])
+- `environments` (list)
+- `assays` (list)
+- `assay_groups` (list)
 - `is_active` (bool)
-- `permissions` (list[str])
-- `deny_permissions` (list[str])
+- `permissions` (list)
+- `deny_permissions` (list)
 - `version` (int)
 - `created_by` (str | None)
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
-- `version_history` (list[api.contracts.schemas.base.VersionHistoryEntryDoc])
+- `version_history` (list)
 
 ## `variants`
 
@@ -608,22 +608,22 @@ Required keys:
 
 Optional keys:
 - `QUAL` (Optional[float])
-- `FILTER` (list[str])
-- `GT` (list[api.contracts.schemas.dna.VariantGtDoc])
+- `FILTER` (list)
+- `GT` (list)
 - `gnomad_frequency` (float | None)
 - `gnomad_max` (float | None)
 - `exac_frequency` (float | None)
 - `thousandG_frequency` (float | None)
 - `variant_class` (str | None)
 - `selected_csq_feature` (str | None)
-- `genes` (list[str])
-- `transcripts` (list[str])
-- `HGVSc` (list[str])
-- `HGVSp` (list[str])
-- `cosmic_ids` (list[str])
+- `genes` (list)
+- `transcripts` (list)
+- `HGVSc` (list)
+- `HGVSp` (list)
+- `cosmic_ids` (list)
 - `dbsnp_id` (str | None)
-- `pubmed_ids` (list[str])
-- `hotspots` (list[dict[str, list[str]]])
+- `pubmed_ids` (list)
+- `hotspots` (list)
 
 ## `vep_metadata`
 
