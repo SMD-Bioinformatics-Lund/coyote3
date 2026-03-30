@@ -56,7 +56,7 @@ class VEPMetaHandler(BaseHandler):
         """
         doc = self.get_collection().find_one({"vep_id": str(vep_version)})
         if not doc:
-            app.logger.warning(f"VEP version {vep_version} not found in metadata.")
+            app.logger.warning("VEP version %s not found in metadata.", vep_version)
         return doc or {}
 
     def get_variant_class_translations(self, vep_version: str):
@@ -101,7 +101,7 @@ class VEPMetaHandler(BaseHandler):
         db_info = doc.get("db_info", {}).get(genome_build)
         if not db_info:
             app.logger.warning(
-                f"Database info for genome build {genome_build} not found in metadata."
+                "Database info for genome build %s not found in metadata.", genome_build
             )
             return {}
         return db_info

@@ -11,7 +11,7 @@ from api.core.workflows.contracts import validate_report_inputs, validate_rna_fi
 class _LoggerStub:
     """Provide  LoggerStub behavior."""
 
-    def error(self, msg: str) -> None:
+    def error(self, msg: str, *args) -> None:
         """Error.
 
         Args:
@@ -20,7 +20,7 @@ class _LoggerStub:
         Returns:
             None.
         """
-        self.last_error = msg
+        self.last_error = msg % args if args else msg
 
 
 def test_validate_report_inputs_accepts_valid_payload():

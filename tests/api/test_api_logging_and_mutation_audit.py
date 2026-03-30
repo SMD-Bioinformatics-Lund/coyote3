@@ -2,27 +2,18 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
+from typing import Any
 
 import pytest
-from fastapi.testclient import TestClient
+from fastapi.responses import JSONResponse
+from starlette.requests import Request
 
 from api import middleware
-from api.deps.repositories import get_sample_repository
-from api.main import app
-from api.security import access
 from api.security.access import ApiUser
 
 
 def _user(level: int = 9) -> ApiUser:
-    """User.
-
-    Args:
-            level: Level. Optional argument.
-
-    Returns:
-            The  user result.
-    """
+    """Build a lightweight authenticated API user."""
     return ApiUser(
         id="U1",
         email="user@example.org",
@@ -39,71 +30,74 @@ def _user(level: int = 9) -> ApiUser:
     )
 
 
-def test_api_response_includes_request_id_header(monkeypatch: pytest.MonkeyPatch):
-    """Test api response includes request id header.
+def _request(*, path: str, method: str, headers: dict[str, str] | None = None) -> Request:
+    """Build a minimal Starlette request object."""
+    raw_headers = [
+        (key.lower().encode("latin-1"), value.encode("latin-1"))
+        for key, value in (headers or {}).items()
+    ]
+    scope: dict[str, Any] = {
+        "type": "http",
+        "http_version": "1.1",
+        "method": method,
+        "path": path,
+        "raw_path": path.encode("latin-1"),
+        "query_string": b"",
+        "headers": raw_headers,
+        "scheme": "http",
+        "client": ("127.0.0.1", 12345),
+        "server": ("testserver", 80),
+    }
+    return Request(scope)
 
-    Args:
-        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
 
-    Returns:
-        The function result.
-    """
-    monkeypatch.setattr(access, "_decode_session_user", lambda _request: _user(level=9))
-    monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9})
-    monkeypatch.setitem(
-        app.dependency_overrides,
-        get_sample_repository,
-        lambda: SimpleNamespace(blacklist_coord=lambda *args, **kwargs: None),
-    )
+@pytest.mark.asyncio
+async def test_api_response_includes_request_id_header(monkeypatch: pytest.MonkeyPatch):
+    """Middleware should propagate incoming request-id to response headers."""
+    monkeypatch.setattr(middleware, "ensure_runtime_initialized", lambda **_: None)
+    monkeypatch.setattr(middleware, "resolve_request_user", lambda _request: _user(level=9))
 
-    client = TestClient(app)
-    response = client.post(
-        "/api/v1/coverage/blacklist/entries",
-        headers={"X-Request-ID": "rid-123"},
-        json={"gene": "TP53", "coord": "17:1-2", "region": "coding", "smp_grp": "G"},
+    auth_mw = middleware.build_authentication_middleware(testing=True, development=False)
+
+    async def _call_next(_request: Request) -> JSONResponse:
+        return JSONResponse(status_code=200, content={"status": "ok"})
+
+    response = await auth_mw(
+        _request(
+            path="/api/v1/coverage/blacklist/entries",
+            method="POST",
+            headers={"X-Request-ID": "rid-123"},
+        ),
+        _call_next,
     )
 
     assert response.status_code == 200
     assert response.headers.get("X-Request-ID") == "rid-123"
 
 
-def test_mutation_event_emits_request_id_user_and_target(monkeypatch: pytest.MonkeyPatch):
-    """Test mutation event emits request id user and target.
-
-    Args:
-        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
-    captured: dict = {}
+@pytest.mark.asyncio
+async def test_mutation_event_emits_request_id_user_and_target(monkeypatch: pytest.MonkeyPatch):
+    """Mutation audit event should include user, action, target, and request-id context."""
+    captured: dict[str, Any] = {}
 
     def _capture_mutation_event(**kwargs):
-        """Capture mutation event.
-
-        Args:
-                **kwargs: Kwargs. Additional keyword arguments.
-
-        Returns:
-                The  capture mutation event result.
-        """
         captured.update(kwargs)
 
-    monkeypatch.setattr(access, "_decode_session_user", lambda _request: _user(level=9))
-    monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9})
-    monkeypatch.setitem(
-        app.dependency_overrides,
-        get_sample_repository,
-        lambda: SimpleNamespace(blacklist_coord=lambda *args, **kwargs: None),
-    )
+    monkeypatch.setattr(middleware, "ensure_runtime_initialized", lambda **_: None)
+    monkeypatch.setattr(middleware, "resolve_request_user", lambda _request: _user(level=9))
     monkeypatch.setattr(middleware, "emit_mutation_event", _capture_mutation_event)
 
-    client = TestClient(app)
-    response = client.post(
-        "/api/v1/coverage/blacklist/entries",
+    auth_mw = middleware.build_authentication_middleware(testing=True, development=False)
+
+    async def _call_next(_request: Request) -> JSONResponse:
+        return JSONResponse(status_code=200, content={"status": "ok"})
+
+    request = _request(
+        path="/api/v1/coverage/blacklist/entries",
+        method="POST",
         headers={"X-Request-ID": "rid-456"},
-        json={"gene": "TP53", "coord": "17:1-2", "region": "coding", "smp_grp": "G"},
     )
+    response = await auth_mw(request, _call_next)
 
     assert response.status_code == 200
     assert captured["username"] == "user1"

@@ -104,10 +104,6 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
     app.jinja_env.add_extension("jinja2.ext.do")
     app.jinja_env.filters["from_json"] = json.loads
 
-    # Allows cross-origin requests for CDM/api
-    # /trends needs this to work.
-    CORS(app)
-
     env_name = os.getenv("ENV_NAME", "").strip().lower()
     staging_enabled = staging or os.getenv("STAGING", "0") == "1" or env_name == "staging"
 
@@ -133,6 +129,14 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
     else:
         app.logger.info("Loading config.ProductionConfig")
         app.config.from_object(config.ProductionConfig())  # Note initialization of Config
+
+    # CORS: restrict to configured origins, or allow all if CORS_ORIGINS is not set.
+    # See README Security section and config.py CORS_ORIGINS for details.
+    _cors_origins = app.config.get("CORS_ORIGINS") or []
+    if _cors_origins:
+        CORS(app, origins=_cors_origins)
+    else:
+        CORS(app)  # allows all origins — set CORS_ORIGINS env var to restrict
 
     app.logger.info(
         "Runtime banner: env=%s version=%s git=%s build=%s",
@@ -542,7 +546,7 @@ def register_blueprints(app) -> None:
         :param msg: The name or identifier of the blueprint being registered.
         :type msg: str
         """
-        app.logger.debug(f"Blueprint registered: {msg}")
+        app.logger.debug("Blueprint registered: %s", msg)
 
     # Coyote main:
     bp_debug_msg("home_bp")

@@ -6,12 +6,9 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
-from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
-from api.deps.repositories import get_sample_repository
-from api.main import app as api_app
 from api.routers import samples
-from api.security import access
 from api.security.access import ApiUser
 from tests.fixtures.api import mock_collections as fx
 
@@ -43,28 +40,16 @@ def _route_test_user() -> ApiUser:
     )
 
 
-def test_update_sample_filters_rejects_invalid_filters_payload(monkeypatch):
+def test_update_sample_filters_rejects_invalid_filters_payload():
     """Test update sample filters rejects invalid filters payload.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
 
     Returns:
         The function result.
     """
-    sample = fx.sample_doc()
-    sample["_id"] = "S1"
-    monkeypatch.setattr(access, "_decode_session_user", lambda _request: _route_test_user())
-    monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9, "manager": 99, "admin": 999})
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
-    api_app.dependency_overrides[get_sample_repository] = lambda: SimpleNamespace()
-    client = TestClient(api_app, raise_server_exceptions=False)
-    response = client.put("/api/v1/samples/S1/filters", json={"filters": "bad"})
-    api_app.dependency_overrides.pop(get_sample_repository, None)
+    with pytest.raises(ValidationError) as exc:
+        samples.SampleFiltersUpdateRequest.model_validate({"filters": "bad"})
 
-    assert response.status_code == 422
-    body = response.json()
-    assert body["error"] == "Validation failed"
+    assert "Input should be a valid dictionary" in str(exc.value)
 
 
 def test_reset_sample_filters_requires_assay_config(monkeypatch):

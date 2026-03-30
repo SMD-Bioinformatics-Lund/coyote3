@@ -79,7 +79,7 @@ def list_fusions(sample_id: str) -> str | Response:
     fusionlist_options = fusions_payload.fusionlist_options
     sample_filters = deepcopy(fusions_payload.filters)
     filter_context = deepcopy(fusions_payload.filter_context)
-    app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
+    app.logger.debug("Assay group: %s - Subpanel: %s", assay_group, subpanel)
 
     # Create the form
     form = FusionFilter()
@@ -90,7 +90,7 @@ def list_fusions(sample_id: str) -> str | Response:
     if request.method == "POST" and form.validate_on_submit():
         # Reset filters to defaults
         if form.reset.data:
-            app.logger.info(f"Resetting filters to default settings for the sample {sample_id}")
+            app.logger.info("Resetting filters to default settings for the sample %s", sample_id)
             try:
                 api_client.delete_json(
                     api_endpoints.sample(sample_id, "filters"),

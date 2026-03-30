@@ -6,7 +6,8 @@ import re
 from pathlib import Path
 
 ROUTE_RE = re.compile(r'@(?:app|router)\.(?:get|post|put|delete|patch)\(\s*"([^"]+)"', re.MULTILINE)
-ALLOWED_PREFIXES = ("/api/v1/", "/api/vi/")
+ALLOWED_PREFIXES = ("/api/v1/",)
+ALLOWED_EXACT = {"/api/vi/docs"}
 
 
 def _route_paths(py_file: Path) -> list[str]:
@@ -71,6 +72,8 @@ def test_api_routes_use_versioned_prefixes():
 
     for route_file in _canonical_http_modules():
         for path in _route_paths(route_file):
+            if path in ALLOWED_EXACT:
+                continue
             if not path.startswith(ALLOWED_PREFIXES):
                 invalid_paths.append(f"{route_file}:{path}")
 

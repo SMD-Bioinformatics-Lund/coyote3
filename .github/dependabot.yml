@@ -1,0 +1,30 @@
+version: 2
+updates:
+  # Keep Python dependencies up-to-date
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      # Group all patch/minor updates for production deps together
+      prod-minor:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      # Keep dev deps in a separate group
+      dev-deps:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Keep GitHub Actions up-to-date
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5

@@ -7,7 +7,7 @@ from io import BytesIO
 from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException, UploadFile
+from fastapi import HTTPException
 
 from api.routers import internal
 
@@ -19,6 +19,20 @@ def _admin_user():
         permissions=[],
         denied_permissions=[],
     )
+
+
+class _FakeUpload:
+    """Minimal async upload stub for internal upload-route tests."""
+
+    def __init__(self, filename: str, payload: bytes):
+        self.filename = filename
+        self._buffer = BytesIO(payload)
+
+    async def read(self, size: int = -1) -> bytes:
+        return self._buffer.read(size)
+
+    async def close(self) -> None:
+        return None
 
 
 def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
@@ -406,15 +420,15 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
 
     monkeypatch.setattr(internal.InternalIngestService, "ingest_sample_bundle", _ingest)
 
-    yaml_upload = UploadFile(filename="ingest.yaml", file=BytesIO(b"name: UPLOAD_SAMPLE"))
+    yaml_upload = _FakeUpload(filename="ingest.yaml", payload=b"name: UPLOAD_SAMPLE")
     files = [
-        UploadFile(
+        _FakeUpload(
             filename="generic_case_control.final.filtered.vcf",
-            file=BytesIO(b"##fileformat=VCFv4.2\n"),
+            payload=b"##fileformat=VCFv4.2\n",
         ),
-        UploadFile(
+        _FakeUpload(
             filename="generic_case_control.cnvs.merged.json",
-            file=BytesIO(b"[]"),
+            payload=b"[]",
         ),
     ]
 
@@ -459,7 +473,7 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
         },
     )
 
-    yaml_upload = UploadFile(filename="ingest.yaml", file=BytesIO(b"name: UPLOAD_SAMPLE"))
+    yaml_upload = _FakeUpload(filename="ingest.yaml", payload=b"name: UPLOAD_SAMPLE")
     with pytest.raises(HTTPException) as exc_info:
         asyncio.run(
             internal.ingest_sample_bundle_upload_internal(

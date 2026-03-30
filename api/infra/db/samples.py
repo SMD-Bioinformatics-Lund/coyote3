@@ -187,14 +187,15 @@ class SampleHandler(BaseHandler):
                 samples = None
 
             if samples and not reload:
-                app_obj.logger.debug(f"[SAMPLES CACHE HIT] {cache_key}")
+                app_obj.logger.debug("[SAMPLES CACHE HIT] %s", cache_key)
                 return samples
             elif samples and reload:
                 app_obj.logger.debug(
-                    f"[SAMPLES CACHE HIT] {cache_key} — but reloading from DB since reload is set to True."
+                    "[SAMPLES CACHE HIT] %s — but reloading from DB since reload is set to True.",
+                    cache_key,
                 )
             else:
-                app_obj.logger.debug(f"[SAMPLES CACHE MISS] {cache_key} — fetching from DB.")
+                app_obj.logger.debug("[SAMPLES CACHE MISS] %s — fetching from DB.", cache_key)
 
         # If no cache or use_cache=False, or cache miss
         samples = self._query_samples(
@@ -210,7 +211,9 @@ class SampleHandler(BaseHandler):
         if use_cache and cache is not None:
             try:
                 cache.set(cache_key, samples, timeout=cache_timeout)
-                app_obj.logger.debug(f"[SAMPLES CACHE SET] {cache_key} (timeout={cache_timeout}s)")
+                app_obj.logger.debug(
+                    "[SAMPLES CACHE SET] %s (timeout=%ss)", cache_key, cache_timeout
+                )
             except Exception as exc:
                 app_obj.logger.warning(
                     "[SAMPLES CACHE ERROR] failed to set cache key %s: %s. Continuing without cache.",
@@ -267,7 +270,7 @@ class SampleHandler(BaseHandler):
         try:
             sample = self.get_collection().find_one({"_id": ObjectId(id)})
         except Exception as e:
-            self.adapter.app.logger.error(f"Error retrieving sample by id {id}: {e}")
+            self.adapter.app.logger.error("Error retrieving sample by id %s: %s", id, e)
             sample = None
         return sample
 

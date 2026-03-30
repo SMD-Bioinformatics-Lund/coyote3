@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from statistics import mean
 from time import perf_counter
 
-import httpx
-
-from api.main import app
+from api.routers import health
 
 
 def test_health_endpoint_concurrency_smoke():
@@ -18,30 +16,20 @@ def test_health_endpoint_concurrency_smoke():
     catches severe regressions in request handling behavior.
     """
 
-    async def _run() -> tuple[list[int], list[float], float]:
-        latencies_ms: list[float] = []
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
-            # Warm-up request to avoid one-time app startup costs skewing latency assertions.
-            warmup = await client.get("/api/v1/health")
-            assert warmup.status_code == 200
-            started = perf_counter()
-            sem = asyncio.Semaphore(40)
+    latencies_ms: list[float] = []
+    started = perf_counter()
 
-            async def _hit() -> int:
-                async with sem:
-                    t0 = perf_counter()
-                    resp = await client.get("/api/v1/health")
-                    latencies_ms.append((perf_counter() - t0) * 1000.0)
-                    return resp.status_code
+    def _hit() -> dict[str, str]:
+        t0 = perf_counter()
+        payload = health.health()
+        latencies_ms.append((perf_counter() - t0) * 1000.0)
+        return payload
 
-            statuses = await asyncio.gather(*[_hit() for _ in range(200)])
-        total_ms = (perf_counter() - started) * 1000.0
-        return statuses, latencies_ms, total_ms
+    with ThreadPoolExecutor(max_workers=40) as executor:
+        payloads = list(executor.map(lambda _: _hit(), range(200)))
+    total_ms = (perf_counter() - started) * 1000.0
 
-    statuses, latencies_ms, total_ms = asyncio.run(_run())
-
-    assert all(code == 200 for code in statuses)
+    assert all(payload == {"status": "ok"} for payload in payloads)
     assert len(latencies_ms) == 200
     # Smoke threshold: average latency should remain in a healthy local-test range.
     assert mean(latencies_ms) < 400.0

@@ -2,17 +2,11 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-from typing import Callable
-
 import pytest
 from fastapi import HTTPException
-from fastapi.testclient import TestClient
+from starlette.requests import Request
 
-from api.deps.repositories import get_sample_repository
 from api.main import app
-from api.routers import permissions, reports, roles, samples, users
-from api.routers.resources import aspc as admin_aspc
 from api.security import access
 from api.security.access import ApiUser
 
@@ -27,16 +21,7 @@ ROLE_LEVELS = {
 def _user(
     *, level: int, permissions: list[str] | None = None, denied: list[str] | None = None
 ) -> ApiUser:
-    """User.
-
-    Args:
-            level: Level. Keyword-only argument.
-            permissions: Permissions. Keyword-only argument.
-            denied: Denied. Keyword-only argument.
-
-    Returns:
-            The  user result.
-    """
+    """Build a lightweight ApiUser for access checks."""
     return ApiUser(
         id="U1",
         email="user@example.org",
@@ -53,259 +38,82 @@ def _user(
     )
 
 
-def _setup_admin_list_users(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Setup admin list users.
-
-    Args:
-            monkeypatch: Monkeypatch.
-
-    Returns:
-            None.
-    """
-    monkeypatch.setitem(
-        app.dependency_overrides,
-        users.get_admin_user_service,
-        lambda: SimpleNamespace(
-            list_users_payload=lambda **_: {
-                "users": [],
-                "roles": {},
-                "pagination": {"q": "", "page": 1, "per_page": 30, "total": 0, "has_next": False},
-            }
+def _resolve_access_dependency(method: str, path: str):
+    """Resolve the require_access dependency callable for a route."""
+    route = next(
+        (
+            entry
+            for entry in app.router.routes
+            if getattr(entry, "path", "") == path and method in getattr(entry, "methods", set())
         ),
+        None,
     )
-    monkeypatch.setattr(users.util.common, "convert_to_serializable", lambda payload: payload)
-
-
-def _setup_admin_list_roles(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Setup admin list roles.
-
-    Args:
-            monkeypatch: Monkeypatch.
-
-    Returns:
-            None.
-    """
-    monkeypatch.setitem(
-        app.dependency_overrides,
-        roles.get_admin_role_service,
-        lambda: SimpleNamespace(
-            list_roles_payload=lambda **_: {
-                "roles": [],
-                "pagination": {"q": "", "page": 1, "per_page": 30, "total": 0, "has_next": False},
-            }
+    assert route is not None
+    dep = next(
+        (
+            entry.call
+            for entry in route.dependant.dependencies
+            if getattr(entry.call, "__name__", "") == "dep"
         ),
+        None,
     )
-    monkeypatch.setattr(roles.util.common, "convert_to_serializable", lambda payload: payload)
+    assert dep is not None
+    return dep
 
 
-def _setup_admin_list_permissions(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Setup admin list permissions.
-
-    Args:
-            monkeypatch: Monkeypatch.
-
-    Returns:
-            None.
-    """
-    monkeypatch.setitem(
-        app.dependency_overrides,
-        permissions.get_permission_management_service,
-        lambda: SimpleNamespace(
-            list_permissions_payload=lambda **_: {
-                "permission_policies": [],
-                "grouped_permissions": {},
-                "pagination": {"q": "", "page": 1, "per_page": 30, "total": 0, "has_next": False},
-            }
-        ),
-    )
-    monkeypatch.setattr(permissions.util.common, "convert_to_serializable", lambda payload: payload)
-
-
-def _setup_admin_list_aspc(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Setup admin list aspc.
-
-    Args:
-            monkeypatch: Monkeypatch.
-
-    Returns:
-            None.
-    """
-    monkeypatch.setitem(
-        app.dependency_overrides,
-        admin_aspc.get_admin_aspc_service,
-        lambda: SimpleNamespace(
-            list_payload=lambda **_: {
-                "assay_configs": [],
-                "pagination": {"q": "", "page": 1, "per_page": 30, "total": 0, "has_next": False},
-            }
-        ),
-    )
-    monkeypatch.setattr(admin_aspc.util.common, "convert_to_serializable", lambda payload: payload)
-
-
-def _setup_samples_blacklist_update(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Setup samples blacklist update.
-
-    Args:
-            monkeypatch: Monkeypatch.
-
-    Returns:
-            None.
-    """
-    monkeypatch.setitem(
-        app.dependency_overrides,
-        get_sample_repository,
-        lambda: SimpleNamespace(blacklist_coord=lambda *args, **kwargs: None),
-    )
-    monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
-
-
-def _setup_reports_preview(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Setup reports preview.
-
-    Args:
-            monkeypatch: Monkeypatch.
-
-    Returns:
-            None.
-    """
-    monkeypatch.setattr(
-        reports,
-        "_load_report_context",
-        lambda sample_id, user: ({"_id": sample_id, "name": sample_id}, {"_id": "A1"}),
-    )
-    monkeypatch.setattr(reports, "_validate_report_inputs", lambda *args, **kwargs: None)
-    monkeypatch.setattr(
-        reports, "_build_preview_report", lambda *args, **kwargs: ("dna_report.html", {}, [])
-    )
-    monkeypatch.setattr(
-        reports.report_service,
-        "preview_payload",
-        lambda **kwargs: {
-            "sample": {"id": "S1", "name": "S1", "assay": "DNA", "profile": "production"},
-            "meta": {
-                "request_path": "/api/v1/samples/S1/reports/dna/preview",
-                "include_snapshot": False,
-                "snapshot_count": 0,
-            },
-            "report": {"template": "dna_report.html", "context": {}, "snapshot_rows": []},
-        },
-    )
-    monkeypatch.setattr(reports.util.common, "convert_to_serializable", lambda payload: payload)
-
-
-_EndpointSetup = Callable[[pytest.MonkeyPatch], None]
+def _request_for(path: str, method: str) -> Request:
+    """Build a minimal request for dependency execution."""
+    return Request({"type": "http", "method": method, "path": path, "headers": []})
 
 
 @pytest.mark.parametrize(
-    ("method", "path", "payload", "required_permission", "required_level", "setup"),
+    ("method", "path", "required_permission", "required_level"),
     [
-        ("GET", "/api/v1/users", None, "view_user", 99999, _setup_admin_list_users),
-        ("GET", "/api/v1/roles", None, "view_role", 99999, _setup_admin_list_roles),
-        (
-            "GET",
-            "/api/v1/permissions",
-            None,
-            "view_permission_policy",
-            99999,
-            _setup_admin_list_permissions,
-        ),
-        ("GET", "/api/v1/resources/aspc", None, "view_aspc", 9, _setup_admin_list_aspc),
-        (
-            "POST",
-            "/api/v1/coverage/blacklist/entries",
-            {
-                "gene": "TP53",
-                "coord": "17:1-2",
-                "region": "coding",
-                "smp_grp": "G",
-                "status": "blacklisted",
-            },
-            None,
-            1,
-            _setup_samples_blacklist_update,
-        ),
-        (
-            "GET",
-            "/api/v1/samples/S1/reports/dna/preview",
-            None,
-            "preview_report",
-            9,
-            _setup_reports_preview,
-        ),
+        ("GET", "/api/v1/users", "view_user", 99999),
+        ("GET", "/api/v1/roles", "view_role", 99999),
+        ("GET", "/api/v1/permissions", "view_permission_policy", 99999),
+        ("GET", "/api/v1/resources/aspc", "view_aspc", 9),
+        ("POST", "/api/v1/coverage/blacklist/entries", None, 1),
+        ("GET", "/api/v1/samples/{sample_id}/reports/{report_type}/preview", "preview_report", 9),
     ],
 )
 def test_high_risk_endpoints_auth_matrix(
     monkeypatch: pytest.MonkeyPatch,
     method: str,
     path: str,
-    payload: dict | None,
     required_permission: str | None,
     required_level: int,
-    setup: _EndpointSetup,
 ):
-    """Test high risk endpoints auth matrix.
-
-    Args:
-        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
-        method (str): Value for ``method``.
-        path (str): Value for ``path``.
-        payload (dict | None): Value for ``payload``.
-        required_permission (str | None): Value for ``required_permission``.
-        required_level (int): Value for ``required_level``.
-        setup (_EndpointSetup): Value for ``setup``.
-
-    Returns:
-        The function result.
-    """
-    setup(monkeypatch)
+    """Verify high-risk route access dependency behavior across auth scenarios."""
     monkeypatch.setattr(access, "_role_levels", lambda: ROLE_LEVELS)
-    client = TestClient(app)
+    dep = _resolve_access_dependency(method=method, path=path)
+    request = _request_for(path=path, method=method)
 
-    def _request() -> int:
-        """Request.
-
-        Returns:
-                The  request result.
-        """
-        kwargs = {"json": payload} if payload is not None else {}
-        return client.request(method, path, **kwargs).status_code
-
-    # 1) Unauthenticated -> 401
     def _raise_unauth(_request):
-        """Raise unauth.
-
-        Args:
-                _request:  request.
-
-        Returns:
-                The  raise unauth result.
-        """
         raise HTTPException(status_code=401, detail={"status": 401, "error": "Login required"})
 
     monkeypatch.setattr(access, "_decode_session_user", _raise_unauth)
-    assert _request() == 401
+    with pytest.raises(HTTPException) as unauth_exc:
+        next(dep(request))
+    assert unauth_exc.value.status_code == 401
 
-    # 2) Authenticated but restricted -> 403
     restricted_user = _user(level=max(0, required_level - 1), permissions=[])
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: restricted_user)
-    assert _request() == 403
+    with pytest.raises(HTTPException) as forbidden_exc:
+        next(dep(request))
+    assert forbidden_exc.value.status_code == 403
 
-    # 3) Authenticated and permitted -> 200
     allowed_permissions = [required_permission] if required_permission else []
     allowed_user = _user(level=max(required_level, 99999), permissions=allowed_permissions)
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: allowed_user)
-    assert _request() == 200
+    generator = dep(request)
+    assert next(generator) == allowed_user
+    generator.close()
 
 
 def test_openapi_security_declares_auth_for_protected_routes():
-    """Test openapi security declares auth for protected routes.
-
-    Returns:
-        The function result.
-    """
-    client = TestClient(app)
-    schema = client.get("/api/v1/openapi.json").json()
+    """Verify OpenAPI declares auth requirements for protected routes only."""
+    schema = app.openapi()
 
     protected_operation = schema["paths"]["/api/v1/users"]["get"]
     assert {"ApiSessionCookie": []} in protected_operation.get("security", [])

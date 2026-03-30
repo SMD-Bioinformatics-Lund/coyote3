@@ -169,7 +169,7 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
                 if datetime.fromtimestamp(file.stat().st_mtime, timezone.utc) < cutoff:
                     file.unlink()
             except Exception as e:
-                logging.getLogger("coyote").error(f"Failed to delete log file {file}: {e}")
+                logging.getLogger("coyote").error("Failed to delete log file %s: %s", file, e)
 
 
 #### FUNCTION DEFINITIONS ####
@@ -541,7 +541,7 @@ def custom_logging(
         setup_app_logging(log_dir, is_production)
 
     logging.getLogger("coyote").info(
-        f"Logging initialized [Production: {is_production}] [Gunicorn: {gunicorn_logging}]"
+        "Logging initialized [Production: %s] [Gunicorn: %s]", is_production, gunicorn_logging
     )
 
 

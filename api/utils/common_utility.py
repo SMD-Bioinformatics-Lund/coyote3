@@ -785,7 +785,7 @@ class CommonUtility:
                 report_file.write(report_data)
             return True
         except Exception as exc:
-            app.logger.error(f"Failed to write report to '{report_path}': {exc}")
+            app.logger.error("Failed to write report to '%s': %s", report_path, exc)
             return False
 
     @staticmethod

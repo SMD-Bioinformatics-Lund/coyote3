@@ -5,9 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "Coyote3"
 version = "1.0.0"
+requires-python = ">=3.12"
 description = "A Bioinformatics Interpretation and Analysis Tool built for Section for Molecular Diagnostics, Region Skåne, Lund, Sweden"
 dependencies = [
     "arrow==1.3.0",
+    "bleach==6.3.0",
     "Brotli==1.1.0",
     "colorlog==6.8.2",
     "cffi==1.17.1",
@@ -34,11 +36,7 @@ dependencies = [
     "Jinja2==3.1.6",
     "Markdown==3.6",
     "MarkupSafe==2.1.5",
-    "mongomock==4.1.2",
-    "mypy==1.11.0",
-    "mypy-extensions==1.0.0",
     "pillow==10.4.0",
-    "pre-commit==3.7.1",
     "pydantic==2.11.1",
     "pydantic_core==2.33.0",
     "fastapi==0.116.1",
@@ -47,14 +45,13 @@ dependencies = [
     "httpx==0.28.1",
     "pydyf==0.11.0",
     "pymongo==4.16.0",
-    "pytest==8.3.2",
-    "pytest-mock==3.14.0",
-    "pytest-cov==5.0.0",
-    "coverage==7.6.1",
+    "pysam==0.23.3",
     "python-dateutil==2.9.0.post0",
+    "python-dotenv==1.1.1",
     "redis==5.2.1",
     "pytz==2024.1",
     "PyYAML==6.0.1",
+    "rich-click==1.8.4",
     "sentinels==1.0.0",
     "six==1.16.0",
     "tinycss2==1.4.0",
@@ -66,7 +63,33 @@ dependencies = [
     "webencodings==0.5.1",
     "Werkzeug==3.0.6",
     "WTForms==3.1.2",
-    "rich-click==1.8.4"
+]
+
+[project.urls]
+Homepage = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
+Repository = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
+Documentation = "https://smd-bioinformatics-lund.github.io/coyote3"
+"Bug Tracker" = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues"
+
+[project.optional-dependencies]
+dev = [
+    "mypy==1.11.0",
+    "mypy-extensions==1.0.0",
+    "pre-commit==3.7.1",
+    "black==24.4.2",
+    "ruff==0.13.0",
+]
+test = [
+    "pytest==8.3.2",
+    "pytest-mock==3.14.0",
+    "pytest-cov==5.0.0",
+    "pytest-asyncio==0.23.8",
+    "coverage==7.6.1",
+    "mongomock==4.1.2",
+]
+docs = [
+    "mkdocs",
+    "mkdocs-readthedocs",
 ]
 
 [tool.ruff]
@@ -81,8 +104,38 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
-ignore = ["E501"]
+select = ["E", "F", "I", "D"]
+# D1xx: missing docstrings — not enforced yet (too many to add at once; future work)
+# D203/D213: conflict with Google style (D211/D212 selected by convention)
+# D400/D401/D415: first-line punctuation — too noisy for existing codebase
+ignore = [
+    "E501",
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D107",
+    "D200",
+    "D202",
+    "D203",
+    "D205",
+    "D212",
+    "D213",
+    "D400",
+    "D401",
+    "D403",
+    "D410",
+    "D411",
+    "D415",
+    "D416",
+    "D417",
+    "D419",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.ruff.format]
 quote-style = "double"

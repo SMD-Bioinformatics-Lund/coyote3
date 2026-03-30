@@ -320,8 +320,8 @@ def build_dna_report_payload(
     report_sections = assay_config.get("reporting", {}).get("report_sections", [])
     report_sections_data: Dict[str, Any] = {}
 
-    app.logger.debug(f"Assay group: {assay_group} - DNA config: {pformat(report_sections)}")
-    app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
+    app.logger.debug("Assay group: %s - DNA config: %s", assay_group, pformat(report_sections))
+    app.logger.debug("Assay group: %s - Subpanel: %s", assay_group, subpanel)
 
     assay_panel_doc = repository.get_asp(asp_name=sample_assay)
     # Preserve assay genelist hydration step for parity with legacy report flow.

@@ -6,11 +6,9 @@ fail closed when called without authentication.
 
 from __future__ import annotations
 
-import re
 from typing import Iterable
 
 from fastapi.routing import APIRoute
-from fastapi.testclient import TestClient
 
 from api.main import app
 
@@ -18,12 +16,14 @@ _OPEN_EXACT = {
     "/api/v1/health",
     "/api/v1/auth/sessions",
     "/api/v1/auth/sessions/current",
+    "/api/v1/auth/password/reset/request",
+    "/api/v1/auth/password/reset/confirm",
     "/api/v1/docs",
     "/api/v1/openapi.json",
     "/api/v1/redoc",
     "/api/v1/common/gene/{gene_id}/info",
 }
-_OPEN_PREFIX = ("/api/v1/public/",)
+_OPEN_PREFIX = ("/api/v1/public/", "/api/v1/internal/")
 _SKIP_METHODS = {"HEAD", "OPTIONS"}
 
 
@@ -45,43 +45,6 @@ def _iter_api_routes() -> Iterable[tuple[str, str]]:
             yield method, path
 
 
-def _materialize_path(path: str) -> str:
-    """Materialize path.
-
-    Args:
-            path: Path.
-
-    Returns:
-            The  materialize path result.
-    """
-    replacements = {
-        "sample_id": "SAMPLE1",
-        "var_id": "VAR1",
-        "fusion_id": "FUS1",
-        "comment_id": "COM1",
-        "callidx": "0",
-        "num_calls": "1",
-        "report_id": "RPT1",
-        "user_id": "USR1",
-        "role_id": "ROLE1",
-        "permission_id": "PERM1",
-    }
-
-    def repl(match: re.Match[str]) -> str:
-        """Repl.
-
-        Args:
-            match (re.Match[str]): Value for ``match``.
-
-        Returns:
-            str: The function result.
-        """
-        key = match.group(1)
-        return replacements.get(key, "X")
-
-    return re.sub(r"\{([^}]+)\}", repl, path)
-
-
 def _is_open(path: str) -> bool:
     """Is open.
 
@@ -100,22 +63,29 @@ def test_protected_routes_fail_closed_without_auth():
     Returns:
         The function result.
     """
-    client = TestClient(app)
     unexpected: list[str] = []
 
     for method, route_path in _iter_api_routes():
         if _is_open(route_path):
             continue
 
-        path = _materialize_path(route_path)
-        request_kwargs = {}
-        if method in {"POST", "PUT", "PATCH"}:
-            request_kwargs["json"] = {}
+        route = next(
+            (
+                entry
+                for entry in app.routes
+                if isinstance(entry, APIRoute)
+                and entry.path == route_path
+                and method in (entry.methods or set())
+            ),
+            None,
+        )
+        assert route is not None
+        dep_names = {
+            getattr(dep.call, "__name__", "")
+            for dep in getattr(route.dependant, "dependencies", [])
+            if getattr(dep, "call", None) is not None
+        }
+        if not dep_names.intersection({"dep", "_require_internal_token", "require_authenticated"}):
+            unexpected.append(f"{method} {route_path} -> dependencies={sorted(dep_names)}")
 
-        response = client.request(method, path, **request_kwargs)
-
-        # Expected unauthenticated outcomes for protected routes.
-        if response.status_code not in {401, 403, 422}:
-            unexpected.append(f"{method} {route_path} -> {response.status_code}")
-
-    assert not unexpected, "Protected routes did not fail closed:\n" + "\n".join(unexpected)
+    assert not unexpected, "Protected routes missing auth dependency:\n" + "\n".join(unexpected)

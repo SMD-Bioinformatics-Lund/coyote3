@@ -20,4 +20,4 @@ def register_filters(app) -> None:
     """
     for module in FILTER_MODULES:
         import_module(module)
-    app.logger.debug(f"Registered filter modules: {', '.join(FILTER_MODULES)}")
+    app.logger.debug("Registered filter modules: %s", ", ".join(FILTER_MODULES))

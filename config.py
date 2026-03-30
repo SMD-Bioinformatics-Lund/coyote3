@@ -143,6 +143,14 @@ class DefaultConfig:
     API_HEALTH_RETRIES = int(os.getenv("API_HEALTH_RETRIES", "15"))
     API_HEALTH_RETRY_INTERVAL_SECONDS = float(os.getenv("API_HEALTH_RETRY_INTERVAL_SECONDS", "1.0"))
     INTERNAL_API_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
+    # CORS configuration.
+    # Set CORS_ORIGINS as a comma-separated list of allowed origins, e.g.:
+    #   CORS_ORIGINS=https://coyote3.example.com,https://staging.example.com
+    # If unset or empty, ALL origins are permitted (Flask-Cors default).
+    # See the README Security section for production recommendations.
+    CORS_ORIGINS: list[str] = [
+        o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()
+    ]
     API_SESSION_COOKIE_NAME = os.getenv("API_SESSION_COOKIE_NAME", "coyote3_api_session")
     API_SESSION_TTL_SECONDS = int(os.getenv("API_SESSION_TTL_SECONDS", str(12 * 60 * 60)))
     API_SESSION_SALT = os.getenv("API_SESSION_SALT", "coyote3-api-session-v1")
@@ -292,7 +300,7 @@ class DefaultConfig:
         "Y": "NC_000024",
     }
 
-    CONTACT: dict[str, str] = {
+    CONTACT: dict[str, str | list[str]] = {
         "clinical_email": "ram.nanduri@skane.se",
         "research_email": "ram.nanduri@skane.se",
         "samples_email": "ram.nanduri@skane.se",
@@ -380,6 +388,7 @@ class ProductionConfig(DefaultConfig):
     APP_VERSION: str = f"{app_version}"
     SECRET_KEY: str | None = os.getenv("SECRET_KEY")
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_prod")
+    CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
     DEBUG: bool = False
 
 
@@ -404,6 +413,7 @@ class DevelopmentConfig(DefaultConfig):
     ENV_NAME = os.getenv("ENV_NAME", "Development")
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_dev")
     SECRET_KEY = os.getenv("SECRET_KEY")
+    CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
     APP_VERSION: str = f"{app_version}-DEV (git: {_active_git_branch_name()})"
     DEBUG: bool = True
 
@@ -426,6 +436,7 @@ class TestConfig(DefaultConfig):
     ENV_NAME = os.getenv("ENV_NAME", "Testing")
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_test")
     SECRET_KEY = os.getenv("SECRET_KEY")
+    CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
 
     APP_VERSION: str = f"{app_version}-Test (git: {_active_git_branch_name()})"
 
@@ -448,4 +459,5 @@ class StageConfig(DefaultConfig):
     APP_VERSION: str = f"{app_version}-STAGE"
     SECRET_KEY = os.getenv("SECRET_KEY")
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_stage")
+    CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
     DEBUG: bool = False

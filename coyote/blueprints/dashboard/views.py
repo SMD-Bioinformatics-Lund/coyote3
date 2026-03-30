@@ -299,7 +299,7 @@ def dashboard() -> str:
         app.logger.warning("Dashboard cache read failed for %s: %s", cache_key, exc)
 
     if isinstance(cache_payload, dict):
-        app.logger.info(f"Dashboard cache hit for {cache_key}")
+        app.logger.info("Dashboard cache hit for %s", cache_key)
         total_samples_count = _as_int(cache_payload.get("total_samples"), default=0)
         analysed_samples_count = _as_int(cache_payload.get("analysed_samples"), default=0)
         pending_samples_count = _as_int(cache_payload.get("pending_samples"), default=0)
@@ -318,7 +318,7 @@ def dashboard() -> str:
         isgl_visibility = cache_payload.get("isgl_visibility", {})
         isgl_association = cache_payload.get("isgl_association", {})
     else:
-        app.logger.info(f"Dashboard cache miss for {cache_key}")
+        app.logger.info("Dashboard cache miss for %s", cache_key)
         payload = None
         last_error = None
         forwarded_headers = forward_headers()

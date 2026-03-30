@@ -20,11 +20,7 @@ def health():
     return {"status": "ok"}
 
 
-@router.get("/api/vi/docs", response_model=HealthPayload, include_in_schema=False)
+@router.get("/api/vi/docs", include_in_schema=False)
 def docs_alias_vi():
-    """Docs alias vi.
-
-    Returns:
-        The function result.
-    """
+    """Redirect legacy docs alias to v1 docs."""
     return RedirectResponse(url="/api/v1/docs", status_code=307)

@@ -70,5 +70,5 @@ class IARCTP53Handler(BaseHandler):
             else:
                 return None
         except Exception as e:
-            self.app.logger.error(f"Error finding iarc tp53 data: {e}")
+            self.app.logger.error("Error finding iarc tp53 data: %s", e)
             return None

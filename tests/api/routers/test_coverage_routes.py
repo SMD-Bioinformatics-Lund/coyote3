@@ -4,12 +4,9 @@ from __future__ import annotations
 
 import pytest
 from fastapi import HTTPException
-from fastapi.testclient import TestClient
 
-from api.deps.services import get_coverage_service
-from api.main import app as api_app
+from api.contracts.coverage import CoverageSamplePayload
 from api.routers import coverage
-from api.security import access
 from api.security.access import ApiUser
 from api.services import coverage_service as coverage_service_module
 from api.services.coverage_service import CoverageService
@@ -125,8 +122,8 @@ def _route_test_user() -> ApiUser:
     )
 
 
-def test_coverage_sample_read_http_validates_cov_table_dict_shape(monkeypatch):
-    """Test coverage sample read http validates cov table dict shape.
+def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
+    """Test coverage sample read validates cov table dict shape.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -141,8 +138,6 @@ def test_coverage_sample_read_http_validates_cov_table_dict_shape(monkeypatch):
     sample["_id"] = "S1"
 
     service = CoverageService()
-    monkeypatch.setattr(access, "_decode_session_user", lambda _request: _route_test_user())
-    monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9, "manager": 99, "admin": 999})
     monkeypatch.setattr(coverage, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(
         service.repository, "get_aspc_no_meta", lambda assay, profile: {"assay_group": "dna"}
@@ -188,12 +183,12 @@ def test_coverage_sample_read_http_validates_cov_table_dict_shape(monkeypatch):
         },
     )
 
-    api_app.dependency_overrides[get_coverage_service] = lambda: service
-    client = TestClient(api_app, raise_server_exceptions=False)
-    response = client.get("/api/v1/coverage/samples/S1")
-    api_app.dependency_overrides.pop(get_coverage_service, None)
-
-    assert response.status_code == 200
-    body = response.json()
+    body = coverage.coverage_sample_read(
+        "S1",
+        cov_cutoff=500,
+        user=_route_test_user(),
+        service=service,
+    )
+    CoverageSamplePayload.model_validate(body)
     assert isinstance(body["cov_table"], dict)
     assert body["cov_table"]["TP53"]["1"]["cov"] == "700"

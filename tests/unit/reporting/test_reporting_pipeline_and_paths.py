@@ -131,16 +131,17 @@ def test_prepare_report_output_raises_conflict_when_file_exists(monkeypatch):
             """__init__."""
             self.messages = []
 
-        def warning(self, msg):
+        def warning(self, msg, *args):
             """Warning.
 
             Args:
                 msg: Value for ``msg``.
+                args: Value for ``args``.
 
             Returns:
                 The function result.
             """
-            self.messages.append(msg)
+            self.messages.append(msg % args if args else msg)
 
     logger = _Logger()
     monkeypatch.setattr(pipeline.os, "makedirs", lambda *_args, **_kwargs: None)

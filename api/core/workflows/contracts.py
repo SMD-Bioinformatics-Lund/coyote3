@@ -32,7 +32,7 @@ def _raise_contract_error(logger: _LoggerLike, tag: str, sample_name: str, messa
     Returns:
             None.
     """
-    logger.error(f"[contract:{tag}] sample={sample_name} {message}")
+    logger.error("[contract:%s] sample=%s %s", tag, sample_name, message)
     raise HTTPException(status_code=400, detail={"status": 400, "error": message})
 
 

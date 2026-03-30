@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import pytest
 from fastapi import HTTPException
-from fastapi.testclient import TestClient
+from starlette.requests import Request
 
-from api.main import app
+from api.routers import internal as internal_router
 from api.security import access
 from api.security.access import ApiUser
 from api.services.internal_ingest_service import InternalIngestService
@@ -28,48 +29,82 @@ def _user(*, role: str, level: int, permissions: list[str] | None = None) -> Api
     )
 
 
+def _resolve_access_dependency(method: str, path: str):
+    route = next(
+        (
+            entry
+            for entry in internal_router.router.routes
+            if getattr(entry, "path", "") == path and method in getattr(entry, "methods", set())
+        ),
+        None,
+    )
+    assert route is not None
+    dep = next(
+        (
+            entry.call
+            for entry in route.dependant.dependencies
+            if getattr(entry.call, "__name__", "") == "dep"
+        ),
+        None,
+    )
+    assert dep is not None
+    return dep
+
+
+def _request_for(path: str, method: str) -> Request:
+    return Request({"type": "http", "method": method, "path": path, "headers": []})
+
+
 def test_internal_ingest_collection_requires_auth_and_admin(monkeypatch):
     """Collection ingest requires authenticated admin-level user."""
-    monkeypatch.setattr(access, "_role_levels", lambda: {"viewer": 10, "admin": 100})
+    monkeypatch.setattr(
+        access, "_role_levels", lambda: {"viewer": 10, "developer": 50, "admin": 100}
+    )
     monkeypatch.setattr(
         InternalIngestService,
         "insert_collection_document",
         lambda **_: {"status": "ok", "collection": "users", "inserted_count": 1},
     )
-    client = TestClient(app)
-    payload = {
-        "collection": "users",
-        "document": {
+    dep = _resolve_access_dependency("POST", "/api/v1/internal/ingest/collection")
+    request = _request_for("/api/v1/internal/ingest/collection", "POST")
+    payload = internal_router.InternalCollectionInsertRequest(
+        collection="users",
+        document={
             "email": "admin@your-center.org",
             "role": "admin",
             "environments": ["production"],
         },
-    }
+    )
 
     def _raise_unauth(_request):
         raise HTTPException(status_code=401, detail={"status": 401, "error": "Login required"})
 
     monkeypatch.setattr(access, "_decode_session_user", _raise_unauth)
-    assert client.post("/api/v1/internal/ingest/collection", json=payload).status_code == 401
+    with pytest.raises(HTTPException) as unauth_exc:
+        next(dep(request))
+    assert unauth_exc.value.status_code == 401
 
     monkeypatch.setattr(
         access,
         "_decode_session_user",
         lambda _request: _user(role="viewer", level=10),
     )
-    assert client.post("/api/v1/internal/ingest/collection", json=payload).status_code == 403
+    with pytest.raises(HTTPException) as forbidden_exc:
+        next(dep(request))
+    assert forbidden_exc.value.status_code == 403
 
     monkeypatch.setattr(
         access,
         "_decode_session_user",
         lambda _request: _user(role="admin", level=100),
     )
-    assert client.post("/api/v1/internal/ingest/collection", json=payload).status_code == 200
+    user = next(dep(request))
+    result = internal_router.ingest_collection_document_internal(payload=payload, user=user)
+    assert result["status"] == "ok"
 
 
 def test_internal_ingest_sample_bundle_update_requires_edit_sample_permission(monkeypatch):
     """Update mode requires edit_sample for developer-level operators."""
-    monkeypatch.setattr(access, "_role_levels", lambda: {"developer": 50, "admin": 100})
     calls: dict[str, object] = {}
 
     def _ingest(payload, *, allow_update=False, increment=False):
@@ -83,9 +118,8 @@ def test_internal_ingest_sample_bundle_update_requires_edit_sample_permission(mo
         }
 
     monkeypatch.setattr(InternalIngestService, "ingest_sample_bundle", _ingest)
-    client = TestClient(app)
-    payload = {
-        "sample": {
+    payload = internal_router.InternalIngestSampleBundleRequest(
+        sample={
             "name": "DEMO_SAMPLE_001",
             "assay": "assay_1",
             "subpanel": None,
@@ -99,21 +133,19 @@ def test_internal_ingest_sample_bundle_update_requires_edit_sample_permission(mo
             "pipeline_version": "v1",
             "vcf_files": "/tmp/demo.vcf",
         },
-        "update_existing": True,
-    }
-
-    monkeypatch.setattr(
-        access,
-        "_decode_session_user",
-        lambda _request: _user(role="developer", level=50, permissions=[]),
+        update_existing=True,
     )
-    assert client.post("/api/v1/internal/ingest/sample-bundle", json=payload).status_code == 403
 
-    monkeypatch.setattr(
-        access,
-        "_decode_session_user",
-        lambda _request: _user(role="developer", level=50, permissions=["edit_sample"]),
+    with pytest.raises(HTTPException) as missing_perm_exc:
+        internal_router.ingest_sample_bundle_internal(
+            payload=payload,
+            user=_user(role="developer", level=50, permissions=[]),
+        )
+    assert missing_perm_exc.value.status_code == 403
+
+    response = internal_router.ingest_sample_bundle_internal(
+        payload=payload,
+        user=_user(role="developer", level=50, permissions=["edit_sample"]),
     )
-    response = client.post("/api/v1/internal/ingest/sample-bundle", json=payload)
-    assert response.status_code == 200
+    assert response["status"] == "ok"
     assert calls["allow_update"] is True

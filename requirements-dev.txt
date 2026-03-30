@@ -1,0 +1,27 @@
+# Development + test dependencies
+# Install with: pip install -r requirements-dev.txt
+# Includes all production dependencies from requirements.txt
+-r requirements.txt
+
+# Linting, formatting, and static analysis
+black==24.4.2
+ruff==0.13.0
+mypy==1.11.0
+mypy-extensions==1.0.0
+flake8==7.1.0
+isort==5.13.2
+
+# Pre-commit hooks
+pre-commit==3.7.1
+
+# Testing
+pytest==8.3.2
+pytest-mock==3.14.0
+pytest-cov==5.0.0
+pytest-asyncio==0.23.8
+coverage==7.6.1
+mongomock==4.1.2
+
+# Documentation (optional)
+# mkdocs
+# mkdocs-readthedocs

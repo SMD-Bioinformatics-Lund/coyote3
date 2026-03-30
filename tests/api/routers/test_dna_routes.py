@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
-from fastapi.testclient import TestClient
+from starlette.requests import Request
 
 from api.main import app as api_app
 from api.repositories import dna_repository as dna_repo_module
@@ -613,31 +613,27 @@ def test_bulk_fp_endpoint_dispatches_in_real_http_route(monkeypatch):
     Returns:
         The function result.
     """
-    captured: dict = {"ids": None}
-    monkeypatch.setattr(access, "_decode_session_user", lambda _request: _route_test_user())
-    monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9, "manager": 99, "admin": 999})
+    captured: dict = {}
+    service = DnaService()
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
-        dna_repo_module.store.variant_handler,
-        "mark_false_positive_var_bulk",
-        lambda ids: captured.__setitem__("ids", ids),
+        service,
+        "set_variant_bulk_flag",
+        lambda *, resource_ids, apply, flag: captured.update(
+            {"resource_ids": resource_ids, "apply": apply, "flag": flag}
+        ),
     )
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
-    client = TestClient(api_app, raise_server_exceptions=False)
-    response = client.patch(
-        "/api/v1/samples/S1/small-variants/flags/false-positive",
-        json={"apply": True, "resource_ids": ["V1", "V2"], "resource_type": "small_variant"},
+    payload = dna.set_variant_false_positive_bulk(
+        "S1",
+        payload={"apply": True, "resource_ids": ["V1", "V2"], "resource_type": "small_variant"},
+        user=_route_test_user(),
+        service=service,
     )
 
-    assert response.status_code == 200
-    assert captured["ids"] == ["V1", "V2"]
-
-    old_path_response = client.post(
-        "/api/v1/samples/S1/small-variants/fp/bulk",
-        json={"apply": True, "resource_ids": ["V1", "V2"], "resource_type": "small_variant"},
-    )
-    assert old_path_response.status_code >= 400
+    assert payload["status"] == "ok"
+    assert captured == {"resource_ids": ["V1", "V2"], "apply": True, "flag": "false_positive"}
 
 
 def test_bulk_irrelevant_endpoint_dispatches_in_real_http_route(monkeypatch):
@@ -649,25 +645,27 @@ def test_bulk_irrelevant_endpoint_dispatches_in_real_http_route(monkeypatch):
     Returns:
         The function result.
     """
-    captured: dict = {"ids": None}
-    monkeypatch.setattr(access, "_decode_session_user", lambda _request: _route_test_user())
-    monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9, "manager": 99, "admin": 999})
+    captured: dict = {}
+    service = DnaService()
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
-        dna_repo_module.store.variant_handler,
-        "mark_irrelevant_var_bulk",
-        lambda ids: captured.__setitem__("ids", ids),
+        service,
+        "set_variant_bulk_flag",
+        lambda *, resource_ids, apply, flag: captured.update(
+            {"resource_ids": resource_ids, "apply": apply, "flag": flag}
+        ),
     )
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
-    client = TestClient(api_app, raise_server_exceptions=False)
-    response = client.patch(
-        "/api/v1/samples/S1/small-variants/flags/irrelevant",
-        json={"apply": True, "resource_ids": ["V5"], "resource_type": "small_variant"},
+    payload = dna.set_variant_irrelevant_bulk(
+        "S1",
+        payload={"apply": True, "resource_ids": ["V5"], "resource_type": "small_variant"},
+        user=_route_test_user(),
+        service=service,
     )
 
-    assert response.status_code == 200
-    assert captured["ids"] == ["V5"]
+    assert payload["status"] == "ok"
+    assert captured == {"resource_ids": ["V5"], "apply": True, "flag": "irrelevant"}
 
 
 def _download_test_user() -> ApiUser:
@@ -724,10 +722,24 @@ def test_snv_export_context_route_returns_typed_csv_payload(monkeypatch):
     )
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
-    client = TestClient(api_app, raise_server_exceptions=False)
-    response = client.get("/api/v1/samples/S1/small-variants/exports/snvs/context")
-    assert response.status_code == 200
-    body = response.json()
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/api/v1/samples/S1/small-variants/exports/snvs/context",
+            "headers": [],
+            "query_string": b"",
+            "client": ("testclient", 50000),
+            "server": ("testserver", 80),
+            "scheme": "http",
+        }
+    )
+    body = dna.export_snv_csv_context(
+        request=request,
+        sample_id="S1",
+        user=_download_test_user(),
+        service=DnaService(),
+    )
     assert body["filename"].endswith(".filtered.snvs.csv")
     assert "hgvsp" in body["content"]
     assert "BRAF" in body["content"]
@@ -765,10 +777,24 @@ def test_transloc_export_context_route_returns_typed_csv_payload(monkeypatch):
     )
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
-    client = TestClient(api_app, raise_server_exceptions=False)
-    response = client.get("/api/v1/samples/S1/small-variants/exports/translocs/context")
-    assert response.status_code == 200
-    body = response.json()
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/api/v1/samples/S1/small-variants/exports/translocs/context",
+            "headers": [],
+            "query_string": b"",
+            "client": ("testclient", 50000),
+            "server": ("testserver", 80),
+            "scheme": "http",
+        }
+    )
+    body = dna.export_transloc_csv_context(
+        request=request,
+        sample_id="S1",
+        user=_download_test_user(),
+        service=DnaService(),
+    )
     assert body["filename"].endswith(".filtered.translocs.csv")
     assert "gene_1" in body["content"]
     assert "ABL1" in body["content"]

@@ -30,7 +30,7 @@ def prepare_report_output(report_path: str, report_file: str, logger=None) -> No
     os.makedirs(report_path, exist_ok=True)
     if os.path.exists(report_file):
         if logger is not None:
-            logger.warning(f"Report file already exists: {report_file}")
+            logger.warning("Report file already exists: %s", report_file)
         raise AppError(
             status_code=409,
             message="Report already exists with the requested name.",

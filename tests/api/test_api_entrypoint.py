@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
-
 from api.main import app
 
 
@@ -13,9 +11,15 @@ def test_canonical_api_entrypoint_serves_health():
     Returns:
         The function result.
     """
-    client = TestClient(app)
+    route = next(
+        (
+            entry
+            for entry in app.router.routes
+            if getattr(entry, "path", "") == "/api/v1/health"
+            and "GET" in getattr(entry, "methods", set())
+        ),
+        None,
+    )
 
-    response = client.get("/api/v1/health")
-
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert route is not None
+    assert route.endpoint() == {"status": "ok"}

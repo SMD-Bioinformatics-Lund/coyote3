@@ -229,7 +229,6 @@ async def _save_upload(upload: UploadFile, destination: Path) -> None:
             if not chunk:
                 break
             handle.write(chunk)
-    await upload.close()
 
 
 @router.post(
@@ -257,21 +256,17 @@ async def ingest_sample_bundle_upload_internal(
     try:
         _enforce_sample_ingest_permission(user)
         yaml_bytes = await yaml_file.read()
-        await yaml_file.close()
         yaml_content = yaml_bytes.decode("utf-8")
         source_payload = InternalIngestService.parse_yaml_payload(yaml_content)
 
         for upload in data_files:
             if not upload.filename:
-                await upload.close()
                 continue
             original_name = str(upload.filename).strip()
             if not original_name:
-                await upload.close()
                 continue
             base_name = Path(original_name).name
             if not base_name:
-                await upload.close()
                 continue
 
             destination = staging_dir / base_name
