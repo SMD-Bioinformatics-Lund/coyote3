@@ -6,19 +6,17 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 6
     groups:
-      # Group all patch/minor updates for production deps together
-      prod-minor:
+      # Conservative default: batch only patch updates.
+      # Minor/major updates stay ungrouped so they can be reviewed individually.
+      prod-patch:
         dependency-type: "production"
         update-types:
-          - "minor"
           - "patch"
-      # Keep dev deps in a separate group
-      dev-deps:
+      dev-patch:
         dependency-type: "development"
         update-types:
-          - "minor"
           - "patch"
 
   # Keep GitHub Actions up-to-date
