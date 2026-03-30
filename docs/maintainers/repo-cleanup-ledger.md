@@ -7,7 +7,7 @@ what was consolidated, and what is intentionally kept.
 
 - Retired duplicate operations pages:
   - `center-onboarding-pack.md`
-  - `first-day-runbook.md`
+  - `first-day-guide.md`
 - Consolidated operational command flows into:
   - [Operations / Maintenance And Quality](../operations/maintenance-and-quality.md)
   - [Operations / Initial Deployment Checklist](../operations/initial-deployment-checklist.md)

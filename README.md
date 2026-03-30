@@ -1,69 +1,71 @@
-# Coyote3 – Genomic Variant Interpretation and Reporting Platform
+# Coyote3
 
-### Core Stack
+Coyote3 is a clinical genomics platform for interpretation, triage, and reporting of DNA and RNA findings in a governed diagnostic workflow.
 
+![Quality](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml/badge.svg)
+![PR Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/pr-format-tests.yml/badge.svg)
+![Center Onboarding Check](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/center-onboarding-check.yml/badge.svg)
 ![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-UI-000000?logo=flask&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-Database-47A248?logo=mongodb&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
+![Flask](https://img.shields.io/badge/Web-Flask-000000?logo=flask&logoColor=white)
+![MongoDB](https://img.shields.io/badge/Database-MongoDB-47A248?logo=mongodb&logoColor=white)
+![Redis](https://img.shields.io/badge/Cache-Redis-DC382D?logo=redis&logoColor=white)
+![Docker Compose](https://img.shields.io/badge/Deploy-Docker%20Compose-2496ED?logo=docker&logoColor=white)
+![License: Proprietary](https://img.shields.io/badge/License-Proprietary-8B0000)
 
-### Domain and Governance
+## What It Is
 
-![Clinical Genomics](https://img.shields.io/badge/Domain-Clinical%20Genomics-6A5ACD)
-![DNA Support](https://img.shields.io/badge/DNA-Supported-1E90FF)
-![RNA Support](https://img.shields.io/badge/RNA-Supported-20B2AA)
-![RBAC](https://img.shields.io/badge/Security-RBAC-darkgreen)
-![Audit Logging](https://img.shields.io/badge/Audit-Enabled-2E8B57)
-![License: Proprietary](https://img.shields.io/badge/License-Proprietary-8B0000?style=flat&logo=shield&logoColor=white)
+Coyote3 is split into two runtime applications:
 
-Coyote3 is a secure, schema-driven platform for clinical genomics workflows:
+- `api/` FastAPI backend for business logic, contracts, security, and persistence operations
+- `coyote/` Flask web application for user workflows and management UI, consuming API endpoints
 
-- `api/` (FastAPI): business logic, contracts, security, persistence
-- `coyote/` (Flask): server-rendered UI that consumes API endpoints
+It is designed for controlled molecular diagnostics workflows where traceability, policy-driven behavior, and role-based access are required.
 
-It supports variant interpretation, collaborative annotation, reporting, and governed access for molecular diagnostics workflows.
+## Who Can Use It
 
-## Who Built Coyote3
-
-Coyote3 is developed and maintained by the bioinformatics team at the **Section for Molecular Diagnostics (SMD), Lund**, in collaboration with clinical users.
+- Molecular diagnostics and clinical genomics teams
+- Bioinformatics teams operating interpretation/reporting pipelines
+- Clinical lab operations teams managing assays, configurations, and governed user access
+- Developers and maintainers extending domain logic, API contracts, and operations tooling
 
 ## Core Capabilities
 
-- DNA/RNA variant interpretation workflows
-- assay and gene-list driven filtering
-- report preview/save/version workflows
-- role and permission management with deny overrides
-- structured audit logging and operational traceability
+- DNA and RNA workflow support in one platform
+- Assay and gene-list driven interpretation configuration
+- Variant and structural finding review flows (SNV, CNV, translocation, fusion)
+- Report preview, save, and governed update flows
+- Internal ingestion APIs with contract-backed validation (Pydantic)
+- Role and permission management with explicit policy boundaries
+- Audit-aware operations and deployment checks
+
+## Who Developed It
+
+Coyote3 is developed and maintained by the bioinformatics team at the **Section for Molecular Diagnostics (SMD), Lund**, in collaboration with clinical users and platform maintainers.
+
+## Project Structure
+
+- `api/` backend services, contracts, routers, repositories, and security
+- `coyote/` Flask UI blueprints, templates, and web-side API client
+- `deploy/` Docker Compose stacks and deployment assets
+- `scripts/` bootstrap, ingest, validation, and operations scripts
+- `docs/` full project, architecture, API, operations, and testing documentation
+- `tests/` unit, API, integration, and UI boundary tests
 
 ## Quick Start
 
-1. Create environment files:
+1. Create environment files from templates:
 
 ```bash
-cp example.env .coyote3_env
-cp example.env .coyote3_dev_env
-cp example.stage.env .coyote3_stage_env
+cp deploy/env/example.prod.env .coyote3_env
+cp deploy/env/example.dev.env .coyote3_dev_env
+cp deploy/env/example.stage.env .coyote3_stage_env
+cp deploy/env/example.test.env .coyote3_test_env
 ```
 
-2. Set build metadata (recommended for traceability):
+2. Set real secret values in the env files (`SECRET_KEY`, `COYOTE3_FERNET_KEY`, `INTERNAL_API_TOKEN`, Mongo credentials).
 
-```bash
-export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
-export GIT_COMMIT="$(git rev-parse --short HEAD)"
-export BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-```
-
-3. Start production-style stack:
-
-```bash
-./scripts/compose-with-version.sh \
-  --env-file .coyote3_env \
-  -f deploy/compose/docker-compose.yml \
-  up -d --build
-```
-
-4. Start development stack:
+3. Start development stack:
 
 ```bash
 ./scripts/compose-with-version.sh \
@@ -72,77 +74,38 @@ export BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   up -d --build
 ```
 
-5. Verify API health:
+4. Verify API health:
 
 ```bash
-curl -f http://localhost:${COYOTE3_API_PORT:-5816}/api/v1/health
+curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_DEV_API_PORT:-6802}/api/v1/health"
 ```
 
-## DB Migration and Snapshot Commands
-
-Run identity migration after importing/restoring data:
+5. For first-time center setup, use:
 
 ```bash
-/home/ram/.virtualenvs/coyote3/bin/python scripts/migrate_db_identity.py \
-  --mongo-uri mongodb://localhost:37017 \
-  --db coyote3_dev
+scripts/center_first_run.sh --help
 ```
-
-Create a mixed-assay snapshot:
-
-```bash
-/home/ram/.virtualenvs/coyote3/bin/python scripts/create_mongo_snapshot.py \
-  --mongo-uri mongodb://localhost:37017 \
-  --db coyote3_dev \
-  --sample-count 60
-```
-
-Restore snapshot into dev:
-
-```bash
-scripts/snapshot_restore_dev.sh \
-  --source-uri mongodb://localhost:5818 \
-  --source-db coyote3 \
-  --target-uri mongodb://localhost:37017 \
-  --target-db coyote3_dev
-```
-
-## Test and Quality Gates
-
-Run full family coverage gates:
-
-```bash
-PYTHON_BIN=/home/ram/.virtualenvs/coyote3/bin/python bash scripts/run_family_coverage_gates.sh
-```
-
-Run full suite with coverage:
-
-```bash
-PYTHON_BIN=/home/ram/.virtualenvs/coyote3/bin/python bash scripts/run_tests_with_coverage.sh
-```
-
-## Runtime Configuration Summary
-
-- Required DB connection: `MONGO_URI`
-- Build trace tags: `COYOTE3_VERSION`, `GIT_COMMIT`, `BUILD_TIME`
-- Host ports are environment-driven (`COYOTE3_*` and `COYOTE3_DEV_*` keys)
-- Use separate env files and secrets for dev/staging/prod
 
 ## Documentation
 
-Primary docs:
+- Start here: [Quickstart](docs/start-here/quickstart.md)
+- Configuration model: [Configuration](docs/start-here/configuration.md)
+- Architecture: [System Overview](docs/architecture/system-overview.md)
+- API ingestion and contracts:
+  - [Ingestion API](docs/api/ingestion-api.md)
+  - [Collection Contracts](docs/api/collection-contracts.md)
+- Operations:
+  - [Center Deployment Guide](docs/operations/center-deployment-guide.md)
+  - [Deployment Guide](docs/operations/deployment-guide.md)
+  - [Initial Deployment Checklist](docs/operations/initial-deployment-checklist.md)
+- Testing and quality: [Testing And Quality](docs/testing/testing-and-quality.md)
 
-- [Architecture Overview](docs/ARCHITECTURE_OVERVIEW.md)
-- [Developer Guide](docs/development/developer-guide.md)
-- [Testing Guide](docs/testing/TESTING_GUIDE.md)
-- [Dev to Staging to Prod Flow](docs/deployment/dev-staging-prod-flow.md)
-- [Operations Manual](docs/deployment/operations.md)
+## Security and Compliance Notes
+
+- Production deployment expects explicit secrets and controlled environment files.
+- Internal ingest and management operations are protected by role/permission checks.
+- Data operations are validated against typed contracts before persistence.
 
 ## License
 
 Proprietary. See [LICENSE.txt](LICENSE.txt).
-
-## Legal Notice
-
-Copyright (c) 2026 Coyote3 Project Authors and Section for Molecular Diagnostics (SMD), Lund.
-All rights reserved.

@@ -10,7 +10,7 @@ For a concise command-only version without repeated context blocks, see:
 - Bring up stack
 - Validate environment and secrets
 - Validate ingest payloads
-- Execute smoke ingest
+- Execute ingest check
 - Confirm UI/API behavior
 - Capture handoff evidence
 
@@ -220,7 +220,7 @@ ${PYTHON_BIN:-python} scripts/validate_ingest_spec.py \
 ```
 
 ```bash
-scripts/center_smoke.sh \
+scripts/center_check.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
@@ -229,12 +229,12 @@ scripts/center_smoke.sh \
 
 Notes:
 
-- `center_smoke.sh` sets `increment=true` in the submitted YAML payload to avoid duplicate-sample failures on reruns.
+- `center_check.sh` sets `increment=true` in the submitted YAML payload to avoid duplicate-sample failures on reruns.
 - On local Docker deployments (`localhost` API), the script auto-stages ingest input files into the API container when needed.
 - In general, ingest file paths in YAML must be readable from inside the API runtime (container/host where API runs), not only from your shell machine.
 
 If you are upgrading an older deployment,
-run one-time repair before smoke:
+run one-time repair before ingest check:
 
 ```bash
 ${PYTHON_BIN:-python} scripts/repair_center_seed_baseline.py \
@@ -281,7 +281,7 @@ Record and store:
 - Compose file used
 - `docker compose ps` output
 - Health check output
-- Smoke ingest result and seeded-collection order execution record
+- Ingest check result and seeded-collection order execution record
 - Known follow-up items
 
 ## 9. Rollback and cleanup

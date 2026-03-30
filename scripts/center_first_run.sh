@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
   cat <<'USAGE'
 Run first-time center bootstrap end-to-end:
-preflight -> compose up -> admin bootstrap -> baseline seed -> ingest smoke.
+preflight -> compose up -> admin bootstrap -> baseline seed -> ingest check.
 
 Usage:
   scripts/center_first_run.sh \
@@ -281,9 +281,9 @@ seed_baseline_collections() {
   bash scripts/bootstrap_center_collections.sh "${seed_args[@]}"
 }
 
-run_smoke_ingest() {
-  echo "[step] ingest smoke"
-  bash scripts/center_smoke.sh \
+run_ingest_check() {
+  echo "[step] ingest check"
+  bash scripts/center_check.sh \
     --api-base-url "$API_BASE_URL" \
     --username "$ADMIN_EMAIL" \
     --password "$ADMIN_PASSWORD" \
@@ -305,7 +305,7 @@ main() {
   wait_for_api_health
   bootstrap_local_admin
   seed_baseline_collections
-  run_smoke_ingest
+  run_ingest_check
 
   echo "[ok] first-time center bootstrap completed"
 }

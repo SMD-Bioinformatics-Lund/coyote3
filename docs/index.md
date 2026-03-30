@@ -21,7 +21,7 @@ This documentation is organized as a practical flow chain:
 
 - **Clinical users / operators**: Product, UI, and workflow guides
 - **Developers**: Local setup, architecture, API, testing
-- **DevOps / maintainers**: Environment model, deployment runbooks, backups, release flow
+- **DevOps / maintainers**: Environment model, deployment guides, backups, release flow
 
 ## Fast links
 
@@ -37,11 +37,11 @@ This documentation is organized as a practical flow chain:
 - Collection operations and permissions: [API / Collection Operations And Permissions](api/collection-operations-and-permissions.md)
 - Center deployment: [Operations / Center Deployment Guide](operations/center-deployment-guide.md)
 - First-day bootstrap checklist (canonical): [Operations / Initial Deployment Checklist](operations/initial-deployment-checklist.md)
-- Deployment cycle: [Operations / Deployment Runbook](operations/deployment-runbook.md)
+- Deployment cycle: [Operations / Deployment Guide](operations/deployment-guide.md)
 - Auth/mail observability SLOs: [Operations / Observability SLOs And Alerts](operations/observability-slos-and-alerts.md)
 - Testing and quality gates: [Testing / Testing And Quality](testing/testing-and-quality.md)
 - Auth ADRs: [Architecture / ADR-0001 Auth Provider Resolution](architecture/adr-0001-auth-provider-resolution.md)
-- Developer task reference: [Engineering / Developer Task Reference](maintainers/developer-cookbook.md)
+- Developer guide: [Engineering / Developer Guide](maintainers/developer-guide.md)
 
 ## Runtime topology
 

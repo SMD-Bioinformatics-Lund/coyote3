@@ -107,4 +107,4 @@ Collection validation is enforced by Pydantic contracts in `api/contracts/schema
 5. Update docs generated from contracts (`scripts/export_collection_contracts_doc.py`) and relevant developer/product pages.
 6. Add/update tests in `tests/unit/test_db_documents.py` and admin-service tests.
 7. Run `bash scripts/check_contract_integrity.sh` before merge.
-7. For breaking key changes, add migration script and runbook entry.
+7. For breaking key changes, add migration script and guide entry.

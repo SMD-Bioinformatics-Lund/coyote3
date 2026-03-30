@@ -32,7 +32,7 @@ This is the minimum baseline for a production-grade Coyote3 deployment.
 ## Release safety
 
 - Run preflight and compose render before deploy
-- Run smoke tests after deploy
+- Run quick checks after deploy
 - Keep rollback path to previous image/version
 - Keep standalone docs endpoint available for troubleshooting during app outages
 

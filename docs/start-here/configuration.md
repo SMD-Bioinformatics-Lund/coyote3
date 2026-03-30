@@ -186,5 +186,5 @@ bash scripts/validate_env_secrets.sh .coyote3_stage_env
 bash scripts/validate_env_secrets.sh .coyote3_dev_env
 ```
 
-For end-to-end operational checks (contract integrity, seed validation, first-run bootstrap, and smoke commands), see:
+For end-to-end operational checks (contract integrity, seed validation, first-run bootstrap, and verification commands), see:
 [Operations / Maintenance And Quality](../operations/maintenance-and-quality.md).

@@ -81,7 +81,7 @@ Notes:
 Operational references:
 
 - Full first-day procedure: [Operations / Initial Deployment Checklist](../operations/initial-deployment-checklist.md)
-- Day-2 deployment/upgrade flow: [Operations / Deployment Runbook](../operations/deployment-runbook.md)
+- Day-2 deployment/upgrade flow: [Operations / Deployment Guide](../operations/deployment-guide.md)
 - Compact quality/ops command set: [Operations / Maintenance And Quality](../operations/maintenance-and-quality.md)
 
 Optional local mongo profile for prod compose:

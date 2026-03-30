@@ -1,7 +1,7 @@
 # Maintenance And Quality
 
 Use this page as the single operational checklist for code quality, seed integrity,
-bootstrap validation, and environment smoke checks.
+bootstrap validation, and environment verification checks.
 
 Scope note:
 
@@ -73,12 +73,12 @@ Notes:
 - demo assay group is `hematology`
 - ISGL demo collection is optional and requires `--with-optional`
 
-## Smoke Verification
+## Verification Checks
 
-Run ingest smoke after bootstrap:
+Run ingest check after bootstrap:
 
 ```bash
-bash scripts/center_smoke.sh \
+bash scripts/center_check.sh \
   --api-base-url "http://localhost:8806" \
   --username "admin@coyote3.local" \
   --password "CHANGE_ME" \

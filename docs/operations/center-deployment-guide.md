@@ -23,7 +23,7 @@ That checklist is the single source of truth for:
 - exact commands and command order
 - required collection order
 - seed-source policy (`--seed-file` and `--reference-seed-data`)
-- smoke ingest and verification steps
+- ingest verification steps
 - rollback and handoff
 
 ## Required Baseline Collections
@@ -84,5 +84,5 @@ ASPC contract rule for first-load data:
 ## Related References
 
 - [API / Ingestion API](../api/ingestion-api.md)
-- [Operations / Deployment Runbook](deployment-runbook.md)
+- [Operations / Deployment Guide](deployment-guide.md)
 - [Operations / Minimum Production Baseline](minimum-production-baseline.md)

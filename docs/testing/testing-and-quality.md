@@ -53,11 +53,11 @@ Quality workflow should execute:
 1. lint (`ruff`, `black`)
 2. targeted test suites
 3. coverage gates
-4. contract/boundary smoke checks
+4. contract/boundary quick checks
 5. compose config validation
-6. API concurrency/latency smoke (`tests/api/test_api_latency_concurrency.py`)
+6. API concurrency/latency quick check (`tests/api/test_api_latency_concurrency.py`)
 
-## API latency and concurrency smoke
+## API latency and concurrency quick check
 
 `tests/api/test_api_latency_concurrency.py` validates:
 

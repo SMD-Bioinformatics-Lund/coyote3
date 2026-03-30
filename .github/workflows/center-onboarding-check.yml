@@ -1,10 +1,10 @@
-name: center-onboarding-smoke
+name: center-onboarding-check
 
 on:
   workflow_dispatch:
 
 jobs:
-  onboarding-smoke:
+  onboarding-check:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
@@ -100,9 +100,9 @@ jobs:
             --with-optional \
             --skip-existing
 
-      - name: End-to-end ingest smoke
+      - name: End-to-end ingest check
         run: |
-          scripts/center_smoke.sh \
+          scripts/center_check.sh \
             --api-base-url "http://localhost:${COYOTE3_STAGE_API_PORT}" \
             --username "${ADMIN_EMAIL}" \
             --password "${ADMIN_PASSWORD}" \

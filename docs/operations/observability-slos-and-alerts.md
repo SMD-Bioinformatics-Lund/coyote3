@@ -65,7 +65,7 @@ sum(rate({container="coyote3_api"} |= "mail_metric" |= "metric=send_result" |= "
 sum(rate({container="coyote3_api"} |= "mail_metric" |= "metric=send_result"[15m]))
 ```
 
-## Operational runbook ties
+## Operational guide links
 
 When an alert fires:
 

@@ -68,4 +68,4 @@ Checks:
 
 ## Use the operations guide when needed
 
-For production incidents and runbook-level actions, also review [Operations / Troubleshooting](../operations/troubleshooting.md).
+For production incidents and operations-level actions, also review [Operations / Troubleshooting](../operations/troubleshooting.md).

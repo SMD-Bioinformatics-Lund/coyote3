@@ -100,7 +100,7 @@ jobs:
       - name: Web boundary tests
         run: PYTHONPATH=. pytest -q -m web tests/ui/test_web_api_boundary.py
 
-      - name: API smoke tests
+      - name: API quick checks
         run: PYTHONPATH=. pytest -q -m api tests/api/routers/test_system_routes.py tests/api/routers/test_reports_routes.py tests/api/test_api_latency_concurrency.py
 
       - name: Contract tests
@@ -115,7 +115,7 @@ jobs:
       - name: Web/API route contract guardrail
         run: PYTHONPATH=. pytest -q tests/integration/test_web_api_route_contract.py
 
-      - name: Compose config smoke
+      - name: Compose config check
         run: |
           cat > .coyote3_env <<EOF
           MONGO_URI=${MONGO_URI}
@@ -183,7 +183,7 @@ jobs:
           python -m pip install -r requirements-docs.txt
           mkdocs build --strict
 
-      - name: Snapshot tooling smoke
+      - name: Snapshot tooling check
         run: |
           python scripts/create_mongo_snapshot.py --help > /dev/null
           bash scripts/snapshot_restore_dev.sh --help > /dev/null

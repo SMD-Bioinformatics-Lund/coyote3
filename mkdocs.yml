@@ -62,11 +62,11 @@ nav:
       - Minimum Production Baseline: operations/minimum-production-baseline.md
       - Observability SLOs And Alerts: operations/observability-slos-and-alerts.md
       - Initial Deployment Checklist: operations/initial-deployment-checklist.md
-      - Deployment Runbook: operations/deployment-runbook.md
+      - Deployment Guide: operations/deployment-guide.md
       - Backup Restore And Snapshots: operations/backup-restore-and-snapshots.md
       - Troubleshooting: operations/troubleshooting.md
   - Engineering:
-      - Maintainer Guide: maintainers/maintainer-playbook.md
+      - Maintainer Guide: maintainers/maintainer-guide.md
       - Refactor Guidelines: maintainers/refactor-guidelines.md
       - Repo Cleanup Ledger: maintainers/repo-cleanup-ledger.md
-      - Developer Task Reference: maintainers/developer-cookbook.md
+      - Developer Guide: maintainers/developer-guide.md

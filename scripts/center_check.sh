@@ -3,17 +3,17 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Run an end-to-end center smoke check against a running Coyote3 API.
+Run an end-to-end center check against a running Coyote3 API.
 
 Usage:
-  scripts/center_smoke.sh \
+  scripts/center_check.sh \
     --api-base-url <url> \
     (--bearer-token <token> | --username <user> --password <pass>) \
     --yaml-file <path> \
     [--skip-file-check]
 
 Example:
-  scripts/center_smoke.sh \
+  scripts/center_check.sh \
     --api-base-url http://localhost:6816 \
     --username "admin@your-center.org" \
     --password "CHANGE_ME" \

@@ -1,15 +1,15 @@
-# Deployment Runbook
+# Deployment Guide
 
 ## Scope
 
 - First-time center bootstrap: use [Center Deployment Guide](center-deployment-guide.md)
-- Day-2+ deployments and upgrades: use this runbook
+- Day-2+ deployments and upgrades: use this guide
 
 Canonical boundaries:
 
 - First-day onboarding/bootstrap command sequence lives in
   [Initial Deployment Checklist](initial-deployment-checklist.md).
-- This runbook is intentionally for repeatable deployments after bootstrap is complete.
+- This guide is intentionally for repeatable deployments after bootstrap is complete.
 
 ## Release metadata
 
@@ -64,7 +64,7 @@ Docs/help checks (standalone docs container):
 
 ```bash
 curl -f "${HELP_CENTER_URL:-http://localhost:5821/}"
-curl -f "${HELP_CENTER_URL:-http://localhost:5821/}operations/deployment-runbook/"
+curl -f "${HELP_CENTER_URL:-http://localhost:5821/}operations/deployment-guide/"
 ```
 
 Cache/runtime checks:
@@ -97,7 +97,7 @@ Expected:
 
 - `expireAfterSeconds` equals `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS`.
 
-Smoke tests:
+Quick checks:
 
 ```bash
 PYTHONPATH=. python -m pytest -q -m api tests/api/routers/test_system_routes.py tests/api/routers/test_reports_routes.py
@@ -125,7 +125,7 @@ docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.st
   up -d --build
 ```
 
-5. Run post-deploy health + API smoke checks.
+5. Run post-deploy health + API quick checks.
 6. If ingest contract/schema changed, run collection update/seed calls via:
    - `POST /api/v1/internal/ingest/collection`
    - `POST /api/v1/internal/ingest/collection/bulk`
@@ -136,5 +136,5 @@ docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.st
 
 1. bring down target stack
 2. redeploy previous known-good image/tag
-3. verify health and route smoke tests
+3. verify health and route quick checks
 4. restore DB snapshot if data migration caused damage
