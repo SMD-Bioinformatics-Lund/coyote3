@@ -71,6 +71,47 @@
         </button>
       </form>
     </section>
+
+    <section class="bg-white rounded-xl shadow-md p-4">
+      <h2 class="text-lg font-semibold mb-2">Governance And Config Uploads</h2>
+      <p class="text-xs text-gray-600 mb-3">
+        Upload JSON files for users, roles, permissions, ASP/ASPC, and ISGL. API-side Pydantic contracts validate every document before DB writes.
+      </p>
+      <form method="post" action="{{ url_for('admin_bp.ingest_collection_upload') }}" enctype="multipart/form-data" class="space-y-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold mb-1">Collection</label>
+            <select name="collection" required class="w-full text-xs border rounded p-2">
+              <option value="users">users</option>
+              <option value="roles">roles</option>
+              <option value="permissions">permissions</option>
+              <option value="asp_configs">asp_configs</option>
+              <option value="assay_specific_panels">assay_specific_panels</option>
+              <option value="insilico_genelists">insilico_genelists</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">Mode</label>
+            <select name="mode" class="w-full text-xs border rounded p-2">
+              <option value="insert">Insert One</option>
+              <option value="bulk">Bulk Insert</option>
+              <option value="upsert">Update Or Upsert</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1">Match JSON (required for Update Or Upsert mode)</label>
+          <textarea name="match_json" rows="4" class="w-full text-xs border rounded p-2 font-mono" placeholder='{"_id":"example-id"}'></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1">Documents File (JSON)</label>
+          <input type="file" name="documents_file" accept=".json,application/json,text/plain" required class="w-full text-xs border rounded p-2">
+        </div>
+        <button type="submit" class="px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700">
+          Upload And Validate
+        </button>
+      </form>
+    </section>
   </main>
 </div>
 {% endblock %}

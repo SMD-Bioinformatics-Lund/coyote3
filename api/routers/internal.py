@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import tempfile
@@ -15,6 +16,7 @@ from api.contracts.internal import (
     InternalCollectionInsertPayload,
     InternalCollectionInsertRequest,
     InternalCollectionSupportPayload,
+    InternalCollectionUploadPayload,
     InternalCollectionUpsertPayload,
     InternalCollectionUpsertRequest,
     InternalIngestDependentsPayload,
@@ -415,6 +417,90 @@ def upsert_collection_document_internal(
         )
         return util.common.convert_to_serializable(result)
     except (ValueError, ValidationError) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.post(
+    "/api/v1/internal/ingest/collection/upload",
+    response_model=InternalCollectionUploadPayload,
+)
+async def ingest_collection_upload_internal(
+    collection: str = Form(...),
+    mode: str = Form("insert"),
+    documents_file: UploadFile = File(...),
+    match_json: str | None = Form(default=None),
+    user: ApiUser = Depends(require_access(min_role="developer", min_level=9999)),
+):
+    """Validate and ingest collection documents from uploaded JSON payload."""
+    raw_collection = str(collection or "").strip()
+    normalized_mode = str(mode or "insert").strip().lower()
+    if normalized_mode not in {"insert", "bulk", "upsert"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="mode must be one of: insert, bulk, upsert",
+        )
+    if not documents_file.filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="documents_file must include a filename",
+        )
+
+    try:
+        bytes_payload = await documents_file.read()
+        parsed = json.loads(bytes_payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid JSON upload: {exc}",
+        ) from exc
+    finally:
+        try:
+            await documents_file.close()
+        except Exception:
+            pass
+
+    try:
+        if normalized_mode == "bulk":
+            if not isinstance(parsed, list):
+                raise ValueError("Bulk mode requires an uploaded JSON array.")
+            _enforce_collection_permission(user=user, collection=raw_collection, action="create")
+            result = InternalIngestService.insert_collection_documents(
+                collection=raw_collection,
+                documents=parsed,
+                ignore_duplicates=True,
+            )
+            result["mode"] = normalized_mode
+            return util.common.convert_to_serializable(result)
+
+        if normalized_mode == "upsert":
+            if not isinstance(parsed, dict):
+                raise ValueError("Upsert mode requires an uploaded JSON object.")
+            if not match_json:
+                raise ValueError("Upsert mode requires match_json form field.")
+            parsed_match = json.loads(match_json)
+            if not isinstance(parsed_match, dict) or not parsed_match:
+                raise ValueError("match_json must be a non-empty JSON object.")
+            _enforce_collection_permission(user=user, collection=raw_collection, action="update")
+            result = InternalIngestService.upsert_collection_document(
+                collection=raw_collection,
+                match=parsed_match,
+                document=parsed,
+                upsert=True,
+            )
+            result["mode"] = normalized_mode
+            return util.common.convert_to_serializable(result)
+
+        if not isinstance(parsed, dict):
+            raise ValueError("Insert mode requires an uploaded JSON object.")
+        _enforce_collection_permission(user=user, collection=raw_collection, action="create")
+        result = InternalIngestService.insert_collection_document(
+            collection=raw_collection,
+            document=parsed,
+            ignore_duplicate=True,
+        )
+        result["mode"] = normalized_mode
+        return util.common.convert_to_serializable(result)
+    except (ValueError, ValidationError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 

@@ -35,6 +35,16 @@ def _require_ingest_operator() -> None:
         abort(403)
 
 
+_UPLOAD_COLLECTIONS: tuple[str, ...] = (
+    "users",
+    "roles",
+    "permissions",
+    "asp_configs",
+    "assay_specific_panels",
+    "insilico_genelists",
+)
+
+
 @admin_bp.route("/ingest", methods=["GET"])
 @login_required
 def ingest_workspace() -> str | Response:
@@ -203,4 +213,72 @@ def ingest_collection_document() -> Response:
             )
     except ApiRequestError as exc:
         flash_api_failure("Collection ingest operation failed.", exc)
+    return redirect(url_for("admin_bp.ingest_workspace"))
+
+
+@admin_bp.route("/ingest/collection/upload", methods=["POST"])
+@login_required
+def ingest_collection_upload() -> Response:
+    """Insert or update validated collection documents via uploaded JSON files."""
+    _require_ingest_operator()
+    collection = str(request.form.get("collection", "")).strip()
+    mode = str(request.form.get("mode", "insert")).strip().lower()
+    match_blob = (request.form.get("match_json") or "").strip()
+    upload = request.files.get("documents_file")
+
+    if collection not in _UPLOAD_COLLECTIONS:
+        flash_api_failure(
+            "Unsupported upload collection.",
+            ApiRequestError(
+                f"Use one of: {', '.join(_UPLOAD_COLLECTIONS)}",
+            ),
+        )
+        return redirect(url_for("admin_bp.ingest_workspace"))
+    if mode not in {"insert", "bulk", "upsert"}:
+        flash_api_failure("Unsupported upload mode.", ApiRequestError("Invalid mode."))
+        return redirect(url_for("admin_bp.ingest_workspace"))
+    if upload is None or not upload.filename:
+        flash_api_failure("JSON upload file is required.", ApiRequestError("missing file"))
+        return redirect(url_for("admin_bp.ingest_workspace"))
+
+    files = [
+        (
+            "documents_file",
+            (
+                str(upload.filename),
+                upload.stream,
+                upload.mimetype or "application/json",
+            ),
+        )
+    ]
+    data = {"collection": collection, "mode": mode}
+    if mode == "upsert":
+        if not match_blob:
+            flash_api_failure(
+                "Upsert mode requires Match JSON.",
+                ApiRequestError("missing match_json"),
+            )
+            return redirect(url_for("admin_bp.ingest_workspace"))
+        data["match_json"] = match_blob
+
+    try:
+        payload = get_web_api_client().post_multipart(
+            api_endpoints.internal("ingest", "collection", "upload"),
+            headers=forward_headers(),
+            data=data,
+            files=files,
+        )
+        if mode == "upsert":
+            flash_api_success(
+                "Upload upsert complete for "
+                f"{collection}. matched={payload.get('matched_count', 0)} "
+                f"modified={payload.get('modified_count', 0)}"
+            )
+        else:
+            flash_api_success(
+                f"Upload ingest complete for {collection}. "
+                f"Inserted: {payload.get('inserted_count', 0)}"
+            )
+    except ApiRequestError as exc:
+        flash_api_failure("Collection upload ingest failed.", exc)
     return redirect(url_for("admin_bp.ingest_workspace"))

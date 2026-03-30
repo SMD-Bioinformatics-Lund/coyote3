@@ -164,3 +164,16 @@ class InternalCollectionSupportPayload(BaseModel):
 
     status: str
     collections: list[str]
+
+
+class InternalCollectionUploadPayload(BaseModel):
+    """Represent multipart collection-upload ingest response payload."""
+
+    status: str
+    collection: str
+    mode: str
+    inserted_count: int | None = None
+    inserted_id: str | None = None
+    matched_count: int | None = None
+    modified_count: int | None = None
+    upserted_id: str | None = None

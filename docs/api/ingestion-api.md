@@ -19,6 +19,7 @@ persisted, so ingest behavior remains consistent across scripts and API routes.
 - `POST /api/v1/internal/ingest/collection`
 - `POST /api/v1/internal/ingest/collection/bulk`
 - `PUT /api/v1/internal/ingest/collection`
+- `POST /api/v1/internal/ingest/collection/upload`
 - `GET /api/v1/internal/ingest/collections`
 
 ## Route commands (full examples)
@@ -225,6 +226,32 @@ curl -sS -X PUT "${API_BASE_URL}/api/v1/internal/ingest/collection" \
   "upsert": true
 }
 JSON
+```
+
+### 2c) Upload collection JSON file (multipart)
+
+Route:
+
+- `POST /api/v1/internal/ingest/collection/upload`
+
+Notes:
+
+- This route validates uploaded JSON via the same collection Pydantic contracts used by
+  `/collection`, `/collection/bulk`, and `/collection` upsert.
+- For governance/config uploads in admin workflows, supported collections are:
+  `users`, `roles`, `permissions`, `asp_configs`, `assay_specific_panels`, `insilico_genelists`.
+- `mode=insert` expects a JSON object.
+- `mode=bulk` expects a JSON array.
+- `mode=upsert` expects a JSON object plus `match_json` form field.
+
+Command:
+
+```bash
+curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection/upload" \
+  -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
+  -F "collection=users" \
+  -F "mode=insert" \
+  -F "documents_file=@/path/to/users.json;type=application/json"
 ```
 
 ### 3) Ingest fresh sample + analysis bundle (YAML string mode)

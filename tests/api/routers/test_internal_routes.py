@@ -486,3 +486,104 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
         )
     assert exc_info.value.status_code == 400
     assert "Missing files for YAML references" in str(exc_info.value)
+
+
+def test_ingest_collection_upload_internal_insert(monkeypatch):
+    """Multipart collection upload should validate JSON object for insert mode."""
+    monkeypatch.setattr(
+        internal.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
+    monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
+    monkeypatch.setattr(
+        internal.InternalIngestService,
+        "insert_collection_document",
+        lambda *, collection, document, ignore_duplicate=False: {
+            "status": "ok",
+            "collection": collection,
+            "inserted_count": 1,
+            "inserted_id": "seed-1",
+        },
+    )
+    upload = _FakeUpload(
+        filename="users.json",
+        payload=b'{"username":"analyst1","email":"analyst@example.org"}',
+    )
+    response = asyncio.run(
+        internal.ingest_collection_upload_internal(
+            collection="users",
+            mode="insert",
+            documents_file=upload,
+            match_json=None,
+            user=_admin_user(),
+        )
+    )
+    assert response["status"] == "ok"
+    assert response["collection"] == "users"
+    assert response["mode"] == "insert"
+    assert response["inserted_count"] == 1
+
+
+def test_ingest_collection_upload_internal_bulk(monkeypatch):
+    """Multipart collection upload should accept JSON arrays for bulk mode."""
+    monkeypatch.setattr(
+        internal.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
+    monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
+    monkeypatch.setattr(
+        internal.InternalIngestService,
+        "insert_collection_documents",
+        lambda *, collection, documents, ignore_duplicates=False: {
+            "status": "ok",
+            "collection": collection,
+            "inserted_count": len(documents),
+        },
+    )
+    upload = _FakeUpload(
+        filename="roles.json",
+        payload=b'[{"role_id":"viewer","level":10},{"role_id":"analyst","level":20}]',
+    )
+    response = asyncio.run(
+        internal.ingest_collection_upload_internal(
+            collection="roles",
+            mode="bulk",
+            documents_file=upload,
+            match_json=None,
+            user=_admin_user(),
+        )
+    )
+    assert response["status"] == "ok"
+    assert response["collection"] == "roles"
+    assert response["mode"] == "bulk"
+    assert response["inserted_count"] == 2
+
+
+def test_ingest_collection_upload_internal_upsert_requires_match_json(monkeypatch):
+    """Multipart collection upload should enforce match_json in upsert mode."""
+    monkeypatch.setattr(
+        internal.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
+    upload = _FakeUpload(
+        filename="permissions.json",
+        payload=b'{"permission_id":"edit_sample","name":"Edit sample"}',
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            internal.ingest_collection_upload_internal(
+                collection="permissions",
+                mode="upsert",
+                documents_file=upload,
+                match_json=None,
+                user=_admin_user(),
+            )
+        )
+    assert exc_info.value.status_code == 400
+    assert "match_json" in str(exc_info.value)

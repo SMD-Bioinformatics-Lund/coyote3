@@ -78,6 +78,22 @@ curl -sS -X PUT "${API_BASE_URL}/api/v1/internal/ingest/collection" \
 JSON
 ```
 
+Upload JSON file (multipart; insert/bulk/upsert):
+```bash
+curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection/upload" \
+  -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
+  -F "collection=COLLECTION" \
+  -F "mode=insert" \
+  -F "documents_file=@/path/to/document.json;type=application/json"
+```
+
+Multipart mode rules:
+
+- `mode=insert` expects uploaded JSON object.
+- `mode=bulk` expects uploaded JSON array.
+- `mode=upsert` expects uploaded JSON object and `match_json` form field.
+- Payload validation and normalization use the same Pydantic collection contracts as JSON ingest endpoints.
+
 ## Supported Collections
 
 | Collection | Create/Bulk Permission | Update/Upsert Permission |
