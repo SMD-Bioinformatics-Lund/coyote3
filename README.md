@@ -4,9 +4,9 @@ Coyote3 is a secure, schema-driven clinical genomics platform for interpretation
 
 ## Status
 
-[![Quality Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml/badge.svg?branch=codebase_refactor)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml)
-[![PR Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/pr-format-tests.yml/badge.svg?branch=codebase_refactor)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/pr-format-tests.yml)
-[![Center Onboarding Check](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/center-onboarding-check.yml/badge.svg?branch=codebase_refactor)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/center-onboarding-check.yml)
+[![Quality Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml/badge.svg)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml)
+[![PR Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/pr-format-tests.yml/badge.svg?event=pull_request)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/pr-format-tests.yml)
+[![Center Onboarding Check](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/center-onboarding-check.yml/badge.svg?event=workflow_dispatch)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/center-onboarding-check.yml)
 
 ## Platform
 
