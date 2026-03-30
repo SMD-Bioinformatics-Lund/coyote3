@@ -57,7 +57,7 @@ After this, `git commit` is blocked unless pre-commit checks pass.
 
 ## Documentation requirements
 
-For behavior changes, update relevant handbook chapters under `docs/handbook/`:
+For behavior changes, update the relevant chapters under `docs/` (for example `docs/product/`, `docs/developer/`, `docs/architecture/`, `docs/operations/`):
 
 - user-facing chapters for workflow or UI changes
 - developer-facing chapters for architecture, route, or data model changes

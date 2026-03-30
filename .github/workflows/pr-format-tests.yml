@@ -38,7 +38,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
 
       - name: Install shellcheck
         run: |
@@ -67,3 +67,16 @@ jobs:
 
       - name: Contract tests
         run: PYTHONPATH=. pytest -q -m contract tests/integration
+
+      - name: Focused mypy checks (expanded)
+        run: |
+          PYTHONPATH=. mypy --follow-imports=skip --ignore-missing-imports \
+            api/security/auth_service.py \
+            api/security/password_flows.py \
+            api/security/ports.py \
+            api/security/repository.py \
+            api/infra/notifications/email.py \
+            api/services/admin_user_service.py \
+            api/services/permission_management_service.py \
+            api/services/management_common.py \
+            api/routers/registry.py
