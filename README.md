@@ -2,21 +2,29 @@
 
 Coyote3 is a secure, schema-driven clinical genomics platform for interpretation, triage, and reporting of DNA and RNA findings in governed diagnostic workflows.
 
-![Quality](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml/badge.svg)
-![PR Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/pr-format-tests.yml/badge.svg)
-![Center Onboarding Check](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/center-onboarding-check.yml/badge.svg)
+## Status
+
+[![Quality Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml/badge.svg?branch=codebase_refactor)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml)
+[![PR Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/pr-format-tests.yml/badge.svg?branch=codebase_refactor)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/pr-format-tests.yml)
+[![Center Onboarding Check](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/center-onboarding-check.yml/badge.svg?branch=codebase_refactor)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/center-onboarding-check.yml)
+
+## Platform
+
 ![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
 ![Flask](https://img.shields.io/badge/Web-Flask-000000?logo=flask&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/Database-MongoDB-47A248?logo=mongodb&logoColor=white)
 ![Redis](https://img.shields.io/badge/Cache-Redis-DC382D?logo=redis&logoColor=white)
 ![Docker Compose](https://img.shields.io/badge/Deploy-Docker%20Compose-2496ED?logo=docker&logoColor=white)
-![License: Proprietary](https://img.shields.io/badge/License-Proprietary-8B0000)
+
+## Domain and Governance
+
 ![Clinical Genomics](https://img.shields.io/badge/Domain-Clinical%20Genomics-1F6FEB)
 ![DNA Support](https://img.shields.io/badge/DNA-Supported-1E90FF)
 ![RNA Support](https://img.shields.io/badge/RNA-Supported-20B2AA)
 ![RBAC](https://img.shields.io/badge/Security-RBAC-2E8B57)
 ![Audit Logging](https://img.shields.io/badge/Audit-Enabled-2E8B57)
+![License: Proprietary](https://img.shields.io/badge/License-Proprietary-8B0000)
 
 ## What It Is
 
