@@ -2,12 +2,12 @@
 
 ## Scope
 
-- First-time center bootstrap: use [Center Deployment Guide](center-deployment-guide.md)
-- Day-2+ deployments and upgrades: use this guide
+- Initial center setup: use [Center Deployment Guide](center-deployment-guide.md)
+- Regular deployments and upgrades: use this guide
 
 Canonical boundaries:
 
-- First-day onboarding/bootstrap command sequence lives in
+- The initial onboarding/bootstrap command sequence lives in
   [Initial Deployment Checklist](initial-deployment-checklist.md).
 - This guide is intentionally for repeatable deployments after bootstrap is complete.
 

@@ -6,7 +6,7 @@ bootstrap validation, and environment verification checks.
 Scope note:
 
 - Use this page as the compact command reference.
-- For first-day end-to-end sequencing and rationale, use
+- For the full initial setup sequence and rationale, use
   [Initial Deployment Checklist](initial-deployment-checklist.md) as canonical.
 
 ## Daily Quality Gate
