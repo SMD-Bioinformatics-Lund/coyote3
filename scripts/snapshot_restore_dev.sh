@@ -31,37 +31,36 @@ SAMPLE_NAMES=()
 SAMPLE_IDS=()
 
 usage() {
-  cat <<'EOF'
-Usage:
-  scripts/snapshot_restore_dev.sh --source-db <db> [options]
-
-Required:
-  --source-db <name>              Source database to snapshot.
-
-Optional:
-  --source-uri <uri>              Source Mongo URI (default: mongodb://localhost:27017)
-  --target-uri <uri>              Target/dev Mongo URI (default: mongodb://localhost:37017)
-  --target-db <name>              Target/dev DB name (default: coyote3_dev)
-  --sample-count <n>              Mixed-assay sample count when explicit list not provided (default: 60)
-  --seed <n>                      Random seed (default: 42)
-  --output-dir <dir>              Snapshot base dir (default: snapshots)
-  --collections-config <path>     Collections TOML (default: config/coyote3_collections.toml)
-  --config-section <name>         TOML section override (default: source db name)
-  --sample-list-file <path>       Newline-delimited sample selectors (name or _id)
-  --sample-name <name>            Explicit sample name (repeatable)
-  --sample-id <id>                Explicit sample _id (repeatable)
-  --keep-target-data              Do not wipe target collections before insert
-  --fresh-snapshot                Remove existing snapshot artifacts in --output-dir before creating a new one
-  --python-bin <path>             Python executable override
-
-Example:
-  scripts/snapshot_restore_dev.sh \
-    --source-uri mongodb://localhost:5818 \
-    --source-db coyote3 \
-    --target-uri mongodb://localhost:37017 \
-    --target-db coyote3_dev \
-    --sample-count 60
-EOF
+  printf '%s\n' \
+    "Usage:" \
+    "  scripts/snapshot_restore_dev.sh --source-db <db> [options]" \
+    "" \
+    "Required:" \
+    "  --source-db <name>              Source database to snapshot." \
+    "" \
+    "Optional:" \
+    "  --source-uri <uri>              Source Mongo URI (default: mongodb://localhost:27017)" \
+    "  --target-uri <uri>              Target/dev Mongo URI (default: mongodb://localhost:37017)" \
+    "  --target-db <name>              Target/dev DB name (default: coyote3_dev)" \
+    "  --sample-count <n>              Mixed-assay sample count when explicit list not provided (default: 60)" \
+    "  --seed <n>                      Random seed (default: 42)" \
+    "  --output-dir <dir>              Snapshot base dir (default: snapshots)" \
+    "  --collections-config <path>     Collections TOML (default: config/coyote3_collections.toml)" \
+    "  --config-section <name>         TOML section override (default: source db name)" \
+    "  --sample-list-file <path>       Newline-delimited sample selectors (name or _id)" \
+    "  --sample-name <name>            Explicit sample name (repeatable)" \
+    "  --sample-id <id>                Explicit sample _id (repeatable)" \
+    "  --keep-target-data              Do not wipe target collections before insert" \
+    "  --fresh-snapshot                Remove existing snapshot artifacts in --output-dir before creating a new one" \
+    "  --python-bin <path>             Python executable override" \
+    "" \
+    "Example:" \
+    "  scripts/snapshot_restore_dev.sh \\" \
+    "    --source-uri mongodb://localhost:5818 \\" \
+    "    --source-db coyote3 \\" \
+    "    --target-uri mongodb://localhost:37017 \\" \
+    "    --target-db coyote3_dev \\" \
+    "    --sample-count 60"
 }
 
 while [[ $# -gt 0 ]]; do

@@ -63,6 +63,7 @@ SNV base threshold keys stay in `filters`:
 Resource-specific query JSON is configured directly in ASPC.
 
 Each domain accepts:
+
 - `$or` for additional allow branches
 - `$and` for additional required clauses
 - any other Mongo operator/field condition at root

@@ -65,8 +65,9 @@ For DNA/coverage workflows, effective genes are derived as:
 2. Add selected ISGL genes from `sample.filters.genelists[]`.
 3. Add adhoc genes from `sample.filters.adhoc_genes`.
 4. Apply assay-group behavior:
-- most panel assays: use intersection with ASP covered genes
-- broad assays (`tumwgs`, `wts`): selected genes can become the active gene scope directly
+
+   - most panel assays: use intersection with ASP covered genes
+   - broad assays (`tumwgs`, `wts`): selected genes can become the active gene scope directly
 
 This is why `asp`, `isgl`, and sample filters must be consistent.
 

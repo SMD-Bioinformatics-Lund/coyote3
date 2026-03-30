@@ -103,6 +103,7 @@ curl -sS "${API_BASE_URL}/api/v1/internal/ingest/collections" \
 ### 1) Seed one collection document
 
 Route:
+
 - `POST /api/v1/internal/ingest/collection`
 
 Command:
@@ -153,6 +154,7 @@ JSON
 ### 2) Seed many documents (bulk)
 
 Route:
+
 - `POST /api/v1/internal/ingest/collection/bulk`
 
 Command:
@@ -175,6 +177,7 @@ JSON
 ### 2b) Update or upsert one document
 
 Route:
+
 - `PUT /api/v1/internal/ingest/collection`
 
 Command:
@@ -227,6 +230,7 @@ JSON
 ### 3) Ingest fresh sample + analysis bundle (YAML string mode)
 
 Route:
+
 - `POST /api/v1/internal/ingest/sample-bundle`
 
 Command (YAML content mode):
@@ -251,6 +255,7 @@ JSON
 ### 4) Ingest fresh sample + analysis bundle (upload YAML + data files)
 
 Route:
+
 - `POST /api/v1/internal/ingest/sample-bundle/upload`
 
 Command (multipart upload mode):
@@ -277,6 +282,7 @@ Rules:
 ### 5) Replace dependent analysis payload for existing sample
 
 Route:
+
 - `POST /api/v1/internal/ingest/dependents`
 
 Command:
