@@ -3,9 +3,10 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, get_origin
 
 # Ensure repo root is importable when running as `python scripts/...`.
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -14,10 +15,15 @@ if str(REPO_ROOT) not in sys.path:
 
 
 def _field_type_name(annotation: Any) -> str:
-    if isinstance(annotation, type):
+    # On Python 3.10, `list[str]` / `dict[str, int]` can satisfy
+    # `isinstance(annotation, type)`. Guard with `get_origin` so we don't lose
+    # generic parameters and generate unstable docs across Python versions.
+    if isinstance(annotation, type) and get_origin(annotation) is None:
         return annotation.__name__
     text = str(annotation)
-    return text.replace("typing.", "").replace("<class '", "").replace("'>", "")
+    text = text.replace("typing.", "").replace("<class '", "").replace("'>", "")
+    text = re.sub(r"^Optional\[(.+)\]$", r"\1 | None", text)
+    return text
 
 
 def main() -> int:
