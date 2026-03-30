@@ -1,6 +1,7 @@
 # Coyote3 – Genomic Variant Interpretation and Reporting Platform
 
 ### Core Stack
+
 ![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-UI-000000?logo=flask&logoColor=white)
@@ -8,6 +9,7 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
 ### Domain and Governance
+
 ![Clinical Genomics](https://img.shields.io/badge/Domain-Clinical%20Genomics-6A5ACD)
 ![DNA Support](https://img.shields.io/badge/DNA-Supported-1E90FF)
 ![RNA Support](https://img.shields.io/badge/RNA-Supported-20B2AA)
