@@ -65,7 +65,7 @@ nav:
       - Deployment Guide: operations/deployment-guide.md
       - Backup Restore And Snapshots: operations/backup-restore-and-snapshots.md
       - Troubleshooting: operations/troubleshooting.md
-  - Engineering:
+  - Maintainers:
       - Maintainer Guide: maintainers/maintainer-guide.md
       - Refactor Guidelines: maintainers/refactor-guidelines.md
       - Repository Standards: maintainers/repository-standards.md

@@ -41,7 +41,7 @@ This documentation is organized as a practical flow chain:
 - Auth/mail observability SLOs: [Operations / Observability SLOs And Alerts](operations/observability-slos-and-alerts.md)
 - Testing and quality gates: [Testing / Testing And Quality](testing/testing-and-quality.md)
 - Auth ADRs: [Architecture / ADR-0001 Auth Provider Resolution](architecture/adr-0001-auth-provider-resolution.md)
-- Developer guide: [Engineering / Developer Guide](maintainers/developer-guide.md)
+- Developer guide: [Maintainers / Developer Guide](maintainers/developer-guide.md)
 
 ## Runtime topology
 
