@@ -298,7 +298,7 @@ If data reset is required, follow backup/restore procedures in
 
 ## 10. One-command equivalent
 
-For fully automated first-day run:
+For fully automated initial setup:
 
 ```bash
 scripts/center_first_run.sh \

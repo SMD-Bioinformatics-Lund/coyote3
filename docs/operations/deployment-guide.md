@@ -103,7 +103,7 @@ Quick checks:
 PYTHONPATH=. python -m pytest -q -m api tests/api/routers/test_system_routes.py tests/api/routers/test_reports_routes.py
 ```
 
-## Subsequent updates (day-2+)
+## Subsequent updates
 
 Use this flow for regular upgrades after initial bootstrap is complete.
 
