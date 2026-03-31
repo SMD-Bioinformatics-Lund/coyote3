@@ -76,21 +76,36 @@ jobs:
       - name: Focused mypy checks (auth boundaries)
         run: |
           PYTHONPATH=. mypy --follow-imports=skip --ignore-missing-imports \
+            api/middleware.py \
+            api/routers/health.py \
+            api/routers/internal.py \
             api/security/auth_service.py \
             api/security/password_flows.py \
             api/security/ports.py \
             api/security/repository.py \
+            api/services/internal_ingest_service.py \
             api/infra/notifications/email.py \
+            api/observability/prometheus_metrics.py \
             api/services/admin_user_service.py \
             api/services/permission_management_service.py \
             api/services/management_common.py \
-            api/routers/registry.py
+            api/routers/registry.py \
+            shared/rate_limit.py
 
       - name: Dependency vulnerability scan
         run: pip-audit -r requirements.txt
 
       - name: Security static scan
         run: bandit -q -r api coyote -x tests,site,node_modules,migration_scripts
+
+      - name: Filesystem vulnerability scan (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          exit-code: "1"
 
       - name: Unit tests
         run: PYTHONPATH=. pytest -q -m unit tests/unit

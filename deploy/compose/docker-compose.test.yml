@@ -3,8 +3,13 @@ name: coyote3-test
 #   cp deploy/env/example.test.env .coyote3_test_env
 #   ./scripts/compose-with-version.sh --env-file .coyote3_test_env \
 #     -f deploy/compose/docker-compose.test.yml --profile tests up -d --build
+x-runtime-defaults: &runtime-defaults
+  mem_limit: ${COYOTE3_TEST_CONTAINER_MEM_LIMIT:-2g}
+  cpus: ${COYOTE3_TEST_CONTAINER_CPU_LIMIT:-2.0}
+
 services:
   coyote3_test_api:
+    <<: *runtime-defaults
     container_name: coyote3_test_api_${COYOTE3_VERSION:-local}
     image: coyote3-api:${COYOTE3_VERSION:-local}-test
     build:
@@ -45,6 +50,7 @@ services:
         condition: service_started
 
   coyote3_test_web:
+    <<: *runtime-defaults
     container_name: coyote3_test_web_${COYOTE3_VERSION:-local}
     image: coyote3-web:${COYOTE3_VERSION:-local}-test
     profiles: ["with-ui"]
@@ -81,6 +87,7 @@ services:
         condition: service_healthy
 
   coyote3_test_docs:
+    <<: *runtime-defaults
     container_name: coyote3_test_docs_${COYOTE3_VERSION:-local}
     image: coyote3-docs:${COYOTE3_VERSION:-local}-test
     profiles: ["with-ui"]
@@ -98,6 +105,7 @@ services:
       - coyote3-test-net
 
   coyote3_test_runner:
+    <<: *runtime-defaults
     container_name: coyote3_test_runner_${COYOTE3_VERSION:-local}
     image: coyote3-all:${COYOTE3_VERSION:-local}-test
     profiles: ["tests"]
@@ -123,6 +131,7 @@ services:
         condition: service_healthy
 
   redis_coyote3_test:
+    <<: *runtime-defaults
     container_name: redis_coyote3_test_${COYOTE3_VERSION:-local}
     image: redis:7.4.3
     ports:
@@ -134,6 +143,7 @@ services:
     restart: unless-stopped
 
   coyote3_test_mongo:
+    <<: *runtime-defaults
     container_name: coyote3_test_mongo_${COYOTE3_VERSION:-local}
     image: mongo:7.0
     command: ["--bind_ip_all"]

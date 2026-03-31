@@ -3,8 +3,13 @@ name: coyote3-stage
 #   cp deploy/env/example.stage.env .coyote3_stage_env
 #   export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
 #   docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml up -d --build
+x-runtime-defaults: &runtime-defaults
+  mem_limit: ${COYOTE3_STAGE_CONTAINER_MEM_LIMIT:-2g}
+  cpus: ${COYOTE3_STAGE_CONTAINER_CPU_LIMIT:-2.0}
+
 services:
   coyote3_stage_web:
+    <<: *runtime-defaults
     container_name: coyote3_stage_web_${COYOTE3_VERSION:-local}
     image: coyote3-web:${COYOTE3_VERSION:-local}
     build:
@@ -49,6 +54,7 @@ services:
         condition: service_healthy
 
   coyote3_stage_docs:
+    <<: *runtime-defaults
     container_name: coyote3_stage_docs_${COYOTE3_VERSION:-local}
     image: coyote3-docs:${COYOTE3_VERSION:-local}
     build:
@@ -65,6 +71,7 @@ services:
       - coyote3-stage-net
 
   coyote3_stage_api:
+    <<: *runtime-defaults
     container_name: coyote3_stage_api_${COYOTE3_VERSION:-local}
     image: coyote3-api:${COYOTE3_VERSION:-local}
     build:
@@ -114,6 +121,7 @@ services:
         condition: service_started
 
   redis_coyote3_stage:
+    <<: *runtime-defaults
     container_name: redis_coyote3_stage_${COYOTE3_VERSION:-local}
     image: redis:7.4.3
     ports:
@@ -129,6 +137,7 @@ services:
     privileged: true
 
   coyote3_stage_mongo:
+    <<: *runtime-defaults
     container_name: coyote3_stage_mongo_${COYOTE3_VERSION:-local}
     image: mongo:7.0
     command: ["--bind_ip_all"]
@@ -160,6 +169,26 @@ services:
       timeout: 3s
       retries: 40
       start_period: 10s
+
+  coyote3_stage_proxy:
+    <<: *runtime-defaults
+    container_name: coyote3_stage_proxy_${COYOTE3_VERSION:-local}
+    image: nginx:1.27-alpine
+    profiles: ["with-proxy"]
+    ports:
+      - "${COYOTE3_STAGE_PROXY_PORT:-8804}:8088"
+    volumes:
+      - ./nginx/stage.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - coyote3-stage-net
+    depends_on:
+      coyote3_stage_web:
+        condition: service_started
+      coyote3_stage_api:
+        condition: service_healthy
+      coyote3_stage_docs:
+        condition: service_started
+    restart: unless-stopped
 
 networks:
   coyote3-stage-net:

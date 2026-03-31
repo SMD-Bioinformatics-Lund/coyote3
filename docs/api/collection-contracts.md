@@ -531,6 +531,7 @@ Optional keys:
 - `expression_path` (str | None)
 - `classification_path` (str | None)
 - `qc` (str | None)
+- `uploaded_file_checksums` (dict[str, str])
 - `filters` (api.contracts.schemas.dna.DnaFiltersDoc | api.contracts.schemas.rna.RnaFiltersDoc)
 - `comments` (list[api.contracts.schemas.samples.SampleCommentDoc])
 - `reports` (list[api.contracts.schemas.samples.SampleReportDoc])

@@ -6,9 +6,11 @@ import json
 import os
 import shutil
 import tempfile
+from hashlib import sha256
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi.responses import PlainTextResponse
 from pydantic import ValidationError
 
 from api.contracts.internal import (
@@ -30,6 +32,7 @@ from api.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
 from api.core.internal.ports import InternalRepository
 from api.deps.repositories import get_internal_repository
 from api.extensions import util
+from api.observability.prometheus_metrics import render_prometheus_metrics
 from api.security.access import (
     ApiUser,
     _enforce_access,
@@ -224,13 +227,16 @@ def ingest_sample_bundle_internal(
     return util.common.convert_to_serializable(result)
 
 
-async def _save_upload(upload: UploadFile, destination: Path) -> None:
+async def _save_upload(upload: UploadFile, destination: Path) -> str:
+    digest = sha256()
     with destination.open("wb") as handle:
         while True:
             chunk = await upload.read(1024 * 1024)
             if not chunk:
                 break
             handle.write(chunk)
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 @router.post(
@@ -254,6 +260,7 @@ async def ingest_sample_bundle_upload_internal(
     staging_dir = Path(tempfile.mkdtemp(prefix="coyote3_ingest_upload_"))
     uploads_by_exact: dict[str, str] = {}
     uploads_by_basename: dict[str, str | None] = {}
+    uploaded_sha256_by_path: dict[str, str] = {}
     upload_refs: list[UploadFile] = [yaml_file, *data_files]
     try:
         _enforce_sample_ingest_permission(user)
@@ -276,7 +283,8 @@ async def ingest_sample_bundle_upload_internal(
             while destination.exists():
                 destination = staging_dir / f"{destination.stem}_{suffix}{destination.suffix}"
                 suffix += 1
-            await _save_upload(upload, destination)
+            checksum = await _save_upload(upload, destination)
+            uploaded_sha256_by_path[str(destination)] = checksum
 
             uploads_by_exact[original_name] = str(destination)
             existing = uploads_by_basename.get(base_name)
@@ -331,6 +339,13 @@ async def ingest_sample_bundle_upload_internal(
 
         if runtime_files:
             source_payload["_runtime_files"] = runtime_files
+            checksums: dict[str, str] = {}
+            for source_key, resolved_path in runtime_files.items():
+                checksum = uploaded_sha256_by_path.get(resolved_path)
+                if checksum:
+                    checksums[source_key] = checksum
+            if checksums:
+                source_payload["_uploaded_file_checksums"] = checksums
 
         if update_existing:
             _enforce_sample_ingest_permission(user)
@@ -514,4 +529,14 @@ def list_supported_ingest_collections_internal(
     """List supported collection names for validated collection-ingest endpoints."""
     return util.common.convert_to_serializable(
         {"status": "ok", "collections": InternalIngestService.list_supported_collections()}
+    )
+
+
+@router.get("/api/v1/internal/metrics", response_class=PlainTextResponse)
+def get_prometheus_metrics_internal(request: Request):
+    """Expose Prometheus metrics in text format for internal scraping."""
+    _require_internal_token(request)
+    return PlainTextResponse(
+        content=render_prometheus_metrics(),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
     )

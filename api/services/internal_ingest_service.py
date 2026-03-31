@@ -126,6 +126,19 @@ def _runtime_file_path(args: dict[str, Any], key: str) -> str | None:
     return str(value) if value else None
 
 
+def _normalize_uploaded_checksums(payload: Any) -> dict[str, str]:
+    if not isinstance(payload, dict):
+        return {}
+    normalized: dict[str, str] = {}
+    for key, value in payload.items():
+        checksum_key = str(key or "").strip()
+        checksum_val = str(value or "").strip().lower()
+        if not checksum_key or not checksum_val:
+            continue
+        normalized[checksum_key] = checksum_val
+    return normalized
+
+
 def _infer_omics_layer(args: dict[str, Any]) -> str | None:
     has_dna = any(bool(args.get(key)) for key in DNA_SAMPLE_FILE_KEYS)
     has_rna = any(bool(args.get(key)) for key in RNA_SAMPLE_FILE_KEYS)
@@ -947,10 +960,19 @@ class InternalIngestService:
         parsed_payload.pop("report_num", None)
         parsed_payload.pop("increment", None)
         parsed_payload.pop("update_existing", None)
+        uploaded_checksums = _normalize_uploaded_checksums(
+            parsed_payload.pop("_uploaded_file_checksums", None)
+        )
 
         # Validate merged document shape through the strict contract.
         merged_doc = dict(current_doc)
         merged_doc.update(parsed_payload)
+        if uploaded_checksums:
+            existing_checksums = _normalize_uploaded_checksums(
+                current_doc.get("uploaded_file_checksums", {})
+            )
+            existing_checksums.update(uploaded_checksums)
+            merged_doc["uploaded_file_checksums"] = existing_checksums
         validated_merged = SamplesDoc.model_validate(merged_doc)
         validated_payload = validated_merged.model_dump(exclude_none=True)
 
@@ -1019,6 +1041,9 @@ class InternalIngestService:
         parsed_payload.pop("report_num", None)
         parsed_payload.pop("increment", None)
         parsed_payload.pop("update_existing", None)
+        uploaded_checksums = _normalize_uploaded_checksums(
+            parsed_payload.pop("_uploaded_file_checksums", None)
+        )
 
         if not parsed_payload.get("name"):
             raise ValueError("name is required")
@@ -1051,6 +1076,8 @@ class InternalIngestService:
                     "ingest_status": "ready",
                 }
             )
+            if uploaded_checksums:
+                meta["uploaded_file_checksums"] = uploaded_checksums
 
             final_sample = SamplesDoc.model_validate(meta)
             store.sample_handler.get_collection().insert_one(

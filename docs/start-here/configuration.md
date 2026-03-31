@@ -21,20 +21,20 @@ runtime env file shape, so centers can copy and fill values without guessing.
 
 Use these non-overlapping ranges by default:
 
-| Environment | Web | Docs | API | Redis | Mongo |
-| --- | --- | --- | --- | --- | --- |
-| `prod` (`.coyote3_env`) | `5816` | `5821` | `5818` | `5819` | `5820` |
-| `stage` (`.coyote3_stage_env`) | `8805` | `8809` | `8806` | `8807` | `8808` |
-| `dev` (`.coyote3_dev_env`) | `6801` | `6805` | `6802` | `6803` | `6804` |
-| `test` (`.coyote3_test_env`) | `6811` | `6815` | `6812` | `6813` | `6814` |
+| Environment | Proxy (optional) | Web | Docs | API | Redis | Mongo |
+| --- | --- | --- | --- | --- | --- | --- |
+| `prod` (`.coyote3_env`) | `5815` | `5816` | `5821` | `5818` | `5819` | `5820` |
+| `stage` (`.coyote3_stage_env`) | `8804` | `8805` | `8809` | `8806` | `8807` | `8808` |
+| `dev` (`.coyote3_dev_env`) | n/a | `6801` | `6805` | `6802` | `6803` | `6804` |
+| `test` (`.coyote3_test_env`) | n/a | `6811` | `6815` | `6812` | `6813` | `6814` |
 
 ## Critical variables
 
 Security-sensitive:
 
 - `SECRET_KEY`
-- `COYOTE3_FERNET_KEY`
 - `INTERNAL_API_TOKEN`
+- `PASSWORD_TOKEN_SALT`
 - `MONGO_ROOT_USERNAME`
 - `MONGO_ROOT_PASSWORD`
 - `MONGO_APP_USER`
@@ -46,6 +46,8 @@ Core runtime:
 - `MONGO_URI`
 - port vars for your target profile (`COYOTE3_*_WEB_PORT`, `COYOTE3_*_API_PORT`, `COYOTE3_*_REDIS_PORT`, `COYOTE3_*_MONGO_PORT`)
 - docs endpoint vars (`COYOTE3_*_DOCS_PORT`, `HELP_CENTER_URL`)
+- optional reverse-proxy endpoint vars (`COYOTE3_PROXY_PORT`, `COYOTE3_STAGE_PROXY_PORT`)
+- optional per-service runtime caps (`*_CONTAINER_MEM_LIMIT`, `*_CONTAINER_CPU_LIMIT`)
 - `API_WORKERS` (non-dev API worker count for uvicorn)
 - `CACHE_REDIS_URL` (Redis endpoint for API/UI cache backends)
 - `CACHE_ENABLED` (`1` enables cache backend initialization)
@@ -56,6 +58,8 @@ Core runtime:
 - `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS` (Mongo TTL retention for snapshot documents)
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM_EMAIL`, `SMTP_USE_TLS`, `SMTP_USE_SSL`
 - `WEB_APP_BASE_URL` (required for invite/reset links)
+- `API_RATE_LIMIT_ENABLED`, `API_RATE_LIMIT_REQUESTS_PER_MINUTE`, `API_RATE_LIMIT_WINDOW_SECONDS`
+- `WEB_RATE_LIMIT_ENABLED`, `WEB_RATE_LIMIT_REQUESTS_PER_MINUTE`, `WEB_RATE_LIMIT_WINDOW_SECONDS`
 
 Help/docs URL model:
 

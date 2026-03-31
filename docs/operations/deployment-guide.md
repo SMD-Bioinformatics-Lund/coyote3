@@ -37,12 +37,32 @@ export BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   up -d --build
 ```
 
+Optional single-entry reverse proxy for stage:
+
+```bash
+./scripts/compose-with-version.sh \
+  --env-file .coyote3_stage_env \
+  -f deploy/compose/docker-compose.stage.yml \
+  --profile with-proxy \
+  up -d --build
+```
+
 ## Deploy prod
 
 ```bash
 ./scripts/compose-with-version.sh \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
+  up -d --build
+```
+
+Optional single-entry reverse proxy for prod:
+
+```bash
+./scripts/compose-with-version.sh \
+  --env-file .coyote3_env \
+  -f deploy/compose/docker-compose.yml \
+  --profile with-proxy \
   up -d --build
 ```
 
@@ -86,6 +106,10 @@ Notes:
 - API process concurrency is controlled by `API_WORKERS` in non-dev stacks.
 - MkDocs is rebuilt at image build time and served by a dedicated docs container.
 - Dashboard snapshot retention is enforced by Mongo TTL on `dashboard_metrics.updated_at`.
+- Default container CPU/memory limits are configurable per environment via `*_CONTAINER_MEM_LIMIT` and `*_CONTAINER_CPU_LIMIT`.
+- API and web request throttling are configurable with:
+  - `API_RATE_LIMIT_ENABLED`, `API_RATE_LIMIT_REQUESTS_PER_MINUTE`, `API_RATE_LIMIT_WINDOW_SECONDS`
+  - `WEB_RATE_LIMIT_ENABLED`, `WEB_RATE_LIMIT_REQUESTS_PER_MINUTE`, `WEB_RATE_LIMIT_WINDOW_SECONDS`
 
 Mongo TTL verification (run in Mongo shell):
 
@@ -101,6 +125,13 @@ Quick checks:
 
 ```bash
 PYTHONPATH=. python -m pytest -q -m api tests/api/routers/test_system_routes.py tests/api/routers/test_reports_routes.py
+```
+
+Internal metrics scrape check:
+
+```bash
+curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_API_PORT:-5818}/api/v1/internal/metrics" \
+  -H "X-Internal-Token: ${INTERNAL_API_TOKEN}"
 ```
 
 ## Subsequent updates

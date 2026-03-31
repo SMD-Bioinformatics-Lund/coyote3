@@ -39,6 +39,7 @@ from coyote.services.api_client.api_client import (
 )
 from coyote.util.misc import get_dynamic_assay_nav
 from shared.logging import emit_audit_event
+from shared.rate_limit import FixedWindowRateLimiter
 
 from .errors import register_error_handlers
 
@@ -376,6 +377,7 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
         }
 
     verify_external_api_dependency(app)
+    web_limiter: FixedWindowRateLimiter | None = None
 
     @app.before_request
     def _bind_request_id() -> None:
@@ -386,6 +388,43 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
         """
         g.request_id = (request.headers.get("X-Request-ID") or "").strip() or str(uuid.uuid4())
         g.request_start = time.perf_counter()
+        nonlocal web_limiter
+        if not bool(app.config.get("WEB_RATE_LIMIT_ENABLED", True)):
+            return None
+        path = request.path or ""
+        if (
+            path.startswith("/static/")
+            or path.startswith("/favicon")
+            or path.startswith("/assets/")
+            or path.startswith("/api/")
+        ):
+            return None
+        if web_limiter is None:
+            web_limiter = FixedWindowRateLimiter(
+                limit=int(app.config.get("WEB_RATE_LIMIT_REQUESTS_PER_MINUTE", 300)),
+                window_seconds=int(app.config.get("WEB_RATE_LIMIT_WINDOW_SECONDS", 60)),
+            )
+        client_ip = (
+            (request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown")
+            .split(",")[0]
+            .strip()
+        )
+        allowed, retry_after = web_limiter.check(f"{client_ip}|{request.method}")
+        if not allowed:
+            app.logger.warning(
+                "ui_rate_limited request_id=%s method=%s path=%s ip=%s retry_after=%ss",
+                g.request_id,
+                request.method,
+                path,
+                client_ip,
+                retry_after,
+            )
+            return (
+                "Too many requests",
+                429,
+                {"Retry-After": str(retry_after), "X-Request-ID": str(g.request_id)},
+            )
+        return None
 
     @app.after_request
     def _log_request(response):

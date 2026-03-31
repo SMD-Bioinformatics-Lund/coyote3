@@ -21,6 +21,7 @@ persisted, so ingest behavior remains consistent across scripts and API routes.
 - `PUT /api/v1/internal/ingest/collection`
 - `POST /api/v1/internal/ingest/collection/upload`
 - `GET /api/v1/internal/ingest/collections`
+- `GET /api/v1/internal/metrics`
 
 ## Route commands (full examples)
 
@@ -305,6 +306,20 @@ Rules:
 - Upload matching files in the same request using `data_files`.
 - Matching is done by exact filename value from YAML or by basename.
 - Backend stages uploaded files temporarily, parses them, ingests to DB, and removes staged files after request completion.
+- Uploaded runtime files are hashed (`sha256`) and persisted on the sample as `uploaded_file_checksums`.
+
+### 4b) Internal metrics endpoint (Prometheus text format)
+
+Route:
+
+- `GET /api/v1/internal/metrics`
+
+Command:
+
+```bash
+curl -sS "${API_BASE_URL}/api/v1/internal/metrics" \
+  -H "X-Internal-Token: ${INTERNAL_API_TOKEN}"
+```
 
 ### 5) Replace dependent analysis payload for existing sample
 

@@ -83,6 +83,7 @@ class SamplesDoc(_DocBase):
     expression_path: str | None = None
     classification_path: str | None = None
     qc: str | None = None
+    uploaded_file_checksums: dict[str, str] = Field(default_factory=dict)
     filters: DnaFiltersDoc | RnaFiltersDoc = Field(default_factory=dict)
     comments: list[SampleCommentDoc] = Field(default_factory=list)
     reports: list[SampleReportDoc] = Field(default_factory=list)

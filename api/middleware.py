@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 
 from api.audit.access_events import emit_mutation_event, emit_request_event, request_ip
 from api.lifecycle import ensure_runtime_initialized
+from api.observability.prometheus_metrics import observe_request, record_rate_limited
 from api.runtime import (
     app as runtime_app,
 )
@@ -22,6 +23,35 @@ from api.runtime import (
     set_current_user,
 )
 from api.security.access import is_public_api_path, resolve_request_user
+from shared.rate_limit import FixedWindowRateLimiter
+
+_API_RATE_LIMIT_EXCLUDED_PATHS = frozenset(
+    {
+        "/api/v1/health",
+        "/api/v1/docs",
+        "/api/v1/openapi.json",
+        "/api/v1/redoc",
+        "/api/v1/internal/metrics",
+    }
+)
+_API_LIMITER: FixedWindowRateLimiter | None = None
+_API_LIMITER_CFG: tuple[int, int] | None = None
+
+
+def _get_api_limiter() -> FixedWindowRateLimiter | None:
+    global _API_LIMITER, _API_LIMITER_CFG
+    enabled = bool(runtime_app.config.get("API_RATE_LIMIT_ENABLED", True))
+    if not enabled:
+        _API_LIMITER = None
+        _API_LIMITER_CFG = None
+        return None
+    limit = int(runtime_app.config.get("API_RATE_LIMIT_REQUESTS_PER_MINUTE", 600))
+    window_seconds = int(runtime_app.config.get("API_RATE_LIMIT_WINDOW_SECONDS", 60))
+    cfg = (limit, window_seconds)
+    if _API_LIMITER is None or _API_LIMITER_CFG != cfg:
+        _API_LIMITER = FixedWindowRateLimiter(limit=limit, window_seconds=window_seconds)
+        _API_LIMITER_CFG = cfg
+    return _API_LIMITER
 
 
 def build_authentication_middleware(
@@ -48,6 +78,34 @@ def build_authentication_middleware(
         request.state.request_id = request_id
         request_token = set_current_request_id(request_id)
         if path.startswith("/api/v1/"):
+            limiter = _get_api_limiter()
+            if limiter and path not in _API_RATE_LIMIT_EXCLUDED_PATHS:
+                ip = request_ip(request)
+                allowed, retry_after = limiter.check(f"{ip}|{request.method}")
+                if not allowed:
+                    duration_ms = (time.perf_counter() - start) * 1000.0
+                    record_rate_limited(path=path)
+                    observe_request(
+                        method=request.method,
+                        path=path,
+                        status_code=429,
+                        duration_ms=duration_ms,
+                    )
+                    response = JSONResponse(
+                        status_code=429,
+                        content={"status": 429, "error": "Too many requests"},
+                        headers={"Retry-After": str(retry_after), "X-Request-ID": request_id},
+                    )
+                    runtime_app.logger.warning(
+                        "api_rate_limited request_id=%s method=%s path=%s ip=%s retry_after=%ss",
+                        request_id,
+                        request.method,
+                        path,
+                        ip,
+                        retry_after,
+                    )
+                    reset_current_request_id(request_token)
+                    return response
             authenticated_user = resolve_request_user(request)
             if authenticated_user is not None:
                 request.state.authenticated_user = authenticated_user
@@ -80,6 +138,12 @@ def build_authentication_middleware(
             request_ip(request),
         )
         if path.startswith("/api/v1/"):
+            observe_request(
+                method=request.method,
+                path=path,
+                status_code=response.status_code,
+                duration_ms=duration_ms,
+            )
             emit_request_event(
                 request=request,
                 username=username,
@@ -126,6 +190,12 @@ def _unauthorized_response(*, request: Request, request_id: str, start: float) -
         duration_ms,
         "anonymous",
         request_ip(request),
+    )
+    observe_request(
+        method=request.method,
+        path=request.url.path,
+        status_code=exc.status_code,
+        duration_ms=duration_ms,
     )
     emit_request_event(
         request=request,

@@ -448,6 +448,10 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
     assert isinstance(runtime, dict)
     assert runtime["vcf_files"].endswith(".vcf")
     assert runtime["cnv"].endswith(".json")
+    checksums = payload.get("_uploaded_file_checksums")
+    assert isinstance(checksums, dict)
+    assert "vcf_files" in checksums
+    assert "cnv" in checksums
     assert calls["increment"] is True
     assert calls["allow_update"] is False
 
@@ -587,3 +591,21 @@ def test_ingest_collection_upload_internal_upsert_requires_match_json(monkeypatc
         )
     assert exc_info.value.status_code == 400
     assert "match_json" in str(exc_info.value)
+
+
+def test_get_prometheus_metrics_internal_requires_internal_token(monkeypatch):
+    calls = {"checked": 0}
+    monkeypatch.setattr(
+        internal, "_require_internal_token", lambda _request: calls.__setitem__("checked", 1)
+    )
+    monkeypatch.setattr(
+        internal,
+        "render_prometheus_metrics",
+        lambda: "# HELP coyote3_api_requests_total test\n",
+    )
+
+    response = internal.get_prometheus_metrics_internal(request=object())
+
+    assert calls["checked"] == 1
+    assert response.status_code == 200
+    assert "coyote3_api_requests_total" in response.body.decode("utf-8")

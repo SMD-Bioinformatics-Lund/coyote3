@@ -4,9 +4,14 @@ name: coyote3-dev
 #   export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
 # docker compose -f deploy/compose/docker-compose.dev.yml up -d
 # docker compose -f deploy/compose/docker-compose.dev.yml down
+x-runtime-defaults: &runtime-defaults
+  mem_limit: ${COYOTE3_DEV_CONTAINER_MEM_LIMIT:-2g}
+  cpus: ${COYOTE3_DEV_CONTAINER_CPU_LIMIT:-2.0}
+
 services:
   # UI container: Flask/Jinja presentation layer. Calls coyote3_dev_api over HTTP.
   coyote3_dev_web:
+    <<: *runtime-defaults
     container_name: coyote3_dev_web_${COYOTE3_VERSION:-local}
     image: coyote3-web:${COYOTE3_VERSION:-local}-dev
     build:
@@ -67,6 +72,7 @@ services:
         condition: service_healthy
 
   coyote3_dev_docs:
+    <<: *runtime-defaults
     container_name: coyote3_dev_docs_${COYOTE3_VERSION:-local}
     image: coyote3-docs:${COYOTE3_VERSION:-local}-dev
     build:
@@ -86,6 +92,7 @@ services:
 
   # API container: FastAPI business/policy/data layer.
   coyote3_dev_api:
+    <<: *runtime-defaults
     container_name: coyote3_dev_api_${COYOTE3_VERSION:-local}
     image: coyote3-api:${COYOTE3_VERSION:-local}-dev
     build:
@@ -152,6 +159,7 @@ services:
 
   # UI asset build/watch helper for development.
   coyote3_dev_tailwind:
+    <<: *runtime-defaults
     container_name: coyote3_dev_tailwind_${COYOTE3_VERSION:-local}
     image: node:20-alpine
     working_dir: /app
@@ -175,6 +183,7 @@ services:
 
   # Shared infrastructure dependency.
   redis_coyote3_dev:
+    <<: *runtime-defaults
     container_name: redis_coyote3_dev_${COYOTE3_VERSION:-local}
     image: redis:7.4.3
     ports:
@@ -191,6 +200,7 @@ services:
 
   # Local Mongo for the default dev stack.
   coyote3_dev_mongo:
+    <<: *runtime-defaults
     container_name: coyote3_dev_mongo_${COYOTE3_VERSION:-local}
     image: mongo:7.0
     command: ["--bind_ip_all"]

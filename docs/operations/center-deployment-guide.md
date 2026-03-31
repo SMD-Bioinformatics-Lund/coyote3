@@ -25,6 +25,7 @@ That checklist is the single source of truth for:
 - seed-source policy (`--seed-file` and `--reference-seed-data`)
 - ingest verification steps
 - rollback and handoff
+- optional reverse-proxy profile (`with-proxy`) for one external entrypoint
 
 ## Required Baseline Collections
 
@@ -71,6 +72,12 @@ For environment-specific concrete command values and verification gates, use:
 
 - [Initial Deployment Checklist](initial-deployment-checklist.md)
 - [Maintenance And Quality](maintenance-and-quality.md)
+
+Operational defaults applied by compose stacks:
+
+- Per-service container resource limits are enabled by default (`*_CONTAINER_MEM_LIMIT`, `*_CONTAINER_CPU_LIMIT`).
+- API and web request throttling are enabled by default and configured from env templates.
+- Internal Prometheus-style metrics are exposed at `GET /api/v1/internal/metrics` (requires `X-Internal-Token`).
 
 ASPC contract rule for first-load data:
 

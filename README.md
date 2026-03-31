@@ -81,7 +81,7 @@ cp deploy/env/example.stage.env .coyote3_stage_env
 cp deploy/env/example.test.env .coyote3_test_env
 ```
 
-2. Set real secret values in the env files (`SECRET_KEY`, `COYOTE3_FERNET_KEY`, `INTERNAL_API_TOKEN`, Mongo credentials).
+2. Set real secret values in the env files (`SECRET_KEY`, `INTERNAL_API_TOKEN`, `PASSWORD_TOKEN_SALT`, Mongo credentials).
 
 3. Start development stack:
 
@@ -114,6 +114,10 @@ Coyote3 ships with four standard environment profiles:
 - `test` using `.coyote3_test_env`
 
 Compose definitions live in `deploy/compose/`, and environment templates live in `deploy/env/`.
+
+Optional deployment profile:
+
+- `with-proxy` profile adds an Nginx reverse proxy for single-entry routing (`/`, `/api/`, `/docs-site/`).
 
 ## Data And Configuration Model
 
@@ -148,6 +152,7 @@ Compose definitions live in `deploy/compose/`, and environment templates live in
 - Production deployment expects explicit secrets and controlled environment files.
 - Internal ingest and management operations are protected by role/permission checks.
 - Data operations are validated against typed contracts before persistence.
+- API internal metrics endpoint: `/api/v1/internal/metrics` (requires `X-Internal-Token`).
 
 ## License
 
