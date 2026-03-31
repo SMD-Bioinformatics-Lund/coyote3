@@ -27,6 +27,7 @@ from api.core.dna.variant_identity import ensure_variant_identity_fields
 from api.extensions import store
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.services.ingest.helpers import (
+    _normalize_case_control,  # noqa: F401 — re-exported for test namespace access
     _normalize_uploaded_checksums,
     _validate_yaml_payload_like_import_script,
     build_sample_meta_dict,
