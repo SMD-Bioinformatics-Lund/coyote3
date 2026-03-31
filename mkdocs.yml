@@ -68,5 +68,5 @@ nav:
   - Engineering:
       - Maintainer Guide: maintainers/maintainer-guide.md
       - Refactor Guidelines: maintainers/refactor-guidelines.md
-      - Repo Cleanup Ledger: maintainers/repo-cleanup-ledger.md
+      - Repository Standards: maintainers/repository-standards.md
       - Developer Guide: maintainers/developer-guide.md
