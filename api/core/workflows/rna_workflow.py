@@ -9,6 +9,7 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any
 
+from api.common.utility import CommonUtility
 from api.core.interpretation.annotation_enrichment import add_alt_class
 from api.core.reporting.pipeline import (
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
@@ -32,7 +33,6 @@ from api.core.workflows.filter_normalization import normalize_rna_filter_keys
 from api.core.workflows.ports import RNAWorkflowRepository
 from api.extensions import util
 from api.runtime import app
-from api.utils.common_utility import CommonUtility
 
 
 class RNAWorkflowService:

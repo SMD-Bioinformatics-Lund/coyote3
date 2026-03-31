@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pprint import pformat
 from typing import Any, Dict, List, Tuple
 
+from api.common.utility import CommonUtility
 from api.core.dna.dna_filters import (
     get_filter_conseq_terms as shared_get_filter_conseq_terms,
 )
@@ -19,7 +20,6 @@ from api.core.interpretation.annotation_enrichment import (
 )
 from api.core.reporting.report_paths import get_report_timestamp as shared_get_report_timestamp
 from api.runtime import app
-from api.utils.common_utility import CommonUtility
 from api.utils.report.report_util import ReportUtility
 
 

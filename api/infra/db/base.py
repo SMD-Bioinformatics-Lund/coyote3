@@ -17,8 +17,8 @@ from typing import Any
 import pymongo
 from bson.objectid import ObjectId
 
+from api.common.utility import CommonUtility
 from api.runtime import app, current_username, flash
-from api.utils.common_utility import CommonUtility
 
 
 # -------------------------------------------------------------------------

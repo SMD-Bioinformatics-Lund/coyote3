@@ -16,11 +16,11 @@ from typing import Any
 
 from bson.objectid import ObjectId
 
+from api.common.utility import CommonUtility
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.db.base import BaseHandler
 from api.infra.samples_cache import invalidate_samples_cache, samples_cache_version
 from api.runtime import current_username
-from api.utils.common_utility import CommonUtility
 
 
 # -------------------------------------------------------------------------

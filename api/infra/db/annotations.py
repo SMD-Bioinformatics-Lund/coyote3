@@ -15,12 +15,13 @@ from urllib.parse import unquote
 
 from pymongo.results import DeleteResult
 
+from api.common.utility import CommonUtility
+
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
 from api.infra.db.base import BaseHandler
 from api.runtime import current_user_is_admin, current_username, flash
-from api.utils.common_utility import CommonUtility
 
 
 # -------------------------------------------------------------------------

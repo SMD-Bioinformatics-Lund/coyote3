@@ -12,7 +12,7 @@ from typing import Any, Union
 from bson import ObjectId
 from dateutil.parser import parse as parse_datetime
 
-from api.utils.common_utility import CommonUtility
+from api.common.utility import CommonUtility
 
 
 class AdminUtility:

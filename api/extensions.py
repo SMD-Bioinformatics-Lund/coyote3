@@ -1,9 +1,9 @@
 """API-owned extension singletons."""
 
+from api.common.utility import CommonUtility
 from api.db.mongo.main import MongoAdapter
 from api.infra.external.ldap import LdapManager
 from api.utils.admin_utility import AdminUtility
-from api.utils.common_utility import CommonUtility
 from api.utils.dashboard_utility import DashBoardUtility
 from api.utils.report.report_util import ReportUtility
 

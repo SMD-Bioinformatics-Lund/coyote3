@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
+import api.services.internal_ingest_parsers as ingest_parsers
 import api.services.internal_ingest_service as ingest
 
 
@@ -100,14 +101,16 @@ def _store_stub(sample_docs=None):
 def test_small_helpers_and_build_meta(tmp_path):
     p = tmp_path / "a.txt"
     p.write_text("x", encoding="utf-8")
-    assert ingest._exists(str(p))
-    ingest._require_exists("A", str(p))
+    assert ingest_parsers._exists(str(p))
+    ingest_parsers.require_exists("A", str(p))
     with pytest.raises(FileNotFoundError):
-        ingest._require_exists("A", str(tmp_path / "missing"))
+        ingest_parsers.require_exists("A", str(tmp_path / "missing"))
 
-    assert ingest._runtime_file_path({"vcf_files": "/tmp/a.vcf"}, "vcf_files") == "/tmp/a.vcf"
     assert (
-        ingest._runtime_file_path(
+        ingest_parsers.runtime_file_path({"vcf_files": "/tmp/a.vcf"}, "vcf_files") == "/tmp/a.vcf"
+    )
+    assert (
+        ingest_parsers.runtime_file_path(
             {"vcf_files": "/tmp/a.vcf", "_runtime_files": {"vcf_files": "/staged/a.vcf"}},
             "vcf_files",
         )
@@ -144,38 +147,38 @@ def test_small_helpers_and_build_meta(tmp_path):
 
 def test_type_and_string_helpers(monkeypatch):
     _ = monkeypatch
-    assert ingest._infer_omics_layer({"vcf_files": "x"}) == "dna"
+    assert ingest_parsers.infer_omics_layer({"vcf_files": "x"}) == "dna"
     with pytest.raises(ValueError):
-        ingest._infer_omics_layer({"vcf_files": "x", "fusion_files": "y"})
+        ingest_parsers.infer_omics_layer({"vcf_files": "x", "fusion_files": "y"})
 
     left, right, true = ingest._catch_left_right("CASE", "CASE-2")
     assert (left, right, true) == ("", "-2", "CASE")
 
-    assert ingest._split_on_colon("NM:123") == "123"
-    assert ingest._split_on_colon("NM_1") == "NM_1"
+    assert ingest_parsers._split_on_colon("NM:123") == "123"
+    assert ingest_parsers._split_on_colon("NM_1") == "NM_1"
 
-    out = ingest._split_on_ampersand({}, "A&B")
+    out = ingest_parsers._split_on_ampersand({}, "A&B")
     assert out == {"A": 1, "B": 1}
-    out = ingest._collect_dbsnp({}, "abc&rs1&rs2")
+    out = ingest_parsers._collect_dbsnp({}, "abc&rs1&rs2")
     assert sorted(out) == ["rs1", "rs2"]
-    hot = ingest._collect_hotspots({"a": [None, "1", "1"], "b": []})
+    hot = ingest_parsers._collect_hotspots({"a": [None, "1", "1"], "b": []})
     assert hot == {"a": ["1"]}
 
 
 def test_float_and_af_helpers():
-    assert ingest._is_float("1.2")
-    assert not ingest._is_float("1")
-    assert not ingest._is_float("x")
+    assert ingest_parsers._is_float("1.2")
+    assert not ingest_parsers._is_float("1")
+    assert not ingest_parsers._is_float("x")
 
     d = {"INFO": {"CSQ": [{"CADD_PHRED": "1.2&3.4", "SIFT": "x"}]}}
-    out = ingest._emulate_perl(d)
+    out = ingest_parsers._emulate_perl(d)
     assert out["INFO"]["CSQ"][0]["CADD_PHRED"] == 3.4
 
-    assert ingest._parse_allele_freq("A:0.1&C:0.2", "C") == 0.2
-    assert ingest._parse_allele_freq(None, "A") == 0.0
+    assert ingest_parsers._parse_allele_freq("A:0.1&C:0.2", "C") == 0.2
+    assert ingest_parsers._parse_allele_freq(None, "A") == 0.0
 
-    assert ingest._max_gnomad("0.1&0.2") == 0.2
-    assert ingest._max_gnomad(None) is None
+    assert ingest_parsers._max_gnomad("0.1&0.2") == 0.2
+    assert ingest_parsers._max_gnomad(None) is None
 
     var = {
         "ALT": "A",
@@ -190,7 +193,7 @@ def test_float_and_af_helpers():
             ]
         },
     }
-    af = ingest._pick_af_fields(var)
+    af = ingest_parsers._pick_af_fields(var)
     assert af["gnomad_frequency"] == 0.05
     assert af["gnomad_max"] == "0.06"
     assert af["exac_frequency"] == 0.01
@@ -215,17 +218,17 @@ def test_transcript_helpers():
             "luhotspot_OID": "OID1",
         }
     ]
-    parsed = ingest._parse_transcripts(csq)
+    parsed = ingest_parsers._parse_transcripts(csq)
     assert parsed[1] == ["COSM1", "COSM2"]
     assert parsed[2] == "rs10"
     assert parsed[3] == ["1", "2"]
     assert parsed[4] == ["ENST0001"]
 
     arr = [{"Feature": "A"}, {"Feature": "B"}]
-    assert ingest._selected_transcript_removal(arr, "A") == [{"Feature": "B"}]
-    assert ingest._refseq_no_version("NM_1.2") == "NM_1"
+    assert ingest_parsers._selected_transcript_removal(arr, "A") == [{"Feature": "B"}]
+    assert ingest_parsers._refseq_no_version("NM_1.2") == "NM_1"
 
-    chosen, src = ingest._select_csq(
+    chosen, src = ingest_parsers._select_csq(
         [
             {
                 "IMPACT": "LOW",
@@ -266,7 +269,7 @@ def test_read_mane(tmp_path):
     with gzip.open(gz, "wt", encoding="utf-8") as handle:
         handle.write("RefSeq_nuc\tEnsembl_nuc\tEnsembl_Gene\n")
         handle.write("NM_1.1\tENST1.2\tENSG1.3\n")
-    out = ingest._read_mane(str(gz))
+    out = ingest_parsers._read_mane(str(gz))
     assert out["ENSG1"]["refseq"] == "NM_1"
 
 

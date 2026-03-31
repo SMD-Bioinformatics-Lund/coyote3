@@ -3,7 +3,7 @@ from __future__ import annotations
 from bson import ObjectId
 from pydantic import BaseModel
 
-from api.utils.common_utility import CommonUtility
+from api.common.utility import CommonUtility
 
 
 class _PayloadModel(BaseModel):

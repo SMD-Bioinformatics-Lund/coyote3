@@ -3,8 +3,8 @@
 import os
 from typing import Tuple
 
+from api.common.utility import CommonUtility
 from api.errors.exceptions import AppError
-from api.utils.common_utility import CommonUtility
 
 
 def get_report_timestamp() -> str:

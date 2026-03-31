@@ -2,9 +2,9 @@
 
 from collections import defaultdict
 
+from api.common.utility import CommonUtility
 from api.infra.repositories.core_store_mongo import MongoCoreStoreRepository
 from api.runtime import app, current_username
-from api.utils.common_utility import CommonUtility
 
 _core_repo_instance: MongoCoreStoreRepository | None = None
 
