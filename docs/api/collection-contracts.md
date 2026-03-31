@@ -24,6 +24,8 @@ This is the canonical collection-key reference used by ingestion validation.
 Required keys:
 - `variant` (str)
 - `gene` (str)
+- `assay` (str)
+- `subpanel` (str)
 - `author` (str)
 - `nomenclature` (Literal['p', 'g', 'c', 'f'])
 - `transcript` (str)

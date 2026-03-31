@@ -14,6 +14,8 @@ from api.contracts.schemas.base import _DocBase
 class AnnotationDoc(_DocBase):
     variant: str
     gene: str
+    assay: str
+    subpanel: str
     author: str
     nomenclature: Literal["p", "g", "c", "f"]
     transcript: str
