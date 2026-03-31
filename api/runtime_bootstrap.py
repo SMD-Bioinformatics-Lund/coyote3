@@ -77,7 +77,9 @@ def _select_config(testing: bool, development: bool):
         return config.DevelopmentConfig()
     env_name = os.getenv("ENV_NAME", "").strip().lower()
     if os.getenv("STAGING", "0") == "1" or env_name == "staging":
+        config.StageConfig.validate_required_env()
         return config.StageConfig()
+    config.ProductionConfig.validate_required_env()
     return config.ProductionConfig()
 
 

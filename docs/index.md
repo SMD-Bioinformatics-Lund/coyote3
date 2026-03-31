@@ -36,7 +36,7 @@ This documentation is organized as a practical flow chain:
 - API ingestion: [API / Ingestion API](api/ingestion-api.md)
 - Collection operations and permissions: [API / Collection Operations And Permissions](api/collection-operations-and-permissions.md)
 - Center deployment: [Operations / Center Deployment Guide](operations/center-deployment-guide.md)
-- First-day bootstrap checklist (canonical): [Operations / Initial Deployment Checklist](operations/initial-deployment-checklist.md)
+- Initial deployment checklist: [Operations / Initial Deployment Checklist](operations/initial-deployment-checklist.md)
 - Deployment cycle: [Operations / Deployment Guide](operations/deployment-guide.md)
 - Auth/mail observability SLOs: [Operations / Observability SLOs And Alerts](operations/observability-slos-and-alerts.md)
 - Testing and quality gates: [Testing / Testing And Quality](testing/testing-and-quality.md)

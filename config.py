@@ -28,6 +28,17 @@ basedir = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(basedir, ".env"))
 
 
+def _require_env(key: str, context: str = "production") -> str:
+    """Raise RuntimeError if the environment variable is not set or empty."""
+    value = os.getenv(key, "").strip()
+    if not value:
+        raise RuntimeError(
+            f"{key} must be set in {context} environments. "
+            f"Add it to your env file and re-deploy."
+        )
+    return value
+
+
 def _active_git_branch_name() -> str:
     """Return current git branch name for debug/test version labels."""
     head_file = path.join(basedir, ".git", "HEAD")
@@ -123,7 +134,7 @@ class DefaultConfig:
     API_SESSION_COOKIE_NAME = os.getenv("API_SESSION_COOKIE_NAME", "coyote3_api_session")
     API_SESSION_TTL_SECONDS = int(os.getenv("API_SESSION_TTL_SECONDS", str(12 * 60 * 60)))
     API_SESSION_SALT = os.getenv("API_SESSION_SALT", "coyote3-api-session-v1")
-    PASSWORD_TOKEN_SALT = os.getenv("PASSWORD_TOKEN_SALT", "coyote3-password-token-v1")
+    PASSWORD_TOKEN_SALT = os.getenv("PASSWORD_TOKEN_SALT", "")
     PASSWORD_TOKEN_TTL_SECONDS = int(os.getenv("PASSWORD_TOKEN_TTL_SECONDS", str(60 * 60)))
     WEB_APP_BASE_URL = os.getenv("WEB_APP_BASE_URL", "")
     HELP_CENTER_URL = os.getenv("HELP_CENTER_URL", "")
@@ -141,14 +152,16 @@ class DefaultConfig:
     BAM_DB = os.getenv("BAM_DB", "BAM_Service")
     _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
 
-    LDAP_HOST = "ldap://mtlucmds1.lund.skane.se"
-    LDAP_BASE_DN = "dc=skane,dc=se"
-    LDAP_USER_LOGIN_ATTR = "mail"
+    # LDAP — all values must be set via environment variables per center.
+    # No SMD-specific defaults are provided here.
+    LDAP_HOST = os.getenv("LDAP_HOST", "")
+    LDAP_BASE_DN = os.getenv("LDAP_BASE_DN", "")
+    LDAP_USER_LOGIN_ATTR = os.getenv("LDAP_USER_LOGIN_ATTR", "mail")
     LDAP_USE_SSL = False
     LDAP_USE_TLS = True
-    LDAP_BINDDN = "cn=admin,dc=skane,dc=se"
-    LDAP_SECRET = "secret"
-    LDAP_USER_DN = "ou=people"
+    LDAP_BINDDN = os.getenv("LDAP_BINDDN", "")
+    LDAP_SECRET = os.getenv("LDAP_SECRET", "")
+    LDAP_USER_DN = os.getenv("LDAP_USER_DN", "ou=people")
 
     # For the public assay map
     # This is used in the public assay matrix
@@ -165,12 +178,12 @@ class DefaultConfig:
         "WGS": ["tumwgs-solid", "tumwgs-hema"],
     }
 
-    # Gens URI
-    GENS_URI_OLD = os.getenv("GENS_URI_OLD", "http://mtcmdpgm01.lund.skane.se/gens")
-    GENS_URI = os.getenv("GENS_URI", "http://mtcmdpgm01.lund.skane.se/gens_somatic/app/viewer")
+    # Gens URI — optional integration; set per center or leave empty.
+    GENS_URI_OLD = os.getenv("GENS_URI_OLD", "")
+    GENS_URI = os.getenv("GENS_URI", "")
 
-    # IGV URI
-    IGV_URI = os.getenv("IGV_URI", "http://localhost:60151")
+    # IGV URI — optional integration; set per center or leave empty.
+    IGV_URI = os.getenv("IGV_URI", "")
 
     # Report Config
     REPORTS_BASE_PATH = os.getenv("REPORTS_BASE_PATH", "/data/coyote3/reports")
@@ -269,17 +282,15 @@ class DefaultConfig:
         "Y": "NC_000024",
     }
 
+    # Contact information — set all values via environment variables per center.
     CONTACT: dict[str, str | list[str]] = {
-        "clinical_email": "ram.nanduri@skane.se",
-        "research_email": "ram.nanduri@skane.se",
-        "samples_email": "ram.nanduri@skane.se",
-        "phone_main": "+46 ",
-        "phone_urgent": "+46 ",
-        "address": "Section for Molecular Diagnostics, Region Skåne\nSölvegatan 23 B, Byggnad 71 Lund, Sweden",
+        "clinical_email": os.getenv("CONTACT_CLINICAL_EMAIL", ""),
+        "research_email": os.getenv("CONTACT_RESEARCH_EMAIL", ""),
+        "samples_email": os.getenv("CONTACT_SAMPLES_EMAIL", ""),
+        "phone_main": os.getenv("CONTACT_PHONE_MAIN", ""),
+        "phone_urgent": os.getenv("CONTACT_PHONE_URGENT", ""),
+        "address": os.getenv("CONTACT_ADDRESS", ""),
         "hours": ["Mon–Fri: 08:00–16:30", "Closed on public holidays"],
-        # "sample_form_url": "https://…",
-        # "guidelines_url": "https://…",
-        # "urgent_notes": "For critical cases within lab hours only.",
     }
 
     # SEARCH LIMITS
@@ -307,6 +318,11 @@ class DefaultConfig:
         if has_db_path:
             return self._MONGO_URI_ENV
         return urlunparse(parsed._replace(path=f"/{self.COYOTE3_DB}"))
+
+    @classmethod
+    def validate_required_env(cls) -> None:
+        """Hook for environment-specific required-variable validation."""
+        return None
 
     @property
     def DB_COLLECTIONS_CONFIG(self) -> dict[str, Any]:
@@ -356,9 +372,18 @@ class ProductionConfig(DefaultConfig):
     ENV_NAME = os.getenv("ENV_NAME", "Production")
     APP_VERSION: str = f"{app_version}"
     SECRET_KEY: str | None = os.getenv("SECRET_KEY")
+    INTERNAL_API_TOKEN: str = os.getenv("INTERNAL_API_TOKEN", "")
+    PASSWORD_TOKEN_SALT: str = os.getenv("PASSWORD_TOKEN_SALT", "")
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_prod")
     CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
     DEBUG: bool = False
+
+    @classmethod
+    def validate_required_env(cls) -> None:
+        """Require critical secrets for production startup."""
+        _require_env("SECRET_KEY", "production")
+        _require_env("INTERNAL_API_TOKEN", "production")
+        _require_env("PASSWORD_TOKEN_SALT", "production")
 
 
 class DevelopmentConfig(DefaultConfig):
@@ -426,7 +451,16 @@ class StageConfig(DefaultConfig):
     STAGING = True
     ENV_NAME = os.getenv("ENV_NAME", "Staging")
     APP_VERSION: str = f"{app_version}-STAGE"
-    SECRET_KEY = os.getenv("SECRET_KEY")
+    SECRET_KEY: str | None = os.getenv("SECRET_KEY")
+    INTERNAL_API_TOKEN: str = os.getenv("INTERNAL_API_TOKEN", "")
+    PASSWORD_TOKEN_SALT: str = os.getenv("PASSWORD_TOKEN_SALT", "")
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_stage")
     CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
     DEBUG: bool = False
+
+    @classmethod
+    def validate_required_env(cls) -> None:
+        """Require critical secrets for staging startup."""
+        _require_env("SECRET_KEY", "staging")
+        _require_env("INTERNAL_API_TOKEN", "staging")
+        _require_env("PASSWORD_TOKEN_SALT", "staging")

@@ -124,10 +124,12 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
 
     elif staging_enabled:
         app.logger.info("Loading config.StageConfig")
+        config.StageConfig.validate_required_env()
         app.config.from_object(config.StageConfig())
 
     else:
         app.logger.info("Loading config.ProductionConfig")
+        config.ProductionConfig.validate_required_env()
         app.config.from_object(config.ProductionConfig())  # Note initialization of Config
 
     # CORS: restrict to configured origins, or allow all if CORS_ORIGINS is not set.

@@ -6,6 +6,11 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "deps"
     open-pull-requests-limit: 6
     groups:
       # Conservative default: batch only patch updates.
@@ -25,4 +30,9 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci"
     open-pull-requests-limit: 5

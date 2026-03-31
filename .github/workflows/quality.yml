@@ -86,12 +86,10 @@ jobs:
             api/services/management_common.py \
             api/routers/registry.py
 
-      - name: Dependency vulnerability scan (advisory)
-        continue-on-error: true
+      - name: Dependency vulnerability scan
         run: pip-audit -r requirements.txt
 
-      - name: Security static scan (advisory)
-        continue-on-error: true
+      - name: Security static scan
         run: bandit -q -r api coyote -x tests,site,node_modules,migration_scripts
 
       - name: Unit tests
