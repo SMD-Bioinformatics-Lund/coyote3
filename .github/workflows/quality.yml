@@ -99,7 +99,7 @@ jobs:
         run: bandit -q -r api coyote -x tests,site,node_modules,migration_scripts
 
       - name: Filesystem vulnerability scan (Trivy)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: fs
           scan-ref: .
