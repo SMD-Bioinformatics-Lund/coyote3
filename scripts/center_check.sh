@@ -114,7 +114,6 @@ keys = (
     "cov",
     "transloc",
     "biomarkers",
-    "lowcov",
     "fusion_files",
     "expression_path",
     "classification_path",

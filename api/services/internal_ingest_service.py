@@ -549,23 +549,6 @@ class DnaIngestParser:
         return filtered
 
     @staticmethod
-    def _parse_lowcov_only(path: str, sample_name: str | None) -> list[dict[str, Any]]:
-        lowcov_data: list[dict[str, Any]] = []
-        with open(path, "r", encoding="utf-8") as handle:
-            reader = csv.DictReader(
-                handle,
-                delimiter="\t",
-                fieldnames=["chr", "start", "end", "avg_cov", "amplicon"],
-            )
-            for row in reader:
-                row["sample"] = sample_name
-                row["start"] = int(row["start"])
-                row["end"] = int(row["end"])
-                row["avg_cov"] = float(row["avg_cov"])
-                lowcov_data.append(dict(row))
-        return lowcov_data
-
-    @staticmethod
     def _parse_transloc_only(infile: str) -> list[dict[str, Any]]:
         mane = _read_mane(config.mane)
         filtered_data: list[dict[str, Any]] = []

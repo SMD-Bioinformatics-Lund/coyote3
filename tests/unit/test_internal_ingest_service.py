@@ -270,13 +270,7 @@ def test_read_mane(tmp_path):
     assert out["ENSG1"]["refseq"] == "NM_1"
 
 
-def test_parse_lowcov_and_yaml_payload(tmp_path):
-    lowcov = tmp_path / "lowcov.bed"
-    lowcov.write_text("1\t10\t20\t30.5\tAMP1\n", encoding="utf-8")
-    out = ingest.DnaIngestParser._parse_lowcov_only(str(lowcov), "S1")
-    assert out[0]["start"] == 10
-    assert out[0]["avg_cov"] == 30.5
-
+def test_parse_yaml_payload():
     parsed = ingest.InternalIngestService.parse_yaml_payload("name: S1\nassay: A\n")
     assert parsed["name"] == "S1"
     with pytest.raises(ValueError):
@@ -288,14 +282,13 @@ def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
     cnv = tmp_path / "a.cnv.json"
     bio = tmp_path / "a.bio.json"
     cov = tmp_path / "a.cov.json"
-    lowcov = tmp_path / "a.lowcov"
     transloc = tmp_path / "a.transloc.vcf"
     fus = tmp_path / "fusions.json"
     expr = tmp_path / "expr.json"
     cls = tmp_path / "class.json"
     qc = tmp_path / "qc.json"
 
-    for p in [vcf, lowcov, transloc]:
+    for p in [vcf, transloc]:
         p.write_text("x", encoding="utf-8")
     cnv.write_text(json.dumps({"k": {"ratio": 1}}), encoding="utf-8")
     bio.write_text(json.dumps({"name": "b"}), encoding="utf-8")
@@ -308,10 +301,6 @@ def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
     parser = ingest.DnaIngestParser(canonical={})
     monkeypatch.setattr(parser, "_parse_snvs_only", lambda _: [{"CHROM": "1"}])
     monkeypatch.setattr(parser, "_parse_transloc_only", lambda _: [{"CHROM": "2"}])
-
-    legacy_lowcov = parser.parse({"vcf_files": str(vcf), "lowcov": str(lowcov), "cov": str(cov)})
-    assert "cov" in legacy_lowcov
-    assert "lowcov" not in legacy_lowcov
 
     out = parser.parse(
         {

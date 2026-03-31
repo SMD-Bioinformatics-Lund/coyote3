@@ -122,7 +122,7 @@ DNA artifacts usually include:
 
 - `vcf_files`
 - `cnv`
-- `cov` or `lowcov`
+- `cov`
 - optional `biomarkers`
 - optional `transloc`
 

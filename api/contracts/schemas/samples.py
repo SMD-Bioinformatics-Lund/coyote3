@@ -1,4 +1,4 @@
-"""Sample document contracts and RNA/DNA consistency guards."""
+"""Sample document contracts and RNA/DNA consistency rules."""
 
 from __future__ import annotations
 
@@ -18,7 +18,6 @@ DNA_SAMPLE_FILE_KEYS: tuple[str, ...] = (
     "cov",
     "transloc",
     "biomarkers",
-    "lowcov",
 )
 RNA_SAMPLE_FILE_KEYS: tuple[str, ...] = (
     "fusion_files",
@@ -186,7 +185,7 @@ class SamplesDoc(_DocBase):
             if has_dna:
                 raise ValueError(
                     "RNA sample must not include DNA file keys "
-                    "(vcf_files/cnv/cov/lowcov/biomarkers/transloc)"
+                    "(vcf_files/cnv/cov/biomarkers/transloc)"
                 )
             if not has_rna:
                 raise ValueError("RNA sample must include at least one RNA data file key")
