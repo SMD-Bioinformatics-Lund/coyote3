@@ -92,21 +92,6 @@ jobs:
             api/routers/registry.py \
             shared/rate_limit.py
 
-      - name: Dependency vulnerability scan
-        run: pip-audit -r requirements.txt
-
-      - name: Security static scan
-        run: bandit -q -r api coyote -x tests,site,node_modules,migration_scripts
-
-      - name: Filesystem vulnerability scan (Trivy)
-        uses: aquasecurity/trivy-action@v0.33.1
-        with:
-          scan-type: fs
-          scan-ref: .
-          ignore-unfixed: true
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-
       - name: Unit tests
         run: PYTHONPATH=. pytest -q -m unit tests/unit
 

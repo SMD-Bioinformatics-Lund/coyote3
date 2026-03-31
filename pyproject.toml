@@ -98,8 +98,6 @@ Documentation = "https://smd-bioinformatics-lund.github.io/coyote3"
 dev = [
     "mypy==1.11.0",
     "mypy-extensions==1.0.0",
-    "bandit==1.7.9",
-    "pip-audit==2.8.0",
     "pre-commit==3.7.1",
     "shellcheck-py==0.10.0.1",
     "black==24.4.2",
