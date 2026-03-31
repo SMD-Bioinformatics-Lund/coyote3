@@ -1,5 +1,6 @@
 """Shared DNA reporting/variant transformation helpers."""
 
+import json
 import os
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -401,8 +402,6 @@ def build_dna_report_payload(
 
     report_date = datetime.now().date()
     report_timestamp: str = shared_get_report_timestamp()
-    fernet = app.config["FERNET"]
-
     template_context: Dict[str, Any] = {
         "assay_config": assay_config,
         "report_sections": report_sections,
@@ -418,8 +417,8 @@ def build_dna_report_payload(
         "sample_assay": sample_assay,
         "assay_group": assay_group,
         "genes_covered_in_panel": genes_covered_in_panel,
-        "encrypted_panel_doc": CommonUtility.encrypt_json(assay_panel_doc, fernet),
-        "encrypted_genelists": CommonUtility.encrypt_json(genes_covered_in_panel, fernet),
-        "encrypted_sample_filters": CommonUtility.encrypt_json(sample_filters, fernet),
+        "panel_doc": json.dumps(assay_panel_doc, default=str),
+        "report_genelists": json.dumps(genes_covered_in_panel, default=str),
+        "report_sample_filters": json.dumps(sample_filters, default=str),
     }
     return "dna_report.html", template_context, snapshot_rows

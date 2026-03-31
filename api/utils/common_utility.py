@@ -20,7 +20,6 @@ from pathlib import Path
 from typing import Any, Dict, Tuple
 
 from bson import ObjectId
-from cryptography.fernet import Fernet
 from pydantic import BaseModel
 from werkzeug.security import generate_password_hash
 
@@ -884,21 +883,6 @@ class CommonUtility:
 
         # Return hashed cache key
         return f"samples:{md5(raw_key.encode()).hexdigest()}"
-
-    @staticmethod
-    def encrypt_json(data: dict, fernet: Fernet) -> str:
-        """
-        Encrypt a JSON-serializable dictionary using the provided Fernet key.
-
-        Args:
-            data (dict): The dictionary to encrypt. Must be JSON-serializable.
-            fernet (Fernet): The Fernet encryption object used to encrypt the data.
-
-        Returns:
-            str: The encrypted string representation of the JSON data.
-        """
-        json_data = json.dumps(data, default=str)  # ← handles datetime
-        return fernet.encrypt(json_data.encode()).decode()
 
     @staticmethod
     def format_assay_config(config: dict, schema: dict) -> dict:

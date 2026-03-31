@@ -32,16 +32,10 @@ def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
         str: The function result.
     """
     _ = sample_assay
-    enc_genelists = request.form.get("enc_genelists")
-    enc_panel_doc = request.form.get("enc_panel_doc")
-    enc_sample_filters = request.form.get("enc_sample_filters")
+    genelists = json.loads(request.form.get("report_genelists", "{}"))
+    panel_doc = json.loads(request.form.get("panel_doc", "{}"))
 
-    fernet_obj = app.config.get("FERNET")
-
-    genelists = json.loads(fernet_obj.decrypt(enc_genelists.encode()))
-    panel_doc = json.loads(fernet_obj.decrypt(enc_panel_doc.encode()))
-
-    sample_filters = json.loads(fernet_obj.decrypt(enc_sample_filters.encode()))
+    sample_filters = json.loads(request.form.get("report_sample_filters", "{}"))
     adhoc_genes = sample_filters.pop("adhoc_genes", "")
     if adhoc_genes:
         filter_gl = sample_filters.get("genelists", [])

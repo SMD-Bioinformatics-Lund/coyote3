@@ -19,7 +19,6 @@ from typing import Any
 from urllib.parse import urlparse, urlunparse
 
 import toml
-from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 
 from coyote.__version__ import __version__ as app_version
@@ -39,21 +38,6 @@ def _active_git_branch_name() -> str:
             if line.startswith("ref:"):
                 return line.partition("refs/heads/")[2] or "unknown branch"
     return "unknown branch"
-
-
-def _load_fernet() -> Fernet:
-    """
-    Return a configured Fernet instance.
-
-    `COYOTE3_FERNET_KEY` is required in all runtime environments.
-    """
-    key = os.getenv("COYOTE3_FERNET_KEY")
-    if not key:
-        raise RuntimeError("COYOTE3_FERNET_KEY must be set to a valid Fernet key.")
-    try:
-        return Fernet(key)
-    except Exception as exc:
-        raise RuntimeError("Invalid COYOTE3_FERNET_KEY; expected a valid Fernet key.") from exc
 
 
 # -------------------------------------------------------------------------
@@ -120,9 +104,6 @@ class DefaultConfig:
     DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS = int(
         os.getenv("DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS", "604800")
     )
-
-    # Fernet key for encrypting sensitive data in reports.
-    FERNET = _load_fernet()
 
     WTF_CSRF_ENABLED = True
     API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8001")

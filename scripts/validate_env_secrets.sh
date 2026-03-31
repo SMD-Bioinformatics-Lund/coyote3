@@ -31,9 +31,10 @@ fi
 # Required keys that must not be empty or placeholders.
 required=(
   SECRET_KEY
-  COYOTE3_FERNET_KEY
   INTERNAL_API_TOKEN
   API_SESSION_SALT
+  LDAP_SECRET
+  CORS_ORIGINS
   MONGO_URI
 )
 
