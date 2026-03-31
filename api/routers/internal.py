@@ -341,9 +341,9 @@ async def ingest_sample_bundle_upload_internal(
             source_payload["_runtime_files"] = runtime_files
             checksums: dict[str, str] = {}
             for source_key, resolved_path in runtime_files.items():
-                checksum = uploaded_sha256_by_path.get(resolved_path)
-                if checksum:
-                    checksums[source_key] = checksum
+                uploaded_checksum: str | None = uploaded_sha256_by_path.get(resolved_path)
+                if uploaded_checksum:
+                    checksums[source_key] = uploaded_checksum
             if checksums:
                 source_payload["_uploaded_file_checksums"] = checksums
 

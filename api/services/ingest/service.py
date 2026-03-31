@@ -7,7 +7,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 from bson.objectid import ObjectId
 from pymongo.errors import BulkWriteError, DuplicateKeyError
 

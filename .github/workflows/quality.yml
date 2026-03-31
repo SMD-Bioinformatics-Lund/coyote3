@@ -83,7 +83,7 @@ jobs:
             api/security/password_flows.py \
             api/security/ports.py \
             api/security/repository.py \
-            api/services/internal_ingest_service.py \
+            api/services/ingest/service.py \
             api/infra/notifications/email.py \
             api/observability/prometheus_metrics.py \
             api/services/admin_user_service.py \
