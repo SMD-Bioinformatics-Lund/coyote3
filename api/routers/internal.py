@@ -39,7 +39,7 @@ from api.security.access import (
     _require_internal_token,
     require_access,
 )
-from api.services.internal_ingest_service import InternalIngestService
+from api.services.ingest.service import InternalIngestService
 
 router = APIRouter(tags=["internal"])
 

@@ -26,95 +26,26 @@ from api.contracts.schemas.samples import (
 from api.core.dna.variant_identity import ensure_variant_identity_fields
 from api.extensions import store
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
-from api.services.internal_ingest_parsers import DnaIngestParser, RnaIngestParser, infer_omics_layer
+from api.services.ingest.helpers import (
+    _normalize_uploaded_checksums,
+    _validate_yaml_payload_like_import_script,
+    build_sample_meta_dict,
+)
+from api.services.ingest.parsers import DnaIngestParser, RnaIngestParser, infer_omics_layer
 
 logger = logging.getLogger(__name__)
 
-_CASE_CONTROL_KEYS = [
-    "case_id",
-    "control_id",
-    "clarity_control_id",
-    "clarity_case_id",
-    "clarity_case_pool_id",
-    "clarity_control_pool_id",
-    "case_ffpe",
-    "control_ffpe",
-    "case_sequencing_run",
-    "control_sequencing_run",
-    "case_reads",
-    "control_reads",
-    "case_purity",
-    "control_purity",
-]
-
-
-def _validate_yaml_payload_like_import_script(payload: dict[str, Any]) -> None:
-    """Mirror `scripts/import_coyote_sample.py::validate_yaml` mandatory-field guard."""
-    if (
-        ("vcf_files" not in payload or "fusion_files" not in payload)
-        and "groups" not in payload
-        and "name" not in payload
-        and "genome_build" not in payload
-    ):
-        raise ValueError("YAML is missing mandatory fields: vcf, groups, name or build")
-
-
-def _normalize_case_control(args: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    normalized = dict(args)
-    for key in _CASE_CONTROL_KEYS:
-        if key in normalized and (normalized[key] is None or normalized[key] == "null"):
-            normalized[key] = None
-
-    case: dict[str, Any] = {}
-    control: dict[str, Any] = {}
-    for key in _CASE_CONTROL_KEYS:
-        if "case" in key:
-            case[key.replace("case_", "")] = normalized.get(key)
-        elif "control" in key:
-            control[key.replace("control_", "")] = normalized.get(key)
-    return case, control
-
-
-def build_sample_meta_dict(args: dict[str, Any]) -> dict[str, Any]:
-    sample_dict: dict[str, Any] = {}
-    case_dict, control_dict = _normalize_case_control(args)
-    blocked = {
-        "load",
-        "command_selection",
-        "debug_logger",
-        "quiet",
-        "increment",
-        "update",
-        "dev",
-        "_runtime_files",
-    }
-    for key, value in args.items():
-        if key in blocked:
-            continue
-        if key in _CASE_CONTROL_KEYS and key not in {"case_id", "control_id"}:
-            continue
-        sample_dict[key] = value
-
-    sample_dict["case"] = case_dict
-    if args.get("control_id"):
-        sample_dict["control"] = control_dict
-    return sample_dict
-
-
-def _normalize_uploaded_checksums(payload: Any) -> dict[str, str]:
-    if not isinstance(payload, dict):
-        return {}
-    normalized: dict[str, str] = {}
-    for key, value in payload.items():
-        checksum_key = str(key or "").strip()
-        checksum_val = str(value or "").strip().lower()
-        if not checksum_key or not checksum_val:
-            continue
-        normalized[checksum_key] = checksum_val
-    return normalized
-
 
 def _catch_left_right(case_id: str, name: str) -> tuple[str, str, str]:
+    """Extract left-hand and right-hand suffixes relative to a case_id in a name string.
+
+    Args:
+        case_id: The base sample name to locate within name.
+        name: Full sample name potentially containing a suffix after case_id.
+
+    Returns:
+        A tuple (left, right, matched_case_id). All empty strings if no match.
+    """
     pattern = rf"(.*)({re.escape(case_id)})(.*)"
     match = re.match(pattern, name)
     if not match:
@@ -123,6 +54,19 @@ def _catch_left_right(case_id: str, name: str) -> tuple[str, str, str]:
 
 
 def _next_unique_name(case_id: str, increment: bool) -> str:
+    """Return a unique sample name, optionally auto-suffixing if name already exists.
+
+    Args:
+        case_id: The requested sample name.
+        increment: If True, append -N suffix to make the name unique.
+
+    Returns:
+        The original name if no conflict, or a suffixed variant like ``NAME-2``.
+
+    Raises:
+        ValueError: If the name already exists and increment is False, or if
+            suffix resolution fails.
+    """
     existing_exact = list(store.sample_handler.get_collection().find({"name": case_id}))
     if not existing_exact:
         return case_id
@@ -192,6 +136,17 @@ class InternalIngestService:
 
     @staticmethod
     def parse_yaml_payload(yaml_content: str) -> dict[str, Any]:
+        """Parse and validate a YAML ingest payload string.
+
+        Args:
+            yaml_content: Raw YAML string from the request body.
+
+        Returns:
+            A dict decoded from the YAML string.
+
+        Raises:
+            ValueError: If the YAML does not decode to a dict or is missing mandatory fields.
+        """
         parsed = yaml.safe_load(yaml_content)
         if not isinstance(parsed, dict):
             raise ValueError("YAML body must decode to an object")
@@ -200,6 +155,11 @@ class InternalIngestService:
 
     @staticmethod
     def _canonical_map() -> dict[str, str]:
+        """Build a gene-to-canonical-RefSeq mapping from the refseq_canonical collection.
+
+        Returns:
+            A dict mapping gene symbol to canonical RefSeq accession (no version).
+        """
         mapping: dict[str, str] = {}
         for doc in store.coyote_db["refseq_canonical"].find({}):
             gene = doc.get("gene")
@@ -210,6 +170,17 @@ class InternalIngestService:
 
     @classmethod
     def _parse_preload(cls, args: dict[str, Any]) -> dict[str, Any]:
+        """Detect omics layer and delegate payload parsing to the appropriate parser.
+
+        Args:
+            args: Validated sample payload dict with file path keys and omics_layer.
+
+        Returns:
+            A preload dict keyed by data type (snvs, cnvs, fusions, etc.).
+
+        Raises:
+            ValueError: If the omics layer cannot be determined from the payload.
+        """
         omics_layer = str(args.get("omics_layer") or "").strip().lower()
         if not omics_layer:
             omics_layer = infer_omics_layer(args) or ""
@@ -223,6 +194,15 @@ class InternalIngestService:
     def _normalize_collection_docs(
         cls, collection: str, docs: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
+        """Normalise a list of documents through the collection schema contract.
+
+        Args:
+            collection: Ingest alias of the target collection.
+            docs: Raw document dicts to normalise.
+
+        Returns:
+            A list of normalised dicts validated against the collection contract.
+        """
         normalized: list[dict[str, Any]] = []
         for doc in docs:
             normalized.append(normalize_collection_document(collection, doc))
@@ -236,6 +216,22 @@ class InternalIngestService:
         sample_id: ObjectId,
         sample_name: str,
     ) -> dict[str, int]:
+        """Write all dependent analysis documents for a newly created sample.
+
+        Iterates over each data type in preload and inserts the corresponding
+        documents into the appropriate collection, tagging each with SAMPLE_ID.
+
+        Args:
+            preload: Parsed analysis data keyed by type (snvs, cnvs, cov, etc.).
+            sample_id: ObjectId of the newly inserted samples document.
+            sample_name: Human-readable sample name (used for coverage docs).
+
+        Returns:
+            A dict mapping data type keys to the count of documents written.
+
+        Raises:
+            TypeError: If a payload value has an unexpected type for its key.
+        """
         sid = str(sample_id)
         written: dict[str, int] = {}
         for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
@@ -324,6 +320,14 @@ class InternalIngestService:
 
     @classmethod
     def _cleanup(cls, sample_id: ObjectId) -> None:
+        """Roll back a failed ingest by deleting the sample and all its dependents.
+
+        All deletions are attempted unconditionally; individual failures are
+        silently swallowed so cleanup proceeds as far as possible.
+
+        Args:
+            sample_id: ObjectId of the sample document to remove.
+        """
         sid = str(sample_id)
         for collection in INGEST_DEPENDENT_COLLECTIONS.values():
             try:
@@ -337,6 +341,15 @@ class InternalIngestService:
 
     @staticmethod
     def _data_counts(preload: dict[str, Any]) -> dict[str, int | bool]:
+        """Count documents in each preload data type.
+
+        Args:
+            preload: Parsed analysis data keyed by type.
+
+        Returns:
+            A dict mapping each key to its document count (list length) or
+            a boolean presence flag (for single-document types).
+        """
         return {
             key: (len(preload[key]) if isinstance(preload[key], list) else bool(preload[key]))
             for key in preload
@@ -346,6 +359,15 @@ class InternalIngestService:
     def _snapshot_dependents(
         cls, *, sample_id: ObjectId, keys: set[str]
     ) -> dict[str, list[dict[str, Any]]]:
+        """Back up existing dependent documents before a replacement operation.
+
+        Args:
+            sample_id: ObjectId of the sample whose dependents to snapshot.
+            keys: Set of data type keys to include in the snapshot.
+
+        Returns:
+            A dict mapping each key to the list of current documents for that type.
+        """
         sid = str(sample_id)
         backup: dict[str, list[dict[str, Any]]] = {}
         for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
@@ -357,6 +379,16 @@ class InternalIngestService:
     def _restore_dependents(
         cls, *, sample_id: ObjectId, sample_name: str, backup: dict[str, list[dict[str, Any]]]
     ) -> None:
+        """Restore dependent documents from a prior snapshot after a failed replacement.
+
+        Clears the current documents for each backed-up type and re-inserts
+        the snapshot, stripping ``_id`` fields to avoid duplicate-key errors.
+
+        Args:
+            sample_id: ObjectId of the sample whose dependents to restore.
+            sample_name: Human-readable name (re-applied to coverage docs).
+            backup: Snapshot produced by ``_snapshot_dependents``.
+        """
         sid = str(sample_id)
         for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
             if key not in backup:
@@ -378,6 +410,22 @@ class InternalIngestService:
     def _replace_dependents(
         cls, *, preload: dict[str, Any], sample_id: ObjectId, sample_name: str
     ) -> dict[str, int]:
+        """Atomically replace dependent data with transactional rollback on failure.
+
+        Snapshots the current dependents, deletes them, writes the new preload,
+        and restores the snapshot if any step raises.
+
+        Args:
+            preload: New analysis data to write.
+            sample_id: ObjectId of the owning sample.
+            sample_name: Human-readable name (used for coverage docs).
+
+        Returns:
+            A dict mapping data type keys to the count of documents written.
+
+        Raises:
+            Exception: Re-raises any exception after restoring from snapshot.
+        """
         sid = str(sample_id)
         keys_to_replace = set(preload.keys())
         backup = cls._snapshot_dependents(sample_id=sample_id, keys=keys_to_replace)
@@ -396,6 +444,22 @@ class InternalIngestService:
     def _prepare_update_payload(
         cls, *, sample_doc: dict[str, Any], payload: dict[str, Any]
     ) -> dict[str, Any]:
+        """Validate that the update payload preserves the existing omics layer.
+
+        Ensures the requested omics_layer matches the existing sample and that
+        no cross-layer file keys (RNA keys on a DNA sample, or vice versa) are present.
+
+        Args:
+            sample_doc: Current sample document from MongoDB.
+            payload: Proposed update payload (will be copied, not mutated).
+
+        Returns:
+            A normalised copy of payload with omics_layer set to the existing layer.
+
+        Raises:
+            ValueError: If the omics layer cannot be determined, or if the
+                payload attempts a DNA↔RNA swap, or adds cross-layer file keys.
+        """
         normalized = dict(payload)
         existing_layer = str(sample_doc.get("omics_layer") or "").strip().lower()
         if existing_layer not in {"dna", "rna"}:
@@ -427,6 +491,19 @@ class InternalIngestService:
         payload_meta: dict[str, Any],
         block_fields: set[str],
     ) -> None:
+        """Update sample metadata fields, blocking changes to protected keys.
+
+        Only fields whose values differ from the current document (or are absent)
+        are written. ``_id`` and ``name`` are always skipped.
+
+        Args:
+            sample_id: ObjectId of the sample to update.
+            payload_meta: Dict of candidate field updates.
+            block_fields: Set of field names that may not be changed.
+
+        Raises:
+            ValueError: If payload_meta contains a changed value for a blocked field.
+        """
         sample_col = store.sample_handler.get_collection()
         current = sample_col.find_one({"_id": sample_id}) or {}
         update_fields: dict[str, Any] = {}
@@ -444,6 +521,22 @@ class InternalIngestService:
 
     @classmethod
     def _ingest_update(cls, payload: dict[str, Any]) -> dict[str, Any]:
+        """Handle the sample update flow: validate payload, update metadata and dependents.
+
+        Locates the existing sample by name, validates the update payload against
+        the current document's omics layer, updates metadata fields, and replaces
+        dependent analysis data with transactional rollback.
+
+        Args:
+            payload: Update payload dict containing at minimum a ``name`` key.
+
+        Returns:
+            A result dict with keys ``status``, ``sample_id``, ``sample_name``,
+            ``written``, and ``data_counts``.
+
+        Raises:
+            ValueError: If payload is empty, missing name, or sample is not found.
+        """
         sample_col = store.sample_handler.get_collection()
 
         if not payload:
@@ -541,6 +634,24 @@ class InternalIngestService:
         allow_update: bool = False,
         increment: bool = False,
     ) -> dict[str, Any]:
+        """Create a fresh sample with all dependent analysis data, or update an existing one.
+
+        When ``allow_update=True`` and a sample with the same name already exists,
+        delegates to ``_ingest_update`` instead of creating a new sample.
+        On creation failure, rolls back all written documents via ``_cleanup``.
+
+        Args:
+            payload: Sample payload dict. Must contain at minimum a ``name`` key.
+            allow_update: If True, update an existing sample instead of raising on conflict.
+            increment: If True, auto-append a numeric suffix to make the name unique.
+
+        Returns:
+            A result dict with keys ``status``, ``sample_id``, ``sample_name``,
+            ``written``, and ``data_counts``.
+
+        Raises:
+            ValueError: If payload is empty or missing name.
+        """
         if not payload:
             raise ValueError("sample payload is required")
 

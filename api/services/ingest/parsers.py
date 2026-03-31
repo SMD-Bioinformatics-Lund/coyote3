@@ -17,15 +17,44 @@ from api.parsers import cmdvcf
 
 
 def _exists(path: str | None) -> bool:
+    """Return True if path is non-empty and points to an existing filesystem entry.
+
+    Args:
+        path: Filesystem path to check, may be None.
+
+    Returns:
+        True if the path exists, False otherwise.
+    """
     return bool(path) and os.path.exists(path)
 
 
 def require_exists(label: str, path: str | None) -> None:
+    """Raise FileNotFoundError if path does not exist or is not readable.
+
+    Args:
+        label: Human-readable name used in the error message.
+        path: Filesystem path to validate.
+
+    Raises:
+        FileNotFoundError: If path is None, empty, or does not exist.
+    """
     if not _exists(path):
         raise FileNotFoundError(f"{label} missing or not readable: {path}")
 
 
 def runtime_file_path(args: dict[str, Any], key: str) -> str | None:
+    """Resolve a file path for key from the runtime override dict or the payload directly.
+
+    Checks ``args['_runtime_files'][key]`` first (upload-time resolved paths),
+    then falls back to ``args[key]`` (static paths from YAML payloads).
+
+    Args:
+        args: Validated sample payload dict.
+        key: File key to resolve (e.g. ``vcf_files``, ``cnv``).
+
+    Returns:
+        The resolved path string, or None if the key is absent in both locations.
+    """
     runtime = args.get("_runtime_files")
     if isinstance(runtime, dict):
         value = runtime.get(key)
@@ -36,6 +65,17 @@ def runtime_file_path(args: dict[str, Any], key: str) -> str | None:
 
 
 def infer_omics_layer(args: dict[str, Any]) -> str | None:
+    """Detect the omics layer (DNA or RNA) from file keys present in the payload.
+
+    Args:
+        args: Validated sample payload dict.
+
+    Returns:
+        ``"dna"`` or ``"rna"`` if exactly one layer is detected, None if neither.
+
+    Raises:
+        ValueError: If both DNA and RNA file keys are present simultaneously.
+    """
     has_dna = any(bool(args.get(key)) for key in DNA_SAMPLE_FILE_KEYS)
     has_rna = any(bool(args.get(key)) for key in RNA_SAMPLE_FILE_KEYS)
     if has_dna and has_rna:
@@ -48,6 +88,14 @@ def infer_omics_layer(args: dict[str, Any]) -> str | None:
 
 
 def _split_on_colon(value: str | None) -> str | None:
+    """Return the right-hand side of a colon-delimited value, or the original if no colon.
+
+    Args:
+        value: Input string, may be None.
+
+    Returns:
+        The substring after the first colon, or the original value unchanged.
+    """
     if not value:
         return value
     parts = value.split(":")
@@ -55,6 +103,15 @@ def _split_on_colon(value: str | None) -> str | None:
 
 
 def _split_on_ampersand(found: dict[str, int], raw: str) -> dict[str, int]:
+    """Accumulate ampersand-delimited pieces from raw into the found dict.
+
+    Args:
+        found: Running accumulator of seen values.
+        raw: Ampersand-delimited string to split.
+
+    Returns:
+        The updated found dict with each piece set to 1.
+    """
     try:
         for piece in raw.split("&"):
             found[piece] = 1
@@ -65,6 +122,15 @@ def _split_on_ampersand(found: dict[str, int], raw: str) -> dict[str, int]:
 
 
 def _collect_dbsnp(found: dict[str, int], raw: str) -> dict[str, int]:
+    """Collect rsXXX identifiers from an ampersand-delimited string into found.
+
+    Args:
+        found: Running accumulator of seen rsIDs.
+        raw: Ampersand-delimited string potentially containing rsXXX entries.
+
+    Returns:
+        The updated found dict with each rsXXX entry set to 1.
+    """
     for snp in raw.split("&"):
         if snp.startswith("rs"):
             found[snp] = 1
@@ -72,6 +138,14 @@ def _collect_dbsnp(found: dict[str, int], raw: str) -> dict[str, int]:
 
 
 def _collect_hotspots(hotspot_dict: dict[str, list]) -> dict[str, list]:
+    """Filter hotspot_dict to only entries with non-empty, deduplicated ID lists.
+
+    Args:
+        hotspot_dict: Raw mapping of hotspot type to lists of IDs (may contain None/duplicates).
+
+    Returns:
+        A cleaned dict with empty or all-None entries removed.
+    """
     cleaned: dict[str, list] = {}
     for hotspot, ids in hotspot_dict.items():
         formatted = list(set(filter(None, ids)))
@@ -81,6 +155,14 @@ def _collect_hotspots(hotspot_dict: dict[str, list]) -> dict[str, list]:
 
 
 def _is_float(value: str) -> bool:
+    """Detect whether value is a decimal float string (contains a dot and parses as float).
+
+    Args:
+        value: String to inspect.
+
+    Returns:
+        True if value is a float with a decimal point, False otherwise.
+    """
     try:
         float(value)
         return len(value.split(".")) > 1
@@ -89,6 +171,18 @@ def _is_float(value: str) -> bool:
 
 
 def _emulate_perl(var_dict: dict[str, Any]) -> dict[str, Any]:
+    """Mimic legacy Perl CSQ field handling: split ampersand-delimited floats and take the max.
+
+    For each transcript in INFO/CSQ, any string field containing ampersand-delimited
+    float values is collapsed to the numeric maximum, matching the behaviour of the
+    original Perl import script.
+
+    Args:
+        var_dict: Parsed variant dict with INFO/CSQ list populated.
+
+    Returns:
+        The same var_dict with float CSQ fields collapsed to their maximum value.
+    """
     for transcript in var_dict["INFO"]["CSQ"]:
         for key in list(transcript.keys()):
             if isinstance(transcript[key], str):
@@ -99,6 +193,15 @@ def _emulate_perl(var_dict: dict[str, Any]) -> dict[str, Any]:
 
 
 def _parse_allele_freq(freq_str: str | None, allele: str) -> float:
+    """Extract allele frequency for allele from a colon:ampersand-delimited frequency string.
+
+    Args:
+        freq_str: String in the format ``ALLELE:FREQ&ALLELE:FREQ&...``, or None.
+        allele: The allele identifier to look up.
+
+    Returns:
+        The frequency as a float, or 0.0 if allele is not found or freq_str is falsy.
+    """
     if freq_str:
         for item in freq_str.split("&"):
             parts = item.split(":")
@@ -108,6 +211,14 @@ def _parse_allele_freq(freq_str: str | None, allele: str) -> float:
 
 
 def _max_gnomad(gnomad: str | None) -> float | str | None:
+    """Return the maximum gnomAD frequency from an ampersand-delimited string.
+
+    Args:
+        gnomad: Ampersand-delimited gnomAD frequency string, or None.
+
+    Returns:
+        The maximum value as a float, the original string if parsing fails, or None if falsy.
+    """
     if not gnomad:
         return None
     try:
@@ -117,6 +228,15 @@ def _max_gnomad(gnomad: str | None) -> float | str | None:
 
 
 def _pick_af_fields(var: dict[str, Any]) -> dict[str, Any]:
+    """Extract gnomAD, ExAC, and 1000G allele frequencies from the first CSQ entry.
+
+    Args:
+        var: Parsed variant dict with ALT allele and INFO/CSQ list populated.
+
+    Returns:
+        A dict with keys ``gnomad_frequency``, ``gnomad_max``, ``exac_frequency``,
+        and ``thousandG_frequency``.
+    """
     af: dict[str, Any] = {
         "gnomad_frequency": "",
         "gnomad_max": "",
@@ -146,6 +266,20 @@ def _pick_af_fields(var: dict[str, Any]) -> dict[str, Any]:
 
 
 def _parse_transcripts(csq: list[dict[str, Any]]) -> tuple[Any, ...]:
+    """Parse a CSQ annotation list into slim transcripts and aggregated annotation sets.
+
+    Extracts a subset of VEP consequence fields per transcript and accumulates
+    cross-transcript sets of COSMIC IDs, dbSNP rsIDs, PubMed IDs, transcript IDs,
+    HGVSc/HGVSp notations, gene symbols, and hotspot identifiers.
+
+    Args:
+        csq: List of VEP CSQ dicts from a parsed VCF variant.
+
+    Returns:
+        A 9-tuple of:
+            (slim_transcripts, cosmic_ids, dbsnp_first, pubmed_ids,
+             transcript_ids, hgvsc_ids, hgvsp_ids, gene_symbols, hotspots)
+    """
     transcripts: list[dict[str, Any]] = []
     pubmed: dict[str, int] = {}
     cosmic: dict[str, int] = {}
@@ -235,6 +369,15 @@ def _parse_transcripts(csq: list[dict[str, Any]]) -> tuple[Any, ...]:
 def _selected_transcript_removal(
     csq_arr: list[dict[str, Any]], selected: str
 ) -> list[dict[str, Any]]:
+    """Remove the selected transcript entry from csq_arr in-place by Feature value.
+
+    Args:
+        csq_arr: Mutable list of slim CSQ transcript dicts.
+        selected: The Feature identifier of the transcript to remove.
+
+    Returns:
+        The same list with the first matching entry removed (if found).
+    """
     for index, csq in enumerate(csq_arr):
         if csq.get("Feature") == selected:
             del csq_arr[index]
@@ -243,12 +386,39 @@ def _selected_transcript_removal(
 
 
 def _refseq_no_version(accession: str) -> str:
+    """Strip the version suffix from a RefSeq accession (e.g. ``NM_001234.5`` → ``NM_001234``).
+
+    Args:
+        accession: RefSeq accession string, with or without a version dot-suffix.
+
+    Returns:
+        The accession with everything from the first dot onwards removed.
+    """
     return accession.split(".")[0]
 
 
 def _select_csq(
     csq_arr: list[dict[str, Any]], canonical: dict[str, str]
 ) -> tuple[dict[str, Any], str]:
+    """Select the canonical transcript from a slim CSQ array using a priority hierarchy.
+
+    Priority order:
+    1. DB canonical (gene in canonical map and RefSeq matches).
+    2. VEP canonical (``CANONICAL == "YES"``).
+    3. First protein-coding transcript.
+    4. First transcript unconditionally.
+
+    Selection iterates IMPACT order (HIGH → MODERATE → LOW → MODIFIER) before
+    descending to lower-priority tiers.
+
+    Args:
+        csq_arr: List of slim CSQ transcript dicts (output of ``_parse_transcripts``).
+        canonical: Mapping of gene symbol to canonical RefSeq accession (no version).
+
+    Returns:
+        A tuple of (selected_csq_dict, selection_source_label) where label is one of
+        ``"db"``, ``"vep"``, or ``"random"``.
+    """
     db_canonical = -1
     vep_canonical = -1
     first_protein = -1
@@ -273,6 +443,15 @@ def _select_csq(
 
 
 def _read_mane(path: str) -> dict[str, dict[str, str]]:
+    """Parse a gzipped MANE summary TSV file into a gene-keyed RefSeq/Ensembl mapping.
+
+    Args:
+        path: Absolute path to the gzipped MANE summary file.
+
+    Returns:
+        A dict mapping Ensembl gene ID (no version) to a sub-dict with keys
+        ``"refseq"`` and ``"ensembl"`` (transcript accessions without version).
+    """
     mane: dict[str, dict[str, str]] = {}
     with gzip.open(path, "rt") as handle:
         reader = csv.DictReader(handle, delimiter="\t")
@@ -285,10 +464,33 @@ def _read_mane(path: str) -> dict[str, dict[str, str]]:
 
 
 class DnaIngestParser:
+    """Parse DNA ingest payloads by reading VCF, CNV, biomarker, and coverage files.
+
+    Attributes:
+        canonical: Gene-to-RefSeq canonical transcript mapping loaded from DB.
+    """
+
     def __init__(self, canonical: dict[str, str]) -> None:
+        """Initialise the parser with a canonical transcript mapping.
+
+        Args:
+            canonical: Mapping of gene symbol to canonical RefSeq accession (no version).
+        """
         self.canonical = canonical
 
     def parse(self, args: dict[str, Any]) -> dict[str, Any]:
+        """Dispatch file-based parsing for all DNA data types present in args.
+
+        Reads VCF (SNVs), CNV JSON, biomarkers JSON, translocation VCF, and
+        coverage JSON files according to which keys are populated in args.
+
+        Args:
+            args: Validated sample payload dict containing file path keys.
+
+        Returns:
+            A preload dict with keys ``snvs``, ``cnvs``, ``biomarkers``,
+            ``transloc``, and/or ``cov`` as present in the payload.
+        """
         preload: dict[str, Any] = {}
         vcf = runtime_file_path(args, "vcf_files")
         if vcf:
@@ -322,6 +524,20 @@ class DnaIngestParser:
         return preload
 
     def _parse_snvs_only(self, infile: str) -> list[dict[str, Any]]:
+        """Parse a VEP-annotated SNV VCF into a list of variant dicts.
+
+        Applies FAIL filter exclusions, CSQ transcript selection, allele
+        frequency extraction, and variant identity field enrichment.
+
+        Args:
+            infile: Absolute path to the SNV VCF file.
+
+        Returns:
+            A list of variant dicts ready for MongoDB insertion.
+
+        Raises:
+            ValueError: If a variant record lacks required GT fields (AF/VAF, DP, VD).
+        """
         filtered: list[dict[str, Any]] = []
         vcf_object = VariantFile(infile)
         for var in vcf_object.fetch():
@@ -409,6 +625,17 @@ class DnaIngestParser:
 
     @staticmethod
     def _parse_transloc_only(infile: str) -> list[dict[str, Any]]:
+        """Parse a translocation VCF into a list of gene-fusion variant dicts.
+
+        Processes ANN fields, extracts MANE select annotations, and retains only
+        variants annotated as ``gene_fusion`` or ``bidirectional_gene_fusion``.
+
+        Args:
+            infile: Absolute path to the translocation VCF file.
+
+        Returns:
+            A list of variant dicts representing confirmed gene fusions.
+        """
         mane = _read_mane(config.mane)
         filtered_data: list[dict[str, Any]] = []
         vcf_object = VariantFile(infile)
@@ -454,8 +681,19 @@ class DnaIngestParser:
 
 
 class RnaIngestParser:
+    """Parse RNA ingest payloads by reading fusion, expression, classification, and QC files."""
+
     @staticmethod
     def parse(args: dict[str, Any]) -> dict[str, Any]:
+        """Dispatch file-based parsing for all RNA data types present in args.
+
+        Args:
+            args: Validated sample payload dict containing RNA file path keys.
+
+        Returns:
+            A preload dict with keys ``fusions``, ``rna_expr``, ``rna_class``,
+            and/or ``rna_qc`` as present in the payload.
+        """
         preload: dict[str, Any] = {}
         fusions = runtime_file_path(args, "fusion_files")
         if fusions:

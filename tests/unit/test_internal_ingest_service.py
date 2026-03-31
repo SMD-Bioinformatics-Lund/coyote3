@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
-import api.services.internal_ingest_parsers as ingest_parsers
-import api.services.internal_ingest_service as ingest
+import api.services.ingest.parsers as ingest_parsers
+import api.services.ingest.service as ingest
 
 
 class _Col:

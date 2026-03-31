@@ -9,7 +9,7 @@ from starlette.requests import Request
 from api.routers import internal as internal_router
 from api.security import access
 from api.security.access import ApiUser
-from api.services.internal_ingest_service import InternalIngestService
+from api.services.ingest.service import InternalIngestService
 
 
 def _user(*, role: str, level: int, permissions: list[str] | None = None) -> ApiUser:

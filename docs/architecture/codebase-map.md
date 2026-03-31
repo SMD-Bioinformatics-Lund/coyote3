@@ -15,7 +15,7 @@
 - `api/main.py`: FastAPI app construction
 - `api/settings.py`: runtime settings behavior
 - `api/lifecycle.py`: startup/shutdown lifecycle
-- `api/services/internal_ingest_service.py`: sample bundle ingestion
+- `api/services/ingest/`: sample bundle ingestion package (`service.py`, `parsers.py`, `helpers.py`)
 - `api/contracts/schemas/registry.py`: collection contract registry
 
 ## Important UI files
