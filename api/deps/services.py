@@ -12,13 +12,10 @@ from api.deps.repositories import (
     get_rna_repository,
     get_rna_workflow_repository,
 )
-from api.services.admin_resource_service import (
-    AdminAspcService,
-    AdminGenelistService,
-    AdminPanelService,
-    AdminQueryProfileService,
-    AdminSampleService,
-)
+from api.services.admin_resource.aspc_service import AdminAspcService, AdminQueryProfileService
+from api.services.admin_resource.genelist_service import AdminGenelistService
+from api.services.admin_resource.panel_service import AdminPanelService
+from api.services.admin_resource.sample_service import AdminSampleService
 from api.services.admin_role_service import AdminRoleService
 from api.services.admin_user_service import AdminUserService
 from api.services.biomarker_service import BiomarkerService

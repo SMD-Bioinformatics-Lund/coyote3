@@ -12,7 +12,7 @@ from api.contracts.admin import (
 from api.deps.services import get_admin_sample_service
 from api.extensions import util
 from api.security.access import ApiUser, require_access
-from api.services.admin_resource_service import AdminSampleService
+from api.services.admin_resource.sample_service import AdminSampleService
 
 router = APIRouter(tags=["resource-samples"])
 

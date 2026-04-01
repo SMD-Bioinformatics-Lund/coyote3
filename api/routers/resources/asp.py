@@ -14,7 +14,7 @@ from api.contracts.admin import (
 from api.deps.services import get_admin_panel_service
 from api.extensions import util
 from api.security.access import ApiUser, require_access
-from api.services.admin_resource_service import AdminPanelService
+from api.services.admin_resource.panel_service import AdminPanelService
 
 router = APIRouter(tags=["resource-asp"])
 

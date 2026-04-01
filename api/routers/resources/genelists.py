@@ -15,7 +15,7 @@ from api.contracts.admin import (
 from api.deps.services import get_admin_genelist_service
 from api.extensions import util
 from api.security.access import ApiUser, require_access
-from api.services.admin_resource_service import AdminGenelistService
+from api.services.admin_resource.genelist_service import AdminGenelistService
 
 router = APIRouter(tags=["resource-genelists"])
 

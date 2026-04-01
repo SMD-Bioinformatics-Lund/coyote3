@@ -8,7 +8,7 @@ from api.contracts.admin import AdminQueryProfileOptionsPayload
 from api.deps.services import get_admin_query_profile_service
 from api.extensions import util
 from api.security.access import ApiUser, require_access
-from api.services.admin_resource_service import AdminQueryProfileService
+from api.services.admin_resource.aspc_service import AdminQueryProfileService
 
 router = APIRouter(tags=["resource-query-profiles"])
 

@@ -8,15 +8,13 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-import api.services.admin_resource_service as admin_resource_service_module
+import api.services.admin_resource.sample_service as admin_resource_service_module
 import api.services.admin_role_service as admin_role_service_module
 import api.services.admin_user_service as admin_user_service_module
-from api.services.admin_resource_service import (
-    AdminAspcService,
-    AdminGenelistService,
-    AdminPanelService,
-    AdminSampleService,
-)
+from api.services.admin_resource.aspc_service import AdminAspcService
+from api.services.admin_resource.genelist_service import AdminGenelistService
+from api.services.admin_resource.panel_service import AdminPanelService
+from api.services.admin_resource.sample_service import AdminSampleService
 from api.services.admin_role_service import AdminRoleService
 from api.services.admin_user_service import AdminUserService
 from api.services.permission_management_service import PermissionManagementService
@@ -1023,10 +1021,10 @@ def test_admin_sample_service_update_restores_ids(monkeypatch):
     repo = _AdminRepoStub()
     service = AdminSampleService(repository=repo)
     monkeypatch.setattr(
-        "api.services.admin_resource_service.current_actor", lambda username: username
+        "api.services.admin_resource.sample_service.current_actor", lambda username: username
     )
     monkeypatch.setattr(
-        "api.services.admin_resource_service.utc_now", lambda: datetime.now(timezone.utc)
+        "api.services.admin_resource.sample_service.utc_now", lambda: datetime.now(timezone.utc)
     )
     monkeypatch.setattr(
         admin_resource_service_module.util,
