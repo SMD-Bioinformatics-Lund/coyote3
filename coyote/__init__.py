@@ -664,8 +664,11 @@ def init_template_filters(app) -> None:
     """
     app.logger.debug("Initializing template filters")
     from coyote.filters.registry import register_filters
+    from coyote.filters.shared import human_date as shared_human_date
 
     register_filters(app)
+    # Ensure core shared filters exist for every app instance (including test-created apps).
+    app.jinja_env.filters["human_date"] = shared_human_date
 
 
 def init_login_manager(app) -> None:
