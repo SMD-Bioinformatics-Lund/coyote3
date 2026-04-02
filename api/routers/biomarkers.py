@@ -8,7 +8,7 @@ from api.contracts.dna import DnaBiomarkersPayload
 from api.deps.services import get_biomarker_service
 from api.extensions import util
 from api.security.access import ApiUser, _get_sample_for_api, require_access
-from api.services.biomarker_service import BiomarkerService
+from api.services.biomarker.biomarker_lookup import BiomarkerService
 
 router = APIRouter(tags=["biomarkers"])
 

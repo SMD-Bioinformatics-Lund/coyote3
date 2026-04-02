@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from api.routers import samples
-from api.services.sample_catalog_service import SampleCatalogService
+from api.services.sample.catalog import SampleCatalogService
 from tests.fixtures.api import mock_collections as fx
 from tests.fixtures.api.fake_store import build_fake_store
 

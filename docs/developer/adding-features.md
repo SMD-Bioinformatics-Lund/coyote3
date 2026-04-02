@@ -99,7 +99,7 @@ What to validate:
 
 ### 1) Service layer
 
-Add a metric in `api/services/dashboard_service.py` and return it in the response model payload.
+Add a metric in `api/services/dashboard/analytics.py` and return it in the response model payload.
 
 ```python
 # inside DashboardService.get_dashboard(...)

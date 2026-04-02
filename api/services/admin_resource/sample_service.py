@@ -9,7 +9,7 @@ from api.core.admin.sample_deletion import SampleDeletionService, delete_all_sam
 from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository, AdminSampleDeletionRepository
-from api.services.management_common import (
+from api.services.accounts.common import (
     admin_list_pagination,
     current_actor,
     mutation_payload,

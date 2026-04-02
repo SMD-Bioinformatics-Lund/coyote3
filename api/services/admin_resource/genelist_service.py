@@ -8,14 +8,14 @@ from api.contracts.managed_resources import managed_resource_spec
 from api.contracts.managed_ui_schemas import build_managed_schema, build_managed_schema_bundle
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository
-from api.services.admin_resource.helpers import _validated_doc
-from api.services.management_common import (
+from api.services.accounts.common import (
     admin_list_pagination,
     current_actor,
     inject_version_history,
     mutation_payload,
     utc_now,
 )
+from api.services.admin_resource.helpers import _validated_doc
 
 
 class AdminGenelistService:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.services.dna_service import DnaService
+from api.services.dna.variant_analysis import DnaService
 
 
 class SmallVariantService(DnaService):

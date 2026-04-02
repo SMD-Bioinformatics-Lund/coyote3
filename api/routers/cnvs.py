@@ -12,7 +12,7 @@ from api.deps.services import get_cnv_service
 from api.extensions import util
 from api.routers.mutation_helpers import run_serialized_mutation
 from api.security.access import ApiUser, _get_sample_for_api, require_access
-from api.services.cnv_service import CnvService
+from api.services.dna.cnv import CnvService
 
 router = APIRouter(tags=["cnvs"])
 

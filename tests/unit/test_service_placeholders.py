@@ -2,19 +2,13 @@
 
 from __future__ import annotations
 
-import api.services.auth_service as auth_service
-from api.services.sample_service import SampleService
-from api.services.user_service import UserService
-from api.services.variant_service import VariantService
+from api.security.auth_service import authenticate_credentials
+from api.services.accounts.user_profile import UserService
+from api.services.sample.sample_lookup import SampleService
 
 
-def test_auth_service_module_exports():
-    assert hasattr(auth_service, "authenticate_credentials")
-
-
-def test_variant_service_placeholder_instantiates():
-    service = VariantService()
-    assert service.__class__.__name__ == "VariantService"
+def test_auth_service_authenticate_credentials_importable():
+    assert callable(authenticate_credentials)
 
 
 def test_sample_service_delegates_update_filters():

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.services.dna_structural_service import DnaStructuralService
+from api.services.dna.structural_variants import DnaStructuralService
 
 
 class TranslocationService(DnaStructuralService):

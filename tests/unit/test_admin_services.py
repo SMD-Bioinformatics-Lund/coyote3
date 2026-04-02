@@ -8,16 +8,16 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
+import api.services.accounts.role_admin as admin_role_service_module
+import api.services.accounts.user_admin as admin_user_service_module
 import api.services.admin_resource.sample_service as admin_resource_service_module
-import api.services.admin_role_service as admin_role_service_module
-import api.services.admin_user_service as admin_user_service_module
+from api.services.accounts.permissions import PermissionManagementService
+from api.services.accounts.role_admin import AdminRoleService
+from api.services.accounts.user_admin import AdminUserService
 from api.services.admin_resource.aspc_service import AdminAspcService
 from api.services.admin_resource.genelist_service import AdminGenelistService
 from api.services.admin_resource.panel_service import AdminPanelService
 from api.services.admin_resource.sample_service import AdminSampleService
-from api.services.admin_role_service import AdminRoleService
-from api.services.admin_user_service import AdminUserService
-from api.services.permission_management_service import PermissionManagementService
 
 
 class _AdminRepoStub:
@@ -798,13 +798,13 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
     """
     repo = _AdminRepoStub()
     service = AdminUserService(repository=repo)
-    monkeypatch.setattr("api.services.admin_user_service.current_actor", lambda username: username)
+    monkeypatch.setattr("api.services.accounts.user_admin.current_actor", lambda username: username)
     monkeypatch.setattr(
-        "api.services.admin_user_service.inject_version_history",
+        "api.services.accounts.user_admin.inject_version_history",
         lambda **kwargs: kwargs["new_config"],
     )
     monkeypatch.setattr(
-        "api.services.admin_user_service.utc_now", lambda: datetime.now(timezone.utc)
+        "api.services.accounts.user_admin.utc_now", lambda: datetime.now(timezone.utc)
     )
     monkeypatch.setattr(
         admin_user_service_module.util,
@@ -878,9 +878,9 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
     """
     repo = _AdminRepoStub()
     service = AdminRoleService(repository=repo)
-    monkeypatch.setattr("api.services.admin_role_service.current_actor", lambda username: username)
+    monkeypatch.setattr("api.services.accounts.role_admin.current_actor", lambda username: username)
     monkeypatch.setattr(
-        "api.services.admin_role_service.inject_version_history",
+        "api.services.accounts.role_admin.inject_version_history",
         lambda **kwargs: kwargs["new_config"],
     )
     monkeypatch.setattr(

@@ -17,7 +17,7 @@ PYTHONPATH=. mypy --follow-imports=skip --ignore-missing-imports \
   api/security/auth_service.py \
   api/security/password_flows.py \
   api/infra/notifications/email.py \
-  api/services/admin_user_service.py
+  api/services/accounts/user_admin.py
 ```
 
 ## Validate compose/env wiring

@@ -12,7 +12,7 @@ from api.core.dna.dna_variants import format_pon
 from api.core.dna.notation import one_letter_p
 from api.core.dna.translocqueries import build_transloc_query
 from api.http import api_error
-from api.services.dna_export import consequence_terms
+from api.services.dna.export import consequence_terms
 
 
 def _collect_oncokb_genes(service, variants: list[dict]) -> list[str]:

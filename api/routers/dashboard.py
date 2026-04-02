@@ -8,7 +8,7 @@ from api.contracts.dashboard import DashboardSummaryPayload
 from api.deps.services import get_dashboard_service
 from api.extensions import util
 from api.security.access import ApiUser, require_access
-from api.services.dashboard_service import DashboardService
+from api.services.dashboard.analytics import DashboardService
 
 router = APIRouter(tags=["dashboard"])
 

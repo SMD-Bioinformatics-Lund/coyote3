@@ -22,7 +22,3 @@ pytest-cov==5.0.0
 pytest-asyncio==0.23.8
 coverage==7.6.1
 mongomock==4.1.2
-
-# Documentation (optional)
-# mkdocs
-# mkdocs-readthedocs

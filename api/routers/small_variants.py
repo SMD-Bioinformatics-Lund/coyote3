@@ -25,8 +25,8 @@ from api.http import api_error as _api_error
 from api.http import get_formatted_assay_config as _get_formatted_assay_config
 from api.routers.mutation_helpers import run_serialized_mutation
 from api.security.access import ApiUser, _get_sample_for_api, require_access
-from api.services.dna_service import DnaService
-from api.services.resource_annotation_service import ResourceAnnotationService
+from api.services.classification.variant_annotation import ResourceAnnotationService
+from api.services.dna.variant_analysis import DnaService
 
 router = APIRouter(tags=["small-variants"])
 

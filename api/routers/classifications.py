@@ -10,7 +10,7 @@ from api.core.interpretation.report_summary import create_annotation_text_from_g
 from api.deps.services import get_classification_service
 from api.extensions import util
 from api.security.access import ApiUser, _get_sample_for_api, require_access
-from api.services.resource_classification_service import ResourceClassificationService
+from api.services.classification.tiering import ResourceClassificationService
 
 router = APIRouter(tags=["classifications"])
 

@@ -10,18 +10,18 @@ from api.contracts.managed_ui_schemas import build_managed_schema, build_managed
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository
 from api.runtime import app as runtime_app
-from api.services.admin_resource.helpers import (
-    _normalize_asp_category,
-    _normalize_asp_category_doc,
-    _sanitize_aspc_filters,
-    _validated_doc,
-)
-from api.services.management_common import (
+from api.services.accounts.common import (
     admin_list_pagination,
     current_actor,
     inject_version_history,
     mutation_payload,
     utc_now,
+)
+from api.services.admin_resource.helpers import (
+    _normalize_asp_category,
+    _normalize_asp_category_doc,
+    _sanitize_aspc_filters,
+    _validated_doc,
 )
 
 

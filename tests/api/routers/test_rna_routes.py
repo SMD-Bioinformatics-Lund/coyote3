@@ -8,8 +8,8 @@ from fastapi import HTTPException
 from api.main import app as api_app
 from api.repositories import rna_repository as rna_repo_module
 from api.routers import fusions as rna
-from api.services import rna_service as rna_service_module
-from api.services.rna_service import RnaService
+from api.services.rna import expression_analysis as rna_service_module
+from api.services.rna.expression_analysis import RnaService
 from tests.fixtures.api import mock_collections as fx
 
 

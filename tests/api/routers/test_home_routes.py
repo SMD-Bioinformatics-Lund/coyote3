@@ -6,8 +6,8 @@ import pytest
 from fastapi import HTTPException
 
 from api.routers import samples
-from api.services import sample_catalog_service as sample_catalog_service_module
-from api.services.sample_catalog_service import SampleCatalogService
+from api.services.sample import catalog as sample_catalog_service_module
+from api.services.sample.catalog import SampleCatalogService
 from tests.fixtures.api import mock_collections as fx
 
 

@@ -8,8 +8,8 @@ from fastapi import HTTPException
 from api.contracts.coverage import CoverageSamplePayload
 from api.routers import coverage
 from api.security.access import ApiUser
-from api.services import coverage_service as coverage_service_module
-from api.services.coverage_service import CoverageService
+from api.services.sample import coverage as coverage_service_module
+from api.services.sample.coverage import CoverageService
 from tests.fixtures.api import mock_collections as fx
 
 

@@ -8,7 +8,7 @@ from api.contracts.coverage import CoverageBlacklistedPayload, CoverageSamplePay
 from api.deps.services import get_coverage_service
 from api.extensions import util
 from api.security.access import ApiUser, _get_sample_for_api, require_access
-from api.services.coverage_service import CoverageService
+from api.services.sample.coverage import CoverageService
 
 router = APIRouter(tags=["coverage"])
 

@@ -8,12 +8,12 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-import api.services.admin_role_service as role_module
-import api.services.admin_user_service as user_module
-import api.services.permission_management_service as perm_module
-from api.services.admin_role_service import AdminRoleService
-from api.services.admin_user_service import AdminUserService
-from api.services.permission_management_service import PermissionManagementService
+import api.services.accounts.permissions as perm_module
+import api.services.accounts.role_admin as role_module
+import api.services.accounts.user_admin as user_module
+from api.services.accounts.permissions import PermissionManagementService
+from api.services.accounts.role_admin import AdminRoleService
+from api.services.accounts.user_admin import AdminUserService
 
 
 class _Repo:

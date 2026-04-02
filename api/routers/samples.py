@@ -31,7 +31,7 @@ from api.deps.services import get_sample_catalog_service
 from api.extensions import util
 from api.http import api_error, get_formatted_assay_config
 from api.security.access import ApiUser, _get_sample_for_api, require_access
-from api.services.sample_catalog_service import SampleCatalogService
+from api.services.sample.catalog import SampleCatalogService
 
 router = APIRouter(tags=["samples"])
 

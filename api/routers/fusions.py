@@ -12,7 +12,7 @@ from api.deps.services import get_rna_service
 from api.extensions import util
 from api.routers.mutation_helpers import run_serialized_mutation
 from api.security.access import ApiUser, _get_sample_for_api, require_access
-from api.services.rna_service import RnaService
+from api.services.rna.expression_analysis import RnaService
 
 router = APIRouter(tags=["fusions"])
 if not hasattr(util, "common"):

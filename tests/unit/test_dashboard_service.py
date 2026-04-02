@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from api.services.dashboard_service import DashboardService
+from api.services.dashboard.analytics import DashboardService
 
 
 class _DashboardRepoStub:
@@ -140,7 +140,7 @@ def test_summary_payload_calculates_quality_rates(monkeypatch):
     user = SimpleNamespace(id="u1", role="admin", assays=["A1"], assay_groups=["G1"])
     monkeypatch.setattr(service, "build_admin_insights", lambda: {"counts": {"users_total": 12}})
     monkeypatch.setattr(
-        "api.services.dashboard_service.util",
+        "api.services.dashboard.analytics.util",
         SimpleNamespace(
             dashboard=SimpleNamespace(format_asp_gene_stats=lambda rows: {"formatted": rows})
         ),

@@ -65,7 +65,7 @@ What this does:
 
 ## Step 4: Service orchestration
 
-File: `api/services/dashboard_service.py`
+File: `api/services/dashboard/analytics.py`
 
 ```python
 sample_rollup_global = self.repository.get_dashboard_sample_rollup(assays=None)

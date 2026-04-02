@@ -12,29 +12,29 @@ from api.deps.repositories import (
     get_rna_repository,
     get_rna_workflow_repository,
 )
+from api.services.accounts.permissions import PermissionManagementService
+from api.services.accounts.role_admin import AdminRoleService
+from api.services.accounts.user_admin import AdminUserService
+from api.services.accounts.user_profile import UserService
 from api.services.admin_resource.aspc_service import AdminAspcService, AdminQueryProfileService
 from api.services.admin_resource.genelist_service import AdminGenelistService
 from api.services.admin_resource.panel_service import AdminPanelService
 from api.services.admin_resource.sample_service import AdminSampleService
-from api.services.admin_role_service import AdminRoleService
-from api.services.admin_user_service import AdminUserService
-from api.services.biomarker_service import BiomarkerService
-from api.services.cnv_service import CnvService
-from api.services.coverage_service import CoverageService
-from api.services.dashboard_service import DashboardService
-from api.services.dna_service import DnaService
-from api.services.dna_structural_service import DnaStructuralService
-from api.services.fusion_service import FusionService
-from api.services.permission_management_service import PermissionManagementService
-from api.services.report_service import ReportService
-from api.services.resource_annotation_service import ResourceAnnotationService
-from api.services.resource_classification_service import ResourceClassificationService
-from api.services.rna_service import RnaService
-from api.services.sample_catalog_service import SampleCatalogService
-from api.services.sample_service import SampleService
-from api.services.small_variant_service import SmallVariantService
-from api.services.translocation_service import TranslocationService
-from api.services.user_service import UserService
+from api.services.biomarker.biomarker_lookup import BiomarkerService
+from api.services.classification.tiering import ResourceClassificationService
+from api.services.classification.variant_annotation import ResourceAnnotationService
+from api.services.dashboard.analytics import DashboardService
+from api.services.dna.cnv import CnvService
+from api.services.dna.small_variants import SmallVariantService
+from api.services.dna.structural_variants import DnaStructuralService
+from api.services.dna.translocations import TranslocationService
+from api.services.dna.variant_analysis import DnaService
+from api.services.reporting.report_builder import ReportService
+from api.services.rna.expression_analysis import RnaService
+from api.services.rna.fusions import FusionService
+from api.services.sample.catalog import SampleCatalogService
+from api.services.sample.coverage import CoverageService
+from api.services.sample.sample_lookup import SampleService
 
 
 @lru_cache

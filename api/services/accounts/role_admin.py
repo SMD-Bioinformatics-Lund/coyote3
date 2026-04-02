@@ -10,7 +10,7 @@ from api.contracts.schemas import normalize_collection_document
 from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository
-from api.services.management_common import (
+from api.services.accounts.common import (
     admin_list_pagination,
     current_actor,
     inject_version_history,

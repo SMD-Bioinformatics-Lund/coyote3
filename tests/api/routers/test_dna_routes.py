@@ -15,8 +15,8 @@ from api.routers import classifications as classification_router
 from api.routers import small_variants as dna
 from api.security import access
 from api.security.access import ApiUser
-from api.services import dna_service as dna_service_module
-from api.services.dna_service import DnaService
+from api.services.dna import variant_analysis as dna_service_module
+from api.services.dna.variant_analysis import DnaService
 from tests.fixtures.api import mock_collections as fx
 
 

@@ -86,9 +86,9 @@ jobs:
             api/services/ingest/service.py \
             api/infra/notifications/email.py \
             api/observability/prometheus_metrics.py \
-            api/services/admin_user_service.py \
-            api/services/permission_management_service.py \
-            api/services/management_common.py \
+            api/services/accounts/user_admin.py \
+            api/services/accounts/permissions.py \
+            api/services/accounts/common.py \
             api/routers/registry.py \
             shared/rate_limit.py
 

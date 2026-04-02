@@ -14,7 +14,7 @@ from api.contracts.admin import (
 from api.deps.services import get_admin_user_service
 from api.extensions import util
 from api.security.access import ApiUser, require_access
-from api.services.admin_user_service import AdminUserService
+from api.services.accounts.user_admin import AdminUserService
 
 router = APIRouter(tags=["admin-users"])
 

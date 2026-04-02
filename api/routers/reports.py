@@ -15,7 +15,7 @@ from api.repositories.rna_repository import RnaWorkflowRepository as MongoRNAWor
 from api.runtime import app as runtime_app
 from api.runtime import current_username
 from api.security.access import ApiUser, _get_sample_for_api, require_access
-from api.services.report_service import ReportAnalyte, ReportService
+from api.services.reporting.report_builder import ReportAnalyte, ReportService
 from api.settings import to_bool
 
 router = APIRouter(tags=["reports"])

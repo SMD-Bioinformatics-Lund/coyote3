@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.services.rna_service import RnaService
+from api.services.rna.expression_analysis import RnaService
 
 
 class FusionService(RnaService):

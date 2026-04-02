@@ -9,31 +9,31 @@ from api.core.dna.cnvqueries import build_cnv_query
 from api.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
 from api.http import api_error
 from api.repositories.dna_repository import DnaRouteRepository
-from api.services.dna_export import (
+from api.services.dna.export import (
     build_cnv_export_rows as _build_cnv_export_rows,
 )
-from api.services.dna_export import (
+from api.services.dna.export import (
     build_snv_export_rows as _build_snv_export_rows,
 )
-from api.services.dna_export import (
+from api.services.dna.export import (
     build_transloc_export_rows as _build_transloc_export_rows,
 )
-from api.services.dna_export import (
+from api.services.dna.export import (
     consequence_list,
 )
-from api.services.dna_export import (
+from api.services.dna.export import (
     export_rows_to_csv as _export_rows_to_csv,
 )
-from api.services.dna_payloads import (
+from api.services.dna.payloads import (
     biomarkers_payload as _biomarkers_payload,
 )
-from api.services.dna_payloads import (
+from api.services.dna.payloads import (
     list_variants_payload as _list_variants_payload,
 )
-from api.services.dna_payloads import (
+from api.services.dna.payloads import (
     plot_context_payload as _plot_context_payload,
 )
-from api.services.dna_payloads import (
+from api.services.dna.payloads import (
     variant_context_payload as _variant_context_payload,
 )
 

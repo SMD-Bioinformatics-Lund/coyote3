@@ -16,6 +16,15 @@
 - `api/settings.py`: runtime settings behavior
 - `api/lifecycle.py`: startup/shutdown lifecycle
 - `api/services/ingest/`: sample bundle ingestion package (`service.py`, `parsers.py`, `helpers.py`)
+- `api/services/admin_resource/`: admin resource management (panels, genelists, assay configs, samples)
+- `api/services/dna/`: DNA variant analysis (`variant_analysis.py`, `payloads.py`, `export.py`, `structural_variants.py`, `cnv.py`, `translocations.py`, `small_variants.py`)
+- `api/services/rna/`: RNA expression and fusion analysis (`expression_analysis.py`, `fusions.py`)
+- `api/services/accounts/`: user and role management (`user_admin.py`, `role_admin.py`, `permissions.py`, `common.py`, `user_profile.py`)
+- `api/services/sample/`: sample catalog and workflows (`catalog.py`, `sample_lookup.py`, `coverage.py`)
+- `api/services/classification/`: variant interpretation (`tiering.py`, `variant_annotation.py`)
+- `api/services/reporting/`: report generation (`report_builder.py`)
+- `api/services/dashboard/`: dashboard analytics (`analytics.py`)
+- `api/services/biomarker/`: biomarker workflows (`biomarker_lookup.py`)
 - `api/contracts/schemas/registry.py`: collection contract registry
 
 ## Important UI files

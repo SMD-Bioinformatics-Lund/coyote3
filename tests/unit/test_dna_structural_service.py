@@ -7,8 +7,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-import api.services.dna_structural_service as service_module
-from api.services.dna_structural_service import DnaStructuralService
+import api.services.dna.structural_variants as service_module
+from api.services.dna.structural_variants import DnaStructuralService
 
 
 class _CnvHandlerStub:

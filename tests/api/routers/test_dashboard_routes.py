@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from api.routers import dashboard
-from api.services.dashboard_service import DashboardService
+from api.services.dashboard.analytics import DashboardService
 from tests.fixtures.api import mock_collections as fx
 
 

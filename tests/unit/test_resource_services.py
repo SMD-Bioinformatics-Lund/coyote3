@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from api.services.resource_annotation_service import ResourceAnnotationService
-from api.services.resource_classification_service import ResourceClassificationService
+from api.services.classification.tiering import ResourceClassificationService
+from api.services.classification.variant_annotation import ResourceAnnotationService
 
 
 class _AnnotationHandlerStub:

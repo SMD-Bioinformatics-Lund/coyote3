@@ -14,7 +14,7 @@ from api.contracts.admin import (
 from api.deps.services import get_permission_management_service
 from api.extensions import util
 from api.security.access import ApiUser, require_access
-from api.services.permission_management_service import PermissionManagementService
+from api.services.accounts.permissions import PermissionManagementService
 
 router = APIRouter(tags=["admin-permissions"])
 
