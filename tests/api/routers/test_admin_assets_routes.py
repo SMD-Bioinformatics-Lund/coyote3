@@ -32,8 +32,8 @@ def test_list_asp_read_returns_panels(monkeypatch):
     assert payload["panels"][0]["_id"] == "WGS"
 
 
-def test_create_genelist_context_missing_schema_raises_404():
-    """Test create genelist context missing schema raises 404.
+def test_create_genelist_context_surfaces_service_errors():
+    """Test create genelist context surfaces service errors.
 
     Returns:
         The function result.
@@ -53,9 +53,7 @@ def test_create_genelist_context_missing_schema_raises_404():
     )()
 
     with pytest.raises(HTTPException) as exc:
-        genelists.create_genelist_context_read(
-            schema_id="MISSING", user=fx.api_user(), service=service
-        )
+        genelists.create_genelist_context_read(user=fx.api_user(), service=service)
 
     assert exc.value.status_code == 404
     assert exc.value.detail["error"] == "Genelist schema not found"

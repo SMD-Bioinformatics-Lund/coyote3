@@ -5,7 +5,7 @@ from __future__ import annotations
 from api.extensions import store
 
 
-class MongoHomeRepository:
+class HomeRepository:
     """Provide mongo home persistence operations."""
 
     def get_samples(

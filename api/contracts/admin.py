@@ -29,9 +29,7 @@ class AdminRoleCreateContextPayload(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: list[dict[str, Any]]
-    selected_schema: dict[str, Any]
-    schema_payload: dict[str, Any] = Field(alias="schema")
+    form_payload: dict[str, Any] = Field(alias="form")
 
 
 class AdminRoleContextPayload(BaseModel):
@@ -40,7 +38,7 @@ class AdminRoleContextPayload(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     role: dict[str, Any]
-    schema_payload: dict[str, Any] = Field(alias="schema")
+    form_payload: dict[str, Any] = Field(alias="form")
 
 
 class AdminUsersListPayload(BaseModel):
@@ -56,9 +54,7 @@ class AdminUserCreateContextPayload(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: list[dict[str, Any]]
-    selected_schema: dict[str, Any]
-    schema_payload: dict[str, Any] = Field(alias="schema")
+    form_payload: dict[str, Any] = Field(alias="form")
     role_map: dict[str, Any]
     assay_group_map: dict[str, list[dict[str, Any]]]
 
@@ -69,7 +65,7 @@ class AdminUserContextPayload(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     user_doc: dict[str, Any]
-    schema_payload: dict[str, Any] = Field(alias="schema")
+    form_payload: dict[str, Any] = Field(alias="form")
     role_map: dict[str, Any]
     assay_group_map: dict[str, list[dict[str, Any]]]
 
@@ -87,9 +83,7 @@ class AdminPermissionCreateContextPayload(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: list[dict[str, Any]]
-    selected_schema: dict[str, Any]
-    schema_payload: dict[str, Any] = Field(alias="schema")
+    form_payload: dict[str, Any] = Field(alias="form")
 
 
 class AdminPermissionContextPayload(BaseModel):
@@ -98,7 +92,7 @@ class AdminPermissionContextPayload(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     permission: dict[str, Any]
-    schema_payload: dict[str, Any] = Field(alias="schema")
+    form_payload: dict[str, Any] = Field(alias="form")
 
 
 class AdminMutationPayload(BaseModel):
@@ -125,7 +119,7 @@ class AdminPanelContextPayload(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     panel: dict[str, Any]
-    schema_payload: dict[str, Any] = Field(alias="schema")
+    form_payload: dict[str, Any] = Field(alias="form")
 
 
 class AdminPanelCreateContextPayload(BaseModel):
@@ -133,9 +127,7 @@ class AdminPanelCreateContextPayload(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: list[dict[str, Any]]
-    selected_schema: dict[str, Any]
-    schema_payload: dict[str, Any] = Field(alias="schema")
+    form_payload: dict[str, Any] = Field(alias="form")
 
 
 class AdminGenelistsListPayload(BaseModel):
@@ -150,9 +142,7 @@ class AdminGenelistCreateContextPayload(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    schemas: list[dict[str, Any]]
-    selected_schema: dict[str, Any]
-    schema_payload: dict[str, Any] = Field(alias="schema")
+    form_payload: dict[str, Any] = Field(alias="form")
     assay_group_map: dict[str, list[dict[str, Any]]]
 
 
@@ -162,7 +152,7 @@ class AdminGenelistContextPayload(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     genelist: dict[str, Any]
-    schema_payload: dict[str, Any] = Field(alias="schema")
+    form_payload: dict[str, Any] = Field(alias="form")
     assay_group_map: dict[str, list[dict[str, Any]]]
 
 
@@ -188,9 +178,7 @@ class AdminAspcCreateContextPayload(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     category: str
-    schemas: list[dict[str, Any]]
-    selected_schema: dict[str, Any]
-    schema_payload: dict[str, Any] = Field(alias="schema")
+    form_payload: dict[str, Any] = Field(alias="form")
     prefill_map: dict[str, dict[str, Any]]
     query_profile_options: dict[str, list[str]] | None = None
 
@@ -201,7 +189,7 @@ class AdminAspcContextPayload(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     assay_config: dict[str, Any]
-    schema_payload: dict[str, Any] = Field(alias="schema")
+    form_payload: dict[str, Any] = Field(alias="form")
     query_profile_options: dict[str, list[str]] | None = None
 
 

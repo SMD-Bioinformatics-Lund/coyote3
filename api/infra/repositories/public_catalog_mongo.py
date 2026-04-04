@@ -7,7 +7,7 @@ from typing import Any
 from api.extensions import store
 
 
-class MongoPublicCatalogRepository:
+class PublicCatalogRepository:
     """Provide mongo public catalog persistence operations."""
 
     def get_aspc_with_id(self, aspc_id: str) -> dict[str, Any] | None:

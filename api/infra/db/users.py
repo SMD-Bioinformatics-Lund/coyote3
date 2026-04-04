@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.db.base import BaseHandler
-from api.runtime import flash
+from api.runtime_state import flash
 
 
 # -------------------------------------------------------------------------

@@ -7,7 +7,7 @@ from copy import deepcopy
 from fastapi import HTTPException
 
 from api.contracts.managed_resources import aspc_spec_for_category
-from api.contracts.managed_ui_schemas import build_managed_schema
+from api.contracts.managed_ui_schemas import build_form_spec
 from api.extensions import store, util
 
 
@@ -37,13 +37,14 @@ def get_formatted_assay_config(sample: dict):
         The formatted assay configuration payload, or ``None`` when no assay
         configuration is available for the sample.
     """
-    assay_config = store.aspc_handler.get_aspc_no_meta(
-        sample.get("assay"), sample.get("profile", "production")
+    assay_config = store.get_coverage_route_repository().get_aspc_no_meta(
+        str(sample.get("assay") or ""),
+        str(sample.get("profile", "production") or "production"),
     )
     if not assay_config:
         return None
     omics = str(sample.get("omics_layer") or "").upper()
     if not omics:
         omics = "RNA" if sample.get("fusion_files") else "DNA"
-    assay_config_schema = build_managed_schema(aspc_spec_for_category(omics))
+    assay_config_schema = build_form_spec(aspc_spec_for_category(omics))
     return util.common.format_assay_config(deepcopy(assay_config), assay_config_schema)

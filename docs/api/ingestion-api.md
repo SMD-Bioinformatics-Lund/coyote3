@@ -374,7 +374,7 @@ Collection action permissions (from seeded permission catalog):
 | `asp_configs` (`aspc`) | `create_aspc` | `edit_aspc` |
 | `insilico_genelists` (`isgl`) | `create_isgl` | `edit_isgl` |
 | Sample-linked data (`samples`, `variants`, `cnvs`, `translocations`, `biomarkers`, `panel_coverage`, `fusions`, `rna_expression`, `rna_classification`, `rna_qc`, `reported_variants`, `group_coverage`) | `edit_sample` | `edit_sample` |
-| Reference and external knowledge collections (`hgnc_genes`, `refseq_canonical`, `vep_metadata`, `civic_*`, `oncokb_*`, `cosmic`, `hpaexpr`, `iarc_tp53`, `annotation`, `blacklist`, `dashboard_metrics`, `brcaexchange`, `mane_select`, `asp_to_groups`) | developer/admin role-level gate | developer/admin role-level gate |
+| Shared and annotation knowledgebase collections (`hgnc_genes`, `refseq_canonical`, `vep_metadata`, `civic_*`, `oncokb_*`, `cosmic`, `hpaexpr`, `iarc_tp53`, `annotation`, `blacklist`, `dashboard_metrics`, `brcaexchange`, `mane_select`, `asp_to_groups`) | developer/admin role-level gate | developer/admin role-level gate |
 
 `admin` role-level users are always allowed for these operations.
 
@@ -386,7 +386,7 @@ Use this order for a clean deployment at a new center.
    - Root/admin user (`MONGO_ROOT_*`) and app user (`MONGO_APP_*`).
    - Compose init scripts create app user only on first boot of an empty Mongo volume.
    - For existing volumes, run `scripts/mongo_bootstrap_users.py`.
-2. Seed mandatory reference collections.
+2. Seed mandatory shared collections.
    - `hgnc_genes`
    - `permissions`
    - `refseq_canonical`
@@ -396,7 +396,7 @@ Use this order for a clean deployment at a new center.
    - first admin user via `scripts/bootstrap_local_admin.py` (writes user audit metadata)
    - `asp_configs`
    - `assay_specific_panels`
-4. Optionally seed filtering and external knowledge collections.
+4. Optionally seed filtering and annotation knowledgebase collections.
    - `insilico_genelists`
    - `civic_genes`, `civic_variants`, `oncokb_genes`, `oncokb_actionable`, `brcaexchange`, `iarc_tp53`, `cosmic`, `hpaexpr`
 5. Ingest sample data.
@@ -436,7 +436,7 @@ Recommended ordered commands for first-time center bootstrap:
 6. first admin/user via `scripts/bootstrap_local_admin.py`
 7. `asp_configs` via `/collection` or `/collection/bulk`
 8. `assay_specific_panels` via `/collection` or `/collection/bulk`
-9. optional `insilico_genelists` and external knowledge collections
+9. optional `insilico_genelists` and annotation knowledgebase collections
 
 Note:
 

@@ -9,13 +9,12 @@ from typing import Awaitable, Callable
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from api.audit.access_events import emit_mutation_event, emit_request_event, request_ip
 from api.lifecycle import ensure_runtime_initialized
 from api.observability.prometheus_metrics import observe_request, record_rate_limited
-from api.runtime import (
+from api.runtime_state import (
     app as runtime_app,
 )
-from api.runtime import (
+from api.runtime_state import (
     current_username,
     reset_current_request_id,
     reset_current_user,
@@ -23,6 +22,7 @@ from api.runtime import (
     set_current_user,
 )
 from api.security.access import is_public_api_path, resolve_request_user
+from api.security.audit_events import emit_mutation_event, emit_request_event, request_ip
 from shared.rate_limit import FixedWindowRateLimiter
 
 _API_RATE_LIMIT_EXCLUDED_PATHS = frozenset(

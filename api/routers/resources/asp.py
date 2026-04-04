@@ -14,7 +14,7 @@ from api.contracts.admin import (
 from api.deps.services import get_admin_panel_service
 from api.extensions import util
 from api.security.access import ApiUser, require_access
-from api.services.admin_resource.panel_service import AdminPanelService
+from api.services.resources.asp import AspService
 
 router = APIRouter(tags=["resource-asp"])
 
@@ -30,14 +30,14 @@ def create_asp_mutation(
     user: ApiUser = Depends(
         require_access(permission="create_asp", min_role="manager", min_level=99)
     ),
-    service: AdminPanelService = Depends(get_admin_panel_service),
+    service: AspService = Depends(get_admin_panel_service),
 ):
     """Create asp mutation.
 
     Args:
         payload (dict): Value for ``payload``.
         user (ApiUser): Value for ``user``.
-        service (AdminPanelService): Value for ``service``.
+        service (AspService): Value for ``service``.
 
     Returns:
         The function result.
@@ -53,13 +53,13 @@ def list_asp_read(
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=30, ge=1, le=200),
     user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
-    service: AdminPanelService = Depends(get_admin_panel_service),
+    service: AspService = Depends(get_admin_panel_service),
 ):
     """List asp read.
 
     Args:
         user (ApiUser): Value for ``user``.
-        service (AdminPanelService): Value for ``service``.
+        service (AspService): Value for ``service``.
 
     Returns:
         The function result.
@@ -72,24 +72,22 @@ def list_asp_read(
 
 @router.get("/api/v1/resources/asp/create_context", response_model=AdminPanelCreateContextPayload)
 def create_asp_context_read(
-    schema_id: str | None = Query(default=None),
     user: ApiUser = Depends(
         require_access(permission="create_asp", min_role="manager", min_level=99)
     ),
-    service: AdminPanelService = Depends(get_admin_panel_service),
+    service: AspService = Depends(get_admin_panel_service),
 ):
     """Create asp context read.
 
     Args:
-        schema_id (str | None): Value for ``schema_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminPanelService): Value for ``service``.
+        service (AspService): Value for ``service``.
 
     Returns:
         The function result.
     """
     return util.common.convert_to_serializable(
-        service.create_context_payload(schema_id=schema_id, actor_username=user.username)
+        service.create_context_payload(actor_username=user.username)
     )
 
 
@@ -99,14 +97,14 @@ def create_asp_context_read(
 def asp_context_read(
     assay_panel_id: str,
     user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
-    service: AdminPanelService = Depends(get_admin_panel_service),
+    service: AspService = Depends(get_admin_panel_service),
 ):
     """Asp context read.
 
     Args:
         assay_panel_id (str): Value for ``assay_panel_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminPanelService): Value for ``service``.
+        service (AspService): Value for ``service``.
 
     Returns:
         The function result.
@@ -126,7 +124,7 @@ def update_asp_mutation(
     user: ApiUser = Depends(
         require_access(permission="edit_asp", min_role="manager", min_level=99)
     ),
-    service: AdminPanelService = Depends(get_admin_panel_service),
+    service: AspService = Depends(get_admin_panel_service),
 ):
     """Update asp mutation.
 
@@ -134,7 +132,7 @@ def update_asp_mutation(
         assay_panel_id (str): Value for ``assay_panel_id``.
         payload (dict): Value for ``payload``.
         user (ApiUser): Value for ``user``.
-        service (AdminPanelService): Value for ``service``.
+        service (AspService): Value for ``service``.
 
     Returns:
         The function result.
@@ -154,14 +152,14 @@ def toggle_asp_mutation(
     user: ApiUser = Depends(
         require_access(permission="edit_asp", min_role="manager", min_level=99)
     ),
-    service: AdminPanelService = Depends(get_admin_panel_service),
+    service: AspService = Depends(get_admin_panel_service),
 ):
     """Toggle asp mutation.
 
     Args:
         assay_panel_id (str): Value for ``assay_panel_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminPanelService): Value for ``service``.
+        service (AspService): Value for ``service``.
 
     Returns:
         The function result.
@@ -180,14 +178,14 @@ def delete_asp_mutation(
     user: ApiUser = Depends(
         require_access(permission="delete_asp", min_role="admin", min_level=99999)
     ),
-    service: AdminPanelService = Depends(get_admin_panel_service),
+    service: AspService = Depends(get_admin_panel_service),
 ):
     """Delete asp mutation.
 
     Args:
         assay_panel_id (str): Value for ``assay_panel_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminPanelService): Value for ``service``.
+        service (AspService): Value for ``service``.
 
     Returns:
         The function result.
@@ -202,7 +200,7 @@ def validate_asp_id_mutation(
     user: ApiUser = Depends(
         require_access(permission="create_asp", min_role="manager", min_level=99)
     ),
-    service: AdminPanelService = Depends(get_admin_panel_service),
+    service: AspService = Depends(get_admin_panel_service),
 ):
     """Validate whether an asp_id already exists."""
     _ = user

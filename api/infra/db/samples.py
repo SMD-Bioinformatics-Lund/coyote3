@@ -16,11 +16,11 @@ from typing import Any
 
 from bson.objectid import ObjectId
 
-from api.common.utility import CommonUtility
+from api.common.utility import generate_sample_cache_key, utc_now
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.db.base import BaseHandler
 from api.infra.samples_cache import invalidate_samples_cache, samples_cache_version
-from api.runtime import current_username
+from api.runtime_state import current_username
 
 
 # -------------------------------------------------------------------------
@@ -161,7 +161,7 @@ class SampleHandler(BaseHandler):
         cache_timeout = app_obj.config.get("CACHE_DEFAULT_TIMEOUT", 0)
         cache = getattr(app_obj, "cache", None)
 
-        cache_key = CommonUtility.generate_sample_cache_key(
+        cache_key = generate_sample_cache_key(
             cache_version=samples_cache_version(app_obj),
             user_assays=user_assays,
             user_envs=user_envs,
@@ -765,7 +765,7 @@ class SampleHandler(BaseHandler):
                         "report_name": f"{report_id}.html",
                         "filepath": filepath,
                         "author": current_username(),
-                        "time_created": CommonUtility.utc_now(),
+                        "time_created": utc_now(),
                     }
                 },
                 "$set": {"report_num": report_num},

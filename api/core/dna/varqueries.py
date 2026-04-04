@@ -124,7 +124,7 @@ def _generic_somatic_clause(
 
 
 def build_query(assay_group: str, settings: dict) -> dict:
-    """Construct a MongoDB SNV query from assay-group defaults + ASPC overlay."""
+    """Construct an SNV query from assay-group defaults and ASPC overlay."""
     large_ins_regex = re.compile(r"\w{10,200}", re.IGNORECASE)
     gene_pos_filter = build_pos_genes_filter(settings)
     normalized_group = str(assay_group or "").strip().lower()

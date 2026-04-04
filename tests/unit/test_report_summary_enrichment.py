@@ -36,6 +36,12 @@ class _FakeRepo:
         self.sample_handler = _FakeSampleHandler(sample_docs)
         self.annotation_handler = _FakeAnnotationHandler(annotation_docs)
 
+    def get_samples_by_oids(self, oids):
+        return self.sample_handler.get_samples_by_oids(oids)
+
+    def list_annotations_by_ids(self, annotation_ids):
+        return self.annotation_handler.get_collection().find({"_id": {"$in": annotation_ids}})
+
 
 def test_enrich_reported_variant_docs_batches_samples_and_annotations(monkeypatch):
     sample_oid = ObjectId()
@@ -58,7 +64,9 @@ def test_enrich_reported_variant_docs_batches_samples_and_annotations(monkeypatc
     ]
     annotation_docs = [{"_id": annotation_oid, "assay": "hematology", "subpanel": "Hem"}]
     monkeypatch.setattr(
-        report_summary, "_core_repo", lambda: _FakeRepo(sample_docs, annotation_docs)
+        report_summary,
+        "_interpretation_repository",
+        lambda: _FakeRepo(sample_docs, annotation_docs),
     )
 
     enriched = report_summary.enrich_reported_variant_docs(docs)

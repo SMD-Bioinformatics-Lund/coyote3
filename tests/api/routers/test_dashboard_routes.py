@@ -5,6 +5,7 @@ from __future__ import annotations
 from api.routers import dashboard
 from api.services.dashboard.analytics import DashboardService
 from tests.fixtures.api import mock_collections as fx
+from tests.unit.test_dashboard_service import _DashboardRepoStub
 
 
 def test_dashboard_summary_aggregates_counts(monkeypatch):
@@ -17,7 +18,7 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
         The function result.
     """
     captured_calls: list = []
-    service = DashboardService()
+    service = DashboardService(repository=_DashboardRepoStub())
     monkeypatch.setattr(
         service.repository,
         "get_dashboard_sample_rollup",
@@ -124,7 +125,7 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
         The function result.
     """
     captured = {"calls": []}
-    service = DashboardService()
+    service = DashboardService(repository=_DashboardRepoStub())
 
     monkeypatch.setattr(
         service.repository,
@@ -199,6 +200,11 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
     user.role = "user"
     user.assays = ["rna-fusion"]
     user.assay_groups = ["myeloid"]
+    service.repository.user_doc = {
+        "role": "user",
+        "assays": ["rna-fusion"],
+        "assay_groups": ["myeloid"],
+    }
     payload = dashboard.dashboard_summary(user=user, service=service)
 
     scoped_assays = captured["calls"][1]
@@ -223,7 +229,7 @@ def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
         The function result.
     """
     captured = {"calls": []}
-    service = DashboardService()
+    service = DashboardService(repository=_DashboardRepoStub())
     monkeypatch.setattr(
         service.repository,
         "get_dashboard_sample_rollup",
@@ -292,6 +298,7 @@ def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
     user.role = "admin"
     user.assays = ["solid_gmsv3"]
     user.assay_groups = ["solid"]
+    service.repository.user_doc = {"role": "admin", "assays": [], "assay_groups": []}
     payload = dashboard.dashboard_summary(user=user, service=service)
 
     assert captured["calls"] == [None, None]

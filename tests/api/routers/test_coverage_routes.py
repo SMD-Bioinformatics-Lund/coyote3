@@ -6,11 +6,19 @@ import pytest
 from fastapi import HTTPException
 
 from api.contracts.coverage import CoverageSamplePayload
+from api.infra.repositories import CoverageRepository, CoverageRouteRepository
 from api.routers import coverage
 from api.security.access import ApiUser
 from api.services.sample import coverage as coverage_service_module
 from api.services.sample.coverage import CoverageService
 from tests.fixtures.api import mock_collections as fx
+
+
+def _coverage_service() -> CoverageService:
+    return CoverageService(
+        repository=CoverageRouteRepository(),
+        processing_repository=CoverageRepository(),
+    )
 
 
 def test_coverage_sample_read_builds_payload(monkeypatch):
@@ -26,7 +34,7 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
     sample["filters"] = {"genelists": ["GL1"]}
     sample["assay"] = "WGS"
     sample["profile"] = "production"
-    service = CoverageService()
+    service = _coverage_service()
 
     monkeypatch.setattr(coverage, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(
@@ -94,7 +102,7 @@ def test_coverage_blacklisted_read_denies_non_member_group():
     user.assay_groups = ["rna"]
 
     with pytest.raises(HTTPException) as exc:
-        coverage.coverage_blacklisted_read("dna", user=user, service=CoverageService())
+        coverage.coverage_blacklisted_read("dna", user=user, service=_coverage_service())
 
     assert exc.value.status_code == 403
     assert "Access denied" in exc.value.detail["error"]
@@ -137,7 +145,7 @@ def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
     sample["profile"] = "production"
     sample["_id"] = "S1"
 
-    service = CoverageService()
+    service = _coverage_service()
     monkeypatch.setattr(coverage, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(
         service.repository, "get_aspc_no_meta", lambda assay, profile: {"assay_group": "dna"}

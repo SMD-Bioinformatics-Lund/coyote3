@@ -18,7 +18,7 @@ from api.core.interpretation.report_summary import enrich_reported_variant_docs
 from api.deps.repositories import get_common_repository
 from api.extensions import util
 from api.http import api_error as _api_error
-from api.runtime import app as runtime_app
+from api.runtime_state import app as runtime_app
 from api.security.access import ApiUser, require_access
 
 router = APIRouter(tags=["common"])

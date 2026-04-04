@@ -15,13 +15,13 @@ from urllib.parse import unquote
 
 from pymongo.results import DeleteResult
 
-from api.common.utility import CommonUtility
+from api.common.utility import utc_now
 
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
 from api.infra.db.base import BaseHandler
-from api.runtime import current_user_is_admin, current_username, flash
+from api.runtime_state import current_user_is_admin, current_username, flash
 
 
 # -------------------------------------------------------------------------
@@ -383,7 +383,7 @@ class AnnotationsHandler(BaseHandler):
         """
         document = {
             "author": current_username(),
-            "time_created": CommonUtility.utc_now(),
+            "time_created": utc_now(),
             "variant": variant,
             "nomenclature": nomenclature,
             "assay": variant_data.get("assay_group", None),

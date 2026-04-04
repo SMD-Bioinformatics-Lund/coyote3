@@ -38,12 +38,7 @@ from api.infra.db.translocs import TranslocsHandler
 from api.infra.db.users import UsersHandler
 from api.infra.db.variants import VariantsHandler
 from api.infra.db.vep_meta import VEPMetaHandler
-from api.infra.external.brcaexchange import BRCAHandler
-from api.infra.external.civic import CivicHandler
-from api.infra.external.cosmic import CosmicHandler
-from api.infra.external.hgnc import HGNCHandler
-from api.infra.external.iarc_tp53 import IARCTP53Handler
-from api.infra.external.oncokb import OnkoKBHandler
+from api.infra.knowledgebase.plugins import enabled_knowledgebase_plugins
 
 
 # -------------------------------------------------------------------------
@@ -166,18 +161,13 @@ class MongoAdapter:
         self.annotation_handler = AnnotationsHandler(self)
         self.sample_handler = SampleHandler(self)
         self.asp_handler = ASPHandler(self)
-        self.civic_handler = CivicHandler(self)
-        self.iarc_tp53_handler = IARCTP53Handler(self)
-        self.brca_handler = BRCAHandler(self)
         self.blacklist_handler = BlacklistHandler(self)
         self.expression_handler = ExpressionHandler(self)
         self.bam_service_handler = BamServiceHandler(self)
-        self.oncokb_handler = OnkoKBHandler(self)
         self.user_handler = UsersHandler(self)
         self.fusion_handler = FusionsHandler(self)
         self.biomarker_handler = BiomarkerHandler(self)
         self.coverage_handler = CoverageHandler(self)
-        self.cosmic_handler = CosmicHandler(self)
         self.groupcov_handler = GroupCoverageHandler(self)
         self.aspc_handler = ASPConfigHandler(self)
         self.roles_handler = RolesHandler(self)
@@ -185,11 +175,12 @@ class MongoAdapter:
         self.query_profiles_handler = QueryProfilesHandler(self)
         self.vep_meta_handler = VEPMetaHandler(self)
         self.isgl_handler = ISGLHandler(self)
-        self.hgnc_handler = HGNCHandler(self)
         self.rna_expression_handler = RNAExpressionHandler(self)
         self.rna_classification_handler = RNAClassificationHandler(self)
         self.rna_qc_handler = RNAQCHandler(self)
         self.reported_variants_handler = ReportedVariantsHandler(self)
+        for plugin in enabled_knowledgebase_plugins(self.app.config):
+            setattr(self, plugin.handler_attr, plugin.handler_cls(self))
         self._ensure_handler_indexes("users", self.user_handler)
         self._ensure_handler_indexes("roles", self.roles_handler)
         self._ensure_handler_indexes("permissions", self.permissions_handler)
@@ -209,17 +200,13 @@ class MongoAdapter:
         self._ensure_handler_indexes("groupcov", self.groupcov_handler)
         self._ensure_handler_indexes("reported_variants", self.reported_variants_handler)
         self._ensure_handler_indexes("vep_meta", self.vep_meta_handler)
-        self._ensure_handler_indexes("hgnc", self.hgnc_handler)
-        self._ensure_handler_indexes("cosmic", self.cosmic_handler)
         self._ensure_handler_indexes("bam_service", self.bam_service_handler)
         self._ensure_handler_indexes("rna_expression", self.rna_expression_handler)
         self._ensure_handler_indexes("rna_classification", self.rna_classification_handler)
         self._ensure_handler_indexes("rna_qc", self.rna_qc_handler)
         self._ensure_handler_indexes("expression", self.expression_handler)
-        self._ensure_handler_indexes("civic", self.civic_handler)
-        self._ensure_handler_indexes("oncokb", self.oncokb_handler)
-        self._ensure_handler_indexes("brca", self.brca_handler)
-        self._ensure_handler_indexes("iarc_tp53", self.iarc_tp53_handler)
+        for plugin in enabled_knowledgebase_plugins(self.app.config):
+            self._ensure_handler_indexes(plugin.index_name, getattr(self, plugin.handler_attr))
         self._ensure_dashboard_metrics_indexes()
 
     def _ensure_handler_indexes(self, handler_name: str, handler: object) -> None:

@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from api.runtime import app
+from api.runtime_state import app
 
 
 def _resolve_conseq_terms_mapper(

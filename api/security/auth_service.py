@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from api.domain.models.user import UserModel
+from api.core.models.user import UserModel
 from api.extensions import ldap_manager
 from api.observability.auth_metrics import emit_auth_metric
-from api.runtime import app
+from api.runtime_state import app
 from api.security.repository import get_security_repository
 
 
@@ -61,7 +61,7 @@ def build_user_session_payload(user_doc: dict) -> dict:
     repo = get_security_repository()
     role_doc = repo.get_role(user_doc.get("role")) or {}
     asp_docs = repo.get_all_active_asps()
-    user_model = UserModel.from_mongo(user_doc, role_doc, asp_docs)
+    user_model = UserModel.from_repository_payload(user_doc, role_doc, asp_docs)
     return user_model.to_dict()
 
 

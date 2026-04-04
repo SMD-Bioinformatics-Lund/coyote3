@@ -5,7 +5,7 @@ from __future__ import annotations
 from api.extensions import store
 
 
-class MongoInternalRepository:
+class InternalRepository:
     """Provide mongo internal persistence operations."""
 
     def get_all_roles(self) -> list[dict]:

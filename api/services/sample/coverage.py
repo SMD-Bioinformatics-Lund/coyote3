@@ -7,27 +7,23 @@ from copy import deepcopy
 from typing import Any
 
 from api.core.coverage.coverage_processing import CoverageProcessingService
+from api.core.coverage.ports import CoverageRepository
+from api.core.coverage.route_ports import CoverageRouteRepository
+from api.extensions import store
 from api.http import api_error
-from api.repositories.coverage_repository import (
-    CoverageRepository as MongoCoverageRepository,
-)
-from api.repositories.coverage_repository import (
-    CoverageRouteRepository as MongoCoverageRouteRepository,
-)
 
 
 class CoverageService:
     """Own coverage read and blacklist-view workflows."""
 
-    def __init__(self, repository=None, processing_repository=None) -> None:
-        """__init__.
-
-        Args:
-                repository: Repository. Optional argument.
-                processing_repository: Processing repository. Optional argument.
-        """
-        self.repository = repository or MongoCoverageRouteRepository()
-        self.processing_repository = processing_repository or MongoCoverageRepository()
+    def __init__(
+        self,
+        repository: CoverageRouteRepository | None = None,
+        processing_repository: CoverageRepository | None = None,
+    ) -> None:
+        """Build the service with route and processing repositories."""
+        self.repository = repository or store.get_coverage_route_repository()
+        self.processing_repository = processing_repository or store.get_coverage_repository()
         if not CoverageProcessingService.has_repository():
             CoverageProcessingService.set_repository(self.processing_repository)
 

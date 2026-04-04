@@ -1,8 +1,5 @@
 # Repository Standards
 
-This page defines the current repository standards. It is authoritative and
-describes expected behavior now.
-
 ## Codebase Boundaries
 
 - `api/` is the authoritative backend runtime for business logic, security,
@@ -23,6 +20,16 @@ The repository enforces the following standards for runtime code:
 - no compatibility-shim markers in runtime Python code
 - seed and assay consistency validation must pass
 - generated collection-contract documentation must be up to date
+
+## Persistence Rules
+
+- Domain code depends on repository ports, not datastore implementations.
+- Datastore selection belongs to runtime bootstrap and dependency wiring.
+- Provider-native IDs, query syntax, exceptions, and transaction details stay in
+  `api/infra`.
+- Services and core workflows return domain-shaped data, not raw datastore
+  records.
+- New persistence work must follow the portability plan.
 
 ## Required Validation Command
 

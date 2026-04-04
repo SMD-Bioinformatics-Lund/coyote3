@@ -17,10 +17,12 @@ def test_canonical_api_packages_exist():
         Path("api/lifecycle.py"),
         Path("api/routers"),
         Path("api/services"),
-        Path("api/repositories"),
         Path("api/contracts"),
         Path("api/deps"),
-        Path("api/db/mongo"),
+        Path("api/infra/repositories"),
+        Path("api/infra/db"),
+        Path("api/infra/knowledgebase"),
+        Path("api/infra/integrations"),
     ]
 
     missing = [path.as_posix() for path in required_paths if not path.exists()]

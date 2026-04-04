@@ -8,16 +8,16 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-import api.services.accounts.role_admin as admin_role_service_module
-import api.services.accounts.user_admin as admin_user_service_module
-import api.services.admin_resource.sample_service as admin_resource_service_module
+import api.services.accounts.roles as admin_role_service_module
+import api.services.accounts.users as admin_user_service_module
+import api.services.resources.sample as admin_resource_service_module
 from api.services.accounts.permissions import PermissionManagementService
-from api.services.accounts.role_admin import AdminRoleService
-from api.services.accounts.user_admin import AdminUserService
-from api.services.admin_resource.aspc_service import AdminAspcService
-from api.services.admin_resource.genelist_service import AdminGenelistService
-from api.services.admin_resource.panel_service import AdminPanelService
-from api.services.admin_resource.sample_service import AdminSampleService
+from api.services.accounts.roles import RoleManagementService
+from api.services.accounts.users import UserManagementService
+from api.services.resources.asp import AspService
+from api.services.resources.aspc import AspcService
+from api.services.resources.isgl import IsglService
+from api.services.resources.sample import ResourceSampleService
 
 
 class _AdminRepoStub:
@@ -52,66 +52,6 @@ class _AdminRepoStub:
             The function result.
         """
         return {"admin": "#000"}
-
-    def get_active_schema(self, **kwargs):
-        """Return active schema.
-
-        Args:
-            **kwargs: Additional keyword values for ``kwargs``.
-
-        Returns:
-            The function result.
-        """
-        return (
-            [
-                {
-                    "_id": "schema1",
-                    "schema_id": "schema1",
-                    "version": 2,
-                    "fields": {
-                        "role": {},
-                        "permissions": {},
-                        "deny_permissions": {},
-                        "assay_groups": {},
-                        "created_by": {},
-                        "created_on": {},
-                        "updated_by": {},
-                        "updated_on": {},
-                    },
-                }
-            ],
-            {
-                "_id": "schema1",
-                "schema_id": "schema1",
-                "version": 2,
-                "fields": {
-                    "role": {},
-                    "permissions": {},
-                    "deny_permissions": {},
-                    "assay_groups": {},
-                    "created_by": {},
-                    "created_on": {},
-                    "updated_by": {},
-                    "updated_on": {},
-                },
-            },
-        )
-
-    def clone_schema(self, schema):
-        """Clone schema.
-
-        Args:
-            schema: Value for ``schema``.
-
-        Returns:
-            The function result.
-        """
-        return {
-            "_id": schema["_id"],
-            "schema_id": schema["schema_id"],
-            "version": schema["version"],
-            "fields": {k: dict(v) for k, v in schema["fields"].items()},
-        }
 
     def list_permission_policy_options(self):
         """List permission policy options.
@@ -797,20 +737,18 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
         The function result.
     """
     repo = _AdminRepoStub()
-    service = AdminUserService(repository=repo)
-    monkeypatch.setattr("api.services.accounts.user_admin.current_actor", lambda username: username)
+    service = UserManagementService(repository=repo)
+    monkeypatch.setattr("api.services.accounts.users.current_actor", lambda username: username)
     monkeypatch.setattr(
-        "api.services.accounts.user_admin.inject_version_history",
+        "api.services.accounts.users.inject_version_history",
         lambda **kwargs: kwargs["new_config"],
     )
-    monkeypatch.setattr(
-        "api.services.accounts.user_admin.utc_now", lambda: datetime.now(timezone.utc)
-    )
+    monkeypatch.setattr("api.services.accounts.users.utc_now", lambda: datetime.now(timezone.utc))
     monkeypatch.setattr(
         admin_user_service_module.util,
-        "admin",
+        "records",
         SimpleNamespace(
-            process_form_to_config=lambda form_data, schema: {
+            normalize_form_payload=lambda form_data, schema: {
                 "username": form_data["username"],
                 "email": form_data["email"],
                 "firstname": form_data.get("firstname", "Test"),
@@ -859,7 +797,7 @@ def test_admin_user_service_toggle_user_sets_status():
         The function result.
     """
     repo = _AdminRepoStub()
-    service = AdminUserService(repository=repo)
+    service = UserManagementService(repository=repo)
 
     payload = service.toggle_user(user_id="tester")
 
@@ -877,25 +815,22 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
         The function result.
     """
     repo = _AdminRepoStub()
-    service = AdminRoleService(repository=repo)
-    monkeypatch.setattr("api.services.accounts.role_admin.current_actor", lambda username: username)
+    service = RoleManagementService(repository=repo)
+    monkeypatch.setattr("api.services.accounts.roles.current_actor", lambda username: username)
     monkeypatch.setattr(
-        "api.services.accounts.role_admin.inject_version_history",
+        "api.services.accounts.roles.inject_version_history",
         lambda **kwargs: kwargs["new_config"],
     )
     monkeypatch.setattr(
-        admin_role_service_module.util,
-        "admin",
-        SimpleNamespace(
-            process_form_to_config=lambda form_data, schema: {
-                "name": form_data["name"],
-                "label": form_data.get("name", ""),
-                "color": "#1f2937",
-                "permissions": [],
-                "deny_permissions": [],
-            }
-        ),
-        raising=False,
+        admin_role_service_module,
+        "normalize_managed_form_payload",
+        lambda _spec, form_data: {
+            "name": form_data["name"],
+            "label": form_data.get("name", ""),
+            "color": "#1f2937",
+            "permissions": [],
+            "deny_permissions": [],
+        },
     )
 
     payload = service.create_role(
@@ -915,7 +850,7 @@ def test_admin_role_service_delete_role_removes_existing_role():
         The function result.
     """
     repo = _AdminRepoStub()
-    service = AdminRoleService(repository=repo)
+    service = RoleManagementService(repository=repo)
 
     payload = service.delete_role(role_id="admin")
 
@@ -938,15 +873,15 @@ def test_admin_permission_service_groups_permissions():
     assert "General" in payload["grouped_permissions"]
 
 
-def test_admin_permission_service_create_context_uses_backend_contract_schema():
-    """Permission create-context should be served from backend contract schema."""
+def test_admin_permission_service_create_context_uses_backend_contract_form():
+    """Permission create-context should be served from the backend contract form."""
     repo = _AdminRepoStub()
     service = PermissionManagementService(repository=repo)
 
-    payload = service.create_context_payload(schema_id=None, actor_username="actor@example.com")
+    payload = service.create_context_payload(actor_username="actor@example.com")
 
-    assert payload["selected_schema"]["schema_id"] == "permission_schema_contract_v1"
-    assert payload["schema"]["fields"]["created_by"]["default"] == "actor@example.com"
+    assert payload["form"]["form_type"] == "permission"
+    assert payload["form"]["fields"]["created_by"]["default"] == "actor@example.com"
 
 
 def test_admin_permission_service_toggle_permission_sets_status():
@@ -971,7 +906,7 @@ def test_admin_panel_service_toggle_panel_sets_status():
         The function result.
     """
     repo = _AdminRepoStub()
-    service = AdminPanelService(repository=repo)
+    service = AspService(repository=repo)
 
     payload = service.toggle(panel_id="WGS")
 
@@ -986,7 +921,7 @@ def test_admin_genelist_service_view_context_filters_genes():
         The function result.
     """
     repo = _AdminRepoStub()
-    service = AdminGenelistService(repository=repo)
+    service = IsglService(repository=repo)
 
     payload = service.view_context_payload(genelist_id="GL1", assay="WGS")
 
@@ -1001,7 +936,7 @@ def test_admin_aspc_service_create_rejects_duplicate():
         The function result.
     """
     repo = _AdminRepoStub()
-    service = AdminAspcService(repository=repo)
+    service = AspcService(repository=repo)
 
     with pytest.raises(HTTPException) as exc:
         service.create(payload={"config": {"aspc_id": "WGS:prod"}})
@@ -1019,17 +954,13 @@ def test_admin_sample_service_update_restores_ids(monkeypatch):
         The function result.
     """
     repo = _AdminRepoStub()
-    service = AdminSampleService(repository=repo)
-    monkeypatch.setattr(
-        "api.services.admin_resource.sample_service.current_actor", lambda username: username
-    )
-    monkeypatch.setattr(
-        "api.services.admin_resource.sample_service.utc_now", lambda: datetime.now(timezone.utc)
-    )
+    service = ResourceSampleService(repository=repo)
+    monkeypatch.setattr("api.services.resources.sample.current_actor", lambda username: username)
+    monkeypatch.setattr("api.services.resources.sample.utc_now", lambda: datetime.now(timezone.utc))
     monkeypatch.setattr(
         admin_resource_service_module.util,
         "admin",
-        SimpleNamespace(restore_objectids=lambda payload: payload),
+        SimpleNamespace(restore_object_ids=lambda payload: payload),
         raising=False,
     )
 

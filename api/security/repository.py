@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from api.infra.repositories.security_mongo import MongoSecurityRepository
+from api.extensions import store
 from api.security.ports import SecurityRepository
 
 _override_repository: SecurityRepository | None = None
@@ -27,7 +27,7 @@ def get_security_repository() -> SecurityRepository:
     """Return the active security repository implementation.
 
     Returns:
-        The override repository when configured, otherwise the default Mongo
+        The override repository when configured, otherwise the active provider
         implementation.
     """
     global _override_repository
@@ -52,6 +52,6 @@ def _default_security_repository() -> SecurityRepository:
     """Return the cached default security repository implementation.
 
     Returns:
-        The default Mongo-backed security repository.
+        The active provider security repository.
     """
-    return MongoSecurityRepository()
+    return store.get_security_repository()

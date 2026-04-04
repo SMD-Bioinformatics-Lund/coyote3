@@ -5,13 +5,14 @@ from __future__ import annotations
 from typing import Any
 
 from api.contracts.managed_resources import aspc_spec_for_category
-from api.contracts.managed_ui_schemas import build_managed_schema
+from api.contracts.managed_ui_schemas import build_form_spec
 from api.core.interpretation.annotation_enrichment import add_global_annotations
 from api.core.interpretation.report_summary import generate_summary_text
 from api.core.workflows.rna_workflow import RNAWorkflowService
+from api.extensions import store
 from api.http import api_error, get_formatted_assay_config
-from api.repositories.rna_repository import RnaRouteRepository, RnaWorkflowRepository
-from api.runtime import app as runtime_app
+from api.infra.repositories.rna_workflow_mongo import RnaWorkflowRepository
+from api.runtime_state import app as runtime_app
 
 
 class RnaService:
@@ -19,17 +20,12 @@ class RnaService:
 
     def __init__(
         self,
-        repository: RnaRouteRepository | None = None,
+        repository: Any | None = None,
         workflow_repository: RnaWorkflowRepository | None = None,
     ) -> None:
-        """__init__.
-
-        Args:
-                repository: Repository. Optional argument.
-                workflow_repository: Workflow repository. Optional argument.
-        """
-        self.repository = repository or RnaRouteRepository()
-        self.workflow_repository = workflow_repository or RnaWorkflowRepository()
+        """Build the service with route and workflow repositories."""
+        self.repository = repository or store.get_rna_route_repository()
+        self.workflow_repository = workflow_repository or store.get_rna_workflow_repository()
         if not RNAWorkflowService.has_repository():
             RNAWorkflowService.set_repository(self.workflow_repository)
 
@@ -77,7 +73,7 @@ class RnaService:
         )
         assay_group = assay_config.get("asp_group", "unknown")
         subpanel = sample.get("subpanel")
-        assay_config_schema = build_managed_schema(aspc_spec_for_category("RNA"))
+        assay_config_schema = build_form_spec(aspc_spec_for_category("RNA"))
         assay_panel_doc = self.repository.asp_handler.get_asp(asp_name=sample.get("assay"))
         fusionlist_options = self.repository.isgl_handler.get_isgl_by_asp(
             sample.get("assay"), is_active=True, list_type="fusionlist"

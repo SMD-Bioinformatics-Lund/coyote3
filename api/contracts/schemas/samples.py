@@ -83,13 +83,23 @@ class SamplesDoc(_DocBase):
     classification_path: str | None = None
     qc: str | None = None
     uploaded_file_checksums: dict[str, str] = Field(default_factory=dict)
-    filters: DnaFiltersDoc | RnaFiltersDoc = Field(default_factory=dict)
+    filters: DnaFiltersDoc | RnaFiltersDoc | None = None
     comments: list[SampleCommentDoc] = Field(default_factory=list)
     reports: list[SampleReportDoc] = Field(default_factory=list)
-    case: SampleCaseControlDoc = Field(default_factory=dict)
+    case: SampleCaseControlDoc = Field(default_factory=SampleCaseControlDoc)
     control: SampleCaseControlDoc | None = None
     report_num: int = 0
     time_added: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @model_validator(mode="after")
+    def _hydrate_nested_defaults(self) -> "SamplesDoc":
+        """Materialize typed nested defaults instead of leaving raw dict placeholders."""
+        if self.filters is None:
+            if self.omics_layer == "dna":
+                self.filters = DnaFiltersDoc()
+            elif self.omics_layer == "rna":
+                self.filters = RnaFiltersDoc()
+        return self
 
     @field_validator("sequencing_scope", "omics_layer", mode="before")
     @classmethod

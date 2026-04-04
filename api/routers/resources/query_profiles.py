@@ -8,7 +8,7 @@ from api.contracts.admin import AdminQueryProfileOptionsPayload
 from api.deps.services import get_admin_query_profile_service
 from api.extensions import util
 from api.security.access import ApiUser, require_access
-from api.services.admin_resource.aspc_service import AdminQueryProfileService
+from api.services.resources.aspc import QueryProfileService
 
 router = APIRouter(tags=["resource-query-profiles"])
 
@@ -22,7 +22,7 @@ def query_profile_options_read(
     assay_group: str = Query(default=""),
     environment: str = Query(default=""),
     user: ApiUser = Depends(require_access(permission="view_aspc", min_role="user", min_level=9)),
-    service: AdminQueryProfileService = Depends(get_admin_query_profile_service),
+    service: QueryProfileService = Depends(get_admin_query_profile_service),
 ):
     _ = user
     return util.common.convert_to_serializable(

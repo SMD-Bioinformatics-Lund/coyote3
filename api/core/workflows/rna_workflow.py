@@ -9,7 +9,7 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any
 
-from api.common.utility import CommonUtility
+from api.common.utility import utc_now
 from api.core.interpretation.annotation_enrichment import add_alt_class
 from api.core.reporting.pipeline import (
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
@@ -32,7 +32,7 @@ from api.core.workflows.contracts import (
 from api.core.workflows.filter_normalization import normalize_rna_filter_keys
 from api.core.workflows.ports import RNAWorkflowRepository
 from api.extensions import util
-from api.runtime import app
+from api.runtime_state import app
 
 
 class RNAWorkflowService:
@@ -283,7 +283,7 @@ class RNAWorkflowService:
         """
         Build snapshot rows for report persistence.
         """
-        created_on = CommonUtility.utc_now()
+        created_on = utc_now()
         rows = []
 
         for fus in fusions:

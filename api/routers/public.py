@@ -19,11 +19,8 @@ from api.contracts.public import (
     PublicGeneSymbolsPayload,
 )
 from api.core.public.catalog import PublicCatalogService
-from api.extensions import util
+from api.extensions import store, util
 from api.http import api_error as _api_error
-from api.repositories.public_repository import (
-    PublicCatalogRepository as MongoPublicCatalogRepository,
-)
 
 router = APIRouter(tags=["public"])
 
@@ -38,7 +35,7 @@ def _catalog_service() -> type[PublicCatalogService]:
             The  catalog service result.
     """
     if not PublicCatalogService.has_repository():
-        PublicCatalogService.set_repository(MongoPublicCatalogRepository())
+        PublicCatalogService.set_repository(store.get_public_catalog_repository())
     return PublicCatalogService
 
 

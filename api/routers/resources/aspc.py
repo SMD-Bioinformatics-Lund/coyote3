@@ -14,7 +14,7 @@ from api.contracts.admin import (
 from api.deps.services import get_admin_aspc_service
 from api.extensions import util
 from api.security.access import ApiUser, require_access
-from api.services.admin_resource.aspc_service import AdminAspcService
+from api.services.resources.aspc import AspcService
 
 router = APIRouter(tags=["resource-aspc"])
 
@@ -25,13 +25,13 @@ def list_aspc_read(
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=30, ge=1, le=200),
     user: ApiUser = Depends(require_access(permission="view_aspc", min_role="user", min_level=9)),
-    service: AdminAspcService = Depends(get_admin_aspc_service),
+    service: AspcService = Depends(get_admin_aspc_service),
 ):
     """List aspc read.
 
     Args:
         user (ApiUser): Value for ``user``.
-        service (AdminAspcService): Value for ``service``.
+        service (AspcService): Value for ``service``.
 
     Returns:
         The function result.
@@ -45,27 +45,23 @@ def list_aspc_read(
 @router.get("/api/v1/resources/aspc/create_context", response_model=AdminAspcCreateContextPayload)
 def create_aspc_context_read(
     category: str = Query(default="DNA"),
-    schema_id: str | None = Query(default=None),
     user: ApiUser = Depends(
         require_access(permission="create_aspc", min_role="manager", min_level=99)
     ),
-    service: AdminAspcService = Depends(get_admin_aspc_service),
+    service: AspcService = Depends(get_admin_aspc_service),
 ):
     """Create aspc context read.
 
     Args:
         category (str): Value for ``category``.
-        schema_id (str | None): Value for ``schema_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminAspcService): Value for ``service``.
+        service (AspcService): Value for ``service``.
 
     Returns:
         The function result.
     """
     return util.common.convert_to_serializable(
-        service.create_context_payload(
-            category=category, schema_id=schema_id, actor_username=user.username
-        )
+        service.create_context_payload(category=category, actor_username=user.username)
     )
 
 
@@ -73,14 +69,14 @@ def create_aspc_context_read(
 def aspc_context_read(
     assay_id: str,
     user: ApiUser = Depends(require_access(permission="view_aspc", min_role="user", min_level=9)),
-    service: AdminAspcService = Depends(get_admin_aspc_service),
+    service: AspcService = Depends(get_admin_aspc_service),
 ):
     """Aspc context read.
 
     Args:
         assay_id (str): Value for ``assay_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminAspcService): Value for ``service``.
+        service (AspcService): Value for ``service``.
 
     Returns:
         The function result.
@@ -100,14 +96,14 @@ def create_aspc_mutation(
     user: ApiUser = Depends(
         require_access(permission="create_aspc", min_role="manager", min_level=99)
     ),
-    service: AdminAspcService = Depends(get_admin_aspc_service),
+    service: AspcService = Depends(get_admin_aspc_service),
 ):
     """Create aspc mutation.
 
     Args:
         payload (dict): Value for ``payload``.
         user (ApiUser): Value for ``user``.
-        service (AdminAspcService): Value for ``service``.
+        service (AspcService): Value for ``service``.
 
     Returns:
         The function result.
@@ -128,7 +124,7 @@ def update_aspc_mutation(
     user: ApiUser = Depends(
         require_access(permission="edit_aspc", min_role="manager", min_level=99)
     ),
-    service: AdminAspcService = Depends(get_admin_aspc_service),
+    service: AspcService = Depends(get_admin_aspc_service),
 ):
     """Update aspc mutation.
 
@@ -136,7 +132,7 @@ def update_aspc_mutation(
         assay_id (str): Value for ``assay_id``.
         payload (dict): Value for ``payload``.
         user (ApiUser): Value for ``user``.
-        service (AdminAspcService): Value for ``service``.
+        service (AspcService): Value for ``service``.
 
     Returns:
         The function result.
@@ -156,14 +152,14 @@ def toggle_aspc_mutation(
     user: ApiUser = Depends(
         require_access(permission="edit_aspc", min_role="manager", min_level=99)
     ),
-    service: AdminAspcService = Depends(get_admin_aspc_service),
+    service: AspcService = Depends(get_admin_aspc_service),
 ):
     """Toggle aspc mutation.
 
     Args:
         assay_id (str): Value for ``assay_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminAspcService): Value for ``service``.
+        service (AspcService): Value for ``service``.
 
     Returns:
         The function result.
@@ -182,14 +178,14 @@ def delete_aspc_mutation(
     user: ApiUser = Depends(
         require_access(permission="delete_aspc", min_role="admin", min_level=99999)
     ),
-    service: AdminAspcService = Depends(get_admin_aspc_service),
+    service: AspcService = Depends(get_admin_aspc_service),
 ):
     """Delete aspc mutation.
 
     Args:
         assay_id (str): Value for ``assay_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminAspcService): Value for ``service``.
+        service (AspcService): Value for ``service``.
 
     Returns:
         The function result.
@@ -204,7 +200,7 @@ def validate_aspc_id_mutation(
     user: ApiUser = Depends(
         require_access(permission="create_aspc", min_role="manager", min_level=99)
     ),
-    service: AdminAspcService = Depends(get_admin_aspc_service),
+    service: AspcService = Depends(get_admin_aspc_service),
 ):
     """Validate whether an aspc_id already exists."""
     _ = user

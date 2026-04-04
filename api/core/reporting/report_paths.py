@@ -3,13 +3,13 @@
 import os
 from typing import Tuple
 
-from api.common.utility import CommonUtility
-from api.errors.exceptions import AppError
+from api.common.utility import utc_now
+from api.core.exceptions import AppError
 
 
 def get_report_timestamp() -> str:
     """Return UTC timestamp suffix used in report ids."""
-    return CommonUtility.utc_now().strftime("%y%m%d%H%M%S")
+    return utc_now().strftime("%y%m%d%H%M%S")
 
 
 def build_report_file_location(

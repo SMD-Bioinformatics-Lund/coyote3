@@ -99,7 +99,6 @@ def list_permissions_read(
     "/api/v1/permissions/create_context", response_model=AdminPermissionCreateContextPayload
 )
 def create_permission_context_read(
-    schema_id: str | None = Query(default=None),
     user: ApiUser = Depends(
         require_access(permission="create_permission_policy", min_role="admin", min_level=99999)
     ),
@@ -108,7 +107,6 @@ def create_permission_context_read(
     """Create permission context read.
 
     Args:
-        schema_id (str | None): Value for ``schema_id``.
         user (ApiUser): Value for ``user``.
         service (PermissionManagementService): Value for ``service``.
 
@@ -116,7 +114,7 @@ def create_permission_context_read(
         The function result.
     """
     return util.common.convert_to_serializable(
-        service.create_context_payload(schema_id=schema_id, actor_username=user.username)
+        service.create_context_payload(actor_username=user.username)
     )
 
 

@@ -8,7 +8,7 @@ from typing import Any
 from api.extensions import store
 
 
-class MongoSecurityRepository:
+class UserRepository:
     """Provide mongo security persistence operations."""
 
     def get_role(self, role_id: str | None) -> dict[str, Any] | None:

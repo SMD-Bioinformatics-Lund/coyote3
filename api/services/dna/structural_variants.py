@@ -8,20 +8,16 @@ from typing import Any
 from api.core.dna.cnvqueries import build_cnv_query
 from api.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
 from api.core.dna.translocqueries import build_transloc_query
+from api.extensions import store
 from api.http import api_error, get_formatted_assay_config
-from api.repositories.dna_repository import DnaRouteRepository
 
 
 class DnaStructuralService:
     """Provide dna structural workflows."""
 
-    def __init__(self, repository: DnaRouteRepository | None = None) -> None:
-        """__init__.
-
-        Args:
-                repository: Repository. Optional argument.
-        """
-        self.repository = repository or DnaRouteRepository()
+    def __init__(self, repository: Any | None = None) -> None:
+        """Build the service with a structural-variant repository."""
+        self.repository = repository or store.get_dna_route_repository()
 
     @staticmethod
     def mutation_payload(

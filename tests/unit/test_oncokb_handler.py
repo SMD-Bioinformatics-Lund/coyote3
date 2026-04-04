@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from api.infra.external.civic import CivicHandler
-from api.infra.external.oncokb import OnkoKBHandler
+from api.infra.knowledgebase.civic import CivicHandler
+from api.infra.knowledgebase.oncokb import OnkoKBHandler
 
 
 class _FakeCollection:

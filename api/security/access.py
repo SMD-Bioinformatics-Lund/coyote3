@@ -9,10 +9,10 @@ from functools import lru_cache
 from fastapi import HTTPException, Request
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
-from api.audit.access_events import emit_access_event
-from api.domain.models.user import UserModel
-from api.runtime import app as runtime_app
-from api.runtime import reset_current_user, set_current_user
+from api.core.models.user import UserModel
+from api.runtime_state import app as runtime_app
+from api.runtime_state import reset_current_user, set_current_user
+from api.security.audit_events import emit_access_event
 from api.security.repository import get_security_repository
 from api.settings import (
     get_api_secret_key,
@@ -232,7 +232,7 @@ def _api_user_from_doc(user_doc: dict) -> ApiUser:
     repo = get_security_repository()
     role_doc = repo.get_role(user_doc.get("role")) or {}
     asp_docs = repo.get_all_active_asps()
-    user_model = UserModel.from_mongo(user_doc, role_doc, asp_docs)
+    user_model = UserModel.from_repository_payload(user_doc, role_doc, asp_docs)
     return ApiUser(
         id=str(user_model.id),
         email=user_model.email,

@@ -14,12 +14,12 @@ from api.contracts.admin import (
 from api.deps.services import get_admin_user_service
 from api.extensions import util
 from api.security.access import ApiUser, require_access
-from api.services.accounts.user_admin import AdminUserService
+from api.services.accounts.users import UserManagementService
 
 router = APIRouter(tags=["admin-users"])
 
 
-def _service() -> AdminUserService:
+def _service() -> UserManagementService:
     """Service.
 
     Returns:
@@ -36,13 +36,13 @@ def list_users_read(
     user: ApiUser = Depends(
         require_access(permission="view_user", min_role="admin", min_level=99999)
     ),
-    service: AdminUserService = Depends(get_admin_user_service),
+    service: UserManagementService = Depends(get_admin_user_service),
 ):
     """List users read.
 
     Args:
         user (ApiUser): Value for ``user``.
-        service (AdminUserService): Value for ``service``.
+        service (UserManagementService): Value for ``service``.
 
     Returns:
         The function result.
@@ -55,24 +55,22 @@ def list_users_read(
 
 @router.get("/api/v1/users/create_context", response_model=AdminUserCreateContextPayload)
 def create_user_context_read(
-    schema_id: str | None = Query(default=None),
     user: ApiUser = Depends(
         require_access(permission="create_user", min_role="admin", min_level=99999)
     ),
-    service: AdminUserService = Depends(get_admin_user_service),
+    service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Create user context read.
 
     Args:
-        schema_id (str | None): Value for ``schema_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminUserService): Value for ``service``.
+        service (UserManagementService): Value for ``service``.
 
     Returns:
         The function result.
     """
     return util.common.convert_to_serializable(
-        service.create_context_payload(schema_id=schema_id, actor_username=user.username)
+        service.create_context_payload(actor_username=user.username)
     )
 
 
@@ -82,14 +80,14 @@ def user_context_read(
     user: ApiUser = Depends(
         require_access(permission="view_user", min_role="admin", min_level=99999)
     ),
-    service: AdminUserService = Depends(get_admin_user_service),
+    service: UserManagementService = Depends(get_admin_user_service),
 ):
     """User context read.
 
     Args:
         user_id (str): Value for ``user_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminUserService): Value for ``service``.
+        service (UserManagementService): Value for ``service``.
 
     Returns:
         The function result.
@@ -98,7 +96,7 @@ def user_context_read(
     return util.common.convert_to_serializable(service.context_payload(user_id=user_id))
 
 
-def _create_user(payload: dict, actor_username: str, service: AdminUserService):
+def _create_user(payload: dict, actor_username: str, service: UserManagementService):
     """Create user.
 
     Args:
@@ -122,14 +120,14 @@ def create_user(
     user: ApiUser = Depends(
         require_access(permission="create_user", min_role="admin", min_level=99999)
     ),
-    service: AdminUserService = Depends(get_admin_user_service),
+    service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Create user.
 
     Args:
         payload (dict): Value for ``payload``.
         user (ApiUser): Value for ``user``.
-        service (AdminUserService): Value for ``service``.
+        service (UserManagementService): Value for ``service``.
 
     Returns:
         The function result.
@@ -137,7 +135,7 @@ def create_user(
     return _create_user(payload=payload, actor_username=user.username, service=service)
 
 
-def _update_user(user_id: str, payload: dict, actor_username: str, service: AdminUserService):
+def _update_user(user_id: str, payload: dict, actor_username: str, service: UserManagementService):
     """Update user.
 
     Args:
@@ -161,7 +159,7 @@ def update_user(
     user: ApiUser = Depends(
         require_access(permission="edit_user", min_role="admin", min_level=99999)
     ),
-    service: AdminUserService = Depends(get_admin_user_service),
+    service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Update user.
 
@@ -169,7 +167,7 @@ def update_user(
         user_id (str): Value for ``user_id``.
         payload (dict): Value for ``payload``.
         user (ApiUser): Value for ``user``.
-        service (AdminUserService): Value for ``service``.
+        service (UserManagementService): Value for ``service``.
 
     Returns:
         The function result.
@@ -179,7 +177,7 @@ def update_user(
     )
 
 
-def _delete_user(user_id: str, service: AdminUserService):
+def _delete_user(user_id: str, service: UserManagementService):
     """Delete user.
 
     Args:
@@ -200,14 +198,14 @@ def delete_user(
     user: ApiUser = Depends(
         require_access(permission="delete_user", min_role="admin", min_level=99999)
     ),
-    service: AdminUserService = Depends(get_admin_user_service),
+    service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Delete user.
 
     Args:
         user_id (str): Value for ``user_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminUserService): Value for ``service``.
+        service (UserManagementService): Value for ``service``.
 
     Returns:
         The function result.
@@ -216,7 +214,7 @@ def delete_user(
     return _delete_user(user_id=user_id, service=service)
 
 
-def _toggle_user(user_id: str, service: AdminUserService):
+def _toggle_user(user_id: str, service: UserManagementService):
     """Toggle user.
 
     Args:
@@ -239,14 +237,14 @@ def toggle_user_status(
     user: ApiUser = Depends(
         require_access(permission="edit_user", min_role="admin", min_level=99999)
     ),
-    service: AdminUserService = Depends(get_admin_user_service),
+    service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Toggle user status.
 
     Args:
         user_id (str): Value for ``user_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminUserService): Value for ``service``.
+        service (UserManagementService): Value for ``service``.
 
     Returns:
         The function result.
@@ -265,7 +263,7 @@ def invite_local_user(
     user: ApiUser = Depends(
         require_access(permission="edit_user", min_role="admin", min_level=99999)
     ),
-    service: AdminUserService = Depends(get_admin_user_service),
+    service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Issue a set-password invite link for local users."""
     return util.common.convert_to_serializable(
@@ -279,14 +277,14 @@ def validate_username_mutation(
     user: ApiUser = Depends(
         require_access(permission="create_user", min_role="admin", min_level=99999)
     ),
-    service: AdminUserService = Depends(get_admin_user_service),
+    service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Validate username mutation.
 
     Args:
         payload (dict): Value for ``payload``.
         user (ApiUser): Value for ``user``.
-        service (AdminUserService): Value for ``service``.
+        service (UserManagementService): Value for ``service``.
 
     Returns:
         The function result.
@@ -303,14 +301,14 @@ def validate_email_mutation(
     user: ApiUser = Depends(
         require_access(permission="create_user", min_role="admin", min_level=99999)
     ),
-    service: AdminUserService = Depends(get_admin_user_service),
+    service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Validate email mutation.
 
     Args:
         payload (dict): Value for ``payload``.
         user (ApiUser): Value for ``user``.
-        service (AdminUserService): Value for ``service``.
+        service (UserManagementService): Value for ``service``.
 
     Returns:
         The function result.

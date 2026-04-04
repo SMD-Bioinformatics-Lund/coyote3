@@ -2,25 +2,18 @@
 Shared reporting persistence pipeline for DNA/RNA save flows.
 """
 
+from __future__ import annotations
+
 import os
 
-from api.errors.exceptions import AppError
-from api.extensions import util
-from api.infra.repositories.core_store_mongo import MongoCoreStoreRepository
-
-_core_repo_instance: MongoCoreStoreRepository | None = None
+from api.core.exceptions import AppError
+from api.core.reporting.ports import ReportingPersistenceRepository
+from api.extensions import store, util
 
 
-def _core_repo() -> MongoCoreStoreRepository:
-    """Core repo.
-
-    Returns:
-            The  core repo result.
-    """
-    global _core_repo_instance
-    if _core_repo_instance is None:
-        _core_repo_instance = MongoCoreStoreRepository()
-    return _core_repo_instance
+def _reporting_repository() -> ReportingPersistenceRepository:
+    """Return the active reporting persistence repository."""
+    return store.get_reporting_persistence_repository()
 
 
 def prepare_report_output(report_path: str, report_file: str, logger=None) -> None:
@@ -60,14 +53,14 @@ def persist_report_and_snapshot(
             details="Could not write the report to the file system.",
         )
 
-    report_oid = _core_repo().sample_handler.save_report(
+    report_oid = _reporting_repository().save_report(
         sample_id=sample_id,
         report_num=report_num,
         report_id=report_id,
         filepath=report_file,
     )
 
-    _core_repo().reported_variants_handler.bulk_upsert_from_snapshot_rows(
+    _reporting_repository().bulk_upsert_snapshot_rows(
         sample_name=sample.get("name"),
         sample_oid=sample.get("_id"),
         report_oid=report_oid,

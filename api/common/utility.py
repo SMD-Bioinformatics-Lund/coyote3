@@ -11,8 +11,7 @@ from __future__ import annotations
 import base64
 import json
 import os
-import subprocess
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from hashlib import md5
 from pathlib import Path
 from typing import Any, Dict, Tuple
@@ -102,10 +101,9 @@ from api.common.serialization import (
 )
 from api.core.dna.variant_identity import (
     build_simple_id,
-    build_simple_id_hash_from_simple_id,
     normalize_simple_id,
 )
-from api.runtime import app, current_username
+from api.runtime_state import app, current_username
 
 
 class CommonUtility:
@@ -169,15 +167,6 @@ class CommonUtility:
             variant.get("REF"),
             variant.get("ALT"),
         )
-
-    @staticmethod
-    def get_simple_id_hash(variant: dict) -> str:
-        """
-        Generate deterministic MD5 hex hash for variant identity.
-
-        The hash input is always the canonical normalized simple_id.
-        """
-        return build_simple_id_hash_from_simple_id(CommonUtility.get_simple_id(variant))
 
     @staticmethod
     def assay_config(assay_name: str = None) -> dict:
@@ -248,26 +237,6 @@ class CommonUtility:
         return _get_assay_genelist_names(genelists)
 
     @staticmethod
-    def get_active_branch_name() -> str | None:
-        """
-        Get curr checked out git branch name. Used to display version name
-        in debug mode.
-
-        Credit: https://stackoverflow.com/a/62724213
-        """
-        head_dir = Path(".git/HEAD")
-
-        if not os.path.exists(head_dir):
-            return "unknown branch"
-
-        with head_dir.open("r") as f:
-            content = f.read().splitlines()
-
-            for line in content:
-                if line[0:4] == "ref:":
-                    return line.partition("refs/heads/")[2]
-
-    @staticmethod
     def nl_num(i: int, gender: str) -> Any | str:
         """
         Return the Swedish word for a number, optionally using the neuter form for 'one'.
@@ -302,56 +271,6 @@ class CommonUtility:
             return str(i)
 
     @staticmethod
-    def get_hg38_pos(chr: str, pos: str) -> tuple:
-        """
-        Get the hg38 genomic position for a given chromosome and position.
-
-        This function calls an external script (specified in the application config as HG38_POS_SCRIPT)
-        with the provided chromosome and position as arguments. It returns the chromosome and position
-        in hg38 coordinates as a tuple.
-
-        Args:
-            chr (str): The chromosome identifier (e.g., 'chr1', '1').
-            pos (str): The position on the chromosome.
-
-        Returns:
-            tuple: A tuple containing the hg38 chromosome and position as strings.
-        """
-
-        hg38 = subprocess.check_output([app.config["HG38_POS_SCRIPT"], chr, pos]).decode("utf-8")
-        hg38_chr, hg38_pos = hg38.split(":")
-
-        return hg38_chr, hg38_pos
-
-    @staticmethod
-    def get_ncbi_link(chr: str, pos: str) -> str:
-        """
-        Generate an HTML link to the NCBI genomic region for a given chromosome and position.
-
-        Returns a hyperlink to the NCBI nuccore page, displaying the genomic region
-        centered at the specified position (±500 bases).
-
-        Returns:
-            str: HTML anchor tag linking to the NCBI genomic region.
-        """
-        _chr = app.config["NCBI_CHR"].get(chr)
-        return f'<a href="https://www.ncbi.nlm.nih.gov/nuccore/{_chr}?report=fasta&from={int(pos) - 500}&to={int(pos) + 500}">NCBI genomic region</a>'
-
-    @staticmethod
-    def get_thermo_link(chr: str, pos: str) -> str:
-        """
-        Generate an HTML link to the ThermoFisher genomic region for a given chromosome and position.
-
-        Args:
-            chr (str): The chromosome identifier.
-            pos (str): The position on the chromosome.
-
-        Returns:
-            str: HTML anchor tag linking to the ThermoFisher genomic region for ordering primers.
-        """
-        return f'<a href="https://www.thermofisher.com/order/genome-database/searchResults?searchMode=keyword&CID=&ICID=&productTypeSelect=ceprimer&targetTypeSelect=ceprimer_all&alternateTargetTypeSelect=&alternateProductTypeSelect=&originalCount=0&species=Homo+sapiens&otherSpecies=&additionalFilter=ceprimer-human-exome&keyword=&sequenceInput=&selectedInputType=&chromosome={chr}&chromStart={pos}&chromStop={pos}&vcfUpload=&multiChromoSome=&batchText=&batchUpload=&sequenceUpload=&multiSequence=&multiSequenceNames=&priorSearchTerms=%28NR%29">Order primers from ThermoFisher</a>'
-
-    @staticmethod
     def nl_join(arr: list, joiner: str) -> str:
         """
         Join a list of strings in a natural language style using the given joiner.
@@ -370,40 +289,6 @@ class CommonUtility:
         if len(arr) > 2:
             last = arr.pop()
             return f"{', '.join(arr)} {joiner} {last}"
-
-    @staticmethod
-    def get_sample_type(assay: str) -> str:
-        """
-        Returns the sample type as a string based on the assay name.
-
-        If the assay is not "fusion" or "fusionrna", returns "dna".
-        Otherwise, returns "rna".
-
-        Args:
-            assay (str): The name of the assay.
-
-        Returns:
-            str: "dna" if the assay is not a fusion assay, otherwise "rna".
-        """
-        if assay not in ["fusion", "fusionrna"]:
-            return "dna"
-        else:
-            return "rna"
-
-    @staticmethod
-    def filter_non_zero_data(data: dict) -> dict:
-        """
-        Remove items from the dictionary where the value is not greater than zero.
-
-        Returns a new dictionary containing only the items with values greater than zero.
-
-        Args:
-            data (dict): The input dictionary to filter.
-
-        Returns:
-            dict: A dictionary with only items where the value is greater than zero.
-        """
-        return {k: v for k, v in data.items() if v > 0}
 
     @staticmethod
     def convert_object_id(data: Any) -> list | dict | str | Any:
@@ -459,31 +344,6 @@ class CommonUtility:
             dict: The reconstructed dictionary from the tuple of pairs.
         """
         return _tuple_to_dict(t)
-
-    @staticmethod
-    def get_genelist_dispnames(genelists: dict, filter_list: None | list) -> str:
-        """
-        Get display names of genelists.
-
-        This function extracts the display names from a list of gene lists. If a filter list is provided,
-        only the gene lists whose names are in the filter list will have their display names extracted.
-
-        Args:
-            genelists (dict): A dictionary where each key is a gene list and each value is a dictionary containing gene list details, including the "displayname".
-            filter_list (None | list): A list of gene list names to filter by. If None, all gene lists will be considered.
-
-        Returns:
-            list[str]: A list of display names of the gene lists.
-        """
-        if filter_list is None:
-            display_names = [genelist.get("displayname") for genelist in genelists]
-        else:
-            display_names = [
-                genelist.get("displayname")
-                for genelist in genelists
-                if genelist.get("name") in filter_list
-            ]
-        return display_names
 
     @staticmethod
     def get_report_header(assay: str, sample: dict, header: str) -> str:
@@ -570,29 +430,6 @@ class CommonUtility:
             image_path = os.path.join(plot_dir, f"{fn}")
             return CommonUtility.get_base64_image(image_path)
         return False
-
-    @staticmethod
-    def get_date_today() -> str:
-        """
-        Get today's date as a string in YYYY-MM-DD format.
-
-        Returns:
-            str: The current date in ISO format (YYYY-MM-DD).
-        """
-        return CommonUtility.utc_now().strftime("%Y-%m-%d")
-
-    @staticmethod
-    def get_date_days_ago(days: int) -> str:
-        """
-        Get the date a specified number of days ago as a string in YYYY-MM-DD format.
-
-        Args:
-            days (int): The number of days to subtract from today.
-
-        Returns:
-            str: The date in ISO format (YYYY-MM-DD) for the specified days ago.
-        """
-        return CommonUtility.utc_now() - timedelta(days=days)
 
     @staticmethod
     def generate_sample_cache_key(**kwargs) -> str:
@@ -745,3 +582,27 @@ class CommonUtility:
     @staticmethod
     def get_sample_effective_genes(sample: dict, asp_doc: dict, checked_gl_dict: dict) -> tuple:
         return _get_sample_effective_genes(sample, asp_doc, checked_gl_dict)
+
+
+# ---------------------------------------------------------------------------
+# Module-level aliases — prefer importing these directly over CommonUtility.X
+# ---------------------------------------------------------------------------
+utc_now = CommonUtility.utc_now
+hash_password = CommonUtility.hash_password
+get_simple_id = CommonUtility.get_simple_id
+nl_num = CommonUtility.nl_num
+nl_join = CommonUtility.nl_join
+get_report_header = CommonUtility.get_report_header
+write_report = CommonUtility.write_report
+get_base64_image = CommonUtility.get_base64_image
+get_plot = CommonUtility.get_plot
+generate_sample_cache_key = CommonUtility.generate_sample_cache_key
+get_tier_classification = CommonUtility.get_tier_classification
+create_classified_variant_doc = CommonUtility.create_classified_variant_doc
+convert_to_serializable = _convert_to_serializable
+convert_object_id = _convert_object_id
+dict_to_tuple = _dict_to_tuple
+tuple_to_dict = _tuple_to_dict
+merge_sample_settings_with_assay_config = _merge_sample_settings_with_assay_config
+get_sample_effective_genes = _get_sample_effective_genes
+get_assay_genelist_names = _get_assay_genelist_names

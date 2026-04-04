@@ -1,24 +1,18 @@
 """Report summary and shared interpretation helpers."""
 
+from __future__ import annotations
+
 from collections import defaultdict
 
-from api.common.utility import CommonUtility
-from api.infra.repositories.core_store_mongo import MongoCoreStoreRepository
-from api.runtime import app, current_username
+from api.common.utility import nl_join, nl_num, utc_now
+from api.core.interpretation.ports import InterpretationRepository
+from api.extensions import store
+from api.runtime_state import app, current_username
 
-_core_repo_instance: MongoCoreStoreRepository | None = None
 
-
-def _core_repo() -> MongoCoreStoreRepository:
-    """Core repo.
-
-    Returns:
-            The  core repo result.
-    """
-    global _core_repo_instance
-    if _core_repo_instance is None:
-        _core_repo_instance = MongoCoreStoreRepository()
-    return _core_repo_instance
+def _interpretation_repository() -> InterpretationRepository:
+    """Return the active interpretation repository."""
+    return store.get_interpretation_repository()
 
 
 def process_gene_annotations(annotations: dict) -> dict:
@@ -96,7 +90,7 @@ def create_comment_doc(
         doc = {
             "text": data.get(key),
             "author": author,
-            "time_created": CommonUtility.utc_now(),
+            "time_created": utc_now(),
             "variant": variant,
             "nomenclature": nomenclature,
             "assay": data.get("assay_group", None),
@@ -110,11 +104,11 @@ def create_comment_doc(
             doc["gene2"] = data.get("gene2", None)
     else:
         doc = {
-            "_id": _core_repo().new_object_id(),
+            "_id": _interpretation_repository().new_comment_id(),
             "hidden": 0,
             "text": data.get(key),
             "author": author,
-            "time_created": CommonUtility.utc_now(),
+            "time_created": utc_now(),
         }
     return doc
 
@@ -213,16 +207,13 @@ def summarize_intro(
 
     if len(checked_genelists) > 0:
         the_lists = [genelist.upper() for genelist in checked_genelists]
-        the_lists_spoken = CommonUtility.nl_join(the_lists, "samt")
+        the_lists_spoken = nl_join(the_lists, "samt")
         genepanel_plural = "an" if len(checked_genelists) == 1 else "orna"
         gene_plural = "en" if len(genes_chosen) == 1 else "erna"
         incl_genes_copy = genes_chosen[:]
         if len(genes_chosen) <= 20:
             the_genes = (
-                " som innefattar gen"
-                + gene_plural
-                + ": "
-                + str(CommonUtility.nl_join(incl_genes_copy, "samt"))
+                " som innefattar gen" + gene_plural + ": " + str(nl_join(incl_genes_copy, "samt"))
             )
         else:
             the_genes = " som innefattar " + str(len(genes_chosen)) + " gener"
@@ -236,7 +227,7 @@ def summarize_intro(
             + ". "
         )
         if len(sample_ids) == 2 and germline_intersection:
-            germ_spoken = str(CommonUtility.nl_join(germline_intersection, "samt"))
+            germ_spoken = str(nl_join(germline_intersection, "samt"))
             text += f"För {germ_spoken} undersöks även konstitutionella mutationer."
 
     text += "\n\n"
@@ -379,7 +370,7 @@ def summarize_cnv(variants: list) -> str:
         effect = vois.pop()
         effect = "amplifiering" if effect == "amp" else "förlust"
         if len(vois) > 1:
-            gene_spoken = CommonUtility.nl_join(vois, "samt")
+            gene_spoken = nl_join(vois, "samt")
             gene = "generna " + gene_spoken
         else:
             gene = "genen " + vois[0]
@@ -507,31 +498,25 @@ def summarize_tiered_snvs(class_vars: dict, class_cnt: dict, text: str) -> str:
         num_vars = class_cnt[tier]
         num_genes = len(class_vars[tier])
         plural = "er" if num_vars > 1 else ""
-        text += CommonUtility.nl_num(num_vars, "n") + " mutation" + plural + tiers_text[tier]
+        text += nl_num(num_vars, "n") + " mutation" + plural + tiers_text[tier]
         if num_genes == 1:
             first = 0
             for gene, perc_arr in class_vars[tier].items():
-                text += (
-                    " i "
-                    + gene
-                    + " (i "
-                    + CommonUtility.nl_join(perc_arr, "respektive")
-                    + " av läsningarna)"
-                )
+                text += " i " + gene + " (i " + nl_join(perc_arr, "respektive") + " av läsningarna)"
         elif num_genes > 1:
             text += ": "
             gene_texts = []
             for gene, perc_arr in class_vars[tier].items():
-                t = CommonUtility.nl_num(len(perc_arr), "n") + " i " + gene + " ("
+                t = nl_num(len(perc_arr), "n") + " i " + gene + " ("
                 if first == 1:
                     t += "i "
-                t += CommonUtility.nl_join(perc_arr, "respektive")
+                t += nl_join(perc_arr, "respektive")
                 if first == 1:
                     t += " av läsningarna"
                 t += ")"
                 gene_texts.append(t)
                 first = 0
-            text += CommonUtility.nl_join(gene_texts, "och")
+            text += nl_join(gene_texts, "och")
         text += ". "
     return text
 
@@ -565,7 +550,7 @@ def enrich_reported_variant_docs(tier_docs: list) -> list:
     if not tier_docs:
         return []
 
-    repo = _core_repo()
+    repo = _interpretation_repository()
     sample_ids: list[object] = []
     annotation_ids: list[object] = []
 
@@ -580,15 +565,13 @@ def enrich_reported_variant_docs(tier_docs: list) -> list:
 
     sample_map: dict[str, dict] = {}
     if sample_ids:
-        for sample in repo.sample_handler.get_samples_by_oids(list(set(sample_ids))) or []:
+        for sample in repo.get_samples_by_oids(list(set(sample_ids))) or []:
             if isinstance(sample, dict):
                 sample_map[str(sample.get("_id"))] = sample
 
     annotation_map: dict[str, dict] = {}
     if annotation_ids:
-        annotations = repo.annotation_handler.get_collection().find(
-            {"_id": {"$in": list(set(annotation_ids))}}
-        )
+        annotations = repo.list_annotations_by_ids(list(set(annotation_ids)))
         for annotation in annotations:
             if isinstance(annotation, dict):
                 annotation_map[str(annotation.get("_id"))] = annotation

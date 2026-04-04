@@ -8,8 +8,8 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
+from api.infra.repositories import dna_repository as dna_repo_module
 from api.main import app as api_app
-from api.repositories import dna_repository as dna_repo_module
 from api.routers import biomarkers as biomarker_router
 from api.routers import classifications as classification_router
 from api.routers import small_variants as dna
@@ -18,6 +18,23 @@ from api.security.access import ApiUser
 from api.services.dna import variant_analysis as dna_service_module
 from api.services.dna.variant_analysis import DnaService
 from tests.fixtures.api import mock_collections as fx
+
+
+def _dna_service() -> DnaService:
+    """Build a DNA service with an explicit route repository."""
+    return DnaService(repository=dna_repo_module.DnaRouteRepository())
+
+
+def _biomarker_service() -> biomarker_router.BiomarkerService:
+    """Build a biomarker service with an explicit route repository."""
+    return biomarker_router.BiomarkerService(repository=dna_repo_module.DnaRouteRepository())
+
+
+def _classification_service() -> classification_router.ResourceClassificationService:
+    """Build a classification service with an explicit route repository."""
+    return classification_router.ResourceClassificationService(
+        repository=dna_repo_module.DnaRouteRepository()
+    )
 
 
 def test_mutation_payload_shape():
@@ -46,7 +63,7 @@ def test_load_cnvs_for_sample_uses_collection_shaped_docs(monkeypatch):
     sample = fx.sample_doc()
     sample_filters = sample["filters"]
     cnv_rows = [fx.cnv_doc()]
-    service = DnaService()
+    service = _dna_service()
 
     monkeypatch.setattr(
         dna_repo_module.store.cnv_handler, "get_sample_cnvs", lambda query: cnv_rows
@@ -76,7 +93,7 @@ def test_list_dna_biomarkers_success(monkeypatch):
     """
     sample = fx.sample_doc()
     biomarkers = [{"_id": "b1", "name": "TMB", "value": "High"}]
-    service = biomarker_router.BiomarkerService()
+    service = _biomarker_service()
 
     monkeypatch.setattr(biomarker_router, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(
@@ -102,7 +119,7 @@ def test_show_dna_variant_not_found_raises_404(monkeypatch):
     Returns:
         The function result.
     """
-    service = DnaService()
+    service = _dna_service()
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(dna_repo_module.store.variant_handler, "get_variant", lambda var_id: None)
 
@@ -134,7 +151,7 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
         "transcripts": [],
     }
     captured: dict = {"hgvsp": None}
-    service = DnaService()
+    service = _dna_service()
 
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(dna, "_get_formatted_assay_config", lambda _sample: {"asp_group": "dna"})
@@ -231,7 +248,7 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
         "reporting": {},  # intentionally missing report_path
     }
 
-    service = DnaService()
+    service = _dna_service()
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(dna, "_get_formatted_assay_config", lambda _sample: assay_config)
     monkeypatch.setattr(dna.util.common, "merge_sample_settings_with_assay_config", lambda s, a: s)
@@ -324,7 +341,7 @@ def test_classify_variant_mutation_calls_insert(monkeypatch):
         "S1",
         payload={"id": "V1", "form_data": {"tier3": "on"}},
         user=fx.api_user(),
-        service=classification_router.ResourceClassificationService(),
+        service=_classification_service(),
     )
 
     assert payload["status"] == "ok"
@@ -361,7 +378,7 @@ def test_set_variant_false_positive_bulk_prefers_json_payload(monkeypatch):
         resource_ids=["ignored-query-id"],
         payload={"apply": True, "resource_ids": ["V1", "V2"]},
         user=fx.api_user(),
-        service=DnaService(),
+        service=_dna_service(),
     )
 
     assert payload["status"] == "ok"
@@ -398,7 +415,7 @@ def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
         resource_ids=["ignored-query-id"],
         payload={"apply": False, "resource_ids": ["V9"]},
         user=fx.api_user(),
-        service=DnaService(),
+        service=_dna_service(),
     )
 
     assert payload["status"] == "ok"
@@ -479,7 +496,7 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
             "tier": 3,
         },
         user=fx.api_user(),
-        service=classification_router.ResourceClassificationService(),
+        service=_classification_service(),
     )
 
     assert payload["status"] == "ok"
@@ -555,7 +572,7 @@ def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatc
             "tier": 3,
         },
         user=fx.api_user(),
-        service=classification_router.ResourceClassificationService(),
+        service=_classification_service(),
     )
 
     assert payload["status"] == "ok"
@@ -614,7 +631,7 @@ def test_bulk_fp_endpoint_dispatches_in_real_http_route(monkeypatch):
         The function result.
     """
     captured: dict = {}
-    service = DnaService()
+    service = _dna_service()
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
         service,
@@ -646,7 +663,7 @@ def test_bulk_irrelevant_endpoint_dispatches_in_real_http_route(monkeypatch):
         The function result.
     """
     captured: dict = {}
-    service = DnaService()
+    service = _dna_service()
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
         service,
@@ -738,7 +755,7 @@ def test_snv_export_context_route_returns_typed_csv_payload(monkeypatch):
         request=request,
         sample_id="S1",
         user=_download_test_user(),
-        service=DnaService(),
+        service=_dna_service(),
     )
     assert body["filename"].endswith(".filtered.snvs.csv")
     assert "hgvsp" in body["content"]
@@ -793,7 +810,7 @@ def test_transloc_export_context_route_returns_typed_csv_payload(monkeypatch):
         request=request,
         sample_id="S1",
         user=_download_test_user(),
-        service=DnaService(),
+        service=_dna_service(),
     )
     assert body["filename"].endswith(".filtered.translocs.csv")
     assert "gene_1" in body["content"]

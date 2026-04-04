@@ -14,12 +14,12 @@ from api.contracts.admin import (
 from api.deps.services import get_admin_role_service
 from api.extensions import util
 from api.security.access import ApiUser, require_access
-from api.services.accounts.role_admin import AdminRoleService
+from api.services.accounts.roles import RoleManagementService
 
 router = APIRouter(tags=["admin-roles"])
 
 
-def _service() -> AdminRoleService:
+def _service() -> RoleManagementService:
     """Service.
 
     Returns:
@@ -36,13 +36,13 @@ def list_roles_read(
     user: ApiUser = Depends(
         require_access(permission="view_role", min_role="admin", min_level=99999)
     ),
-    service: AdminRoleService = Depends(get_admin_role_service),
+    service: RoleManagementService = Depends(get_admin_role_service),
 ):
     """List roles read.
 
     Args:
         user (ApiUser): Value for ``user``.
-        service (AdminRoleService): Value for ``service``.
+        service (RoleManagementService): Value for ``service``.
 
     Returns:
         The function result.
@@ -55,24 +55,22 @@ def list_roles_read(
 
 @router.get("/api/v1/roles/create_context", response_model=AdminRoleCreateContextPayload)
 def create_role_context_read(
-    schema_id: str | None = Query(default=None),
     user: ApiUser = Depends(
         require_access(permission="create_role", min_role="admin", min_level=99999)
     ),
-    service: AdminRoleService = Depends(get_admin_role_service),
+    service: RoleManagementService = Depends(get_admin_role_service),
 ):
     """Create role context read.
 
     Args:
-        schema_id (str | None): Value for ``schema_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminRoleService): Value for ``service``.
+        service (RoleManagementService): Value for ``service``.
 
     Returns:
         The function result.
     """
     return util.common.convert_to_serializable(
-        service.create_context_payload(schema_id=schema_id, actor_username=user.username)
+        service.create_context_payload(actor_username=user.username)
     )
 
 
@@ -82,14 +80,14 @@ def role_context_read(
     user: ApiUser = Depends(
         require_access(permission="view_role", min_role="admin", min_level=99999)
     ),
-    service: AdminRoleService = Depends(get_admin_role_service),
+    service: RoleManagementService = Depends(get_admin_role_service),
 ):
     """Role context read.
 
     Args:
         role_id (str): Value for ``role_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminRoleService): Value for ``service``.
+        service (RoleManagementService): Value for ``service``.
 
     Returns:
         The function result.
@@ -98,7 +96,7 @@ def role_context_read(
     return util.common.convert_to_serializable(service.context_payload(role_id=role_id))
 
 
-def _create_role(payload: dict, actor_username: str, service: AdminRoleService):
+def _create_role(payload: dict, actor_username: str, service: RoleManagementService):
     """Create role.
 
     Args:
@@ -122,14 +120,14 @@ def create_role(
     user: ApiUser = Depends(
         require_access(permission="create_role", min_role="admin", min_level=99999)
     ),
-    service: AdminRoleService = Depends(get_admin_role_service),
+    service: RoleManagementService = Depends(get_admin_role_service),
 ):
     """Create role.
 
     Args:
         payload (dict): Value for ``payload``.
         user (ApiUser): Value for ``user``.
-        service (AdminRoleService): Value for ``service``.
+        service (RoleManagementService): Value for ``service``.
 
     Returns:
         The function result.
@@ -137,7 +135,7 @@ def create_role(
     return _create_role(payload=payload, actor_username=user.username, service=service)
 
 
-def _update_role(role_id: str, payload: dict, actor_username: str, service: AdminRoleService):
+def _update_role(role_id: str, payload: dict, actor_username: str, service: RoleManagementService):
     """Update role.
 
     Args:
@@ -161,7 +159,7 @@ def update_role(
     user: ApiUser = Depends(
         require_access(permission="edit_role", min_role="admin", min_level=99999)
     ),
-    service: AdminRoleService = Depends(get_admin_role_service),
+    service: RoleManagementService = Depends(get_admin_role_service),
 ):
     """Update role.
 
@@ -169,7 +167,7 @@ def update_role(
         role_id (str): Value for ``role_id``.
         payload (dict): Value for ``payload``.
         user (ApiUser): Value for ``user``.
-        service (AdminRoleService): Value for ``service``.
+        service (RoleManagementService): Value for ``service``.
 
     Returns:
         The function result.
@@ -179,7 +177,7 @@ def update_role(
     )
 
 
-def _toggle_role(role_id: str, service: AdminRoleService):
+def _toggle_role(role_id: str, service: RoleManagementService):
     """Toggle role.
 
     Args:
@@ -202,14 +200,14 @@ def toggle_role_status(
     user: ApiUser = Depends(
         require_access(permission="edit_role", min_role="admin", min_level=99999)
     ),
-    service: AdminRoleService = Depends(get_admin_role_service),
+    service: RoleManagementService = Depends(get_admin_role_service),
 ):
     """Toggle role status.
 
     Args:
         role_id (str): Value for ``role_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminRoleService): Value for ``service``.
+        service (RoleManagementService): Value for ``service``.
 
     Returns:
         The function result.
@@ -218,7 +216,7 @@ def toggle_role_status(
     return _toggle_role(role_id=role_id, service=service)
 
 
-def _delete_role(role_id: str, service: AdminRoleService):
+def _delete_role(role_id: str, service: RoleManagementService):
     """Delete role.
 
     Args:
@@ -239,14 +237,14 @@ def delete_role(
     user: ApiUser = Depends(
         require_access(permission="delete_role", min_role="admin", min_level=99999)
     ),
-    service: AdminRoleService = Depends(get_admin_role_service),
+    service: RoleManagementService = Depends(get_admin_role_service),
 ):
     """Delete role.
 
     Args:
         role_id (str): Value for ``role_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminRoleService): Value for ``service``.
+        service (RoleManagementService): Value for ``service``.
 
     Returns:
         The function result.
@@ -261,7 +259,7 @@ def validate_role_id_mutation(
     user: ApiUser = Depends(
         require_access(permission="create_role", min_role="admin", min_level=99999)
     ),
-    service: AdminRoleService = Depends(get_admin_role_service),
+    service: RoleManagementService = Depends(get_admin_role_service),
 ):
     """Validate whether a role_id already exists."""
     _ = user

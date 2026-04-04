@@ -6,21 +6,17 @@ import hashlib
 import json
 from typing import Any
 
+from api.core.dashboard.ports import DashboardRepository
 from api.extensions import util
-from api.repositories.dashboard_repository import DashboardRepository as MongoDashboardRepository
-from api.runtime import app as runtime_app
+from api.runtime_state import app as runtime_app
 
 
 class DashboardService:
     """Provide dashboard workflows."""
 
-    def __init__(self, repository=None) -> None:
-        """__init__.
-
-        Args:
-                repository: Repository. Optional argument.
-        """
-        self.repository = repository or MongoDashboardRepository()
+    def __init__(self, repository: DashboardRepository) -> None:
+        """Build the service with a dashboard repository implementation."""
+        self.repository = repository
 
     @staticmethod
     def _cache_backend():

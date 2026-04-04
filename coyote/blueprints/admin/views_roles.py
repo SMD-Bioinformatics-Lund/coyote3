@@ -142,7 +142,7 @@ def create_role() -> Response | str:
 
     return render_template(
         "roles/create_role.html",
-        schema=context.schema,
+        schema=context.form,
     )
 
 
@@ -212,7 +212,7 @@ def edit_role(role_id: str) -> Response | str:
 
     return render_template(
         "roles/edit_role.html",
-        schema=context.schema,
+        schema=context.form,
         role_doc=role,
         selected_version=request.args.get("version", type=int),
         delta=delta,
@@ -249,7 +249,7 @@ def view_role(role_id: str) -> Response | str:
 
     return render_template(
         "roles/view_role.html",
-        schema=context.schema,
+        schema=context.form,
         role_doc=role,
         selected_version=selected_version or role.get("version"),
         delta=delta,

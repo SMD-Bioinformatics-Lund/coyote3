@@ -72,26 +72,36 @@ What to validate:
 
 Typical files:
 
-- Repository adapter: `api/infra/repositories/*.py`
-- Mongo handlers: `api/infra/db/*.py`
+- Repository port: `api/core/<domain>/ports.py`
+- Dependency wiring: `api/deps/*.py`
+- Provider implementation: `api/infra/<provider>/repositories/*.py`
 
 Example pattern:
 
 ```python
-# repository adapter
-def get_dashboard_user_rollup(self) -> dict:
-    return dict(store.user_handler.get_dashboard_user_rollup() or {})
+# service dependency
+class DashboardService:
+    def __init__(self, repository: DashboardRepository) -> None:
+        self.repository = repository
 ```
 
 ```python
-# DB handler
-pipeline = [{"$facet": {...}}]
-return self.get_collection().aggregate(pipeline)
+# provider implementation
+def get_dashboard_user_rollup(self) -> dict:
+    ...
+```
+
+```python
+# provider query code
+def get_dashboard_user_rollup(self) -> dict:
+    ...
 ```
 
 What to validate:
 
-- indexes support new query
+- repository port describes the business operation, not storage details
+- service/core code does not import provider-specific modules
+- provider code owns query shape, index use, and error translation
 - output shape is stable for contracts
 - cache invalidation is called for write paths
 
@@ -109,11 +119,11 @@ result["active_users"] = active_users
 
 ### 2) Repository layer
 
-Add the query in repository class, for example `api/infra/repositories/dashboard_mongo.py`.
+Add the query in the provider implementation for the repository port.
 
 ```python
 def count_active_users(self, center: str) -> int:
-    return self._users.count_documents({"center": center, "is_active": True})
+    ...
 ```
 
 ### 3) Router/contract
@@ -181,3 +191,9 @@ PYTHONPATH=. ruff check api coyote tests scripts
 PYTHONPATH=. pytest -q
 mkdocs build --strict
 ```
+
+## Persistence design rule
+
+For any new backend feature, keep datastore-specific code inside `api/infra`.
+If the work adds a new persistence operation, add it to the appropriate
+repository in `api/infra/repositories/`.

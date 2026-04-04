@@ -8,8 +8,6 @@ from datetime import datetime, timezone
 from typing import Any
 
 import yaml  # type: ignore[import-untyped]
-from bson.objectid import ObjectId
-from pymongo.errors import BulkWriteError, DuplicateKeyError
 
 from api.contracts.schemas.registry import (
     INGEST_DEPENDENT_COLLECTIONS,
@@ -24,6 +22,7 @@ from api.contracts.schemas.samples import (
     SamplesDoc,
 )
 from api.core.dna.variant_identity import ensure_variant_identity_fields
+from api.core.internal.ports import InternalIngestRepository
 from api.extensions import store
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.services.ingest.helpers import (
@@ -35,6 +34,11 @@ from api.services.ingest.helpers import (
 from api.services.ingest.parsers import DnaIngestParser, RnaIngestParser, infer_omics_layer
 
 logger = logging.getLogger(__name__)
+
+
+def _repository() -> InternalIngestRepository:
+    """Return the active persistence repository for internal ingest workflows."""
+    return store.get_internal_ingest_repository()
 
 
 def _catch_left_right(case_id: str, name: str) -> tuple[str, str, str]:
@@ -68,7 +72,8 @@ def _next_unique_name(case_id: str, increment: bool) -> str:
         ValueError: If the name already exists and increment is False, or if
             suffix resolution fails.
     """
-    existing_exact = list(store.sample_handler.get_collection().find({"name": case_id}))
+    repository = _repository()
+    existing_exact = repository.list_samples_by_exact_name(case_id)
     if not existing_exact:
         return case_id
     if not increment:
@@ -76,7 +81,7 @@ def _next_unique_name(case_id: str, increment: bool) -> str:
 
     suffixes: list[str] = []
     true_matches = 0
-    for doc in store.sample_handler.get_collection().find({"name": {"$regex": case_id}}):
+    for doc in repository.list_samples_by_name_pattern(case_id):
         left, right, true = _catch_left_right(case_id, doc["name"])
         if right and not left and true:
             suffixes.append(right)
@@ -117,25 +122,6 @@ class InternalIngestService:
         return supported_collections()
 
     @staticmethod
-    def _resolve_collection(name: str):
-        """Resolve collection by ingest alias from store handlers or raw DB."""
-        handler_map = {
-            "variants": "variant_handler",
-            "cnvs": "cnv_handler",
-            "biomarkers": "biomarker_handler",
-            "transloc": "transloc_handler",
-            "panel_coverage": "coverage_handler",
-            "fusions": "fusion_handler",
-            "rna_expression": "rna_expression_handler",
-            "rna_classification": "rna_classification_handler",
-            "rna_qc": "rna_qc_handler",
-        }
-        handler_name = handler_map.get(name)
-        if handler_name and hasattr(store, handler_name):
-            return getattr(store, handler_name).get_collection()
-        return store.coyote_db[name]
-
-    @staticmethod
     def parse_yaml_payload(yaml_content: str) -> dict[str, Any]:
         """Parse and validate a YAML ingest payload string.
 
@@ -156,13 +142,13 @@ class InternalIngestService:
 
     @staticmethod
     def _canonical_map() -> dict[str, str]:
-        """Build a gene-to-canonical-RefSeq mapping from the refseq_canonical collection.
+        """Build a gene-to-canonical-RefSeq mapping from reference data.
 
         Returns:
             A dict mapping gene symbol to canonical RefSeq accession (no version).
         """
         mapping: dict[str, str] = {}
-        for doc in store.coyote_db["refseq_canonical"].find({}):
+        for doc in _repository().list_refseq_canonical_documents():
             gene = doc.get("gene")
             canonical = doc.get("canonical")
             if gene and canonical:
@@ -214,7 +200,7 @@ class InternalIngestService:
         cls,
         *,
         preload: dict[str, Any],
-        sample_id: ObjectId,
+        sample_id: str,
         sample_name: str,
     ) -> dict[str, int]:
         """Write all dependent analysis documents for a newly created sample.
@@ -224,7 +210,7 @@ class InternalIngestService:
 
         Args:
             preload: Parsed analysis data keyed by type (snvs, cnvs, cov, etc.).
-            sample_id: ObjectId of the newly inserted samples document.
+            sample_id: Sample id of the newly inserted sample document.
             sample_name: Human-readable sample name (used for coverage docs).
 
         Returns:
@@ -234,13 +220,12 @@ class InternalIngestService:
             TypeError: If a payload value has an unexpected type for its key.
         """
         sid = str(sample_id)
+        repository = _repository()
         written: dict[str, int] = {}
         for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
             if key not in preload:
                 continue
             payload = preload[key]
-            col = cls._resolve_collection(col_name)
-
             if key in INGEST_SINGLE_DOCUMENT_KEYS:
                 if not isinstance(payload, dict):
                     raise TypeError(f"{key} expected dict, got {type(payload).__name__}")
@@ -249,7 +234,7 @@ class InternalIngestService:
                 if key == "cov":
                     doc["sample"] = sample_name
                 normalized_doc = cls._normalize_collection_docs(col_name, [doc])[0]
-                col.insert_one(normalized_doc)
+                repository.insert_collection_document(col_name, normalized_doc)
                 written[key] = 1
                 continue
 
@@ -266,7 +251,7 @@ class InternalIngestService:
                 docs.append(doc)
             normalized_docs = cls._normalize_collection_docs(col_name, docs)
             if normalized_docs:
-                col.insert_many(normalized_docs)
+                repository.insert_collection_documents(col_name, normalized_docs)
             written[key] = len(normalized_docs)
         return written
 
@@ -282,12 +267,12 @@ class InternalIngestService:
         """Insert dependent analysis payload for an existing sample id."""
         sid = str(sample_id)
         written: dict[str, int] = {}
+        repository = _repository()
         for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
             if key not in preload:
                 continue
-            col = cls._resolve_collection(col_name)
             if delete_existing:
-                col.delete_many({"SAMPLE_ID": sid})
+                repository.delete_collection_documents(col_name, {"SAMPLE_ID": sid})
 
             raw_payload: Any = preload[key]
             if key in INGEST_SINGLE_DOCUMENT_KEYS:
@@ -298,7 +283,7 @@ class InternalIngestService:
                 if key == "cov":
                     doc["sample"] = sample_name
                 normalized_doc = cls._normalize_collection_docs(col_name, [doc])[0]
-                col.insert_one(normalized_doc)
+                repository.insert_collection_document(col_name, normalized_doc)
                 written[key] = 1
                 continue
 
@@ -315,28 +300,29 @@ class InternalIngestService:
                 docs.append(doc)
             normalized_docs = cls._normalize_collection_docs(col_name, docs)
             if normalized_docs:
-                col.insert_many(normalized_docs)
+                repository.insert_collection_documents(col_name, normalized_docs)
             written[key] = len(normalized_docs)
         return written
 
     @classmethod
-    def _cleanup(cls, sample_id: ObjectId) -> None:
+    def _cleanup(cls, sample_id: str) -> None:
         """Roll back a failed ingest by deleting the sample and all its dependents.
 
         All deletions are attempted unconditionally; individual failures are
         silently swallowed so cleanup proceeds as far as possible.
 
         Args:
-            sample_id: ObjectId of the sample document to remove.
+            sample_id: Sample id of the sample document to remove.
         """
         sid = str(sample_id)
+        repository = _repository()
         for collection in INGEST_DEPENDENT_COLLECTIONS.values():
             try:
-                store.coyote_db[collection].delete_many({"SAMPLE_ID": sid})
+                repository.delete_collection_documents(collection, {"SAMPLE_ID": sid})
             except Exception:
                 pass
         try:
-            store.sample_handler.get_collection().delete_one({"_id": sample_id})
+            repository.delete_sample(sample_id)
         except Exception:
             pass
 
@@ -358,27 +344,28 @@ class InternalIngestService:
 
     @classmethod
     def _snapshot_dependents(
-        cls, *, sample_id: ObjectId, keys: set[str]
+        cls, *, sample_id: str, keys: set[str]
     ) -> dict[str, list[dict[str, Any]]]:
         """Back up existing dependent documents before a replacement operation.
 
         Args:
-            sample_id: ObjectId of the sample whose dependents to snapshot.
+            sample_id: Sample id of the sample whose dependents to snapshot.
             keys: Set of data type keys to include in the snapshot.
 
         Returns:
             A dict mapping each key to the list of current documents for that type.
         """
         sid = str(sample_id)
+        repository = _repository()
         backup: dict[str, list[dict[str, Any]]] = {}
         for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
             if key in keys:
-                backup[key] = list(store.coyote_db[col_name].find({"SAMPLE_ID": sid}))
+                backup[key] = repository.list_collection_documents(col_name, {"SAMPLE_ID": sid})
         return backup
 
     @classmethod
     def _restore_dependents(
-        cls, *, sample_id: ObjectId, sample_name: str, backup: dict[str, list[dict[str, Any]]]
+        cls, *, sample_id: str, sample_name: str, backup: dict[str, list[dict[str, Any]]]
     ) -> None:
         """Restore dependent documents from a prior snapshot after a failed replacement.
 
@@ -386,16 +373,16 @@ class InternalIngestService:
         the snapshot, stripping ``_id`` fields to avoid duplicate-key errors.
 
         Args:
-            sample_id: ObjectId of the sample whose dependents to restore.
+            sample_id: Sample id of the sample whose dependents to restore.
             sample_name: Human-readable name (re-applied to coverage docs).
             backup: Snapshot produced by ``_snapshot_dependents``.
         """
         sid = str(sample_id)
+        repository = _repository()
         for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
             if key not in backup:
                 continue
-            col = store.coyote_db[col_name]
-            col.delete_many({"SAMPLE_ID": sid})
+            repository.delete_collection_documents(col_name, {"SAMPLE_ID": sid})
             docs = backup[key]
             if docs:
                 restored: list[dict[str, Any]] = []
@@ -405,11 +392,11 @@ class InternalIngestService:
                     if key == "cov":
                         d["sample"] = sample_name
                     restored.append(d)
-                col.insert_many(restored)
+                repository.insert_collection_documents(col_name, restored)
 
     @classmethod
     def _replace_dependents(
-        cls, *, preload: dict[str, Any], sample_id: ObjectId, sample_name: str
+        cls, *, preload: dict[str, Any], sample_id: str, sample_name: str
     ) -> dict[str, int]:
         """Atomically replace dependent data with transactional rollback on failure.
 
@@ -418,7 +405,7 @@ class InternalIngestService:
 
         Args:
             preload: New analysis data to write.
-            sample_id: ObjectId of the owning sample.
+            sample_id: Sample id of the owning sample.
             sample_name: Human-readable name (used for coverage docs).
 
         Returns:
@@ -430,10 +417,11 @@ class InternalIngestService:
         sid = str(sample_id)
         keys_to_replace = set(preload.keys())
         backup = cls._snapshot_dependents(sample_id=sample_id, keys=keys_to_replace)
+        repository = _repository()
         try:
             for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
                 if key in keys_to_replace:
-                    store.coyote_db[col_name].delete_many({"SAMPLE_ID": sid})
+                    repository.delete_collection_documents(col_name, {"SAMPLE_ID": sid})
             return cls._write_dependents(
                 preload=preload, sample_id=sample_id, sample_name=sample_name
             )
@@ -451,7 +439,7 @@ class InternalIngestService:
         no cross-layer file keys (RNA keys on a DNA sample, or vice versa) are present.
 
         Args:
-            sample_doc: Current sample document from MongoDB.
+            sample_doc: Current persisted sample document.
             payload: Proposed update payload (will be copied, not mutated).
 
         Returns:
@@ -488,7 +476,7 @@ class InternalIngestService:
     def _update_meta_fields(
         cls,
         *,
-        sample_id: ObjectId,
+        sample_id: str,
         payload_meta: dict[str, Any],
         block_fields: set[str],
     ) -> None:
@@ -498,15 +486,15 @@ class InternalIngestService:
         are written. ``_id`` and ``name`` are always skipped.
 
         Args:
-            sample_id: ObjectId of the sample to update.
+            sample_id: Sample id of the sample to update.
             payload_meta: Dict of candidate field updates.
             block_fields: Set of field names that may not be changed.
 
         Raises:
             ValueError: If payload_meta contains a changed value for a blocked field.
         """
-        sample_col = store.sample_handler.get_collection()
-        current = sample_col.find_one({"_id": sample_id}) or {}
+        repository = _repository()
+        current = repository.find_sample_by_id(sample_id) or {}
         update_fields: dict[str, Any] = {}
         for key, value in payload_meta.items():
             if key in {"_id", "name"}:
@@ -518,7 +506,7 @@ class InternalIngestService:
             elif key not in current:
                 update_fields[key] = value
         if update_fields:
-            sample_col.update_one({"_id": sample_id}, {"$set": update_fields}, upsert=False)
+            repository.update_sample_fields(sample_id, update_fields)
 
     @classmethod
     def _ingest_update(cls, payload: dict[str, Any]) -> dict[str, Any]:
@@ -538,18 +526,17 @@ class InternalIngestService:
         Raises:
             ValueError: If payload is empty, missing name, or sample is not found.
         """
-        sample_col = store.sample_handler.get_collection()
-
         if not payload:
             raise ValueError("sample payload is required")
         if not payload.get("name"):
             raise ValueError("name is required for update")
 
-        current_doc = sample_col.find_one({"name": payload["name"]})
+        repository = _repository()
+        current_doc = repository.find_sample_by_name(payload["name"])
         if not current_doc:
             raise ValueError("Sample not found for update")
 
-        sample_id = current_doc["_id"]
+        sample_id = str(current_doc["_id"])
 
         # Prepare update payload using existing sample context
         parsed_payload = cls._prepare_update_payload(
@@ -605,10 +592,9 @@ class InternalIngestService:
             block_fields={"assay"},
         )
 
-        sample_col.update_one(
-            {"_id": sample_id},
-            {"$set": {"ingest_status": "ready", "data_counts": data_counts}},
-            upsert=False,
+        repository.update_sample_fields(
+            sample_id,
+            {"ingest_status": "ready", "data_counts": data_counts},
         )
 
         written = cls._replace_dependents(
@@ -679,7 +665,8 @@ class InternalIngestService:
 
         preload = cls._parse_preload(validated_payload)
         sample_name = _next_unique_name(str(validated_payload["name"]), bool(increment))
-        sample_id = ObjectId()
+        repository = _repository()
+        sample_id = repository.new_sample_id()
         data_counts = cls._data_counts(preload)
 
         try:
@@ -703,9 +690,7 @@ class InternalIngestService:
                 meta["uploaded_file_checksums"] = uploaded_checksums
 
             final_sample = SamplesDoc.model_validate(meta)
-            store.sample_handler.get_collection().insert_one(
-                final_sample.model_dump(exclude_none=True)
-            )
+            repository.insert_sample(final_sample.model_dump(exclude_none=True))
 
             cls._invalidate_dashboard_cache_after_ingest()
 
@@ -727,21 +712,22 @@ class InternalIngestService:
     ) -> dict[str, Any]:
         """Validate and insert one document into a supported collection."""
         normalized_doc = normalize_collection_document(collection, document)
-        try:
-            result = cls._resolve_collection(collection).insert_one(dict(normalized_doc))
-        except DuplicateKeyError:
-            if ignore_duplicate:
-                return {
-                    "status": "ok",
-                    "collection": collection,
-                    "inserted_count": 0,
-                }
-            raise
+        inserted_id = _repository().insert_collection_document(
+            collection,
+            dict(normalized_doc),
+            ignore_duplicate=ignore_duplicate,
+        )
+        if inserted_id is None:
+            return {
+                "status": "ok",
+                "collection": collection,
+                "inserted_count": 0,
+            }
         return {
             "status": "ok",
             "collection": collection,
             "inserted_count": 1,
-            "inserted_id": str(result.inserted_id),
+            "inserted_id": inserted_id,
         }
 
     @classmethod
@@ -752,21 +738,11 @@ class InternalIngestService:
         if not documents:
             return {"status": "ok", "collection": collection, "inserted_count": 0}
         normalized_docs = cls._normalize_collection_docs(collection, documents)
-        inserted_count = 0
-        try:
-            result = cls._resolve_collection(collection).insert_many(
-                [dict(doc) for doc in normalized_docs], ordered=False
-            )
-            inserted_count = len(result.inserted_ids)
-        except BulkWriteError as exc:
-            if not ignore_duplicates:
-                raise
-            details = exc.details or {}
-            inserted_count = int(details.get("nInserted", 0))
-            write_errors = details.get("writeErrors", []) or []
-            non_duplicate_errors = [w for w in write_errors if w.get("code") != 11000]
-            if non_duplicate_errors:
-                raise
+        inserted_count = _repository().insert_collection_documents(
+            collection,
+            [dict(doc) for doc in normalized_docs],
+            ignore_duplicates=ignore_duplicates,
+        )
         return {
             "status": "ok",
             "collection": collection,
@@ -786,9 +762,10 @@ class InternalIngestService:
         if not isinstance(match, dict) or not match:
             raise ValueError("match must be a non-empty object")
         normalized_doc = normalize_collection_document(collection, document)
-        result = cls._resolve_collection(collection).replace_one(
-            filter=match,
-            replacement=normalized_doc,
+        result = _repository().replace_collection_document(
+            collection,
+            match=match,
+            document=normalized_doc,
             upsert=bool(upsert),
         )
         return {

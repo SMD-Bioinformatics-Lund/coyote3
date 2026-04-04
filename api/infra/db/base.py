@@ -17,8 +17,8 @@ from typing import Any
 import pymongo
 from bson.objectid import ObjectId
 
-from api.common.utility import CommonUtility
-from api.runtime import app, current_username, flash
+from api.common.utility import utc_now
+from api.runtime_state import app, current_username, flash
 
 
 # -------------------------------------------------------------------------
@@ -96,7 +96,7 @@ class BaseHandler:
                 "$set": {
                     "comments.$.hidden": 1,
                     "comments.$.hidden_by": current_username(),
-                    "comments.$.time_hidden": CommonUtility.utc_now(),
+                    "comments.$.time_hidden": utc_now(),
                 }
             },
         ):

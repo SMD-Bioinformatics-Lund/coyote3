@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
+from api.infra.repositories import rna_repository as rna_repo_module
 from api.main import app as api_app
-from api.repositories import rna_repository as rna_repo_module
 from api.routers import fusions as rna
 from api.services.rna import expression_analysis as rna_service_module
 from api.services.rna.expression_analysis import RnaService
@@ -22,6 +22,13 @@ class _Req:
         path = "/api/v1/samples/S1/fusions"
 
     url = _URL()
+
+
+def _rna_service() -> RnaService:
+    return RnaService(
+        repository=rna_repo_module.RnaRouteRepository(),
+        workflow_repository=rna_repo_module.RnaWorkflowRepository(),
+    )
 
 
 def test_mutation_payload_shape():
@@ -54,7 +61,7 @@ def test_list_rna_fusions_success(monkeypatch):
         "filter_genes": ["EML4", "ALK"],
     }
     fusions = [fx.fusion_doc()]
-    service = RnaService()
+    service = _rna_service()
 
     monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(rna_service_module, "get_formatted_assay_config", lambda s: assay_config)
@@ -122,7 +129,7 @@ def test_show_rna_fusion_not_found_raises_404(monkeypatch):
     Returns:
         The function result.
     """
-    service = RnaService()
+    service = _rna_service()
     monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(rna_repo_module.store.fusion_handler, "get_fusion", lambda fusion_id: None)
 

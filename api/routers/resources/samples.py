@@ -12,7 +12,7 @@ from api.contracts.admin import (
 from api.deps.services import get_admin_sample_service
 from api.extensions import util
 from api.security.access import ApiUser, require_access
-from api.services.admin_resource.sample_service import AdminSampleService
+from api.services.resources.sample import ResourceSampleService
 
 router = APIRouter(tags=["resource-samples"])
 
@@ -25,14 +25,14 @@ def list_admin_samples_read(
     user: ApiUser = Depends(
         require_access(permission="view_sample_global", min_role="developer", min_level=9999)
     ),
-    service: AdminSampleService = Depends(get_admin_sample_service),
+    service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
     """List admin samples read.
 
     Args:
         search (str): Value for ``search``.
         user (ApiUser): Value for ``user``.
-        service (AdminSampleService): Value for ``service``.
+        service (ResourceSampleService): Value for ``service``.
 
     Returns:
         The function result.
@@ -50,14 +50,14 @@ def admin_sample_context_read(
     user: ApiUser = Depends(
         require_access(permission="edit_sample", min_role="developer", min_level=9999)
     ),
-    service: AdminSampleService = Depends(get_admin_sample_service),
+    service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
     """Admin sample context read.
 
     Args:
         sample_id (str): Value for ``sample_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminSampleService): Value for ``service``.
+        service (ResourceSampleService): Value for ``service``.
 
     Returns:
         The function result.
@@ -77,7 +77,7 @@ def update_sample_mutation(
     user: ApiUser = Depends(
         require_access(permission="edit_sample", min_role="developer", min_level=9999)
     ),
-    service: AdminSampleService = Depends(get_admin_sample_service),
+    service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
     """Update sample mutation.
 
@@ -85,7 +85,7 @@ def update_sample_mutation(
         sample_id (str): Value for ``sample_id``.
         payload (dict): Value for ``payload``.
         user (ApiUser): Value for ``user``.
-        service (AdminSampleService): Value for ``service``.
+        service (ResourceSampleService): Value for ``service``.
 
     Returns:
         The function result.
@@ -105,14 +105,14 @@ def delete_sample_mutation(
     user: ApiUser = Depends(
         require_access(permission="delete_sample_global", min_role="developer", min_level=9999)
     ),
-    service: AdminSampleService = Depends(get_admin_sample_service),
+    service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
     """Delete sample mutation.
 
     Args:
         sample_id (str): Value for ``sample_id``.
         user (ApiUser): Value for ``user``.
-        service (AdminSampleService): Value for ``service``.
+        service (ResourceSampleService): Value for ``service``.
 
     Returns:
         The function result.

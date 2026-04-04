@@ -5,7 +5,7 @@ from __future__ import annotations
 from api.extensions import store
 
 
-class MongoCommonRepository:
+class CommonRepository:
     """Provide mongo common persistence operations."""
 
     def get_hgnc_metadata_by_id(self, hgnc_id: str) -> dict | None:

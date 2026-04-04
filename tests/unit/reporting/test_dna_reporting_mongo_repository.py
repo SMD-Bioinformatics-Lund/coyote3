@@ -16,7 +16,7 @@ def test_get_isgl_by_ids_returns_dict_shape(monkeypatch):
         SimpleNamespace(isgl_handler=SimpleNamespace(get_isgl_by_ids=lambda _ids: fake_isgl)),
     )
 
-    repo = dna_reporting_mongo.MongoDNAReportingRepository()
+    repo = dna_reporting_mongo.ReportRepository()
     payload = repo.get_isgl_by_ids(["gms-hem"])
 
     assert payload == fake_isgl

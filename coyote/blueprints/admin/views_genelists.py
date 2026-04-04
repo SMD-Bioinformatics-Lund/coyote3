@@ -153,7 +153,7 @@ def create_genelist() -> Response | str:
             for key in request.form
         }
         genes = _extract_genes_from_request(form_data)
-        config = util.admin.process_form_to_config(form_data, context.schema)
+        config = util.admin.process_form_to_config(form_data, context.form)
         config["_id"] = config["name"]
         config["genes"] = genes
         try:
@@ -169,7 +169,7 @@ def create_genelist() -> Response | str:
 
     return render_template(
         "isgl/create_isgl.html",
-        schema=context.schema,
+        schema=context.form,
         assay_group_map=context.assay_group_map,
     )
 
@@ -229,7 +229,7 @@ def edit_genelist(genelist_id: str) -> Response | str:
             )
             for key in request.form
         }
-        updated = util.admin.process_form_to_config(form_data, context.schema)
+        updated = util.admin.process_form_to_config(form_data, context.form)
         genes = _extract_genes_from_request(form_data, genelist.get("genes", []))
         updated["genes"] = genes
         # Keep required relationship fields when form submission omits/empties them.
@@ -252,7 +252,7 @@ def edit_genelist(genelist_id: str) -> Response | str:
     return render_template(
         "isgl/edit_isgl.html",
         isgl=genelist,
-        schema=context.schema,
+        schema=context.form,
         assay_group_map=context.assay_group_map,
         selected_version=selected_version,
         delta=delta,

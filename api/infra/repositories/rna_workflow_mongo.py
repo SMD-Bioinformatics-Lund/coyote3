@@ -7,7 +7,7 @@ from typing import Any
 from api.extensions import store
 
 
-class MongoRNAWorkflowRepository:
+class RnaWorkflowRepository:
     """Provide mongo rna workflow persistence operations."""
 
     def update_sample_filters(self, sample_id: str, filters: dict[str, Any]) -> None:

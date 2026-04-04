@@ -11,9 +11,9 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.common.utility import CommonUtility
+from api.common.utility import get_simple_id
 from api.infra.db.base import BaseHandler
-from api.runtime import flash
+from api.runtime_state import flash
 
 
 # -------------------------------------------------------------------------
@@ -100,7 +100,7 @@ class BlacklistHandler(BaseHandler):
             str: A success message if the variant is added successfully, or an error
                  message if the insertion fails.
         """
-        short_pos = var.get("simple_id", CommonUtility.get_simple_id(var))
+        short_pos = var.get("simple_id", get_simple_id(var))
 
         if self.get_collection().insert_one(
             {"assay": assay, "in_normal_perc": 1, "pos": short_pos}

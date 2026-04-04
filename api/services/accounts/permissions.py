@@ -5,16 +5,16 @@ from __future__ import annotations
 from typing import Any
 
 from api.contracts.managed_resources import managed_resource_spec
-from api.contracts.managed_ui_schemas import build_managed_schema, build_managed_schema_bundle
 from api.contracts.schemas import normalize_collection_document
-from api.extensions import util
+from api.extensions import store
 from api.http import api_error
-from api.repositories.admin_repository import AdminRepository
 from api.services.accounts.common import (
     admin_list_pagination,
+    build_managed_form,
     current_actor,
     inject_version_history,
     mutation_payload,
+    normalize_managed_form_payload,
     utc_now,
 )
 
@@ -22,13 +22,9 @@ from api.services.accounts.common import (
 class PermissionManagementService:
     """Own permission-policy workflows for admin HTTP routes."""
 
-    def __init__(self, repository: AdminRepository | None = None) -> None:
-        """__init__.
-
-        Args:
-                repository: Repository. Optional argument.
-        """
-        self.repository = repository or AdminRepository()
+    def __init__(self, repository: Any | None = None) -> None:
+        """Build the service with an admin repository."""
+        self.repository = repository or store.get_admin_repository()
         self._spec = managed_resource_spec("permission")
 
     def list_permissions_payload(
@@ -56,28 +52,16 @@ class PermissionManagementService:
             "pagination": admin_list_pagination(q=q, page=page, per_page=per_page, total=total),
         }
 
-    def create_context_payload(
-        self, *, schema_id: str | None, actor_username: str
-    ) -> dict[str, Any]:
+    def create_context_payload(self, *, actor_username: str) -> dict[str, Any]:
         """Create context payload.
 
         Args:
-            schema_id (str | None): Value for ``schema_id``.
             actor_username (str): Value for ``actor_username``.
 
         Returns:
             dict[str, Any]: The function result.
         """
-        schemas, selected_schema = build_managed_schema_bundle(self._spec)
-        if schema_id and schema_id != selected_schema.get("schema_id"):
-            raise api_error(404, "Selected schema not found")
-
-        schema = self.repository.clone_schema(selected_schema)
-        schema["fields"]["created_by"]["default"] = current_actor(actor_username)
-        schema["fields"]["created_on"]["default"] = utc_now()
-        schema["fields"]["updated_by"]["default"] = current_actor(actor_username)
-        schema["fields"]["updated_on"]["default"] = utc_now()
-        return {"schemas": schemas, "selected_schema": selected_schema, "schema": schema}
+        return {"form": build_managed_form(self._spec, actor_username=actor_username)}
 
     def context_payload(self, *, permission_id: str) -> dict[str, Any]:
         """Context payload.
@@ -91,8 +75,7 @@ class PermissionManagementService:
         permission = self.repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
-        schema = build_managed_schema(self._spec)
-        return {"permission": permission, "schema": schema}
+        return {"permission": permission, "form": build_managed_form(self._spec)}
 
     def create_permission(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
         """Create permission.
@@ -104,13 +87,8 @@ class PermissionManagementService:
         Returns:
             dict[str, Any]: The function result.
         """
-        schema = build_managed_schema(self._spec)
-        selected_schema_id = payload.get("schema_id")
-        if selected_schema_id and selected_schema_id != schema.get("schema_id"):
-            raise api_error(404, "Selected schema not found")
-
         form_data = payload.get("form_data", {}) or {}
-        policy = util.admin.process_form_to_config(form_data, schema)
+        policy = normalize_managed_form_payload(self._spec, form_data)
         policy.setdefault("is_active", True)
         policy_id = str(policy["permission_name"]).strip()
         policy["permission_id"] = policy_id
@@ -119,11 +97,8 @@ class PermissionManagementService:
             existing_policy.get("permission_id") or existing_policy.get("_id")
         ):
             raise api_error(409, "Permission policy already exists")
-        policy = inject_version_history(
-            actor_username=current_actor(actor_username),
-            new_config=policy,
-            is_new=True,
-        )
+        actor = current_actor(actor_username)
+        policy = inject_version_history(actor_username=actor, new_config=policy, is_new=True)
         try:
             policy = normalize_collection_document(self._spec.collection, policy)
         except Exception as exc:
@@ -147,17 +122,16 @@ class PermissionManagementService:
         permission = self.repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
-        schema = build_managed_schema(self._spec)
-
         form_data = payload.get("form_data", {}) or {}
-        updated_permission = util.admin.process_form_to_config(form_data, schema)
+        updated_permission = normalize_managed_form_payload(self._spec, form_data)
+        actor = current_actor(actor_username)
         updated_permission["updated_on"] = utc_now()
-        updated_permission["updated_by"] = current_actor(actor_username)
+        updated_permission["updated_by"] = actor
         updated_permission["version"] = permission.get("version", 1) + 1
         updated_permission["permission_id"] = permission.get("permission_id", permission_id)
         updated_permission["_id"] = permission.get("_id")
         updated_permission = inject_version_history(
-            actor_username=current_actor(actor_username),
+            actor_username=actor,
             new_config=updated_permission,
             old_config=permission,
             is_new=False,

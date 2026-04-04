@@ -45,8 +45,7 @@ def test_create_role_context_read_with_fake_store(monkeypatch):
         {
             "create_context_payload": staticmethod(
                 lambda **kwargs: {
-                    "selected_schema": fx.schema_doc(),
-                    "schema": {
+                    "form": {
                         "fields": {
                             "created_by": {"default": "tester"},
                         }
@@ -56,12 +55,6 @@ def test_create_role_context_read_with_fake_store(monkeypatch):
         },
     )()
 
-    expected_schema_id = fx.schema_doc()["_id"]
-    payload = roles.create_role_context_read(
-        schema_id=expected_schema_id,
-        user=fx.api_user(),
-        service=service,
-    )
+    payload = roles.create_role_context_read(user=fx.api_user(), service=service)
 
-    assert payload["selected_schema"]["_id"] == expected_schema_id
-    assert payload["schema"]["fields"]["created_by"]["default"] == "tester"
+    assert payload["form"]["fields"]["created_by"]["default"] == "tester"

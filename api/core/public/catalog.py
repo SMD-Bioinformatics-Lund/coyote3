@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import yaml
 
 from api.core.public.ports import PublicCatalogRepository
-from api.runtime import app
+from api.runtime_state import app
 
 
 class PublicCatalogService:

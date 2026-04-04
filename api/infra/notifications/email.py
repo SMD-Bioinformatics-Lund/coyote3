@@ -6,7 +6,7 @@ import smtplib
 from email.message import EmailMessage
 
 from api.observability.auth_metrics import emit_mail_metric
-from api.runtime import app as runtime_app
+from api.runtime_state import app as runtime_app
 
 
 def smtp_configured() -> bool:

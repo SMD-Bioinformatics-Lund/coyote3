@@ -5,10 +5,15 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
+from api.infra.repositories import HomeRepository
 from api.routers import samples
 from api.services.sample import catalog as sample_catalog_service_module
 from api.services.sample.catalog import SampleCatalogService
 from tests.fixtures.api import mock_collections as fx
+
+
+def _sample_catalog_service() -> SampleCatalogService:
+    return SampleCatalogService(repository=HomeRepository())
 
 
 def test_home_samples_read_returns_live_and_done(monkeypatch):
@@ -22,7 +27,7 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
     """
     user = fx.api_user()
     calls = []
-    service = SampleCatalogService()
+    service = _sample_catalog_service()
 
     def _get_samples(**kwargs):
         """Get samples.
@@ -84,7 +89,7 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
     """
     user = fx.api_user()
     calls = []
-    service = SampleCatalogService()
+    service = _sample_catalog_service()
 
     def _get_samples(**kwargs):
         """Get samples.
@@ -143,7 +148,7 @@ def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
 
     with pytest.raises(HTTPException) as exc:
         samples.sample_apply_genelists_mutation(
-            "S1", payload={"isgl_ids": "bad"}, user=fx.api_user(), service=SampleCatalogService()
+            "S1", payload={"isgl_ids": "bad"}, user=fx.api_user(), service=_sample_catalog_service()
         )
 
     assert exc.value.status_code == 400
@@ -161,7 +166,7 @@ def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
     """
     sample = fx.sample_doc()
     calls = {}
-    service = SampleCatalogService()
+    service = _sample_catalog_service()
 
     monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
 

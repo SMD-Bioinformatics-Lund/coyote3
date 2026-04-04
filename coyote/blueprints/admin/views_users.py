@@ -57,23 +57,23 @@ def _apply_selected_user_version(
     return user_doc, delta
 
 
-def _user_schema_from_context(context) -> dict:
-    """Extract the user schema from a user-management context payload.
+def _user_form_from_context(context) -> dict:
+    """Extract the user form from a user-management context payload.
 
     Args:
         context: API payload object or mapping containing user-management
             context fields.
 
     Returns:
-        The resolved user schema document.
+        The resolved user form document.
 
     Raises:
-        ApiRequestError: If the schema payload is missing from the context.
+        ApiRequestError: If the form payload is missing from the context.
     """
-    schema = context.get("schema")
-    if not schema:
-        raise ApiRequestError("User schema payload missing in API response")
-    return schema
+    form = context.get("form")
+    if not form:
+        raise ApiRequestError("User form payload missing in API response")
+    return form
 
 
 @admin_bp.route("/users", methods=["GET"])
@@ -218,7 +218,7 @@ def create_user() -> Response | str:
 
     return render_template(
         "users/user_create.html",
-        schema=context.schema,
+        schema=context.form,
         assay_group_map=context.assay_group_map,
         role_map=context.role_map,
     )
@@ -253,13 +253,13 @@ def edit_user(user_id: str) -> Response | str:
 
     user_doc = context.user_doc
     try:
-        schema = _user_schema_from_context(context)
+        schema = _user_form_from_context(context)
     except ApiRequestError as exc:
         raise_page_load_error(
             exc,
             logger=app.logger,
-            log_message=f"Failed to load user schema for {user_id}",
-            summary="Unable to load the user schema.",
+            log_message=f"Failed to load user form for {user_id}",
+            summary="Unable to load the user form.",
         )
 
     selected_version = request.args.get("version", type=int)
@@ -321,13 +321,13 @@ def view_user(user_id: str) -> str | Response:
         )
 
     try:
-        schema = _user_schema_from_context(context)
+        schema = _user_form_from_context(context)
     except ApiRequestError as exc:
         raise_page_load_error(
             exc,
             logger=app.logger,
-            log_message=f"Failed to load user schema for {user_id}",
-            summary="Unable to load the user schema.",
+            log_message=f"Failed to load user form for {user_id}",
+            summary="Unable to load the user form.",
         )
 
     selected_version = request.args.get("version", type=int)

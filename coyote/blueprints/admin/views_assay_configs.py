@@ -121,7 +121,7 @@ def _render_create_form(category: str) -> Response | str:
                 request.form.get("verification_samples", "{}")
             )
 
-        config = util.admin.process_form_to_config(form_data, context.schema)
+        config = util.admin.process_form_to_config(form_data, context.form)
         config.update(
             {
                 "_id": f"{config['assay_name']}:{config['environment']}",
@@ -148,7 +148,7 @@ def _render_create_form(category: str) -> Response | str:
 
     return render_template(
         "aspc/create_aspc.html",
-        schema=context.schema,
+        schema=context.form,
         category=category,
         prefill_map_json=json.dumps(context.prefill_map),
     )
@@ -267,7 +267,7 @@ def edit_assay_config(assay_id: str) -> Response | str:
             request.form.get("verification_samples", "{}")
         )
 
-        updated_config = util.admin.process_form_to_config(form_data, context.schema)
+        updated_config = util.admin.process_form_to_config(form_data, context.form)
         updated_config["_id"] = assay_config.get("_id")
         try:
             get_web_api_client().put_json(
@@ -286,7 +286,7 @@ def edit_assay_config(assay_id: str) -> Response | str:
 
     return render_template(
         "aspc/edit_aspc.html",
-        schema=context.schema,
+        schema=context.form,
         assay_config=assay_config,
         selected_version=selected_version,
         delta=delta,
@@ -313,7 +313,7 @@ def view_assay_config(assay_id: str) -> str | Response:
 
     return render_template(
         "aspc/view_aspc.html",
-        schema=context.schema,
+        schema=context.form,
         assay_config=assay_config,
         selected_version=selected_version or assay_config.get("version"),
         delta=delta,
@@ -340,7 +340,7 @@ def print_assay_config(assay_id: str) -> str | Response:
 
     return render_template(
         "aspc/print_aspc.html",
-        schema=context.schema,
+        schema=context.form,
         config=assay_config,
         now=util.common.utc_now(),
         selected_version=selected_version,

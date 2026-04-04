@@ -30,6 +30,7 @@ from pysam import VariantFile
 # - config (mongo URIs, db names, data_types mapping, mane path)
 # - cli.cli_parser (arg parser)
 import config
+from api.common.parsers import cmdvcf
 from api.contracts.schemas.registry import (
     INGEST_DEPENDENT_COLLECTIONS,
     INGEST_SINGLE_DOCUMENT_KEYS,
@@ -41,7 +42,6 @@ from api.contracts.schemas.samples import (
     SamplesDoc,
 )
 from api.core.dna.variant_identity import ensure_variant_identity_fields
-from api.parsers import cmdvcf
 
 
 # --------------------------

@@ -5,7 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-from api.runtime import app
+from api.runtime_state import app
 
 
 def assay_config(assay_name: str | None = None) -> dict:

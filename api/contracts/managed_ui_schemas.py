@@ -1,4 +1,4 @@
-"""Backend-owned UI schema generation for managed admin resources."""
+"""Backend-owned form generation for managed resources."""
 
 from __future__ import annotations
 
@@ -635,8 +635,8 @@ def _section_payload(spec_key: str, fields: dict[str, dict[str, Any]]) -> dict[s
     return sections
 
 
-def build_managed_schema(spec: ManagedResourceSpec) -> dict[str, Any]:
-    """Build a UI schema payload from the managed Pydantic contract."""
+def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
+    """Build a form payload from the managed Pydantic contract."""
     adapter = COLLECTION_MODEL_ADAPTERS[spec.collection]
     model_cls = getattr(adapter, "_type", None)
     if model_cls is None:
@@ -665,7 +665,7 @@ def build_managed_schema(spec: ManagedResourceSpec) -> dict[str, Any]:
             field_payload["default"] = field_info.default
         fields[field_name] = field_payload
 
-    # Admin workflows always stamp metadata; expose them in UI schema payload
+    # Resource workflows always stamp metadata; expose them in the form payload
     # even if contract models allow them via extra fields.
     metadata_defaults: dict[str, dict[str, Any]] = {
         "created_by": {"data_type": "text", "display_type": "input", "required": False},
@@ -697,22 +697,11 @@ def build_managed_schema(spec: ManagedResourceSpec) -> dict[str, Any]:
     sections = _section_payload(spec.key, fields)
 
     return {
-        "_id": spec.schema_id,
-        "schema_id": spec.schema_id,
-        "schema_type": spec.schema_type,
-        "schema_category": spec.schema_category,
+        "form_type": spec.form_type,
+        "form_category": spec.form_category,
         "version": spec.contract_version,
-        "is_active": True,
         "fields": fields,
         "subschemas": {},
         "sections": sections,
         "source": "backend-contract",
     }
-
-
-def build_managed_schema_bundle(
-    spec: ManagedResourceSpec,
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Return (schemas, selected_schema) in the shape admin routes already expect."""
-    selected = build_managed_schema(spec)
-    return [deepcopy(selected)], selected

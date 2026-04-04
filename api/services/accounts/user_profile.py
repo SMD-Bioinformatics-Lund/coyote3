@@ -2,19 +2,16 @@
 
 from __future__ import annotations
 
-from api.repositories.user_repository import UserRepository
+from api.extensions import store
+from api.security.ports import SecurityRepository
 
 
 class UserService:
     """Thin service layer around user lookup operations."""
 
-    def __init__(self, repository: UserRepository | None = None) -> None:
-        """__init__.
-
-        Args:
-                repository: Repository. Optional argument.
-        """
-        self.repository = repository or UserRepository()
+    def __init__(self, repository: SecurityRepository | None = None) -> None:
+        """Build the service with a user lookup repository."""
+        self.repository = repository or store.get_security_repository()
 
     def get_user_by_id(self, user_id: str):
         """Return user by id.

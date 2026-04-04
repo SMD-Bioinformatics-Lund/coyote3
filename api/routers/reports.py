@@ -7,13 +7,11 @@ from fastapi import APIRouter, Body, Depends, Query
 from api.contracts.reports import ReportPreviewPayload, ReportSavePayload
 from api.core.workflows.dna_workflow import DNAWorkflowService
 from api.core.workflows.rna_workflow import RNAWorkflowService
-from api.extensions import util
+from api.extensions import store, util
 from api.http import api_error as _api_error
 from api.http import get_formatted_assay_config as _get_formatted_assay_config
-from api.repositories.report_repository import ReportRepository as MongoDNAReportingRepository
-from api.repositories.rna_repository import RnaWorkflowRepository as MongoRNAWorkflowRepository
-from api.runtime import app as runtime_app
-from api.runtime import current_username
+from api.runtime_state import app as runtime_app
+from api.runtime_state import current_username
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.services.reporting.report_builder import ReportAnalyte, ReportService
 from api.settings import to_bool
@@ -31,7 +29,7 @@ def _rna_workflow_service() -> type[RNAWorkflowService]:
             The  rna workflow service result.
     """
     if not RNAWorkflowService.has_repository():
-        RNAWorkflowService.set_repository(MongoRNAWorkflowRepository())
+        RNAWorkflowService.set_repository(store.get_rna_workflow_repository())
     return RNAWorkflowService
 
 
@@ -42,7 +40,7 @@ def _dna_workflow_service() -> type[DNAWorkflowService]:
             The  dna workflow service result.
     """
     if not DNAWorkflowService.has_repository():
-        DNAWorkflowService.set_repository(MongoDNAReportingRepository())
+        DNAWorkflowService.set_repository(store.get_dna_reporting_repository())
     return DNAWorkflowService
 
 

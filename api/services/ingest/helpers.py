@@ -67,7 +67,7 @@ def build_sample_meta_dict(args: dict[str, Any]) -> dict[str, Any]:
         args: Validated and dumped sample payload.
 
     Returns:
-        A flat dict suitable for MongoDB insertion as a samples document.
+        A flat dict suitable for persistence as a sample document.
     """
     sample_dict: dict[str, Any] = {}
     case_dict, control_dict = _normalize_case_control(args)

@@ -15,7 +15,7 @@ from api.lifecycle import create_lifespan, register_route_modules
 from api.middleware import build_authentication_middleware
 from api.openapi import apply_openapi_security_schema
 from api.routers.registry import ROUTERS, auth_http_exception_handler
-from api.runtime import app as runtime_app
+from api.runtime_state import app as runtime_app
 from shared.logging import emit_audit_event
 
 

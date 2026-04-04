@@ -6,12 +6,15 @@ This module provides static methods for configuration management, form processin
 
 import hashlib
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any, Union
 
 from dateutil.parser import parse as parse_datetime
 
-from coyote.util.common_utility import CommonUtility
+
+def utc_now() -> datetime:
+    """Return the current UTC datetime."""
+    return datetime.now(timezone.utc)
 
 
 class AdminUtility:
@@ -253,14 +256,14 @@ class AdminUtility:
             old_config = {}
         version = new_config.get("version", 1)
         version_history = old_config.pop("version_history", [])
-        raw_timestamp = new_config.get("created_on", CommonUtility.utc_now())
+        raw_timestamp = new_config.get("created_on", utc_now())
 
         # Ensure it's a real datetime object
         if isinstance(raw_timestamp, str):
             try:
                 timestamp = parse_datetime(raw_timestamp)
             except (ValueError, TypeError):
-                timestamp = CommonUtility.utc_now()
+                timestamp = utc_now()
         else:
             timestamp = raw_timestamp
 

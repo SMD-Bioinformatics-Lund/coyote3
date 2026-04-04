@@ -7,7 +7,14 @@ from datetime import datetime, timezone
 from pprint import pformat
 from typing import Any, Dict, List, Tuple
 
-from api.common.utility import CommonUtility
+from api.common.report_util import ReportUtility
+from api.common.utility import (
+    get_assay_genelist_names,
+    get_plot,
+    get_report_header,
+    get_sample_effective_genes,
+    merge_sample_settings_with_assay_config,
+)
 from api.core.dna.dna_filters import (
     get_filter_conseq_terms as shared_get_filter_conseq_terms,
 )
@@ -19,8 +26,7 @@ from api.core.interpretation.annotation_enrichment import (
     add_global_annotations as shared_add_global_annotations,
 )
 from api.core.reporting.report_paths import get_report_timestamp as shared_get_report_timestamp
-from api.runtime import app
-from api.utils.report.report_util import ReportUtility
+from api.runtime_state import app
 
 
 def hotspot_variant(variants: list) -> list[dict]:
@@ -206,7 +212,7 @@ def get_simple_variants_for_report(variants: list, assay_config: dict) -> list:
 def _ensure_sample_filters(sample: dict, assay_config: dict) -> tuple[dict, dict]:
     """Return sample with populated filters and a defensive filters copy."""
     if not sample.get("filters"):
-        sample = CommonUtility.merge_sample_settings_with_assay_config(sample, assay_config)
+        sample = merge_sample_settings_with_assay_config(sample, assay_config)
     return sample, deepcopy(sample.get("filters", {}))
 
 
@@ -219,9 +225,7 @@ def _resolve_filter_genes(
     """Resolve gene coverage map and effective report filter genes."""
     checked_genelists = sample_filters.get("genelists", [])
     checked_genelists_genes_dict: dict[str, Any] = repository.get_isgl_by_ids(checked_genelists)
-    return CommonUtility.get_sample_effective_genes(
-        sample, assay_panel_doc, checked_genelists_genes_dict
-    )
+    return get_sample_effective_genes(sample, assay_panel_doc, checked_genelists_genes_dict)
 
 
 def _resolve_disp_positions(sample: dict, assay_config: dict) -> list:
@@ -327,7 +331,7 @@ def build_dna_report_payload(
     assay_panel_doc = repository.get_asp(asp_name=sample_assay)
     # Preserve assay genelist hydration step for parity with legacy report flow.
     _insilico_panel_genelists = repository.get_isgl_by_asp(sample_assay, is_active=True)
-    _all_panel_genelist_names = CommonUtility.get_assay_genelist_names(_insilico_panel_genelists)
+    _all_panel_genelist_names = get_assay_genelist_names(_insilico_panel_genelists)
 
     sample, sample_filters = _ensure_sample_filters(sample, assay_config)
     genes_covered_in_panel, filter_genes = _resolve_filter_genes(
@@ -375,7 +379,7 @@ def build_dna_report_payload(
         )
 
     if "CNV_PROFILE" in report_sections:
-        report_sections_data["cnv_profile_base64"] = CommonUtility.get_plot(
+        report_sections_data["cnv_profile_base64"] = get_plot(
             os.path.basename(sample.get("cnvprofile", "")), assay_config
         )
 
@@ -392,7 +396,7 @@ def build_dna_report_payload(
     if "FUSION" in report_sections:
         report_sections_data["fusions"] = []
 
-    assay_config["reporting"]["report_header"] = CommonUtility.get_report_header(
+    assay_config["reporting"]["report_header"] = get_report_header(
         assay_group,
         sample,
         assay_config["reporting"].get("report_header", "Unknown"),

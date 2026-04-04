@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from api.extensions import store
 
 
-class MongoDashboardRepository:
+class DashboardRepository:
     """Provide mongo dashboard persistence operations."""
 
     @staticmethod

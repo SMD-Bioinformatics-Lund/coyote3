@@ -5,7 +5,7 @@ from __future__ import annotations
 from api.extensions import store
 
 
-class MongoCoverageRouteRepository:
+class CoverageRouteRepository:
     """Provide mongo coverage route persistence operations."""
 
     def get_aspc_no_meta(self, assay: str, profile: str) -> dict | None:

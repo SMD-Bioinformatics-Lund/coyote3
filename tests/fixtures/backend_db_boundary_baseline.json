@@ -1,7 +1,13 @@
 {
-  "generated_at_utc": "2026-03-11T01:23:33.776254+00:00",
+  "generated_at_utc": "2026-04-03T00:00:00+00:00",
   "mongo_leak_usage_by_file": {},
   "mongo_leak_usage_total": 0,
-  "store_usage_by_file": {},
-  "store_usage_total": 0
+  "store_usage_by_file": {
+    "api/core/interpretation/annotation_enrichment.py": 1,
+    "api/core/interpretation/report_summary.py": 1,
+    "api/core/reporting/pipeline.py": 1,
+    "api/routers/public.py": 1,
+    "api/routers/reports.py": 2
+  },
+  "store_usage_total": 6
 }

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.repositories.common_repository import CommonRepository
+from api.infra.repositories import CommonRepository
 from api.routers import common
 from tests.fixtures.api import mock_collections as fx
 

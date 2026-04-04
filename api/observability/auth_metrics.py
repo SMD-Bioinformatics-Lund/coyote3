@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from api.runtime import app as runtime_app
+from api.runtime_state import app as runtime_app
 
 
 def _normalize_label(value: Any) -> str:

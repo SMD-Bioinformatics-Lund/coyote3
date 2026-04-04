@@ -5,7 +5,7 @@ from __future__ import annotations
 from api.extensions import store
 
 
-class MongoCoverageRepository:
+class CoverageRepository:
     """Provide mongo coverage persistence operations."""
 
     def is_gene_blacklisted(self, gene: str, sample_group: str) -> bool:

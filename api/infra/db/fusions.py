@@ -16,7 +16,7 @@ from typing import Any, Dict, List
 from bson.objectid import ObjectId
 
 from api.infra.db.base import BaseHandler
-from api.runtime import app
+from api.runtime_state import app
 
 
 # -------------------------------------------------------------------------

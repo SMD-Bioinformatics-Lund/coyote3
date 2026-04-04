@@ -7,8 +7,8 @@ from typing import Any
 
 from api.core.dna.cnvqueries import build_cnv_query
 from api.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
+from api.extensions import store
 from api.http import api_error
-from api.repositories.dna_repository import DnaRouteRepository
 from api.services.dna.export import (
     build_cnv_export_rows as _build_cnv_export_rows,
 )
@@ -41,13 +41,9 @@ from api.services.dna.payloads import (
 class DnaService:
     """Own shared DNA, CNV, and small-variant support workflows."""
 
-    def __init__(self, repository: DnaRouteRepository | None = None) -> None:
-        """Initialize the service with repository dependencies.
-
-        Args:
-                repository: Repository. Optional argument.
-        """
-        self.repository = repository or DnaRouteRepository()
+    def __init__(self, repository: Any | None = None) -> None:
+        """Initialize the service with repository dependencies."""
+        self.repository = repository or store.get_dna_route_repository()
 
     @staticmethod
     def export_rows_to_csv(rows: list[Any]) -> str:

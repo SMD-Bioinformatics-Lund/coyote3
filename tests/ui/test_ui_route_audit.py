@@ -103,18 +103,18 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         """
         return ApiPayload(value)
 
-    def _schema(schema_id: str, field_name: str = "name") -> dict:
-        """Schema.
+    def _form(form_id: str, field_name: str = "name") -> dict:
+        """Form.
 
         Args:
-                schema_id: Schema id.
+                form_id: Form id.
                 field_name: Field name. Optional argument.
 
         Returns:
-                The  schema result.
+                    The  form result.
         """
         return {
-            "_id": schema_id,
+            "_id": form_id,
             "version": 1,
             "sections": {"general": [field_name]},
             "fields": {
@@ -142,43 +142,43 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                 The  fake get result.
         """
         if "/users/" in path and path.endswith("/context"):
-            schema = _schema("schema-user", "username")
+            form = _form("schema-user", "username")
             return _payload(
                 {
                     "user_doc": {"_id": "user1", "username": "user1", "role": "admin"},
-                    "schema": schema,
+                    "form": form,
                     "role_map": {"admin": {"permissions": [], "deny_permissions": []}},
                     "assay_group_map": {},
                 }
             )
         if "/roles/" in path and path.endswith("/context"):
-            schema = _schema("schema-role", "name")
-            return _payload({"role": {"_id": "role1", "name": "role1"}, "schema": schema})
+            form = _form("schema-role", "name")
+            return _payload({"role": {"_id": "role1", "name": "role1"}, "form": form})
         if "/permissions/" in path and path.endswith("/context"):
-            schema = _schema("schema-perm", "permission_name")
+            form = _form("schema-perm", "permission_name")
             return _payload(
                 {
                     "permission": {"_id": "perm.read", "permission_name": "perm.read"},
-                    "schema": schema,
+                    "form": form,
                 }
             )
         if "/resources/asp/" in path and path.endswith("/context"):
-            schema = _schema("schema-asp", "assay_name")
-            return _payload({"panel": {"_id": "asp1", "assay_name": "asp1"}, "schema": schema})
+            form = _form("schema-asp", "assay_name")
+            return _payload({"panel": {"_id": "asp1", "assay_name": "asp1"}, "form": form})
         if "/resources/aspc/" in path and path.endswith("/context"):
-            schema = _schema("schema-aspc", "assay_name")
+            form = _form("schema-aspc", "assay_name")
             return _payload(
                 {
                     "assay_config": {"_id": "asp1:production", "assay_name": "asp1"},
-                    "schema": schema,
+                    "form": form,
                 }
             )
         if "/resources/genelists/" in path and path.endswith("/context"):
-            schema = _schema("schema-isgl", "name")
+            form = _form("schema-isgl", "name")
             return _payload(
                 {
                     "genelist": {"_id": "gl1", "name": "gl1"},
-                    "schema": schema,
+                    "form": form,
                     "assay_group_map": {},
                 }
             )
@@ -260,68 +260,44 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         if path.endswith("/permissions"):
             return _payload({"grouped_permissions": {}})
         if path.endswith("/users/create_context"):
-            schema = _schema("schema-user", "username")
+            form = _form("schema-user", "username")
             return _payload(
                 {
-                    "schemas": [schema],
-                    "schema": schema,
-                    "selected_schema": {"_id": "schema-user"},
+                    "form": form,
                     "role_map": {},
                     "assay_group_map": {},
                 }
             )
         if path.endswith("/roles/create_context"):
-            schema = _schema("schema-role")
-            return _payload(
-                {
-                    "schemas": [schema],
-                    "schema": schema,
-                    "selected_schema": {"_id": "schema-role"},
-                }
-            )
+            form = _form("schema-role")
+            return _payload({"form": form})
         if path.endswith("/permissions/create_context"):
-            schema = _schema("schema-perm")
-            return _payload(
-                {
-                    "schemas": [schema],
-                    "schema": schema,
-                    "selected_schema": {"_id": "schema-perm"},
-                }
-            )
+            form = _form("schema-perm")
+            return _payload({"form": form})
         if path.endswith("/resources/samples"):
             return _payload({"samples": []})
         if path.endswith("/resources/asp"):
             return _payload({"panels": []})
         if path.endswith("/resources/asp/create_context"):
-            schema = _schema("schema-asp", "assay_name")
-            return _payload(
-                {
-                    "schemas": [schema],
-                    "schema": schema,
-                    "selected_schema": {"_id": "schema-asp"},
-                }
-            )
+            form = _form("schema-asp", "assay_name")
+            return _payload({"form": form})
         if path.endswith("/resources/aspc"):
             return _payload({"assay_configs": []})
         if path.endswith("/resources/aspc/create_context"):
-            schema = _schema("schema-aspc", "assay_name")
+            form = _form("schema-aspc", "assay_name")
             return _payload(
                 {
-                    "schemas": [schema],
-                    "schema": schema,
-                    "selected_schema": {"_id": "schema-aspc"},
+                    "form": form,
                     "prefill_map": {},
                 }
             )
         if path.endswith("/resources/genelists"):
             return _payload({"genelists": []})
         if path.endswith("/resources/genelists/create_context"):
-            schema = _schema("schema-isgl", "name")
+            form = _form("schema-isgl", "name")
             return _payload(
                 {
-                    "schemas": [schema],
-                    "schema": schema,
-                    "selected_schema": {"_id": "schema-isgl"},
+                    "form": form,
                     "assay_group_map": {},
                 }
             )

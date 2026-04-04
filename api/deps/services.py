@@ -2,24 +2,10 @@
 
 from functools import lru_cache
 
-from api.deps.repositories import (
-    get_admin_repository,
-    get_coverage_processing_repository,
-    get_coverage_repository,
-    get_dashboard_repository,
-    get_dna_repository,
-    get_home_repository,
-    get_rna_repository,
-    get_rna_workflow_repository,
-)
 from api.services.accounts.permissions import PermissionManagementService
-from api.services.accounts.role_admin import AdminRoleService
-from api.services.accounts.user_admin import AdminUserService
+from api.services.accounts.roles import RoleManagementService
 from api.services.accounts.user_profile import UserService
-from api.services.admin_resource.aspc_service import AdminAspcService, AdminQueryProfileService
-from api.services.admin_resource.genelist_service import AdminGenelistService
-from api.services.admin_resource.panel_service import AdminPanelService
-from api.services.admin_resource.sample_service import AdminSampleService
+from api.services.accounts.users import UserManagementService
 from api.services.biomarker.biomarker_lookup import BiomarkerService
 from api.services.classification.tiering import ResourceClassificationService
 from api.services.classification.variant_annotation import ResourceAnnotationService
@@ -30,6 +16,10 @@ from api.services.dna.structural_variants import DnaStructuralService
 from api.services.dna.translocations import TranslocationService
 from api.services.dna.variant_analysis import DnaService
 from api.services.reporting.report_builder import ReportService
+from api.services.resources.asp import AspService
+from api.services.resources.aspc import AspcService, QueryProfileService
+from api.services.resources.isgl import IsglService
+from api.services.resources.sample import ResourceSampleService
 from api.services.rna.expression_analysis import RnaService
 from api.services.rna.fusions import FusionService
 from api.services.sample.catalog import SampleCatalogService
@@ -38,233 +28,132 @@ from api.services.sample.sample_lookup import SampleService
 
 
 @lru_cache
-def get_admin_user_service() -> AdminUserService:
-    """Return the shared admin user-management service.
-
-    Returns:
-        The service used by user-management routes.
-    """
-    return AdminUserService(repository=get_admin_repository())
+def get_admin_user_service() -> UserManagementService:
+    """Return the shared admin user-management service."""
+    return UserManagementService()
 
 
 @lru_cache
-def get_admin_role_service() -> AdminRoleService:
-    """Return the shared admin role-management service.
-
-    Returns:
-        The service used by role-management routes.
-    """
-    return AdminRoleService(repository=get_admin_repository())
+def get_admin_role_service() -> RoleManagementService:
+    """Return the shared admin role-management service."""
+    return RoleManagementService()
 
 
 @lru_cache
 def get_permission_management_service() -> PermissionManagementService:
-    """Return the shared permission-management service.
-
-    Returns:
-        The service used by permission-management routes.
-    """
-    return PermissionManagementService(repository=get_admin_repository())
+    """Return the shared permission-management service."""
+    return PermissionManagementService()
 
 
 @lru_cache
-def get_admin_panel_service() -> AdminPanelService:
-    """Return the shared assay-panel management service.
-
-    Returns:
-        The service used by ASP resource routes.
-    """
-    return AdminPanelService(repository=get_admin_repository())
+def get_admin_panel_service() -> AspService:
+    """Return the shared assay-panel management service."""
+    return AspService()
 
 
 @lru_cache
-def get_admin_genelist_service() -> AdminGenelistService:
-    """Return the shared genelist management service.
-
-    Returns:
-        The service used by genelist resource routes.
-    """
-    return AdminGenelistService(repository=get_admin_repository())
+def get_admin_genelist_service() -> IsglService:
+    """Return the shared genelist management service."""
+    return IsglService()
 
 
 @lru_cache
-def get_admin_aspc_service() -> AdminAspcService:
-    """Return the shared assay-configuration management service.
-
-    Returns:
-        The service used by ASPC resource routes.
-    """
-    return AdminAspcService(repository=get_admin_repository())
+def get_admin_aspc_service() -> AspcService:
+    """Return the shared assay-configuration management service."""
+    return AspcService()
 
 
 @lru_cache
-def get_admin_sample_service() -> AdminSampleService:
-    """Return the shared admin sample-management service.
-
-    Returns:
-        The service used by admin sample routes.
-    """
-    return AdminSampleService(repository=get_admin_repository())
+def get_admin_sample_service() -> ResourceSampleService:
+    """Return the shared admin sample-management service."""
+    return ResourceSampleService()
 
 
 @lru_cache
-def get_admin_query_profile_service() -> AdminQueryProfileService:
+def get_admin_query_profile_service() -> QueryProfileService:
     """Return the shared query-profile options service."""
-    return AdminQueryProfileService(repository=get_admin_repository())
+    return QueryProfileService()
 
 
 @lru_cache
 def get_coverage_service() -> CoverageService:
-    """Return the shared coverage service.
-
-    Returns:
-        The service used by coverage routes.
-    """
-    return CoverageService(
-        repository=get_coverage_repository(),
-        processing_repository=get_coverage_processing_repository(),
-    )
+    """Return the shared coverage service."""
+    return CoverageService()
 
 
 @lru_cache
 def get_dashboard_service() -> DashboardService:
-    """Return the shared dashboard service.
-
-    Returns:
-        The service used by dashboard routes.
-    """
-    return DashboardService(repository=get_dashboard_repository())
+    """Return the shared dashboard service."""
+    return DashboardService()
 
 
 def get_dna_service() -> DnaService:
-    """Return the DNA orchestration service.
-
-    Returns:
-        The service used by shared DNA workflows.
-    """
-    return DnaService(repository=get_dna_repository())
+    """Return the DNA orchestration service."""
+    return DnaService()
 
 
 def get_small_variant_service() -> SmallVariantService:
-    """Return the small-variant service.
-
-    Returns:
-        The service used by small-variant routes.
-    """
-    return SmallVariantService(repository=get_dna_repository())
+    """Return the small-variant service."""
+    return SmallVariantService()
 
 
 def get_biomarker_service() -> BiomarkerService:
-    """Return the biomarker service.
-
-    Returns:
-        The service used by biomarker routes.
-    """
-    return BiomarkerService(repository=get_dna_repository())
+    """Return the biomarker service."""
+    return BiomarkerService()
 
 
 def get_classification_service() -> ResourceClassificationService:
-    """Return the shared resource-classification service.
-
-    Returns:
-        The service used by classification routes.
-    """
-    return ResourceClassificationService(repository=get_dna_repository())
+    """Return the shared resource-classification service."""
+    return ResourceClassificationService()
 
 
 def get_resource_annotation_service() -> ResourceAnnotationService:
-    """Return the shared resource-annotation service.
-
-    Returns:
-        The service used by annotation routes.
-    """
-    return ResourceAnnotationService(repository=get_dna_repository())
+    """Return the shared resource-annotation service."""
+    return ResourceAnnotationService()
 
 
 @lru_cache
 def get_sample_catalog_service() -> SampleCatalogService:
-    """Return the shared sample-catalog service.
-
-    Returns:
-        The service used by sample list and sample context routes.
-    """
-    return SampleCatalogService(repository=get_home_repository())
+    """Return the shared sample-catalog service."""
+    return SampleCatalogService()
 
 
 def get_rna_service() -> RnaService:
-    """Return the RNA orchestration service.
-
-    Returns:
-        The service used by shared RNA workflows.
-    """
-    return RnaService(
-        repository=get_rna_repository(),
-        workflow_repository=get_rna_workflow_repository(),
-    )
+    """Return the RNA orchestration service."""
+    return RnaService()
 
 
 def get_fusion_service() -> FusionService:
-    """Return the fusion service.
-
-    Returns:
-        The service used by fusion routes.
-    """
-    return FusionService(
-        repository=get_rna_repository(),
-        workflow_repository=get_rna_workflow_repository(),
-    )
+    """Return the fusion service."""
+    return FusionService()
 
 
 def get_dna_structural_service() -> DnaStructuralService:
-    """Return the DNA structural service.
-
-    Returns:
-        The service used by structural DNA workflows.
-    """
-    return DnaStructuralService(repository=get_dna_repository())
+    """Return the DNA structural service."""
+    return DnaStructuralService()
 
 
 def get_cnv_service() -> CnvService:
-    """Return the CNV service.
-
-    Returns:
-        The service used by CNV routes.
-    """
-    return CnvService(repository=get_dna_repository())
+    """Return the CNV service."""
+    return CnvService()
 
 
 def get_translocation_service() -> TranslocationService:
-    """Return the translocation service.
-
-    Returns:
-        The service used by translocation routes.
-    """
-    return TranslocationService(repository=get_dna_repository())
+    """Return the translocation service."""
+    return TranslocationService()
 
 
 @lru_cache
 def get_report_service() -> ReportService:
-    """Return the shared report service.
-
-    Returns:
-        The service used by report preview and save routes.
-    """
+    """Return the shared report service."""
     return ReportService()
 
 
 def get_user_service() -> UserService:
-    """Return the user service.
-
-    Returns:
-        The service used by non-admin user flows.
-    """
+    """Return the user service."""
     return UserService()
 
 
 def get_sample_service() -> SampleService:
-    """Return the sample service.
-
-    Returns:
-        The service used by sample mutation routes.
-    """
+    """Return the sample service."""
     return SampleService()

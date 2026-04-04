@@ -7,7 +7,7 @@ from typing import Any
 from api.extensions import store
 
 
-class MongoDNAReportingRepository:
+class ReportRepository:
     """Provide mongo dna reporting persistence operations."""
 
     def get_asp(self, asp_name: str) -> dict[str, Any] | None:

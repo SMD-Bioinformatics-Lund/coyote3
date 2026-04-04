@@ -5,7 +5,7 @@ from __future__ import annotations
 from api.extensions import store
 
 
-class MongoSamplesRepository:
+class SampleRepository:
     """Provide mongo samples persistence operations."""
 
     def add_sample_comment(self, sample_id: str, doc: dict) -> None:

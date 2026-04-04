@@ -6,8 +6,10 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any
 
+from api.contracts.managed_resources import ManagedResourceSpec
+from api.contracts.managed_ui_schemas import build_form_spec
 from api.extensions import util
-from api.runtime import current_username
+from api.runtime_state import current_username
 
 
 def mutation_payload(
@@ -53,6 +55,34 @@ def utc_now() -> datetime:
         str: The function result.
     """
     return util.common.utc_now()
+
+
+def build_managed_form(
+    spec: ManagedResourceSpec,
+    *,
+    actor_username: str | None = None,
+) -> dict[str, Any]:
+    """Build a managed form payload with optional actor defaults."""
+    form = deepcopy(build_form_spec(spec))
+    if actor_username:
+        actor = current_actor(actor_username)
+        now = utc_now()
+        for field_name, value in {
+            "created_by": actor,
+            "created_on": now,
+            "updated_by": actor,
+            "updated_on": now,
+        }.items():
+            if field_name in form.get("fields", {}):
+                form["fields"][field_name]["default"] = value
+    return form
+
+
+def normalize_managed_form_payload(
+    spec: ManagedResourceSpec, form_data: dict[str, Any]
+) -> dict[str, Any]:
+    """Normalize submitted form data using the managed resource form."""
+    return util.records.normalize_form_payload(form_data, build_form_spec(spec))
 
 
 def lower(value: Any) -> str:
@@ -113,7 +143,7 @@ def inject_version_history(
     Returns:
         dict[str, Any]: The function result.
     """
-    return util.admin.inject_version_history(
+    return util.records.inject_version_history(
         user_email=actor_username,
         new_config=deepcopy(new_config),
         old_config=old_config,

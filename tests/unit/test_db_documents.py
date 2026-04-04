@@ -9,8 +9,10 @@ from pathlib import Path
 
 import pytest
 
-from api.contracts.schemas.dna import VariantsDoc
+from api.contracts.schemas.dna import DnaFiltersDoc, VariantsDoc
 from api.contracts.schemas.registry import supported_collections, validate_collection_document
+from api.contracts.schemas.rna import RnaFiltersDoc
+from api.contracts.schemas.samples import SampleCaseControlDoc, SamplesDoc
 
 
 def _load_seed_list(path: Path) -> list[dict]:
@@ -96,6 +98,46 @@ def test_collection_validator_accepts_nested_sample_shape():
     fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/samples.json")
     payload = _load_seed_list(fixture)[0]
     validate_collection_document("samples", payload)
+
+
+def test_samples_doc_materializes_typed_nested_defaults():
+    """SamplesDoc should populate nested typed defaults without raw dict placeholders."""
+    dna_doc = SamplesDoc.model_validate(
+        {
+            "name": "S1",
+            "assay": "assay_1",
+            "subpanel": "hem",
+            "profile": "production",
+            "case_id": "CASE_DEMO",
+            "sample_no": 1,
+            "sequencing_scope": "panel",
+            "omics_layer": "dna",
+            "pipeline": "SomaticPanelPipeline",
+            "pipeline_version": "1.0.0",
+            "vcf_files": "x",
+        }
+    )
+    assert isinstance(dna_doc.filters, DnaFiltersDoc)
+    assert isinstance(dna_doc.case, SampleCaseControlDoc)
+    assert isinstance(dna_doc.model_dump(exclude_none=True)["filters"], dict)
+
+    rna_doc = SamplesDoc.model_validate(
+        {
+            "name": "S2",
+            "assay": "fusion_assay",
+            "subpanel": "rna",
+            "profile": "production",
+            "case_id": "CASE_RNA",
+            "sample_no": 1,
+            "sequencing_scope": "wts",
+            "omics_layer": "rna",
+            "pipeline": "RnaPipeline",
+            "pipeline_version": "1.0.0",
+            "fusion_files": "x",
+        }
+    )
+    assert isinstance(rna_doc.filters, RnaFiltersDoc)
+    assert isinstance(rna_doc.case, SampleCaseControlDoc)
 
 
 def test_collection_validator_rejects_dna_sample_with_rna_keys():

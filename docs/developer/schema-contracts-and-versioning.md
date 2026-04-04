@@ -17,7 +17,7 @@ DB contracts are organized in `api/contracts/schemas/`:
 - `rna.py`: fusions, RNA expression/classification/QC models.
 - `assay.py`: ASP/ASPC/ISGL and assay-linked blacklist models.
 - `governance.py`: users, roles, permissions, schema-definition documents.
-- `reference.py`: external/reference and annotation contracts.
+- `reference.py`: annotation knowledgebase and annotation contracts.
 - `registry.py`: collection-to-model adapter map and validation helpers.
 
 ## Single source mapping

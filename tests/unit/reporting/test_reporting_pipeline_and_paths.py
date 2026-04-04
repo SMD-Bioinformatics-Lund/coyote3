@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from api.core.exceptions import AppError
 from api.core.reporting import pipeline, report_paths
-from api.errors.exceptions import AppError
 
 
 def test_build_report_file_location_with_control_id(monkeypatch):
@@ -177,16 +177,10 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
     )
     monkeypatch.setattr(
         pipeline,
-        "_core_repo",
+        "_reporting_repository",
         lambda: SimpleNamespace(
-            sample_handler=SimpleNamespace(
-                save_report=lambda **kwargs: (calls.setdefault("save_report", kwargs), "oid1")[1]
-            ),
-            reported_variants_handler=SimpleNamespace(
-                bulk_upsert_from_snapshot_rows=lambda **kwargs: calls.setdefault(
-                    "bulk_upsert", kwargs
-                )
-            ),
+            save_report=lambda **kwargs: (calls.setdefault("save_report", kwargs), "oid1")[1],
+            bulk_upsert_snapshot_rows=lambda **kwargs: calls.setdefault("bulk_upsert", kwargs),
         ),
     )
 

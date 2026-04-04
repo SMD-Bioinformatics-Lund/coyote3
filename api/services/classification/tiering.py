@@ -5,20 +5,16 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from api.extensions import store
 from api.http import api_error
-from api.repositories.dna_repository import DnaRouteRepository
 
 
 class ResourceClassificationService:
     """Own cross-resource classification and tiering workflows."""
 
-    def __init__(self, repository: DnaRouteRepository | None = None) -> None:
-        """__init__.
-
-        Args:
-                repository: Repository. Optional argument.
-        """
-        self.repository = repository or DnaRouteRepository()
+    def __init__(self, repository: Any | None = None) -> None:
+        """Build the service with a classification repository."""
+        self.repository = repository or store.get_dna_route_repository()
 
     @staticmethod
     def _consequence_list(value: object) -> list[str]:

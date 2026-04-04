@@ -161,7 +161,7 @@ def create_assay_panel():
             request.files.get("germline_genes_file"),
             form_data.get("germline_genes_paste", ""),
         )
-        config = util.admin.process_form_to_config(form_data, context.schema)
+        config = util.admin.process_form_to_config(form_data, context.form)
         config["_id"] = config["assay_name"]
         config["covered_genes"] = covered_genes
         config["germline_genes"] = germline_genes
@@ -179,7 +179,7 @@ def create_assay_panel():
 
     return render_template(
         "asp/create_asp.html",
-        schema=context.schema,
+        schema=context.form,
     )
 
 
@@ -237,7 +237,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
         if "germline_genes_file" not in request.files and "germline_genes_paste" not in form_data:
             germline_genes = panel.get("germline_genes", [])
 
-        updated = util.admin.process_form_to_config(form_data, context.schema)
+        updated = util.admin.process_form_to_config(form_data, context.form)
         updated["_id"] = panel["_id"]
         updated["covered_genes"] = covered_genes
         updated["germline_genes"] = germline_genes
@@ -255,7 +255,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
 
     return render_template(
         "asp/edit_asp.html",
-        schema=context.schema,
+        schema=context.form,
         panel=panel,
         selected_version=selected_version,
         delta=delta,
@@ -281,7 +281,7 @@ def view_assay_panel(assay_panel_id: str) -> Response | str:
     return render_template(
         "asp/view_asp.html",
         panel=panel,
-        schema=context.schema,
+        schema=context.form,
         selected_version=selected_version or panel.get("version"),
         delta=delta,
     )
@@ -307,7 +307,7 @@ def print_assay_panel(panel_id: str) -> str | Response:
 
     return render_template(
         "asp/print_asp.html",
-        schema=context.schema,
+        schema=context.form,
         config=panel,
         now=util.common.utc_now(),
         selected_version=selected_version,

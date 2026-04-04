@@ -7,21 +7,17 @@ from copy import deepcopy
 from typing import Any
 
 from api.core.home.ports import HomeRepository
+from api.extensions import store
 from api.http import api_error, get_formatted_assay_config
-from api.repositories.home_repository import HomeRepository as MongoHomeRepository
-from api.runtime import app as runtime_app
+from api.runtime_state import app as runtime_app
 
 
 class SampleCatalogService:
     """Own sample-list and sample-context workflows for the API."""
 
     def __init__(self, repository: HomeRepository | None = None) -> None:
-        """__init__.
-
-        Args:
-                repository: Repository. Optional argument.
-        """
-        self.repository = repository or MongoHomeRepository()
+        """Build the service with a sample catalog repository."""
+        self.repository = repository or store.get_home_repository()
 
     def samples_payload(
         self,
@@ -184,6 +180,8 @@ class SampleCatalogService:
         """
         filters = sample.get("filters", {})
         assay = sample.get("assay")
+        if not assay:
+            raise api_error(400, "Sample is missing the 'assay' field")
         asp = self.repository.get_asp(assay)
         asp_group = asp.get("asp_group")
         asp_covered_genes, _asp_germline_genes = self.repository.get_asp_genes(assay)
@@ -216,7 +214,10 @@ class SampleCatalogService:
         Returns:
             dict[str, Any]: The function result.
         """
-        asp = self.repository.get_asp(sample.get("assay"))
+        assay = sample.get("assay")
+        if not assay:
+            raise api_error(400, "Sample is missing the 'assay' field")
+        asp = self.repository.get_asp(assay)
         asp_group = asp.get("asp_group")
 
         if sample.get("filters") is None:

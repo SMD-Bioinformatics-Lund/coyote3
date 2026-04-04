@@ -206,7 +206,7 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
     )
     rna_workflow.RNAWorkflowService.set_repository(repo)
 
-    monkeypatch.setattr(rna_workflow.CommonUtility, "utc_now", staticmethod(lambda: "NOW"))
+    monkeypatch.setattr(rna_workflow, "utc_now", lambda: "NOW")
     monkeypatch.setattr(
         rna_workflow.util,
         "common",

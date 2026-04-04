@@ -7,7 +7,7 @@ from typing import Any
 from api.extensions import store
 
 
-class MongoAdminSampleDeletionRepository:
+class AdminSampleDeletionRepository:
     """Provide mongo admin sample deletion persistence operations."""
 
     def get_sample_by_id(self, sample_id: str) -> dict[str, Any] | None:

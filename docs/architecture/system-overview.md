@@ -15,7 +15,10 @@ Flask UI (coyote) -> FastAPI backend (api) -> MongoDB
 - `api/services`: orchestration and use-case logic
 - `api/core`: reusable domain/core logic
 - `api/contracts`: Pydantic contracts for API and DB documents
-- `api/infra/db`: collection handlers and DB utilities
+- `api/infra/providers`: datastore provider selection
+- `api/infra/<provider>`: provider-owned repository/runtime code
+- `api/infra/knowledgebase`: annotation knowledgebase handlers and plugin registry backed by MongoDB collections
+- `api/infra/integrations`: true external integrations such as LDAP
 - `api/deps`: dependency wiring
 
 ### UI side
@@ -28,7 +31,7 @@ Flask UI (coyote) -> FastAPI backend (api) -> MongoDB
 
 - `api/main.py`
 - `api/lifecycle.py`
-- `api/runtime_bootstrap.py`
+- `api/runtime_setup.py`
 
 Startup builds runtime context, initializes store/handlers, and ensures required indexes.
 

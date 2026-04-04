@@ -9,6 +9,7 @@ import pytest
 
 import api.services.ingest.parsers as ingest_parsers
 import api.services.ingest.service as ingest
+from api.core.internal.ports import ReplaceDocumentResult
 
 
 class _Col:
@@ -96,6 +97,61 @@ def _store_stub(sample_docs=None):
         rna_qc_handler=_Handler(db["rna_qc"]),
         coyote_db=db,
     )
+
+
+def _repo_stub(store_stub, *, new_sample_id="507f1f77bcf86cd799439011"):
+    sample_col = store_stub.sample_handler.get_collection()
+
+    class _Repo:
+        def list_samples_by_exact_name(self, name):
+            return list(sample_col.find({"name": name}))
+
+        def list_samples_by_name_pattern(self, name_pattern):
+            return list(sample_col.find({"name": {"$regex": name_pattern}}))
+
+        def list_refseq_canonical_documents(self):
+            return list(store_stub.coyote_db["refseq_canonical"].find({}))
+
+        def find_sample_by_name(self, name):
+            return sample_col.find_one({"name": name})
+
+        def find_sample_by_id(self, sample_id):
+            return sample_col.find_one({"_id": sample_id})
+
+        def new_sample_id(self):
+            return new_sample_id
+
+        def insert_sample(self, document):
+            return str(sample_col.insert_one(document).inserted_id)
+
+        def update_sample_fields(self, sample_id, fields):
+            sample_col.update_one({"_id": sample_id}, {"$set": fields}, upsert=False)
+
+        def delete_sample(self, sample_id):
+            sample_col.delete_one({"_id": sample_id})
+
+        def list_collection_documents(self, collection, match):
+            return list(store_stub.coyote_db[collection].find(match))
+
+        def delete_collection_documents(self, collection, match):
+            store_stub.coyote_db[collection].delete_many(match)
+
+        def insert_collection_document(self, collection, document, *, ignore_duplicate=False):
+            _ = ignore_duplicate
+            return str(store_stub.coyote_db[collection].insert_one(document).inserted_id)
+
+        def insert_collection_documents(self, collection, documents, *, ignore_duplicates=False):
+            _ = ignore_duplicates
+            return len(
+                store_stub.coyote_db[collection].insert_many(documents, ordered=False).inserted_ids
+            )
+
+        def replace_collection_document(self, collection, *, match, document, upsert=False):
+            col = store_stub.coyote_db[collection]
+            col.updated.append((match, document, upsert))
+            return ReplaceDocumentResult(matched_count=1, modified_count=1, upserted_id=None)
+
+    return _Repo()
 
 
 def test_small_helpers_and_build_meta(tmp_path):
@@ -253,7 +309,7 @@ def test_transcript_helpers():
 
 def test_next_unique_name(monkeypatch):
     stub = _store_stub([{"name": "CASE"}, {"name": "CASE-2"}])
-    monkeypatch.setattr(ingest, "store", stub)
+    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
 
     with pytest.raises(ValueError):
         ingest._next_unique_name("CASE", increment=False)
@@ -330,10 +386,7 @@ def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
 
 def test_service_resolution_and_validation(monkeypatch):
     stub = _store_stub()
-    monkeypatch.setattr(ingest, "store", stub)
-
-    col = ingest.InternalIngestService._resolve_collection("variants")
-    assert isinstance(col, _Col)
+    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
 
     monkeypatch.setattr(ingest, "normalize_collection_document", lambda _c, doc: dict(doc))
     out = ingest.InternalIngestService._normalize_collection_docs("variants", [{"a": 1}, {"b": 2}])
@@ -342,7 +395,7 @@ def test_service_resolution_and_validation(monkeypatch):
 
 def test_service_canonical_and_parse_preload(monkeypatch):
     stub = _store_stub()
-    monkeypatch.setattr(ingest, "store", stub)
+    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
     assert ingest.InternalIngestService._canonical_map() == {"EGFR": "NM_005228"}
     assert "samples" in ingest.InternalIngestService.list_supported_collections()
 
@@ -362,7 +415,7 @@ def test_service_canonical_and_parse_preload(monkeypatch):
 
 def test_write_and_ingest_dependents(monkeypatch):
     stub = _store_stub()
-    monkeypatch.setattr(ingest, "store", stub)
+    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
     monkeypatch.setattr(ingest, "normalize_collection_document", lambda _c, doc: dict(doc))
     monkeypatch.setattr(
         ingest,
@@ -376,14 +429,14 @@ def test_write_and_ingest_dependents(monkeypatch):
     }
     out = ingest.InternalIngestService._write_dependents(
         preload=preload,
-        sample_id=ingest.ObjectId(),
+        sample_id="507f1f77bcf86cd799439012",
         sample_name="S1",
     )
     assert out["snvs"] == 1 and out["cov"] == 1
 
     with pytest.raises(TypeError):
         ingest.InternalIngestService._write_dependents(
-            preload={"cov": []}, sample_id=ingest.ObjectId(), sample_name="S1"
+            preload={"cov": []}, sample_id="507f1f77bcf86cd799439013", sample_name="S1"
         )
 
     out2 = ingest.InternalIngestService.ingest_dependents(
@@ -396,11 +449,11 @@ def test_write_and_ingest_dependents(monkeypatch):
 
 
 def test_snapshot_restore_replace_and_counts(monkeypatch):
-    sid = ingest.ObjectId()
+    sid = "507f1f77bcf86cd799439014"
     cov_col = _Col([{"_id": "x", "SAMPLE_ID": str(sid), "a": 1}])
     stub = _store_stub()
     stub.coyote_db["panel_coverage"] = cov_col
-    monkeypatch.setattr(ingest, "store", stub)
+    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
 
     snap = ingest.InternalIngestService._snapshot_dependents(sample_id=sid, keys={"cov"})
     assert "cov" in snap
@@ -425,9 +478,9 @@ def test_snapshot_restore_replace_and_counts(monkeypatch):
 
 
 def test_replace_dependents_restores_on_failure(monkeypatch):
-    sid = ingest.ObjectId()
+    sid = "507f1f77bcf86cd799439015"
     stub = _store_stub()
-    monkeypatch.setattr(ingest, "store", stub)
+    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
     called = {"restored": False}
 
     monkeypatch.setattr(
@@ -464,7 +517,7 @@ def test_update_payload_guard_and_meta_update(monkeypatch):
     sample_col = _Col([{"_id": "id1", "name": "S1", "assay": "A", "x": 1}])
     stub = _store_stub()
     stub.sample_handler = _Handler(sample_col)
-    monkeypatch.setattr(ingest, "store", stub)
+    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
 
     ingest.InternalIngestService._update_meta_fields(
         sample_id="id1",
@@ -482,7 +535,7 @@ def test_update_payload_guard_and_meta_update(monkeypatch):
 
 
 def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
-    sample_id = ingest.ObjectId()
+    sample_id = "507f1f77bcf86cd799439016"
     sample_col = _Col(
         [
             {
@@ -503,7 +556,7 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
     )
     stub = _store_stub()
     stub.sample_handler = _Handler(sample_col)
-    monkeypatch.setattr(ingest, "store", stub)
+    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
     monkeypatch.setattr(
         ingest.InternalIngestService,
         "_prepare_update_payload",
@@ -565,7 +618,11 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     sample_col = _Col([])
     stub = _store_stub()
     stub.sample_handler = _Handler(sample_col)
-    monkeypatch.setattr(ingest, "store", stub)
+    monkeypatch.setattr(
+        ingest,
+        "_repository",
+        lambda: _repo_stub(stub, new_sample_id="507f1f77bcf86cd799439017"),
+    )
     monkeypatch.setattr(ingest.InternalIngestService, "_parse_preload", lambda _: {"snvs": []})
     monkeypatch.setattr(ingest, "_next_unique_name", lambda *_: "S1")
     monkeypatch.setattr(ingest.InternalIngestService, "_write_dependents", lambda **_: {"snvs": 0})
@@ -596,8 +653,6 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
         ingest.InternalIngestService.ingest_sample_bundle({"name": "S2"}, allow_update=False)
     assert cleaned["called"]
 
-    col = _Col()
-    monkeypatch.setattr(ingest.InternalIngestService, "_resolve_collection", lambda _n: col)
     monkeypatch.setattr(ingest, "normalize_collection_document", lambda _c, doc: dict(doc))
 
     one = ingest.InternalIngestService.insert_collection_document(

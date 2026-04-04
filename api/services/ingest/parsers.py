@@ -11,9 +11,9 @@ from typing import Any
 from pysam import VariantFile
 
 import config
+from api.common.parsers import cmdvcf
 from api.contracts.schemas.samples import DNA_SAMPLE_FILE_KEYS, RNA_SAMPLE_FILE_KEYS
 from api.core.dna.variant_identity import ensure_variant_identity_fields
-from api.parsers import cmdvcf
 
 
 def _exists(path: str | None) -> bool:
@@ -533,7 +533,7 @@ class DnaIngestParser:
             infile: Absolute path to the SNV VCF file.
 
         Returns:
-            A list of variant dicts ready for MongoDB insertion.
+            A list of variant dicts ready for persistence.
 
         Raises:
             ValueError: If a variant record lacks required GT fields (AF/VAF, DP, VD).

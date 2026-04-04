@@ -106,14 +106,14 @@ Input files/YAML
 - `refseq_canonical`: canonical transcript map used during DNA ingest normalization.
 - `hgnc_genes`: gene metadata/symbol mapping used by APIs and UI.
 - `blacklist`: assay-scoped blacklist enrichment for variant review.
-- Optional external knowledge (`civic_*`, `oncokb_*`, `cosmic`, `brcaexchange`, `iarc_tp53`, `vep_metadata`): richer interpretation UX.
+- Optional annotation knowledgebase collections (`civic_*`, `oncokb_*`, `cosmic`, `brcaexchange`, `iarc_tp53`, `vep_metadata`): richer interpretation UX.
 
 ## Operational rules for smooth experience
 
 - Keep assay identifiers consistent across `samples.assay`, `asp.asp_id`, `aspc.assay_name`, and `isgl.assays[]`.
 - Keep assay-group semantics aligned between ASPC and ASP/ISGL usage.
 - Ensure sample `profile` resolves to a valid ASPC environment (`production`, `development`, `test`, `validation`).
-- Seed configuration/reference collections before ingesting sample bundles.
+- Seed configuration and knowledgebase collections before ingesting sample bundles.
 - Treat `samples` as the parent record and dependent collections as child records keyed by `SAMPLE_ID`.
 
 ## DNA and RNA input artifact recap

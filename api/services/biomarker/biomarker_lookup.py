@@ -2,20 +2,16 @@
 
 from __future__ import annotations
 
+from api.extensions import store
 from api.http import api_error
-from api.repositories.dna_repository import DnaRouteRepository
 
 
 class BiomarkerService:
     """Provide biomarker workflows."""
 
-    def __init__(self, repository: DnaRouteRepository | None = None) -> None:
-        """__init__.
-
-        Args:
-                repository: Repository. Optional argument.
-        """
-        self.repository = repository or DnaRouteRepository()
+    def __init__(self, repository=None) -> None:
+        """Build the service with a biomarker repository."""
+        self.repository = repository or store.get_dna_route_repository()
 
     def list_payload(self, *, sample: dict) -> dict:
         """List payload.

@@ -143,7 +143,7 @@ def create_permission() -> Response | str:
 
     return render_template(
         "permissions/create_permission.html",
-        schema=context.schema,
+        schema=context.form,
     )
 
 
@@ -212,7 +212,7 @@ def edit_permission(perm_id: str) -> Response | str:
 
     return render_template(
         "permissions/edit_permission.html",
-        schema=context.schema,
+        schema=context.form,
         permission=permission,
         selected_version=selected_version,
         delta=delta,
@@ -249,7 +249,7 @@ def view_permission(perm_id: str) -> str | Response:
 
     return render_template(
         "permissions/view_permission.html",
-        schema=context.schema,
+        schema=context.form,
         permission=permission,
         selected_version=selected_version or permission.get("version"),
         delta=delta,
