@@ -7,12 +7,12 @@ from typing import Any
 
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
-from api.core.dna.dna_reporting import hotspot_variant
 from api.core.dna.dna_variants import format_pon
 from api.core.dna.notation import one_letter_p
 from api.core.dna.translocqueries import build_transloc_query
 from api.http import api_error
 from api.services.dna.export import consequence_terms
+from api.services.reporting.dna_report_payload import hotspot_variant
 
 
 def _collect_oncokb_genes(service, variants: list[dict]) -> list[str]:
@@ -22,7 +22,7 @@ def _collect_oncokb_genes(service, variants: list[dict]) -> list[str]:
         symbol = variant.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL")
         if not symbol:
             continue
-        oncokb_gene = service.repository.oncokb_handler.get_oncokb_action_gene(symbol)
+        oncokb_gene = service.oncokb_handler.get_oncokb_action_gene(symbol)
         if oncokb_gene and "Hugo Symbol" in oncokb_gene:
             hugo_symbol = oncokb_gene["Hugo Symbol"]
             if hugo_symbol not in oncokb_genes:
@@ -56,7 +56,7 @@ def _build_display_and_summary_sections(
 
     if "BIOMARKER" in analysis_sections:
         biomarkers = list(
-            service.repository.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"]))
+            service.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"]))
         )
         display_sections_data["biomarkers"] = biomarkers
         summary_sections_data["biomarkers"] = biomarkers
@@ -66,7 +66,7 @@ def _build_display_and_summary_sections(
             str(sample["_id"]),
         )
         display_sections_data["translocs"] = list(
-            service.repository.transloc_handler.get_sample_translocations(transloc_query)
+            service.translocation_handler.get_sample_translocations(transloc_query)
         )
 
     if "FUSION" in analysis_sections:
@@ -103,16 +103,14 @@ def list_variants_payload(
     subpanel = sample.get("subpanel")
     analysis_sections = assay_config.get("analysis_types", [])
 
-    assay_panel_doc = service.repository.asp_handler.get_asp(asp_name=sample.get("assay"))
+    assay_panel_doc = service.assay_panel_handler.get_asp(asp_name=sample.get("assay"))
     checked_genelists = sample_filters.get("genelists", [])
-    checked_genelists_genes_dict = service.repository.isgl_handler.get_isgl_by_ids(
-        checked_genelists
-    )
+    checked_genelists_genes_dict = service.gene_list_handler.get_isgl_by_ids(checked_genelists)
     genes_covered_in_panel, filter_genes = util_module.common.get_sample_effective_genes(
         sample, assay_panel_doc, checked_genelists_genes_dict
     )
     checked_cnv_genelists = sample_filters.get("cnv_genelists", [])
-    checked_cnv_genelists_genes_dict = service.repository.isgl_handler.get_isgl_by_ids(
+    checked_cnv_genelists_genes_dict = service.gene_list_handler.get_isgl_by_ids(
         checked_cnv_genelists
     )
     _cnv_genes_covered_in_panel, cnv_filter_genes = util_module.common.get_sample_effective_genes(
@@ -145,23 +143,19 @@ def list_variants_payload(
         },
     )
 
-    variants = list(service.repository.variant_handler.get_case_variants(query))
-    variants = service.repository.blacklist_handler.add_blacklist_data(variants, assay_group)
+    variants = list(service.variant_handler.get_case_variants(query))
+    variants = service.blacklist_handler.add_blacklist_data(variants, assay_group)
     variants, tiered_variants = add_global_annotations_fn(variants, assay_group, subpanel)
     variants = hotspot_variant(variants)
 
     sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
-    bam_id = service.repository.bam_service_handler.get_bams(sample_ids)
-    vep_variant_class_meta = service.repository.vep_meta_handler.get_variant_class_translations(
+    bam_id = service.bam_record_handler.get_bams(sample_ids)
+    vep_variant_class_meta = service.vep_metadata_handler.get_variant_class_translations(
         sample.get("vep", 103)
     )
-    vep_conseq_meta = service.repository.vep_meta_handler.get_conseq_translations(
-        sample.get("vep", 103)
-    )
-    has_hidden_comments = service.repository.sample_handler.hidden_sample_comments(
-        sample.get("_id")
-    )
-    insilico_panel_genelists = service.repository.isgl_handler.get_isgl_by_asp(
+    vep_conseq_meta = service.vep_metadata_handler.get_conseq_translations(sample.get("vep", 103))
+    has_hidden_comments = service.sample_handler.hidden_sample_comments(sample.get("_id"))
+    insilico_panel_genelists = service.gene_list_handler.get_isgl_by_asp(
         sample.get("assay"), is_active=True
     )
     all_panel_genelist_names = util_module.common.get_assay_genelist_names(insilico_panel_genelists)
@@ -239,9 +233,7 @@ def plot_context_payload(*, service, sample: dict, assay_config_getter) -> dict[
 
 def biomarkers_payload(*, service, sample: dict) -> dict[str, Any]:
     """Build biomarker payload for DNA routes."""
-    biomarkers = list(
-        service.repository.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"]))
-    )
+    biomarkers = list(service.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"])))
     return {"sample": sample, "meta": {"count": len(biomarkers)}, "biomarkers": biomarkers}
 
 
@@ -255,7 +247,7 @@ def variant_context_payload(
     assay_config_getter,
 ) -> dict[str, Any]:
     """Build single-variant context payload for DNA routes."""
-    variant = service.repository.variant_handler.get_variant(var_id)
+    variant = service.variant_handler.get_variant(var_id)
     if not variant:
         raise api_error(404, "Variant not found")
     if str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
@@ -267,18 +259,18 @@ def variant_context_payload(
     assay_group = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel")
 
-    variant = service.repository.blacklist_handler.add_blacklist_data([variant], assay_group)[0]
-    in_other = service.repository.variant_handler.get_variant_in_other_samples(variant)
-    has_hidden_comments = service.repository.variant_handler.hidden_var_comments(var_id)
+    variant = service.blacklist_handler.add_blacklist_data([variant], assay_group)[0]
+    in_other = service.variant_handler.get_variant_in_other_samples(variant)
+    has_hidden_comments = service.variant_handler.hidden_var_comments(var_id)
     annotations, latest_classification, other_classifications, annotations_interesting = (
-        service.repository.annotation_handler.get_global_annotations(variant, assay_group, subpanel)
+        service.annotation_handler.get_global_annotations(variant, assay_group, subpanel)
     )
     if not latest_classification or latest_classification.get("class") == 999:
         variant = add_alt_class_fn(variant, assay_group, subpanel)
     else:
         variant["additional_classifications"] = None
 
-    expression = service.repository.expression_handler.get_expression_data(
+    expression = service.expression_handler.get_expression_data(
         list(variant.get("transcripts", []))
     )
     selected_csq = variant.get("INFO", {}).get("selected_CSQ", {})
@@ -297,8 +289,8 @@ def variant_context_payload(
     ):
         variant_desc = "ITD"
 
-    civic = service.repository.civic_handler.get_civic_data(variant, variant_desc)
-    civic_gene = service.repository.civic_handler.get_civic_gene_info(selected_csq.get("SYMBOL"))
+    civic = service.civic_handler.get_civic_data(variant, variant_desc)
+    civic_gene = service.civic_handler.get_civic_gene_info(selected_csq.get("SYMBOL"))
 
     oncokb_hgvsp = []
     if selected_csq.get("HGVSp"):
@@ -314,11 +306,11 @@ def variant_context_payload(
     ):
         oncokb_hgvsp.append("Truncating Mutations")
 
-    oncokb = service.repository.oncokb_handler.get_oncokb_anno(variant, oncokb_hgvsp)
-    oncokb_action = service.repository.oncokb_handler.get_oncokb_action(variant, oncokb_hgvsp)
-    oncokb_gene = service.repository.oncokb_handler.get_oncokb_gene(selected_csq.get("SYMBOL"))
-    brca_exchange = service.repository.brca_handler.get_brca_data(variant, assay_group)
-    iarc_tp53 = service.repository.iarc_tp53_handler.find_iarc_tp53(variant)
+    oncokb = service.oncokb_handler.get_oncokb_anno(variant, oncokb_hgvsp)
+    oncokb_action = service.oncokb_handler.get_oncokb_action(variant, oncokb_hgvsp)
+    oncokb_gene = service.oncokb_handler.get_oncokb_gene(selected_csq.get("SYMBOL"))
+    brca_exchange = service.brca_handler.get_brca_data(variant, assay_group)
+    iarc_tp53 = service.iarc_tp53_handler.find_iarc_tp53(variant)
 
     sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
     return {
@@ -351,12 +343,12 @@ def variant_context_payload(
         "subpanel": subpanel,
         "pon": format_pon(variant),
         "sample_ids": sample_ids,
-        "bam_id": service.repository.bam_service_handler.get_bams(sample_ids),
-        "vep_var_class_translations": service.repository.vep_meta_handler.get_variant_class_translations(
+        "bam_id": service.bam_record_handler.get_bams(sample_ids),
+        "vep_var_class_translations": service.vep_metadata_handler.get_variant_class_translations(
             sample.get("vep", 103)
         ),
-        "vep_conseq_translations": service.repository.vep_meta_handler.get_conseq_translations(
+        "vep_conseq_translations": service.vep_metadata_handler.get_conseq_translations(
             sample.get("vep", 103)
         ),
-        "assay_group_mappings": service.repository.asp_handler.get_asp_group_mappings(),
+        "assay_group_mappings": service.assay_panel_handler.get_asp_group_mappings(),
     }

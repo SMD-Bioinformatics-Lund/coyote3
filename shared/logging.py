@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any
 
-from logging_setup import custom_logging
+from shared.logging_setup import custom_logging
 
 _LOGGING_CONFIGURED: set[tuple[str, bool, bool]] = set()
 

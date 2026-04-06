@@ -5,23 +5,11 @@ All notable changes to this project will be documented in this file.
 The format follows Keep a Changelog principles and this project uses semantic versioning.
 
 ## [4.0.0] - Unreleased
-- Coming soon
-- API based backend and Flask Frontend with tailwind CSS
-- Mongo Containnnerized
-- Coverage API performance: removed N+1 blacklist lookups by batching group blacklist reads and using in-memory membership checks during coverage filtering.
-- Coverage API stability: added startup index bootstrap for `coverage2` and `groupcov` handlers with targeted indexes for `coverage2.SAMPLE_ID` and `groupcov(group,gene,region,coord)`.
-- DNA small-variant robustness: normalized `INFO.selected_CSQ.Consequence` handling for list/string values to prevent `TypeError: unhashable type: 'list'` in variant context paths and tiering flows.
-- Coverage API troubleshooting instrumentation removed after validation; hot-path improvements retained.
-- Dashboard: standardized chart visual system for bar/donut plots (legend style, label behavior, tooltip formatting, grid/typography consistency).
-- Dashboard: reworked ISGL visibility overlap into an interactive 3-set visualization with hover tooltips and non-zero region rendering.
-- Dashboard: moved ISGL overlap card to general logged-in dashboard visibility and aligned card sizing with 3-column section layout.
-- Dashboard: fixed radial capacity ring layout overflow and normalized-value display issues.
-- Dashboard: updated ring/stacked-bar label behavior (capacity ring labels show counts; assay workload center labels rendered vertically).
-- Docs: expanded dashboard user guide with metric-by-metric definitions, formulas, and panel interpretation notes.
-- DB: added targeted `ensure_indexes()` coverage for dashboard/admin hot collections (`users`, `roles`, `asp`, `aspc`, `isgl`) with a minimal-index strategy.
-- Docs: added developer + operations guidance for Mongo index lifecycle, count-query patterns, and storage-aware indexing policy.
-- DNA comments: fixed sample-specific SNV/CNV/translocation comment persistence shape so saved comments render correctly on detail pages.
-- Comment data cleanup: added `scripts/repair_malformed_comments.py` to rewrite malformed legacy nested comment entries in Mongo.
+- Introduced the API-first backend architecture with the Flask/Tailwind frontend and containerized MongoDB workflow.
+- Improved coverage performance and stability by removing N+1 blacklist lookups and bootstrapping targeted indexes for hot collections.
+- Hardened DNA variant handling and comment persistence, including robust consequence parsing and correct SNV/CNV/translocation comment storage.
+- Refined dashboard visuals and behavior across charts, ISGL overlap views, workload rings, and logged-in summary cards.
+- Expanded developer, operations, and dashboard documentation around metrics, Mongo index strategy, and troubleshooting.
 
 ## [3.1.22]
 - Fixed DNA small-variant bulk `false_positive` and `irrelevant` updates by replacing deprecated Mongo legacy bulk operations with direct `update_many` writes.

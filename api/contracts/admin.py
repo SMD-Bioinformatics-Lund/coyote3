@@ -95,8 +95,8 @@ class AdminPermissionContextPayload(BaseModel):
     form_payload: dict[str, Any] = Field(alias="form")
 
 
-class AdminMutationPayload(BaseModel):
-    """Represent the admin mutation payload."""
+class AdminChangePayload(BaseModel):
+    """Represent the admin change payload."""
 
     status: str
     sample_id: str

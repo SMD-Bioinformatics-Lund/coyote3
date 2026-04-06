@@ -305,12 +305,12 @@ def main() -> None:
     Returns:
         None.
     """
-    import config
+    from shared import app_config
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    prod = config.ProductionConfig()
-    dev = config.DevelopmentConfig()
+    prod = app_config.ProductionConfig()
+    dev = app_config.DevelopmentConfig()
 
     prod_snapshot = _extract(prod)
     dev_snapshot = _extract(dev, scoped_query=RNA_WGS_PATTERN)

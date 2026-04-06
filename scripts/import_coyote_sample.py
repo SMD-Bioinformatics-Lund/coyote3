@@ -27,9 +27,8 @@ from cli import cli_parser
 from pysam import VariantFile
 
 # External project deps expected:
-# - config (mongo URIs, db names, data_types mapping, mane path)
+# - shared.app_config (mongo URIs, db names, data_types mapping, mane path)
 # - cli.cli_parser (arg parser)
-import config
 from api.common.parsers import cmdvcf
 from api.contracts.schemas.registry import (
     INGEST_DEPENDENT_COLLECTIONS,
@@ -42,6 +41,7 @@ from api.contracts.schemas.samples import (
     SamplesDoc,
 )
 from api.core.dna.variant_identity import ensure_variant_identity_fields
+from shared import app_config
 
 
 # --------------------------
@@ -50,6 +50,11 @@ from api.core.dna.variant_identity import ensure_variant_identity_fields
 def setup_logging(debug: bool = False) -> None:
     fmt = "[%(asctime)s][%(levelname)s]: %(message)s"
     logging.basicConfig(level=(logging.DEBUG if debug else logging.INFO), format=fmt)
+
+
+def _runtime_config(dev: bool = False):
+    """Return the active app config object for the ingestion script."""
+    return app_config.DevelopmentConfig() if dev else app_config.ProductionConfig()
 
 
 # --------------------------
@@ -83,13 +88,14 @@ class Repos:
 
         Notes:
             - The MongoDB client is created using the URI specified in the
-            configuration (config.mongo["uri"]).
+            configuration.
             - The database name is determined based on the "dev" key in args_dict:
-            - If "dev" is True, the development database name (config.mongo["dbname_dev"]) is used.
-            - Otherwise, the production database name (config.mongo["dbname"]) is used.
+            - If "dev" is True, the development database name is used.
+            - Otherwise, the production database name is used.
         """
-        client = pymongo.MongoClient(config.mongo["uri"])
-        dbname = config.mongo["dbname_dev"] if args_dict.get("dev") else config.mongo["dbname"]
+        runtime = _runtime_config(dev=bool(args_dict.get("dev")))
+        client = pymongo.MongoClient(runtime.MONGO_URI)
+        dbname = runtime.COYOTE3_DB
         logging.info(f"Using database: {dbname}")
         return cls(client=client, db=client[dbname])
 
@@ -1170,7 +1176,7 @@ class DnaParser:
             - Constructs a new annotation structure for each variant and appends it to the output
             if it meets the filtering criteria.
         """
-        mane: Dict[str, Dict[str, str]] = read_mane(config.mane)
+        mane: Dict[str, Dict[str, str]] = read_mane(app_config.MANE_SUMMARY_PATH)
         filtered_data: list = []
         vcf_object = VariantFile(infile)
         for var in vcf_object.fetch():

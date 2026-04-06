@@ -14,7 +14,7 @@ _PROTECTED_OPENAPI_EXACT = {
 
 
 def apply_openapi_security_schema(app: FastAPI) -> dict:
-    """Apply the repository-standard authentication schema to OpenAPI output.
+    """Apply the standard authentication schema to OpenAPI output.
 
     Args:
         app: FastAPI application whose OpenAPI schema should be customized.

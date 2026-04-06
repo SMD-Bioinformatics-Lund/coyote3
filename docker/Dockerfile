@@ -55,7 +55,7 @@ FROM coyote3_runtime_base as coyote3_web
 EXPOSE 8000
 
 COPY config/ ./config/
-COPY config.py wsgi.py logging_setup.py cache_backend.py ./
+COPY wsgi.py ./
 COPY deploy/gunicorn/gunicorn.conf.py ./gunicorn.conf.py
 COPY coyote/ ./coyote/
 COPY shared/ ./shared/
@@ -71,7 +71,7 @@ FROM coyote3_runtime_base as coyote3_api
 EXPOSE 8001
 
 COPY config/ ./config/
-COPY config.py asgi.py run_api.py logging_setup.py cache_backend.py ./
+COPY asgi.py run_api.py ./
 COPY api/ ./api/
 COPY shared/ ./shared/
 COPY coyote/__version__.py ./coyote/__version__.py

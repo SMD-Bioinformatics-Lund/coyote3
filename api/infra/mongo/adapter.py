@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from api.infra.db.mongo import MongoAdapter as _InfraMongoAdapter
-
-MongoAdapter = _InfraMongoAdapter
+from api.infra.mongo.runtime_adapter import MongoAdapter
 
 
 def create_mongo_adapter() -> MongoAdapter:

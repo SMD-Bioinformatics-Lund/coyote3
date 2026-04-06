@@ -69,7 +69,7 @@ class ApiPayload(dict[str, Any]):
         """Model dump.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Normalized return value.
         """
         return _to_builtin(self)
 
@@ -390,12 +390,12 @@ class BaseApiClient:
         """Return json.
 
         Args:
-            path (str): Value for ``path``.
-            headers (dict[str, str] | None): Value for ``headers``.
-            params (dict[str, Any] | None): Value for ``params``.
+            path (str): Normalized ``path``.
+            headers (dict[str, str] | None): Normalized ``headers``.
+            params (dict[str, Any] | None): Normalized ``params``.
 
         Returns:
-            ApiPayload: The function result.
+            ApiPayload: Normalized return value.
         """
         return self._get(path, headers=headers, params=params)
 
@@ -409,13 +409,13 @@ class BaseApiClient:
         """Post json.
 
         Args:
-            path (str): Value for ``path``.
-            headers (dict[str, str] | None): Value for ``headers``.
-            params (dict[str, Any] | None): Value for ``params``.
-            json_body (dict[str, Any] | None): Value for ``json_body``.
+            path (str): Normalized ``path``.
+            headers (dict[str, str] | None): Normalized ``headers``.
+            params (dict[str, Any] | None): Normalized ``params``.
+            json_body (dict[str, Any] | None): Normalized ``json_body``.
 
         Returns:
-            ApiPayload: The function result.
+            ApiPayload: Normalized return value.
         """
         return self._post(path, headers=headers, params=params, json_body=json_body)
 
@@ -429,13 +429,13 @@ class BaseApiClient:
         """Put json.
 
         Args:
-            path (str): Value for ``path``.
-            headers (dict[str, str] | None): Value for ``headers``.
-            params (dict[str, Any] | None): Value for ``params``.
-            json_body (dict[str, Any] | None): Value for ``json_body``.
+            path (str): Normalized ``path``.
+            headers (dict[str, str] | None): Normalized ``headers``.
+            params (dict[str, Any] | None): Normalized ``params``.
+            json_body (dict[str, Any] | None): Normalized ``json_body``.
 
         Returns:
-            ApiPayload: The function result.
+            ApiPayload: Normalized return value.
         """
         return self._put(path, headers=headers, params=params, json_body=json_body)
 
@@ -449,13 +449,13 @@ class BaseApiClient:
         """Patch json.
 
         Args:
-            path (str): Value for ``path``.
-            headers (dict[str, str] | None): Value for ``headers``.
-            params (dict[str, Any] | None): Value for ``params``.
-            json_body (dict[str, Any] | None): Value for ``json_body``.
+            path (str): Normalized ``path``.
+            headers (dict[str, str] | None): Normalized ``headers``.
+            params (dict[str, Any] | None): Normalized ``params``.
+            json_body (dict[str, Any] | None): Normalized ``json_body``.
 
         Returns:
-            ApiPayload: The function result.
+            ApiPayload: Normalized return value.
         """
         return self._patch(path, headers=headers, params=params, json_body=json_body)
 
@@ -469,13 +469,13 @@ class BaseApiClient:
         """Delete json.
 
         Args:
-            path (str): Value for ``path``.
-            headers (dict[str, str] | None): Value for ``headers``.
-            params (dict[str, Any] | None): Value for ``params``.
-            json_body (dict[str, Any] | None): Value for ``json_body``.
+            path (str): Normalized ``path``.
+            headers (dict[str, str] | None): Normalized ``headers``.
+            params (dict[str, Any] | None): Normalized ``params``.
+            json_body (dict[str, Any] | None): Normalized ``json_body``.
 
         Returns:
-            ApiPayload: The function result.
+            ApiPayload: Normalized return value.
         """
         return self._delete(path, headers=headers, params=params, json_body=json_body)
 
@@ -512,10 +512,10 @@ class BaseApiClient:
         """Last response cookie.
 
         Args:
-            name (str): Value for ``name``.
+            name (str): Normalized ``name``.
 
         Returns:
-            str | None: The function result.
+            str | None: Normalized return value.
         """
         return self._last_response_cookies.get(name)
 
@@ -523,9 +523,9 @@ class BaseApiClient:
         """Last response header.
 
         Args:
-            name (str): Value for ``name``.
+            name (str): Normalized ``name``.
 
         Returns:
-            str | None: The function result.
+            str | None: Normalized return value.
         """
         return self._last_response_headers.get(name)

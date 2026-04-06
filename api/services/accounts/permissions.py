@@ -6,14 +6,13 @@ from typing import Any
 
 from api.contracts.managed_resources import managed_resource_spec
 from api.contracts.schemas import normalize_collection_document
-from api.extensions import store
 from api.http import api_error
 from api.services.accounts.common import (
     admin_list_pagination,
     build_managed_form,
+    change_payload,
     current_actor,
     inject_version_history,
-    mutation_payload,
     normalize_managed_form_payload,
     utc_now,
 )
@@ -22,25 +21,32 @@ from api.services.accounts.common import (
 class PermissionManagementService:
     """Own permission-policy workflows for admin HTTP routes."""
 
-    def __init__(self, repository: Any | None = None) -> None:
-        """Build the service with an admin repository."""
-        self.repository = repository or store.get_admin_repository()
+    @classmethod
+    def from_store(cls, store: Any) -> "PermissionManagementService":
+        """Build the service from the shared store."""
+        return cls(permissions_handler=store.permissions_handler)
+
+    def __init__(self, *, permissions_handler: Any) -> None:
+        """Create the service for managed permission policy workflows."""
         self._spec = managed_resource_spec("permission")
+        self.permissions_handler = permissions_handler
 
     def list_permissions_payload(
         self, *, q: str = "", page: int = 1, per_page: int = 30
     ) -> dict[str, Any]:
-        """List permissions payload.
+        """Return the admin list payload for permission policies.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Permission rows grouped for admin UI rendering.
         """
-        permission_policies, total = self.repository.search_permissions(
+        rows, total = self.permissions_handler.search_permissions(
             q=q,
             page=page,
             per_page=per_page,
             is_active=False,
         )
+        permission_policies = [dict(item) for item in rows if isinstance(item, dict)]
+        total = int(total or 0)
         grouped_permissions: dict[str, list[dict[str, Any]]] = {}
         for policy in permission_policies:
             grouped_permissions.setdefault(policy.get("category", "Uncategorized"), []).append(
@@ -53,46 +59,46 @@ class PermissionManagementService:
         }
 
     def create_context_payload(self, *, actor_username: str) -> dict[str, Any]:
-        """Create context payload.
+        """Return form context for creating a permission policy.
 
         Args:
-            actor_username (str): Value for ``actor_username``.
+            actor_username: Username used for default form metadata.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Form payload for the create view.
         """
         return {"form": build_managed_form(self._spec, actor_username=actor_username)}
 
     def context_payload(self, *, permission_id: str) -> dict[str, Any]:
-        """Context payload.
+        """Return form context for editing a permission policy.
 
         Args:
-            permission_id (str): Value for ``permission_id``.
+            permission_id: Permission identifier to load.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Existing permission data and edit form payload.
         """
-        permission = self.repository.get_permission(permission_id)
+        permission = self.permissions_handler.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
         return {"permission": permission, "form": build_managed_form(self._spec)}
 
     def create_permission(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
-        """Create permission.
+        """Create a new permission policy from submitted form data.
 
         Args:
-            payload (dict[str, Any]): Value for ``payload``.
-            actor_username (str): Value for ``actor_username``.
+            payload: Submitted form payload.
+            actor_username: User creating the permission policy.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Normalized change response payload.
         """
         form_data = payload.get("form_data", {}) or {}
         policy = normalize_managed_form_payload(self._spec, form_data)
         policy.setdefault("is_active", True)
         policy_id = str(policy["permission_name"]).strip()
         policy["permission_id"] = policy_id
-        existing_policy = self.repository.get_permission(policy_id)
+        existing_policy = self.permissions_handler.get_permission(policy_id)
         if isinstance(existing_policy, dict) and (
             existing_policy.get("permission_id") or existing_policy.get("_id")
         ):
@@ -103,23 +109,23 @@ class PermissionManagementService:
             policy = normalize_collection_document(self._spec.collection, policy)
         except Exception as exc:
             raise api_error(400, f"Invalid permission payload: {exc}") from exc
-        self.repository.create_permission(policy)
-        return mutation_payload(resource="permission", resource_id=policy_id, action="create")
+        self.permissions_handler.create_new_policy(policy)
+        return change_payload(resource="permission", resource_id=policy_id, action="create")
 
     def update_permission(
         self, *, permission_id: str, payload: dict[str, Any], actor_username: str
     ) -> dict[str, Any]:
-        """Update permission.
+        """Update an existing permission policy.
 
         Args:
-            permission_id (str): Value for ``permission_id``.
-            payload (dict[str, Any]): Value for ``payload``.
-            actor_username (str): Value for ``actor_username``.
+            permission_id: Permission identifier to update.
+            payload: Submitted form payload.
+            actor_username: User updating the permission policy.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Normalized change response payload.
         """
-        permission = self.repository.get_permission(permission_id)
+        permission = self.permissions_handler.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
         form_data = payload.get("form_data", {}) or {}
@@ -142,48 +148,46 @@ class PermissionManagementService:
             )
         except Exception as exc:
             raise api_error(400, f"Invalid permission payload: {exc}") from exc
-        self.repository.update_permission(permission_id, updated_permission)
-        return mutation_payload(resource="permission", resource_id=permission_id, action="update")
+        self.permissions_handler.update_policy(permission_id, updated_permission)
+        return change_payload(resource="permission", resource_id=permission_id, action="update")
 
     def toggle_permission(self, *, permission_id: str) -> dict[str, Any]:
-        """Toggle permission.
+        """Toggle whether a permission policy is active.
 
         Args:
-            permission_id (str): Value for ``permission_id``.
+            permission_id: Permission identifier to toggle.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Normalized change response payload.
         """
-        permission = self.repository.get_permission(permission_id)
+        permission = self.permissions_handler.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
         new_status = not bool(permission.get("is_active", True))
-        self.repository.set_permission_active(permission_id, new_status)
-        payload = mutation_payload(
-            resource="permission", resource_id=permission_id, action="toggle"
-        )
+        self.permissions_handler.toggle_policy_active(permission_id, new_status)
+        payload = change_payload(resource="permission", resource_id=permission_id, action="toggle")
         payload["meta"]["is_active"] = new_status
         return payload
 
     def delete_permission(self, *, permission_id: str) -> dict[str, Any]:
-        """Delete permission.
+        """Delete an existing permission policy.
 
         Args:
-            permission_id (str): Value for ``permission_id``.
+            permission_id: Permission identifier to delete.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Normalized change response payload.
         """
-        permission = self.repository.get_permission(permission_id)
+        permission = self.permissions_handler.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
-        self.repository.delete_permission(permission_id)
-        return mutation_payload(resource="permission", resource_id=permission_id, action="delete")
+        self.permissions_handler.delete_policy(permission_id)
+        return change_payload(resource="permission", resource_id=permission_id, action="delete")
 
     def permission_exists(self, *, permission_id: str) -> bool:
         """Return whether a permission business key already exists."""
         normalized = str(permission_id or "").strip()
         if not normalized:
             return False
-        policy = self.repository.get_permission(normalized)
+        policy = self.permissions_handler.get_permission(normalized)
         return bool(isinstance(policy, dict) and (policy.get("permission_id") or policy.get("_id")))

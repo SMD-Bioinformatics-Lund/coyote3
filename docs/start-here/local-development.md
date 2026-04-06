@@ -14,6 +14,7 @@ Then install dependencies:
 ```bash
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
+python -m pip install -r requirements-docs.txt
 ```
 
 Run tooling from the activated environment:
@@ -21,6 +22,7 @@ Run tooling from the activated environment:
 ```bash
 python -m ruff check api coyote tests scripts
 python -m pytest -q
+python -m mkdocs build --strict
 ```
 
 ## Start only application (without compose)

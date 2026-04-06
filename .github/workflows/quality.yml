@@ -180,8 +180,3 @@ jobs:
         run: |
           python -m pip install -r requirements-docs.txt
           mkdocs build --strict
-
-      - name: Snapshot tooling check
-        run: |
-          python scripts/create_mongo_snapshot.py --help > /dev/null
-          bash scripts/snapshot_restore_dev.sh --help > /dev/null

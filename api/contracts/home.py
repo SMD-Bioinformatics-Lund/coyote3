@@ -50,8 +50,8 @@ class HomeEditContextPayload(BaseModel):
     variant_stats_filtered: Any = None
 
 
-class HomeMutationStatusPayload(BaseModel):
-    """Represent the home mutation status payload."""
+class HomeChangeStatusPayload(BaseModel):
+    """Represent the home change status payload."""
 
     status: str
     sample_id: str

@@ -4,39 +4,36 @@ from __future__ import annotations
 
 from typing import Any
 
-from api.extensions import store
-
 
 class ResourceAnnotationService:
     """Provide resource annotation workflows."""
 
-    def __init__(self, repository: Any | None = None) -> None:
-        """Build the service with a classification repository."""
-        self.repository = repository or store.get_dna_route_repository()
+    @classmethod
+    def from_store(cls, store: Any) -> "ResourceAnnotationService":
+        """Build the service from the shared store."""
+        return cls(
+            annotation_handler=store.annotation_handler,
+            fusion_handler=store.fusion_handler,
+            translocation_handler=store.translocation_handler,
+            copy_number_variant_handler=store.copy_number_variant_handler,
+            variant_handler=store.variant_handler,
+        )
 
-    @staticmethod
-    def mutation_payload(
-        sample_id: str, resource: str, resource_id: str, action: str
-    ) -> dict[str, Any]:
-        """Mutation payload.
-
-        Args:
-            sample_id (str): Value for ``sample_id``.
-            resource (str): Value for ``resource``.
-            resource_id (str): Value for ``resource_id``.
-            action (str): Value for ``action``.
-
-        Returns:
-            dict[str, Any]: The function result.
-        """
-        return {
-            "status": "ok",
-            "sample_id": str(sample_id),
-            "resource": resource,
-            "resource_id": str(resource_id),
-            "action": action,
-            "meta": {"status": "updated"},
-        }
+    def __init__(
+        self,
+        *,
+        annotation_handler: Any,
+        fusion_handler: Any,
+        translocation_handler: Any,
+        copy_number_variant_handler: Any,
+        variant_handler: Any,
+    ) -> None:
+        """Create the service with explicit injectable handlers."""
+        self.annotation_handler = annotation_handler
+        self.fusion_handler = fusion_handler
+        self.translocation_handler = translocation_handler
+        self.copy_number_variant_handler = copy_number_variant_handler
+        self.variant_handler = variant_handler
 
     def create_annotation(
         self,
@@ -46,36 +43,36 @@ class ResourceAnnotationService:
         get_variant_nomenclature_fn,
         create_comment_doc_fn,
     ) -> str:
-        """Create annotation.
+        """Create and persist an annotation for a classified resource.
 
         Args:
-            form_data (dict): Value for ``form_data``.
-            target_id (str): Value for ``target_id``.
-            get_variant_nomenclature_fn: Value for ``get_variant_nomenclature_fn``.
-            create_comment_doc_fn: Value for ``create_comment_doc_fn``.
+            form_data: Submitted annotation form payload.
+            target_id: Resource identifier to annotate.
+            get_variant_nomenclature_fn: Helper that resolves nomenclature and variant label.
+            create_comment_doc_fn: Helper that builds the annotation document.
 
         Returns:
-            str: The function result.
+            str: Annotation event label for downstream callers.
         """
         nomenclature, variant = get_variant_nomenclature_fn(form_data)
         doc = create_comment_doc_fn(form_data, nomenclature=nomenclature, variant=variant)
         comment_scope = form_data.get("global")
         if comment_scope == "global":
-            self.repository.annotation_handler.add_anno_comment(doc)
+            self.annotation_handler.add_anno_comment(doc)
         if nomenclature == "f":
             if comment_scope != "global":
-                self.repository.fusion_handler.add_fusion_comment(target_id, doc)
+                self.fusion_handler.add_fusion_comment(target_id, doc)
             return "fusion_comment"
         if nomenclature == "t":
             if comment_scope != "global":
-                self.repository.transloc_handler.add_transloc_comment(target_id, doc)
+                self.translocation_handler.add_transloc_comment(target_id, doc)
             return "translocation_comment"
         if nomenclature == "cn":
             if comment_scope != "global":
-                self.repository.cnv_handler.add_cnv_comment(target_id, doc)
+                self.copy_number_variant_handler.add_cnv_comment(target_id, doc)
             return "cnv_comment"
         if comment_scope != "global":
-            self.repository.variant_handler.add_var_comment(target_id, doc)
+            self.variant_handler.add_var_comment(target_id, doc)
         return "variant_comment"
 
 

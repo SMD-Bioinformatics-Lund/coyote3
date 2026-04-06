@@ -22,7 +22,7 @@ class _FakeRepo:
         self.by_id = by_id
         self.calls = []
 
-    def get_user_by_username(self, username):
+    def user(self, username):
         """Return user by username.
 
         Args:
@@ -34,7 +34,7 @@ class _FakeRepo:
         self.calls.append(("username", username))
         return self.by_username
 
-    def get_user_by_id(self, user_id):
+    def user_with_id(self, user_id):
         """Return user by id.
 
         Args:
@@ -57,7 +57,7 @@ def test_lookup_user_doc_tries_username_then_id(monkeypatch):
         The function result.
     """
     repo = _FakeRepo(by_username=None, by_id={"_id": "u1"})
-    monkeypatch.setattr(auth_service, "get_security_repository", lambda: repo)
+    monkeypatch.setattr(auth_service, "get_user_handler", lambda: repo)
 
     user_doc = auth_service._lookup_user_doc("tester")
 
@@ -75,7 +75,7 @@ def test_lookup_user_doc_skips_id_when_username_hit(monkeypatch):
         The function result.
     """
     repo = _FakeRepo(by_username={"_id": "u2"}, by_id={"_id": "u1"})
-    monkeypatch.setattr(auth_service, "get_security_repository", lambda: repo)
+    monkeypatch.setattr(auth_service, "get_user_handler", lambda: repo)
 
     user_doc = auth_service._lookup_user_doc("tester")
 
@@ -121,15 +121,22 @@ def test_ldap_authenticate_uses_configured_base_dn_and_attr(monkeypatch):
 
 
 def test_build_user_session_payload_maps_user_model(monkeypatch):
-    """Session payload delegates to repository + UserModel mapping."""
-    repo = SimpleNamespace(
-        get_role=lambda _role_name: {"role_id": "admin", "permissions": []},
-        get_all_active_asps=lambda: [{"asp_id": "WGS"}],
+    """Session payload delegates to store handlers + UserModel mapping."""
+    store_stub = SimpleNamespace(
+        roles_handler=SimpleNamespace(
+            get_role=lambda _role_name: {"role_id": "admin", "permissions": []}
+        ),
+        assay_panel_handler=SimpleNamespace(
+            get_all_asps=lambda is_active=True: [{"asp_id": "WGS"}]
+        ),
     )
-    monkeypatch.setattr(auth_service, "get_security_repository", lambda: repo)
+    monkeypatch.setattr(auth_service, "get_roles_handler", lambda: store_stub.roles_handler)
+    monkeypatch.setattr(
+        auth_service, "get_assay_panel_handler", lambda: store_stub.assay_panel_handler
+    )
     monkeypatch.setattr(
         auth_service.UserModel,
-        "from_repository_payload",
+        "from_auth_payload",
         lambda user_doc, role_doc, asp_docs: SimpleNamespace(
             to_dict=lambda: {
                 "username": user_doc["username"],
@@ -144,7 +151,7 @@ def test_build_user_session_payload_maps_user_model(monkeypatch):
     assert payload == {"username": "tester", "role": "admin", "asp_count": 1}
 
 
-def test_user_model_from_repository_payload_accepts_local_email_domain():
+def test_user_model_from_auth_payload_accepts_local_email_domain():
     """Local center domains like .local should not break auth session serialization."""
     user_doc = {
         "_id": "u1",
@@ -155,7 +162,7 @@ def test_user_model_from_repository_payload_accepts_local_email_domain():
         "is_active": True,
     }
 
-    model = UserModel.from_repository_payload(user_doc, {"level": 99}, [])
+    model = UserModel.from_auth_payload(user_doc, {"level": 99}, [])
 
     assert model.email == "admin@coyote3.local"
 
@@ -223,13 +230,13 @@ def test_authenticate_credentials_rejects_missing_or_inactive_user(monkeypatch):
     assert auth_service.authenticate_credentials("tester", "secret") is None
 
 
-def test_update_user_last_login_calls_repository(monkeypatch):
-    """Last login update delegates to security repository."""
+def test_update_user_last_login_calls_store_handler(monkeypatch):
+    """Last login update delegates to the user handler."""
     calls = {}
-    repo = SimpleNamespace(
+    user_handler = SimpleNamespace(
         update_user_last_login=lambda user_id: calls.setdefault("user_id", user_id)
     )
-    monkeypatch.setattr(auth_service, "get_security_repository", lambda: repo)
+    monkeypatch.setattr(auth_service, "get_user_handler", lambda: user_handler)
 
     auth_service.update_user_last_login("tester")
 

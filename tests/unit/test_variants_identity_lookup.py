@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.infra.db.variants import VariantsHandler
+from api.infra.mongo.handlers.variants import VariantsHandler
 
 
 class _FakeCursor:

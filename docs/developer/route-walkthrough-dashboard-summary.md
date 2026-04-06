@@ -4,7 +4,7 @@ This page shows one concrete end-to-end flow, from UI route to API to DB and bac
 
 ## Scenario
 
-User opens dashboard in UI. Flask fetches summary from FastAPI, FastAPI builds payload from service/repository, response is rendered in template.
+User opens dashboard in UI. Flask fetches summary from FastAPI, FastAPI builds payload from an injected service, the service reads from its injected handlers, and the response is rendered in template.
 
 ## Step 1: UI route handler (Flask)
 
@@ -61,6 +61,7 @@ What this does:
 
 - Enforces authenticated access
 - Resolves service dependency from `api/deps/services.py`
+- Builds the service through `DashboardService.from_store(get_store())`
 - Serializes service result to contract-compatible response
 
 ## Step 4: Service orchestration
@@ -68,8 +69,8 @@ What this does:
 File: `api/services/dashboard/analytics.py`
 
 ```python
-sample_rollup_global = self.repository.get_dashboard_sample_rollup(assays=None)
-variant_rollup = self.repository.get_dashboard_variant_counts()
+sample_rollup_global = self.sample_handler.get_dashboard_sample_rollup(assays=None)
+variant_rollup = self.variant_handler.get_dashboard_variant_counts()
 ```
 
 ```python
@@ -83,18 +84,12 @@ payload["dashboard_meta"] = {
 What this does:
 
 - Orchestrates cross-collection reads
+- Uses explicit injected handler dependencies
 - Returns scope/cache metadata for UI/API consumers
 
-## Step 5: Repository + DB access
+## Step 5: Handler + DB access
 
-File: `api/infra/repositories/dashboard_mongo.py`
-
-```python
-def get_dashboard_user_rollup(self) -> dict:
-    return dict(store.user_handler.get_dashboard_user_rollup() or {})
-```
-
-File: `api/infra/db/users.py`
+File: `api/infra/mongo/handlers/users.py`
 
 ```python
 def get_dashboard_user_rollup(self) -> dict:
@@ -104,8 +99,8 @@ def get_dashboard_user_rollup(self) -> dict:
 
 What this does:
 
-- Repository adapts service calls to DB handlers
-- DB handlers run Mongo aggregation pipelines
+- Handlers run Mongo aggregation pipelines
+- Services call handlers directly through explicit dependencies
 - Output is normalized back in service/UI
 
 ## Step 6: Request metrics and audit events
@@ -158,7 +153,7 @@ GET /dashboard/ (Flask)
   -> api_endpoints.dashboard("summary")
   -> GET /api/v1/dashboard/summary (FastAPI)
   -> DashboardService.summary_payload()
-  -> MongoDashboardRepository + db handlers
+  -> injected handlers
   -> payload + metadata
   -> Flask render_template("dashboard.html")
 ```
@@ -167,6 +162,6 @@ GET /dashboard/ (Flask)
 
 1. Extend `DashboardSummaryPayload` contract.
 2. Add field computation in `DashboardService.summary_payload`.
-3. Add repository/db method if new query is needed.
+3. Add a handler/db method if new query is needed.
 4. Expose field in Flask template render context.
 5. Add tests for contract + service + UI behavior.

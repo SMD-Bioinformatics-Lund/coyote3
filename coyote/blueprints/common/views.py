@@ -25,11 +25,11 @@ def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
     """Return sample genelists.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        sample_assay (str): Value for ``sample_assay``.
+        sample_id (str): Normalized ``sample_id``.
+        sample_assay (str): Normalized ``sample_assay``.
 
     Returns:
-        str: The function result.
+        str: Normalized return value.
     """
     _ = sample_assay
     genelists = json.loads(request.form.get("report_genelists", "{}"))
@@ -57,10 +57,10 @@ def gene_info(id: str) -> str:
     """Gene info.
 
     Args:
-        id (str): Value for ``id``.
+        id (str): Normalized ``id``.
 
     Returns:
-        str: The function result.
+        str: Normalized return value.
     """
     gene: dict[str, Any] = {}
     try:
@@ -85,11 +85,11 @@ def list_samples_with_tiered_variant(variant_id: str, tier: int):
     """List samples with tiered variant.
 
     Args:
-        variant_id (str): Value for ``variant_id``.
-        tier (int): Value for ``tier``.
+        variant_id (str): Normalized ``variant_id``.
+        tier (int): Normalized ``tier``.
 
     Returns:
-        The function result.
+        Normalized return value.
     """
     try:
         payload = get_web_api_client().get_json(
@@ -121,7 +121,7 @@ def search_tiered_variants():
     """Search tiered variants.
 
     Returns:
-        The function result.
+        Normalized return value.
     """
     form = TieredVariantSearchForm()
     search_mode = form.search_options.default
@@ -251,10 +251,10 @@ def add_sample_comment(sample_id: str) -> Response:
     """Add sample comment.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
+        sample_id (str): Normalized ``sample_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     data = request.form.to_dict()
     try:
@@ -282,10 +282,10 @@ def hide_sample_comment(sample_id: str) -> Response:
     """Hide sample comment.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
+        sample_id (str): Normalized ``sample_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
@@ -311,10 +311,10 @@ def unhide_sample_comment(sample_id: str) -> Response:
     """Unhide sample comment.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
+        sample_id (str): Normalized ``sample_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:

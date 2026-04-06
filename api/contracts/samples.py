@@ -29,8 +29,8 @@ class CoverageBlacklistUpdateRequest(BaseModel):
     status: str | None = None
 
 
-class SampleMutationPayload(BaseModel):
-    """Represent the sample mutation payload."""
+class SampleChangePayload(BaseModel):
+    """Represent the sample change payload."""
 
     status: str
     sample_id: str

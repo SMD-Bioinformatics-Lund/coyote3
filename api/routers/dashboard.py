@@ -12,23 +12,20 @@ from api.services.dashboard.analytics import DashboardService
 
 router = APIRouter(tags=["dashboard"])
 
-if not hasattr(util, "common") or not hasattr(util, "dashboard"):
-    util.init_util()
-
 
 @router.get("/api/v1/dashboard/summary", response_model=DashboardSummaryPayload)
 def dashboard_summary(
     user: ApiUser = Depends(require_access()),
     service: DashboardService = Depends(get_dashboard_service),
 ):
-    """Dashboard summary.
+    """Return the dashboard summary for the current user.
 
     Args:
-        user (ApiUser): Value for ``user``.
-        service (DashboardService): Value for ``service``.
+        user: Authenticated user requesting the summary.
+        service: Dashboard workflow service.
 
     Returns:
-        The function result.
+        dict: Dashboard summary payload.
     """
     return util.common.convert_to_serializable(service.summary_payload(user=user))
 
@@ -38,14 +35,14 @@ def dashboard_admin_insights(
     user: ApiUser = Depends(require_access(min_role="admin", min_level=99999)),
     service: DashboardService = Depends(get_dashboard_service),
 ):
-    """Dashboard admin insights.
+    """Return administrative dashboard insights.
 
     Args:
-        user (ApiUser): Value for ``user``.
-        service (DashboardService): Value for ``service``.
+        user: Authenticated admin user.
+        service: Dashboard workflow service.
 
     Returns:
-        The function result.
+        dict: Administrative dashboard insight payload.
     """
     _ = user
     return util.common.convert_to_serializable(service.build_admin_insights())

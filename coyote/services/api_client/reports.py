@@ -58,13 +58,13 @@ def fetch_preview_payload(
     """Fetch preview payload.
 
     Args:
-        analyte (ReportAnalyte): Value for ``analyte``.
-        sample_id (str): Value for ``sample_id``.
-        include_snapshot (bool): Value for ``include_snapshot``.
-        save (bool): Value for ``save``.
+        analyte (ReportAnalyte): Normalized ``analyte``.
+        sample_id (str): Normalized ``sample_id``.
+        include_snapshot (bool): Normalized ``include_snapshot``.
+        save (bool): Normalized ``save``.
 
     Returns:
-        ApiPayload: The function result.
+        ApiPayload: Normalized return value.
     """
     params: dict[str, Any] = {"save": 1 if save else 0}
     if include_snapshot:
@@ -80,10 +80,10 @@ def render_preview_html(payload: ApiPayload) -> str:
     """Render preview html.
 
     Args:
-        payload (ApiPayload): Value for ``payload``.
+        payload (ApiPayload): Normalized ``payload``.
 
     Returns:
-        str: The function result.
+        str: Normalized return value.
     """
     template_name = payload.report.get("template")
     context = payload.report.get("context") or {}
@@ -98,11 +98,11 @@ def save_report_from_preview(analyte: ReportAnalyte, sample_id: str) -> ApiPaylo
     """Save report from preview.
 
     Args:
-        analyte (ReportAnalyte): Value for ``analyte``.
-        sample_id (str): Value for ``sample_id``.
+        analyte (ReportAnalyte): Normalized ``analyte``.
+        sample_id (str): Normalized ``sample_id``.
 
     Returns:
-        ApiPayload: The function result.
+        ApiPayload: Normalized return value.
     """
     preview_payload = fetch_preview_payload(analyte, sample_id, include_snapshot=True, save=True)
     html = render_preview_html(preview_payload)

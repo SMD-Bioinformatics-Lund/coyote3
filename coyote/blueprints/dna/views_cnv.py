@@ -47,11 +47,11 @@ def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     """Unmark interesting cnv.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
+        sample_id (str): Normalized ``sample_id``.
+        cnv_id (str): Normalized ``cnv_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     try:
         get_web_api_client().delete_json(
@@ -71,11 +71,11 @@ def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     """Mark interesting cnv.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
+        sample_id (str): Normalized ``sample_id``.
+        cnv_id (str): Normalized ``cnv_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     try:
         get_web_api_client().patch_json(
@@ -93,11 +93,11 @@ def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
     """Mark false cnv.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
+        sample_id (str): Normalized ``sample_id``.
+        cnv_id (str): Normalized ``cnv_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     try:
         get_web_api_client().patch_json(
@@ -117,11 +117,11 @@ def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
     """Unmark false cnv.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
+        sample_id (str): Normalized ``sample_id``.
+        cnv_id (str): Normalized ``cnv_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     try:
         get_web_api_client().delete_json(
@@ -141,11 +141,11 @@ def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     """Mark noteworthy cnv.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
+        sample_id (str): Normalized ``sample_id``.
+        cnv_id (str): Normalized ``cnv_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     try:
         get_web_api_client().patch_json(
@@ -163,11 +163,11 @@ def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     """Unmark noteworthy cnv.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
+        sample_id (str): Normalized ``sample_id``.
+        cnv_id (str): Normalized ``cnv_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     try:
         get_web_api_client().delete_json(
@@ -187,11 +187,11 @@ def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     """Hide cnv comment.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
+        sample_id (str): Normalized ``sample_id``.
+        cnv_id (str): Normalized ``cnv_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
@@ -210,11 +210,11 @@ def unhide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     """Unhide cnv comment.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
+        sample_id (str): Normalized ``sample_id``.
+        cnv_id (str): Normalized ``cnv_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:

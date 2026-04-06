@@ -366,10 +366,10 @@ def markdown_filter(s):
     """Markdown filter.
 
     Args:
-        s: Value for ``s``.
+        s: Normalized ``s``.
 
     Returns:
-        The function result.
+        Normalized return value.
     """
     return shared_render_markdown_basic(s)
 

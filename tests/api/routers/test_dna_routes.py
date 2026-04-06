@@ -8,42 +8,66 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
-from api.infra.repositories import dna_repository as dna_repo_module
+from api.extensions import store
 from api.main import app as api_app
 from api.routers import biomarkers as biomarker_router
 from api.routers import classifications as classification_router
 from api.routers import small_variants as dna
 from api.security import access
 from api.security.access import ApiUser
+from api.services.common.change_payload import change_payload
 from api.services.dna import variant_analysis as dna_service_module
 from api.services.dna.variant_analysis import DnaService
 from tests.fixtures.api import mock_collections as fx
 
 
 def _dna_service() -> DnaService:
-    """Build a DNA service with an explicit route repository."""
-    return DnaService(repository=dna_repo_module.DnaRouteRepository())
-
-
-def _biomarker_service() -> biomarker_router.BiomarkerService:
-    """Build a biomarker service with an explicit route repository."""
-    return biomarker_router.BiomarkerService(repository=dna_repo_module.DnaRouteRepository())
-
-
-def _classification_service() -> classification_router.ResourceClassificationService:
-    """Build a classification service with an explicit route repository."""
-    return classification_router.ResourceClassificationService(
-        repository=dna_repo_module.DnaRouteRepository()
+    """Build a DNA service for route tests."""
+    return DnaService(
+        assay_panel_handler=store.assay_panel_handler,
+        gene_list_handler=store.gene_list_handler,
+        variant_handler=store.variant_handler,
+        blacklist_handler=store.blacklist_handler,
+        copy_number_variant_handler=store.copy_number_variant_handler,
+        oncokb_handler=store.oncokb_handler,
+        annotation_handler=store.annotation_handler,
+        fusion_handler=store.fusion_handler,
+        translocation_handler=store.translocation_handler,
+        biomarker_handler=store.biomarker_handler,
+        bam_record_handler=store.bam_record_handler,
+        vep_metadata_handler=store.vep_metadata_handler,
+        sample_handler=store.sample_handler,
+        expression_handler=store.expression_handler,
+        civic_handler=store.civic_handler,
+        brca_handler=store.brca_handler,
+        iarc_tp53_handler=store.iarc_tp53_handler,
     )
 
 
-def test_mutation_payload_shape():
-    """Test mutation payload shape.
+def _biomarker_service() -> biomarker_router.BiomarkerService:
+    """Build a biomarker service for route tests."""
+    return biomarker_router.BiomarkerService(biomarker_handler=store.biomarker_handler)
+
+
+def _classification_service() -> classification_router.ResourceClassificationService:
+    """Build a classification service for route tests."""
+    return classification_router.ResourceClassificationService(
+        annotation_handler=store.annotation_handler,
+        variant_handler=store.variant_handler,
+        oncokb_handler=store.oncokb_handler,
+        fusion_handler=store.fusion_handler,
+        copy_number_variant_handler=store.copy_number_variant_handler,
+        translocation_handler=store.translocation_handler,
+    )
+
+
+def test_change_payload_shape():
+    """Test change payload shape.
 
     Returns:
         The function result.
     """
-    payload = DnaService.mutation_payload("S1", "variant", "V1", "flag")
+    payload = change_payload(sample_id="S1", resource="variant", resource_id="V1", action="flag")
     assert payload["status"] == "ok"
     assert payload["sample_id"] == "S1"
     assert payload["resource"] == "variant"
@@ -66,7 +90,7 @@ def test_load_cnvs_for_sample_uses_collection_shaped_docs(monkeypatch):
     service = _dna_service()
 
     monkeypatch.setattr(
-        dna_repo_module.store.cnv_handler, "get_sample_cnvs", lambda query: cnv_rows
+        store.copy_number_variant_handler, "get_sample_cnvs", lambda query: cnv_rows
     )
     monkeypatch.setattr(
         dna_service_module,
@@ -97,7 +121,7 @@ def test_list_dna_biomarkers_success(monkeypatch):
 
     monkeypatch.setattr(biomarker_router, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(
-        dna_repo_module.store.biomarker_handler,
+        store.biomarker_handler,
         "get_sample_biomarkers",
         lambda sample_id: biomarkers,
     )
@@ -121,7 +145,7 @@ def test_show_dna_variant_not_found_raises_404(monkeypatch):
     """
     service = _dna_service()
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
-    monkeypatch.setattr(dna_repo_module.store.variant_handler, "get_variant", lambda var_id: None)
+    monkeypatch.setattr(store.variant_handler, "get_variant", lambda var_id: None)
 
     with pytest.raises(HTTPException) as exc:
         dna.show_dna_variant("S1", "V404", user=fx.api_user(), service=service)
@@ -155,65 +179,43 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
 
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(dna, "_get_formatted_assay_config", lambda _sample: {"asp_group": "dna"})
+    monkeypatch.setattr(store.variant_handler, "get_variant", lambda var_id: variant)
     monkeypatch.setattr(
-        dna_repo_module.store.variant_handler, "get_variant", lambda var_id: variant
-    )
-    monkeypatch.setattr(
-        dna_repo_module.store.blacklist_handler,
+        store.blacklist_handler,
         "add_blacklist_data",
         lambda variants, assay_group: variants,
     )
+    monkeypatch.setattr(store.variant_handler, "get_variant_in_other_samples", lambda var: [])
+    monkeypatch.setattr(store.variant_handler, "hidden_var_comments", lambda var_id: False)
     monkeypatch.setattr(
-        dna_repo_module.store.variant_handler, "get_variant_in_other_samples", lambda var: []
-    )
-    monkeypatch.setattr(
-        dna_repo_module.store.variant_handler, "hidden_var_comments", lambda var_id: False
-    )
-    monkeypatch.setattr(
-        dna_repo_module.store.annotation_handler,
+        store.annotation_handler,
         "get_global_annotations",
         lambda variant, assay_group, subpanel: ({}, None, [], []),
     )
     monkeypatch.setattr(dna, "add_alt_class", lambda var, assay_group, subpanel: var)
+    monkeypatch.setattr(store.expression_handler, "get_expression_data", lambda transcripts: {})
+    monkeypatch.setattr(store.civic_handler, "get_civic_data", lambda variant, desc: {})
+    monkeypatch.setattr(store.civic_handler, "get_civic_gene_info", lambda symbol: {})
     monkeypatch.setattr(
-        dna_repo_module.store.expression_handler, "get_expression_data", lambda transcripts: {}
-    )
-    monkeypatch.setattr(
-        dna_repo_module.store.civic_handler, "get_civic_data", lambda variant, desc: {}
-    )
-    monkeypatch.setattr(
-        dna_repo_module.store.civic_handler, "get_civic_gene_info", lambda symbol: {}
-    )
-    monkeypatch.setattr(
-        dna_repo_module.store.oncokb_handler,
+        store.oncokb_handler,
         "get_oncokb_anno",
         lambda variant, oncokb_hgvsp: captured.__setitem__("hgvsp", oncokb_hgvsp) or {},
     )
-    monkeypatch.setattr(
-        dna_repo_module.store.oncokb_handler, "get_oncokb_action", lambda variant, hgvsp: {}
-    )
-    monkeypatch.setattr(dna_repo_module.store.oncokb_handler, "get_oncokb_gene", lambda symbol: {})
-    monkeypatch.setattr(
-        dna_repo_module.store.brca_handler, "get_brca_data", lambda variant, assay_group: {}
-    )
-    monkeypatch.setattr(
-        dna_repo_module.store.iarc_tp53_handler, "find_iarc_tp53", lambda variant: {}
-    )
+    monkeypatch.setattr(store.oncokb_handler, "get_oncokb_action", lambda variant, hgvsp: {})
+    monkeypatch.setattr(store.oncokb_handler, "get_oncokb_gene", lambda symbol: {})
+    monkeypatch.setattr(store.brca_handler, "get_brca_data", lambda variant, assay_group: {})
+    monkeypatch.setattr(store.iarc_tp53_handler, "find_iarc_tp53", lambda variant: {})
     monkeypatch.setattr(
         dna.util.common,
         "get_case_and_control_sample_ids",
         lambda sample_doc: {"case": "sample-1"},
     )
+    monkeypatch.setattr(store.bam_record_handler, "get_bams", lambda sample_ids: {})
     monkeypatch.setattr(
-        dna_repo_module.store.bam_service_handler, "get_bams", lambda sample_ids: {}
+        store.vep_metadata_handler, "get_variant_class_translations", lambda vep: {}
     )
-    monkeypatch.setattr(
-        dna_repo_module.store.vep_meta_handler, "get_variant_class_translations", lambda vep: {}
-    )
-    monkeypatch.setattr(
-        dna_repo_module.store.vep_meta_handler, "get_conseq_translations", lambda vep: {}
-    )
-    monkeypatch.setattr(dna_repo_module.store.asp_handler, "get_asp_group_mappings", lambda: {})
+    monkeypatch.setattr(store.vep_metadata_handler, "get_conseq_translations", lambda vep: {})
+    monkeypatch.setattr(store.assay_panel_handler, "get_asp_group_mappings", lambda: {})
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = dna.show_dna_variant("S1", "v1", user=fx.api_user(), service=service)
@@ -253,42 +255,36 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
     monkeypatch.setattr(dna, "_get_formatted_assay_config", lambda _sample: assay_config)
     monkeypatch.setattr(dna.util.common, "merge_sample_settings_with_assay_config", lambda s, a: s)
     monkeypatch.setattr(
-        dna_repo_module.store.asp_handler, "get_asp", lambda asp_name: {"asp_name": asp_name}
+        store.assay_panel_handler, "get_asp", lambda asp_name: {"asp_name": asp_name}
     )
-    monkeypatch.setattr(dna_repo_module.store.isgl_handler, "get_isgl_by_ids", lambda ids: {})
+    monkeypatch.setattr(store.gene_list_handler, "get_isgl_by_ids", lambda ids: {})
     monkeypatch.setattr(dna.util.common, "get_sample_effective_genes", lambda s, a, g: ([], []))
     monkeypatch.setattr(dna, "get_filter_conseq_terms", lambda values: [])
     monkeypatch.setattr(
         dna, "build_query", lambda assay_group, params: {"assay_group": assay_group, **params}
     )
+    monkeypatch.setattr(store.variant_handler, "get_case_variants", lambda query: [])
     monkeypatch.setattr(
-        dna_repo_module.store.variant_handler, "get_case_variants", lambda query: []
-    )
-    monkeypatch.setattr(
-        dna_repo_module.store.blacklist_handler,
+        store.blacklist_handler,
         "add_blacklist_data",
         lambda variants, assay_group: variants,
     )
     monkeypatch.setattr(
-        dna, "add_global_annotations", lambda variants, assay_group, subpanel: (variants, [])
+        dna,
+        "add_global_annotations",
+        lambda variants, assay_group, subpanel, annotation_handler=None: (variants, []),
     )
     monkeypatch.setattr(
         dna.util.common, "get_case_and_control_sample_ids", lambda s: {"case": "C1"}
     )
+    monkeypatch.setattr(store.bam_record_handler, "get_bams", lambda sample_ids: {})
     monkeypatch.setattr(
-        dna_repo_module.store.bam_service_handler, "get_bams", lambda sample_ids: {}
+        store.vep_metadata_handler, "get_variant_class_translations", lambda vep: {}
     )
+    monkeypatch.setattr(store.vep_metadata_handler, "get_conseq_translations", lambda vep: {})
+    monkeypatch.setattr(store.sample_handler, "hidden_sample_comments", lambda sample_oid: False)
     monkeypatch.setattr(
-        dna_repo_module.store.vep_meta_handler, "get_variant_class_translations", lambda vep: {}
-    )
-    monkeypatch.setattr(
-        dna_repo_module.store.vep_meta_handler, "get_conseq_translations", lambda vep: {}
-    )
-    monkeypatch.setattr(
-        dna_repo_module.store.sample_handler, "hidden_sample_comments", lambda sample_oid: False
-    )
-    monkeypatch.setattr(
-        dna_repo_module.store.isgl_handler, "get_isgl_by_asp", lambda assay, is_active=True: []
+        store.gene_list_handler, "get_isgl_by_asp", lambda assay, is_active=True: []
     )
     monkeypatch.setattr(dna.util.common, "get_assay_genelist_names", lambda docs: [])
     monkeypatch.setattr(dna, "generate_summary_text", lambda *args, **kwargs: "")
@@ -322,7 +318,7 @@ def test_classify_variant_mutation_calls_insert(monkeypatch):
         classification_router, "get_variant_nomenclature", lambda form_data: ("p", "TP53 p.R175H")
     )
     monkeypatch.setattr(
-        dna_repo_module.store.annotation_handler,
+        store.annotation_handler,
         "insert_classified_variant",
         lambda variant, nomenclature, class_num, form_data, **kwargs: captured.update(
             {
@@ -337,7 +333,7 @@ def test_classify_variant_mutation_calls_insert(monkeypatch):
         classification_router.util.common, "convert_to_serializable", lambda payload: payload
     )
 
-    payload = classification_router.classify_resource_mutation(
+    payload = classification_router.classify_resource_change(
         "S1",
         payload={"id": "V1", "form_data": {"tier3": "on"}},
         user=fx.api_user(),
@@ -361,12 +357,12 @@ def test_set_variant_false_positive_bulk_prefers_json_payload(monkeypatch):
     calls: dict = {"mark": None, "unmark": None}
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
-        dna_repo_module.store.variant_handler,
+        store.variant_handler,
         "mark_false_positive_var_bulk",
         lambda ids: calls.__setitem__("mark", ids),
     )
     monkeypatch.setattr(
-        dna_repo_module.store.variant_handler,
+        store.variant_handler,
         "unmark_false_positive_var_bulk",
         lambda ids: calls.__setitem__("unmark", ids),
     )
@@ -398,12 +394,12 @@ def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
     calls: dict = {"mark": None, "unmark": None}
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
-        dna_repo_module.store.variant_handler,
+        store.variant_handler,
         "mark_irrelevant_var_bulk",
         lambda ids: calls.__setitem__("mark", ids),
     )
     monkeypatch.setattr(
-        dna_repo_module.store.variant_handler,
+        store.variant_handler,
         "unmark_irrelevant_var_bulk",
         lambda ids: calls.__setitem__("unmark", ids),
     )
@@ -455,10 +451,8 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
     monkeypatch.setattr(
         classification_router, "_get_sample_for_api", lambda sample_id, user: sample
     )
-    monkeypatch.setattr(
-        dna_repo_module.store.variant_handler, "get_variant", lambda variant_id: variant
-    )
-    monkeypatch.setattr(dna_repo_module.store.oncokb_handler, "get_oncokb_gene", lambda gene: None)
+    monkeypatch.setattr(store.variant_handler, "get_variant", lambda variant_id: variant)
+    monkeypatch.setattr(store.oncokb_handler, "get_oncokb_gene", lambda gene: None)
     monkeypatch.setattr(
         classification_router,
         "create_annotation_text_from_gene",
@@ -477,7 +471,7 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
         },
     )
     monkeypatch.setattr(
-        dna_repo_module.store.annotation_handler,
+        store.annotation_handler,
         "insert_annotation_bulk",
         lambda docs: captured.__setitem__("docs", docs),
     )
@@ -538,22 +532,20 @@ def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatc
     monkeypatch.setattr(
         classification_router, "_get_sample_for_api", lambda sample_id, user: sample
     )
-    monkeypatch.setattr(
-        dna_repo_module.store.variant_handler, "get_variant", lambda variant_id: variant
-    )
-    monkeypatch.setattr(dna_repo_module.store.oncokb_handler, "get_oncokb_gene", lambda gene: None)
+    monkeypatch.setattr(store.variant_handler, "get_variant", lambda variant_id: variant)
+    monkeypatch.setattr(store.oncokb_handler, "get_oncokb_gene", lambda gene: None)
     monkeypatch.setattr(
         classification_router,
         "create_annotation_text_from_gene",
         lambda *args, **kwargs: "AUTO_TEXT",
     )
     monkeypatch.setattr(
-        dna_repo_module.store.annotation_handler,
+        store.annotation_handler,
         "delete_classified_variant",
         lambda **kwargs: captured.append(kwargs),
     )
     monkeypatch.setattr(
-        dna_repo_module.store.annotation_handler,
+        store.annotation_handler,
         "insert_annotation_bulk",
         lambda docs: pytest.fail("insert_annotation_bulk must not be called on tier remove"),
     )

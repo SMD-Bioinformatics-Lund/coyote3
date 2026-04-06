@@ -5,9 +5,10 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.infra.repositories import rna_repository as rna_repo_module
+from api.extensions import store
 from api.main import app as api_app
 from api.routers import fusions as rna
+from api.services.common.change_payload import change_payload
 from api.services.rna import expression_analysis as rna_service_module
 from api.services.rna.expression_analysis import RnaService
 from tests.fixtures.api import mock_collections as fx
@@ -26,18 +27,25 @@ class _Req:
 
 def _rna_service() -> RnaService:
     return RnaService(
-        repository=rna_repo_module.RnaRouteRepository(),
-        workflow_repository=rna_repo_module.RnaWorkflowRepository(),
+        assay_panel_handler=store.assay_panel_handler,
+        gene_list_handler=store.gene_list_handler,
+        sample_handler=store.sample_handler,
+        fusion_handler=store.fusion_handler,
+        rna_expression_handler=store.rna_expression_handler,
+        rna_classification_handler=store.rna_classification_handler,
+        rna_quality_handler=store.rna_quality_handler,
+        annotation_handler=store.annotation_handler,
+        reported_variant_handler=store.reported_variant_handler,
     )
 
 
-def test_mutation_payload_shape():
-    """Test mutation payload shape.
+def test_change_payload_shape():
+    """Test change payload shape.
 
     Returns:
         The function result.
     """
-    payload = RnaService.mutation_payload("S1", "fusion", "F1", "flag")
+    payload = change_payload(sample_id="S1", resource="fusion", resource_id="F1", action="flag")
     assert payload["status"] == "ok"
     assert payload["resource"] == "fusion"
     assert payload["resource_id"] == "F1"
@@ -68,15 +76,15 @@ def test_list_rna_fusions_success(monkeypatch):
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
         "merge_and_normalize_sample_filters",
-        lambda s, a, sid, lists: (merged_sample, merged_sample["filters"]),
+        lambda self, s, a, sid, lists: (merged_sample, merged_sample["filters"]),
     )
     monkeypatch.setattr(
-        rna_repo_module.store.asp_handler,
+        store.assay_panel_handler,
         "get_asp",
         lambda asp_name: {"asp_id": "asp1", "asp_group": "rna"},
     )
     monkeypatch.setattr(
-        rna_repo_module.store.isgl_handler,
+        store.gene_list_handler,
         "get_isgl_by_asp",
         lambda assay, is_active=True, list_type=None: [fx.isgl_doc()],
     )
@@ -85,29 +93,27 @@ def test_list_rna_fusions_success(monkeypatch):
         "get_case_and_control_sample_ids",
         lambda s: {"case": "C1", "control": "C2"},
     )
-    monkeypatch.setattr(
-        rna_repo_module.store.sample_handler, "hidden_sample_comments", lambda oid: False
-    )
+    monkeypatch.setattr(store.sample_handler, "hidden_sample_comments", lambda oid: False)
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
         "compute_filter_context",
-        lambda sample, sample_filters, assay_panel_doc: filter_context,
+        lambda self, sample, sample_filters, assay_panel_doc: filter_context,
     )
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
         "build_fusion_list_query",
-        lambda **kwargs: {"query": "ok"},
+        lambda self, **kwargs: {"query": "ok"},
     )
-    monkeypatch.setattr(
-        rna_repo_module.store.fusion_handler, "get_sample_fusions", lambda query: fusions
-    )
+    monkeypatch.setattr(store.fusion_handler, "get_sample_fusions", lambda query: fusions)
     monkeypatch.setattr(
         rna_service_module,
         "add_global_annotations",
-        lambda fusions, assay_group, subpanel: (fusions, fusions),
+        lambda fusions, assay_group, subpanel, annotation_handler=None: (fusions, fusions),
     )
     monkeypatch.setattr(
-        rna_service_module.RNAWorkflowService, "attach_rna_analysis_sections", lambda s: s
+        rna_service_module.RNAWorkflowService,
+        "attach_rna_analysis_sections",
+        lambda self, s: s,
     )
     monkeypatch.setattr(
         rna_service_module, "generate_summary_text", lambda *args, **kwargs: "summary"
@@ -131,7 +137,7 @@ def test_show_rna_fusion_not_found_raises_404(monkeypatch):
     """
     service = _rna_service()
     monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
-    monkeypatch.setattr(rna_repo_module.store.fusion_handler, "get_fusion", lambda fusion_id: None)
+    monkeypatch.setattr(store.fusion_handler, "get_fusion", lambda fusion_id: None)
 
     with pytest.raises(HTTPException) as exc:
         rna.show_rna_fusion("S1", "F404", user=fx.api_user(), service=service)

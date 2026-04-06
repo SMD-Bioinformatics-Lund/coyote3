@@ -2,55 +2,22 @@
 
 from typing import Any
 
-from api.runtime_state import app
 
-
-def _resolve_conseq_terms_mapper(
-    conseq_terms_mapper: dict[str, Any] | None = None
-) -> dict[str, Any]:
-    """Resolve conseq terms mapper.
+def get_filter_conseq_terms(checked: list, conseq_terms_mapper: dict[str, Any]) -> list:
+    """Return mapped consequence terms from checked form fields.
 
     Args:
-            conseq_terms_mapper: Conseq terms mapper. Optional argument.
+        checked: Selected filter keys from the request/UI layer.
+        conseq_terms_mapper: Mapping from UI keys to normalized consequence terms.
 
     Returns:
-            The  resolve conseq terms mapper result.
-    """
-    if conseq_terms_mapper is not None:
-        return conseq_terms_mapper
-
-    try:
-        conf = app.config.get("CONSEQ_TERMS_MAPPER")
-        if isinstance(conf, dict):
-            return conf
-    except RuntimeError:
-        pass
-
-    try:
-        from api.extensions import store
-
-        app_obj = getattr(getattr(store, "adapter", None), "app", None)
-        if app_obj:
-            conf = app_obj.config.get("CONSEQ_TERMS_MAPPER")
-            if isinstance(conf, dict):
-                return conf
-    except Exception:
-        pass
-    return {}
-
-
-def get_filter_conseq_terms(
-    checked: list, conseq_terms_mapper: dict[str, Any] | None = None
-) -> list:
-    """
-    Return mapped consequence terms from checked form fields.
+        list: Flattened consequence terms for query construction.
     """
     filter_conseq = []
-    conf = _resolve_conseq_terms_mapper(conseq_terms_mapper)
     try:
         for fieldname in checked:
-            if fieldname in conf:
-                filter_conseq.extend(conf.get(fieldname))
+            if fieldname in conseq_terms_mapper:
+                filter_conseq.extend(conseq_terms_mapper.get(fieldname))
     except (KeyError, TypeError):
         pass
     return filter_conseq

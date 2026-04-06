@@ -13,6 +13,7 @@
 ```bash
 PYTHONPATH=. python -m pytest -q
 PYTHONPATH=. python -m ruff check api coyote tests scripts
+.venv/bin/python -m mkdocs build --strict
 ```
 
 ## Test compose stack (optional)
@@ -54,8 +55,9 @@ Quality workflow should execute:
 2. targeted test suites
 3. coverage gates
 4. contract/boundary quick checks
-5. compose config validation
-6. API concurrency/latency quick check (`tests/api/test_api_latency_concurrency.py`)
+5. strict docs build from the project `.venv`
+6. compose config validation
+7. API concurrency/latency quick check (`tests/api/test_api_latency_concurrency.py`)
 
 ## API latency and concurrency quick check
 

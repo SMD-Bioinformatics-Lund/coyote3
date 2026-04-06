@@ -2,73 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-
 from fastapi import APIRouter, Depends, Request
 
 from api.contracts.dna import DnaCnvContextPayload, DnaCnvListPayload
-from api.contracts.samples import SampleMutationPayload
+from api.contracts.samples import SampleChangePayload
 from api.deps.services import get_cnv_service
 from api.extensions import util
-from api.routers.mutation_helpers import run_serialized_mutation
+from api.routers.change_helpers import comment_change, resource_change
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.services.dna.cnv import CnvService
 
 router = APIRouter(tags=["cnvs"])
-
-if not hasattr(util, "common"):
-    util.init_util()
-
-
-def _cnv_mutation(
-    sample_id: str,
-    cnv_id: str,
-    user: ApiUser,
-    service: CnvService,
-    *,
-    action: str,
-    mutate: Callable[[], None],
-):
-    """Execute a CNV mutation and return the canonical mutation payload."""
-    return run_serialized_mutation(
-        sample_id=sample_id,
-        user=user,
-        validate=lambda: _get_sample_for_api(sample_id, user),
-        mutate=mutate,
-        payload=lambda: service.mutation_payload(
-            sample_id,
-            resource="cnv",
-            resource_id=cnv_id,
-            action=action,
-        ),
-        util_module=util,
-    )
-
-
-def _cnv_comment_mutation(
-    sample_id: str,
-    cnv_id: str,
-    comment_id: str,
-    user: ApiUser,
-    service: CnvService,
-    *,
-    action: str,
-    mutate: Callable[[], None],
-):
-    """Execute a CNV comment visibility mutation."""
-    return run_serialized_mutation(
-        sample_id=sample_id,
-        user=user,
-        validate=lambda: _get_sample_for_api(sample_id, user),
-        mutate=mutate,
-        payload=lambda: service.mutation_payload(
-            sample_id,
-            resource="cnv_comment",
-            resource_id=comment_id,
-            action=action,
-        ),
-        util_module=util,
-    )
 
 
 @router.get("/api/v1/samples/{sample_id}/cnvs", response_model=DnaCnvListPayload)
@@ -101,7 +45,7 @@ def show_dna_cnv(
 
 @router.delete(
     "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/interesting",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Remove interesting flag from CNV",
 )
 def unmark_interesting_cnv(
@@ -111,19 +55,20 @@ def unmark_interesting_cnv(
     service: CnvService = Depends(get_cnv_service),
 ):
     """Remove the interesting flag from a CNV."""
-    return _cnv_mutation(
+    return resource_change(
         sample_id,
         cnv_id,
         user,
         service,
+        resource="cnv",
         action="unmark_interesting",
-        mutate=lambda: service.repository.cnv_handler.unmark_interesting_cnv(cnv_id),
+        mutate=lambda: service.set_cnv_flag(cnv_id=cnv_id, apply=False, flag="interesting"),
     )
 
 
 @router.patch(
     "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/interesting",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Mark CNV interesting",
 )
 def mark_interesting_cnv(
@@ -133,19 +78,20 @@ def mark_interesting_cnv(
     service: CnvService = Depends(get_cnv_service),
 ):
     """Mark a CNV as interesting."""
-    return _cnv_mutation(
+    return resource_change(
         sample_id,
         cnv_id,
         user,
         service,
+        resource="cnv",
         action="mark_interesting",
-        mutate=lambda: service.repository.cnv_handler.mark_interesting_cnv(cnv_id),
+        mutate=lambda: service.set_cnv_flag(cnv_id=cnv_id, apply=True, flag="interesting"),
     )
 
 
 @router.patch(
     "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/false-positive",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Mark CNV false-positive",
 )
 def mark_false_positive_cnv(
@@ -155,19 +101,20 @@ def mark_false_positive_cnv(
     service: CnvService = Depends(get_cnv_service),
 ):
     """Mark a CNV as false positive."""
-    return _cnv_mutation(
+    return resource_change(
         sample_id,
         cnv_id,
         user,
         service,
+        resource="cnv",
         action="mark_false_positive",
-        mutate=lambda: service.repository.cnv_handler.mark_false_positive_cnv(cnv_id),
+        mutate=lambda: service.set_cnv_flag(cnv_id=cnv_id, apply=True, flag="false_positive"),
     )
 
 
 @router.delete(
     "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/false-positive",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Remove false-positive flag from CNV",
 )
 def unmark_false_positive_cnv(
@@ -177,19 +124,20 @@ def unmark_false_positive_cnv(
     service: CnvService = Depends(get_cnv_service),
 ):
     """Remove the false-positive flag from a CNV."""
-    return _cnv_mutation(
+    return resource_change(
         sample_id,
         cnv_id,
         user,
         service,
+        resource="cnv",
         action="unmark_false_positive",
-        mutate=lambda: service.repository.cnv_handler.unmark_false_positive_cnv(cnv_id),
+        mutate=lambda: service.set_cnv_flag(cnv_id=cnv_id, apply=False, flag="false_positive"),
     )
 
 
 @router.patch(
     "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/noteworthy",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Mark CNV noteworthy",
 )
 def mark_noteworthy_cnv(
@@ -199,19 +147,20 @@ def mark_noteworthy_cnv(
     service: CnvService = Depends(get_cnv_service),
 ):
     """Mark a CNV as noteworthy."""
-    return _cnv_mutation(
+    return resource_change(
         sample_id,
         cnv_id,
         user,
         service,
+        resource="cnv",
         action="mark_noteworthy",
-        mutate=lambda: service.repository.cnv_handler.noteworthy_cnv(cnv_id),
+        mutate=lambda: service.set_cnv_flag(cnv_id=cnv_id, apply=True, flag="noteworthy"),
     )
 
 
 @router.delete(
     "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/noteworthy",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Remove noteworthy flag from CNV",
 )
 def unmark_noteworthy_cnv(
@@ -221,19 +170,20 @@ def unmark_noteworthy_cnv(
     service: CnvService = Depends(get_cnv_service),
 ):
     """Remove the noteworthy flag from a CNV."""
-    return _cnv_mutation(
+    return resource_change(
         sample_id,
         cnv_id,
         user,
         service,
+        resource="cnv",
         action="unmark_noteworthy",
-        mutate=lambda: service.repository.cnv_handler.unnoteworthy_cnv(cnv_id),
+        mutate=lambda: service.set_cnv_flag(cnv_id=cnv_id, apply=False, flag="noteworthy"),
     )
 
 
 @router.patch(
     "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/hidden",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Hide CNV comment",
 )
 def hide_cnv_comment(
@@ -246,20 +196,23 @@ def hide_cnv_comment(
     service: CnvService = Depends(get_cnv_service),
 ):
     """Hide a CNV comment."""
-    return _cnv_comment_mutation(
+    return comment_change(
         sample_id,
         cnv_id,
         comment_id,
         user,
         service,
+        resource="cnv_comment",
         action="hide",
-        mutate=lambda: service.repository.cnv_handler.hide_cnvs_comment(cnv_id, comment_id),
+        mutate=lambda: service.set_cnv_comment_hidden(
+            cnv_id=cnv_id, comment_id=comment_id, hidden=True
+        ),
     )
 
 
 @router.delete(
     "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/hidden",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Unhide CNV comment",
 )
 def unhide_cnv_comment(
@@ -272,12 +225,15 @@ def unhide_cnv_comment(
     service: CnvService = Depends(get_cnv_service),
 ):
     """Unhide a CNV comment."""
-    return _cnv_comment_mutation(
+    return comment_change(
         sample_id,
         cnv_id,
         comment_id,
         user,
         service,
+        resource="cnv_comment",
         action="unhide",
-        mutate=lambda: service.repository.cnv_handler.unhide_cnvs_comment(cnv_id, comment_id),
+        mutate=lambda: service.set_cnv_comment_hidden(
+            cnv_id=cnv_id, comment_id=comment_id, hidden=False
+        ),
     )

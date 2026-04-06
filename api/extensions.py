@@ -51,37 +51,70 @@ class MongoStore:
     client, databases) are available directly on this object.
     """
 
+    # Statically declare handler attributes so type checkers and IDEs can
+    # understand the runtime-populated store surface.
+    annotation_handler: Any
+    assay_configuration_handler: Any
+    assay_panel_handler: Any
+    bam_record_handler: Any
+    biomarker_handler: Any
+    blacklist_handler: Any
+    brca_handler: Any
+    civic_handler: Any
+    copy_number_variant_handler: Any
+    cosmic_handler: Any
+    coverage_handler: Any
+    expression_handler: Any
+    fusion_handler: Any
+    grouped_coverage_handler: Any
+    hgnc_handler: Any
+    iarc_tp53_handler: Any
+    gene_list_handler: Any
+    oncokb_handler: Any
+    permissions_handler: Any
+    query_profile_handler: Any
+    reported_variant_handler: Any
+    rna_classification_handler: Any
+    rna_expression_handler: Any
+    rna_quality_handler: Any
+    roles_handler: Any
+    sample_handler: Any
+    translocation_handler: Any
+    user_handler: Any
+    variant_handler: Any
+    vep_metadata_handler: Any
+
     _handler_names: tuple[str, ...] = (
         "annotation_handler",
-        "aspc_handler",
-        "asp_handler",
-        "bam_service_handler",
+        "assay_configuration_handler",
+        "assay_panel_handler",
+        "bam_record_handler",
         "biomarker_handler",
         "blacklist_handler",
         "brca_handler",
         "civic_handler",
-        "cnv_handler",
+        "copy_number_variant_handler",
         "cosmic_handler",
         "coverage_handler",
         "expression_handler",
         "fusion_handler",
-        "groupcov_handler",
+        "grouped_coverage_handler",
         "hgnc_handler",
         "iarc_tp53_handler",
-        "isgl_handler",
+        "gene_list_handler",
         "oncokb_handler",
         "permissions_handler",
-        "query_profiles_handler",
-        "reported_variants_handler",
+        "query_profile_handler",
+        "reported_variant_handler",
         "rna_classification_handler",
         "rna_expression_handler",
-        "rna_qc_handler",
+        "rna_quality_handler",
         "roles_handler",
         "sample_handler",
-        "transloc_handler",
+        "translocation_handler",
         "user_handler",
         "variant_handler",
-        "vep_meta_handler",
+        "vep_metadata_handler",
     )
 
     def __init__(self) -> None:
@@ -93,14 +126,42 @@ class MongoStore:
         self.client = None
         self.coyote_db = None
         self.bam_db = None
-        for name in self._handler_names:
-            setattr(self, name, _LazyHandlerProxy())
+        self.annotation_handler = _LazyHandlerProxy()
+        self.assay_configuration_handler = _LazyHandlerProxy()
+        self.assay_panel_handler = _LazyHandlerProxy()
+        self.bam_record_handler = _LazyHandlerProxy()
+        self.biomarker_handler = _LazyHandlerProxy()
+        self.blacklist_handler = _LazyHandlerProxy()
+        self.brca_handler = _LazyHandlerProxy()
+        self.civic_handler = _LazyHandlerProxy()
+        self.copy_number_variant_handler = _LazyHandlerProxy()
+        self.cosmic_handler = _LazyHandlerProxy()
+        self.coverage_handler = _LazyHandlerProxy()
+        self.expression_handler = _LazyHandlerProxy()
+        self.fusion_handler = _LazyHandlerProxy()
+        self.grouped_coverage_handler = _LazyHandlerProxy()
+        self.hgnc_handler = _LazyHandlerProxy()
+        self.iarc_tp53_handler = _LazyHandlerProxy()
+        self.gene_list_handler = _LazyHandlerProxy()
+        self.oncokb_handler = _LazyHandlerProxy()
+        self.permissions_handler = _LazyHandlerProxy()
+        self.query_profile_handler = _LazyHandlerProxy()
+        self.reported_variant_handler = _LazyHandlerProxy()
+        self.rna_classification_handler = _LazyHandlerProxy()
+        self.rna_expression_handler = _LazyHandlerProxy()
+        self.rna_quality_handler = _LazyHandlerProxy()
+        self.roles_handler = _LazyHandlerProxy()
+        self.sample_handler = _LazyHandlerProxy()
+        self.translocation_handler = _LazyHandlerProxy()
+        self.user_handler = _LazyHandlerProxy()
+        self.variant_handler = _LazyHandlerProxy()
+        self.vep_metadata_handler = _LazyHandlerProxy()
 
     def init_from_app(self, runtime: Any) -> None:
         """Create and initialize the MongoAdapter, then bind its attributes."""
         from pymongo.errors import ConnectionFailure
 
-        from api.infra.db.mongo import MongoAdapter
+        from api.infra.mongo.adapter import MongoAdapter
 
         adapter = MongoAdapter()
         adapter.init_from_app(runtime)
@@ -113,88 +174,6 @@ class MongoStore:
         for name, value in adapter.__dict__.items():
             if not name.startswith("_"):
                 setattr(self, name, value)
-
-    # -- Repository factories (direct, no provider indirection) --
-
-    def get_admin_repository(self):
-        from api.infra.repositories.admin_repository import AdminRepository
-
-        return AdminRepository()
-
-    def get_admin_sample_deletion_repository(self):
-        from api.infra.repositories.admin_sample_mongo import AdminSampleDeletionRepository
-
-        return AdminSampleDeletionRepository()
-
-    def get_coverage_repository(self):
-        from api.infra.repositories.coverage_mongo import CoverageRepository
-
-        return CoverageRepository()
-
-    def get_coverage_route_repository(self):
-        from api.infra.repositories.coverage_route_mongo import CoverageRouteRepository
-
-        return CoverageRouteRepository()
-
-    def get_dashboard_repository(self):
-        from api.infra.repositories.dashboard_mongo import DashboardRepository
-
-        return DashboardRepository()
-
-    def get_dna_route_repository(self):
-        from api.infra.repositories.dna_repository import DnaRouteRepository
-
-        return DnaRouteRepository()
-
-    def get_dna_reporting_repository(self):
-        from api.infra.repositories.dna_reporting_mongo import ReportRepository
-
-        return ReportRepository()
-
-    def get_home_repository(self):
-        from api.infra.repositories.home_mongo import HomeRepository
-
-        return HomeRepository()
-
-    def get_internal_ingest_repository(self):
-        from api.infra.repositories.internal_ingest_mongo import InternalIngestRepository
-
-        return InternalIngestRepository()
-
-    def get_interpretation_repository(self):
-        from api.infra.repositories.core_store_mongo import MongoCoreStoreRepository
-
-        return MongoCoreStoreRepository()
-
-    def get_public_catalog_repository(self):
-        from api.infra.repositories.public_catalog_mongo import PublicCatalogRepository
-
-        return PublicCatalogRepository()
-
-    def get_reporting_persistence_repository(self):
-        from api.infra.repositories.core_store_mongo import MongoCoreStoreRepository
-
-        return MongoCoreStoreRepository()
-
-    def get_rna_route_repository(self):
-        from api.infra.repositories.rna_repository import RnaRouteRepository
-
-        return RnaRouteRepository()
-
-    def get_rna_workflow_repository(self):
-        from api.infra.repositories.rna_workflow_mongo import RnaWorkflowRepository
-
-        return RnaWorkflowRepository()
-
-    def get_sample_repository(self):
-        from api.infra.repositories.samples_mongo import SampleRepository
-
-        return SampleRepository()
-
-    def get_security_repository(self):
-        from api.infra.repositories.security_mongo import UserRepository
-
-        return UserRepository()
 
 
 store = MongoStore()

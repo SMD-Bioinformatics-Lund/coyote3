@@ -35,6 +35,11 @@ class _FakeUpload:
         return None
 
 
+def _ingest_service_stub(**methods):
+    """Return a lightweight ingest-service stub for direct route calls."""
+    return SimpleNamespace(**methods)
+
+
 def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
     """Test get role levels internal returns id to level map.
 
@@ -55,11 +60,11 @@ def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
         SimpleNamespace(convert_to_serializable=lambda payload: payload),
         raising=False,
     )
-    repository = SimpleNamespace(
+    roles_handler = SimpleNamespace(
         get_all_roles=lambda: [{"role_id": "admin", "level": 99}, {"role_id": "viewer"}]
     )
 
-    payload = internal.get_role_levels_internal(request=object(), repository=repository)
+    payload = internal.get_role_levels_internal(request=object(), roles_handler=roles_handler)
 
     assert calls["token"] == 1
     assert payload["status"] == "ok"
@@ -86,12 +91,14 @@ def test_get_isgl_meta_internal_reads_adhoc_and_display_name(monkeypatch):
         SimpleNamespace(convert_to_serializable=lambda payload: payload),
         raising=False,
     )
-    repository = SimpleNamespace(
+    gene_list_handler = SimpleNamespace(
         is_isgl_adhoc=lambda _isgl_id: True,
         get_isgl_display_name=lambda _isgl_id: "Focus Panel",
     )
 
-    payload = internal.get_isgl_meta_internal("isgl123", request=object(), repository=repository)
+    payload = internal.get_isgl_meta_internal(
+        "isgl123", request=object(), gene_list_handler=gene_list_handler
+    )
 
     assert calls["token"] == 1
     assert payload == {
@@ -125,8 +132,6 @@ def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
             "data_counts": {"snvs": 1},
         }
 
-    monkeypatch.setattr(internal.InternalIngestService, "ingest_sample_bundle", _ingest)
-
     payload = internal.InternalIngestSampleBundleRequest(
         sample={
             "name": "S1",
@@ -145,7 +150,11 @@ def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
         },
         increment=True,
     )
-    response = internal.ingest_sample_bundle_internal(payload=payload, user=_admin_user())
+    response = internal.ingest_sample_bundle_internal(
+        payload=payload,
+        user=_admin_user(),
+        ingest_service=_ingest_service_stub(ingest_sample_bundle=_ingest),
+    )
 
     assert calls["payload"]["name"] == "S1"
     assert calls["payload"]["genome_build"] == 38
@@ -162,15 +171,13 @@ def test_ingest_sample_bundle_internal_accepts_yaml(monkeypatch):
         SimpleNamespace(convert_to_serializable=lambda payload: payload),
         raising=False,
     )
-    monkeypatch.setattr(
-        internal.InternalIngestService,
-        "parse_yaml_payload",
-        lambda text: {"name": "S2", "vcf_files": "/tmp/s2.vcf", "from_yaml": text},
-    )
-    monkeypatch.setattr(
-        internal.InternalIngestService,
-        "ingest_sample_bundle",
-        lambda payload, *, allow_update=False, increment=False: {
+    ingest_service = _ingest_service_stub(
+        parse_yaml_payload=lambda text: {
+            "name": "S2",
+            "vcf_files": "/tmp/s2.vcf",
+            "from_yaml": text,
+        },
+        ingest_sample_bundle=lambda payload, *, allow_update=False, increment=False: {
             "status": "ok",
             "sample_id": "def",
             "sample_name": payload["name"],
@@ -180,7 +187,11 @@ def test_ingest_sample_bundle_internal_accepts_yaml(monkeypatch):
     )
 
     payload = internal.InternalIngestSampleBundleRequest(yaml_content="name: S2")
-    response = internal.ingest_sample_bundle_internal(payload=payload, user=_admin_user())
+    response = internal.ingest_sample_bundle_internal(
+        payload=payload,
+        user=_admin_user(),
+        ingest_service=ingest_service,
+    )
 
     assert response["sample_name"] == "S2"
 
@@ -189,7 +200,11 @@ def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
     """Test sample-bundle ingest route rejects missing/duplicate body forms."""
     empty_payload = internal.InternalIngestSampleBundleRequest()
     try:
-        internal.ingest_sample_bundle_internal(payload=empty_payload, user=_admin_user())
+        internal.ingest_sample_bundle_internal(
+            payload=empty_payload,
+            user=_admin_user(),
+            ingest_service=_ingest_service_stub(),
+        )
         assert False, "Expected HTTPException for empty payload"
     except HTTPException as exc:
         assert "spec" in str(exc)
@@ -212,7 +227,11 @@ def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
         yaml_content="name: X",
     )
     try:
-        internal.ingest_sample_bundle_internal(payload=dual_payload, user=_admin_user())
+        internal.ingest_sample_bundle_internal(
+            payload=dual_payload,
+            user=_admin_user(),
+            ingest_service=_ingest_service_stub(),
+        )
         assert False, "Expected HTTPException for duplicate payload forms"
     except HTTPException as exc:
         assert "only one" in str(exc)
@@ -245,7 +264,6 @@ def test_ingest_sample_bundle_internal_requires_edit_sample_permission_for_updat
             "data_counts": {},
         }
 
-    monkeypatch.setattr(internal.InternalIngestService, "ingest_sample_bundle", _ingest)
     payload = internal.InternalIngestSampleBundleRequest(
         sample={
             "name": "S3",
@@ -263,7 +281,11 @@ def test_ingest_sample_bundle_internal_requires_edit_sample_permission_for_updat
         },
         update_existing=True,
     )
-    response = internal.ingest_sample_bundle_internal(payload=payload, user=_admin_user())
+    response = internal.ingest_sample_bundle_internal(
+        payload=payload,
+        user=_admin_user(),
+        ingest_service=_ingest_service_stub(ingest_sample_bundle=_ingest),
+    )
     assert calls["enforced"] == 0
     assert calls["allow_update"] is True
     assert response["sample_id"] == "upd-1"
@@ -277,22 +299,24 @@ def test_ingest_collection_document_internal_forwards_payload(monkeypatch):
         SimpleNamespace(convert_to_serializable=lambda payload: payload),
         raising=False,
     )
-    monkeypatch.setattr(
-        internal.InternalIngestService,
-        "insert_collection_document",
-        lambda *, collection, document, ignore_duplicate=False: {
+    ingest_service = _ingest_service_stub(
+        insert_collection_document=lambda *, collection, document, ignore_duplicate=False: {
             "status": "ok",
             "collection": collection,
             "inserted_count": 1,
             "inserted_id": "abc123",
-        },
+        }
     )
     payload = internal.InternalCollectionInsertRequest(
         collection="hgnc_genes",
         document={"hgnc_id": "HGNC:5", "hgnc_symbol": "A1BG"},
     )
     monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
-    response = internal.ingest_collection_document_internal(payload=payload, user=_admin_user())
+    response = internal.ingest_collection_document_internal(
+        payload=payload,
+        user=_admin_user(),
+        ingest_service=ingest_service,
+    )
     assert response["collection"] == "hgnc_genes"
     assert response["inserted_count"] == 1
 
@@ -305,15 +329,13 @@ def test_ingest_collection_documents_internal_forwards_payload(monkeypatch):
         SimpleNamespace(convert_to_serializable=lambda payload: payload),
         raising=False,
     )
-    monkeypatch.setattr(
-        internal.InternalIngestService,
-        "insert_collection_documents",
-        lambda *, collection, documents, ignore_duplicates=False: {
+    ingest_service = _ingest_service_stub(
+        insert_collection_documents=lambda *, collection, documents, ignore_duplicates=False: {
             "status": "ok",
             "collection": collection,
             "inserted_count": len(documents),
             "inserted_id": None,
-        },
+        }
     )
     payload = internal.InternalCollectionBulkInsertRequest(
         collection="hgnc_genes",
@@ -323,7 +345,11 @@ def test_ingest_collection_documents_internal_forwards_payload(monkeypatch):
         ],
     )
     monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
-    response = internal.ingest_collection_documents_internal(payload=payload, user=_admin_user())
+    response = internal.ingest_collection_documents_internal(
+        payload=payload,
+        user=_admin_user(),
+        ingest_service=ingest_service,
+    )
     assert response["collection"] == "hgnc_genes"
     assert response["inserted_count"] == 2
 
@@ -336,13 +362,14 @@ def test_list_supported_ingest_collections_internal(monkeypatch):
         SimpleNamespace(convert_to_serializable=lambda payload: payload),
         raising=False,
     )
-    monkeypatch.setattr(
-        internal.InternalIngestService,
-        "list_supported_collections",
-        lambda: ["asp_configs", "hgnc_genes", "samples"],
+    ingest_service = _ingest_service_stub(
+        list_supported_collections=lambda: ["asp_configs", "hgnc_genes", "samples"]
     )
 
-    response = internal.list_supported_ingest_collections_internal(_user=_admin_user())
+    response = internal.list_supported_ingest_collections_internal(
+        _user=_admin_user(),
+        ingest_service=ingest_service,
+    )
     assert response["status"] == "ok"
     assert response["collections"] == ["asp_configs", "hgnc_genes", "samples"]
 
@@ -355,16 +382,14 @@ def test_upsert_collection_document_internal_forwards_payload(monkeypatch):
         raising=False,
     )
     monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
-    monkeypatch.setattr(
-        internal.InternalIngestService,
-        "upsert_collection_document",
-        lambda *, collection, match, document, upsert=False: {
+    ingest_service = _ingest_service_stub(
+        upsert_collection_document=lambda *, collection, match, document, upsert=False: {
             "status": "ok",
             "collection": collection,
             "matched_count": 1,
             "modified_count": 1,
             "upserted_id": None,
-        },
+        }
     )
     payload = internal.InternalCollectionUpsertRequest(
         collection="asp_configs",
@@ -372,7 +397,11 @@ def test_upsert_collection_document_internal_forwards_payload(monkeypatch):
         document={"aspc_id": "assay_1:prod"},
         upsert=True,
     )
-    response = internal.upsert_collection_document_internal(payload=payload, user=_admin_user())
+    response = internal.upsert_collection_document_internal(
+        payload=payload,
+        user=_admin_user(),
+        ingest_service=ingest_service,
+    )
     assert response["collection"] == "asp_configs"
     assert response["matched_count"] == 1
 
@@ -418,7 +447,24 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
             "data_counts": {"snvs": 1},
         }
 
-    monkeypatch.setattr(internal.InternalIngestService, "ingest_sample_bundle", _ingest)
+    ingest_service = _ingest_service_stub(
+        parse_yaml_payload=lambda _text: {
+            "name": "UPLOAD_SAMPLE",
+            "assay": "assay_1",
+            "profile": "testing",
+            "genome_build": 38,
+            "case_id": "CASE_UPLOAD",
+            "sample_no": 1,
+            "paired": False,
+            "sequencing_scope": "panel",
+            "omics_layer": "dna",
+            "pipeline": "pipeline",
+            "pipeline_version": "v1",
+            "vcf_files": "generic_case_control.final.filtered.vcf",
+            "cnv": "generic_case_control.cnvs.merged.json",
+        },
+        ingest_sample_bundle=_ingest,
+    )
 
     yaml_upload = _FakeUpload(filename="ingest.yaml", payload=b"name: UPLOAD_SAMPLE")
     files = [
@@ -439,6 +485,7 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
             update_existing=False,
             increment=True,
             user=_admin_user(),
+            ingest_service=ingest_service,
         )
     )
     assert response["status"] == "ok"
@@ -458,10 +505,8 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
 
 def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
     """Multipart upload route should fail when YAML references non-uploaded files."""
-    monkeypatch.setattr(
-        internal.InternalIngestService,
-        "parse_yaml_payload",
-        lambda _text: {
+    ingest_service = _ingest_service_stub(
+        parse_yaml_payload=lambda _text: {
             "name": "UPLOAD_SAMPLE",
             "assay": "assay_1",
             "profile": "testing",
@@ -474,7 +519,7 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
             "pipeline": "pipeline",
             "pipeline_version": "v1",
             "vcf_files": "required.vcf",
-        },
+        }
     )
 
     yaml_upload = _FakeUpload(filename="ingest.yaml", payload=b"name: UPLOAD_SAMPLE")
@@ -486,6 +531,7 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
                 update_existing=False,
                 increment=True,
                 user=_admin_user(),
+                ingest_service=ingest_service,
             )
         )
     assert exc_info.value.status_code == 400
@@ -501,15 +547,13 @@ def test_ingest_collection_upload_internal_insert(monkeypatch):
         raising=False,
     )
     monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
-    monkeypatch.setattr(
-        internal.InternalIngestService,
-        "insert_collection_document",
-        lambda *, collection, document, ignore_duplicate=False: {
+    ingest_service = _ingest_service_stub(
+        insert_collection_document=lambda *, collection, document, ignore_duplicate=False: {
             "status": "ok",
             "collection": collection,
             "inserted_count": 1,
             "inserted_id": "seed-1",
-        },
+        }
     )
     upload = _FakeUpload(
         filename="users.json",
@@ -522,6 +566,7 @@ def test_ingest_collection_upload_internal_insert(monkeypatch):
             documents_file=upload,
             match_json=None,
             user=_admin_user(),
+            ingest_service=ingest_service,
         )
     )
     assert response["status"] == "ok"
@@ -539,14 +584,12 @@ def test_ingest_collection_upload_internal_bulk(monkeypatch):
         raising=False,
     )
     monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
-    monkeypatch.setattr(
-        internal.InternalIngestService,
-        "insert_collection_documents",
-        lambda *, collection, documents, ignore_duplicates=False: {
+    ingest_service = _ingest_service_stub(
+        insert_collection_documents=lambda *, collection, documents, ignore_duplicates=False: {
             "status": "ok",
             "collection": collection,
             "inserted_count": len(documents),
-        },
+        }
     )
     upload = _FakeUpload(
         filename="roles.json",
@@ -559,6 +602,7 @@ def test_ingest_collection_upload_internal_bulk(monkeypatch):
             documents_file=upload,
             match_json=None,
             user=_admin_user(),
+            ingest_service=ingest_service,
         )
     )
     assert response["status"] == "ok"
@@ -587,6 +631,7 @@ def test_ingest_collection_upload_internal_upsert_requires_match_json(monkeypatc
                 documents_file=upload,
                 match_json=None,
                 user=_admin_user(),
+                ingest_service=_ingest_service_stub(),
             )
         )
     assert exc_info.value.status_code == 400

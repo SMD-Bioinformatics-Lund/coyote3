@@ -10,49 +10,35 @@ from api.contracts.managed_resources import ManagedResourceSpec
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.extensions import util
 from api.runtime_state import current_username
+from api.services.common.change_payload import change_payload as _change_payload
 
 
-def mutation_payload(
+def change_payload(
     *, resource: str, resource_id: str, action: str, sample_id: str = "admin"
 ) -> dict[str, Any]:
-    """Mutation payload.
-
-    Args:
-        resource (str): Value for ``resource``.
-        resource_id (str): Value for ``resource_id``.
-        action (str): Value for ``action``.
-        sample_id (str): Value for ``sample_id``.
-
-    Returns:
-        dict[str, Any]: The function result.
-    """
-    return {
-        "status": "ok",
-        "sample_id": str(sample_id),
-        "resource": resource,
-        "resource_id": str(resource_id),
-        "action": action,
-        "meta": {"status": "updated"},
-    }
+    """Build the standard admin change response payload."""
+    return _change_payload(
+        sample_id=sample_id, resource=resource, resource_id=resource_id, action=action
+    )
 
 
 def current_actor(default_username: str) -> str:
-    """Current actor.
+    """Return the current username or a fallback actor value.
 
     Args:
-        default_username (str): Value for ``default_username``.
+        default_username: Username to use when request context has no actor.
 
     Returns:
-        str: The function result.
+        str: Resolved actor username.
     """
     return current_username(default=default_username)
 
 
 def utc_now() -> datetime:
-    """Utc now.
+    """Return the current UTC timestamp.
 
     Returns:
-        str: The function result.
+        datetime: Current UTC timestamp.
     """
     return util.common.utc_now()
 
@@ -86,13 +72,13 @@ def normalize_managed_form_payload(
 
 
 def lower(value: Any) -> str:
-    """Lower.
+    """Normalize a value to lowercase trimmed text.
 
     Args:
-        value (Any): Value for ``value``.
+        value: Value to normalize.
 
     Returns:
-        str: The function result.
+        str: Lowercased string representation.
     """
     return str(value or "").strip().lower()
 
@@ -104,16 +90,16 @@ def role_permission_overrides(
     permissions: list[str] | None,
     deny_permissions: list[str] | None,
 ) -> tuple[list[str], list[str]]:
-    """Role permission overrides.
+    """Compute permissions granted outside the selected role defaults.
 
     Args:
-        role_map (dict[str, dict[str, Any]]): Value for ``role_map``.
-        role_name (str | None): Value for ``role_name``.
-        permissions (list[str] | None): Value for ``permissions``.
-        deny_permissions (list[str] | None): Value for ``deny_permissions``.
+        role_map: Role metadata keyed by role name.
+        role_name: Selected role name.
+        permissions: Requested allow-list overrides.
+        deny_permissions: Requested deny-list overrides.
 
     Returns:
-        tuple[list[str], list[str]]: The function result.
+        tuple[list[str], list[str]]: Explicit allow and deny permission overrides.
     """
     role_permissions = role_map.get(role_name or "", {})
     explicit_permissions = list(
@@ -132,16 +118,16 @@ def inject_version_history(
     old_config: dict[str, Any] | None = None,
     is_new: bool,
 ) -> dict[str, Any]:
-    """Inject version history.
+    """Attach version history metadata to a managed config payload.
 
     Args:
-        actor_username (str): Value for ``actor_username``.
-        new_config (dict[str, Any]): Value for ``new_config``.
-        old_config (dict[str, Any] | None): Value for ``old_config``.
-        is_new (bool): Value for ``is_new``.
+        actor_username: User recording the change.
+        new_config: Updated config payload.
+        old_config: Existing config payload when updating.
+        is_new: Whether the config is being created.
 
     Returns:
-        dict[str, Any]: The function result.
+        dict[str, Any]: Config payload with version history metadata.
     """
     return util.records.inject_version_history(
         user_email=actor_username,

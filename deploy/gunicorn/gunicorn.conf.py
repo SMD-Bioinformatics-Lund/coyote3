@@ -14,7 +14,7 @@ Author: Coyote3 authors.
 # -------------------------------------------------------------------------
 import os
 
-import logging_setup
+from shared import logging_setup
 
 log_dir = os.getenv("LOG_DIR", "logs/prod")
 
@@ -33,7 +33,7 @@ def when_ready(server):
 
     Side Effects:
         Initializes and configures the logging system by calling
-        `logging_setup.setup_gunicorn_logging`.
+        `shared.logging_setup.setup_gunicorn_logging`.
 
     Example:
         Add the following to your Gunicorn config:
@@ -53,7 +53,7 @@ def post_worker_stop(worker, worker_pid, exit_code) -> None:
 
     Side Effects:
         Stops asynchronous logging for the worker by calling
-        `logging_setup.stop_async_logging()`.
+        `shared.logging_setup.stop_async_logging()`.
 
     This function is typically referenced via the `post_worker_stop` config
     setting in a Gunicorn configuration file.

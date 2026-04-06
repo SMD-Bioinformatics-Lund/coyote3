@@ -48,7 +48,7 @@ def build_fake_store() -> SimpleNamespace:
                 "get_samples": lambda **kwargs: [sample],
             }
         ),
-        asp_handler=FakeHandler(
+        assay_panel_handler=FakeHandler(
             {
                 "get_asp": lambda asp_name: {
                     "asp_id": "asp1",
@@ -59,7 +59,7 @@ def build_fake_store() -> SimpleNamespace:
                 "get_all_asps": lambda: [{"asp_id": "asp1", "asp_group": "dna"}],
             }
         ),
-        isgl_handler=FakeHandler(
+        gene_list_handler=FakeHandler(
             {
                 "get_isgl": lambda _id, **kwargs: isgl,
                 "get_isgl_by_ids": lambda ids: {isgl["isgl_id"]: isgl},
@@ -100,11 +100,11 @@ def build_fake_store() -> SimpleNamespace:
                 "mark_irrelevant_bulk": lambda ids, apply: None,
             }
         ),
-        cnv_handler=FakeHandler({"get_sample_cnvs": lambda query: [fx.cnv_doc()]}),
+        copy_number_variant_handler=FakeHandler({"get_sample_cnvs": lambda query: [fx.cnv_doc()]}),
         biomarker_handler=FakeHandler(
             {"get_sample_biomarkers": lambda sample_id: [{"_id": "b1", "name": "TMB"}]}
         ),
-        transloc_handler=FakeHandler({"get_sample_translocations": lambda sample_id: []}),
+        translocation_handler=FakeHandler({"get_sample_translocations": lambda sample_id: []}),
         blacklist_handler=FakeHandler(
             {"add_blacklist_data": lambda variants, assay_group: variants}
         ),
@@ -121,7 +121,7 @@ def build_fake_store() -> SimpleNamespace:
                 "get_annotation_text_by_oid": lambda oid: {"_id": oid, "text": "note"},
             }
         ),
-        reported_variants_handler=FakeHandler(
+        reported_variant_handler=FakeHandler(
             {"list_reported_variants": lambda query: [fx.reported_variant_doc()]}
         ),
         hgnc_handler=FakeHandler(
@@ -131,18 +131,18 @@ def build_fake_store() -> SimpleNamespace:
                 "get_metadata_by_symbols": lambda symbols: [{"symbol": s} for s in symbols],
             }
         ),
-        vep_meta_handler=FakeHandler(
+        vep_metadata_handler=FakeHandler(
             {
                 "get_variant_class_translations": lambda vep: {},
                 "get_conseq_translations": lambda vep: {},
             }
         ),
-        bam_service_handler=FakeHandler({"get_bams": lambda sample_ids: []}),
+        bam_record_handler=FakeHandler({"get_bams": lambda sample_ids: []}),
         oncokb_handler=FakeHandler(
             {"get_oncokb_action_gene": lambda symbol: {"Hugo Symbol": symbol}}
         ),
         expression_handler=FakeHandler({"get_expression_data": lambda tx: []}),
         rna_expression_handler=FakeHandler({"get_rna_expression": lambda sid: {}}),
         rna_classification_handler=FakeHandler({"get_rna_classification": lambda sid: {}}),
-        rna_qc_handler=FakeHandler({"get_rna_qc": lambda sid: {}}),
+        rna_quality_handler=FakeHandler({"get_rna_qc": lambda sid: {}}),
     )

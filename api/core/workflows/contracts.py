@@ -9,28 +9,22 @@ class _LoggerLike(Protocol):
     """Define the minimal logger interface used by workflow contract checks."""
 
     def error(self, msg: str) -> None:
-        """Error.
+        """Record an error message.
 
         Args:
-            msg (str): Value for ``msg``.
-
-        Returns:
-            None.
+            msg: Formatted error message template.
         """
         ...
 
 
 def _raise_contract_error(logger: _LoggerLike, tag: str, sample_name: str, message: str) -> None:
-    """Raise contract error.
+    """Raise a normalized workflow contract error.
 
     Args:
-            logger: Logger.
-            tag: Tag.
-            sample_name: Sample name.
-            message: Message.
-
-    Returns:
-            None.
+        logger: Logger used for contract diagnostics.
+        tag: Contract category for log correlation.
+        sample_name: Sample identifier included in the log line.
+        message: User-facing contract failure message.
     """
     logger.error("[contract:%s] sample=%s %s", tag, sample_name, message)
     raise HTTPException(status_code=400, detail={"status": 400, "error": message})

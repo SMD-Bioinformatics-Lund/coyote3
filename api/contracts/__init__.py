@@ -4,12 +4,12 @@ from api.contracts.admin import (
     AdminAspcContextPayload,
     AdminAspcCreateContextPayload,
     AdminAspcListPayload,
+    AdminChangePayload,
     AdminExistsPayload,
     AdminGenelistContextPayload,
     AdminGenelistCreateContextPayload,
     AdminGenelistsListPayload,
     AdminGenelistViewContextPayload,
-    AdminMutationPayload,
     AdminPanelContextPayload,
     AdminPanelCreateContextPayload,
     AdminPanelsListPayload,
@@ -44,10 +44,10 @@ from api.contracts.dna import (
     DnaVariantsListPayload,
 )
 from api.contracts.home import (
+    HomeChangeStatusPayload,
     HomeEditContextPayload,
     HomeEffectiveGenesPayload,
     HomeItemsPayload,
-    HomeMutationStatusPayload,
     HomeReportContextPayload,
     HomeSamplesPayload,
 )
@@ -62,7 +62,7 @@ from api.contracts.public import (
 )
 from api.contracts.reports import ReportPreviewPayload, ReportSavePayload
 from api.contracts.rna import RnaFusionContextPayload, RnaFusionListPayload
-from api.contracts.samples import CoverageBlacklistStatusPayload, SampleMutationPayload
+from api.contracts.samples import CoverageBlacklistStatusPayload, SampleChangePayload
 from api.contracts.system import AuthLoginEnvelope, AuthUserEnvelope, HealthPayload, WhoamiPayload
 
 __all__ = [
@@ -75,7 +75,7 @@ __all__ = [
     "AdminGenelistCreateContextPayload",
     "AdminGenelistViewContextPayload",
     "AdminGenelistsListPayload",
-    "AdminMutationPayload",
+    "AdminChangePayload",
     "AdminPanelContextPayload",
     "AdminPanelCreateContextPayload",
     "AdminPanelsListPayload",
@@ -111,7 +111,7 @@ __all__ = [
     "HomeEditContextPayload",
     "HomeEffectiveGenesPayload",
     "HomeItemsPayload",
-    "HomeMutationStatusPayload",
+    "HomeChangeStatusPayload",
     "HomeReportContextPayload",
     "HomeSamplesPayload",
     "IsglMetaPayload",
@@ -126,6 +126,6 @@ __all__ = [
     "RnaFusionContextPayload",
     "RnaFusionListPayload",
     "RoleLevelsPayload",
-    "SampleMutationPayload",
+    "SampleChangePayload",
     "WhoamiPayload",
 ]

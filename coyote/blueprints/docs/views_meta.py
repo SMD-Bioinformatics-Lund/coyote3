@@ -43,7 +43,7 @@ def changelog():
     """Changelog.
 
     Returns:
-        The function result.
+        Normalized return value.
     """
     file_path = app.config.get("CHANGELOG_FILE")
     if not file_path:

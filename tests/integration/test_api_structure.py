@@ -19,8 +19,8 @@ def test_canonical_api_packages_exist():
         Path("api/services"),
         Path("api/contracts"),
         Path("api/deps"),
-        Path("api/infra/repositories"),
-        Path("api/infra/db"),
+        Path("api/infra/mongo"),
+        Path("api/infra/mongo/handlers"),
         Path("api/infra/knowledgebase"),
         Path("api/infra/integrations"),
     ]

@@ -33,7 +33,7 @@ def samples_cache_version(app_obj) -> str:
 
 
 def invalidate_samples_cache(adapter) -> None:
-    """Bump sample-home cache version token after sample mutations."""
+    """Bump the sample-home cache version token after sample changes."""
     app_obj = getattr(adapter, "app", None)
     cache = getattr(app_obj, "cache", None)
     logger = getattr(app_obj, "logger", None)

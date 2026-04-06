@@ -16,9 +16,25 @@
 - `api/settings.py`: runtime settings behavior
 - `api/lifecycle.py`: startup/shutdown lifecycle
 - `api/runtime_setup.py`: runtime setup and provider selection
-- `api/services/ingest/`: sample bundle ingestion package (`service.py`, `parsers.py`, `helpers.py`)
+- `api/deps/handlers.py`: low-level access to the shared runtime store
+- `api/deps/services.py`: backend service factory/composition root
+- `api/extensions.py`: shared runtime store and backend utility registrations
+- `api/services/ingest/`: sample bundle ingestion package
+  - `service.py`: public service entrypoint and stable caller/test seam
+  - `parsers.py`: DNA/RNA file parsing
+  - `helpers.py`: sample-name and metadata normalization
+  - `collection_writes.py`: contract-validated collection insert/upsert helpers
+  - `dependent_writes.py`: dependent analysis document writes and rollback helpers
+  - `sample_updates.py`: update/rename/update-payload helpers
 - `api/services/resources/`: managed resource workflows (`asp.py`, `isgl.py`, `aspc.py`, `sample.py`)
-- `api/services/dna/`: DNA variant analysis (`variant_analysis.py`, `payloads.py`, `export.py`, `structural_variants.py`, `cnv.py`, `translocations.py`, `small_variants.py`)
+- `api/services/dna/`: DNA analysis package
+  - `variant_analysis.py`: public small-variant service entrypoint
+  - `payloads.py`: read payload builders
+  - `variant_exports.py`: export-row and CSV helpers
+  - `variant_state.py`: flag/state and CNV lookup helpers
+  - `variant_classification.py`: classification/tiering helpers
+  - `variant_comments.py`: comment-write helpers
+  - `structural_variants.py`: CNV/translocation service
 - `api/services/rna/`: RNA expression and fusion analysis (`expression_analysis.py`, `fusions.py`)
 - `api/services/accounts/`: user and role management (`users.py`, `roles.py`, `permissions.py`, `common.py`, `user_profile.py`)
 - `api/services/sample/`: sample catalog and workflows (`catalog.py`, `sample_lookup.py`, `coverage.py`)
@@ -26,11 +42,59 @@
 - `api/services/reporting/`: report generation (`report_builder.py`)
 - `api/services/dashboard/`: dashboard analytics (`analytics.py`)
 - `api/services/biomarker/`: biomarker workflows (`biomarker_lookup.py`)
+- `api/services/common/change_payload.py`: canonical change-response payload builder for write endpoints
+- `api/routers/change_helpers.py`: shared router helpers for common write/change route patterns
 - `api/contracts/schemas/registry.py`: collection contract registry
-- `api/infra/providers/`: datastore provider registry
-- `api/infra/mongo/runtime.py`: Mongo runtime binding for the API process
+- `api/infra/mongo/adapter.py`: canonical Mongo adapter entrypoint
+- `api/infra/mongo/handlers/`: collection-scoped Mongo handlers with human-readable module names
 - `api/infra/knowledgebase/`: handlers and plugin registry for annotation knowledgebase collections stored in MongoDB
 - `api/infra/integrations/ldap.py`: LDAP integration client
+
+## Package responsibilities
+
+### `api/routers`
+
+- validates request shape at the HTTP boundary
+- applies auth/access dependencies
+- calls injected services
+- should not construct business logic from `store` directly
+
+### `api/deps`
+
+- `handlers.py`: tiny layer for low-level store access
+- `services.py`: builds service objects from the shared store
+
+### `api/services`
+
+- owns use-case and orchestration logic
+- may combine multiple handlers
+- should expose explicit constructor dependencies
+- may provide `from_store(...)` helpers to keep factories concise
+- when a large service is split into submodules, keep one stable public entrypoint file for callers and tests
+- write endpoints should use the shared change-response helpers instead of duplicating ad hoc payload shapes
+
+### `api/core`
+
+- pure logic only
+- formatting, normalization, query builders, models, rules
+- should not import `store`
+
+### `api/infra/mongo/handlers`
+
+- one handler per collection
+- owns Mongo-specific query shape and index-aware persistence logic
+
+## Adding a new Mongo collection
+
+Typical path:
+
+1. add a schema to `api/contracts/schemas/...`
+2. register it in `api/contracts/schemas/registry.py`
+3. add a handler in `api/infra/mongo/handlers/`
+4. register the handler in `api/infra/mongo/runtime_adapter.py`
+5. use the handler from a service in `api/services/`
+6. expose the service through `api/deps/services.py`
+7. call the service from a router
 
 ## Important UI files
 

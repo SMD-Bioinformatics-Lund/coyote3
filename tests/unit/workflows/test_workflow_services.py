@@ -4,31 +4,55 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
-
-from api.core.workflows import dna_workflow, rna_workflow
+from api.services.reporting import dna_workflow, rna_workflow
 
 
-@pytest.fixture(autouse=True)
-def _reset_workflow_repositories():
-    """Reset workflow singletons between tests."""
-    dna_workflow.DNAWorkflowService._repository = None
-    rna_workflow.RNAWorkflowService._repository = None
-    yield
-    dna_workflow.DNAWorkflowService._repository = None
-    rna_workflow.RNAWorkflowService._repository = None
+def _dna_workflow() -> dna_workflow.DNAWorkflowService:
+    stub = SimpleNamespace()
+    return dna_workflow.DNAWorkflowService(
+        assay_panel_handler=stub,
+        gene_list_handler=stub,
+        variant_handler=stub,
+        blacklist_handler=stub,
+        sample_handler=stub,
+        copy_number_variant_handler=stub,
+        biomarker_handler=stub,
+        translocation_handler=stub,
+        vep_metadata_handler=stub,
+        annotation_handler=stub,
+        reported_variant_handler=stub,
+        conseq_terms_mapper={},
+    )
 
 
-def test_dna_workflow_requires_repository():
-    """DNA workflow raises if repository is not configured."""
-    with pytest.raises(RuntimeError):
-        dna_workflow.DNAWorkflowService._repo()
+def _rna_workflow(
+    *,
+    sample_handler=None,
+    gene_list_handler=None,
+    rna_expression_handler=None,
+    rna_classification_handler=None,
+    rna_quality_handler=None,
+    fusion_handler=None,
+    annotation_handler=None,
+    assay_panel_handler=None,
+    reported_variant_handler=None,
+) -> rna_workflow.RNAWorkflowService:
+    stub = SimpleNamespace()
+    return rna_workflow.RNAWorkflowService(
+        sample_handler=sample_handler or stub,
+        gene_list_handler=gene_list_handler or stub,
+        rna_expression_handler=rna_expression_handler or stub,
+        rna_classification_handler=rna_classification_handler or stub,
+        rna_quality_handler=rna_quality_handler or stub,
+        fusion_handler=fusion_handler or stub,
+        annotation_handler=annotation_handler or stub,
+        assay_panel_handler=assay_panel_handler or stub,
+        reported_variant_handler=reported_variant_handler or stub,
+    )
 
 
 def test_dna_workflow_forwards_build_and_persist_calls(monkeypatch):
     """DNA workflow facade delegates to shared helpers."""
-    repo = SimpleNamespace(name="repo")
-    dna_workflow.DNAWorkflowService.set_repository(repo)
     calls = {}
 
     def _build_payload(**kwargs):
@@ -63,15 +87,12 @@ def test_dna_workflow_forwards_build_and_persist_calls(monkeypatch):
         ),
     )
 
-    assert dna_workflow.DNAWorkflowService.has_repository() is True
-    assert dna_workflow.DNAWorkflowService.build_report_payload({}, {}, 1, True)[0] == "tpl.html"
+    workflow = _dna_workflow()
+    assert workflow.build_report_payload({}, {}, 1, True)[0] == "tpl.html"
+    assert workflow.build_report_location({}, {"asp_group": "dna"}, "/base")[0] == "id"
+    workflow.prepare_report_output("/tmp", "/tmp/report.html", logger="L")
     assert (
-        dna_workflow.DNAWorkflowService.build_report_location({}, {"asp_group": "dna"}, "/base")[0]
-        == "id"
-    )
-    dna_workflow.DNAWorkflowService.prepare_report_output("/tmp", "/tmp/report.html", logger="L")
-    assert (
-        dna_workflow.DNAWorkflowService.persist_report(
+        workflow.persist_report(
             sample_id="S1",
             sample={"name": "S1"},
             report_num=1,
@@ -83,11 +104,8 @@ def test_dna_workflow_forwards_build_and_persist_calls(monkeypatch):
         )
         == "rid-1"
     )
-    dna_workflow.DNAWorkflowService.validate_report_inputs(
-        "LOG", {"name": "S1"}, {"asp_group": "dna"}
-    )
+    workflow.validate_report_inputs("LOG", {"name": "S1"}, {"asp_group": "dna"})
 
-    assert calls["build"]["repository"] is repo
     assert calls["validate"][3] == "dna"
     assert calls["prepare"] == ("/tmp", "/tmp/report.html", "L")
     assert calls["persist"]["sample_id"] == "S1"
@@ -95,14 +113,11 @@ def test_dna_workflow_forwards_build_and_persist_calls(monkeypatch):
 
 def test_rna_workflow_merge_and_persist_filters(monkeypatch):
     """RNA workflow normalizes and persists form filters."""
-    repo = SimpleNamespace(
-        update_sample_filters=lambda _id, filters: None,
-        get_sample_by_id=lambda _id: {
-            "filters": {"min_spanning_reads": 2, "min_spanning_pairs": 3}
-        },
-    )
-    rna_workflow.RNAWorkflowService.set_repository(repo)
     calls = {}
+    sample_handler = SimpleNamespace(
+        update_sample_filters=lambda _id, filters: None,
+        get_sample=lambda _id: {"filters": {"min_spanning_reads": 2, "min_spanning_pairs": 3}},
+    )
 
     monkeypatch.setattr(
         rna_workflow.util,
@@ -141,7 +156,8 @@ def test_rna_workflow_merge_and_persist_filters(monkeypatch):
     assert calls["validate"][1] == "S1"
 
     req = SimpleNamespace(getlist=lambda _key: ["L1"])
-    updated_sample, updated_filters = rna_workflow.RNAWorkflowService.persist_form_filters(
+    workflow = _rna_workflow(sample_handler=sample_handler)
+    updated_sample, updated_filters = workflow.persist_form_filters(
         {"_id": "sample-1", "filters": {}},
         form={},
         assay_config_schema={},
@@ -153,9 +169,10 @@ def test_rna_workflow_merge_and_persist_filters(monkeypatch):
 
 def test_rna_workflow_build_context_and_query(monkeypatch):
     """RNA workflow builds filter context and fusion query payload."""
-    repo = SimpleNamespace(get_isgl_by_ids=lambda _ids: {"L1": {"genes": ["TP53"]}})
-    rna_workflow.RNAWorkflowService.set_repository(repo)
     calls = {}
+    workflow = _rna_workflow(
+        gene_list_handler=SimpleNamespace(get_isgl_by_ids=lambda _ids: {"L1": {"genes": ["TP53"]}})
+    )
 
     monkeypatch.setattr(rna_workflow, "create_fusioneffectlist", lambda values: values)
     monkeypatch.setattr(rna_workflow, "create_fusioncallers", lambda values: values)
@@ -172,7 +189,7 @@ def test_rna_workflow_build_context_and_query(monkeypatch):
 
     monkeypatch.setattr(rna_workflow, "build_fusion_query", _build_query)
 
-    context = rna_workflow.RNAWorkflowService.compute_filter_context(
+    context = workflow.compute_filter_context(
         {"name": "S1", "filters": {}},
         {"fusion_effects": ["in-frame"], "fusion_callers": ["arriba"], "fusionlists": ["L1"]},
         {"asp_id": "RNA"},
@@ -200,11 +217,10 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
         "calls": [{"selected": 1, "breakpoint1": "chr11:1", "breakpoint2": "chr4:2"}],
         "classification": {"class": 2, "_id": "ann1"},
     }
-    repo = SimpleNamespace(
+    fusion_handler = SimpleNamespace(
         get_sample_fusions=lambda _query: [dict(fusion_doc)],
         get_fusion_annotations=lambda fusion: ([{"text": "a"}], fusion.get("classification")),
     )
-    rna_workflow.RNAWorkflowService.set_repository(repo)
 
     monkeypatch.setattr(rna_workflow, "utc_now", lambda: "NOW")
     monkeypatch.setattr(
@@ -236,11 +252,16 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
         lambda **kwargs: kwargs["report_id"],
     )
 
-    rows = rna_workflow.RNAWorkflowService._build_snapshot_rows([fusion_doc])
+    workflow = _rna_workflow(
+        fusion_handler=fusion_handler,
+        sample_handler=SimpleNamespace(),
+        reported_variant_handler=SimpleNamespace(),
+    )
+    rows = workflow._build_snapshot_rows([fusion_doc])
     assert rows[0]["simple_id"] == "KMT2A::AFF1::chr11:1::chr4:2"
     assert rows[0]["created_on"] == "NOW"
 
-    template, context, snapshot_rows = rna_workflow.RNAWorkflowService.build_report_payload(
+    template, context, snapshot_rows = workflow.build_report_payload(
         {"_id": "S1", "name": "S1"},
         save=1,
         include_snapshot=True,
@@ -249,7 +270,7 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
     assert context["analysis_method"] == "method:hema"
     assert len(snapshot_rows) == 1
     assert (
-        rna_workflow.RNAWorkflowService.persist_report(
+        workflow.persist_report(
             sample_id="S1",
             sample={"name": "S1"},
             report_num=1,

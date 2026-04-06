@@ -45,7 +45,7 @@
   <text x="840" y="253" text-anchor="middle" class="sub">Validate and permission check</text>
 
   <rect x="730" y="290" width="220" height="54" class="box" fill="#fef3c7"/>
-  <text x="840" y="312" text-anchor="middle" class="label">Service and repository</text>
+  <text x="840" y="312" text-anchor="middle" class="label">Service and handlers</text>
   <text x="840" y="329" text-anchor="middle" class="sub">Mongo query and Redis cache</text>
 
   <rect x="460" y="214" width="210" height="54" class="box" fill="#ddd6fe"/>

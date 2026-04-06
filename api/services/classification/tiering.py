@@ -5,16 +5,41 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-from api.extensions import store
 from api.http import api_error
 
 
 class ResourceClassificationService:
     """Own cross-resource classification and tiering workflows."""
 
-    def __init__(self, repository: Any | None = None) -> None:
-        """Build the service with a classification repository."""
-        self.repository = repository or store.get_dna_route_repository()
+    @classmethod
+    def from_store(cls, store: Any) -> "ResourceClassificationService":
+        """Build the service from the shared store."""
+        return cls(
+            annotation_handler=store.annotation_handler,
+            variant_handler=store.variant_handler,
+            oncokb_handler=store.oncokb_handler,
+            fusion_handler=store.fusion_handler,
+            copy_number_variant_handler=store.copy_number_variant_handler,
+            translocation_handler=store.translocation_handler,
+        )
+
+    def __init__(
+        self,
+        *,
+        annotation_handler: Any,
+        variant_handler: Any,
+        oncokb_handler: Any,
+        fusion_handler: Any,
+        copy_number_variant_handler: Any,
+        translocation_handler: Any,
+    ) -> None:
+        """Build the classification service with explicit persistence dependencies."""
+        self.annotation_handler = annotation_handler
+        self.variant_handler = variant_handler
+        self.oncokb_handler = oncokb_handler
+        self.fusion_handler = fusion_handler
+        self.copy_number_variant_handler = copy_number_variant_handler
+        self.translocation_handler = translocation_handler
 
     @staticmethod
     def _consequence_list(value: object) -> list[str]:
@@ -29,38 +54,14 @@ class ResourceClassificationService:
         return [text] if text else []
 
     @staticmethod
-    def mutation_payload(
-        sample_id: str, resource: str, resource_id: str, action: str
-    ) -> dict[str, Any]:
-        """Mutation payload.
-
-        Args:
-            sample_id (str): Value for ``sample_id``.
-            resource (str): Value for ``resource``.
-            resource_id (str): Value for ``resource_id``.
-            action (str): Value for ``action``.
-
-        Returns:
-            dict[str, Any]: The function result.
-        """
-        return {
-            "status": "ok",
-            "sample_id": str(sample_id),
-            "resource": resource,
-            "resource_id": str(resource_id),
-            "action": action,
-            "meta": {"status": "updated"},
-        }
-
-    @staticmethod
     def normalize_resource_type(resource_type: str | None) -> str:
-        """Normalize resource type.
+        """Normalize incoming resource-type aliases.
 
         Args:
-            resource_type (str | None): Value for ``resource_type``.
+            resource_type: Raw resource type from the request.
 
         Returns:
-            str: The function result.
+            str: Canonical resource type identifier.
         """
         value = str(resource_type or "small_variant").strip().lower().replace("-", "_")
         aliases = {
@@ -84,22 +85,22 @@ class ResourceClassificationService:
         subpanel: str | None,
         create_annotation_text_fn,
     ) -> dict[str, Any] | None:
-        """Load resource identity.
+        """Load the identity payload needed for resource classification.
 
         Args:
-                sample: Sample. Keyword-only argument.
-                resource_type: Resource type. Keyword-only argument.
-                resource_id: Resource id. Keyword-only argument.
-                assay_group: Assay group. Keyword-only argument.
-                subpanel: Subpanel. Keyword-only argument.
-                create_annotation_text_fn: Create annotation text fn. Keyword-only argument.
+            sample: Sample payload containing ownership context.
+            resource_type: Resource type to classify.
+            resource_id: Resource identifier to load.
+            assay_group: Assay-group context for annotation text.
+            subpanel: Optional subpanel context.
+            create_annotation_text_fn: Helper used to build default annotation text.
 
         Returns:
-                The  load resource identity result.
+            dict[str, Any] | None: Classification identity payload, when the resource exists.
         """
         normalized_type = self.normalize_resource_type(resource_type)
         if normalized_type == "small_variant":
-            var = self.repository.variant_handler.get_variant(str(resource_id))
+            var = self.variant_handler.get_variant(str(resource_id))
             if not var or str(var.get("SAMPLE_ID")) != str(sample.get("_id")):
                 return None
 
@@ -110,7 +111,7 @@ class ResourceClassificationService:
             hgvs_c = selected_csq.get("HGVSc")
             hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
             consequence = self._consequence_list(selected_csq.get("Consequence"))
-            gene_oncokb = self.repository.oncokb_handler.get_oncokb_gene(gene)
+            gene_oncokb = self.oncokb_handler.get_oncokb_gene(gene)
             text = create_annotation_text_fn(
                 gene, consequence, assay_group, gene_oncokb=gene_oncokb
             )
@@ -139,10 +140,10 @@ class ResourceClassificationService:
             }
 
         if normalized_type == "fusion":
-            fusion = self.repository.fusion_handler.get_fusion(str(resource_id))
+            fusion = self.fusion_handler.get_fusion(str(resource_id))
             if not fusion or str(fusion.get("SAMPLE_ID")) != str(sample.get("_id")):
                 return None
-            selected_call = self.repository.fusion_handler.get_selected_fusioncall(fusion)
+            selected_call = self.fusion_handler.get_selected_fusioncall(fusion)
             if not selected_call:
                 return None
             gene1 = fusion.get("gene1")
@@ -161,7 +162,7 @@ class ResourceClassificationService:
             }
 
         if normalized_type == "cnv":
-            cnv = self.repository.cnv_handler.get_cnv(str(resource_id))
+            cnv = self.copy_number_variant_handler.get_cnv(str(resource_id))
             if not cnv or str(cnv.get("SAMPLE_ID")) != str(sample.get("_id")):
                 return None
             genes = cnv.get("genes", [])
@@ -184,7 +185,7 @@ class ResourceClassificationService:
             }
 
         if normalized_type == "translocation":
-            transloc = self.repository.transloc_handler.get_transloc(str(resource_id))
+            transloc = self.translocation_handler.get_transloc(str(resource_id))
             if not transloc or str(transloc.get("SAMPLE_ID")) != str(sample.get("_id")):
                 return None
             annotations = transloc.get("INFO", {}).get("MANE_ANN") or transloc.get("INFO", {}).get(
@@ -222,21 +223,18 @@ class ResourceClassificationService:
         create_annotation_text_fn,
         create_classified_variant_doc_fn,
     ) -> None:
-        """Set tier bulk.
+        """Apply or remove tier classifications in bulk.
 
         Args:
-            sample (dict): Value for ``sample``.
-            resource_type (str): Value for ``resource_type``.
-            resource_ids (list[str]): Value for ``resource_ids``.
-            assay_group (str | None): Value for ``assay_group``.
-            subpanel (str | None): Value for ``subpanel``.
-            apply (bool): Value for ``apply``.
-            class_num (int): Value for ``class_num``.
-            create_annotation_text_fn: Value for ``create_annotation_text_fn``.
-            create_classified_variant_doc_fn: Value for ``create_classified_variant_doc_fn``.
-
-        Returns:
-            None.
+            sample: Sample payload containing ownership context.
+            resource_type: Resource type to classify.
+            resource_ids: Resource identifiers to update.
+            assay_group: Assay-group context for annotation text.
+            subpanel: Optional subpanel context.
+            apply: Whether to add or remove the classification.
+            class_num: Target tier/class number.
+            create_annotation_text_fn: Helper used to build default annotation text.
+            create_classified_variant_doc_fn: Helper used to build classification documents.
         """
         bulk_docs: list[dict[str, Any]] = []
         for resource_id in resource_ids:
@@ -252,7 +250,7 @@ class ResourceClassificationService:
                 continue
 
             if not apply:
-                self.repository.annotation_handler.delete_classified_variant(
+                self.annotation_handler.delete_classified_variant(
                     variant=identity["variant"],
                     nomenclature=identity["nomenclature"],
                     variant_data=identity["variant_data"],
@@ -285,7 +283,7 @@ class ResourceClassificationService:
             )
 
         if bulk_docs:
-            self.repository.annotation_handler.insert_annotation_bulk(bulk_docs)
+            self.annotation_handler.insert_annotation_bulk(bulk_docs)
 
     def classify_resource(
         self,
@@ -295,23 +293,13 @@ class ResourceClassificationService:
         get_tier_classification_fn,
         get_variant_nomenclature_fn,
     ) -> None:
-        """Classify resource.
-
-        Args:
-            resource_type (str): Value for ``resource_type``.
-            form_data (dict): Value for ``form_data``.
-            get_tier_classification_fn: Value for ``get_tier_classification_fn``.
-            get_variant_nomenclature_fn: Value for ``get_variant_nomenclature_fn``.
-
-        Returns:
-            None.
-        """
+        """Create a classification document for a resource."""
         class_num = get_tier_classification_fn(form_data)
         nomenclature, variant = get_variant_nomenclature_fn(form_data)
         if class_num != 0:
             enriched_form = dict(form_data)
             enriched_form.setdefault("resource_type", self.normalize_resource_type(resource_type))
-            self.repository.annotation_handler.insert_classified_variant(
+            self.annotation_handler.insert_classified_variant(
                 variant, nomenclature, class_num, enriched_form
             )
 
@@ -322,22 +310,11 @@ class ResourceClassificationService:
         form_data: dict,
         get_variant_nomenclature_fn,
     ) -> None:
-        """Remove resource.
-
-        Args:
-            resource_type (str): Value for ``resource_type``.
-            form_data (dict): Value for ``form_data``.
-            get_variant_nomenclature_fn: Value for ``get_variant_nomenclature_fn``.
-
-        Returns:
-            None.
-        """
+        """Remove a classification document for a resource."""
         nomenclature, variant = get_variant_nomenclature_fn(form_data)
         enriched_form = dict(form_data)
         enriched_form.setdefault("resource_type", self.normalize_resource_type(resource_type))
-        self.repository.annotation_handler.delete_classified_variant(
-            variant, nomenclature, enriched_form
-        )
+        self.annotation_handler.delete_classified_variant(variant, nomenclature, enriched_form)
 
 
 __all__ = ["ResourceClassificationService"]

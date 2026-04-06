@@ -12,11 +12,7 @@ router = APIRouter(tags=["system"])
 
 @router.get("/api/v1/health", response_model=HealthPayload)
 def health():
-    """Health.
-
-    Returns:
-        The function result.
-    """
+    """Return a lightweight health-check payload."""
     return {"status": "ok"}
 
 

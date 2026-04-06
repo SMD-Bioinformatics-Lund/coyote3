@@ -8,6 +8,7 @@ import pytest
 from fastapi import HTTPException
 
 import api.services.dna.structural_variants as service_module
+from api.services.common.change_payload import change_payload
 from api.services.dna.structural_variants import DnaStructuralService
 
 
@@ -48,12 +49,12 @@ class _TranslocHandlerStub:
 
 class _RepoStub:
     def __init__(self) -> None:
-        self.cnv_handler = _CnvHandlerStub()
-        self.transloc_handler = _TranslocHandlerStub()
-        self.asp_handler = SimpleNamespace(get_asp=lambda asp_name: {"_id": asp_name})
-        self.isgl_handler = SimpleNamespace(get_isgl_by_ids=lambda ids: {i: [] for i in ids})
-        self.bam_service_handler = SimpleNamespace(get_bams=lambda sample_ids: {"ids": sample_ids})
-        self.vep_meta_handler = SimpleNamespace(get_conseq_translations=lambda _vep: {"A": "B"})
+        self.copy_number_variant_handler = _CnvHandlerStub()
+        self.translocation_handler = _TranslocHandlerStub()
+        self.assay_panel_handler = SimpleNamespace(get_asp=lambda asp_name: {"_id": asp_name})
+        self.gene_list_handler = SimpleNamespace(get_isgl_by_ids=lambda ids: {i: [] for i in ids})
+        self.bam_record_handler = SimpleNamespace(get_bams=lambda sample_ids: {"ids": sample_ids})
+        self.vep_metadata_handler = SimpleNamespace(get_conseq_translations=lambda _vep: {"A": "B"})
 
 
 class _UtilModule:
@@ -72,8 +73,19 @@ def _request(path: str):
     return SimpleNamespace(url=SimpleNamespace(path=path))
 
 
-def test_mutation_payload_shape():
-    payload = DnaStructuralService.mutation_payload("S1", "cnv", "c1", "update")
+def _service_from_repo(repo: _RepoStub) -> DnaStructuralService:
+    return DnaStructuralService(
+        copy_number_variant_handler=repo.copy_number_variant_handler,
+        translocation_handler=repo.translocation_handler,
+        assay_panel_handler=repo.assay_panel_handler,
+        gene_list_handler=repo.gene_list_handler,
+        bam_record_handler=repo.bam_record_handler,
+        vep_metadata_handler=repo.vep_metadata_handler,
+    )
+
+
+def test_change_payload_shape():
+    payload = change_payload(sample_id="S1", resource="cnv", resource_id="c1", action="update")
     assert payload["status"] == "ok"
     assert payload["sample_id"] == "S1"
     assert payload["meta"]["status"] == "updated"
@@ -81,7 +93,7 @@ def test_mutation_payload_shape():
 
 def test_load_cnvs_for_sample_applies_query_and_filter(monkeypatch):
     repo = _RepoStub()
-    service = DnaStructuralService(repository=repo)
+    service = _service_from_repo(repo)
     monkeypatch.setattr(
         service_module,
         "build_cnv_query",
@@ -102,7 +114,8 @@ def test_load_cnvs_for_sample_applies_query_and_filter(monkeypatch):
 
 
 def test_list_cnvs_payload_raises_when_assay_config_missing(monkeypatch):
-    service = DnaStructuralService(repository=_RepoStub())
+    repo = _RepoStub()
+    service = _service_from_repo(repo)
     monkeypatch.setattr(service_module, "get_formatted_assay_config", lambda _sample: None)
 
     with pytest.raises(HTTPException) as exc:
@@ -115,7 +128,7 @@ def test_list_cnvs_payload_raises_when_assay_config_missing(monkeypatch):
 
 def test_list_cnvs_payload_returns_count(monkeypatch):
     repo = _RepoStub()
-    service = DnaStructuralService(repository=repo)
+    service = _service_from_repo(repo)
     monkeypatch.setattr(
         service_module, "get_formatted_assay_config", lambda _sample: {"asp_group": "dna"}
     )
@@ -133,8 +146,8 @@ def test_list_cnvs_payload_returns_count(monkeypatch):
 
 def test_show_cnv_payload_rejects_cross_sample(monkeypatch):
     repo = _RepoStub()
-    repo.cnv_handler.cnv_doc = {"_id": "cnv1", "SAMPLE_ID": "S2"}
-    service = DnaStructuralService(repository=repo)
+    repo.copy_number_variant_handler.cnv_doc = {"_id": "cnv1", "SAMPLE_ID": "S2"}
+    service = _service_from_repo(repo)
     monkeypatch.setattr(
         service_module, "get_formatted_assay_config", lambda _sample: {"asp_group": "dna"}
     )
@@ -147,7 +160,7 @@ def test_show_cnv_payload_rejects_cross_sample(monkeypatch):
 
 def test_show_cnv_payload_returns_detail(monkeypatch):
     repo = _RepoStub()
-    service = DnaStructuralService(repository=repo)
+    service = _service_from_repo(repo)
     monkeypatch.setattr(
         service_module, "get_formatted_assay_config", lambda _sample: {"asp_group": "dna"}
     )
@@ -158,8 +171,9 @@ def test_show_cnv_payload_returns_detail(monkeypatch):
     assert payload["has_hidden_comments"]
 
 
-def test_list_translocations_payload_returns_count():
-    service = DnaStructuralService(repository=_RepoStub())
+def test_list_translocations_payload_returns_count(monkeypatch):
+    repo = _RepoStub()
+    service = _service_from_repo(repo)
     payload = service.list_translocations_payload(
         request=_request("/api/v1/translocations/S1"), sample=_sample()
     )
@@ -168,8 +182,8 @@ def test_list_translocations_payload_returns_count():
 
 def test_show_translocation_payload_rejects_cross_sample(monkeypatch):
     repo = _RepoStub()
-    repo.transloc_handler.doc = {"_id": "t1", "SAMPLE_ID": "S2"}
-    service = DnaStructuralService(repository=repo)
+    repo.translocation_handler.doc = {"_id": "t1", "SAMPLE_ID": "S2"}
+    service = _service_from_repo(repo)
     monkeypatch.setattr(
         service_module, "get_formatted_assay_config", lambda _sample: {"asp_group": "dna"}
     )
@@ -183,7 +197,8 @@ def test_show_translocation_payload_rejects_cross_sample(monkeypatch):
 
 
 def test_show_translocation_payload_returns_detail(monkeypatch):
-    service = DnaStructuralService(repository=_RepoStub())
+    repo = _RepoStub()
+    service = _service_from_repo(repo)
     monkeypatch.setattr(
         service_module, "get_formatted_assay_config", lambda _sample: {"asp_group": "dna"}
     )

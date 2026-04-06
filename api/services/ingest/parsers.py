@@ -10,10 +10,10 @@ from typing import Any
 
 from pysam import VariantFile
 
-import config
 from api.common.parsers import cmdvcf
 from api.contracts.schemas.samples import DNA_SAMPLE_FILE_KEYS, RNA_SAMPLE_FILE_KEYS
 from api.core.dna.variant_identity import ensure_variant_identity_fields
+from shared import app_config
 
 
 def _exists(path: str | None) -> bool:
@@ -636,7 +636,7 @@ class DnaIngestParser:
         Returns:
             A list of variant dicts representing confirmed gene fusions.
         """
-        mane = _read_mane(config.mane)
+        mane = _read_mane(app_config.MANE_SUMMARY_PATH)
         filtered_data: list[dict[str, Any]] = []
         vcf_object = VariantFile(infile)
         for var in vcf_object.fetch():

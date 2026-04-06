@@ -27,8 +27,6 @@ from flask import Flask, g, request
 from flask_cors import CORS
 from flask_login import current_user
 
-import config
-from cache_backend import create_cache_backend
 from coyote import extensions
 from coyote.services.api_client import ApiRequestError
 from coyote.services.api_client import endpoints as api_endpoints
@@ -38,6 +36,8 @@ from coyote.services.api_client.api_client import (
     get_web_api_client,
 )
 from coyote.util.misc import get_dynamic_assay_nav
+from shared import app_config
+from shared.cache_backend import create_cache_backend
 from shared.logging import emit_audit_event
 from shared.rate_limit import FixedWindowRateLimiter
 
@@ -111,7 +111,7 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
     if testing:
         app.logger.info("Testing mode ON.")
         app.logger.info("Loading config.TestConfig")
-        app.config.from_object(config.TestConfig())
+        app.config.from_object(app_config.TestConfig())
         app.debug = True
 
     elif development:
@@ -120,21 +120,21 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
             "(Jag ropar ut mitt innersta hav, jag ropar ut all min skit och allt mitt skav!)"
         )
         app.logger.info("Loading config.DevelopmentConfig")
-        app.config.from_object(config.DevelopmentConfig())
+        app.config.from_object(app_config.DevelopmentConfig())
         app.debug = True
 
     elif staging_enabled:
         app.logger.info("Loading config.StageConfig")
-        config.StageConfig.validate_required_env()
-        app.config.from_object(config.StageConfig())
+        app_config.StageConfig.validate_required_env()
+        app.config.from_object(app_config.StageConfig())
 
     else:
         app.logger.info("Loading config.ProductionConfig")
-        config.ProductionConfig.validate_required_env()
-        app.config.from_object(config.ProductionConfig())  # Note initialization of Config
+        app_config.ProductionConfig.validate_required_env()
+        app.config.from_object(app_config.ProductionConfig())  # Note initialization of Config
 
     # CORS: restrict to configured origins, or allow all if CORS_ORIGINS is not set.
-    # See README Security section and config.py CORS_ORIGINS for details.
+    # See README Security section and shared/app_config.py CORS_ORIGINS for details.
     _cors_origins = app.config.get("CORS_ORIGINS") or []
     if _cors_origins:
         CORS(app, origins=_cors_origins)

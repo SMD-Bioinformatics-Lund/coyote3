@@ -5,12 +5,12 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.admin import (
+    AdminChangePayload,
     AdminExistsPayload,
     AdminGenelistContextPayload,
     AdminGenelistCreateContextPayload,
     AdminGenelistsListPayload,
     AdminGenelistViewContextPayload,
-    AdminMutationPayload,
 )
 from api.deps.services import get_admin_genelist_service
 from api.extensions import util
@@ -22,26 +22,26 @@ router = APIRouter(tags=["resource-genelists"])
 
 @router.post(
     "/api/v1/resources/genelists",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     status_code=201,
     summary="Create genelist",
 )
-def create_genelist_mutation(
+def create_genelist_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
         require_access(permission="create_isgl", min_role="manager", min_level=99)
     ),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
-    """Create genelist mutation.
+    """Create a genelist.
 
     Args:
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (IsglService): Value for ``service``.
+        payload: Submitted genelist payload.
+        user: Authenticated user performing the mutation.
+        service: Genelist workflow service.
 
     Returns:
-        The function result.
+        dict: Mutation response payload.
     """
     return util.common.convert_to_serializable(
         service.create(payload=payload, actor_username=user.username)
@@ -56,14 +56,14 @@ def list_genelists_read(
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
-    """List genelists read.
+    """Return the genelist admin list.
 
     Args:
-        user (ApiUser): Value for ``user``.
-        service (IsglService): Value for ``service``.
+        user: Authenticated user requesting the list.
+        service: Genelist workflow service.
 
     Returns:
-        The function result.
+        dict: Admin list payload for genelists.
     """
     _ = user
     return util.common.convert_to_serializable(
@@ -80,14 +80,14 @@ def create_genelist_context_read(
     ),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
-    """Create genelist context read.
+    """Return create-form context for a genelist.
 
     Args:
-        user (ApiUser): Value for ``user``.
-        service (IsglService): Value for ``service``.
+        user: Authenticated user requesting create context.
+        service: Genelist workflow service.
 
     Returns:
-        The function result.
+        dict: Create-context payload for genelists.
     """
     return util.common.convert_to_serializable(
         service.create_context_payload(actor_username=user.username)
@@ -102,15 +102,15 @@ def genelist_context_read(
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
-    """Genelist context read.
+    """Return edit-form context for a genelist.
 
     Args:
-        genelist_id (str): Value for ``genelist_id``.
-        user (ApiUser): Value for ``user``.
-        service (IsglService): Value for ``service``.
+        genelist_id: Genelist identifier to load.
+        user: Authenticated user requesting edit context.
+        service: Genelist workflow service.
 
     Returns:
-        The function result.
+        dict: Edit-context payload for the genelist.
     """
     _ = user
     return util.common.convert_to_serializable(service.context_payload(genelist_id=genelist_id))
@@ -126,16 +126,16 @@ def genelist_view_context_read(
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
-    """Genelist view context read.
+    """Return read-only context for a genelist.
 
     Args:
-        genelist_id (str): Value for ``genelist_id``.
-        assay (str | None): Value for ``assay``.
-        user (ApiUser): Value for ``user``.
-        service (IsglService): Value for ``service``.
+        genelist_id: Genelist identifier to load.
+        assay: Optional assay used to filter visible genes.
+        user: Authenticated user requesting the view context.
+        service: Genelist workflow service.
 
     Returns:
-        The function result.
+        dict: View-context payload for the genelist.
     """
     _ = user
     return util.common.convert_to_serializable(
@@ -145,10 +145,10 @@ def genelist_view_context_read(
 
 @router.put(
     "/api/v1/resources/genelists/{genelist_id}",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     summary="Update genelist",
 )
-def update_genelist_mutation(
+def update_genelist_change(
     genelist_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
@@ -156,16 +156,16 @@ def update_genelist_mutation(
     ),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
-    """Update genelist mutation.
+    """Update a genelist.
 
     Args:
-        genelist_id (str): Value for ``genelist_id``.
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (IsglService): Value for ``service``.
+        genelist_id: Genelist identifier to update.
+        payload: Submitted genelist payload.
+        user: Authenticated user performing the mutation.
+        service: Genelist workflow service.
 
     Returns:
-        The function result.
+        dict: Mutation response payload.
     """
     return util.common.convert_to_serializable(
         service.update(
@@ -178,25 +178,25 @@ def update_genelist_mutation(
 
 @router.patch(
     "/api/v1/resources/genelists/{genelist_id}/status",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     summary="Toggle genelist status",
 )
-def toggle_genelist_mutation(
+def toggle_genelist_change(
     genelist_id: str,
     user: ApiUser = Depends(
         require_access(permission="edit_isgl", min_role="manager", min_level=99)
     ),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
-    """Toggle genelist mutation.
+    """Toggle genelist active status.
 
     Args:
-        genelist_id (str): Value for ``genelist_id``.
-        user (ApiUser): Value for ``user``.
-        service (IsglService): Value for ``service``.
+        genelist_id: Genelist identifier to toggle.
+        user: Authenticated user performing the mutation.
+        service: Genelist workflow service.
 
     Returns:
-        The function result.
+        dict: Mutation response payload.
     """
     _ = user
     return util.common.convert_to_serializable(service.toggle(genelist_id=genelist_id))
@@ -204,32 +204,32 @@ def toggle_genelist_mutation(
 
 @router.delete(
     "/api/v1/resources/genelists/{genelist_id}",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     summary="Delete genelist",
 )
-def delete_genelist_mutation(
+def delete_genelist_change(
     genelist_id: str,
     user: ApiUser = Depends(
         require_access(permission="delete_isgl", min_role="admin", min_level=99999)
     ),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
-    """Delete genelist mutation.
+    """Delete a genelist.
 
     Args:
-        genelist_id (str): Value for ``genelist_id``.
-        user (ApiUser): Value for ``user``.
-        service (IsglService): Value for ``service``.
+        genelist_id: Genelist identifier to delete.
+        user: Authenticated user performing the mutation.
+        service: Genelist workflow service.
 
     Returns:
-        The function result.
+        dict: Mutation response payload.
     """
     _ = user
     return util.common.convert_to_serializable(service.delete(genelist_id=genelist_id))
 
 
 @router.post("/api/v1/resources/genelists/validate_isgl_id", response_model=AdminExistsPayload)
-def validate_isgl_id_mutation(
+def validate_isgl_id_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
         require_access(permission="create_isgl", min_role="manager", min_level=99)

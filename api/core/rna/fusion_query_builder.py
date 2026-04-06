@@ -55,13 +55,4 @@ def build_fusion_query(assay_group: str, settings: Dict[str, Any]) -> Dict[str, 
     if filter_genes:
         query["$or"] = [{"gene1": {"$in": filter_genes}}, {"gene2": {"$in": filter_genes}}]
 
-    query.update(build_fusion_optional_filters(settings))
     return query
-
-
-def build_fusion_optional_filters(settings: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Build optional fusion filters (only when values exist).
-    Returns a dict that can be merged into the main query.
-    """
-    return {}

@@ -119,10 +119,10 @@ def assay_catalog_isgl_genes_view(isgl_key: str | None = None) -> str:
     """Assay catalog isgl genes view.
 
     Args:
-        isgl_key (str | None): Value for ``isgl_key``.
+        isgl_key (str | None): Normalized ``isgl_key``.
 
     Returns:
-        str: The function result.
+        str: Normalized return value.
     """
     if not isgl_key:
         return render_template("genes.html", gene_symbols=[])

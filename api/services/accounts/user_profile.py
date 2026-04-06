@@ -2,24 +2,21 @@
 
 from __future__ import annotations
 
-from api.extensions import store
-from api.security.ports import SecurityRepository
+from typing import Any
 
 
 class UserService:
     """Thin service layer around user lookup operations."""
 
-    def __init__(self, repository: SecurityRepository | None = None) -> None:
-        """Build the service with a user lookup repository."""
-        self.repository = repository or store.get_security_repository()
+    @classmethod
+    def from_store(cls, store: Any) -> "UserService":
+        """Build the service from the shared store."""
+        return cls(user_handler=store.user_handler)
+
+    def __init__(self, *, user_handler: Any) -> None:
+        """Create the service with an injected user handler."""
+        self.user_handler = user_handler
 
     def get_user_by_id(self, user_id: str):
-        """Return user by id.
-
-        Args:
-            user_id (str): Value for ``user_id``.
-
-        Returns:
-            The function result.
-        """
-        return self.repository.get_user_by_id(user_id)
+        """Return a user document by identifier."""
+        return self.user_handler.user_with_id(user_id)

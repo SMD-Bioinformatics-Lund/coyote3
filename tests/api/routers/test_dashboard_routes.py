@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from api.routers import dashboard
-from api.services.dashboard.analytics import DashboardService
 from tests.fixtures.api import mock_collections as fx
-from tests.unit.test_dashboard_service import _DashboardRepoStub
+from tests.unit.test_dashboard_service import _dashboard_service, _DashboardBackendStub
 
 
 def test_dashboard_summary_aggregates_counts(monkeypatch):
@@ -18,9 +17,9 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
         The function result.
     """
     captured_calls: list = []
-    service = DashboardService(repository=_DashboardRepoStub())
+    service = _dashboard_service(backend=_DashboardBackendStub())
     monkeypatch.setattr(
-        service.repository,
+        service.sample_handler,
         "get_dashboard_sample_rollup",
         lambda assays: (
             captured_calls.append(assays)
@@ -45,27 +44,27 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
         ),
     )
     monkeypatch.setattr(
-        service.repository,
+        service.variant_handler,
         "get_dashboard_variant_counts",
         lambda: {"total_variants": 100, "total_snps": 60, "fps": 1},
     )
     monkeypatch.setattr(
-        service.repository,
+        service.variant_handler,
         "get_unique_variant_quality_counts",
         lambda: {"unique_total_variants": 50, "unique_fp_variants": 5},
     )
-    monkeypatch.setattr(service.repository, "get_total_cnv_count", lambda: 5)
-    monkeypatch.setattr(service.repository, "get_total_transloc_count", lambda: 2)
-    monkeypatch.setattr(service.repository, "get_total_fusion_count", lambda: 3)
-    monkeypatch.setattr(service.repository, "get_unique_blacklist_count", lambda: 4)
+    monkeypatch.setattr(service.copy_number_variant_handler, "get_total_cnv_count", lambda: 5)
+    monkeypatch.setattr(service.translocation_handler, "get_total_transloc_count", lambda: 2)
+    monkeypatch.setattr(service.fusion_handler, "get_total_fusion_count", lambda: 3)
+    monkeypatch.setattr(service.blacklist_handler, "get_unique_blacklist_count", lambda: 4)
     monkeypatch.setattr(
-        service.repository,
+        service.reported_variant_handler,
         "get_dashboard_tier_stats",
         lambda: {"total": {"tier1": 1, "tier2": 2, "tier3": 3, "tier4": 4}, "by_assay": {}},
     )
-    monkeypatch.setattr(service.repository, "get_all_asps_unique_gene_count", lambda: 250)
+    monkeypatch.setattr(service.assay_panel_handler, "get_all_asps_unique_gene_count", lambda: 250)
     monkeypatch.setattr(
-        service.repository, "get_all_asp_gene_counts", lambda: {"dna": {"WGS": 120}}
+        service.assay_panel_handler, "get_all_asp_gene_counts", lambda: {"dna": {"WGS": 120}}
     )
     monkeypatch.setattr(
         dashboard.util.dashboard,
@@ -95,8 +94,8 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
         lambda isgls=None: {"public_only": 1, "private_only": 2, "adhoc_only": 3},
     )
     monkeypatch.setattr(
-        service.repository,
-        "get_dashboard_isgl_association",
+        service.gene_list_handler,
+        "get_dashboard_assay_association_rollup",
         lambda: {"assay_isgl_counts": []},
     )
 
@@ -125,10 +124,10 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
         The function result.
     """
     captured = {"calls": []}
-    service = DashboardService(repository=_DashboardRepoStub())
+    service = _dashboard_service(backend=_DashboardBackendStub())
 
     monkeypatch.setattr(
-        service.repository,
+        service.sample_handler,
         "get_dashboard_sample_rollup",
         lambda assays: (
             captured["calls"].append(assays)
@@ -142,31 +141,31 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
         ),
     )
     monkeypatch.setattr(
-        service.repository,
+        service.assay_panel_handler,
         "resolve_active_asp_ids_for_scope",
         lambda assays, groups: ["myeloid_gmsv1"] if "myeloid" in groups else [],
     )
     monkeypatch.setattr(
-        service.repository,
+        service.variant_handler,
         "get_dashboard_variant_counts",
         lambda: {"total_variants": 0, "total_snps": 0, "fps": 0},
     )
     monkeypatch.setattr(
-        service.repository,
+        service.variant_handler,
         "get_unique_variant_quality_counts",
         lambda: {"unique_total_variants": 0, "unique_fp_variants": 0},
     )
-    monkeypatch.setattr(service.repository, "get_total_cnv_count", lambda: 0)
-    monkeypatch.setattr(service.repository, "get_total_transloc_count", lambda: 0)
-    monkeypatch.setattr(service.repository, "get_total_fusion_count", lambda: 0)
-    monkeypatch.setattr(service.repository, "get_unique_blacklist_count", lambda: 0)
+    monkeypatch.setattr(service.copy_number_variant_handler, "get_total_cnv_count", lambda: 0)
+    monkeypatch.setattr(service.translocation_handler, "get_total_transloc_count", lambda: 0)
+    monkeypatch.setattr(service.fusion_handler, "get_total_fusion_count", lambda: 0)
+    monkeypatch.setattr(service.blacklist_handler, "get_unique_blacklist_count", lambda: 0)
     monkeypatch.setattr(
-        service.repository,
+        service.reported_variant_handler,
         "get_dashboard_tier_stats",
         lambda: {"total": {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0}, "by_assay": {}},
     )
-    monkeypatch.setattr(service.repository, "get_all_asps_unique_gene_count", lambda: 0)
-    monkeypatch.setattr(service.repository, "get_all_asp_gene_counts", lambda: {})
+    monkeypatch.setattr(service.assay_panel_handler, "get_all_asps_unique_gene_count", lambda: 0)
+    monkeypatch.setattr(service.assay_panel_handler, "get_all_asp_gene_counts", lambda: {})
     monkeypatch.setattr(dashboard.util.dashboard, "format_asp_gene_stats", lambda stats: stats)
     monkeypatch.setattr(dashboard.util.common, "convert_to_serializable", lambda payload: payload)
     monkeypatch.setattr(
@@ -191,8 +190,8 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
         lambda isgls=None: {"public_only": 5},
     )
     monkeypatch.setattr(
-        service.repository,
-        "get_dashboard_isgl_association",
+        service.gene_list_handler,
+        "get_dashboard_assay_association_rollup",
         lambda: {"assay_isgl_counts": []},
     )
 
@@ -200,11 +199,11 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
     user.role = "user"
     user.assays = ["rna-fusion"]
     user.assay_groups = ["myeloid"]
-    service.repository.user_doc = {
-        "role": "user",
-        "assays": ["rna-fusion"],
-        "assay_groups": ["myeloid"],
-    }
+    monkeypatch.setattr(
+        service.user_handler,
+        "user_with_id",
+        lambda _id: {"role": "user", "assays": ["rna-fusion"], "assay_groups": ["myeloid"]},
+    )
     payload = dashboard.dashboard_summary(user=user, service=service)
 
     scoped_assays = captured["calls"][1]
@@ -229,9 +228,9 @@ def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
         The function result.
     """
     captured = {"calls": []}
-    service = DashboardService(repository=_DashboardRepoStub())
+    service = _dashboard_service(backend=_DashboardBackendStub())
     monkeypatch.setattr(
-        service.repository,
+        service.sample_handler,
         "get_dashboard_sample_rollup",
         lambda assays: (
             captured["calls"].append(assays)
@@ -245,26 +244,26 @@ def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
         ),
     )
     monkeypatch.setattr(
-        service.repository,
+        service.variant_handler,
         "get_dashboard_variant_counts",
         lambda: {"total_variants": 0, "total_snps": 0, "fps": 0},
     )
     monkeypatch.setattr(
-        service.repository,
+        service.variant_handler,
         "get_unique_variant_quality_counts",
         lambda: {"unique_total_variants": 0, "unique_fp_variants": 0},
     )
-    monkeypatch.setattr(service.repository, "get_total_cnv_count", lambda: 0)
-    monkeypatch.setattr(service.repository, "get_total_transloc_count", lambda: 0)
-    monkeypatch.setattr(service.repository, "get_total_fusion_count", lambda: 0)
-    monkeypatch.setattr(service.repository, "get_unique_blacklist_count", lambda: 0)
+    monkeypatch.setattr(service.copy_number_variant_handler, "get_total_cnv_count", lambda: 0)
+    monkeypatch.setattr(service.translocation_handler, "get_total_transloc_count", lambda: 0)
+    monkeypatch.setattr(service.fusion_handler, "get_total_fusion_count", lambda: 0)
+    monkeypatch.setattr(service.blacklist_handler, "get_unique_blacklist_count", lambda: 0)
     monkeypatch.setattr(
-        service.repository,
+        service.reported_variant_handler,
         "get_dashboard_tier_stats",
         lambda: {"total": {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0}, "by_assay": {}},
     )
-    monkeypatch.setattr(service.repository, "get_all_asps_unique_gene_count", lambda: 0)
-    monkeypatch.setattr(service.repository, "get_all_asp_gene_counts", lambda: {})
+    monkeypatch.setattr(service.assay_panel_handler, "get_all_asps_unique_gene_count", lambda: 0)
+    monkeypatch.setattr(service.assay_panel_handler, "get_all_asp_gene_counts", lambda: {})
     monkeypatch.setattr(dashboard.util.dashboard, "format_asp_gene_stats", lambda stats: stats)
     monkeypatch.setattr(dashboard.util.common, "convert_to_serializable", lambda payload: payload)
     monkeypatch.setattr(
@@ -289,8 +288,8 @@ def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
         lambda isgls=None: {"public_private_adhoc": 9},
     )
     monkeypatch.setattr(
-        service.repository,
-        "get_dashboard_isgl_association",
+        service.gene_list_handler,
+        "get_dashboard_assay_association_rollup",
         lambda: {"assay_isgl_counts": []},
     )
 
@@ -298,7 +297,11 @@ def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
     user.role = "admin"
     user.assays = ["solid_gmsv3"]
     user.assay_groups = ["solid"]
-    service.repository.user_doc = {"role": "admin", "assays": [], "assay_groups": []}
+    monkeypatch.setattr(
+        service.user_handler,
+        "user_with_id",
+        lambda _id: {"role": "admin", "assays": [], "assay_groups": []},
+    )
     payload = dashboard.dashboard_summary(user=user, service=service)
 
     assert captured["calls"] == [None, None]

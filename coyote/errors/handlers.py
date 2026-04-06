@@ -10,11 +10,7 @@ def register_error_handlers(app):
     from coyote.services.api_client import ApiRequestError
 
     def is_api_request() -> bool:
-        """Return whether api request is true.
-
-        Returns:
-            bool: The function result.
-        """
+        """Return whether the active request targets the JSON API."""
         path = request.path or ""
         app_root = app.config.get("APPLICATION_ROOT", "")
         if app_root and path.startswith(app_root):
@@ -22,15 +18,15 @@ def register_error_handlers(app):
         return path == "/api" or path.startswith("/api/")
 
     def error_response(status_code: int, error: str, details: str):
-        """Error response.
+        """Build a consistent HTML or JSON error response.
 
         Args:
-            status_code (int): Value for ``status_code``.
-            error (str): Value for ``error``.
-            details (str): Value for ``details``.
+            status_code: HTTP status code to return.
+            error: User-facing summary of the failure.
+            details: Additional troubleshooting context.
 
         Returns:
-            The function result.
+            tuple | Response: Flask response payload for the active request.
         """
         request_id = getattr(g, "request_id", None) or request.headers.get("X-Request-ID") or "-"
         app.logger.warning(

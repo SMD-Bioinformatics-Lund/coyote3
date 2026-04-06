@@ -29,8 +29,8 @@ from api.contracts.internal import (
     RoleLevelsPayload,
 )
 from api.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
-from api.core.internal.ports import InternalRepository
-from api.deps.repositories import get_internal_repository
+from api.deps.handlers import get_gene_list_handler, get_roles_handler
+from api.deps.services import get_internal_ingest_service
 from api.extensions import util
 from api.observability.prometheus_metrics import render_prometheus_metrics
 from api.security.access import (
@@ -114,22 +114,12 @@ def _enforce_sample_ingest_permission(user: ApiUser) -> None:
 
 
 @router.get("/api/v1/internal/roles/levels", response_model=RoleLevelsPayload)
-def get_role_levels_internal(
-    request: Request, repository: InternalRepository = Depends(get_internal_repository)
-):
-    """Return role levels internal.
-
-    Args:
-        request (Request): Value for ``request``.
-        repository (InternalRepository): Value for ``repository``.
-
-    Returns:
-        The function result.
-    """
+def get_role_levels_internal(request: Request, roles_handler=Depends(get_roles_handler)):
+    """Return role-level mappings for trusted internal callers."""
     _require_internal_token(request)
     role_levels = {
         role.get("role_id"): role.get("level", 0)
-        for role in repository.get_all_roles()
+        for role in (roles_handler.get_all_roles() or [])
         if role.get("role_id")
     }
     return util.common.convert_to_serializable({"status": "ok", "role_levels": role_levels})
@@ -139,25 +129,16 @@ def get_role_levels_internal(
 def get_isgl_meta_internal(
     isgl_id: str,
     request: Request,
-    repository: InternalRepository = Depends(get_internal_repository),
+    gene_list_handler=Depends(get_gene_list_handler),
 ):
-    """Return isgl meta internal.
-
-    Args:
-        isgl_id (str): Value for ``isgl_id``.
-        request (Request): Value for ``request``.
-        repository (InternalRepository): Value for ``repository``.
-
-    Returns:
-        The function result.
-    """
+    """Return genelist metadata for trusted internal callers."""
     _require_internal_token(request)
     return util.common.convert_to_serializable(
         {
             "status": "ok",
             "isgl_id": isgl_id,
-            "is_adhoc": bool(repository.is_isgl_adhoc(isgl_id)),
-            "display_name": repository.get_isgl_display_name(isgl_id),
+            "is_adhoc": bool(gene_list_handler.is_isgl_adhoc(isgl_id)),
+            "display_name": gene_list_handler.get_isgl_display_name(isgl_id),
         }
     )
 
@@ -169,11 +150,12 @@ def get_isgl_meta_internal(
 def ingest_dependents_internal(
     payload: InternalIngestDependentsRequest,
     user: ApiUser = Depends(require_access(min_role="developer", min_level=9999)),
+    ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Write parsed dependent ingestion payload into Mongo collections."""
     _enforce_sample_ingest_permission(user)
 
-    written = InternalIngestService.ingest_dependents(
+    written = ingest_service.ingest_dependents(
         sample_id=str(payload.sample_id),
         sample_name=str(payload.sample_name),
         delete_existing=payload.delete_existing,
@@ -192,6 +174,7 @@ def ingest_dependents_internal(
 def ingest_sample_bundle_internal(
     payload: InternalIngestSampleBundleRequest,
     user: ApiUser = Depends(require_access(min_role="developer", min_level=9999)),
+    ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Create a fresh sample and all dependent analysis documents atomically."""
     if not payload.sample and not payload.yaml_content:
@@ -208,13 +191,13 @@ def ingest_sample_bundle_internal(
     try:
         _enforce_sample_ingest_permission(user)
         source_payload = (
-            InternalIngestService.parse_yaml_payload(payload.yaml_content)
+            ingest_service.parse_yaml_payload(payload.yaml_content)
             if payload.yaml_content
             else payload.sample.model_dump(exclude_none=True)
         )
         if payload.update_existing:
             _enforce_sample_ingest_permission(user)
-        result = InternalIngestService.ingest_sample_bundle(
+        result = ingest_service.ingest_sample_bundle(
             source_payload,
             allow_update=payload.update_existing,
             increment=payload.increment,
@@ -249,6 +232,7 @@ async def ingest_sample_bundle_upload_internal(
     update_existing: bool = Form(False),
     increment: bool = Form(False),
     user: ApiUser = Depends(require_access(min_role="developer", min_level=9999)),
+    ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Upload YAML + data files, stage runtime files server-side, and ingest sample bundle."""
     if not yaml_file.filename:
@@ -266,7 +250,7 @@ async def ingest_sample_bundle_upload_internal(
         _enforce_sample_ingest_permission(user)
         yaml_bytes = await yaml_file.read()
         yaml_content = yaml_bytes.decode("utf-8")
-        source_payload = InternalIngestService.parse_yaml_payload(yaml_content)
+        source_payload = ingest_service.parse_yaml_payload(yaml_content)
 
         for upload in data_files:
             if not upload.filename:
@@ -349,7 +333,7 @@ async def ingest_sample_bundle_upload_internal(
 
         if update_existing:
             _enforce_sample_ingest_permission(user)
-        result = InternalIngestService.ingest_sample_bundle(
+        result = ingest_service.ingest_sample_bundle(
             source_payload,
             allow_update=update_existing,
             increment=increment,
@@ -378,11 +362,12 @@ async def ingest_sample_bundle_upload_internal(
 def ingest_collection_document_internal(
     payload: InternalCollectionInsertRequest,
     user: ApiUser = Depends(require_access(min_role="developer", min_level=9999)),
+    ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Insert one validated document into a supported collection."""
     try:
         _enforce_collection_permission(user=user, collection=payload.collection, action="create")
-        result = InternalIngestService.insert_collection_document(
+        result = ingest_service.insert_collection_document(
             collection=payload.collection,
             document=payload.document,
             ignore_duplicate=payload.ignore_duplicate,
@@ -399,11 +384,12 @@ def ingest_collection_document_internal(
 def ingest_collection_documents_internal(
     payload: InternalCollectionBulkInsertRequest,
     user: ApiUser = Depends(require_access(min_role="developer", min_level=9999)),
+    ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Insert many validated documents into a supported collection."""
     try:
         _enforce_collection_permission(user=user, collection=payload.collection, action="create")
-        result = InternalIngestService.insert_collection_documents(
+        result = ingest_service.insert_collection_documents(
             collection=payload.collection,
             documents=payload.documents,
             ignore_duplicates=payload.ignore_duplicates,
@@ -420,11 +406,12 @@ def ingest_collection_documents_internal(
 def upsert_collection_document_internal(
     payload: InternalCollectionUpsertRequest,
     user: ApiUser = Depends(require_access(min_role="developer", min_level=9999)),
+    ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Replace/update one validated document in a supported collection."""
     try:
         _enforce_collection_permission(user=user, collection=payload.collection, action="update")
-        result = InternalIngestService.upsert_collection_document(
+        result = ingest_service.upsert_collection_document(
             collection=payload.collection,
             match=payload.match,
             document=payload.document,
@@ -445,6 +432,7 @@ async def ingest_collection_upload_internal(
     documents_file: UploadFile = File(...),
     match_json: str | None = Form(default=None),
     user: ApiUser = Depends(require_access(min_role="developer", min_level=9999)),
+    ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """Validate and ingest collection documents from uploaded JSON payload."""
     raw_collection = str(collection or "").strip()
@@ -479,7 +467,7 @@ async def ingest_collection_upload_internal(
             if not isinstance(parsed, list):
                 raise ValueError("Bulk mode requires an uploaded JSON array.")
             _enforce_collection_permission(user=user, collection=raw_collection, action="create")
-            result = InternalIngestService.insert_collection_documents(
+            result = ingest_service.insert_collection_documents(
                 collection=raw_collection,
                 documents=parsed,
                 ignore_duplicates=True,
@@ -496,7 +484,7 @@ async def ingest_collection_upload_internal(
             if not isinstance(parsed_match, dict) or not parsed_match:
                 raise ValueError("match_json must be a non-empty JSON object.")
             _enforce_collection_permission(user=user, collection=raw_collection, action="update")
-            result = InternalIngestService.upsert_collection_document(
+            result = ingest_service.upsert_collection_document(
                 collection=raw_collection,
                 match=parsed_match,
                 document=parsed,
@@ -508,7 +496,7 @@ async def ingest_collection_upload_internal(
         if not isinstance(parsed, dict):
             raise ValueError("Insert mode requires an uploaded JSON object.")
         _enforce_collection_permission(user=user, collection=raw_collection, action="create")
-        result = InternalIngestService.insert_collection_document(
+        result = ingest_service.insert_collection_document(
             collection=raw_collection,
             document=parsed,
             ignore_duplicate=True,
@@ -525,10 +513,11 @@ async def ingest_collection_upload_internal(
 )
 def list_supported_ingest_collections_internal(
     _user: ApiUser = Depends(require_access(min_role="developer", min_level=9999)),
+    ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
     """List supported collection names for validated collection-ingest endpoints."""
     return util.common.convert_to_serializable(
-        {"status": "ok", "collections": InternalIngestService.list_supported_collections()}
+        {"status": "ok", "collections": ingest_service.list_supported_collections()}
     )
 
 

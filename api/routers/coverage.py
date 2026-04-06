@@ -20,16 +20,16 @@ def coverage_sample_read(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: CoverageService = Depends(get_coverage_service),
 ):
-    """Coverage sample read.
+    """Return coverage data for a sample.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        cov_cutoff (int): Value for ``cov_cutoff``.
-        user (ApiUser): Value for ``user``.
-        service (CoverageService): Value for ``service``.
+        sample_id: Sample identifier to inspect.
+        cov_cutoff: Coverage threshold for low-coverage detection.
+        user: Authenticated user requesting coverage data.
+        service: Coverage workflow service.
 
     Returns:
-        The function result.
+        dict: Coverage payload for the requested sample.
     """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
@@ -47,14 +47,14 @@ def coverage_blacklisted_read(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: CoverageService = Depends(get_coverage_service),
 ):
-    """Coverage blacklisted read.
+    """Return blacklisted coverage regions for an assay group.
 
     Args:
-        group (str): Value for ``group``.
-        user (ApiUser): Value for ``user``.
-        service (CoverageService): Value for ``service``.
+        group: Assay group to inspect.
+        user: Authenticated user requesting blacklist data.
+        service: Coverage workflow service.
 
     Returns:
-        The function result.
+        dict: Blacklisted-region payload for the assay group.
     """
     return util.common.convert_to_serializable(service.blacklisted_payload(group=group, user=user))

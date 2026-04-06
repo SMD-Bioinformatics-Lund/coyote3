@@ -11,13 +11,13 @@ from shared.logging import emit_audit_event
 
 
 def request_ip(request: Request | None) -> str:
-    """Request ip.
+    """Resolve the best-effort client IP address for a request.
 
     Args:
-        request (Request | None): Value for ``request``.
+        request: Active request, when available.
 
     Returns:
-        str: The function result.
+        str: Client IP or ``"N/A"`` when unavailable.
     """
     if request is None:
         return "N/A"
@@ -30,13 +30,13 @@ def request_ip(request: Request | None) -> str:
 
 
 def request_id(request: Request | None) -> str:
-    """Request id.
+    """Resolve the current request identifier.
 
     Args:
-        request (Request | None): Value for ``request``.
+        request: Active request, when available.
 
     Returns:
-        str: The function result.
+        str: Request identifier from the request or runtime context.
     """
     if request is not None:
         rid = (request.headers.get("X-Request-ID") or "").strip()
@@ -59,23 +59,20 @@ def emit_access_event(
     sample_id: str | None = None,
     extra: dict | None = None,
 ) -> None:
-    """Emit access event.
+    """Emit an audit event for an access-control decision.
 
     Args:
-        status (str): Value for ``status``.
-        reason (str): Value for ``reason``.
-        request (Request | None): Value for ``request``.
-        user_id (str | None): Value for ``user_id``.
-        username (str | None): Value for ``username``.
-        role (str | None): Value for ``role``.
-        permission (str | None): Value for ``permission``.
-        min_level (int | None): Value for ``min_level``.
-        min_role (str | None): Value for ``min_role``.
-        sample_id (str | None): Value for ``sample_id``.
-        extra (dict | None): Value for ``extra``.
-
-    Returns:
-        None.
+        status: Result of the access decision.
+        reason: Human-readable explanation for the decision.
+        request: Active request, when available.
+        user_id: Authenticated user identifier.
+        username: Authenticated username.
+        role: Effective user role.
+        permission: Required permission, when applicable.
+        min_level: Minimum required access level.
+        min_role: Minimum required role name.
+        sample_id: Sample identifier associated with the check.
+        extra: Additional structured metadata to emit.
     """
     normalized_status = (
         "failed" if status == "denied" else ("success" if status in {"allowed", "ok"} else status)
@@ -117,18 +114,15 @@ def emit_mutation_event(
     target: str,
     extra: dict | None = None,
 ) -> None:
-    """Emit mutation event.
+    """Emit an audit event for a mutating API request.
 
     Args:
-        request (Request): Value for ``request``.
-        username (str): Value for ``username``.
-        status_code (int): Value for ``status_code``.
-        action (str): Value for ``action``.
-        target (str): Value for ``target``.
-        extra (dict | None): Value for ``extra``.
-
-    Returns:
-        None.
+        request: Active request.
+        username: Authenticated username.
+        status_code: Final response status code.
+        action: Mutation verb being recorded.
+        target: Resource target for the mutation.
+        extra: Additional structured metadata to emit.
     """
     derived_status = (
         "error" if int(status_code) >= 500 else ("failed" if int(status_code) >= 400 else "success")
@@ -167,17 +161,14 @@ def emit_request_event(
     duration_ms: float,
     extra: dict | None = None,
 ) -> None:
-    """Emit request event.
+    """Emit an audit event for a completed API request.
 
     Args:
-        request (Request): Value for ``request``.
-        username (str): Value for ``username``.
-        status_code (int): Value for ``status_code``.
-        duration_ms (float): Value for ``duration_ms``.
-        extra (dict | None): Value for ``extra``.
-
-    Returns:
-        None.
+        request: Active request.
+        username: Authenticated username.
+        status_code: Final response status code.
+        duration_ms: End-to-end request duration in milliseconds.
+        extra: Additional structured metadata to emit.
     """
     derived_status = (
         "error" if int(status_code) >= 500 else ("failed" if int(status_code) >= 400 else "success")

@@ -51,10 +51,10 @@ def list_isgls(sample_id: str) -> Response:
     """List isgls.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
+        sample_id (str): Normalized ``sample_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     try:
         payload = get_web_api_client().get_json(
@@ -76,10 +76,10 @@ def get_effective_genes_all(sample_id: str) -> Response:
     """Return effective genes all.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
+        sample_id (str): Normalized ``sample_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     try:
         payload = get_web_api_client().get_json(
@@ -107,10 +107,10 @@ def apply_isgl(sample_id: str) -> tuple[Response, int] | Response:
     """Apply isgl.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
+        sample_id (str): Normalized ``sample_id``.
 
     Returns:
-        tuple[Response, int] | Response: The function result.
+        tuple[Response, int] | Response: Normalized return value.
     """
     isgl_ids = request.get_json(silent=True)
     if not isinstance(isgl_ids, list):
@@ -133,10 +133,10 @@ def save_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
     """Save adhoc genes.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
+        sample_id (str): Normalized ``sample_id``.
 
     Returns:
-        tuple[Response, int] | Response: The function result.
+        tuple[Response, int] | Response: Normalized return value.
     """
     body = request.get_json(silent=True) or {}
     if not isinstance(body, dict):
@@ -163,10 +163,10 @@ def clear_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
     """Clear adhoc genes.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
+        sample_id (str): Normalized ``sample_id``.
 
     Returns:
-        tuple[Response, int] | Response: The function result.
+        tuple[Response, int] | Response: Normalized return value.
     """
     try:
         payload = clear_adhoc_genes_api(sample_id)

@@ -2,13 +2,13 @@
 
 
 def create_fusioneffectlist(eff_names: list) -> list:
-    """Create fusioneffectlist.
+    """Normalize fusion effect labels into canonical values.
 
     Args:
-        eff_names (list): Value for ``eff_names``.
+        eff_names: Raw effect labels from request filters or stored payloads.
 
     Returns:
-        list: The function result.
+        list: Deduplicated canonical effect labels.
     """
     canonical_map = {
         "inframe": "in-frame",
@@ -29,13 +29,13 @@ def create_fusioneffectlist(eff_names: list) -> list:
 
 
 def create_fusioncallers(fuscallers: list) -> list:
-    """Create fusioncallers.
+    """Normalize fusion caller names into canonical values.
 
     Args:
-        fuscallers (list): Value for ``fuscallers``.
+        fuscallers: Raw caller names from request filters or stored payloads.
 
     Returns:
-        list: The function result.
+        list: Deduplicated canonical caller names.
     """
     canonical_map = {
         "arriba": "arriba",
@@ -64,13 +64,13 @@ def create_fusioncallers(fuscallers: list) -> list:
 
 
 def get_selected_fusioncall(fusion: list) -> dict:
-    """Return selected fusioncall.
+    """Return the selected fusion call from a fusion payload.
 
     Args:
-        fusion (list): Value for ``fusion``.
+        fusion: Fusion payload containing a ``calls`` collection.
 
     Returns:
-        dict: The function result.
+        dict: Selected call payload when one is marked active.
     """
     for call in fusion.get("calls", []):
         if call.get("selected") == 1:
@@ -79,13 +79,13 @@ def get_selected_fusioncall(fusion: list) -> dict:
 
 
 def get_fusion_callers(fusion: list) -> list:
-    """Return fusion callers.
+    """Return unique caller names from a fusion payload.
 
     Args:
-        fusion (list): Value for ``fusion``.
+        fusion: Fusion payload containing a ``calls`` collection.
 
     Returns:
-        list: The function result.
+        list: Caller names discovered in the payload.
     """
     callers = []
     for call in fusion.get("calls", []):

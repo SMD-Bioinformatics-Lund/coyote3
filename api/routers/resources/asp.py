@@ -5,8 +5,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.admin import (
+    AdminChangePayload,
     AdminExistsPayload,
-    AdminMutationPayload,
     AdminPanelContextPayload,
     AdminPanelCreateContextPayload,
     AdminPanelsListPayload,
@@ -21,26 +21,26 @@ router = APIRouter(tags=["resource-asp"])
 
 @router.post(
     "/api/v1/resources/asp",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     status_code=201,
     summary="Create assay panel",
 )
-def create_asp_mutation(
+def create_asp_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
         require_access(permission="create_asp", min_role="manager", min_level=99)
     ),
     service: AspService = Depends(get_admin_panel_service),
 ):
-    """Create asp mutation.
+    """Create an assay panel.
 
     Args:
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (AspService): Value for ``service``.
+        payload: Submitted assay-panel payload.
+        user: Authenticated user performing the mutation.
+        service: Assay-panel workflow service.
 
     Returns:
-        The function result.
+        dict: Mutation response payload.
     """
     return util.common.convert_to_serializable(
         service.create(payload=payload, actor_username=user.username)
@@ -55,14 +55,14 @@ def list_asp_read(
     user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
     service: AspService = Depends(get_admin_panel_service),
 ):
-    """List asp read.
+    """Return the assay-panel admin list.
 
     Args:
-        user (ApiUser): Value for ``user``.
-        service (AspService): Value for ``service``.
+        user: Authenticated user requesting the list.
+        service: Assay-panel workflow service.
 
     Returns:
-        The function result.
+        dict: Admin list payload for assay panels.
     """
     _ = user
     return util.common.convert_to_serializable(
@@ -77,14 +77,14 @@ def create_asp_context_read(
     ),
     service: AspService = Depends(get_admin_panel_service),
 ):
-    """Create asp context read.
+    """Return create-form context for an assay panel.
 
     Args:
-        user (ApiUser): Value for ``user``.
-        service (AspService): Value for ``service``.
+        user: Authenticated user requesting create context.
+        service: Assay-panel workflow service.
 
     Returns:
-        The function result.
+        dict: Create-context payload for assay panels.
     """
     return util.common.convert_to_serializable(
         service.create_context_payload(actor_username=user.username)
@@ -99,15 +99,15 @@ def asp_context_read(
     user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
     service: AspService = Depends(get_admin_panel_service),
 ):
-    """Asp context read.
+    """Return edit-form context for an assay panel.
 
     Args:
-        assay_panel_id (str): Value for ``assay_panel_id``.
-        user (ApiUser): Value for ``user``.
-        service (AspService): Value for ``service``.
+        assay_panel_id: Assay-panel identifier to load.
+        user: Authenticated user requesting edit context.
+        service: Assay-panel workflow service.
 
     Returns:
-        The function result.
+        dict: Edit-context payload for the assay panel.
     """
     _ = user
     return util.common.convert_to_serializable(service.context_payload(panel_id=assay_panel_id))
@@ -115,10 +115,10 @@ def asp_context_read(
 
 @router.put(
     "/api/v1/resources/asp/{assay_panel_id}",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     summary="Update assay panel",
 )
-def update_asp_mutation(
+def update_asp_change(
     assay_panel_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
@@ -126,16 +126,16 @@ def update_asp_mutation(
     ),
     service: AspService = Depends(get_admin_panel_service),
 ):
-    """Update asp mutation.
+    """Update an assay panel.
 
     Args:
-        assay_panel_id (str): Value for ``assay_panel_id``.
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (AspService): Value for ``service``.
+        assay_panel_id: Assay-panel identifier to update.
+        payload: Submitted assay-panel payload.
+        user: Authenticated user performing the mutation.
+        service: Assay-panel workflow service.
 
     Returns:
-        The function result.
+        dict: Mutation response payload.
     """
     return util.common.convert_to_serializable(
         service.update(panel_id=assay_panel_id, payload=payload, actor_username=user.username)
@@ -144,25 +144,25 @@ def update_asp_mutation(
 
 @router.patch(
     "/api/v1/resources/asp/{assay_panel_id}/status",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     summary="Toggle assay panel status",
 )
-def toggle_asp_mutation(
+def toggle_asp_change(
     assay_panel_id: str,
     user: ApiUser = Depends(
         require_access(permission="edit_asp", min_role="manager", min_level=99)
     ),
     service: AspService = Depends(get_admin_panel_service),
 ):
-    """Toggle asp mutation.
+    """Toggle assay-panel active status.
 
     Args:
-        assay_panel_id (str): Value for ``assay_panel_id``.
-        user (ApiUser): Value for ``user``.
-        service (AspService): Value for ``service``.
+        assay_panel_id: Assay-panel identifier to toggle.
+        user: Authenticated user performing the mutation.
+        service: Assay-panel workflow service.
 
     Returns:
-        The function result.
+        dict: Mutation response payload.
     """
     _ = user
     return util.common.convert_to_serializable(service.toggle(panel_id=assay_panel_id))
@@ -170,32 +170,32 @@ def toggle_asp_mutation(
 
 @router.delete(
     "/api/v1/resources/asp/{assay_panel_id}",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     summary="Delete assay panel",
 )
-def delete_asp_mutation(
+def delete_asp_change(
     assay_panel_id: str,
     user: ApiUser = Depends(
         require_access(permission="delete_asp", min_role="admin", min_level=99999)
     ),
     service: AspService = Depends(get_admin_panel_service),
 ):
-    """Delete asp mutation.
+    """Delete an assay panel.
 
     Args:
-        assay_panel_id (str): Value for ``assay_panel_id``.
-        user (ApiUser): Value for ``user``.
-        service (AspService): Value for ``service``.
+        assay_panel_id: Assay-panel identifier to delete.
+        user: Authenticated user performing the mutation.
+        service: Assay-panel workflow service.
 
     Returns:
-        The function result.
+        dict: Mutation response payload.
     """
     _ = user
     return util.common.convert_to_serializable(service.delete(panel_id=assay_panel_id))
 
 
 @router.post("/api/v1/resources/asp/validate_asp_id", response_model=AdminExistsPayload)
-def validate_asp_id_mutation(
+def validate_asp_id_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
         require_access(permission="create_asp", min_role="manager", min_level=99)

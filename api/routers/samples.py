@@ -5,60 +5,34 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.home import (
+    HomeChangeStatusPayload,
     HomeEditContextPayload,
     HomeEffectiveGenesPayload,
     HomeItemsPayload,
-    HomeMutationStatusPayload,
     HomeReportContextPayload,
     HomeSamplesPayload,
 )
 from api.contracts.samples import (
     CoverageBlacklistStatusPayload,
     CoverageBlacklistUpdateRequest,
+    SampleChangePayload,
     SampleCommentCreateRequest,
     SampleFiltersUpdateRequest,
-    SampleMutationPayload,
 )
-from api.core.interpretation.report_summary import create_comment_doc
 from api.core.rna.helpers import create_fusioncallers, create_fusioneffectlist
-from api.core.samples.ports import SamplesRepository
 from api.core.workflows.filter_normalization import (
     normalize_dna_filter_keys,
     normalize_rna_filter_keys,
 )
-from api.deps.repositories import get_sample_repository
 from api.deps.services import get_sample_catalog_service
 from api.extensions import util
 from api.http import api_error, get_formatted_assay_config
 from api.security.access import ApiUser, _get_sample_for_api, require_access
+from api.services.common.change_payload import change_payload
+from api.services.interpretation.report_summary import create_comment_doc
 from api.services.sample.catalog import SampleCatalogService
 
 router = APIRouter(tags=["samples"])
-
-if not hasattr(util, "common"):
-    util.init_util()
-
-
-def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict:
-    """Mutation payload.
-
-    Args:
-            sample_id: Sample id.
-            resource: Resource.
-            resource_id: Resource id.
-            action: Action.
-
-    Returns:
-            The  mutation payload result.
-    """
-    return {
-        "status": "ok",
-        "sample_id": str(sample_id),
-        "resource": resource,
-        "resource_id": str(resource_id),
-        "action": action,
-        "meta": {"status": "updated"},
-    }
 
 
 @router.get("/api/v1/samples", response_model=HomeSamplesPayload)
@@ -81,30 +55,7 @@ def list_samples_read(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """List samples read.
-
-    Args:
-        status (str): Value for ``status``.
-        search_str (str): Value for ``search_str``.
-        search_mode (str): Value for ``search_mode``.
-        sample_view (str | None): Value for ``sample_view``.
-        page (int): Value for ``page``.
-        per_page (int): Value for ``per_page``.
-        live_page (int): Value for ``live_page``.
-        done_page (int): Value for ``done_page``.
-        live_per_page (int | None): Value for ``live_per_page``.
-        done_per_page (int | None): Value for ``done_per_page``.
-        profile_scope (str): Value for ``profile_scope``.
-        panel_type (str | None): Value for ``panel_type``.
-        panel_tech (str | None): Value for ``panel_tech``.
-        assay_group (str | None): Value for ``assay_group``.
-        limit_done_samples (int | None): Value for ``limit_done_samples``.
-        user (ApiUser): Value for ``user``.
-        service (SampleCatalogService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return the sample catalog for the current user."""
     _ = sample_view
     live_per_page = live_per_page or per_page
     done_per_page = done_per_page or per_page
@@ -135,16 +86,7 @@ def sample_genelists_read(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Sample genelists read.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        user (ApiUser): Value for ``user``.
-        service (SampleCatalogService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return selectable genelists for a sample."""
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(service.genelist_items_payload(sample=sample))
 
@@ -155,16 +97,7 @@ def sample_effective_genes_read(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Sample effective genes read.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        user (ApiUser): Value for ``user``.
-        service (SampleCatalogService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return the effective genes for a sample."""
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(service.effective_genes_payload(sample=sample))
 
@@ -175,86 +108,48 @@ def sample_edit_context_read(
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Sample edit context read.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        user (ApiUser): Value for ``user``.
-        service (SampleCatalogService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return edit context for a sample."""
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(service.edit_context_payload(sample=sample))
 
 
 @router.put(
-    "/api/v1/samples/{sample_id}/genelists/selection", response_model=HomeMutationStatusPayload
+    "/api/v1/samples/{sample_id}/genelists/selection", response_model=HomeChangeStatusPayload
 )
-def sample_apply_genelists_mutation(
+def sample_apply_genelists_change(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Sample apply genelists mutation.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (SampleCatalogService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Persist selected genelists for a sample."""
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.apply_genelists(sample=sample, payload=payload, sample_id=sample_id)
     )
 
 
-@router.put("/api/v1/samples/{sample_id}/adhoc-genes", response_model=HomeMutationStatusPayload)
-def sample_save_adhoc_genes_mutation(
+@router.put("/api/v1/samples/{sample_id}/adhoc-genes", response_model=HomeChangeStatusPayload)
+def sample_save_adhoc_genes_change(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Sample save adhoc genes mutation.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (SampleCatalogService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Persist ad hoc genes for a sample."""
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.save_adhoc_genes(sample=sample, payload=payload, sample_id=sample_id)
     )
 
 
-@router.delete("/api/v1/samples/{sample_id}/adhoc-genes", response_model=HomeMutationStatusPayload)
-def sample_clear_adhoc_genes_mutation(
+@router.delete("/api/v1/samples/{sample_id}/adhoc-genes", response_model=HomeChangeStatusPayload)
+def sample_clear_adhoc_genes_change(
     sample_id: str,
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Sample clear adhoc genes mutation.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        user (ApiUser): Value for ``user``.
-        service (SampleCatalogService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Clear ad hoc genes for a sample."""
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.clear_adhoc_genes(sample=sample, sample_id=sample_id)
@@ -271,17 +166,7 @@ def sample_report_context_read(
     user: ApiUser = Depends(require_access(permission="view_reports", min_role="admin")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Sample report context read.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        report_id (str): Value for ``report_id``.
-        user (ApiUser): Value for ``user``.
-        service (SampleCatalogService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return report-download context for a sample report."""
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.report_context_payload(sample=sample, report_id=report_id, sample_id=sample_id)
@@ -292,25 +177,15 @@ def _add_sample_comment(
     sample_id: str,
     payload: SampleCommentCreateRequest,
     user: ApiUser,
-    repository: SamplesRepository,
+    service: SampleCatalogService,
 ):
-    """Add sample comment.
-
-    Args:
-            sample_id: Sample id.
-            payload: Payload.
-            user: User.
-            repository: Repository.
-
-    Returns:
-            The  add sample comment result.
-    """
+    """Create a sample comment and serialize the change response."""
     sample = _get_sample_for_api(sample_id, user)
     form_data = payload.form_data
     doc = create_comment_doc(form_data, key="sample_comment")
-    repository.add_sample_comment(sample_id, doc)
-    result = _mutation_payload(
-        sample_id, resource="sample_comment", resource_id="new", action="add"
+    service.add_sample_comment(sample_id=sample_id, doc=doc)
+    result = change_payload(
+        sample_id=sample_id, resource="sample_comment", resource_id="new", action="add"
     )
     result["meta"]["omics_layer"] = sample.get("omics_layer")
     return util.common.convert_to_serializable(result)
@@ -318,7 +193,7 @@ def _add_sample_comment(
 
 @router.post(
     "/api/v1/samples/{sample_id}/comments",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     status_code=201,
     summary="Create sample comment",
 )
@@ -328,26 +203,14 @@ def create_sample_comment(
     user: ApiUser = Depends(
         require_access(permission="add_sample_comment", min_role="user", min_level=9)
     ),
-    repository: SamplesRepository = Depends(get_sample_repository),
+    service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Create sample comment.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        payload (SampleCommentCreateRequest): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        repository (SamplesRepository): Value for ``repository``.
-
-    Returns:
-        The function result.
-    """
-    return _add_sample_comment(
-        sample_id=sample_id, payload=payload, user=user, repository=repository
-    )
+    """Create a sample comment."""
+    return _add_sample_comment(sample_id=sample_id, payload=payload, user=user, service=service)
 
 
 def _hide_sample_comment(
-    sample_id: str, comment_id: str, user: ApiUser, repository: SamplesRepository
+    sample_id: str, comment_id: str, user: ApiUser, service: SampleCatalogService
 ):
     """Hide sample comment.
 
@@ -355,14 +218,12 @@ def _hide_sample_comment(
             sample_id: Sample id.
             comment_id: Comment id.
             user: User.
-            repository: Repository.
-
     Returns:
             The  hide sample comment result.
     """
     sample = _get_sample_for_api(sample_id, user)
-    repository.hide_sample_comment(sample_id, comment_id)
-    result = _mutation_payload(
+    service.set_sample_comment_hidden(sample_id=sample_id, comment_id=comment_id, hidden=True)
+    result = change_payload(
         sample_id, resource="sample_comment", resource_id=comment_id, action="hide"
     )
     result["meta"]["omics_layer"] = sample.get("omics_layer")
@@ -371,7 +232,7 @@ def _hide_sample_comment(
 
 @router.patch(
     "/api/v1/samples/{sample_id}/comments/{comment_id}/hidden",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Hide sample comment",
 )
 def hide_sample_comment(
@@ -380,41 +241,21 @@ def hide_sample_comment(
     user: ApiUser = Depends(
         require_access(permission="hide_sample_comment", min_role="manager", min_level=99)
     ),
-    repository: SamplesRepository = Depends(get_sample_repository),
+    service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Hide sample comment.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        comment_id (str): Value for ``comment_id``.
-        user (ApiUser): Value for ``user``.
-        repository (SamplesRepository): Value for ``repository``.
-
-    Returns:
-        The function result.
-    """
+    """Hide a sample comment."""
     return _hide_sample_comment(
-        sample_id=sample_id, comment_id=comment_id, user=user, repository=repository
+        sample_id=sample_id, comment_id=comment_id, user=user, service=service
     )
 
 
 def _unhide_sample_comment(
-    sample_id: str, comment_id: str, user: ApiUser, repository: SamplesRepository
+    sample_id: str, comment_id: str, user: ApiUser, service: SampleCatalogService
 ):
-    """Unhide sample comment.
-
-    Args:
-            sample_id: Sample id.
-            comment_id: Comment id.
-            user: User.
-            repository: Repository.
-
-    Returns:
-            The  unhide sample comment result.
-    """
+    """Unhide a sample comment and serialize the change response."""
     sample = _get_sample_for_api(sample_id, user)
-    repository.unhide_sample_comment(sample_id, comment_id)
-    result = _mutation_payload(
+    service.set_sample_comment_hidden(sample_id=sample_id, comment_id=comment_id, hidden=False)
+    result = change_payload(
         sample_id, resource="sample_comment", resource_id=comment_id, action="unhide"
     )
     result["meta"]["omics_layer"] = sample.get("omics_layer")
@@ -423,7 +264,7 @@ def _unhide_sample_comment(
 
 @router.delete(
     "/api/v1/samples/{sample_id}/comments/{comment_id}/hidden",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Unhide sample comment",
 )
 def unhide_sample_comment(
@@ -432,21 +273,11 @@ def unhide_sample_comment(
     user: ApiUser = Depends(
         require_access(permission="unhide_sample_comment", min_role="manager", min_level=99)
     ),
-    repository: SamplesRepository = Depends(get_sample_repository),
+    service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Unhide sample comment.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        comment_id (str): Value for ``comment_id``.
-        user (ApiUser): Value for ``user``.
-        repository (SamplesRepository): Value for ``repository``.
-
-    Returns:
-        The function result.
-    """
+    """Unhide a sample comment."""
     return _unhide_sample_comment(
-        sample_id=sample_id, comment_id=comment_id, user=user, repository=repository
+        sample_id=sample_id, comment_id=comment_id, user=user, service=service
     )
 
 
@@ -454,19 +285,9 @@ def _update_sample_filters(
     sample_id: str,
     payload: SampleFiltersUpdateRequest,
     user: ApiUser,
-    repository: SamplesRepository,
+    service: SampleCatalogService,
 ):
-    """Update sample filters.
-
-    Args:
-            sample_id: Sample id.
-            payload: Payload.
-            user: User.
-            repository: Repository.
-
-    Returns:
-            The  update sample filters result.
-    """
+    """Update a sample's filters and serialize the change response."""
     sample = _get_sample_for_api(sample_id, user)
     filters = payload.filters
     normalized_filters = dict(filters)
@@ -495,8 +316,8 @@ def _update_sample_filters(
     else:
         normalized_filters = normalize_dna_filter_keys(normalized_filters)
 
-    repository.update_sample_filters(sample.get("_id"), normalized_filters)
-    result = _mutation_payload(
+    service.replace_sample_filters(sample=sample, filters=normalized_filters)
+    result = change_payload(
         sample_id, resource="sample_filters", resource_id=str(sample.get("_id")), action="update"
     )
     return util.common.convert_to_serializable(result)
@@ -504,48 +325,27 @@ def _update_sample_filters(
 
 @router.put(
     "/api/v1/samples/{sample_id}/filters",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Replace sample filters",
 )
 def update_sample_filters(
     sample_id: str,
     payload: SampleFiltersUpdateRequest,
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
-    repository: SamplesRepository = Depends(get_sample_repository),
+    service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Update sample filters.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        payload (SampleFiltersUpdateRequest): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        repository (SamplesRepository): Value for ``repository``.
-
-    Returns:
-        The function result.
-    """
-    return _update_sample_filters(
-        sample_id=sample_id, payload=payload, user=user, repository=repository
-    )
+    """Replace a sample's filter payload."""
+    return _update_sample_filters(sample_id=sample_id, payload=payload, user=user, service=service)
 
 
-def _reset_sample_filters(sample_id: str, user: ApiUser, repository: SamplesRepository):
-    """Reset sample filters.
-
-    Args:
-            sample_id: Sample id.
-            user: User.
-            repository: Repository.
-
-    Returns:
-            The  reset sample filters result.
-    """
+def _reset_sample_filters(sample_id: str, user: ApiUser, service: SampleCatalogService):
+    """Reset a sample's filters and serialize the change response."""
     sample = _get_sample_for_api(sample_id, user)
     assay_config = get_formatted_assay_config(sample)
     if not assay_config:
         raise api_error(404, "Assay config not found for sample")
-    repository.reset_sample_settings(sample.get("_id"), assay_config.get("filters"))
-    result = _mutation_payload(
+    service.reset_sample_filters(sample=sample, assay_config=assay_config)
+    result = change_payload(
         sample_id, resource="sample_filters", resource_id=str(sample.get("_id")), action="reset"
     )
     return util.common.convert_to_serializable(result)
@@ -553,39 +353,22 @@ def _reset_sample_filters(sample_id: str, user: ApiUser, repository: SamplesRepo
 
 @router.delete(
     "/api/v1/samples/{sample_id}/filters",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Reset sample filters",
 )
 def reset_sample_filters(
     sample_id: str,
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
-    repository: SamplesRepository = Depends(get_sample_repository),
+    service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Reset sample filters.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        user (ApiUser): Value for ``user``.
-        repository (SamplesRepository): Value for ``repository``.
-
-    Returns:
-        The function result.
-    """
-    return _reset_sample_filters(sample_id=sample_id, user=user, repository=repository)
+    """Reset a sample's filters to assay defaults."""
+    return _reset_sample_filters(sample_id=sample_id, user=user, service=service)
 
 
 def _update_coverage_blacklist(
-    payload: CoverageBlacklistUpdateRequest, repository: SamplesRepository
+    payload: CoverageBlacklistUpdateRequest, service: SampleCatalogService
 ):
-    """Update coverage blacklist.
-
-    Args:
-            payload: Payload.
-            repository: Repository.
-
-    Returns:
-            The  update coverage blacklist result.
-    """
+    """Create a coverage blacklist entry and serialize the response."""
     gene = payload.gene
     coord = payload.coord or ""
     smp_grp = payload.smp_grp
@@ -593,7 +376,7 @@ def _update_coverage_blacklist(
     status = payload.status
     if coord:
         coord = str(coord).replace(":", "_").replace("-", "_")
-        repository.blacklist_coord(gene, coord, region, smp_grp)
+        service.add_coverage_blacklist(gene=gene, coord=coord, region=region, smp_grp=smp_grp)
         return util.common.convert_to_serializable(
             {
                 "status": "ok",
@@ -603,7 +386,7 @@ def _update_coverage_blacklist(
                 ),
             }
         )
-    repository.blacklist_gene(gene, smp_grp)
+    service.add_coverage_blacklist(gene=gene, coord=None, region=region, smp_grp=smp_grp)
     return util.common.convert_to_serializable(
         {
             "status": "ok",
@@ -623,57 +406,31 @@ def _update_coverage_blacklist(
 def create_coverage_blacklist_entry(
     payload: CoverageBlacklistUpdateRequest,
     user: ApiUser = Depends(require_access(min_level=1)),
-    repository: SamplesRepository = Depends(get_sample_repository),
+    service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Create coverage blacklist entry.
-
-    Args:
-        payload (CoverageBlacklistUpdateRequest): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        repository (SamplesRepository): Value for ``repository``.
-
-    Returns:
-        The function result.
-    """
+    """Create a coverage blacklist entry."""
     _ = user
-    return _update_coverage_blacklist(payload=payload, repository=repository)
+    return _update_coverage_blacklist(payload=payload, service=service)
 
 
-def _remove_coverage_blacklist(obj_id: str, repository: SamplesRepository):
-    """Remove coverage blacklist.
-
-    Args:
-            obj_id: Obj id.
-            repository: Repository.
-
-    Returns:
-            The  remove coverage blacklist result.
-    """
-    repository.remove_blacklist(obj_id)
+def _remove_coverage_blacklist(obj_id: str, service: SampleCatalogService):
+    """Delete a coverage blacklist entry and serialize the response."""
+    service.remove_coverage_blacklist(obj_id=obj_id)
     return util.common.convert_to_serializable(
-        _mutation_payload("coverage", resource="blacklist", resource_id=obj_id, action="remove")
+        change_payload("coverage", resource="blacklist", resource_id=obj_id, action="remove")
     )
 
 
 @router.delete(
     "/api/v1/coverage/blacklist/entries/{obj_id}",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Delete coverage blacklist entry",
 )
 def delete_coverage_blacklist_entry(
     obj_id: str,
     user: ApiUser = Depends(require_access(min_level=1)),
-    repository: SamplesRepository = Depends(get_sample_repository),
+    service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Delete coverage blacklist entry.
-
-    Args:
-        obj_id (str): Value for ``obj_id``.
-        user (ApiUser): Value for ``user``.
-        repository (SamplesRepository): Value for ``repository``.
-
-    Returns:
-        The function result.
-    """
+    """Delete a coverage blacklist entry."""
     _ = user
-    return _remove_coverage_blacklist(obj_id=obj_id, repository=repository)
+    return _remove_coverage_blacklist(obj_id=obj_id, service=service)

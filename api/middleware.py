@@ -60,14 +60,14 @@ def build_authentication_middleware(
     """Build the request middleware that initializes runtime state and enforces API auth."""
 
     async def api_authentication_middleware(request: Request, call_next):
-        """Api authentication middleware.
+        """Initialize request context, auth, and audit metadata.
 
         Args:
-            request (Request): Value for ``request``.
-            call_next: Value for ``call_next``.
+            request: Active FastAPI request object.
+            call_next: Downstream request handler.
 
         Returns:
-            The function result.
+            Response: Final response for the request.
         """
         ensure_runtime_initialized(testing=testing, development=development)
         start = time.perf_counter()

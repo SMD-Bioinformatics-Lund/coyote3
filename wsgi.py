@@ -5,7 +5,7 @@ import os
 from typing import Any
 
 from coyote import init_app
-from logging_setup import add_unique_handlers, custom_logging
+from shared.logging_setup import add_unique_handlers, custom_logging
 
 app = init_app(
     testing=bool(int(os.getenv("TESTING", "0"))),

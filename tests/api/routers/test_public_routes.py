@@ -18,7 +18,7 @@ def test_public_genelist_view_context_not_found_raises_404(monkeypatch):
         The function result.
     """
     monkeypatch.setattr(
-        public.PublicCatalogService, "genelist_view_context", lambda *_args, **_kwargs: None
+        public.PublicCatalogService, "genelist_view_context", lambda self, *_args, **_kwargs: None
     )
 
     with pytest.raises(HTTPException) as exc:
@@ -40,7 +40,7 @@ def test_public_asp_genes_read_success(monkeypatch):
     monkeypatch.setattr(
         public.PublicCatalogService,
         "asp_genes_payload",
-        lambda asp_id: {
+        lambda self, asp_id: {
             "asp_id": asp_id,
             "gene_details": [{"symbol": "TP53"}],
             "germline_gene_symbols": ["BRCA1"],
@@ -63,8 +63,8 @@ def test_public_assay_catalog_context_missing_catalog_raises_404(monkeypatch):
     Returns:
         The function result.
     """
-    monkeypatch.setattr(public.PublicCatalogService, "load_catalog", lambda: {})
-    monkeypatch.setattr(public.PublicCatalogService, "modalities_order", lambda: [])
+    monkeypatch.setattr(public.PublicCatalogService, "load_catalog", lambda self: {})
+    monkeypatch.setattr(public.PublicCatalogService, "modalities_order", lambda self: [])
 
     with pytest.raises(HTTPException) as exc:
         public.public_assay_catalog_context_read()

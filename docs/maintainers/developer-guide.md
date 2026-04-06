@@ -32,8 +32,8 @@ docker compose --env-file .coyote3_test_env -f deploy/compose/docker-compose.tes
 ## Build docs and validate links
 
 ```bash
-python -m pip install -r requirements-docs.txt
-mkdocs build --strict
+.venv/bin/python -m pip install -r requirements-docs.txt
+.venv/bin/python -m mkdocs build --strict
 ```
 
 ## Read auth/mail observability lines

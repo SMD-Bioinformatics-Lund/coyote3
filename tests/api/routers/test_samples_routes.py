@@ -64,10 +64,9 @@ def test_reset_sample_filters_requires_assay_config(monkeypatch):
     sample = fx.sample_doc()
     monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(samples, "get_formatted_assay_config", lambda _sample: None)
-    repository = SimpleNamespace()
 
     with pytest.raises(HTTPException) as exc:
-        samples.reset_sample_filters("S1", user=fx.api_user(), repository=repository)
+        samples.reset_sample_filters("S1", user=fx.api_user())
 
     assert exc.value.status_code == 404
     assert exc.value.detail["error"] == "Assay config not found for sample"
@@ -84,8 +83,10 @@ def test_update_coverage_blacklist_gene_returns_status_message(monkeypatch):
     """
     calls = {}
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
-    repository = SimpleNamespace(
-        blacklist_gene=lambda gene, smp_grp: calls.setdefault("gene", (gene, smp_grp))
+    service = SimpleNamespace(
+        add_coverage_blacklist=lambda gene, coord, region, smp_grp: calls.setdefault(
+            "gene", (gene, smp_grp)
+        )
     )
 
     payload = samples.create_coverage_blacklist_entry(
@@ -93,7 +94,7 @@ def test_update_coverage_blacklist_gene_returns_status_message(monkeypatch):
             gene="TP53", status="blacklisted", smp_grp="dna", region="gene"
         ),
         user=fx.api_user(),
-        repository=repository,
+        service=service,
     )
 
     assert calls["gene"] == ("TP53", "dna")
@@ -113,7 +114,7 @@ def test_restful_sample_comment_route_creates_comment(monkeypatch):
     sample = fx.sample_doc()
     sample["_id"] = "S1"
     calls = {}
-    repository = SimpleNamespace(
+    service = SimpleNamespace(
         add_sample_comment=lambda sample_id, doc: calls.setdefault("sample_id", sample_id)
     )
     monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
@@ -128,7 +129,7 @@ def test_restful_sample_comment_route_creates_comment(monkeypatch):
         "S1",
         payload=samples.SampleCommentCreateRequest(form_data={"comment": "hello"}),
         user=fx.api_user(),
-        repository=repository,
+        service=service,
     )
 
     assert calls["sample_id"] == "S1"

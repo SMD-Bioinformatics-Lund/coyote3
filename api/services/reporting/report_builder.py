@@ -14,13 +14,13 @@ class ReportService:
 
     @staticmethod
     def sample_meta(sample: dict) -> dict:
-        """Sample meta.
+        """Build the sample metadata block for report responses.
 
         Args:
-            sample (dict): Value for ``sample``.
+            sample: Sample payload linked to the report.
 
         Returns:
-            dict: The function result.
+            dict: Minimal sample metadata for report payloads.
         """
         return {
             "id": str(sample.get("_id")),
@@ -39,18 +39,18 @@ class ReportService:
         template_context: dict[str, Any],
         snapshot_rows: list,
     ) -> ReportPreviewPayload:
-        """Preview payload.
+        """Build the preview response payload for a rendered report.
 
         Args:
-            sample (dict): Value for ``sample``.
-            request_path (str): Value for ``request_path``.
-            include_snapshot (bool): Value for ``include_snapshot``.
-            template_name (str): Value for ``template_name``.
-            template_context (dict[str, Any]): Value for ``template_context``.
-            snapshot_rows (list): Value for ``snapshot_rows``.
+            sample: Sample payload linked to the report.
+            request_path: Request path used to build the preview.
+            include_snapshot: Whether snapshot rows should be included.
+            template_name: Name of the rendered report template.
+            template_context: Template context used for rendering.
+            snapshot_rows: Snapshot rows extracted from the report.
 
         Returns:
-            ReportPreviewPayload: The function result.
+            ReportPreviewPayload: Preview response payload.
         """
         return {
             "sample": ReportService.sample_meta(sample),
@@ -70,17 +70,17 @@ class ReportService:
     def save_payload(
         *, sample: dict, report_id: str, report_oid: str, report_file: str, snapshot_rows: list
     ) -> ReportSavePayload:
-        """Save payload.
+        """Build the response payload for a saved report.
 
         Args:
-            sample (dict): Value for ``sample``.
-            report_id (str): Value for ``report_id``.
-            report_oid (str): Value for ``report_oid``.
-            report_file (str): Value for ``report_file``.
-            snapshot_rows (list): Value for ``snapshot_rows``.
+            sample: Sample payload linked to the report.
+            report_id: Logical report identifier.
+            report_oid: Persisted report object identifier.
+            report_file: Saved report filename.
+            snapshot_rows: Snapshot rows extracted from the report.
 
         Returns:
-            ReportSavePayload: The function result.
+            ReportSavePayload: Saved-report response payload.
         """
         return {
             "sample": ReportService.sample_meta(sample),

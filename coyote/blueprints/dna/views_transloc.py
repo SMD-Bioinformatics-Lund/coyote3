@@ -49,11 +49,11 @@ def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
     """Mark interesting transloc.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        transloc_id (str): Value for ``transloc_id``.
+        sample_id (str): Normalized ``sample_id``.
+        transloc_id (str): Normalized ``transloc_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     try:
         get_web_api_client().patch_json(
@@ -77,11 +77,11 @@ def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
     """Unmark interesting transloc.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        transloc_id (str): Value for ``transloc_id``.
+        sample_id (str): Normalized ``sample_id``.
+        transloc_id (str): Normalized ``transloc_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     try:
         get_web_api_client().delete_json(
@@ -103,11 +103,11 @@ def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
     """Mark false transloc.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        transloc_id (str): Value for ``transloc_id``.
+        sample_id (str): Normalized ``sample_id``.
+        transloc_id (str): Normalized ``transloc_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     try:
         get_web_api_client().patch_json(
@@ -129,11 +129,11 @@ def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
     """Unmark false transloc.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        transloc_id (str): Value for ``transloc_id``.
+        sample_id (str): Normalized ``sample_id``.
+        transloc_id (str): Normalized ``transloc_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     try:
         get_web_api_client().delete_json(
@@ -159,11 +159,11 @@ def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
     """Hide transloc comment.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        transloc_id (str): Value for ``transloc_id``.
+        sample_id (str): Normalized ``sample_id``.
+        transloc_id (str): Normalized ``transloc_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
@@ -188,11 +188,11 @@ def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
     """Unhide transloc comment.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        transloc_id (str): Value for ``transloc_id``.
+        sample_id (str): Normalized ``sample_id``.
+        transloc_id (str): Normalized ``transloc_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:

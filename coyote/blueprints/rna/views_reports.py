@@ -20,11 +20,11 @@ def generate_rna_report(sample_id: str, **kwargs) -> Response | str:
     """Generate rna report.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
+        sample_id (str): Normalized ``sample_id``.
         **kwargs: Additional keyword values for ``kwargs``.
 
     Returns:
-        Response | str: The function result.
+        Response | str: Normalized return value.
     """
     try:
         payload = fetch_preview_payload("rna", sample_id, include_snapshot=False, save=False)
@@ -47,10 +47,10 @@ def save_rna_report(sample_id: str) -> Response:
     """Save rna report.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
+        sample_id (str): Normalized ``sample_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     try:
         payload = save_report_from_preview("rna", sample_id)

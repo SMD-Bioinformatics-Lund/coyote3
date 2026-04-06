@@ -6,7 +6,7 @@ import logging
 
 import pytest
 
-from cache_backend import DisabledCacheBackend, RedisCacheBackend, create_cache_backend
+from shared.cache_backend import DisabledCacheBackend, RedisCacheBackend, create_cache_backend
 
 
 class _FakeRedis:
@@ -105,7 +105,7 @@ def test_cache_backend_falls_back_when_redis_unavailable(monkeypatch: pytest.Mon
             """
             raise RuntimeError("boom")
 
-    monkeypatch.setattr("cache_backend.redis.Redis", _NoRedis)
+    monkeypatch.setattr("shared.cache_backend.redis.Redis", _NoRedis)
     backend = create_cache_backend(
         config={
             "CACHE_ENABLED": True,
@@ -144,7 +144,7 @@ def test_cache_backend_required_raises_when_redis_unavailable(monkeypatch: pytes
             """
             raise RuntimeError("boom")
 
-    monkeypatch.setattr("cache_backend.redis.Redis", _NoRedis)
+    monkeypatch.setattr("shared.cache_backend.redis.Redis", _NoRedis)
     with pytest.raises(RuntimeError):
         create_cache_backend(
             config={
@@ -184,7 +184,7 @@ def test_redis_cache_backend_roundtrip(monkeypatch: pytest.MonkeyPatch):
             """
             return fake
 
-    monkeypatch.setattr("cache_backend.redis.Redis", _RedisFactory)
+    monkeypatch.setattr("shared.cache_backend.redis.Redis", _RedisFactory)
 
     backend = create_cache_backend(
         config={

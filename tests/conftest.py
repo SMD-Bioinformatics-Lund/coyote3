@@ -1,4 +1,4 @@
-"""Pytest bootstrap for repository-local imports."""
+"""Pytest bootstrap for project-local imports."""
 
 from __future__ import annotations
 

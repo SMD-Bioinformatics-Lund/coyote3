@@ -1,1 +1,0 @@
-"""Samples core package."""

@@ -7,9 +7,9 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
-import config
 from api.extensions import ldap_manager, store, util
-from cache_backend import create_cache_backend
+from shared import app_config
+from shared.cache_backend import create_cache_backend
 from shared.logging import ensure_logging_configured
 
 
@@ -23,18 +23,12 @@ class ApiRuntimeContext:
 
     @property
     def secret_key(self) -> str | None:
-        """Secret key.
-
-        Returns:
-            str | None: The function result.
-        """
+        """Return the configured secret key when available."""
         return self.config.get("SECRET_KEY")
 
 
 def create_runtime_context(testing: bool = False, development: bool = False) -> ApiRuntimeContext:
-    """
-    Build runtime configuration and initialize API dependencies.
-    """
+    """Build runtime configuration and initialize API dependencies."""
     config_obj = _select_config(testing=testing, development=development)
     conf = _config_dict(config_obj)
     ensure_logging_configured(
@@ -60,35 +54,35 @@ def create_runtime_context(testing: bool = False, development: bool = False) -> 
 
 
 def _select_config(testing: bool, development: bool):
-    """Select config.
+    """Select the active configuration object.
 
     Args:
-            testing: Testing.
-            development: Development.
+        testing: Whether the process is running in test mode.
+        development: Whether the process is running in development mode.
 
     Returns:
-            The  select config result.
+        object: Concrete configuration instance for the current runtime.
     """
     if testing:
-        return config.TestConfig()
+        return app_config.TestConfig()
     if development:
-        return config.DevelopmentConfig()
+        return app_config.DevelopmentConfig()
     env_name = os.getenv("ENV_NAME", "").strip().lower()
     if os.getenv("STAGING", "0") == "1" or env_name == "staging":
-        config.StageConfig.validate_required_env()
-        return config.StageConfig()
-    config.ProductionConfig.validate_required_env()
-    return config.ProductionConfig()
+        app_config.StageConfig.validate_required_env()
+        return app_config.StageConfig()
+    app_config.ProductionConfig.validate_required_env()
+    return app_config.ProductionConfig()
 
 
 def _config_dict(config_obj) -> dict[str, Any]:
-    """Config dict.
+    """Extract uppercase settings from a config object.
 
     Args:
-            config_obj: Config obj.
+        config_obj: Configuration instance to serialize.
 
     Returns:
-            The  config dict result.
+        dict[str, Any]: Uppercase settings ready for runtime use.
     """
     out: dict[str, Any] = {}
     for name in dir(config_obj):

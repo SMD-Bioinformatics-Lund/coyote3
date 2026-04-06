@@ -9,7 +9,6 @@ import pytest
 
 import api.services.ingest.parsers as ingest_parsers
 import api.services.ingest.service as ingest
-from api.core.internal.ports import ReplaceDocumentResult
 
 
 class _Col:
@@ -22,6 +21,9 @@ class _Col:
 
     def find(self, query=None):
         query = query or {}
+        if "_id" in query:
+            needle = query["_id"]
+            return [d for d in self.docs if d.get("_id") == needle]
         if "name" in query and isinstance(query["name"], str):
             needle = query["name"]
             return [d for d in self.docs if d.get("name") == needle]
@@ -58,6 +60,10 @@ class _Col:
     def update_one(self, query, update, upsert=False):
         self.updated.append((query, update, upsert))
 
+    def replace_one(self, filter, replacement, upsert=False):
+        self.updated.append((filter, replacement, upsert))
+        return SimpleNamespace(matched_count=1, modified_count=1, upserted_id=None)
+
 
 class _Handler:
     def __init__(self, col):
@@ -86,72 +92,40 @@ def _store_stub(sample_docs=None):
     return SimpleNamespace(
         sample_handler=_Handler(sample_col),
         variant_handler=_Handler(db["variants"]),
-        cnv_handler=_Handler(db["cnvs"]),
+        copy_number_variant_handler=_Handler(db["cnvs"]),
         biomarker_handler=_Handler(db["biomarkers"]),
-        transloc_handler=_Handler(db["transloc"]),
+        translocation_handler=_Handler(db["transloc"]),
         coverage_handler=_Handler(db["panel_coverage"]),
-        groupcov_handler=_Handler(db["group_coverage"]),
+        grouped_coverage_handler=_Handler(db["group_coverage"]),
         fusion_handler=_Handler(db["fusions"]),
         rna_expression_handler=_Handler(db["rna_expression"]),
         rna_classification_handler=_Handler(db["rna_classification"]),
-        rna_qc_handler=_Handler(db["rna_qc"]),
+        rna_quality_handler=_Handler(db["rna_qc"]),
         coyote_db=db,
     )
 
 
-def _repo_stub(store_stub, *, new_sample_id="507f1f77bcf86cd799439011"):
-    sample_col = store_stub.sample_handler.get_collection()
-
-    class _Repo:
-        def list_samples_by_exact_name(self, name):
-            return list(sample_col.find({"name": name}))
-
-        def list_samples_by_name_pattern(self, name_pattern):
-            return list(sample_col.find({"name": {"$regex": name_pattern}}))
-
-        def list_refseq_canonical_documents(self):
-            return list(store_stub.coyote_db["refseq_canonical"].find({}))
-
-        def find_sample_by_name(self, name):
-            return sample_col.find_one({"name": name})
-
-        def find_sample_by_id(self, sample_id):
-            return sample_col.find_one({"_id": sample_id})
-
-        def new_sample_id(self):
-            return new_sample_id
-
-        def insert_sample(self, document):
-            return str(sample_col.insert_one(document).inserted_id)
-
-        def update_sample_fields(self, sample_id, fields):
-            sample_col.update_one({"_id": sample_id}, {"$set": fields}, upsert=False)
-
-        def delete_sample(self, sample_id):
-            sample_col.delete_one({"_id": sample_id})
-
-        def list_collection_documents(self, collection, match):
-            return list(store_stub.coyote_db[collection].find(match))
-
-        def delete_collection_documents(self, collection, match):
-            store_stub.coyote_db[collection].delete_many(match)
-
-        def insert_collection_document(self, collection, document, *, ignore_duplicate=False):
-            _ = ignore_duplicate
-            return str(store_stub.coyote_db[collection].insert_one(document).inserted_id)
-
-        def insert_collection_documents(self, collection, documents, *, ignore_duplicates=False):
-            _ = ignore_duplicates
-            return len(
-                store_stub.coyote_db[collection].insert_many(documents, ordered=False).inserted_ids
-            )
-
-        def replace_collection_document(self, collection, *, match, document, upsert=False):
-            col = store_stub.coyote_db[collection]
-            col.updated.append((match, document, upsert))
-            return ReplaceDocumentResult(matched_count=1, modified_count=1, upserted_id=None)
-
-    return _Repo()
+def _use_store(monkeypatch, store_stub, *, new_sample_id="507f1f77bcf86cd799439011"):
+    monkeypatch.setattr(ingest, "_provider_sample_id", lambda sample_id: sample_id)
+    monkeypatch.setattr(ingest, "_new_sample_id", lambda: new_sample_id)
+    return ingest.InternalIngestService(
+        sample_collection=store_stub.sample_handler.get_collection(),
+        refseq_canonical_collection=store_stub.coyote_db["refseq_canonical"],
+        collections={
+            "samples": store_stub.sample_handler.get_collection(),
+            "variants": store_stub.variant_handler.get_collection(),
+            "cnvs": store_stub.copy_number_variant_handler.get_collection(),
+            "biomarkers": store_stub.biomarker_handler.get_collection(),
+            "translocations": store_stub.translocation_handler.get_collection(),
+            "panel_coverage": store_stub.coverage_handler.get_collection(),
+            "fusions": store_stub.fusion_handler.get_collection(),
+            "rna_expression": store_stub.rna_expression_handler.get_collection(),
+            "rna_classification": store_stub.rna_classification_handler.get_collection(),
+            "rna_qc": store_stub.rna_quality_handler.get_collection(),
+        },
+        invalidate_variant_cache=lambda: None,
+        invalidate_summary_cache=lambda: None,
+    )
 
 
 def test_small_helpers_and_build_meta(tmp_path):
@@ -309,13 +283,13 @@ def test_transcript_helpers():
 
 def test_next_unique_name(monkeypatch):
     stub = _store_stub([{"name": "CASE"}, {"name": "CASE-2"}])
-    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
+    service = _use_store(monkeypatch, stub)
 
     with pytest.raises(ValueError):
-        ingest._next_unique_name("CASE", increment=False)
+        service._next_unique_name("CASE", increment=False)
 
-    assert ingest._next_unique_name("NEW", increment=False) == "NEW"
-    assert ingest._next_unique_name("CASE", increment=True) == "CASE-3"
+    assert service._next_unique_name("NEW", increment=False) == "NEW"
+    assert service._next_unique_name("CASE", increment=True) == "CASE-3"
 
 
 def test_read_mane(tmp_path):
@@ -330,10 +304,17 @@ def test_read_mane(tmp_path):
 
 
 def test_parse_yaml_payload():
-    parsed = ingest.InternalIngestService.parse_yaml_payload("name: S1\nassay: A\n")
+    service = ingest.InternalIngestService(
+        sample_collection=None,
+        refseq_canonical_collection=_Col(),
+        collections={},
+        invalidate_variant_cache=lambda: None,
+        invalidate_summary_cache=lambda: None,
+    )
+    parsed = service.parse_yaml_payload("name: S1\nassay: A\n")
     assert parsed["name"] == "S1"
     with pytest.raises(ValueError):
-        ingest.InternalIngestService.parse_yaml_payload("- 1\n- 2\n")
+        service.parse_yaml_payload("- 1\n- 2\n")
 
 
 def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
@@ -386,36 +367,32 @@ def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
 
 def test_service_resolution_and_validation(monkeypatch):
     stub = _store_stub()
-    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
+    service = _use_store(monkeypatch, stub)
 
     monkeypatch.setattr(ingest, "normalize_collection_document", lambda _c, doc: dict(doc))
-    out = ingest.InternalIngestService._normalize_collection_docs("variants", [{"a": 1}, {"b": 2}])
+    out = service._normalize_collection_docs("variants", [{"a": 1}, {"b": 2}])
     assert out == [{"a": 1}, {"b": 2}]
 
 
 def test_service_canonical_and_parse_preload(monkeypatch):
     stub = _store_stub()
-    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
-    assert ingest.InternalIngestService._canonical_map() == {"EGFR": "NM_005228"}
-    assert "samples" in ingest.InternalIngestService.list_supported_collections()
+    service = _use_store(monkeypatch, stub)
+    assert service._canonical_map() == {"EGFR": "NM_005228"}
+    assert "samples" in service.list_supported_collections()
 
     monkeypatch.setattr(ingest.DnaIngestParser, "parse", lambda self, args: {"snvs": [args]})
-    assert "snvs" in ingest.InternalIngestService._parse_preload(
-        {"omics_layer": "dna", "vcf_files": "x"}
-    )
+    assert "snvs" in service._parse_preload({"omics_layer": "dna", "vcf_files": "x"})
 
     monkeypatch.setattr(ingest.RnaIngestParser, "parse", lambda args: {"fusions": [args]})
-    assert "fusions" in ingest.InternalIngestService._parse_preload(
-        {"omics_layer": "rna", "fusion_files": "x"}
-    )
+    assert "fusions" in service._parse_preload({"omics_layer": "rna", "fusion_files": "x"})
 
     with pytest.raises(ValueError):
-        ingest.InternalIngestService._parse_preload({})
+        service._parse_preload({})
 
 
 def test_write_and_ingest_dependents(monkeypatch):
     stub = _store_stub()
-    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
+    service = _use_store(monkeypatch, stub)
     monkeypatch.setattr(ingest, "normalize_collection_document", lambda _c, doc: dict(doc))
     monkeypatch.setattr(
         ingest,
@@ -427,7 +404,7 @@ def test_write_and_ingest_dependents(monkeypatch):
         "snvs": [{"CHROM": "1", "POS": 1, "REF": "A", "ALT": "T", "INFO": {}, "GT": []}],
         "cov": {"genes": {}},
     }
-    out = ingest.InternalIngestService._write_dependents(
+    out = service._write_dependents(
         preload=preload,
         sample_id="507f1f77bcf86cd799439012",
         sample_name="S1",
@@ -435,11 +412,11 @@ def test_write_and_ingest_dependents(monkeypatch):
     assert out["snvs"] == 1 and out["cov"] == 1
 
     with pytest.raises(TypeError):
-        ingest.InternalIngestService._write_dependents(
+        service._write_dependents(
             preload={"cov": []}, sample_id="507f1f77bcf86cd799439013", sample_name="S1"
         )
 
-    out2 = ingest.InternalIngestService.ingest_dependents(
+    out2 = service.ingest_dependents(
         sample_id="sid",
         sample_name="S1",
         delete_existing=True,
@@ -453,25 +430,26 @@ def test_snapshot_restore_replace_and_counts(monkeypatch):
     cov_col = _Col([{"_id": "x", "SAMPLE_ID": str(sid), "a": 1}])
     stub = _store_stub()
     stub.coyote_db["panel_coverage"] = cov_col
-    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
+    stub.coverage_handler = _Handler(cov_col)
+    service = _use_store(monkeypatch, stub)
 
-    snap = ingest.InternalIngestService._snapshot_dependents(sample_id=sid, keys={"cov"})
+    snap = service._snapshot_dependents(sample_id=sid, keys={"cov"})
     assert "cov" in snap
 
-    ingest.InternalIngestService._restore_dependents(
+    service._restore_dependents(
         sample_id=sid,
         sample_name="S1",
         backup={"cov": [{"_id": "x", "SAMPLE_ID": str(sid), "a": 1}]},
     )
     assert cov_col.inserted_many
 
-    assert ingest.InternalIngestService._data_counts({"a": [1, 2], "b": {}}) == {
+    assert service._data_counts({"a": [1, 2], "b": {}}) == {
         "a": 2,
         "b": False,
     }
 
-    monkeypatch.setattr(ingest.InternalIngestService, "_write_dependents", lambda **_: {"x": 1})
-    out = ingest.InternalIngestService._replace_dependents(
+    monkeypatch.setattr(service, "_write_dependents", lambda **_: {"x": 1})
+    out = service._replace_dependents(
         preload={"cov": {"genes": {}}}, sample_id=sid, sample_name="S1"
     )
     assert out["x"] == 1
@@ -480,36 +458,35 @@ def test_snapshot_restore_replace_and_counts(monkeypatch):
 def test_replace_dependents_restores_on_failure(monkeypatch):
     sid = "507f1f77bcf86cd799439015"
     stub = _store_stub()
-    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
+    service = _use_store(monkeypatch, stub)
     called = {"restored": False}
 
     monkeypatch.setattr(
-        ingest.InternalIngestService,
-        "_write_dependents",
-        lambda **_: (_ for _ in ()).throw(RuntimeError("boom")),
+        service, "_write_dependents", lambda **_: (_ for _ in ()).throw(RuntimeError("boom"))
     )
-    monkeypatch.setattr(
-        ingest.InternalIngestService,
-        "_restore_dependents",
-        lambda **_: called.update(restored=True),
-    )
+    monkeypatch.setattr(service, "_restore_dependents", lambda **_: called.update(restored=True))
 
     with pytest.raises(RuntimeError):
-        ingest.InternalIngestService._replace_dependents(
-            preload={"snvs": []}, sample_id=sid, sample_name="S1"
-        )
+        service._replace_dependents(preload={"snvs": []}, sample_id=sid, sample_name="S1")
     assert called["restored"]
 
 
 def test_update_payload_guard_and_meta_update(monkeypatch):
-    out = ingest.InternalIngestService._prepare_update_payload(
+    service = ingest.InternalIngestService(
+        sample_collection=None,
+        refseq_canonical_collection=_Col(),
+        collections={},
+        invalidate_variant_cache=lambda: None,
+        invalidate_summary_cache=lambda: None,
+    )
+    out = service._prepare_update_payload(
         sample_doc={"omics_layer": "rna", "fusion_files": "x"},
         payload={"name": "S1"},
     )
     assert out["omics_layer"] == "rna"
 
     with pytest.raises(ValueError):
-        ingest.InternalIngestService._prepare_update_payload(
+        service._prepare_update_payload(
             sample_doc={"omics_layer": "rna", "fusion_files": "x"},
             payload={"name": "S1", "vcf_files": "/tmp/a.vcf"},
         )
@@ -517,9 +494,9 @@ def test_update_payload_guard_and_meta_update(monkeypatch):
     sample_col = _Col([{"_id": "id1", "name": "S1", "assay": "A", "x": 1}])
     stub = _store_stub()
     stub.sample_handler = _Handler(sample_col)
-    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
+    service = _use_store(monkeypatch, stub)
 
-    ingest.InternalIngestService._update_meta_fields(
+    service._update_meta_fields(
         sample_id="id1",
         payload_meta={"name": "S1", "x": 2, "new_key": 3},
         block_fields={"assay"},
@@ -527,7 +504,7 @@ def test_update_payload_guard_and_meta_update(monkeypatch):
     assert sample_col.updated
 
     with pytest.raises(ValueError):
-        ingest.InternalIngestService._update_meta_fields(
+        service._update_meta_fields(
             sample_id="id1",
             payload_meta={"assay": "B"},
             block_fields={"assay"},
@@ -556,9 +533,9 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
     )
     stub = _store_stub()
     stub.sample_handler = _Handler(sample_col)
-    monkeypatch.setattr(ingest, "_repository", lambda: _repo_stub(stub))
+    service = _use_store(monkeypatch, stub)
     monkeypatch.setattr(
-        ingest.InternalIngestService,
+        service,
         "_prepare_update_payload",
         lambda sample_doc, payload: {
             "name": payload["name"],
@@ -574,25 +551,21 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
             "vcf_files": "x",
         },
     )
-    monkeypatch.setattr(
-        ingest.InternalIngestService, "_parse_preload", lambda _: {"snvs": [{"a": 1}]}
-    )
-    monkeypatch.setattr(
-        ingest.InternalIngestService, "_replace_dependents", lambda **_: {"snvs": 1}
-    )
+    monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": [{"a": 1}]})
+    monkeypatch.setattr(service, "_replace_dependents", lambda **_: {"snvs": 1})
     monkeypatch.setattr(ingest, "build_sample_meta_dict", lambda _: {"name": "S1"})
-    monkeypatch.setattr(ingest.InternalIngestService, "_update_meta_fields", lambda **_: None)
+    monkeypatch.setattr(service, "_update_meta_fields", lambda **_: None)
 
-    out = ingest.InternalIngestService._ingest_update({"name": "S1"})
+    out = service._ingest_update({"name": "S1"})
     assert out["status"] == "ok"
 
     with pytest.raises(ValueError):
-        ingest.InternalIngestService._ingest_update({"name": "MISSING"})
+        service._ingest_update({"name": "MISSING"})
 
     with pytest.raises(ValueError):
-        ingest.InternalIngestService.ingest_sample_bundle({}, allow_update=False)
+        service.ingest_sample_bundle({}, allow_update=False)
 
-    monkeypatch.setattr(ingest.InternalIngestService, "_ingest_update", lambda _: {"status": "ok"})
+    monkeypatch.setattr(service, "_ingest_update", lambda _: {"status": "ok"})
     update_payload = {
         "name": "S1",
         "assay": "assay_1",
@@ -606,26 +579,17 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
         "pipeline_version": "1.0.0",
         "vcf_files": "x",
     }
-    assert (
-        ingest.InternalIngestService.ingest_sample_bundle(update_payload, allow_update=True)[
-            "status"
-        ]
-        == "ok"
-    )
+    assert service.ingest_sample_bundle(update_payload, allow_update=True)["status"] == "ok"
 
 
 def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     sample_col = _Col([])
     stub = _store_stub()
     stub.sample_handler = _Handler(sample_col)
-    monkeypatch.setattr(
-        ingest,
-        "_repository",
-        lambda: _repo_stub(stub, new_sample_id="507f1f77bcf86cd799439017"),
-    )
-    monkeypatch.setattr(ingest.InternalIngestService, "_parse_preload", lambda _: {"snvs": []})
-    monkeypatch.setattr(ingest, "_next_unique_name", lambda *_: "S1")
-    monkeypatch.setattr(ingest.InternalIngestService, "_write_dependents", lambda **_: {"snvs": 0})
+    service = _use_store(monkeypatch, stub, new_sample_id="507f1f77bcf86cd799439017")
+    monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": []})
+    monkeypatch.setattr(service, "_next_unique_name", lambda *_: "S1")
+    monkeypatch.setattr(service, "_write_dependents", lambda **_: {"snvs": 0})
 
     class _Valid:
         def model_dump(self, *args, **kwargs):
@@ -637,35 +601,27 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
         ingest, "build_sample_meta_dict", lambda _: {"assay": "A", "case_id": "C", "sample_no": 1}
     )
 
-    out = ingest.InternalIngestService.ingest_sample_bundle({"name": "S1"}, allow_update=False)
+    out = service.ingest_sample_bundle({"name": "S1"}, allow_update=False)
     assert out["status"] == "ok"
 
     monkeypatch.setattr(
-        ingest.InternalIngestService,
-        "_write_dependents",
-        lambda **_: (_ for _ in ()).throw(RuntimeError("boom")),
+        service, "_write_dependents", lambda **_: (_ for _ in ()).throw(RuntimeError("boom"))
     )
     cleaned = {"called": False}
-    monkeypatch.setattr(
-        ingest.InternalIngestService, "_cleanup", lambda _sid: cleaned.update(called=True)
-    )
+    monkeypatch.setattr(service, "_cleanup", lambda _sid: cleaned.update(called=True))
     with pytest.raises(RuntimeError):
-        ingest.InternalIngestService.ingest_sample_bundle({"name": "S2"}, allow_update=False)
+        service.ingest_sample_bundle({"name": "S2"}, allow_update=False)
     assert cleaned["called"]
 
     monkeypatch.setattr(ingest, "normalize_collection_document", lambda _c, doc: dict(doc))
 
-    one = ingest.InternalIngestService.insert_collection_document(
-        collection="variants", document={"a": 1}
-    )
+    one = service.insert_collection_document(collection="variants", document={"a": 1})
     assert one["inserted_count"] == 1
 
-    many = ingest.InternalIngestService.insert_collection_documents(
+    many = service.insert_collection_documents(
         collection="variants", documents=[{"a": 1}, {"b": 2}]
     )
     assert many["inserted_count"] == 2
 
-    zero = ingest.InternalIngestService.insert_collection_documents(
-        collection="variants", documents=[]
-    )
+    zero = service.insert_collection_documents(collection="variants", documents=[])
     assert zero["inserted_count"] == 0

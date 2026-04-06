@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Coyote3"
-version = "1.0.0"
+version = "4.0.0"
 requires-python = ">=3.12"
 readme = "README.md"
 license = {file = "LICENSE.txt"}
@@ -128,7 +128,7 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "D"]
+select = ["E", "F", "I", "D", "TID"]
 # D1xx: missing docstrings — not enforced yet (too many to add at once; future work)
 # D203/D213: conflict with Google style (D211/D212 selected by convention)
 # D400/D401/D415: first-line punctuation — too noisy for existing codebase
@@ -160,6 +160,18 @@ ignore = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"api" = { msg = "UI/runtime-adjacent code must not import backend api.* modules directly; use the HTTP client boundary instead." }
+"pymongo" = { msg = "Mongo driver imports are restricted to infra/common/script layers; keep UI and higher-level runtime code storage-agnostic." }
+"bson" = { msg = "Mongo BSON helpers are restricted to infra/common/script layers; use owned helper seams outside those layers." }
+"motor" = { msg = "Mongo driver imports are restricted to infra/common/script layers; keep UI and higher-level runtime code storage-agnostic." }
+"flask_pymongo" = { msg = "UI and runtime code must not talk to Mongo through Flask-PyMongo; use backend HTTP or infra handler seams instead." }
+
+[tool.ruff.lint.per-file-ignores]
+"api/**/*.py" = ["TID251"]
+"scripts/**/*.py" = ["TID251"]
+"tests/**/*.py" = ["TID251"]
 
 [tool.ruff.format]
 quote-style = "double"

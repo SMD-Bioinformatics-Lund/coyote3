@@ -56,14 +56,14 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 
 async def validation_exception_handler(_request: Request, exc: RequestValidationError):
-    """Validation exception handler.
+    """Translate FastAPI validation errors into the API error contract.
 
     Args:
-        _request (Request): Value for ``_request``.
-        exc (RequestValidationError): Value for ``exc``.
+        _request: Incoming request that failed validation.
+        exc: Validation error raised by FastAPI.
 
     Returns:
-        The function result.
+        JSONResponse: Normalized 422 response payload.
     """
     issues = []
     for err in exc.errors():

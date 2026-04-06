@@ -18,41 +18,29 @@ from api.contracts.public import (
     PublicGenelistViewPayload,
     PublicGeneSymbolsPayload,
 )
-from api.core.public.catalog import PublicCatalogService
-from api.extensions import store, util
+from api.deps.services import get_public_catalog_service
+from api.extensions import util
 from api.http import api_error as _api_error
+from api.services.public.catalog import PublicCatalogService
 
 router = APIRouter(tags=["public"])
-
-if not hasattr(util, "common"):
-    util.init_util()
-
-
-def _catalog_service() -> type[PublicCatalogService]:
-    """Catalog service.
-
-    Returns:
-            The  catalog service result.
-    """
-    if not PublicCatalogService.has_repository():
-        PublicCatalogService.set_repository(store.get_public_catalog_repository())
-    return PublicCatalogService
+__all__ = ["router", "PublicCatalogService"]
 
 
 @router.get(
     "/api/v1/public/genelists/{genelist_id}/view_context", response_model=PublicGenelistViewPayload
 )
 def public_genelist_view_context_read(genelist_id: str, assay: str | None = None):
-    """Public genelist view context read.
+    """Return public view context for a genelist.
 
     Args:
-        genelist_id (str): Value for ``genelist_id``.
-        assay (str | None): Value for ``assay``.
+        genelist_id: Genelist identifier to inspect.
+        assay: Optional assay used to scope visible genes.
 
     Returns:
-        The function result.
+        dict: Public genelist view payload.
     """
-    service = _catalog_service()
+    service = get_public_catalog_service()
     payload = service.genelist_view_context(genelist_id, assay)
     if not payload:
         raise _api_error(404, "Genelist not found")
@@ -61,15 +49,15 @@ def public_genelist_view_context_read(genelist_id: str, assay: str | None = None
 
 @router.get("/api/v1/public/asp/{asp_id}/genes", response_model=PublicAspGenesPayload)
 def public_asp_genes_read(asp_id: str):
-    """Public asp genes read.
+    """Return public genes for an assay panel.
 
     Args:
-        asp_id (str): Value for ``asp_id``.
+        asp_id: Assay-panel identifier to inspect.
 
     Returns:
-        The function result.
+        dict: Public assay-panel gene payload.
     """
-    service = _catalog_service()
+    service = get_public_catalog_service()
     return util.common.convert_to_serializable(service.asp_genes_payload(asp_id))
 
 
@@ -78,15 +66,15 @@ def public_asp_genes_read(asp_id: str):
     response_model=PublicGeneSymbolsPayload,
 )
 def public_assay_catalog_isgl_genes_view_read(isgl_key: str):
-    """Public assay catalog isgl genes view read.
+    """Return public catalog genes for a catalog genelist.
 
     Args:
-        isgl_key (str): Value for ``isgl_key``.
+        isgl_key: Catalog genelist identifier to inspect.
 
     Returns:
-        The function result.
+        dict: Public gene-symbol payload.
     """
-    service = _catalog_service()
+    service = get_public_catalog_service()
     return util.common.convert_to_serializable(service.assay_catalog_gene_symbols_payload(isgl_key))
 
 
@@ -94,12 +82,12 @@ def public_assay_catalog_isgl_genes_view_read(isgl_key: str):
     "/api/v1/public/assay-catalog-matrix/context", response_model=PublicAssayCatalogMatrixPayload
 )
 def public_assay_catalog_matrix_context_read():
-    """Public assay catalog matrix context read.
+    """Return the public assay-catalog matrix payload.
 
     Returns:
-        The function result.
+        dict: Assay-catalog matrix payload.
     """
-    service = _catalog_service()
+    service = get_public_catalog_service()
     catalog = service.load_catalog()
     modalities = catalog.get("modalities") or {}
     order = service.modalities_order() or list(modalities.keys())
@@ -111,13 +99,13 @@ def public_assay_catalog_matrix_context_read():
     matrix: dict[str, dict] = {}
 
     def fetch_asp_genes(asp_id: str) -> set[str]:
-        """Fetch asp genes.
+        """Return the covered genes for an assay panel.
 
         Args:
-            asp_id (str): Value for ``asp_id``.
+            asp_id: Assay-panel identifier to inspect.
 
         Returns:
-            set[str]: The function result.
+            set[str]: Covered gene symbols for the assay panel.
         """
         try:
             _gene_mode, gene_objs, _stats = service.resolve_gene_table(asp_id, None)
@@ -230,17 +218,8 @@ def public_assay_catalog_context_read(
     cat: str | None = None,
     isgl_key: str | None = None,
 ):
-    """Public assay catalog context read.
-
-    Args:
-        mod (str | None): Value for ``mod``.
-        cat (str | None): Value for ``cat``.
-        isgl_key (str | None): Value for ``isgl_key``.
-
-    Returns:
-        The function result.
-    """
-    service = _catalog_service()
+    """Return public assay-catalog context for the selected modality/category."""
+    service = get_public_catalog_service()
     catalog = service.load_catalog()
     order = service.modalities_order()
     if not order:
@@ -326,17 +305,8 @@ def public_assay_catalog_genes_csv_context_read(
     cat: str | None = None,
     isgl_key: str | None = None,
 ):
-    """Public assay catalog genes csv context read.
-
-    Args:
-        mod (str): Value for ``mod``.
-        cat (str | None): Value for ``cat``.
-        isgl_key (str | None): Value for ``isgl_key``.
-
-    Returns:
-        The function result.
-    """
-    service = _catalog_service()
+    """Return a CSV export payload for public assay-catalog genes."""
+    service = get_public_catalog_service()
     selected_mod = service.normalize_mod(mod)
     if not selected_mod:
         raise _api_error(404, "Modality not found")

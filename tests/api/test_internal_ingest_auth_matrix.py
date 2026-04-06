@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
@@ -99,7 +101,18 @@ def test_internal_ingest_collection_requires_auth_and_admin(monkeypatch):
         lambda _request: _user(role="admin", level=100),
     )
     user = next(dep(request))
-    result = internal_router.ingest_collection_document_internal(payload=payload, user=user)
+    ingest_service = SimpleNamespace(
+        insert_collection_document=lambda **_: {
+            "status": "ok",
+            "collection": "users",
+            "inserted_count": 1,
+        }
+    )
+    result = internal_router.ingest_collection_document_internal(
+        payload=payload,
+        user=user,
+        ingest_service=ingest_service,
+    )
     assert result["status"] == "ok"
 
 
@@ -140,12 +153,20 @@ def test_internal_ingest_sample_bundle_update_requires_edit_sample_permission(mo
         internal_router.ingest_sample_bundle_internal(
             payload=payload,
             user=_user(role="developer", level=50, permissions=[]),
+            ingest_service=SimpleNamespace(
+                parse_yaml_payload=lambda raw: raw,
+                ingest_sample_bundle=_ingest,
+            ),
         )
     assert missing_perm_exc.value.status_code == 403
 
     response = internal_router.ingest_sample_bundle_internal(
         payload=payload,
         user=_user(role="developer", level=50, permissions=["edit_sample"]),
+        ingest_service=SimpleNamespace(
+            parse_yaml_payload=lambda raw: raw,
+            ingest_sample_bundle=_ingest,
+        ),
     )
     assert response["status"] == "ok"
     assert calls["allow_update"] is True

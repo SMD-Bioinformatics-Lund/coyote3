@@ -42,14 +42,7 @@ router = APIRouter(tags=["auth"])
 
 @router.get("/api/v1/auth/whoami", response_model=WhoamiPayload)
 def whoami(user: ApiUser = Depends(require_access(min_level=1))):
-    """Whoami.
-
-    Args:
-        user (ApiUser): Value for ``user``.
-
-    Returns:
-        The function result.
-    """
+    """Return the current authenticated user's identity payload."""
     return {
         "username": user.username,
         "role": user.role,
@@ -60,14 +53,7 @@ def whoami(user: ApiUser = Depends(require_access(min_level=1))):
 
 
 def _login_response(payload: ApiAuthLoginRequest):
-    """Login response.
-
-    Args:
-            payload: Payload.
-
-    Returns:
-            The  login response result.
-    """
+    """Build the login response and set the session cookie."""
     username = payload.username.strip()
     password = payload.password
     user_doc = authenticate_credentials(username, password)
@@ -138,25 +124,14 @@ def _validate_new_password(new_password: str) -> None:
     summary="Create session",
 )
 def create_auth_session(payload: ApiAuthLoginRequest):
-    """Create auth session.
-
-    Args:
-        payload (ApiAuthLoginRequest): Value for ``payload``.
-
-    Returns:
-        The function result.
-    """
+    """Create an authenticated API session."""
     response = _login_response(payload)
     response.status_code = 201
     return response
 
 
 def _logout_response():
-    """Logout response.
-
-    Returns:
-            The  logout response result.
-    """
+    """Build the logout response and clear the session cookie."""
     response = JSONResponse(status_code=200, content={"status": "ok"})
     response.delete_cookie(key=get_api_session_cookie_name(), path="/")
     return response
@@ -168,11 +143,7 @@ def _logout_response():
     summary="Delete current session",
 )
 def delete_auth_session():
-    """Delete auth session.
-
-    Returns:
-        The function result.
-    """
+    """Delete the current authenticated session."""
     return _logout_response()
 
 
@@ -182,14 +153,7 @@ def delete_auth_session():
     summary="Get current authenticated session",
 )
 def auth_session(user: ApiUser = Depends(require_access(min_level=1))):
-    """Auth session.
-
-    Args:
-        user (ApiUser): Value for ``user``.
-
-    Returns:
-        The function result.
-    """
+    """Return the current authenticated session payload."""
     return util.common.convert_to_serializable({"status": "ok", "user": serialize_api_user(user)})
 
 
@@ -241,15 +205,7 @@ def confirm_password_reset(payload: ApiPasswordResetConfirmRequest):
 
 
 async def http_exception_handler(_request: Request, exc: HTTPException):
-    """Http exception handler.
-
-    Args:
-        _request (Request): Value for ``_request``.
-        exc (HTTPException): Value for ``exc``.
-
-    Returns:
-        The function result.
-    """
+    """Convert ``HTTPException`` values into the standard JSON error shape."""
     if isinstance(exc.detail, dict):
         return JSONResponse(status_code=exc.status_code, content=exc.detail)
     return JSONResponse(

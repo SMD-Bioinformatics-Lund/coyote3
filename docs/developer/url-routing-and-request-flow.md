@@ -13,7 +13,7 @@ This section explains how a user action moves from UI to API to data storage.
 | UI routing | `coyote/blueprints` | Page routes, request context, API calls |
 | API routing | `api/routers` | Request/response contracts, auth checks |
 | Business logic | `api/services`, `api/core` | Domain rules and orchestration |
-| Persistence | `api/infra/db`, `api/infra/repositories` | Mongo/Redis read-write |
+| Persistence | `api/infra/mongo/handlers` | Collection-scoped Mongo read-write |
 | Data stores | MongoDB, Redis | Durable data and cache/session |
 
 ## Concrete example
@@ -40,7 +40,8 @@ The API router in `api/routers/...` validates request schema and delegates to se
 
 ### Persistence
 
-Handlers/repositories under `api/infra/db` and `api/infra/repositories` query/update MongoDB collections and use Redis where configured.
+Handlers under `api/infra/mongo/handlers` query/update MongoDB collections.
+Multi-collection workflows stay in `api/services` and `api/core`.
 
 ## Collection relationship summary
 

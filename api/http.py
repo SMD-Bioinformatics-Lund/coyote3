@@ -19,7 +19,7 @@ def api_error(status_code: int, message: str) -> HTTPException:
         message: Human-readable error summary.
 
     Returns:
-        A ``fastapi.HTTPException`` with the repository-standard error body.
+        A ``fastapi.HTTPException`` with the standard API error body.
     """
     return HTTPException(
         status_code=status_code,
@@ -37,7 +37,7 @@ def get_formatted_assay_config(sample: dict):
         The formatted assay configuration payload, or ``None`` when no assay
         configuration is available for the sample.
     """
-    assay_config = store.get_coverage_route_repository().get_aspc_no_meta(
+    assay_config = store.assay_configuration_handler.get_aspc_no_meta(
         str(sample.get("assay") or ""),
         str(sample.get("profile", "production") or "production"),
     )

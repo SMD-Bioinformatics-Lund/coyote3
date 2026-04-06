@@ -6,15 +6,14 @@ from typing import Any
 
 from api.contracts.managed_resources import managed_resource_spec
 from api.contracts.schemas import normalize_collection_document
-from api.extensions import store
 from api.http import api_error
 from api.services.accounts.common import (
     admin_list_pagination,
     build_managed_form,
+    change_payload,
     current_actor,
     inject_version_history,
     lower,
-    mutation_payload,
     normalize_managed_form_payload,
     utc_now,
 )
@@ -33,54 +32,85 @@ CANONICAL_ROLE_LEVELS: dict[str, int] = {
 class RoleManagementService:
     """Role-management workflows for privileged HTTP routes."""
 
-    def __init__(self, repository: Any | None = None) -> None:
-        """Build the service with an admin repository."""
-        self.repository = repository or store.get_admin_repository()
+    @classmethod
+    def from_store(cls, store: Any) -> "RoleManagementService":
+        """Build the service from the shared store."""
+        return cls(
+            roles_handler=store.roles_handler,
+            permissions_handler=store.permissions_handler,
+        )
+
+    def __init__(
+        self,
+        *,
+        roles_handler: Any,
+        permissions_handler: Any,
+    ) -> None:
+        """Create the service for managed role workflows."""
         self._spec = managed_resource_spec("role")
+        self.roles_handler = roles_handler
+        self.permissions_handler = permissions_handler
 
     def list_roles_payload(
         self, *, q: str = "", page: int = 1, per_page: int = 30
     ) -> dict[str, Any]:
-        """List roles payload.
+        """Return the admin list payload for roles.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Role rows and pagination metadata.
         """
-        roles, total = self.repository.search_roles(q=q, page=page, per_page=per_page)
+        rows, total = self.roles_handler.search_roles(q=q, page=page, per_page=per_page)
+        roles = [dict(item) for item in rows if isinstance(item, dict)]
         return {
             "roles": roles,
-            "pagination": admin_list_pagination(q=q, page=page, per_page=per_page, total=total),
+            "pagination": admin_list_pagination(
+                q=q, page=page, per_page=per_page, total=int(total or 0)
+            ),
         }
 
     def create_context_payload(self, *, actor_username: str) -> dict[str, Any]:
-        """Create context payload.
+        """Return form context for creating a role.
 
         Args:
-            actor_username (str): Value for ``actor_username``.
+            actor_username: Username used for default form metadata.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Form payload for the create view.
         """
         form = build_managed_form(self._spec, actor_username=actor_username)
-        options = self.repository.list_permission_policy_options()
+        options = [
+            {
+                "value": p.get("permission_id"),
+                "label": p.get("label", p.get("permission_id")),
+                "category": p.get("category", "Uncategorized"),
+            }
+            for p in self.permissions_handler.get_all_permissions(is_active=True)
+        ]
         form["fields"]["permissions"]["options"] = options
         form["fields"]["deny_permissions"]["options"] = options
         return {"form": form}
 
     def context_payload(self, *, role_id: str) -> dict[str, Any]:
-        """Context payload.
+        """Return form context for editing a role.
 
         Args:
-            role_id (str): Value for ``role_id``.
+            role_id: Role identifier to load.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Existing role data and edit form payload.
         """
-        role = self.repository.get_role(role_id)
+        role = self.roles_handler.get_role(role_id)
         if not role:
             raise api_error(404, "Role not found")
         form = build_managed_form(self._spec)
-        options = self.repository.list_permission_policy_options()
+        options = [
+            {
+                "value": p.get("permission_id"),
+                "label": p.get("label", p.get("permission_id")),
+                "category": p.get("category", "Uncategorized"),
+            }
+            for p in self.permissions_handler.get_all_permissions(is_active=True)
+        ]
         form["fields"]["permissions"]["options"] = options
         form["fields"]["deny_permissions"]["options"] = options
         form["fields"]["permissions"]["default"] = role.get("permissions")
@@ -88,20 +118,20 @@ class RoleManagementService:
         return {"role": role, "form": form}
 
     def create_role(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
-        """Create role.
+        """Create a new role from submitted form data.
 
         Args:
-            payload (dict[str, Any]): Value for ``payload``.
-            actor_username (str): Value for ``actor_username``.
+            payload: Submitted form payload.
+            actor_username: User creating the role.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Normalized change response payload.
         """
         role = normalize_managed_form_payload(self._spec, payload.get("form_data", {}) or {})
         role_id = lower(role.get("name"))
         role.setdefault("is_active", True)
         role["role_id"] = role_id
-        existing_role = self.repository.get_role(role_id)
+        existing_role = self.roles_handler.get_role(role_id)
         if isinstance(existing_role, dict) and (
             existing_role.get("role_id") or existing_role.get("_id")
         ):
@@ -114,23 +144,23 @@ class RoleManagementService:
             role = normalize_collection_document(self._spec.collection, role)
         except Exception as exc:
             raise api_error(400, f"Invalid role payload: {exc}") from exc
-        self.repository.create_role(role)
-        return mutation_payload(resource="role", resource_id=role_id, action="create")
+        self.roles_handler.create_role(role)
+        return change_payload(resource="role", resource_id=role_id, action="create")
 
     def update_role(
         self, *, role_id: str, payload: dict[str, Any], actor_username: str
     ) -> dict[str, Any]:
-        """Update role.
+        """Update an existing role.
 
         Args:
-            role_id (str): Value for ``role_id``.
-            payload (dict[str, Any]): Value for ``payload``.
-            actor_username (str): Value for ``actor_username``.
+            role_id: Role identifier to update.
+            payload: Submitted form payload.
+            actor_username: User updating the role.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Normalized change response payload.
         """
-        role = self.repository.get_role(role_id)
+        role = self.roles_handler.get_role(role_id)
         if not role:
             raise api_error(404, "Role not found")
         updated_role = normalize_managed_form_payload(
@@ -155,46 +185,46 @@ class RoleManagementService:
             updated_role = normalize_collection_document(self._spec.collection, updated_role)
         except Exception as exc:
             raise api_error(400, f"Invalid role payload: {exc}") from exc
-        self.repository.update_role(role_id, updated_role)
-        return mutation_payload(resource="role", resource_id=role_id, action="update")
+        self.roles_handler.update_role(role_id, updated_role)
+        return change_payload(resource="role", resource_id=role_id, action="update")
 
     def toggle_role(self, *, role_id: str) -> dict[str, Any]:
-        """Toggle role.
+        """Toggle whether a role is active.
 
         Args:
-            role_id (str): Value for ``role_id``.
+            role_id: Role identifier to toggle.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Normalized change response payload.
         """
-        role = self.repository.get_role(role_id)
+        role = self.roles_handler.get_role(role_id)
         if not role:
             raise api_error(404, "Role not found")
         new_status = not bool(role.get("is_active"))
-        self.repository.set_role_active(role_id, new_status)
-        payload = mutation_payload(resource="role", resource_id=role_id, action="toggle")
+        self.roles_handler.toggle_role_active(role_id, new_status)
+        payload = change_payload(resource="role", resource_id=role_id, action="toggle")
         payload["meta"]["is_active"] = new_status
         return payload
 
     def delete_role(self, *, role_id: str) -> dict[str, Any]:
-        """Delete role.
+        """Delete an existing role.
 
         Args:
-            role_id (str): Value for ``role_id``.
+            role_id: Role identifier to delete.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Normalized change response payload.
         """
-        role = self.repository.get_role(role_id)
+        role = self.roles_handler.get_role(role_id)
         if not role:
             raise api_error(404, "Role not found")
-        self.repository.delete_role(role_id)
-        return mutation_payload(resource="role", resource_id=role_id, action="delete")
+        self.roles_handler.delete_role(role_id)
+        return change_payload(resource="role", resource_id=role_id, action="delete")
 
     def role_exists(self, *, role_id: str) -> bool:
         """Return whether a role business key already exists."""
         normalized = lower(role_id)
         if not normalized:
             return False
-        role = self.repository.get_role(normalized)
+        role = self.roles_handler.get_role(normalized)
         return bool(isinstance(role, dict) and (role.get("role_id") or role.get("_id")))

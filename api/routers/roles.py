@@ -5,8 +5,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.admin import (
+    AdminChangePayload,
     AdminExistsPayload,
-    AdminMutationPayload,
     AdminRoleContextPayload,
     AdminRoleCreateContextPayload,
     AdminRolesListPayload,
@@ -20,11 +20,7 @@ router = APIRouter(tags=["admin-roles"])
 
 
 def _service() -> RoleManagementService:
-    """Service.
-
-    Returns:
-            The  service result.
-    """
+    """Return the admin role workflow service."""
     return get_admin_role_service()
 
 
@@ -38,15 +34,7 @@ def list_roles_read(
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):
-    """List roles read.
-
-    Args:
-        user (ApiUser): Value for ``user``.
-        service (RoleManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return the admin role list."""
     _ = user
     return util.common.convert_to_serializable(
         service.list_roles_payload(q=q, page=page, per_page=per_page)
@@ -60,15 +48,7 @@ def create_role_context_read(
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):
-    """Create role context read.
-
-    Args:
-        user (ApiUser): Value for ``user``.
-        service (RoleManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return create-form context for a role."""
     return util.common.convert_to_serializable(
         service.create_context_payload(actor_username=user.username)
     )
@@ -82,38 +62,20 @@ def role_context_read(
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):
-    """Role context read.
-
-    Args:
-        role_id (str): Value for ``role_id``.
-        user (ApiUser): Value for ``user``.
-        service (RoleManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return edit-form context for a role."""
     _ = user
     return util.common.convert_to_serializable(service.context_payload(role_id=role_id))
 
 
 def _create_role(payload: dict, actor_username: str, service: RoleManagementService):
-    """Create role.
-
-    Args:
-            payload: Payload.
-            actor_username: Actor username.
-            service: Service.
-
-    Returns:
-            The  create role result.
-    """
+    """Create a role and serialize the change response."""
     return util.common.convert_to_serializable(
         service.create_role(payload=payload, actor_username=actor_username)
     )
 
 
 @router.post(
-    "/api/v1/roles", response_model=AdminMutationPayload, status_code=201, summary="Create role"
+    "/api/v1/roles", response_model=AdminChangePayload, status_code=201, summary="Create role"
 )
 def create_role(
     payload: dict = Body(default_factory=dict),
@@ -122,37 +84,18 @@ def create_role(
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):
-    """Create role.
-
-    Args:
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (RoleManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Create a role."""
     return _create_role(payload=payload, actor_username=user.username, service=service)
 
 
 def _update_role(role_id: str, payload: dict, actor_username: str, service: RoleManagementService):
-    """Update role.
-
-    Args:
-            role_id: Role id.
-            payload: Payload.
-            actor_username: Actor username.
-            service: Service.
-
-    Returns:
-            The  update role result.
-    """
+    """Update a role and serialize the change response."""
     return util.common.convert_to_serializable(
         service.update_role(role_id=role_id, payload=payload, actor_username=actor_username)
     )
 
 
-@router.put("/api/v1/roles/{role_id}", response_model=AdminMutationPayload, summary="Update role")
+@router.put("/api/v1/roles/{role_id}", response_model=AdminChangePayload, summary="Update role")
 def update_role(
     role_id: str,
     payload: dict = Body(default_factory=dict),
@@ -161,38 +104,20 @@ def update_role(
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):
-    """Update role.
-
-    Args:
-        role_id (str): Value for ``role_id``.
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (RoleManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Update a role."""
     return _update_role(
         role_id=role_id, payload=payload, actor_username=user.username, service=service
     )
 
 
 def _toggle_role(role_id: str, service: RoleManagementService):
-    """Toggle role.
-
-    Args:
-            role_id: Role id.
-            service: Service.
-
-    Returns:
-            The  toggle role result.
-    """
+    """Toggle a role's active status and serialize the response."""
     return util.common.convert_to_serializable(service.toggle_role(role_id=role_id))
 
 
 @router.patch(
     "/api/v1/roles/{role_id}/status",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     summary="Toggle role active status",
 )
 def toggle_role_status(
@@ -202,36 +127,17 @@ def toggle_role_status(
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):
-    """Toggle role status.
-
-    Args:
-        role_id (str): Value for ``role_id``.
-        user (ApiUser): Value for ``user``.
-        service (RoleManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Toggle a role's active status."""
     _ = user
     return _toggle_role(role_id=role_id, service=service)
 
 
 def _delete_role(role_id: str, service: RoleManagementService):
-    """Delete role.
-
-    Args:
-            role_id: Role id.
-            service: Service.
-
-    Returns:
-            The  delete role result.
-    """
+    """Delete a role and serialize the change response."""
     return util.common.convert_to_serializable(service.delete_role(role_id=role_id))
 
 
-@router.delete(
-    "/api/v1/roles/{role_id}", response_model=AdminMutationPayload, summary="Delete role"
-)
+@router.delete("/api/v1/roles/{role_id}", response_model=AdminChangePayload, summary="Delete role")
 def delete_role(
     role_id: str,
     user: ApiUser = Depends(
@@ -239,22 +145,13 @@ def delete_role(
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):
-    """Delete role.
-
-    Args:
-        role_id (str): Value for ``role_id``.
-        user (ApiUser): Value for ``user``.
-        service (RoleManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Delete a role."""
     _ = user
     return _delete_role(role_id=role_id, service=service)
 
 
 @router.post("/api/v1/roles/validate_role_id", response_model=AdminExistsPayload)
-def validate_role_id_mutation(
+def validate_role_id_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
         require_access(permission="create_role", min_role="admin", min_level=99999)
@@ -277,5 +174,5 @@ __all__ = [
     "role_context_read",
     "toggle_role_status",
     "update_role",
-    "validate_role_id_mutation",
+    "validate_role_id_change",
 ]

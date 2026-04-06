@@ -63,7 +63,7 @@ Coyote3 is developed and maintained by the bioinformatics team at the **Section 
 
 ## Project Structure
 
-- `api/` backend services, contracts, routers, repositories, and security
+- `api/` backend services, contracts, routers, handlers, and security
 - `coyote/` Flask UI blueprints, templates, and web-side API client
 - `deploy/` Docker Compose stacks and deployment assets
 - `scripts/` bootstrap, ingest, validation, and operations scripts

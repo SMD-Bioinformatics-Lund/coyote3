@@ -69,5 +69,5 @@ nav:
   - Maintainers:
       - Maintainer Guide: maintainers/maintainer-guide.md
       - Refactor Guidelines: maintainers/refactor-guidelines.md
-      - Repository Standards: maintainers/repository-standards.md
+      - Architecture Standards: maintainers/architecture-standards.md
       - Developer Guide: maintainers/developer-guide.md

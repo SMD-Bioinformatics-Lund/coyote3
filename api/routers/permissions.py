@@ -5,8 +5,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.admin import (
+    AdminChangePayload,
     AdminExistsPayload,
-    AdminMutationPayload,
     AdminPermissionContextPayload,
     AdminPermissionCreateContextPayload,
     AdminPermissionsListPayload,
@@ -20,25 +20,12 @@ router = APIRouter(tags=["admin-permissions"])
 
 
 def _service() -> PermissionManagementService:
-    """Service.
-
-    Returns:
-            The  service result.
-    """
+    """Return the admin permission workflow service."""
     return get_permission_management_service()
 
 
 def _create_permission(payload: dict, actor_username: str, service: PermissionManagementService):
-    """Create permission.
-
-    Args:
-            payload: Payload.
-            actor_username: Actor username.
-            service: Service.
-
-    Returns:
-            The  create permission result.
-    """
+    """Create a permission policy and serialize the change response."""
     return util.common.convert_to_serializable(
         service.create_permission(payload=payload, actor_username=actor_username)
     )
@@ -46,7 +33,7 @@ def _create_permission(payload: dict, actor_username: str, service: PermissionMa
 
 @router.post(
     "/api/v1/permissions",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     status_code=201,
     summary="Create permission policy",
 )
@@ -57,16 +44,7 @@ def create_permission(
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
-    """Create permission.
-
-    Args:
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (PermissionManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Create a permission policy."""
     return _create_permission(payload=payload, actor_username=user.username, service=service)
 
 
@@ -80,15 +58,7 @@ def list_permissions_read(
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
-    """List permissions read.
-
-    Args:
-        user (ApiUser): Value for ``user``.
-        service (PermissionManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return the admin permission-policy list."""
     _ = user
     return util.common.convert_to_serializable(
         service.list_permissions_payload(q=q, page=page, per_page=per_page)
@@ -104,15 +74,7 @@ def create_permission_context_read(
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
-    """Create permission context read.
-
-    Args:
-        user (ApiUser): Value for ``user``.
-        service (PermissionManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return create-form context for a permission policy."""
     return util.common.convert_to_serializable(
         service.create_context_payload(actor_username=user.username)
     )
@@ -126,16 +88,7 @@ def permission_context_read(
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
-    """Permission context read.
-
-    Args:
-        perm_id (str): Value for ``perm_id``.
-        user (ApiUser): Value for ``user``.
-        service (PermissionManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return edit-form context for a permission policy."""
     _ = user
     return util.common.convert_to_serializable(service.context_payload(permission_id=perm_id))
 
@@ -143,17 +96,7 @@ def permission_context_read(
 def _update_permission(
     permission_id: str, payload: dict, actor_username: str, service: PermissionManagementService
 ):
-    """Update permission.
-
-    Args:
-            permission_id: Permission id.
-            payload: Payload.
-            actor_username: Actor username.
-            service: Service.
-
-    Returns:
-            The  update permission result.
-    """
+    """Update a permission policy and serialize the change response."""
     return util.common.convert_to_serializable(
         service.update_permission(
             permission_id=permission_id, payload=payload, actor_username=actor_username
@@ -163,7 +106,7 @@ def _update_permission(
 
 @router.put(
     "/api/v1/permissions/{perm_id}",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     summary="Update permission policy",
 )
 def update_permission(
@@ -174,32 +117,14 @@ def update_permission(
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
-    """Update permission.
-
-    Args:
-        perm_id (str): Value for ``perm_id``.
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (PermissionManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Update a permission policy."""
     return _update_permission(
         permission_id=perm_id, payload=payload, actor_username=user.username, service=service
     )
 
 
 def _toggle_permission(permission_id: str, service: PermissionManagementService):
-    """Toggle permission.
-
-    Args:
-            permission_id: Permission id.
-            service: Service.
-
-    Returns:
-            The  toggle permission result.
-    """
+    """Toggle a permission policy and serialize the change response."""
     return util.common.convert_to_serializable(
         service.toggle_permission(permission_id=permission_id)
     )
@@ -207,7 +132,7 @@ def _toggle_permission(permission_id: str, service: PermissionManagementService)
 
 @router.patch(
     "/api/v1/permissions/{perm_id}/status",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     summary="Toggle permission policy active status",
 )
 def toggle_permission_status(
@@ -217,30 +142,13 @@ def toggle_permission_status(
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
-    """Toggle permission status.
-
-    Args:
-        perm_id (str): Value for ``perm_id``.
-        user (ApiUser): Value for ``user``.
-        service (PermissionManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Toggle a permission policy's active status."""
     _ = user
     return _toggle_permission(permission_id=perm_id, service=service)
 
 
 def _delete_permission(permission_id: str, service: PermissionManagementService):
-    """Delete permission.
-
-    Args:
-            permission_id: Permission id.
-            service: Service.
-
-    Returns:
-            The  delete permission result.
-    """
+    """Delete a permission policy and serialize the change response."""
     return util.common.convert_to_serializable(
         service.delete_permission(permission_id=permission_id)
     )
@@ -248,7 +156,7 @@ def _delete_permission(permission_id: str, service: PermissionManagementService)
 
 @router.delete(
     "/api/v1/permissions/{perm_id}",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     summary="Delete permission policy",
 )
 def delete_permission(
@@ -258,22 +166,13 @@ def delete_permission(
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
-    """Delete permission.
-
-    Args:
-        perm_id (str): Value for ``perm_id``.
-        user (ApiUser): Value for ``user``.
-        service (PermissionManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Delete a permission policy."""
     _ = user
     return _delete_permission(permission_id=perm_id, service=service)
 
 
 @router.post("/api/v1/permissions/validate_permission_id", response_model=AdminExistsPayload)
-def validate_permission_id_mutation(
+def validate_permission_id_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
         require_access(permission="create_permission_policy", min_role="admin", min_level=99999)
@@ -296,5 +195,5 @@ __all__ = [
     "permission_context_read",
     "toggle_permission_status",
     "update_permission",
-    "validate_permission_id_mutation",
+    "validate_permission_id_change",
 ]

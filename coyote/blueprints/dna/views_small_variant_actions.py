@@ -22,7 +22,7 @@ def headers() -> dict[str, str]:
     """Headers.
 
     Returns:
-        dict[str, str]: The function result.
+        dict[str, str]: Normalized return value.
     """
     return forward_headers()
 
@@ -31,12 +31,12 @@ def call_api(sample_id: str, log_message: str, api_call: Callable[[], Any]) -> b
     """Call api.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        log_message (str): Value for ``log_message``.
-        api_call (Callable[[], Any]): Value for ``api_call``.
+        sample_id (str): Normalized ``sample_id``.
+        log_message (str): Normalized ``log_message``.
+        api_call (Callable[[], Any]): Normalized ``api_call``.
 
     Returns:
-        bool: The function result.
+        bool: Normalized return value.
     """
     try:
         api_call()
@@ -54,7 +54,7 @@ def resolve_target_id(*keys: str) -> str:
         *keys (str): Additional positional values for ``keys``.
 
     Returns:
-        str: The function result.
+        str: Normalized return value.
     """
     for key in keys:
         value = request.view_args.get(key)
@@ -67,10 +67,10 @@ def derive_nomenclature(form_data: dict[str, Any]) -> str:
     """Derive nomenclature.
 
     Args:
-        form_data (dict[str, Any]): Value for ``form_data``.
+        form_data (dict[str, Any]): Normalized ``form_data``.
 
     Returns:
-        str: The function result.
+        str: Normalized return value.
     """
     if form_data.get("fusionpoints"):
         return "f"
@@ -85,10 +85,10 @@ def derive_resource_type(form_data: dict[str, Any]) -> str:
     """Derive resource type.
 
     Args:
-        form_data (dict[str, Any]): Value for ``form_data``.
+        form_data (dict[str, Any]): Normalized ``form_data``.
 
     Returns:
-        str: The function result.
+        str: Normalized return value.
     """
     nomenclature = derive_nomenclature(form_data)
     if nomenclature == "f":
@@ -104,12 +104,12 @@ def redirect_target(sample_id: str, target_id: str, nomenclature: str) -> Respon
     """Redirect target.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        target_id (str): Value for ``target_id``.
-        nomenclature (str): Value for ``nomenclature``.
+        sample_id (str): Normalized ``sample_id``.
+        target_id (str): Normalized ``target_id``.
+        nomenclature (str): Normalized ``nomenclature``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     if nomenclature == "f":
         return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=target_id))
@@ -131,12 +131,12 @@ def bulk_toggle(
     """Bulk toggle.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        enabled (str | None): Value for ``enabled``.
-        action (str | None): Value for ``action``.
-        resource_ids (list[str]): Value for ``resource_ids``.
-        operation_label (str): Value for ``operation_label``.
-        endpoint (str): Value for ``endpoint``.
+        sample_id (str): Normalized ``sample_id``.
+        enabled (str | None): Normalized ``enabled``.
+        action (str | None): Normalized ``action``.
+        resource_ids (list[str]): Normalized ``resource_ids``.
+        operation_label (str): Normalized ``operation_label``.
+        endpoint (str): Normalized ``endpoint``.
 
     Returns:
         None.
@@ -167,11 +167,11 @@ def unmark_false_variant(sample_id: str, var_id: str) -> Response:
     """Unmark false variant.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
+        sample_id (str): Normalized ``sample_id``.
+        var_id (str): Normalized ``var_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     call_api(
         sample_id,
@@ -192,11 +192,11 @@ def mark_false_variant(sample_id: str, var_id: str) -> Response:
     """Mark false variant.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
+        sample_id (str): Normalized ``sample_id``.
+        var_id (str): Normalized ``var_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     call_api(
         sample_id,
@@ -217,11 +217,11 @@ def unmark_interesting_variant(sample_id: str, var_id: str) -> Response:
     """Unmark interesting variant.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
+        sample_id (str): Normalized ``sample_id``.
+        var_id (str): Normalized ``var_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     call_api(
         sample_id,
@@ -240,11 +240,11 @@ def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
     """Mark interesting variant.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
+        sample_id (str): Normalized ``sample_id``.
+        var_id (str): Normalized ``var_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     call_api(
         sample_id,
@@ -263,11 +263,11 @@ def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
     """Unmark irrelevant variant.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
+        sample_id (str): Normalized ``sample_id``.
+        var_id (str): Normalized ``var_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     call_api(
         sample_id,
@@ -286,11 +286,11 @@ def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
     """Mark irrelevant variant.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
+        sample_id (str): Normalized ``sample_id``.
+        var_id (str): Normalized ``var_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     call_api(
         sample_id,
@@ -309,11 +309,11 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
     """Add variant to blacklist.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
+        sample_id (str): Normalized ``sample_id``.
+        var_id (str): Normalized ``var_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     call_api(
         sample_id,
@@ -351,12 +351,12 @@ def add_var_comment(sample_id: str, id: str | None = None, **kwargs: Any) -> Res
     """Add var comment.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        id (str | None): Value for ``id``.
+        sample_id (str): Normalized ``sample_id``.
+        id (str | None): Normalized ``id``.
         **kwargs (Any): Additional keyword values for ``kwargs``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     _ = kwargs
     target_id = id or resolve_target_id("var_id", "cnv_id", "fus_id", "transloc_id")
@@ -386,11 +386,11 @@ def hide_variant_comment(sample_id: str, var_id: str) -> Response:
     """Hide variant comment.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
+        sample_id (str): Normalized ``sample_id``.
+        var_id (str): Normalized ``var_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     call_api(
@@ -412,11 +412,11 @@ def unhide_variant_comment(sample_id: str, var_id: str) -> Response:
     """Unhide variant comment.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
+        sample_id (str): Normalized ``sample_id``.
+        var_id (str): Normalized ``var_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     call_api(
@@ -447,12 +447,12 @@ def classify_small_variant(
     """Classify small variant.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str | None): Value for ``var_id``.
-        fus_id (str | None): Value for ``fus_id``.
+        sample_id (str): Normalized ``sample_id``.
+        var_id (str | None): Normalized ``var_id``.
+        fus_id (str | None): Normalized ``fus_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     target_id = var_id or fus_id or resolve_target_id("var_id", "fus_id")
     form_data = request.form.to_dict()
@@ -487,12 +487,12 @@ def remove_classified_small_variant(
     """Remove classified small variant.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str | None): Value for ``var_id``.
-        fus_id (str | None): Value for ``fus_id``.
+        sample_id (str): Normalized ``sample_id``.
+        var_id (str | None): Normalized ``var_id``.
+        fus_id (str | None): Normalized ``fus_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     target_id = var_id or fus_id or resolve_target_id("var_id", "fus_id")
     form_data = request.form.to_dict()
@@ -517,10 +517,10 @@ def classify_multi_small_variant(sample_id: str) -> Response:
     """Classify multi small variant.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
+        sample_id (str): Normalized ``sample_id``.
 
     Returns:
-        Response: The function result.
+        Response: Normalized return value.
     """
     action = request.form.get("action")
     variants_to_modify = request.form.getlist("selected_object_id")

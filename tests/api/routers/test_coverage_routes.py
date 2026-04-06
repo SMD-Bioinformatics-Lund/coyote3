@@ -6,7 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from api.contracts.coverage import CoverageSamplePayload
-from api.infra.repositories import CoverageRepository, CoverageRouteRepository
+from api.extensions import store
 from api.routers import coverage
 from api.security.access import ApiUser
 from api.services.sample import coverage as coverage_service_module
@@ -16,8 +16,11 @@ from tests.fixtures.api import mock_collections as fx
 
 def _coverage_service() -> CoverageService:
     return CoverageService(
-        repository=CoverageRouteRepository(),
-        processing_repository=CoverageRepository(),
+        assay_configuration_handler=store.assay_configuration_handler,
+        assay_panel_handler=store.assay_panel_handler,
+        gene_list_handler=store.gene_list_handler,
+        coverage_handler=store.coverage_handler,
+        grouped_coverage_handler=store.grouped_coverage_handler,
     )
 
 
@@ -38,12 +41,12 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
 
     monkeypatch.setattr(coverage, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(
-        service.repository,
+        service.assay_configuration_handler,
         "get_aspc_no_meta",
         lambda assay, profile: {"assay_group": "dna"},
     )
     monkeypatch.setattr(
-        service.repository,
+        service.assay_panel_handler,
         "get_asp",
         lambda asp_name: {"asp_id": "WGS", "covered_genes": ["TP53", "NPM1"]},
     )
@@ -53,22 +56,22 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
         lambda sample, assay_panel_doc, checked_genelists_genes_dict: (["TP53", "NPM1"], ["TP53"]),
     )
     monkeypatch.setattr(
-        service.repository, "get_isgl_by_ids", lambda ids: {"GL1": {"genes": ["TP53"]}}
+        service.gene_list_handler, "get_isgl_by_ids", lambda ids: {"GL1": {"genes": ["TP53"]}}
     )
     monkeypatch.setattr(
-        service.repository,
+        service.coverage_handler,
         "get_sample_coverage",
         lambda sample_id: {"_id": "cov1", "TP53": {"mean": 700}},
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
         "filter_genes_from_form",
-        lambda cov_dict, filter_genes, assay_group: cov_dict,
+        lambda cov_dict, filter_genes, assay_group, *, grouped_coverage_handler=None: cov_dict,
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
         "find_low_covered_genes",
-        lambda filtered_dict, cutoff, assay_group: filtered_dict,
+        lambda filtered_dict, cutoff, assay_group, *, grouped_coverage_handler=None: filtered_dict,
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
@@ -148,10 +151,12 @@ def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
     service = _coverage_service()
     monkeypatch.setattr(coverage, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(
-        service.repository, "get_aspc_no_meta", lambda assay, profile: {"assay_group": "dna"}
+        service.assay_configuration_handler,
+        "get_aspc_no_meta",
+        lambda assay, profile: {"assay_group": "dna"},
     )
     monkeypatch.setattr(
-        service.repository,
+        service.assay_panel_handler,
         "get_asp",
         lambda asp_name: {"asp_id": "WGS", "covered_genes": ["TP53", "NPM1"]},
     )
@@ -161,22 +166,22 @@ def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
         lambda sample, assay_panel_doc, checked_genelists_genes_dict: (["TP53", "NPM1"], ["TP53"]),
     )
     monkeypatch.setattr(
-        service.repository, "get_isgl_by_ids", lambda ids: {"GL1": {"genes": ["TP53"]}}
+        service.gene_list_handler, "get_isgl_by_ids", lambda ids: {"GL1": {"genes": ["TP53"]}}
     )
     monkeypatch.setattr(
-        service.repository,
+        service.coverage_handler,
         "get_sample_coverage",
         lambda sample_id: {"_id": "cov1", "genes": {"TP53": {"CDS": {"1": {"cov": "700"}}}}},
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
         "filter_genes_from_form",
-        lambda cov_dict, filter_genes, assay_group: cov_dict,
+        lambda cov_dict, filter_genes, assay_group, *, grouped_coverage_handler=None: cov_dict,
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
         "find_low_covered_genes",
-        lambda filtered_dict, cutoff, assay_group: filtered_dict,
+        lambda filtered_dict, cutoff, assay_group, *, grouped_coverage_handler=None: filtered_dict,
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,

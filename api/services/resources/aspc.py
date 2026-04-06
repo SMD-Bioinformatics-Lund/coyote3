@@ -6,15 +6,14 @@ from copy import deepcopy
 from typing import Any
 
 from api.contracts.managed_resources import aspc_spec_for_category
-from api.extensions import store
 from api.http import api_error
 from api.runtime_state import app as runtime_app
 from api.services.accounts.common import (
     admin_list_pagination,
     build_managed_form,
+    change_payload,
     current_actor,
     inject_version_history,
-    mutation_payload,
     utc_now,
 )
 from api.services.resources.helpers import (
@@ -28,9 +27,37 @@ from api.services.resources.helpers import (
 class AspcService:
     """Assay-configuration resource workflows."""
 
-    def __init__(self, repository: Any | None = None) -> None:
-        """Build the service with an admin repository."""
-        self.repository = repository or store.get_admin_repository()
+    @classmethod
+    def from_store(
+        cls,
+        store: Any,
+        *,
+        common_util: Any,
+    ) -> "AspcService":
+        """Build the service from the shared store."""
+        return cls(
+            assay_configuration_handler=store.assay_configuration_handler,
+            assay_panel_handler=store.assay_panel_handler,
+            gene_list_handler=store.gene_list_handler,
+            query_profile_handler=store.query_profile_handler,
+            common_util=common_util,
+        )
+
+    def __init__(
+        self,
+        *,
+        assay_configuration_handler: Any,
+        assay_panel_handler: Any,
+        gene_list_handler: Any,
+        query_profile_handler: Any,
+        common_util: Any,
+    ) -> None:
+        """Create the service for assay-configuration resource workflows."""
+        self.assay_configuration_handler = assay_configuration_handler
+        self.assay_panel_handler = assay_panel_handler
+        self.gene_list_handler = gene_list_handler
+        self.query_profile_handler = query_profile_handler
+        self.common_util = common_util
 
     @staticmethod
     def _set_group_field_options(
@@ -44,7 +71,11 @@ class AspcService:
                     return
 
     def _resolve_isgl_options(self, *, assay_name: str | None) -> dict[str, list[str]]:
-        docs = self.repository.list_genelists()
+        docs = [
+            dict(item)
+            for item in (self.gene_list_handler.get_all_isgl() or [])
+            if isinstance(item, dict)
+        ]
         assay = str(assay_name or "").strip()
         result: dict[str, list[str]] = {
             "genelists": [],
@@ -74,7 +105,11 @@ class AspcService:
     ) -> dict[str, list[str]]:
         assay = str(assay_name or "").strip()
         env = str(environment or "").strip().lower()
-        profiles = self.repository.list_query_profiles(is_active=True)
+        profiles = [
+            dict(item)
+            for item in (self.query_profile_handler.list_query_profiles(is_active=True) or [])
+            if isinstance(item, dict)
+        ]
         by_type: dict[str, list[str]] = {
             "snv": [],
             "cnv": [],
@@ -174,35 +209,41 @@ class AspcService:
             ]
 
     def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
-        """List payload.
+        """Return the admin list payload for assay configurations.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Assay-config rows and pagination metadata.
         """
-        assay_configs, total = self.repository.search_assay_configs(
+        rows, total = self.assay_configuration_handler.search_aspcs(
             q=q,
             page=page,
             per_page=per_page,
         )
+        assay_configs = [dict(item) for item in rows if isinstance(item, dict)]
+        total = int(total or 0)
         return {
             "assay_configs": assay_configs,
             "pagination": admin_list_pagination(q=q, page=page, per_page=per_page, total=total),
         }
 
     def create_context_payload(self, *, category: str, actor_username: str) -> dict[str, Any]:
-        """Create context payload.
+        """Return form context for creating an assay configuration.
 
         Args:
-            category (str): Value for ``category``.
-            actor_username (str): Value for ``actor_username``.
+            category: Requested assay category.
+            actor_username: Username used for default form metadata.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Form payload, prefill map, and profile options.
         """
         form_category = str(category or "DNA").upper()
         spec = aspc_spec_for_category(form_category)
         form = build_managed_form(spec, actor_username=actor_username)
-        assay_panels = self.repository.list_panels(is_active=True)
+        assay_panels = [
+            dict(item)
+            for item in (self.assay_panel_handler.get_all_asps(is_active=True) or [])
+            if isinstance(item, dict)
+        ]
         prefill_map: dict[str, dict[str, Any]] = {}
         valid_assay_ids: list[str] = []
         env_options = form.get("fields", {}).get("environment", {}).get("options", [])
@@ -214,7 +255,10 @@ class AspcService:
                 )
                 if not assay_id:
                     continue
-                envs = self.repository.get_available_assay_envs(assay_id, env_options)
+                envs = list(
+                    self.assay_configuration_handler.get_available_assay_envs(assay_id, env_options)
+                    or []
+                )
                 if envs:
                     isgl_options = self._resolve_isgl_options(assay_name=assay_id)
                     valid_assay_ids.append(assay_id)
@@ -243,15 +287,15 @@ class AspcService:
         }
 
     def context_payload(self, *, assay_id: str) -> dict[str, Any]:
-        """Context payload.
+        """Return form context for editing an assay configuration.
 
         Args:
-            assay_id (str): Value for ``assay_id``.
+            assay_id: Assay-config identifier to load.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Existing config data and edit form payload.
         """
-        assay_config = self.repository.get_assay_config(assay_id)
+        assay_config = self.assay_configuration_handler.get_aspc_with_id(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
         assay_config = deepcopy(assay_config)
@@ -262,7 +306,7 @@ class AspcService:
             assay_config["cnv_query_profile_id"] = profile_refs.get("cnv", "")
             assay_config["fusion_query_profile_id"] = profile_refs.get("fusion", "")
             assay_config["transloc_query_profile_id"] = profile_refs.get("transloc", "")
-        panel = self.repository.get_panel(str(assay_config.get("assay_name", "")))
+        panel = self.assay_panel_handler.get_asp(str(assay_config.get("assay_name", "")))
         category = _normalize_asp_category((panel or {}).get("asp_category"))
         spec = aspc_spec_for_category(category)
         form = build_managed_form(spec)
@@ -284,13 +328,13 @@ class AspcService:
     def create(
         self, *, payload: dict[str, Any], actor_username: str = "admin-ui"
     ) -> dict[str, Any]:
-        """Create.
+        """Create a new assay configuration from submitted config data.
 
         Args:
-            payload (dict[str, Any]): Value for ``payload``.
+            payload: Submitted config payload.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Normalized change response payload.
         """
         config = payload.get("config", {})
         if not config:
@@ -305,10 +349,10 @@ class AspcService:
         )
         if not config.get("aspc_id"):
             raise api_error(400, "Missing aspc_id")
-        existing_config = self.repository.get_assay_config(config.get("aspc_id"))
+        existing_config = self.assay_configuration_handler.get_aspc_with_id(config.get("aspc_id"))
         if existing_config:
             raise api_error(409, "Assay config already exists")
-        panel = self.repository.get_panel(str(config.get("assay_name", "")))
+        panel = self.assay_panel_handler.get_asp(str(config.get("assay_name", "")))
         category = _normalize_asp_category((panel or {}).get("asp_category"))
         spec = aspc_spec_for_category(category)
         actor = current_actor(actor_username)
@@ -323,24 +367,24 @@ class AspcService:
             is_new=True,
         )
         config = _validated_doc(spec.collection, config)
-        self.repository.create_assay_config(config)
-        return mutation_payload(
+        self.assay_configuration_handler.create_aspc(config)
+        return change_payload(
             resource="aspc", resource_id=str(config.get("aspc_id", "unknown")), action="create"
         )
 
     def update(
         self, *, assay_id: str, payload: dict[str, Any], actor_username: str = "admin-ui"
     ) -> dict[str, Any]:
-        """Update.
+        """Update an existing assay configuration.
 
         Args:
-            assay_id (str): Value for ``assay_id``.
-            payload (dict[str, Any]): Value for ``payload``.
+            assay_id: Assay-config identifier to update.
+            payload: Submitted config payload.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Normalized change response payload.
         """
-        assay_config = self.repository.get_assay_config(assay_id)
+        assay_config = self.assay_configuration_handler.get_aspc_with_id(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
         updated_config = payload.get("config", {})
@@ -356,7 +400,7 @@ class AspcService:
         updated_doc["updated_by"] = actor
         updated_doc["updated_on"] = utc_now()
         updated_doc["version"] = int(assay_config.get("version", 1) or 1) + 1
-        panel = self.repository.get_panel(str(updated_doc.get("assay_name", "")))
+        panel = self.assay_panel_handler.get_asp(str(updated_doc.get("assay_name", "")))
         category = _normalize_asp_category((panel or {}).get("asp_category"))
         spec = aspc_spec_for_category(category)
         updated_doc = inject_version_history(
@@ -366,41 +410,41 @@ class AspcService:
             is_new=False,
         )
         updated_doc = _validated_doc(spec.collection, updated_doc)
-        self.repository.update_assay_config(assay_id, updated_doc)
-        return mutation_payload(resource="aspc", resource_id=assay_id, action="update")
+        self.assay_configuration_handler.update_aspc(assay_id, updated_doc)
+        return change_payload(resource="aspc", resource_id=assay_id, action="update")
 
     def toggle(self, *, assay_id: str) -> dict[str, Any]:
-        """Toggle.
+        """Toggle whether an assay configuration is active.
 
         Args:
-            assay_id (str): Value for ``assay_id``.
+            assay_id: Assay-config identifier to toggle.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Normalized change response payload.
         """
-        assay_config = self.repository.get_assay_config(assay_id)
+        assay_config = self.assay_configuration_handler.get_aspc_with_id(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
         new_status = not bool(assay_config.get("is_active"))
-        self.repository.set_assay_config_active(assay_id, new_status)
-        payload = mutation_payload(resource="aspc", resource_id=assay_id, action="toggle")
+        self.assay_configuration_handler.toggle_aspc_active(assay_id, new_status)
+        payload = change_payload(resource="aspc", resource_id=assay_id, action="toggle")
         payload["meta"]["is_active"] = new_status
         return payload
 
     def delete(self, *, assay_id: str) -> dict[str, Any]:
-        """Delete.
+        """Delete an existing assay configuration.
 
         Args:
-            assay_id (str): Value for ``assay_id``.
+            assay_id: Assay-config identifier to delete.
 
         Returns:
-            dict[str, Any]: The function result.
+            dict[str, Any]: Normalized change response payload.
         """
-        assay_config = self.repository.get_assay_config(assay_id)
+        assay_config = self.assay_configuration_handler.get_aspc_with_id(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
-        self.repository.delete_assay_config(assay_id)
-        return mutation_payload(resource="aspc", resource_id=assay_id, action="delete")
+        self.assay_configuration_handler.delete_aspc(assay_id)
+        return change_payload(resource="aspc", resource_id=assay_id, action="delete")
 
     def assay_config_exists(
         self,
@@ -418,7 +462,7 @@ class AspcService:
                 resolved_id = f"{assay}:{env}"
         if not resolved_id:
             return False
-        doc = self.repository.get_assay_config(resolved_id)
+        doc = self.assay_configuration_handler.get_aspc_with_id(resolved_id)
         return bool(isinstance(doc, dict) and (doc.get("aspc_id") or doc.get("_id")))
 
     def _resolve_query_profile_options(
@@ -431,8 +475,14 @@ class AspcService:
         assay = str(assay_name or "").strip()
         group = str(assay_group or "").strip()
         env = str(environment or "").strip().lower()
-        profiles = self.repository.list_query_profiles(is_active=True)
-        assay_group_map = self.repository.get_assay_group_map()
+        profiles = [
+            dict(item)
+            for item in (self.query_profile_handler.list_query_profiles(is_active=True) or [])
+            if isinstance(item, dict)
+        ]
+        assay_group_map = self.common_util.create_assay_group_map(
+            self.assay_panel_handler.get_all_asps()
+        )
         assay_to_groups: dict[str, set[str]] = {}
         for group_name, assays in assay_group_map.items():
             normalized_group = str(group_name or "").strip()
@@ -477,9 +527,8 @@ class AspcService:
 class QueryProfileService:
     """Query-profile option lookups for ASPC forms."""
 
-    def __init__(self, repository: Any | None = None) -> None:
-        self.repository = repository or store.get_admin_repository()
-        self._aspc_service = AspcService(repository=self.repository)
+    def __init__(self, *, aspc_service: AspcService) -> None:
+        self._aspc_service = aspc_service
 
     def options_payload(
         self,

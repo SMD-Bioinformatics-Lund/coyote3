@@ -1,13 +1,27 @@
 {
-  "generated_at_utc": "2026-04-03T00:00:00+00:00",
-  "mongo_leak_usage_by_file": {},
-  "mongo_leak_usage_total": 0,
-  "store_usage_by_file": {
-    "api/core/interpretation/annotation_enrichment.py": 1,
-    "api/core/interpretation/report_summary.py": 1,
-    "api/core/reporting/pipeline.py": 1,
-    "api/routers/public.py": 1,
-    "api/routers/reports.py": 2
+  "generated_at_utc": "2026-04-04T00:00:00+00:00",
+  "mongo_leak_usage_by_file": {
+    "api/core/interpretation/report_summary.py": 2
   },
-  "store_usage_total": 6
+  "mongo_leak_usage_total": 2,
+  "store_usage_by_file": {
+    "api/core/admin/sample_deletion.py": 8,
+    "api/core/coverage/coverage_processing.py": 3,
+    "api/core/dna/dna_reporting.py": 11,
+    "api/core/interpretation/annotation_enrichment.py": 2,
+    "api/core/interpretation/report_summary.py": 2,
+    "api/core/public/catalog.py": 14,
+    "api/core/reporting/pipeline.py": 2,
+    "api/core/workflows/dna_workflow.py": 12,
+    "api/core/workflows/rna_workflow.py": 12,
+    "api/routers/public.py": 4,
+    "api/routers/cnvs.py": 8,
+    "api/routers/common.py": 10,
+    "api/routers/fusions.py": 7,
+    "api/routers/internal.py": 3,
+    "api/routers/samples.py": 8,
+    "api/routers/small_variants.py": 9,
+    "api/routers/translocations.py": 6
+  },
+  "store_usage_total": 121
 }

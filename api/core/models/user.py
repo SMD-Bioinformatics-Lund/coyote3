@@ -1,11 +1,4 @@
-"""
-Coyote3 User Model
-
-This module defines the `UserModel` class, representing user entities within the Coyote3 system.
-It provides methods for authentication, permission checks, and access control, as well as utilities
-for serializing user data and formatting timestamps. The model merges user, role, and
-assay-specific attributes into a domain shape used by auth and access-control flows.
-"""
+"""User model and auth/session shaping helpers."""
 
 from datetime import datetime
 from typing import List, Optional, Set
@@ -79,20 +72,20 @@ class UserModel(BaseModel):
         return check_password_hash(stored_hash, plain_password)
 
     @classmethod
-    def from_repository_payload(
+    def from_auth_payload(
         cls,
         user_doc: dict,
         role_doc: Optional[dict] = None,
         asp_docs: Optional[List[dict]] = None,
     ) -> "UserModel":
         """
-        Construct a user model from repository payloads.
+        Construct a user model from auth-related data payloads.
 
         Args:
             cls: The class reference (UserModel).
-            user_doc (dict): The user payload from the repository.
-            role_doc (Optional[dict]): The role payload from the repository.
-            asp_docs (Optional[List[dict]]): Active assay payloads from the repository.
+            user_doc (dict): The user payload from persistence.
+            role_doc (Optional[dict]): The role payload from persistence.
+            asp_docs (Optional[List[dict]]): Active assay payloads from persistence.
 
         Returns:
             UserModel: An instance populated with merged user, role, and assay data.
@@ -305,30 +298,3 @@ class UserModel(BaseModel):
             List[str]: Accessible assay groups for the user.
         """
         return ["ALL"] if self.role == "admin" else self.assay_groups
-
-    def formatted_last_login(self) -> Optional[str]:
-        """
-        Returns the user's last login time as a formatted string.
-
-        Returns:
-            Optional[str]: The last login timestamp in '%Y-%m-%d %H:%M:%S' format, or None if not set.
-        """
-        return self.last_login.strftime("%Y-%m-%d %H:%M:%S") if self.last_login else None
-
-    def formatted_created(self) -> Optional[str]:
-        """
-        Returns the user's creation time as a formatted string.
-
-        Returns:
-            Optional[str]: The creation timestamp in '%Y-%m-%d %H:%M:%S' format, or None if not set.
-        """
-        return self.created.strftime("%Y-%m-%d %H:%M:%S") if self.created else None
-
-    def formatted_updated(self) -> Optional[str]:
-        """
-        Returns the user's last updated time as a formatted string.
-
-        Returns:
-            Optional[str]: The updated timestamp in '%Y-%m-%d %H:%M:%S' format, or None if not set.
-        """
-        return self.updated.strftime("%Y-%m-%d %H:%M:%S") if self.updated else None

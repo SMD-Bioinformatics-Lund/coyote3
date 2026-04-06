@@ -66,7 +66,7 @@ def can_view_developer_docs() -> bool:
     """Return whether view developer docs is allowed.
 
     Returns:
-        bool: The function result.
+        bool: Normalized return value.
     """
     if not current_user.is_authenticated:
         return False

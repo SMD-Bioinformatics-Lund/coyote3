@@ -194,8 +194,8 @@ class _RepoStub:
         """__init__."""
         self.annotation_handler = _AnnotationHandlerStub()
         self.fusion_handler = _FusionHandlerStub()
-        self.cnv_handler = _CnvHandlerStub()
-        self.transloc_handler = _TranslocHandlerStub()
+        self.copy_number_variant_handler = _CnvHandlerStub()
+        self.translocation_handler = _TranslocHandlerStub()
         self.variant_handler = _VariantHandlerStub()
         self.oncokb_handler = type(
             "_OncoKB", (), {"get_oncokb_gene": staticmethod(lambda gene: None)}
@@ -259,14 +259,34 @@ def _classification_doc(
     }
 
 
-def test_resource_annotation_service_routes_cnv_comment_to_cnv_handler():
-    """Test resource annotation service routes cnv comment to cnv handler.
+def _classification_service(repo: _RepoStub) -> ResourceClassificationService:
+    return ResourceClassificationService(
+        annotation_handler=repo.annotation_handler,
+        variant_handler=repo.variant_handler,
+        oncokb_handler=repo.oncokb_handler,
+        fusion_handler=repo.fusion_handler,
+        copy_number_variant_handler=repo.copy_number_variant_handler,
+        translocation_handler=repo.translocation_handler,
+    )
+
+
+def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_handler(
+    monkeypatch,
+):
+    """Test resource annotation service routes cnv comment to copy-number-variant handler.
 
     Returns:
         The function result.
     """
+    _ = monkeypatch
     repo = _RepoStub()
-    service = ResourceAnnotationService(repository=repo)
+    service = ResourceAnnotationService(
+        annotation_handler=repo.annotation_handler,
+        fusion_handler=repo.fusion_handler,
+        translocation_handler=repo.translocation_handler,
+        copy_number_variant_handler=repo.copy_number_variant_handler,
+        variant_handler=repo.variant_handler,
+    )
 
     resource = service.create_annotation(
         form_data={"text": "note", "cnvvar": "7:10-20"},
@@ -276,19 +296,28 @@ def test_resource_annotation_service_routes_cnv_comment_to_cnv_handler():
     )
 
     assert resource == "cnv_comment"
-    assert repo.cnv_handler.comments == [
+    assert repo.copy_number_variant_handler.comments == [
         ("cnv-1", {"text": "note", "nomenclature": "cn", "variant": "7:10-20"})
     ]
 
 
-def test_resource_annotation_service_routes_translocation_comment_to_translocation_handler():
+def test_resource_annotation_service_routes_translocation_comment_to_translocation_handler(
+    monkeypatch,
+):
     """Test resource annotation service routes translocation comment to translocation handler.
 
     Returns:
         The function result.
     """
+    _ = monkeypatch
     repo = _RepoStub()
-    service = ResourceAnnotationService(repository=repo)
+    service = ResourceAnnotationService(
+        annotation_handler=repo.annotation_handler,
+        fusion_handler=repo.fusion_handler,
+        translocation_handler=repo.translocation_handler,
+        copy_number_variant_handler=repo.copy_number_variant_handler,
+        variant_handler=repo.variant_handler,
+    )
 
     resource = service.create_annotation(
         form_data={"text": "note", "translocpoints": "1:100^2:200"},
@@ -298,17 +327,17 @@ def test_resource_annotation_service_routes_translocation_comment_to_translocati
     )
 
     assert resource == "translocation_comment"
-    assert repo.transloc_handler.comments[0][0] == "tl-1"
+    assert repo.translocation_handler.comments[0][0] == "tl-1"
 
 
-def test_resource_classification_service_supports_fusion_bulk_tiering():
+def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatch):
     """Test resource classification service supports fusion bulk tiering.
 
     Returns:
         The function result.
     """
     repo = _RepoStub()
-    service = ResourceClassificationService(repository=repo)
+    service = _classification_service(repo)
 
     service.set_tier_bulk(
         sample={"_id": "S1"},
@@ -331,14 +360,14 @@ def test_resource_classification_service_supports_fusion_bulk_tiering():
     assert docs[0]["variant_data"]["gene2"] == "ALK"
 
 
-def test_resource_classification_service_supports_translocation_bulk_removal():
+def test_resource_classification_service_supports_translocation_bulk_removal(monkeypatch):
     """Test resource classification service supports translocation bulk removal.
 
     Returns:
         The function result.
     """
     repo = _RepoStub()
-    service = ResourceClassificationService(repository=repo)
+    service = _classification_service(repo)
 
     service.set_tier_bulk(
         sample={"_id": "S1"},

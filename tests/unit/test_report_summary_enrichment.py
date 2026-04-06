@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from bson import ObjectId
 
-from api.core.interpretation import report_summary
+from api.services.interpretation import report_summary
 
 
 class _FakeAnnotationCollection:
@@ -31,18 +31,6 @@ class _FakeSampleHandler:
         return [doc for doc in self._docs if doc.get("_id") in wanted]
 
 
-class _FakeRepo:
-    def __init__(self, sample_docs, annotation_docs):
-        self.sample_handler = _FakeSampleHandler(sample_docs)
-        self.annotation_handler = _FakeAnnotationHandler(annotation_docs)
-
-    def get_samples_by_oids(self, oids):
-        return self.sample_handler.get_samples_by_oids(oids)
-
-    def list_annotations_by_ids(self, annotation_ids):
-        return self.annotation_handler.get_collection().find({"_id": {"$in": annotation_ids}})
-
-
 def test_enrich_reported_variant_docs_batches_samples_and_annotations(monkeypatch):
     sample_oid = ObjectId()
     annotation_oid = ObjectId()
@@ -63,13 +51,11 @@ def test_enrich_reported_variant_docs_batches_samples_and_annotations(monkeypatc
         }
     ]
     annotation_docs = [{"_id": annotation_oid, "assay": "hematology", "subpanel": "Hem"}]
-    monkeypatch.setattr(
-        report_summary,
-        "_interpretation_repository",
-        lambda: _FakeRepo(sample_docs, annotation_docs),
+    enriched = report_summary.enrich_reported_variant_docs(
+        docs,
+        sample_handler=_FakeSampleHandler(sample_docs),
+        annotation_handler=_FakeAnnotationHandler(annotation_docs),
     )
-
-    enriched = report_summary.enrich_reported_variant_docs(docs)
 
     assert len(enriched) == 2
     assert enriched[0]["sample"]["sample_name"] == "26MD03268"

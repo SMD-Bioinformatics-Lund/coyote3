@@ -5,9 +5,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.reports import ReportPreviewPayload, ReportSavePayload
-from api.core.workflows.dna_workflow import DNAWorkflowService
-from api.core.workflows.rna_workflow import RNAWorkflowService
-from api.extensions import store, util
+from api.deps.services import get_dna_workflow_service, get_rna_workflow_service
+from api.extensions import util
 from api.http import api_error as _api_error
 from api.http import get_formatted_assay_config as _get_formatted_assay_config
 from api.runtime_state import app as runtime_app
@@ -18,40 +17,15 @@ from api.settings import to_bool
 
 router = APIRouter(tags=["reports"])
 
-if not hasattr(util, "common"):
-    util.init_util()
-
-
-def _rna_workflow_service() -> type[RNAWorkflowService]:
-    """Rna workflow service.
-
-    Returns:
-            The  rna workflow service result.
-    """
-    if not RNAWorkflowService.has_repository():
-        RNAWorkflowService.set_repository(store.get_rna_workflow_repository())
-    return RNAWorkflowService
-
-
-def _dna_workflow_service() -> type[DNAWorkflowService]:
-    """Dna workflow service.
-
-    Returns:
-            The  dna workflow service result.
-    """
-    if not DNAWorkflowService.has_repository():
-        DNAWorkflowService.set_repository(store.get_dna_reporting_repository())
-    return DNAWorkflowService
-
 
 def _normalize_rendered_report_payload(report_payload: dict | None) -> tuple[str, list]:
-    """Normalize rendered report payload.
+    """Validate and normalize a rendered report payload.
 
     Args:
-            report_payload: Report payload.
+        report_payload: Rendered report payload from the workflow layer.
 
     Returns:
-            The  normalize rendered report payload result.
+        tuple[str, list]: Rendered HTML and snapshot rows.
     """
     payload = report_payload or {}
     html = payload.get("html") or ""
@@ -69,14 +43,14 @@ report_service = ReportService()
 
 
 def _load_report_context(sample_id: str, user: ApiUser) -> tuple[dict, dict]:
-    """Load report context.
+    """Load the sample and assay-config context for report generation.
 
     Args:
-            sample_id: Sample id.
-            user: User.
+        sample_id: Sample identifier to load.
+        user: Authenticated user requesting the report.
 
     Returns:
-            The  load report context result.
+        tuple[dict, dict]: Sample payload and assay-config payload.
     """
     sample = _get_sample_for_api(sample_id, user)
     assay_config = _get_formatted_assay_config(sample)
@@ -86,49 +60,42 @@ def _load_report_context(sample_id: str, user: ApiUser) -> tuple[dict, dict]:
 
 
 def _validate_report_inputs(analyte: ReportAnalyte, sample: dict, assay_config: dict) -> None:
-    """Validate report inputs.
+    """Validate report prerequisites for the selected analyte.
 
     Args:
-            analyte: Analyte.
-            sample: Sample.
-            assay_config: Assay config.
-
-    Returns:
-            None.
+        analyte: Report analyte being rendered.
+        sample: Sample payload being reported.
+        assay_config: Assay-config payload for the sample.
     """
     if analyte == "dna":
-        _dna_workflow_service()
-        DNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
+        get_dna_workflow_service().validate_report_inputs(runtime_app.logger, sample, assay_config)
     else:
-        _rna_workflow_service()
-        RNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
+        get_rna_workflow_service().validate_report_inputs(runtime_app.logger, sample, assay_config)
 
 
 def _build_preview_report(
     analyte: ReportAnalyte, sample: dict, assay_config: dict, *, save: bool, include_snapshot: bool
 ):
-    """Build preview report.
+    """Build a rendered preview payload for a report.
 
     Args:
-            analyte: Analyte.
-            sample: Sample.
-            assay_config: Assay config.
-            save: Save. Keyword-only argument.
-            include_snapshot: Include snapshot. Keyword-only argument.
+        analyte: Report analyte being rendered.
+        sample: Sample payload being reported.
+        assay_config: Assay-config payload for the sample.
+        save: Whether the report should be rendered in save mode.
+        include_snapshot: Whether snapshot rows should be included.
 
     Returns:
-            The  build preview report result.
+        dict: Rendered report payload from the workflow layer.
     """
     if analyte == "dna":
-        _dna_workflow_service()
-        return DNAWorkflowService.build_report_payload(
+        return get_dna_workflow_service().build_report_payload(
             sample=sample,
             assay_config=assay_config,
             save=1 if save else 0,
             include_snapshot=include_snapshot,
         )
-    _rna_workflow_service()
-    return RNAWorkflowService.build_report_payload(
+    return get_rna_workflow_service().build_report_payload(
         sample=sample,
         save=1 if save else 0,
         include_snapshot=include_snapshot,
@@ -138,26 +105,24 @@ def _build_preview_report(
 def _build_report_location(
     analyte: ReportAnalyte, sample: dict, assay_config: dict
 ) -> tuple[str, str, str]:
-    """Build report location.
+    """Resolve the filesystem location for a report output.
 
     Args:
-            analyte: Analyte.
-            sample: Sample.
-            assay_config: Assay config.
+        analyte: Report analyte being rendered.
+        sample: Sample payload being reported.
+        assay_config: Assay-config payload for the sample.
 
     Returns:
-            The  build report location result.
+        tuple[str, str, str]: Report directory, file path, and report filename.
     """
     base_path = runtime_app.config.get("REPORTS_BASE_PATH", "reports")
     if analyte == "dna":
-        _dna_workflow_service()
-        return DNAWorkflowService.build_report_location(
+        return get_dna_workflow_service().build_report_location(
             sample=sample,
             assay_config=assay_config,
             reports_base_path=base_path,
         )
-    _rna_workflow_service()
-    return RNAWorkflowService.build_report_location(
+    return get_rna_workflow_service().build_report_location(
         sample=sample,
         assay_config=assay_config,
         reports_base_path=base_path,
@@ -165,24 +130,19 @@ def _build_report_location(
 
 
 def _prepare_report_output(analyte: ReportAnalyte, report_path: str, report_file: str) -> None:
-    """Prepare report output.
+    """Prepare the output location for a rendered report.
 
     Args:
-            analyte: Analyte.
-            report_path: Report path.
-            report_file: Report file.
-
-    Returns:
-            None.
+        analyte: Report analyte being rendered.
+        report_path: Target report directory.
+        report_file: Target report filename.
     """
     if analyte == "dna":
-        _dna_workflow_service()
-        DNAWorkflowService.prepare_report_output(
+        get_dna_workflow_service().prepare_report_output(
             report_path, report_file, logger=runtime_app.logger
         )
     else:
-        _rna_workflow_service()
-        RNAWorkflowService.prepare_report_output(
+        get_rna_workflow_service().prepare_report_output(
             report_path, report_file, logger=runtime_app.logger
         )
 
@@ -199,25 +159,24 @@ def _persist_report(
     snapshot_rows: list,
     created_by: str,
 ) -> str:
-    """Persist report.
+    """Persist a rendered report through the workflow layer.
 
     Args:
-            analyte: Analyte.
-            sample_id: Sample id. Keyword-only argument.
-            sample: Sample. Keyword-only argument.
-            report_num: Report num. Keyword-only argument.
-            report_id: Report id. Keyword-only argument.
-            report_file: Report file. Keyword-only argument.
-            html: Html. Keyword-only argument.
-            snapshot_rows: Snapshot rows. Keyword-only argument.
-            created_by: Created by. Keyword-only argument.
+        analyte: Report analyte being rendered.
+        sample_id: Sample identifier being reported.
+        sample: Sample payload being reported.
+        report_num: Sequential report number.
+        report_id: Logical report identifier.
+        report_file: Saved report filename.
+        html: Rendered report HTML.
+        snapshot_rows: Snapshot rows extracted from the report.
+        created_by: Username saving the report.
 
     Returns:
-            The  persist report result.
+        str: Persisted report object identifier.
     """
     if analyte == "dna":
-        _dna_workflow_service()
-        return DNAWorkflowService.persist_report(
+        return get_dna_workflow_service().persist_report(
             sample_id=sample_id,
             sample=sample,
             report_num=report_num,
@@ -227,8 +186,7 @@ def _persist_report(
             snapshot_rows=snapshot_rows,
             created_by=created_by,
         )
-    _rna_workflow_service()
-    return RNAWorkflowService.persist_report(
+    return get_rna_workflow_service().persist_report(
         sample_id=sample_id,
         sample=sample,
         report_num=report_num,
@@ -254,18 +212,7 @@ def preview_report(
         require_access(permission="preview_report", min_role="user", min_level=9)
     ),
 ):
-    """Preview report.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        report_type (ReportAnalyte): Value for ``report_type``.
-        include_snapshot (bool): Value for ``include_snapshot``.
-        save (bool): Value for ``save``.
-        user (ApiUser): Value for ``user``.
-
-    Returns:
-        The function result.
-    """
+    """Render a report preview for a sample."""
     sample, assay_config = _load_report_context(sample_id, user)
     _validate_report_inputs(report_type, sample, assay_config)
 
@@ -300,17 +247,7 @@ def save_report(
     report_payload: dict | None = Body(default=None),
     user: ApiUser = Depends(require_access(permission="create_report", min_role="admin")),
 ):
-    """Save report.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        report_type (ReportAnalyte): Value for ``report_type``.
-        report_payload (dict | None): Value for ``report_payload``.
-        user (ApiUser): Value for ``user``.
-
-    Returns:
-        The function result.
-    """
+    """Persist a rendered sample report."""
     sample, assay_config = _load_report_context(sample_id, user)
     _validate_report_inputs(report_type, sample, assay_config)
 

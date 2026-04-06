@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.infra.repositories import HomeRepository
+from api.extensions import store
 from api.routers import samples
 from api.services.sample import catalog as sample_catalog_service_module
 from api.services.sample.catalog import SampleCatalogService
@@ -13,7 +13,13 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def _sample_catalog_service() -> SampleCatalogService:
-    return SampleCatalogService(repository=HomeRepository())
+    return SampleCatalogService(
+        sample_handler=store.sample_handler,
+        gene_list_handler=store.gene_list_handler,
+        assay_panel_handler=store.assay_panel_handler,
+        variant_handler=store.variant_handler,
+        grouped_coverage_handler=store.grouped_coverage_handler,
+    )
 
 
 def test_home_samples_read_returns_live_and_done(monkeypatch):
@@ -48,7 +54,7 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
         "runtime_app",
         type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})(),
     )
-    monkeypatch.setattr(service.repository, "get_samples", _get_samples)
+    monkeypatch.setattr(service.sample_handler, "get_samples", _get_samples)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = samples.list_samples_read(
@@ -108,7 +114,7 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
         "runtime_app",
         type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})(),
     )
-    monkeypatch.setattr(service.repository, "get_samples", _get_samples)
+    monkeypatch.setattr(service.sample_handler, "get_samples", _get_samples)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = samples.list_samples_read(
@@ -147,7 +153,7 @@ def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
     monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
 
     with pytest.raises(HTTPException) as exc:
-        samples.sample_apply_genelists_mutation(
+        samples.sample_apply_genelists_change(
             "S1", payload={"isgl_ids": "bad"}, user=fx.api_user(), service=_sample_catalog_service()
         )
 
@@ -182,10 +188,10 @@ def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
         """
         calls["filters"] = filters
 
-    monkeypatch.setattr(service.repository, "update_sample_filters", _update_sample_filters)
+    monkeypatch.setattr(service.sample_handler, "update_sample_filters", _update_sample_filters)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = samples.sample_save_adhoc_genes_mutation(
+    payload = samples.sample_save_adhoc_genes_change(
         "S1",
         payload={"genes": "NPM1 TP53\nIDH1", "label": "focus"},
         user=fx.api_user(),

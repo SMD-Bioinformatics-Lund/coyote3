@@ -10,23 +10,24 @@ from api.contracts.dna import (
     DnaVariantContextPayload,
     DnaVariantsListPayload,
 )
-from api.contracts.samples import SampleMutationPayload
+from api.contracts.samples import SampleChangePayload
 from api.core.dna.dna_filters import get_filter_conseq_terms
 from api.core.dna.dna_variants import get_variant_nomenclature
 from api.core.dna.varqueries import build_query
-from api.core.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
-from api.core.interpretation.report_summary import (
-    create_comment_doc,
-    generate_summary_text,
-)
 from api.deps.services import get_dna_service, get_resource_annotation_service
 from api.extensions import util
 from api.http import api_error as _api_error
 from api.http import get_formatted_assay_config as _get_formatted_assay_config
-from api.routers.mutation_helpers import run_serialized_mutation
+from api.routers.change_helpers import comment_change, resource_change
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.services.classification.variant_annotation import ResourceAnnotationService
+from api.services.common.change_payload import change_payload
 from api.services.dna.variant_analysis import DnaService
+from api.services.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
+from api.services.interpretation.report_summary import (
+    create_comment_doc,
+    generate_summary_text,
+)
 
 router = APIRouter(tags=["small-variants"])
 
@@ -41,13 +42,13 @@ def list_dna_variants(
     """List dna variants.
 
     Args:
-        request (Request): Value for ``request``.
-        sample_id (str): Value for ``sample_id``.
-        user (ApiUser): Value for ``user``.
-        service (DnaService): Value for ``service``.
+        request (Request): Normalized ``request``.
+        sample_id (str): Normalized ``sample_id``.
+        user (ApiUser): Normalized ``user``.
+        service (DnaService): Normalized ``service``.
 
     Returns:
-        The function result.
+        Normalized return value.
     """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
@@ -75,12 +76,12 @@ def dna_plot_context(
     """Return plot context for DNA variant visualizations.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        user (ApiUser): Value for ``user``.
-        service (DnaService): Value for ``service``.
+        sample_id (str): Normalized ``sample_id``.
+        user (ApiUser): Normalized ``user``.
+        service (DnaService): Normalized ``service``.
 
     Returns:
-        The function result.
+        Normalized return value.
     """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
@@ -100,13 +101,13 @@ def show_dna_variant(
     """Show dna variant.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
-        user (ApiUser): Value for ``user``.
-        service (DnaService): Value for ``service``.
+        sample_id (str): Normalized ``sample_id``.
+        var_id (str): Normalized ``var_id``.
+        user (ApiUser): Normalized ``user``.
+        service (DnaService): Normalized ``service``.
 
     Returns:
-        The function result.
+        Normalized return value.
     """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
@@ -232,60 +233,9 @@ def _require_variant_for_sample(
     return sample, variant
 
 
-def _variant_mutation(
-    sample_id: str,
-    var_id: str,
-    user: ApiUser,
-    service: DnaService,
-    *,
-    action: str,
-    mutate,
-):
-    """Execute a small-variant mutation and return the canonical payload."""
-    return run_serialized_mutation(
-        sample_id=sample_id,
-        user=user,
-        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
-        mutate=mutate,
-        payload=lambda: service.mutation_payload(
-            sample_id,
-            resource="variant",
-            resource_id=var_id,
-            action=action,
-        ),
-        util_module=util,
-    )
-
-
-def _variant_comment_mutation(
-    sample_id: str,
-    var_id: str,
-    comment_id: str,
-    user: ApiUser,
-    service: DnaService,
-    *,
-    action: str,
-    mutate,
-):
-    """Execute a small-variant comment visibility mutation."""
-    return run_serialized_mutation(
-        sample_id=sample_id,
-        user=user,
-        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
-        mutate=mutate,
-        payload=lambda: service.mutation_payload(
-            sample_id,
-            resource="variant_comment",
-            resource_id=comment_id,
-            action=action,
-        ),
-        util_module=util,
-    )
-
-
 @router.delete(
     "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/false-positive",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Remove false-positive flag from small variant",
 )
 def unmark_false_variant(
@@ -295,19 +245,21 @@ def unmark_false_variant(
     service: DnaService = Depends(get_dna_service),
 ):
     """Remove the false-positive flag from a small variant."""
-    return _variant_mutation(
+    return resource_change(
         sample_id,
         var_id,
         user,
         service,
+        resource="variant",
         action="unmark_false_positive",
-        mutate=lambda: service.repository.variant_handler.unmark_false_positive_var(var_id),
+        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=False, flag="false_positive"),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
 
 @router.patch(
     "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/false-positive",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Mark small variant false-positive",
 )
 def mark_false_variant(
@@ -317,19 +269,21 @@ def mark_false_variant(
     service: DnaService = Depends(get_dna_service),
 ):
     """Mark a small variant as false positive."""
-    return _variant_mutation(
+    return resource_change(
         sample_id,
         var_id,
         user,
         service,
+        resource="variant",
         action="mark_false_positive",
-        mutate=lambda: service.repository.variant_handler.mark_false_positive_var(var_id),
+        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=True, flag="false_positive"),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
 
 @router.delete(
     "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/interesting",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Remove interesting flag from small variant",
 )
 def unmark_interesting_variant(
@@ -339,19 +293,21 @@ def unmark_interesting_variant(
     service: DnaService = Depends(get_dna_service),
 ):
     """Remove the interesting flag from a small variant."""
-    return _variant_mutation(
+    return resource_change(
         sample_id,
         var_id,
         user,
         service,
+        resource="variant",
         action="unmark_interesting",
-        mutate=lambda: service.repository.variant_handler.unmark_interesting_var(var_id),
+        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=False, flag="interesting"),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
 
 @router.patch(
     "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/interesting",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Mark small variant interesting",
 )
 def mark_interesting_variant(
@@ -361,19 +317,21 @@ def mark_interesting_variant(
     service: DnaService = Depends(get_dna_service),
 ):
     """Mark a small variant as interesting."""
-    return _variant_mutation(
+    return resource_change(
         sample_id,
         var_id,
         user,
         service,
+        resource="variant",
         action="mark_interesting",
-        mutate=lambda: service.repository.variant_handler.mark_interesting_var(var_id),
+        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=True, flag="interesting"),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
 
 @router.delete(
     "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/irrelevant",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Remove irrelevant flag from small variant",
 )
 def unmark_irrelevant_variant(
@@ -383,19 +341,21 @@ def unmark_irrelevant_variant(
     service: DnaService = Depends(get_dna_service),
 ):
     """Remove the irrelevant flag from a small variant."""
-    return _variant_mutation(
+    return resource_change(
         sample_id,
         var_id,
         user,
         service,
+        resource="variant",
         action="unmark_irrelevant",
-        mutate=lambda: service.repository.variant_handler.unmark_irrelevant_var(var_id),
+        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=False, flag="irrelevant"),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
 
 @router.patch(
     "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/irrelevant",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Mark small variant irrelevant",
 )
 def mark_irrelevant_variant(
@@ -405,19 +365,21 @@ def mark_irrelevant_variant(
     service: DnaService = Depends(get_dna_service),
 ):
     """Mark a small variant as irrelevant."""
-    return _variant_mutation(
+    return resource_change(
         sample_id,
         var_id,
         user,
         service,
+        resource="variant",
         action="mark_irrelevant",
-        mutate=lambda: service.repository.variant_handler.mark_irrelevant_var(var_id),
+        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=True, flag="irrelevant"),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
 
 @router.post(
     "/api/v1/samples/{sample_id}/small-variants/{var_id}/blacklist-entries",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Create blacklist entry from small variant",
 )
 def add_variant_to_blacklist(
@@ -432,17 +394,20 @@ def add_variant_to_blacklist(
     if not assay_config:
         raise _api_error(404, "Assay config not found for sample")
     assay_group = assay_config.get("asp_group", "unknown")
-    service.repository.blacklist_handler.blacklist_variant(variant, assay_group)
+    service.blacklist_variant(variant=variant, assay_group=assay_group)
     return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="variant", resource_id=var_id, action="blacklist"
+        change_payload(
+            sample_id=sample_id,
+            resource="variant",
+            resource_id=var_id,
+            action="blacklist",
         )
     )
 
 
 @router.patch(
     "/api/v1/samples/{sample_id}/small-variants/{var_id}/comments/{comment_id}/hidden",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Hide variant comment",
 )
 def hide_variant_comment(
@@ -455,20 +420,24 @@ def hide_variant_comment(
     service: DnaService = Depends(get_dna_service),
 ):
     """Hide a comment on a small variant."""
-    return _variant_comment_mutation(
+    return comment_change(
         sample_id,
         var_id,
         comment_id,
         user,
         service,
+        resource="variant_comment",
         action="hide",
-        mutate=lambda: service.repository.variant_handler.hide_var_comment(var_id, comment_id),
+        mutate=lambda: service.set_variant_comment_hidden(
+            var_id=var_id, comment_id=comment_id, hidden=True
+        ),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
 
 @router.delete(
     "/api/v1/samples/{sample_id}/small-variants/{var_id}/comments/{comment_id}/hidden",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Unhide variant comment",
 )
 def unhide_variant_comment(
@@ -481,22 +450,24 @@ def unhide_variant_comment(
     service: DnaService = Depends(get_dna_service),
 ):
     """Unhide a comment on a small variant."""
-    return _variant_comment_mutation(
+    return comment_change(
         sample_id,
         var_id,
         comment_id,
         user,
         service,
+        resource="variant_comment",
         action="unhide",
-        mutate=lambda: service.repository.variant_handler.unhide_variant_comment(
-            var_id, comment_id
+        mutate=lambda: service.set_variant_comment_hidden(
+            var_id=var_id, comment_id=comment_id, hidden=False
         ),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
     )
 
 
 @router.patch(
     "/api/v1/samples/{sample_id}/small-variants/flags/false-positive",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Bulk false-positive small variant update",
 )
 def set_variant_false_positive_bulk(
@@ -510,15 +481,15 @@ def set_variant_false_positive_bulk(
     """Set variant false positive bulk.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        apply (bool): Value for ``apply``.
-        resource_ids (list[str]): Value for ``resource_ids``.
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (DnaService): Value for ``service``.
+        sample_id (str): Normalized ``sample_id``.
+        apply (bool): Normalized ``apply``.
+        resource_ids (list[str]): Normalized ``resource_ids``.
+        payload (dict): Normalized ``payload``.
+        user (ApiUser): Normalized ``user``.
+        service (DnaService): Normalized ``service``.
 
     Returns:
-        The function result.
+        Normalized return value.
     """
     _get_sample_for_api(sample_id, user)
     payload_resource_ids = payload.get("resource_ids") if isinstance(payload, dict) else None
@@ -532,15 +503,18 @@ def set_variant_false_positive_bulk(
     )
     service.set_variant_bulk_flag(resource_ids=resource_ids, apply=apply, flag="false_positive")
     return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="variant_bulk", resource_id="bulk", action="set_false_positive_bulk"
+        change_payload(
+            sample_id=sample_id,
+            resource="variant_bulk",
+            resource_id="bulk",
+            action="set_false_positive_bulk",
         )
     )
 
 
 @router.patch(
     "/api/v1/samples/{sample_id}/small-variants/flags/irrelevant",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     summary="Bulk irrelevant small variant update",
 )
 def set_variant_irrelevant_bulk(
@@ -554,15 +528,15 @@ def set_variant_irrelevant_bulk(
     """Set variant irrelevant bulk.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        apply (bool): Value for ``apply``.
-        resource_ids (list[str]): Value for ``resource_ids``.
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (DnaService): Value for ``service``.
+        sample_id (str): Normalized ``sample_id``.
+        apply (bool): Normalized ``apply``.
+        resource_ids (list[str]): Normalized ``resource_ids``.
+        payload (dict): Normalized ``payload``.
+        user (ApiUser): Normalized ``user``.
+        service (DnaService): Normalized ``service``.
 
     Returns:
-        The function result.
+        Normalized return value.
     """
     _get_sample_for_api(sample_id, user)
     payload_resource_ids = payload.get("resource_ids") if isinstance(payload, dict) else None
@@ -576,19 +550,22 @@ def set_variant_irrelevant_bulk(
     )
     service.set_variant_bulk_flag(resource_ids=resource_ids, apply=apply, flag="irrelevant")
     return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="variant_bulk", resource_id="bulk", action="set_irrelevant_bulk"
+        change_payload(
+            sample_id=sample_id,
+            resource="variant_bulk",
+            resource_id="bulk",
+            action="set_irrelevant_bulk",
         )
     )
 
 
 @router.post(
     "/api/v1/samples/{sample_id}/annotations",
-    response_model=SampleMutationPayload,
+    response_model=SampleChangePayload,
     status_code=201,
     summary="Create sample annotation",
 )
-def add_variant_comment_mutation(
+def add_variant_comment_change(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
@@ -599,13 +576,13 @@ def add_variant_comment_mutation(
     """Create a sample annotation on a variant-like resource.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (ResourceAnnotationService): Value for ``service``.
+        sample_id (str): Normalized ``sample_id``.
+        payload (dict): Normalized ``payload``.
+        user (ApiUser): Normalized ``user``.
+        service (ResourceAnnotationService): Normalized ``service``.
 
     Returns:
-        The function result.
+        Normalized return value.
     """
     _get_sample_for_api(sample_id, user)
     target_id = str(payload.get("id", "unknown"))
@@ -617,7 +594,10 @@ def add_variant_comment_mutation(
         create_comment_doc_fn=create_comment_doc,
     )
     return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource=resource, resource_id=target_id, action="add_comment"
+        change_payload(
+            sample_id=sample_id,
+            resource=resource,
+            resource_id=target_id,
+            action="add_comment",
         )
     )

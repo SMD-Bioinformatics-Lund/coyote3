@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from api.core.models.user import UserModel
+from api.deps.handlers import get_assay_panel_handler, get_roles_handler, get_user_handler
 from api.extensions import ldap_manager
 from api.observability.auth_metrics import emit_auth_metric
 from api.runtime_state import app
-from api.security.repository import get_security_repository
 
 
 def _lookup_user_doc(login_identifier: str) -> dict | None:
@@ -18,15 +18,22 @@ def _lookup_user_doc(login_identifier: str) -> dict | None:
     Returns:
             The  lookup user doc result.
     """
-    repo = get_security_repository()
     normalized = str(login_identifier).strip().lower()
     if not normalized:
         return None
-    user_doc = repo.get_user_by_username(normalized)
+    user_handler = get_user_handler()
+    user_doc = user_handler.user(normalized)
     if user_doc:
         return user_doc
     # Support explicit business-key lookup in addition to email/username.
-    return repo.get_user_by_id(normalized)
+    return user_handler.user_with_id(normalized)
+
+
+def _load_user_access_context(user_doc: dict) -> tuple[dict, list[dict]]:
+    """Return the role document and active assay panels for a user document."""
+    role_doc = get_roles_handler().get_role(user_doc.get("role")) or {}
+    assay_panels = list(get_assay_panel_handler().get_all_asps(is_active=True) or [])
+    return role_doc, assay_panels
 
 
 def _ldap_authenticate(username: str, password: str) -> bool:
@@ -58,10 +65,8 @@ def build_user_session_payload(user_doc: dict) -> dict:
     Returns:
         The normalized session payload returned to API clients.
     """
-    repo = get_security_repository()
-    role_doc = repo.get_role(user_doc.get("role")) or {}
-    asp_docs = repo.get_all_active_asps()
-    user_model = UserModel.from_repository_payload(user_doc, role_doc, asp_docs)
+    role_doc, asp_docs = _load_user_access_context(user_doc)
+    user_model = UserModel.from_auth_payload(user_doc, role_doc, asp_docs)
     return user_model.to_dict()
 
 
@@ -120,4 +125,4 @@ def update_user_last_login(user_id: str) -> None:
     Returns:
         ``None``.
     """
-    get_security_repository().update_user_last_login(user_id)
+    get_user_handler().update_user_last_login(user_id)

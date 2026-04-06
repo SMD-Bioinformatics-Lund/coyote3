@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from api.services.dashboard.analytics import DashboardService
 
 
-class _DashboardRepoStub:
+class _DashboardBackendStub:
     def __init__(self) -> None:
         self.user_doc = {"role": "analyst", "assays": ["A1"], "assay_groups": ["G1"]}
 
@@ -97,8 +97,78 @@ class _DashboardRepoStub:
         return {"pairs": [{"isgl": "I1", "asp": "A1"}]}
 
 
+def _noop_handler(**methods):
+    defaults = {
+        "count_users": lambda: 0,
+        "count_roles": lambda is_active=None: 0,
+        "count_asps": lambda is_active=None: 0,
+        "count_aspcs": lambda is_active=None: 0,
+        "count_isgls": lambda is_active=None: 0,
+        "get_dashboard_user_rollup": lambda: {},
+        "get_dashboard_visibility_rollup": lambda: {},
+        "user_with_id": lambda _id: {},
+        "resolve_active_asp_ids_for_scope": lambda assays=None, groups=None: [],
+        "get_dashboard_sample_rollup": lambda assays=None: {},
+        "get_dashboard_variant_counts": lambda: {},
+        "get_unique_variant_quality_counts": lambda: {},
+        "get_total_cnv_count": lambda: 0,
+        "get_total_transloc_count": lambda: 0,
+        "get_total_fusion_count": lambda: 0,
+        "get_unique_blacklist_count": lambda: 0,
+        "get_dashboard_tier_stats": lambda: {},
+        "get_all_asps_unique_gene_count": lambda: 0,
+        "get_all_asp_gene_counts": lambda: {},
+        "get_dashboard_assay_association_rollup": lambda: {},
+    }
+    defaults.update(methods)
+    return SimpleNamespace(**defaults)
+
+
+def _dashboard_service(backend=None) -> DashboardService:
+    backend = backend or _DashboardBackendStub()
+    return DashboardService(
+        user_handler=_noop_handler(
+            count_users=backend.count_users,
+            user_with_id=backend.get_user_by_id,
+            get_dashboard_user_rollup=backend.get_dashboard_user_rollup,
+        ),
+        roles_handler=_noop_handler(count_roles=backend.count_roles),
+        assay_panel_handler=_noop_handler(
+            count_asps=backend.count_asps,
+            resolve_active_asp_ids_for_scope=backend.resolve_active_asp_ids_for_scope,
+            get_all_asps_unique_gene_count=backend.get_all_asps_unique_gene_count,
+            get_all_asp_gene_counts=backend.get_all_asp_gene_counts,
+        ),
+        assay_configuration_handler=_noop_handler(count_aspcs=backend.count_aspcs),
+        gene_list_handler=_noop_handler(
+            count_isgls=backend.count_isgls,
+            get_dashboard_visibility_rollup=backend.get_dashboard_isgl_visibility,
+            get_dashboard_assay_association_rollup=backend.get_dashboard_isgl_association,
+        ),
+        sample_handler=_noop_handler(
+            get_dashboard_sample_rollup=backend.get_dashboard_sample_rollup
+        ),
+        variant_handler=_noop_handler(
+            get_dashboard_variant_counts=backend.get_dashboard_variant_counts,
+            get_unique_variant_quality_counts=backend.get_unique_variant_quality_counts,
+        ),
+        copy_number_variant_handler=_noop_handler(get_total_cnv_count=backend.get_total_cnv_count),
+        translocation_handler=_noop_handler(
+            get_total_transloc_count=backend.get_total_transloc_count
+        ),
+        fusion_handler=_noop_handler(get_total_fusion_count=backend.get_total_fusion_count),
+        blacklist_handler=_noop_handler(
+            get_unique_blacklist_count=backend.get_unique_blacklist_count
+        ),
+        reported_variant_handler=_noop_handler(
+            get_dashboard_tier_stats=backend.get_dashboard_tier_stats
+        ),
+        coyote_db=None,
+    )
+
+
 def test_build_isgl_visibility_counts_combinations():
-    service = DashboardService(repository=_DashboardRepoStub())
+    service = _dashboard_service(backend=_DashboardBackendStub())
     rows = [
         {"is_public": True, "is_private": False, "adhoc": False, "is_research": True},
         {"is_public": False, "is_private": True, "adhoc": False},
@@ -118,16 +188,16 @@ def test_build_isgl_visibility_counts_combinations():
 
 
 def test_resolve_scope_assays_admin_returns_none():
-    repo = _DashboardRepoStub()
-    repo.user_doc = {"role": "admin", "assays": [], "assay_groups": []}
-    service = DashboardService(repository=repo)
+    backend = _DashboardBackendStub()
+    backend.user_doc = {"role": "admin", "assays": [], "assay_groups": []}
+    service = _dashboard_service(backend=backend)
     user = SimpleNamespace(id="u1", role="admin", assays=[], assay_groups=[])
 
     assert service.resolve_scope_assays(user=user) is None
 
 
 def test_resolve_scope_assays_returns_combined_assays():
-    service = DashboardService(repository=_DashboardRepoStub())
+    service = _dashboard_service(backend=_DashboardBackendStub())
     user = SimpleNamespace(id="u1", role="analyst", assays=["A1"], assay_groups=["G1"])
 
     payload = service.resolve_scope_assays(user=user)
@@ -136,7 +206,7 @@ def test_resolve_scope_assays_returns_combined_assays():
 
 
 def test_summary_payload_calculates_quality_rates(monkeypatch):
-    service = DashboardService(repository=_DashboardRepoStub())
+    service = _dashboard_service(backend=_DashboardBackendStub())
     user = SimpleNamespace(id="u1", role="admin", assays=["A1"], assay_groups=["G1"])
     monkeypatch.setattr(service, "build_admin_insights", lambda: {"counts": {"users_total": 12}})
     monkeypatch.setattr(

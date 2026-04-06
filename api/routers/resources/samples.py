@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.admin import (
-    AdminMutationPayload,
+    AdminChangePayload,
     AdminSampleContextPayload,
     AdminSamplesListPayload,
 )
@@ -27,15 +27,15 @@ def list_admin_samples_read(
     ),
     service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
-    """List admin samples read.
+    """Return the admin sample list.
 
     Args:
-        search (str): Value for ``search``.
-        user (ApiUser): Value for ``user``.
-        service (ResourceSampleService): Value for ``service``.
+        search: Free-text search string.
+        user: Authenticated user requesting the list.
+        service: Admin sample workflow service.
 
     Returns:
-        The function result.
+        dict: Admin list payload for samples.
     """
     return util.common.convert_to_serializable(
         service.list_payload(assays=user.assays, search=search, page=page, per_page=per_page)
@@ -52,15 +52,15 @@ def admin_sample_context_read(
     ),
     service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
-    """Admin sample context read.
+    """Return edit context for an admin sample.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        user (ApiUser): Value for ``user``.
-        service (ResourceSampleService): Value for ``service``.
+        sample_id: Sample identifier to load.
+        user: Authenticated user requesting edit context.
+        service: Admin sample workflow service.
 
     Returns:
-        The function result.
+        dict: Edit-context payload for the sample.
     """
     _ = user
     return util.common.convert_to_serializable(service.context_payload(sample_id=sample_id))
@@ -68,10 +68,10 @@ def admin_sample_context_read(
 
 @router.put(
     "/api/v1/resources/samples/{sample_id}",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     summary="Update admin sample",
 )
-def update_sample_mutation(
+def update_sample_change(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
@@ -79,16 +79,16 @@ def update_sample_mutation(
     ),
     service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
-    """Update sample mutation.
+    """Update an admin sample.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (ResourceSampleService): Value for ``service``.
+        sample_id: Sample identifier to update.
+        payload: Submitted sample payload.
+        user: Authenticated user performing the mutation.
+        service: Admin sample workflow service.
 
     Returns:
-        The function result.
+        dict: Mutation response payload.
     """
     return util.common.convert_to_serializable(
         service.update(sample_id=sample_id, payload=payload, actor_username=user.username)
@@ -97,25 +97,25 @@ def update_sample_mutation(
 
 @router.delete(
     "/api/v1/resources/samples/{sample_id}",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     summary="Delete admin sample",
 )
-def delete_sample_mutation(
+def delete_sample_change(
     sample_id: str,
     user: ApiUser = Depends(
         require_access(permission="delete_sample_global", min_role="developer", min_level=9999)
     ),
     service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
-    """Delete sample mutation.
+    """Delete an admin sample.
 
     Args:
-        sample_id (str): Value for ``sample_id``.
-        user (ApiUser): Value for ``user``.
-        service (ResourceSampleService): Value for ``service``.
+        sample_id: Sample identifier to delete.
+        user: Authenticated user performing the mutation.
+        service: Admin sample workflow service.
 
     Returns:
-        The function result.
+        dict: Mutation response payload.
     """
     _ = user
     return util.common.convert_to_serializable(service.delete(sample_id=sample_id))

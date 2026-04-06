@@ -5,8 +5,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.admin import (
+    AdminChangePayload,
     AdminExistsPayload,
-    AdminMutationPayload,
     AdminUserContextPayload,
     AdminUserCreateContextPayload,
     AdminUsersListPayload,
@@ -20,11 +20,7 @@ router = APIRouter(tags=["admin-users"])
 
 
 def _service() -> UserManagementService:
-    """Service.
-
-    Returns:
-            The  service result.
-    """
+    """Return the admin user workflow service."""
     return get_admin_user_service()
 
 
@@ -38,15 +34,7 @@ def list_users_read(
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
-    """List users read.
-
-    Args:
-        user (ApiUser): Value for ``user``.
-        service (UserManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return the admin user list."""
     _ = user
     return util.common.convert_to_serializable(
         service.list_users_payload(q=q, page=page, per_page=per_page)
@@ -60,15 +48,7 @@ def create_user_context_read(
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
-    """Create user context read.
-
-    Args:
-        user (ApiUser): Value for ``user``.
-        service (UserManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return create-form context for an admin user."""
     return util.common.convert_to_serializable(
         service.create_context_payload(actor_username=user.username)
     )
@@ -82,38 +62,20 @@ def user_context_read(
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
-    """User context read.
-
-    Args:
-        user_id (str): Value for ``user_id``.
-        user (ApiUser): Value for ``user``.
-        service (UserManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return edit-form context for an admin user."""
     _ = user
     return util.common.convert_to_serializable(service.context_payload(user_id=user_id))
 
 
 def _create_user(payload: dict, actor_username: str, service: UserManagementService):
-    """Create user.
-
-    Args:
-            payload: Payload.
-            actor_username: Actor username.
-            service: Service.
-
-    Returns:
-            The  create user result.
-    """
+    """Create an admin user and serialize the change response."""
     return util.common.convert_to_serializable(
         service.create_user(payload=payload, actor_username=actor_username)
     )
 
 
 @router.post(
-    "/api/v1/users", response_model=AdminMutationPayload, status_code=201, summary="Create user"
+    "/api/v1/users", response_model=AdminChangePayload, status_code=201, summary="Create user"
 )
 def create_user(
     payload: dict = Body(default_factory=dict),
@@ -122,37 +84,18 @@ def create_user(
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
-    """Create user.
-
-    Args:
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (UserManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Create an admin user."""
     return _create_user(payload=payload, actor_username=user.username, service=service)
 
 
 def _update_user(user_id: str, payload: dict, actor_username: str, service: UserManagementService):
-    """Update user.
-
-    Args:
-            user_id: User id.
-            payload: Payload.
-            actor_username: Actor username.
-            service: Service.
-
-    Returns:
-            The  update user result.
-    """
+    """Update an admin user and serialize the change response."""
     return util.common.convert_to_serializable(
         service.update_user(user_id=user_id, payload=payload, actor_username=actor_username)
     )
 
 
-@router.put("/api/v1/users/{user_id}", response_model=AdminMutationPayload, summary="Update user")
+@router.put("/api/v1/users/{user_id}", response_model=AdminChangePayload, summary="Update user")
 def update_user(
     user_id: str,
     payload: dict = Body(default_factory=dict),
@@ -161,38 +104,18 @@ def update_user(
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
-    """Update user.
-
-    Args:
-        user_id (str): Value for ``user_id``.
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (UserManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Update an admin user."""
     return _update_user(
         user_id=user_id, payload=payload, actor_username=user.username, service=service
     )
 
 
 def _delete_user(user_id: str, service: UserManagementService):
-    """Delete user.
-
-    Args:
-            user_id: User id.
-            service: Service.
-
-    Returns:
-            The  delete user result.
-    """
+    """Delete an admin user and serialize the change response."""
     return util.common.convert_to_serializable(service.delete_user(user_id=user_id))
 
 
-@router.delete(
-    "/api/v1/users/{user_id}", response_model=AdminMutationPayload, summary="Delete user"
-)
+@router.delete("/api/v1/users/{user_id}", response_model=AdminChangePayload, summary="Delete user")
 def delete_user(
     user_id: str,
     user: ApiUser = Depends(
@@ -200,36 +123,19 @@ def delete_user(
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
-    """Delete user.
-
-    Args:
-        user_id (str): Value for ``user_id``.
-        user (ApiUser): Value for ``user``.
-        service (UserManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Delete an admin user."""
     _ = user
     return _delete_user(user_id=user_id, service=service)
 
 
 def _toggle_user(user_id: str, service: UserManagementService):
-    """Toggle user.
-
-    Args:
-            user_id: User id.
-            service: Service.
-
-    Returns:
-            The  toggle user result.
-    """
+    """Toggle an admin user's active status and serialize the response."""
     return util.common.convert_to_serializable(service.toggle_user(user_id=user_id))
 
 
 @router.patch(
     "/api/v1/users/{user_id}/status",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     summary="Toggle user active status",
 )
 def toggle_user_status(
@@ -239,23 +145,14 @@ def toggle_user_status(
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
-    """Toggle user status.
-
-    Args:
-        user_id (str): Value for ``user_id``.
-        user (ApiUser): Value for ``user``.
-        service (UserManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Toggle an admin user's active status."""
     _ = user
     return _toggle_user(user_id=user_id, service=service)
 
 
 @router.post(
     "/api/v1/users/{user_id}/invite",
-    response_model=AdminMutationPayload,
+    response_model=AdminChangePayload,
     summary="Send local user invite",
 )
 def invite_local_user(
@@ -272,23 +169,14 @@ def invite_local_user(
 
 
 @router.post("/api/v1/users/validate_username", response_model=AdminExistsPayload)
-def validate_username_mutation(
+def validate_username_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
         require_access(permission="create_user", min_role="admin", min_level=99999)
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
-    """Validate username mutation.
-
-    Args:
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (UserManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Validate whether a username is already in use."""
     _ = user
     return util.common.convert_to_serializable(
         {"exists": service.username_exists(username=str(payload.get("username", "")))}
@@ -296,23 +184,14 @@ def validate_username_mutation(
 
 
 @router.post("/api/v1/users/validate_email", response_model=AdminExistsPayload)
-def validate_email_mutation(
+def validate_email_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
         require_access(permission="create_user", min_role="admin", min_level=99999)
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
-    """Validate email mutation.
-
-    Args:
-        payload (dict): Value for ``payload``.
-        user (ApiUser): Value for ``user``.
-        service (UserManagementService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Validate whether an email address is already in use."""
     _ = user
     return util.common.convert_to_serializable(
         {"exists": service.email_exists(email=str(payload.get("email", "")))}
@@ -329,6 +208,6 @@ __all__ = [
     "invite_local_user",
     "update_user",
     "user_context_read",
-    "validate_email_mutation",
-    "validate_username_mutation",
+    "validate_email_change",
+    "validate_username_change",
 ]

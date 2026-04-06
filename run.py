@@ -13,7 +13,7 @@ import os
 from typing import Literal
 
 from coyote import init_app
-from logging_setup import custom_logging
+from shared.logging_setup import custom_logging
 
 RunMode = Literal["production", "development", "testing"]
 _TRUE_VALUES = {"1", "true", "yes", "on"}

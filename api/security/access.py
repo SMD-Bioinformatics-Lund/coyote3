@@ -10,10 +10,15 @@ from fastapi import HTTPException, Request
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from api.core.models.user import UserModel
+from api.deps.handlers import (
+    get_roles_handler,
+    get_sample_handler,
+    get_user_handler,
+)
 from api.runtime_state import app as runtime_app
 from api.runtime_state import reset_current_user, set_current_user
 from api.security.audit_events import emit_access_event
-from api.security.repository import get_security_repository
+from api.security.auth_service import _load_user_access_context
 from api.settings import (
     get_api_secret_key,
     get_api_session_salt,
@@ -66,26 +71,26 @@ class ApiUser:
 
 
 def _api_error(status_code: int, message: str) -> HTTPException:
-    """Api error.
+    """Build a normalized API ``HTTPException``.
 
     Args:
-            status_code: Status code.
-            message: Message.
+        status_code: HTTP status code to return.
+        message: User-facing error message.
 
     Returns:
-            The  api error result.
+        HTTPException: Normalized error payload.
     """
     return HTTPException(status_code=status_code, detail={"status": status_code, "error": message})
 
 
 def is_public_api_path(path: str) -> bool:
-    """Return whether public api path is true.
+    """Return whether an API path is publicly accessible.
 
     Args:
-        path (str): Value for ``path``.
+        path: Request path to evaluate.
 
     Returns:
-        bool: The function result.
+        bool: ``True`` when the path skips authentication.
     """
     if path in PUBLIC_API_EXACT_PATHS:
         return True
@@ -98,13 +103,13 @@ def is_public_api_path(path: str) -> bool:
 
 
 def _http_exception_message(exc: HTTPException) -> str:
-    """Http exception message.
+    """Extract a log-friendly message from an ``HTTPException``.
 
     Args:
-            exc: Exc.
+        exc: Exception to summarize.
 
     Returns:
-            The  http exception message result.
+        str: Error message derived from the exception detail.
     """
     detail = exc.detail
     if isinstance(detail, dict):
@@ -124,21 +129,18 @@ def _audit_access_event(
     sample_id: str | None = None,
     extra: dict | None = None,
 ) -> None:
-    """Audit access event.
+    """Emit an access-control audit event.
 
     Args:
-            status: Status. Keyword-only argument.
-            reason: Reason. Keyword-only argument.
-            request: Request. Keyword-only argument.
-            user: User. Keyword-only argument.
-            permission: Permission. Keyword-only argument.
-            min_level: Min level. Keyword-only argument.
-            min_role: Min role. Keyword-only argument.
-            sample_id: Sample id. Keyword-only argument.
-            extra: Extra. Keyword-only argument.
-
-    Returns:
-            None.
+        status: Access outcome.
+        reason: Explanation for the decision.
+        request: Active request, when available.
+        user: Authenticated user, when available.
+        permission: Required permission, when applicable.
+        min_level: Minimum required access level.
+        min_role: Minimum required role.
+        sample_id: Related sample identifier.
+        extra: Additional structured metadata to emit.
     """
     emit_access_event(
         status=status,
@@ -157,11 +159,7 @@ def _audit_access_event(
 
 @lru_cache(maxsize=1)
 def _api_session_serializer() -> URLSafeTimedSerializer:
-    """Api session serializer.
-
-    Returns:
-            The  api session serializer result.
-    """
+    """Return the serializer used for signed API session tokens."""
     return URLSafeTimedSerializer(
         secret_key=get_api_secret_key(runtime_app.config),
         salt=get_api_session_salt(runtime_app.config),
@@ -169,70 +167,65 @@ def _api_session_serializer() -> URLSafeTimedSerializer:
 
 
 def get_api_session_cookie_name() -> str:
-    """Return api session cookie name.
+    """Return the configured API session cookie name.
 
     Returns:
-        str: The function result.
+        str: Cookie name used for API sessions.
     """
     return settings_session_cookie_name(runtime_app.config)
 
 
 def get_api_session_ttl_seconds() -> int:
-    """Return api session ttl seconds.
+    """Return the configured API session lifetime.
 
     Returns:
-        int: The function result.
+        int: Session lifetime in seconds.
     """
     return settings_session_ttl_seconds(runtime_app.config)
 
 
 def get_api_session_cookie_secure() -> bool:
-    """Return api session cookie secure.
+    """Return whether the API session cookie must be secure.
 
     Returns:
-        bool: The function result.
+        bool: ``True`` when the cookie must only be sent over HTTPS.
     """
     return settings_session_cookie_secure(runtime_app.config)
 
 
 def create_api_session_token(user_id: str) -> str:
-    """Create api session token.
+    """Create a signed API session token for a user.
 
     Args:
-        user_id (str): Value for ``user_id``.
+        user_id: User identifier to embed in the token.
 
     Returns:
-        str: The function result.
+        str: Signed session token.
     """
     return str(_api_session_serializer().dumps({"uid": str(user_id)}))
 
 
 def _role_levels() -> dict[str, int]:
-    """Role levels.
-
-    Returns:
-            The  role levels result.
-    """
+    """Return access levels keyed by role identifier."""
+    roles_handler = get_roles_handler()
     return {
         role.get("role_id"): role.get("level", 0)
-        for role in get_security_repository().get_all_roles()
+        for role in (roles_handler.get_all_roles() or [])
         if role.get("role_id")
     }
 
 
 def _api_user_from_doc(user_doc: dict) -> ApiUser:
-    """Api user from doc.
+    """Build an ``ApiUser`` from the stored user document.
 
     Args:
-            user_doc: User doc.
+        user_doc: Stored user document.
 
     Returns:
-            The  api user from doc result.
+        ApiUser: Runtime user model for request handling.
     """
-    repo = get_security_repository()
-    role_doc = repo.get_role(user_doc.get("role")) or {}
-    asp_docs = repo.get_all_active_asps()
-    user_model = UserModel.from_repository_payload(user_doc, role_doc, asp_docs)
+    role_doc, asp_docs = _load_user_access_context(user_doc)
+    user_model = UserModel.from_auth_payload(user_doc, role_doc, asp_docs)
     return ApiUser(
         id=str(user_model.id),
         email=user_model.email,
@@ -252,13 +245,13 @@ def _api_user_from_doc(user_doc: dict) -> ApiUser:
 
 
 def serialize_api_user(user: ApiUser) -> dict:
-    """Serialize api user.
+    """Serialize an ``ApiUser`` into a response-safe payload.
 
     Args:
-        user (ApiUser): Value for ``user``.
+        user: Runtime user model to serialize.
 
     Returns:
-        dict: The function result.
+        dict: Serialized user payload.
     """
     return {
         "_id": user.id,
@@ -279,13 +272,13 @@ def serialize_api_user(user: ApiUser) -> dict:
 
 
 def _extract_api_session_token(request: Request) -> str | None:
-    """Extract api session token.
+    """Extract an API session token from the request.
 
     Args:
-            request: Request.
+        request: Active request.
 
     Returns:
-            The  extract api session token result.
+        str | None: Bearer token or session cookie value.
     """
     auth_header = (request.headers.get("Authorization") or "").strip()
     if auth_header.lower().startswith("bearer "):
@@ -296,13 +289,13 @@ def _extract_api_session_token(request: Request) -> str | None:
 
 
 def _decode_session_user(request: Request) -> ApiUser:
-    """Decode session user.
+    """Decode and validate the authenticated API user.
 
     Args:
-            request: Request.
+        request: Active request.
 
     Returns:
-            The  decode session user result.
+        ApiUser: Authenticated runtime user.
     """
     api_token = _extract_api_session_token(request)
     if api_token:
@@ -320,7 +313,7 @@ def _decode_session_user(request: Request) -> ApiUser:
         if not user_id:
             raise _api_error(401, "Login required")
 
-        user_doc = get_security_repository().get_user_by_id(str(user_id))
+        user_doc = get_user_handler().user_with_id(str(user_id))
         if not user_doc or not user_doc.get("is_active", True):
             raise _api_error(401, "Login required")
         return _api_user_from_doc(user_doc)
@@ -333,16 +326,13 @@ def _enforce_access(
     min_level: int | None = None,
     min_role: str | None = None,
 ) -> None:
-    """Enforce access.
+    """Enforce permission, level, or role requirements for a user.
 
     Args:
-            user: User.
-            permission: Permission. Optional argument.
-            min_level: Min level. Optional argument.
-            min_role: Min role. Optional argument.
-
-    Returns:
-            None.
+        user: Authenticated user to evaluate.
+        permission: Required permission, when applicable.
+        min_level: Minimum required access level.
+        min_role: Minimum required role.
     """
     resolved_role_level = 0
     if min_role:
@@ -384,25 +374,25 @@ def require_access(
     min_level: int | None = None,
     min_role: str | None = None,
 ):
-    """Require access.
+    """Build a dependency that enforces route-level access requirements.
 
     Args:
-        permission (str | None): Value for ``permission``.
-        min_level (int | None): Value for ``min_level``.
-        min_role (str | None): Value for ``min_role``.
+        permission: Required permission, when applicable.
+        min_level: Minimum required access level.
+        min_role: Minimum required role.
 
     Returns:
-        The function result.
+        Callable: FastAPI dependency that yields the authenticated user.
     """
 
     def dep(request: Request) -> Generator[ApiUser, None, None]:
-        """Dep.
+        """Resolve, authorize, and yield the authenticated user.
 
         Args:
-            request (Request): Value for ``request``.
+            request: Active request.
 
         Returns:
-            Generator[ApiUser, None, None]: The function result.
+            Generator[ApiUser, None, None]: Authorized user dependency result.
         """
         user: ApiUser | None = None
         try:
@@ -438,20 +428,20 @@ def require_access(
 
 
 def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None = None):
-    """Get sample for api.
+    """Return a sample after enforcing sample-assay access rules.
 
     Args:
-            sample_id: Sample id.
-            user: User.
-            request: Request. Optional argument.
+        sample_id: Sample identifier to resolve.
+        user: Authenticated user requesting access.
+        request: Active request, when available.
 
     Returns:
-            The  get sample for api result.
+        dict: Sample payload authorized for the user.
     """
-    repo = get_security_repository()
-    sample = repo.get_sample(sample_id)
+    sample_handler = get_sample_handler()
+    sample = sample_handler.get_sample(sample_id)
     if not sample:
-        sample = repo.get_sample_by_id(sample_id)
+        sample = sample_handler.get_sample_by_id(sample_id)
     if not sample:
         _audit_access_event(
             status="denied",
@@ -478,13 +468,10 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
 
 
 def _require_internal_token(request: Request) -> None:
-    """Require internal token.
+    """Validate the internal API token header.
 
     Args:
-            request: Request.
-
-    Returns:
-            None.
+        request: Active request.
     """
     try:
         expected = get_internal_api_token(runtime_app.config)
