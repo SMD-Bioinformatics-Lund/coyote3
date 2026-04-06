@@ -116,7 +116,7 @@ class TranslocsHandler(BaseHandler):
             dict: A list of annotation dictionaries associated with the translocation. Each annotation may include
             classification or textual information.
         """
-        var = f'{str(tl["CHROM"])}:{str(tl["POS"])}^{tl["ALT"]}'
+        var = f"{str(tl['CHROM'])}:{str(tl['POS'])}^{tl['ALT']}"
         annotations = self.adapter.annotations_collection.find({"variant": var}).sort(
             "time_created", 1
         )

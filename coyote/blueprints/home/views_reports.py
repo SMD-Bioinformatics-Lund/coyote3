@@ -23,8 +23,7 @@ def _serve_report(sample_id: str, report_id: str, *, as_attachment: bool) -> Res
             exc,
             logger=app.home_logger,
             log_message=(
-                "Failed to resolve report path via API for "
-                f"sample {sample_id} report {report_id}"
+                f"Failed to resolve report path via API for sample {sample_id} report {report_id}"
             ),
             summary="Unable to load the requested report.",
             not_found_summary="The requested report was not found.",

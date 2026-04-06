@@ -67,7 +67,6 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
         flat=False,
         **kwargs,
     ):
-
         kwargs.setdefault("encoding", "utf-8")
         kwargs.setdefault("utc", True)
 

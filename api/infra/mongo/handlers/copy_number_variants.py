@@ -113,7 +113,7 @@ class CNVsHandler(BaseHandler):
         Returns:
             list: A list of annotation documents associated with the CNV.
         """
-        var = f'{str(cnv["chr"])}:{str(cnv["start"])}-{str(cnv["end"])}'
+        var = f"{str(cnv['chr'])}:{str(cnv['start'])}-{str(cnv['end'])}"
         annotations = self.adapter.annotations_collection.find({"variant": var}).sort(
             "time_created", 1
         )

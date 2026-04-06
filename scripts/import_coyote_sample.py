@@ -708,7 +708,6 @@ def select_csq(csq_arr, canonical: Dict[str, str]) -> Tuple[Dict[str, Any], str]
     for impact in impact_order:
         for csq_idx, csq in enumerate(csq_arr):
             if csq["IMPACT"] == impact:
-
                 if csq["SYMBOL"] in canonical and canonical[csq["SYMBOL"]] == refseq_noversion(
                     csq["Feature"]
                 ):

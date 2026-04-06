@@ -35,8 +35,7 @@ def _require_env(key: str, context: str = "production") -> str:
     value = os.getenv(key, "").strip()
     if not value:
         raise RuntimeError(
-            f"{key} must be set in {context} environments. "
-            f"Add it to your env file and re-deploy."
+            f"{key} must be set in {context} environments. Add it to your env file and re-deploy."
         )
     return value
 

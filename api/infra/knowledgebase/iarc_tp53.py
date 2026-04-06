@@ -60,7 +60,6 @@ class IARCTP53Handler(BaseHandler):
         """
         try:
             if variant["INFO"]["selected_CSQ"]["SYMBOL"] == "TP53":
-
                 hgvsc_parts = variant["INFO"]["selected_CSQ"]["HGVSc"].split(":")
                 if len(hgvsc_parts) >= 2:
                     hgvsc = hgvsc_parts[1]

@@ -38,10 +38,7 @@ def build_report_file_location(
     if not report_subdir:
         raise AppError(
             400,
-            (
-                "Missing assay_config.reporting.report_path "
-                f"for assay group '{default_assay_group}'"
-            ),
+            (f"Missing assay_config.reporting.report_path for assay group '{default_assay_group}'"),
         )
     report_path = os.path.join(reports_base_path, report_subdir)
     report_file = os.path.join(report_path, f"{report_id}.html")
