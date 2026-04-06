@@ -216,9 +216,9 @@ class UserManagementService:
             except RuntimeError:
                 response["meta"]["invite_email_sent"] = False
                 response["meta"]["mail_configured"] = False
-                response["meta"][
-                    "warning"
-                ] = "Invite token/email issuance skipped: API runtime not initialized."
+                response["meta"]["warning"] = (
+                    "Invite token/email issuance skipped: API runtime not initialized."
+                )
         return response
 
     def update_user(

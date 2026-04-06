@@ -21,8 +21,7 @@ def test_frontend_layer_does_not_import_backend_api_modules() -> None:
                 if base == "api" or base.startswith("api."):
                     offenders.append(f"{module_path}:{node.lineno}:{base}")
 
-    assert (
-        not offenders
-    ), "Frontend layer (`coyote`) must not import backend (`api`) modules directly:\n" + "\n".join(
-        offenders
+    assert not offenders, (
+        "Frontend layer (`coyote`) must not import backend (`api`) modules directly:\n"
+        + "\n".join(offenders)
     )
