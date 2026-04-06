@@ -77,3 +77,35 @@ stage/prod-like infrastructure.
 - add router tests for HTTP boundary behavior
 - add fixtures for realistic payloads
 - avoid coupling tests to production secrets/env
+
+## UI route testing
+
+For Flask web routes, test the route and the Flask-to-API contract together.
+
+- add route smoke coverage under `tests/ui`
+- stub `CoyoteApiClient` methods instead of importing backend services directly
+- prefer `tests/fixtures/api/mock_collections.py` for fixture-shaped documents
+- keep payloads aligned with real collection structure from `tests/fixtures/api/db_snapshots/*`
+- patch `render_template` only when the route contract is the thing under test
+
+Example:
+
+```python
+from coyote.services.api_client.api_client import CoyoteApiClient
+from coyote.services.api_client.base import ApiPayload
+from tests.fixtures.api import mock_collections as fx
+
+
+def _payload(value: dict) -> ApiPayload:
+    return ApiPayload(value)
+
+
+def _fake_get(self, path, headers=None, params=None):  # noqa: ARG001
+    sample = fx.sample_doc()
+    if path.endswith("/api/v1/samples/s1/small-variants"):
+        return _payload({"sample": sample, "display_sections_data": {"snvs": []}})
+    return _payload({})
+```
+
+This keeps UI route tests close to real API payload shapes and catches
+contract drift after refactors.
