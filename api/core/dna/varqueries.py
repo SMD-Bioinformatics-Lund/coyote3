@@ -163,27 +163,6 @@ def build_query(assay_group: str, settings: dict) -> dict:
             ],
         }
 
-    elif normalized_group in {"swea", "gmsonco"}:
-        query = {
-            "SAMPLE_ID": settings["id"],
-            "$and": [
-                gene_pos_filter,
-                {
-                    "GT": {
-                        "$elemMatch": {
-                            "AF": {
-                                "$gte": float(settings["min_freq"]),
-                                "$lte": float(settings["max_freq"]),
-                            },
-                            "DP": {"$gte": float(settings["min_depth"])},
-                            "VD": {"$gte": float(settings["min_alt_reads"])},
-                        }
-                    }
-                },
-                {"INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": settings["filter_conseq"]}}}},
-            ],
-        }
-
     elif normalized_group == "solid":
         query = {
             "SAMPLE_ID": settings["id"],

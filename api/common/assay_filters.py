@@ -150,7 +150,7 @@ def get_genes_covered_in_panel(genelists: dict, assay_panel_doc: dict) -> dict:
     return updated_genelists
 
 
-def get_assay_genelist_names(genelists: dict) -> list:
+def get_assay_genelist_names(genelists: list[dict]) -> list[str]:
     return [genelist["_id"] for genelist in genelists]
 
 

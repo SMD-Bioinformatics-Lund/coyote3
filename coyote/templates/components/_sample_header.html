@@ -5,7 +5,7 @@
 {% set sample_header_action_target = sample_header_action_target|default(None) %}
 {% set sample_header_action_rel = sample_header_action_rel|default('noopener') %}
 
-<section class="bg-gray-100 px-2 py-1 my-1 flex flex-wrap justify-between w-full shadow-lg rounded-xl relative gap-2 border-l-8 border-r-8 border-indigo-400 z-0" id="sample-info">
+<section class="bg-gray-100 px-2 py-1 my-1 grid grid-cols-2 justify-between w-full shadow-lg rounded-xl relative gap-2 border-l-8 border-r-8 border-indigo-400 z-0" id="sample-info">
   <div class="text-sm font-semibold text-black flex flex-wrap items-center ml-2 mr-4 break-all">
     Sample:
     <a href="{{ sample_header_sample_url }}"
@@ -14,7 +14,7 @@
     </a>
   </div>
 
-  <div id="sample-meta-info" class="pr-2 flex flex-wrap text-xs text-gray-700 font-medium items-center space-x-1 ml-2 mr-2 break-all overflow-x-auto">
+  <div id="sample-meta-info" class="pr-2 flex flex-wrap text-xs text-gray-700 font-medium items-center justify-end space-x-1 ml-2 mr-2 break-all overflow-x-auto">
     {% if sample_header_action_url and sample_header_action_label %}
       <div class="flex items-center">
         <a href="{{ sample_header_action_url }}"

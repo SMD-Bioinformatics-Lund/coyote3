@@ -224,7 +224,7 @@ def _hide_sample_comment(
     sample = _get_sample_for_api(sample_id, user)
     service.set_sample_comment_hidden(sample_id=sample_id, comment_id=comment_id, hidden=True)
     result = change_payload(
-        sample_id, resource="sample_comment", resource_id=comment_id, action="hide"
+        sample_id=sample_id, resource="sample_comment", resource_id=comment_id, action="hide"
     )
     result["meta"]["omics_layer"] = sample.get("omics_layer")
     return util.common.convert_to_serializable(result)
@@ -256,7 +256,7 @@ def _unhide_sample_comment(
     sample = _get_sample_for_api(sample_id, user)
     service.set_sample_comment_hidden(sample_id=sample_id, comment_id=comment_id, hidden=False)
     result = change_payload(
-        sample_id, resource="sample_comment", resource_id=comment_id, action="unhide"
+        sample_id=sample_id, resource="sample_comment", resource_id=comment_id, action="unhide"
     )
     result["meta"]["omics_layer"] = sample.get("omics_layer")
     return util.common.convert_to_serializable(result)
@@ -318,7 +318,10 @@ def _update_sample_filters(
 
     service.replace_sample_filters(sample=sample, filters=normalized_filters)
     result = change_payload(
-        sample_id, resource="sample_filters", resource_id=str(sample.get("_id")), action="update"
+        sample_id=sample_id,
+        resource="sample_filters",
+        resource_id=str(sample.get("_id")),
+        action="update",
     )
     return util.common.convert_to_serializable(result)
 
@@ -346,7 +349,10 @@ def _reset_sample_filters(sample_id: str, user: ApiUser, service: SampleCatalogS
         raise api_error(404, "Assay config not found for sample")
     service.reset_sample_filters(sample=sample, assay_config=assay_config)
     result = change_payload(
-        sample_id, resource="sample_filters", resource_id=str(sample.get("_id")), action="reset"
+        sample_id=sample_id,
+        resource="sample_filters",
+        resource_id=str(sample.get("_id")),
+        action="reset",
     )
     return util.common.convert_to_serializable(result)
 

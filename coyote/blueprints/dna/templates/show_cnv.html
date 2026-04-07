@@ -9,9 +9,6 @@
 {% set cnv_type = 'AMP' if cnv.ratio > 0 else 'DEL' %}
 
 
-
-
-
 {% set subfolder = {'dir': "None"} %}
 {% set all_samples_bam_paths = [] %}
 
@@ -167,15 +164,20 @@
     {% include "sample_meta_info.html" %}
 
     <!-- CNV Main Info Card  -->
-    <section class="bg-gray-100 p-2 my-2 flex flex-wrap justify-between w-full shadow-lg rounded-xl relative gap-2 z-0 border-l-8 border-r-8 border-purple-400 whitespace-normal break-all" id="cnv-info">
+    <section class="bg-gray-100 p-2 my-2 grid grid-cols-2 justify-between w-full shadow-lg rounded-xl relative gap-2 z-0 border-l-8 border-r-8 border-purple-400 whitespace-normal break-all" id="cnv-info">
       <!-- CNV Info Left Section -->
       <div class="flex flex-col ml-2 mr-4" id="cnv-info-left">
         <h2 class="text-base font-bold">
           {{ cnv_type }} ({{cnv.size}} bp): {{igv_link|safe}}
         </h2>
-        <p class="text-sm font-normal py-1 my-1">
-          Called by: {{ cnv.callers }}
-        </p>
+        <div class="text-sm py-1 my-1 flex flex-wrap items-center gap-2">
+          <span class="font-normal text-gray-800">Called by:</span>
+          {% for caller in cnv.callers %}
+            <span class="inline-block px-2.5 py-0.5 rounded-full bg-blue-100 border border-blue-300 text-xs font-semibold text-blue-800 shadow-sm cursor-pointer hover:bg-blue-200 transition-colors">
+              {{ caller }}
+            </span>
+          {% endfor %}
+        </div>
       </div>
 
       <!-- Top buttons for links and actions -->
@@ -265,7 +267,7 @@
                       {% if gene.class %}
                         <div class="mb-1">
                           <div class="inline-block px-1 py-1 cursor-pointer rounded-full bg-gray-100 hover:bg-purple-200">
-                            {{ gene.gene }}
+                            <a href="{{ url_for('common_bp.public_gene_info', id=gene.gene)  }}" class="hover:underline">{{ gene.gene }}</a>
                           </div>
                           <span class="text-xs text-gray-600">– (CNV type: {{ gene.cnv_type }})</span>
                         </div>
@@ -277,7 +279,7 @@
                       {% for gene in cnv.genes %}
                         {% if not gene.class %}
                           <div class="px-2 py-1 cursor-pointer rounded-full bg-gray-100 hover:bg-purple-200">
-                            {{ gene.gene }}
+                            <a href="{{ url_for('common_bp.public_gene_info', id=gene.gene)  }}" class="hover:underline">{{ gene.gene }}</a>
                           </div>
                         {% endif %}
                       {% endfor %}

@@ -208,7 +208,7 @@ modalities:
             tat: "14-21 days"
             input_material: ["DNA", "FFPE", "Neoplastic Tissue"]
             sample_modes: ["Tumor-only"]
-            analysis: ["SNV", "MSI"]  # Override analysis types if needed
+            analysis: ["SNV", "MSI", "CNV"]  # Override analysis types if needed
           - key: "breast"
             label: "Breast cancer"
             description: "Gene list for breast cancer"

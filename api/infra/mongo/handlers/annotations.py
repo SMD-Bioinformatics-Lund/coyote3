@@ -633,7 +633,7 @@ class AnnotationsHandler(BaseHandler):
             return []
 
         if search_mode == "gene":
-            query = {"gene": {"$regex": search_str, "$options": "i"}}
+            query = {"gene": search_str}
         elif search_mode == "transcript":
             query = {"transcript": {"$regex": search_str, "$options": "i"}}
         elif search_mode == "variant":  # variant
@@ -688,7 +688,7 @@ class AnnotationsHandler(BaseHandler):
 
         # --- same query logic as find_variants_by_search_string ---
         if search_mode == "gene":
-            query = {"gene": {"$regex": search_str, "$options": "i"}}
+            query = {"gene": search_str}
         elif search_mode == "transcript":
             query = {"transcript": {"$regex": search_str, "$options": "i"}}
         elif search_mode == "variant":

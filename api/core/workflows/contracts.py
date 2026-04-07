@@ -49,13 +49,13 @@ def validate_report_inputs(
         _raise_contract_error(logger, "report", sample_name, "Missing sample.case.clarity_id")
     if not assay_config.get("asp_group"):
         _raise_contract_error(logger, "report", sample_name, "Missing assay_config.asp_group")
-    report_path = ((assay_config.get("reporting") or {}).get("report_path") or "").strip()
-    if not report_path:
+    report_folder = ((assay_config.get("reporting") or {}).get("report_folder") or "").strip()
+    if not report_folder:
         _raise_contract_error(
             logger,
             "report",
             sample_name,
-            "Missing assay_config.reporting.report_path",
+            "Missing assay_config.reporting.report_folder",
         )
     if analyte not in {"dna", "rna"}:
         _raise_contract_error(logger, "report", sample_name, f"Invalid analyte value: {analyte}")

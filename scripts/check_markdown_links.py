@@ -8,6 +8,15 @@ import sys
 from pathlib import Path
 
 LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+CODE_FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
+INLINE_CODE_RE = re.compile(r"`[^`]*`")
+
+
+def strip_code(text: str) -> str:
+    """Remove fenced and inline code so regex examples are not parsed as links."""
+    text = CODE_FENCE_RE.sub("", text)
+    text = INLINE_CODE_RE.sub("", text)
+    return text
 
 
 def is_external(target: str) -> bool:
@@ -31,10 +40,13 @@ def main() -> int:
 
     for md_file in docs_dir.rglob("*.md"):
         text = md_file.read_text(encoding="utf-8")
+        text = strip_code(text)
+
         for raw_target in LINK_RE.findall(text):
             target = normalize_target(raw_target)
             if not target or is_external(target):
                 continue
+
             if target.startswith("/"):
                 failures.append(f"{md_file}: absolute local link not allowed: {raw_target}")
                 continue

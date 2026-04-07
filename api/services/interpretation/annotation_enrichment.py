@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 
-def add_alt_class(variant: dict, assay_group: str, subpanel: str, *, annotation_handler) -> dict:
+def add_alt_class(
+    variant: dict, assay_group: str, subpanel: str | None, *, annotation_handler
+) -> dict:
     """
     Add alternative classifications to a variant/fusion entry.
     """
@@ -22,7 +24,7 @@ def add_alt_class(variant: dict, assay_group: str, subpanel: str, *, annotation_
 
 
 def add_global_annotations(
-    variants: list, assay_group: str, subpanel: str, *, annotation_handler
+    variants: list, assay_group: str, subpanel: str | None, *, annotation_handler
 ) -> tuple[list, list]:
     """
     Add global annotation/classification fields and collect selected entities.
