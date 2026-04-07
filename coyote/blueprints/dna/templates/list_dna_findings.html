@@ -107,7 +107,7 @@
 
       {% if has_access('preview_report', min_role='user', min_level=9) %}
         <div class="flex border-l-8 border-teal-400  mt-1">
-          <a href="{{ url_for('dna_bp.generate_dna_report', sample_id=sample._id) }}"
+          <a href="{{ url_for('dna_bp.generate_dna_report', sample_id=sample.name) }}"
             class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
               <span class="vertical-text">Preview Report</span>
           </a>
@@ -991,7 +991,7 @@
           <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">Summary</h2>
         </div>
         {% set summary_add_comment_action = url_for('common_bp.add_dna_sample_comment', sample_id=sample._id) %}
-        {% set summary_preview_url = url_for('dna_bp.generate_dna_report', sample_id=sample._id) %}
+        {% set summary_preview_url = url_for('dna_bp.generate_dna_report', sample_id=sample.name) %}
         {% set summary_show_add_form = has_access('add_sample_comment', min_role='user', min_level=9) %}
         {% set summary_enforce_acl = true %}
         {% set summary_comment_cell_has_id = false %}
