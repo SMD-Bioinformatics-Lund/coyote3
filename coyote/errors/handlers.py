@@ -1,4 +1,5 @@
 from flask import g, jsonify, render_template, request
+from werkzeug.exceptions import HTTPException
 
 from shared.logging import emit_audit_event
 
@@ -171,6 +172,17 @@ def register_error_handlers(app):
             504,
             "Gateway Timeout: The server did not receive a response from the upstream server.",
             "Try again later. If the issue persists, contact support.",
+        )
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_error(error):
+        """Handles unexpected uncaught exceptions with the standard error page."""
+        if isinstance(error, HTTPException):
+            return error
+        return error_response(
+            500,
+            "An internal server error occurred.",
+            "Please try again later. If the issue persists, contact support.",
         )
 
     app.logger.info("Error handlers registered.")

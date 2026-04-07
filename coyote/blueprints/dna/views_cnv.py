@@ -11,6 +11,7 @@ from coyote.services.api_client.api_client import (
     forward_headers,
     get_web_api_client,
 )
+from coyote.services.api_client.web import raise_page_load_error
 
 
 @dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>")
@@ -37,8 +38,13 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
             hidden_comments=payload.hidden_comments,
         )
     except ApiRequestError as exc:
-        app.logger.error("DNA CNV detail API fetch failed for sample %s: %s", sample_id, exc)
-        return Response(str(exc), status=exc.status_code or 502)
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"DNA CNV detail API fetch failed for sample {sample_id}",
+            summary="Unable to load the CNV detail page.",
+            not_found_summary="The requested CNV was not found for this sample.",
+        )
 
 
 @dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>/unmarkinterestingcnv", methods=["POST"])

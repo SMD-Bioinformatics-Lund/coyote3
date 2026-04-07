@@ -11,6 +11,7 @@ from coyote.services.api_client.api_client import (
     forward_headers,
     get_web_api_client,
 )
+from coyote.services.api_client.web import raise_page_load_error
 
 
 @dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>")
@@ -35,10 +36,13 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
             hidden_comments=payload.hidden_comments,
         )
     except ApiRequestError as exc:
-        app.logger.error(
-            "DNA translocation detail API fetch failed for sample %s: %s", sample_id, exc
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"DNA translocation detail API fetch failed for sample {sample_id}",
+            summary="Unable to load the translocation detail page.",
+            not_found_summary="The requested translocation was not found for this sample.",
         )
-        return Response(str(exc), status=exc.status_code or 502)
 
 
 @dna_bp.route(
