@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% from "macros/badges.html" import tier_badge %}
 
 {% block body %}
 {% set translation=config["TRANS"] %}
@@ -124,9 +125,7 @@
                       <td class="px-1">{{ sel_fus.breakpoint1 }}<br>{{ sel_fus.breakpoint2 }}</td>
                       <td class="px-2 py-2">
                         {% if fus.classification.class != 999 %}
-                          <div class="inline-flex items-center px-2 py-1 font-semibold rounded-full bg-tier{{ fus.classification.class }} text-white shadow-md">
-                            {{ fus.classification.class }}
-                          </div>
+                          {{ tier_badge(fus.classification.class, extra_classes='px-2') }}
                         {% endif %}
                       </td>
 

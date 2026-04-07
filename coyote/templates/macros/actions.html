@@ -1,0 +1,12 @@
+{% macro link_button(label, href, tone='neutral', extra_classes='') -%}
+  {% set tone_classes = {
+    'neutral': 'bg-gray-100 hover:bg-gray-200 border border-gray-200 text-sm shadow',
+    'primary': 'bg-blue-300 hover:bg-blue-500 text-black hover:text-white shadow-md hover:shadow-lg focus:ring-2 focus:ring-blue-300',
+  } %}
+  <a
+    href="{{ href }}"
+    class="inline-block rounded-xl px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none {{ tone_classes.get(tone, tone_classes['neutral']) }} {{ extra_classes }}"
+  >
+    {{ label }}
+  </a>
+{%- endmacro %}

@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% from "macros/badges.html" import tier_badge %}
 
 {% block style %}
 <style>
@@ -402,31 +403,24 @@
                         <!-- Tier -->
                         <td class="font-semibold px-1" id="snv-table-row-class">
                           {% if var.classification.class != 999 and var.classification.transcript == csq.Feature %}
-                            <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-tier{{ var.classification.class }} text-white shadow-md">
-                              {% if assay_group in ["myeloid", "tumwgs"] or "assay" in var.classification %}
-                                <a
-                                href="{{ url_for('common_bp.list_samples_with_tiered_variant',
-                                                variant_id=var._id|string,
-                                                tier=var.classification.class) }}"
-                                class="hover:underline"
-                              >
-                                {{ var.classification.class }}
-                              </a>
-                              {% else %}
-                                *
-                              {% endif %}
-                            </div>
+                            {% set tier_href = url_for('common_bp.list_samples_with_tiered_variant',
+                                                      variant_id=var._id|string,
+                                                      tier=var.classification.class)
+                                                      if assay_group in ["myeloid", "tumwgs"] or "assay" in var.classification
+                                                      else none %}
+                            {% set tier_label = var.classification.class if tier_href else '*' %}
+                            {{ tier_badge(var.classification.class, href=tier_href, label=tier_label) }}
                           {% elif var.additional_classification is not none %}
                             {% if var.additional_classification.tier %}
-                              <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-gray-400 text-white shadow-md">
+                              <span class="inline-flex items-center rounded-full bg-gray-400 px-3 py-1 font-semibold text-white shadow-md">
                                 {{ var.additional_classification.tier }}
-                              </div>
+                              </span>
                             {% endif %}
 
                           {% elif var.other_classification|length > 0 %}
-                            <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-gray-400 text-white shadow-md">
+                            <span class="inline-flex items-center rounded-full bg-gray-400 px-3 py-1 font-semibold text-white shadow-md">
                               ?
-                            </div>
+                            </span>
                           {% else %}
                               -
                           {% endif %}
@@ -955,9 +949,7 @@
                           </td>
                           <td class="py-2 px-3 border-b border-gray-300 varlist" sorttable_customkey="{{ fus.classification.class }}"  id="fusions-table-row-tier">
                             {% if fus.classification.class != 999 %}
-                              <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-tier{{ fus.classification.class }} text-white shadow-md">
-                                {{ fus.classification.class }}
-                              </div>
+                              {{ tier_badge(fus.classification.class) }}
                             {% endif %}
                           </td>
                           <td id="fusions-table-row-desc">
