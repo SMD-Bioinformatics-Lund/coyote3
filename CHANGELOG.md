@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.1.22
+- Variant search gene mode will match exact gene search string, not substring match.
+- Added CNV to the Solid CRC avaiable analysis options in the assay catalog.
+
 ## v3.1.21
 - Fixed HGVS display/toggle behavior across DNA variant list, tiered search, and reported variants views (unique row IDs, stacked HGVS lines, and no blank indent when only one HGVS value exists).
 - Replaced legacy custom width utility usage (`max-w-15c` style) with Tailwind arbitrary values where used.
