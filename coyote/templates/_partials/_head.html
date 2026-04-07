@@ -1,20 +1,22 @@
+{% from "macros/assets.html" import static %}
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}COYOT3{% endblock %}</title>
 
-<link href="{{ url_for('static', filename='css/tailwind.css') }}" rel="stylesheet">
-<link href="{{ url_for('static', filename='icons/favicon.ico') }}" rel="shortcut icon">
-<link rel="stylesheet" href="{{ url_for('static', filename='vendor/easymde/easymde.min.css') }}">
+<link href="{{ static('css/tailwind.css') }}" rel="stylesheet">
+<link href="{{ static('icons/favicon.ico') }}" rel="shortcut icon">
+<link rel="stylesheet" href="{{ static('vendor/easymde/easymde.min.css') }}">
 
-<script src="{{ url_for('static', filename='js/jquery-3.1.1.slim.min.js') }}"></script>
-<script defer src="{{ url_for('static', filename='js/cdn.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/sortableTable.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pagination.js') }}"></script>
+<script src="{{ static('js/jquery-3.1.1.slim.min.js') }}"></script>
+<script defer src="{{ static('js/cdn.min.js') }}"></script>
+<script src="{{ static('js/select2.min.js') }}"></script>
+<script src="{{ static('js/sortableTable.js') }}"></script>
+<script src="{{ static('js/pagination.js') }}"></script>
 <script>
   window.COYOTE_API_BASE = "{{ app_config.get('API_BROWSER_BASE', '/api')|replace('\"', '\\\"') }}";
 </script>
-<script src="{{ url_for('static', filename='js/api_client.js') }}"></script>
+<script src="{{ static('js/api_client.js') }}"></script>
 
-<script src="{{ url_for('static', filename='vendor/easymde/easymde.min.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/markdown-it/markdown-it.min.js') }}"></script>
+<script src="{{ static('vendor/easymde/easymde.min.js') }}"></script>
+<script src="{{ static('vendor/markdown-it/markdown-it.min.js') }}"></script>
