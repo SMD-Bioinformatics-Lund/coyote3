@@ -526,8 +526,24 @@
         <div class="relative">
           <div class="absolute top-0 left-0 w-full h-1 bg-purple-500"></div>
           {% if variant.blacklist is defined and variant.override_blacklist != true %}
-            <form action="{{ url_for('dna_bp.add_variant_to_blacklist', sample_id=sample_id, var_id=variant._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.override_variant_blacklist', sample_id=sample_id, var_id=variant._id) }}"
+                  method="post"
+                  data-action-modal-form
+                  data-action-modal-title="Override Blacklist"
+                  data-action-modal-message="This will keep the variant visible for this sample even though it is blacklisted globally."
+                  data-action-modal-confirm-text="Override blacklist"
+                  data-action-modal-confirm-color="purple">
               <input class="relative bg-purple-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{variant_actions_class}}" type="submit" name="blacklist" value="Override Blacklist" {{ variant_actions_attr }}>
+            </form>
+          {% elif variant.override_blacklist == true %}
+            <form action="{{ url_for('dna_bp.clear_variant_blacklist_override', sample_id=sample_id, var_id=variant._id) }}"
+                  method="post"
+                  data-action-modal-form
+                  data-action-modal-title="Remove Blacklist Override"
+                  data-action-modal-message="This will restore the normal blacklist behavior for this variant."
+                  data-action-modal-confirm-text="Remove override"
+                  data-action-modal-confirm-color="gray">
+              <input class="relative bg-purple-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{variant_actions_class}}" type="submit" name="blacklist" value="Remove Blacklist Override" {{ variant_actions_attr }}>
             </form>
           {% endif %}
         </div>

@@ -406,6 +406,54 @@ def add_variant_to_blacklist(
 
 
 @router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/override-blacklist",
+    response_model=SampleChangePayload,
+    summary="Override blacklist for small variant",
+)
+def override_variant_blacklist(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Ignore blacklist status for a single small variant in the current sample."""
+    return resource_change(
+        sample_id,
+        var_id,
+        user,
+        service,
+        resource="variant",
+        action="override_blacklist",
+        mutate=lambda: service.set_variant_override_blacklist(var_id=var_id, override=True),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
+    )
+
+
+@router.delete(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/override-blacklist",
+    response_model=SampleChangePayload,
+    summary="Remove blacklist override from small variant",
+)
+def clear_variant_blacklist_override(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Remove the blacklist override flag from a single small variant."""
+    return resource_change(
+        sample_id,
+        var_id,
+        user,
+        service,
+        resource="variant",
+        action="clear_override_blacklist",
+        mutate=lambda: service.set_variant_override_blacklist(var_id=var_id, override=False),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
+    )
+
+
+@router.patch(
     "/api/v1/samples/{sample_id}/small-variants/{var_id}/comments/{comment_id}/hidden",
     response_model=SampleChangePayload,
     summary="Hide variant comment",

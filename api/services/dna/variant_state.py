@@ -77,6 +77,11 @@ def blacklist_variant(service, *, variant: dict[str, str], assay_group: str) -> 
     service.blacklist_handler.blacklist_variant(variant, assay_group)
 
 
+def set_variant_override_blacklist(service, *, var_id: str, override: bool) -> None:
+    """Apply or remove the blacklist-override flag on a variant."""
+    service.variant_handler.set_override_blacklist(var_id, override)
+
+
 def set_variant_comment_hidden(service, *, var_id: str, comment_id: str, hidden: bool) -> None:
     """Hide or unhide a variant comment."""
     if hidden:

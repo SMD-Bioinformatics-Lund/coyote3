@@ -326,6 +326,48 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
     return redirect(url_for("dna_bp.show_small_variant", sample_id=sample_id, var_id=var_id))
 
 
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/override_blacklist", methods=["POST"])
+@login_required
+def override_variant_blacklist(sample_id: str, var_id: str) -> Response:
+    """Ignore the blacklist status for a single variant in this sample view."""
+    call_api(
+        sample_id,
+        "Failed to override blacklist for variant via API",
+        lambda: get_web_api_client().patch_json(
+            api_endpoints.dna_sample(
+                sample_id,
+                "small_variants",
+                var_id,
+                "flags",
+                "override-blacklist",
+            ),
+            headers=headers(),
+        ),
+    )
+    return redirect(url_for("dna_bp.show_small_variant", sample_id=sample_id, var_id=var_id))
+
+
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/clear_override_blacklist", methods=["POST"])
+@login_required
+def clear_variant_blacklist_override(sample_id: str, var_id: str) -> Response:
+    """Remove the blacklist override flag from a single variant."""
+    call_api(
+        sample_id,
+        "Failed to clear blacklist override for variant via API",
+        lambda: get_web_api_client().delete_json(
+            api_endpoints.dna_sample(
+                sample_id,
+                "small_variants",
+                var_id,
+                "flags",
+                "override-blacklist",
+            ),
+            headers=headers(),
+        ),
+    )
+    return redirect(url_for("dna_bp.show_small_variant", sample_id=sample_id, var_id=var_id))
+
+
 @dna_bp.route(
     "/<string:sample_id>/var/<string:var_id>/add_variant_comment",
     methods=["POST"],

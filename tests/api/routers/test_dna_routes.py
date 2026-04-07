@@ -807,3 +807,51 @@ def test_transloc_export_context_route_returns_typed_csv_payload(monkeypatch):
     assert body["filename"].endswith(".filtered.translocs.csv")
     assert "gene_1" in body["content"]
     assert "ABL1" in body["content"]
+
+
+def test_override_variant_blacklist_updates_variant(monkeypatch):
+    """Override blacklist should update the per-sample variant flag."""
+    calls: dict[str, object] = {}
+    service = _dna_service()
+
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(
+        dna,
+        "_require_variant_for_sample",
+        lambda sample_id, var_id, user, service: (fx.sample_doc(), fx.variant_doc()),
+    )
+    monkeypatch.setattr(
+        service,
+        "set_variant_override_blacklist",
+        lambda *, var_id, override: calls.update({"var_id": var_id, "override": override}),
+    )
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = dna.override_variant_blacklist("S1", "v1", user=fx.api_user(), service=service)
+
+    assert calls == {"var_id": "v1", "override": True}
+    assert payload["action"] == "override_blacklist"
+
+
+def test_clear_variant_blacklist_override_updates_variant(monkeypatch):
+    """Removing a blacklist override should restore the default blacklist behavior."""
+    calls: dict[str, object] = {}
+    service = _dna_service()
+
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(
+        dna,
+        "_require_variant_for_sample",
+        lambda sample_id, var_id, user, service: (fx.sample_doc(), fx.variant_doc()),
+    )
+    monkeypatch.setattr(
+        service,
+        "set_variant_override_blacklist",
+        lambda *, var_id, override: calls.update({"var_id": var_id, "override": override}),
+    )
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = dna.clear_variant_blacklist_override("S1", "v1", user=fx.api_user(), service=service)
+
+    assert calls == {"var_id": "v1", "override": False}
+    assert payload["action"] == "clear_override_blacklist"

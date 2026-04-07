@@ -42,6 +42,9 @@ from api.services.dna.variant_state import require_variant_for_sample as _requir
 from api.services.dna.variant_state import set_variant_bulk_flag as _set_variant_bulk_flag
 from api.services.dna.variant_state import set_variant_comment_hidden as _set_variant_comment_hidden
 from api.services.dna.variant_state import set_variant_flag as _set_variant_flag
+from api.services.dna.variant_state import (
+    set_variant_override_blacklist as _set_variant_override_blacklist,
+)
 
 
 class DnaService:
@@ -185,6 +188,10 @@ class DnaService:
     def blacklist_variant(self, *, variant: dict[str, Any], assay_group: str) -> None:
         """Create a blacklist entry for a variant in an assay group."""
         _blacklist_variant(self, variant=variant, assay_group=assay_group)
+
+    def set_variant_override_blacklist(self, *, var_id: str, override: bool) -> None:
+        """Apply or remove the blacklist-override flag on a small variant."""
+        _set_variant_override_blacklist(self, var_id=var_id, override=override)
 
     def set_variant_comment_hidden(self, *, var_id: str, comment_id: str, hidden: bool) -> None:
         """Hide or unhide a variant comment."""

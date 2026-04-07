@@ -508,6 +508,13 @@ class VariantsHandler(BaseHandler):
         """
         return self.mark_irrelevant_bulk(variant_ids, irrelevant)
 
+    def set_override_blacklist(self, variant_id: str, override: bool = True) -> Any:
+        """Apply or remove the override-blacklist flag on a variant."""
+        return self.get_collection().update_one(
+            {"_id": ObjectId(variant_id)},
+            {"$set": {"override_blacklist": override}},
+        )
+
     def hide_var_comment(self, id: str, comment_id: str) -> Any:
         """
         Hide a comment associated with a specific variant.
