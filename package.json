@@ -8,10 +8,16 @@
     "prebuild:css": "npm run sync:version",
     "build:css": "./node_modules/.bin/tailwindcss -i ./coyote/static/css/tailwind.input.css -o ./coyote/static/css/tailwind.css --minify",
     "predev:css": "npm run sync:version",
-    "dev:css": "./node_modules/.bin/tailwindcss -i ./coyote/static/css/tailwind.input.css -o ./coyote/static/css/tailwind.css --watch=always"
+    "dev:css": "./node_modules/.bin/tailwindcss -i ./coyote/static/css/tailwind.input.css -o ./coyote/static/css/tailwind.css --watch=always",
+    "e2e": "playwright test --config tests/e2e/playwright.config.js",
+    "test": "vitest run --config tests/js/vitest.config.js",
+    "test:watch": "vitest --config tests/js/vitest.config.js"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.0",
     "@tailwindcss/cli": "^4.1.12",
-    "tailwindcss": "^4.1.12"
+    "jsdom": "^25.0.1",
+    "tailwindcss": "^4.1.12",
+    "vitest": "^2.1.8"
   }
 }
