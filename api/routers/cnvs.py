@@ -6,11 +6,11 @@ from fastapi import APIRouter, Depends, Request
 
 from api.contracts.dna import DnaCnvContextPayload, DnaCnvListPayload
 from api.contracts.samples import SampleChangePayload
-from api.deps.services import get_cnv_service
+from api.deps.services import get_dna_structural_service
 from api.extensions import util
 from api.routers.change_helpers import comment_change, resource_change
 from api.security.access import ApiUser, _get_sample_for_api, require_access
-from api.services.dna.cnv import CnvService
+from api.services.dna.structural_variants import DnaStructuralService
 
 router = APIRouter(tags=["cnvs"])
 
@@ -20,7 +20,7 @@ def list_dna_cnvs(
     request: Request,
     sample_id: str,
     user: ApiUser = Depends(require_access(min_level=1)),
-    service: CnvService = Depends(get_cnv_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Return CNVs for a sample."""
     sample = _get_sample_for_api(sample_id, user)
@@ -34,7 +34,7 @@ def show_dna_cnv(
     sample_id: str,
     cnv_id: str,
     user: ApiUser = Depends(require_access(min_level=1)),
-    service: CnvService = Depends(get_cnv_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Return CNV detail payload."""
     sample = _get_sample_for_api(sample_id, user)
@@ -52,7 +52,7 @@ def unmark_interesting_cnv(
     sample_id: str,
     cnv_id: str,
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
-    service: CnvService = Depends(get_cnv_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Remove the interesting flag from a CNV."""
     return resource_change(
@@ -75,7 +75,7 @@ def mark_interesting_cnv(
     sample_id: str,
     cnv_id: str,
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
-    service: CnvService = Depends(get_cnv_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Mark a CNV as interesting."""
     return resource_change(
@@ -98,7 +98,7 @@ def mark_false_positive_cnv(
     sample_id: str,
     cnv_id: str,
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
-    service: CnvService = Depends(get_cnv_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Mark a CNV as false positive."""
     return resource_change(
@@ -121,7 +121,7 @@ def unmark_false_positive_cnv(
     sample_id: str,
     cnv_id: str,
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
-    service: CnvService = Depends(get_cnv_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Remove the false-positive flag from a CNV."""
     return resource_change(
@@ -144,7 +144,7 @@ def mark_noteworthy_cnv(
     sample_id: str,
     cnv_id: str,
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
-    service: CnvService = Depends(get_cnv_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Mark a CNV as noteworthy."""
     return resource_change(
@@ -167,7 +167,7 @@ def unmark_noteworthy_cnv(
     sample_id: str,
     cnv_id: str,
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
-    service: CnvService = Depends(get_cnv_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Remove the noteworthy flag from a CNV."""
     return resource_change(
@@ -193,7 +193,7 @@ def hide_cnv_comment(
     user: ApiUser = Depends(
         require_access(permission="hide_variant_comment", min_role="manager", min_level=99)
     ),
-    service: CnvService = Depends(get_cnv_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Hide a CNV comment."""
     return comment_change(
@@ -222,7 +222,7 @@ def unhide_cnv_comment(
     user: ApiUser = Depends(
         require_access(permission="unhide_variant_comment", min_role="manager", min_level=99)
     ),
-    service: CnvService = Depends(get_cnv_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Unhide a CNV comment."""
     return comment_change(

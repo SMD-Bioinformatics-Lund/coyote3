@@ -12,7 +12,7 @@ npm test           # one-shot run
 npm run test:watch # watch mode
 ```
 
-The Vitest config lives at [`tests/js/vitest.config.js`](../../tests/js/vitest.config.js).
+The Vitest config lives at `tests/js/vitest.config.js`.
 
 ## What is covered
 
@@ -55,7 +55,7 @@ Builds a `.pagination` wrapper, fires `DOMContentLoaded`, and exercises:
 
 The static JS files are written as **classic browser scripts** (IIFEs and
 top-level function declarations), not ES modules. To execute them faithfully
-inside jsdom, the test helper [`tests/js/helpers/loadScript.mjs`](../../tests/js/helpers/loadScript.mjs)
+inside jsdom, the test helper `tests/js/helpers/loadScript.mjs`
 reads the file and injects it as a `<script>` element:
 
 ```js

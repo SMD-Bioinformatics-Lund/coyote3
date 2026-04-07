@@ -95,7 +95,7 @@ def _role_user_payload(role: str) -> dict[str, Any]:
                         "create_report",
                         "edit_sample",
                         "view_sample_global",
-                        "view_users",
+                        "view_user",
                         "view_role",
                         "view_permission_policy",
                         "view_audit_logs",
@@ -304,6 +304,29 @@ def _fixture_shaped_get(path: str, *, current_user: dict[str, Any] | None) -> Ap
             }
         )
 
+    _empty_pagination = {"page": 1, "per_page": 30, "total": 0, "has_next": False}
+    if path.endswith("/api/v1/users"):
+        return _payload({"users": [], "roles": {}, "pagination": _empty_pagination})
+    if path.endswith("/api/v1/roles"):
+        return _payload({"roles": [], "pagination": _empty_pagination})
+    if path.endswith("/api/v1/permissions"):
+        return _payload({"grouped_permissions": {}, "pagination": _empty_pagination})
+    if path.endswith("/api/v1/resources/asp"):
+        return _payload({"panels": [], "pagination": _empty_pagination})
+    if path.endswith("/api/v1/resources/aspc"):
+        return _payload({"assay_configs": [], "pagination": _empty_pagination})
+    if path.endswith("/api/v1/resources/genelists"):
+        return _payload({"genelists": [], "pagination": _empty_pagination})
+    if path.endswith("/create_context"):
+        return _payload(
+            {
+                "form": {},
+                "role_map": {},
+                "assay_group_map": {},
+                "prefill_map": {},
+            }
+        )
+
     if path.endswith("/api/v1/internal/ingest/collections"):
         return _payload({"collections": ["users", "roles", "permissions", "asp_configs"]})
 
@@ -355,7 +378,16 @@ def ui_client_factory(monkeypatch) -> Callable[[str | None], Any]:
         app.config.update(WTF_CSRF_ENABLED=False, LOGIN_DISABLED=False)
 
         with app.app_context():
+            from coyote.blueprints.admin import views_assay_configs as admin_assay_configs_views
+            from coyote.blueprints.admin import views_assay_panels as admin_assay_panels_views
+            from coyote.blueprints.admin import views_audit as admin_audit_views
+            from coyote.blueprints.admin import views_genelists as admin_genelists_views
+            from coyote.blueprints.admin import views_home as admin_home_views
             from coyote.blueprints.admin import views_ingest as admin_ingest_views
+            from coyote.blueprints.admin import views_permissions as admin_permissions_views
+            from coyote.blueprints.admin import views_roles as admin_roles_views
+            from coyote.blueprints.admin import views_samples as admin_samples_views
+            from coyote.blueprints.admin import views_users as admin_users_views
             from coyote.blueprints.coverage import views as coverage_views
             from coyote.blueprints.dashboard import views as dashboard_views
             from coyote.blueprints.dna import views_cnv, views_dna_findings, views_reports
@@ -363,7 +395,16 @@ def ui_client_factory(monkeypatch) -> Callable[[str | None], Any]:
             from coyote.services.api_client import reports as report_client
 
         for module in (
+            admin_assay_configs_views,
+            admin_assay_panels_views,
+            admin_audit_views,
+            admin_genelists_views,
+            admin_home_views,
             admin_ingest_views,
+            admin_permissions_views,
+            admin_roles_views,
+            admin_samples_views,
+            admin_users_views,
             coverage_views,
             dashboard_views,
             views_cnv,

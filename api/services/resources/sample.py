@@ -65,7 +65,7 @@ class ResourceSampleService:
         """Return the admin sample list payload."""
         rows, total = self.sample_handler.search_samples_for_admin(
             assays=assays,
-            search=search,
+            search_str=search,
             page=page,
             per_page=per_page,
         )

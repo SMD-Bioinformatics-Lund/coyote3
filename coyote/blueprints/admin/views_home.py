@@ -21,7 +21,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.manage_users",
-        "permission": "view_users",
+        "permission": "view_user",
         "min_role": "admin",
         "min_level": 99999,
         "icon": "users.svg",

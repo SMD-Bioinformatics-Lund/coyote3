@@ -15,10 +15,7 @@ from api.services.classification.tiering import ResourceClassificationService
 from api.services.classification.variant_annotation import ResourceAnnotationService
 from api.services.common.query_service import CommonQueryService
 from api.services.dashboard.analytics import DashboardService
-from api.services.dna.cnv import CnvService
-from api.services.dna.small_variants import SmallVariantService
 from api.services.dna.structural_variants import DnaStructuralService
-from api.services.dna.translocations import TranslocationService
 from api.services.dna.variant_analysis import DnaService
 from api.services.ingest.service import InternalIngestService
 from api.services.public.catalog import PublicCatalogService
@@ -30,7 +27,6 @@ from api.services.resources.aspc import AspcService, QueryProfileService
 from api.services.resources.isgl import IsglService
 from api.services.resources.sample import ResourceSampleService
 from api.services.rna.expression_analysis import RnaService
-from api.services.rna.fusions import FusionService
 from api.services.sample.catalog import SampleCatalogService
 from api.services.sample.coverage import CoverageService
 from api.services.sample.sample_lookup import SampleService
@@ -101,11 +97,6 @@ def get_dna_service() -> DnaService:
     return DnaService.from_store(get_store())
 
 
-def get_small_variant_service() -> SmallVariantService:
-    """Return the small-variant service."""
-    return SmallVariantService()
-
-
 def get_biomarker_service() -> BiomarkerService:
     """Return the biomarker service."""
     return BiomarkerService.from_store(get_store())
@@ -132,24 +123,9 @@ def get_rna_service() -> RnaService:
     return RnaService.from_store(get_store())
 
 
-def get_fusion_service() -> FusionService:
-    """Return the fusion service."""
-    return FusionService()
-
-
 def get_dna_structural_service() -> DnaStructuralService:
     """Return the DNA structural service."""
     return DnaStructuralService.from_store(get_store())
-
-
-def get_cnv_service() -> CnvService:
-    """Return the CNV service."""
-    return CnvService()
-
-
-def get_translocation_service() -> TranslocationService:
-    """Return the translocation service."""
-    return TranslocationService()
 
 
 @lru_cache

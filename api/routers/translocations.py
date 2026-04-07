@@ -6,11 +6,11 @@ from fastapi import APIRouter, Depends, Request
 
 from api.contracts.dna import DnaTranslocationContextPayload, DnaTranslocationsPayload
 from api.contracts.samples import SampleChangePayload
-from api.deps.services import get_translocation_service
+from api.deps.services import get_dna_structural_service
 from api.extensions import util
 from api.routers.change_helpers import comment_change, resource_change
 from api.security.access import ApiUser, _get_sample_for_api, require_access
-from api.services.dna.translocations import TranslocationService
+from api.services.dna.structural_variants import DnaStructuralService
 
 router = APIRouter(tags=["translocations"])
 
@@ -20,7 +20,7 @@ def list_dna_translocations(
     request: Request,
     sample_id: str,
     user: ApiUser = Depends(require_access(min_level=1)),
-    service: TranslocationService = Depends(get_translocation_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Return translocations for a sample."""
     sample = _get_sample_for_api(sample_id, user)
@@ -37,7 +37,7 @@ def show_dna_translocation(
     sample_id: str,
     transloc_id: str,
     user: ApiUser = Depends(require_access(min_level=1)),
-    service: TranslocationService = Depends(get_translocation_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Return translocation detail payload."""
     sample = _get_sample_for_api(sample_id, user)
@@ -57,7 +57,7 @@ def mark_interesting_translocation(
     user: ApiUser = Depends(
         require_access(permission="manage_translocs", min_role="user", min_level=9)
     ),
-    service: TranslocationService = Depends(get_translocation_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Mark a translocation as interesting."""
     return resource_change(
@@ -84,7 +84,7 @@ def unmark_interesting_translocation(
     user: ApiUser = Depends(
         require_access(permission="manage_translocs", min_role="user", min_level=9)
     ),
-    service: TranslocationService = Depends(get_translocation_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Remove the interesting flag from a translocation."""
     return resource_change(
@@ -111,7 +111,7 @@ def mark_false_positive_translocation(
     user: ApiUser = Depends(
         require_access(permission="manage_translocs", min_role="user", min_level=9)
     ),
-    service: TranslocationService = Depends(get_translocation_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Mark a translocation as false positive."""
     return resource_change(
@@ -138,7 +138,7 @@ def unmark_false_positive_translocation(
     user: ApiUser = Depends(
         require_access(permission="manage_translocs", min_role="user", min_level=9)
     ),
-    service: TranslocationService = Depends(get_translocation_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Remove the false-positive flag from a translocation."""
     return resource_change(
@@ -166,7 +166,7 @@ def hide_translocation_comment(
     user: ApiUser = Depends(
         require_access(permission="hide_variant_comment", min_role="manager", min_level=99)
     ),
-    service: TranslocationService = Depends(get_translocation_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Hide a translocation comment."""
     return comment_change(
@@ -195,7 +195,7 @@ def unhide_translocation_comment(
     user: ApiUser = Depends(
         require_access(permission="unhide_variant_comment", min_role="manager", min_level=99)
     ),
-    service: TranslocationService = Depends(get_translocation_service),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Unhide a translocation comment."""
     return comment_change(
