@@ -55,7 +55,7 @@ def get_cov(sample_id):
     )
 
 
-@app.route("/update-gene-status", methods=["POST"])
+@cov_bp.route("/update-gene-status", methods=["POST"])
 @login_required
 def update_gene_status():
     """Apply a blacklist mutation for a coverage gene row via AJAX."""

@@ -5,6 +5,8 @@ from __future__ import annotations
 import importlib
 from types import SimpleNamespace
 
+import pytest
+
 import coyote
 from coyote import init_app
 from coyote.services.api_client.api_client import CoyoteApiClient
@@ -19,7 +21,12 @@ def _payload(value: dict) -> ApiPayload:
 
 def _load_web_module(module_name: str):
     """Import a web module under an app context when it binds current_app at import time."""
-    app = init_app(testing=True)
+    original_verify = coyote.verify_external_api_dependency
+    coyote.verify_external_api_dependency = lambda _app: None
+    try:
+        app = init_app(testing=True)
+    finally:
+        coyote.verify_external_api_dependency = original_verify
     with app.app_context():
         module = importlib.import_module(module_name)
     return module
@@ -232,6 +239,7 @@ def _fixture_shaped_get(path: str) -> ApiPayload:
         )
 
     if path.endswith("/api/v1/coverage/samples/s1"):
+        sample["omics_layer"] = "dna"
         return _payload(
             {
                 "coverage": [{"gene": "TP53", "mean_depth": 650}],
@@ -255,6 +263,17 @@ def _fixture_shaped_get(path: str) -> ApiPayload:
                     }
                 ],
                 "group": "dna",
+            }
+        )
+
+    if path.endswith("/api/v1/samples/SAMPLE_001/reports/dna/preview"):
+        return _payload(
+            {
+                "report": {
+                    "template": "docs/about.html",
+                    "context": {"meta": {"app_name": "Coyote3"}},
+                    "snapshot_rows": [],
+                }
             }
         )
 
@@ -444,7 +463,7 @@ def test_additional_ui_routes_smoke_with_fixture_shaped_api(monkeypatch):
         data={"username": "tester@example.com", "password": "Coyote3.Admin"},
         follow_redirects=False,
     )
-    coverage_update = client.post("/update-gene-status", json={"gene": "TP53", "group": "dna"})
+    coverage_update = client.post("/cov/update-gene-status", json={"gene": "TP53", "group": "dna"})
 
     assert forgot.status_code == 302
     assert reset.status_code == 302
@@ -610,3 +629,216 @@ def test_profile_password_route_flows(monkeypatch):
         response = profile_views.change_password.__wrapped__("tester")
 
     assert response.location.startswith("profile_bp.user_profile")
+
+
+def test_edit_sample_page_renders_dna_files_for_lowercase_omics(monkeypatch):
+    """The sample edit page should render DNA file/QC rows for lowercase omics-layer data."""
+
+    def _fake_get(self, path, headers=None, params=None):  # noqa: ARG001
+        if path.endswith("/api/v1/samples/s1/edit-context"):
+            sample = fx.sample_doc()
+            sample.update(
+                {
+                    "_id": "s1",
+                    "name": "CASE_DEMO",
+                    "omics_layer": "dna",
+                    "vcf_files": "/data/case_demo.vcf.gz",
+                    "cnv": "/data/case_demo.cnv.json",
+                    "transloc": "/data/case_demo.transloc.vcf.gz",
+                    "cov": "/data/case_demo.coverage.json",
+                    "biomarkers": "/data/case_demo.biomarkers.json",
+                    "cnvprofile": "/data/case_demo.cnvprofile.png",
+                    "data_counts": {
+                        "snvs": 12,
+                        "cnvs": 3,
+                        "transloc": 1,
+                        "cov": 1,
+                        "biomarkers": 1,
+                    },
+                }
+            )
+            return _payload(
+                {
+                    "sample": sample,
+                    "asp": {"asp_group": "dna", "covered_genes": ["TP53", "NPM1"]},
+                    "variant_stats_raw": {
+                        "variants": 12,
+                        "interesting": 1,
+                        "irrelevant": 0,
+                        "false_positives": 0,
+                    },
+                    "variant_stats_filtered": {
+                        "variants": 12,
+                        "interesting": 1,
+                        "irrelevant": 0,
+                        "false_positives": 0,
+                    },
+                }
+            )
+        return _fixture_shaped_get(path)
+
+    monkeypatch.setattr(coyote, "verify_external_api_dependency", lambda _app: None)
+    monkeypatch.setattr(CoyoteApiClient, "get_json", _fake_get)
+
+    app = init_app(testing=True)
+    app.config.update(WTF_CSRF_ENABLED=False)
+    client = app.test_client()
+
+    response = client.get("/samples/edit/s1")
+
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert "Files & QC (dna)" in body
+    assert "VCF" in body
+    assert "Coverage JSON" in body
+    assert "Biomarkers JSON" in body
+
+
+def test_sample_gene_action_routes_accept_expected_payload_shape(monkeypatch):
+    """The Flask gene-action routes should accept the payload shapes emitted by the page."""
+    from coyote.blueprints.home import views_genes
+
+    monkeypatch.setattr(coyote, "verify_external_api_dependency", lambda _app: None)
+    app = init_app(testing=True)
+    app.config.update(WTF_CSRF_ENABLED=False)
+
+    captured: dict[str, object] = {}
+
+    def _apply(sample_id, isgl_ids):
+        captured["apply"] = {"sample_id": sample_id, "isgl_ids": isgl_ids}
+        return {"status": "ok"}
+
+    def _save(sample_id, *, genes, label):
+        captured["save"] = {"sample_id": sample_id, "genes": genes, "label": label}
+        return {"status": "ok"}
+
+    def _clear(sample_id):
+        captured["clear"] = {"sample_id": sample_id}
+        return {"status": "ok"}
+
+    monkeypatch.setattr(views_genes, "apply_isgl_api", _apply)
+    monkeypatch.setattr(views_genes, "save_adhoc_genes_api", _save)
+    monkeypatch.setattr(views_genes, "clear_adhoc_genes_api", _clear)
+
+    client = app.test_client()
+
+    apply_resp = client.post("/samples/s1/apply_isgl", json={"isgl_ids": ["gl1", "gl2"]})
+    save_resp = client.post(
+        "/samples/s1/adhoc_genes",
+        json={"genes": "TP53 NPM1", "label": "focus"},
+    )
+    clear_resp = client.post("/samples/s1/adhoc_genes/clear")
+
+    assert apply_resp.status_code == 200
+    assert apply_resp.get_json()["status"] == "ok"
+    assert captured["apply"] == {"sample_id": "s1", "isgl_ids": ["gl1", "gl2"]}
+
+    assert save_resp.status_code == 200
+    assert save_resp.get_json()["status"] == "ok"
+    assert captured["save"] == {"sample_id": "s1", "genes": "TP53 NPM1", "label": "focus"}
+
+    assert clear_resp.status_code == 200
+    assert clear_resp.get_json()["status"] == "ok"
+    assert captured["clear"] == {"sample_id": "s1"}
+
+
+def test_coverage_page_links_back_to_sample_findings(monkeypatch):
+    """Coverage review should include a new-tab link back to the sample findings page."""
+
+    def _fake_get(self, path, headers=None, params=None):  # noqa: ARG001
+        return _fixture_shaped_get(path)
+
+    monkeypatch.setattr(coyote, "verify_external_api_dependency", lambda _app: None)
+    monkeypatch.setattr(CoyoteApiClient, "get_json", _fake_get)
+
+    app = init_app(testing=True)
+    client = app.test_client()
+
+    response = client.get("/cov/s1")
+
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert 'target="_blank"' in body
+    assert "/dna/sample/SAMPLE_001" in body
+    assert "Open DNA findings" in body
+
+
+def test_cnv_and_translocation_detail_routes_raise_page_load_errors(monkeypatch):
+    """CNV/translocation detail pages should use the standard page error flow."""
+    monkeypatch.setattr(coyote, "verify_external_api_dependency", lambda _app: None)
+    views_cnv = _load_web_module("coyote.blueprints.dna.views_cnv")
+    views_transloc = _load_web_module("coyote.blueprints.dna.views_transloc")
+
+    class _FailingClient:
+        def get_json(self, path, headers=None, params=None):  # noqa: ARG002
+            raise views_cnv.ApiRequestError("boom", status_code=500)
+
+    for module in (views_cnv, views_transloc):
+        monkeypatch.setattr(module, "get_web_api_client", lambda: _FailingClient())
+        monkeypatch.setattr(module, "forward_headers", lambda: {})
+
+    cnv_calls: list[dict[str, str | None]] = []
+    transloc_calls: list[dict[str, str | None]] = []
+
+    def _raise_cnv(exc, *, logger, log_message, summary, not_found_summary=None):  # noqa: ARG001
+        cnv_calls.append(
+            {
+                "log_message": log_message,
+                "summary": summary,
+                "not_found_summary": not_found_summary,
+            }
+        )
+        raise RuntimeError("cnv-page-error")
+
+    def _raise_transloc(exc, *, logger, log_message, summary, not_found_summary=None):  # noqa: ARG001
+        transloc_calls.append(
+            {
+                "log_message": log_message,
+                "summary": summary,
+                "not_found_summary": not_found_summary,
+            }
+        )
+        raise RuntimeError("transloc-page-error")
+
+    monkeypatch.setattr(views_cnv, "raise_page_load_error", _raise_cnv)
+    monkeypatch.setattr(views_transloc, "raise_page_load_error", _raise_transloc)
+
+    app = init_app(testing=True)
+    with app.app_context(), pytest.raises(RuntimeError, match="cnv-page-error"):
+        views_cnv.show_cnv("S1", "cnv1")
+    with app.app_context(), pytest.raises(RuntimeError, match="transloc-page-error"):
+        views_transloc.show_transloc("S1", "tl1")
+
+    assert cnv_calls[0]["summary"] == "Unable to load the CNV detail page."
+    assert transloc_calls[0]["summary"] == "Unable to load the translocation detail page."
+
+
+def test_dna_preview_report_route_renders_preview_html(monkeypatch):
+    """DNA preview report route should render the HTML returned by the API helper."""
+    from coyote.blueprints.dna import views_reports
+
+    monkeypatch.setattr(coyote, "verify_external_api_dependency", lambda _app: None)
+    app = init_app(testing=True)
+    monkeypatch.setattr(
+        views_reports,
+        "fetch_preview_payload",
+        lambda analyte, sample_id, include_snapshot=False, save=False: _payload(
+            {
+                "report": {
+                    "template": "docs/about.html",
+                    "context": {"meta": {"app_name": "Coyote3"}},
+                }
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        views_reports,
+        "render_preview_html",
+        lambda payload: "<html><body>preview ok</body></html>",
+    )
+
+    client = app.test_client()
+    response = client.get("/dna/sample/SAMPLE_001/preview_report")
+
+    assert response.status_code == 200
+    assert "preview ok" in response.get_data(as_text=True)
