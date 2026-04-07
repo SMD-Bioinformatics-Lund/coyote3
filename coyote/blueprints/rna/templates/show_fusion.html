@@ -172,7 +172,15 @@
 
           <!-- Remove Tier Info -->
           {% if latest_classification.class != 999 %}
-          <form id="form" action="{{ url_for('dna_bp.remove_classified_small_variant', sample_id=sample.name ,fus_id=fusion._id) }}" method="post" class="inline-flex items-center space-x-2" >
+          <form id="form"
+                action="{{ url_for('dna_bp.remove_classified_small_variant', sample_id=sample.name ,fus_id=fusion._id) }}"
+                method="post"
+                class="inline-flex items-center space-x-2"
+                data-action-modal-form
+                data-action-modal-title="Remove Tier"
+                data-action-modal-message="{% if latest_classification and 'assay' in latest_classification %}This will remove all tiering for {{ assay_group }}.{% else %}This will remove all historic tiering without any assays assigned.{% endif %}"
+                data-action-modal-confirm-text="Remove tier"
+                data-action-modal-confirm-color="orange">
             <input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
             <input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
             <input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
@@ -185,7 +193,6 @@
                 id="remove"
                 type="submit"
                 value="❌ Tier"
-                onclick="return confirm('This will remove all tiering for {{ assay_group }}, proceed?')"
                 {{ remove_tier_attr }}
               >
               {% elif current_user.is_admin %}
@@ -195,7 +202,6 @@
                   id="remove"
                   type="submit"
                   value="❌ Tier"
-                  onclick="return confirm('This will remove all historic tiering without any assays assigned, proceed?')"
                   {{ remove_global_tier_attr }}
                 >
               {% endif %}

@@ -28,6 +28,7 @@ nav:
   - Developer:
       - Add New Feature: developer/adding-features.md
       - Add a New Domain: developer/adding-a-domain.md
+      - UI Action Modal: developer/ui-modals.md
       - Schema Contracts And Versioning: developer/schema-contracts-and-versioning.md
       - URL And Request Flow: developer/url-routing-and-request-flow.md
       - Route Walkthrough (Dashboard): developer/route-walkthrough-dashboard-summary.md

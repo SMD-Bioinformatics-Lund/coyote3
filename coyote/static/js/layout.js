@@ -88,10 +88,12 @@
 
   function showActionModal({
     url,
+    form,
     title = "Confirm Action",
     message = "Are you sure you want to proceed?",
     confirmText = "Confirm",
     confirmColor = "blue",
+    onConfirm,
   }) {
     const modal = document.getElementById("actionModal");
     const titleEl = document.getElementById("actionModalTitle");
@@ -104,7 +106,9 @@
     titleEl.textContent = title;
     messageEl.innerHTML = message;
     confirmBtn.textContent = confirmText;
-    confirmBtn.setAttribute("href", url);
+    modal.dataset.actionUrl = url || "";
+    modal.__actionForm = form || null;
+    modal.__actionOnConfirm = typeof onConfirm === "function" ? onConfirm : null;
 
     const confirmColorMap = {
       blue: "bg-blue-600 hover:bg-blue-700",
@@ -112,6 +116,7 @@
       green: "bg-green-600 hover:bg-green-700",
       yellow: "bg-yellow-600 hover:bg-yellow-700",
       orange: "bg-orange-600 hover:bg-orange-700",
+      purple: "bg-purple-600 hover:bg-purple-700",
       gray: "bg-gray-600 hover:bg-gray-700",
     };
     const confirmClasses = confirmColorMap[confirmColor] || confirmColorMap.blue;
@@ -120,13 +125,87 @@
     modal.classList.remove("hidden");
   }
 
+  function hideActionModal() {
+    const modal = document.getElementById("actionModal");
+    if (!modal) {
+      return;
+    }
+    modal.classList.add("hidden");
+    modal.dataset.actionUrl = "";
+    modal.__actionForm = null;
+    modal.__actionOnConfirm = null;
+  }
+
   function initActionModal() {
+    const modal = document.getElementById("actionModal");
     const cancelButton = document.getElementById("actionModalCancel");
+    const closeButton = document.getElementById("actionModalClose");
+    const confirmButton = document.getElementById("actionModalConfirm");
+    if (!modal || !cancelButton || !confirmButton || !closeButton) {
+      return;
+    }
+
+    async function runModalAction() {
+      const callback = modal.__actionOnConfirm;
+      const form = modal.__actionForm;
+      const url = modal.dataset.actionUrl;
+      if (callback) {
+        hideActionModal();
+        await callback();
+        return;
+      }
+      if (form) {
+        hideActionModal();
+        if (typeof form.requestSubmit === "function") {
+          form.requestSubmit();
+        } else {
+          form.submit();
+        }
+        return;
+      }
+      if (url) {
+        hideActionModal();
+        window.location.assign(url);
+      }
+    }
+
+    function openFormActionModal(form) {
+      showActionModal({
+        form,
+        title: form.dataset.actionModalTitle || "Confirm Action",
+        message: form.dataset.actionModalMessage || "Are you sure you want to proceed?",
+        confirmText: form.dataset.actionModalConfirmText || "Confirm",
+        confirmColor: form.dataset.actionModalConfirmColor || "blue",
+      });
+    }
+
+    document.addEventListener("submit", (event) => {
+      const form = event.target.closest("form[data-action-modal-form]");
+      if (!form) {
+        return;
+      }
+      event.preventDefault();
+      openFormActionModal(form);
+    });
+
     if (!cancelButton) {
       return;
     }
-    cancelButton.addEventListener("click", () => {
-      document.getElementById("actionModal")?.classList.add("hidden");
+    cancelButton.addEventListener("click", hideActionModal);
+    closeButton.addEventListener("click", hideActionModal);
+    confirmButton.addEventListener("click", async (event) => {
+      event.preventDefault();
+      await runModalAction();
+    });
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) {
+        hideActionModal();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !modal.classList.contains("hidden")) {
+        hideActionModal();
+      }
     });
   }
 
