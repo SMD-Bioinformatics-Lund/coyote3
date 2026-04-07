@@ -100,7 +100,18 @@ Typical path:
 
 - `wsgi.py`: Flask entrypoint
 - `coyote/blueprints/*`: per-domain views
+- `coyote/templates/layout.html`: top-level page shell, now composed from shared includes
+- `coyote/templates/includes/`: shared page shell fragments (`_site_header.html`, `_top_nav.html`, `_flash_messages.html`, `_action_modal.html`, `_layout_scripts.html`)
+- `coyote/templates/components/`: reusable template fragments and macros for repeated UI patterns
 - `coyote/templates/*`: server-rendered HTML
+
+## UI structure rules
+
+- Flask views live in `coyote/blueprints/*` and call the backend only through the web API client.
+- Shared shell concerns belong in `coyote/templates/includes/`, not inlined repeatedly in page templates.
+- Repeated page widgets should move into `coyote/templates/components/` as includes or macros.
+- Page-specific JavaScript should prefer blueprint static files or small page-local blocks over growing `layout.html`.
+- Shared static assets loaded by `layout.html` are versioned with `?v={{ APP_VERSION }}` to reduce stale browser cache after deploys.
 
 ## Infra and deployment
 

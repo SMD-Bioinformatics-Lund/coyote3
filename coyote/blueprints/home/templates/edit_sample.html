@@ -2,6 +2,7 @@
 {% block title %}Sample – {{ sample.name }}{% endblock %}
 
 {% block body %}
+{% set sample_omics_layer = sample.get("omics_layer", "").lower() %}
 
 {# ---------- Macros: ---------- #}
 {# Reusable components for this template #}
@@ -236,7 +237,7 @@
 
         <ul class="divide-y divide-gray-100 text-sm space-y-3">
           <!-- FOR DNA SAMPLES -->
-          {% if sample.omics_layer == 'DNA' %}
+          {% if sample_omics_layer == 'dna' %}
             {{ file_row("VCF", sample.vcf_files, sample.vcf_files | file_state,
                         icon="document-text",
                         extra_badge=(('<span class="text-sm px-2 py-1 rounded-full border bg-gray-50 text-gray-900 border-gray-200">'
@@ -273,7 +274,7 @@
                         missing_msg="No CNV profile available") }}
 
           <!-- FOR RNA SAMPLES -->
-          {% elif sample.omics_layer == 'RNA' %}
+          {% elif sample_omics_layer == 'rna' %}
 
             {{ file_row("Expression", sample.expression_path, sample.expression_path | file_state,
                         icon="clipboard-document-list",
@@ -676,6 +677,8 @@
     const aspGroup = {{ asp.asp_group | tojson }};
     const ISGLS_FETCH_URL = {{ url_for("home_bp.list_isgls", sample_id=sample._id|string) | tojson }};
     const ISGLS_APPLY_URL = {{ url_for("home_bp.apply_isgl", sample_id=sample._id|string) | tojson }};
+    const ADHOC_SAVE_URL = {{ url_for("home_bp.save_adhoc_genes", sample_id=sample._id|string) | tojson }};
+    const ADHOC_CLEAR_URL = {{ url_for("home_bp.clear_adhoc_genes", sample_id=sample._id|string) | tojson }};
 
 
 
@@ -792,37 +795,44 @@
             const ids = selectedIds();   // ← compute selection first (may be [])
 
             // CONFIRM CLEAR-ALL
-            if (ids.length === 0 && appliedISGLs.length > 0) {
-              if (!confirm('Remove all applied gene lists from this sample?')) {
-                applyBtn.disabled = false;
-                applyBtn.textContent = 'Apply selected';
-                return;
-              }
-            }
+            const submitSelection = async () => {
+              applyBtn.disabled = true;
+              applyBtn.textContent = 'Applying…';
 
-            applyBtn.disabled = true;
-            applyBtn.textContent = 'Applying…';
+              try {
+                const res2 = await fetch(applyUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ isgl_ids: ids })
+                });
 
-            try {
-              const res2 = await fetch(applyUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isgl_ids: ids })
-              });
-
-              const data2 = await res2.json();
-              if (data2.ok) {
-                window.location.reload();
-              } else {
+                const data2 = await res2.json();
+                if (res2.ok && data2.status === 'ok') {
+                  window.location.reload();
+                  return;
+                }
                 applyBtn.disabled = false;
                 applyBtn.textContent = 'Apply selected';
                 alert(data2.error || 'Failed to apply selected');
+              } catch {
+                applyBtn.disabled = false;
+                applyBtn.textContent = 'Apply selected';
+                alert('Network error while applying selected');
               }
-            } catch {
-              applyBtn.disabled = false;
-              applyBtn.textContent = 'Apply selected';
-              alert('Network error while applying selected');
+            };
+
+            if (ids.length === 0 && appliedISGLs.length > 0) {
+              showActionModal({
+                title: 'Remove Applied Gene Lists',
+                message: 'This will remove all applied gene lists from this sample.',
+                confirmText: 'Remove lists',
+                confirmColor: 'orange',
+                onConfirm: submitSelection,
+              });
+              return;
             }
+
+            await submitSelection();
           });
 
 
@@ -858,12 +868,12 @@
         alert('Please enter genes to save.');
         return;
       }
-      const res = await fetch(`/samples/${sampleId}/adhoc_genes`, {
+      const res = await fetch(ADHOC_SAVE_URL, {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ label, genes })
       });
       const data = await res.json();
-      if (data.ok) {
+      if (res.ok && data.status === 'ok') {
         window.location.reload();
       } else {
         alert(data.error || 'Failed to save');
@@ -872,14 +882,21 @@
 
     // Clear temp ad hoc genes
     document.getElementById('btnClearTemp')?.addEventListener('click', async () => {
-      if (!confirm('Clear adhoc genes for this sample?')) return;
-      const res = await fetch(`/samples/${sampleId}/adhoc_genes/clear`, { method: 'POST' });
-      const data = await res.json();
-      if (data.ok) {
-        window.location.reload();
-      } else {
-        alert(data.error || 'Failed to clear');
-      }
+      showActionModal({
+        title: 'Clear Ad-Hoc Genes',
+        message: 'This will remove the saved ad-hoc gene list from this sample.',
+        confirmText: 'Clear genes',
+        confirmColor: 'yellow',
+        onConfirm: async () => {
+          const res = await fetch(ADHOC_CLEAR_URL, { method: 'POST' });
+          const data = await res.json();
+          if (res.ok && data.status === 'ok') {
+            window.location.reload();
+          } else {
+            alert(data.error || 'Failed to clear');
+          }
+        }
+      });
     });
 
     // Effective genes

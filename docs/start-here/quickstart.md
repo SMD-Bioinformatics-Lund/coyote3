@@ -35,7 +35,6 @@ Edit env files and set real values for:
 
 - `SECRET_KEY`
 - `INTERNAL_API_TOKEN`
-- `COYOTE3_FERNET_KEY`
 - Mongo credentials and URI
 
 ## Start dev stack

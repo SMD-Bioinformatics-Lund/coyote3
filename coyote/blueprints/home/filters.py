@@ -10,6 +10,7 @@ import os
 
 from flask import current_app as app
 from flask import g
+from jinja2 import Undefined
 
 from coyote.filters.shared import render_markdown_rich as shared_render_markdown_rich
 from coyote.services.api_client import endpoints as api_endpoints
@@ -18,6 +19,20 @@ from coyote.services.api_client.api_client import (
     build_internal_headers,
     get_web_api_client,
 )
+
+
+def _meta_value(meta: object, *keys: str, default=None):
+    """Return the first matching metadata value from dict- or object-shaped payloads."""
+    if isinstance(meta, dict):
+        for key in keys:
+            if key in meta:
+                return meta[key]
+        return default
+    for key in keys:
+        value = getattr(meta, key, None)
+        if value is not None:
+            return value
+    return default
 
 
 @app.template_filter()
@@ -63,7 +78,8 @@ def isgl_adhoc_status(isgl_id: str) -> str:
             )
         except ApiRequestError:
             return False
-    return bool(cache[isgl_id].is_adhoc)
+    meta = cache[isgl_id]
+    return bool(_meta_value(meta, "is_adhoc", "adhoc", default=False))
 
 
 @app.template_filter()
@@ -90,11 +106,12 @@ def isgl_display_name(isgl_id: str) -> str:
             )
         except ApiRequestError:
             return str(isgl_id)
-    return str(cache[isgl_id].display_name or isgl_id)
+    meta = cache[isgl_id]
+    return str(_meta_value(meta, "display_name", "label", "name", default=isgl_id) or isgl_id)
 
 
 @app.template_filter()
-def human_filesize(file_path: str) -> str:
+def human_filesize(file_path: str | Undefined | None) -> str:
     """
     Convert a file size in bytes to a human-readable format.
 
@@ -103,6 +120,10 @@ def human_filesize(file_path: str) -> str:
     Returns:
         str: The file size in a human-readable format (e.g., '10.5 MB').
     """
+    if isinstance(file_path, Undefined):
+        return "Not Available"
+    if not file_path:
+        return "Not Available"
     if not os.path.isfile(file_path):
         return "Not Available"
     size_bytes = os.path.getsize(file_path)

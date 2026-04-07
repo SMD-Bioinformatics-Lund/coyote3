@@ -79,7 +79,6 @@ Required secrets include:
 
 - `SECRET_KEY`
 - `INTERNAL_API_TOKEN`
-- `COYOTE3_FERNET_KEY`
 - Mongo credentials (`MONGO_ROOT_*`, `MONGO_APP_*`)
 
 ## Mongo security

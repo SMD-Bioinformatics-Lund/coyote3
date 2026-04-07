@@ -326,11 +326,9 @@
   }
 
   function initAutoclick() {
-    if (typeof window.$ !== "function") {
-      return;
-    }
-    window.$('[data-autoclick="true"]').click();
-    window.$('[data-autoclick="true"]').click();
+    document
+      .querySelectorAll('[data-autoclick="true"]')
+      .forEach((el) => el.click());
   }
 
   function renderLocalTimestamps() {

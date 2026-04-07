@@ -587,11 +587,10 @@
 
 
 <script type="text/javascript">
-  $("#test").select2();
-
   window.onload = function() {
-    $('[data-autoclick="true"]').click();
-    $('[data-autoclick="true"]').click();
+    document
+      .querySelectorAll('[data-autoclick="true"]')
+      .forEach((el) => el.click());
   };
 
   function switchVisibility_comments(class_name) {

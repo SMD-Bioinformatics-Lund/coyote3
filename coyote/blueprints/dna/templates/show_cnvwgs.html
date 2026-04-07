@@ -396,8 +396,9 @@
 <script type="text/javascript">
 
   window.onload = function() {
-    $('[data-autoclick="true"]').click();
-    $('[data-autoclick="true"]').click();
+    document
+      .querySelectorAll('[data-autoclick="true"]')
+      .forEach((el) => el.click());
   };
 
   function addText(event) {

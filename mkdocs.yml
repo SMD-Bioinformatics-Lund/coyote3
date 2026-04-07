@@ -31,6 +31,7 @@ nav:
       - Template Components: developer/template-components.md
       - UI Permission Testing: developer/testing-permissions.md
       - UI Action Modal: developer/ui-modals.md
+      - E2E Testing: developer/e2e-testing.md
       - Schema Contracts And Versioning: developer/schema-contracts-and-versioning.md
       - URL And Request Flow: developer/url-routing-and-request-flow.md
       - Route Walkthrough (Dashboard): developer/route-walkthrough-dashboard-summary.md

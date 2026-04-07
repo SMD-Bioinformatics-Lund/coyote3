@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 
-def add_alt_class(variant: dict, assay: str, subpanel: str, *, annotation_handler) -> dict:
+def add_alt_class(variant: dict, assay_group: str, subpanel: str, *, annotation_handler) -> dict:
     """
     Add alternative classifications to a variant/fusion entry.
     """
     additional_classifications = list(
-        annotation_handler.get_additional_classifications(variant, assay, subpanel) or []
+        annotation_handler.get_additional_classifications(variant, assay_group, subpanel) or []
     )
     if additional_classifications:
         additional_classifications[0].pop("author", None)
@@ -22,7 +22,7 @@ def add_alt_class(variant: dict, assay: str, subpanel: str, *, annotation_handle
 
 
 def add_global_annotations(
-    variants: list, assay: str, subpanel: str, *, annotation_handler
+    variants: list, assay_group: str, subpanel: str, *, annotation_handler
 ) -> tuple[list, list]:
     """
     Add global annotation/classification fields and collect selected entities.
@@ -34,7 +34,7 @@ def add_global_annotations(
             variants[var_idx]["classification"],
             variants[var_idx]["other_classification"],
             variants[var_idx]["annotations_interesting"],
-        ) = annotation_handler.get_global_annotations(variant=var, assay=assay, subpanel=subpanel)
+        ) = annotation_handler.get_global_annotations(var, assay_group, subpanel)
         classification = variants[var_idx]["classification"]
         if classification is not None:
             class_value = classification.get("class")
@@ -48,6 +48,6 @@ def add_global_annotations(
                 selected_variants.append(variants[var_idx])
 
         variants[var_idx] = add_alt_class(
-            variants[var_idx], assay, subpanel, annotation_handler=annotation_handler
+            variants[var_idx], assay_group, subpanel, annotation_handler=annotation_handler
         )
     return variants, selected_variants

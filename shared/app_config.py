@@ -22,6 +22,7 @@ import toml
 from dotenv import load_dotenv
 
 from coyote.__version__ import __version__ as app_version
+from shared.config_constants import CONSEQUENCE_TERMS_MAPPER, CONTACT_HOURS
 
 # Load environment variables from the repo root .env file if present.
 REPO_ROOT = path.abspath(path.join(path.dirname(__file__), ".."))
@@ -170,21 +171,6 @@ class DefaultConfig:
     LDAP_SECRET = os.getenv("LDAP_SECRET", "")
     LDAP_USER_DN = os.getenv("LDAP_USER_DN", "ou=people")
 
-    # For the public assay map
-    # This is used in the public assay matrix
-    PUBLIC_ASSAY_MAP: dict[str, list[str]] = {
-        "ST-DNA": ["solid_GMSv3"],
-        "Hematology": ["hema_GMSv1"],
-        "Myeloid": ["myeloid_GMSv1"],
-        "Lymphoid": ["lymph_GMSv3"],
-        "PGx": ["PGxv1"],
-        "PARP": ["PARP_inhib"],
-        "ST-RNA": ["solidRNA_GMSv5"],
-        "WTS-Fusion": ["fusion"],
-        "RNA-Fusion": ["RNA-fusion"],
-        "WGS": ["tumwgs-solid", "tumwgs-hema"],
-    }
-
     # Gens URI — optional integration; set per center or leave empty.
     GENS_URI_OLD = os.getenv("GENS_URI_OLD", "")
     GENS_URI = os.getenv("GENS_URI", "")
@@ -195,99 +181,7 @@ class DefaultConfig:
     # Report Config
     REPORTS_BASE_PATH = os.getenv("REPORTS_BASE_PATH", "/data/coyote3/reports")
 
-    CONSEQ_TERMS_MAPPER: dict[str, list[str]] = {
-        "splicing": [
-            "splice_acceptor_variant",
-            "splice_donor_variant",
-            "splice_region_variant",
-        ],
-        "stop_gained": ["stop_gained"],
-        "frameshift": ["frameshift_variant"],
-        "stop_lost": ["stop_lost"],
-        "start_lost": ["start_lost"],
-        "inframe_indel": [
-            "inframe_insertion",
-            "inframe_deletion",
-        ],
-        "missense": [
-            "missense_variant",
-            "protein_altering_variant",
-        ],
-        "other_coding": [
-            "coding_sequence_variant",
-        ],
-        "synonymous": [
-            "stop_retained_variant",
-            "synonymous_variant",
-            "start_retained_variant",
-            "incomplete_terminal_codon_variant",
-        ],
-        "transcript_structure": [
-            "transcript_ablation",
-            "transcript_amplification",
-        ],
-        "UTR": [
-            "5_prime_UTR_variant",
-            "3_prime_UTR_variant",
-        ],
-        "miRNA": [
-            "mature_miRNA_variant",
-        ],
-        "NMD": [
-            "NMD_transcript_variant",
-        ],
-        "non_coding": [
-            "non_coding_transcript_exon_variant",
-            "non_coding_transcript_variant",
-        ],
-        "intronic": [
-            "intron_variant",
-        ],
-        "intergenic": [
-            "intergenic_variant",
-            "downstream_gene_variant",
-            "upstream_gene_variant",
-        ],
-        "regulatory": [
-            "regulatory_region_variant",
-            "regulatory_region_ablation",
-            "regulatory_region_amplification",
-            "TFBS_ablation",
-            "TFBS_amplification",
-            "TF_binding_site_variant",
-        ],
-        "feature_elon_trunc": [
-            "feature_elongation",
-            "feature_truncation",
-        ],
-    }
-
-    NCBI_CHR: dict[str, str] = {
-        "1": "NC_000001",
-        "2": "NC_000002",
-        "3": "NC_000003",
-        "4": "NC_000004",
-        "5": "NC_000005",
-        "6": "NC_000006",
-        "7": "NC_000007",
-        "8": "NC_000008",
-        "9": "NC_000009",
-        "10": "NC_000010",
-        "11": "NC_000011",
-        "12": "NC_000012",
-        "13": "NC_000013",
-        "14": "NC_000014",
-        "15": "NC_000015",
-        "16": "NC_000016",
-        "17": "NC_000017",
-        "18": "NC_000018",
-        "19": "NC_000019",
-        "20": "NC_000020",
-        "21": "NC_000021",
-        "22": "NC_000022",
-        "X": "NC_000023",
-        "Y": "NC_000024",
-    }
+    CONSEQ_TERMS_MAPPER = CONSEQUENCE_TERMS_MAPPER
 
     # Contact information — set all values via environment variables per center.
     CONTACT: dict[str, str | list[str]] = {
@@ -297,7 +191,7 @@ class DefaultConfig:
         "phone_main": os.getenv("CONTACT_PHONE_MAIN", ""),
         "phone_urgent": os.getenv("CONTACT_PHONE_URGENT", ""),
         "address": os.getenv("CONTACT_ADDRESS", ""),
-        "hours": ["Mon–Fri: 08:00–16:30", "Closed on public holidays"],
+        "hours": CONTACT_HOURS,
     }
 
     # SEARCH LIMITS

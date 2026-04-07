@@ -11,25 +11,67 @@ from api.contracts.dna import (
     DnaVariantsListPayload,
 )
 from api.contracts.samples import SampleChangePayload
-from api.core.dna.dna_filters import get_filter_conseq_terms
+from api.core.dna.dna_filters import get_filter_conseq_terms as _shared_get_filter_conseq_terms
 from api.core.dna.dna_variants import get_variant_nomenclature
 from api.core.dna.varqueries import build_query
 from api.deps.services import get_dna_service, get_resource_annotation_service
-from api.extensions import util
+from api.extensions import store, util
 from api.http import api_error as _api_error
 from api.http import get_formatted_assay_config as _get_formatted_assay_config
 from api.routers.change_helpers import comment_change, resource_change
+from api.runtime_state import app as runtime_app
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.services.classification.variant_annotation import ResourceAnnotationService
 from api.services.common.change_payload import change_payload
 from api.services.dna.variant_analysis import DnaService
-from api.services.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
+from api.services.interpretation.annotation_enrichment import (
+    add_alt_class as _shared_add_alt_class,
+)
+from api.services.interpretation.annotation_enrichment import (
+    add_global_annotations as _shared_add_global_annotations,
+)
 from api.services.interpretation.report_summary import (
     create_comment_doc,
     generate_summary_text,
 )
 
 router = APIRouter(tags=["small-variants"])
+
+
+def get_filter_conseq_terms(checked: list[str]) -> list[str]:
+    """Resolve filter consequence terms using the active runtime mapping."""
+    return _shared_get_filter_conseq_terms(
+        checked,
+        runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}),
+    )
+
+
+def add_global_annotations(
+    variants: list[dict],
+    assay_group: str,
+    subpanel: str | None,
+) -> tuple[list[dict], list[dict]]:
+    """Apply shared annotation enrichment using the router-bound annotation handler."""
+    return _shared_add_global_annotations(
+        variants,
+        assay_group,
+        subpanel,
+        annotation_handler=store.annotation_handler,
+    )
+
+
+def add_alt_class(
+    variant: dict,
+    assay_group: str,
+    subpanel: str | None,
+) -> dict:
+    """Apply alternative classification enrichment using the router-bound handler."""
+    return _shared_add_alt_class(
+        variant,
+        assay_group,
+        subpanel,
+        annotation_handler=store.annotation_handler,
+    )
 
 
 @router.get("/api/v1/samples/{sample_id}/small-variants", response_model=DnaVariantsListPayload)

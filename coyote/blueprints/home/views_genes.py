@@ -112,7 +112,10 @@ def apply_isgl(sample_id: str) -> tuple[Response, int] | Response:
     Returns:
         tuple[Response, int] | Response: Normalized return value.
     """
-    isgl_ids = request.get_json(silent=True)
+    body = request.get_json(silent=True) or {}
+    if not isinstance(body, dict):
+        return jsonify({"status": "error", "error": "Invalid payload"}), 400
+    isgl_ids = body.get("isgl_ids")
     if not isinstance(isgl_ids, list):
         return jsonify({"status": "error", "error": "Invalid payload"}), 400
 

@@ -66,6 +66,156 @@ Help/docs URL model:
 - `HELP_CENTER_URL`: primary URL for standalone docs container.
 - UI does not serve docs pages directly; all help/docs links should point to `HELP_CENTER_URL`.
 
+## What each env key means
+
+The `.coyote3*env` files now intentionally match their `deploy/env/example.*.env`
+templates one-for-one. If you need to understand a key, use the groups below as
+the source of truth.
+
+### Core app secrets
+
+| Key | Meaning | Notes |
+| --- | --- | --- |
+| `SECRET_KEY` | Main Flask/API secret used for signed session and security-sensitive app state. | Required in all non-test environments. Rotate carefully. |
+| `INTERNAL_API_TOKEN` | Shared token for selected internal/system routes. | Treat like a secret; do not expose to browsers. |
+| `API_SESSION_SALT` | Salt used for API session token signing/derivation. | Keep stable per environment. |
+| `PASSWORD_TOKEN_SALT` | Salt for password reset / invite token generation. | Required anywhere local-password flows are enabled. |
+
+### Runtime identity
+
+| Key | Meaning | Notes |
+| --- | --- | --- |
+| `ENV_NAME` | Human-readable runtime profile label. | Examples: `production`, `staging`, `development`, `test`. |
+| `COYOTE3_DB` | Main application Mongo database name. | Runtime and bootstrap scripts use this. |
+| `SESSION_COOKIE_NAME` | Cookie name used by the Flask UI runtime. | Keep unique per environment to avoid browser collisions. |
+| `API_SESSION_COOKIE_NAME` | Cookie name used by the FastAPI runtime. | Keep unique per environment. |
+| `SCRIPT_NAME` | URL base path prefix when the app is hosted below `/`. | `/coyote3`, `/coyote3_dev`, etc. |
+
+### MongoDB
+
+| Key | Meaning | Notes |
+| --- | --- | --- |
+| `MONGO_ROOT_USERNAME` | Mongo root/admin username. | Used for bootstrap/admin operations and compose health checks. |
+| `MONGO_ROOT_PASSWORD` | Mongo root/admin password. | Only applied on first initialization of an empty Mongo volume. |
+| `MONGO_APP_USER` | Least-privilege runtime Mongo username. | Used by the application via `MONGO_URI`. |
+| `MONGO_APP_PASSWORD` | Password for the runtime Mongo user. | Must match `MONGO_URI`. |
+| `MONGO_URI` | Application Mongo connection URI. | Normally points at the compose service host for that environment. |
+| `COYOTE3_MONGO_PORT` / `COYOTE3_STAGE_MONGO_PORT` / `COYOTE3_DEV_MONGO_PORT` / `COYOTE3_TEST_MONGO_PORT` | Host port exposed for Mongo in that environment. | Used by local scripts and manual admin commands. |
+
+Important behavior:
+
+- `MONGO_INITDB_ROOT_*` in compose only matters the first time an empty Mongo volume is created.
+- If the volume already exists, changing `MONGO_ROOT_PASSWORD` in the env file does not change the stored password inside Mongo.
+- `MONGO_URI` should match `MONGO_APP_USER` and `MONGO_APP_PASSWORD`.
+
+### Redis and cache behavior
+
+| Key | Meaning | Notes |
+| --- | --- | --- |
+| `CACHE_REDIS_URL` | Redis URL used by API/UI cache layers. | Usually points at the compose Redis service. |
+| `DASHBOARD_SUMMARY_CACHE_TTL_SECONDS` | Hot Redis cache lifetime for dashboard summary payloads. | Short TTL, fast refresh. |
+| `DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS` | Max age for reusing a Mongo snapshot before recomputing. | Warm-cache freshness threshold. |
+| `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS` | TTL retention window for persisted dashboard snapshots. | Physical deletion is handled by Mongo TTL index. |
+
+### Host port mappings
+
+| Key | Meaning | Notes |
+| --- | --- | --- |
+| `COYOTE3_WEB_PORT` / `COYOTE3_STAGE_WEB_PORT` / `COYOTE3_DEV_WEB_PORT` / `COYOTE3_TEST_WEB_PORT` | Host port for the Flask UI container. | Browser entrypoint for that environment. |
+| `COYOTE3_API_PORT` / `COYOTE3_STAGE_API_PORT` / `COYOTE3_DEV_API_PORT` / `COYOTE3_TEST_API_PORT` | Host port for the FastAPI container. | Used by scripts and API checks. |
+| `COYOTE3_DOCS_PORT` / `COYOTE3_STAGE_DOCS_PORT` / `COYOTE3_DEV_DOCS_PORT` / `COYOTE3_TEST_DOCS_PORT` | Host port for the docs container. | Standalone MkDocs site. |
+| `COYOTE3_REDIS_PORT` / `COYOTE3_STAGE_REDIS_PORT` / `COYOTE3_DEV_REDIS_PORT` / `COYOTE3_TEST_REDIS_PORT` | Host port for Redis. | Mostly for local inspection/debugging. |
+| `COYOTE3_PROXY_PORT` / `COYOTE3_STAGE_PROXY_PORT` | Optional reverse-proxy port. | Only used where the proxy service is enabled. |
+
+### Optional container runtime limits
+
+| Key | Meaning | Notes |
+| --- | --- | --- |
+| `COYOTE3_CONTAINER_MEM_LIMIT` and env-specific variants | Docker memory limit per container in that stack. | Compose-only tuning. |
+| `COYOTE3_CONTAINER_CPU_LIMIT` and env-specific variants | Docker CPU limit per container in that stack. | Compose-only tuning. |
+| `API_WORKERS` | Uvicorn worker count for non-dev API containers. | Higher for stage/prod, lower for test. |
+
+### Build metadata
+
+| Key | Meaning | Notes |
+| --- | --- | --- |
+| `COYOTE3_VERSION` | Image/runtime version label. | Used in container names and UI display. |
+| `GIT_COMMIT` | Build-time Git commit label. | Optional metadata. |
+| `BUILD_TIME` | Build timestamp label. | Optional metadata. |
+
+### App behavior
+
+| Key | Meaning | Notes |
+| --- | --- | --- |
+| `FLASK_DEBUG` | Enables Flask debug mode where appropriate. | `1` in dev only. |
+| `DEVELOPMENT` | Runtime behavior toggle for development mode. | Influences config selection. |
+| `TESTING` | Runtime behavior toggle for test mode. | Used by tests/stack setup. |
+| `APP_DNS` | Preferred DNS server passed to containers. | Compose/runtime networking convenience. |
+| `REPORTS_BASE_PATH` | Filesystem base path for report output. | Must match mounted storage layout. |
+
+### LDAP authentication
+
+| Key | Meaning | Notes |
+| --- | --- | --- |
+| `LDAP_HOST` | LDAP server URI. | Empty when LDAP is disabled. |
+| `LDAP_BASE_DN` | LDAP base DN for user lookup. | Required in real LDAP deployments. |
+| `LDAP_BINDDN` | Service account bind DN for LDAP queries. | Required when bind auth is used. |
+| `LDAP_SECRET` | Password/secret for the LDAP bind account. | Secret; keep out of git. |
+
+### CORS
+
+| Key | Meaning | Notes |
+| --- | --- | --- |
+| `CORS_ORIGINS` | Comma-separated browser origins allowed to call the API. | Use explicit hostnames in stage/prod. |
+
+### Center contact information
+
+These keys drive the contact/help information shown in the UI:
+
+- `CONTACT_CLINICAL_EMAIL`
+- `CONTACT_RESEARCH_EMAIL`
+- `CONTACT_SAMPLES_EMAIL`
+- `CONTACT_PHONE_MAIN`
+- `CONTACT_PHONE_URGENT`
+- `CONTACT_ADDRESS`
+
+Leave them blank in local/dev/test if you do not need them.
+
+### Optional integrations
+
+| Key | Meaning | Notes |
+| --- | --- | --- |
+| `GENS_URI_OLD` | Legacy Gens link base used by an older UI path. | Still used by the DNA findings UI. |
+| `GENS_URI` | Current Gens integration base URL. | Optional. |
+| `IGV_URI` | IGV integration base URL. | Optional. |
+
+### SMTP and user lifecycle
+
+| Key | Meaning | Notes |
+| --- | --- | --- |
+| `SMTP_HOST` | SMTP relay hostname. | Usually organization relay. |
+| `SMTP_PORT` | SMTP relay port. | Commonly `25` or `587`. |
+| `SMTP_USERNAME` | SMTP auth username. | Blank for relay-without-auth setups. |
+| `SMTP_PASSWORD` | SMTP auth password. | Blank when not used. |
+| `SMTP_USE_TLS` | Use STARTTLS. | `1` or `0`. |
+| `SMTP_USE_SSL` | Use implicit SSL/TLS. | `1` or `0`. |
+| `SMTP_FROM_EMAIL` | Sender address for app emails. | Invite/reset emails use this. |
+| `SMTP_FROM_NAME` | Display name for app emails. | Usually `Coyote3`. |
+| `WEB_APP_BASE_URL` | Public browser base URL for UI links. | Used in invite/reset links. |
+| `HELP_CENTER_URL` | Public docs/help URL. | UI help links point here. |
+| `PASSWORD_TOKEN_TTL_SECONDS` | Lifetime for password invite/reset tokens. | Default one hour. |
+
+### Request rate limiting
+
+| Key | Meaning | Notes |
+| --- | --- | --- |
+| `API_RATE_LIMIT_ENABLED` | Turns API request limiting on/off. | `1` enables middleware enforcement. |
+| `API_RATE_LIMIT_REQUESTS_PER_MINUTE` | API request budget per identity/window. | Tune for machine/API clients. |
+| `API_RATE_LIMIT_WINDOW_SECONDS` | API rate-limit window size in seconds. | Usually `60`. |
+| `WEB_RATE_LIMIT_ENABLED` | Turns web request limiting on/off. | Used by Flask-side limiter. |
+| `WEB_RATE_LIMIT_REQUESTS_PER_MINUTE` | Web request budget per identity/window. | Lower than API by default. |
+| `WEB_RATE_LIMIT_WINDOW_SECONDS` | Web rate-limit window size in seconds. | Usually `60`. |
+
 ## Redis cache model
 
 Redis is the shared cache backend for both runtimes:
