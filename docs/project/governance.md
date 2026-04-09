@@ -4,7 +4,7 @@ This section defines the project standards all contributors are expected to foll
 
 ## Documents
 
-- [Code of Conduct](code-of-conduct.md)
+- [Code of Conduct](code_of_conduct.md)
 - [Contributing](contributing.md)
 - [License](license.md)
 

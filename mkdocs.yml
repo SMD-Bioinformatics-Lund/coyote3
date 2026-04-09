@@ -15,63 +15,66 @@ markdown_extensions:
   - sane_lists
 
 nav:
-  - Home: index.md
-  - Project Standards:
-      - Governance Overview: project/governance.md
-      - Code of Conduct: project/code-of-conduct.md
-      - Contributing: project/contributing.md
-      - License: project/license.md
-  - Start Here:
-      - Quickstart: start-here/quickstart.md
-      - Local Development: start-here/local-development.md
-      - Configuration Model: start-here/configuration.md
-  - Developer:
-      - Add New Feature: developer/adding-features.md
-      - Add a New Domain: developer/adding-a-domain.md
-      - Template Components: developer/template-components.md
-      - UI Permission Testing: developer/testing-permissions.md
-      - UI Action Modal: developer/ui-modals.md
-      - E2E Testing: developer/e2e-testing.md
-      - Schema Contracts And Versioning: developer/schema-contracts-and-versioning.md
-      - URL And Request Flow: developer/url-routing-and-request-flow.md
-      - Route Walkthrough (Dashboard): developer/route-walkthrough-dashboard-summary.md
-      - Troubleshooting Guide: developer/troubleshooting-guide.md
-  - Product:
-      - UI Map And User Flows: product/ui-map-and-user-flows.md
-      - UI Functionality Matrix: product/ui-functionality-matrix.md
-      - UI Action Effects Reference: product/ui-action-effects-reference.md
-      - Clinical Terms And Flags: product/clinical-semantics-reference.md
-      - Application Reference By Domain: product/application-reference-by-domain.md
-      - ASPC-Driven Query Strategy: product/aspc-driven-query-strategy.md
-      - DNA And RNA Workflow Chain: product/workflow-dna-rna.md
-  - Architecture:
-      - System Overview: architecture/system-overview.md
-      - Request Lifecycle: architecture/request-lifecycle.md
-      - Codebase Map: architecture/codebase-map.md
-      - Data Contracts: architecture/data-contracts.md
-      - Security Model: architecture/security-model.md
-      - ADR-0001 Auth Provider Resolution: architecture/adr-0001-auth-provider-resolution.md
-      - ADR-0002 Local Password Lifecycle: architecture/adr-0002-local-user-password-lifecycle-and-mail-fallback.md
-  - API:
-      - API Reference And Workflows: api/reference-and-workflows.md
-      - Ingestion API: api/ingestion-api.md
-      - Collection Operations And Permissions: api/collection-operations-and-permissions.md
-      - Collection Contracts: api/collection-contracts.md
-  - Testing:
-      - Testing And Quality: testing/testing-and-quality.md
-      - Test Data And Fixtures: testing/test-data-and-fixtures.md
+  - Welcome: index.md
+  - User Manual:
+      - Clinical Workflow Guide: user_guide/clinical_workflow_guide.md
+      - Operational Dashboard: user_guide/operational_dashboard.md
+      - Sample Management: user_guide/sample_management.md
+      - Clinical Review (DNA): user_guide/clinical_review_dna.md
+      - Clinical Review (RNA): user_guide/clinical_review_rna.md
+      - Coverage Analytics: user_guide/coverage_analytics.md
+      - Management (Admins): user_guide/management_guide.md
+  - Product & Concepts:
+      - Core Concepts: product/core_concepts.md
+      - Clinical Workflow Chain: product/workflow_dna_rna.md
+      - UI Map And Navigation: product/ui_map_and_user_flows.md
+      - Clinical Semantics Reference: product/clinical_semantics_reference.md
+      - Functional Matrix: product/ui_functionality_matrix.md
+      - Domain Reference: product/application_reference_by_domain.md
+      - Action Effects: product/ui_action_effects_reference.md
+      - Query Strategy: product/aspc_driven_query_strategy.md
+  - Getting Started:
+      - Quickstart (5 Minutes): start_here/quickstart.md
+      - Local Development: start_here/local_development.md
+      - Configuration Architecture: start_here/configuration.md
+  - Software Engineering:
+      - System Overview: architecture/system_overview.md
+      - Request Lifecycle: architecture/request_lifecycle.md
+      - Schema & Versioning: developer/schema_contracts_and_versioning.md
+      - Permission Naming: developer/permissions_naming.md
+      - Codebase Map: architecture/codebase_map.md
+      - Data Contracts: architecture/data_contracts.md
+      - Security Model: architecture/security_model.md
+      - Route Walkthrough: developer/route_walkthrough_dashboard_summary.md
+      - Architecture ADRs:
+          - ADR-0001 Auth Resolution: architecture/adr_0001_auth_provider_resolution.md
+          - ADR-0002 Password Lifecycle: architecture/adr_0002_local_user_password_lifecycle_and_mail_fallback.md
+  - Developer Guide:
+      - Add New Feature: developer/adding_features.md
+      - Add a New Domain: developer/adding_a_domain.md
+      - Template Components: developer/template_components.md
+      - Testing Permissions: developer/testing_permissions.md
+      - UI Modal Reference: developer/ui_modals.md
+      - E2E Testing: developer/e2e_testing.md
+      - Troubleshooting: developer/troubleshooting_guide.md
+  - API Reference:
+      - Workflow Architecture: api/reference_and_workflows.md
+      - Ingestion API: api/ingestion_api.md
+      - Sample YAML Guide: api/sample_yaml.md
+      - Collection Reference: api/collection_contracts.md
+      - RBAC Mapping: api/collection_operations_and_permissions.md
   - Operations:
-      - Environments And Secrets: operations/environments-and-secrets.md
-      - Center Deployment Guide: operations/center-deployment-guide.md
-      - Maintenance And Quality: operations/maintenance-and-quality.md
-      - Minimum Production Baseline: operations/minimum-production-baseline.md
-      - Observability SLOs And Alerts: operations/observability-slos-and-alerts.md
-      - Initial Deployment Checklist: operations/initial-deployment-checklist.md
-      - Deployment Guide: operations/deployment-guide.md
-      - Backup Restore And Snapshots: operations/backup-restore-and-snapshots.md
+      - Center Deployment Guide: operations/center_deployment_guide.md
+      - Deployment Manual: operations/deployment_guide.md
+      - Environments & Secrets: operations/environments_and_secrets.md
+      - Observability & SLOs: operations/observability_slos_and_alerts.md
+      - Initial Checklist: operations/initial_deployment_checklist.md
+      - Backup & Recovery: operations/backup_restore_and_snapshots.md
+      - Minimum Baseline: operations/minimum_production_baseline.md
       - Troubleshooting: operations/troubleshooting.md
-  - Maintainers:
-      - Maintainer Guide: maintainers/maintainer-guide.md
-      - Refactor Guidelines: maintainers/refactor-guidelines.md
-      - Architecture Standards: maintainers/architecture-standards.md
-      - Developer Guide: maintainers/developer-guide.md
+  - Project Info:
+      - Governance: project/governance.md
+      - Contributing: project/contributing.md
+      - Maintenance: maintainers/maintainer_guide.md
+      - Refactor Guidelines: maintainers/refactor_guidelines.md
+      - Standards: maintainers/architecture_standards.md

@@ -1,50 +1,57 @@
-# Coyote3 Documentation
+# Coyote3 Clinical Genomics Platform
 
-Coyote3 is a clinical genomics platform with a split runtime:
+Welcome to the official technical documentation for **Coyote3**, a premier enterprise solution for precision diagnostic workflows and large-scale clinical genomics data orchestration.
 
-- `coyote/` Flask UI for user workflows
-- `api/` FastAPI backend for domain logic, policy, and data operations
-- MongoDB for persistent storage
-- Redis for cache/session support
+Coyote3 is engineered to bridge the gap between high-complexity genomic sequencing and actionable clinical insights. By combining a modern, scalable architecture with rigid diagnostic standards, Coyote3 provides a robust framework for laboratories and medical centers to manage the entire diagnostic lifecycle—from raw data ingestion to finalized clinical reports.
 
-This documentation is organized as a practical flow chain:
+---
 
-1. Start and run the system
-2. Understand UI and user workflows
-3. Understand architecture and code structure
-4. Use and extend APIs
-5. Validate quality and testing
-6. Deploy and operate in dev/stage/prod
-7. Maintain and evolve the codebase safely
+## Platform Philosophy
 
-## Audience map
+Coyote3 is built on three core pillars that define its operational excellence:
 
-- **Clinical users / operators**: Product, UI, and workflow guides
-- **Developers**: Local setup, architecture, API, testing
-- **DevOps / maintainers**: Environment model, deployment guides, backups, release flow
+1.  **Clinical Precision**: Every component is designed to ensure the integrity of clinical data. Strict typing, contract-based schemas, and comprehensive audit trails provide the reliability required for diagnostic-grade environments.
+2.  **Architectural Scalability**: Utilizing a decoupled **Flask-to-FastAPI** topology, Coyote3 scales horizontally to handle massive omics datasets without compromising UI responsiveness.
+3.  **Policy-Driven Governance**: Granular, resource-oriented permissions (RBAC) ensure that access to sensitive clinical data is tightly controlled and audited at every layer.
 
-## Fast links
+---
 
-- Governance and project standards: [Project Standards / Governance Overview](project/governance.md)
-- Quick start: [Start Here / Quickstart](start-here/quickstart.md)
-- Local development: [Start Here / Local Development](start-here/local-development.md)
-- Add new feature: [Developer / Add New Feature](developer/adding-features.md)
-- URL and request flow: [Developer / URL And Request Flow](developer/url-routing-and-request-flow.md)
-- End-to-end route example: [Developer / Route Walkthrough (Dashboard)](developer/route-walkthrough-dashboard-summary.md)
-- Developer troubleshooting: [Developer / Troubleshooting Guide](developer/troubleshooting-guide.md)
-- UI map and workflows: [Product / UI Map And User Flows](product/ui-map-and-user-flows.md)
-- API ingestion: [API / Ingestion API](api/ingestion-api.md)
-- Collection operations and permissions: [API / Collection Operations And Permissions](api/collection-operations-and-permissions.md)
-- Center deployment: [Operations / Center Deployment Guide](operations/center-deployment-guide.md)
-- Initial deployment checklist: [Operations / Initial Deployment Checklist](operations/initial-deployment-checklist.md)
-- Deployment cycle: [Operations / Deployment Guide](operations/deployment-guide.md)
-- Auth/mail observability SLOs: [Operations / Observability SLOs And Alerts](operations/observability-slos-and-alerts.md)
-- Testing and quality gates: [Testing / Testing And Quality](testing/testing-and-quality.md)
-- Auth ADRs: [Architecture / ADR-0001 Auth Provider Resolution](architecture/adr-0001-auth-provider-resolution.md)
-- Developer guide: [Maintainers / Developer Guide](maintainers/developer-guide.md)
+## System Architecture at a Glance
 
-## Runtime topology
+The platform is designed as a distributed environment, ensuring that high-load computational tasks never interfere with the user experience.
 
-![Coyote3 runtime topology](assets/diagrams/runtime-topology.svg)
+*   **The Interface (Coyote)**: A sleek, high-performance web application focused on clinical interpretation and workflow management.
+*   **The Engine (API)**: A high-concurrency RESTful backend that handles all business logic, omics interpretation, and persistent data orchestration.
+*   **The Infrastructure**: Powered by MongoDB for flexible clinical indexing and Redis for lightning-fast session state and caching.
 
-The UI calls API endpoints for all core operations. Business rules live in API services/core layers, not in templates.
+---
+
+## How to Navigate this Manual
+
+This documentation is structured by operational domain to help you find the information you need quickly.
+
+### For Clinical & Laboratory Users
+*   **Getting Started**: [Quickstart Guide](start_here/quickstart.md) for a rapid first look.
+*   **Understanding Workflows**: [DNA and RNA Workflow Chain](product/workflow_dna_rna.md) and [UI User Flows](product/ui_map_and_user_flows.md).
+*   **Terminology**: [Clinical Semantics Reference](product/clinical_semantics_reference.md) for tiers and flags.
+
+### For Software Engineers & Developers
+*   **Foundation**: [Local Development Setup](start_here/local_development.md) and [Configuration Model](start_here/configuration.md).
+*   **Deep Dive**: [System Architecture](architecture/system_overview.md) and [Request Lifecycle](architecture/request_lifecycle.md).
+*   **Extending the Platform**: [Adding Features](developer/adding_features.md) and [Schema Contracts](developer/schema_contracts_and_versioning.md).
+
+### For DevOps & System Administrators
+*   **Deployment**: [Enterprise Deployment Guide](operations/deployment_guide.md) and [Initial Checklist](operations/initial_deployment_checklist.md).
+*   **Stability**: [Observability and SLOs](operations/observability_slos_and_alerts.md) and [Backup/Restore Procedures](operations/backup_restore_and_snapshots.md).
+*   **Base Requirements**: [Minimum Production Baseline](operations/minimum_production_baseline.md).
+
+---
+
+## Platform Topology
+
+![Coyote3 Platform Topology](assets/diagrams/runtime_topology.svg)
+
+---
+
+> [!TIP]
+> **Need a hand?** If you are troubleshooting an existing installation, jump straight to the [Operations Troubleshooting Guide](operations/troubleshooting.md) or the [Developer Troubleshooting Reference](developer/troubleshooting_guide.md).
