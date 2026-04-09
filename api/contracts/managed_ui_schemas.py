@@ -75,41 +75,8 @@ RESOURCE_EXTRA_FIELDS: dict[str, dict[str, dict[str, Any]]] = {
             "required": False,
             "default": {},
         },
-        "snv_query_profile_id": {
-            "label": "SNV Query Profile",
-            "data_type": "select",
-            "display_type": "select",
-            "required": False,
-            "options": [],
-            "default": "",
-        },
-        "cnv_query_profile_id": {
-            "label": "CNV Query Profile",
-            "data_type": "select",
-            "display_type": "select",
-            "required": False,
-            "options": [],
-            "default": "",
-        },
-        "transloc_query_profile_id": {
-            "label": "Translocation Query Profile",
-            "data_type": "select",
-            "display_type": "select",
-            "required": False,
-            "options": [],
-            "default": "",
-        },
     },
-    "aspc_rna": {
-        "fusion_query_profile_id": {
-            "label": "Fusion Query Profile",
-            "data_type": "select",
-            "display_type": "select",
-            "required": False,
-            "options": [],
-            "default": "",
-        },
-    },
+    "aspc_rna": {},
 }
 
 RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
@@ -548,10 +515,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
         ("identity", ["assay_name", "environment", "asp_group"]),
         ("analysis", ["analysis_types"]),
         ("filters", ["filters"]),
-        (
-            "query",
-            ["snv_query_profile_id", "cnv_query_profile_id", "transloc_query_profile_id", "query"],
-        ),
+        ("query", ["query"]),
         ("reporting", ["reporting", "verification_samples"]),
         ("status", ["is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
@@ -560,7 +524,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
         ("identity", ["assay_name", "environment", "asp_group"]),
         ("analysis", ["analysis_types"]),
         ("filters", ["filters"]),
-        ("query", ["fusion_query_profile_id", "query"]),
+        ("query", ["query"]),
         ("reporting", ["reporting"]),
         ("status", ["is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),

@@ -86,7 +86,7 @@ def render_preview_html(payload: ApiPayload) -> str:
         str: Normalized return value.
     """
     template_name = payload.report.get("template")
-    context = payload.report.get("context") or {}
+    context = dict(payload.report.get("context") or {})
     if not template_name:
         raise ApiRequestError("API response missing report template")
     if not isinstance(context, dict):

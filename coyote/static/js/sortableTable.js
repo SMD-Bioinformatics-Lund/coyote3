@@ -1,5 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll("thead.sortable th").forEach((header) => {
+    const sortableHeaders = Array.from(document.querySelectorAll("thead.sortable th"));
+
+    sortableHeaders.forEach((header) => {
         // Skip sorting if 'data-nosort' is set
         if (header.hasAttribute("data-nosort")) return;
 
@@ -39,12 +41,12 @@ document.addEventListener("DOMContentLoaded", function () {
             arrow.classList.remove("hidden");
 
             // Detect column data type
-            let firstCellValue = rows[0]?.cells[index]?.textContent.trim();
+            let firstCellValue = getSortableCellValue(rows[0]?.cells[index]);
             let type = detectDataType(firstCellValue);
 
             rows.sort((rowA, rowB) => {
-                let cellA = rowA.cells[index].textContent.trim();
-                let cellB = rowB.cells[index].textContent.trim();
+                let cellA = getSortableCellValue(rowA.cells[index]);
+                let cellB = getSortableCellValue(rowB.cells[index]);
 
                 let a = parseMixedValue(cellA);
                 let b = parseMixedValue(cellB);
@@ -55,6 +57,10 @@ document.addEventListener("DOMContentLoaded", function () {
             tbody.append(...rows);
         });
     });
+
+    sortableHeaders
+        .filter((header) => header.dataset.autoclick === "true" && !header.hasAttribute("data-nosort"))
+        .forEach((header) => header.click());
 
     // Function to detect column data type
     function detectDataType(value) {
@@ -72,6 +78,11 @@ document.addEventListener("DOMContentLoaded", function () {
             return "chr-region";
         }
         return "mixed";
+    }
+
+    function getSortableCellValue(cell) {
+        if (!cell) return "";
+        return cell.getAttribute("sorttable_customkey") || cell.textContent.trim();
     }
 
 

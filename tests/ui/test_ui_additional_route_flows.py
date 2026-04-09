@@ -838,7 +838,7 @@ def test_dna_preview_report_route_renders_preview_html(monkeypatch):
     )
 
     client = app.test_client()
-    response = client.get("/dna/sample/SAMPLE_001/preview_report")
+    response = client.get("/dna/sample/SAMPLE_001/reports/preview")
 
     assert response.status_code == 200
     assert "preview ok" in response.get_data(as_text=True)

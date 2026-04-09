@@ -438,7 +438,7 @@
 <div class="analysis_description">
   {{ assay_config.reporting.report_description|safe }}
 
-  <form id="genelist-form" action="{{ url_for('common_bp.get_sample_genelists', sample_id=sample._id, sample_assay=sample_assay, _external=True) }}" method="POST" target="_blank">
+  <form id="genelist-form" action="{{ url_for('common_bp.get_sample_genelists', sample_id=sample.name, _external=True) }}#config" method="POST" target="_blank">
     <input type="hidden" name="report_genelists" id="genelists-input">
     <input type="hidden" name="panel_doc" id="panel-input">
     <input type="hidden" name="report_sample_filters" id="sample-filters-input">
@@ -469,7 +469,7 @@
 
 
   <p>
-    For complete panel gene lists, and configurations, see
+    For the complete gene lists and filters used for this report, see
     <a href="#config" onclick="submitGenelistForm(event)" class="text-blue-600 hover:underline" target="_blank">here.</a>
     <br>Or, for ASP genelist, visit <a href="{{url_for("public_bp.asp_genes",asp_id=sample.assay, _external=True)}}"> {{url_for("public_bp.asp_genes",asp_id=sample.assay , _external=True)}} </a>
   </p>
@@ -510,17 +510,17 @@
 
 <!-- Embed assay_panel_doc -->
 
-<script type="application/json" id="report-genelists">{{ report_genelists }}</script>
-<script type="application/json" id="report-panel-doc">{{ panel_doc }}</script>
-<script type="application/json" id="report-sample-filters">{{ report_sample_filters }}</script>
+<script type="application/json" id="report-genelists">{{ report_genelists | tojson }}</script>
+<script type="application/json" id="report-panel-doc">{{ panel_doc | tojson }}</script>
+<script type="application/json" id="report-sample-filters">{{ report_sample_filters | tojson }}</script>
 
 <script>
   function submitGenelistForm(e) {
     e.preventDefault();
 
-    const genelists = document.getElementById("report-genelists").textContent.trim();
-    const panelDoc = document.getElementById("report-panel-doc").textContent.trim();
-    const sampleFilters = document.getElementById("report-sample-filters").textContent.trim();
+    const genelists = JSON.parse(document.getElementById("report-genelists").textContent);
+    const panelDoc = JSON.parse(document.getElementById("report-panel-doc").textContent);
+    const sampleFilters = JSON.parse(document.getElementById("report-sample-filters").textContent);
 
     document.getElementById("genelists-input").value = genelists;
     document.getElementById("panel-input").value = panelDoc;

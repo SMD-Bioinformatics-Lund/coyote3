@@ -8,6 +8,11 @@
       </a>
     </h1>
 
+    <section id="config" class="px-2 py-1 my-2 relative">
+      <h2 class="text-lg font-semibold text-black">Report Configuration</h2>
+      <p class="mt-1 text-sm text-gray-600">Gene lists and sample filters applied when the report preview was generated.</p>
+    </section>
+
     {% set ns = namespace(table_no=1) %}
     <section id="genelists" class="px-2 py-1 my-2 relative">
       {% if genelists %}
@@ -33,7 +38,7 @@
       {% endif %}
       {% if asp_config.covered_genes %}
         <div class="py-2 max-w-3xl align-left">
-          <h2 class="text-sm font-semibold text-black">Tabell {{ ns.table_no }}: Gener inkluderade i <b>{{ asp_config._id }}</b> panel</h2>
+          <h2 class="text-sm font-semibold text-black">Tabell {{ ns.table_no }}: Gener inkluderade i <b>{{ asp_display_label }}</b> panel</h2>
           <div class="py-2 relative">
             <table class="border border-gray-300 w-full text-xs text-left text-gray-700" id="snvs-table">
               <tbody>

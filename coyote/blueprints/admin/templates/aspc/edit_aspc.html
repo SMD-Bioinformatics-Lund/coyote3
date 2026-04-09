@@ -256,8 +256,8 @@
                                   onclick='setQueryPreset("{{ key }}","empty")'>Clear</button>
                         </div>
                         <p class="text-gray-600">
-                          Preferred workflow: select query profiles above (SNV/CNV/Fusion/Translocation).
-                          Keep raw JSON overrides here only for advanced center-specific scenarios.
+                          Configure the assay-specific query JSON directly here.
+                          Use presets as a starting point when helpful, then keep the final logic in code and this ASPC query block.
                         </p>
                       </div>
 
@@ -395,47 +395,5 @@
     }
   });
 
-  function setSelectOptions(selectId, options) {
-    const select = document.getElementById(selectId);
-    if (!select) return;
-    const current = select.value;
-    select.innerHTML = '';
-    const emptyOpt = document.createElement('option');
-    emptyOpt.value = '';
-    emptyOpt.textContent = '-- none --';
-    select.appendChild(emptyOpt);
-    for (const value of (options || [])) {
-      const opt = document.createElement('option');
-      opt.value = value;
-      opt.textContent = value;
-      if (value === current) opt.selected = true;
-      select.appendChild(opt);
-    }
-  }
-
-  async function refreshQueryProfileOptions() {
-    const assayName = (document.getElementById('assay_name')?.value || '').trim();
-    const environment = (document.getElementById('environment')?.value || '').trim();
-    try {
-      const params = new URLSearchParams({ assay_name: assayName, environment });
-      const response = await fetch(`/api/v1/resources/query_profiles/options?${params.toString()}`, {
-        headers: { Accept: 'application/json' }
-      });
-      if (!response.ok) return;
-      const payload = await response.json();
-      const options = payload.options || {};
-      setSelectOptions('snv_query_profile_id', options.snv || []);
-      setSelectOptions('cnv_query_profile_id', options.cnv || []);
-      setSelectOptions('fusion_query_profile_id', options.fusion || []);
-      setSelectOptions('transloc_query_profile_id', options.transloc || []);
-    } catch (_error) {
-      // keep current options on transient failures
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    refreshQueryProfileOptions();
-    document.getElementById('environment')?.addEventListener('change', refreshQueryProfileOptions);
-  });
 </script>
 {% endblock %}

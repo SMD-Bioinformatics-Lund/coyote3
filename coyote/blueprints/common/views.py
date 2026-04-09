@@ -20,26 +20,55 @@ from coyote.services.api_client.api_client import (
 from coyote.services.api_client.web import log_api_error
 
 
-@common_bp.route("/<string:sample_id>/<string:sample_assay>/genes", methods=["POST"])
-def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
+def _adhoc_genes_label(adhoc_genes: Any) -> str:
+    """Normalize ad hoc gene payloads that may arrive in legacy shapes."""
+    if isinstance(adhoc_genes, dict):
+        return str(adhoc_genes.get("label") or "Adhoc")
+    if isinstance(adhoc_genes, str):
+        return adhoc_genes or "Adhoc"
+    if isinstance(adhoc_genes, list):
+        return "Adhoc"
+    return "Adhoc"
+
+
+def _panel_display_label(panel_doc: Any) -> str:
+    """Return a human-facing panel label instead of a Mongo object id."""
+    if not isinstance(panel_doc, dict):
+        return "panel"
+    for key in ("display_name", "assay_name", "asp_id", "aspc_id", "name", "_id"):
+        value = panel_doc.get(key)
+        if value:
+            return str(value)
+    return "panel"
+
+
+def _load_json_form_payload(field_name: str) -> Any:
+    """Load a hidden JSON form payload for the report config page."""
+    raw_value = request.form.get(field_name, "{}")
+    try:
+        return json.loads(raw_value)
+    except Exception:
+        app.logger.warning("Failed to parse %s as JSON; using empty payload", field_name)
+        return {}
+
+
+@common_bp.route("/sample/<string:sample_id>/reports/config", methods=["POST"])
+def get_sample_genelists(sample_id: str) -> str:
     """Return sample genelists.
 
     Args:
         sample_id (str): Normalized ``sample_id``.
-        sample_assay (str): Normalized ``sample_assay``.
 
     Returns:
         str: Normalized return value.
     """
-    _ = sample_assay
-    genelists = json.loads(request.form.get("report_genelists", "{}"))
-    panel_doc = json.loads(request.form.get("panel_doc", "{}"))
-
-    sample_filters = json.loads(request.form.get("report_sample_filters", "{}"))
+    genelists = _load_json_form_payload("report_genelists")
+    panel_doc = _load_json_form_payload("panel_doc")
+    sample_filters = _load_json_form_payload("report_sample_filters")
     adhoc_genes = sample_filters.pop("adhoc_genes", "")
     if adhoc_genes:
         filter_gl = sample_filters.get("genelists", [])
-        filter_gl.append(adhoc_genes.get("label", "Adhoc"))
+        filter_gl.append(_adhoc_genes_label(adhoc_genes))
         sample_filters["genelists"] = filter_gl
 
     return render_template(
@@ -47,6 +76,7 @@ def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
         sample=sample_id,
         genelists=genelists,
         asp_config=panel_doc,
+        asp_display_label=_panel_display_label(panel_doc),
         sample_filters=sample_filters,
     )
 

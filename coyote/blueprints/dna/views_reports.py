@@ -14,7 +14,7 @@ from coyote.services.api_client.reports import (
 from coyote.services.api_client.web import flash_api_success, log_api_error
 
 
-@dna_bp.route("/sample/<string:sample_id>/preview_report", methods=["GET", "POST"])
+@dna_bp.route("/sample/<string:sample_id>/reports/preview", methods=["GET", "POST"])
 @login_required
 def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     """
@@ -35,7 +35,7 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
         return redirect(url_for("home_bp.samples_home"))
 
 
-@dna_bp.route("/sample/<string:sample_id>/report/save")
+@dna_bp.route("/sample/<string:sample_id>/reports/save")
 @login_required
 def save_dna_report(sample_id: str) -> Response:
     """

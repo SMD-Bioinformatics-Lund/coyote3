@@ -172,7 +172,7 @@ class GroupCoverageHandler(BaseHandler):
         else:
             return False
 
-    def remove_blacklist(self, obj_id: str) -> bool:
+    def remove_blacklist(self, obj_id: str) -> int:
         """
         Remove a blacklisted entry by its ObjectId.
 
@@ -182,10 +182,7 @@ class GroupCoverageHandler(BaseHandler):
             obj_id (str): The ObjectId of the blacklist entry to remove.
 
         Returns:
-            bool: True if the entry was successfully removed, False otherwise.
+            int: Number of deleted entries.
         """
-        data = self.get_collection().delete_one({"_id": ObjectId(obj_id)})
-        if data:
-            return True
-        else:
-            return False
+        result = self.get_collection().delete_one({"_id": ObjectId(obj_id)})
+        return int(getattr(result, "deleted_count", 0) or 0)

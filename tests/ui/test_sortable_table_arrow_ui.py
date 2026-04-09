@@ -29,3 +29,13 @@ def test_case_frequency_column_defaults_to_descending_sort():
         template = handle.read()
 
     assert 'data-autoclick="true" data-default-order="desc"' in template
+
+
+def test_sortable_table_supports_custom_sort_keys_and_autoclick():
+    """Case-frequency tables should use cell sort keys and auto-apply the default sort."""
+    script_path = "coyote/static/js/sortableTable.js"
+    with open(script_path, encoding="utf-8") as handle:
+        script = handle.read()
+
+    assert "sorttable_customkey" in script
+    assert 'header.dataset.autoclick === "true"' in script

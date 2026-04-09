@@ -15,6 +15,18 @@ from api.services.dna.export import consequence_terms
 from api.services.reporting.dna_report_payload import hotspot_variant
 
 
+def _variant_case_af_value(variant: dict[str, Any]) -> float:
+    """Extract the case allele frequency used for table ordering."""
+    for genotype in variant.get("GT", []) or []:
+        if genotype.get("type") != "case":
+            continue
+        try:
+            return float(genotype.get("AF", 0) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+    return 0.0
+
+
 def _collect_oncokb_genes(service, variants: list[dict]) -> list[str]:
     """Collect unique OncoKB gene symbols present in the variant list."""
     oncokb_genes: list[str] = []
@@ -147,6 +159,7 @@ def list_variants_payload(
     variants = service.blacklist_handler.add_blacklist_data(variants, assay_group)
     variants, tiered_variants = add_global_annotations_fn(variants, assay_group, subpanel)
     variants = hotspot_variant(variants)
+    variants = sorted(variants, key=_variant_case_af_value, reverse=True)
 
     sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
     bam_id = service.bam_record_handler.get_bams(sample_ids)

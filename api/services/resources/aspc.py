@@ -39,7 +39,6 @@ class AspcService:
             assay_configuration_handler=store.assay_configuration_handler,
             assay_panel_handler=store.assay_panel_handler,
             gene_list_handler=store.gene_list_handler,
-            query_profile_handler=store.query_profile_handler,
             common_util=common_util,
         )
 
@@ -49,14 +48,12 @@ class AspcService:
         assay_configuration_handler: Any,
         assay_panel_handler: Any,
         gene_list_handler: Any,
-        query_profile_handler: Any,
         common_util: Any,
     ) -> None:
         """Create the service for assay-configuration resource workflows."""
         self.assay_configuration_handler = assay_configuration_handler
         self.assay_panel_handler = assay_panel_handler
         self.gene_list_handler = gene_list_handler
-        self.query_profile_handler = query_profile_handler
         self.common_util = common_util
 
     @staticmethod
@@ -100,73 +97,6 @@ class AspcService:
                 result["fusion_genelists"].append(isgl_id)
         return {k: list(dict.fromkeys(v)) for k, v in result.items()}
 
-    def _resolve_query_profile_options(
-        self, *, assay_name: str | None, environment: str | None = None
-    ) -> dict[str, list[str]]:
-        assay = str(assay_name or "").strip()
-        env = str(environment or "").strip().lower()
-        profiles = [
-            dict(item)
-            for item in (self.query_profile_handler.list_query_profiles(is_active=True) or [])
-            if isinstance(item, dict)
-        ]
-        by_type: dict[str, list[str]] = {
-            "snv": [],
-            "cnv": [],
-            "fusion": [],
-            "transloc": [],
-        }
-        for doc in profiles:
-            profile_id = str(doc.get("query_profile_id") or "").strip()
-            if not profile_id:
-                continue
-            if assay and str(doc.get("assay_name") or "").strip() not in {"", assay}:
-                continue
-            if env and str(doc.get("environment") or "").strip().lower() not in {"", env}:
-                continue
-            resource_type = str(doc.get("resource_type") or "").strip().lower()
-            if resource_type in by_type:
-                by_type[resource_type].append(profile_id)
-        return {k: list(dict.fromkeys(v)) for k, v in by_type.items()}
-
-    def _attach_query_profile_refs(self, config: dict[str, Any]) -> None:
-        """Move UI helper fields into query.profiles persistent shape."""
-        snv = str(config.pop("snv_query_profile_id", "") or "").strip()
-        cnv = str(config.pop("cnv_query_profile_id", "") or "").strip()
-        fusion = str(config.pop("fusion_query_profile_id", "") or "").strip()
-        transloc = str(config.pop("transloc_query_profile_id", "") or "").strip()
-        query_payload = config.get("query")
-        if not isinstance(query_payload, dict):
-            query_payload = {}
-        profiles = query_payload.get("profiles")
-        if not isinstance(profiles, dict):
-            profiles = {}
-        if snv:
-            profiles["snv"] = snv
-            query_payload.pop("snv", None)
-        else:
-            profiles.pop("snv", None)
-        if cnv:
-            profiles["cnv"] = cnv
-            query_payload.pop("cnv", None)
-        else:
-            profiles.pop("cnv", None)
-        if fusion:
-            profiles["fusion"] = fusion
-            query_payload.pop("fusion", None)
-        else:
-            profiles.pop("fusion", None)
-        if transloc:
-            profiles["transloc"] = transloc
-            query_payload.pop("transloc", None)
-        else:
-            profiles.pop("transloc", None)
-        if profiles:
-            query_payload["profiles"] = profiles
-        else:
-            query_payload.pop("profiles", None)
-        config["query"] = query_payload
-
     def _decorate_form_options(
         self, *, form: dict[str, Any], form_category: str, assay_name: str | None
     ) -> None:
@@ -196,17 +126,6 @@ class AspcService:
                 subfield_key="fusion_genelists",
                 options=isgl_options.get("fusion_genelists", []),
             )
-        query_profile_options = self._resolve_query_profile_options(assay_name=assay_name)
-        if "snv_query_profile_id" in form.get("fields", {}):
-            form["fields"]["snv_query_profile_id"]["options"] = query_profile_options["snv"]
-        if "cnv_query_profile_id" in form.get("fields", {}):
-            form["fields"]["cnv_query_profile_id"]["options"] = query_profile_options["cnv"]
-        if "fusion_query_profile_id" in form.get("fields", {}):
-            form["fields"]["fusion_query_profile_id"]["options"] = query_profile_options["fusion"]
-        if "transloc_query_profile_id" in form.get("fields", {}):
-            form["fields"]["transloc_query_profile_id"]["options"] = query_profile_options[
-                "transloc"
-            ]
 
     def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """Return the admin list payload for assay configurations.
@@ -234,7 +153,7 @@ class AspcService:
             actor_username: Username used for default form metadata.
 
         Returns:
-            dict[str, Any]: Form payload, prefill map, and profile options.
+            dict[str, Any]: Form payload and prefill map.
         """
         form_category = str(category or "DNA").upper()
         spec = aspc_spec_for_category(form_category)
@@ -278,12 +197,10 @@ class AspcService:
             form_category=form_category,
             assay_name=None,
         )
-        query_profile_options = self._resolve_query_profile_options(assay_name=None)
         return {
             "category": form_category,
             "form": form,
             "prefill_map": prefill_map,
-            "query_profile_options": query_profile_options,
         }
 
     def context_payload(self, *, assay_id: str) -> dict[str, Any]:
@@ -299,13 +216,6 @@ class AspcService:
         if not assay_config:
             raise api_error(404, "Assay config not found")
         assay_config = deepcopy(assay_config)
-        query_payload = assay_config.get("query")
-        profile_refs = query_payload.get("profiles", {}) if isinstance(query_payload, dict) else {}
-        if isinstance(profile_refs, dict):
-            assay_config["snv_query_profile_id"] = profile_refs.get("snv", "")
-            assay_config["cnv_query_profile_id"] = profile_refs.get("cnv", "")
-            assay_config["fusion_query_profile_id"] = profile_refs.get("fusion", "")
-            assay_config["transloc_query_profile_id"] = profile_refs.get("transloc", "")
         panel = self.assay_panel_handler.get_asp(str(assay_config.get("assay_name", "")))
         category = _normalize_asp_category((panel or {}).get("asp_category"))
         spec = aspc_spec_for_category(category)
@@ -315,14 +225,9 @@ class AspcService:
             form_category=category,
             assay_name=str(assay_config.get("assay_name", "") or ""),
         )
-        query_profile_options = self._resolve_query_profile_options(
-            assay_name=str(assay_config.get("assay_name", "") or ""),
-            environment=str(assay_config.get("environment", "") or ""),
-        )
         return {
             "assay_config": assay_config,
             "form": form,
-            "query_profile_options": query_profile_options,
         }
 
     def create(
@@ -340,7 +245,6 @@ class AspcService:
         if not config:
             raise api_error(400, "Missing assay config payload")
         _sanitize_aspc_filters(config)
-        self._attach_query_profile_refs(config)
         config.setdefault("is_active", True)
         config["asp_category"] = _normalize_asp_category_doc(config.get("asp_category"))
         config["aspc_id"] = (
@@ -392,7 +296,6 @@ class AspcService:
             raise api_error(400, "Missing assay config payload")
         updated_doc = {**assay_config, **updated_config}
         _sanitize_aspc_filters(updated_doc)
-        self._attach_query_profile_refs(updated_doc)
         updated_doc["asp_category"] = _normalize_asp_category_doc(updated_doc.get("asp_category"))
         updated_doc["aspc_id"] = assay_config.get("aspc_id", assay_id)
         updated_doc["_id"] = assay_config.get("_id")
@@ -472,56 +375,8 @@ class AspcService:
         assay_group: str | None = None,
         environment: str | None = None,
     ) -> dict[str, list[str]]:
-        assay = str(assay_name or "").strip()
-        group = str(assay_group or "").strip()
-        env = str(environment or "").strip().lower()
-        profiles = [
-            dict(item)
-            for item in (self.query_profile_handler.list_query_profiles(is_active=True) or [])
-            if isinstance(item, dict)
-        ]
-        assay_group_map = self.common_util.create_assay_group_map(
-            self.assay_panel_handler.get_all_asps()
-        )
-        assay_to_groups: dict[str, set[str]] = {}
-        for group_name, assays in assay_group_map.items():
-            normalized_group = str(group_name or "").strip()
-            if not normalized_group:
-                continue
-            for assay_doc in assays or []:
-                assay_name_value = str(
-                    (assay_doc or {}).get("assay_name") or (assay_doc or {}).get("asp_id") or ""
-                ).strip()
-                if not assay_name_value:
-                    continue
-                assay_to_groups.setdefault(assay_name_value, set()).add(normalized_group)
-        by_type: dict[str, list[str]] = {"snv": [], "cnv": [], "fusion": [], "transloc": []}
-        for doc in profiles:
-            profile_id = str(doc.get("query_profile_id") or "").strip()
-            if not profile_id:
-                continue
-            assay_groups = {
-                str(v).strip() for v in (doc.get("assay_groups") or []) if str(v).strip()
-            }
-            assays = {str(v).strip() for v in (doc.get("assays") or []) if str(v).strip()}
-            selected_groups = set()
-            if assay:
-                selected_groups.update(assay_to_groups.get(assay, set()))
-            if group:
-                selected_groups.add(group)
-            if assay or selected_groups:
-                matches_assays = bool(assays and assay and assay in assays)
-                matches_groups = bool(
-                    assay_groups and selected_groups and assay_groups.intersection(selected_groups)
-                )
-                if not matches_assays and not matches_groups and (assays or assay_groups):
-                    continue
-            if env and str(doc.get("environment") or "").strip().lower() not in {"", env}:
-                continue
-            resource_type = str(doc.get("resource_type") or "").strip().lower()
-            if resource_type in by_type:
-                by_type[resource_type].append(profile_id)
-        return {k: list(dict.fromkeys(v)) for k, v in by_type.items()}
+        _ = (assay_name, assay_group, environment)
+        return {"snv": [], "cnv": [], "fusion": [], "transloc": []}
 
 
 class QueryProfileService:

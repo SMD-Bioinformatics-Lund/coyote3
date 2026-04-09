@@ -423,7 +423,12 @@ def _remove_coverage_blacklist(obj_id: str, service: SampleCatalogService):
     """Delete a coverage blacklist entry and serialize the response."""
     service.remove_coverage_blacklist(obj_id=obj_id)
     return util.common.convert_to_serializable(
-        change_payload("coverage", resource="blacklist", resource_id=obj_id, action="remove")
+        change_payload(
+            sample_id="coverage",
+            resource="blacklist",
+            resource_id=obj_id,
+            action="remove",
+        )
     )
 
 

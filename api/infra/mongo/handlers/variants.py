@@ -10,6 +10,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
 
@@ -43,6 +44,18 @@ class VariantsHandler(BaseHandler):
         """
         super().__init__(adapter)
         self.set_collection(self.adapter.variants_collection)
+
+    @staticmethod
+    def _case_af_value(sample_info: Mapping[str, Any]) -> float:
+        """Extract case AF used to sort cross-sample matches."""
+        for gt in sample_info.get("GT") or []:
+            if str(gt.get("type") or "").strip().lower() != "case":
+                continue
+            try:
+                return float(gt.get("AF") or 0.0)
+            except (TypeError, ValueError):
+                return 0.0
+        return 0.0
 
     def ensure_indexes(self) -> None:
         """
@@ -263,7 +276,10 @@ class VariantsHandler(BaseHandler):
             info["irrelevant"] = v.get("irrelevant", False)  # Add irrelevant status if available
             results.append(info)
 
-        return results
+        return sorted(
+            results,
+            key=lambda item: (-self._case_af_value(item), str(item.get("sample_name") or "")),
+        )
 
     def get_variants_by_identity(
         self, *, simple_id: str, sample_id: str | None = None, limit: int | None = None

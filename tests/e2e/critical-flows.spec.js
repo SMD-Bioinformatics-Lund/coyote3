@@ -61,7 +61,7 @@ test("preview report renders from DNA findings page", async ({ page }) => {
   await page.goto("/coyote3/samples");
   await page.getByRole("link", { name: "SAMPLE_001" }).click();
   await page.getByRole("link", { name: "Preview Report" }).click();
-  await expect(page).toHaveURL(/\/coyote3\/dna\/sample\/SAMPLE_001\/preview_report$/);
+  await expect(page).toHaveURL(/\/coyote3\/dna\/sample\/SAMPLE_001\/reports\/preview$/);
   await expect(page.getByRole("heading", { name: "DNA Preview Report" })).toBeVisible();
   await expect(page.getByText("Sample: SAMPLE_001")).toBeVisible();
 });

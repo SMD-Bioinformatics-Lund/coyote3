@@ -799,7 +799,6 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
             toggle_aspc_active=repo.set_assay_config_active,
             delete_aspc=repo.delete_assay_config,
         ),
-        query_profile_handler=SimpleNamespace(list_query_profiles=lambda is_active=True: []),
         sample_handler=SimpleNamespace(
             search_samples_for_admin=repo.list_samples_for_admin,
             get_sample=repo.get_sample,
@@ -857,7 +856,6 @@ def _aspc_service(repo: _AdminRepoStub) -> AspcService:
         assay_configuration_handler=store.assay_configuration_handler,
         assay_panel_handler=store.assay_panel_handler,
         gene_list_handler=store.gene_list_handler,
-        query_profile_handler=store.query_profile_handler,
         common_util=shared_util.common,
     )
 

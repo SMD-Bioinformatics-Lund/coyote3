@@ -102,6 +102,26 @@ def test_update_coverage_blacklist_gene_returns_status_message(monkeypatch):
     assert "TP53" in payload["message"]
 
 
+def test_remove_coverage_blacklist_returns_change_payload(monkeypatch):
+    """Delete coverage blacklist helper should keep the route contract payload."""
+    calls = {}
+    monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
+    service = SimpleNamespace(
+        remove_coverage_blacklist=lambda *, obj_id: calls.setdefault("obj_id", obj_id)
+    )
+
+    payload = samples.delete_coverage_blacklist_entry(
+        "abc123",
+        user=fx.api_user(),
+        service=service,
+    )
+
+    assert calls["obj_id"] == "abc123"
+    assert payload["resource"] == "blacklist"
+    assert payload["resource_id"] == "abc123"
+    assert payload["action"] == "remove"
+
+
 def test_restful_sample_comment_route_creates_comment(monkeypatch):
     """Test restful sample comment route creates comment.
 
