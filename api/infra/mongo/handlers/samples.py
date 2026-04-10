@@ -337,6 +337,9 @@ class SampleHandler(BaseHandler):
             Any
         """
         # Remove unnecessary keys from default_filters
+        default_filters.pop("_id", None)
+        default_filters.pop("id_", None)
+        default_filters.pop("filters", None)
         default_filters.pop("use_diagnosis_genelist", None)
 
         self.get_collection().update_one(

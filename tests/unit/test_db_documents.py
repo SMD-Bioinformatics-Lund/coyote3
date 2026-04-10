@@ -11,14 +11,13 @@ import pytest
 
 from api.contracts.managed_resources import managed_resource_spec
 from api.contracts.managed_ui_schemas import build_form_spec
-from api.contracts.schemas.dna import DnaFiltersDoc, VariantsDoc
+from api.contracts.schemas.dna import VariantsDoc
 from api.contracts.schemas.governance import UsersDoc
 from api.contracts.schemas.registry import (
     normalize_collection_document,
     supported_collections,
     validate_collection_document,
 )
-from api.contracts.schemas.rna import RnaFiltersDoc
 from api.contracts.schemas.samples import SampleCaseControlDoc, SamplesDoc
 
 
@@ -134,8 +133,8 @@ def test_collection_validator_accepts_nested_sample_shape():
     validate_collection_document("samples", payload)
 
 
-def test_samples_doc_materializes_typed_nested_defaults():
-    """SamplesDoc should populate nested typed defaults without raw dict placeholders."""
+def test_samples_doc_keeps_filters_unset_until_initialized():
+    """SamplesDoc should leave filters unset until sample defaults are materialized elsewhere."""
     dna_doc = SamplesDoc.model_validate(
         {
             "name": "S1",
@@ -151,9 +150,9 @@ def test_samples_doc_materializes_typed_nested_defaults():
             "vcf_files": "x",
         }
     )
-    assert isinstance(dna_doc.filters, DnaFiltersDoc)
+    assert dna_doc.filters is None
     assert isinstance(dna_doc.case, SampleCaseControlDoc)
-    assert isinstance(dna_doc.model_dump(exclude_none=True)["filters"], dict)
+    assert "filters" not in dna_doc.model_dump(exclude_none=True)
 
     rna_doc = SamplesDoc.model_validate(
         {
@@ -170,7 +169,7 @@ def test_samples_doc_materializes_typed_nested_defaults():
             "fusion_files": "x",
         }
     )
-    assert isinstance(rna_doc.filters, RnaFiltersDoc)
+    assert rna_doc.filters is None
     assert isinstance(rna_doc.case, SampleCaseControlDoc)
 
 

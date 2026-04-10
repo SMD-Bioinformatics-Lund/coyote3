@@ -110,6 +110,137 @@ def test_dna_workflow_forwards_build_and_persist_calls(monkeypatch):
     assert calls["persist"]["sample_id"] == "S1"
 
 
+def test_dna_report_payload_requires_sample_vep_version():
+    try:
+        dna_workflow.build_dna_report_payload(
+            sample={
+                "_id": "s1",
+                "name": "S1",
+                "assay": "assay_1",
+                "subpanel": "hema",
+                "filters": {
+                    "genelists": [],
+                    "vep_consequences": ["missense"],
+                    "max_freq": 1,
+                    "min_freq": 0,
+                    "max_control_freq": 0.05,
+                    "min_depth": 10,
+                    "min_alt_reads": 3,
+                    "max_popfreq": 0.05,
+                },
+            },
+            assay_config={
+                "asp_group": "hematology",
+                "filters": {
+                    "genelists": [],
+                    "vep_consequences": ["missense"],
+                    "max_freq": 1,
+                    "min_freq": 0,
+                    "max_control_freq": 0.05,
+                    "min_depth": 10,
+                    "min_alt_reads": 3,
+                    "max_popfreq": 0.05,
+                },
+                "reporting": {"report_sections": ["SNV"], "report_header": "Demo"},
+            },
+            assay_panel_handler=SimpleNamespace(get_asp=lambda asp_name: {"asp_name": asp_name}),
+            gene_list_handler=SimpleNamespace(
+                get_isgl_by_asp=lambda assay, is_active=True: [],
+                get_isgl_by_ids=lambda ids: {},
+            ),
+            variant_handler=SimpleNamespace(get_case_variants=lambda query: []),
+            blacklist_handler=SimpleNamespace(add_blacklist_data=lambda rows, assay=None: rows),
+            sample_handler=SimpleNamespace(get_latest_sample_comment=lambda sample_id: None),
+            copy_number_variant_handler=SimpleNamespace(
+                get_interesting_sample_cnvs=lambda sample_id: []
+            ),
+            biomarker_handler=SimpleNamespace(get_sample_biomarkers=lambda sample_id: []),
+            translocation_handler=SimpleNamespace(
+                get_interesting_sample_translocations=lambda sample_id: []
+            ),
+            vep_metadata_handler=SimpleNamespace(
+                get_consequence_group_map=lambda version: {},
+                get_variant_class_translations=lambda version: {},
+            ),
+            annotation_handler=SimpleNamespace(),
+        )
+    except ValueError as exc:
+        assert str(exc) == "sample.vep_version is required for DNA report generation"
+    else:
+        raise AssertionError("Expected DNA report payload generation to require sample.vep_version")
+
+
+def test_dna_report_payload_filters_reported_cnvs_by_selected_cnv_genelist():
+    template_name, context, snapshot_rows = dna_workflow.build_dna_report_payload(
+        sample={
+            "_id": "s1",
+            "name": "S1",
+            "assay": "assay_1",
+            "subpanel": "hema",
+            "vep_version": "110",
+            "filters": {
+                "genelists": [],
+                "vep_consequences": ["missense"],
+                "cnv_genelists": ["CNV_GL"],
+                "cnveffects": ["gain", "loss"],
+                "max_freq": 1,
+                "min_freq": 0,
+                "max_control_freq": 0.05,
+                "min_depth": 10,
+                "min_alt_reads": 3,
+                "max_popfreq": 0.05,
+            },
+        },
+        assay_config={
+            "asp_group": "hematology",
+            "filters": {
+                "genelists": [],
+                "vep_consequences": ["missense"],
+                "cnv_genelists": [],
+                "cnveffects": ["gain", "loss"],
+                "max_freq": 1,
+                "min_freq": 0,
+                "max_control_freq": 0.05,
+                "min_depth": 10,
+                "min_alt_reads": 3,
+                "max_popfreq": 0.05,
+            },
+            "reporting": {"report_sections": ["SNV", "CNV"], "report_header": "Demo"},
+        },
+        assay_panel_handler=SimpleNamespace(
+            get_asp=lambda asp_name: {"asp_name": asp_name, "covered_genes": ["TP53", "EGFR"]}
+        ),
+        gene_list_handler=SimpleNamespace(
+            get_isgl_by_asp=lambda assay, is_active=True: [],
+            get_isgl_by_ids=lambda ids: {
+                "CNV_GL": {"displayname": "CNV GL", "is_active": True, "genes": ["TP53"]}
+            },
+        ),
+        variant_handler=SimpleNamespace(get_case_variants=lambda query: []),
+        blacklist_handler=SimpleNamespace(add_blacklist_data=lambda rows, assay=None: rows),
+        sample_handler=SimpleNamespace(get_latest_sample_comment=lambda sample_id: None),
+        copy_number_variant_handler=SimpleNamespace(
+            get_interesting_sample_cnvs=lambda sample_id: [
+                {"_id": "cnv1", "genes": [{"gene": "TP53", "class": 1}], "ratio": 0.7},
+                {"_id": "cnv2", "genes": [{"gene": "EGFR", "class": 1}], "ratio": 0.8},
+            ]
+        ),
+        biomarker_handler=SimpleNamespace(get_sample_biomarkers=lambda sample_id: []),
+        translocation_handler=SimpleNamespace(
+            get_interesting_sample_translocations=lambda sample_id: []
+        ),
+        vep_metadata_handler=SimpleNamespace(
+            get_consequence_group_map=lambda version: {"missense": ["missense_variant"]},
+            get_variant_class_translations=lambda version: {},
+        ),
+        annotation_handler=SimpleNamespace(),
+    )
+
+    assert template_name == "dna_report.html"
+    assert snapshot_rows == []
+    assert [cnv["_id"] for cnv in context["report_sections_data"]["cnvs"]] == ["cnv1"]
+
+
 def test_rna_workflow_merge_and_persist_filters(monkeypatch):
     """RNA workflow normalizes and persists form filters."""
     calls = {}

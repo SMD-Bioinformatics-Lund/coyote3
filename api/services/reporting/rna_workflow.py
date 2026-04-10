@@ -76,10 +76,11 @@ class RNAWorkflowService:
         sample: dict, assay_config: dict, sample_id: str, logger
     ) -> tuple[dict, dict]:
         """Merge assay defaults into the sample and normalize RNA filters."""
-        merged_sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
-        sample_filters = normalize_rna_filter_keys(deepcopy(merged_sample.get("filters", {})))
-        validate_rna_filter_inputs(logger, merged_sample.get("name", sample_id), sample_filters)
-        return merged_sample, sample_filters
+        if sample.get("filters") is None:
+            sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
+        sample_filters = normalize_rna_filter_keys(deepcopy(sample.get("filters", {})))
+        validate_rna_filter_inputs(logger, sample.get("name", sample_id), sample_filters)
+        return sample, sample_filters
 
     def persist_form_filters(
         self,

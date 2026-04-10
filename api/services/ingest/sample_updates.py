@@ -14,6 +14,7 @@ from api.contracts.schemas.samples import (
 from api.services.ingest.dependent_writes import data_counts, replace_dependents
 from api.services.ingest.helpers import (
     _normalize_uploaded_checksums,
+    assay_default_filters_from_collections,
     build_sample_meta_dict,
 )
 from api.services.ingest.parsers import infer_omics_layer
@@ -141,6 +142,10 @@ def ingest_update(service: Any, payload: dict[str, Any]) -> dict[str, Any]:
 
     merged_doc = dict(current_doc)
     merged_doc.update(parsed_payload)
+    if merged_doc.get("filters") is None and hasattr(service, "collections"):
+        default_filters = assay_default_filters_from_collections(service.collections, merged_doc)
+        if default_filters is not None:
+            merged_doc["filters"] = default_filters
     if uploaded_checksums:
         existing_checksums = _normalize_uploaded_checksums(
             current_doc.get("uploaded_file_checksums", {})

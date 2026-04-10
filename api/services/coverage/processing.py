@@ -172,7 +172,7 @@ class CoverageProcessingService:
         """
         has_low = False
         for reg in region_dict:
-            if "cov" in region_dict[reg] and float(region_dict[reg]["cov"]) < cutoff:
+            if region_dict[reg].get("cov") is not None and float(region_dict[reg]["cov"]) < cutoff:
                 reg_key = (gene, region, str(reg))
                 if region_blacklist is not None:
                     blacklisted = reg_key in region_blacklist
@@ -204,12 +204,16 @@ class CoverageProcessingService:
                     gene_cov["probes"][probe]["exon_nr"] = exons
                     if len(exons) > 0:
                         for exon in exons:
-                            if (
-                                float(exon["cov"]) < cov_cutoff
-                                or float(gene_cov["probes"][probe]["cov"]) < cov_cutoff
+                            exon_cov = exon.get("cov")
+                            probe_cov = gene_cov["probes"][probe].get("cov")
+                            if (exon_cov is not None and float(exon_cov) < cov_cutoff) or (
+                                probe_cov is not None and float(probe_cov) < cov_cutoff
                             ):
                                 cov_table[gene][exon["nbr"]] = exon
-                    elif float(gene_cov["probes"][probe]["cov"]) < cov_cutoff:
+                    elif (
+                        gene_cov["probes"][probe].get("cov") is not None
+                        and float(gene_cov["probes"][probe]["cov"]) < cov_cutoff
+                    ):
                         cov_table[gene][probe] = gene_cov["probes"][probe]
             else:
                 for exon in gene_cov["CDS"]:

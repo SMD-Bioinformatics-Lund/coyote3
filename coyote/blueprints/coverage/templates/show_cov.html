@@ -104,13 +104,13 @@
                                     {% for gene in cov_table %}
                                         {% for CDS in cov_table[gene] %}
                                             {% set exon = cov_table[gene][CDS] %}
-                                            {% if '_' in CDS %}
+                                            {% if '_' in CDS|string %}
                                                 {% set CDS = "NCP" %}
                                             {% endif %}
                                             <tr class="hover:bg-blue-50">
                                                 <td class="border-b border-indigo-100 px-3 py-2">{{ exon.chr }}:{{ exon.start }}-{{ exon.end }}</td>
                                                 <td class="border-b border-indigo-100 px-3 py-2 text-right">{{ exon.end | int - exon.start | int }}</td>
-                                                <td class="border-b border-indigo-100 px-3 py-2 text-right">{{ exon.cov | float | round() }}</td>
+                                                <td class="border-b border-indigo-100 px-3 py-2 text-right">{{ (exon.cov | float | round()) if exon.cov is not none else "N/A" }}</td>
                                                 <td class="border-b border-indigo-100 px-3 py-2">{{ CDS }}</td>
                                                 <td class="border-b border-indigo-100 px-3 py-2">
                                                     <button class="font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900"

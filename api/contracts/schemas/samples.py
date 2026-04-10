@@ -92,16 +92,6 @@ class SamplesDoc(_DocBase):
     report_num: int = 0
     time_added: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    @model_validator(mode="after")
-    def _hydrate_nested_defaults(self) -> "SamplesDoc":
-        """Materialize typed nested defaults instead of leaving raw dict placeholders."""
-        if self.filters is None:
-            if self.omics_layer == "dna":
-                self.filters = DnaFiltersDoc()
-            elif self.omics_layer == "rna":
-                self.filters = RnaFiltersDoc()
-        return self
-
     @field_validator("sequencing_scope", "omics_layer", mode="before")
     @classmethod
     def _normalize_lowercase(cls, value: Any) -> Any:

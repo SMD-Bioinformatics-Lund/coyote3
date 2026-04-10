@@ -125,8 +125,10 @@ def list_variants_payload(
     if not assay_config:
         raise api_error(404, "Assay config not found for sample")
 
-    sample = util_module.common.merge_sample_settings_with_assay_config(sample, assay_config)
-    sample_filters = deepcopy(sample.get("filters", {}))
+    raw_sample_filters = sample.get("filters")
+    sample_filters = deepcopy(
+        assay_config.get("filters", {}) if raw_sample_filters is None else raw_sample_filters
+    )
     assay_group = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel")
     analysis_sections = _normalize_dna_analysis_sections(assay_config.get("analysis_types", []))

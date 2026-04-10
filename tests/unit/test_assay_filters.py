@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 from api.common.assay_filters import (
+    format_assay_config,
     get_sample_effective_genes,
     merge_sample_settings_with_assay_config,
 )
+from api.contracts.managed_resources import aspc_spec_for_category
+from api.contracts.managed_ui_schemas import build_form_spec
 from api.contracts.schemas.dna import DnaFiltersDoc
 from api.contracts.schemas.rna import RnaFiltersDoc
 
 
-def test_merge_sample_settings_uses_assay_defaults_for_null_and_empty_list_values() -> None:
-    """Null and empty-list sample values should not override assay defaults."""
+def test_merge_sample_settings_only_uses_assay_defaults_when_filters_missing() -> None:
+    """Stored sample filters should remain authoritative once present."""
     sample = {
         "filters": {
             "vep_consequences": [],
@@ -31,10 +34,49 @@ def test_merge_sample_settings_uses_assay_defaults_for_null_and_empty_list_value
 
     merged = merge_sample_settings_with_assay_config(sample, assay_config)
 
+    assert merged["filters"]["vep_consequences"] == []
+    assert merged["filters"]["cnveffects"] is None
+    assert merged["filters"]["min_depth"] is None
+    assert merged["filters"]["genelists"] == []
+
+
+def test_merge_sample_settings_uses_assay_defaults_when_filters_missing() -> None:
+    """Missing sample filters should be initialized from assay defaults."""
+    sample = {}
+    assay_config = {
+        "filters": {
+            "vep_consequences": ["splicing", "missense"],
+            "cnveffects": ["gain", "loss"],
+            "min_depth": 100,
+            "genelists": ["hematology_myeloid"],
+        }
+    }
+
+    merged = merge_sample_settings_with_assay_config(sample, assay_config)
+
     assert merged["filters"]["vep_consequences"] == ["splicing", "missense"]
     assert merged["filters"]["cnveffects"] == ["gain", "loss"]
     assert merged["filters"]["min_depth"] == 100
     assert merged["filters"]["genelists"] == ["hematology_myeloid"]
+
+
+def test_format_assay_config_excludes_meta_keys_from_filters_section() -> None:
+    """Formatted ASPC filters should not carry UI/meta keys into sample filters."""
+    formatted = format_assay_config(
+        {
+            "_id": "oid-1",
+            "filters": {
+                "max_freq": 1,
+                "min_freq": 0.03,
+                "vep_consequences": ["missense"],
+            },
+            "reporting": {"report_sections": ["SNV"]},
+        },
+        build_form_spec(aspc_spec_for_category("DNA")),
+    )
+
+    assert "_id" not in formatted["filters"]
+    assert "filters" not in formatted["filters"]
 
 
 def test_dna_filters_doc_restores_defaults_for_null_and_empty_values() -> None:
@@ -79,8 +121,18 @@ def test_effective_genes_respects_adhoc_list_types_for_target() -> None:
     _, snv_effective = get_sample_effective_genes(sample, asp, {}, target="snv")
     _, cnv_effective = get_sample_effective_genes(sample, asp, {}, target="cnv")
 
-    assert snv_effective == ["EGFR", "TP53"]
+    assert snv_effective == []
     assert cnv_effective == ["EGFR"]
+
+
+def test_effective_genes_leave_snv_unfiltered_when_no_genelists_selected() -> None:
+    """SNV effective genes should stay empty until a list or ad hoc genes are selected."""
+    sample = {"filters": {"genelists": []}}
+    asp = {"covered_genes": ["TP53", "EGFR"], "asp_family": "panel"}
+
+    _, snv_effective = get_sample_effective_genes(sample, asp, {}, target="snv")
+
+    assert snv_effective == []
 
 
 def test_effective_genes_fall_back_to_asp_genes_when_no_cnv_genelist_selected() -> None:

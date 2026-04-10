@@ -43,14 +43,16 @@ Upon sample ingestion, the platform establishes a persistent Sample anchor with 
 
 ## Resolution of Interpretive Gene Scopes
 
-For DNA and Coverage-based workflows, the platform dynamically computes the **Effective Gene Scope** using a defined logical hierarchy:
+For DNA and RNA workflows, the platform dynamically computes **effective gene scope** per data type:
 
-1. **Baseline**: Initialize from the ASP Panel Universe (`covered_genes`).
-2. **Augmentation**: Inject curated cohorts from active `sample.filters.genelists`.
-3. **Inclusion**: Append on-demand ad-hoc gene identifiers from specific user requests.
-4. **Constraint Enforcement**:
-   - **Targeted Panels**: findings are intersected with the physical ASP covered universe.
-   - **Exome/WGS Context**: ISGL-selected genes frequently define the absolute interpretive scope.
+1. **SNV**:
+   - Active `sample.filters.genelists` and SNV ad-hoc genes define the SNV gene restriction.
+   - If no SNV genelist is selected, SNV findings are not gene-restricted.
+2. **CNV**:
+   - Active `sample.filters.cnv_genelists` and CNV ad-hoc genes define the CNV gene restriction.
+   - If no CNV genelist is selected, CNV workflows fall back to ASP `covered_genes`.
+3. **RNA Fusion**:
+   - Active fusion lists and ad-hoc fusion genes define fusion scope.
 
 ## Platform Execution Sequence
 
@@ -61,6 +63,8 @@ The diagnostic lifecycle follows a standardized operational flow from initial in
 3. **Data Assembly**: Upon document access, the API dynamically merges sample evidence with environment configurations.
 4. **Interpretation**: Functional finding flags (Classification, Comments, Actions) are committed to live annotation stores.
 5. **Report Finalization**: The system reads the joined interpretation context and persists an immutable report snapshot in `reported_variants`.
+   - DNA SNV report inclusion follows reportable-variant filtering after consequence resolution using `sample.vep_version`.
+   - DNA CNV report inclusion requires both report-level inclusion (`interesting`) and the active CNV sample filters. A CNV outside the selected CNV genelist is not included in the report.
 
 ## Functional Domain Catalog
 
@@ -81,6 +85,7 @@ To ensure optimal platform performance, system administrators must adhere to the
 - **Environment Integrity**: Every sample `profile` must map to a valid `production`, `development`, or `validation` environment within the configuration tier.
 - **Relational Atomic Behavior**: Treat `samples` as the non-negotiable parent record for all findings; orphaned finding documents without a valid `SAMPLE_ID` relationship are prohibited.
 - **Metadata Alignment**: The `vep_version` specified during sample ingestion must precisely track the required knowledgebase versions stored within the auxiliary `vep_metadata` collections.
+- **Reporting Alignment**: `sample.vep_version` is mandatory for DNA report generation because consequence-group resolution and variant-class translations are version-specific.
 
 ## Diagnostic Input Specifications
 

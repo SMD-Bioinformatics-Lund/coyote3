@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
+
+from api.common.assay_filters import format_assay_config
+from api.contracts.managed_resources import aspc_spec_for_category
+from api.contracts.managed_ui_schemas import build_form_spec
 
 _CASE_CONTROL_KEYS = [
     "case_id",
@@ -114,3 +119,26 @@ def _normalize_uploaded_checksums(payload: Any) -> dict[str, str]:
             continue
         normalized[checksum_key] = checksum_val
     return normalized
+
+
+def assay_default_filters_from_collections(
+    collections: dict[str, Any], sample_doc: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Resolve formatted ASPC default filters for a sample payload."""
+    aspc_collection = collections.get("asp_configs")
+    if aspc_collection is None or not hasattr(aspc_collection, "find_one"):
+        return None
+    assay_name = str(sample_doc.get("assay") or "").strip().lower()
+    profile = str(sample_doc.get("profile") or "production").strip().lower() or "production"
+    raw_config = aspc_collection.find_one({"assay_name": assay_name, "environment": profile})
+    if not isinstance(raw_config, dict):
+        return None
+    omics = str(sample_doc.get("omics_layer") or "").strip().upper()
+    if not omics:
+        omics = "RNA" if sample_doc.get("fusion_files") else "DNA"
+    schema = build_form_spec(aspc_spec_for_category(omics))
+    formatted = format_assay_config(deepcopy(raw_config), schema)
+    filters = formatted.get("filters")
+    if not isinstance(filters, dict):
+        return None
+    return deepcopy(filters)

@@ -88,6 +88,7 @@ def _store_stub(sample_docs=None):
         "rna_expression": _Col(),
         "rna_classification": _Col(),
         "rna_qc": _Col(),
+        "asp_configs": _Col(),
         "assay_specific_panels": _Col(),
     }
     return SimpleNamespace(
@@ -123,6 +124,7 @@ def _use_store(monkeypatch, store_stub, *, new_sample_id="507f1f77bcf86cd7994390
             "rna_expression": store_stub.rna_expression_handler.get_collection(),
             "rna_classification": store_stub.rna_classification_handler.get_collection(),
             "rna_qc": store_stub.rna_quality_handler.get_collection(),
+            "asp_configs": store_stub.coyote_db["asp_configs"],
             "assay_specific_panels": store_stub.coyote_db["assay_specific_panels"],
         },
         invalidate_variant_cache=lambda: None,
@@ -598,6 +600,7 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
             "sample_no": 1,
             "sequencing_scope": "panel",
             "omics_layer": "dna",
+            "case_ffpe": False,
             "pipeline": "SomaticPanelPipeline",
             "pipeline_version": "1.0.0",
             "vcf_files": "x",
@@ -677,3 +680,56 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
 
     zero = service.insert_collection_documents(collection="variants", documents=[])
     assert zero["inserted_count"] == 0
+
+
+def test_ingest_sample_bundle_initializes_sample_filters_from_aspc(monkeypatch):
+    sample_col = _Col([])
+    stub = _store_stub()
+    stub.sample_handler = _Handler(sample_col)
+    stub.coyote_db["asp_configs"].docs = [
+        {
+            "assay_name": "assay_1",
+            "environment": "production",
+            "asp_category": "dna",
+            "filters": {
+                "max_freq": 1,
+                "min_freq": 0,
+                "max_control_freq": 0.05,
+                "max_popfreq": 0.05,
+                "min_depth": 100,
+                "min_alt_reads": 5,
+                "genelists": ["hematology_myeloid"],
+                "vep_consequences": ["missense"],
+                "cnveffects": ["gain", "loss"],
+                "cnv_genelists": [],
+            },
+            "reporting": {"report_sections": ["SNV"]},
+        }
+    ]
+    service = _use_store(monkeypatch, stub, new_sample_id="507f1f77bcf86cd799439018")
+    monkeypatch.setattr(service, "_parse_preload", lambda payload: {"snvs": [], "_seen": payload})
+    monkeypatch.setattr(service, "_next_unique_name", lambda *_: "S1")
+    monkeypatch.setattr(service, "_write_dependents", lambda **_: {"snvs": 0})
+
+    out = service.ingest_sample_bundle(
+        {
+            "name": "S1",
+            "assay": "assay_1",
+            "subpanel": "Hem",
+            "profile": "production",
+            "case_id": "CASE_DEMO",
+            "sample_no": 1,
+            "sequencing_scope": "panel",
+            "omics_layer": "dna",
+            "case_ffpe": False,
+            "pipeline": "SomaticPanelPipeline",
+            "pipeline_version": "1.0.0",
+            "vcf_files": "x",
+        },
+        allow_update=False,
+    )
+
+    assert out["status"] == "ok"
+    inserted = sample_col.inserted_one[-1]
+    assert inserted["filters"]["genelists"] == ["hematology_myeloid"]
+    assert inserted["filters"]["vep_consequences"] == ["missense"]

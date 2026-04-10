@@ -16,6 +16,11 @@ from api.common.utility import (
     merge_sample_settings_with_assay_config,
 )
 from api.core.dna.dna_filters import (
+    cnv_organizegenes,
+    cnvtype_variant,
+    create_cnveffectlist,
+)
+from api.core.dna.dna_filters import (
     get_filter_conseq_terms as shared_get_filter_conseq_terms,
 )
 from api.core.dna.notation import one_letter_p, standard_hgvs
@@ -210,9 +215,21 @@ def get_simple_variants_for_report(variants: list, assay_config: dict) -> list:
 
 def _ensure_sample_filters(sample: dict, assay_config: dict) -> tuple[dict, dict]:
     """Return sample with populated filters and a defensive filters copy."""
-    if not sample.get("filters"):
-        sample = merge_sample_settings_with_assay_config(sample, assay_config)
-    return sample, deepcopy(sample.get("filters", {}))
+    if sample.get("filters") is None:
+        sample = merge_sample_settings_with_assay_config(deepcopy(sample), assay_config)
+    raw_sample_filters = sample.get("filters")
+    sample_filters = deepcopy(
+        assay_config.get("filters", {}) if raw_sample_filters is None else raw_sample_filters
+    )
+    return sample, sample_filters
+
+
+def _resolve_sample_vep_version(sample: dict) -> str:
+    """Return the required sample VEP version for report consequence mapping."""
+    normalized = str(sample.get("vep_version") or "").strip()
+    if not normalized:
+        raise ValueError("sample.vep_version is required for DNA report generation")
+    return normalized
 
 
 def _normalize_dna_report_sections(sections: list[str] | None) -> list[str]:
@@ -244,6 +261,48 @@ def _resolve_filter_genes(
         checked_genelists
     )
     return get_sample_effective_genes(sample, assay_panel_doc, checked_genelists_genes_dict)
+
+
+def _resolve_cnv_filter_genes(
+    sample: dict,
+    sample_filters: dict,
+    assay_panel_doc: dict,
+    *,
+    gene_list_handler,
+) -> list[str]:
+    """Resolve effective CNV report filter genes from selected CNV lists."""
+    checked_cnv_genelists = sample_filters.get("cnv_genelists", [])
+    checked_cnv_genelists_genes_dict: dict[str, Any] = gene_list_handler.get_isgl_by_ids(
+        checked_cnv_genelists
+    )
+    _genes_covered_in_panel, filter_genes = get_sample_effective_genes(
+        sample,
+        assay_panel_doc,
+        checked_cnv_genelists_genes_dict,
+        target="cnv",
+    )
+    return filter_genes
+
+
+def _filter_cnvs_for_report(
+    cnvs: list[dict],
+    *,
+    sample_filters: dict,
+    filter_genes: list[str],
+) -> list[dict]:
+    """Apply CNV effect and gene-list filters to report-included CNVs."""
+    filtered_cnvs = list(cnvs)
+    filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))
+    if filter_cnveffects:
+        filtered_cnvs = cnvtype_variant(filtered_cnvs, filter_cnveffects)
+    if filter_genes:
+        filter_genes_set = set(filter_genes)
+        filtered_cnvs = [
+            cnv
+            for cnv in filtered_cnvs
+            if any((gene or {}).get("gene") in filter_genes_set for gene in cnv.get("genes", []))
+        ]
+    return cnv_organizegenes(filtered_cnvs)
 
 
 def _resolve_disp_positions(sample: dict, assay_config: dict) -> list:
@@ -372,7 +431,8 @@ def build_dna_report_payload(
         assay_panel_doc=assay_panel_doc,
         gene_list_handler=gene_list_handler,
     )
-    conseq_terms_mapper = vep_metadata_handler.get_consequence_group_map(sample.get("vep_version"))
+    sample_vep_version = _resolve_sample_vep_version(sample)
+    conseq_terms_mapper = vep_metadata_handler.get_consequence_group_map(sample_vep_version)
     filter_conseq = shared_get_filter_conseq_terms(
         sample_filters.get("vep_consequences", []),
         conseq_terms_mapper,
@@ -412,9 +472,20 @@ def build_dna_report_payload(
     report_sections_data["snvs"] = sort_by_class_and_af(variants_simple)
 
     if "CNV" in report_sections:
-        report_sections_data["cnvs"] = list(
+        cnv_filter_genes = _resolve_cnv_filter_genes(
+            sample,
+            sample_filters,
+            assay_panel_doc,
+            gene_list_handler=gene_list_handler,
+        )
+        interesting_cnvs = list(
             copy_number_variant_handler.get_interesting_sample_cnvs(sample_id=str(sample["_id"]))
             or []
+        )
+        report_sections_data["cnvs"] = _filter_cnvs_for_report(
+            interesting_cnvs,
+            sample_filters=sample_filters,
+            filter_genes=cnv_filter_genes,
         )
 
     if "CNV_PROFILE" in report_sections:
@@ -444,9 +515,7 @@ def build_dna_report_payload(
         assay_config["reporting"].get("report_header", "Unknown"),
     )
 
-    vep_variant_class_meta = vep_metadata_handler.get_variant_class_translations(
-        sample.get("vep_version", "103")
-    )
+    vep_variant_class_meta = vep_metadata_handler.get_variant_class_translations(sample_vep_version)
 
     report_date = datetime.now().date()
     report_timestamp: str = shared_get_report_timestamp()

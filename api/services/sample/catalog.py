@@ -6,7 +6,6 @@ import re
 from copy import deepcopy
 from typing import Any
 
-from api.common.assay_filters import merge_sample_settings_with_assay_config
 from api.http import api_error, get_formatted_assay_config
 from api.runtime_state import app as runtime_app
 
@@ -619,9 +618,6 @@ class SampleCatalogService:
                 sample.get("_id"), assay_config.get("filters")
             )
             sample = self.sample_handler.get_sample(sample["_id"])
-        assay_config = get_formatted_assay_config(sample)
-        if assay_config:
-            sample = merge_sample_settings_with_assay_config(deepcopy(sample), assay_config)
 
         filters = sample.get("filters", {})
         adhoc_scopes = self._normalized_adhoc_genes(filters) or {}

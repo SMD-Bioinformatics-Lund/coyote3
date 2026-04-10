@@ -89,8 +89,15 @@ class DnaStructuralService:
         if not assay_config:
             raise api_error(404, "Assay config not found for sample")
 
-        sample = util_module.common.merge_sample_settings_with_assay_config(sample, assay_config)
-        sample_filters = deepcopy(sample.get("filters", {}))
+        if sample.get("filters") is None:
+            sample = util_module.common.merge_sample_settings_with_assay_config(
+                sample, assay_config
+            )
+        sample_filters = deepcopy(
+            assay_config.get("filters", {})
+            if sample.get("filters") is None
+            else sample.get("filters", {})
+        )
         assay_panel_doc = self.assay_panel_handler.get_asp(asp_name=sample.get("assay"))
         checked_cnv_genelists = sample_filters.get("cnv_genelists", [])
         checked_cnv_genelists_genes_dict = self.gene_list_handler.get_isgl_by_ids(

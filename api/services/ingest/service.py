@@ -37,6 +37,7 @@ from api.services.ingest.dependent_writes import ingest_dependents as _ingest_de
 from api.services.ingest.helpers import (
     _normalize_case_control,  # noqa: F401 — re-exported for test namespace access
     _normalize_uploaded_checksums,
+    assay_default_filters_from_collections,
     build_sample_meta_dict,
 )
 from api.services.ingest.parsers import DnaIngestParser, RnaIngestParser, infer_omics_layer
@@ -622,6 +623,12 @@ class InternalIngestService:
 
         validated_sample = SamplesDoc.model_validate(parsed_payload)
         validated_payload = validated_sample.model_dump(exclude_none=True)
+        if "filters" not in validated_payload:
+            default_filters = assay_default_filters_from_collections(
+                self.collections, validated_payload
+            )
+            if default_filters is not None:
+                validated_payload["filters"] = default_filters
         preload = self._parse_preload(validated_payload)
         sample_name = self._next_unique_name(str(validated_payload["name"]), bool(increment))
         sample_id = self._new_sample_id()

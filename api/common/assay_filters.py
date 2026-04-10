@@ -90,29 +90,10 @@ def assay_names_for_db_query(assay_category_name: str) -> list:
 def merge_sample_settings_with_assay_config(sample_doc: dict, assay_config_doc: dict) -> dict:
     filters_config = assay_config_doc.get("filters", {})
     sample_filters = sample_doc.get("filters", {})
-    adhoc_genes = sample_filters.pop("adhoc_genes", {})
-
-    def _has_explicit_override(value: Any) -> bool:
-        if value is None:
-            return False
-        if isinstance(value, list):
-            return len(value) > 0
-        return True
-
     if not sample_filters:
-        merged_filters = deepcopy(filters_config)
+        sample_doc["filters"] = deepcopy(filters_config)
     else:
-        merged_filters = {}
-        for key, value in filters_config.items():
-            if key in sample_filters and _has_explicit_override(sample_filters[key]):
-                merged_filters[key] = sample_filters[key]
-            else:
-                merged_filters[key] = value
-
-    if adhoc_genes:
-        merged_filters["adhoc_genes"] = adhoc_genes
-
-    sample_doc["filters"] = merged_filters
+        sample_doc["filters"] = deepcopy(sample_filters)
     sample_doc.pop("use_diagnosis_genelist", None)
     return sample_doc
 
@@ -173,13 +154,18 @@ def format_assay_config(config: dict, schema: dict) -> dict:
     def section_keys_and_defaults(section_obj):
         keys = []
         defaults = {}
+        skip_keys = {"id_", "id", "_id", "filters", "reporting"}
         if isinstance(section_obj, dict):
-            keys = list(section_obj.keys())
+            keys = [key for key in section_obj.keys() if key not in skip_keys]
             for key, value in section_obj.items():
+                if key in skip_keys:
+                    continue
                 defaults[key] = value.get("default") if isinstance(value, dict) else None
         elif isinstance(section_obj, list):
             for item in section_obj:
                 if isinstance(item, str):
+                    if item in skip_keys:
+                        continue
                     keys.append(item)
                     defaults[item] = None
                     continue
@@ -188,6 +174,8 @@ def format_assay_config(config: dict, schema: dict) -> dict:
                     if not key:
                         continue
                     key = str(key)
+                    if key in skip_keys:
+                        continue
                     keys.append(key)
                     defaults[key] = item.get("default")
         return keys, defaults
@@ -224,6 +212,11 @@ def format_assay_config(config: dict, schema: dict) -> dict:
         config_filters.setdefault(key, value)
     for key, value in existing_report.items():
         config_report.setdefault(key, value)
+
+    for meta_key in ("_id", "id", "id_", "filters"):
+        config_filters.pop(meta_key, None)
+    for meta_key in ("_id", "id", "id_", "reporting"):
+        config_report.pop(meta_key, None)
 
     config["filters"] = config_filters
     config["reporting"] = config_report
@@ -357,6 +350,6 @@ def get_sample_effective_genes(
 
     genes_covered_in_panel = get_genes_covered_in_panel(checked_gl_dict, asp_doc)
     effective_filter_genes = create_filter_genelist(genes_covered_in_panel)
-    if not effective_filter_genes:
+    if target == "cnv" and not effective_filter_genes:
         effective_filter_genes = sorted(asp_doc.get("covered_genes", []))
     return genes_covered_in_panel, effective_filter_genes

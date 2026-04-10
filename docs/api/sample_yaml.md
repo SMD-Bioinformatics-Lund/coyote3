@@ -17,6 +17,15 @@ The sample YAML is the top-level ingest manifest. It tells Coyote3:
 
 The YAML is parsed first, validated through the backend sample contract, and then written into the stored sample document. In other words, fields such as `vep_version` travel from the YAML into `samples` and are then used by downstream DNA/reporting code.
 
+## Sample filter initialization
+
+`samples.filters` is the runtime source of truth once a sample exists.
+
+- If a sample is created without a `filters` document, ingest initializes `samples.filters` from the resolved ASPC defaults.
+- If a user resets filters in the UI, the current ASPC defaults are written back into `samples.filters`.
+- Otherwise, findings and reporting workflows use the stored `samples.filters` document exactly as saved.
+- Empty lists inside `samples.filters` are treated as intentional values, not as a signal to fall back to ASPC defaults.
+
 ## General rules
 
 - The YAML must decode to a single object.
@@ -26,7 +35,6 @@ The YAML is parsed first, validated through the backend sample contract, and the
 - File paths must be readable from the API runtime environment.
 - `profile` must be one of `production`, `development`, `testing`, or `validation`.
 - `vep_version` should match a `vep_metadata.vep_id` document already seeded in Mongo.
-- For filter payloads, `null` and empty lists are treated as unset values and will fall back to assay defaults.
 - ASP controls which sample file keys are expected through `assay_specific_panels.expected_files`.
 - During ingest, file keys not listed in the assay's `expected_files` are ignored.
 
@@ -172,6 +180,8 @@ Notes:
 
 This means the sample keeps an explicit record of which VEP metadata version should be used when reopening or reporting the sample later.
 
+DNA report generation requires `sample.vep_version`. There is no legacy fallback to older sample fields during report-time consequence resolution.
+
 ## Validation reminders
 
 - DNA sample YAML must not include RNA file keys.
@@ -180,4 +190,5 @@ This means the sample keeps an explicit record of which VEP metadata version sho
 - `control_id` must be omitted for single-sample ingest.
 - `sample_no` must match the pairing mode.
 - `vep_version` should be seeded in `vep_metadata` before ingest.
-- If a filter value is sent as `null` or `[]`, the assay default is used instead of storing an intentional override.
+- If `filters` is omitted entirely during ingest, ASPC defaults are initialized onto the sample.
+- Once stored, `samples.filters` is used as-is until reset or explicit update.
