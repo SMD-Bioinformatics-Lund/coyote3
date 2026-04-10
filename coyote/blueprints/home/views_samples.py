@@ -251,6 +251,9 @@ def edit_sample(sample_id: str) -> str | Response:
         "edit_sample.html",
         sample=payload.get("sample", {}),
         asp=payload.get("asp", {}),
+        sample_expected_files=payload.get("sample_expected_files", []),
+        analysis_counts_raw=payload.get("analysis_counts_raw", {}),
+        analysis_counts_filtered=payload.get("analysis_counts_filtered", {}),
         variant_stats_raw=payload.get("variant_stats_raw"),
         variant_stats_filtered=payload.get("variant_stats_filtered"),
     )

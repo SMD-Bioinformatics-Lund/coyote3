@@ -21,6 +21,25 @@ class RnaFiltersDoc(_StrictDocBase):
     min_spanning_pairs: int = 0
     min_spanning_reads: int = 0
 
+    @model_validator(mode="before")
+    @classmethod
+    def _apply_field_defaults_for_unset_values(cls, data):
+        """Treat null and empty list filter values as unset so defaults apply."""
+        if not isinstance(data, dict):
+            return data
+
+        normalized = dict(data)
+        for key in {"min_spanning_pairs", "min_spanning_reads"}:
+            if key in normalized and normalized[key] is None:
+                normalized.pop(key, None)
+        for key in {"fusion_callers", "fusion_effects", "fusion_genelists"}:
+            if key in normalized and (
+                normalized[key] is None
+                or (isinstance(normalized[key], list) and len(normalized[key]) == 0)
+            ):
+                normalized.pop(key, None)
+        return normalized
+
 
 class FusionCallDoc(_DocBase):
     selected: int

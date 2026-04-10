@@ -258,8 +258,8 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
         store.assay_panel_handler, "get_asp", lambda asp_name: {"asp_name": asp_name}
     )
     monkeypatch.setattr(store.gene_list_handler, "get_isgl_by_ids", lambda ids: {})
-    monkeypatch.setattr(dna.util.common, "get_sample_effective_genes", lambda s, a, g: ([], []))
-    monkeypatch.setattr(dna, "get_filter_conseq_terms", lambda values: [])
+    monkeypatch.setattr(dna.util.common, "get_sample_effective_genes", lambda *a, **kw: ([], []))
+    monkeypatch.setattr(dna, "get_filter_conseq_terms", lambda values, vep_version=None: [])
     monkeypatch.setattr(
         dna, "build_query", lambda assay_group, params: {"assay_group": assay_group, **params}
     )
@@ -603,8 +603,9 @@ def _route_test_user() -> ApiUser:
         fullname="Test User",
         username="tester",
         role="user",
+        roles=["user"],
         access_level=9,
-        permissions=["manage_snvs"],
+        permissions=["snv:manage"],
         denied_permissions=[],
         assays=["WGS"],
         assay_groups=["dna"],
@@ -685,8 +686,9 @@ def _download_test_user() -> ApiUser:
         fullname="Test User",
         username="tester",
         role="user",
+        roles=["user"],
         access_level=9,
-        permissions=["download_snvs", "download_cnvs", "download_translocs"],
+        permissions=["snv:download", "cnv:download", "translocation:download"],
         denied_permissions=[],
         assays=["WGS"],
         assay_groups=["dna"],

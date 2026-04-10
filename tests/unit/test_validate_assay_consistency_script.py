@@ -32,20 +32,23 @@ def _populate_seed_dir(seed_path: Path) -> None:
 
     reference_src = Path("tests/data/seed_data")
     reference_map = {
-        "hgnc_genes.seed.ndjson.gz": "hgnc_genes.json",
-        "permissions.seed.ndjson.gz": "permissions.json",
-        "refseq_canonical.seed.ndjson.gz": "refseq_canonical.json",
-        "roles.seed.ndjson.gz": "roles.json",
-        "vep_metadata.seed.ndjson.gz": "vep_metadata.json",
+        "hgnc_genes.seed.ndjson": "hgnc_genes.json",
+        "permissions.seed.ndjson": "permissions.json",
+        "refseq_canonical.seed.ndjson": "refseq_canonical.json",
+        "roles.seed.ndjson": "roles.json",
+        "vep_metadata.seed.ndjson": "vep_metadata.json",
         "asp_configs.seed.ndjson.gz": "asp_configs.json",
         "assay_specific_panels.seed.ndjson.gz": "assay_specific_panels.json",
     }
     for source_name, target_name in reference_map.items():
         source = reference_src / source_name
+        if not source.exists() and not source_name.endswith(".gz"):
+            source = reference_src / f"{source_name}.gz"
         if not source.exists():
             continue
         docs = []
-        with gzip.open(source, "rt", encoding="utf-8") as handle:
+        opener = gzip.open if source.suffix == ".gz" else open
+        with opener(source, "rt", encoding="utf-8") as handle:
             for line in handle:
                 text = line.strip()
                 if text:

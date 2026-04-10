@@ -138,6 +138,34 @@ payload = get_web_api_client().get_json(
 return render_template("dashboard.html", **payload)
 ```
 
+### Error handling with `api_page_guard`
+
+Use the `api_page_guard` context manager for any UI view that loads data from the
+API. It catches `ApiRequestError` and `AttributeError`, logs the failure, and
+raises a user-friendly error page automatically.
+
+```python
+from coyote.services.api_client.web import api_page_guard
+
+@admin_bp.route("/things")
+@login_required
+def list_things() -> str:
+    with api_page_guard(
+        logger=app.logger,
+        log_message="Failed to fetch things",
+        summary="Unable to load things.",
+        not_found_summary="Thing not found.",  # optional, for 404s
+    ):
+        payload = get_web_api_client().get_json(
+            api_endpoints.admin("things"),
+            headers=forward_headers(),
+        )
+    return render_template("things/list.html", things=payload.things)
+```
+
+Do **not** write manual `try/except ApiRequestError` blocks that call
+`raise_page_load_error` — `api_page_guard` replaces that pattern.
+
 ## When to add a new handler
 
 Add a handler method when:

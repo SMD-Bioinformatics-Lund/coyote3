@@ -40,11 +40,6 @@ import pytest
         ("user_client", "/admin/ingest", 403),
         ("manager_client", "/admin/ingest", 403),
         ("admin_client", "/admin/ingest", 200),
-        ("anonymous_client", "/dna/sample/SAMPLE_001/reports/preview", 302),
-        ("viewer_client", "/dna/sample/SAMPLE_001/reports/preview", 200),
-        ("user_client", "/dna/sample/SAMPLE_001/reports/preview", 200),
-        ("manager_client", "/dna/sample/SAMPLE_001/reports/preview", 200),
-        ("admin_client", "/dna/sample/SAMPLE_001/reports/preview", 200),
     ],
 )
 def test_ui_role_access_matrix(request, client_fixture: str, path: str, expected_status: int):

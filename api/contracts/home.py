@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class HomeSamplesPayload(BaseModel):
@@ -46,6 +46,9 @@ class HomeEditContextPayload(BaseModel):
 
     sample: dict[str, Any]
     asp: dict[str, Any]
+    sample_expected_files: list[dict[str, Any]] = Field(default_factory=list)
+    analysis_counts_raw: dict[str, int] = Field(default_factory=dict)
+    analysis_counts_filtered: dict[str, int] = Field(default_factory=dict)
     variant_stats_raw: Any = None
     variant_stats_filtered: Any = None
 
@@ -59,6 +62,7 @@ class HomeChangeStatusPayload(BaseModel):
     isgl_ids: list[str] | None = None
     label: str | None = None
     gene_count: int | None = None
+    list_type: str | None = None
 
 
 class HomeReportContextPayload(BaseModel):

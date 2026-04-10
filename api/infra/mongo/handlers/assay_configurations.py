@@ -207,7 +207,7 @@ class ASPConfigHandler(BaseHandler):
         invalidate_dashboard_summary_cache(self.adapter)
         return result
 
-    def create_aspc(self, data: dict) -> Any:
+    def create_assay_config(self, data: dict) -> Any:
         """
         Inserts a new assay configuration document into the collection.
 
@@ -221,7 +221,7 @@ class ASPConfigHandler(BaseHandler):
         invalidate_dashboard_summary_cache(self.adapter)
         return result
 
-    def delete_aspc(self, assay_id: str) -> Any:
+    def delete_assay_config(self, assay_id: str) -> Any:
         """
         Deletes an assay configuration document by its ID.
 

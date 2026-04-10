@@ -41,6 +41,7 @@ def build_cnv_query(sample_id: str, filters: dict) -> dict:
             clauses.append(
                 {
                     "$or": [
+                        {"genes.gene": {"$in": filters.get("filter_genes", [])}},
                         {"panel_gene": {"$in": filters.get("filter_genes", [])}},
                         {"panel_gene": {"$exists": False}},
                         {"assay": "tumwgs"},

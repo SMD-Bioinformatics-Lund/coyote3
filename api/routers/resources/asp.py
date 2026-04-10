@@ -28,7 +28,7 @@ router = APIRouter(tags=["resource-asp"])
 def create_asp_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="create_asp", min_role="manager", min_level=99)
+        require_access(permission="assay.panel:create", min_role="manager", min_level=99)
     ),
     service: AspService = Depends(get_admin_panel_service),
 ):
@@ -52,7 +52,9 @@ def list_asp_read(
     q: str = Query(default=""),
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=30, ge=1, le=200),
-    user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
+    user: ApiUser = Depends(
+        require_access(permission="assay.panel:list", min_role="user", min_level=9)
+    ),
     service: AspService = Depends(get_admin_panel_service),
 ):
     """Return the assay-panel admin list.
@@ -73,7 +75,7 @@ def list_asp_read(
 @router.get("/api/v1/resources/asp/create_context", response_model=AdminPanelCreateContextPayload)
 def create_asp_context_read(
     user: ApiUser = Depends(
-        require_access(permission="create_asp", min_role="manager", min_level=99)
+        require_access(permission="assay.panel:create", min_role="manager", min_level=99)
     ),
     service: AspService = Depends(get_admin_panel_service),
 ):
@@ -96,7 +98,9 @@ def create_asp_context_read(
 )
 def asp_context_read(
     assay_panel_id: str,
-    user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
+    user: ApiUser = Depends(
+        require_access(permission="assay.panel:view", min_role="user", min_level=9)
+    ),
     service: AspService = Depends(get_admin_panel_service),
 ):
     """Return edit-form context for an assay panel.
@@ -122,7 +126,7 @@ def update_asp_change(
     assay_panel_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="edit_asp", min_role="manager", min_level=99)
+        require_access(permission="assay.panel:edit", min_role="manager", min_level=99)
     ),
     service: AspService = Depends(get_admin_panel_service),
 ):
@@ -150,7 +154,7 @@ def update_asp_change(
 def toggle_asp_change(
     assay_panel_id: str,
     user: ApiUser = Depends(
-        require_access(permission="edit_asp", min_role="manager", min_level=99)
+        require_access(permission="assay.panel:edit", min_role="manager", min_level=99)
     ),
     service: AspService = Depends(get_admin_panel_service),
 ):
@@ -176,7 +180,7 @@ def toggle_asp_change(
 def delete_asp_change(
     assay_panel_id: str,
     user: ApiUser = Depends(
-        require_access(permission="delete_asp", min_role="admin", min_level=99999)
+        require_access(permission="assay.panel:delete", min_role="admin", min_level=99999)
     ),
     service: AspService = Depends(get_admin_panel_service),
 ):
@@ -198,7 +202,7 @@ def delete_asp_change(
 def validate_asp_id_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="create_asp", min_role="manager", min_level=99)
+        require_access(permission="assay.panel:create", min_role="manager", min_level=99)
     ),
     service: AspService = Depends(get_admin_panel_service),
 ):

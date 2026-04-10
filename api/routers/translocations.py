@@ -55,7 +55,7 @@ def mark_interesting_translocation(
     sample_id: str,
     transloc_id: str,
     user: ApiUser = Depends(
-        require_access(permission="manage_translocs", min_role="user", min_level=9)
+        require_access(permission="translocation:manage", min_role="user", min_level=9)
     ),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
@@ -82,7 +82,7 @@ def unmark_interesting_translocation(
     sample_id: str,
     transloc_id: str,
     user: ApiUser = Depends(
-        require_access(permission="manage_translocs", min_role="user", min_level=9)
+        require_access(permission="translocation:manage", min_role="user", min_level=9)
     ),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
@@ -109,7 +109,7 @@ def mark_false_positive_translocation(
     sample_id: str,
     transloc_id: str,
     user: ApiUser = Depends(
-        require_access(permission="manage_translocs", min_role="user", min_level=9)
+        require_access(permission="translocation:manage", min_role="user", min_level=9)
     ),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
@@ -136,7 +136,7 @@ def unmark_false_positive_translocation(
     sample_id: str,
     transloc_id: str,
     user: ApiUser = Depends(
-        require_access(permission="manage_translocs", min_role="user", min_level=9)
+        require_access(permission="translocation:manage", min_role="user", min_level=9)
     ),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
@@ -164,7 +164,7 @@ def hide_translocation_comment(
     transloc_id: str,
     comment_id: str,
     user: ApiUser = Depends(
-        require_access(permission="hide_variant_comment", min_role="manager", min_level=99)
+        require_access(permission="variant.comment:hide", min_role="manager", min_level=99)
     ),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
@@ -193,7 +193,7 @@ def unhide_translocation_comment(
     transloc_id: str,
     comment_id: str,
     user: ApiUser = Depends(
-        require_access(permission="unhide_variant_comment", min_role="manager", min_level=99)
+        require_access(permission="variant.comment:unhide", min_role="manager", min_level=99)
     ),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):

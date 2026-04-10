@@ -40,10 +40,10 @@ def _role_user_payload(role: str) -> dict[str, Any]:
             common.update(
                 {
                     "_id": "viewer-1",
-                    "user_id": "viewer-1",
                     "username": "viewer",
                     "email": "viewer@example.com",
                     "fullname": "Viewer User",
+                    "roles": ["viewer"],
                     "role": "viewer",
                     "access_level": 1,
                 }
@@ -52,31 +52,31 @@ def _role_user_payload(role: str) -> dict[str, Any]:
             common.update(
                 {
                     "_id": "user-1",
-                    "user_id": "user-1",
                     "username": "user",
                     "email": "user@example.com",
                     "fullname": "Standard User",
+                    "roles": ["user"],
                     "role": "user",
                     "access_level": 9,
-                    "permissions": ["preview_report"],
+                    "permissions": ["report:preview"],
                 }
             )
         case "manager":
             common.update(
                 {
                     "_id": "manager-1",
-                    "user_id": "manager-1",
                     "username": "manager",
                     "email": "manager@example.com",
                     "fullname": "Manager User",
+                    "roles": ["manager"],
                     "role": "manager",
                     "access_level": 99,
                     "permissions": [
-                        "preview_report",
-                        "edit_sample",
-                        "manage_snvs",
-                        "manage_cnvs",
-                        "assign_tier",
+                        "report:preview",
+                        "sample:edit:own",
+                        "snv:manage",
+                        "cnv:manage",
+                        "tier:assign",
                     ],
                 }
             )
@@ -84,22 +84,35 @@ def _role_user_payload(role: str) -> dict[str, Any]:
             common.update(
                 {
                     "_id": "admin-1",
-                    "user_id": "admin-1",
                     "username": "admin",
                     "email": "admin@example.com",
                     "fullname": "Admin User",
+                    "roles": ["admin"],
                     "role": "admin",
                     "access_level": 99999,
                     "permissions": [
-                        "preview_report",
-                        "create_report",
-                        "edit_sample",
-                        "view_sample_global",
-                        "view_user",
-                        "view_role",
-                        "view_permission_policy",
-                        "view_audit_logs",
+                        "report:preview",
+                        "report:create",
+                        "sample:edit:own",
+                        "sample:view:global",
+                        "user:view",
+                        "role:view",
+                        "permission.policy:view",
+                        "audit_log:view",
                     ],
+                }
+            )
+        case "superuser":
+            common.update(
+                {
+                    "_id": "superuser-1",
+                    "username": "superuser",
+                    "email": "superuser@example.com",
+                    "fullname": "Superuser User",
+                    "roles": ["superuser"],
+                    "role": "superuser",
+                    "access_level": 999999,
+                    "permissions": [],
                 }
             )
         case _:
@@ -140,6 +153,7 @@ def _fixture_shaped_get(path: str, *, current_user: dict[str, Any] | None) -> Ap
                     "manager": 99,
                     "developer": 9999,
                     "admin": 99999,
+                    "superuser": 999999,
                 }
             }
         )
@@ -464,3 +478,9 @@ def manager_client(ui_client_factory):
 def admin_client(ui_client_factory):
     """Return an authenticated admin test client."""
     return ui_client_factory("admin")
+
+
+@pytest.fixture
+def superuser_client(ui_client_factory):
+    """Return an authenticated superuser test client."""
+    return ui_client_factory("superuser")

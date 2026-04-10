@@ -22,7 +22,8 @@ import toml
 from dotenv import load_dotenv
 
 from coyote.__version__ import __version__ as app_version
-from shared.config_constants import CONSEQUENCE_TERMS_MAPPER, CONTACT_HOURS
+
+CONTACT_HOURS = ["Mon–Fri: 08:00–16:30", "Closed on public holidays"]
 
 # Load environment variables from the repo root .env file if present.
 REPO_ROOT = path.abspath(path.join(path.dirname(__file__), ".."))
@@ -181,8 +182,6 @@ class DefaultConfig:
     # Report Config
     REPORTS_BASE_PATH = os.getenv("REPORTS_BASE_PATH", "/data/coyote3/reports")
 
-    CONSEQ_TERMS_MAPPER = CONSEQUENCE_TERMS_MAPPER
-
     # Contact information — set all values via environment variables per center.
     CONTACT: dict[str, str | list[str]] = {
         "clinical_email": os.getenv("CONTACT_CLINICAL_EMAIL", ""),
@@ -338,6 +337,9 @@ class TestConfig(DefaultConfig):
     TESTING = True
     LOGIN_DISABLED = True
     DEBUG: bool = True
+
+    # Disable Redis cache in tests — avoids 10s DNS timeout for unreachable hosts.
+    CACHE_REDIS_URL = ""
 
 
 class StageConfig(DefaultConfig):

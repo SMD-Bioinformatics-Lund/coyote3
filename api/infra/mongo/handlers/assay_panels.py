@@ -223,7 +223,7 @@ class ASPHandler(BaseHandler):
         docs = list(col.find(query, projection).sort("created_on", -1).skip(skip).limit(per_page))
         return docs, total
 
-    def create_asp(self, data: dict) -> Any:
+    def create_panel(self, data: dict) -> Any:
         """
         Insert an assay specific panel into the database.
 
@@ -275,7 +275,7 @@ class ASPHandler(BaseHandler):
         invalidate_dashboard_summary_cache(self.adapter)
         return result
 
-    def delete_asp(self, asp_id: str) -> None:
+    def delete_panel(self, asp_id: str) -> None:
         """
         Delete a panel from the database by its unique ID.
 

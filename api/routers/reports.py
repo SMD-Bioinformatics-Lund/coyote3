@@ -209,7 +209,7 @@ def preview_report(
     include_snapshot: bool = Query(default=False),
     save: bool = Query(default=False),
     user: ApiUser = Depends(
-        require_access(permission="preview_report", min_role="user", min_level=9)
+        require_access(permission="report:preview", min_role="user", min_level=9)
     ),
 ):
     """Render a report preview for a sample."""
@@ -245,7 +245,7 @@ def save_report(
     sample_id: str,
     report_type: ReportAnalyte,
     report_payload: dict | None = Body(default=None),
-    user: ApiUser = Depends(require_access(permission="create_report", min_role="admin")),
+    user: ApiUser = Depends(require_access(permission="report:create", min_role="admin")),
 ):
     """Persist a rendered sample report."""
     sample, assay_config = _load_report_context(sample_id, user)

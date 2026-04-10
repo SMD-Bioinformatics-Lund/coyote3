@@ -33,17 +33,19 @@ Permissions are defined as colon-separated segments following the `resource:acti
 
 ## Enforcement Logic
 
-Access control is enforced via the `require_access` dependency at the route level. The enforcement logic follows a disjunctive "OR" model to provide maximum flexibility for administrative overrides and explicit role-level gates.
+Access control is enforced at two layers with different semantics:
 
-### The Access Equation
+### API Layer (`require_access` — disjunctive OR)
+
+The FastAPI `require_access` dependency uses **OR** logic: the user is authorized if
+**any** of the specified criteria are met.  Superusers bypass all checks via an
+early return.
 
 Authorization is granted if **ANY** of the following conditions are met:
 
 1.  **Permission Match**: The user's active permission set includes the exact string required by the route.
 2.  **Access Level Gate**: The user's `access_level` meets or exceeds the `min_level` required by the route.
 3.  **Role Gate**: The user's `access_level` meets or exceeds the resolved level of the `min_role` required by the route.
-
-### Example: SNV Management
 
 ```python
 # Route: Mark Small Variant False Positive
@@ -56,6 +58,18 @@ def mark_false_variant(
     # 1. User has "snv:manage" permission
     # OR
     # 2. User has 'admin' role (Level 99999)
+```
+
+### UI Layer (`has_access` — conjunctive AND)
+
+The Jinja template helper `has_access()` uses **AND** logic: the user must satisfy
+**all** specified criteria to see/access the UI element.
+
+```jinja2
+{# User must BOTH have the permission AND meet the role requirement #}
+{% if has_access(permission="report:create", min_role="admin") %}
+    <button>Create Report</button>
+{% endif %}
 ```
 
 ## Inventory Requirements

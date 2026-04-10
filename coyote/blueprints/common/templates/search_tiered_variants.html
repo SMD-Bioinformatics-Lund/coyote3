@@ -211,7 +211,7 @@
                                   {{ sample_info.sample_name }}
                                 </a>
 
-                                {% if has_access('view_reports', min_role='admin') %}
+                                {% if has_access('report:view', min_role='admin') %}
                                   <span class="inline-block text-lg mx-1">|</span>
                                   {% for report_id, report_num in sample_info.report_oids.items() %}
                                     <a href="{{ url_for('home_bp.view_report', sample_id=sample_info.sample_name, report_id=report_id) }}"
@@ -239,7 +239,7 @@
                                   {{ sample_info.sample_name }}
                                 </a>
 
-                                {% if has_access('view_reports', min_role='admin') %}
+                                {% if has_access('report:view', min_role='admin') %}
                                   <span class="inline-block text-lg mx-1">|</span>
                                   {% for report_id, report_num in sample_info.report_oids.items() %}
                                     <a href="{{ url_for('home_bp.view_report', sample_id=sample_info.sample_name, report_id=report_id) }}"

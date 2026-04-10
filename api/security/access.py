@@ -58,6 +58,7 @@ class ApiUser:
     email: str
     fullname: str
     username: str
+    roles: list[str]
     role: str
     access_level: int
     permissions: list[str]
@@ -68,6 +69,11 @@ class ApiUser:
     asp_map: dict
     auth_type: str = "coyote3"
     must_change_password: bool = False
+
+    @property
+    def is_superuser(self) -> bool:
+        """Return whether the authenticated user is a superuser."""
+        return "superuser" in set(self.roles)
 
 
 def _api_error(status_code: int, message: str) -> HTTPException:
@@ -146,8 +152,8 @@ def _audit_access_event(
         status=status,
         reason=reason,
         request=request,
-        user_id=user.id if user else None,
         username=user.username if user else None,
+        roles=user.roles if user else None,
         role=user.role if user else None,
         permission=permission,
         min_level=min_level,
@@ -193,16 +199,16 @@ def get_api_session_cookie_secure() -> bool:
     return settings_session_cookie_secure(runtime_app.config)
 
 
-def create_api_session_token(user_id: str) -> str:
+def create_api_session_token(username: str) -> str:
     """Create a signed API session token for a user.
 
     Args:
-        user_id: User identifier to embed in the token.
+        username: Username to embed in the token.
 
     Returns:
         str: Signed session token.
     """
-    return str(_api_session_serializer().dumps({"uid": str(user_id)}))
+    return str(_api_session_serializer().dumps({"uid": str(username).strip().lower()}))
 
 
 def _role_levels() -> dict[str, int]:
@@ -224,13 +230,14 @@ def _api_user_from_doc(user_doc: dict) -> ApiUser:
     Returns:
         ApiUser: Runtime user model for request handling.
     """
-    role_doc, asp_docs = _load_user_access_context(user_doc)
-    user_model = UserModel.from_auth_payload(user_doc, role_doc, asp_docs)
+    role_docs, asp_docs = _load_user_access_context(user_doc)
+    user_model = UserModel.from_auth_payload(user_doc, role_docs, asp_docs)
     return ApiUser(
-        id=str(user_model.id),
+        id=str(user_model.username),
         email=user_model.email,
         fullname=user_model.fullname,
         username=user_model.username,
+        roles=list(user_model.roles),
         role=user_model.role,
         access_level=user_model.access_level,
         permissions=list(user_model.permissions),
@@ -254,10 +261,11 @@ def serialize_api_user(user: ApiUser) -> dict:
         dict: Serialized user payload.
     """
     return {
-        "_id": user.id,
+        "_id": user.username,
         "email": user.email,
         "fullname": user.fullname,
         "username": user.username,
+        "roles": sorted(user.roles),
         "role": user.role,
         "access_level": user.access_level,
         "permissions": sorted(user.permissions),
@@ -309,11 +317,11 @@ def _decode_session_user(request: Request) -> ApiUser:
         except BadSignature:
             raise _api_error(401, "Login required")
 
-        user_id = token_data.get("uid")
-        if not user_id:
+        username = token_data.get("uid")
+        if not username:
             raise _api_error(401, "Login required")
 
-        user_doc = get_user_handler().user_with_id(str(user_id))
+        user_doc = get_user_handler().user_with_id(str(username))
         if not user_doc or not user_doc.get("is_active", True):
             raise _api_error(401, "Login required")
         return _api_user_from_doc(user_doc)
@@ -335,6 +343,8 @@ def _enforce_access(
         min_role: Minimum required role.
     """
     resolved_role_level = 0
+    if user.is_superuser:
+        return
     if min_role:
         resolved_role_level = _role_levels().get(min_role, 0)
 

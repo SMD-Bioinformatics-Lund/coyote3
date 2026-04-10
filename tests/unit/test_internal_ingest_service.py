@@ -88,6 +88,7 @@ def _store_stub(sample_docs=None):
         "rna_expression": _Col(),
         "rna_classification": _Col(),
         "rna_qc": _Col(),
+        "assay_specific_panels": _Col(),
     }
     return SimpleNamespace(
         sample_handler=_Handler(sample_col),
@@ -122,6 +123,7 @@ def _use_store(monkeypatch, store_stub, *, new_sample_id="507f1f77bcf86cd7994390
             "rna_expression": store_stub.rna_expression_handler.get_collection(),
             "rna_classification": store_stub.rna_classification_handler.get_collection(),
             "rna_qc": store_stub.rna_quality_handler.get_collection(),
+            "assay_specific_panels": store_stub.coyote_db["assay_specific_panels"],
         },
         invalidate_variant_cache=lambda: None,
         invalidate_summary_cache=lambda: None,
@@ -165,12 +167,14 @@ def test_small_helpers_and_build_meta(tmp_path):
             "name": "S1",
             "case_id": "C1",
             "control_id": "N1",
+            "vep_version": "110",
             "case_reads": 10,
             "control_reads": 20,
             "increment": True,
         }
     )
     assert "increment" not in meta
+    assert meta["vep_version"] == "110"
     assert meta["case"]["reads"] == 10
     assert meta["control"]["reads"] == 20
 
@@ -193,6 +197,53 @@ def test_type_and_string_helpers(monkeypatch):
     assert sorted(out) == ["rs1", "rs2"]
     hot = ingest_parsers._collect_hotspots({"a": [None, "1", "1"], "b": []})
     assert hot == {"a": ["1"]}
+
+
+def test_ingest_sanitizes_file_keys_using_asp_expected_files(monkeypatch):
+    store_stub = _store_stub()
+    store_stub.coyote_db["assay_specific_panels"].docs = [
+        {
+            "asp_id": "assay_1",
+            "assay_name": "assay_1",
+            "asp_group": "hematology",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
+            "display_name": "Assay 1",
+            "expected_files": ["vcf_files", "cov"],
+        }
+    ]
+    service = _use_store(monkeypatch, store_stub)
+    payload = {
+        "name": "S1",
+        "assay": "assay_1",
+        "profile": "production",
+        "case_id": "CASE1",
+        "sample_no": 1,
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
+        "pipeline": "SomaticPanelPipeline",
+        "pipeline_version": "1.0.0",
+        "vcf_files": "/data/a.vcf.gz",
+        "cov": "/data/a.cov.json",
+        "cnv": "/data/a.cnv.json",
+        "biomarkers": "/data/a.biomarkers.json",
+        "_runtime_files": {
+            "vcf_files": "/runtime/a.vcf.gz",
+            "cov": "/runtime/a.cov.json",
+            "cnv": "/runtime/a.cnv.json",
+        },
+    }
+
+    sanitized = service._sanitize_payload_file_keys(payload)
+
+    assert sanitized["vcf_files"] == "/data/a.vcf.gz"
+    assert sanitized["cov"] == "/data/a.cov.json"
+    assert "cnv" not in sanitized
+    assert "biomarkers" not in sanitized
+    assert sanitized["_runtime_files"] == {
+        "vcf_files": "/runtime/a.vcf.gz",
+        "cov": "/runtime/a.cov.json",
+    }
 
 
 def test_float_and_af_helpers():
@@ -311,8 +362,9 @@ def test_parse_yaml_payload():
         invalidate_variant_cache=lambda: None,
         invalidate_summary_cache=lambda: None,
     )
-    parsed = service.parse_yaml_payload("name: S1\nassay: A\n")
+    parsed = service.parse_yaml_payload("name: S1\nassay: A\nvep_version: 110\n")
     assert parsed["name"] == "S1"
+    assert parsed["vep_version"] == 110
     with pytest.raises(ValueError):
         service.parse_yaml_payload("- 1\n- 2\n")
 

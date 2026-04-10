@@ -13,6 +13,27 @@ from api.runtime_state import current_username
 from api.services.common.change_payload import change_payload as _change_payload
 
 
+def _normalize_permission_id(permission_id: Any) -> str:
+    """Normalize a permission identifier for consistent comparisons."""
+    return str(permission_id or "").strip().lower()
+
+
+def normalize_permission_ids(permission_ids: Any) -> list[str]:
+    """Normalize a permission-id collection to unique canonical values."""
+    normalized: list[str] = []
+    seen: set[str] = set()
+    if permission_ids is None:
+        return normalized
+    if isinstance(permission_ids, (str, bytes)):
+        permission_ids = [permission_ids]
+    for permission_id in permission_ids:
+        normalized_id = _normalize_permission_id(permission_id)
+        if normalized_id and normalized_id not in seen:
+            normalized.append(normalized_id)
+            seen.add(normalized_id)
+    return normalized
+
+
 def change_payload(
     *, resource: str, resource_id: str, action: str, sample_id: str = "admin"
 ) -> dict[str, Any]:
@@ -86,7 +107,7 @@ def lower(value: Any) -> str:
 def role_permission_overrides(
     *,
     role_map: dict[str, dict[str, Any]],
-    role_name: str | None,
+    role_names: list[str] | None,
     permissions: list[str] | None,
     deny_permissions: list[str] | None,
 ) -> tuple[list[str], list[str]]:
@@ -94,20 +115,28 @@ def role_permission_overrides(
 
     Args:
         role_map: Role metadata keyed by role name.
-        role_name: Selected role name.
+        role_names: Selected role names.
         permissions: Requested allow-list overrides.
         deny_permissions: Requested deny-list overrides.
 
     Returns:
         tuple[list[str], list[str]]: Explicit allow and deny permission overrides.
     """
-    role_permissions = role_map.get(role_name or "", {})
-    explicit_permissions = list(
-        set(permissions or []) - set(role_permissions.get("permissions", []))
+    requested_permissions = normalize_permission_ids(permissions or [])
+    requested_denied_permissions = normalize_permission_ids(deny_permissions or [])
+    selected_role_names = [str(role_name or "").strip().lower() for role_name in (role_names or [])]
+    role_allow_permissions = normalize_permission_ids(
+        permission_id
+        for role_name in selected_role_names
+        for permission_id in role_map.get(role_name, {}).get("permissions", [])
     )
-    explicit_deny_permissions = list(
-        set(deny_permissions or []) - set(role_permissions.get("deny_permissions", []))
+    role_deny_permissions = normalize_permission_ids(
+        permission_id
+        for role_name in selected_role_names
+        for permission_id in role_map.get(role_name, {}).get("deny_permissions", [])
     )
+    explicit_permissions = list(set(requested_permissions) - set(role_allow_permissions))
+    explicit_deny_permissions = list(set(requested_denied_permissions) - set(role_deny_permissions))
     return explicit_permissions, explicit_deny_permissions
 
 
@@ -130,7 +159,7 @@ def inject_version_history(
         dict[str, Any]: Config payload with version history metadata.
     """
     return util.records.inject_version_history(
-        user_email=actor_username,
+        actor_username=actor_username,
         new_config=deepcopy(new_config),
         old_config=old_config,
         is_new=is_new,

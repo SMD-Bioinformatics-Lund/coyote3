@@ -9,8 +9,15 @@ from pathlib import Path
 
 import pytest
 
+from api.contracts.managed_resources import managed_resource_spec
+from api.contracts.managed_ui_schemas import build_form_spec
 from api.contracts.schemas.dna import DnaFiltersDoc, VariantsDoc
-from api.contracts.schemas.registry import supported_collections, validate_collection_document
+from api.contracts.schemas.governance import UsersDoc
+from api.contracts.schemas.registry import (
+    normalize_collection_document,
+    supported_collections,
+    validate_collection_document,
+)
 from api.contracts.schemas.rna import RnaFiltersDoc
 from api.contracts.schemas.samples import SampleCaseControlDoc, SamplesDoc
 
@@ -20,9 +27,16 @@ def _load_seed_list(path: Path) -> list[dict]:
 
 
 def _load_reference_seed_list(filename: str) -> list[dict]:
-    path = Path("tests/data/seed_data") / filename
+    base = Path("tests/data/seed_data")
+    path = base / filename
+    if not path.exists() and filename.endswith(".gz"):
+        plain_name = filename[:-3]
+        plain_path = base / plain_name
+        if plain_path.exists():
+            path = plain_path
     docs: list[dict] = []
-    with gzip.open(path, "rt", encoding="utf-8") as handle:
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt", encoding="utf-8") as handle:
         for line in handle:
             text = line.strip()
             if text:
@@ -84,6 +98,26 @@ def test_collection_validator_accepts_hgnc_genes_shape():
     """hgnc_genes strict model should accept the curated fixture shape."""
     payload = _load_reference_seed_list("hgnc_genes.seed.ndjson.gz")[0]
     validate_collection_document("hgnc_genes", payload)
+
+
+def test_collection_validator_accepts_vep_metadata_with_grouped_consequences():
+    """vep_metadata strict model should accept grouped consequence metadata."""
+    payload = _load_reference_seed_list("vep_metadata.seed.ndjson.gz")[0]
+    validate_collection_document("vep_metadata", payload)
+    normalized = normalize_collection_document("vep_metadata", payload)
+    assert normalized["vep_id"] == "103"
+    consequence = payload["conseq_translations"]["missense_variant"]
+    assert consequence["group"] == "missense"
+    assert "missense_variant" in payload["consequence_groups"]["missense"]
+
+
+def test_collection_validator_rejects_vep_groups_with_unknown_terms():
+    """vep_metadata grouped terms must exist in conseq_translations for that version."""
+    payload = _load_reference_seed_list("vep_metadata.seed.ndjson.gz")[0]
+    payload["consequence_groups"]["missense"] = ["missense_variant", "not_a_real_term"]
+
+    with pytest.raises(ValueError, match="unknown consequence terms"):
+        validate_collection_document("vep_metadata", payload)
 
 
 def test_collection_validator_accepts_oncokb_actionable_shape():
@@ -183,6 +217,44 @@ def test_collection_validator_accepts_nested_panel_coverage_shape():
     validate_collection_document("panel_coverage", payload)
 
 
+def test_users_doc_rejects_non_canonical_username_characters():
+    """Users must use canonical login ids, not whitespace or arbitrary symbols."""
+    with pytest.raises(ValueError, match="username may contain only"):
+        UsersDoc.model_validate(
+            {
+                "email": "tester@example.com",
+                "username": "Åsa Test",
+                "firstname": "Åsa",
+                "lastname": "Test",
+                "fullname": "Åsa Test",
+                "job_title": "Scientist",
+            }
+        )
+
+
+def test_managed_user_form_exposes_environment_options_and_username_readonly_on_edit():
+    """User form metadata should expose fixed environment choices and edit-time username lock."""
+    form = build_form_spec(managed_resource_spec("user"))
+    assert form["fields"]["environments"]["options"] == [
+        "production",
+        "development",
+        "testing",
+        "validation",
+    ]
+    assert form["fields"]["username"]["readonly_mode"] == ["edit"]
+
+
+def test_managed_isgl_form_uses_predefined_list_type_choices():
+    """ISGL list types should be selected from fixed choices, not free text."""
+    form = build_form_spec(managed_resource_spec("isgl"))
+    assert form["fields"]["list_type"]["display_type"] == "checkbox-group"
+    assert form["fields"]["list_type"]["options"] == [
+        "small_variant_genelist",
+        "cnv_genelist",
+        "fusion_genelist",
+    ]
+
+
 def test_supported_collections_exposes_expected_core_names():
     """Supported ingest collection list should include core center-seeded collections."""
     names = supported_collections()
@@ -213,6 +285,76 @@ def test_collection_validator_rejects_invalid_aspc_id_environment_mismatch():
         )
 
 
+def test_collection_validator_normalizes_aspc_analysis_aliases():
+    """asp_configs should normalize biomarker-related and CNV-profile aliases."""
+    payload = normalize_collection_document(
+        "asp_configs",
+        {
+            "aspc_id": "assay_1:development",
+            "assay_name": "assay_1",
+            "environment": "development",
+            "asp_group": "hematology",
+            "asp_category": "dna",
+            "analysis_types": ["snv", "tmb", "pgx", "cnv profile"],
+            "display_name": "Assay 1 Dev",
+            "filters": {"vep_consequences": ["missense"], "cnveffects": ["gain", "loss"]},
+            "query": {},
+            "reporting": {
+                "report_sections": ["tmb", "cnv-profile"],
+                "report_header": "Header",
+                "report_method": "Method",
+                "report_description": "Description",
+                "general_report_summary": "Summary",
+                "plots_path": "/tmp",
+                "report_folder": "reports",
+            },
+        },
+    )
+
+    assert payload["analysis_types"] == ["SNV", "TMB", "PGX", "CNV_PROFILE"]
+    assert payload["reporting"]["report_sections"] == ["TMB", "CNV_PROFILE"]
+
+
+def test_collection_validator_applies_default_expected_files_for_dna_asp():
+    """assay_specific_panels should default expected_files from asp_category when omitted."""
+    payload = normalize_collection_document(
+        "assay_specific_panels",
+        {
+            "asp_id": "assay_1",
+            "assay_name": "assay_1",
+            "asp_group": "hematology",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
+            "display_name": "Assay 1",
+        },
+    )
+    assert payload["expected_files"] == [
+        "vcf_files",
+        "cnv",
+        "cnvprofile",
+        "cov",
+        "transloc",
+        "biomarkers",
+    ]
+
+
+def test_collection_validator_rejects_cross_category_expected_files():
+    """assay_specific_panels should reject file keys outside the assay category."""
+    with pytest.raises(ValueError):
+        normalize_collection_document(
+            "assay_specific_panels",
+            {
+                "asp_id": "assay_rna",
+                "assay_name": "assay_rna",
+                "asp_group": "rna",
+                "asp_family": "panel-rna",
+                "asp_category": "rna",
+                "display_name": "RNA Assay",
+                "expected_files": ["fusion_files", "vcf_files"],
+            },
+        )
+
+
 def test_collection_validator_rejects_user_without_role():
     """users contract requires role and normalized environment values."""
     with pytest.raises(ValueError):
@@ -236,6 +378,7 @@ def test_collection_validator_accepts_strict_ready_fixture_subset():
     payload["roles"] = _load_reference_seed_list("roles.seed.ndjson.gz")
     payload["refseq_canonical"] = _load_reference_seed_list("refseq_canonical.seed.ndjson.gz")
     payload["hgnc_genes"] = _load_reference_seed_list("hgnc_genes.seed.ndjson.gz")
+    payload["vep_metadata"] = _load_reference_seed_list("vep_metadata.seed.ndjson.gz")
     strict_ready = {
         "cnvs",
         "mane_select",
@@ -244,6 +387,7 @@ def test_collection_validator_accepts_strict_ready_fixture_subset():
         "refseq_canonical",
         "roles",
         "samples",
+        "vep_metadata",
     }
     for collection in strict_ready:
         docs = payload[collection]

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from typing import Any, Literal
 
@@ -13,7 +14,6 @@ from api.contracts.schemas.base import VersionHistoryEntryDoc, _StrictDocBase
 class UsersDoc(_StrictDocBase):
     email: str
     username: str
-    user_id: str | None = None
     firstname: str
     lastname: str
     fullname: str
@@ -28,7 +28,7 @@ class UsersDoc(_StrictDocBase):
     password_action_expires_at: datetime | None = None
     password_action_issued_at: datetime | None = None
     password_action_issued_by: str | None = None
-    role: str  # We should allow users to have multiple roles and a default role
+    roles: list[str] = Field(default_factory=list)
     environments: list[Literal["production", "development", "testing", "validation"]] = Field(
         default_factory=list
     )
@@ -60,6 +60,26 @@ class UsersDoc(_StrictDocBase):
         normalized = str(value).strip().lower()
         if not normalized:
             raise ValueError("username is required")
+        if not re.fullmatch(r"[a-z0-9]+(?:[._-][a-z0-9]+)*", normalized):
+            raise ValueError(
+                "username may contain only lowercase letters, numbers, '.', '_' and '-'"
+            )
+        return normalized
+
+    @field_validator("roles", mode="before")
+    @classmethod
+    def _normalize_roles(cls, value: Any) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, (str, bytes)):
+            value = [value]
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            role_id = str(item or "").strip().lower()
+            if role_id and role_id not in seen:
+                normalized.append(role_id)
+                seen.add(role_id)
         return normalized
 
     @field_validator("environments", mode="before")

@@ -21,7 +21,7 @@ from api.common.utility import utc_now
 # Imports
 # -------------------------------------------------------------------------
 from api.infra.mongo.handlers.base import BaseHandler
-from api.runtime_state import current_user_is_admin, current_username, flash
+from api.runtime_state import current_user_is_superuser, current_username, flash
 
 
 # -------------------------------------------------------------------------
@@ -464,7 +464,7 @@ class AnnotationsHandler(BaseHandler):
         scoped_query = {**query, "$or": delete_clause}
         classified_docs = list(self.get_collection().find(scoped_query))
         ## If variant has no match to current assay, it has an historical variant, i.e. not assigned to an assay. THIS IS DANGEROUS, maybe limit to admin?
-        if len(classified_docs) == 0 and current_user_is_admin():
+        if len(classified_docs) == 0 and current_user_is_superuser():
             historic_query = {
                 "variant": variant,
                 "gene": variant_data.get("gene", None),

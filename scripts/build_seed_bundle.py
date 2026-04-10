@@ -6,7 +6,33 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import sys
 from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+
+def _normalize_permission_id(permission_id) -> str:
+    """Normalize a permission identifier for seed output."""
+    return str(permission_id or "").strip().lower()
+
+
+def _normalize_permission_ids(permission_ids) -> list[str]:
+    """Normalize and deduplicate permission identifiers."""
+    normalized: list[str] = []
+    seen: set[str] = set()
+    if permission_ids is None:
+        return normalized
+    if isinstance(permission_ids, (str, bytes)):
+        permission_ids = [permission_ids]
+    for permission_id in permission_ids:
+        normalized_id = _normalize_permission_id(permission_id)
+        if normalized_id and normalized_id not in seen:
+            normalized.append(normalized_id)
+            seen.add(normalized_id)
+    return normalized
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,16 +61,26 @@ def load_seed(path: Path) -> dict[str, list[dict]]:
 
 def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
     required_pack = {
-        "hgnc_genes": "hgnc_genes.seed.ndjson.gz",
-        "permissions": "permissions.seed.ndjson.gz",
-        "refseq_canonical": "refseq_canonical.seed.ndjson.gz",
-        "roles": "roles.seed.ndjson.gz",
-        "vep_metadata": "vep_metadata.seed.ndjson.gz",
+        "hgnc_genes": "hgnc_genes.seed.ndjson",
+        "permissions": "permissions.seed.ndjson",
+        "refseq_canonical": "refseq_canonical.seed.ndjson",
+        "roles": "roles.seed.ndjson",
+        "vep_metadata": "vep_metadata.seed.ndjson",
     }
 
-    def load_ndjson_gzip(file_path: Path) -> list[dict]:
+    def resolve_reference_file(base_dir: Path, stem_name: str) -> Path:
+        plain_path = base_dir / stem_name
+        if plain_path.exists():
+            return plain_path
+        gzip_path = base_dir / f"{stem_name}.gz"
+        if gzip_path.exists():
+            return gzip_path
+        raise SystemExit(f"Missing reference seed file: {plain_path} or {gzip_path}")
+
+    def load_ndjson(file_path: Path) -> list[dict]:
         docs: list[dict] = []
-        with gzip.open(file_path, "rt", encoding="utf-8") as handle:
+        opener = gzip.open if file_path.suffix == ".gz" else open
+        with opener(file_path, "rt", encoding="utf-8") as handle:
             for line in handle:
                 text = line.strip()
                 if not text:
@@ -59,10 +95,8 @@ def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
 
     payload: dict[str, list[dict]] = {}
     for collection, filename in required_pack.items():
-        file_path = path / filename
-        if not file_path.exists():
-            raise SystemExit(f"Missing reference seed file: {file_path}")
-        payload[collection] = load_ndjson_gzip(file_path)
+        file_path = resolve_reference_file(path, filename)
+        payload[collection] = load_ndjson(file_path)
     return payload
 
 
@@ -85,7 +119,7 @@ def lower_business_keys(seed: dict[str, list[dict]]) -> None:
         "users": (
             "username",
             "email",
-            "role",
+            "roles",
             "assay_groups",
             "assays",
             "permissions",
@@ -112,6 +146,27 @@ def lower_business_keys(seed: dict[str, list[dict]]) -> None:
             for field in fields:
                 if field in doc and doc[field] is not None:
                     doc[field] = normalize_item(doc[field])
+
+
+def canonicalize_permission_fields(seed: dict[str, list[dict]]) -> None:
+    for doc in seed.get("permissions", []) or []:
+        if not isinstance(doc, dict):
+            continue
+        permission_id = _normalize_permission_id(doc.get("permission_id"))
+        if permission_id:
+            doc["permission_id"] = permission_id
+        permission_name = _normalize_permission_id(doc.get("permission_name"))
+        if permission_name:
+            doc["permission_name"] = permission_name
+
+    for collection in ("roles", "users"):
+        for doc in seed.get(collection, []) or []:
+            if not isinstance(doc, dict):
+                continue
+            if "permissions" in doc:
+                doc["permissions"] = _normalize_permission_ids(doc.get("permissions"))
+            if "deny_permissions" in doc:
+                doc["deny_permissions"] = _normalize_permission_ids(doc.get("deny_permissions"))
 
 
 def stamp_docs(seed: dict[str, list[dict]], seed_actor: str, seed_time: str) -> None:
@@ -143,6 +198,7 @@ def main() -> int:
     if reference_seed_data is not None:
         seed.update(load_reference_seed_pack(reference_seed_data))
     lower_business_keys(seed)
+    canonicalize_permission_fields(seed)
     stamp_docs(seed, args.seed_actor, args.seed_time)
 
     for collection, docs in seed.items():

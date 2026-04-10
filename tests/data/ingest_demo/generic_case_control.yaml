@@ -6,6 +6,7 @@ clarity_control_id: 'GEN_DEMO_CTRL'
 clarity_case_pool_id: 'POOL_DEMO_001'
 clarity_control_pool_id: 'POOL_DEMO_001'
 genome_build: 38
+vep_version: '103'
 vcf_files: tests/data/ingest_demo/generic_case_control.final.filtered.vcf
 sample_no: 2
 case_id: 'CASE_DEMO'

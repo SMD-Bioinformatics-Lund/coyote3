@@ -97,7 +97,7 @@ class DnaStructuralService:
             checked_cnv_genelists
         )
         _genes_covered_in_panel, filter_genes = util_module.common.get_sample_effective_genes(
-            sample, assay_panel_doc, checked_cnv_genelists_genes_dict
+            sample, assay_panel_doc, checked_cnv_genelists_genes_dict, target="cnv"
         )
         cnvs = self.load_cnvs_for_sample(
             sample=sample,
@@ -263,7 +263,7 @@ class DnaStructuralService:
             "sample_ids": sample_ids,
             "bam_id": self.bam_record_handler.get_bams(sample_ids),
             "vep_conseq_translations": self.vep_metadata_handler.get_conseq_translations(
-                sample.get("vep", 103)
+                sample.get("vep_version", "103")
             ),
             "has_hidden_comments": self.translocation_handler.hidden_transloc_comments(transloc_id),
             "hidden_comments": self.translocation_handler.hidden_transloc_comments(transloc_id),

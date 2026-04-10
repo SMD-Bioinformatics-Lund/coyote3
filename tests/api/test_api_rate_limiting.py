@@ -20,6 +20,7 @@ def _user() -> ApiUser:
         fullname="User Example",
         username="user1",
         role="user",
+        roles=["user"],
         access_level=9,
         permissions=[],
         denied_permissions=[],

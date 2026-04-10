@@ -7,6 +7,30 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from werkzeug.security import check_password_hash
 
 
+def _unique_permission_ids(permission_ids: list[str] | None) -> list[str]:
+    """Normalize and deduplicate permission ids read from persistence."""
+    normalized_ids: list[str] = []
+    seen: set[str] = set()
+    for permission_id in permission_ids or []:
+        value = str(permission_id or "").strip().lower()
+        if value and value not in seen:
+            normalized_ids.append(value)
+            seen.add(value)
+    return normalized_ids
+
+
+def _unique_role_ids(role_ids: list[str] | None) -> list[str]:
+    """Normalize and deduplicate role ids read from persistence."""
+    normalized_roles: list[str] = []
+    seen: set[str] = set()
+    for role_id in role_ids or []:
+        value = str(role_id or "").strip().lower()
+        if value and value not in seen:
+            normalized_roles.append(value)
+            seen.add(value)
+    return normalized_roles
+
+
 class UserModel(BaseModel):
     """
     UserModel represents a user entity within the Coyote3 system,
@@ -23,7 +47,8 @@ class UserModel(BaseModel):
     email: str
     username: str
     fullname: str
-    role: str
+    roles: List[str] = Field(default_factory=list)
+    role: str = ""
     assay_groups: List[str] = Field(default_factory=list)
     assays: List[str] = Field(default_factory=list)
     asp_map: dict = Field(default_factory=dict)
@@ -75,7 +100,7 @@ class UserModel(BaseModel):
     def from_auth_payload(
         cls,
         user_doc: dict,
-        role_doc: Optional[dict] = None,
+        role_docs: Optional[List[dict]] = None,
         asp_docs: Optional[List[dict]] = None,
     ) -> "UserModel":
         """
@@ -84,13 +109,13 @@ class UserModel(BaseModel):
         Args:
             cls: The class reference (UserModel).
             user_doc (dict): The user payload from persistence.
-            role_doc (Optional[dict]): The role payload from persistence.
+            role_docs (Optional[List[dict]]): Role payloads from persistence.
             asp_docs (Optional[List[dict]]): Active assay payloads from persistence.
 
         Returns:
             UserModel: An instance populated with merged user, role, and assay data.
         """
-        role_doc = role_doc or {}
+        role_docs = [dict(item) for item in (role_docs or []) if isinstance(item, dict)]
         asp_docs = asp_docs or []
 
         asp_map = {}
@@ -116,12 +141,29 @@ class UserModel(BaseModel):
 
             asp_map[asp_category][asp_technology][asp_group].append(asp_name)
 
-        merged_permissions = list(
-            set(user_doc.get("permissions", [])) | set(role_doc.get("permissions", []))
+        user_roles = _unique_role_ids(user_doc.get("roles") or [])
+        role_permissions: list[str] = []
+        role_denied_permissions: list[str] = []
+        effective_role = ""
+        access_level = 0
+        for role_doc in role_docs:
+            role_permissions.extend(list(role_doc.get("permissions", [])))
+            role_denied_permissions.extend(list(role_doc.get("deny_permissions", [])))
+            role_level = int(role_doc.get("level", 0) or 0)
+            role_name = str(role_doc.get("role_id") or "").strip().lower()
+            if role_level >= access_level:
+                access_level = role_level
+                effective_role = role_name
+        if "superuser" in user_roles:
+            effective_role = "superuser"
+
+        merged_permissions = _unique_permission_ids(
+            list(user_doc.get("permissions", [])) + role_permissions
         )
-        merged_denied = list(
-            set(user_doc.get("denied_permissions", []))
-            | set(role_doc.get("denied_permissions", []))
+        merged_denied = _unique_permission_ids(
+            list(user_doc.get("deny_permissions", []))
+            + list(user_doc.get("denied_permissions", []))
+            + role_denied_permissions
         )
 
         safe_user_doc = {
@@ -133,13 +175,17 @@ class UserModel(BaseModel):
                 "denied_permissions",
                 "access_level",
                 "asp_map",
+                "roles",
+                "role",
             }
         }
         return cls(
             **safe_user_doc,
+            roles=user_roles,
+            role=effective_role,
             permissions=merged_permissions,
             denied_permissions=merged_denied,
-            access_level=role_doc.get("level", 0),
+            access_level=access_level,
             asp_map=asp_map,
         )
 
@@ -152,11 +198,13 @@ class UserModel(BaseModel):
         Returns:
             dict: A sanitized dictionary of the user data.
         """
-        return self.model_dump(
+        payload = self.model_dump(
             by_alias=True,
             exclude={"updated", "created", "last_login", "password"},
             exclude_none=True,
         )
+        payload["_id"] = self.username
+        return payload
 
     # -------------------- PROPERTIES & HELPERS --------------------
     def has_permission(self, perm: str) -> bool:
@@ -172,6 +220,10 @@ class UserModel(BaseModel):
         Returns:
             bool: True if the user has the permission and it is not denied, False otherwise.
         """
+        if not perm:
+            return False
+        if self.is_superuser:
+            return True
         return perm in self.permissions and perm not in self.denied_permissions
 
     def has_any_permission(self, perms: List[str]) -> bool:
@@ -184,7 +236,7 @@ class UserModel(BaseModel):
         Returns:
             bool: True if the user has at least one of the specified permissions, False otherwise.
         """
-        return any(p in self.permissions for p in perms)
+        return any(self.has_permission(p) for p in perms)
 
     def has_all_permissions(self, perms: List[str]) -> bool:
         """
@@ -196,7 +248,7 @@ class UserModel(BaseModel):
         Returns:
             bool: True if the user has all of the specified permissions, False otherwise.
         """
-        return all(p in self.permissions for p in perms)
+        return all(self.has_permission(p) for p in perms)
 
     def has_min_access_level(self, level: int) -> bool:
         """
@@ -253,6 +305,11 @@ class UserModel(BaseModel):
         return self.role == "admin"
 
     @property
+    def is_superuser(self) -> bool:
+        """Return whether the user carries the unrestricted superuser role."""
+        return "superuser" in set(self.roles)
+
+    @property
     def envs(self) -> List[str]:
         """
         Returns the list of environments the user has access to.
@@ -271,9 +328,9 @@ class UserModel(BaseModel):
             group (str): The assay group to check access for.
 
         Returns:
-            bool: True if the user is an admin or the group is in the user's assay groups, False otherwise.
+            bool: True if the user is a superuser or the group is in the user's assay groups, False otherwise.
         """
-        return self.role == "admin" or group in self.assay_groups
+        return self.is_superuser or group in self.assay_groups
 
     def can_access_assay(self, assay: str) -> bool:
         """
@@ -283,18 +340,18 @@ class UserModel(BaseModel):
             assay (str): The assay to check access for.
 
         Returns:
-            bool: True if the user is an admin or the assay is in the user's assays, False otherwise.
+            bool: True if the user is a superuser or the assay is in the user's assays, False otherwise.
         """
-        return self.role == "admin" or assay in self.assays
+        return self.is_superuser or assay in self.assays
 
     def get_accessible_groups(self) -> List[str]:
         """
         Returns a list of assay groups the user can access.
 
-        If the user's role is 'admin', returns ["ALL"] to indicate access to all groups.
+        If the user is a superuser, returns ["ALL"] to indicate access to all groups.
         Otherwise, returns the user's specific assay groups.
 
         Returns:
             List[str]: Accessible assay groups for the user.
         """
-        return ["ALL"] if self.role == "admin" else self.assay_groups
+        return ["ALL"] if self.is_superuser else self.assay_groups

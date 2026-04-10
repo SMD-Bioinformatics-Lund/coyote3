@@ -5,7 +5,7 @@
     schemas_collection = "schemas"
     roles_collection = "roles"
     permissions_collection = "permissions"
-    query_profiles_collection = "query_profiles"
+
     insilico_genelist_collection = "insilico_genelists"
     civic_variants_collection = "civic_variants"
     civic_gene_collection = "civic_genes"
@@ -40,7 +40,7 @@
     schemas_collection = "schemas"
     roles_collection = "roles"
     permissions_collection = "permissions"
-    query_profiles_collection = "query_profiles"
+
     insilico_genelist_collection = "insilico_genelists"
     groups_collection = "groups"
     canonical_collection = "refseq_canonical"
@@ -77,7 +77,7 @@
     schemas_collection = "schemas"
     roles_collection = "roles"
     permissions_collection = "permissions"
-    query_profiles_collection = "query_profiles"
+
     insilico_genelist_collection = "insilico_genelists"
     groups_collection = "groups"
     canonical_collection = "refseq_canonical"

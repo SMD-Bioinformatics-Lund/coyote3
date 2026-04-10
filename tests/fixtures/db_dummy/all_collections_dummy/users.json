@@ -8,7 +8,9 @@
     "job_title": "Clinical Scientist",
     "auth_type": "coyote3",
     "must_change_password": false,
-    "role": "admin",
+    "roles": [
+      "admin"
+    ],
     "is_active": true,
     "environments": [
       "production",
@@ -23,7 +25,7 @@
       "hematology"
     ],
     "permissions": [
-      "edit_sample"
+      "sample:edit:own"
     ],
     "deny_permissions": []
   }

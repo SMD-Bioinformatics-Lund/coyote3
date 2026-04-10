@@ -115,9 +115,9 @@ def list_dna_findings(sample_id: str) -> Response | str:
             list_types = {
                 str(value).strip().lower() for value in raw_list_type if str(value).strip()
             }
-        if "small_variants_genelist" in list_types or "genelist" in list_types:
+        if "small_variant_genelist" in list_types:
             snv_genelist_names.append(panel_id)
-        if "cnv_genelist" in list_types or "cnvlist" in list_types:
+        if "cnv_genelist" in list_types:
             cnv_genelist_names.append(panel_id)
 
     if all_panel_genelist_names:

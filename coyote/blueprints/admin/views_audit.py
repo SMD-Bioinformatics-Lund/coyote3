@@ -4,9 +4,9 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from flask import abort, render_template
 from flask import current_app as app
-from flask import render_template
-from flask_login import login_required
+from flask_login import current_user, login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
@@ -16,6 +16,8 @@ from coyote.extensions import util
 @login_required
 def audit():
     """Render the audit-log page from structured audit log files."""
+    if not getattr(current_user, "is_superuser", False):
+        abort(403)
     logs_path = Path(app.config["LOGS"], "audit")
     cutoff_ts = util.common.utc_now().timestamp() - (30 * 24 * 60 * 60)
 

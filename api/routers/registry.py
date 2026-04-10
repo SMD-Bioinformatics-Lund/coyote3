@@ -19,7 +19,6 @@ from api.routers.reports import router as reports_router
 from api.routers.resources.asp import router as resource_asp_router
 from api.routers.resources.aspc import router as resource_aspc_router
 from api.routers.resources.genelists import router as resource_genelists_router
-from api.routers.resources.query_profiles import router as resource_query_profiles_router
 from api.routers.resources.samples import router as resource_samples_router
 from api.routers.roles import router as roles_router
 from api.routers.samples import router as samples_router
@@ -33,7 +32,6 @@ ROUTERS = (
     resource_asp_router,
     resource_aspc_router,
     resource_genelists_router,
-    resource_query_profiles_router,
     resource_samples_router,
     biomarkers_router,
     classifications_router,

@@ -77,7 +77,7 @@ def _flt3_large_indel_escape(large_ins_regex: re.Pattern[str]) -> dict[str, Any]
             {"genes": {"$in": ["FLT3"]}},
             {
                 "$or": [
-                    {"INFO.SVTYPE": {"$exists": "true"}},
+                    {"INFO.SVTYPE": {"$exists": True}},
                     {"ALT": large_ins_regex},
                 ]
             },

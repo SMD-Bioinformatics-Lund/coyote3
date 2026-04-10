@@ -58,13 +58,7 @@ class UsersHandler(BaseHandler):
             background=True,
             partialFilterExpression={"email": {"$exists": True, "$type": "string"}},
         )
-        col.create_index(
-            [("user_id", 1)],
-            name="user_id_1",
-            unique=True,
-            background=True,
-            partialFilterExpression={"user_id": {"$exists": True, "$type": "string"}},
-        )
+        col.create_index([("roles", 1)], name="roles_1", background=True)
         col.create_index([("is_active", 1)], name="is_active_1", background=True)
         col.create_index([("firstname", 1)], name="firstname_1", background=True)
 
@@ -97,7 +91,7 @@ class UsersHandler(BaseHandler):
         normalized = self._normalize_user_id(identity)
         if not normalized:
             return {"_id": None}
-        return {"$or": [{"username": normalized}, {"user_id": normalized}]}
+        return {"username": normalized}
 
     def user(self, user_mail: str) -> dict:
         """
@@ -111,11 +105,7 @@ class UsersHandler(BaseHandler):
         if not normalized:
             return None
         col = self.get_collection()
-        return (
-            col.find_one({"email": normalized})
-            or col.find_one({"username": normalized})
-            or col.find_one({"user_id": normalized})
-        )
+        return col.find_one({"email": normalized}) or col.find_one({"username": normalized})
 
     def user_with_id(self, user_id: str) -> dict | None:
         """
@@ -140,7 +130,6 @@ class UsersHandler(BaseHandler):
         normalized = self._normalize_user_id(user_data.get("username"))
         if normalized:
             user_data["username"] = normalized
-            user_data["user_id"] = normalized
             return user_data
         raise ValueError("users.username is required in strict business-key mode")
 
@@ -217,7 +206,7 @@ class UsersHandler(BaseHandler):
                 {"fullname": {"$regex": pattern, "$options": "i"}},
                 {"firstname": {"$regex": pattern, "$options": "i"}},
                 {"lastname": {"$regex": pattern, "$options": "i"}},
-                {"role": {"$regex": pattern, "$options": "i"}},
+                {"roles": {"$regex": pattern, "$options": "i"}},
                 {"job_title": {"$regex": pattern, "$options": "i"}},
             ]
         page = max(1, int(page or 1))
@@ -252,27 +241,19 @@ class UsersHandler(BaseHandler):
                     "role_counts": [
                         {
                             "$project": {
-                                "role": {
-                                    "$let": {
-                                        "vars": {
-                                            "normalized": {
-                                                "$toLower": {
-                                                    "$trim": {
-                                                        "input": {"$ifNull": ["$role", "unknown"]},
-                                                        "chars": " ",
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "in": {
-                                            "$cond": [
-                                                {"$eq": ["$$normalized", ""]},
-                                                "unknown",
-                                                "$$normalized",
-                                            ]
-                                        },
-                                    }
+                                "roles": {
+                                    "$cond": [
+                                        {"$gt": [{"$size": {"$ifNull": ["$roles", []]}}, 0]},
+                                        "$roles",
+                                        ["unknown"],
+                                    ]
                                 }
+                            }
+                        },
+                        {"$unwind": "$roles"},
+                        {
+                            "$project": {
+                                "role": {"$toLower": {"$trim": {"input": "$roles", "chars": " "}}}
                             }
                         },
                         {"$group": {"_id": "$role", "count": {"$sum": 1}}},
@@ -280,26 +261,12 @@ class UsersHandler(BaseHandler):
                     "profession_role": [
                         {
                             "$project": {
-                                "role": {
-                                    "$let": {
-                                        "vars": {
-                                            "normalized": {
-                                                "$toLower": {
-                                                    "$trim": {
-                                                        "input": {"$ifNull": ["$role", "unknown"]},
-                                                        "chars": " ",
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "in": {
-                                            "$cond": [
-                                                {"$eq": ["$$normalized", ""]},
-                                                "unknown",
-                                                "$$normalized",
-                                            ]
-                                        },
-                                    }
+                                "roles": {
+                                    "$cond": [
+                                        {"$gt": [{"$size": {"$ifNull": ["$roles", []]}}, 0]},
+                                        "$roles",
+                                        ["unknown"],
+                                    ]
                                 },
                                 "profession": {
                                     "$let": {
@@ -342,6 +309,13 @@ class UsersHandler(BaseHandler):
                                         },
                                     }
                                 },
+                            }
+                        },
+                        {"$unwind": "$roles"},
+                        {
+                            "$project": {
+                                "role": {"$toLower": {"$trim": {"input": "$roles", "chars": " "}}},
+                                "profession": 1,
                             }
                         },
                         {

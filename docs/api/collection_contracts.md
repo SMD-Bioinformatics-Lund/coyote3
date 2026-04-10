@@ -18,8 +18,6 @@ This is the canonical collection-key reference used by ingestion validation.
 - `omics_layer=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cov`, `biomarkers`, `transloc`.
 - `omics_layer=RNA` allows only RNA file keys: `fusion_files`, `expression_path`, `classification_path`, `qc`.
 - Mixed DNA+RNA file-key payloads are rejected by model validation.
-- Ingest also consults `assay_specific_panels.expected_files` and ignores file keys that are not expected for the sample's assay.
-
 
 ## `annotation`
 
@@ -546,9 +544,6 @@ Optional keys:
 - `report_num` (int)
 - `time_added` (datetime)
 
-Filter defaulting rule:
-- For `samples.filters`, `null` scalar values and empty list values are treated as unset and fall back to assay defaults during normalization/runtime merge.
-
 ## `translocations`
 
 Required keys:
@@ -637,6 +632,7 @@ Optional keys:
 ## `vep_metadata`
 
 Required keys:
+- `vep_id` (str)
 - `created_by` (str)
 - `created_on` (datetime)
 - `source` (str)

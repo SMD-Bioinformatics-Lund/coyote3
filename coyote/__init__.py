@@ -234,7 +234,7 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
             - `min_level(level: int) -> bool`: Returns True if the user has an access level ≥ `level`.
             - `min_role(role_name: str) -> bool`: Returns True if the user's role is ≥ the given role.
             - `has_access(permission=None, min_role=None, min_level=None) -> bool`: Returns True if the
-              user meets **any** of the provided access criteria.
+              user meets **all** of the provided access criteria (conjunctive AND).
 
         Example (Jinja2 Template):
             ```jinja2
@@ -273,10 +273,13 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
                 bool: True if the user is authenticated, has the permission, and it is not denied.
             """
 
-            return (
-                current_user.is_authenticated
-                and permission in current_user.permissions
-                and permission not in current_user.denied_permissions
+            return current_user.is_authenticated and (
+                bool(getattr(current_user, "is_superuser", False))
+                or (
+                    bool(permission)
+                    and permission in current_user.permissions
+                    and permission not in current_user.denied_permissions
+                )
             )
 
         def min_level(level: int) -> bool:
@@ -296,7 +299,10 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
             Returns:
                 bool: True if the user is authenticated and meets the level requirement; False otherwise.
             """
-            return current_user.is_authenticated and current_user.access_level >= level
+            return current_user.is_authenticated and (
+                bool(getattr(current_user, "is_superuser", False))
+                or current_user.access_level >= level
+            )
 
         def min_role(role_name: str) -> bool:
             """
@@ -318,6 +324,8 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
             """
             if not current_user.is_authenticated:
                 return False
+            if bool(getattr(current_user, "is_superuser", False)):
+                return True
 
             required_level = app.role_access_levels.get(role_name)
             if required_level is None:
@@ -331,15 +339,12 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
 
         def has_access(permission: str = None, min_role: str = None, min_level: int = None) -> bool:
             """
-            Evaluates whether the current user has access based on permission, role, or access level.
+            Evaluates whether the current user meets **all** provided access criteria.
 
-            This function serves as a flexible shortcut for checking any combination of:
-              - A specific granted permission (not denied).
-              - A minimum role, resolved via `app.role_access_levels`.
-              - A numeric minimum access level.
-
-            Access is granted if **any** of the provided criteria are satisfied. If no criteria
-            are passed, the function defaults to allowing access.
+            Each non-None argument adds a requirement. Access is granted only when
+            every specified check passes (conjunctive / AND logic).  If no criteria
+            are provided the function defaults to allowing access for any
+            authenticated user.
 
             Args:
                 permission (str, optional): A specific permission to check (e.g., "samples:edit").
@@ -347,8 +352,8 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
                 min_level (int, optional): The minimum numeric access level required (e.g., 999).
 
             Returns:
-                bool: True if the user is authenticated and satisfies at least one of the access checks,
-                      or if no checks are defined. False otherwise.
+                bool: True if the user is authenticated and satisfies **all** of the
+                      specified access checks, or if no checks are defined. False otherwise.
 
             Example:
                 ```jinja2
@@ -363,11 +368,13 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
             if not permission and not min_role and min_level is None:
                 return True
 
-            return (
-                (permission and _can(permission))
-                or (min_role and _min_role(min_role))
-                or (min_level is not None and _min_level(min_level))
-            )
+            if permission and not _can(permission):
+                return False
+            if min_role and not _min_role(min_role):
+                return False
+            if min_level is not None and not _min_level(min_level):
+                return False
+            return True
 
         return {
             "can": can,
@@ -443,7 +450,7 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
         client_ip = (
             forwarded_for.split(",")[0].strip() if forwarded_for else (request.remote_addr or "N/A")
         )
-        user_id = current_user.get_id() if current_user.is_authenticated else "-"
+        username = current_user.username if current_user.is_authenticated else "-"
         app.logger.info(
             "ui_request request_id=%s method=%s path=%s status=%s duration_ms=%.2f user=%s ip=%s",
             request_id,
@@ -451,7 +458,7 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
             request.path,
             response.status_code,
             duration_ms,
-            user_id,
+            username,
             client_ip,
         )
         emit_audit_event(
@@ -472,8 +479,8 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
             method=request.method,
             path=request.path,
             request_id=request_id,
-            username=user_id,
-            user=user_id,
+            username=username,
+            user=username,
             role=getattr(current_user, "role", "-") if current_user.is_authenticated else "-",
             ip=client_ip,
         )

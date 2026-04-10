@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import json
 import os
 import shutil
@@ -44,22 +45,36 @@ from api.services.ingest.service import InternalIngestService
 router = APIRouter(tags=["internal"])
 
 
+def _parse_uploaded_collection_payload(filename: str, payload: bytes) -> object:
+    """Parse JSON, NDJSON, or gzipped variants for collection uploads."""
+    normalized_name = str(filename or "").strip().lower()
+    decoded_bytes = payload
+    if normalized_name.endswith(".gz"):
+        decoded_bytes = gzip.decompress(payload)
+        normalized_name = normalized_name[:-3]
+    decoded_text = decoded_bytes.decode("utf-8")
+    if normalized_name.endswith(".ndjson") or normalized_name.endswith(".jsonl"):
+        rows = [json.loads(line) for line in decoded_text.splitlines() if str(line).strip()]
+        return rows
+    return json.loads(decoded_text)
+
+
 _COLLECTION_CREATE_PERMISSION_MAP: dict[str, str] = {
-    "users": "create_user",
-    "roles": "create_role",
-    "permissions": "create_permission_policy",
-    "assay_specific_panels": "create_asp",
-    "asp_configs": "create_aspc",
-    "insilico_genelists": "create_isgl",
+    "users": "user:create",
+    "roles": "role:create",
+    "permissions": "permission.policy:create",
+    "assay_specific_panels": "assay.panel:create",
+    "asp_configs": "assay.config:create",
+    "insilico_genelists": "gene_list.insilico:create",
 }
 
 _COLLECTION_UPDATE_PERMISSION_MAP: dict[str, str] = {
-    "users": "edit_user",
-    "roles": "edit_role",
-    "permissions": "edit_permission_policy",
-    "assay_specific_panels": "edit_asp",
-    "asp_configs": "edit_aspc",
-    "insilico_genelists": "edit_isgl",
+    "users": "user:edit",
+    "roles": "role:edit",
+    "permissions": "permission.policy:edit",
+    "assay_specific_panels": "assay.panel:edit",
+    "asp_configs": "assay.config:edit",
+    "insilico_genelists": "gene_list.insilico:edit",
 }
 
 _SAMPLE_LINKED_COLLECTIONS: frozenset[str] = frozenset(
@@ -80,19 +95,13 @@ _SAMPLE_LINKED_COLLECTIONS: frozenset[str] = frozenset(
 )
 
 
-def _is_admin_user(user: ApiUser) -> bool:
-    role = str(getattr(user, "role", "") or "").strip().lower()
-    if role == "admin":
-        return True
-    try:
-        return int(getattr(user, "access_level", 0) or 0) >= 99999
-    except Exception:
-        return False
+def _is_superuser(user: ApiUser) -> bool:
+    return bool(getattr(user, "is_superuser", False))
 
 
 def _enforce_collection_permission(*, user: ApiUser, collection: str, action: str) -> None:
-    """Enforce collection-level action permissions for non-admin operators."""
-    if _is_admin_user(user):
+    """Enforce collection-level action permissions for non-superuser operators."""
+    if _is_superuser(user):
         return
     if action == "create":
         permission = _COLLECTION_CREATE_PERMISSION_MAP.get(collection)
@@ -101,16 +110,16 @@ def _enforce_collection_permission(*, user: ApiUser, collection: str, action: st
     else:
         permission = None
     if not permission and collection in _SAMPLE_LINKED_COLLECTIONS:
-        permission = "edit_sample"
+        permission = "sample:edit:own"
     if permission:
         _enforce_access(user, permission=permission)
 
 
 def _enforce_sample_ingest_permission(user: ApiUser) -> None:
-    """Require edit_sample for non-admin operators."""
-    if _is_admin_user(user):
+    """Require sample:edit:own for non-superuser operators."""
+    if _is_superuser(user):
         return
-    _enforce_access(user, permission="edit_sample")
+    _enforce_access(user, permission="sample:edit:own")
 
 
 @router.get("/api/v1/internal/roles/levels", response_model=RoleLevelsPayload)
@@ -450,11 +459,11 @@ async def ingest_collection_upload_internal(
 
     try:
         bytes_payload = await documents_file.read()
-        parsed = json.loads(bytes_payload.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        parsed = _parse_uploaded_collection_payload(documents_file.filename, bytes_payload)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid JSON upload: {exc}",
+            detail=f"Invalid JSON/NDJSON upload: {exc}",
         ) from exc
     finally:
         try:

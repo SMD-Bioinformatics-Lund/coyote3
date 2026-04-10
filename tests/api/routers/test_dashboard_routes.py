@@ -197,12 +197,18 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
 
     user = fx.api_user()
     user.role = "user"
+    user.roles = ["user"]
     user.assays = ["rna-fusion"]
     user.assay_groups = ["myeloid"]
     monkeypatch.setattr(
         service.user_handler,
         "user_with_id",
-        lambda _id: {"role": "user", "assays": ["rna-fusion"], "assay_groups": ["myeloid"]},
+        lambda _id: {
+            "role": "user",
+            "roles": ["user"],
+            "assays": ["rna-fusion"],
+            "assay_groups": ["myeloid"],
+        },
     )
     payload = dashboard.dashboard_summary(user=user, service=service)
 

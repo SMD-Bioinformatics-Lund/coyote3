@@ -15,9 +15,11 @@ from api.routers import internal
 def _admin_user():
     return SimpleNamespace(
         role="admin",
+        roles=["superuser"],
         access_level=99999,
-        permissions=[],
+        permissions=["sample:edit:own"],
         denied_permissions=[],
+        is_superuser=True,
     )
 
 
@@ -237,8 +239,8 @@ def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
         assert "only one" in str(exc)
 
 
-def test_ingest_sample_bundle_internal_requires_edit_sample_permission_for_update(monkeypatch):
-    """Test update mode requires authenticated user with edit_sample permission."""
+def test_ingest_sample_bundle_internal_requires_sample_edit_own_permission_for_update(monkeypatch):
+    """Test update mode requires authenticated user with sample:edit:own permission."""
     calls = {"enforced": 0, "allow_update": None}
     monkeypatch.setattr(
         internal,
@@ -621,7 +623,7 @@ def test_ingest_collection_upload_internal_upsert_requires_match_json(monkeypatc
     )
     upload = _FakeUpload(
         filename="permissions.json",
-        payload=b'{"permission_id":"edit_sample","name":"Edit sample"}',
+        payload=b'{"permission_id":"sample:edit:own","name":"Edit sample"}',
     )
     with pytest.raises(HTTPException) as exc_info:
         asyncio.run(

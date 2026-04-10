@@ -9,7 +9,12 @@ from api.services.dashboard.analytics import DashboardService
 
 class _DashboardBackendStub:
     def __init__(self) -> None:
-        self.user_doc = {"role": "analyst", "assays": ["A1"], "assay_groups": ["G1"]}
+        self.user_doc = {
+            "role": "analyst",
+            "roles": ["analyst"],
+            "assays": ["A1"],
+            "assay_groups": ["G1"],
+        }
 
     def count_users(self):
         return 10
@@ -189,16 +194,18 @@ def test_build_isgl_visibility_counts_combinations():
 
 def test_resolve_scope_assays_admin_returns_none():
     backend = _DashboardBackendStub()
-    backend.user_doc = {"role": "admin", "assays": [], "assay_groups": []}
+    backend.user_doc = {"role": "admin", "roles": ["superuser"], "assays": [], "assay_groups": []}
     service = _dashboard_service(backend=backend)
-    user = SimpleNamespace(id="u1", role="admin", assays=[], assay_groups=[])
+    user = SimpleNamespace(id="u1", role="admin", roles=["admin"], assays=[], assay_groups=[])
 
     assert service.resolve_scope_assays(user=user) is None
 
 
 def test_resolve_scope_assays_returns_combined_assays():
     service = _dashboard_service(backend=_DashboardBackendStub())
-    user = SimpleNamespace(id="u1", role="analyst", assays=["A1"], assay_groups=["G1"])
+    user = SimpleNamespace(
+        id="u1", role="analyst", roles=["analyst"], assays=["A1"], assay_groups=["G1"]
+    )
 
     payload = service.resolve_scope_assays(user=user)
 
@@ -207,7 +214,9 @@ def test_resolve_scope_assays_returns_combined_assays():
 
 def test_summary_payload_calculates_quality_rates(monkeypatch):
     service = _dashboard_service(backend=_DashboardBackendStub())
-    user = SimpleNamespace(id="u1", role="admin", assays=["A1"], assay_groups=["G1"])
+    user = SimpleNamespace(
+        id="u1", role="admin", roles=["superuser"], assays=["A1"], assay_groups=["G1"]
+    )
     monkeypatch.setattr(service, "build_admin_insights", lambda: {"counts": {"users_total": 12}})
     monkeypatch.setattr(
         "api.services.dashboard.analytics.util",

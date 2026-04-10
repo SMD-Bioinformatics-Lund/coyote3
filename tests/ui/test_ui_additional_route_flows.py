@@ -632,7 +632,7 @@ def test_profile_password_route_flows(monkeypatch):
 
 
 def test_edit_sample_page_renders_dna_files_for_lowercase_omics(monkeypatch):
-    """The sample edit page should render DNA file/QC rows for lowercase omics-layer data."""
+    """The sample edit page should render only assay-configured DNA file/QC rows."""
 
     def _fake_get(self, path, headers=None, params=None):  # noqa: ARG001
         if path.endswith("/api/v1/samples/s1/edit-context"):
@@ -660,7 +660,54 @@ def test_edit_sample_page_renders_dna_files_for_lowercase_omics(monkeypatch):
             return _payload(
                 {
                     "sample": sample,
-                    "asp": {"asp_group": "dna", "covered_genes": ["TP53", "NPM1"]},
+                    "asp": {
+                        "asp_group": "dna",
+                        "covered_genes": ["TP53", "NPM1"],
+                        "expected_files": ["vcf_files", "cov", "cnvprofile"],
+                    },
+                    "sample_expected_files": [
+                        {
+                            "key": "vcf_files",
+                            "label": "VCF",
+                            "path": "/data/case_demo.vcf.gz",
+                            "present": True,
+                            "icon": "document-text",
+                            "missing_msg": "No VCF file available",
+                            "count_badge": "12 SNVs",
+                        },
+                        {
+                            "key": "cov",
+                            "label": "Coverage JSON",
+                            "path": "/data/case_demo.coverage.json",
+                            "present": True,
+                            "icon": "chart-bar",
+                            "missing_msg": "No coverage file available",
+                            "count_badge": "Loaded",
+                        },
+                        {
+                            "key": "cnvprofile",
+                            "label": "CNV Profile (image)",
+                            "path": "/data/case_demo.cnvprofile.png",
+                            "present": True,
+                            "icon": "photo",
+                            "missing_msg": "No CNV profile available",
+                            "count_badge": None,
+                        },
+                    ],
+                    "analysis_counts_raw": {
+                        "snv": 12,
+                        "cnv": 3,
+                        "transloc": 1,
+                        "fusion": 0,
+                        "biomarker": 1,
+                    },
+                    "analysis_counts_filtered": {
+                        "snv": 9,
+                        "cnv": 2,
+                        "transloc": 1,
+                        "fusion": 0,
+                        "biomarker": 1,
+                    },
                     "variant_stats_raw": {
                         "variants": 12,
                         "interesting": 1,
@@ -691,7 +738,15 @@ def test_edit_sample_page_renders_dna_files_for_lowercase_omics(monkeypatch):
     assert "Files & QC (dna)" in body
     assert "VCF" in body
     assert "Coverage JSON" in body
-    assert "Biomarkers JSON" in body
+    assert "CNV Profile (image)" in body
+    assert "Biomarkers JSON" not in body
+    assert "SNV" in body
+    assert "CNV" in body
+    assert "Transloc" in body
+    assert "Fusion" in body
+    assert "Biomarker" in body
+    assert "9 (12)" in body
+    assert "2 (3)" in body
 
 
 def test_sample_gene_action_routes_accept_expected_payload_shape(monkeypatch):
@@ -704,16 +759,21 @@ def test_sample_gene_action_routes_accept_expected_payload_shape(monkeypatch):
 
     captured: dict[str, object] = {}
 
-    def _apply(sample_id, isgl_ids):
-        captured["apply"] = {"sample_id": sample_id, "isgl_ids": isgl_ids}
+    def _apply(sample_id, isgl_ids, *, list_type="snv"):
+        captured["apply"] = {"sample_id": sample_id, "isgl_ids": isgl_ids, "list_type": list_type}
         return {"status": "ok"}
 
-    def _save(sample_id, *, genes, label):
-        captured["save"] = {"sample_id": sample_id, "genes": genes, "label": label}
+    def _save(sample_id, *, genes, label, list_type="snv"):
+        captured["save"] = {
+            "sample_id": sample_id,
+            "genes": genes,
+            "label": label,
+            "list_type": list_type,
+        }
         return {"status": "ok"}
 
-    def _clear(sample_id):
-        captured["clear"] = {"sample_id": sample_id}
+    def _clear(sample_id, *, list_type="snv"):
+        captured["clear"] = {"sample_id": sample_id, "list_type": list_type}
         return {"status": "ok"}
 
     monkeypatch.setattr(views_genes, "apply_isgl_api", _apply)
@@ -722,24 +782,32 @@ def test_sample_gene_action_routes_accept_expected_payload_shape(monkeypatch):
 
     client = app.test_client()
 
-    apply_resp = client.post("/samples/s1/apply_isgl", json={"isgl_ids": ["gl1", "gl2"]})
+    apply_resp = client.post(
+        "/samples/s1/apply_isgl",
+        json={"isgl_ids": ["gl1", "gl2"], "list_type": "cnv"},
+    )
     save_resp = client.post(
         "/samples/s1/adhoc_genes",
-        json={"genes": "TP53 NPM1", "label": "focus"},
+        json={"genes": "TP53 NPM1", "label": "focus", "list_type": "fusion"},
     )
-    clear_resp = client.post("/samples/s1/adhoc_genes/clear")
+    clear_resp = client.post("/samples/s1/adhoc_genes/clear?target=all")
 
     assert apply_resp.status_code == 200
     assert apply_resp.get_json()["status"] == "ok"
-    assert captured["apply"] == {"sample_id": "s1", "isgl_ids": ["gl1", "gl2"]}
+    assert captured["apply"] == {"sample_id": "s1", "isgl_ids": ["gl1", "gl2"], "list_type": "cnv"}
 
     assert save_resp.status_code == 200
     assert save_resp.get_json()["status"] == "ok"
-    assert captured["save"] == {"sample_id": "s1", "genes": "TP53 NPM1", "label": "focus"}
+    assert captured["save"] == {
+        "sample_id": "s1",
+        "genes": "TP53 NPM1",
+        "label": "focus",
+        "list_type": "fusion",
+    }
 
     assert clear_resp.status_code == 200
     assert clear_resp.get_json()["status"] == "ok"
-    assert captured["clear"] == {"sample_id": "s1"}
+    assert captured["clear"] == {"sample_id": "s1", "list_type": "all"}
 
 
 def test_coverage_page_links_back_to_sample_findings(monkeypatch):

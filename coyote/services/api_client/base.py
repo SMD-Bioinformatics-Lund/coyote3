@@ -175,6 +175,10 @@ class BaseApiClient:
         except httpx.RequestError as exc:
             raise ApiRequestError(message=f"API request failed: {exc}") from exc
 
+        return self._process_response(response)
+
+    def _process_response(self, response) -> dict[str, Any]:
+        """Extract JSON payload from an httpx response, storing headers/cookies."""
         response_headers = getattr(response, "headers", {}) or {}
         response_cookies = getattr(response, "cookies", {}) or {}
         self._last_response_headers = dict(response_headers)
@@ -185,7 +189,7 @@ class BaseApiClient:
 
         try:
             payload = response.json()
-        except Exception:
+        except (ValueError, KeyError):
             payload = {"error": response.text}
 
         if response.status_code >= 400:
@@ -195,7 +199,6 @@ class BaseApiClient:
                 status_code=response.status_code,
                 payload=payload,
             )
-
         if not isinstance(payload, dict):
             raise ApiRequestError(
                 message="API returned invalid payload format.",
@@ -228,33 +231,7 @@ class BaseApiClient:
         except httpx.RequestError as exc:
             raise ApiRequestError(message=f"API request failed: {exc}") from exc
 
-        response_headers = getattr(response, "headers", {}) or {}
-        response_cookies = getattr(response, "cookies", {}) or {}
-        self._last_response_headers = dict(response_headers)
-        if hasattr(response_cookies, "items"):
-            self._last_response_cookies = {name: value for name, value in response_cookies.items()}
-        else:
-            self._last_response_cookies = {}
-
-        try:
-            payload = response.json()
-        except Exception:
-            payload = {"error": response.text}
-
-        if response.status_code >= 400:
-            message = self._safe_error_message(payload, response.status_code)
-            raise ApiRequestError(
-                message=message,
-                status_code=response.status_code,
-                payload=payload,
-            )
-        if not isinstance(payload, dict):
-            raise ApiRequestError(
-                message="API returned invalid payload format.",
-                status_code=response.status_code,
-                payload=payload,
-            )
-        return payload
+        return self._process_response(response)
 
     def _safe_error_message(self, payload: Any, status_code: int) -> str:
         """Safe error message.
@@ -275,7 +252,7 @@ class BaseApiClient:
                 return raw[:200]
         return f"API request failed ({status_code})"
 
-    def _get(
+    def get_json(
         self,
         path: str,
         headers: dict[str, str] | None = None,
@@ -293,7 +270,7 @@ class BaseApiClient:
         """
         return _as_api_payload(self._request("GET", path, headers=headers, params=params))
 
-    def _post(
+    def post_json(
         self,
         path: str,
         headers: dict[str, str] | None = None,
@@ -315,7 +292,7 @@ class BaseApiClient:
             self._request("POST", path, headers=headers, params=params, json_body=json_body)
         )
 
-    def _put(
+    def put_json(
         self,
         path: str,
         headers: dict[str, str] | None = None,
@@ -337,7 +314,7 @@ class BaseApiClient:
             self._request("PUT", path, headers=headers, params=params, json_body=json_body)
         )
 
-    def _patch(
+    def patch_json(
         self,
         path: str,
         headers: dict[str, str] | None = None,
@@ -359,7 +336,7 @@ class BaseApiClient:
             self._request("PATCH", path, headers=headers, params=params, json_body=json_body)
         )
 
-    def _delete(
+    def delete_json(
         self,
         path: str,
         headers: dict[str, str] | None = None,
@@ -380,104 +357,6 @@ class BaseApiClient:
         return _as_api_payload(
             self._request("DELETE", path, headers=headers, params=params, json_body=json_body)
         )
-
-    def get_json(
-        self,
-        path: str,
-        headers: dict[str, str] | None = None,
-        params: dict[str, Any] | None = None,
-    ) -> ApiPayload:
-        """Return json.
-
-        Args:
-            path (str): Normalized ``path``.
-            headers (dict[str, str] | None): Normalized ``headers``.
-            params (dict[str, Any] | None): Normalized ``params``.
-
-        Returns:
-            ApiPayload: Normalized return value.
-        """
-        return self._get(path, headers=headers, params=params)
-
-    def post_json(
-        self,
-        path: str,
-        headers: dict[str, str] | None = None,
-        params: dict[str, Any] | None = None,
-        json_body: dict[str, Any] | None = None,
-    ) -> ApiPayload:
-        """Post json.
-
-        Args:
-            path (str): Normalized ``path``.
-            headers (dict[str, str] | None): Normalized ``headers``.
-            params (dict[str, Any] | None): Normalized ``params``.
-            json_body (dict[str, Any] | None): Normalized ``json_body``.
-
-        Returns:
-            ApiPayload: Normalized return value.
-        """
-        return self._post(path, headers=headers, params=params, json_body=json_body)
-
-    def put_json(
-        self,
-        path: str,
-        headers: dict[str, str] | None = None,
-        params: dict[str, Any] | None = None,
-        json_body: dict[str, Any] | None = None,
-    ) -> ApiPayload:
-        """Put json.
-
-        Args:
-            path (str): Normalized ``path``.
-            headers (dict[str, str] | None): Normalized ``headers``.
-            params (dict[str, Any] | None): Normalized ``params``.
-            json_body (dict[str, Any] | None): Normalized ``json_body``.
-
-        Returns:
-            ApiPayload: Normalized return value.
-        """
-        return self._put(path, headers=headers, params=params, json_body=json_body)
-
-    def patch_json(
-        self,
-        path: str,
-        headers: dict[str, str] | None = None,
-        params: dict[str, Any] | None = None,
-        json_body: dict[str, Any] | None = None,
-    ) -> ApiPayload:
-        """Patch json.
-
-        Args:
-            path (str): Normalized ``path``.
-            headers (dict[str, str] | None): Normalized ``headers``.
-            params (dict[str, Any] | None): Normalized ``params``.
-            json_body (dict[str, Any] | None): Normalized ``json_body``.
-
-        Returns:
-            ApiPayload: Normalized return value.
-        """
-        return self._patch(path, headers=headers, params=params, json_body=json_body)
-
-    def delete_json(
-        self,
-        path: str,
-        headers: dict[str, str] | None = None,
-        params: dict[str, Any] | None = None,
-        json_body: dict[str, Any] | None = None,
-    ) -> ApiPayload:
-        """Delete json.
-
-        Args:
-            path (str): Normalized ``path``.
-            headers (dict[str, str] | None): Normalized ``headers``.
-            params (dict[str, Any] | None): Normalized ``params``.
-            json_body (dict[str, Any] | None): Normalized ``json_body``.
-
-        Returns:
-            ApiPayload: Normalized return value.
-        """
-        return self._delete(path, headers=headers, params=params, json_body=json_body)
 
     def post_multipart(
         self,

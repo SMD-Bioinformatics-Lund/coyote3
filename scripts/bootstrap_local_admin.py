@@ -4,175 +4,27 @@
 from __future__ import annotations
 
 import argparse
+import gzip
+import json
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
-from pymongo import MongoClient
-from werkzeug.security import generate_password_hash
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
-from api.contracts.schemas.registry import normalize_collection_document
+from pymongo import MongoClient  # noqa: E402
+from werkzeug.security import generate_password_hash  # noqa: E402
 
-ROLE_PROFILES = {
-    "external": {"name": "External", "level": 1, "color": "#64748B"},
-    "viewer": {"name": "Viewer", "level": 5, "color": "#3B82F6"},
-    "intern": {"name": "Intern", "level": 7, "color": "#8B5CF6"},
-    "user": {"name": "User", "level": 9, "color": "#16A34A"},
-    "manager": {"name": "Manager", "level": 99, "color": "#F59E0B"},
-    "developer": {"name": "Developer", "level": 9999, "color": "#DC2626"},
-    "admin": {"name": "Administrator", "level": 99999, "color": "#111827"},
-}
+from api.contracts.schemas.registry import normalize_collection_document  # noqa: E402
 
-BASE_PERMISSION_IDS = [
-    "add_sample_comment",
-    "add_variant_comment",
-    "assign_tier",
-    "create_asp",
-    "create_aspc",
-    "create_isgl",
-    "create_permission_policy",
-    "create_report",
-    "create_role",
-    "create_user",
-    "delete_asp",
-    "delete_aspc",
-    "delete_isgl",
-    "delete_permission_policy",
-    "delete_role",
-    "delete_sample_global",
-    "delete_user",
-    "download_cnvs",
-    "download_snvs",
-    "download_translocs",
-    "edit_asp",
-    "edit_aspc",
-    "edit_isgl",
-    "edit_permission_policy",
-    "edit_role",
-    "edit_sample",
-    "edit_user",
-    "hide_sample_comment",
-    "hide_variant_comment",
-    "manage_cnvs",
-    "manage_snvs",
-    "manage_translocs",
-    "preview_report",
-    "remove_tier",
-    "unhide_sample_comment",
-    "unhide_variant_comment",
-    "view_asp",
-    "view_aspc",
-    "view_gene_annotations",
-    "view_isgl",
-    "view_permission_policy",
-    "view_reports",
-    "view_role",
-    "view_sample_global",
-    "view_user",
-]
+DEFAULT_SEED_DATA_DIR = ROOT_DIR / "tests" / "data" / "seed_data"
 
-ROLE_BASE_PERMISSIONS = {
-    "external": ["view_gene_annotations"],
-    "viewer": [
-        "view_gene_annotations",
-        "view_asp",
-        "view_aspc",
-        "view_isgl",
-        "view_reports",
-        "download_snvs",
-        "download_cnvs",
-        "download_translocs",
-        "preview_report",
-    ],
-    "intern": [
-        "view_gene_annotations",
-        "view_asp",
-        "view_aspc",
-        "view_isgl",
-        "view_reports",
-        "download_snvs",
-        "download_cnvs",
-        "download_translocs",
-        "preview_report",
-        "add_sample_comment",
-        "add_variant_comment",
-    ],
-    "user": [
-        "view_gene_annotations",
-        "view_asp",
-        "view_aspc",
-        "view_isgl",
-        "view_reports",
-        "download_snvs",
-        "download_cnvs",
-        "download_translocs",
-        "preview_report",
-        "add_sample_comment",
-        "add_variant_comment",
-        "edit_sample",
-        "manage_snvs",
-        "manage_cnvs",
-        "manage_translocs",
-    ],
-    "manager": [
-        "view_gene_annotations",
-        "view_asp",
-        "view_aspc",
-        "view_isgl",
-        "view_reports",
-        "download_snvs",
-        "download_cnvs",
-        "download_translocs",
-        "preview_report",
-        "add_sample_comment",
-        "add_variant_comment",
-        "edit_sample",
-        "manage_snvs",
-        "manage_cnvs",
-        "manage_translocs",
-        "assign_tier",
-        "hide_sample_comment",
-        "unhide_sample_comment",
-        "hide_variant_comment",
-        "unhide_variant_comment",
-        "create_asp",
-        "edit_asp",
-        "create_aspc",
-        "edit_aspc",
-        "create_isgl",
-        "edit_isgl",
-    ],
-    "developer": [
-        "view_gene_annotations",
-        "view_asp",
-        "view_aspc",
-        "view_isgl",
-        "view_reports",
-        "download_snvs",
-        "download_cnvs",
-        "download_translocs",
-        "preview_report",
-        "add_sample_comment",
-        "add_variant_comment",
-        "edit_sample",
-        "manage_snvs",
-        "manage_cnvs",
-        "manage_translocs",
-        "assign_tier",
-        "hide_sample_comment",
-        "unhide_sample_comment",
-        "hide_variant_comment",
-        "unhide_variant_comment",
-        "create_asp",
-        "edit_asp",
-        "create_aspc",
-        "edit_aspc",
-        "create_isgl",
-        "edit_isgl",
-        "view_sample_global",
-        "delete_sample_global",
-    ],
-    "admin": BASE_PERMISSION_IDS,
-}
+
+def _normalize_permission_id(permission_id) -> str:
+    """Normalize a permission identifier for bootstrap upserts."""
+    return str(permission_id or "").strip().lower()
 
 
 def parse_args() -> argparse.Namespace:
@@ -183,13 +35,14 @@ def parse_args() -> argparse.Namespace:
         "--mongo-uri", required=True, help="Mongo URI with readWrite access to app DB"
     )
     parser.add_argument("--db", default="coyote3", help="Application DB name")
-    parser.add_argument("--email", required=True, help="Admin email/username")
+    parser.add_argument("--username", required=True, help="Admin username (login identifier)")
+    parser.add_argument("--email", required=True, help="Admin email address")
     parser.add_argument("--password", required=True, help="Admin password (plain text input)")
     parser.add_argument("--role-id", default="admin", help="Role id to assign")
     parser.add_argument(
-        "--permission-id",
-        default="edit_sample",
-        help="Permission id for sample updates (default: edit_sample)",
+        "--seed-data-dir",
+        default=str(DEFAULT_SEED_DATA_DIR),
+        help="Directory containing compressed RBAC seed files",
     )
     parser.add_argument("--assay-group", default="hematology", help="Initial assay group")
     parser.add_argument("--assay", default="assay_1", help="Initial assay id")
@@ -215,59 +68,66 @@ def _fail_if_placeholder_values(args: argparse.Namespace) -> None:
         raise SystemExit(2)
 
 
-def _upsert_permission(db, permission_id: str) -> None:
-    category = "general"
-    for prefix, value in (
-        ("view_", "view"),
-        ("create_", "create"),
-        ("edit_", "edit"),
-        ("delete_", "delete"),
-        ("download_", "download"),
-        ("manage_", "manage"),
-        ("hide_", "moderation"),
-        ("unhide_", "moderation"),
-        ("add_", "annotation"),
-        ("assign_", "classification"),
-        ("remove_", "classification"),
-    ):
-        if permission_id.startswith(prefix):
-            category = value
-            break
+def _load_seed_ndjson_gz(path: Path) -> list[dict]:
+    docs: list[dict] = []
+    with gzip.open(path, "rt", encoding="utf-8") as handle:
+        for line in handle:
+            text = line.strip()
+            if not text:
+                continue
+            value = json.loads(text)
+            if not isinstance(value, dict):
+                raise SystemExit(f"Seed file must contain JSON objects per line: {path}")
+            docs.append(value)
+    return docs
+
+
+def _load_bootstrap_rbac(seed_data_dir: Path) -> tuple[list[dict], list[dict]]:
+    permissions_path = seed_data_dir / "permissions.seed.ndjson.gz"
+    roles_path = seed_data_dir / "roles.seed.ndjson.gz"
+    if not permissions_path.exists():
+        raise SystemExit(f"Missing bootstrap permission seed file: {permissions_path}")
+    if not roles_path.exists():
+        raise SystemExit(f"Missing bootstrap role seed file: {roles_path}")
+    permissions = _load_seed_ndjson_gz(permissions_path)
+    roles = _load_seed_ndjson_gz(roles_path)
+    if not permissions:
+        raise SystemExit(f"Bootstrap permission seed file is empty: {permissions_path}")
+    if not roles:
+        raise SystemExit(f"Bootstrap role seed file is empty: {roles_path}")
+    return permissions, roles
+
+
+def _upsert_permission(db, permission_doc: dict) -> None:
+    permission_id = str(permission_doc.get("permission_id") or "").strip()
+    canonical_id = _normalize_permission_id(permission_id)
+    if not canonical_id:
+        raise SystemExit("Permission seed entry is missing permission_id")
     doc = normalize_collection_document(
         "permissions",
         {
-            "permission_id": permission_id,
-            "permission_name": permission_id,
-            "label": permission_id.replace("_", " ").title(),
-            "category": category,
-            "description": f"{permission_id.replace('_', ' ')} permission",
-            "tags": [category],
-            "is_active": True,
+            **permission_doc,
+            "permission_id": canonical_id,
+            "permission_name": _normalize_permission_id(permission_doc.get("permission_name"))
+            or canonical_id,
         },
     )
     db["permissions"].update_one(
-        {"permission_id": permission_id},
+        {"permission_id": canonical_id},
         {"$set": doc},
         upsert=True,
     )
 
 
-def _upsert_role(db, role_id: str, permission_ids: list[str]) -> None:
-    profile = ROLE_PROFILES.get(
-        role_id, {"name": role_id.capitalize(), "level": 9, "color": "#374151"}
-    )
+def _upsert_role(db, role_doc: dict) -> None:
+    role_id = str(role_doc.get("role_id") or "").strip().lower()
+    if not role_id:
+        raise SystemExit("Role seed entry is missing role_id")
     doc = normalize_collection_document(
         "roles",
         {
+            **role_doc,
             "role_id": role_id,
-            "name": profile["name"],
-            "label": profile["name"],
-            "description": f"{profile['name']} role",
-            "color": profile["color"],
-            "level": profile["level"],
-            "is_active": True,
-            "permissions": sorted(set(permission_ids)),
-            "deny_permissions": [],
         },
     )
     db["roles"].update_one(
@@ -280,20 +140,22 @@ def _upsert_role(db, role_id: str, permission_ids: list[str]) -> None:
 def _upsert_user(
     db,
     *,
+    username: str,
     email: str,
     password: str,
     role_id: str,
     assay_group: str,
     assay: str,
 ) -> None:
-    username = email.strip().lower()
-    fullname = " ".join(part.capitalize() for part in username.split("@")[0].split(".")) or username
+    username = username.strip().lower()
+    email = email.strip().lower()
+    fullname = " ".join(part.capitalize() for part in username.split(".")) or username
     actor = "bootstrap_local_admin"
     now_utc = datetime.now(timezone.utc)
     user_doc = normalize_collection_document(
         "users",
         {
-            "email": username,
+            "email": email.strip().lower(),
             "username": username,
             "fullname": fullname,
             "firstname": fullname.split(" ")[0],
@@ -301,7 +163,7 @@ def _upsert_user(
             "job_title": "Center Administrator",
             "auth_type": "coyote3",
             "password": generate_password_hash(password, method="pbkdf2:sha256"),
-            "role": role_id,
+            "roles": [role_id],
             "is_active": True,
             "permissions": [],
             "deny_permissions": [],
@@ -325,28 +187,34 @@ def main() -> int:
     args = parse_args()
     _fail_if_placeholder_values(args)
     args.role_id = str(args.role_id).strip().lower()
-    args.permission_id = str(args.permission_id).strip().lower()
     args.assay_group = str(args.assay_group).strip().lower()
     args.assay = str(args.assay).strip().lower()
+    seed_data_dir = Path(str(args.seed_data_dir)).expanduser().resolve()
+    permission_docs, role_docs = _load_bootstrap_rbac(seed_data_dir)
+    role_map = {
+        str(doc.get("role_id") or "").strip().lower(): doc
+        for doc in role_docs
+        if isinstance(doc, dict)
+    }
+    if args.role_id not in role_map:
+        available_roles = ", ".join(sorted(role for role in role_map if role))
+        raise SystemExit(
+            f"Role '{args.role_id}' not found in {seed_data_dir / 'roles.seed.ndjson.gz'}. "
+            f"Available roles: {available_roles}"
+        )
     client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000)
     client.admin.command("ping")
     db = client[args.db]
 
-    permission_ids = sorted(set(BASE_PERMISSION_IDS + [args.permission_id]))
-    for permission_id in permission_ids:
-        _upsert_permission(db, permission_id)
+    for permission_doc in permission_docs:
+        _upsert_permission(db, permission_doc)
 
-    for role_id in ROLE_PROFILES:
-        _upsert_role(
-            db,
-            role_id,
-            list(ROLE_BASE_PERMISSIONS.get(role_id, [])),
-        )
-    if args.role_id not in ROLE_PROFILES:
-        _upsert_role(db, args.role_id, [args.permission_id])
+    for role_doc in role_docs:
+        _upsert_role(db, role_doc)
 
     _upsert_user(
         db,
+        username=args.username,
         email=args.email,
         password=args.password,
         role_id=args.role_id,
@@ -355,7 +223,7 @@ def main() -> int:
     )
 
     print(
-        f"[ok] local admin ready: email={args.email} role={args.role_id} "
+        f"[ok] local admin ready: username={args.username} email={args.email} role={args.role_id} "
         f"assay_group={args.assay_group} assay={args.assay}"
     )
     return 0

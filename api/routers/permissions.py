@@ -40,7 +40,7 @@ def _create_permission(payload: dict, actor_username: str, service: PermissionMa
 def create_permission(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="create_permission_policy", min_role="admin", min_level=99999)
+        require_access(permission="permission.policy:create", min_role="admin", min_level=99999)
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
@@ -54,7 +54,7 @@ def list_permissions_read(
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=30, ge=1, le=200),
     user: ApiUser = Depends(
-        require_access(permission="view_permission_policy", min_role="admin", min_level=99999)
+        require_access(permission="permission.policy:list", min_role="admin", min_level=99999)
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
@@ -70,7 +70,7 @@ def list_permissions_read(
 )
 def create_permission_context_read(
     user: ApiUser = Depends(
-        require_access(permission="create_permission_policy", min_role="admin", min_level=99999)
+        require_access(permission="permission.policy:create", min_role="admin", min_level=99999)
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
@@ -84,7 +84,7 @@ def create_permission_context_read(
 def permission_context_read(
     perm_id: str,
     user: ApiUser = Depends(
-        require_access(permission="view_permission_policy", min_role="admin", min_level=99999)
+        require_access(permission="permission.policy:view", min_role="admin", min_level=99999)
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
@@ -113,7 +113,7 @@ def update_permission(
     perm_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="edit_permission_policy", min_role="admin", min_level=99999)
+        require_access(permission="permission.policy:edit", min_role="admin", min_level=99999)
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
@@ -138,7 +138,7 @@ def _toggle_permission(permission_id: str, service: PermissionManagementService)
 def toggle_permission_status(
     perm_id: str,
     user: ApiUser = Depends(
-        require_access(permission="edit_permission_policy", min_role="admin", min_level=99999)
+        require_access(permission="permission.policy:edit", min_role="admin", min_level=99999)
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
@@ -162,7 +162,7 @@ def _delete_permission(permission_id: str, service: PermissionManagementService)
 def delete_permission(
     perm_id: str,
     user: ApiUser = Depends(
-        require_access(permission="delete_permission_policy", min_role="admin", min_level=99999)
+        require_access(permission="permission.policy:delete", min_role="admin", min_level=99999)
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
@@ -175,7 +175,7 @@ def delete_permission(
 def validate_permission_id_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="create_permission_policy", min_role="admin", min_level=99999)
+        require_access(permission="permission.policy:create", min_role="admin", min_level=99999)
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):

@@ -156,7 +156,7 @@ def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
 
 
 @dna_bp.route(
-    "/<string:sample_id>/transloc/<string:transloc_id>/hide_variant_comment", methods=["POST"]
+    "/<string:sample_id>/transloc/<string:transloc_id>/hide_transloc_comment", methods=["POST"]
 )
 @login_required
 def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
@@ -185,7 +185,7 @@ def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
 
 
 @dna_bp.route(
-    "/<string:sample_id>/transloc/<string:transloc_id>/unhide_variant_comment", methods=["POST"]
+    "/<string:sample_id>/transloc/<string:transloc_id>/unhide_transloc_comment", methods=["POST"]
 )
 @login_required
 def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:

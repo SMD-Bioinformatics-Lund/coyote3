@@ -94,16 +94,26 @@ def _load_reference_seed_pack(path: str) -> dict[str, Any]:
         raise SystemExit(f"Reference seed data directory not found: {reference_path}")
 
     required_pack = {
-        "hgnc_genes": "hgnc_genes.seed.ndjson.gz",
-        "permissions": "permissions.seed.ndjson.gz",
-        "refseq_canonical": "refseq_canonical.seed.ndjson.gz",
-        "roles": "roles.seed.ndjson.gz",
-        "vep_metadata": "vep_metadata.seed.ndjson.gz",
+        "hgnc_genes": "hgnc_genes.seed.ndjson",
+        "permissions": "permissions.seed.ndjson",
+        "refseq_canonical": "refseq_canonical.seed.ndjson",
+        "roles": "roles.seed.ndjson",
+        "vep_metadata": "vep_metadata.seed.ndjson",
     }
 
-    def _load_gzip_ndjson(file_path: Path) -> list[dict[str, Any]]:
+    def _resolve_reference_file(base_dir: Path, stem_name: str) -> Path:
+        plain_path = base_dir / stem_name
+        if plain_path.exists():
+            return plain_path
+        gzip_path = base_dir / f"{stem_name}.gz"
+        if gzip_path.exists():
+            return gzip_path
+        raise SystemExit(f"Missing reference seed file: {plain_path} or {gzip_path}")
+
+    def _load_ndjson(file_path: Path) -> list[dict[str, Any]]:
         docs: list[dict[str, Any]] = []
-        with gzip.open(file_path, "rt", encoding="utf-8") as handle:
+        opener = gzip.open if file_path.suffix == ".gz" else open
+        with opener(file_path, "rt", encoding="utf-8") as handle:
             for line in handle:
                 text = line.strip()
                 if not text:
@@ -118,10 +128,8 @@ def _load_reference_seed_pack(path: str) -> dict[str, Any]:
 
     payload: dict[str, Any] = {}
     for collection, filename in required_pack.items():
-        file_path = reference_path / filename
-        if not file_path.exists():
-            raise SystemExit(f"Missing reference seed file: {file_path}")
-        payload[collection] = _load_gzip_ndjson(file_path)
+        file_path = _resolve_reference_file(reference_path, filename)
+        payload[collection] = _load_ndjson(file_path)
 
     return payload
 
@@ -308,7 +316,7 @@ def _validate_lowercase_business_ids(seed: dict[str, Any]) -> list[str]:
     field_rules: dict[str, tuple[str, ...]] = {
         "permissions": ("permission_id",),
         "roles": ("role_id",),
-        "users": ("username", "email", "role", "assay_groups", "assays"),
+        "users": ("username", "email", "roles", "assay_groups", "assays"),
         "asp_configs": ("aspc_id", "assay_name", "asp_group"),
         "assay_specific_panels": ("asp_id", "assay_name", "asp_group"),
         "insilico_genelists": ("isgl_id", "diagnosis", "assay_groups", "assays"),
@@ -489,9 +497,10 @@ def _validate_bootstrap_dependencies(seed: dict[str, Any]) -> list[str]:
     for idx, user_doc in enumerate(seed.get("users", [])):
         if not isinstance(user_doc, dict):
             continue
-        role = _norm(user_doc.get("role", ""))
-        if role and role not in role_ids:
-            errors.append(f"users[{idx}] references unknown role '{role}'")
+        for role in user_doc.get("roles", []) or []:
+            normalized_role = _norm(role)
+            if normalized_role and normalized_role not in role_ids:
+                errors.append(f"users[{idx}] references unknown role '{normalized_role}'")
         for group in user_doc.get("assay_groups", []) or []:
             if _norm(group) and _norm(group) not in assay_groups:
                 errors.append(f"users[{idx}] references unknown assay_group '{_norm(group)}'")

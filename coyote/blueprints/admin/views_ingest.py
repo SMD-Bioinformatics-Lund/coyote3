@@ -16,15 +16,15 @@ from coyote.services.api_client.api_client import (
     get_web_api_client,
 )
 from coyote.services.api_client.web import (
+    api_page_guard,
     flash_api_failure,
     flash_api_success,
-    raise_page_load_error,
 )
 
 
 def _require_ingest_operator() -> None:
     """Allow ingestion workspace/actions only for developer-or-higher users."""
-    role_levels = dict(getattr(app, "role_access_levels", {}) or {})
+    role_levels = dict(getattr(app, "role_access_levels", {}))
     required_level = role_levels.get("developer")
     if required_level is not None:
         if int(getattr(current_user, "access_level", 0) or 0) < int(required_level):
@@ -50,18 +50,19 @@ _UPLOAD_COLLECTIONS: tuple[str, ...] = (
 def ingest_workspace() -> str | Response:
     """Render ingestion workspace for sample-bundle and collection ingest flows."""
     _require_ingest_operator()
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message="Failed to load internal ingest collection catalog",
+        summary="Unable to load ingestion workspace.",
+    ):
         payload = get_web_api_client().get_json(
             api_endpoints.internal("ingest", "collections"),
             headers=forward_headers(),
         )
-        collections = sorted(payload.get("collections", []))
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message="Failed to load internal ingest collection catalog",
-            summary="Unable to load ingestion workspace.",
+        collections = sorted(
+            collection
+            for collection in payload.get("collections", [])
+            if collection not in _UPLOAD_COLLECTIONS
         )
     return render_template("ingest/workspace.html", collections=collections)
 

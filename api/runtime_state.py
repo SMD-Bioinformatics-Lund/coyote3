@@ -60,14 +60,11 @@ def current_username(default: str = "api") -> str:
     return str(username) if username else default
 
 
-def current_user_is_admin() -> bool:
-    """Resolve current request admin flag."""
+def current_user_is_superuser() -> bool:
+    """Resolve current request unrestricted superuser flag."""
     user = current_user()
-    role = getattr(user, "role", None) if user is not None else None
-    if role is not None:
-        return str(role) == "admin"
-    is_admin = getattr(user, "is_admin", None) if user is not None else None
-    return bool(is_admin)
+    is_superuser = getattr(user, "is_superuser", None) if user is not None else None
+    return bool(is_superuser)
 
 
 def set_current_request_id(request_id: str | None) -> Token:

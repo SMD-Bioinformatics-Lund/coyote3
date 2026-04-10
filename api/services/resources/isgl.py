@@ -159,7 +159,7 @@ class IsglService:
             is_new=True,
         )
         config = _validated_doc(self._spec.collection, config)
-        self.gene_list_handler.create_isgl(config)
+        self.gene_list_handler.create_genelist(config)
         return change_payload(
             resource="genelist", resource_id=str(config.get("isgl_id", "unknown")), action="create"
         )
@@ -235,7 +235,7 @@ class IsglService:
         genelist = self.gene_list_handler.get_isgl(genelist_id)
         if not genelist:
             raise api_error(404, "Genelist not found")
-        self.gene_list_handler.delete_isgl(genelist_id)
+        self.gene_list_handler.delete_genelist(genelist_id)
         return change_payload(resource="genelist", resource_id=genelist_id, action="delete")
 
     def genelist_exists(self, *, isgl_id: str) -> bool:

@@ -68,7 +68,7 @@
                     </td>
                     <td class="p-2 font-medium">{{ 'Yes' if sample.get('reports') else 'No' }}</td>
                     <td class="p-2 font-medium flex gap-3">
-                      {% if has_access("edit_sample", min_role="developer", min_level=9999) %}
+                      {% if has_access("sample:edit:own", min_role="developer", min_level=9999) %}
                         <button onclick="showActionModal({
                             url: '{{ url_for('admin_bp.edit_sample', sample_id=sample._id) }}',
                             title: 'Edit Sample',
@@ -79,7 +79,7 @@
                           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
                         </button>
                       {% endif %}
-                      {% if has_access("delete_sample_global", min_role="developer", min_level=9999) %}
+                      {% if has_access("sample:delete:global", min_role="developer", min_level=9999) %}
                         <button onclick="showActionModal({
                             url: '{{ url_for('admin_bp.delete_sample', sample_id=sample._id) }}',
                             title: 'Delete Sample',

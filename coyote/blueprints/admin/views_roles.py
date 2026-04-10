@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
-
 from flask import Response, abort, g, jsonify, redirect, render_template, request, url_for
 from flask import current_app as app
 from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
-from coyote.extensions import util
 from coyote.services.api_client import endpoints as api_endpoints
 from coyote.services.api_client.api_client import (
     ApiRequestError,
@@ -17,44 +14,19 @@ from coyote.services.api_client.api_client import (
     get_web_api_client,
 )
 from coyote.services.api_client.web import (
+    api_page_guard,
     flash_api_failure,
     flash_api_success,
-    raise_page_load_error,
 )
 
 
 def _apply_selected_role_version(
     role: dict, selected_version: int | None, role_id: str | None = None
 ):
-    """Return the selected historical role version for diff-aware rendering.
+    """Return the selected historical role version for diff-aware rendering."""
+    from coyote.util.admin_utility import apply_selected_version
 
-    Args:
-        role: Role document returned by the API context endpoint.
-        selected_version: Historical version requested by the operator.
-        role_id: Optional role identifier used to restore ``_id`` after delta
-            application.
-
-    Returns:
-        A tuple of ``(role_document, delta)`` where ``delta`` is the applied
-        version delta or ``None`` when no historical projection was needed.
-    """
-    delta = None
-    if selected_version and selected_version != role.get("version"):
-        version_index = next(
-            (
-                i
-                for i, version_entry in enumerate(role.get("version_history", []))
-                if version_entry["version"] == selected_version + 1
-            ),
-            None,
-        )
-        if version_index is not None:
-            delta_blob = role["version_history"][version_index].get("delta", {})
-            role = util.admin.apply_version_delta(deepcopy(role), delta_blob)
-            delta = delta_blob
-            if role_id:
-                role["role_id"] = role_id
-    return role, delta
+    return apply_selected_version(role, selected_version, id_field="role_id", id_value=role_id)
 
 
 @admin_bp.route("/roles")
@@ -68,7 +40,9 @@ def list_roles() -> str:
     q = (request.args.get("q") or "").strip()
     page = max(1, request.args.get("page", default=1, type=int) or 1)
     per_page = max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200))
-    try:
+    with api_page_guard(
+        logger=app.logger, log_message="Failed to fetch roles", summary="Unable to load roles."
+    ):
         payload = get_web_api_client().get_json(
             api_endpoints.admin("roles"),
             headers=forward_headers(),
@@ -76,21 +50,6 @@ def list_roles() -> str:
         )
         roles = payload.get("roles", [])
         pagination = payload.get("pagination", {})
-    except AttributeError as exc:
-        app.logger.error("Failed to parse roles payload: %s", exc)
-        raise_page_load_error(
-            ApiRequestError(str(exc)),
-            logger=app.logger,
-            log_message="Failed to parse role list payload",
-            summary="Unable to load roles.",
-        )
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message="Failed to fetch roles",
-            summary="Unable to load roles.",
-        )
     return render_template(
         "roles/roles.html",
         roles=roles,
@@ -110,17 +69,14 @@ def create_role() -> Response | str:
     Returns:
         The rendered form on ``GET`` or a redirect response after ``POST``.
     """
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message="Failed to load role create context",
+        summary="Unable to load the role creation form.",
+    ):
         context = get_web_api_client().get_json(
             api_endpoints.admin("roles", "create_context"),
             headers=forward_headers(),
-        )
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message="Failed to load role create context",
-            summary="Unable to load the role creation form.",
         )
 
     if request.method == "POST":
@@ -173,18 +129,15 @@ def edit_role(role_id: str) -> Response | str:
     Returns:
         The rendered form on ``GET`` or a redirect response after ``POST``.
     """
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message=f"Failed to load role context for {role_id}",
+        summary="Unable to load the role.",
+        not_found_summary="Role not found.",
+    ):
         context = get_web_api_client().get_json(
             api_endpoints.admin("roles", role_id, "context"),
             headers=forward_headers(),
-        )
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message=f"Failed to load role context for {role_id}",
-            summary="Unable to load the role.",
-            not_found_summary="Role not found.",
         )
 
     role, delta = _apply_selected_role_version(
@@ -230,18 +183,15 @@ def view_role(role_id: str) -> Response | str:
     Returns:
         The rendered detail page response.
     """
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message=f"Failed to load role view context for {role_id}",
+        summary="Unable to load the role.",
+        not_found_summary="Role not found.",
+    ):
         context = get_web_api_client().get_json(
             api_endpoints.admin("roles", role_id, "context"),
             headers=forward_headers(),
-        )
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message=f"Failed to load role view context for {role_id}",
-            summary="Unable to load the role.",
-            not_found_summary="Role not found.",
         )
 
     selected_version = request.args.get("version", type=int)

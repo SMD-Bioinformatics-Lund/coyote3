@@ -50,8 +50,8 @@ def emit_access_event(
     status: str,
     reason: str,
     request: Request | None = None,
-    user_id: str | None = None,
     username: str | None = None,
+    roles: list[str] | None = None,
     role: str | None = None,
     permission: str | None = None,
     min_level: int | None = None,
@@ -65,8 +65,8 @@ def emit_access_event(
         status: Result of the access decision.
         reason: Human-readable explanation for the decision.
         request: Active request, when available.
-        user_id: Authenticated user identifier.
         username: Authenticated username.
+        roles: Authenticated role identifiers.
         role: Effective user role.
         permission: Required permission, when applicable.
         min_level: Minimum required access level.
@@ -84,9 +84,9 @@ def emit_access_event(
         "path": str(request.url.path) if request else None,
         "ip": request_ip(request),
         "request_id": request_id(request),
-        "user": username or user_id,
-        "user_id": user_id,
+        "user": username,
         "username": username,
+        "roles": list(roles or []),
         "role": role,
         "sample_id": str(sample_id) if sample_id is not None else None,
         "required": {

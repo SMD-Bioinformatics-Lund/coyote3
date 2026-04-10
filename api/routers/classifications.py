@@ -24,7 +24,7 @@ router = APIRouter(tags=["classifications"])
 def set_resource_tier_bulk(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
-    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="user", min_level=9)),
+    user: ApiUser = Depends(require_access(permission="snv:manage", min_role="user", min_level=9)),
     service: ResourceClassificationService = Depends(get_classification_service),
 ):
     """Apply or remove a tier classification across multiple resources."""
@@ -74,7 +74,7 @@ def classify_resource_change(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="assign_tier", min_role="manager", min_level=99)
+        require_access(permission="tier:assign", min_role="manager", min_level=99)
     ),
     service: ResourceClassificationService = Depends(get_classification_service),
 ):
@@ -107,7 +107,7 @@ def classify_resource_change(
 def remove_classified_resource_change(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
-    user: ApiUser = Depends(require_access(permission="remove_tier", min_role="admin")),
+    user: ApiUser = Depends(require_access(permission="tier:remove:own", min_role="admin")),
     service: ResourceClassificationService = Depends(get_classification_service),
 ):
     """Remove a classification from a resource."""

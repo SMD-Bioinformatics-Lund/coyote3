@@ -29,7 +29,7 @@ router = APIRouter(tags=["resource-genelists"])
 def create_genelist_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="create_isgl", min_role="manager", min_level=99)
+        require_access(permission="gene_list.insilico:create", min_role="manager", min_level=99)
     ),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
@@ -53,7 +53,9 @@ def list_genelists_read(
     q: str = Query(default=""),
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=30, ge=1, le=200),
-    user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
+    user: ApiUser = Depends(
+        require_access(permission="gene_list.insilico:list", min_role="user", min_level=9)
+    ),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
     """Return the genelist admin list.
@@ -76,7 +78,7 @@ def list_genelists_read(
 )
 def create_genelist_context_read(
     user: ApiUser = Depends(
-        require_access(permission="create_isgl", min_role="manager", min_level=99)
+        require_access(permission="gene_list.insilico:create", min_role="manager", min_level=99)
     ),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
@@ -99,7 +101,9 @@ def create_genelist_context_read(
 )
 def genelist_context_read(
     genelist_id: str,
-    user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
+    user: ApiUser = Depends(
+        require_access(permission="gene_list.insilico:view", min_role="user", min_level=9)
+    ),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
     """Return edit-form context for a genelist.
@@ -123,7 +127,9 @@ def genelist_context_read(
 def genelist_view_context_read(
     genelist_id: str,
     assay: str | None = Query(default=None),
-    user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
+    user: ApiUser = Depends(
+        require_access(permission="gene_list.insilico:view", min_role="user", min_level=9)
+    ),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
     """Return read-only context for a genelist.
@@ -152,7 +158,7 @@ def update_genelist_change(
     genelist_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="edit_isgl", min_role="manager", min_level=99)
+        require_access(permission="gene_list.insilico:edit", min_role="manager", min_level=99)
     ),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
@@ -184,7 +190,7 @@ def update_genelist_change(
 def toggle_genelist_change(
     genelist_id: str,
     user: ApiUser = Depends(
-        require_access(permission="edit_isgl", min_role="manager", min_level=99)
+        require_access(permission="gene_list.insilico:edit", min_role="manager", min_level=99)
     ),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
@@ -210,7 +216,7 @@ def toggle_genelist_change(
 def delete_genelist_change(
     genelist_id: str,
     user: ApiUser = Depends(
-        require_access(permission="delete_isgl", min_role="admin", min_level=99999)
+        require_access(permission="gene_list.insilico:delete", min_role="admin", min_level=99999)
     ),
     service: IsglService = Depends(get_admin_genelist_service),
 ):
@@ -232,7 +238,7 @@ def delete_genelist_change(
 def validate_isgl_id_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="create_isgl", min_role="manager", min_level=99)
+        require_access(permission="gene_list.insilico:create", min_role="manager", min_level=99)
     ),
     service: IsglService = Depends(get_admin_genelist_service),
 ):

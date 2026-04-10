@@ -107,6 +107,7 @@ Role level note for bootstrap and seeds:
 ${PYTHON_BIN:-python} scripts/bootstrap_local_admin.py \
   --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
   --db "${COYOTE3_DB:-coyote3}" \
+  --username "admin" \
   --email "admin@your-center.org" \
   --password "CHANGE_ME_ADMIN_PASSWORD" \
   --assay-group "hematology" \

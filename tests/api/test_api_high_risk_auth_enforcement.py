@@ -28,6 +28,7 @@ def _user(
         fullname="User Example",
         username="user1",
         role="user",
+        roles=["user"],
         access_level=level,
         permissions=list(permissions or []),
         denied_permissions=list(denied or []),
@@ -69,12 +70,12 @@ def _request_for(path: str, method: str) -> Request:
 @pytest.mark.parametrize(
     ("method", "path", "required_permission", "required_level"),
     [
-        ("GET", "/api/v1/users", "view_user", 99999),
-        ("GET", "/api/v1/roles", "view_role", 99999),
-        ("GET", "/api/v1/permissions", "view_permission_policy", 99999),
-        ("GET", "/api/v1/resources/aspc", "view_aspc", 9),
+        ("GET", "/api/v1/users", "user:list", 99999),
+        ("GET", "/api/v1/roles", "role:list", 99999),
+        ("GET", "/api/v1/permissions", "permission.policy:list", 99999),
+        ("GET", "/api/v1/resources/aspc", "assay.config:list", 9),
         ("POST", "/api/v1/coverage/blacklist/entries", None, 1),
-        ("GET", "/api/v1/samples/{sample_id}/reports/{report_type}/preview", "preview_report", 9),
+        ("GET", "/api/v1/samples/{sample_id}/reports/{report_type}/preview", "report:preview", 9),
     ],
 )
 def test_high_risk_endpoints_auth_matrix(

@@ -108,7 +108,7 @@
         </div>
       {% endif %}
 
-      {% if has_access('preview_report', min_role='user', min_level=9) %}
+      {% if has_access('report:preview', min_role='user', min_level=9) %}
         <div class="flex border-l-8 border-teal-400  mt-1">
           <a href="{{ url_for('dna_bp.generate_dna_report', sample_id=sample.name) }}"
             class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
@@ -154,7 +154,7 @@
               <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
                 <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
                   <h2 class="text-sm font-semibold text-black">Variants Passing Filter Criteria</h2>
-                  {% if has_access("download_snvs", min_role="user", min_level=9) %}
+                  {% if has_access("snv:download", min_role="user", min_level=9) %}
                     <img
                       src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}"
                       alt="Export to CSV - SNVs"
@@ -205,7 +205,7 @@
                       {% set chr_pos = var.CHROM ~ ":" ~ var.POS %}
                       {% set indel_size = var.ALT|length - var.REF|length %}
                       {# Build the final IGV URL #}
-                        {% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
+                        {% if all_samples_bam_paths and has_access("igv:view", min_role="user", min_level=9) %}
                           {% set igv_url = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ chr_pos %}
                           {% set igv_chr_pos = '<a href="' ~ igv_url ~ '">' ~ chr_pos ~ '</a>' %}
                         {% else %}
@@ -577,7 +577,7 @@
                     <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
                       <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg p-2 z-10">
                         <h2 class="text-sm font-semibold text-black">CNV Table</h2>
-                        {% if has_access("download_cnvs", min_role="user", min_level=9) %}
+                        {% if has_access("cnv:download", min_role="user", min_level=9) %}
                           <img
                             src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}"
                             alt="Export to CSV - CNVs"
@@ -610,7 +610,7 @@
                           </thead>
                           <tbody>
                             {% for cnv in cnvs %}
-                            {% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
+                            {% if all_samples_bam_paths and has_access("igv:view", min_role="user", min_level=9) %}
                               {% set igv_cnv_url = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ cnv.chr ~ ":" ~ cnv.start ~ "-" ~ cnv.end  %}
                               {% set igv_cnv_chr_pos = '<a href="' ~ igv_cnv_url ~ '">' ~ cnv.chr ~ ":" ~ cnv.start ~ "-" ~ cnv.end ~ '</a>' %}
                             {% else %}
@@ -803,7 +803,7 @@
               <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
                 <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
                   <h2 class="text-sm font-semibold text-black">Gene fusions passing filter criteria</h2>
-                  {% if has_access("download_translocs", min_role="user", min_level=9) %}
+                  {% if has_access("translocation:download", min_role="user", min_level=9) %}
                     <img
                       src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}"
                       alt="Export to CSV - translocations"
@@ -895,7 +895,7 @@
               <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
                 <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-200 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
                   <h2 class="text-sm font-semibold text-black">DNA fusions passing filter criteria</h2>
-                  {% if has_access("download_fusions", min_role="user", min_level=9) %}
+                  {% if has_access("fusion:download", min_role="user", min_level=9) %}
                     <img
                       src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}"
                       alt="Export to CSV - fusions"
@@ -986,7 +986,7 @@
         </div>
         {% set summary_add_comment_action = url_for('common_bp.add_dna_sample_comment', sample_id=sample._id) %}
         {% set summary_preview_url = url_for('dna_bp.generate_dna_report', sample_id=sample.name) %}
-        {% set summary_show_add_form = has_access('add_sample_comment', min_role='user', min_level=9) %}
+        {% set summary_show_add_form = has_access('sample.comment:add', min_role='user', min_level=9) %}
         {% set summary_enforce_acl = true %}
         {% set summary_comment_cell_has_id = false %}
         {% set summary_button_row_margin = 'my' %}

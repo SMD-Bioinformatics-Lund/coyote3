@@ -15,9 +15,9 @@ from coyote.services.api_client.api_client import (
     get_web_api_client,
 )
 from coyote.services.api_client.web import (
+    api_page_guard,
     flash_api_failure,
     flash_api_success,
-    raise_page_load_error,
 )
 
 
@@ -35,7 +35,11 @@ def all_samples() -> str | Response:
     per_page = max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200))
     form.sample_search.data = search_str
 
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message="Failed to fetch admin sample list",
+        summary="Unable to load samples.",
+    ):
         payload = get_web_api_client().get_json(
             api_endpoints.admin("samples"),
             headers=forward_headers(),
@@ -43,13 +47,6 @@ def all_samples() -> str | Response:
         )
         samples = payload.samples
         pagination = payload.get("pagination", {})
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message="Failed to fetch admin sample list",
-            summary="Unable to load samples.",
-        )
     return render_template(
         "samples/all_samples.html",
         all_samples=samples,
@@ -73,20 +70,17 @@ def edit_sample(sample_id: str) -> str | Response:
     Returns:
         The rendered form on ``GET`` or a redirect response after ``POST``.
     """
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message=f"Failed to load admin sample context for {sample_id}",
+        summary="Unable to load the sample.",
+        not_found_summary="Sample not found.",
+    ):
         payload = get_web_api_client().get_json(
             api_endpoints.admin("samples", sample_id, "context"),
             headers=forward_headers(),
         )
         sample_doc = payload.sample
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message=f"Failed to load admin sample context for {sample_id}",
-            summary="Unable to load the sample.",
-            not_found_summary="Sample not found.",
-        )
     sample_obj = sample_doc.pop("_id", sample_id)
 
     if request.method == "POST":

@@ -79,14 +79,22 @@
                       <textarea name="genes_paste" rows="6" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y"></textarea>
                       <div class="flex flex-col items-start mt-2">
                         <span class="text-xs font-semibold mb-1">OR Upload File</span>
-                        <input type="file" name="genes_file" accept=".txt,.csv" class="text-xs">
+                        <label for="genes_file" class="inline-flex items-center gap-2 rounded-md border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 cursor-pointer hover:bg-blue-100">
+                          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-up-tray.svg') }}" class="h-4 w-4">
+                          Upload gene file (.txt, .csv)
+                        </label>
+                        <input type="file" id="genes_file" name="genes_file" accept=".txt,.csv" class="hidden">
                       </div>
                     {% elif field.display_type == 'jsoneditor-or-upload' and key == 'germline_genes' %}
                       <label class="text-xs text-gray-500 italic block mb-1">If both a gene list is pasted and a file is uploaded, the uploaded file will be used.</label>
                       <textarea name="germline_genes_paste" rows="6" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y"></textarea>
                       <div class="flex flex-col items-start mt-2">
                         <span class="text-xs font-semibold mb-1">OR Upload File</span>
-                        <input type="file" name="germline_genes_file" accept=".txt,.csv" class="text-xs">
+                        <label for="germline_genes_file" class="inline-flex items-center gap-2 rounded-md border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 cursor-pointer hover:bg-blue-100">
+                          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-up-tray.svg') }}" class="h-4 w-4">
+                          Upload germline gene file (.txt, .csv)
+                        </label>
+                        <input type="file" id="germline_genes_file" name="germline_genes_file" accept=".txt,.csv" class="hidden">
                       </div>
 
                     {% else %}
@@ -124,6 +132,14 @@
     let exists = false;
     let pending = false;
     let timer = null;
+    const familySelect = document.querySelector('select[name="asp_family"]');
+    const categorySelect = document.querySelector('select[name="asp_category"]');
+
+    function syncCategoryFromFamily() {
+      if (!familySelect || !categorySelect) return;
+      const family = (familySelect.value || '').trim().toLowerCase();
+      categorySelect.value = family === 'panel-rna' || family === 'wts' ? 'rna' : 'dna';
+    }
 
     function currentAspId() {
       return (aspInput?.value || assayInput?.value || "").trim();
@@ -173,6 +189,9 @@
         timer = setTimeout(checkAspId, 100);
       });
     });
+
+    familySelect?.addEventListener("change", syncCategoryFromFamily);
+    syncCategoryFromFamily();
 
     form?.addEventListener("submit", (event) => {
       if (pending || exists) {

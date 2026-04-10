@@ -122,10 +122,9 @@ class _AdminRepoStub:
             return None
         return {
             "_id": "tester",
-            "user_id": "tester",
             "username": "tester",
             "email": "tester@example.com",
-            "role": "admin",
+            "roles": ["admin"],
             "password": "hashed",
             "version": 3,
             "permissions": [],
@@ -771,33 +770,37 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
             toggle_policy_active=repo.set_permission_active,
             delete_policy=repo.delete_permission,
         ),
+        vep_metadata_handler=SimpleNamespace(
+            get_consequence_group_options=lambda vep=None: ["missense", "splicing"],
+        ),
         assay_panel_handler=SimpleNamespace(
             search_asps=repo.search_panels,
             get_all_asp_groups=repo.get_asp_groups,
             get_all_asps=lambda is_active=None: [repo.get_panel("WGS")],
             get_asp=repo.get_panel,
-            create_asp=repo.create_panel,
+            create_panel=repo.create_panel,
             update_asp=repo.update_panel,
             toggle_asp_active=repo.set_panel_active,
-            delete_asp=repo.delete_panel,
+            delete_panel=repo.delete_panel,
         ),
         gene_list_handler=SimpleNamespace(
             search_isgls=repo.search_genelists,
             get_all_isgl=repo.list_genelists,
             get_isgl=repo.get_genelist,
-            create_isgl=repo.create_genelist,
+            create_genelist=repo.create_genelist,
             update_isgl=repo.update_genelist,
             toggle_isgl_active=repo.set_genelist_active,
-            delete_isgl=repo.delete_genelist,
+            delete_genelist=repo.delete_genelist,
         ),
         assay_configuration_handler=SimpleNamespace(
             search_aspcs=repo.search_assay_configs,
             get_aspc=repo.get_assay_config,
             get_aspc_with_id=repo.get_assay_config,
-            create_aspc=repo.create_assay_config,
+            get_available_assay_envs=repo.get_available_assay_envs,
+            create_assay_config=repo.create_assay_config,
             update_aspc=repo.update_assay_config,
             toggle_aspc_active=repo.set_assay_config_active,
-            delete_aspc=repo.delete_assay_config,
+            delete_assay_config=repo.delete_assay_config,
         ),
         sample_handler=SimpleNamespace(
             search_samples_for_admin=repo.list_samples_for_admin,
@@ -855,7 +858,7 @@ def _aspc_service(repo: _AdminRepoStub) -> AspcService:
     return AspcService(
         assay_configuration_handler=store.assay_configuration_handler,
         assay_panel_handler=store.assay_panel_handler,
-        gene_list_handler=store.gene_list_handler,
+        vep_metadata_handler=store.vep_metadata_handler,
         common_util=shared_util.common,
     )
 
@@ -917,7 +920,7 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
                 "lastname": form_data.get("lastname", "User"),
                 "fullname": form_data.get("fullname", "Test User"),
                 "job_title": form_data.get("job_title", "Analyst"),
-                "role": form_data["role"],
+                "roles": form_data["roles"],
                 "permissions": form_data.get("permissions", []),
                 "deny_permissions": form_data.get("deny_permissions", []),
                 "auth_type": "coyote3",
@@ -945,7 +948,7 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
             "form_data": {
                 "username": "NewTester",
                 "email": "NewTester@Example.com",
-                "role": "admin",
+                "roles": ["admin"],
                 "permissions": ["perm.a", "perm.b"],
             }
         },
@@ -1104,6 +1107,29 @@ def test_admin_genelist_service_view_context_filters_genes(monkeypatch):
 
     assert payload["filtered_genes"] == ["TP53"]
     assert payload["panel_germline_genes"] == ["BRCA1"]
+
+
+def test_admin_aspc_create_context_uses_analysis_sections_not_genelist_fields(monkeypatch):
+    """ASPC form should expose analysis/report toggles, not sample-owned gene-list selectors."""
+    repo = _AdminRepoStub()
+    _patch_admin_stores(monkeypatch, repo)
+    service = _aspc_service(repo)
+
+    payload = service.create_context_payload(category="DNA", actor_username="actor@example.com")
+    form = payload["form"]
+    analysis_options = form["fields"]["analysis_types"]["options"]
+    filter_groups = form["fields"]["filters"]["groups"]
+    reporting_groups = form["fields"]["reporting"]["groups"]
+    filter_keys = {field["key"] for group in filter_groups for field in group.get("fields", [])}
+    report_section_options = reporting_groups[0]["fields"][0]["options"]
+
+    assert "TMB" in analysis_options
+    assert "PGX" in analysis_options
+    assert "genelists" not in filter_keys
+    assert "cnv_genelists" not in filter_keys
+    assert "fusion_genelists" not in filter_keys
+    assert "TMB" in report_section_options
+    assert "PGX" in report_section_options
 
 
 def test_admin_aspc_service_create_rejects_duplicate(monkeypatch):

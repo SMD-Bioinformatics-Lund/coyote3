@@ -9,7 +9,8 @@
 
 ## User permissions
 
-Permission checks are enforced in API route/service flow for data-mutating operations.
+Permission checks use the `resource:action[:scope]` naming convention (see
+`docs/developer/permissions_naming.md` for the full inventory and naming rules).
 
 ### Canonical role levels
 
@@ -27,6 +28,40 @@ Notes:
 
 - Admin-only APIs and global destructive operations are guarded at `99999`.
 - Bootstrap/seed role documents should use the same values to avoid unexpected authorization failures.
+
+### Dual-layer enforcement
+
+Authorization is enforced at two layers with **different** semantics:
+
+#### API layer — disjunctive OR (`require_access`)
+
+The FastAPI `require_access` dependency grants access if **any** criterion is met:
+a permission match, an access-level gate, or a role gate. Superusers bypass all
+checks via an early return.
+
+```python
+@router.patch("/.../flags/false-positive")
+def mark_false_variant(
+    user: ApiUser = Depends(require_access(permission="snv:manage", min_role="admin")),
+):
+    # Authorized if user has "snv:manage" OR has admin role
+```
+
+#### UI layer — conjunctive AND (`has_access`)
+
+The Jinja `has_access()` helper requires **all** specified criteria to be satisfied
+before showing a UI element:
+
+```jinja2
+{% if has_access(permission="report:create", min_role="admin") %}
+    <button>Create Report</button>
+{% endif %}
+```
+
+This means:
+- API routes use OR so that permissions can grant access independently of role level.
+- UI elements use AND so that a button only appears when the user has both the
+  permission and the required role.
 
 ## Authentication providers
 

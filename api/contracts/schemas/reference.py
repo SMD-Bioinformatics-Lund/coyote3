@@ -408,9 +408,11 @@ class VepConsequenceDoc(_DocBase):
     desc: str
     impact: str
     so_term: str
+    group: str
 
 
 class VepMetadataDoc(_DocBase):
+    vep_id: str
     created_by: str
     created_on: datetime
 
@@ -422,6 +424,39 @@ class VepMetadataDoc(_DocBase):
 
     variant_class_translations: Dict[str, VepVariantClassDoc]
     conseq_translations: Dict[str, VepConsequenceDoc]
+    consequence_groups: Dict[str, list[str]]
+
+    @field_validator("vep_id", mode="before")
+    @classmethod
+    def derive_vep_id(cls, value, info):
+        if value is not None and str(value).strip():
+            return str(value).strip()
+        raw = info.data or {}
+        db_info = raw.get("db_info") or {}
+        versions = {
+            str(meta.get("ensembl_version")).strip()
+            for meta in db_info.values()
+            if isinstance(meta, dict) and meta.get("ensembl_version") is not None
+        }
+        versions = {version for version in versions if version}
+        if len(versions) != 1:
+            raise ValueError("vep_metadata requires exactly one resolvable ensembl_version")
+        return versions.pop()
+
+    @model_validator(mode="after")
+    def validate_consequence_groups_against_translations(self):
+        known_terms = set(self.conseq_translations.keys())
+        invalid_terms: dict[str, list[str]] = {}
+        for group_name, terms in self.consequence_groups.items():
+            missing = [term for term in terms if term not in known_terms]
+            if missing:
+                invalid_terms[group_name] = missing
+        if invalid_terms:
+            raise ValueError(
+                "vep_metadata consequence_groups reference unknown consequence terms: "
+                f"{invalid_terms}"
+            )
+        return self
 
 
 class DashboardPayloadDoc(_DocBase):

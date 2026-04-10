@@ -21,7 +21,6 @@ def _dna_workflow() -> dna_workflow.DNAWorkflowService:
         vep_metadata_handler=stub,
         annotation_handler=stub,
         reported_variant_handler=stub,
-        conseq_terms_mapper={},
     )
 
 
@@ -179,7 +178,9 @@ def test_rna_workflow_build_context_and_query(monkeypatch):
     monkeypatch.setattr(
         rna_workflow.util,
         "common",
-        SimpleNamespace(get_sample_effective_genes=lambda *_args: ({"TP53": True}, ["TP53"])),
+        SimpleNamespace(
+            get_sample_effective_genes=lambda *_args, **_kw: ({"TP53": True}, ["TP53"])
+        ),
         raising=False,
     )
 

@@ -72,7 +72,6 @@ class MongoStore:
     gene_list_handler: Any
     oncokb_handler: Any
     permissions_handler: Any
-    query_profile_handler: Any
     reported_variant_handler: Any
     rna_classification_handler: Any
     rna_expression_handler: Any
@@ -104,7 +103,6 @@ class MongoStore:
         "gene_list_handler",
         "oncokb_handler",
         "permissions_handler",
-        "query_profile_handler",
         "reported_variant_handler",
         "rna_classification_handler",
         "rna_expression_handler",
@@ -145,7 +143,6 @@ class MongoStore:
         self.gene_list_handler = _LazyHandlerProxy()
         self.oncokb_handler = _LazyHandlerProxy()
         self.permissions_handler = _LazyHandlerProxy()
-        self.query_profile_handler = _LazyHandlerProxy()
         self.reported_variant_handler = _LazyHandlerProxy()
         self.rna_classification_handler = _LazyHandlerProxy()
         self.rna_expression_handler = _LazyHandlerProxy()

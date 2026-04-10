@@ -7,7 +7,6 @@ from typing import Any
 
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.http import api_error
-from api.runtime_state import app as runtime_app
 from api.services.accounts.common import (
     admin_list_pagination,
     build_managed_form,
@@ -38,7 +37,7 @@ class AspcService:
         return cls(
             assay_configuration_handler=store.assay_configuration_handler,
             assay_panel_handler=store.assay_panel_handler,
-            gene_list_handler=store.gene_list_handler,
+            vep_metadata_handler=store.vep_metadata_handler,
             common_util=common_util,
         )
 
@@ -47,13 +46,13 @@ class AspcService:
         *,
         assay_configuration_handler: Any,
         assay_panel_handler: Any,
-        gene_list_handler: Any,
+        vep_metadata_handler: Any,
         common_util: Any,
     ) -> None:
         """Create the service for assay-configuration resource workflows."""
         self.assay_configuration_handler = assay_configuration_handler
         self.assay_panel_handler = assay_panel_handler
-        self.gene_list_handler = gene_list_handler
+        self.vep_metadata_handler = vep_metadata_handler
         self.common_util = common_util
 
     @staticmethod
@@ -67,64 +66,14 @@ class AspcService:
                     subfield["options"] = list(dict.fromkeys([str(o) for o in options if str(o)]))
                     return
 
-    def _resolve_isgl_options(self, *, assay_name: str | None) -> dict[str, list[str]]:
-        docs = [
-            dict(item)
-            for item in (self.gene_list_handler.get_all_isgl() or [])
-            if isinstance(item, dict)
-        ]
-        assay = str(assay_name or "").strip()
-        result: dict[str, list[str]] = {
-            "genelists": [],
-            "cnv_genelists": [],
-            "fusion_genelists": [],
-        }
-        for doc in docs:
-            if not doc.get("is_active", True):
-                continue
-            doc_assays = [str(v) for v in (doc.get("assays") or []) if str(v)]
-            if assay and doc_assays and assay not in doc_assays:
-                continue
-            isgl_id = str(doc.get("isgl_id") or "").strip()
-            if not isgl_id:
-                continue
-            list_types = {str(v).strip().lower() for v in (doc.get("list_type") or []) if str(v)}
-            if "small_variants_genelist" in list_types:
-                result["genelists"].append(isgl_id)
-            if "cnv_genelist" in list_types:
-                result["cnv_genelists"].append(isgl_id)
-            if "fusion_genelist" in list_types or "fusionlist" in list_types:
-                result["fusion_genelists"].append(isgl_id)
-        return {k: list(dict.fromkeys(v)) for k, v in result.items()}
-
     def _decorate_form_options(
         self, *, form: dict[str, Any], form_category: str, assay_name: str | None
     ) -> None:
+        _ = assay_name
         if form_category == "DNA":
-            conseq_options = list(runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys())
+            conseq_options = list(self.vep_metadata_handler.get_consequence_group_options())
             self._set_group_field_options(
                 form, top_field="filters", subfield_key="vep_consequences", options=conseq_options
-            )
-            isgl_options = self._resolve_isgl_options(assay_name=assay_name)
-            self._set_group_field_options(
-                form,
-                top_field="filters",
-                subfield_key="genelists",
-                options=isgl_options.get("genelists", []),
-            )
-            self._set_group_field_options(
-                form,
-                top_field="filters",
-                subfield_key="cnv_genelists",
-                options=isgl_options.get("cnv_genelists", []),
-            )
-        else:
-            isgl_options = self._resolve_isgl_options(assay_name=assay_name)
-            self._set_group_field_options(
-                form,
-                top_field="filters",
-                subfield_key="fusion_genelists",
-                options=isgl_options.get("fusion_genelists", []),
             )
 
     def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
@@ -179,7 +128,6 @@ class AspcService:
                     or []
                 )
                 if envs:
-                    isgl_options = self._resolve_isgl_options(assay_name=assay_id)
                     valid_assay_ids.append(assay_id)
                     prefill_map[assay_id] = {
                         "display_name": panel.get("display_name"),
@@ -187,9 +135,6 @@ class AspcService:
                         "asp_category": panel_category,
                         "platform": panel.get("platform"),
                         "environment": envs,
-                        "genelists": isgl_options.get("genelists", []),
-                        "cnv_genelists": isgl_options.get("cnv_genelists", []),
-                        "fusion_genelists": isgl_options.get("fusion_genelists", []),
                     }
         form["fields"]["assay_name"]["options"] = valid_assay_ids
         self._decorate_form_options(
@@ -271,7 +216,7 @@ class AspcService:
             is_new=True,
         )
         config = _validated_doc(spec.collection, config)
-        self.assay_configuration_handler.create_aspc(config)
+        self.assay_configuration_handler.create_assay_config(config)
         return change_payload(
             resource="aspc", resource_id=str(config.get("aspc_id", "unknown")), action="create"
         )
@@ -346,7 +291,7 @@ class AspcService:
         assay_config = self.assay_configuration_handler.get_aspc_with_id(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
-        self.assay_configuration_handler.delete_aspc(assay_id)
+        self.assay_configuration_handler.delete_assay_config(assay_id)
         return change_payload(resource="aspc", resource_id=assay_id, action="delete")
 
     def assay_config_exists(
@@ -367,36 +312,3 @@ class AspcService:
             return False
         doc = self.assay_configuration_handler.get_aspc_with_id(resolved_id)
         return bool(isinstance(doc, dict) and (doc.get("aspc_id") or doc.get("_id")))
-
-    def _resolve_query_profile_options(
-        self,
-        *,
-        assay_name: str | None = None,
-        assay_group: str | None = None,
-        environment: str | None = None,
-    ) -> dict[str, list[str]]:
-        _ = (assay_name, assay_group, environment)
-        return {"snv": [], "cnv": [], "fusion": [], "transloc": []}
-
-
-class QueryProfileService:
-    """Query-profile option lookups for ASPC forms."""
-
-    def __init__(self, *, aspc_service: AspcService) -> None:
-        self._aspc_service = aspc_service
-
-    def options_payload(
-        self,
-        *,
-        assay_name: str | None = None,
-        assay_group: str | None = None,
-        environment: str | None = None,
-    ) -> dict[str, Any]:
-        """Return active query-profile options filtered by assay/group/environment."""
-        return {
-            "options": self._aspc_service._resolve_query_profile_options(
-                assay_name=assay_name,
-                assay_group=assay_group,
-                environment=environment,
-            )
-        }

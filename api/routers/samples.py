@@ -13,7 +13,6 @@ from api.contracts.home import (
     HomeSamplesPayload,
 )
 from api.contracts.samples import (
-    CoverageBlacklistStatusPayload,
     CoverageBlacklistUpdateRequest,
     SampleChangePayload,
     SampleCommentCreateRequest,
@@ -83,29 +82,35 @@ def list_samples_read(
 @router.get("/api/v1/samples/{sample_id}/genelists", response_model=HomeItemsPayload)
 def sample_genelists_read(
     sample_id: str,
+    target: str | None = Query(default=None),
     user: ApiUser = Depends(require_access(min_level=1)),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Return selectable genelists for a sample."""
     sample = _get_sample_for_api(sample_id, user)
-    return util.common.convert_to_serializable(service.genelist_items_payload(sample=sample))
+    return util.common.convert_to_serializable(
+        service.genelist_items_payload(sample=sample, target=target)
+    )
 
 
 @router.get("/api/v1/samples/{sample_id}/effective-genes", response_model=HomeEffectiveGenesPayload)
 def sample_effective_genes_read(
     sample_id: str,
+    target: str | None = Query(default=None),
     user: ApiUser = Depends(require_access(min_level=1)),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Return the effective genes for a sample."""
     sample = _get_sample_for_api(sample_id, user)
-    return util.common.convert_to_serializable(service.effective_genes_payload(sample=sample))
+    return util.common.convert_to_serializable(
+        service.effective_genes_payload(sample=sample, target=target)
+    )
 
 
 @router.get("/api/v1/samples/{sample_id}/edit-context", response_model=HomeEditContextPayload)
 def sample_edit_context_read(
     sample_id: str,
-    user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
+    user: ApiUser = Depends(require_access(permission="sample:edit:own", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Return edit context for a sample."""
@@ -119,13 +124,14 @@ def sample_edit_context_read(
 def sample_apply_genelists_change(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
-    user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
+    target: str | None = Query(default=None),
+    user: ApiUser = Depends(require_access(permission="sample:edit:own", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Persist selected genelists for a sample."""
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
-        service.apply_genelists(sample=sample, payload=payload, sample_id=sample_id)
+        service.apply_genelists(sample=sample, payload=payload, sample_id=sample_id, target=target)
     )
 
 
@@ -133,26 +139,28 @@ def sample_apply_genelists_change(
 def sample_save_adhoc_genes_change(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
-    user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
+    target: str | None = Query(default=None),
+    user: ApiUser = Depends(require_access(permission="sample:edit:own", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Persist ad hoc genes for a sample."""
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
-        service.save_adhoc_genes(sample=sample, payload=payload, sample_id=sample_id)
+        service.save_adhoc_genes(sample=sample, payload=payload, sample_id=sample_id, target=target)
     )
 
 
 @router.delete("/api/v1/samples/{sample_id}/adhoc-genes", response_model=HomeChangeStatusPayload)
 def sample_clear_adhoc_genes_change(
     sample_id: str,
-    user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
+    target: str | None = Query(default=None),
+    user: ApiUser = Depends(require_access(permission="sample:edit:own", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Clear ad hoc genes for a sample."""
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
-        service.clear_adhoc_genes(sample=sample, sample_id=sample_id)
+        service.clear_adhoc_genes(sample=sample, sample_id=sample_id, target=target)
     )
 
 
@@ -163,7 +171,7 @@ def sample_clear_adhoc_genes_change(
 def sample_report_context_read(
     sample_id: str,
     report_id: str,
-    user: ApiUser = Depends(require_access(permission="view_reports", min_role="admin")),
+    user: ApiUser = Depends(require_access(permission="report:view", min_role="admin")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Return report-download context for a sample report."""
@@ -201,7 +209,7 @@ def create_sample_comment(
     sample_id: str,
     payload: SampleCommentCreateRequest,
     user: ApiUser = Depends(
-        require_access(permission="add_sample_comment", min_role="user", min_level=9)
+        require_access(permission="sample.comment:add", min_role="user", min_level=9)
     ),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
@@ -239,7 +247,7 @@ def hide_sample_comment(
     sample_id: str,
     comment_id: str,
     user: ApiUser = Depends(
-        require_access(permission="hide_sample_comment", min_role="manager", min_level=99)
+        require_access(permission="sample.comment:hide", min_role="manager", min_level=99)
     ),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
@@ -271,7 +279,7 @@ def unhide_sample_comment(
     sample_id: str,
     comment_id: str,
     user: ApiUser = Depends(
-        require_access(permission="unhide_sample_comment", min_role="manager", min_level=99)
+        require_access(permission="sample.comment:unhide", min_role="manager", min_level=99)
     ),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
@@ -334,7 +342,7 @@ def _update_sample_filters(
 def update_sample_filters(
     sample_id: str,
     payload: SampleFiltersUpdateRequest,
-    user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
+    user: ApiUser = Depends(require_access(permission="sample:edit:own", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Replace a sample's filter payload."""
@@ -364,49 +372,16 @@ def _reset_sample_filters(sample_id: str, user: ApiUser, service: SampleCatalogS
 )
 def reset_sample_filters(
     sample_id: str,
-    user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
+    user: ApiUser = Depends(require_access(permission="sample:edit:own", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
     """Reset a sample's filters to assay defaults."""
     return _reset_sample_filters(sample_id=sample_id, user=user, service=service)
 
 
-def _update_coverage_blacklist(
-    payload: CoverageBlacklistUpdateRequest, service: SampleCatalogService
-):
-    """Create a coverage blacklist entry and serialize the response."""
-    gene = payload.gene
-    coord = payload.coord or ""
-    smp_grp = payload.smp_grp
-    region = payload.region
-    status = payload.status
-    if coord:
-        coord = str(coord).replace(":", "_").replace("-", "_")
-        service.add_coverage_blacklist(gene=gene, coord=coord, region=region, smp_grp=smp_grp)
-        return util.common.convert_to_serializable(
-            {
-                "status": "ok",
-                "message": (
-                    f" Status for {gene}:{region}:{coord} was set as {status} for group: {smp_grp}. "
-                    "Page needs to be reload to take effect"
-                ),
-            }
-        )
-    service.add_coverage_blacklist(gene=gene, coord=None, region=region, smp_grp=smp_grp)
-    return util.common.convert_to_serializable(
-        {
-            "status": "ok",
-            "message": (
-                f" Status for full gene: {gene} was set as {status} for group: {smp_grp}. "
-                "Page needs to be reload to take effect"
-            ),
-        }
-    )
-
-
 @router.post(
     "/api/v1/coverage/blacklist/entries",
-    response_model=CoverageBlacklistStatusPayload,
+    response_model=SampleChangePayload,
     summary="Create coverage blacklist entry",
 )
 def create_coverage_blacklist_entry(
@@ -416,18 +391,22 @@ def create_coverage_blacklist_entry(
 ):
     """Create a coverage blacklist entry."""
     _ = user
-    return _update_coverage_blacklist(payload=payload, service=service)
-
-
-def _remove_coverage_blacklist(obj_id: str, service: SampleCatalogService):
-    """Delete a coverage blacklist entry and serialize the response."""
-    service.remove_coverage_blacklist(obj_id=obj_id)
+    gene = payload.gene
+    coord = payload.coord or ""
+    smp_grp = payload.smp_grp
+    region = payload.region
+    if coord:
+        coord = str(coord).replace(":", "_").replace("-", "_")
+    service.add_coverage_blacklist(
+        gene=gene, coord=coord if coord else None, region=region, smp_grp=smp_grp
+    )
+    resource_id = f"{gene}:{region}:{coord}" if coord else f"{gene}:{region}"
     return util.common.convert_to_serializable(
         change_payload(
             sample_id="coverage",
             resource="blacklist",
-            resource_id=obj_id,
-            action="remove",
+            resource_id=resource_id,
+            action="add",
         )
     )
 
@@ -444,4 +423,12 @@ def delete_coverage_blacklist_entry(
 ):
     """Delete a coverage blacklist entry."""
     _ = user
-    return _remove_coverage_blacklist(obj_id=obj_id, service=service)
+    service.remove_coverage_blacklist(obj_id=obj_id)
+    return util.common.convert_to_serializable(
+        change_payload(
+            sample_id="coverage",
+            resource="blacklist",
+            resource_id=obj_id,
+            action="remove",
+        )
+    )

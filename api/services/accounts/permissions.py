@@ -18,6 +18,11 @@ from api.services.accounts.common import (
 )
 
 
+def _normalize_permission_id(permission_id: Any) -> str:
+    """Normalize a permission identifier for persistence."""
+    return str(permission_id or "").strip().lower()
+
+
 class PermissionManagementService:
     """Own permission-policy workflows for admin HTTP routes."""
 
@@ -30,6 +35,18 @@ class PermissionManagementService:
         """Create the service for managed permission policy workflows."""
         self._spec = managed_resource_spec("permission")
         self.permissions_handler = permissions_handler
+
+    @staticmethod
+    def _normalize_permission_policy(policy: dict[str, Any]) -> dict[str, Any]:
+        """Return a permission policy with canonical identifiers for UI consumers."""
+        normalized_policy = dict(policy)
+        canonical_id = _normalize_permission_id(
+            normalized_policy.get("permission_id") or normalized_policy.get("permission_name")
+        )
+        if canonical_id:
+            normalized_policy["permission_id"] = canonical_id
+            normalized_policy["permission_name"] = canonical_id
+        return normalized_policy
 
     def list_permissions_payload(
         self, *, q: str = "", page: int = 1, per_page: int = 30
@@ -45,7 +62,9 @@ class PermissionManagementService:
             per_page=per_page,
             is_active=False,
         )
-        permission_policies = [dict(item) for item in rows if isinstance(item, dict)]
+        permission_policies = [
+            self._normalize_permission_policy(dict(item)) for item in rows if isinstance(item, dict)
+        ]
         total = int(total or 0)
         grouped_permissions: dict[str, list[dict[str, Any]]] = {}
         for policy in permission_policies:
@@ -81,7 +100,10 @@ class PermissionManagementService:
         permission = self.permissions_handler.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
-        return {"permission": permission, "form": build_managed_form(self._spec)}
+        return {
+            "permission": self._normalize_permission_policy(permission),
+            "form": build_managed_form(self._spec),
+        }
 
     def create_permission(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
         """Create a new permission policy from submitted form data.
@@ -96,7 +118,8 @@ class PermissionManagementService:
         form_data = payload.get("form_data", {}) or {}
         policy = normalize_managed_form_payload(self._spec, form_data)
         policy.setdefault("is_active", True)
-        policy_id = str(policy["permission_name"]).strip()
+        policy_id = _normalize_permission_id(policy["permission_name"])
+        policy["permission_name"] = policy_id
         policy["permission_id"] = policy_id
         existing_policy = self.permissions_handler.get_permission(policy_id)
         if isinstance(existing_policy, dict) and (
@@ -134,7 +157,11 @@ class PermissionManagementService:
         updated_permission["updated_on"] = utc_now()
         updated_permission["updated_by"] = actor
         updated_permission["version"] = permission.get("version", 1) + 1
-        updated_permission["permission_id"] = permission.get("permission_id", permission_id)
+        updated_permission["permission_name"] = str(
+            _normalize_permission_id(updated_permission.get("permission_name"))
+            or permission.get("permission_id", permission_id)
+        )
+        updated_permission["permission_id"] = updated_permission["permission_name"]
         updated_permission["_id"] = permission.get("_id")
         updated_permission = inject_version_history(
             actor_username=actor,

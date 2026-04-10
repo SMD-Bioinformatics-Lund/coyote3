@@ -466,7 +466,7 @@ Use this as the minimum center onboarding contract:
 | --- | --- | --- |
 | `permissions` | `permission_id`, `permission_name` | RBAC policy definitions |
 | `roles` | `role_id`, `level`, `permissions[]` | RBAC role resolution |
-| `users` | `email`, `role`, `environments[]` | Login + authorization subject (first user should be created by `bootstrap_local_admin.py`) |
+| `users` | `username`, `email`, `role`, `environments[]` | Login + authorization subject (first user should be created by `bootstrap_local_admin.py`) |
 | `asp_configs` | `aspc_id`, `assay_name`, `environment`, `asp_group`, `asp_category`, `analysis_types[]`, `display_name`, `filters{...}`, `reporting{...}`, `is_active` | Assay+environment runtime config |
 | `assay_specific_panels` | `asp_id`, `assay_name`, `asp_group`, `is_active` | Assay metadata/UI wiring |
 | `insilico_genelists` | `isgl_id`, `diagnosis`, `assays[]`, `assay_groups[]`, `genes[]`, `is_active` | Panel/list filtering logic |

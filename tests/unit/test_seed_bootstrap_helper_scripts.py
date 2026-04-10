@@ -62,7 +62,7 @@ def test_build_seed_bundle_normalizes_and_stamps(tmp_path):
 
     seed_docs = [
         {
-            "permission_id": "VIEW_REPORTS",
+            "permission_id": "REPORT:VIEW",
             "created_on": {"$date": "2024-01-01T00:00:00Z"},
             "owner_id": {"$oid": "507f1f77bcf86cd799439011"},
         }
@@ -86,7 +86,7 @@ def test_build_seed_bundle_normalizes_and_stamps(tmp_path):
     assert "[ok] normalized seed bundle:" in result.stdout
 
     output_docs = json.loads((dest_dir / "permissions.json").read_text(encoding="utf-8"))
-    assert output_docs[0]["permission_id"] == "view_reports"
+    assert output_docs[0]["permission_id"] == "report:view"
     assert output_docs[0]["created_on"] == "2026-03-30T00:00:00Z"
     assert output_docs[0]["owner_id"] == "507f1f77bcf86cd799439011"
     assert output_docs[0]["created_by"] == "admin@center.local"

@@ -36,6 +36,47 @@ class DnaFiltersDoc(_StrictDocBase):
     cnveffects: list[str] = Field(default_factory=lambda: ["gain", "loss"])
     cnv_genelists: list[str] = Field(default_factory=list)
 
+    @model_validator(mode="before")
+    @classmethod
+    def _apply_field_defaults_for_unset_values(cls, data: Any) -> Any:
+        """Treat null and empty list filter values as unset so defaults apply."""
+        if not isinstance(data, dict):
+            return data
+
+        normalized = dict(data)
+        scalar_defaults_to_restore = {
+            "max_freq",
+            "min_freq",
+            "max_control_freq",
+            "max_popfreq",
+            "min_depth",
+            "min_alt_reads",
+            "min_cnv_size",
+            "max_cnv_size",
+            "cnv_loss_cutoff",
+            "cnv_gain_cutoff",
+            "warn_cov",
+            "error_cov",
+        }
+        list_defaults_to_restore = {
+            "genelists",
+            "small_variants_genelists",
+            "vep_consequences",
+            "cnveffects",
+            "cnv_genelists",
+        }
+
+        for key in scalar_defaults_to_restore:
+            if key in normalized and normalized[key] is None:
+                normalized.pop(key, None)
+        for key in list_defaults_to_restore:
+            if key in normalized and (
+                normalized[key] is None
+                or (isinstance(normalized[key], list) and len(normalized[key]) == 0)
+            ):
+                normalized.pop(key, None)
+        return normalized
+
     @model_validator(mode="after")
     def _validate_consistency(self) -> "DnaFiltersDoc":
         """Validate cross-field consistency."""

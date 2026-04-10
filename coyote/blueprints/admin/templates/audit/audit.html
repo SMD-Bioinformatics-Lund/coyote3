@@ -22,8 +22,9 @@
                   <th class="p-2 font-normal">Level</th>
                   <th class="p-2 font-normal">Status</th>
                   <th class="p-2 font-normal">Timestamp</th>
-                  <th class="p-2 font-normal">User</th>
+                  <th class="p-2 font-normal">Actor</th>
                   <th class="p-2 font-normal">Action</th>
+                  <th class="p-2 font-normal">Target</th>
                   <th class="p-2 font-normal">Duration</th>
                   <th class="p-2 font-normal w-5/12">Extra</th>
                   <th class="p-2 font-normal">Details</th>
@@ -63,12 +64,23 @@
                         </td>
                         <td class="p-2 font-medium whitespace-nowrap">{{ entry.timestamp if entry.timestamp != none else "N/A" }}</td>
                         <td class="p-2 font-medium text-left align-middle">
-                          <div class="flex flex-col items-left justify-center leading-snug">
-                            <span class="font-semibold">{{ log.user or log.username or "N/A" }}</span>
-                            <small class="text-gray-600 text-xs">({{ log.role or "NA" }})</small>
+                          <div class="flex flex-col items-left justify-center leading-snug gap-1">
+                            <span class="font-semibold">{{ log.username or log.user or "N/A" }}</span>
+                            <div class="flex flex-wrap gap-1">
+                              {% for role_id in log.roles or ([log.role] if log.role else []) %}
+                                <small class="text-gray-700 text-xs px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200">{{ role_id }}</small>
+                              {% endfor %}
+                            </div>
                           </div>
                         </td>
                         <td class="p-2 font-medium">{{ log.action or "—" }}</td>
+                        <td class="p-2 text-xs text-gray-700">
+                          <div class="space-y-0.5">
+                            <div><span class="font-semibold text-black">Path:</span> {{ log.path or "—" }}</div>
+                            <div><span class="font-semibold text-black">Sample:</span> {{ log.sample_id or log.target or "—" }}</div>
+                            <div><span class="font-semibold text-black">Request:</span> {{ log.request_id or "—" }}</div>
+                          </div>
+                        </td>
                         <td class="p-2">{{ log.duration_ms or "—" }}</td>
                         <td class="p-2 text-xs text-gray-800">
                           {% if log.extra %}
@@ -82,7 +94,7 @@
                           {% endif %}
                         </td>
                         <td class="p-2 text-xs text-gray-600">
-                          {% set keys_to_exclude = ['timestamp', 'user', 'role', 'action', 'status', 'duration_ms', 'extra', 'level'] %}
+                          {% set keys_to_exclude = ['timestamp', 'user', 'username', 'roles', 'role', 'action', 'status', 'duration_ms', 'extra', 'level', 'path', 'sample_id', 'target', 'request_id'] %}
                           <div class="space-y-0.5">
                             {% for key, val in log.items() if key not in keys_to_exclude %}
                               <div>

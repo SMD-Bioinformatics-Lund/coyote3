@@ -387,7 +387,7 @@ class ISGLHandler(BaseHandler):
             )
         return {"assay_isgl_counts": assay_rows}
 
-    def create_isgl(self, data: dict) -> Any:
+    def create_genelist(self, data: dict) -> Any:
         """
         Insert a new gene list into the database.
 
@@ -446,7 +446,7 @@ class ISGLHandler(BaseHandler):
         invalidate_dashboard_summary_cache(self.adapter)
         return result
 
-    def delete_isgl(self, isgl_id: str) -> Any:
+    def delete_genelist(self, isgl_id: str) -> Any:
         """
         Delete a gene list.
 

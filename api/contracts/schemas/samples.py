@@ -63,6 +63,7 @@ class SamplesDoc(_DocBase):
     subpanel: str | None
     profile: Literal["production", "development", "testing", "validation"]
     genome_build: int | None = None
+    vep_version: str | None = None
     case_id: str
     control_id: str | None = None
     sample_no: int
@@ -135,6 +136,18 @@ class SamplesDoc(_DocBase):
         if raw not in aliases:
             raise ValueError("profile must be one of: production, development, testing, validation")
         return aliases[raw]
+
+    @field_validator("vep_version", mode="before")
+    @classmethod
+    def _normalize_vep_version(cls, value: Any) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return str(int(value))
+        if isinstance(value, str):
+            value = value.strip()
+            return value or None
+        return str(value).strip() or None
 
     @field_validator(
         "case_id", "control_id", "name", "assay", "pipeline", "pipeline_version", mode="before"

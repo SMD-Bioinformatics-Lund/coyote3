@@ -16,7 +16,7 @@
   <hr class="border border-gray-500 my-1">
 
   <!-- Variant actions -->
-  <div id="snv-actions" class="p-1 px-2 space-y-2 w-full text-xs {% if not has_access('manage_snvs', min_role='user', min_level=9) %}readonly opacity-70 select-none pointer-events-none{% endif %}">
+  <div id="snv-actions" class="p-1 px-2 space-y-2 w-full text-xs {% if not has_access('snv:manage', min_role='user', min_level=9) %}readonly opacity-70 select-none pointer-events-none{% endif %}">
     <div class="flex justify-between items-center mb-1">
       <h2 class="text-sm font-semibold">Modify Variants</h2>
     </div>
@@ -49,7 +49,7 @@
 
   <hr class="border border-gray-500 my-1">
 
-  <form action="" method="POST" name="form" class="{% if not has_access('apply_variant_filters', min_role='user', min_level=9) %}readonly opacity-70 select-none pointer-events-none{% endif %}">
+  <form action="" method="POST" name="form" class="{% if not has_access('variant.filter:apply', min_role='user', min_level=9) %}readonly opacity-70 select-none pointer-events-none{% endif %}">
 
     <div id="snv-filters" class="p-1 px-2 space-y-2 w-full text-xs">
       <div class="flex justify-between items-center mb-1">
@@ -145,7 +145,7 @@
           {% for panel in assay_panels %}
             {% set panel_list_types = panel.list_type if panel.list_type is sequence and panel.list_type is not string else [panel.list_type] %}
             {% set panel_type_values = panel_list_types | map('string') | map('lower') | list %}
-            {% if 'small_variants_genelist' in panel_type_values or 'genelist' in panel_type_values %}
+            {% if 'small_variant_genelist' in panel_type_values %}
               {% set show=False %}
               <label for="{{ panel.displayname }}" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">
                 {{ form['genelist_' ~ panel.isgl_id](checked=show) }} <span class="{%if panel.adhoc %}text-pink-800{% endif %}">{{ panel.displayname }} {%if panel.adhoc %} <i>(Adhoc)</i>{% endif %}</span>
@@ -214,7 +214,7 @@
           {% for panel in assay_panels %}
             {% set panel_list_types = panel.list_type if panel.list_type is sequence and panel.list_type is not string else [panel.list_type] %}
             {% set panel_type_values = panel_list_types | map('string') | map('lower') | list %}
-            {% if 'cnv_genelist' in panel_type_values or 'cnvlist' in panel_type_values %}
+            {% if 'cnv_genelist' in panel_type_values %}
               <label for="{{ panel.displayname }}" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">
                 {{ form['cnv_genelist_' ~ panel.isgl_id](checked=False) }} <span class="{%if panel.adhoc %}text-pink-800{% endif %}">{{ panel.displayname }} {%if panel.adhoc %}<i>(Adhoc)</i>{% endif %}</span>
               </label>

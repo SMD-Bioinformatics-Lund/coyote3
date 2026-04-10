@@ -29,5 +29,5 @@ Contract rules:
 - Seed files use plain JSON scalar values for IDs/timestamps (for example ISO-8601 datetime strings),
   not Mongo Extended JSON wrappers such as `$date` / `$oid`.
 - Per-collection required/optional keys are generated from Pydantic contracts into
-  `docs/api/collection-contracts.md` via:
+  `docs/api/collection_contracts.md` via:
   - `PYTHONPATH=. ${PYTHON_BIN:-python} scripts/export_collection_contracts_doc.py`

@@ -105,7 +105,7 @@ class AspService:
             is_new=True,
         )
         config = _validated_doc(self._spec.collection, config)
-        self.assay_panel_handler.create_asp(config)
+        self.assay_panel_handler.create_panel(config)
         return change_payload(
             resource="asp", resource_id=str(config.get("asp_id", "unknown")), action="create"
         )
@@ -175,7 +175,7 @@ class AspService:
         panel = self.assay_panel_handler.get_asp(panel_id)
         if not panel:
             raise api_error(404, "Panel not found")
-        self.assay_panel_handler.delete_asp(panel_id)
+        self.assay_panel_handler.delete_panel(panel_id)
         return change_payload(resource="asp", resource_id=panel_id, action="delete")
 
     def panel_exists(self, *, asp_id: str) -> bool:

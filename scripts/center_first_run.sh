@@ -11,6 +11,7 @@ Usage:
     --env-file <path> \
     --compose-file <path> \
     --api-base-url <url> \
+    --admin-username <username> \
     --admin-email <email> \
     --admin-password <password> \
     [--seed-file <path>] \
@@ -27,6 +28,7 @@ USAGE
 ENV_FILE=""
 COMPOSE_FILE=""
 API_BASE_URL=""
+ADMIN_USERNAME=""
 ADMIN_EMAIL=""
 ADMIN_PASSWORD=""
 MONGO_URI_OVERRIDE=""
@@ -34,7 +36,7 @@ SEED_FILE="tests/fixtures/db_dummy/all_collections_dummy"
 SEED_DATA_PACK=""
 YAML_FILE="tests/data/ingest_demo/generic_case_control.yaml"
 WITH_OPTIONAL=0
-SKIP_EXISTING=0
+SKIP_EXISTING=1
 STRICT_NO_RETRY=0
 TEARDOWN=0
 PYTHON_BIN="${PYTHON_BIN:-}"
@@ -71,6 +73,7 @@ parse_args() {
       --env-file) ENV_FILE="$2"; shift 2 ;;
       --compose-file) COMPOSE_FILE="$2"; shift 2 ;;
       --api-base-url) API_BASE_URL="$2"; shift 2 ;;
+      --admin-username) ADMIN_USERNAME="$2"; shift 2 ;;
       --admin-email) ADMIN_EMAIL="$2"; shift 2 ;;
       --admin-password) ADMIN_PASSWORD="$2"; shift 2 ;;
       --mongo-uri) MONGO_URI_OVERRIDE="$2"; shift 2 ;;
@@ -89,7 +92,7 @@ parse_args() {
 }
 
 validate_args() {
-  if [[ -z "$ENV_FILE" || -z "$COMPOSE_FILE" || -z "$API_BASE_URL" || -z "$ADMIN_EMAIL" || -z "$ADMIN_PASSWORD" ]]; then
+  if [[ -z "$ENV_FILE" || -z "$COMPOSE_FILE" || -z "$API_BASE_URL" || -z "$ADMIN_USERNAME" || -z "$ADMIN_EMAIL" || -z "$ADMIN_PASSWORD" ]]; then
     echo "ERROR: required arguments are missing" >&2
     usage
     exit 2
@@ -251,6 +254,7 @@ bootstrap_local_admin() {
   PYTHONPATH=. "$PYTHON_BIN" scripts/bootstrap_local_admin.py \
     --mongo-uri "$MONGO_URI" \
     --db "$COYOTE3_DB" \
+    --username "$ADMIN_USERNAME" \
     --email "$ADMIN_EMAIL" \
     --password "$ADMIN_PASSWORD" \
     --assay-group "hematology" \
@@ -292,6 +296,10 @@ run_ingest_check() {
 
 main() {
   parse_args "$@"
+  if [[ -z "$SEED_DATA_PACK" && -d "tests/data/seed_data" ]]; then
+    SEED_DATA_PACK="tests/data/seed_data"
+    echo "[info] using default seed data pack: ${SEED_DATA_PACK}"
+  fi
   validate_args
   resolve_python_bin
   resolve_version

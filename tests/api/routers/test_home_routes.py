@@ -18,6 +18,10 @@ def _sample_catalog_service() -> SampleCatalogService:
         gene_list_handler=store.gene_list_handler,
         assay_panel_handler=store.assay_panel_handler,
         variant_handler=store.variant_handler,
+        copy_number_variant_handler=store.copy_number_variant_handler,
+        fusion_handler=store.fusion_handler,
+        translocation_handler=store.translocation_handler,
+        biomarker_handler=store.biomarker_handler,
         grouped_coverage_handler=store.grouped_coverage_handler,
     )
 
@@ -193,11 +197,150 @@ def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
 
     payload = samples.sample_save_adhoc_genes_change(
         "S1",
-        payload={"genes": "NPM1 TP53\nIDH1", "label": "focus"},
+        payload={"genes": "NPM1 TP53\nIDH1", "label": "focus", "list_type": "cnv"},
         user=fx.api_user(),
         service=service,
     )
 
     assert payload["action"] == "save_adhoc_genes"
     assert payload["gene_count"] == 3
-    assert calls["filters"]["adhoc_genes"]["genes"] == ["IDH1", "NPM1", "TP53"]
+    assert payload["list_type"] == "cnv"
+    assert calls["filters"]["adhoc_genes"]["cnv"]["genes"] == ["IDH1", "NPM1", "TP53"]
+    assert calls["filters"]["adhoc_genes"]["cnv"]["label"] == "focus"
+
+
+def test_edit_context_payload_includes_analysis_counts(monkeypatch):
+    """Edit context should expose raw and gene-filtered counts for other analysis types too."""
+    sample = fx.sample_doc()
+    sample["_id"] = "s1"
+    sample["omics_layer"] = "dna"
+    sample["filters"]["genelists"] = ["gl1"]
+    sample["filters"]["cnv_genelists"] = ["gl1"]
+    sample["filters"]["adhoc_genes"] = {}
+    service = _sample_catalog_service()
+
+    monkeypatch.setattr(
+        service.assay_panel_handler,
+        "get_asp",
+        lambda assay: {"asp_group": "dna", "covered_genes": ["TP53", "NPM1"]},
+    )
+    monkeypatch.setattr(
+        sample_catalog_service_module,
+        "get_formatted_assay_config",
+        lambda sample_doc: {"filters": dict(sample_doc.get("filters") or {})},
+    )
+    monkeypatch.setattr(
+        service.assay_panel_handler,
+        "get_asp_genes",
+        lambda assay: (["TP53", "NPM1"], []),
+    )
+    monkeypatch.setattr(
+        service.gene_list_handler,
+        "get_isgl_by_ids",
+        lambda ids: {"gl1": {"genes": ["TP53"]}},
+    )
+    monkeypatch.setattr(
+        service.variant_handler,
+        "get_variant_stats",
+        lambda sample_id, genes=None: {
+            "variants": 10 if genes is None else 4,
+            "interesting": 2 if genes is None else 1,
+            "irrelevant": 1,
+            "false_positives": 0,
+        },
+    )
+    monkeypatch.setattr(
+        service.copy_number_variant_handler,
+        "get_sample_cnvs",
+        lambda query: [
+            {"genes": [{"gene": "TP53"}]},
+            {"genes": [{"gene": "RUNX1"}]},
+        ],
+    )
+    monkeypatch.setattr(
+        service.translocation_handler,
+        "get_sample_translocations",
+        lambda sample_id: [
+            {"INFO": [{"ANN": [{"Gene_Name": "TP53&ABL1"}]}]},
+            {"INFO": [{"ANN": [{"Gene_Name": "RUNX1&ETV6"}]}]},
+        ],
+    )
+    monkeypatch.setattr(
+        service.fusion_handler,
+        "get_sample_fusions",
+        lambda query: [],
+    )
+    monkeypatch.setattr(
+        service.biomarker_handler,
+        "get_sample_biomarkers",
+        lambda sample_id: [{"name": "TMB"}],
+    )
+
+    payload = service.edit_context_payload(sample=sample)
+
+    assert payload["analysis_counts_raw"] == {
+        "snv": 10,
+        "cnv": 2,
+        "transloc": 2,
+        "fusion": 0,
+        "biomarker": 1,
+    }
+    assert payload["analysis_counts_filtered"] == {
+        "snv": 4,
+        "cnv": 1,
+        "transloc": 1,
+        "fusion": 0,
+        "biomarker": 1,
+    }
+
+
+def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
+    """Edit-context counts should use the same merged assay defaults as the findings page."""
+    sample = fx.sample_doc()
+    sample["_id"] = "s1"
+    sample["omics_layer"] = "dna"
+    sample["filters"]["genelists"] = []
+    sample["filters"]["adhoc_genes"] = {}
+    service = _sample_catalog_service()
+
+    monkeypatch.setattr(
+        sample_catalog_service_module,
+        "get_formatted_assay_config",
+        lambda sample_doc: {"filters": {"genelists": ["gl1"]}},
+    )
+    monkeypatch.setattr(
+        service.assay_panel_handler,
+        "get_asp",
+        lambda assay: {"asp_group": "dna", "covered_genes": ["TP53", "NPM1"]},
+    )
+    monkeypatch.setattr(
+        service.assay_panel_handler,
+        "get_asp_genes",
+        lambda assay: (["TP53", "NPM1"], []),
+    )
+    monkeypatch.setattr(
+        service.gene_list_handler,
+        "get_isgl_by_ids",
+        lambda ids: {"gl1": {"genes": ["TP53"]}},
+    )
+    monkeypatch.setattr(
+        service.variant_handler,
+        "get_variant_stats",
+        lambda sample_id, genes=None: {
+            "variants": 6 if genes is None else 2,
+            "interesting": 1,
+            "irrelevant": 0,
+            "false_positives": 0,
+        },
+    )
+    monkeypatch.setattr(service.copy_number_variant_handler, "get_sample_cnvs", lambda query: [])
+    monkeypatch.setattr(
+        service.translocation_handler, "get_sample_translocations", lambda sample_id: []
+    )
+    monkeypatch.setattr(service.fusion_handler, "get_sample_fusions", lambda query: [])
+    monkeypatch.setattr(service.biomarker_handler, "get_sample_biomarkers", lambda sample_id: [])
+
+    payload = service.edit_context_payload(sample=sample)
+
+    assert payload["sample"]["filters"]["genelists"] == ["gl1"]
+    assert payload["analysis_counts_filtered"]["snv"] == 2

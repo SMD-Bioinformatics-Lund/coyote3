@@ -22,6 +22,7 @@ jobs:
       COYOTE3_STAGE_API_PORT: "8006"
       COYOTE3_STAGE_REDIS_PORT: "8007"
       COYOTE3_STAGE_MONGO_PORT: "8008"
+      ADMIN_USERNAME: admin
       ADMIN_EMAIL: admin@center.local
       ADMIN_PASSWORD: ci-admin-password
 
@@ -85,6 +86,7 @@ jobs:
           python scripts/bootstrap_local_admin.py \
             --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT}/${COYOTE3_DB}?authSource=${COYOTE3_DB}" \
             --db "${COYOTE3_DB}" \
+            --username "${ADMIN_USERNAME}" \
             --email "${ADMIN_EMAIL}" \
             --password "${ADMIN_PASSWORD}" \
             --assay-group "GROUP_A" \

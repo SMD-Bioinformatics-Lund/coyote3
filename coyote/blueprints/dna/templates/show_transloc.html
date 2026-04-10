@@ -34,7 +34,7 @@
 {% endif %}
 
 {# Build the final IGV URL #}
-{% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
+{% if all_samples_bam_paths and has_access("igv:view", min_role="user", min_level=9) %}
   {% set igv_url_gene1 = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_1_locus %}
   {% set igv_url_gene2 = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_2_locus %}
   {% set igv_link_gene1 = '<a href="' ~ igv_url_gene1 ~ '" class="text-blue-600 underline">' ~ gene_1_locus ~ '</a>' %}
@@ -49,7 +49,7 @@
 {% endif %}
 
 {# check permissions for dna cnv actions buttons #}
-{% set transloc_actions_disabled = not has_access('manage_translocs', min_role='user', min_level=9) %}
+{% set transloc_actions_disabled = not has_access('translocation:manage', min_role='user', min_level=9) %}
 {% set transloc_actions_class = "opacity-70 select-none cursor-not-allowed pointer-events-none" if transloc_actions_disabled else "" %}
 {% set transloc_actions_attr = "disabled" if transloc_actions_disabled else "" %}
 
@@ -215,7 +215,7 @@
       <!-- Comment box, other tiering and pon -->
       <div class="flex flex-col gap-y-4 min-w-[450px] max-w-xl">
         <!-- Comment box -->
-        {% if has_access("add_variant_comment", min_role="user", min_level=9) %}
+        {% if has_access("variant.comment:add:own", min_role="user", min_level=9) %}
           <div class="bg-transparent w-full max-w-xl" id="commenting-box-card">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
             <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
@@ -225,7 +225,7 @@
                 <input type="hidden" name="gene2" value="{{ genes[1] }}">
                 <input type="hidden" name="translocpoints" value="{{tl.CHROM}}:{{tl.POS}}^{{tl.ALT}}">
                 <input type="submit" value="Save" class="bg-blue-500 text-white py-1 px-2 mx-1 mb-1 rounded-lg cursor-pointer shadow-md">&nbsp;&nbsp;
-                {% if has_access("add_global_variant_comment", min_role="admin") %}
+                {% if has_access("variant.comment:add:global", min_role="admin") %}
                   <label class="items-center">
                     <input type="checkbox" name="global" value="global" class="form-checkbox text-blue-500">
                     <span class="ml-2">Use as global annotation</span>
@@ -447,12 +447,12 @@
                         {% if comment.hidden != 1 %}
                           <form action="{{ url_for('dna_bp.hide_transloc_comment', sample_id=sample_id, transloc_id=tl._id) }}" method="post">
                             <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                            <input id="hide_comment" type="image" class="w-5 {% if not has_access('hide_variant_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
+                            <input id="hide_comment" type="image" class="w-5 {% if not has_access('variant.comment:hide', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
                           </form>
                         {% else %}
                           <form action="{{ url_for('dna_bp.unhide_transloc_comment', sample_id=sample_id, transloc_id=tl._id) }}" method="post">
                             <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                            <input id="unhide_comment" type="image" class="w-5 {% if not has_access('unhide_variant_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
+                            <input id="unhide_comment" type="image" class="w-5 {% if not has_access('variant.comment:unhide', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
                           </form>
                         {% endif %}
                       </td>

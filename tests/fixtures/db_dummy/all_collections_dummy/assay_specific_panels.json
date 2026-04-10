@@ -8,7 +8,15 @@
     "display_name": "Hema GMS v1",
     "description": "Demo DNA assay panel for first-run validation",
     "covered_genes": [
+      "UBA1",
+      "APOB",
       "EGFR",
+      "PHIP",
+      "ASXL2",
+      "ASXL1",
+      "FLT3",
+      "KMT2D",
+      "GNB1",
       "TP53"
     ],
     "germline_genes": [

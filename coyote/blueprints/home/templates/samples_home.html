@@ -84,7 +84,7 @@
                     {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
                     <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
                       <td class="p-2 font-medium text-center">
-                        {% if has_access("edit_sample", min_role="admin", min_level=99999) %}
+                        {% if has_access("sample:edit:own", min_role="admin", min_level=99999) %}
                           <button onclick="showActionModal({
                               url: '{{ url_for('home_bp.edit_sample', sample_id=sample.name) }}',
                               title: 'Edit sample settings',
@@ -230,7 +230,7 @@
                     {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
                     <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
                       <td class="p-2 font-medium text-center">
-                        {% if has_access("edit_sample", min_role="admin", min_level=99999) %}
+                        {% if has_access("sample:edit:own", min_role="admin", min_level=99999) %}
                           <button onclick="showActionModal({
                               url: '{{ url_for('home_bp.edit_sample', sample_id=sample.name) }}',
                               title: 'Edit sample settings',
@@ -319,7 +319,7 @@
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
-                        {% if has_access('view_reports', min_role='admin') %}
+                        {% if has_access('report:view', min_role='admin') %}
                             {% for rep in sample.reports %}
                               <a
                                 href="{{ url_for('home_bp.view_report', sample_id=sample.name, report_id=rep.report_id) }}"

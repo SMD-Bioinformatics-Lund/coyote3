@@ -57,9 +57,11 @@ def list_isgls(sample_id: str) -> Response:
         Response: Normalized return value.
     """
     try:
+        list_type = str(request.args.get("target") or "").strip().lower() or None
         payload = get_web_api_client().get_json(
             api_endpoints.home_sample(sample_id, "isgls"),
             headers=forward_headers(),
+            params={"target": list_type} if list_type else None,
         )
         return jsonify({"items": payload.get("items", [])})
     except ApiRequestError as exc:
@@ -82,14 +84,17 @@ def get_effective_genes_all(sample_id: str) -> Response:
         Response: Normalized return value.
     """
     try:
+        target = str(request.args.get("target") or "").strip().lower() or None
         payload = get_web_api_client().get_json(
             api_endpoints.home_sample(sample_id, "effective_genes", "all"),
             headers=forward_headers(),
+            params={"target": target} if target else None,
         )
         return jsonify(
             {
                 "items": payload.get("items", []),
                 "asp_covered_genes_count": payload.get("asp_covered_genes_count", 0),
+                "target": payload.get("target"),
             }
         )
     except ApiRequestError as exc:
@@ -116,11 +121,12 @@ def apply_isgl(sample_id: str) -> tuple[Response, int] | Response:
     if not isinstance(body, dict):
         return jsonify({"status": "error", "error": "Invalid payload"}), 400
     isgl_ids = body.get("isgl_ids")
+    list_type = str(body.get("list_type") or request.args.get("target") or "snv").strip().lower()
     if not isinstance(isgl_ids, list):
         return jsonify({"status": "error", "error": "Invalid payload"}), 400
 
     try:
-        payload = apply_isgl_api(sample_id, isgl_ids)
+        payload = apply_isgl_api(sample_id, isgl_ids, list_type=list_type)
     except ApiRequestError as exc:
         return _mutation_error(
             exc,
@@ -144,12 +150,14 @@ def save_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
     body = request.get_json(silent=True) or {}
     if not isinstance(body, dict):
         return jsonify({"status": "error", "error": "Invalid payload"}), 400
+    list_type = str(body.get("list_type") or request.args.get("target") or "snv").strip().lower()
 
     try:
         payload = save_adhoc_genes_api(
             sample_id,
             genes=body.get("genes", ""),
             label=body.get("label", "adhoc"),
+            list_type=list_type,
         )
     except ApiRequestError as exc:
         return _mutation_error(
@@ -172,7 +180,8 @@ def clear_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
         tuple[Response, int] | Response: Normalized return value.
     """
     try:
-        payload = clear_adhoc_genes_api(sample_id)
+        list_type = str(request.args.get("target") or "snv").strip().lower()
+        payload = clear_adhoc_genes_api(sample_id, list_type=list_type)
     except ApiRequestError as exc:
         return _mutation_error(
             exc,

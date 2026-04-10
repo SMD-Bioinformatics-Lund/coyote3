@@ -23,8 +23,8 @@ Options:
   --password       API password (password mode)
   --seed-file      Seed directory path containing one <collection>.json file per collection
                    default: tests/fixtures/db_dummy/all_collections_dummy
-  --reference-seed-data  Directory containing compressed NDJSON reference pack files
-                   (for example hgnc_genes.seed.ndjson.gz, roles.seed.ndjson.gz)
+  --reference-seed-data  Directory containing reference pack files
+                   (plain .seed.ndjson is preferred; .seed.ndjson.gz also works)
   --seed-actor     Value used for created_by/updated_by seed metadata.
                    default: --username value, otherwise admin@coyote3.local
   --with-optional  Seed optional knowledge collections after required baseline
@@ -34,8 +34,7 @@ Options:
 Notes:
   - This is intended for first-time center bootstrap.
   - Inserts are not upserts.
-  - By default, first failed write is retried once with ignore_duplicates=true.
-  - Use --skip-existing for idempotent reruns.
+  - Duplicate key conflicts are ignored by default for idempotent reruns.
   - Use --strict-no-retry to disable retry and fail immediately.
   - `users` collection is intentionally skipped; bootstrap first admin/user separately.
 USAGE
@@ -49,7 +48,7 @@ SEED_FILE="tests/fixtures/db_dummy/all_collections_dummy"
 REFERENCE_SEED_DATA=""
 SEED_ACTOR=""
 WITH_OPTIONAL=0
-SKIP_EXISTING=0
+SKIP_EXISTING=1
 STRICT_NO_RETRY=0
 PYTHON_BIN="${PYTHON_BIN:-}"
 SEED_BUNDLE_DIR=""
@@ -80,6 +79,10 @@ fi
 if [[ ! -d "$SEED_FILE" ]]; then
   echo "ERROR: seed source not found: $SEED_FILE" >&2
   exit 2
+fi
+if [[ -z "$REFERENCE_SEED_DATA" && -d "tests/data/seed_data" ]]; then
+  REFERENCE_SEED_DATA="tests/data/seed_data"
+  echo "[info] using default reference seed data pack: ${REFERENCE_SEED_DATA}"
 fi
 if [[ -n "$REFERENCE_SEED_DATA" && ! -d "$REFERENCE_SEED_DATA" ]]; then
   echo "ERROR: reference seed data source not found: $REFERENCE_SEED_DATA" >&2

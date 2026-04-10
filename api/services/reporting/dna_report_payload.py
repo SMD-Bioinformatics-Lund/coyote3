@@ -215,6 +215,22 @@ def _ensure_sample_filters(sample: dict, assay_config: dict) -> tuple[dict, dict
     return sample, deepcopy(sample.get("filters", {}))
 
 
+def _normalize_dna_report_sections(sections: list[str] | None) -> list[str]:
+    """Normalize DNA report-section toggles to supported rendered sections."""
+    raw = [str(value).strip().upper() for value in (sections or []) if str(value).strip()]
+    normalized: list[str] = []
+    include_biomarker = False
+    for value in raw:
+        if value in {"BIOMARKER", "TMB", "PGX"}:
+            include_biomarker = True
+            continue
+        if value not in normalized:
+            normalized.append(value)
+    if include_biomarker:
+        normalized.append("BIOMARKER")
+    return normalized
+
+
 def _resolve_filter_genes(
     sample: dict,
     sample_filters: dict,
@@ -327,7 +343,6 @@ def build_dna_report_payload(
     translocation_handler,
     vep_metadata_handler,
     annotation_handler,
-    conseq_terms_mapper,
 ) -> Tuple[str, Dict[str, Any], List[Dict[str, Any]]]:
     """
     Build DNA report template context and optional reported-variant snapshot rows.
@@ -335,7 +350,9 @@ def build_dna_report_payload(
     sample_assay = sample.get("assay")
     assay_group: str = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel")
-    report_sections = assay_config.get("reporting", {}).get("report_sections", [])
+    report_sections = _normalize_dna_report_sections(
+        assay_config.get("reporting", {}).get("report_sections", [])
+    )
     report_sections_data: Dict[str, Any] = {}
 
     app.logger.debug("Assay group: %s - DNA config: %s", assay_group, pformat(report_sections))
@@ -355,6 +372,7 @@ def build_dna_report_payload(
         assay_panel_doc=assay_panel_doc,
         gene_list_handler=gene_list_handler,
     )
+    conseq_terms_mapper = vep_metadata_handler.get_consequence_group_map(sample.get("vep_version"))
     filter_conseq = shared_get_filter_conseq_terms(
         sample_filters.get("vep_consequences", []),
         conseq_terms_mapper,
@@ -427,7 +445,7 @@ def build_dna_report_payload(
     )
 
     vep_variant_class_meta = vep_metadata_handler.get_variant_class_translations(
-        sample.get("vep", 103)
+        sample.get("vep_version", "103")
     )
 
     report_date = datetime.now().date()

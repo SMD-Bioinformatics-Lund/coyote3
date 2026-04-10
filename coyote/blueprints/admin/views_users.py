@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
-
 from flask import Response, abort, g, jsonify, redirect, render_template, request, url_for
 from flask import current_app as app
 from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
-from coyote.extensions import util
 from coyote.services.api_client import endpoints as api_endpoints
 from coyote.services.api_client.api_client import (
     ApiRequestError,
@@ -17,44 +14,19 @@ from coyote.services.api_client.api_client import (
     get_web_api_client,
 )
 from coyote.services.api_client.web import (
+    api_page_guard,
     flash_api_failure,
     flash_api_success,
-    raise_page_load_error,
 )
 
 
 def _apply_selected_user_version(
     user_doc: dict, selected_version: int | None, user_id: str | None = None
 ):
-    """Project a versioned user document into the selected historical view.
+    """Project a versioned user document into the selected historical view."""
+    from coyote.util.admin_utility import apply_selected_version
 
-    Args:
-        user_doc: User document returned by the API context endpoint.
-        selected_version: Historical version requested by the operator.
-        user_id: Optional user identifier used to restore ``_id`` after delta
-            application.
-
-    Returns:
-        A tuple of ``(user_document, delta)`` where ``delta`` is the applied
-        version delta or ``None`` when no historical projection was needed.
-    """
-    delta = None
-    if selected_version and selected_version != user_doc.get("version"):
-        version_index = next(
-            (
-                i
-                for i, version_entry in enumerate(user_doc.get("version_history", []))
-                if version_entry["version"] == selected_version + 1
-            ),
-            None,
-        )
-        if version_index is not None:
-            delta_blob = user_doc["version_history"][version_index].get("delta", {})
-            user_doc = util.admin.apply_version_delta(deepcopy(user_doc), delta_blob)
-            delta = delta_blob
-            if user_id:
-                user_doc["username"] = user_id
-    return user_doc, delta
+    return apply_selected_version(user_doc, selected_version, id_field="username", id_value=user_id)
 
 
 def _user_form_from_context(context) -> dict:
@@ -87,7 +59,11 @@ def manage_users() -> str | Response:
     q = (request.args.get("q") or "").strip()
     page = max(1, request.args.get("page", default=1, type=int) or 1)
     per_page = max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200))
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message="Failed to fetch users via API",
+        summary="Unable to load the user list.",
+    ):
         payload = get_web_api_client().get_json(
             api_endpoints.admin("users"),
             headers=forward_headers(),
@@ -96,20 +72,6 @@ def manage_users() -> str | Response:
         users = payload.get("users", [])
         roles = payload.get("roles", {})
         pagination = payload.get("pagination", {})
-    except AttributeError as exc:
-        raise_page_load_error(
-            ApiRequestError(f"Invalid user payload: {exc}", status_code=502),
-            logger=app.logger,
-            log_message="Failed to parse users payload",
-            summary="Unable to load the user list.",
-        )
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message="Failed to fetch users via API",
-            summary="Unable to load the user list.",
-        )
     return render_template(
         "users/manage_users.html",
         users=users,
@@ -172,17 +134,14 @@ def create_user() -> Response | str:
     Returns:
         The rendered form on ``GET`` or a redirect response after ``POST``.
     """
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message="Failed to load user schema context via API",
+        summary="Unable to load the user creation form.",
+    ):
         context = get_web_api_client().get_json(
             api_endpoints.admin("users", "create_context"),
             headers=forward_headers(),
-        )
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message="Failed to load user schema context via API",
-            summary="Unable to load the user creation form.",
         )
 
     if request.method == "POST":
@@ -235,32 +194,24 @@ def edit_user(user_id: str) -> Response | str:
     Returns:
         The rendered form on ``GET`` or a redirect response after ``POST``.
     """
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message=f"Failed to load user context via API for {user_id}",
+        summary="Unable to load the user editing form.",
+        not_found_summary="The requested user was not found.",
+    ):
         context = get_web_api_client().get_json(
             api_endpoints.admin("users", user_id, "context"),
             headers=forward_headers(),
         )
-    except ApiRequestError as exc:
-        if exc.status_code == 404:
-            return abort(404)
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message=f"Failed to load user context via API for {user_id}",
-            summary="Unable to load the user editing form.",
-            not_found_summary="The requested user was not found.",
-        )
 
     user_doc = context.user_doc
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message=f"Failed to load user form for {user_id}",
+        summary="Unable to load the user form.",
+    ):
         schema = _user_form_from_context(context)
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message=f"Failed to load user form for {user_id}",
-            summary="Unable to load the user form.",
-        )
 
     selected_version = request.args.get("version", type=int)
     user_doc, delta = _apply_selected_user_version(user_doc, selected_version, user_id)
@@ -304,31 +255,23 @@ def view_user(user_id: str) -> str | Response:
     Returns:
         The rendered detail page response.
     """
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message=f"Failed to load user detail via API for {user_id}",
+        summary="Unable to load the user details.",
+        not_found_summary="The requested user was not found.",
+    ):
         context = get_web_api_client().get_json(
             api_endpoints.admin("users", user_id, "context"),
             headers=forward_headers(),
         )
-    except ApiRequestError as exc:
-        if exc.status_code == 404:
-            return abort(404)
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message=f"Failed to load user detail via API for {user_id}",
-            summary="Unable to load the user details.",
-            not_found_summary="The requested user was not found.",
-        )
 
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message=f"Failed to load user form for {user_id}",
+        summary="Unable to load the user form.",
+    ):
         schema = _user_form_from_context(context)
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message=f"Failed to load user form for {user_id}",
-            summary="Unable to load the user form.",
-        )
 
     selected_version = request.args.get("version", type=int)
     user_doc, delta = _apply_selected_user_version(context.user_doc, selected_version)

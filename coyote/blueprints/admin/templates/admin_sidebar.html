@@ -23,6 +23,7 @@
 
   <!-- Sidebar Links -->
   {% for card in cards %}
+    {% if not card.superuser_only or current_user.is_superuser %}
     {% set is_allowed = has_access(card.permission, card.min_role, card.min_level) %}
     {% set bg_class = 'bg-' ~ card.color ~ '-50 hover:bg-' ~ card.color ~ '-200' %}
     {% set border_class = 'border-l-8 border-' ~ card.color ~ '-600' %}
@@ -40,6 +41,7 @@
         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/' ~ card.icon) }}" alt="{{ card.title }} Icon" class="h-4 w-4">
         {{ card.title }}
       </div>
+    {% endif %}
     {% endif %}
   {% endfor %}
 </aside>

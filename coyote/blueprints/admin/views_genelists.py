@@ -17,9 +17,9 @@ from coyote.services.api_client.api_client import (
     get_web_api_client,
 )
 from coyote.services.api_client.web import (
+    api_page_guard,
     flash_api_failure,
     flash_api_success,
-    raise_page_load_error,
 )
 
 
@@ -52,36 +52,10 @@ def _extract_genes_from_request(
 def _apply_selected_genelist_version(
     genelist: dict, selected_version: int | None, genelist_id: str | None = None
 ) -> tuple[dict, dict | None]:
-    """Return the selected historical genelist version for diff-aware rendering.
+    """Return the selected historical genelist version for diff-aware rendering."""
+    from coyote.util.admin_utility import apply_selected_version
 
-    Args:
-        genelist: Genelist document returned by the API context endpoint.
-        selected_version: Historical version requested by the operator.
-        genelist_id: Optional genelist identifier used to restore ``_id`` after
-            delta application.
-
-    Returns:
-        A tuple of ``(genelist_document, delta)`` where ``delta`` is the
-        applied version delta or ``None`` when no historical projection was
-        needed.
-    """
-    delta = None
-    if selected_version and selected_version != genelist.get("version"):
-        version_index = next(
-            (
-                i
-                for i, version_entry in enumerate(genelist.get("version_history", []))
-                if version_entry["version"] == selected_version + 1
-            ),
-            None,
-        )
-        if version_index is not None:
-            delta_blob = genelist["version_history"][version_index].get("delta", {})
-            delta = delta_blob
-            genelist = util.admin.apply_version_delta(deepcopy(genelist), delta_blob)
-            if genelist_id:
-                genelist["_id"] = genelist_id
-    return genelist, delta
+    return apply_selected_version(genelist, selected_version, id_field="_id", id_value=genelist_id)
 
 
 @admin_bp.route("/genelists", methods=["GET"])
@@ -95,7 +69,11 @@ def manage_genelists() -> str:
     q = (request.args.get("q") or "").strip()
     page = max(1, request.args.get("page", default=1, type=int) or 1)
     per_page = max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200))
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message="Failed to fetch genelists",
+        summary="Unable to load genelists.",
+    ):
         payload = get_web_api_client().get_json(
             api_endpoints.admin("genelists"),
             headers=forward_headers(),
@@ -103,13 +81,6 @@ def manage_genelists() -> str:
         )
         genelists = payload.genelists
         pagination = payload.get("pagination", {})
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message="Failed to fetch genelists",
-            summary="Unable to load genelists.",
-        )
     return render_template(
         "isgl/manage_isgl.html",
         genelists=genelists,
@@ -130,17 +101,14 @@ def create_genelist() -> Response | str:
     Returns:
         The rendered form on ``GET`` or a redirect response after ``POST``.
     """
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message="Failed to load genelist create context",
+        summary="Unable to load the genelist creation form.",
+    ):
         context = get_web_api_client().get_json(
             api_endpoints.admin("genelists", "create_context"),
             headers=forward_headers(),
-        )
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message="Failed to load genelist create context",
-            summary="Unable to load the genelist creation form.",
         )
 
     if request.method == "POST":
@@ -201,18 +169,15 @@ def edit_genelist(genelist_id: str) -> Response | str:
     Returns:
         The rendered form on ``GET`` or a redirect response after ``POST``.
     """
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message=f"Failed to load genelist context for {genelist_id}",
+        summary="Unable to load the genelist.",
+        not_found_summary="Genelist not found.",
+    ):
         context = get_web_api_client().get_json(
             api_endpoints.admin("genelists", genelist_id, "context"),
             headers=forward_headers(),
-        )
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message=f"Failed to load genelist context for {genelist_id}",
-            summary="Unable to load the genelist.",
-            not_found_summary="Genelist not found.",
         )
 
     selected_version = request.args.get("version", type=int)
@@ -271,19 +236,16 @@ def view_genelist(genelist_id: str) -> Response | str:
         The rendered detail page response.
     """
     selected_assay = request.args.get("assay")
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message=f"Failed to load genelist view context for {genelist_id}",
+        summary="Unable to load the genelist.",
+        not_found_summary="Genelist not found.",
+    ):
         view_context = get_web_api_client().get_json(
             api_endpoints.admin("genelists", genelist_id, "view_context"),
             headers=forward_headers(),
             params={"assay": selected_assay} if selected_assay else None,
-        )
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message=f"Failed to load genelist view context for {genelist_id}",
-            summary="Unable to load the genelist.",
-            not_found_summary="Genelist not found.",
         )
 
     selected_version = request.args.get("version", type=int)

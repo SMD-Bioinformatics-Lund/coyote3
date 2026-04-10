@@ -32,7 +32,7 @@
 {% endif %}
 
 {# Build the final IGV URL #}
-{% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
+{% if all_samples_bam_paths and has_access("igv:view", min_role="user", min_level=9) %}
   {% set igv_url = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ variant.CHROM ~ ":" ~ variant.POS %}
   {% set igv_genomic_position = '<a href="' ~ igv_url ~ '" class="text-blue-600 underline">' ~ genomic_change ~ '</a>' %}
 {% else %}
@@ -50,22 +50,22 @@
 {% endif %}
 
 {# check permissions for the tier #}
-{% set dna_tier_disabled = not has_access('assign_tier', min_role='manager', min_level=99) %}
+{% set dna_tier_disabled = not has_access('tier:assign', min_role='manager', min_level=99) %}
 {% set dna_tier_classes = "opacity-70 select-none cursor-not-allowed pointer-events-none" if dna_tier_disabled else "" %}
 {% set dna_tier_disabled_attr = "disabled" if dna_tier_disabled else "" %}
 
 {# check permissions for remove variant tier #}
-{% set can_remove_tier = has_access('remove_tier', min_role='manager', min_level=99) %}
-{% set can_remove_global_tier = has_access('remove_tier_global', min_role='admin') %}
-{% set remove_tier_disabled = not can_remove_tier %}
+{% set can_remove_own_tier = has_access('tier:remove:own', min_role='manager', min_level=99) %}
+{% set can_remove_global_tier = has_access('tier:remove:global', min_role='admin') %}
+{% set remove_own_tier_disabled = not can_remove_own_tier %}
 {% set remove_global_tier_disabled = not can_remove_global_tier %}
-{% set remove_tier_classes = "opacity-70 select-none cursor-not-allowed pointer-events-none" if remove_tier_disabled else "" %}
+{% set remove_own_tier_classes = "opacity-70 select-none cursor-not-allowed pointer-events-none" if remove_own_tier_disabled else "" %}
 {% set remove_global_tier_classes = "opacity-70 select-none cursor-not-allowed pointer-events-none" if remove_global_tier_disabled else "" %}
-{% set remove_tier_attr = "disabled" if remove_tier_disabled else "" %}
+{% set remove_own_tier_attr = "disabled" if remove_own_tier_disabled else "" %}
 {% set remove_global_tier_attr = "disabled" if remove_global_tier_disabled else "" %}
 
 {# check permissions for dna variant actions buttons #}
-{% set variant_actions_disabled = not has_access('manage_snvs', min_role='user', min_level=9) %}
+{% set variant_actions_disabled = not has_access('snv:manage', min_role='user', min_level=9) %}
 {% set variant_actions_class = "opacity-70 select-none cursor-not-allowed pointer-events-none" if variant_actions_disabled else "" %}
 {% set variant_actions_attr = "disabled" if variant_actions_disabled else "" %}
 
@@ -462,12 +462,12 @@
               {% endif %}
               {% if latest_classification and 'assay' in latest_classification %}
               <input
-                class="m-1 bg-gray-300 text-black text-sm px-2 py-1 rounded-md shadow-lg cursor-pointer hover:bg-gray-400 transition-all duration-300 ease-in-out transform hover:translate-y-1 whitespace-normal break-all {{ remove_tier_classes }}"
+                class="m-1 bg-gray-300 text-black text-sm px-2 py-1 rounded-md shadow-lg cursor-pointer hover:bg-gray-400 transition-all duration-300 ease-in-out transform hover:translate-y-1 whitespace-normal break-all {{ remove_own_tier_classes }}"
                 title="Remove {{ assay_group }} classifications"
                 id="remove"
                 type="submit"
                 value="❌ Tier"
-                {{ remove_tier_attr }}
+                {{ remove_own_tier_attr }}
               >
             {% elif current_user.is_admin %}
               <input
@@ -570,7 +570,7 @@
       <!-- Comment box, other tiering and pon -->
       <div class="flex flex-col gap-y-4 min-w-[450px] max-w-xl">
         <!-- Comment box -->
-        {% if has_access("add_variant_comment", min_role="user", min_level=9) %}
+        {% if has_access("variant.comment:add:own", min_role="user", min_level=9) %}
           <div class="bg-transparent min-w-[400px] w-full max-w-xl" id="commenting-box-card">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
             <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
@@ -584,7 +584,7 @@
                 {% endif %}
                 <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
                 <input type="submit" value="Save" class="bg-blue-500 text-white py-1 px-2 mx-1 mb-1 rounded-lg cursor-pointer shadow-md">&nbsp;&nbsp;
-                {% if has_access("add_global_variant_comment", min_role="admin") %}
+                {% if has_access("variant.comment:add:global", min_role="admin") %}
                   <label class="items-center">
                     <input type="checkbox" name="global" value="global" class="form-checkbox text-blue-500">
                     <span class="ml-2">Use as global annotation</span>
@@ -931,12 +931,12 @@
                         {% if comment.hidden != 1 %}
                           <form action="{{ url_for('dna_bp.hide_variant_comment', sample_id=sample_id, var_id=variant._id) }}" method="POST">
                             <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                            <input id="hide_comment" type="image" class="w-5 {% if not has_access('hide_variant_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
+                            <input id="hide_comment" type="image" class="w-5 {% if not has_access('variant.comment:hide', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
                           </form>
                         {% else %}
                           <form action="{{ url_for('dna_bp.unhide_variant_comment', sample_id=sample_id, var_id=variant._id) }}" method="POST">
                             <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                            <input id="unhide_comment" type="image" class="w-5 {% if not has_access('unhide_variant_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
+                            <input id="unhide_comment" type="image" class="w-5 {% if not has_access('variant.comment:unhide', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
                           </form>
                         {% endif %}
                       </td>

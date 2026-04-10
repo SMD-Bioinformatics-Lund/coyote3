@@ -19,18 +19,13 @@ from api.services.accounts.users import UserManagementService
 router = APIRouter(tags=["admin-users"])
 
 
-def _service() -> UserManagementService:
-    """Return the admin user workflow service."""
-    return get_admin_user_service()
-
-
 @router.get("/api/v1/users", response_model=AdminUsersListPayload)
 def list_users_read(
     q: str = Query(default=""),
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=30, ge=1, le=200),
     user: ApiUser = Depends(
-        require_access(permission="view_user", min_role="admin", min_level=99999)
+        require_access(permission="user:list", min_role="admin", min_level=99999)
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
@@ -44,7 +39,7 @@ def list_users_read(
 @router.get("/api/v1/users/create_context", response_model=AdminUserCreateContextPayload)
 def create_user_context_read(
     user: ApiUser = Depends(
-        require_access(permission="create_user", min_role="admin", min_level=99999)
+        require_access(permission="user:create", min_role="admin", min_level=99999)
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
@@ -58,7 +53,7 @@ def create_user_context_read(
 def user_context_read(
     user_id: str,
     user: ApiUser = Depends(
-        require_access(permission="view_user", min_role="admin", min_level=99999)
+        require_access(permission="user:view", min_role="admin", min_level=99999)
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
@@ -67,31 +62,19 @@ def user_context_read(
     return util.common.convert_to_serializable(service.context_payload(user_id=user_id))
 
 
-def _create_user(payload: dict, actor_username: str, service: UserManagementService):
-    """Create an admin user and serialize the change response."""
-    return util.common.convert_to_serializable(
-        service.create_user(payload=payload, actor_username=actor_username)
-    )
-
-
 @router.post(
     "/api/v1/users", response_model=AdminChangePayload, status_code=201, summary="Create user"
 )
 def create_user(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="create_user", min_role="admin", min_level=99999)
+        require_access(permission="user:create", min_role="admin", min_level=99999)
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Create an admin user."""
-    return _create_user(payload=payload, actor_username=user.username, service=service)
-
-
-def _update_user(user_id: str, payload: dict, actor_username: str, service: UserManagementService):
-    """Update an admin user and serialize the change response."""
     return util.common.convert_to_serializable(
-        service.update_user(user_id=user_id, payload=payload, actor_username=actor_username)
+        service.create_user(payload=payload, actor_username=user.username)
     )
 
 
@@ -100,37 +83,27 @@ def update_user(
     user_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="edit_user", min_role="admin", min_level=99999)
+        require_access(permission="user:edit", min_role="admin", min_level=99999)
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Update an admin user."""
-    return _update_user(
-        user_id=user_id, payload=payload, actor_username=user.username, service=service
+    return util.common.convert_to_serializable(
+        service.update_user(user_id=user_id, payload=payload, actor_username=user.username)
     )
-
-
-def _delete_user(user_id: str, service: UserManagementService):
-    """Delete an admin user and serialize the change response."""
-    return util.common.convert_to_serializable(service.delete_user(user_id=user_id))
 
 
 @router.delete("/api/v1/users/{user_id}", response_model=AdminChangePayload, summary="Delete user")
 def delete_user(
     user_id: str,
     user: ApiUser = Depends(
-        require_access(permission="delete_user", min_role="admin", min_level=99999)
+        require_access(permission="user:delete", min_role="admin", min_level=99999)
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Delete an admin user."""
     _ = user
-    return _delete_user(user_id=user_id, service=service)
-
-
-def _toggle_user(user_id: str, service: UserManagementService):
-    """Toggle an admin user's active status and serialize the response."""
-    return util.common.convert_to_serializable(service.toggle_user(user_id=user_id))
+    return util.common.convert_to_serializable(service.delete_user(user_id=user_id))
 
 
 @router.patch(
@@ -141,13 +114,13 @@ def _toggle_user(user_id: str, service: UserManagementService):
 def toggle_user_status(
     user_id: str,
     user: ApiUser = Depends(
-        require_access(permission="edit_user", min_role="admin", min_level=99999)
+        require_access(permission="user:edit", min_role="admin", min_level=99999)
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Toggle an admin user's active status."""
     _ = user
-    return _toggle_user(user_id=user_id, service=service)
+    return util.common.convert_to_serializable(service.toggle_user(user_id=user_id))
 
 
 @router.post(
@@ -158,7 +131,7 @@ def toggle_user_status(
 def invite_local_user(
     user_id: str,
     user: ApiUser = Depends(
-        require_access(permission="edit_user", min_role="admin", min_level=99999)
+        require_access(permission="user:edit", min_role="admin", min_level=99999)
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
@@ -172,7 +145,7 @@ def invite_local_user(
 def validate_username_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="create_user", min_role="admin", min_level=99999)
+        require_access(permission="user:create", min_role="admin", min_level=99999)
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
@@ -187,7 +160,7 @@ def validate_username_change(
 def validate_email_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="create_user", min_role="admin", min_level=99999)
+        require_access(permission="user:create", min_role="admin", min_level=99999)
     ),
     service: UserManagementService = Depends(get_admin_user_service),
 ):
@@ -196,18 +169,3 @@ def validate_email_change(
     return util.common.convert_to_serializable(
         {"exists": service.email_exists(email=str(payload.get("email", "")))}
     )
-
-
-__all__ = [
-    "_service",
-    "create_user_context_read",
-    "create_user",
-    "delete_user",
-    "list_users_read",
-    "toggle_user_status",
-    "invite_local_user",
-    "update_user",
-    "user_context_read",
-    "validate_email_change",
-    "validate_username_change",
-]

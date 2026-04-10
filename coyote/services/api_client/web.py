@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from logging import Logger
 
 from flask import flash
@@ -9,6 +10,42 @@ from flask import flash
 from coyote.errors.exceptions import AppError, from_api_request_error
 from coyote.services.api_client.base import ApiRequestError
 from shared.logging import emit_audit_event
+
+
+@contextlib.contextmanager
+def api_page_guard(
+    *,
+    logger: Logger,
+    log_message: str,
+    summary: str,
+    not_found_summary: str | None = None,
+):
+    """Context manager that catches API and payload errors and raises a page error.
+
+    Usage::
+
+        with api_page_guard(logger=app.logger, log_message="...", summary="..."):
+            payload = get_web_api_client().get_json(...)
+            items = payload.get("items", [])
+    """
+    try:
+        yield
+    except AttributeError as exc:
+        raise_page_load_error(
+            ApiRequestError(str(exc)),
+            logger=logger,
+            log_message=log_message,
+            summary=summary,
+            not_found_summary=not_found_summary,
+        )
+    except ApiRequestError as exc:
+        raise_page_load_error(
+            exc,
+            logger=logger,
+            log_message=log_message,
+            summary=summary,
+            not_found_summary=not_found_summary,
+        )
 
 
 def log_api_error(

@@ -19,7 +19,6 @@ from api.extensions import store, util
 from api.http import api_error as _api_error
 from api.http import get_formatted_assay_config as _get_formatted_assay_config
 from api.routers.change_helpers import comment_change, resource_change
-from api.runtime_state import app as runtime_app
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.services.classification.variant_annotation import ResourceAnnotationService
 from api.services.common.change_payload import change_payload
@@ -38,11 +37,13 @@ from api.services.interpretation.report_summary import (
 router = APIRouter(tags=["small-variants"])
 
 
-def get_filter_conseq_terms(checked: list[str]) -> list[str]:
-    """Resolve filter consequence terms using the active runtime mapping."""
+def get_filter_conseq_terms(checked: list[str], vep_version: str | int | None = None) -> list[str]:
+    """Resolve filter consequence terms using grouped VEP metadata from Mongo."""
     return _shared_get_filter_conseq_terms(
         checked,
-        runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}),
+        store.vep_metadata_handler.get_consequence_group_map(
+            None if vep_version is None else str(vep_version)
+        ),
     )
 
 
@@ -101,7 +102,9 @@ def list_dna_variants(
             add_global_annotations_fn=add_global_annotations,
             generate_summary_text_fn=generate_summary_text,
             build_query_fn=build_query,
-            get_filter_conseq_terms_fn=get_filter_conseq_terms,
+            get_filter_conseq_terms_fn=lambda values: get_filter_conseq_terms(
+                values, sample.get("vep_version")
+            ),
             assay_config_getter=_get_formatted_assay_config,
         )
     )
@@ -172,7 +175,7 @@ def export_snv_csv_context(
     request: Request,
     sample_id: str,
     user: ApiUser = Depends(
-        require_access(permission="download_snvs", min_role="user", min_level=9)
+        require_access(permission="snv:download", min_role="user", min_level=9)
     ),
     service: DnaService = Depends(get_dna_service),
 ):
@@ -185,7 +188,9 @@ def export_snv_csv_context(
         add_global_annotations_fn=add_global_annotations,
         generate_summary_text_fn=generate_summary_text,
         build_query_fn=build_query,
-        get_filter_conseq_terms_fn=get_filter_conseq_terms,
+        get_filter_conseq_terms_fn=lambda values: get_filter_conseq_terms(
+            values, sample.get("vep_version")
+        ),
         assay_config_getter=_get_formatted_assay_config,
     )
     variants = payload.get("display_sections_data", {}).get("snvs", [])
@@ -206,7 +211,7 @@ def export_cnv_csv_context(
     request: Request,
     sample_id: str,
     user: ApiUser = Depends(
-        require_access(permission="download_cnvs", min_role="user", min_level=9)
+        require_access(permission="cnv:download", min_role="user", min_level=9)
     ),
     service: DnaService = Depends(get_dna_service),
 ):
@@ -219,7 +224,9 @@ def export_cnv_csv_context(
         add_global_annotations_fn=add_global_annotations,
         generate_summary_text_fn=generate_summary_text,
         build_query_fn=build_query,
-        get_filter_conseq_terms_fn=get_filter_conseq_terms,
+        get_filter_conseq_terms_fn=lambda values: get_filter_conseq_terms(
+            values, sample.get("vep_version")
+        ),
         assay_config_getter=_get_formatted_assay_config,
     )
     cnvs = payload.get("display_sections_data", {}).get("cnvs", [])
@@ -241,7 +248,7 @@ def export_transloc_csv_context(
     request: Request,
     sample_id: str,
     user: ApiUser = Depends(
-        require_access(permission="download_translocs", min_role="user", min_level=9)
+        require_access(permission="translocation:download", min_role="user", min_level=9)
     ),
     service: DnaService = Depends(get_dna_service),
 ):
@@ -254,7 +261,9 @@ def export_transloc_csv_context(
         add_global_annotations_fn=add_global_annotations,
         generate_summary_text_fn=generate_summary_text,
         build_query_fn=build_query,
-        get_filter_conseq_terms_fn=get_filter_conseq_terms,
+        get_filter_conseq_terms_fn=lambda values: get_filter_conseq_terms(
+            values, sample.get("vep_version")
+        ),
         assay_config_getter=_get_formatted_assay_config,
     )
     translocs = payload.get("display_sections_data", {}).get("translocs", [])
@@ -283,7 +292,7 @@ def _require_variant_for_sample(
 def unmark_false_variant(
     sample_id: str,
     var_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+    user: ApiUser = Depends(require_access(permission="snv:manage", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Remove the false-positive flag from a small variant."""
@@ -307,7 +316,7 @@ def unmark_false_variant(
 def mark_false_variant(
     sample_id: str,
     var_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+    user: ApiUser = Depends(require_access(permission="snv:manage", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Mark a small variant as false positive."""
@@ -331,7 +340,7 @@ def mark_false_variant(
 def unmark_interesting_variant(
     sample_id: str,
     var_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+    user: ApiUser = Depends(require_access(permission="snv:manage", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Remove the interesting flag from a small variant."""
@@ -355,7 +364,7 @@ def unmark_interesting_variant(
 def mark_interesting_variant(
     sample_id: str,
     var_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+    user: ApiUser = Depends(require_access(permission="snv:manage", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Mark a small variant as interesting."""
@@ -379,7 +388,7 @@ def mark_interesting_variant(
 def unmark_irrelevant_variant(
     sample_id: str,
     var_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+    user: ApiUser = Depends(require_access(permission="snv:manage", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Remove the irrelevant flag from a small variant."""
@@ -403,7 +412,7 @@ def unmark_irrelevant_variant(
 def mark_irrelevant_variant(
     sample_id: str,
     var_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+    user: ApiUser = Depends(require_access(permission="snv:manage", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Mark a small variant as irrelevant."""
@@ -427,7 +436,7 @@ def mark_irrelevant_variant(
 def add_variant_to_blacklist(
     sample_id: str,
     var_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+    user: ApiUser = Depends(require_access(permission="snv:manage", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Create a blacklist entry from the selected small variant."""
@@ -455,7 +464,7 @@ def add_variant_to_blacklist(
 def override_variant_blacklist(
     sample_id: str,
     var_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+    user: ApiUser = Depends(require_access(permission="snv:manage", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Ignore blacklist status for a single small variant in the current sample."""
@@ -479,7 +488,7 @@ def override_variant_blacklist(
 def clear_variant_blacklist_override(
     sample_id: str,
     var_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+    user: ApiUser = Depends(require_access(permission="snv:manage", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
     """Remove the blacklist override flag from a single small variant."""
@@ -505,7 +514,7 @@ def hide_variant_comment(
     var_id: str,
     comment_id: str,
     user: ApiUser = Depends(
-        require_access(permission="hide_variant_comment", min_role="manager", min_level=99)
+        require_access(permission="variant.comment:hide", min_role="manager", min_level=99)
     ),
     service: DnaService = Depends(get_dna_service),
 ):
@@ -535,7 +544,7 @@ def unhide_variant_comment(
     var_id: str,
     comment_id: str,
     user: ApiUser = Depends(
-        require_access(permission="unhide_variant_comment", min_role="manager", min_level=99)
+        require_access(permission="variant.comment:unhide", min_role="manager", min_level=99)
     ),
     service: DnaService = Depends(get_dna_service),
 ):
@@ -565,7 +574,7 @@ def set_variant_false_positive_bulk(
     apply: bool = Query(default=True),
     resource_ids: list[str] = Query(default_factory=list),
     payload: dict = Body(default_factory=dict),
-    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="user", min_level=9)),
+    user: ApiUser = Depends(require_access(permission="snv:manage", min_role="user", min_level=9)),
     service: DnaService = Depends(get_dna_service),
 ):
     """Set variant false positive bulk.
@@ -612,7 +621,7 @@ def set_variant_irrelevant_bulk(
     apply: bool = Query(default=True),
     resource_ids: list[str] = Query(default_factory=list),
     payload: dict = Body(default_factory=dict),
-    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="user", min_level=9)),
+    user: ApiUser = Depends(require_access(permission="snv:manage", min_role="user", min_level=9)),
     service: DnaService = Depends(get_dna_service),
 ):
     """Set variant irrelevant bulk.
@@ -659,7 +668,7 @@ def add_variant_comment_change(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="add_variant_comment", min_role="user", min_level=9)
+        require_access(permission="variant.comment:add:own", min_role="user", min_level=9)
     ),
     service: ResourceAnnotationService = Depends(get_resource_annotation_service),
 ):

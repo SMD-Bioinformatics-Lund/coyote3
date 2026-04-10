@@ -68,9 +68,7 @@ class PermissionsHandler(BaseHandler):
         Returns:
                 The  normalize permission id result.
         """
-        if permission_id is None:
-            return None
-        normalized = str(permission_id).strip()
+        normalized = str(permission_id or "").strip().lower()
         return normalized or None
 
     def _permission_lookup_query(self, permission_id: str) -> dict:
@@ -83,6 +81,8 @@ class PermissionsHandler(BaseHandler):
                 The  permission lookup query result.
         """
         normalized = self._normalize_permission_id(permission_id)
+        if not normalized:
+            return {"permission_id": None}
         return {"permission_id": normalized}
 
     def ensure_permission_id(self, policy: dict) -> dict:
@@ -188,11 +188,12 @@ class PermissionsHandler(BaseHandler):
         Returns:
             bool: True if the permission is active, False otherwise.
         """
+        permission_query = self._normalize_permission_id(permission)
         return (
             self.get_collection().find_one(
                 {
                     "$and": [
-                        {"permission_id": permission},
+                        {"permission_id": permission_query},
                         {"$or": [{"is_active": True}, {"is_active": {"$exists": False}}]},
                     ]
                 }
@@ -212,7 +213,7 @@ class PermissionsHandler(BaseHandler):
         Returns:
         Optional[dict]: The permission document if found, otherwise None.
         """
-        return self.get_collection().find_one({"permission_id": permission_id})
+        return self.get_collection().find_one(self._permission_lookup_query(permission_id))
 
     def create_new_policy(self, policy: dict) -> Any:
         """

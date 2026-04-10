@@ -89,7 +89,7 @@ def fetch_edit_context(sample_id: str) -> ApiPayload:
     )
 
 
-def apply_isgl(sample_id: str, isgl_ids: list[str]) -> ApiPayload:
+def apply_isgl(sample_id: str, isgl_ids: list[str], *, list_type: str = "snv") -> ApiPayload:
     """Apply selected genelists to a sample.
 
     Args:
@@ -102,11 +102,14 @@ def apply_isgl(sample_id: str, isgl_ids: list[str]) -> ApiPayload:
     return get_web_api_client().put_json(
         api_endpoints.home_sample(sample_id, "genes", "apply-isgl"),
         headers=forward_headers(),
+        params={"target": list_type},
         json_body={"isgl_ids": isgl_ids},
     )
 
 
-def save_adhoc_genes(sample_id: str, *, genes: str, label: str) -> ApiPayload:
+def save_adhoc_genes(
+    sample_id: str, *, genes: str, label: str, list_type: str = "snv"
+) -> ApiPayload:
     """Persist an ad hoc gene selection for a sample.
 
     Args:
@@ -120,11 +123,12 @@ def save_adhoc_genes(sample_id: str, *, genes: str, label: str) -> ApiPayload:
     return get_web_api_client().put_json(
         api_endpoints.home_sample(sample_id, "adhoc_genes", "save"),
         headers=forward_headers(),
-        json_body={"genes": genes, "label": label},
+        params={"target": list_type},
+        json_body={"genes": genes, "label": label, "list_type": list_type},
     )
 
 
-def clear_adhoc_genes(sample_id: str) -> ApiPayload:
+def clear_adhoc_genes(sample_id: str, *, list_type: str = "snv") -> ApiPayload:
     """Remove ad hoc genes from a sample.
 
     Args:
@@ -136,6 +140,7 @@ def clear_adhoc_genes(sample_id: str) -> ApiPayload:
     return get_web_api_client().delete_json(
         api_endpoints.home_sample(sample_id, "adhoc_genes", "clear"),
         headers=forward_headers(),
+        params={"target": list_type},
     )
 
 

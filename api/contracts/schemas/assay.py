@@ -11,6 +11,50 @@ from api.contracts.schemas.base import VersionHistoryEntryDoc, _DocBase, _Strict
 from api.contracts.schemas.dna import DnaFiltersDoc
 from api.contracts.schemas.rna import RnaFiltersDoc
 
+DNA_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = (
+    "SNV",
+    "CNV",
+    "TRANSLOCATION",
+    "BIOMARKER",
+    "CNV_PROFILE",
+    "FUSION",
+    "TMB",
+    "PGX",
+)
+RNA_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = (
+    "FUSION",
+    "EXPRESSION",
+    "CLASSIFICATION",
+    "QC",
+    "PGX",
+)
+DNA_EXPECTED_FILE_OPTIONS: tuple[str, ...] = (
+    "vcf_files",
+    "cnv",
+    "cnvprofile",
+    "cov",
+    "transloc",
+    "biomarkers",
+)
+RNA_EXPECTED_FILE_OPTIONS: tuple[str, ...] = (
+    "fusion_files",
+    "expression_path",
+    "classification_path",
+    "qc",
+)
+
+
+def _normalize_analysis_option(value: Any) -> str:
+    raw = str(value or "").strip().upper().replace(" ", "_")
+    aliases = {
+        "BIOMARKERS": "BIOMARKER",
+        "CNVPROFILE": "CNV_PROFILE",
+        "CNV_PROFILE": "CNV_PROFILE",
+        "CNV-PROFILE": "CNV_PROFILE",
+        "CNV__PROFILE": "CNV_PROFILE",
+    }
+    return aliases.get(raw, raw)
+
 
 class AssayPanelToAssayGroupMappingDoc(_DocBase):
     """One on One relationship between assay panel and assay group."""
@@ -51,6 +95,17 @@ class AspcReportingDoc(_StrictDocBase):
             raise ValueError("general_report_summary cannot be empty")
 
         return self
+
+    @field_validator("report_sections", mode="before")
+    @classmethod
+    def _normalize_report_sections(cls, value: Any) -> list[str]:
+        if value is None:
+            return []
+        values = value if isinstance(value, list) else [value]
+        normalized = [
+            _normalize_analysis_option(item) for item in values if str(item or "").strip()
+        ]
+        return list(dict.fromkeys(normalized))
 
 
 class AspcQueryDoc(BaseModel):
@@ -167,6 +222,41 @@ class AspConfigDoc(_StrictDocBase):
 
         return self
 
+    @field_validator("analysis_types", mode="before")
+    @classmethod
+    def _normalize_analysis_types(cls, value: Any) -> list[str]:
+        if value is None:
+            return []
+        values = value if isinstance(value, list) else [value]
+        normalized = [
+            _normalize_analysis_option(item) for item in values if str(item or "").strip()
+        ]
+        return list(dict.fromkeys(normalized))
+
+    @model_validator(mode="after")
+    def _validate_analysis_and_reporting_options(self) -> "AspConfigDoc":
+        allowed_analysis = (
+            set(DNA_ANALYSIS_TYPE_OPTIONS)
+            if self.asp_category == "dna"
+            else set(RNA_ANALYSIS_TYPE_OPTIONS)
+        )
+        invalid_analysis = [value for value in self.analysis_types if value not in allowed_analysis]
+        if invalid_analysis:
+            raise ValueError(
+                f"analysis_types contains invalid values: {invalid_analysis}. "
+                f"Allowed values are: {sorted(allowed_analysis)}"
+            )
+
+        invalid_report_sections = [
+            value for value in self.reporting.report_sections if value not in allowed_analysis
+        ]
+        if invalid_report_sections:
+            raise ValueError(
+                f"report_sections contains invalid values: {invalid_report_sections}. "
+                f"Allowed values are: {sorted(allowed_analysis)}"
+            )
+        return self
+
 
 class AssaySpecificPanelsDoc(_StrictDocBase):
     asp_id: str
@@ -176,6 +266,7 @@ class AssaySpecificPanelsDoc(_StrictDocBase):
     asp_category: Literal["dna", "rna"]
     display_name: str
     description: str | None = None
+    expected_files: list[str] = Field(default_factory=list)
     covered_genes: list[str] = Field(default_factory=list)
     germline_genes: list[str] = Field(default_factory=list)
     accredited: bool = False
@@ -208,6 +299,41 @@ class AssaySpecificPanelsDoc(_StrictDocBase):
             raise ValueError("asp_category must be either 'dna' or 'rna'")
         return aliases[key]
 
+    @field_validator("expected_files", mode="before")
+    @classmethod
+    def _normalize_expected_files(cls, value: Any) -> list[str]:
+        if value is None:
+            return []
+        values = value if isinstance(value, list) else [value]
+        normalized: list[str] = []
+        for item in values:
+            key = str(item or "").strip().lower()
+            if key:
+                normalized.append(key)
+        return list(dict.fromkeys(normalized))
+
+    @model_validator(mode="after")
+    def _validate_expected_files(self) -> "AssaySpecificPanelsDoc":
+        allowed = (
+            set(DNA_EXPECTED_FILE_OPTIONS)
+            if self.asp_category == "dna"
+            else set(RNA_EXPECTED_FILE_OPTIONS)
+        )
+        if not self.expected_files:
+            self.expected_files = (
+                list(DNA_EXPECTED_FILE_OPTIONS)
+                if self.asp_category == "dna"
+                else list(RNA_EXPECTED_FILE_OPTIONS)
+            )
+            return self
+        invalid = [value for value in self.expected_files if value not in allowed]
+        if invalid:
+            raise ValueError(
+                f"expected_files contains invalid values: {invalid}. "
+                f"Allowed values are: {sorted(allowed)}"
+            )
+        return self
+
     @property
     @computed_field
     def covered_genes_count(self) -> int:
@@ -225,7 +351,7 @@ class InsilicoGenelistsDoc(_StrictDocBase):
     name: str
     displayname: str
     list_type: list[str] = Field(
-        default_factory=lambda: ["small_variants_genelist", "cnv_genelist", "fusion_genelist"]
+        default_factory=lambda: ["small_variant_genelist", "cnv_genelist", "fusion_genelist"]
     )
     adhoc: bool = False
     is_public: bool = False

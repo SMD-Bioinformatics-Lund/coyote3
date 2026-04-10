@@ -24,7 +24,9 @@ def list_aspc_read(
     q: str = Query(default=""),
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=30, ge=1, le=200),
-    user: ApiUser = Depends(require_access(permission="view_aspc", min_role="user", min_level=9)),
+    user: ApiUser = Depends(
+        require_access(permission="assay.config:list", min_role="user", min_level=9)
+    ),
     service: AspcService = Depends(get_admin_aspc_service),
 ):
     """Return the assay-config admin list.
@@ -46,7 +48,7 @@ def list_aspc_read(
 def create_aspc_context_read(
     category: str = Query(default="DNA"),
     user: ApiUser = Depends(
-        require_access(permission="create_aspc", min_role="manager", min_level=99)
+        require_access(permission="assay.config:create", min_role="manager", min_level=99)
     ),
     service: AspcService = Depends(get_admin_aspc_service),
 ):
@@ -68,7 +70,9 @@ def create_aspc_context_read(
 @router.get("/api/v1/resources/aspc/{assay_id}/context", response_model=AdminAspcContextPayload)
 def aspc_context_read(
     assay_id: str,
-    user: ApiUser = Depends(require_access(permission="view_aspc", min_role="user", min_level=9)),
+    user: ApiUser = Depends(
+        require_access(permission="assay.config:view", min_role="user", min_level=9)
+    ),
     service: AspcService = Depends(get_admin_aspc_service),
 ):
     """Return edit-form context for an assay config.
@@ -94,7 +98,7 @@ def aspc_context_read(
 def create_aspc_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="create_aspc", min_role="manager", min_level=99)
+        require_access(permission="assay.config:create", min_role="manager", min_level=99)
     ),
     service: AspcService = Depends(get_admin_aspc_service),
 ):
@@ -122,7 +126,7 @@ def update_aspc_change(
     assay_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="edit_aspc", min_role="manager", min_level=99)
+        require_access(permission="assay.config:edit", min_role="manager", min_level=99)
     ),
     service: AspcService = Depends(get_admin_aspc_service),
 ):
@@ -150,7 +154,7 @@ def update_aspc_change(
 def toggle_aspc_change(
     assay_id: str,
     user: ApiUser = Depends(
-        require_access(permission="edit_aspc", min_role="manager", min_level=99)
+        require_access(permission="assay.config:edit", min_role="manager", min_level=99)
     ),
     service: AspcService = Depends(get_admin_aspc_service),
 ):
@@ -176,7 +180,7 @@ def toggle_aspc_change(
 def delete_aspc_change(
     assay_id: str,
     user: ApiUser = Depends(
-        require_access(permission="delete_aspc", min_role="admin", min_level=99999)
+        require_access(permission="assay.config:delete", min_role="admin", min_level=99999)
     ),
     service: AspcService = Depends(get_admin_aspc_service),
 ):
@@ -198,7 +202,7 @@ def delete_aspc_change(
 def validate_aspc_id_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="create_aspc", min_role="manager", min_level=99)
+        require_access(permission="assay.config:create", min_role="manager", min_level=99)
     ),
     service: AspcService = Depends(get_admin_aspc_service),
 ):

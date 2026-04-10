@@ -25,12 +25,13 @@ def _route_test_user() -> ApiUser:
         fullname="Test User",
         username="tester",
         role="manager",
+        roles=["manager"],
         access_level=99,
         permissions=[
-            "edit_sample",
-            "add_sample_comment",
-            "hide_sample_comment",
-            "unhide_sample_comment",
+            "sample:edit:own",
+            "sample.comment:add",
+            "sample.comment:hide",
+            "sample.comment:unhide",
         ],
         denied_permissions=[],
         assays=["WGS"],
@@ -72,15 +73,8 @@ def test_reset_sample_filters_requires_assay_config(monkeypatch):
     assert exc.value.detail["error"] == "Assay config not found for sample"
 
 
-def test_update_coverage_blacklist_gene_returns_status_message(monkeypatch):
-    """Test update coverage blacklist gene returns status message.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
+def test_update_coverage_blacklist_gene_returns_change_payload(monkeypatch):
+    """Create coverage blacklist entry should return a standard change payload."""
     calls = {}
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
     service = SimpleNamespace(
@@ -99,7 +93,9 @@ def test_update_coverage_blacklist_gene_returns_status_message(monkeypatch):
 
     assert calls["gene"] == ("TP53", "dna")
     assert payload["status"] == "ok"
-    assert "TP53" in payload["message"]
+    assert payload["resource"] == "blacklist"
+    assert payload["resource_id"] == "TP53:gene"
+    assert payload["action"] == "add"
 
 
 def test_remove_coverage_blacklist_returns_change_payload(monkeypatch):

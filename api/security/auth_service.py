@@ -22,18 +22,19 @@ def _lookup_user_doc(login_identifier: str) -> dict | None:
     if not normalized:
         return None
     user_handler = get_user_handler()
-    user_doc = user_handler.user(normalized)
-    if user_doc:
-        return user_doc
-    # Support explicit business-key lookup in addition to email/username.
-    return user_handler.user_with_id(normalized)
+    return user_handler.user(normalized)
 
 
-def _load_user_access_context(user_doc: dict) -> tuple[dict, list[dict]]:
-    """Return the role document and active assay panels for a user document."""
-    role_doc = get_roles_handler().get_role(user_doc.get("role")) or {}
+def _load_user_access_context(user_doc: dict) -> tuple[list[dict], list[dict]]:
+    """Return the role documents and active assay panels for a user document."""
+    roles_handler = get_roles_handler()
+    role_docs = [
+        role_doc
+        for role_id in (user_doc.get("roles") or [])
+        if (role_doc := roles_handler.get_role(role_id))
+    ]
     assay_panels = list(get_assay_panel_handler().get_all_asps(is_active=True) or [])
-    return role_doc, assay_panels
+    return role_docs, assay_panels
 
 
 def _ldap_authenticate(username: str, password: str) -> bool:
@@ -65,8 +66,8 @@ def build_user_session_payload(user_doc: dict) -> dict:
     Returns:
         The normalized session payload returned to API clients.
     """
-    role_doc, asp_docs = _load_user_access_context(user_doc)
-    user_model = UserModel.from_auth_payload(user_doc, role_doc, asp_docs)
+    role_docs, asp_docs = _load_user_access_context(user_doc)
+    user_model = UserModel.from_auth_payload(user_doc, role_docs, asp_docs)
     return user_model.to_dict()
 
 

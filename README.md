@@ -140,7 +140,7 @@ Optional deployment profile:
 - Architecture: [System Overview](docs/architecture/system-overview.md)
 - API ingestion and contracts:
   - [Ingestion API](docs/api/ingestion-api.md)
-  - [Collection Contracts](docs/api/collection-contracts.md)
+  - [Collection Contracts](docs/api/collection_contracts.md)
 - Operations:
   - [Center Deployment Guide](docs/operations/center-deployment-guide.md)
   - [Deployment Guide](docs/operations/deployment-guide.md)

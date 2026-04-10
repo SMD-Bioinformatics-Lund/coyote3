@@ -30,11 +30,9 @@ class Utility:
             self.dashboard, self.admin, self.login
         """
         from coyote.blueprints.dashboard.util import DashBoardUtility
-        from coyote.blueprints.home.util import HomeUtility
         from coyote.util.admin_utility import AdminUtility
         from coyote.util.common_utility import CommonUtility
 
         self.common = CommonUtility()
-        self.main = HomeUtility()
         self.dashboard = DashBoardUtility()
         self.admin = AdminUtility()

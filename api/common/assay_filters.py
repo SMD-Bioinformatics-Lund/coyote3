@@ -92,12 +92,19 @@ def merge_sample_settings_with_assay_config(sample_doc: dict, assay_config_doc: 
     sample_filters = sample_doc.get("filters", {})
     adhoc_genes = sample_filters.pop("adhoc_genes", {})
 
+    def _has_explicit_override(value: Any) -> bool:
+        if value is None:
+            return False
+        if isinstance(value, list):
+            return len(value) > 0
+        return True
+
     if not sample_filters:
         merged_filters = deepcopy(filters_config)
     else:
         merged_filters = {}
         for key, value in filters_config.items():
-            if key in sample_filters and sample_filters[key] is not None:
+            if key in sample_filters and _has_explicit_override(sample_filters[key]):
                 merged_filters[key] = sample_filters[key]
             else:
                 merged_filters[key] = value
@@ -311,18 +318,45 @@ def get_case_and_control_sample_ids(sample_doc: dict) -> dict:
     return sample_ids
 
 
-def get_sample_effective_genes(sample: dict, asp_doc: dict, checked_gl_dict: dict) -> tuple:
+def get_sample_effective_genes(
+    sample: dict, asp_doc: dict, checked_gl_dict: dict, target: str = "snv"
+) -> tuple:
     sample_filters = sample.get("filters", {})
-    adhoc_genes = sample_filters.get("adhoc_genes", {}).get("genes", {})
-    adhoc_key = sample_filters.get("adhoc_genes", {}).get("label", "AdHoc genes")
-    if adhoc_genes:
+    adhoc_genes_doc = sample_filters.get("adhoc_genes", {}) or {}
+    scoped_adhoc_entries = {}
+    if {"snv", "cnv", "fusion", "all"} & set(adhoc_genes_doc.keys()):
+        for scope in ("all", target):
+            entry = adhoc_genes_doc.get(scope)
+            if isinstance(entry, dict) and entry.get("genes"):
+                scoped_adhoc_entries[scope] = entry
+    elif adhoc_genes_doc.get("genes"):
+        adhoc_list_types = adhoc_genes_doc.get("list_types", ["snv"])
+        if isinstance(adhoc_list_types, str):
+            adhoc_list_types = [adhoc_list_types]
+        adhoc_list_types = {
+            str(value).strip().lower() for value in adhoc_list_types if str(value).strip()
+        }
+        if not adhoc_list_types:
+            adhoc_list_types = {"snv"}
+        if target == "all" or "all" in adhoc_list_types or target in adhoc_list_types:
+            scoped_adhoc_entries[target if target in {"snv", "cnv", "fusion"} else "all"] = {
+                "label": sample_filters.get("adhoc_genes", {}).get("label", "AdHoc genes"),
+                "genes": adhoc_genes_doc.get("genes", {}),
+            }
+
+    for scope, entry in scoped_adhoc_entries.items():
+        adhoc_key = entry.get("label", "AdHoc genes")
+        if scope != "all":
+            adhoc_key = f"{adhoc_key} ({scope.upper()})"
         checked_gl_dict[adhoc_key] = {
             "displayname": adhoc_key,
             "is_active": True,
-            "genes": adhoc_genes,
+            "genes": entry.get("genes", {}),
             "adhoc": True,
         }
 
     genes_covered_in_panel = get_genes_covered_in_panel(checked_gl_dict, asp_doc)
     effective_filter_genes = create_filter_genelist(genes_covered_in_panel)
+    if not effective_filter_genes:
+        effective_filter_genes = sorted(asp_doc.get("covered_genes", []))
     return genes_covered_in_panel, effective_filter_genes

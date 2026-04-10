@@ -110,13 +110,13 @@ def user_doc() -> dict:
     """
     defaults = {
         "_id": "u1",
-        "user_id": "u1",
         "email": "tester@example.com",
         "fullname": "Test User",
         "username": "tester",
+        "roles": ["admin", "superuser"],
         "role": "admin",
         "access_level": 99999,
-        "permissions": ["preview_report", "create_report", "view_role", "edit_sample"],
+        "permissions": ["report:preview", "report:create", "role:view", "sample:edit:own"],
         "deny_permissions": [],
         "assays": ["WGS", "RNA_PANEL"],
         "assay_groups": ["dna", "rna"],
@@ -139,6 +139,7 @@ def api_user() -> ApiUser:
         email=str(doc.get("email") or "tester@example.com"),
         fullname=str(doc.get("fullname") or "Test User"),
         username=str(doc.get("username") or "tester"),
+        roles=list(doc.get("roles") or [str(doc.get("role") or "admin")]),
         role=str(doc.get("role") or "admin"),
         access_level=int(doc.get("access_level") or 99),
         permissions=list(doc.get("permissions") or []),
@@ -164,10 +165,12 @@ def sample_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
         "name": "SAMPLE_001",
         "assay": "WGS",
         "profile": "production",
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
         "case_id": "CASE001",
         "control_id": "CTRL001",
         "subpanel": "myeloid",
-        "vep": 110,
+        "vep_version": "110",
         "report_num": 2,
         "reports": [{"_id": "r1", "report_id": "RID1", "report_num": 1, "time_created": 1}],
         "case": {"clarity_id": "CLARITY_CASE_001"},
@@ -181,7 +184,9 @@ def sample_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
             "max_popfreq": 0.01,
             "vep_consequences": ["missense_variant"],
             "genelists": ["gl1"],
-            "adhoc_genes": {"label": "focus", "genes": ["TP53", "NPM1"]},
+            "cnv_genelists": ["gl1"],
+            "fusionlists": ["gl1"],
+            "adhoc_genes": {"snv": {"label": "focus", "genes": ["TP53", "NPM1"]}},
         },
     }
     doc = _latest_doc("samples_collection", prefer_dev_rna_wgs=prefer_dev_rna_wgs)
@@ -315,7 +320,7 @@ def role_doc() -> dict:
         "_id": "admin",
         "role_id": "admin",
         "label": "Administrator",
-        "permissions": ["view_role", "create_role"],
+        "permissions": ["role:view", "role:create"],
         "deny_permissions": [],
         "level": 99999,
     }
@@ -330,8 +335,8 @@ def permission_doc() -> dict:
         dict: The function result.
     """
     defaults = {
-        "_id": "view_role",
-        "permission_id": "view_role",
+        "_id": "role:view",
+        "permission_id": "role:view",
         "label": "View Role",
         "category": "RBAC",
         "is_active": True,
@@ -380,6 +385,7 @@ def isgl_doc() -> dict:
         "gene_count": 2,
         "genes": ["TP53", "NPM1"],
         "assays": ["WGS"],
+        "list_type": ["small_variant_genelist", "cnv_genelist", "fusion_genelist"],
         "is_active": True,
     }
     doc = _latest_doc("insilico_genelist_collection")

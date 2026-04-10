@@ -42,6 +42,22 @@ def _collect_oncokb_genes(service, variants: list[dict]) -> list[str]:
     return oncokb_genes
 
 
+def _normalize_dna_analysis_sections(sections: list[str] | None) -> list[str]:
+    """Normalize DNA display/report section toggles to supported UI sections."""
+    raw = [str(value).strip().upper() for value in (sections or []) if str(value).strip()]
+    normalized: list[str] = []
+    include_biomarker = False
+    for value in raw:
+        if value in {"BIOMARKER", "TMB", "PGX"}:
+            include_biomarker = True
+            continue
+        if value not in normalized:
+            normalized.append(value)
+    if include_biomarker:
+        normalized.append("BIOMARKER")
+    return normalized
+
+
 def _build_display_and_summary_sections(
     service,
     *,
@@ -113,20 +129,20 @@ def list_variants_payload(
     sample_filters = deepcopy(sample.get("filters", {}))
     assay_group = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel")
-    analysis_sections = assay_config.get("analysis_types", [])
+    analysis_sections = _normalize_dna_analysis_sections(assay_config.get("analysis_types", []))
 
     assay_panel_doc = service.assay_panel_handler.get_asp(asp_name=sample.get("assay"))
     checked_genelists = sample_filters.get("genelists", [])
     checked_genelists_genes_dict = service.gene_list_handler.get_isgl_by_ids(checked_genelists)
     genes_covered_in_panel, filter_genes = util_module.common.get_sample_effective_genes(
-        sample, assay_panel_doc, checked_genelists_genes_dict
+        sample, assay_panel_doc, checked_genelists_genes_dict, target="snv"
     )
     checked_cnv_genelists = sample_filters.get("cnv_genelists", [])
     checked_cnv_genelists_genes_dict = service.gene_list_handler.get_isgl_by_ids(
         checked_cnv_genelists
     )
     _cnv_genes_covered_in_panel, cnv_filter_genes = util_module.common.get_sample_effective_genes(
-        sample, assay_panel_doc, checked_cnv_genelists_genes_dict
+        sample, assay_panel_doc, checked_cnv_genelists_genes_dict, target="cnv"
     )
     filter_conseq = get_filter_conseq_terms_fn(sample_filters.get("vep_consequences", []))
 
@@ -164,9 +180,11 @@ def list_variants_payload(
     sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
     bam_id = service.bam_record_handler.get_bams(sample_ids)
     vep_variant_class_meta = service.vep_metadata_handler.get_variant_class_translations(
-        sample.get("vep", 103)
+        sample.get("vep_version", "103")
     )
-    vep_conseq_meta = service.vep_metadata_handler.get_conseq_translations(sample.get("vep", 103))
+    vep_conseq_meta = service.vep_metadata_handler.get_conseq_translations(
+        sample.get("vep_version", "103")
+    )
     has_hidden_comments = service.sample_handler.hidden_sample_comments(sample.get("_id"))
     insilico_panel_genelists = service.gene_list_handler.get_isgl_by_asp(
         sample.get("assay"), is_active=True
@@ -358,10 +376,10 @@ def variant_context_payload(
         "sample_ids": sample_ids,
         "bam_id": service.bam_record_handler.get_bams(sample_ids),
         "vep_var_class_translations": service.vep_metadata_handler.get_variant_class_translations(
-            sample.get("vep", 103)
+            sample.get("vep_version", "103")
         ),
         "vep_conseq_translations": service.vep_metadata_handler.get_conseq_translations(
-            sample.get("vep", 103)
+            sample.get("vep_version", "103")
         ),
         "assay_group_mappings": service.assay_panel_handler.get_asp_group_mappings(),
     }

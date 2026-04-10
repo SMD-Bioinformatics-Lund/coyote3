@@ -10,7 +10,7 @@ from coyote.blueprints.admin import admin_bp
 _ADMIN_CARDS: list[dict[str, Any]] = [
     {
         "endpoint": "admin_bp.all_samples",
-        "permission": "view_sample_global",
+        "permission": "sample:list:global",
         "min_role": "developer",
         "min_level": 9999,
         "icon": "square-3-stack-3d.svg",
@@ -21,7 +21,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.manage_users",
-        "permission": "view_user",
+        "permission": "user:list",
         "min_role": "admin",
         "min_level": 99999,
         "icon": "users.svg",
@@ -32,7 +32,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.create_user",
-        "permission": "create_user",
+        "permission": "user:create",
         "min_role": "admin",
         "min_level": 99999,
         "icon": "user-plus.svg",
@@ -43,7 +43,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.list_roles",
-        "permission": "view_role",
+        "permission": "role:list",
         "min_role": "admin",
         "min_level": 99999,
         "icon": "user-circle.svg",
@@ -54,7 +54,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.create_role",
-        "permission": "create_role",
+        "permission": "role:create",
         "min_role": "admin",
         "min_level": 99999,
         "icon": "user-circle.svg",
@@ -65,7 +65,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.list_permissions",
-        "permission": "view_permission_policy",
+        "permission": "permission.policy:list",
         "min_role": "admin",
         "min_level": 99999,
         "icon": "key.svg",
@@ -76,7 +76,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.create_permission",
-        "permission": "create_permission_policy",
+        "permission": "permission.policy:create",
         "min_role": "admin",
         "min_level": 99999,
         "icon": "key.svg",
@@ -87,7 +87,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.manage_assay_panels",
-        "permission": "view_asp",
+        "permission": "assay.panel:list",
         "min_role": "manager",
         "min_level": 99,
         "icon": "list-bullet.svg",
@@ -98,7 +98,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.create_assay_panel",
-        "permission": "create_asp",
+        "permission": "assay.panel:create",
         "min_role": "manager",
         "min_level": 99,
         "icon": "document-plus.svg",
@@ -109,7 +109,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.assay_configs",
-        "permission": "view_aspc",
+        "permission": "assay.config:list",
         "min_role": "manager",
         "min_level": 99,
         "icon": "document-duplicate.svg",
@@ -120,7 +120,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.create_dna_assay_config",
-        "permission": "create_aspc",
+        "permission": "assay.config:create",
         "min_role": "manager",
         "min_level": 99,
         "icon": "document-plus.svg",
@@ -131,7 +131,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.create_rna_assay_config",
-        "permission": "create_aspc",
+        "permission": "assay.config:create",
         "min_role": "manager",
         "min_level": 99,
         "icon": "document-plus.svg",
@@ -142,7 +142,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.manage_genelists",
-        "permission": "view_isgl",
+        "permission": "gene_list.insilico:list",
         "min_role": "manager",
         "min_level": 99,
         "icon": "list-bullet.svg",
@@ -153,7 +153,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.create_genelist",
-        "permission": "create_isgl",
+        "permission": "gene_list.insilico:create",
         "min_role": "manager",
         "min_level": 99,
         "icon": "document-plus.svg",
@@ -164,9 +164,10 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.audit",
-        "permission": "view_audit_logs",
-        "min_role": "admin",
-        "min_level": 99999,
+        "permission": "audit_log:view",
+        "min_role": "superuser",
+        "min_level": 1000000,
+        "superuser_only": True,
         "icon": "newspaper.svg",
         "title": "Audit Logs",
         "desc": "Track changes and activities",
@@ -175,7 +176,7 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
     },
     {
         "endpoint": "admin_bp.ingest_workspace",
-        "permission": "edit_sample",
+        "permission": "sample:edit:own",
         "min_role": "developer",
         "min_level": 9999,
         "icon": "arrow-up-tray.svg",

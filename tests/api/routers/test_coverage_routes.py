@@ -123,6 +123,7 @@ def _route_test_user() -> ApiUser:
         fullname="Test User",
         username="tester",
         role="user",
+        roles=["user"],
         access_level=9,
         permissions=[],
         denied_permissions=[],

@@ -30,7 +30,7 @@ def list_roles_read(
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=30, ge=1, le=200),
     user: ApiUser = Depends(
-        require_access(permission="view_role", min_role="admin", min_level=99999)
+        require_access(permission="role:list", min_role="admin", min_level=99999)
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):
@@ -44,7 +44,7 @@ def list_roles_read(
 @router.get("/api/v1/roles/create_context", response_model=AdminRoleCreateContextPayload)
 def create_role_context_read(
     user: ApiUser = Depends(
-        require_access(permission="create_role", min_role="admin", min_level=99999)
+        require_access(permission="role:create", min_role="admin", min_level=99999)
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):
@@ -58,7 +58,7 @@ def create_role_context_read(
 def role_context_read(
     role_id: str,
     user: ApiUser = Depends(
-        require_access(permission="view_role", min_role="admin", min_level=99999)
+        require_access(permission="role:view", min_role="admin", min_level=99999)
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):
@@ -80,7 +80,7 @@ def _create_role(payload: dict, actor_username: str, service: RoleManagementServ
 def create_role(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="create_role", min_role="admin", min_level=99999)
+        require_access(permission="role:create", min_role="admin", min_level=99999)
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):
@@ -100,7 +100,7 @@ def update_role(
     role_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="edit_role", min_role="admin", min_level=99999)
+        require_access(permission="role:edit", min_role="admin", min_level=99999)
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):
@@ -123,7 +123,7 @@ def _toggle_role(role_id: str, service: RoleManagementService):
 def toggle_role_status(
     role_id: str,
     user: ApiUser = Depends(
-        require_access(permission="edit_role", min_role="admin", min_level=99999)
+        require_access(permission="role:edit", min_role="admin", min_level=99999)
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):
@@ -141,7 +141,7 @@ def _delete_role(role_id: str, service: RoleManagementService):
 def delete_role(
     role_id: str,
     user: ApiUser = Depends(
-        require_access(permission="delete_role", min_role="admin", min_level=99999)
+        require_access(permission="role:delete", min_role="admin", min_level=99999)
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):
@@ -154,7 +154,7 @@ def delete_role(
 def validate_role_id_change(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="create_role", min_role="admin", min_level=99999)
+        require_access(permission="role:create", min_role="admin", min_level=99999)
     ),
     service: RoleManagementService = Depends(get_admin_role_service),
 ):

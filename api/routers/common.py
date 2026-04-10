@@ -35,7 +35,7 @@ def common_tiered_variant_context_read(
     variant_id: str,
     tier: int,
     user: ApiUser = Depends(
-        require_access(permission="view_gene_annotations", min_role="user", min_level=9)
+        require_access(permission="gene.annotation:view", min_role="user", min_level=9)
     ),
     service: CommonQueryService = Depends(get_common_query_service),
 ):
@@ -56,7 +56,7 @@ def common_tiered_variant_search_read(
     assays: list[str] | None = Query(default=None),
     limit_entries: int | None = None,
     user: ApiUser = Depends(
-        require_access(permission="view_gene_annotations", min_role="user", min_level=9)
+        require_access(permission="gene.annotation:view", min_role="user", min_level=9)
     ),
     service: CommonQueryService = Depends(get_common_query_service),
 ):

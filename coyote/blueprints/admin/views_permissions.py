@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
-
 from flask import Response, abort, g, jsonify, redirect, render_template, request, url_for
 from flask import current_app as app
 from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
-from coyote.extensions import util
 from coyote.services.api_client import endpoints as api_endpoints
 from coyote.services.api_client.api_client import (
     ApiRequestError,
@@ -17,45 +14,21 @@ from coyote.services.api_client.api_client import (
     get_web_api_client,
 )
 from coyote.services.api_client.web import (
+    api_page_guard,
     flash_api_failure,
     flash_api_success,
-    raise_page_load_error,
 )
 
 
 def _apply_selected_permission_version(
     permission: dict, selected_version: int | None, perm_id: str | None = None
 ):
-    """Return the selected historical permission version for diff-aware rendering.
+    """Return the selected historical permission version for diff-aware rendering."""
+    from coyote.util.admin_utility import apply_selected_version
 
-    Args:
-        permission: Permission document returned by the API context endpoint.
-        selected_version: Historical version requested by the operator.
-        perm_id: Optional permission identifier used to restore ``_id`` after
-            delta application.
-
-    Returns:
-        A tuple of ``(permission_document, delta)`` where ``delta`` is the
-        applied version delta or ``None`` when no historical projection was
-        needed.
-    """
-    delta = None
-    if selected_version and selected_version != permission.get("version"):
-        version_index = next(
-            (
-                i
-                for i, version_entry in enumerate(permission.get("version_history", []))
-                if version_entry["version"] == selected_version + 1
-            ),
-            None,
-        )
-        if version_index is not None:
-            delta_blob = permission["version_history"][version_index].get("delta", {})
-            permission = util.admin.apply_version_delta(deepcopy(permission), delta_blob)
-            delta = delta_blob
-            if perm_id:
-                permission["permission_id"] = perm_id
-    return permission, delta
+    return apply_selected_version(
+        permission, selected_version, id_field="permission_id", id_value=perm_id
+    )
 
 
 @admin_bp.route("/permissions")
@@ -69,7 +42,11 @@ def list_permissions() -> str:
     q = (request.args.get("q") or "").strip()
     page = max(1, request.args.get("page", default=1, type=int) or 1)
     per_page = max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200))
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message="Failed to fetch permissions",
+        summary="Unable to load permissions.",
+    ):
         payload = get_web_api_client().get_json(
             api_endpoints.admin("permissions"),
             headers=forward_headers(),
@@ -77,21 +54,6 @@ def list_permissions() -> str:
         )
         grouped_permissions = payload.get("grouped_permissions", {})
         pagination = payload.get("pagination", {})
-    except AttributeError as exc:
-        app.logger.error("Failed to parse permissions payload: %s", exc)
-        raise_page_load_error(
-            ApiRequestError(str(exc)),
-            logger=app.logger,
-            log_message="Failed to parse permission list payload",
-            summary="Unable to load permissions.",
-        )
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message="Failed to fetch permissions",
-            summary="Unable to load permissions.",
-        )
     return render_template(
         "permissions/permissions.html",
         grouped_permissions=grouped_permissions,
@@ -111,17 +73,14 @@ def create_permission() -> Response | str:
     Returns:
         The rendered form on ``GET`` or a redirect response after ``POST``.
     """
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message="Failed to load permission create context",
+        summary="Unable to load the permission creation form.",
+    ):
         context = get_web_api_client().get_json(
             api_endpoints.admin("permissions", "create_context"),
             headers=forward_headers(),
-        )
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message="Failed to load permission create context",
-            summary="Unable to load the permission creation form.",
         )
 
     if request.method == "POST":
@@ -174,18 +133,15 @@ def edit_permission(perm_id: str) -> Response | str:
     Returns:
         The rendered form on ``GET`` or a redirect response after ``POST``.
     """
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message=f"Failed to load permission context for {perm_id}",
+        summary="Unable to load the permission policy.",
+        not_found_summary="Permission policy not found.",
+    ):
         context = get_web_api_client().get_json(
             api_endpoints.admin("permissions", perm_id, "context"),
             headers=forward_headers(),
-        )
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message=f"Failed to load permission context for {perm_id}",
-            summary="Unable to load the permission policy.",
-            not_found_summary="Permission policy not found.",
         )
 
     selected_version = request.args.get("version", type=int)
@@ -230,18 +186,15 @@ def view_permission(perm_id: str) -> str | Response:
     Returns:
         The rendered detail page response.
     """
-    try:
+    with api_page_guard(
+        logger=app.logger,
+        log_message=f"Failed to load permission view context for {perm_id}",
+        summary="Unable to load the permission policy.",
+        not_found_summary="Permission policy not found.",
+    ):
         context = get_web_api_client().get_json(
             api_endpoints.admin("permissions", perm_id, "context"),
             headers=forward_headers(),
-        )
-    except ApiRequestError as exc:
-        raise_page_load_error(
-            exc,
-            logger=app.logger,
-            log_message=f"Failed to load permission view context for {perm_id}",
-            summary="Unable to load the permission policy.",
-            not_found_summary="Permission policy not found.",
         )
 
     selected_version = request.args.get("version", type=int)

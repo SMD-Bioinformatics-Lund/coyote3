@@ -34,7 +34,7 @@
                       <form action="{{ url_for('common_bp.hide_sample_comment', sample_id=sample._id) }}#summary" method="post">
                         <input type="hidden" name="comment_id" value="{{ comment._id }}">
                         {% if summary_enforce_acl|default(false) %}
-                          <input id="hide_comment" type="image" class="w-5 {% if not has_access('hide_sample_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
+                          <input id="hide_comment" type="image" class="w-5 {% if not has_access('sample.comment:hide', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
                         {% else %}
                           <input id="hide_comment" type="image" class="w-5 hover:scale-105" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
                         {% endif %}
@@ -43,7 +43,7 @@
                       <form action="{{ url_for('common_bp.unhide_sample_comment', sample_id=sample._id) }}#summary" method="post">
                         <input type="hidden" name="comment_id" value="{{ comment._id }}">
                         {% if summary_enforce_acl|default(false) %}
-                          <input id="unhide_comment" type="image" class="w-5 {% if not has_access('unhide_sample_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
+                          <input id="unhide_comment" type="image" class="w-5 {% if not has_access('sample.comment:unhide', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
                         {% else %}
                           <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
                         {% endif %}
@@ -95,7 +95,7 @@
                       class="p-2 text-black bg-gray-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-gray-500 hover:text-white hover:shadow-lg cursor-pointer">
                 Suggest
               </button>
-              {% if has_access('preview_report', min_role='user', min_level=9) %}
+              {% if has_access('report:preview', min_role='user', min_level=9) %}
                 <button type="button"
                         onclick="window.location.href='{{ summary_preview_url }}'"
                         class="p-2 text-black bg-green-400 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-lg cursor-pointer">

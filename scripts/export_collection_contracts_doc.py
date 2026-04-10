@@ -47,7 +47,7 @@ def main() -> int:
         "- `insilico_genelists.assays[]` and `assay_groups[]` must map to ASP/ASPC assay setup."
     )
     lines.append("- `roles.permissions[]` must reference `permissions.permission_id`.")
-    lines.append("- `users.role` must reference `roles.role_id`.")
+    lines.append("- `users.roles[]` must reference `roles.role_id`.")
     lines.append("- `refseq_canonical.gene` should exist in `hgnc_genes.hgnc_symbol`.")
     lines.append("")
     lines.append("## DNA vs RNA sample rules")
@@ -90,7 +90,7 @@ def main() -> int:
             lines.append("- None")
         lines.append("")
 
-    out_path = Path("docs/api/collection-contracts.md")
+    out_path = Path("docs/api/collection_contracts.md")
     out_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     print(f"[ok] wrote {out_path}")
     return 0

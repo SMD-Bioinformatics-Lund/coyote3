@@ -82,7 +82,12 @@ def build_fake_store() -> SimpleNamespace:
             {
                 "get_variant": lambda var_id: variant,
                 "get_case_variants": lambda query: [variant],
-                "get_variant_stats": lambda sample_id, genes=None: {"total": 1},
+                "get_variant_stats": lambda sample_id, genes=None: {
+                    "variants": 1 if genes is None else 0,
+                    "interesting": 1 if genes is None else 0,
+                    "irrelevant": 0,
+                    "false_positives": 0,
+                },
                 "hidden_var_comments": lambda var_id: False,
                 "get_variant_in_other_samples": lambda var: [],
             }
@@ -135,6 +140,8 @@ def build_fake_store() -> SimpleNamespace:
             {
                 "get_variant_class_translations": lambda vep: {},
                 "get_conseq_translations": lambda vep: {},
+                "get_consequence_group_map": lambda vep=None: {},
+                "get_consequence_group_options": lambda vep=None: [],
             }
         ),
         bam_record_handler=FakeHandler({"get_bams": lambda sample_ids: []}),

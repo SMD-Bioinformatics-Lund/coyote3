@@ -88,7 +88,7 @@ class RnaService:
         assay_config_schema = build_form_spec(aspc_spec_for_category("RNA"))
         assay_panel_doc = self.assay_panel_handler.get_asp(asp_name=sample.get("assay"))
         fusionlist_options = self.gene_list_handler.get_isgl_by_asp(
-            sample.get("assay"), is_active=True, list_type="fusionlist"
+            sample.get("assay"), is_active=True, list_type="fusion_genelist"
         )
         sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
         has_hidden_comments = self.sample_handler.hidden_sample_comments(sample.get("_id"))

@@ -5,7 +5,6 @@ from functools import lru_cache
 from api.deps.handlers import get_store
 from api.extensions import util
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
-from api.runtime_state import app as runtime_app
 from api.services.accounts.permissions import PermissionManagementService
 from api.services.accounts.roles import RoleManagementService
 from api.services.accounts.user_profile import UserService
@@ -23,7 +22,7 @@ from api.services.reporting.dna_workflow import DNAWorkflowService
 from api.services.reporting.report_builder import ReportService
 from api.services.reporting.rna_workflow import RNAWorkflowService
 from api.services.resources.asp import AspService
-from api.services.resources.aspc import AspcService, QueryProfileService
+from api.services.resources.aspc import AspcService
 from api.services.resources.isgl import IsglService
 from api.services.resources.sample import ResourceSampleService
 from api.services.rna.expression_analysis import RnaService
@@ -72,12 +71,6 @@ def get_admin_aspc_service() -> AspcService:
 def get_admin_sample_service() -> ResourceSampleService:
     """Return the shared admin sample-management service."""
     return ResourceSampleService.from_store(get_store(), records_util=util.records)
-
-
-@lru_cache
-def get_admin_query_profile_service() -> QueryProfileService:
-    """Return the shared query-profile options service."""
-    return QueryProfileService(aspc_service=get_admin_aspc_service())
 
 
 @lru_cache
@@ -162,10 +155,7 @@ def get_rna_workflow_service() -> RNAWorkflowService:
 
 def get_dna_workflow_service() -> DNAWorkflowService:
     """Return the DNA reporting workflow service."""
-    return DNAWorkflowService.from_store(
-        get_store(),
-        conseq_terms_mapper=runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}),
-    )
+    return DNAWorkflowService.from_store(get_store())
 
 
 def get_internal_ingest_service() -> InternalIngestService:

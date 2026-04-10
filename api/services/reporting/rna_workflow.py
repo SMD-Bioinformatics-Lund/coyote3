@@ -122,7 +122,7 @@ class RNAWorkflowService:
         sample_for_gene_filter.setdefault("filters", {})
         sample_for_gene_filter["filters"]["genelists"] = checked_fusionlists
         genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
-            sample_for_gene_filter, assay_panel_doc, checked_fusionlists_genes_dict
+            sample_for_gene_filter, assay_panel_doc, checked_fusionlists_genes_dict, target="fusion"
         )
 
         fusion_effect_form_keys = []

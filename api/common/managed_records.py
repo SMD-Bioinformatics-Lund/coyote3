@@ -182,7 +182,7 @@ class ManagedRecordUtility:
 
     @staticmethod
     def inject_version_history(
-        user_email: str,
+        actor_username: str,
         new_config: dict,
         old_config=None,
         is_new: bool = True,
@@ -195,7 +195,7 @@ class ManagedRecordUtility:
         the old and new configurations.
 
         Args:
-            user_email (str): The email address of the user making the change.
+            actor_username (str): The username of the user making the change.
             new_config (dict): The new configuration dictionary.
             old_config (dict, optional): The previous configuration dictionary. Defaults to an empty dict.
             is_new (bool, optional): Whether this is the initial version. Defaults to True.
@@ -229,7 +229,7 @@ class ManagedRecordUtility:
         version_entry = {
             "version": version,
             "timestamp": timestamp,
-            "user": user_email,
+            "user": actor_username,
             "delta": delta,
             "hash": hash_val,
         }

@@ -27,7 +27,7 @@ def test_build_report_file_location_with_control_id(monkeypatch):
         "case": {"clarity_id": "CC1"},
         "control": {"clarity_id": "CT1"},
     }
-    assay_config = {"reporting": {"report_path": "dna/reports"}}
+    assay_config = {"reporting": {"report_folder": "dna/reports"}}
 
     report_id, report_path, report_file = report_paths.build_report_file_location(
         sample=sample,
@@ -58,7 +58,7 @@ def test_build_report_file_location_without_control_id_uses_case_only(monkeypatc
 
     report_id, report_path, report_file = report_paths.build_report_file_location(
         sample=sample,
-        assay_config={"reporting": {"report_path": "rna"}},
+        assay_config={"reporting": {"report_folder": "rna"}},
         default_assay_group="rna",
         reports_base_path="/reports",
     )
@@ -89,7 +89,7 @@ def test_build_report_file_location_raises_without_report_path(monkeypatch):
         )
 
     assert exc.value.status_code == 400
-    assert "reporting.report_path" in exc.value.message
+    assert "report_folder" in exc.value.message
 
 
 def test_prepare_report_output_creates_directory_when_file_missing(monkeypatch):

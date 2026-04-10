@@ -31,6 +31,7 @@ def _u(
         email="u@example.com",
         fullname="U",
         username="user",
+        roles=[role],
         role=role,
         access_level=level,
         permissions=permissions or [],
@@ -48,7 +49,7 @@ def test_enforce_access_allows_matching_permission():
     Returns:
         The function result.
     """
-    _enforce_access(_u(permissions=["preview_report"]), permission="preview_report")
+    _enforce_access(_u(permissions=["report:preview"]), permission="report:preview")
 
 
 def test_enforce_access_denies_when_permission_explicitly_denied():
@@ -59,8 +60,8 @@ def test_enforce_access_denies_when_permission_explicitly_denied():
     """
     with pytest.raises(HTTPException) as exc:
         _enforce_access(
-            _u(permissions=["preview_report"], denied=["preview_report"]),
-            permission="preview_report",
+            _u(permissions=["report:preview"], denied=["report:preview"]),
+            permission="report:preview",
         )
     assert exc.value.status_code == 403
 
@@ -112,8 +113,18 @@ def test_enforce_access_denies_when_no_constraint_matches(monkeypatch):
     with pytest.raises(HTTPException) as exc:
         _enforce_access(
             _u(level=10, permissions=[]),
-            permission="create_report",
+            permission="report:create",
             min_level=99,
             min_role="manager",
         )
     assert exc.value.status_code == 403
+
+
+def test_enforce_access_superuser_bypasses_all_checks():
+    """Superuser should bypass all permission, level, and role checks."""
+    _enforce_access(
+        _u(role="superuser", level=0, permissions=[]),
+        permission="permission.policy:delete",
+        min_level=999999,
+        min_role="superuser",
+    )

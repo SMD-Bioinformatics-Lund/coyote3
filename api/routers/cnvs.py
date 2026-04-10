@@ -51,7 +51,7 @@ def show_dna_cnv(
 def unmark_interesting_cnv(
     sample_id: str,
     cnv_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
+    user: ApiUser = Depends(require_access(permission="cnv:manage", min_role="user", min_level=9)),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Remove the interesting flag from a CNV."""
@@ -74,7 +74,7 @@ def unmark_interesting_cnv(
 def mark_interesting_cnv(
     sample_id: str,
     cnv_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
+    user: ApiUser = Depends(require_access(permission="cnv:manage", min_role="user", min_level=9)),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Mark a CNV as interesting."""
@@ -97,7 +97,7 @@ def mark_interesting_cnv(
 def mark_false_positive_cnv(
     sample_id: str,
     cnv_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
+    user: ApiUser = Depends(require_access(permission="cnv:manage", min_role="user", min_level=9)),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Mark a CNV as false positive."""
@@ -120,7 +120,7 @@ def mark_false_positive_cnv(
 def unmark_false_positive_cnv(
     sample_id: str,
     cnv_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
+    user: ApiUser = Depends(require_access(permission="cnv:manage", min_role="user", min_level=9)),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Remove the false-positive flag from a CNV."""
@@ -143,7 +143,7 @@ def unmark_false_positive_cnv(
 def mark_noteworthy_cnv(
     sample_id: str,
     cnv_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
+    user: ApiUser = Depends(require_access(permission="cnv:manage", min_role="user", min_level=9)),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Mark a CNV as noteworthy."""
@@ -166,7 +166,7 @@ def mark_noteworthy_cnv(
 def unmark_noteworthy_cnv(
     sample_id: str,
     cnv_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
+    user: ApiUser = Depends(require_access(permission="cnv:manage", min_role="user", min_level=9)),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
     """Remove the noteworthy flag from a CNV."""
@@ -191,7 +191,7 @@ def hide_cnv_comment(
     cnv_id: str,
     comment_id: str,
     user: ApiUser = Depends(
-        require_access(permission="hide_variant_comment", min_role="manager", min_level=99)
+        require_access(permission="variant.comment:hide", min_role="manager", min_level=99)
     ),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):
@@ -220,7 +220,7 @@ def unhide_cnv_comment(
     cnv_id: str,
     comment_id: str,
     user: ApiUser = Depends(
-        require_access(permission="unhide_variant_comment", min_role="manager", min_level=99)
+        require_access(permission="variant.comment:unhide", min_role="manager", min_level=99)
     ),
     service: DnaStructuralService = Depends(get_dna_structural_service),
 ):

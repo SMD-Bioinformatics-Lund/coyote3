@@ -17,6 +17,37 @@ def test_build_cnv_query_applies_base_guards() -> None:
     )
     assert query["SAMPLE_ID"] == "SAMPLE_1"
     assert "$and" in query
+    gene_clause = next(
+        clause
+        for clause in query["$and"]
+        if isinstance(clause, dict)
+        and "$or" in clause
+        and any(isinstance(option, dict) and "genes.gene" in option for option in clause["$or"])
+    )
+    assert {"genes.gene": {"$in": ["TP53"]}} in gene_clause["$or"]
+
+
+def test_build_cnv_query_filters_against_stored_gene_array_shape() -> None:
+    query = build_cnv_query(
+        "SAMPLE_1",
+        {
+            "cnv_loss_cutoff": -0.3,
+            "cnv_gain_cutoff": 0.3,
+            "min_cnv_size": 100,
+            "max_cnv_size": 10000,
+            "filter_genes": ["EGFR", "ERBB2"],
+        },
+    )
+
+    gene_clauses = [
+        clause
+        for clause in query["$and"]
+        if any(
+            isinstance(option, dict) and "genes.gene" in option for option in clause.get("$or", [])
+        )
+    ]
+    assert len(gene_clauses) == 1
+    assert {"genes.gene": {"$in": ["EGFR", "ERBB2"]}} in gene_clauses[0]["$or"]
 
 
 def test_build_fusion_query_applies_base_filters() -> None:

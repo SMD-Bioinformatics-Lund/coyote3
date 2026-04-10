@@ -70,7 +70,7 @@ def can_view_developer_docs() -> bool:
     """
     if not current_user.is_authenticated:
         return False
-    return current_user.has_permission("delete_sample_global") or current_user.has_min_access_level(
+    return current_user.has_permission("sample:delete:global") or current_user.has_min_access_level(
         9999
     )
 

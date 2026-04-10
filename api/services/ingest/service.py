@@ -12,6 +12,9 @@ from api.contracts.schemas.registry import (
     normalize_collection_document,
 )
 from api.contracts.schemas.samples import (
+    DNA_SAMPLE_FILE_KEYS,
+    RNA_SAMPLE_FILE_KEYS,
+    SAMPLE_SOURCE_PATH_KEYS,
     SamplesDoc,  # noqa: F401 - re-exported for existing tests/importers
 )
 from api.core.dna.variant_identity import ensure_variant_identity_fields
@@ -201,6 +204,46 @@ class InternalIngestService:
         if omics_layer == "rna":
             return RnaIngestParser.parse(args)
         raise ValueError("Could not determine data type (DNA/RNA) from payload")
+
+    def _assay_expected_file_keys(
+        self, *, assay_name: str | None, omics_layer: str | None
+    ) -> set[str]:
+        """Return ASP-configured expected file keys for an assay."""
+        normalized_omics = str(omics_layer or "").strip().lower()
+        default_keys = (
+            set(RNA_SAMPLE_FILE_KEYS) if normalized_omics == "rna" else set(DNA_SAMPLE_FILE_KEYS)
+        )
+        if not assay_name:
+            return default_keys
+        panel_collection = self.collections.get("assay_specific_panels")
+        if panel_collection is None or not hasattr(panel_collection, "find_one"):
+            return default_keys
+        panel = panel_collection.find_one({"asp_id": assay_name})
+        if not isinstance(panel, dict):
+            return default_keys
+        raw = panel.get("expected_files")
+        if not isinstance(raw, list):
+            return default_keys
+        keys = {str(item or "").strip() for item in raw if str(item or "").strip()}
+        return keys or default_keys
+
+    def _sanitize_payload_file_keys(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Strip sample file keys that are not expected for the assay."""
+        sanitized = dict(payload)
+        omics_layer = (
+            str(sanitized.get("omics_layer") or infer_omics_layer(sanitized) or "").strip().lower()
+        )
+        expected_keys = self._assay_expected_file_keys(
+            assay_name=sanitized.get("assay"),
+            omics_layer=omics_layer,
+        )
+        for key in SAMPLE_SOURCE_PATH_KEYS:
+            if key not in expected_keys:
+                sanitized.pop(key, None)
+                runtime_files = sanitized.get("_runtime_files")
+                if isinstance(runtime_files, dict):
+                    runtime_files.pop(key, None)
+        return sanitized
 
     def _normalize_collection_docs(
         self, collection: str, docs: list[dict[str, Any]]
@@ -471,6 +514,7 @@ class InternalIngestService:
             sample_doc=current_doc,
             payload=dict(payload),
         )
+        parsed_payload = self._sanitize_payload_file_keys(parsed_payload)
         parsed_payload.pop("_id", None)
         parsed_payload.pop("data_counts", None)
         parsed_payload.pop("time_added", None)
@@ -497,8 +541,6 @@ class InternalIngestService:
         runtime_files = parsed_payload.get("_runtime_files")
         if isinstance(runtime_files, dict) and runtime_files:
             preload_payload["_runtime_files"] = dict(runtime_files)
-        from api.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
-
         for key in SAMPLE_SOURCE_PATH_KEYS:
             if key in parsed_payload and parsed_payload.get(key):
                 preload_payload[key] = parsed_payload[key]
@@ -575,6 +617,8 @@ class InternalIngestService:
             raise ValueError("name is required")
         if allow_update:
             return self._ingest_update(parsed_payload)
+
+        parsed_payload = self._sanitize_payload_file_keys(parsed_payload)
 
         validated_sample = SamplesDoc.model_validate(parsed_payload)
         validated_payload = validated_sample.model_dump(exclude_none=True)

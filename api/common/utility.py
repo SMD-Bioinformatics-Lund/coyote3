@@ -580,8 +580,10 @@ class CommonUtility:
         return class_num
 
     @staticmethod
-    def get_sample_effective_genes(sample: dict, asp_doc: dict, checked_gl_dict: dict) -> tuple:
-        return _get_sample_effective_genes(sample, asp_doc, checked_gl_dict)
+    def get_sample_effective_genes(
+        sample: dict, asp_doc: dict, checked_gl_dict: dict, target: str = "snv"
+    ) -> tuple:
+        return _get_sample_effective_genes(sample, asp_doc, checked_gl_dict, target=target)
 
 
 # ---------------------------------------------------------------------------

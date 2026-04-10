@@ -19,6 +19,7 @@ from api.services.accounts.users import UserManagementService
 
 class _Repo:
     def __init__(self) -> None:
+        self.created_user = None
         self.updated_user = None
         self.updated_role = None
         self.updated_permission = None
@@ -58,7 +59,7 @@ class _Repo:
         return ["admin"]
 
     def get_user(self, user_id):
-        if user_id == "missing":
+        if user_id not in {"tester", "exists", "u1"}:
             return None
         return {
             "_id": "oid-1",
@@ -72,11 +73,14 @@ class _Repo:
             "auth_type": "coyote3",
             "password": "hashed",
             "version": 1,
+            "roles": ["admin"],
             "permissions": [],
             "deny_permissions": [],
             "assay_groups": [],
             "assays": [],
             "is_active": False,
+            "created_by": "seed",
+            "created_on": datetime.now(timezone.utc),
         }
 
     def get_role(self, role_id):
@@ -111,6 +115,9 @@ class _Repo:
 
     def update_user(self, user_id, doc):
         self.updated_user = (user_id, doc)
+
+    def create_user(self, doc):
+        self.created_user = doc
 
     def update_role(self, role_id, doc):
         self.updated_role = (role_id, doc)
@@ -149,6 +156,7 @@ def _build_store(repo: _Repo) -> SimpleNamespace:
         user_handler=SimpleNamespace(
             search_users=repo.search_users,
             user_with_id=repo.get_user,
+            create_user=repo.create_user,
             update_user=repo.update_user,
             toggle_user_active=repo.set_user_active,
             delete_user=repo.delete_user,
@@ -218,7 +226,69 @@ def test_admin_user_list_payload_contains_pagination(monkeypatch):
     service = _user_service(_Repo())
     payload = service.list_users_payload(q="aa", page=2, per_page=5)
     assert payload["pagination"]["page"] == 2
-    assert payload["pagination"]["q"] == "aa"
+
+
+def test_create_user_sanitizes_username_and_defaults_user_role(monkeypatch):
+    repo = _Repo()
+    store = _build_store(repo)
+    store.roles_handler.get_all_role_names = lambda: ["user", "admin"]
+    service = UserManagementService(
+        user_handler=store.user_handler,
+        roles_handler=store.roles_handler,
+        permissions_handler=store.permissions_handler,
+        assay_panel_handler=store.assay_panel_handler,
+        common_util=shared_util.common,
+    )
+    monkeypatch.setattr(user_module, "issue_password_token_for_user", lambda **_: {})
+    payload = service.create_context_payload(actor_username="actor")
+    assert payload["form"]["fields"]["roles"]["default"] == ["user"]
+
+    service.create_user(
+        payload={
+            "form_data": {
+                "firstname": "Åsa",
+                "lastname": "Öberg",
+                "fullname": "Åsa Öberg",
+                "username": "Åsa Öberg",
+                "email": "asa@example.com",
+                "job_title": "Scientist",
+                "auth_type": "coyote3",
+                "password": "StrongPass!123",
+                "roles": ["user"],
+            }
+        },
+        actor_username="actor",
+    )
+    assert repo.created_user["username"] == "asa.oberg"
+
+
+def test_update_user_keeps_existing_username(monkeypatch):
+    repo = _Repo()
+    service = _user_service(repo)
+    monkeypatch.setattr(user_module, "notify_user_change", lambda **_: {})
+    payload = service.update_user(
+        user_id="tester",
+        payload={
+            "form_data": {
+                "firstname": "Test",
+                "lastname": "User",
+                "fullname": "Test User",
+                "username": "renamed-user",
+                "email": "tester@example.com",
+                "job_title": "Analyst",
+                "auth_type": "coyote3",
+                "roles": ["admin"],
+                "permissions": [],
+                "deny_permissions": [],
+                "assay_groups": [],
+                "assays": [],
+                "is_active": "true",
+            }
+        },
+        actor_username="actor",
+    )
+    assert payload["resource_id"] == "tester"
+    assert repo.updated_user[1]["username"] == "tester"
 
 
 def test_admin_role_list_payload_contains_pagination(monkeypatch):
@@ -257,7 +327,7 @@ def test_admin_user_update_preserves_password_when_blank(monkeypatch):
             "job_title": "Analyst",
             "auth_type": "coyote3",
             "password": "",
-            "role": "admin",
+            "roles": ["admin"],
             "permissions": [],
             "deny_permissions": [],
         },

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from typing import Any
 
 from api.contracts.managed_resources import managed_resource_spec
@@ -16,9 +18,40 @@ from api.services.accounts.common import (
     inject_version_history,
     lower,
     normalize_managed_form_payload,
+    normalize_permission_ids,
     role_permission_overrides,
     utc_now,
 )
+
+
+def _normalize_permission_id(permission_id: Any) -> str:
+    """Normalize a permission identifier for UI values."""
+    return str(permission_id or "").strip().lower()
+
+
+def _normalize_role_ids(role_ids: Any) -> list[str]:
+    """Normalize a role-id collection to unique canonical values."""
+    normalized: list[str] = []
+    seen: set[str] = set()
+    if role_ids is None:
+        return normalized
+    if isinstance(role_ids, (str, bytes)):
+        role_ids = [role_ids]
+    for role_id in role_ids:
+        normalized_id = str(role_id or "").strip().lower()
+        if normalized_id and normalized_id not in seen:
+            normalized.append(normalized_id)
+            seen.add(normalized_id)
+    return normalized
+
+
+def _sanitize_username(value: Any) -> str:
+    """Convert a human-entered username into a canonical login id."""
+    normalized = unicodedata.normalize("NFKD", str(value or ""))
+    ascii_only = normalized.encode("ascii", "ignore").decode("ascii")
+    cleaned = re.sub(r"[^a-zA-Z0-9._-]+", ".", ascii_only.strip().lower())
+    cleaned = re.sub(r"[._-]{2,}", ".", cleaned).strip("._-")
+    return cleaned
 
 
 class UserManagementService:
@@ -52,12 +85,28 @@ class UserManagementService:
         self.assay_panel_handler = assay_panel_handler
         self._common_util = common_util
 
+    @staticmethod
+    def _normalize_user_permissions(user_doc: dict[str, Any]) -> dict[str, Any]:
+        """Return a user payload with canonical permission ids."""
+        normalized_user = dict(user_doc)
+        normalized_user["roles"] = _normalize_role_ids(normalized_user.get("roles"))
+        normalized_user["permissions"] = normalize_permission_ids(
+            normalized_user.get("permissions")
+        )
+        normalized_user["deny_permissions"] = normalize_permission_ids(
+            normalized_user.get("deny_permissions")
+        )
+        normalized_user["primary_role"] = (
+            normalized_user["roles"][0] if normalized_user["roles"] else ""
+        )
+        return normalized_user
+
     def _permission_policy_options(self) -> list[dict[str, Any]]:
         """Build permission-policy select options from active policies."""
         return [
             {
-                "value": p.get("permission_id"),
-                "label": p.get("label", p.get("permission_id")),
+                "value": _normalize_permission_id(p.get("permission_id")),
+                "label": p.get("label", _normalize_permission_id(p.get("permission_id"))),
                 "category": p.get("category", "Uncategorized"),
             }
             for p in self.permissions_handler.get_all_permissions(is_active=True)
@@ -67,9 +116,10 @@ class UserManagementService:
         """Build role→policy map from all roles."""
         return {
             role["role_id"]: {
-                "permissions": role.get("permissions", []),
-                "deny_permissions": role.get("deny_permissions", []),
+                "permissions": normalize_permission_ids(role.get("permissions", [])),
+                "deny_permissions": normalize_permission_ids(role.get("deny_permissions", [])),
                 "level": role.get("level", 0),
+                "color": role.get("color", "gray"),
             }
             for role in (self.roles_handler.get_all_roles() or [])
             if isinstance(role, dict) and role.get("role_id")
@@ -84,7 +134,9 @@ class UserManagementService:
         self, *, q: str = "", page: int = 1, per_page: int = 30
     ) -> dict[str, Any]:
         users, total = self.user_handler.search_users(q=q, page=page, per_page=per_page)
-        users = [dict(item) for item in users if isinstance(item, dict)]
+        users = [
+            self._normalize_user_permissions(dict(item)) for item in users if isinstance(item, dict)
+        ]
         return {
             "users": users,
             "roles": self.roles_handler.get_role_colors(),
@@ -96,7 +148,10 @@ class UserManagementService:
     def create_context_payload(self, *, actor_username: str) -> dict[str, Any]:
         form = build_managed_form(self._spec, actor_username=actor_username)
         options = self._permission_policy_options()
-        form["fields"]["role"]["options"] = list(self.roles_handler.get_all_role_names() or [])
+        role_options = list(self.roles_handler.get_all_role_names() or [])
+        form["fields"]["roles"]["options"] = role_options
+        if "user" in role_options:
+            form["fields"]["roles"]["default"] = ["user"]
         form["fields"]["permissions"]["options"] = options
         form["fields"]["deny_permissions"]["options"] = options
         form["fields"]["assay_groups"]["options"] = list(
@@ -115,14 +170,21 @@ class UserManagementService:
         user_doc = self.user_handler.user_with_id(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
+        user_doc = self._normalize_user_permissions(user_doc)
 
         form = build_managed_form(self._spec)
         options = self._permission_policy_options()
-        form["fields"]["role"]["options"] = list(self.roles_handler.get_all_role_names() or [])
+        role_options = list(self.roles_handler.get_all_role_names() or [])
+        form["fields"]["roles"]["options"] = role_options
+        form["fields"]["roles"]["default"] = _normalize_role_ids(user_doc.get("roles"))
         form["fields"]["permissions"]["options"] = options
         form["fields"]["deny_permissions"]["options"] = options
-        form["fields"]["permissions"]["default"] = user_doc.get("permissions")
-        form["fields"]["deny_permissions"]["default"] = user_doc.get("deny_permissions")
+        form["fields"]["permissions"]["default"] = normalize_permission_ids(
+            user_doc.get("permissions")
+        )
+        form["fields"]["deny_permissions"]["default"] = normalize_permission_ids(
+            user_doc.get("deny_permissions")
+        )
         form["fields"]["assay_groups"]["options"] = list(
             self.assay_panel_handler.get_all_asp_groups() or []
         )
@@ -142,7 +204,7 @@ class UserManagementService:
     def _changed_user_fields(old_doc: dict[str, Any], new_doc: dict[str, Any]) -> list[str]:
         tracked_keys = [
             "email",
-            "role",
+            "roles",
             "is_active",
             "permissions",
             "deny_permissions",
@@ -159,10 +221,15 @@ class UserManagementService:
 
     def create_user(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
         form_data = dict(payload.get("form_data", {}) or {})
+        form_data["roles"] = _normalize_role_ids(form_data.get("roles"))
+        form_data["permissions"] = normalize_permission_ids(form_data.get("permissions"))
+        form_data["deny_permissions"] = normalize_permission_ids(form_data.get("deny_permissions"))
+        if not form_data["roles"]:
+            raise api_error(400, "At least one role is required")
         role_map = self._roles_policy_map()
         permissions, deny_permissions = role_permission_overrides(
             role_map=role_map,
-            role_name=form_data.get("role"),
+            role_names=form_data.get("roles"),
             permissions=form_data.get("permissions"),
             deny_permissions=form_data.get("deny_permissions"),
         )
@@ -170,14 +237,13 @@ class UserManagementService:
         form_data["deny_permissions"] = deny_permissions
 
         user_data = normalize_managed_form_payload(self._spec, form_data)
-        username = lower(user_data.get("username"))
+        username = _sanitize_username(user_data.get("username"))
         email = lower(user_data.get("email"))
+        if not username:
+            raise api_error(400, "Username is required")
         existing_user = self.user_handler.user_with_id(username)
         if isinstance(existing_user, dict) and (
-            existing_user.get("username")
-            or existing_user.get("user_id")
-            or existing_user.get("email")
-            or existing_user.get("_id")
+            existing_user.get("username") or existing_user.get("email") or existing_user.get("_id")
         ):
             raise api_error(409, "User already exists")
         if self.user_handler.user_exists(email=email):
@@ -193,6 +259,12 @@ class UserManagementService:
             if user_data.get("auth_type") == "coyote3":
                 user_data["must_change_password"] = True
         actor = current_actor(actor_username)
+        now = utc_now()
+        user_data["version"] = 1
+        user_data["created_by"] = actor
+        user_data["created_on"] = now
+        user_data["updated_by"] = actor
+        user_data["updated_on"] = now
         user_data = inject_version_history(actor_username=actor, new_config=user_data, is_new=True)
         try:
             user_data = normalize_collection_document(self._spec.collection, user_data)
@@ -228,11 +300,18 @@ class UserManagementService:
         if not user_doc:
             raise api_error(404, "User not found")
         form_data = dict(payload.get("form_data", {}) or {})
+        form_data["roles"] = _normalize_role_ids(form_data.get("roles"))
+        if not form_data["roles"]:
+            form_data["roles"] = _normalize_role_ids(user_doc.get("roles"))
+        form_data["permissions"] = normalize_permission_ids(form_data.get("permissions"))
+        form_data["deny_permissions"] = normalize_permission_ids(form_data.get("deny_permissions"))
+        if not form_data["roles"]:
+            raise api_error(400, "At least one role is required")
         updated_user = normalize_managed_form_payload(self._spec, form_data)
         role_map = self._roles_policy_map()
         permissions, deny_permissions = role_permission_overrides(
             role_map=role_map,
-            role_name=updated_user.get("role"),
+            role_names=updated_user.get("roles"),
             permissions=updated_user.get("permissions"),
             deny_permissions=updated_user.get("deny_permissions"),
         )
@@ -247,8 +326,10 @@ class UserManagementService:
             updated_user["password"] = user_doc.get("password")
         updated_user["version"] = user_doc.get("version", 1) + 1
         updated_user["_id"] = user_doc.get("_id")
+        updated_user["created_by"] = user_doc.get("created_by")
+        updated_user["created_on"] = user_doc.get("created_on")
         updated_user["email"] = lower(updated_user.get("email"))
-        updated_user["username"] = lower(updated_user.get("username"))
+        updated_user["username"] = str(user_doc.get("username") or user_id).strip().lower()
         updated_user = inject_version_history(
             actor_username=actor,
             new_config=updated_user,

@@ -83,10 +83,28 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     "asp": {
         "assay_name": {"display_type": "input"},
         "asp_group": {"display_type": "input"},
-        "asp_family": {"display_type": "input"},
-        "asp_category": {"display_type": "select", "options": ["DNA", "RNA"]},
+        "asp_family": {
+            "display_type": "select",
+            "options": ["panel-dna", "panel-rna", "wgs", "wts"],
+        },
+        "asp_category": {"display_type": "select", "options": ["dna", "rna"]},
         "display_name": {"display_type": "input"},
         "description": {"display_type": "textarea"},
+        "expected_files": {
+            "display_type": "checkbox-group",
+            "options": [
+                "vcf_files",
+                "cnv",
+                "cnvprofile",
+                "cov",
+                "transloc",
+                "biomarkers",
+                "fusion_files",
+                "expression_path",
+                "classification_path",
+                "qc",
+            ],
+        },
         "covered_genes": {"display_type": "jsoneditor-or-upload"},
         "germline_genes": {"display_type": "jsoneditor-or-upload"},
         "is_active": {"display_type": "checkbox", "default": True},
@@ -98,6 +116,9 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     },
     "aspc_dna": {
         "assay_name": {"display_type": "select"},
+        "asp_group": {"readonly": True},
+        "asp_category": {"readonly": True},
+        "platform": {"readonly": True},
         "use_diagnosis_genelist": {
             "display_type": "checkbox",
             "label": "Auto Select Diagnosis/Sub Panel Genelists",
@@ -105,11 +126,20 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         },
         "environment": {
             "display_type": "select",
-            "options": ["production", "development", "test", "validation"],
+            "options": ["production", "development", "testing", "validation"],
         },
         "analysis_types": {
             "display_type": "checkbox-group",
-            "options": ["SNV", "CNV", "TRANSLOCATION", "BIOMARKER", "FUSION", "CNV_PROFILE"],
+            "options": [
+                "SNV",
+                "CNV",
+                "TRANSLOCATION",
+                "BIOMARKER",
+                "CNV_PROFILE",
+                "FUSION",
+                "TMB",
+                "PGX",
+            ],
             "default": ["SNV", "CNV"],
         },
         "filters": {
@@ -182,23 +212,11 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "type": "int",
                             "default": 100,
                         },
-                        {
-                            "key": "cnv_genelists",
-                            "label": "CNV Gene Lists",
-                            "type": "checkbox-group",
-                            "options": [],
-                        },
                     ],
                 },
                 {
                     "title": "Gene Scope And Consequences",
                     "fields": [
-                        {
-                            "key": "genelists",
-                            "label": "SNV Gene Lists",
-                            "type": "checkbox-group",
-                            "options": [],
-                        },
                         {
                             "key": "vep_consequences",
                             "label": "VEP Consequences",
@@ -231,8 +249,10 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                                 "CNV",
                                 "TRANSLOCATION",
                                 "BIOMARKER",
-                                "FUSION",
                                 "CNV_PROFILE",
+                                "FUSION",
+                                "TMB",
+                                "PGX",
                             ],
                             "default": ["SNV", "CNV"],
                         }
@@ -302,6 +322,9 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     },
     "aspc_rna": {
         "assay_name": {"display_type": "select"},
+        "asp_group": {"readonly": True},
+        "asp_category": {"readonly": True},
+        "platform": {"readonly": True},
         "use_diagnosis_genelist": {
             "display_type": "checkbox",
             "label": "Auto Select Diagnosis/Sub Panel Genelists",
@@ -309,11 +332,11 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         },
         "environment": {
             "display_type": "select",
-            "options": ["production", "development", "test", "validation"],
+            "options": ["production", "development", "testing", "validation"],
         },
         "analysis_types": {
             "display_type": "checkbox-group",
-            "options": ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC"],
+            "options": ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"],
             "default": ["FUSION"],
         },
         "filters": {
@@ -355,12 +378,6 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "options": ["in-frame", "out-of-frame"],
                             "default": ["in-frame", "out-of-frame"],
                         },
-                        {
-                            "key": "fusion_genelists",
-                            "label": "Fusion Gene Lists",
-                            "type": "checkbox-group",
-                            "options": [],
-                        },
                     ],
                 },
             ],
@@ -375,7 +392,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "key": "report_sections",
                             "label": "Report Sections",
                             "type": "checkbox-group",
-                            "options": ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC"],
+                            "options": ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"],
                             "default": ["FUSION"],
                         }
                     ],
@@ -442,6 +459,14 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "version": {"readonly": True},
     },
     "isgl": {
+        "list_type": {
+            "display_type": "checkbox-group",
+            "options": [
+                "small_variant_genelist",
+                "cnv_genelist",
+                "fusion_genelist",
+            ],
+        },
         "diagnosis": {"display_type": "textarea"},
         "assay_groups": {"display_type": "checkbox-group"},
         "assays": {"display_type": "checkbox-group"},
@@ -467,9 +492,13 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     },
     "user": {
         "auth_type": {"display_type": "select"},
-        "role": {"display_type": "select"},
+        "roles": {"display_type": "checkbox-group"},
+        "username": {"readonly_mode": ["edit"]},
         "password": {"display_type": "password"},
-        "environments": {"display_type": "checkbox-group"},
+        "environments": {
+            "display_type": "checkbox-group",
+            "options": ["production", "development", "testing", "validation"],
+        },
         "assay_groups": {"display_type": "checkbox-group"},
         "assays": {"display_type": "checkbox-group"},
         "permissions": {"display_type": "checkbox-group"},
@@ -505,6 +534,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
                 "asp_category",
                 "platform",
                 "description",
+                "expected_files",
             ],
         ),
         ("gene_content", ["covered_genes", "germline_genes"]),
@@ -539,7 +569,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
     "user": [
         ("identity", ["firstname", "lastname", "fullname", "username", "email", "job_title"]),
         ("auth", ["auth_type", "password", "must_change_password"]),
-        ("role_access", ["role", "permissions", "deny_permissions"]),
+        ("role_access", ["roles", "permissions", "deny_permissions"]),
         ("scope", ["environments", "assay_groups", "assays"]),
         ("status", ["is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),

@@ -15,8 +15,15 @@ from api.services.accounts.common import (
     inject_version_history,
     lower,
     normalize_managed_form_payload,
+    normalize_permission_ids,
     utc_now,
 )
+
+
+def _normalize_permission_id(permission_id: Any) -> str:
+    """Normalize a permission identifier for UI values."""
+    return str(permission_id or "").strip().lower()
+
 
 CANONICAL_ROLE_LEVELS: dict[str, int] = {
     "external": 1,
@@ -24,8 +31,10 @@ CANONICAL_ROLE_LEVELS: dict[str, int] = {
     "intern": 7,
     "user": 9,
     "manager": 99,
+    "tester": 999,
     "developer": 9999,
     "admin": 99999,
+    "superuser": 1000000,
 }
 
 
@@ -51,6 +60,18 @@ class RoleManagementService:
         self.roles_handler = roles_handler
         self.permissions_handler = permissions_handler
 
+    @staticmethod
+    def _normalize_role_permissions(role: dict[str, Any]) -> dict[str, Any]:
+        """Return role payload with canonical permission ids."""
+        normalized_role = dict(role)
+        normalized_role["permissions"] = normalize_permission_ids(
+            normalized_role.get("permissions")
+        )
+        normalized_role["deny_permissions"] = normalize_permission_ids(
+            normalized_role.get("deny_permissions")
+        )
+        return normalized_role
+
     def list_roles_payload(
         self, *, q: str = "", page: int = 1, per_page: int = 30
     ) -> dict[str, Any]:
@@ -60,7 +81,9 @@ class RoleManagementService:
             dict[str, Any]: Role rows and pagination metadata.
         """
         rows, total = self.roles_handler.search_roles(q=q, page=page, per_page=per_page)
-        roles = [dict(item) for item in rows if isinstance(item, dict)]
+        roles = [
+            self._normalize_role_permissions(dict(item)) for item in rows if isinstance(item, dict)
+        ]
         return {
             "roles": roles,
             "pagination": admin_list_pagination(
@@ -80,8 +103,8 @@ class RoleManagementService:
         form = build_managed_form(self._spec, actor_username=actor_username)
         options = [
             {
-                "value": p.get("permission_id"),
-                "label": p.get("label", p.get("permission_id")),
+                "value": _normalize_permission_id(p.get("permission_id")),
+                "label": p.get("label", _normalize_permission_id(p.get("permission_id"))),
                 "category": p.get("category", "Uncategorized"),
             }
             for p in self.permissions_handler.get_all_permissions(is_active=True)
@@ -102,19 +125,22 @@ class RoleManagementService:
         role = self.roles_handler.get_role(role_id)
         if not role:
             raise api_error(404, "Role not found")
+        role = self._normalize_role_permissions(role)
         form = build_managed_form(self._spec)
         options = [
             {
-                "value": p.get("permission_id"),
-                "label": p.get("label", p.get("permission_id")),
+                "value": _normalize_permission_id(p.get("permission_id")),
+                "label": p.get("label", _normalize_permission_id(p.get("permission_id"))),
                 "category": p.get("category", "Uncategorized"),
             }
             for p in self.permissions_handler.get_all_permissions(is_active=True)
         ]
         form["fields"]["permissions"]["options"] = options
         form["fields"]["deny_permissions"]["options"] = options
-        form["fields"]["permissions"]["default"] = role.get("permissions")
-        form["fields"]["deny_permissions"]["default"] = role.get("deny_permissions")
+        form["fields"]["permissions"]["default"] = normalize_permission_ids(role.get("permissions"))
+        form["fields"]["deny_permissions"]["default"] = normalize_permission_ids(
+            role.get("deny_permissions")
+        )
         return {"role": role, "form": form}
 
     def create_role(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
@@ -128,6 +154,8 @@ class RoleManagementService:
             dict[str, Any]: Normalized change response payload.
         """
         role = normalize_managed_form_payload(self._spec, payload.get("form_data", {}) or {})
+        role["permissions"] = normalize_permission_ids(role.get("permissions"))
+        role["deny_permissions"] = normalize_permission_ids(role.get("deny_permissions"))
         role_id = lower(role.get("name"))
         role.setdefault("is_active", True)
         role["role_id"] = role_id
@@ -165,6 +193,10 @@ class RoleManagementService:
             raise api_error(404, "Role not found")
         updated_role = normalize_managed_form_payload(
             self._spec, payload.get("form_data", {}) or {}
+        )
+        updated_role["permissions"] = normalize_permission_ids(updated_role.get("permissions"))
+        updated_role["deny_permissions"] = normalize_permission_ids(
+            updated_role.get("deny_permissions")
         )
         actor = current_actor(actor_username)
         updated_role["updated_by"] = actor

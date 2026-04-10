@@ -30,6 +30,7 @@ ADMIN_ENDPOINTS = [
     "admin_bp.manage_genelists",
     "admin_bp.manage_users",
 ]
+SUPERUSER_ONLY_ENDPOINTS = {"admin_bp.audit"}
 
 
 def test_admin_endpoint_list_matches_card_definitions(admin_client) -> None:
@@ -41,12 +42,15 @@ def test_admin_endpoint_list_matches_card_definitions(admin_client) -> None:
 
 
 @pytest.mark.parametrize("endpoint", ADMIN_ENDPOINTS)
-def test_admin_card_endpoint_loads_for_admin(admin_client, endpoint: str) -> None:
-    """Every admin dashboard card endpoint must load (2xx) for an admin user."""
+def test_admin_card_endpoint_loads_for_authorized_role(
+    admin_client, superuser_client, endpoint: str
+) -> None:
+    """Every admin dashboard card endpoint must load for its authorized UI role."""
     from flask import url_for
 
     with admin_client.application.test_request_context():
         url = url_for(endpoint)
 
-    response = admin_client.get(url)
+    client = superuser_client if endpoint in SUPERUSER_ONLY_ENDPOINTS else admin_client
+    response = client.get(url)
     assert response.status_code == 200, (endpoint, url, response.status_code)

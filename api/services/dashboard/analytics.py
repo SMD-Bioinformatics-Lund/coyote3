@@ -287,8 +287,11 @@ class DashboardService:
         except Exception:
             fresh_user_doc = {}
 
-        effective_role = str(fresh_user_doc.get("role") or user.role or "").strip().lower()
-        if effective_role == "admin":
+        effective_roles = [
+            str(role_id or "").strip().lower()
+            for role_id in (fresh_user_doc.get("roles") or user.roles)
+        ]
+        if "superuser" in effective_roles:
             return None
 
         scoped_assays = (
@@ -419,7 +422,7 @@ class DashboardService:
             "isgl_association": self.gene_list_handler.get_dashboard_assay_association_rollup()
             or {},
         }
-        if str(user.role or "").strip().lower() == "admin":
+        if "superuser" in {str(role_id or "").strip().lower() for role_id in (user.roles or [])}:
             payload["admin_insights"] = self.build_admin_insights()
         self._set_cache_meta(payload, source="recomputed", hit=False)
         if cache is not None:

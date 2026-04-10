@@ -23,7 +23,7 @@ def list_admin_samples_read(
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=30, ge=1, le=200),
     user: ApiUser = Depends(
-        require_access(permission="view_sample_global", min_role="developer", min_level=9999)
+        require_access(permission="sample:list:global", min_role="developer", min_level=9999)
     ),
     service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
@@ -48,7 +48,7 @@ def list_admin_samples_read(
 def admin_sample_context_read(
     sample_id: str,
     user: ApiUser = Depends(
-        require_access(permission="edit_sample", min_role="developer", min_level=9999)
+        require_access(permission="sample:edit:own", min_role="developer", min_level=9999)
     ),
     service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
@@ -75,7 +75,7 @@ def update_sample_change(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
-        require_access(permission="edit_sample", min_role="developer", min_level=9999)
+        require_access(permission="sample:edit:own", min_role="developer", min_level=9999)
     ),
     service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
@@ -103,7 +103,7 @@ def update_sample_change(
 def delete_sample_change(
     sample_id: str,
     user: ApiUser = Depends(
-        require_access(permission="delete_sample_global", min_role="developer", min_level=9999)
+        require_access(permission="sample:delete:global", min_role="developer", min_level=9999)
     ),
     service: ResourceSampleService = Depends(get_admin_sample_service),
 ):

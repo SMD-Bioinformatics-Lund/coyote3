@@ -6,20 +6,19 @@ from types import SimpleNamespace
 
 from api.core.models.user import UserModel
 from api.security import auth_service
+from coyote.services.auth.user_session import SessionUserModel
 
 
 class _FakeRepo:
     """Provide  FakeRepo behavior."""
 
-    def __init__(self, by_username=None, by_id=None):
+    def __init__(self, by_username=None):
         """__init__.
 
         Args:
                 by_username: By username. Optional argument.
-                by_id: By id. Optional argument.
         """
         self.by_username = by_username
-        self.by_id = by_id
         self.calls = []
 
     def user(self, username):
@@ -34,21 +33,9 @@ class _FakeRepo:
         self.calls.append(("username", username))
         return self.by_username
 
-    def user_with_id(self, user_id):
-        """Return user by id.
 
-        Args:
-            user_id: Value for ``user_id``.
-
-        Returns:
-            The function result.
-        """
-        self.calls.append(("id", user_id))
-        return self.by_id
-
-
-def test_lookup_user_doc_tries_username_then_id(monkeypatch):
-    """Test lookup user doc tries username then id.
+def test_lookup_user_doc_uses_username_or_email(monkeypatch):
+    """Test lookup user doc only uses username/email lookup.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -56,13 +43,13 @@ def test_lookup_user_doc_tries_username_then_id(monkeypatch):
     Returns:
         The function result.
     """
-    repo = _FakeRepo(by_username=None, by_id={"_id": "u1"})
+    repo = _FakeRepo(by_username={"_id": "u1"})
     monkeypatch.setattr(auth_service, "get_user_handler", lambda: repo)
 
     user_doc = auth_service._lookup_user_doc("tester")
 
     assert user_doc == {"_id": "u1"}
-    assert repo.calls == [("username", "tester"), ("id", "tester")]
+    assert repo.calls == [("username", "tester")]
 
 
 def test_lookup_user_doc_skips_id_when_username_hit(monkeypatch):
@@ -74,7 +61,7 @@ def test_lookup_user_doc_skips_id_when_username_hit(monkeypatch):
     Returns:
         The function result.
     """
-    repo = _FakeRepo(by_username={"_id": "u2"}, by_id={"_id": "u1"})
+    repo = _FakeRepo(by_username={"_id": "u2"})
     monkeypatch.setattr(auth_service, "get_user_handler", lambda: repo)
 
     user_doc = auth_service._lookup_user_doc("tester")
@@ -137,18 +124,24 @@ def test_build_user_session_payload_maps_user_model(monkeypatch):
     monkeypatch.setattr(
         auth_service.UserModel,
         "from_auth_payload",
-        lambda user_doc, role_doc, asp_docs: SimpleNamespace(
+        lambda user_doc, role_docs, asp_docs: SimpleNamespace(
             to_dict=lambda: {
                 "username": user_doc["username"],
-                "role": role_doc.get("role_id"),
+                "roles": user_doc["roles"],
+                "role": role_docs[0].get("role_id"),
                 "asp_count": len(asp_docs),
             }
         ),
     )
 
-    payload = auth_service.build_user_session_payload({"username": "tester", "role": "admin"})
+    payload = auth_service.build_user_session_payload({"username": "tester", "roles": ["admin"]})
 
-    assert payload == {"username": "tester", "role": "admin", "asp_count": 1}
+    assert payload == {
+        "username": "tester",
+        "roles": ["admin"],
+        "role": "admin",
+        "asp_count": 1,
+    }
 
 
 def test_user_model_from_auth_payload_accepts_local_email_domain():
@@ -158,13 +151,52 @@ def test_user_model_from_auth_payload_accepts_local_email_domain():
         "email": "ADMIN@COYOTE3.LOCAL",
         "username": "admin",
         "fullname": "Admin User",
-        "role": "admin",
+        "roles": ["admin"],
         "is_active": True,
     }
 
-    model = UserModel.from_auth_payload(user_doc, {"level": 99}, [])
+    model = UserModel.from_auth_payload(user_doc, [{"role_id": "admin", "level": 99}], [])
 
     assert model.email == "admin@coyote3.local"
+
+
+def test_user_model_from_auth_payload_normalizes_permission_ids():
+    """Stored permission ids should be normalized on read."""
+    user_doc = {
+        "_id": "u1",
+        "email": "admin@coyote3.local",
+        "username": "admin",
+        "fullname": "Admin User",
+        "roles": ["admin"],
+        "is_active": True,
+        "permissions": [" Report:Preview ", "report:preview", "Sample:Edit:Global"],
+        "denied_permissions": [" SAMPLE:EDIT:GLOBAL "],
+    }
+
+    model = UserModel.from_auth_payload(user_doc, [{"role_id": "admin", "level": 99}], [])
+
+    assert model.permissions == ["report:preview", "sample:edit:global"]
+    assert model.denied_permissions == ["sample:edit:global"]
+
+
+def test_session_user_model_normalizes_permission_ids():
+    """Web session payloads should normalize permission ids on read."""
+    model = SessionUserModel(
+        {
+            "_id": "u1",
+            "email": "admin@coyote3.local",
+            "fullname": "Admin User",
+            "username": "admin",
+            "roles": ["admin"],
+            "role": "admin",
+            "access_level": 99,
+            "permissions": [" Report:Preview ", "report:preview", "Sample:Edit:Global"],
+            "denied_permissions": [" SAMPLE:EDIT:GLOBAL "],
+        }
+    )
+
+    assert model.permissions == ["report:preview", "sample:edit:global"]
+    assert model.denied_permissions == ["sample:edit:global"]
 
 
 def test_authenticate_credentials_internal_auth_path(monkeypatch):

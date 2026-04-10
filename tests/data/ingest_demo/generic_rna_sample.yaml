@@ -1,0 +1,23 @@
+---
+name: 'RNA_DEMO'
+clarity_case_id: 'GEN_RNA_DEMO_CASE'
+clarity_case_pool_id: 'POOL_RNA_DEMO_001'
+genome_build: 38
+vep_version: '110'
+sample_no: 1
+case_id: 'RNA_DEMO'
+profile: 'production'
+assay: 'assay_rna_1'
+sequencing_scope: 'wts'
+omics_layer: 'RNA'
+sequencing_technology: 'Illumina'
+pipeline: 'RnaFusionPipeline'
+pipeline_version: '1.0.0'
+case_ffpe: false
+case_sequencing_run: 'RUN_RNA_DEMO_001'
+case_reads: 1000000
+paired: false
+fusion_files: tests/fixtures/db_dummy/all_collections_dummy/fusions.json
+expression_path: tests/fixtures/db_dummy/all_collections_dummy/rna_expression.json
+classification_path: tests/fixtures/db_dummy/all_collections_dummy/rna_classification.json
+qc: tests/fixtures/db_dummy/all_collections_dummy/rna_qc.json

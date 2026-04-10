@@ -170,9 +170,14 @@
                     </select>
                   </div>
                 {% elif field.display_type == "checkbox" %}
-                  <div class="flex items-center space-x-2 {% if is_changed %}ring-2 ring-yellow-400 rounded-md p-1{% endif %}">
-                    <input type="checkbox" name="{{ key }}" value="true" class="accent-blue-600 rounded" {% if value %}checked{% endif %} {% if is_readonly %}disabled{% endif %}>
-                    <label class="text-xs font-semibold">{{ field.label }}</label>
+                  <div class="flex flex-col gap-1 {% if is_changed %}ring-2 ring-yellow-400 rounded-md p-1{% endif %}">
+                    <label class="inline-flex items-center space-x-2">
+                      <input type="checkbox" name="{{ key }}" value="true" class="accent-blue-600 rounded" {% if value %}checked{% endif %} {% if is_readonly %}disabled{% endif %}>
+                      <span class="text-xs font-semibold">{{ field.label }}</span>
+                    </label>
+                    {% if key == "must_change_password" %}
+                      <p class="text-[11px] text-gray-500">If checked, the user will be forced through password reset on the next successful login or invite flow.</p>
+                    {% endif %}
                   </div>
 
                 {% elif field.display_type == "password" %}
@@ -192,6 +197,9 @@
                     <input type="text" name="{{ key }}" id="{{ key }}" placeholder="{{ field.placeholder }}" value="{{ value }}"
                       {% if is_readonly %}readonly class="w-full bg-blue-50 border border-blue-300 text-gray-500 rounded-md p-2 text-sm"{% else %}
                       class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm"{% endif %}>
+                    {% if key == "username" and is_readonly %}
+                      <p class="text-[11px] mt-1 text-gray-500">Username is immutable after the user is created.</p>
+                    {% endif %}
                   </div>
                 {% endif %}
               {% endfor %}
@@ -237,7 +245,7 @@
     const authSource = document.querySelector('[name="auth_type"]');
     const passwordWrapper = document.getElementById("password-wrapper");
 
-    const roleSelect = document.getElementById("role");
+    const roleCheckboxes = document.querySelectorAll('input[name="roles"]');
     const permissionCheckboxes = document.querySelectorAll('input[name="permissions"]');
     const denyPermissionCheckboxes = document.querySelectorAll('input[name="deny_permissions"]');
 
@@ -457,10 +465,25 @@
       permMap[cb.value].deny = cb;
     });
 
+    function selectedRoleIds() {
+      return Array.from(roleCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    }
+
+    function selectedRolePolicy() {
+      const allow = new Set();
+      const deny = new Set();
+      selectedRoleIds().forEach(rid => {
+        const role = roleMap[rid] || {};
+        (role.permissions || []).forEach(permissionId => allow.add(permissionId));
+        (role.deny_permissions || []).forEach(permissionId => deny.add(permissionId));
+      });
+      return { allow, deny };
+    }
+
     function applyInitialRoleDefaults() {
-      const role = roleMap[roleSelect.value] || {};
-      const roleAllow = new Set(role.permissions || []);
-      const roleDeny = new Set(role.deny_permissions || []);
+      const policy = selectedRolePolicy();
+      const roleAllow = policy.allow;
+      const roleDeny = policy.deny;
 
       // Seed ALLOW: role allows → check, unless user originally denied it
       permissionCheckboxes.forEach(cb => {
@@ -482,9 +505,9 @@
     }
 
     function highlightPermissionStates() {
-      const role = roleMap[roleSelect.value] || {};
-      const roleAllow = new Set(role.permissions || []);
-      const roleDeny = new Set(role.deny_permissions || []);
+      const policy = selectedRolePolicy();
+      const roleAllow = policy.allow;
+      const roleDeny = policy.deny;
 
       // Clear all previous rings
       document.querySelectorAll("label.inline-flex").forEach(label => {
@@ -598,9 +621,9 @@
     denyPermissionCheckboxes.forEach(cb =>
       cb.addEventListener("change", highlightPermissionStates)
     );
-    roleSelect?.addEventListener("change", () => {
+    roleCheckboxes.forEach(cb => cb.addEventListener("change", () => {
       applyInitialRoleDefaults();
-    });
+    }));
 
     updatePasswordVisibility();
     setupAssayBehavior();

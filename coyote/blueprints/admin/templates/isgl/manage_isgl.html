@@ -58,11 +58,11 @@
                         {% for list_type in list_types %}
                           {% set normalized_type = (list_type|string)|trim|lower %}
                           {% set badge_class = "bg-gray-300 text-gray-800" %}
-                          {% if normalized_type in ["small_variants_genelist", "snv_genelist", "genelist"] %}
+                          {% if normalized_type == "small_variant_genelist" %}
                             {% set badge_class = "bg-genelist text-black" %}
-                          {% elif normalized_type in ["cnv_genelist", "cnvlist"] %}
+                          {% elif normalized_type == "cnv_genelist" %}
                             {% set badge_class = "bg-cnvlist text-black" %}
-                          {% elif normalized_type in ["fusion_genelist", "fusionlist"] %}
+                          {% elif normalized_type == "fusion_genelist" %}
                             {% set badge_class = "bg-fusionlist text-black" %}
                           {% elif normalized_type == "dna" %}
                             {% set badge_class = "bg-dna text-black" %}
@@ -132,7 +132,7 @@
                     </a>
 
 
-                    {% if has_access("edit_isgl", min_role="manager", min_level=99) and not is_public %}
+                    {% if has_access("gene_list.insilico:edit", min_role="manager", min_level=99) and not is_public %}
                       <button onclick="showActionModal({
                           url: '{{ url_for('admin_bp.edit_genelist', genelist_id=genelist_ref) }}',
                           title: 'Edit genelist configuration',
@@ -156,7 +156,7 @@
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
                       </button>
                     {% endif %}
-                    {% if has_access("delete_isgl", min_role="admin", min_level=99999) and not is_public %}
+                    {% if has_access("gene_list.insilico:delete", min_role="admin", min_level=99999) and not is_public %}
                       <button onclick="showActionModal({
                           url: '{{ url_for('admin_bp.delete_genelist', genelist_id=genelist_ref) }}',
                           title: 'Delete genelist',

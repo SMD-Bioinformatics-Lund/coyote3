@@ -21,6 +21,7 @@ def _user(*, role: str, level: int, permissions: list[str] | None = None) -> Api
         fullname="User Example",
         username="user1",
         role=role,
+        roles=[role],
         access_level=level,
         permissions=list(permissions or []),
         denied_permissions=[],
@@ -98,7 +99,7 @@ def test_internal_ingest_collection_requires_auth_and_admin(monkeypatch):
     monkeypatch.setattr(
         access,
         "_decode_session_user",
-        lambda _request: _user(role="admin", level=100),
+        lambda _request: _user(role="admin", level=100, permissions=["user:create"]),
     )
     user = next(dep(request))
     ingest_service = SimpleNamespace(
@@ -116,8 +117,8 @@ def test_internal_ingest_collection_requires_auth_and_admin(monkeypatch):
     assert result["status"] == "ok"
 
 
-def test_internal_ingest_sample_bundle_update_requires_edit_sample_permission(monkeypatch):
-    """Update mode requires edit_sample for developer-level operators."""
+def test_internal_ingest_sample_bundle_update_requires_sample_edit_own_permission(monkeypatch):
+    """Update mode requires sample:edit:own for developer-level operators."""
     calls: dict[str, object] = {}
 
     def _ingest(payload, *, allow_update=False, increment=False):
@@ -162,7 +163,7 @@ def test_internal_ingest_sample_bundle_update_requires_edit_sample_permission(mo
 
     response = internal_router.ingest_sample_bundle_internal(
         payload=payload,
-        user=_user(role="developer", level=50, permissions=["edit_sample"]),
+        user=_user(role="developer", level=50, permissions=["sample:edit:own"]),
         ingest_service=SimpleNamespace(
             parse_yaml_payload=lambda raw: raw,
             ingest_sample_bundle=_ingest,

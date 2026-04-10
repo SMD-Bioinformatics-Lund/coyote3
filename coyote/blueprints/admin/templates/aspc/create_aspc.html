@@ -335,6 +335,7 @@
     if (envSelect) {
       envSelect.innerHTML = '';
       const defaultOpt = document.createElement('option');
+      defaultOpt.value = '';
       defaultOpt.disabled = true;
       defaultOpt.selected = true;
       defaultOpt.textContent = '-- select environment --';
@@ -346,51 +347,13 @@
         opt.textContent = env;
         envSelect.appendChild(opt);
       });
-    }
 
-    setStructuredCheckboxOptions('genelists', data.genelists || []);
-    setStructuredCheckboxOptions('cnv_genelists', data.cnv_genelists || []);
-    setStructuredCheckboxOptions('fusion_genelists', data.fusion_genelists || []);
+      if ((data.environment || []).length === 1) {
+        envSelect.value = data.environment[0];
+      }
+    }
     if (typeof window.checkAspcIdAvailability === 'function') {
       window.checkAspcIdAvailability();
-    }
-  }
-
-  function setStructuredCheckboxOptions(key, options) {
-    const containers = document.querySelectorAll(`[data-structured-options-container="${key}"]`);
-    if (!containers.length) return;
-
-    for (const container of containers) {
-      const currentlyChecked = new Set(
-        Array.from(
-          container.querySelectorAll(`input[data-structured-field][data-type="checkbox-group"][data-key="${key}"]:checked`)
-        ).map(el => el.value)
-      );
-
-      container.innerHTML = '';
-      const normalizedOptions = Array.from(new Set((options || []).map(v => String(v).trim()).filter(Boolean)));
-      for (const opt of normalizedOptions) {
-        const label = document.createElement('label');
-        label.className = 'inline-flex items-center gap-1 text-xs';
-
-        const input = document.createElement('input');
-        input.type = 'checkbox';
-        input.className = 'accent-blue-600 rounded';
-        input.setAttribute('data-structured-field', '');
-        input.setAttribute('data-key', key);
-        input.setAttribute('data-type', 'checkbox-group');
-        input.value = opt;
-        if (currentlyChecked.has(opt)) {
-          input.checked = true;
-        }
-
-        const span = document.createElement('span');
-        span.textContent = opt;
-
-        label.appendChild(input);
-        label.appendChild(span);
-        container.appendChild(label);
-      }
     }
   }
 

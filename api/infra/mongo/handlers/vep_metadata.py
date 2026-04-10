@@ -59,6 +59,13 @@ class VEPMetaHandler(BaseHandler):
             app.logger.warning("VEP version %s not found in metadata.", vep_version)
         return doc or {}
 
+    def _get_latest_metadata(self):
+        """Return the latest VEP metadata document when no version is specified."""
+        doc = self.get_collection().find_one(sort=[("vep_id", -1)])
+        if not doc:
+            app.logger.warning("No VEP metadata found in database.")
+        return doc or {}
+
     def get_variant_class_translations(self, vep_version: str):
         """
         Retrieve the variant class translations for a specific VEP version.
@@ -83,6 +90,38 @@ class VEPMetaHandler(BaseHandler):
         """
         doc = self._get_metadata(vep_version)
         return doc.get("conseq_translations", {})
+
+    def get_consequence_group_map(self, vep_version: str | None = None) -> dict[str, list[str]]:
+        """Return grouped consequence terms keyed by UI filter group."""
+        doc = (
+            self._get_metadata(vep_version)
+            if vep_version is not None
+            else self._get_latest_metadata()
+        )
+        group_map = doc.get("consequence_groups", {})
+        if group_map:
+            return {
+                str(group).strip(): [str(term).strip() for term in terms if str(term).strip()]
+                for group, terms in group_map.items()
+                if str(group).strip()
+            }
+
+        derived: dict[str, list[str]] = {}
+        for consequence, meta in (doc.get("conseq_translations", {}) or {}).items():
+            if not isinstance(meta, dict):
+                continue
+            group = str(meta.get("group") or "").strip()
+            term = str(consequence or "").strip()
+            if not group or not term:
+                continue
+            derived.setdefault(group, [])
+            if term not in derived[group]:
+                derived[group].append(term)
+        return derived
+
+    def get_consequence_group_options(self, vep_version: str | None = None) -> list[str]:
+        """Return available grouped consequence filter keys."""
+        return list(self.get_consequence_group_map(vep_version).keys())
 
     def get_db_info(self, vep_version: str, genome_build: str = "GRCh38") -> dict:
         """

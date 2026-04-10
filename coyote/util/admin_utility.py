@@ -362,6 +362,67 @@ class AdminUtility:
 
         return patched
 
+
+def apply_selected_version(
+    doc: dict,
+    selected_version: int | None,
+    *,
+    id_field: str | None = None,
+    id_value: str | None = None,
+    keep_version: bool = False,
+) -> tuple[dict, dict | None]:
+    """Project a versioned document to a selected historical version.
+
+    This is the shared implementation behind all admin version-selector
+    helpers.  Each view module can call this instead of duplicating the
+    version-history lookup logic.
+
+    Args:
+        doc: The current document (must contain ``version`` and
+            ``version_history`` keys when versioning is active).
+        selected_version: The version number requested by the operator,
+            or ``None`` to keep the current version.
+        id_field: If provided, the key on ``doc`` that should be
+            restored after delta application (e.g. ``"_id"``,
+            ``"role_id"``, ``"username"``).
+        id_value: The value to write into *id_field*.  When *id_field*
+            is given but *id_value* is ``None``, the original value is
+            preserved from *doc* before the delta is applied.
+        keep_version: When ``True``, set ``doc["version"]`` to
+            *selected_version* after applying the delta.
+
+    Returns:
+        A ``(document, delta)`` tuple.  *delta* is ``None`` when no
+        projection was performed.
+    """
+    from copy import deepcopy
+
+    delta = None
+    if not selected_version or selected_version == doc.get("version"):
+        return doc, delta
+
+    # Preserve the id value before we mutate the document.
+    if id_field and id_value is None:
+        id_value = doc.get(id_field)
+
+    version_index = next(
+        (
+            i
+            for i, entry in enumerate(doc.get("version_history", []))
+            if entry["version"] == selected_version + 1
+        ),
+        None,
+    )
+    if version_index is not None:
+        delta_blob = doc["version_history"][version_index].get("delta", {})
+        doc = AdminUtility.apply_version_delta(deepcopy(doc), delta_blob)
+        delta = delta_blob
+        if id_field and id_value is not None:
+            doc[id_field] = id_value
+        if keep_version:
+            doc["version"] = selected_version
+    return doc, delta
+
     @staticmethod
     def extract_gene_list(file_obj, pasted_text: str) -> list[str]:
         """

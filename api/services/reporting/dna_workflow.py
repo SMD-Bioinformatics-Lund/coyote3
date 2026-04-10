@@ -15,7 +15,7 @@ class DNAWorkflowService:
     """Coordinate shared DNA reporting workflow steps."""
 
     @classmethod
-    def from_store(cls, store, *, conseq_terms_mapper) -> "DNAWorkflowService":
+    def from_store(cls, store) -> "DNAWorkflowService":
         """Build the workflow service from the shared store."""
         return cls(
             assay_panel_handler=store.assay_panel_handler,
@@ -29,7 +29,6 @@ class DNAWorkflowService:
             vep_metadata_handler=store.vep_metadata_handler,
             annotation_handler=store.annotation_handler,
             reported_variant_handler=store.reported_variant_handler,
-            conseq_terms_mapper=conseq_terms_mapper,
         )
 
     def __init__(
@@ -46,7 +45,6 @@ class DNAWorkflowService:
         vep_metadata_handler,
         annotation_handler,
         reported_variant_handler,
-        conseq_terms_mapper,
     ) -> None:
         """Create the workflow service with explicit injected handlers."""
         self.assay_panel_handler = assay_panel_handler
@@ -60,7 +58,6 @@ class DNAWorkflowService:
         self.vep_metadata_handler = vep_metadata_handler
         self.annotation_handler = annotation_handler
         self.reported_variant_handler = reported_variant_handler
-        self.conseq_terms_mapper = conseq_terms_mapper
 
     @staticmethod
     def validate_report_inputs(logger, sample: dict, assay_config: dict) -> None:
@@ -99,7 +96,6 @@ class DNAWorkflowService:
             translocation_handler=self.translocation_handler,
             vep_metadata_handler=self.vep_metadata_handler,
             annotation_handler=self.annotation_handler,
-            conseq_terms_mapper=self.conseq_terms_mapper,
         )
 
     @staticmethod

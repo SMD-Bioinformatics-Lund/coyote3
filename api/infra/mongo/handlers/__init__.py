@@ -13,7 +13,6 @@ from api.infra.mongo.handlers.fusions import FusionsHandler
 from api.infra.mongo.handlers.gene_lists import ISGLHandler
 from api.infra.mongo.handlers.grouped_coverage import GroupCoverageHandler
 from api.infra.mongo.handlers.permissions import PermissionsHandler
-from api.infra.mongo.handlers.query_profiles import QueryProfilesHandler
 from api.infra.mongo.handlers.reported_variants import ReportedVariantsHandler
 from api.infra.mongo.handlers.reports import ReportHandler
 from api.infra.mongo.handlers.rna_classification import RNAClassificationHandler
@@ -40,7 +39,6 @@ __all__ = [
     "GroupCoverageHandler",
     "ISGLHandler",
     "PermissionsHandler",
-    "QueryProfilesHandler",
     "RNAClassificationHandler",
     "RNAExpressionHandler",
     "RNAQCHandler",
