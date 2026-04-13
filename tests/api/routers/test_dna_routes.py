@@ -154,6 +154,55 @@ def test_show_dna_variant_not_found_raises_404(monkeypatch):
     assert exc.value.detail["error"] == "Variant not found"
 
 
+def test_list_dna_variants_missing_asp_raises_specific_422(monkeypatch):
+    """Missing ASP should raise a specific setup error for the sample assay."""
+    sample = fx.sample_doc()
+    sample["name"] = "S1"
+    sample["assay"] = "unknown_assay"
+    service = _dna_service()
+    request = SimpleNamespace(url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"))
+
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(store.assay_panel_handler, "get_asp", lambda assay_name: None)
+
+    with pytest.raises(HTTPException) as exc:
+        dna.list_dna_variants(request=request, sample_id="S1", user=fx.api_user(), service=service)
+
+    assert exc.value.status_code == 422
+    assert exc.value.detail["error"] == "ASP not registered for assay 'unknown_assay'"
+
+
+def test_list_dna_variants_missing_aspc_raises_specific_422(monkeypatch):
+    """Missing ASPC should include the assay and environment in the error."""
+    sample = fx.sample_doc()
+    sample["name"] = "S1"
+    sample["assay"] = "hema_GMSv1"
+    sample["profile"] = "production"
+    service = _dna_service()
+    request = SimpleNamespace(url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"))
+
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(
+        store.assay_panel_handler,
+        "get_asp",
+        lambda assay_name: {"assay_name": assay_name, "asp_group": "dna"},
+    )
+    monkeypatch.setattr(
+        store.assay_configuration_handler,
+        "get_aspc_no_meta",
+        lambda assay_name, profile: None,
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        dna.list_dna_variants(request=request, sample_id="S1", user=fx.api_user(), service=service)
+
+    assert exc.value.status_code == 422
+    assert (
+        exc.value.detail["error"]
+        == "ASPC not registered for assay 'hema_GMSv1' in environment 'production'"
+    )
+
+
 def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
     """Test show dna variant handles list consequence for oncokb."""
     sample = fx.sample_doc()

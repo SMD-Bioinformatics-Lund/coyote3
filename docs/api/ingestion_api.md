@@ -396,7 +396,7 @@ Use this order for a clean deployment at a new center.
    - `roles`
    - `vep_metadata`
 3. Bootstrap mandatory runtime collections.
-   - first admin user via `scripts/bootstrap_local_admin.py` (writes user audit metadata)
+   - first superuser via `scripts/bootstrap_local_admin.py` (writes user audit metadata)
    - `asp_configs`
    - `assay_specific_panels`
 4. Optionally seed filtering and annotation knowledgebase collections.
@@ -436,7 +436,7 @@ Recommended ordered commands for first-time center bootstrap:
 3. `refseq_canonical` via `/collection/bulk`
 4. `hgnc_genes` via `/collection/bulk`
 5. `vep_metadata` via `/collection/bulk`
-6. first admin/user via `scripts/bootstrap_local_admin.py`
+6. first superuser via `scripts/bootstrap_local_admin.py`
 7. `asp_configs` via `/collection` or `/collection/bulk`
 8. `assay_specific_panels` via `/collection` or `/collection/bulk`
 9. optional `insilico_genelists` and annotation knowledgebase collections
@@ -466,7 +466,7 @@ Use this as the minimum center onboarding contract:
 | --- | --- | --- |
 | `permissions` | `permission_id`, `permission_name` | RBAC policy definitions |
 | `roles` | `role_id`, `level`, `permissions[]` | RBAC role resolution |
-| `users` | `username`, `email`, `role`, `environments[]` | Login + authorization subject (first user should be created by `bootstrap_local_admin.py`) |
+| `users` | `username`, `email`, `roles[]`, `environments[]` | Login + authorization subject (first superuser should be created by `bootstrap_local_admin.py`) |
 | `asp_configs` | `aspc_id`, `assay_name`, `environment`, `asp_group`, `asp_category`, `analysis_types[]`, `display_name`, `filters{...}`, `reporting{...}`, `is_active` | Assay+environment runtime config |
 | `assay_specific_panels` | `asp_id`, `assay_name`, `asp_group`, `is_active` | Assay metadata/UI wiring |
 | `insilico_genelists` | `isgl_id`, `diagnosis`, `assays[]`, `assay_groups[]`, `genes[]`, `is_active` | Panel/list filtering logic |
@@ -542,7 +542,7 @@ Core collections typically seeded first:
 
 - `permissions`
 - `roles`
-- first local admin user via `scripts/bootstrap_local_admin.py`
+- first local superuser via `scripts/bootstrap_local_admin.py`
 - `asp_configs`
 - `assay_specific_panels`
 - `insilico_genelists`

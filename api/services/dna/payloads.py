@@ -10,7 +10,7 @@ from api.contracts.managed_ui_schemas import build_form_spec
 from api.core.dna.dna_variants import format_pon
 from api.core.dna.notation import one_letter_p
 from api.core.dna.translocqueries import build_transloc_query
-from api.http import api_error
+from api.http import api_error, setup_error
 from api.services.dna.export import consequence_terms
 from api.services.reporting.dna_report_payload import hotspot_variant
 
@@ -123,7 +123,13 @@ def list_variants_payload(
     """Build the list variants payload used by DNA routes."""
     assay_config = assay_config_getter(sample)
     if not assay_config:
-        raise api_error(404, "Assay config not found for sample")
+        raise setup_error(
+            "ASPC could not be resolved for the sample",
+            (
+                f"Sample '{sample.get('name', sample.get('_id'))}' could not resolve an assay "
+                "configuration during DNA findings loading."
+            ),
+        )
 
     raw_sample_filters = sample.get("filters")
     sample_filters = deepcopy(
@@ -254,7 +260,13 @@ def plot_context_payload(*, service, sample: dict, assay_config_getter) -> dict[
     """Build plot context payload for DNA routes."""
     assay_config = assay_config_getter(sample)
     if not assay_config:
-        raise api_error(404, "Assay config not found for sample")
+        raise setup_error(
+            "ASPC could not be resolved for the sample",
+            (
+                f"Sample '{sample.get('name', sample.get('_id'))}' could not resolve an assay "
+                "configuration while loading DNA plot context."
+            ),
+        )
     assay_config_schema = build_form_spec(aspc_spec_for_category("DNA"))
     return {
         "sample": sample,
@@ -288,7 +300,13 @@ def variant_context_payload(
 
     assay_config = assay_config_getter(sample)
     if not assay_config:
-        raise api_error(404, "Assay config not found for sample")
+        raise setup_error(
+            "ASPC could not be resolved for the sample",
+            (
+                f"Sample '{sample.get('name', sample.get('_id'))}' could not resolve an assay "
+                "configuration during DNA variant loading."
+            ),
+        )
     assay_group = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel")
 

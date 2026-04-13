@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create or update initial local admin user/role/permission in Mongo."""
+"""Create or update initial local bootstrap user/role/permission in Mongo."""
 
 from __future__ import annotations
 
@@ -29,16 +29,16 @@ def _normalize_permission_id(permission_id) -> str:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Bootstrap initial local API admin (one-time setup)."
+        description="Bootstrap initial local API user (one-time setup)."
     )
     parser.add_argument(
         "--mongo-uri", required=True, help="Mongo URI with readWrite access to app DB"
     )
     parser.add_argument("--db", default="coyote3", help="Application DB name")
-    parser.add_argument("--username", required=True, help="Admin username (login identifier)")
-    parser.add_argument("--email", required=True, help="Admin email address")
-    parser.add_argument("--password", required=True, help="Admin password (plain text input)")
-    parser.add_argument("--role-id", default="admin", help="Role id to assign")
+    parser.add_argument("--username", required=True, help="Bootstrap username (login identifier)")
+    parser.add_argument("--email", required=True, help="Bootstrap email address")
+    parser.add_argument("--password", required=True, help="Bootstrap password (plain text input)")
+    parser.add_argument("--role-id", default="superuser", help="Role id to assign")
     parser.add_argument(
         "--seed-data-dir",
         default=str(DEFAULT_SEED_DATA_DIR),
@@ -160,13 +160,14 @@ def _upsert_user(
             "fullname": fullname,
             "firstname": fullname.split(" ")[0],
             "lastname": " ".join(fullname.split(" ")[1:]) if len(fullname.split(" ")) > 1 else "",
-            "job_title": "Center Administrator",
+            "job_title": "Center Bootstrap User",
             "auth_type": "coyote3",
             "password": generate_password_hash(password, method="pbkdf2:sha256"),
             "roles": [role_id],
             "is_active": True,
             "permissions": [],
             "deny_permissions": [],
+            "must_change_password": True,
             "environments": ["production", "development", "testing", "validation"],
             "assay_groups": [assay_group],
             "assays": [assay],
@@ -177,10 +178,14 @@ def _upsert_user(
         },
     )
     db["users"].update_one(
-        {"email": username},
+        {"username": username},
         {"$set": user_doc},
         upsert=True,
     )
+
+
+def _superuser_exists(db) -> bool:
+    return db["users"].count_documents({"roles": "superuser"}, limit=1) > 0
 
 
 def main() -> int:
@@ -206,6 +211,12 @@ def main() -> int:
     client.admin.command("ping")
     db = client[args.db]
 
+    if args.role_id == "superuser" and _superuser_exists(db):
+        raise SystemExit(
+            "A superuser already exists. bootstrap_local_admin.py may create only the first "
+            "bootstrap superuser. Additional superusers must be created by an existing superuser."
+        )
+
     for permission_doc in permission_docs:
         _upsert_permission(db, permission_doc)
 
@@ -223,7 +234,7 @@ def main() -> int:
     )
 
     print(
-        f"[ok] local admin ready: username={args.username} email={args.email} role={args.role_id} "
+        f"[ok] local bootstrap user ready: username={args.username} email={args.email} role={args.role_id} "
         f"assay_group={args.assay_group} assay={args.assay}"
     )
     return 0

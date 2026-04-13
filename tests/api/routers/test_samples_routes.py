@@ -69,8 +69,9 @@ def test_reset_sample_filters_requires_assay_config(monkeypatch):
     with pytest.raises(HTTPException) as exc:
         samples.reset_sample_filters("S1", user=fx.api_user())
 
-    assert exc.value.status_code == 404
-    assert exc.value.detail["error"] == "Assay config not found for sample"
+    assert exc.value.status_code == 422
+    assert exc.value.detail["error"] == "ASPC could not be resolved for the sample"
+    assert exc.value.detail["category"] == "setup"
 
 
 def test_update_coverage_blacklist_gene_returns_change_payload(monkeypatch):

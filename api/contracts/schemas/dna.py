@@ -279,9 +279,44 @@ class CnvsDoc(_DocBase):
     size: int
     ratio: float | None = None
     type: str | None = None
-    nprobes: int
+    nprobes: int = 0
     genes: list[CnvGeneDoc] = Field(default_factory=list)
     callers: list[str] = Field(default_factory=list)
+
+    @field_validator("ratio", mode="before")
+    @classmethod
+    def _normalize_ratio(cls, value: Any) -> Any:
+        if value is None or value == "":
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+        raw = str(value).strip().upper()
+        symbolic = {
+            "DEL": -1.0,
+            "LOSS": -1.0,
+            "AMP": 1.0,
+            "DUP": 0.5,
+            "GAIN": 0.5,
+        }
+        if raw in symbolic:
+            return symbolic[raw]
+        try:
+            return float(raw)
+        except ValueError:
+            return None
+
+    @field_validator("callers", mode="before")
+    @classmethod
+    def _normalize_callers(cls, value: Any) -> Any:
+        if value is None or value == "":
+            return []
+        if isinstance(value, str):
+            raw = value.replace("|", ",").replace(";", ",")
+            return [token.strip().lower() for token in raw.split(",") if token.strip()]
+        if isinstance(value, (list, tuple, set)):
+            return [str(item).strip().lower() for item in value if str(item).strip()]
+        text = str(value).strip().lower()
+        return [text] if text else []
 
 
 class TranslocationInfoAnnDoc(_DocBase):

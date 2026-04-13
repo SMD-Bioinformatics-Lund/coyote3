@@ -95,3 +95,48 @@ def test_samples_template_contains_tab_filters():
 
     assert "scope='all'" in html
     assert 'name="q"' in html
+
+
+def test_samples_home_defaults_to_all_profiles_for_superuser(monkeypatch):
+    """Superusers should land on all profiles by default."""
+    app = Flask(__name__)
+    app.config.update(SECRET_KEY="test", WTF_CSRF_ENABLED=False)
+    app.home_logger = app.logger
+    with app.app_context():
+        views_samples = importlib.import_module("coyote.blueprints.home.views_samples")
+
+        captured: dict = {}
+
+        def _fetch_samples(**kwargs):
+            captured.update(kwargs)
+            return {
+                "live_samples": [],
+                "done_samples": [],
+                "sample_view": kwargs["sample_view"],
+                "profile_scope": kwargs["profile_scope"],
+                "page": kwargs["page"],
+                "per_page": kwargs["per_page"],
+                "live_page": kwargs["live_page"],
+                "done_page": kwargs["done_page"],
+                "live_per_page": kwargs["live_per_page"],
+                "done_per_page": kwargs["done_per_page"],
+                "has_next_live": False,
+                "has_next_done": False,
+            }
+
+        def _render(_template_name, **context):
+            return context
+
+        monkeypatch.setattr(views_samples, "fetch_samples", _fetch_samples)
+        monkeypatch.setattr(views_samples, "render_template", _render)
+        monkeypatch.setattr(
+            views_samples,
+            "current_user",
+            type("_SuperUser", (), {"is_superuser": True})(),
+        )
+
+        with app.test_request_context("/samples/live", method="GET"):
+            context = views_samples.samples_home.__wrapped__("live")
+
+        assert captured["profile_scope"] == "all"
+        assert context["profile_scope"] == "all"

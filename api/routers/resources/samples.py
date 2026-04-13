@@ -38,7 +38,12 @@ def list_admin_samples_read(
         dict: Admin list payload for samples.
     """
     return util.common.convert_to_serializable(
-        service.list_payload(assays=user.assays, search=search, page=page, per_page=per_page)
+        service.list_payload(
+            assays=None if user.is_superuser else user.assays,
+            search=search,
+            page=page,
+            per_page=per_page,
+        )
     )
 
 

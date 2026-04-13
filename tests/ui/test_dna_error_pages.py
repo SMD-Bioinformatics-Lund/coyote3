@@ -92,3 +92,35 @@ def test_cnv_route_renders_html_error_page_for_browser_requests(monkeypatch):
     body = response.get_data(as_text=True)
     assert "Request Failed" in body
     assert "Unable to load the CNV detail page." in body
+
+
+def test_dna_findings_route_surfaces_specific_upstream_setup_errors(monkeypatch):
+    """DNA findings page should show explicit ASP/ASPC setup errors from the API."""
+    monkeypatch.setattr(coyote, "verify_external_api_dependency", lambda _app: None)
+    views_dna = _load_web_module("coyote.blueprints.dna.views_dna_findings")
+
+    class _FailingClient:
+        def get_json(self, path, headers=None, params=None):  # noqa: ARG002
+            raise views_dna.ApiRequestError(
+                "ASPC not registered for assay 'hema_GMSv1' in environment 'production'",
+                status_code=422,
+                payload={
+                    "error": "ASPC not registered for assay 'hema_GMSv1' in environment 'production'"
+                },
+            )
+
+    monkeypatch.setattr(views_dna, "get_web_api_client", lambda: _FailingClient())
+    monkeypatch.setattr(views_dna, "forward_headers", lambda: {})
+
+    app = init_app(testing=True)
+    client = app.test_client()
+
+    response = client.get("/dna/sample/S1", headers={"Accept": "text/html"})
+
+    assert response.status_code == 422
+    body = response.get_data(as_text=True)
+    assert "Request Failed" in body
+    assert (
+        "ASPC not registered for assay &#39;hema_GMSv1&#39; in environment &#39;production&#39;"
+        in body
+    )

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.security.access import ApiUser, _enforce_access
+from api.security.access import ApiUser, _enforce_access, _get_sample_for_api
 
 
 def _u(
@@ -128,3 +128,29 @@ def test_enforce_access_superuser_bypasses_all_checks():
         min_level=999999,
         min_role="superuser",
     )
+
+
+def test_get_sample_for_api_returns_specific_scope_error(monkeypatch):
+    """Sample lookup should explain assay-scope denials clearly."""
+    user = _u(role="user", level=9, permissions=["sample:view:own"])
+    user.assays = ["WGS"]
+    sample = {"_id": "s1", "name": "S1", "assay": "hema_GMSv1"}
+
+    monkeypatch.setattr(
+        "api.security.access.get_sample_handler",
+        lambda: type(
+            "_Handler",
+            (),
+            {
+                "get_sample": staticmethod(lambda sample_id: sample),
+                "get_sample_by_id": staticmethod(lambda sample_id: None),
+            },
+        )(),
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        _get_sample_for_api("S1", user)
+
+    assert exc.value.status_code == 403
+    assert exc.value.detail["error"] == "Sample 'S1' is outside your assay scope"
+    assert exc.value.detail["category"] == "scope"

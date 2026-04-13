@@ -354,7 +354,16 @@ def _reset_sample_filters(sample_id: str, user: ApiUser, service: SampleCatalogS
     sample = _get_sample_for_api(sample_id, user)
     assay_config = get_formatted_assay_config(sample)
     if not assay_config:
-        raise api_error(404, "Assay config not found for sample")
+        raise api_error(
+            422,
+            "ASPC could not be resolved for the sample",
+            (
+                f"Sample '{sample.get('name', sample_id)}' could not resolve an assay "
+                "configuration while resetting sample filters."
+            ),
+            category="setup",
+            hint="Create the ASP and ASPC for this assay/profile before resetting filters.",
+        )
     service.reset_sample_filters(sample=sample, assay_config=assay_config)
     result = change_payload(
         sample_id=sample_id,

@@ -164,7 +164,9 @@ def test_list_cnvs_payload_raises_when_assay_config_missing(monkeypatch):
             request=_request("/api/v1/cnvs/S1"), sample=_sample(), util_module=_UtilModule
         )
 
-    assert exc.value.status_code == 404
+    assert exc.value.status_code == 422
+    assert exc.value.detail["error"] == "ASPC could not be resolved for the sample"
+    assert exc.value.detail["category"] == "setup"
 
 
 def test_list_cnvs_payload_returns_count(monkeypatch):

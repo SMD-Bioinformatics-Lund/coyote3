@@ -250,13 +250,14 @@ wait_for_api_health() {
 }
 
 bootstrap_local_admin() {
-  echo "[step] bootstrap first local admin"
+  echo "[step] bootstrap first local superuser"
   PYTHONPATH=. "$PYTHON_BIN" scripts/bootstrap_local_admin.py \
     --mongo-uri "$MONGO_URI" \
     --db "$COYOTE3_DB" \
     --username "$ADMIN_USERNAME" \
     --email "$ADMIN_EMAIL" \
     --password "$ADMIN_PASSWORD" \
+    --role-id "superuser" \
     --assay-group "hematology" \
     --assay "assay_1"
 }

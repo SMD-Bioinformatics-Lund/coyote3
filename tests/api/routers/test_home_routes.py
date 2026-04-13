@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 from fastapi import HTTPException
 
@@ -143,6 +145,48 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
     assert len(calls) == 2
     assert any(call["report"] is True and call["status"] == "done" for call in calls)
     assert any(call["report"] is False and call["status"] == "live" for call in calls)
+
+
+def test_home_samples_read_superuser_is_unscoped(monkeypatch):
+    """Superusers should fetch all samples without assay or environment restrictions."""
+    user = fx.api_user()
+    user.roles = ["superuser"]
+    user.assays = ["WGS"]
+    user.envs = ["production"]
+    calls = []
+    service = _sample_catalog_service()
+
+    def _get_samples(**kwargs):
+        calls.append(kwargs)
+        return []
+
+    monkeypatch.setattr(
+        sample_catalog_service_module,
+        "runtime_app",
+        type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})(),
+    )
+    monkeypatch.setattr(service.sample_handler, "get_samples", _get_samples)
+    monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = samples.list_samples_read(
+        status="live",
+        search_mode="both",
+        sample_view=None,
+        page=1,
+        per_page=30,
+        live_page=1,
+        done_page=1,
+        live_per_page=30,
+        done_per_page=30,
+        profile_scope="all",
+        user=user,
+        service=service,
+    )
+
+    assert payload["profile_scope"] == "all"
+    assert len(calls) == 2
+    assert all(call["user_assays"] is None for call in calls)
+    assert all(call["user_envs"] is None for call in calls)
 
 
 def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
@@ -295,12 +339,11 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
 
 
 def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
-    """Edit-context counts should use the same merged assay defaults as the findings page."""
+    """Edit-context counts should seed from ASPC only when the sample has no filters doc."""
     sample = fx.sample_doc()
     sample["_id"] = "s1"
     sample["omics_layer"] = "dna"
-    sample["filters"]["genelists"] = []
-    sample["filters"]["adhoc_genes"] = {}
+    sample["filters"] = None
     service = _sample_catalog_service()
 
     monkeypatch.setattr(
@@ -322,6 +365,14 @@ def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
         service.gene_list_handler,
         "get_isgl_by_ids",
         lambda ids: {"gl1": {"genes": ["TP53"]}},
+    )
+    service.sample_handler = SimpleNamespace(
+        reset_sample_settings=lambda sample_id, filters: None,
+        get_sample=lambda sample_id: {
+            **sample,
+            "_id": sample_id,
+            "filters": {"genelists": ["gl1"]},
+        },
     )
     monkeypatch.setattr(
         service.variant_handler,

@@ -197,11 +197,11 @@ Required keys:
 - `start` (int)
 - `end` (int)
 - `size` (int)
-- `nprobes` (int)
 
 Optional keys:
 - `ratio` (float | None)
 - `type` (str | None)
+- `nprobes` (int)
 - `genes` (list[api.contracts.schemas.dna.CnvGeneDoc])
 - `callers` (list[str])
 

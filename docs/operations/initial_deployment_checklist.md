@@ -83,7 +83,7 @@ Command-line API check:
 curl -fsS "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}/api/v1/health"
 ```
 
-## 4. Bootstrap first API admin (one-time)
+## 4. Bootstrap first API superuser (one-time)
 
 Email format note for bootstrap:
 
@@ -93,7 +93,8 @@ Email format note for bootstrap:
 
 Role level note for bootstrap and seeds:
 
-- `admin` role must be level `99999` (not `100`).
+- `superuser` is the unrestricted bootstrap role.
+- `admin` remains permission-bound and should not be treated as unrestricted.
 - Recommended full baseline:
   - `external=1`
   - `viewer=5`
@@ -102,6 +103,7 @@ Role level note for bootstrap and seeds:
   - `manager=99`
   - `developer=9999`
   - `admin=99999`
+  - `superuser=1000000`
 
 ```bash
 ${PYTHON_BIN:-python} scripts/bootstrap_local_admin.py \
@@ -110,6 +112,7 @@ ${PYTHON_BIN:-python} scripts/bootstrap_local_admin.py \
   --username "admin" \
   --email "admin@your-center.org" \
   --password "CHANGE_ME_ADMIN_PASSWORD" \
+  --role-id "superuser" \
   --assay-group "hematology" \
   --assay "assay_1"
 ```
@@ -118,6 +121,9 @@ Guardrail:
 
 - `bootstrap_local_admin.py` now fails fast if any CLI value still contains `CHANGE_ME`.
 - This prevents accidental first-user creation with placeholder secrets.
+- `bootstrap_local_admin.py` may create only the first `superuser`.
+- If a `superuser` already exists, the bootstrap script refuses to create another one.
+- Additional superusers must be created by an authenticated existing superuser.
 
 ## 5. Initialize baseline collections (strict order)
 
@@ -134,10 +140,10 @@ Required order before first DNA/RNA sample ingest:
 Notes:
 
 - `bootstrap_center_collections.sh` intentionally skips `users`.
-- First user bootstrap is handled in step 4 (`bootstrap_local_admin.py`).
+- First superuser bootstrap is handled in step 4 (`bootstrap_local_admin.py`).
 - Local-admin bootstrap writes user audit metadata: `created_by`, `created_on`, `updated_by`, `updated_on`.
 - Collection bootstrap also stamps all seeded documents with runtime audit metadata:
-  - `created_by`/`updated_by` = bootstrap admin user
+  - `created_by`/`updated_by` = bootstrap superuser
   - `created_on`/`updated_on` = current UTC timestamp at seed execution
 - `asp_configs` must include `is_active=true` (otherwise sample views can return "Assay config not found for sample").
 - `asp_configs` must include valid `filters` and `reporting` objects.

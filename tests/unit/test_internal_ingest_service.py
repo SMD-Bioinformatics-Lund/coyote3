@@ -419,6 +419,47 @@ def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
     assert "fusions" in rna and "rna_expr" in rna and "rna_class" in rna and "rna_qc" in rna
 
 
+def test_dna_parser_normalizes_pipeline_cnv_shape(tmp_path):
+    cnv = tmp_path / "pipeline.cnv.json"
+    cnv.write_text(
+        json.dumps(
+            {
+                "1:100-200": {
+                    "callers": "gatk",
+                    "ratio": 0.5,
+                    "size": 100,
+                    "chr": "1",
+                    "start": 100,
+                    "end": 200,
+                    "genes": [{"gene": "TP53", "class": "somatic", "cnv_type": "unspec"}],
+                },
+                "2:300-400": {
+                    "callers": "manta",
+                    "ratio": "DEL",
+                    "size": 100,
+                    "chr": "2",
+                    "start": 300,
+                    "end": 400,
+                    "genes": [{"gene": "EGFR"}],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    parser = ingest.DnaIngestParser(canonical={})
+    out = parser.parse({"cnv": str(cnv), "name": "S1"})
+
+    assert out["cnvs"][0]["callers"] == ["gatk"]
+    assert out["cnvs"][0]["nprobes"] == 0
+    assert out["cnvs"][0]["ratio"] == 0.5
+    assert out["cnvs"][0]["type"] == "DUP"
+    assert out["cnvs"][1]["callers"] == ["manta"]
+    assert out["cnvs"][1]["nprobes"] == 0
+    assert out["cnvs"][1]["ratio"] == -1.0
+    assert out["cnvs"][1]["type"] == "DEL"
+
+
 def test_service_resolution_and_validation(monkeypatch):
     stub = _store_stub()
     service = _use_store(monkeypatch, stub)

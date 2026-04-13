@@ -170,6 +170,64 @@ def _is_float(value: str) -> bool:
         return False
 
 
+def _normalize_callers_field(value: Any) -> list[str]:
+    """Normalize caller payloads from pipeline CNV JSON to list[str]."""
+    if value is None or value == "":
+        return []
+    if isinstance(value, str):
+        raw = value.replace("|", ",").replace(";", ",")
+        return [token.strip().lower() for token in raw.split(",") if token.strip()]
+    if isinstance(value, (list, tuple, set)):
+        return [str(item).strip().lower() for item in value if str(item).strip()]
+    text = str(value).strip().lower()
+    return [text] if text else []
+
+
+def _normalize_nprobes_field(value: Any) -> int:
+    """Normalize optional nprobes values, defaulting missing pipeline rows to zero."""
+    if value is None or value == "":
+        return 0
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _normalize_cnv_ratio(value: Any) -> float | None:
+    """Normalize pipeline CNV ratio values to the internal numeric representation."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    raw = str(value).strip().upper()
+    symbolic = {
+        "DEL": -1.0,
+        "LOSS": -1.0,
+        "AMP": 1.0,
+        "DUP": 0.5,
+        "GAIN": 0.5,
+    }
+    if raw in symbolic:
+        return symbolic[raw]
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
+def _infer_cnv_type(ratio: float | None) -> str | None:
+    """Infer a stable CNV event type from normalized numeric ratio values."""
+    if ratio is None:
+        return None
+    if ratio > 1:
+        return "AMP"
+    if ratio > 0:
+        return "DUP"
+    if ratio < 0:
+        return "DEL"
+    return None
+
+
 def _emulate_perl(var_dict: dict[str, Any]) -> dict[str, Any]:
     """Mimic legacy Perl CSQ field handling: split ampersand-delimited floats and take the max.
 
@@ -502,7 +560,7 @@ class DnaIngestParser:
             require_exists("CNV JSON", cnv_path)
             with open(cnv_path, "r", encoding="utf-8") as handle:
                 cnv_doc = json.load(handle)
-            preload["cnvs"] = [cnv_doc[key] for key in cnv_doc]
+            preload["cnvs"] = self._parse_cnvs_only(cnv_doc)
 
         if "biomarkers" in args:
             biomarkers_path = runtime_file_path(args, "biomarkers")
@@ -522,6 +580,33 @@ class DnaIngestParser:
                 preload["cov"] = json.load(handle)
 
         return preload
+
+    @staticmethod
+    def _parse_cnvs_only(cnv_doc: Any) -> list[dict[str, Any]]:
+        """Normalize pipeline CNV JSON into a list of contract-shaped CNV docs."""
+        if isinstance(cnv_doc, list):
+            rows = [dict(row) for row in cnv_doc if isinstance(row, dict)]
+        elif isinstance(cnv_doc, dict):
+            rows = []
+            for key, value in cnv_doc.items():
+                if not isinstance(value, dict):
+                    continue
+                row = dict(value)
+                row.setdefault("_pipeline_key", key)
+                rows.append(row)
+        else:
+            raise ValueError("CNV JSON must decode to an object or list of objects")
+
+        normalized_rows: list[dict[str, Any]] = []
+        for row in rows:
+            normalized = dict(row)
+            normalized["callers"] = _normalize_callers_field(normalized.get("callers"))
+            normalized["nprobes"] = _normalize_nprobes_field(normalized.get("nprobes"))
+            normalized["ratio"] = _normalize_cnv_ratio(normalized.get("ratio"))
+            if normalized.get("type") in {None, ""}:
+                normalized["type"] = _infer_cnv_type(normalized.get("ratio"))
+            normalized_rows.append(normalized)
+        return normalized_rows
 
     def _parse_snvs_only(self, infile: str) -> list[dict[str, Any]]:
         """Parse a VEP-annotated SNV VCF into a list of variant dicts.

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from flask import Response, render_template, request
 from flask import current_app as app
-from flask_login import login_required
+from flask_login import current_user, login_required
 
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.home.forms import SampleSearchForm
@@ -126,9 +126,10 @@ def _parse_samples_home_query(status: str) -> dict:
     sample_view = _resolve_sample_view(status=status, submitted_view=request.args.get("view"))
 
     user_settings: dict | None = None
-    profile_scope = (_first_non_empty_query_arg("scope", default="production") or "").lower()
+    default_scope = "all" if bool(getattr(current_user, "is_superuser", False)) else "production"
+    profile_scope = (_first_non_empty_query_arg("scope", default=default_scope) or "").lower()
     if profile_scope not in {"production", "all"}:
-        profile_scope = "production"
+        profile_scope = default_scope
 
     return {
         "panel_type": panel_type,

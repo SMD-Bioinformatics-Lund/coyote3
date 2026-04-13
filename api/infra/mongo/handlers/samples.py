@@ -72,8 +72,8 @@ class SampleHandler(BaseHandler):
 
     def _query_samples(
         self,
-        user_assays: list,
-        user_envs: list,
+        user_assays: list | None,
+        user_envs: list | None,
         report: bool,
         search_str: str,
         limit=None,
@@ -95,10 +95,11 @@ class SampleHandler(BaseHandler):
             - If `report` is False, filters samples with report_num = 0 or not present.
             - If `search_str` is provided, filters samples by name using regex.
         """
-        query: dict[str, dict[str, Any]] = {
-            "assay": {"$in": user_assays},
-            "profile": {"$in": user_envs},
-        }
+        query: dict[str, Any] = {}
+        if user_assays is not None:
+            query["assay"] = {"$in": user_assays}
+        if user_envs is not None:
+            query["profile"] = {"$in": user_envs}
 
         if report:
             query["report_num"] = {"$gt": 0}
@@ -127,8 +128,8 @@ class SampleHandler(BaseHandler):
 
     def get_samples(
         self,
-        user_assays: list,
-        user_envs: list = ["production"],
+        user_assays: list | None,
+        user_envs: list | None = None,
         status: str = "live",
         report: bool = False,
         search_str: str = "",

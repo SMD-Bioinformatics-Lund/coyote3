@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from flask import Flask, g
 
+from coyote.errors.exceptions import from_api_request_error
 from coyote.services.api_client import api_client, endpoints
+from coyote.services.api_client.base import ApiRequestError
 
 
 def test_get_web_api_client_uses_configured_base_url():
@@ -218,6 +220,31 @@ def test_endpoint_builders_normalize_paths_and_skip_empty_parts():
     assert endpoints.home("samples") == "/api/v1/samples"
     assert endpoints.home_sample("S1", "context") == "/api/v1/samples/S1/edit-context"
     assert endpoints.internal("roles", "levels") == "/api/v1/internal/roles/levels"
+
+
+def test_from_api_request_error_preserves_4xx_headline_and_details():
+    """4xx page errors should keep the domain-specific headline and troubleshooting detail."""
+    exc = ApiRequestError(
+        message="ASPC not registered for assay 'hema_GMSv1' in environment 'production'",
+        status_code=422,
+        payload={
+            "error": "ASPC not registered for assay 'hema_GMSv1' in environment 'production'",
+            "details": "Sample '26MD04507p' belongs to environment 'production'.",
+            "hint": "Create and activate the ASPC for this assay/environment combination.",
+        },
+    )
+
+    page_error = from_api_request_error(exc, summary="Unable to load DNA findings.")
+
+    assert page_error.status_code == 422
+    assert (
+        page_error.message
+        == "ASPC not registered for assay 'hema_GMSv1' in environment 'production'"
+    )
+    assert "Sample '26MD04507p' belongs to environment 'production'." in str(page_error.details)
+    assert "Hint: Create and activate the ASPC for this assay/environment combination." in str(
+        page_error.details
+    )
     assert endpoints.public("catalog") == "/api/v1/public/catalog"
     assert endpoints.rna_sample("S1", "fusions") == "/api/v1/samples/S1/fusions"
     assert endpoints.sample("S1", "report") == "/api/v1/samples/S1/report"

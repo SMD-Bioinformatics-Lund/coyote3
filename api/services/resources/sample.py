@@ -60,7 +60,7 @@ class ResourceSampleService:
         self.records_util = records_util
 
     def list_payload(
-        self, *, assays: list[str], search: str, page: int = 1, per_page: int = 30
+        self, *, assays: list[str] | None, search: str, page: int = 1, per_page: int = 30
     ) -> dict[str, Any]:
         """Return the admin sample list payload."""
         rows, total = self.sample_handler.search_samples_for_admin(

@@ -76,7 +76,14 @@ class ApiUser:
         return "superuser" in set(self.roles)
 
 
-def _api_error(status_code: int, message: str) -> HTTPException:
+def _api_error(
+    status_code: int,
+    message: str,
+    details: str | None = None,
+    *,
+    category: str | None = None,
+    hint: str | None = None,
+) -> HTTPException:
     """Build a normalized API ``HTTPException``.
 
     Args:
@@ -86,7 +93,16 @@ def _api_error(status_code: int, message: str) -> HTTPException:
     Returns:
         HTTPException: Normalized error payload.
     """
-    return HTTPException(status_code=status_code, detail={"status": status_code, "error": message})
+    return HTTPException(
+        status_code=status_code,
+        detail={
+            "status": status_code,
+            "error": message,
+            "details": details,
+            "category": category,
+            "hint": hint,
+        },
+    )
 
 
 def is_public_api_path(path: str) -> bool:
@@ -358,7 +374,12 @@ def _enforce_access(
 
     if permission or min_level is not None or min_role:
         if not (permission_ok or level_ok or role_ok):
-            raise _api_error(403, "Forbidden")
+            raise _api_error(
+                403,
+                "Access denied",
+                "You do not satisfy the required permission, role, or access-level policy.",
+                category="auth",
+            )
 
 
 def require_authenticated(request: Request) -> ApiUser:
@@ -461,10 +482,10 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
             sample_id=sample_id,
             extra={"check": "sample_lookup"},
         )
-        raise _api_error(404, "Sample not found")
+        raise _api_error(404, "Sample not found", category="not_found")
 
     sample_assay = sample.get("assay", "")
-    if sample_assay not in set(user.assays or []):
+    if sample_assay not in set(user.assays or []) and not user.is_superuser:
         _audit_access_event(
             status="denied",
             reason="Forbidden",
@@ -473,7 +494,16 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
             sample_id=sample_id,
             extra={"sample_assay": sample_assay},
         )
-        raise _api_error(403, "Forbidden")
+        raise _api_error(
+            403,
+            f"Sample '{sample_id}' is outside your assay scope",
+            (
+                f"Sample '{sample_id}' belongs to assay '{sample_assay}', "
+                f"which is not assigned to user '{user.username}'."
+            ),
+            category="scope",
+            hint="Ask an administrator to assign the assay to your user, or use a superuser account.",
+        )
     return sample
 
 
@@ -489,4 +519,4 @@ def _require_internal_token(request: Request) -> None:
         expected = ""
     provided = request.headers.get("X-Coyote-Internal-Token")
     if not expected or not provided or provided != expected:
-        raise _api_error(403, "Forbidden")
+        raise _api_error(403, "Forbidden", category="auth")

@@ -6,7 +6,7 @@ from typing import Any
 
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
-from api.http import api_error, get_formatted_assay_config
+from api.http import api_error, get_formatted_assay_config, setup_error
 from api.runtime_state import app as runtime_app
 from api.services.interpretation.annotation_enrichment import add_global_annotations
 from api.services.interpretation.report_summary import generate_summary_text
@@ -78,7 +78,13 @@ class RnaService:
         """
         assay_config = get_formatted_assay_config(sample)
         if not assay_config:
-            raise api_error(404, "Assay config not found for sample")
+            raise setup_error(
+                "ASPC could not be resolved for the sample",
+                (
+                    f"Sample '{sample.get('name', sample.get('_id'))}' could not resolve an assay "
+                    "configuration during RNA fusion loading."
+                ),
+            )
 
         sample, sample_filters = self.workflow.merge_and_normalize_sample_filters(
             sample, assay_config, str(sample.get("_id")), runtime_app.logger
@@ -161,7 +167,13 @@ class RnaService:
 
         assay_config = get_formatted_assay_config(sample)
         if not assay_config:
-            raise api_error(404, "Assay config not found for sample")
+            raise setup_error(
+                "ASPC could not be resolved for the sample",
+                (
+                    f"Sample '{sample.get('name', sample.get('_id'))}' could not resolve an assay "
+                    "configuration during RNA fusion detail loading."
+                ),
+            )
         assay_group = assay_config.get("asp_group", "unknown")
         subpanel = sample.get("subpanel")
         show_context = self.workflow.build_show_fusion_context(

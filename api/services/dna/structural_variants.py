@@ -8,7 +8,7 @@ from typing import Any
 from api.core.dna.cnvqueries import build_cnv_query
 from api.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
 from api.core.dna.translocqueries import build_transloc_query
-from api.http import api_error, get_formatted_assay_config
+from api.http import api_error, get_formatted_assay_config, setup_error
 
 
 class DnaStructuralService:
@@ -87,7 +87,13 @@ class DnaStructuralService:
         """
         assay_config = get_formatted_assay_config(sample)
         if not assay_config:
-            raise api_error(404, "Assay config not found for sample")
+            raise setup_error(
+                "ASPC could not be resolved for the sample",
+                (
+                    f"Sample '{sample.get('name', sample.get('_id'))}' could not resolve an assay "
+                    "configuration during CNV loading."
+                ),
+            )
 
         if sample.get("filters") is None:
             sample = util_module.common.merge_sample_settings_with_assay_config(

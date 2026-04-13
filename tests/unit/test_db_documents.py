@@ -11,7 +11,7 @@ import pytest
 
 from api.contracts.managed_resources import managed_resource_spec
 from api.contracts.managed_ui_schemas import build_form_spec
-from api.contracts.schemas.dna import VariantsDoc
+from api.contracts.schemas.dna import CnvsDoc, VariantsDoc
 from api.contracts.schemas.governance import UsersDoc
 from api.contracts.schemas.registry import (
     normalize_collection_document,
@@ -131,6 +131,25 @@ def test_collection_validator_accepts_nested_sample_shape():
     fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/samples.json")
     payload = _load_seed_list(fixture)[0]
     validate_collection_document("samples", payload)
+
+
+def test_cnvs_doc_normalizes_pipeline_callers_and_symbolic_ratio():
+    doc = CnvsDoc.model_validate(
+        {
+            "SAMPLE_ID": "S1",
+            "chr": "1",
+            "start": 100,
+            "end": 200,
+            "size": 100,
+            "ratio": "DEL",
+            "genes": [{"gene": "TP53"}],
+            "callers": "manta",
+        }
+    )
+
+    assert doc.nprobes == 0
+    assert doc.callers == ["manta"]
+    assert doc.ratio == -1.0
 
 
 def test_samples_doc_keeps_filters_unset_until_initialized():

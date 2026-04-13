@@ -40,3 +40,7 @@ Engineering specifications expect absolute protocol handling throughout connecti
 - Application faults trigger targeted core exceptions to avoid obscuring underlying platform issues implicitly directly.
 - The outbound error format natively delivers structured operational JSON metrics indicating explicitly the requested failure mode natively.
 - Diagnostic data maps uniformly to background logging components without leaking secure values or payload keys inside generalized output statements ever implicitly.
+
+See also:
+
+- [error_contract.md](error_contract.md) for the standard API/web error payload shape, categories, and user-facing mapping rules.

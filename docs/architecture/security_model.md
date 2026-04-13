@@ -7,6 +7,10 @@
 3. Internal token gate for selected system-to-system routes
 4. Environment secret hardening (prod/dev strict behavior)
 
+For the detailed runtime model of how roles, permissions, environments,
+assay groups, assays, and `superuser` visibility work together, see
+[user_scope_and_visibility.md](user_scope_and_visibility.md).
+
 ## User permissions
 
 Permission checks use the `resource:action[:scope]` naming convention (see
@@ -62,6 +66,14 @@ This means:
 - API routes use OR so that permissions can grant access independently of role level.
 - UI elements use AND so that a button only appears when the user has both the
   permission and the required role.
+- `superuser` is the only unrestricted runtime role and bypasses permission and assay-scope checks.
+- `admin` is not unrestricted; it remains subject to assigned permissions and normal scope handling.
+
+## Bootstrap superuser rule
+
+- First-time deployment creates a single bootstrap `superuser`.
+- `scripts/bootstrap_local_admin.py` refuses to create another `superuser` if one already exists.
+- Additional superusers must be created by an authenticated existing superuser through the normal management flow.
 
 ## Authentication providers
 

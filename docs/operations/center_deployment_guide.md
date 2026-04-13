@@ -7,7 +7,7 @@ Use it as a quick map; use the linked checklist for full command-by-command exec
 
 1. Prepare environment and secrets.
 2. Start the stack.
-3. Bootstrap the first admin user.
+3. Bootstrap the first superuser.
 4. Seed baseline collections in strict order.
 5. Validate and ingest the demo sample.
 6. Verify UI/API and admin flows.
@@ -39,7 +39,7 @@ Before first sample ingest, ensure these are seeded:
 6. `asp_configs`
 7. `assay_specific_panels`
 
-`users` are intentionally not bulk-seeded by `bootstrap_center_collections.sh`; create the first admin with `bootstrap_local_admin.py`.
+`users` are intentionally not bulk-seeded by `bootstrap_center_collections.sh`; create the first superuser with `bootstrap_local_admin.py`.
 
 ## Seed Source Policy
 
@@ -52,6 +52,8 @@ Before first sample ingest, ensure these are seeded:
 
 - Use `scripts/center_first_run.sh` for first-time bootstrap.
 - Pass admin credentials via CLI args (`--admin-email`, `--admin-password`).
+- `center_first_run.sh` bootstraps a `superuser`, not an `admin`.
+- The bootstrap script may create only the first superuser. Additional superusers must be created by an existing authenticated superuser.
 
 Standard first-load command shape:
 

@@ -6,7 +6,7 @@ from collections import defaultdict
 from copy import deepcopy
 from typing import Any
 
-from api.http import api_error
+from api.http import forbidden_error, setup_error
 from api.services.coverage.processing import CoverageProcessingService
 
 
@@ -59,7 +59,14 @@ class CoverageService:
             sample_assay, sample_profile
         )
         if not assay_config:
-            raise api_error(404, "Assay config not found")
+            raise setup_error(
+                f"ASPC not registered for assay '{sample_assay}' in environment '{sample_profile}'",
+                (
+                    f"Sample '{sample.get('name', sample.get('_id'))}' requires coverage context for "
+                    f"assay '{sample_assay}' in environment '{sample_profile}', but no ASPC exists."
+                ),
+                hint="Create and activate the ASPC before opening coverage pages for this sample.",
+            )
 
         assay_group = assay_config.get("assay_group", "unknown")
         assay_panel_doc = self.assay_panel_handler.get_asp(asp_name=sample_assay)
@@ -76,7 +83,12 @@ class CoverageService:
         else:
             asp_id = assay_panel_doc.get("asp_id")
             if not asp_id:
-                raise api_error(500, "ASP is missing required asp_id")
+                raise setup_error(
+                    f"ASP for assay '{sample_assay}' is incomplete",
+                    "The ASP exists but is missing the required 'asp_id' field used by coverage views.",
+                    hint="Repair the ASP document and ensure asp_id is populated.",
+                    status_code=500,
+                )
             checked_genelists = [asp_id]
             filter_genes = assay_panel_doc.get("covered_genes", [])
 
@@ -121,7 +133,11 @@ class CoverageService:
             dict[str, Any]: Grouped blacklist payload.
         """
         if group not in set(user.assay_groups or []):
-            raise api_error(403, "Access denied: You do not belong to the target assay.")
+            raise forbidden_error(
+                f"Assay group '{group}' is outside your scope",
+                f"User '{user.username}' is not assigned to assay group '{group}'.",
+                hint="Ask an administrator to assign the assay group, or use a superuser account.",
+            )
 
         grouped_by_gene = defaultdict(dict)
         blacklisted = list(self.grouped_coverage_handler.get_regions_per_group(group) or [])

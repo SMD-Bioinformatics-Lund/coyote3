@@ -55,7 +55,15 @@ def _load_report_context(sample_id: str, user: ApiUser) -> tuple[dict, dict]:
     sample = _get_sample_for_api(sample_id, user)
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
-        raise _api_error(404, "Assay config not found for sample")
+        raise _api_error(
+            422,
+            "ASPC could not be resolved for the sample",
+            (
+                f"Sample '{sample.get('name', sample_id)}' could not resolve an assay "
+                "configuration during report generation."
+            ),
+            category="setup",
+        )
     return sample, assay_config
 
 

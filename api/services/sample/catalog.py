@@ -462,15 +462,21 @@ class SampleCatalogService:
 
         if panel_type and panel_tech and assay_group:
             assay_list = user.asp_map.get(panel_type, {}).get(panel_tech, {}).get(assay_group, [])
-            accessible_assays = [a for a in assay_list if a in user.assays]
+            accessible_assays = (
+                assay_list if user.is_superuser else [a for a in assay_list if a in user.assays]
+            )
+        elif user.is_superuser:
+            accessible_assays = None
         else:
             accessible_assays = user.assays
 
         normalized_scope = (profile_scope or "").strip().lower()
         use_all_profiles = normalized_scope == "all"
-        query_envs = list(user.envs)
-        if not use_all_profiles:
+        query_envs = None if user.is_superuser and use_all_profiles else list(user.envs)
+        if not user.is_superuser and not use_all_profiles:
             query_envs = ["production"] if "production" in user.envs else list(user.envs)
+        elif user.is_superuser and not use_all_profiles:
+            query_envs = ["production"]
 
         live_offset = max(0, (live_page - 1) * per_live_page)
         done_offset = max(0, (done_page - 1) * per_done_page)
