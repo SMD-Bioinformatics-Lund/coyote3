@@ -1,14 +1,14 @@
-name: center-onboarding-check
+name: bootstrap-and-ingest-check
 
 on:
   workflow_dispatch:
 
 jobs:
-  onboarding-check:
+  bootstrap-and-ingest:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      COYOTE3_VERSION: ci-onboarding
+      COYOTE3_VERSION: ci-bootstrap
       COYOTE3_DB: coyote3
       MONGO_ROOT_USERNAME: coyote3_root
       MONGO_ROOT_PASSWORD: ci-root-password
@@ -22,7 +22,7 @@ jobs:
       COYOTE3_STAGE_API_PORT: "8006"
       COYOTE3_STAGE_REDIS_PORT: "8007"
       COYOTE3_STAGE_MONGO_PORT: "8008"
-      ADMIN_USERNAME: admin
+      ADMIN_USERNAME: admin.coyote3
       ADMIN_EMAIL: admin@center.local
       ADMIN_PASSWORD: ci-admin-password
 
@@ -65,7 +65,7 @@ jobs:
           COYOTE3_STAGE_MONGO_PORT=${COYOTE3_STAGE_MONGO_PORT}
           EOF
 
-      - name: Compose up stage stack
+      - name: Start stage stack
         run: |
           docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml up -d --build
 
@@ -81,7 +81,7 @@ jobs:
           echo "API did not become healthy in time" >&2
           exit 1
 
-      - name: Bootstrap first local admin
+      - name: Create first bootstrap superuser
         run: |
           python scripts/bootstrap_local_admin.py \
             --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT}/${COYOTE3_DB}?authSource=${COYOTE3_DB}" \
@@ -89,10 +89,11 @@ jobs:
             --username "${ADMIN_USERNAME}" \
             --email "${ADMIN_EMAIL}" \
             --password "${ADMIN_PASSWORD}" \
-            --assay-group "GROUP_A" \
-            --assay "ASSAY_A"
+            --role-id "superuser" \
+            --assay-group "hematology" \
+            --assay "assay_1"
 
-      - name: Seed center collections (idempotent mode)
+      - name: Seed baseline collections
         run: |
           scripts/bootstrap_center_collections.sh \
             --api-base-url "http://localhost:${COYOTE3_STAGE_API_PORT}" \
@@ -102,7 +103,7 @@ jobs:
             --with-optional \
             --skip-existing
 
-      - name: End-to-end ingest check
+      - name: Run sample ingest check
         run: |
           scripts/center_check.sh \
             --api-base-url "http://localhost:${COYOTE3_STAGE_API_PORT}" \
@@ -110,15 +111,15 @@ jobs:
             --password "${ADMIN_PASSWORD}" \
             --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 
-      - name: Teardown
+      - name: Stop stack
         if: always()
         run: |
-          docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml logs --no-color > stage_onboarding_logs.txt || true
+          docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml logs --no-color > bootstrap_and_ingest_logs.txt || true
           docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml down -v || true
 
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage-onboarding-logs
-          path: stage_onboarding_logs.txt
+          name: bootstrap-and-ingest-logs
+          path: bootstrap_and_ingest_logs.txt
