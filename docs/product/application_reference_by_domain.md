@@ -1,10 +1,10 @@
 # Domain-Specific Application Reference
 
-This document provides a comprehensive technical mapping of platform domains, focusing on the structural relationships between user interface identifiers, API request keys, and persistent backend data fields.
+This document maps the main platform domains, UI identifiers, API keys, and stored backend fields.
 
 ## 1. Primary Sample Domain
 
-The `samples` document serves as the central anchor for the clinical platform. The majority of finding-level collections maintain relational integrity by referencing the Sample utilizing a standardized `SAMPLE_ID` attribute.
+The `samples` document is the main record for a case. Most findings collections link back to the sample through `SAMPLE_ID`.
 
 ### Operational Component Mapping
 
@@ -16,7 +16,7 @@ The `samples` document serves as the central anchor for the clinical platform. T
 
 ### Resource Identification and Uniqueness
 
-Administrative resources utilize immutable "Business IDs" for all routing and lookup operations, ensuring stable references across system versions.
+Administrative resources use stable business IDs for routing and lookup.
 
 | Resource Type | ID Attribute | Specification | Constraint |
 |---|---|---|---|
@@ -27,11 +27,11 @@ Administrative resources utilize immutable "Business IDs" for all routing and lo
 | **ASPC** | `aspc_id` | Compound key: `<assay>:<environment>`. | Global Uniqueness |
 | **ISGL** | `isgl_id` | Organizational genelist identifier. | Global Uniqueness |
 
-**Validation Protocol**: Creation operations perform real-time uniqueness verification. Conflicts result in `409 Conflict` state, while missing required segments trigger `400 Bad Request` responses.
+Creation operations check uniqueness. Conflicts return `409 Conflict`. Missing required fields return `400 Bad Request`.
 
 ## 2. Findings and Interpretation Domains
 
-The platform segments findings into four primary genomic domains, each linked strictly to the sample context via `SAMPLE_ID`.
+The platform separates findings into these genomic domains, each linked to the sample by `SAMPLE_ID`.
 
 | Interface Domain | Collection | Primary Intent |
 |---|---|---|
@@ -76,7 +76,7 @@ The backend uses standard MongoDB operators to enforce analysis thresholds:
 
 ## 4. Workload Pagination Strategy
 
-The platform utilizes a dual pagination strategy to balance backend performance with interface responsiveness:
+The platform uses two pagination patterns:
 
 ### Server-Side Pagination
 
@@ -90,5 +90,5 @@ Localized interpretation tables utilize in-page pagination to allow for rapid so
 
 ## 5. Temporal Standards
 
-- **Durable Storage**: All timestamps are persisted using the UTC (ISO-8601) standard.
-- **Client Visualization**: The interface dynamically renders temporal data according to the viewer's localized timezone configuration.
+- **Durable Storage**: All timestamps are stored in UTC (ISO-8601).
+- **Client Visualization**: The UI renders time in the viewer's local timezone.

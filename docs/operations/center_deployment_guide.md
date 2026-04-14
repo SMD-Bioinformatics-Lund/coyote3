@@ -1,7 +1,7 @@
 # Center Deployment Guide
 
-This page is the entry point for first-time center deployment.
-Use it as a quick map; use the linked checklist for full command-by-command execution.
+This page is the entry point for deployment.
+Use the checklist for the full procedure.
 
 ## Deployment Flow
 
@@ -14,18 +14,18 @@ Use it as a quick map; use the linked checklist for full command-by-command exec
 
 ## Authoritative Procedure
 
-For the full, detailed procedure, use:
+Use this page as a map.
+Use the checklist as the source of truth for the exact commands and execution order.
 
 - [Initial Deployment Checklist](initial_deployment_checklist.md)
 
-That checklist is the single source of truth for:
-
+The checklist defines:
 - exact commands and command order
 - required collection order
-- seed-source policy (`--seed-file` and `--reference-seed-data`)
-- ingest verification steps
+- seed-source policy
+- ingest verification
 - rollback and handoff
-- optional reverse-proxy profile (`with-proxy`) for one external entrypoint
+- compose profile usage
 
 ## Required Baseline Collections
 
@@ -43,25 +43,30 @@ Before first sample ingest, ensure these are seeded:
 
 ## Seed Source Policy
 
-- `--seed-file` is the primary source for center onboarding/demo runtime collections.
+- `--seed-file` is the primary source for demo/bootstrap runtime collections.
 - `--reference-seed-data` provides compressed baseline packs for core reference/RBAC data.
-- `asp_configs` and `assay_specific_panels` are seeded from onboarding/demo input (default `--seed-file`).
+- `asp_configs` and `assay_specific_panels` are seeded from bootstrap/demo input (default `--seed-file`).
 - `permissions`, `roles`, `refseq_canonical`, `hgnc_genes`, and `vep_metadata` are loaded from `--reference-seed-data` only when that argument is provided.
 
 ## First-Run Method
 
 - Use `scripts/center_first_run.sh` for first-time bootstrap.
-- Pass admin credentials via CLI args (`--admin-email`, `--admin-password`).
+- Pass admin identity explicitly:
+  - `--admin-username`
+  - `--admin-email`
+  - `--admin-password`
 - `center_first_run.sh` bootstraps a `superuser`, not an `admin`.
 - The bootstrap script may create only the first superuser. Additional superusers must be created by an existing authenticated superuser.
 
-Standard first-load command shape:
+Standard command shape:
 
 ```bash
 scripts/center_first_run.sh \
   --env-file <ENV_FILE> \
   --compose-file <COMPOSE_FILE> \
+  [--compose-profile <PROFILE>] \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:<API_PORT>" \
+  --admin-username "admin.coyote3" \
   --admin-email "admin@your-center.org" \
   --admin-password "<ADMIN_PASSWORD>" \
   --seed-file tests/fixtures/db_dummy/all_collections_dummy \
@@ -70,12 +75,35 @@ scripts/center_first_run.sh \
   --with-optional
 ```
 
-For environment-specific concrete command values and verification gates, use:
+If `MONGO_URI` points to `coyote3_mongo`, include:
+
+```bash
+--compose-profile with-mongo
+```
+
+Prod-like local Docker command:
+
+```bash
+scripts/center_first_run.sh \
+  --env-file .coyote3_env \
+  --compose-file deploy/compose/docker-compose.yml \
+  --compose-profile with-mongo \
+  --api-base-url "http://localhost:5818" \
+  --admin-username "admin.coyote3" \
+  --admin-email "admin@coyote3.local" \
+  --admin-password "Coyote3.Admin" \
+  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
+  --seed-data-pack tests/data/seed_data \
+  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
+  --with-optional
+```
+
+For environment-specific values and full verification gates, use:
 
 - [Initial Deployment Checklist](initial_deployment_checklist.md)
 - [Maintenance And Quality](maintenance_and_quality.md)
 
-Operational defaults applied by compose stacks:
+Operational defaults:
 
 - Per-service container resource limits are enabled by default (`*_CONTAINER_MEM_LIMIT`, `*_CONTAINER_CPU_LIMIT`).
 - API and web request throttling are enabled by default and configured from env templates.

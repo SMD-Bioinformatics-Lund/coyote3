@@ -1,10 +1,10 @@
 # User Guide: RNA Clinical Review
 
-The RNA Interpretation view is tailored for the analysis of structural rearrangements and gene expression signatures. It integrates fusion caller evidence with quantitative expression metrics to provide a complete picture of the transcriptome.
+The RNA Interpretation view is used for fusion review and expression analysis.
 
 ## Workspace Layout
 
-The RNA workspace follows the same efficient design as the DNA review:
+The RNA workspace follows the same basic layout as the DNA review:
 
 *   **Vertical Tab Navigation**: Quickly switch between Fusions, Classification, Expression, and Summary sections.
 *   **RNA Sample Context**: Displays RNA-specific metadata, including fusion panel definitions and quality metrics.
@@ -51,5 +51,5 @@ For specific assays, Coyote3 runs machine-learning classifiers to predict clinic
 
 Like the DNA workflow, the Summary section allows you to compile your findings into a final diagnostic narrative.
 *   Select reportable fusions and expression markers.
-*   Preview the high-fidelity RNA diagnostic report.
+*   Preview the RNA diagnostic report.
 *   Finalize and snapshot the report for the clinical record.

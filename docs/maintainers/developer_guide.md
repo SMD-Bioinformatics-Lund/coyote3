@@ -7,7 +7,7 @@ This guide provides the mandated procedures for common architectural maintenance
 Engineers must maintain the following baseline within their localized virtual environment:
 
 ```bash
-# Execute comprehensive static analysis
+# Run static analysis
 PYTHONPATH=. ruff check api coyote tests scripts
 
 # Execute localized unit and functional tests

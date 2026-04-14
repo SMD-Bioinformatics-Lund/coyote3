@@ -2,7 +2,7 @@
 
 This documentation covers how Coyote3 is built, configured, deployed, and used.
 
-Coyote3 supports clinical genomics workflows from data ingestion through review and reporting. The docs are organized so teams can find operational guidance, product behavior, and implementation details without guessing where the source of truth lives.
+Coyote3 supports clinical genomics workflows from data ingestion through review and reporting. The docs are organized by task so teams can find deployment, product, and implementation details quickly.
 
 ---
 
@@ -10,9 +10,9 @@ Coyote3 supports clinical genomics workflows from data ingestion through review 
 
 Coyote3 is built around three practical goals:
 
-1.  **Clinical Precision**: Every component is designed to ensure the integrity of clinical data. Strict typing, contract-based schemas, and comprehensive audit trails provide the reliability required for diagnostic-grade environments.
-2.  **Architectural Scalability**: Utilizing a decoupled **Flask-to-FastAPI** topology, Coyote3 scales horizontally to handle massive omics datasets without compromising UI responsiveness.
-3.  **Policy-Driven Governance**: Granular, resource-oriented permissions (RBAC) ensure that access to sensitive clinical data is tightly controlled and audited at every layer.
+1.  **Clinical Precision**: Use strict contracts and audit trails to keep clinical data reliable.
+2.  **Service Separation**: Keep the web layer and the API separate so UI work and analysis work can scale independently.
+3.  **Access Control**: Apply RBAC and scope rules consistently across API and UI.
 
 ---
 
@@ -28,7 +28,7 @@ The platform is split into separate services so compute-heavy API work does not 
 
 ## How to Navigate this Manual
 
-This documentation is structured by operational domain to help you find the information you need quickly.
+This documentation is grouped by role and task.
 
 ### For Clinical & Laboratory Users
 *   **Getting Started**: [Quickstart Guide](start_here/quickstart.md) for a local first run.
@@ -37,11 +37,11 @@ This documentation is structured by operational domain to help you find the info
 
 ### For Software Engineers & Developers
 *   **Foundation**: [Local Development Setup](start_here/local_development.md) and [Configuration Model](start_here/configuration.md).
-*   **Deep Dive**: [System Architecture](architecture/system_overview.md) and [Request Lifecycle](architecture/request_lifecycle.md).
+*   **Architecture**: [System Architecture](architecture/system_overview.md) and [Request Lifecycle](architecture/request_lifecycle.md).
 *   **Extending the Platform**: [Adding Features](developer/adding_features.md) and [Schema Contracts](developer/schema_contracts_and_versioning.md).
 
 ### For DevOps & System Administrators
-*   **Deployment**: [Enterprise Deployment Guide](operations/deployment_guide.md) and [Initial Checklist](operations/initial_deployment_checklist.md).
+*   **Deployment**: [Deployment Guide](operations/deployment_guide.md) and [Initial Checklist](operations/initial_deployment_checklist.md).
 *   **Stability**: [Observability and SLOs](operations/observability_slos_and_alerts.md) and [Backup/Restore Procedures](operations/backup_restore_and_snapshots.md).
 *   **Base Requirements**: [Minimum Production Baseline](operations/minimum_production_baseline.md).
 

@@ -31,6 +31,6 @@ All system refactoring workflows are required to proceed through a sequential va
 Engineering PRs will be systematically rejected if any implementations fall into the following restricted practices:
 
 - Embedding dynamic database commands, algorithmic decisions, or heavy rule manipulations natively within UI templates or Presentation domains natively.
-- Eliminating required application perimeter permissions in favor of streamlined developer convenience functions inside REST layers natively.
-- Orchestrating incomplete backend operations inside transactional contexts missing comprehensive rollback behaviors internally natively.
+- Eliminating required application perimeter permissions in favor of convenience functions inside REST layers.
+- Running incomplete backend operations inside transactional contexts without proper rollback behavior.
 - Using untargeted or unbounded global exception handlers (`except Exception`) that inherently swallow application state failure logging implicitly in background processes natively.

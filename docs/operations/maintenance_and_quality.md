@@ -1,26 +1,26 @@
 # Operational Maintenance and Quality Verification
 
-This document provides the definitive operational checklists for establishing and maintaining platform quality, seed integrity, and environmental compliance.
+This document lists the routine checks for code quality, seed integrity, and environment validation.
 
-## Pre-Release Quality Mandate (Daily Gate)
+## Pre-Release Quality Check
 
-All changes must pass the comprehensive contract and logic verification suite before submission to the upstream repository.
+Run the contract and logic checks before pushing changes.
 
 ```bash
-# Execute project-wide integrity verification
+# Run project-wide integrity verification
 PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
 ```
 
-**Verification Objectives**:
-- **Import Integrity**: Elimination of deprecated contract paths.
-- **Output Standards**: Absolute removal of un-structured `print()` statements.
-- **Messaging Standards**: Enforcement of actionable diagnostic logging.
-- **Contract Consistency**: synchronization of seeded assay resources with active platform logic.
-- **Documentation Parity**: Automated regeneration of technical contract manuals.
+Checks covered:
+- import integrity
+- removal of stray `print()` calls in runtime code
+- logging and error-message checks
+- seed and contract consistency
+- documentation build checks
 
-## Seed Architecture and Consistency
+## Seed Consistency
 
-Engineers must validate all architectural seeds and cross-collection assay relationships to prevent analytical drift.
+Validate seed data and cross-collection assay relationships before using them.
 
 ```bash
 # Validate core seed structures and assay relations
@@ -30,15 +30,16 @@ Engineers must validate all architectural seeds and cross-collection assay relat
   --validate-all-contracts
 ```
 
-## Authorized Bootstrap Protocol (Clean Provisioning)
+## Bootstrap Command
 
-Standardized procedure for the initial provisioning of a clean environment (Staging context example):
+Example staging command:
 
 ```bash
 scripts/center_first_run.sh \
   --env-file .coyote3_stage_env \
   --compose-file deploy/compose/docker-compose.stage.yml \
   --api-base-url "http://localhost:8806" \
+  --admin-username "admin.coyote3" \
   --admin-email "admin@coyote3.local" \
   --admin-password "ENFORCED_SECRET" \
   --seed-file tests/fixtures/db_dummy/all_collections_dummy \
@@ -47,23 +48,23 @@ scripts/center_first_run.sh \
   --with-optional
 ```
 
-## Operational Audit and Telemetry Standards
+## Audit and Logging
 
 ### Logging Integrity
-Platform runtimes must adhere to structured logging standards to support forensic analysis:
-- **Context Preservation**: Every log event must carry operation-specific metadata.
-- **Stack Trace Retention**: Exception paths must utilize `exc_info=True` to preserve trace context.
-- **Output Boundaries**: Prohibited use of stdout `print()` for clinical or operational telemetry.
+Use structured logging:
+- add operation-specific metadata
+- keep exception traces with `exc_info=True`
+- do not use stdout `print()` for runtime telemetry
 
 ### Audit Metadata Persistence
-All documents generated through administrative or clinical actions must maintain a high-fidelity audit trail:
+Documents created through administrative or clinical actions must keep an audit trail:
 - `created_by` / `updated_by`: Explicit identity of the originating user.
 - `created_on` / `updated_on`: Standardized UTC (ISO-8601) timestamps.
 
 ## Integrated Operational Assets
 
-Maintainers must refer to the following authoritative resources for specialized operational procedures:
-- **[Initial Deployment Checklist](initial_deployment_checklist.md)**: Mandated sequence for organizational onboarding.
-- **[Center Deployment Guide](center_deployment_guide.md)**: Targeted guide for external infrastructure provisioning.
-- **[Quality Engineering and Validation Standards](../testing/testing_and_quality.md)**: Technical specifications for the testing infrastructure.
-- **[Collection Contract Reference](../api/collection_contracts.md)**: Finalized mapping of persistent data schemas.
+Use these related documents for detailed procedures:
+- [Initial Deployment Checklist](initial_deployment_checklist.md)
+- [Center Deployment Guide](center_deployment_guide.md)
+- [Quality Engineering and Validation Standards](../testing/testing_and_quality.md)
+- [Collection Contract Reference](../api/collection_contracts.md)

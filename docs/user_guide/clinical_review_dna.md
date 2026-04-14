@@ -1,10 +1,10 @@
 # User Guide: DNA Clinical Review
 
-The DNA Interpretation view is the specialized workspace for clinical analysts to review findings, apply classifications, and build diagnostic reports. This view is structured to bring all genomic evidence into a single, cohesive workflow.
+The DNA Interpretation view is the main workspace for reviewing findings, assigning classifications, and building reports.
 
 ## Navigating the Review Workspace
 
-The interface uses a specialized layout designed for high-throughput analysis:
+The layout is organized for day-to-day review work:
 
 *   **Vertical Navigation Sidebar**: On the left side, vertical tabs allow you to jump between different finding categories: SNV, CNV, Translocations, and the Summary report.
 *   **Sample Context Card**: A persistent header showing patient details, assay configurations, and active gene list filters (ISGL).
@@ -33,7 +33,7 @@ Clinicians can perform the following actions directly on the table:
 
 ## 2. Copy Number Variants (CNV)
 
-The CNV section combines visual profiles with tabular data for comprehensive assessment.
+The CNV section combines a profile plot with tabular data.
 
 ### Visual Profile
 A high-resolution chromosome plot visualizing copy-number gain and loss across the genome.

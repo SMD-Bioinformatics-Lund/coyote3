@@ -4,12 +4,12 @@ Coyote3 uses two connected data layers: configuration data and sample-specific f
 
 ## Data Layers
 
-The platform depends on two distinct but connected data domains:
+The platform depends on two connected data domains:
 
 1. **Configuration Layer**: Assay Panels (ASP), Configurations (ASPC), Gene Lists (ISGL), and RBAC policy documents. This layer defines filtering, reporting, and access behavior.
 2. **Sample Layer**: Sample metadata and downstream findings such as variants, CNVs, fusions, and coverage. This layer holds the case-specific state.
 
-If these layers drift apart, the result is wrong gene scope resolution, incorrect filtering thresholds, and unstable report output.
+If these layers drift apart, gene scope, filtering, and reports can become wrong.
 
 ## Core Relationship Framework
 
@@ -58,10 +58,10 @@ For DNA and RNA workflows, the platform dynamically computes **effective gene sc
 
 The usual flow from ingest to reporting is:
 
-1. **Ingest Verification**: Input payloads are parsed and validated against strict Pydantic JSON contracts.
+1. **Ingest Verification**: input payloads are parsed and validated against backend contracts.
 2. **Atomic Ingestion**: The system stages the sample anchor as `loading`, persists dependent evidence documents, and only then marks the sample `ready`. On failure, the create flow rolls back staged evidence and removes the sample anchor; when Mongo transaction support is available, the same flow also runs inside a transaction boundary.
-3. **Data Assembly**: On read, the API combines sample evidence with the matching environment configuration.
-4. **Interpretation**: Functional finding flags (Classification, Comments, Actions) are committed to live annotation stores.
+3. **Data Assembly**: on read, the API combines sample evidence with the matching environment configuration.
+4. **Interpretation**: classifications, comments, and actions are written to the live annotation stores.
 5. **Report Finalization**: The system reads the joined interpretation context and persists an immutable report snapshot in `reported_variants`.
    - DNA SNV report inclusion follows reportable-variant filtering after consequence resolution using `sample.vep_version`.
    - DNA CNV report inclusion requires both report-level inclusion (`interesting`) and the active CNV sample filters. A CNV outside the selected CNV genelist is not included in the report.
@@ -81,10 +81,10 @@ The usual flow from ingest to reporting is:
 
 The following rules matter for correct behavior:
 
-- **Identifier Synchronization**: Maintain exact nomenclature across `samples.assay`, `asp.asp_id`, and `aspc.assay_name`.
+- **Identifier Synchronization**: keep `samples.assay`, `asp.asp_id`, and `aspc.assay_name` aligned.
 - **Environment Integrity**: Every sample `profile` must map to a valid `production`, `development`, or `validation` environment within the configuration tier.
 - **Relational Atomic Behavior**: Treat `samples` as the parent record for all findings; orphaned finding documents without a valid `SAMPLE_ID` are not allowed.
-- **Metadata Alignment**: The `vep_version` specified during sample ingestion must precisely track the required knowledgebase versions stored within the auxiliary `vep_metadata` collections.
+- **Metadata Alignment**: `vep_version` in the sample must match the relevant `vep_metadata` entry.
 - **Reporting Alignment**: `sample.vep_version` is mandatory for DNA report generation because consequence-group resolution and variant-class translations are version-specific.
 
 ## Diagnostic Input Specifications

@@ -8,7 +8,7 @@ For an end-to-end relationship map of `asp`/`aspc`/`isgl` with `samples`, `varia
 For full per-collection key contracts (required and optional), see [API / Collection Contracts](collection_contracts.md).
 For the sample ingest manifest shape used by these routes, see [API / Sample YAML Guide](sample_yaml.md).
 
-All ingest endpoints validate request documents with backend Pydantic contracts before any database write. Payloads are normalized from those contracts and then persisted, so the behavior is the same whether the caller is a script or an API client.
+All ingest endpoints validate request documents with backend Pydantic contracts before any database write. Payloads are normalized before persistence, so the behavior is the same whether the caller is a script or an API client.
 
 ## Atomicity and rollback guarantees
 
@@ -17,7 +17,7 @@ For fresh sample creation through:
 - `POST /api/v1/internal/ingest/sample-bundle`
 - `POST /api/v1/internal/ingest/sample-bundle/upload`
 
-the ingest flow now follows this order:
+the ingest flow follows this order:
 
 1. Validate the top-level sample payload.
 2. Parse referenced data files into preload payloads.
@@ -83,14 +83,14 @@ Behavior:
 - Add `--skip-existing` to always seed in duplicate-tolerant mode.
 - Add `--strict-no-retry` to fail immediately on first error.
 
-Seed source policy for first-time center bootstrap:
+Seed source policy for a new deployment:
 
 - Use the repository baseline seed: `tests/fixtures/db_dummy/all_collections_dummy`.
 - Use `--reference-seed-data tests/data/seed_data` to load compressed baseline packs for
   `permissions`, `roles`, `refseq_canonical`, `hgnc_genes`, and `vep_metadata`.
 - Update assay/group identifiers (`assay_1`, `hematology`) to your center values before bootstrap.
 - Keep bootstrap deterministic by versioning those seed changes in git for your center deployment repo.
-- `asp_configs` and `assay_specific_panels` belong to first-sample demo onboarding
+- `asp_configs` and `assay_specific_panels` belong to the demo/bootstrap
   seed files (`--seed-file`, for example `tests/fixtures/db_dummy/all_collections_dummy`).
   If matching compressed files exist in `--reference-seed-data`, bootstrap loads them,
   but they are not required reference-pack files.
@@ -453,7 +453,7 @@ Use collection endpoints to seed reference/config data with schema validation.
 - Single: `POST /api/v1/internal/ingest/collection`
 - Bulk: `POST /api/v1/internal/ingest/collection/bulk`
 
-Recommended ordered commands for first-time center bootstrap:
+Recommended ordered commands for a new deployment:
 
 1. `permissions` via `/collection` or `/collection/bulk`
 2. `roles` via `/collection` or `/collection/bulk`
@@ -484,7 +484,7 @@ Example bulk seed for `refseq_canonical`:
 
 ## Minimum required dataset (baseline)
 
-Use this as the minimum center onboarding contract:
+Use this as the minimum deployment contract:
 
 | Collection | Minimum required keys | Why required |
 | --- | --- | --- |

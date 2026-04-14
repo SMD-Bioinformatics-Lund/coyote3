@@ -1,18 +1,18 @@
 # Runtime Architecture and Engineering Standards
 
-This document establishes the authoritative architectural boundaries and engineering standards for the Coyote3 platform. Adherence to these principles is mandatory for all system modifications and component extensions.
+This document defines the architectural boundaries and engineering standards for Coyote3. Follow these rules for all code changes.
 
 ## Core Architectural Boundaries
 
-The platform enforces a strict separation of concerns between presentation and business logic layers:
+Keep presentation code and business logic separate:
 
-- **Backend Domain (`api/`)**: The definitive runtime for all business logic, security enforcement, data persistence, and contractual integrity.
-- **Web Domain (`coyote/`)**: The presentation and oversight layer. It is prohibited from accessing the database directly and must interact with platform capabilities exclusively through authenticated API routes.
-- **Service Isolation**: All business logic must reside within the service and core layers. Routers (FastAPI) and Blueprints (Flask) are reserved strictly for request orchestration and response management.
+- **Backend Domain (`api/`)**: business logic, security, persistence, and contracts.
+- **Web Domain (`coyote/`)**: presentation only. It must not access MongoDB directly and must call the API over HTTP.
+- **Service Isolation**: business logic belongs in services and core modules. Routers and blueprints handle request and response flow.
 
 ## Mandated Engineering Standards
 
-Platform code must satisfy the following quality requirements:
+Platform code must satisfy these requirements:
 
 - **Path Cleanliness**: Prohibited use of absolute system paths or machine-specific home directories.
 - **Output Protocols**: Explicit prohibition of stdout `print()` statements in runtime paths; all diagnostic information must flow through the structured logging layer.
@@ -29,24 +29,24 @@ The `store` object serves as the architectural composition root, managing runtim
 - **Dependency Declaration**: Services and routers must depend on explicit handler or service interfaces rather than raw datastore connections.
 
 ### Service Factory Architecture
-The platform utilizes a factory pattern for service initialization to ensure dependencies remain explicit and easy to mock during validation:
+Use explicit service factories so dependencies stay easy to trace and test:
 
 ```python
-# Definitive Service Initialization Pattern
+# Service initialization pattern
 def get_user_service() -> UserService:
     return UserService.from_store(get_store())
 ```
 
 ## Boundary Enforcement Mechanisms
 
-Architectural integrity is monitored through a dual-validation process:
+These boundaries are checked in two ways:
 
 1. **Static Enforcement**: Managed through automated Ruff import rules that block unauthorized cross-domain imports.
 2. **Behavioral Enforcement**: Verified through integration testing that monitors for cross-layer logic drift.
 
 ## Contract Integrity Protocol
 
-Engineers must verify that all database seeds and assay configurations remain synchronized with the platform's backend contracts:
+Keep seed data and assay configurations aligned with backend contracts:
 
 ```bash
 # Execute contract integrity and documentation verification
@@ -61,7 +61,7 @@ Platform utilities are strictly partitioned by runtime to prevent dependency lea
 
 These modules are not interchangeable. Any shared logic must be evaluated for appropriate promotion to a common dependency or strictly maintained through their respective runtime boundaries.
 
-*Authoritative cross-references:*
+Related references:
 - *[Engineering and Refactoring Standards](refactor_guidelines.md)*
 - *[Operational Troubleshooting and Remediation](../operations/troubleshooting.md)*
 - *[Quality Engineering and Validation Standards](../testing/testing_and_quality.md)*

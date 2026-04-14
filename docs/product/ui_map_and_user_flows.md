@@ -1,31 +1,31 @@
 # UI Map and Operation Workflows
 
-This document serves as the authoritative functional inventory and navigational topology of the platform's user interface. It maps specific UI domains to internal execution endpoints and defines the standardized procedural flows for clinical users.
+This document lists the main UI areas and the main user flows.
 
 ## System Interfaces
 
-The user interface is logically segmented into domain-specific modules, each governed by dedicated execution blueprints and enforced authorization boundaries.
+The UI is split into domain-specific modules with separate blueprints and access rules.
 
-- **Dashboard and Global Search (`home`)**: Primary operational landing environment for multi-assay sample oversight and clinical report retrieval.
-- **DNA Interpretation (`dna`)**: Specialized interpretation environments for small variants (SNV/Indel), Copy Number Variants (CNV), and Structural Variants (Translocations).
-- **RNA Interpretation (`rna`)**: Targeted oversight for RNA fusion events and integrated expression analysis.
-- **Coverage Analytics (`coverage`)**: High-resolution sequencing coverage metrics and gene-level analysis visualization.
-- **Administrative Control (`admin`)**: Centralized management for user accounts, role-based access configurations, and assay-specific resources (ASP/ASPC/ISGL).
-- **Public Domain (`public`)**: Exposed catalog views and unprivileged platform status reporting.
-- **Identity Context (`userprofile`)**: Managing active user session preferences and security credentials.
+- **Dashboard and Global Search (`home`)**: sample overview and report access.
+- **DNA Interpretation (`dna`)**: SNV/Indel, CNV, and translocation review.
+- **RNA Interpretation (`rna`)**: fusion review and expression analysis.
+- **Coverage Analytics (`coverage`)**: sequencing coverage and gene-level coverage views.
+- **Administrative Control (`admin`)**: users, roles, permissions, ASP, ASPC, and ISGL.
+- **Public Domain (`public`)**: public catalog views and status pages.
+- **Identity Context (`userprofile`)**: user settings and security actions.
 
 ## Support Architecture
 
-The platform provides an externalized documentation repository accessible via the `HELP_CENTER_URL` directive. To preserve application performance and security, the UI does not render documentation modules natively; all help interactions are dispatched as secure external references to the standalone documentation environment.
+The documentation site is exposed through `HELP_CENTER_URL`. The UI links out to that site instead of rendering the docs inside the main application.
 
 ## Standard User Workflows
 
 ### DNA Variant Review and Reporting
 
-The procedural chain for DNA-based diagnostic interpretation follows a mandated linear sequence within the platform:
+DNA review usually follows this sequence:
 
 1. **Authentication**: Establish session and resolve authorized assay access.
-2. **Access Sample context**: Retrieve specific target sample from the primary catalog.
+2. **Access Sample Context**: open the target sample from the catalog.
 3. **Primary Interpretation**: Examine prioritized SNV/Indel findings via the interpretation interface.
 4. **Action Assignment**: Apply clinical classifications, toggle artifact flags, and append auditable review comments.
 5. **Structural Review**: Perform assessment of CNV and translocation findings within integrated structural views.
@@ -33,16 +33,16 @@ The procedural chain for DNA-based diagnostic interpretation follows a mandated 
 
 ### RNA Fusion Review and Reporting
 
-The focused RNA workflow enables rapid identification and triage of fusion events:
+RNA review usually follows this sequence:
 
 1. **Access RNA context**: Resolve the RNA-level sample profile.
 2. **Fusion Interpretation**: Review evidence for identified fusion events.
-3. **Filter Orchestration**: Adjust analytic thresholds and fusion-caller parameters to isolate significant findings.
-4. **Report Generation**: Execute the generation of the standardized RNA-specific report variant.
+3. **Adjust Filters**: change thresholds and fusion-caller parameters as needed.
+4. **Report Generation**: generate the RNA report.
 
 ### System Administration Workflow
 
-Platform administrators manage the underlying configuration layer:
+Administrators manage the configuration layer:
 
 1. **Administrative Initialization**: Access the centralized administrative dashboard.
 2. **Access Governance**: Modify user identities, role definitions, and permission matrices.
@@ -51,4 +51,4 @@ Platform administrators manage the underlying configuration layer:
 
 ## Interface Execution Logic
 
-The platform utilizes a strictly server-side rendering model leveraging optimized templates. All user-initiated data mutations are dispatched against RESTful backend services and are subject to immediate Permission Gate evaluation. System failures are communicated through commercial-grade error payloads containing actionable diagnostic summaries rather than generic application faults.
+The platform uses server-side rendering. User actions call backend API services and pass through permission checks. Error pages should show specific setup or validation messages instead of generic failures.

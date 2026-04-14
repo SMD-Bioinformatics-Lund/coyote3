@@ -1,8 +1,8 @@
 # Initial Deployment Checklist
 
-Use this checklist for first-time Coyote3 deployment at a new center.
+Use this checklist for a first deployment.
 
-For a concise command-only version without repeated context blocks, see:
+For a shorter command reference, see:
 [Maintenance And Quality](maintenance_and_quality.md).
 
 ## Scope
@@ -21,12 +21,12 @@ For a concise command-only version without repeated context blocks, see:
 - Environment file prepared from `deploy/env/example.*.env`
 - Real values set for all `CHANGE_ME_*` entries
 
-Use the repository seed as the first-run baseline:
+Use the repository seed as the baseline:
 
 - `tests/fixtures/db_dummy/all_collections_dummy`
 - `tests/data/seed_data` (when passed via `--reference-seed-data`)
-- Replace neutral placeholders (`assay_1`, `hematology`) with your center values
-- Keep those edited seed values under version control in your deployment repo
+- Replace placeholders such as `assay_1` and `hematology` with center-specific values
+- Keep those edited seed values under version control in your deployment repository
 
 Seed source split:
 
@@ -62,6 +62,22 @@ docker compose --env-file .coyote3_stage_env \
   -f deploy/compose/docker-compose.stage.yml ps
 ```
 
+If the stack uses the compose-managed Mongo service, add:
+
+```bash
+--profile with-mongo
+```
+
+Example:
+
+```bash
+docker compose \
+  --env-file .coyote3_env \
+  -f deploy/compose/docker-compose.yml \
+  --profile with-mongo \
+  up -d --build
+```
+
 If Mongo volume was pre-existing, bootstrap/rotate app DB user:
 
 ```bash
@@ -83,7 +99,7 @@ Command-line API check:
 curl -fsS "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}/api/v1/health"
 ```
 
-## 4. Bootstrap first API superuser (one-time)
+## 4. Bootstrap first API superuser
 
 Email format note for bootstrap:
 
@@ -91,7 +107,7 @@ Email format note for bootstrap:
 - Minimum requirement is valid `local@domain` shape.
 - Invalid examples: `admin`, `@domain`, `admin@`.
 
-Role level note for bootstrap and seeds:
+Role level note:
 
 - `superuser` is the unrestricted bootstrap role.
 - `admin` remains permission-bound and should not be treated as unrestricted.
@@ -119,7 +135,7 @@ ${PYTHON_BIN:-python} scripts/bootstrap_local_admin.py \
 
 Guardrail:
 
-- `bootstrap_local_admin.py` now fails fast if any CLI value still contains `CHANGE_ME`.
+- `bootstrap_local_admin.py` fails fast if any CLI value still contains `CHANGE_ME`.
 - This prevents accidental first-user creation with placeholder secrets.
 - `bootstrap_local_admin.py` may create only the first `superuser`.
 - If a `superuser` already exists, the bootstrap script refuses to create another one.
@@ -153,8 +169,8 @@ Notes:
 - RNA fusion strategy is defined by `asp_configs.filters.fusion_*` fields.
 - Managed admin forms (ASP/ASPC/ISGL/users/roles/permissions) are rendered from backend contracts, not DB `schemas` JSON.
 - Baseline seed includes a complete out-of-the-box RBAC baseline (`permissions` + `roles`) so user creation dropdowns and role policy mapping are immediately available on first bootstrap.
-- Non-RBAC admin baseline collections (`asp_configs`, `assay_specific_panels`, `insilico_genelists`) intentionally remain demo-safe first-run data (`assay_1`, `hematology`) and should be replaced with center-specific values during onboarding.
-- `asp_configs` and `assay_specific_panels` are first-sample demo onboarding collections
+- Non-RBAC admin baseline collections (`asp_configs`, `assay_specific_panels`, `insilico_genelists`) remain demo-safe first-run data (`assay_1`, `hematology`) and should be replaced with center-specific values during deployment.
+- `asp_configs` and `assay_specific_panels` are demo/bootstrap collections
   sourced from `--seed-file`; compressed files in `tests/data/seed_data` are optional overrides.
 - `permissions`, `roles`, `refseq_canonical`, `hgnc_genes`, and `vep_metadata`
   are sourced from `--reference-seed-data` when that argument is provided.
@@ -187,13 +203,15 @@ scripts/bootstrap_center_collections.sh \
   --with-optional
 ```
 
-All-environment first-load (single command shape):
+General first-run command shape:
 
 ```bash
 scripts/center_first_run.sh \
   --env-file <ENV_FILE> \
   --compose-file <COMPOSE_FILE> \
+  [--compose-profile <PROFILE>] \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:<API_PORT>" \
+  --admin-username "admin.coyote3" \
   --admin-email "admin@your-center.org" \
   --admin-password "<ADMIN_PASSWORD>" \
   --seed-file tests/fixtures/db_dummy/all_collections_dummy \
@@ -202,9 +220,29 @@ scripts/center_first_run.sh \
   --with-optional
 ```
 
+Prod-like local Docker command with compose-managed Mongo:
+
+```bash
+scripts/center_first_run.sh \
+  --env-file .coyote3_env \
+  --compose-file deploy/compose/docker-compose.yml \
+  --compose-profile with-mongo \
+  --api-base-url "http://localhost:5818" \
+  --admin-username "admin.coyote3" \
+  --admin-email "admin@coyote3.local" \
+  --admin-password "Coyote3.Admin" \
+  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
+  --seed-data-pack tests/data/seed_data \
+  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
+  --with-optional
+```
+
 Credential source rule:
 
-- For `scripts/center_first_run.sh`, always pass `--admin-email` and `--admin-password` explicitly.
+- For `scripts/center_first_run.sh`, always pass:
+  - `--admin-username`
+  - `--admin-email`
+  - `--admin-password`
 
 Execution mode notes:
 
@@ -212,7 +250,7 @@ Execution mode notes:
 - `--skip-existing` enables duplicate-tolerant seeding from the first attempt.
 - `--strict-no-retry` disables retry and fails immediately on first collection error.
 - In `center_first_run.sh`, combine `--strict-no-retry` with `--skip-existing`
-  because first-admin bootstrap pre-creates RBAC documents before seeding.
+  because the first-user bootstrap creates RBAC documents before seeding.
 
 Before running, adapt `tests/fixtures/db_dummy/all_collections_dummy` to
 your local assay names/groups. The bootstrap flow validates schema, ASPC, ASP,
@@ -240,8 +278,7 @@ Notes:
 - On local Docker deployments (`localhost` API), the script auto-stages ingest input files into the API container when needed.
 - In general, ingest file paths in YAML must be readable from inside the API runtime (container/host where API runs), not only from your shell machine.
 
-If you are upgrading an older deployment,
-run one-time repair before ingest check:
+If you are upgrading an older deployment, run this one-time repair before the ingest check:
 
 ```bash
 ${PYTHON_BIN:-python} scripts/repair_center_seed_baseline.py \

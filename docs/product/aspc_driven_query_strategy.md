@@ -8,14 +8,14 @@ The resolution of analytic strategies follows a deterministic inheritance model 
 
 1. **ASPC Resolution**: The system derives the primary configuration identity (`aspc_id`) from the sample-level `assay` and `profile` (environment) attributes.
 2. **Initial Filter Seeding**: If a sample has no `filters` document, the resolved ASPC provides the initial threshold and reporting defaults.
-3. **Sample-Level Truth**: Once persisted, `samples.filters` becomes the authoritative filter state for findings and reports until explicitly reset.
+3. **Sample-Level Truth**: Once persisted, `samples.filters` is the filter state used for findings and reports until explicitly reset.
 4. **Query Execution**: The finalized sample filter set is merged with domain-specific MongoDB query JSON to orchestrate precise retrieval for SNVs, CNVs, Fusions, and Translocations.
 
 ## Configuration Domain Interplay
 
 Analytic execution relies on the synchronization of three core architectural pillars:
 
-- **Assay-Specific Panels (ASP)**: Defines the primary assay metadata and the comprehensive physical "universe" of covered genetic regions.
+- **Assay-Specific Panels (ASP)**: Defines assay metadata and the physical set of covered genes or regions.
 - **Assay-Specific Panel Configuration (ASPC)**: The environment-specific operational strategy governing filtered evidence and reporting constraints.
 - **In-Silico Gene Lists (ISGL)**: Managed gene cohorts that dynamically restrict the interpretation scope during clinical review.
 
@@ -36,7 +36,7 @@ Assay groups (e.g., Hematology, Myeloid) utilize these branches either in isolat
 
 ## Administrative Configuration Protocol
 
-The administrative interface enables high-fidelity control over query behavior through validated JSON-based schema editing:
+The administrative interface controls query behavior through validated JSON-based schema editing:
 
 - **Parameter Envelopes**: Core thresholds (depth, frequency, etc.) are managed through structured form interfaces synced to backend Pydantic models.
 - **Dynamic Policy Injections**: Direct MongoDB Query JSON enables complex logic overrides for specific assay types without requiring software modifications.

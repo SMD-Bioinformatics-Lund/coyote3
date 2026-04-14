@@ -24,7 +24,7 @@ This section outlines standard diagnostic signatures and remediation protocols f
 
 **Remediation Protocol:**
 
-Initialize the environment definition file from the authoritative templates provided in the deployment artifact repository:
+Initialize the environment file from the templates in the repository:
 
 ```bash
 cp deploy/env/example.prod.env .coyote3_env

@@ -30,7 +30,7 @@ The platform uses separate host-port ranges to avoid collisions between environm
 
 ### Cryptographic And Identity Secrets
 These parameters are security-sensitive. They should be unique per environment and must not be committed to version control:
-- `SECRET_KEY`: Primary cryptographic anchor for session signing and data protection.
+- `SECRET_KEY`: key used for session signing and data protection.
 - `INTERNAL_API_TOKEN`: Shared secret for service-to-service requests.
 - `PASSWORD_TOKEN_SALT`: Cryptographic salt for user lifecycle link generation.
 - `MONGO_APP_PASSWORD`: Identity secret for least-privilege database access.
@@ -45,8 +45,8 @@ These parameters are security-sensitive. They should be unique per environment a
 ## Caching
 
 Coyote3 uses a layered caching model:
-- **Hot Tier (Redis)**: Shared request/session-adjacent cache data.
-- **Warm Tier (MongoDB)**: Stored snapshots of dashboard or summary data.
+- **Hot Tier (Redis)**: request and session-adjacent cache data.
+- **Warm Tier (MongoDB)**: stored snapshots of dashboard or summary data.
 - **Cache Requirements**: `CACHE_REQUIRED` controls whether Redis failure is fatal or tolerated.
 
 ### Dashboard Cache Tuning
@@ -77,7 +77,7 @@ Login identifiers are normalized to reduce duplicates and mismatches:
 ## Service Integration Guidelines
 
 ### SMTP and Communication
-Standardized mail relay configurations forSkåne (MXIS) are established as the organizational baseline:
+Mail relay defaults for Skane (MXIS):
 - `SMTP_HOST`: Standardized relay host `mxis.skane.se`.
 - `SMTP_PORT`: Standardized port `25` (Unauthenticated).
 - `SMTP_FROM_EMAIL`: Authorized organizational sender address.
@@ -87,11 +87,11 @@ The platform enables optional one-way deep-linking to secondary analytic platfor
 
 ## Environmental Verification
 
-To ensure configuration compliance, environment files must be verified against the project security schema before deployment:
+Validate environment files before deployment:
 
 ```bash
 # Execute environment configuration validation
 bash scripts/validate_env_secrets.sh .coyote3_env
 ```
 
-*For comprehensive operational maintenance protocols and seeding verification, refer to the [Operations / Maintenance and Quality](../operations/maintenance_and_quality.md) documentation.*
+For maintenance checks and seed verification, see [Operations / Maintenance and Quality](../operations/maintenance_and_quality.md).

@@ -1,6 +1,6 @@
 # Collection Operations And Permissions
 
-This page defines authoritative internal ingest commands and permission requirements for every supported collection.
+This page defines the internal ingest commands and permission requirements for supported collections.
 
 Role gate for all internal ingest routes: `developer` or `superuser`.
 

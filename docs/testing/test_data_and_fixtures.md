@@ -1,6 +1,6 @@
 # Validation Datasets and Test Fixtures
 
-This document defines the authoritative management and structure of the validation datasets and test fixtures utilized across the platform's engineering and onboarding lifecycles.
+This document defines how validation datasets and test fixtures are organized and maintained.
 
 ## Fixture Infrastructure
 
@@ -22,7 +22,7 @@ The `tests/data/ingest_demo` repository contains strictly sanitized genomic arti
 
 ## Administrative Seeding Templates
 
-The `db_dummy` repository provides a comprehensive diagnostic seed for organizational bootstrapping:
+The `db_dummy` repository provides the main diagnostic seed for bootstrap and test flows:
 
 - **Location**: `tests/fixtures/db_dummy/all_collections_dummy`
 - **Application**: Recommended as the initial configuration seed for external centers. It utilizes neutral assay nomenclature to prevent organizational configuration bias during the initial installation phase.
