@@ -10,6 +10,7 @@ Usage:
   scripts/center_first_run.sh \
     --env-file <path> \
     --compose-file <path> \
+    [--compose-profile <name>] \
     --api-base-url <url> \
     --admin-username <username> \
     --admin-email <email> \
@@ -27,6 +28,7 @@ USAGE
 
 ENV_FILE=""
 COMPOSE_FILE=""
+COMPOSE_PROFILES=()
 API_BASE_URL=""
 ADMIN_USERNAME=""
 ADMIN_EMAIL=""
@@ -53,6 +55,25 @@ extract_env() {
   (grep -E "^${key}=" "$ENV_FILE" || true) | tail -n1 | cut -d'=' -f2- | tr -d "'\""
 }
 
+clear_shell_overrides_from_env_file() {
+  if [[ ! -f "$ENV_FILE" ]]; then
+    return 0
+  fi
+
+  local line=""
+  local key=""
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" ]] && continue
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ "$line" != *=* ]] && continue
+    key="${line%%=*}"
+    key="${key#"${key%%[![:space:]]*}"}"
+    key="${key%"${key##*[![:space:]]}"}"
+    [[ -z "$key" ]] && continue
+    unset "$key" || true
+  done <"$ENV_FILE"
+}
+
 resolve_python_bin() {
   if [[ -n "$PYTHON_BIN" ]]; then
     return 0
@@ -72,6 +93,7 @@ parse_args() {
     case "$1" in
       --env-file) ENV_FILE="$2"; shift 2 ;;
       --compose-file) COMPOSE_FILE="$2"; shift 2 ;;
+      --compose-profile) COMPOSE_PROFILES+=("$2"); shift 2 ;;
       --api-base-url) API_BASE_URL="$2"; shift 2 ;;
       --admin-username) ADMIN_USERNAME="$2"; shift 2 ;;
       --admin-email) ADMIN_EMAIL="$2"; shift 2 ;;
@@ -115,6 +137,15 @@ validate_args() {
 }
 
 resolve_version() {
+  local env_file_version=""
+  env_file_version="$(extract_env COYOTE3_VERSION)"
+
+  if [[ -n "$env_file_version" ]]; then
+    export COYOTE3_VERSION="$env_file_version"
+    echo "[info] using COYOTE3_VERSION from env file: $COYOTE3_VERSION"
+    return 0
+  fi
+
   if [[ -n "${COYOTE3_VERSION:-}" ]]; then
     return 0
   fi
@@ -150,8 +181,25 @@ load_env_runtime_values() {
   fi
 }
 
+validate_profile_requirements() {
+  local profile=""
+  local has_with_mongo=1
+  for profile in "${COMPOSE_PROFILES[@]}"; do
+    if [[ "$profile" == "with-mongo" ]]; then
+      has_with_mongo=0
+      break
+    fi
+  done
+
+  if [[ "$MONGO_URI" =~ @coyote3_mongo:27017/ ]] && [[ "$has_with_mongo" -ne 0 ]]; then
+    echo "ERROR: MONGO_URI points to coyote3_mongo, but --compose-profile with-mongo was not provided." >&2
+    echo "Add: --compose-profile with-mongo" >&2
+    exit 2
+  fi
+}
+
 rewrite_internal_mongo_uri_for_host() {
-  if [[ ! "$MONGO_URI" =~ @coyote3_.*_mongo:27017/ ]]; then
+  if [[ ! "$MONGO_URI" =~ @coyote3(_.*)?_mongo:27017/ ]]; then
     return 0
   fi
 
@@ -218,7 +266,19 @@ run_preflight() {
 
 start_compose_stack() {
   echo "[step] starting compose stack"
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build
+  local compose_args=(--env-file "$ENV_FILE" -f "$COMPOSE_FILE")
+  local profile=""
+  for profile in "${COMPOSE_PROFILES[@]}"; do
+    compose_args+=(--profile "$profile")
+  done
+  docker compose "${compose_args[@]}" up -d --build
+
+  if [[ "$MONGO_URI" =~ @coyote3_mongo:27017/ ]]; then
+    if ! docker compose "${compose_args[@]}" ps coyote3_mongo >/dev/null 2>&1; then
+      echo "ERROR: expected coyote3_mongo to be part of the compose stack, but it was not created." >&2
+      exit 2
+    fi
+  fi
 }
 
 cleanup() {
@@ -233,7 +293,12 @@ cleanup() {
       exit 2
     fi
     echo "[step] teardown compose stack"
-    docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down -v || true
+    local compose_args=(--env-file "$ENV_FILE" -f "$COMPOSE_FILE")
+    local profile=""
+    for profile in "${COMPOSE_PROFILES[@]}"; do
+      compose_args+=(--profile "$profile")
+    done
+    docker compose "${compose_args[@]}" down -v || true
   fi
 }
 
@@ -316,9 +381,11 @@ main() {
     echo "[info] using default seed data pack: ${SEED_DATA_PACK}"
   fi
   validate_args
+  clear_shell_overrides_from_env_file
   resolve_python_bin
   resolve_version
   load_env_runtime_values
+  validate_profile_requirements
   rewrite_internal_mongo_uri_for_host
 
   run_preflight

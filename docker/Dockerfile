@@ -15,7 +15,7 @@ COPY coyote/blueprints ./coyote/blueprints
 RUN npm install && npm run build:css
 
 # Stage 2: Shared runtime base
-FROM python:3.12.0-slim-bullseye as coyote3_runtime_base
+FROM python:3.12.0-slim-bullseye AS coyote3_runtime_base
 
 LABEL base_image="python:3.12-slim"
 LABEL about.home="https://github.com/Clinical-Genomics-Lund/coyote3"
@@ -50,7 +50,7 @@ RUN mkdir ./logs
 RUN mkdir ./redis_data
 
 # Stage 3: Web runtime image
-FROM coyote3_runtime_base as coyote3_web
+FROM coyote3_runtime_base AS coyote3_web
 
 EXPOSE 8000
 
@@ -66,7 +66,7 @@ ENV SCRIPT_NAME="/coyote3"
 CMD gunicorn --timeout 240 -w 2 --threads 2 -e SCRIPT_NAME=${SCRIPT_NAME} --log-level INFO --bind 0.0.0.0:8000 wsgi:app
 
 # Stage 4: API runtime image
-FROM coyote3_runtime_base as coyote3_api
+FROM coyote3_runtime_base AS coyote3_api
 
 EXPOSE 8001
 
