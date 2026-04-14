@@ -1,0 +1,125 @@
+name: bootstrap-and-ingest-check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  bootstrap-and-ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      COYOTE3_VERSION: ci-bootstrap
+      COYOTE3_DB: coyote3
+      MONGO_ROOT_USERNAME: coyote3_root
+      MONGO_ROOT_PASSWORD: ci-root-password
+      MONGO_APP_USER: coyote3_app
+      MONGO_APP_PASSWORD: ci-app-password
+      COYOTE3_FERNET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      SECRET_KEY: ci-test-secret-key
+      INTERNAL_API_TOKEN: ci-test-internal-token
+      CACHE_REDIS_URL: redis://redis_coyote3_stage:6379/0
+      COYOTE3_STAGE_WEB_PORT: "8005"
+      COYOTE3_STAGE_API_PORT: "8006"
+      COYOTE3_STAGE_REDIS_PORT: "8007"
+      COYOTE3_STAGE_MONGO_PORT: "8008"
+      ADMIN_USERNAME: admin.coyote3
+      ADMIN_EMAIL: admin@center.local
+      ADMIN_PASSWORD: ci-admin-password
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "requirements.txt"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Prepare stage env file
+        run: |
+          cat > .coyote3_stage_env <<EOF
+          ENV_NAME=staging
+          TESTING=0
+          DEVELOPMENT=0
+          COYOTE3_DB=${COYOTE3_DB}
+          MONGO_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+          MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+          MONGO_APP_USER=${MONGO_APP_USER}
+          MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD}
+          MONGO_URI=mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@coyote3_stage_mongo:27017/${COYOTE3_DB}
+          CACHE_REDIS_URL=${CACHE_REDIS_URL}
+          COYOTE3_FERNET_KEY=${COYOTE3_FERNET_KEY}
+          SECRET_KEY=${SECRET_KEY}
+          INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN}
+          API_SESSION_SALT=ci-stage-session-salt
+          COYOTE3_STAGE_WEB_PORT=${COYOTE3_STAGE_WEB_PORT}
+          COYOTE3_STAGE_API_PORT=${COYOTE3_STAGE_API_PORT}
+          COYOTE3_STAGE_REDIS_PORT=${COYOTE3_STAGE_REDIS_PORT}
+          COYOTE3_STAGE_MONGO_PORT=${COYOTE3_STAGE_MONGO_PORT}
+          EOF
+
+      - name: Start stage stack
+        run: |
+          docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml up -d --build
+
+      - name: Wait for API health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS "http://localhost:${COYOTE3_STAGE_API_PORT}/api/v1/health" >/dev/null; then
+              echo "API is healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become healthy in time" >&2
+          exit 1
+
+      - name: Create first bootstrap superuser
+        run: |
+          python scripts/bootstrap_local_admin.py \
+            --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT}/${COYOTE3_DB}?authSource=${COYOTE3_DB}" \
+            --db "${COYOTE3_DB}" \
+            --username "${ADMIN_USERNAME}" \
+            --email "${ADMIN_EMAIL}" \
+            --password "${ADMIN_PASSWORD}" \
+            --role-id "superuser" \
+            --assay-group "hematology" \
+            --assay "assay_1"
+
+      - name: Seed baseline collections
+        run: |
+          scripts/bootstrap_center_collections.sh \
+            --api-base-url "http://localhost:${COYOTE3_STAGE_API_PORT}" \
+            --username "${ADMIN_EMAIL}" \
+            --password "${ADMIN_PASSWORD}" \
+            --seed-file tests/fixtures/db_dummy/all_collections_dummy \
+            --with-optional \
+            --skip-existing
+
+      - name: Run sample ingest check
+        run: |
+          scripts/center_check.sh \
+            --api-base-url "http://localhost:${COYOTE3_STAGE_API_PORT}" \
+            --username "${ADMIN_EMAIL}" \
+            --password "${ADMIN_PASSWORD}" \
+            --yaml-file tests/data/ingest_demo/generic_case_control.yaml
+
+      - name: Stop stack
+        if: always()
+        run: |
+          docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml logs --no-color > bootstrap_and_ingest_logs.txt || true
+          docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml down -v || true
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootstrap-and-ingest-logs
+          path: bootstrap_and_ingest_logs.txt

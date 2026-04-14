@@ -1,30 +1,17 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
-#  All rights reserved.
-#
-#  This source file is part of the Coyote3 codebase.
-#  The Coyote3 project provides a framework for genomic data analysis,
-#  interpretation, reporting, and clinical diagnostics.
-#
-#  Unauthorized use, distribution, or modification of this software or its
-#  components is strictly prohibited without prior written permission from
-#  the copyright holders.
-#
-
 """
 This module defines Flask-WTF form classes for genomic data analysis and reporting in the Coyote3 project.
 """
 
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, IntegerField, FloatField
-from wtforms.validators import InputRequired, NumberRange, Optional
-from coyote.extensions import store
+from wtforms import BooleanField, FloatField, IntegerField
+from wtforms.validators import InputRequired, NumberRange
 
 
 class DNAFilterForm(FlaskForm):
     """
-    Filter form for DNA variant analysis.
+    Filter form for DNA small-variant analysis.
 
-    This form provides numeric and boolean filters for DNA variant data,
+    This form provides numeric and boolean filters for DNA small-variant data,
     including read depth, allele frequency, CNV size, VEP consequences,
     CNV effects, and genelist options. Used in the Coyote3 genomic analysis
     workflow to allow users to customize variant filtering criteria.
@@ -55,8 +42,16 @@ class DNAFilterForm(FlaskForm):
     )
     min_cnv_size = IntegerField("Min CNV Size", validators=[InputRequired(), NumberRange(min=1)])
     max_cnv_size = IntegerField("Max CNV Size", validators=[InputRequired(), NumberRange(min=2)])
-    cnv_loss_cutoff = FloatField("CNV Loss Cutoff", validators=[InputRequired(), NumberRange()])
-    cnv_gain_cutoff = FloatField("CNV Gain Cutoff", validators=[InputRequired(), NumberRange()])
+    cnv_loss_cutoff = FloatField(
+        "CNV Loss Cutoff",
+        validators=[InputRequired(), NumberRange()],
+        render_kw={"step": "0.01", "type": "number"},
+    )
+    cnv_gain_cutoff = FloatField(
+        "CNV Gain Cutoff",
+        validators=[InputRequired(), NumberRange()],
+        render_kw={"step": "0.01", "type": "number"},
+    )
     warn_cov = IntegerField(
         "Coverage Warning Threshold",
         validators=[InputRequired(), NumberRange(min=0)],
@@ -95,27 +90,3 @@ class DNAFilterForm(FlaskForm):
 
     # Reset button
     reset = BooleanField("reset")
-
-
-def create_assay_group_form():
-    """
-    Create a dynamic Flask-WTF form class with BooleanField checkboxes for each assay group.
-
-    This function queries all available assay groups from the ASP handler and generates a form
-    class with a BooleanField for each group, allowing users to select one or more groups.
-    An additional 'historic' checkbox is always included.
-
-    Returns:
-        type: A dynamically created subclass of FlaskForm with BooleanFields for each assay group.
-    """
-    assay_groups = store.asp_handler.get_all_asp_groups()
-
-    fields = {
-        group: BooleanField(group.replace("_", " ").capitalize(), validators=[Optional()])
-        for group in assay_groups
-    }
-
-    fields["historic"] = BooleanField("Historic", validators=[Optional()])
-
-    # Dynamically create a FlaskForm class
-    return type("DynamicAssayGroupForm", (FlaskForm,), fields)

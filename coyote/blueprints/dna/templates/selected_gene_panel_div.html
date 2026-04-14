@@ -4,8 +4,8 @@
     <h2 class="text-base font-semibold tracking-wide uppercase">Gene Panel(s)</h2>
     <!-- Toggle Icon -->
     <button class="focus:outline-none">
-      <img id="arrow-icon" src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-double-up.svg') }}" 
-            alt="Toggle Selected Genes Filters" 
+      <img id="arrow-icon" src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-double-up.svg') }}"
+            alt="Toggle Selected Genes Filters"
             class="w-6 h-6 transform transition-transform duration-300 filter rotate-180">
     </button>
   </div>
@@ -15,15 +15,15 @@
     {% if checked_genelists_dict  %}
       <div class="flex flex-row gap-1">
         {% for glist, glist_values in checked_genelists_dict.items() %}
-          <span class="py-1 px-3 rounded-md text-xs shadow-sm 
+          <span class="py-1 px-3 rounded-md text-xs shadow-sm
             {% if glist_values.is_active %}
               {% if glist_values.adhoc %}
-                bg-purple-200 hover:bg-purple-400 
+                bg-purple-200 hover:bg-purple-400
               {% else %}
-                bg-gray-200 hover:bg-green-200 
+                bg-gray-200 hover:bg-green-200
               {% endif %}
-            {% else %} 
-              bg-orange-400 hover:bg-orange-600 
+            {% else %}
+              bg-orange-400 hover:bg-orange-600
             {% endif %} transition">{{ glist }} {% if glist_values.adhoc %}<i>(AdHoc)</i>{% endif %}: {{ glist_values.covered|length }} of {{ glist_values.genes|length }} gene(s) covered</span>
         {% endfor %}
       </div>

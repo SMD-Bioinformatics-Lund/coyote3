@@ -1,15 +1,3 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
-#  All rights reserved.
-#
-#  This source file is part of the Coyote3 codebase.
-#  The Coyote3 project provides a framework for genomic data analysis,
-#  interpretation, reporting, and clinical diagnostics.
-#
-#  Unauthorized use, distribution, or modification of this software or its
-#  components is strictly prohibited without prior written permission from
-#  the copyright holders.
-#
-
 """
 Jinja2 template filters for the Coyote3 project.
 
@@ -18,13 +6,14 @@ including filters for formatting the current UTC datetime and pretty-printing
 Python objects as JSON for HTML output.
 """
 
+import json
+from datetime import datetime, timezone
+from typing import Any
 
 from flask import current_app as app
-from coyote.util.misc import EnhancedJSONEncoder
 from markupsafe import Markup
-import json
-from typing import Any
-from coyote.util.common_utility import CommonUtility
+
+from coyote.util.misc import EnhancedJSONEncoder
 
 
 @app.template_filter("now")
@@ -38,7 +27,7 @@ def now_filter(date_format: str = "%Y-%m-%d %H:%M:%S") -> str:
     Returns:
         str: Current UTC datetime formatted as a string.
     """
-    return CommonUtility.utc_now().strftime(date_format)
+    return datetime.now(timezone.utc).strftime(date_format)
 
 
 @app.template_filter("prettyjson")

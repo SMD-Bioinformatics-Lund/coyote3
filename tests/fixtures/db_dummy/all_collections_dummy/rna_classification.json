@@ -1,0 +1,14 @@
+[
+  {
+    "SAMPLE_ID": "65f0c0ffee00000000000001",
+    "classifier_version": "1.0.0",
+    "classifier_results": [
+      {
+        "class": "DEMO_CLASS",
+        "score": 0.98,
+        "true": 98,
+        "total": 100
+      }
+    ]
+  }
+]

@@ -1,0 +1,239 @@
+name: coyote3-dev
+# usage:
+# COYOTE3_VERSION is read from coyote/__version__.py (example):
+#   export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
+# docker compose -f deploy/compose/docker-compose.dev.yml up -d
+# docker compose -f deploy/compose/docker-compose.dev.yml down
+x-runtime-defaults: &runtime-defaults
+  mem_limit: ${COYOTE3_DEV_CONTAINER_MEM_LIMIT:-2g}
+  cpus: ${COYOTE3_DEV_CONTAINER_CPU_LIMIT:-2.0}
+
+services:
+  # UI container: Flask/Jinja presentation layer. Calls coyote3_dev_api over HTTP.
+  coyote3_dev_web:
+    <<: *runtime-defaults
+    container_name: coyote3_dev_web_${COYOTE3_VERSION:-local}
+    image: coyote3-web:${COYOTE3_VERSION:-local}-dev
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.dev
+      target: coyote3_dev_web
+      network: host
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    ports:
+      - "${COYOTE3_DEV_WEB_PORT:-6801}:8000"
+    env_file:
+      - ../../.coyote3_dev_env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - FLASK_APP=wsgi
+      - FLASK_DEBUG=1
+      - CACHE_ENABLED=1
+      - CACHE_REQUIRED=1
+      - API_BASE_URL=http://coyote3_dev_api:8001
+      - API_BROWSER_BASE=/api
+      - HELP_CENTER_URL=${HELP_CENTER_URL:-}
+      - TZ=Europe/Stockholm
+      - GIT_COMMIT=${GIT_COMMIT:-unknown}
+      - BUILD_TIME=${BUILD_TIME:-unknown}
+    restart: always
+    dns:
+      - ${APP_DNS:-1.1.1.1}
+      - 8.8.8.8
+    extra_hosts:
+      - "mtlucmds1.lund.skane.se:172.17.0.1"
+    networks:
+      - coyote3-dev-net
+    volumes:
+      - "../../.git:/app/.git"
+      - "../../coyote:/app/coyote"
+      - "../../api:/app/api"
+      - "../../shared:/app/shared"
+      - "../../config:/app/config"
+      - "/data/coyote3/logs:/app/logs"
+      - "../../docs:/app/docs"
+      - "../../wsgi.py:/app/wsgi.py"
+      - "../../deploy/gunicorn/gunicorn.conf.py:/app/gunicorn.conf.py"
+      - "../../CHANGELOG.md:/app/CHANGELOG.md"
+      - "../../README.md:/app/README.md"
+      - "../../LICENSE.txt:/app/LICENSE.txt"
+      - "/access:/access"
+      - "/media:/media"
+      - "/data:/data"
+      - "/fs1:/fs1"
+    command: "python3 -m wsgi"
+    depends_on:
+      coyote3_dev_api:
+        condition: service_healthy
+
+  coyote3_dev_docs:
+    <<: *runtime-defaults
+    container_name: coyote3_dev_docs_${COYOTE3_VERSION:-local}
+    image: coyote3-docs:${COYOTE3_VERSION:-local}-dev
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.docs
+      network: host
+    ports:
+      - "${COYOTE3_DEV_DOCS_PORT:-6805}:8080"
+    restart: always
+    dns:
+      - ${APP_DNS:-1.1.1.1}
+      - 8.8.8.8
+    networks:
+      - coyote3-dev-net
+    volumes:
+      - "../../site:/usr/share/nginx/html:ro"
+
+  # API container: FastAPI business/policy/data layer.
+  coyote3_dev_api:
+    <<: *runtime-defaults
+    container_name: coyote3_dev_api_${COYOTE3_VERSION:-local}
+    image: coyote3-api:${COYOTE3_VERSION:-local}-dev
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.dev
+      target: coyote3_dev_api
+      network: host
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    ports:
+      - "${COYOTE3_DEV_API_PORT:-6802}:8001"
+    env_file:
+      - ../../.coyote3_dev_env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - CACHE_ENABLED=1
+      - CACHE_REQUIRED=1
+      - TZ=Europe/Stockholm
+      - GIT_COMMIT=${GIT_COMMIT:-unknown}
+      - BUILD_TIME=${BUILD_TIME:-unknown}
+    restart: always
+    dns:
+      - ${APP_DNS:-1.1.1.1}
+      - 8.8.8.8
+    extra_hosts:
+      - "mtlucmds1.lund.skane.se:172.17.0.1"
+      - "host.docker.internal:host-gateway"
+    networks:
+      - coyote3-dev-net
+    volumes:
+      - "../../.git:/app/.git"
+      - "../../coyote:/app/coyote"
+      - "../../api:/app/api"
+      - "../../shared:/app/shared"
+      - "../../config:/app/config"
+      - "/data/coyote3/logs:/app/logs"
+      - "../../docs:/app/docs"
+      - "../../wsgi.py:/app/wsgi.py"
+      - "../../asgi.py:/app/asgi.py"
+      - "../../deploy/gunicorn/gunicorn.conf.py:/app/gunicorn.conf.py"
+      - "../../CHANGELOG.md:/app/CHANGELOG.md"
+      - "../../README.md:/app/README.md"
+      - "../../LICENSE.txt:/app/LICENSE.txt"
+      - "/access:/access"
+      - "/media:/media"
+      - "/data:/data"
+      - "/fs1:/fs1"
+    command: "python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/coyote --reload-dir /app/api --reload-dir /app"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=2).read()\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    depends_on:
+      coyote3_dev_mongo:
+        condition: service_healthy
+      redis_coyote3_dev:
+        condition: service_started
+
+  # UI asset build/watch helper for development.
+  coyote3_dev_tailwind:
+    <<: *runtime-defaults
+    container_name: coyote3_dev_tailwind_${COYOTE3_VERSION:-local}
+    image: node:20-alpine
+    working_dir: /app
+    command: >
+      sh -lc "npm config set fund false &&
+              npm config set audit false &&
+              npm config set fetch-retries 6 &&
+              npm config set fetch-retry-mintimeout 20000 &&
+              npm config set fetch-retry-maxtimeout 120000 &&
+              npm ci --prefer-offline &&
+              npm run build:css &&
+              npm run dev:css"
+    environment:
+      - CHOKIDAR_USEPOLLING=1
+      - CHOKIDAR_INTERVAL=700
+    network_mode: host
+    volumes:
+      - "../../:/app"
+      - "coyote3-node-modules:/app/node_modules"
+    restart: unless-stopped
+
+  # Shared infrastructure dependency.
+  redis_coyote3_dev:
+    <<: *runtime-defaults
+    container_name: redis_coyote3_dev_${COYOTE3_VERSION:-local}
+    image: redis:7.4.3
+    ports:
+      - "${COYOTE3_DEV_REDIS_PORT:-6803}:6379"
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    dns:
+      - ${APP_DNS:-1.1.1.1}
+      - 8.8.8.8
+    networks:
+      - coyote3-dev-net
+    restart: unless-stopped
+    privileged: true
+
+  # Local Mongo for the default dev stack.
+  coyote3_dev_mongo:
+    <<: *runtime-defaults
+    container_name: coyote3_dev_mongo_${COYOTE3_VERSION:-local}
+    image: mongo:7.0
+    command: ["--bind_ip_all"]
+    ports:
+      - "${COYOTE3_DEV_MONGO_PORT:-6804}:27017"
+    env_file:
+      - ../../.coyote3_dev_env
+    restart: unless-stopped
+    stop_grace_period: 120s
+    networks:
+      - coyote3-dev-net
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-coyote3_root}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-CHANGE_ME_DEV_ROOT_PASSWORD}
+      - COYOTE3_DB=${COYOTE3_DB:-coyote3}
+      - MONGO_APP_USER=${MONGO_APP_USER:-coyote3_app}
+      - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD:-CHANGE_ME_DEV_APP_PASSWORD}
+    volumes:
+      - dev-mongodb:/data/db
+      - /data/coyote3/dev/backups/mongo:/backup
+      - ./mongo-init/create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh \"mongodb://$$MONGO_INITDB_ROOT_USERNAME:$$MONGO_INITDB_ROOT_PASSWORD@127.0.0.1:27017/admin?authSource=admin\" --quiet --eval \"db.getSiblingDB('$$COYOTE3_DB').runCommand({ usersInfo: '$$MONGO_APP_USER' }).users.length\" | grep 1 >/dev/null",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 10s
+
+networks:
+  coyote3-dev-net:
+    driver: bridge
+
+volumes:
+  coyote3-node-modules:
+    name: coyote3-node-modules
+  dev-mongodb:

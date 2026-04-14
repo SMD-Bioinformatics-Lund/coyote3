@@ -1,15 +1,3 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
-#  All rights reserved.
-#
-#  This source file is part of the Coyote3 codebase.
-#  The Coyote3 project provides a framework for genomic data analysis,
-#  interpretation, reporting, and clinical diagnostics.
-#
-#  Unauthorized use, distribution, or modification of this software or its
-#  components is strictly prohibited without prior written permission from
-#  the copyright holders.
-#
-
 """
 This module initializes the DNA blueprint for the Coyote3 project.
 
@@ -24,15 +12,34 @@ Logger:
     app.dna_logger: Logger instance for DNA operations.
 """
 
+import logging
+
 from flask import Blueprint
 from flask import current_app as app
-import logging
 
 # Blueprint configuration
 dna_bp = Blueprint("dna_bp", __name__, template_folder="templates", static_folder="static")
 
-from coyote.blueprints.dna import views  # noqa: F401, E402
-from coyote.blueprints.dna import filters  # noqa: F401, E402
 
+def _register_dna_views() -> None:
+    """Import DNA view modules for blueprint route registration side effects."""
+    from coyote.blueprints.dna import (
+        views_cnv,  # noqa: F401
+        views_dna_findings,  # noqa: F401
+        views_reports,  # noqa: F401
+        views_small_variant_actions,  # noqa: F401
+        views_transloc,  # noqa: F401
+    )
+
+    _ = (
+        views_cnv,
+        views_dna_findings,
+        views_reports,
+        views_small_variant_actions,
+        views_transloc,
+    )
+
+
+_register_dna_views()
 
 app.dna_logger = logging.getLogger("coyote.dna")

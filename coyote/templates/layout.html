@@ -2,28 +2,7 @@
 <html lang="en">
 
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}COYOT3{% endblock %}</title>
-
-    <!-- Compiled Tailwind CSS -->
-    <link href="{{ url_for('static', filename='css/tailwind.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='icons/favicon.ico') }}" rel="shortcut icon">
-
-    <!-- CSS for markdown -->
-    <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
-
-
-    <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='js/jquery-3.1.1.slim.min.js') }}"></script>
-    <script defer src="{{ url_for('static', filename='js/cdn.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/sortableTable.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/pagination.js') }}"></script>
-
-    <!-- JS for markdown editor -->
-    <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+    {% include "_partials/_head.html" %}
 
 
     <style>
@@ -80,6 +59,91 @@
           border-radius: 4px;
       }
 
+      .file-upload-shell {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        border: 1px dashed rgb(148 163 184);
+        border-radius: 1rem;
+        background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(239,246,255,0.95));
+        padding: 0.75rem 1rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+      }
+
+      .file-upload-shell:hover {
+        border-color: rgb(59 130 246);
+        box-shadow: 0 10px 20px rgba(59, 130, 246, 0.08);
+        transform: translateY(-1px);
+      }
+
+      .file-upload-shell.is-selected {
+        border-color: rgb(16 185 129);
+        background: linear-gradient(135deg, rgba(236,253,245,0.95), rgba(239,246,255,0.95));
+      }
+
+      .file-upload-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: 0;
+        border-radius: 9999px;
+        background: rgb(30 64 175);
+        color: white;
+        padding: 0.6rem 1rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+      }
+
+      .file-upload-shell.is-selected .file-upload-button {
+        background: rgb(5 150 105);
+      }
+
+      .file-upload-meta {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+      }
+
+      .file-upload-name {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: rgb(17 24 39);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .file-upload-accept {
+        font-size: 0.7rem;
+        color: rgb(71 85 105);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .file-upload-spinner {
+        width: 0.9rem;
+        height: 0.9rem;
+        border-radius: 9999px;
+        border: 2px solid rgba(255,255,255,0.35);
+        border-top-color: white;
+        animation: file-upload-spin 0.8s linear infinite;
+        display: none;
+      }
+
+      .file-upload-shell.is-busy .file-upload-spinner {
+        display: inline-flex;
+      }
+
+      @keyframes file-upload-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+
     </style>
     {% block style %}{% endblock %}
     {% block javascript %}{% endblock %}
@@ -88,219 +152,16 @@
 
   <body class="bg-gradient-to-t from-blue-100 to-indigo-100 text-sm overflow-hidden w-full border-t-4 border-indigo-400">
     <!-- FLASH MESSAGES -->
-    <div id="alert-container" class="fixed top-20 right-10 z-50 space-y-3">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <div class="flash-message flex items-center bg-{{ category }}-100 border-l-4 border-{{ category }}-500 text-{{ category }}-900 px-4 py-2 rounded-xl shadow-2xl relative z-50 transform transition-all duration-500 ease-in-out translate-x-full opacity-0 backdrop-blur-lg">
-              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/exclamation-circle.svg') }}" alt="Alert" class="h-6 w-6 mr-3 text-{{ category }}-500 transition-transform duration-300 transform hover:scale-125 hover:rotate-12">
-              <span class="flex-1 text-sm font-semibold tracking-wide">{{ message }}</span>
-              <button type="button" class="ml-4 p-2 rounded-full bg-{{ category }}-200 hover:bg-{{ category }}-300 transition duration-300 close-btn">
-                <img src="{{ url_for('static', filename='icons/heroicons_outline_24/x-mark.svg') }}" alt="Close" class="h-5 w-5 transition-transform duration-300 transform hover:scale-125 hover:rotate-12">
-              </button>
-            </div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-    </div>
+    {% include "_partials/_flash.html" %}
 
 
     <!-- CONTAINER: Full Page Structure -->
     <div class="flex flex-col h-screen w-full">
       <!-- HEADER (LOGO + USER INFO) -->
-      <header class="text-black py-1 px-8 flex justify-between items-center w-full z-50">
-        <div class="flex items-center space-x-2 tracking-wide text-3xl font-bold">
-          <!-- Dashboard link -->
-          <a href="{{ url_for('dashboard_bp.dashboard') }}"
-             class="flex items-center space-x-2 hover:opacity-90">
-            <img src="{{ url_for('static', filename='images/logo.png') }}"
-                 alt="Coyote Logo"
-                 class="h-12 w-20 transition-transform duration-300 transform hover:scale-110 hover:rotate-12">
-            <span>COYOT3</span>
-          </a>
-
-          <!-- Version link -->
-          <a href="{{ url_for('docs_bp.about') }}"
-             title="View release notes"
-             class="text-xs font-normal tracking-tight pt-2 align-baseline hover:underline">
-            v{{ config['APP_VERSION'] }}
-          </a>
-        </div>
-
-        {% if current_user.is_authenticated %}
-          <div class="relative">
-            <button id="userMenuButton" class="flex items-center space-x-2 focus:outline-none mx-8">
-              <img class="h-8 w-8 rounded-full transition-transform duration-300 transform hover:scale-110 hover:rotate-6 bg-transparent" src="{{ url_for('static', filename='icons/user-512.png') }}">
-              <span class="text-black font-bold">{{ current_user.fullname }}</span>
-            </button>
-
-            <!-- Dropdown Menu -->
-            <div id="userDropdown" class="hidden absolute right-0 mt-2 w-40 bg-indigo-50 rounded-lg shadow-lg">
-              <a href="{{ url_for('dashboard_bp.dashboard') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Dashboard</a>
-              <a href="{{ url_for('profile_bp.user_profile', user_id=current_user.username ) }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Profile</a>
-              {% if password_changed_enabled %}
-                <a href="{{ url_for('profile_bp.change_password', username=current_user.username) }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100 ">Change Password</a>
-              {% endif %}
-              {% if has_access(min_role="user", min_level=9) %}
-                <a href="{{ url_for('admin_bp.admin_home') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Admin DB</a>
-              {% endif %}
-              <a href="{{ config.CODEBASE }}/issues/new?template=bug_report.md"
-                target="_blank"
-                class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
-                Report a Bug
-              </a>
-              <a href="{{ config.CODEBASE }}/issues/new?template=feature_request.md"
-                target="_blank"
-                class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
-                Request a Feature
-              </a>
-              <a href="{{ config.CODEBASE }}/issues/new?template=support_request.md"
-                target="_blank"
-                class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
-                Support
-              </a>
-              <a href="{{ url_for('docs_bp.about') }}"
-                class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
-                About
-              </a>
-              <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Logout</a>
-            </div>
-          </div>
-        {% else %}
-          <div class+"relative">
-            <a href="{{ url_for('login_bp.login') }}">
-              <button id="userLoginButton" class="flex items-center space-x-2 focus:outline-none mx-8">
-                <img class="h-8 w-8 rounded-full transition-transform duration-300 transform hover:scale-110 hover:rotate-6 bg-transparent" src="{{ url_for('static', filename='icons/user-512.png') }}">
-                <span class="text-black font-bold">Login</span>
-              </button>
-            </a>
-          </div>
-        {% endif %}
-      </header>
+      {% include "_partials/_header.html" %}
 
       <!-- Top navbar with contextual assay panel pills rendered after all types -->
-      <nav class="bg-indigo-300 border-b-4 border-indigo-400 text-xs font-medium text-gray-800">
-        <div class="mx-auto px-4 py-1 flex flex-wrap items-center gap-x-4 w-full">
-          <!-- Static links -->
-          <div class="flex flex-wrap items-center gap-x-2 ml-5">
-            {% set curr_path = request.path %}
-
-            {% if current_user.is_authenticated %}
-              <a href="{{ url_for('dashboard_bp.dashboard') }}"
-                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path == url_for('dashboard_bp.dashboard') else 'hover:bg-indigo-200 font-semibold' }}">
-                HOME
-              </a>
-              <a href="{{ url_for('home_bp.samples_home') }}"
-                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path.split('/')[-1] == 'samples' or curr_path.split('/')[-2] == 'samples'  else 'hover:bg-indigo-200 font-semibold' }}">
-                SAMPLES
-              </a>
-            {% endif %}
-            <a href="{{ url_for('public_bp.assay_catalog_matrix') }}"
-              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if 'assay-catalog-matrix' in curr_path else 'hover:bg-indigo-200 font-semibold' }}">
-              MATRIX
-            </a>
-            <a href="{{ url_for('public_bp.assay_catalog') }}"
-              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if 'assay-catalog' in curr_path and 'assay-catalog-matrix' not in curr_path else 'hover:bg-indigo-200 font-semibold' }}">
-              CATALOG
-            </a>
-            {% if current_user.is_authenticated %}
-              |
-              <a href="{{ url_for('common_bp.search_tiered_variants') }}"
-                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path.split('/')[-1] == 'search' or curr_path.split('/')[-2] == 'search'  else 'hover:bg-indigo-200 font-semibold' }}">
-                VARIANT SEARCH
-              </a>
-            {% endif %}
-          </div>
-
-
-          <!-- Separator -->
-          {% if dynamic_assay_nav %}
-            <div class="h-6 w-0.5 bg-gray-800 "></div>
-          {% endif %}
-
-          {# Extract URL path segments #}
-          {% set path_parts = request.path.strip('/').split('/') %}
-          {% set selected_type = path_parts[1] if path_parts|length > 1 else None %}
-          {% set selected_tech = path_parts[2] if path_parts|length > 2 else None %}
-          {% set selected_group = path_parts[3] if path_parts|length > 3 else None %}
-
-          <!-- DNA / RNA toggle buttons only -->
-          <div class="flex flex-wrap items-center gap-x-2">
-            {% for panel_type in dynamic_assay_nav.keys() %}
-              <button
-                id="toggle-{{ panel_type }}"
-                onclick="toggleAssay('{{ panel_type }}')"
-                class="px-2 py-0.5 rounded-xl text-xs transition
-                      {% if selected_type == panel_type %}
-                        bg-orange-300 text-black font-bold
-                      {% else %}
-                        bg-indigo-200 hover:bg-orange-200
-                      {% endif %}">
-                {{ panel_type }}
-              </button>
-            {% endfor %}
-          </div>
-
-          <!-- Assay context pills -->
-          <div class="flex flex-nowrap gap-4 overflow-x-auto whitespace-nowrap items-start" id="assay-pills">
-            {% for panel_type, technologies in dynamic_assay_nav.items() %}
-              <div class="assay-group-section {{ 'hidden' if panel_type != selected_type }} flex flex-nowrap items-center gap-4"
-                  data-type="{{ panel_type }}">
-                <div class="h-6 w-0.5 bg-gray-800"></div>
-
-                {% for tech_name, groupings in technologies.items() %}
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs text-gray-700 font-medium uppercase pr-1">{{ tech_name }}</span>
-
-                    {% for group_name, panel_data in groupings.items() %}
-                      {% if current_user.is_admin or group_name in current_user.assay_groups %}
-                        {% set is_selected = group_name == selected_group %}
-                        <a href="{{ url_for(panel_data.url, panel_type=panel_type, panel_tech=tech_name, assay_group=group_name) }}"
-                          class="px-2 py-0.5 rounded-full font-semibold transition text-xs whitespace-nowrap
-                                  {% if is_selected %}
-                                    bg-yellow-400 text-black border border-yellow-500
-                                  {% else %}
-                                    bg-indigo-200 hover:bg-orange-300 text-gray-800
-                                  {% endif %}">
-                          {{ panel_data.label }}
-                        </a>
-                      {% endif %}
-                    {% endfor %}
-                  </div>
-                  <div class="h-6 w-0.5 bg-indigo-600"></div>
-                {% endfor %}
-              </div>
-            {% endfor %}
-          </div>
-
-          <!-- Right-aligned Help / Docs / License -->
-          <div class="ml-auto flex items-center gap-2">
-            <!-- HELP -->
-            <a href="{{ url_for('docs_bp.docs_index') }}"
-               class="px-3 py-0.5 rounded-xl text-xs font-semibold tracking-wide transition
-                      hover:bg-indigo-200
-                      {% if request.path.startswith('/handbook') and not request.path.endswith('/license') %}
-                        bg-orange-300 text-black font-bold
-                      {% else %}
-                        text-gray-800
-                      {% endif %}">
-              HELP
-            </a>
-
-            <!-- LICENSE -->
-            <a href="{{ url_for('docs_bp.license') }}"
-               class="px-3 py-0.5 rounded-xl text-xs font-semibold tracking-wide transition
-                      hover:bg-indigo-200
-                      {% if request.path.endswith('/license') %}
-                        bg-orange-300 text-black font-bold
-                      {% else %}
-                        text-gray-800
-                      {% endif %}">
-              LICENSE
-            </a>
-          </div>
-        </div>
-      </nav>
+      {% include "_partials/_nav.html" %}
 
       <!-- MAIN CONTENT (SCROLLABLE GRID LAYOUT) -->
 
@@ -308,253 +169,63 @@
 
     </div>
 
-    <!-- Reusable Confirmation modal -->
-    <div id="actionModal" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50 hidden">
-      <div class="bg-blue-50 rounded-xl shadow-xl p-6 w-full max-w-md border border-gray-200">
-        <h2 id="actionModalTitle" class="text-xl font-semibold text-gray-800 mb-4">Confirm Action</h2>
-        <p id="actionModalMessage" class="text-gray-600 mb-6">Are you sure you want to proceed?</p>
-        <div class="flex justify-center gap-3">
-          <button id="actionModalCancel"
-                  class="bg-gray-400 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg shadow-lg transition">
-            Cancel
-          </button>
-          <a id="actionModalConfirm"
-            href="#"
-            class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-lg transition">
-            Confirm
-          </a>
-        </div>
-      </div>
-    </div>
-
-
+    {% include "_partials/_action_modal.html" %}
+    {% include "_partials/_footer.html" %}
     <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll('input[type="file"]:not([data-upload-enhanced="true"])').forEach((input) => {
+          input.dataset.uploadEnhanced = "true";
+          input.classList.add("sr-only");
 
-      // JavaScript for Assay Navigation
-      document.addEventListener('DOMContentLoaded', () => {
-        const path = window.location.pathname.split('/').filter(Boolean);
-        const [ , selectedType, selectedTech, selectedGroup ] = path;
+          const shell = document.createElement("div");
+          shell.className = "file-upload-shell";
 
-        const sections = document.querySelectorAll('.assay-group-section');
-        const toggles = document.querySelectorAll('[id^="toggle-"]');
-        const pills = document.querySelectorAll('#assay-pills a');
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "file-upload-button";
+          button.innerHTML = `
+            <span class="file-upload-spinner" aria-hidden="true"></span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V4.5m0 0l-4.5 4.5M12 4.5l4.5 4.5M4.5 16.5v1.125A1.875 1.875 0 0 0 6.375 19.5h11.25A1.875 1.875 0 0 0 19.5 17.625V16.5" />
+            </svg>
+            <span>Select File</span>
+          `;
 
-        function showType(type) {
-          sections.forEach(s => s.classList.toggle('hidden', s.dataset.type !== type));
-          toggles.forEach(t => {
-            const active = t.id === `toggle-${type}`;
-            t.classList.toggle('bg-orange-300', active);
-            t.classList.toggle('text-black', active);
-            t.classList.toggle('font-bold', active);
-            t.classList.toggle('bg-indigo-200', !active);
+          const meta = document.createElement("div");
+          meta.className = "file-upload-meta";
+          const fileName = document.createElement("div");
+          fileName.className = "file-upload-name";
+          fileName.textContent = input.multiple ? "No files selected" : "No file selected";
+          const accept = document.createElement("div");
+          accept.className = "file-upload-accept";
+          accept.textContent = input.accept
+            ? `Accepted: ${input.accept}`
+            : "Accepted: any file type";
+          meta.appendChild(fileName);
+          meta.appendChild(accept);
+
+          button.addEventListener("click", () => {
+            shell.classList.add("is-busy");
+            input.click();
+            window.setTimeout(() => shell.classList.remove("is-busy"), 1200);
           });
-        }
 
-        function highlightPill() {
-          pills.forEach(p => {
-            const urlParts = new URL(p.href, window.location.origin).pathname.split('/').filter(Boolean);
-            const match = urlParts[1] === selectedType && urlParts[2] === selectedTech && urlParts[3] === selectedGroup;
-            p.classList.toggle('bg-yellow-300', match);
-            p.classList.toggle('text-black', match);
-            p.classList.toggle('border-yellow-500', match);
-            if (!match) {
-              p.classList.remove('bg-yellow-300', 'text-black', 'border-yellow-500');
-              p.classList.add('bg-indigo-200', 'hover:bg-orange-300', 'text-gray-800');
-            }
+          input.addEventListener("change", () => {
+            shell.classList.remove("is-busy");
+            const names = Array.from(input.files || []).map((file) => file.name);
+            const hasFiles = names.length > 0;
+            shell.classList.toggle("is-selected", hasFiles);
+            fileName.textContent = hasFiles
+              ? names.join(", ")
+              : (input.multiple ? "No files selected" : "No file selected");
           });
-        }
 
-        // Initial load: show and highlight
-        if (selectedType) {
-          showType(selectedType);
-          highlightPill();
-        }
-
-        // Toggle on click
-        toggles.forEach(btn => {
-          btn.addEventListener('click', e => {
-            const type = btn.id.replace('toggle-', '');
-            showType(type);
-            e.stopPropagation();
-          });
-        });
-
-        // Collapse only if URL doesn't match any pill
-        document.addEventListener('click', e => {
-          if (!e.target.closest('#assay-pills') && !e.target.closest('[id^="toggle-"]')) {
-            const matchExists = Array.from(pills).some(p =>
-              p.href.includes(`/${selectedType}/${selectedTech}/${selectedGroup}`)
-            );
-            if (!matchExists) {
-              sections.forEach(s => s.classList.add('hidden'));
-              toggles.forEach(t => t.classList.remove('bg-orange-300', 'text-black', 'font-bold'));
-            }
-          }
+          input.parentNode.insertBefore(shell, input);
+          shell.appendChild(button);
+          shell.appendChild(meta);
+          shell.appendChild(input);
         });
       });
-
-
-
-      // JavaScript for Action Modal
-      function showActionModal({ url, title = "Confirm Action", message = "Are you sure you want to proceed?", confirmText = "Confirm", confirmColor = "blue" }) {
-        const modal = document.getElementById('actionModal');
-        const titleEl = document.getElementById('actionModalTitle');
-        const messageEl = document.getElementById('actionModalMessage');
-        const confirmBtn = document.getElementById('actionModalConfirm');
-
-        // Set modal content dynamically
-        titleEl.textContent = title;
-        messageEl.innerHTML = message;
-        confirmBtn.textContent = confirmText;
-        confirmBtn.setAttribute('href', url);
-
-        // Map to literal classes so Tailwind always emits the styles.
-        const confirmColorMap = {
-          blue: "bg-blue-600 hover:bg-blue-700",
-          red: "bg-red-600 hover:bg-red-700",
-          green: "bg-green-600 hover:bg-green-700",
-          yellow: "bg-yellow-600 hover:bg-yellow-700",
-          orange: "bg-orange-600 hover:bg-orange-700",
-          gray: "bg-gray-600 hover:bg-gray-700"
-        };
-        const confirmClasses = confirmColorMap[confirmColor] || confirmColorMap.blue;
-        confirmBtn.className = `${confirmClasses} text-white font-medium py-2 px-4 rounded-lg shadow-lg transition`;
-
-        modal.classList.remove('hidden');
-      }
-
-      document.getElementById('actionModalCancel').addEventListener('click', () => {
-        document.getElementById('actionModal').classList.add('hidden');
-      });
-
-
-      // JavaScript for User Dropdown Menu
-      document.addEventListener('DOMContentLoaded', function() {
-        var userMenuButton = document.getElementById('userMenuButton');
-        var userDropdown = document.getElementById('userDropdown');
-
-        userMenuButton.addEventListener('click', function(event) {
-          event.stopPropagation();
-          userDropdown.classList.toggle('hidden');
-        });
-
-        // Close dropdown when clicking outside
-        window.addEventListener('click', function() {
-          if (!userDropdown.classList.contains('hidden')) {
-            userDropdown.classList.add('hidden');
-          }
-        });
-
-        // Prevent dropdown from closing when clicking inside
-        userDropdown.addEventListener('click', function(event) {
-          event.stopPropagation();
-        });
-      });
-
-
-
-      // Flash Message Animation
-      document.addEventListener("DOMContentLoaded", function () {
-        const alerts = document.querySelectorAll(".flash-message");
-        alerts.forEach((alert, index) => {
-          let timeoutId;
-
-          function startTimeout() {
-            timeoutId = setTimeout(() => {
-              alert.classList.remove("translate-x-0", "opacity-100");
-              alert.classList.add("translate-x-full", "opacity-0");
-              setTimeout(() => alert.style.display = "none", 500);
-            }, 7000 + index * 100); // currently set tot 7 sec
-          }
-
-          setTimeout(() => {
-            alert.classList.remove("translate-x-full", "opacity-0");
-            alert.classList.add("translate-x-0", "opacity-100");
-            startTimeout();
-          }, 100 + index * 100);
-
-          alert.addEventListener("mouseenter", () => clearTimeout(timeoutId));
-          alert.addEventListener("mouseleave", startTimeout);
-
-          alert.querySelector(".close-btn").addEventListener("click", function () {
-            clearTimeout(timeoutId);
-            alert.classList.remove("translate-x-0", "opacity-100");
-            alert.classList.add("translate-x-full", "opacity-0");
-            setTimeout(() => alert.style.display = "none", 500);
-          });
-        });
-      });
-
-
-      // JavaScript for Tooltip functionality
-      function showTooltip(event, content) {
-        let tooltip = document.getElementById("global-tooltip");
-
-        if (!tooltip) {
-            tooltip = document.createElement("div");
-            tooltip.id = "global-tooltip";
-            tooltip.className = "fixed bg-black text-white text-xs rounded-md shadow-lg p-2 w-auto max-w-xs opacity-0 transition-all duration-200 z-50 pointer-events-none";
-            document.body.appendChild(tooltip);
-        }
-
-        tooltip.innerHTML = content;
-        tooltip.style.opacity = "1";
-        tooltip.style.pointerEvents = "auto";
-
-        let x = event.clientX + 15;
-        let y = event.clientY + 15;
-
-        // Prevent tooltip from overflowing right edge
-        if (x + tooltip.offsetWidth > window.innerWidth) {
-            x = event.clientX - tooltip.offsetWidth - 15;
-        }
-        // Prevent tooltip from overflowing bottom edge
-        if (y + tooltip.offsetHeight > window.innerHeight) {
-            y = event.clientY - tooltip.offsetHeight - 15;
-        }
-
-        tooltip.style.left = `${x}px`;
-        tooltip.style.top = `${y}px`;
-
-        // Hide tooltip when mouse leaves the element
-        event.target.addEventListener("mouseleave", function hideTooltip() {
-            tooltip.style.opacity = "0";
-            tooltip.style.pointerEvents = "none";
-            event.target.removeEventListener("mouseleave", hideTooltip);
-        });
-      }
-
-
-      // JavaScript for hiding and showing long text
-      function toggleLongText(button) {
-        const target = button.dataset.target;
-        const short = document.getElementById(`${target}-short`);
-        const full = document.getElementById(`${target}-full`);
-
-        const isShortVisible = !short.classList.contains('hidden');
-        short.classList.toggle('hidden', isShortVisible);
-        full.classList.toggle('hidden', !isShortVisible);
-
-        button.innerText = isShortVisible ? '[−]' : '[+]';
-      }
-
-      // Check overflow for all toggle targets
-      window.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.text-toggle').forEach(button => {
-          const target = button.dataset.target;
-          const shortEl = document.getElementById(`${target}-short`);
-          if (shortEl && shortEl.scrollWidth > shortEl.clientWidth) {
-            button.classList.remove('hidden');
-          }
-        });
-      });
-
-      // JavaScript for autoclick keys tables
-      window.onload = function () {
-        $('[data-autoclick="true"]').click();
-        $('[data-autoclick="true"]').click();
-      };
-
     </script>
     {% block script %}{% endblock %}
     {% block footer %}{% endblock %}

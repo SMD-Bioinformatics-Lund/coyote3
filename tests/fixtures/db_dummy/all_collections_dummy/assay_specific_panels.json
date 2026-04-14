@@ -1,0 +1,38 @@
+[
+  {
+    "asp_id": "assay_1",
+    "assay_name": "assay_1",
+    "asp_group": "hematology",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
+    "display_name": "Hema GMS v1",
+    "description": "Demo DNA assay panel for first-run validation",
+    "covered_genes": [
+      "UBA1",
+      "APOB",
+      "EGFR",
+      "PHIP",
+      "ASXL2",
+      "ASXL1",
+      "FLT3",
+      "KMT2D",
+      "GNB1",
+      "TP53"
+    ],
+    "germline_genes": [
+      "BRCA1"
+    ],
+    "is_active": true,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "biomarkers"
+    ],
+    "required_files": [
+      "vcf_files"
+    ]
+  }
+]

@@ -1,0 +1,179 @@
+{% extends "layout.html" %}
+{% block title %}Ingestion Workspace{% endblock %}
+
+{% block body %}
+<div class="flex w-full h-full overflow-hidden bg-blue-50">
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col gap-4">
+    <section class="rounded-2xl border border-blue-200 bg-gradient-to-r from-sky-50 via-white to-cyan-50 shadow-md p-5">
+      <h1 class="text-xl font-bold text-slate-800 mb-1">Ingestion Workspace</h1>
+      <p class="text-sm text-slate-600">
+        Load sample bundles and governed collection documents from one place. Upload controls below accept the contract-backed formats for each workflow.
+      </p>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow-md p-5 border border-slate-200">
+      <h2 class="text-lg font-semibold mb-2 text-slate-800">Sample Bundle Upload</h2>
+      <p class="text-xs text-gray-600 mb-4">
+        Upload one YAML manifest and the matching assay files. Only files expected by the selected ASP are used during ingest.
+      </p>
+      <form method="post" action="{{ url_for('admin_bp.ingest_sample_bundle_upload') }}" enctype="multipart/form-data" class="space-y-3">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <label class="block text-xs font-semibold mb-2">YAML File</label>
+            <label for="yaml_file" class="inline-flex items-center gap-2 rounded-lg border border-blue-300 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 cursor-pointer hover:bg-blue-100 transition">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-up-tray.svg') }}" class="h-5 w-5">
+              Choose sample YAML
+            </label>
+            <input id="yaml_file" type="file" name="yaml_file" accept=".yaml,.yml,text/yaml" required class="sr-only file-input-label" data-target-label="yaml_file_name">
+            <p id="yaml_file_name" class="mt-2 text-xs text-slate-500">Accepted: `.yaml`, `.yml`</p>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <label class="block text-xs font-semibold mb-2">Data Files</label>
+            <label for="data_files" class="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 cursor-pointer hover:bg-emerald-100 transition">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-up-tray.svg') }}" class="h-5 w-5">
+              Choose one or more assay files
+            </label>
+            <input id="data_files" type="file" name="data_files" multiple accept=".yaml,.yml,.json,.jsonl,.ndjson,.ndjson.gz,.json.gz,.gz,.vcf,.tsv,.csv,.txt,.png,.jpg,.jpeg,.pdf" class="sr-only file-input-label" data-target-label="data_files_name">
+            <p id="data_files_name" class="mt-2 text-xs text-slate-500">Accepted: analysis data, images, reports, `.json/.ndjson`, and gzipped variants.</p>
+          </div>
+        </div>
+        <div class="flex gap-4 text-xs">
+          <label class="inline-flex items-center gap-2">
+            <input type="checkbox" name="increment" checked>
+            Increment sample name if already present
+          </label>
+          <label class="inline-flex items-center gap-2">
+            <input type="checkbox" name="update_existing">
+            Update existing sample (requires edit permission)
+          </label>
+        </div>
+        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition">
+          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path.svg') }}" class="h-4 w-4">
+          Upload And Ingest
+        </button>
+      </form>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow-md p-5 border border-slate-200">
+      <h2 class="text-lg font-semibold mb-2 text-slate-800">Collection Data Operations</h2>
+      <p class="text-xs text-gray-600 mb-3">
+        Work directly with operational collections. Governance/config collections are handled in the upload section below.
+      </p>
+      <form method="post" action="{{ url_for('admin_bp.ingest_collection_document') }}" class="space-y-3 collection-operation-form">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold mb-1">Collection</label>
+            <select name="collection" required class="w-full text-xs border rounded p-2">
+              {% for collection in collections %}
+                <option value="{{ collection }}">{{ collection }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">Mode</label>
+            <select name="mode" class="w-full text-xs border rounded p-2 collection-mode">
+              <option value="insert">Insert One</option>
+              <option value="bulk">Bulk Insert</option>
+              <option value="upsert">Update Or Upsert</option>
+            </select>
+          </div>
+        </div>
+        <div class="match-json-block opacity-50">
+          <label class="block text-xs font-semibold mb-1">Match JSON</label>
+          <p class="text-[11px] text-slate-500 mb-1">Used only for update/upsert. Disabled for insert and bulk insert.</p>
+          <textarea name="match_json" rows="4" disabled class="w-full text-xs border rounded p-2 font-mono bg-slate-50" placeholder='{"aspc_id": "assay_1:production"}'></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1">Documents JSON</label>
+          <textarea name="documents_json" rows="12" required class="w-full text-xs border rounded p-2 font-mono" placeholder='{"example_key":"value"} or [{"doc":"1"},{"doc":"2"}]'></textarea>
+        </div>
+        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 transition">
+          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/play.svg') }}" class="h-4 w-4">
+          Run Collection Operation
+        </button>
+      </form>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow-md p-5 border border-slate-200">
+      <h2 class="text-lg font-semibold mb-2 text-slate-800">Governance And Config Uploads</h2>
+      <p class="text-xs text-gray-600 mb-3">
+        Upload governed documents for users, roles, permissions, ASP/ASPC, and ISGL. JSON, NDJSON, and `.ndjson.gz` are validated against API contracts before any write.
+      </p>
+      <form method="post" action="{{ url_for('admin_bp.ingest_collection_upload') }}" enctype="multipart/form-data" class="space-y-3 collection-operation-form">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold mb-1">Collection</label>
+            <select name="collection" required class="w-full text-xs border rounded p-2">
+              <option value="users">users</option>
+              <option value="roles">roles</option>
+              <option value="permissions">permissions</option>
+              <option value="asp_configs">asp_configs</option>
+              <option value="assay_specific_panels">assay_specific_panels</option>
+              <option value="insilico_genelists">insilico_genelists</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">Mode</label>
+            <select name="mode" class="w-full text-xs border rounded p-2 collection-mode">
+              <option value="insert">Insert One</option>
+              <option value="bulk">Bulk Insert</option>
+              <option value="upsert">Update Or Upsert</option>
+            </select>
+          </div>
+        </div>
+        <div class="match-json-block opacity-50">
+          <label class="block text-xs font-semibold mb-1">Match JSON</label>
+          <p class="text-[11px] text-slate-500 mb-1">Used only for update/upsert. Disabled for insert and bulk insert.</p>
+          <textarea name="match_json" rows="4" disabled class="w-full text-xs border rounded p-2 font-mono bg-slate-50" placeholder='{"_id":"example-id"}'></textarea>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <label class="block text-xs font-semibold mb-2">Documents File</label>
+          <label for="documents_file" class="inline-flex items-center gap-2 rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 cursor-pointer hover:bg-indigo-100 transition">
+            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-up-tray.svg') }}" class="h-5 w-5">
+            Choose config payload
+          </label>
+          <input id="documents_file" type="file" name="documents_file" accept=".json,.ndjson,.jsonl,.ndjson.gz,.json.gz,application/json,application/gzip,text/plain" required class="sr-only file-input-label" data-target-label="documents_file_name">
+          <p id="documents_file_name" class="mt-2 text-xs text-slate-500">Accepted: `.json`, `.ndjson`, `.jsonl`, `.ndjson.gz`, `.json.gz`</p>
+        </div>
+        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition">
+          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path.svg') }}" class="h-4 w-4">
+          Upload And Validate
+        </button>
+      </form>
+    </section>
+  </main>
+</div>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".file-input-label").forEach((input) => {
+      input.addEventListener("change", () => {
+        const targetId = input.dataset.targetLabel;
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        const files = Array.from(input.files || []);
+        target.textContent = files.length
+          ? files.map((file) => file.name).join(", ")
+          : target.textContent;
+      });
+    });
+
+    document.querySelectorAll(".collection-operation-form").forEach((form) => {
+      const modeSelect = form.querySelector(".collection-mode");
+      const matchBlock = form.querySelector(".match-json-block");
+      const matchInput = matchBlock?.querySelector("textarea[name='match_json']");
+      const syncMode = () => {
+        const needsMatch = (modeSelect?.value || "") === "upsert";
+        if (matchInput) {
+          matchInput.disabled = !needsMatch;
+          matchInput.classList.toggle("bg-slate-50", !needsMatch);
+        }
+        if (matchBlock) {
+          matchBlock.classList.toggle("opacity-50", !needsMatch);
+        }
+      };
+      modeSelect?.addEventListener("change", syncMode);
+      syncMode();
+    });
+  });
+</script>
+{% endblock %}

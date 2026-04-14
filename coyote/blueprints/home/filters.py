@@ -1,15 +1,3 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
-#  All rights reserved.
-#
-#  This source file is part of the Coyote3 codebase.
-#  The Coyote3 project provides a framework for genomic data analysis,
-#  interpretation, reporting, and clinical diagnostics.
-#
-#  Unauthorized use, distribution, or modification of this software or its
-#  components is strictly prohibited without prior written permission from
-#  the copyright holders.
-#
-
 """
 This module provides a collection of Jinja2 template filters for use in Flask-based
 web applications, specifically tailored for genomic data analysis, interpretation,
@@ -17,12 +5,34 @@ and clinical reporting. These filters enhance the presentation and usability of
 data in web templates.
 """
 
-from flask import current_app as app
-from coyote.extensions import store
-import os
 import math
-import markdown as md
-from markupsafe import Markup
+import os
+
+from flask import current_app as app
+from flask import g
+from jinja2 import Undefined
+
+from coyote.filters.shared import render_markdown_rich as shared_render_markdown_rich
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import (
+    ApiRequestError,
+    build_internal_headers,
+    get_web_api_client,
+)
+
+
+def _meta_value(meta: object, *keys: str, default=None):
+    """Return the first matching metadata value from dict- or object-shaped payloads."""
+    if isinstance(meta, dict):
+        for key in keys:
+            if key in meta:
+                return meta[key]
+        return default
+    for key in keys:
+        value = getattr(meta, key, None)
+        if value is not None:
+            return value
+    return default
 
 
 @app.template_filter()
@@ -54,7 +64,22 @@ def isgl_adhoc_status(isgl_id: str) -> str:
     Returns:
         bool: True if the ISGL is temporary, False otherwise.
     """
-    return store.isgl_handler.is_isgl_adhoc(isgl_id)
+    if not isgl_id:
+        return False
+    cache = getattr(g, "_isgl_meta_cache", None)
+    if cache is None:
+        cache = {}
+        g._isgl_meta_cache = cache
+    if isgl_id not in cache:
+        try:
+            cache[isgl_id] = get_web_api_client().get_json(
+                api_endpoints.internal("isgl", isgl_id, "meta"),
+                headers=build_internal_headers(),
+            )
+        except ApiRequestError:
+            return False
+    meta = cache[isgl_id]
+    return bool(_meta_value(meta, "is_adhoc", "adhoc", default=False))
 
 
 @app.template_filter()
@@ -67,11 +92,26 @@ def isgl_display_name(isgl_id: str) -> str:
     Returns:
         str: The display name of the ISGL.
     """
-    return store.isgl_handler.get_isgl_display_name(isgl_id)
+    if not isgl_id:
+        return ""
+    cache = getattr(g, "_isgl_meta_cache", None)
+    if cache is None:
+        cache = {}
+        g._isgl_meta_cache = cache
+    if isgl_id not in cache:
+        try:
+            cache[isgl_id] = get_web_api_client().get_json(
+                api_endpoints.internal("isgl", isgl_id, "meta"),
+                headers=build_internal_headers(),
+            )
+        except ApiRequestError:
+            return str(isgl_id)
+    meta = cache[isgl_id]
+    return str(_meta_value(meta, "display_name", "label", "name", default=isgl_id) or isgl_id)
 
 
 @app.template_filter()
-def human_filesize(file_path: str) -> str:
+def human_filesize(file_path: str | Undefined | None) -> str:
     """
     Convert a file size in bytes to a human-readable format.
 
@@ -80,6 +120,10 @@ def human_filesize(file_path: str) -> str:
     Returns:
         str: The file size in a human-readable format (e.g., '10.5 MB').
     """
+    if isinstance(file_path, Undefined):
+        return "Not Available"
+    if not file_path:
+        return "Not Available"
     if not os.path.isfile(file_path):
         return "Not Available"
     size_bytes = os.path.getsize(file_path)
@@ -104,7 +148,4 @@ def render_markdown(text: str) -> str:
         markupsafe.Markup: HTML-safe output produced with the 'extra', 'tables',
         and 'sane_lists' extensions enabled.
     """
-    if not text:
-        return ""
-    html = md.markdown(text, extensions=["extra", "tables", "sane_lists"])
-    return Markup(html)
+    return shared_render_markdown_rich(text)

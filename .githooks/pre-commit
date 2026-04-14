@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+cd "$ROOT_DIR"
+
+if [[ -n "${PYTHON_BIN:-}" ]]; then
+  PYTHON_CMD="$PYTHON_BIN"
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON_CMD="$(command -v python3)"
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_CMD="$(command -v python)"
+else
+  echo "[pre-commit] python is required but was not found in PATH." >&2
+  exit 1
+fi
+
+if ! "$PYTHON_CMD" -m pre_commit --version >/dev/null 2>&1; then
+  cat >&2 <<'EOF'
+[pre-commit] Python module "pre_commit" is not installed.
+Run:
+  python -m pip install -r requirements.txt
+Then retry commit.
+EOF
+  exit 1
+fi
+
+exec "$PYTHON_CMD" -m pre_commit run --hook-stage pre-commit

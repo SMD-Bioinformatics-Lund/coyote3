@@ -10,17 +10,15 @@
 
           <div class="flex flex-row justify-between items-center gap-4 px-2 py-2">
             <h2 class="text-base font-semibold text-black tracking-wide uppercase">Manage Assay Configs</h2>
-            <div class="relative w-64">
-              <input type="text" id="search-assay" placeholder="Search assays configurations"
-                class="w-full border border-gray-300 rounded-lg py-2 pl-4 pr-10 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3">
-                <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="search"
-                  class="h-5 w-5 text-gray-500 cursor-pointer" onclick="document.getElementById('search-assay').focus()">
-              </div>
-            </div>
+            <form method="get" action="{{ url_for('admin_bp.assay_configs') }}" class="flex items-center gap-2">
+              <input type="text" name="q" value="{{ q or '' }}" placeholder="Search assays configurations"
+                class="w-64 border border-gray-300 rounded-lg py-2 px-3 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              <input type="hidden" name="per_page" value="{{ per_page }}">
+              <button type="submit" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">Search</button>
+            </form>
           </div>
 
-          <div class="overflow-x-auto rounded-2xl  relative pagination" id="assay-config-list" data-rows-per-page="20">
+          <div class="overflow-x-auto rounded-2xl relative">
             <table id="assay-config-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
               <thead class="rounded-t-2xl overflow-hidden border-gray-800">
                 <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
@@ -30,7 +28,6 @@
                   <th class="p-2 font-normal">Group</th>
                   <th class="p-2 font-normal">Category</th>
                   <th class="p-2 font-normal">Platform</th>
-                  <th class="p-2 font-normal">Schema Name</th>
                   <th class="p-2 font-normal">Created</th>
                   <th class="p-2 font-normal">Updated</th>
                   <th class="p-2 font-normal">Current Version</th>
@@ -40,6 +37,7 @@
               </thead>
               <tbody id="assay-config-list-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
                 {% for assay in assay_configs %}
+                {% set assay_ref = assay.aspc_id or assay._id %}
                 <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
                   <td class="p-2 font-medium">{{ assay.assay_name }}</td>
                   <td class="p-2 font-medium">{{ assay.display_name }}</td>
@@ -55,7 +53,6 @@
                     </span>
                   </td>
                   <td class="p-2 font-medium">{{ assay.platform }}</td>
-                  <td class="p-2 font-medium">{{ assay.schema_name }} - v{{ assay.schema_version|int }}</td>
                   <td class="p-2 font-medium">
                     <span class="block">{{ assay.created_by }}</span>
                     <span class="text-gray-500 font-thin"><small>{{ assay.created_on | human_date }}</small></span>
@@ -73,16 +70,16 @@
                     {% endif %}
                   </td>
                   <td class="p-2 font-medium flex gap-2 flex-wrap">
-                    <a href="{{ url_for('admin_bp.view_assay_config', assay_id=assay._id) }}"
+                    <a href="{{ url_for('admin_bp.view_assay_config', assay_id=assay_ref) }}"
                       title="View"
                       class="font-medium text-gray-700 hover:text-blue-600">
                       <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
                     </a>
-                    {% if has_access("edit_assay_config", min_role="manager", min_level=99) %}
+                    {% if has_access("assay.config:edit", min_role="manager", min_level=99) %}
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.edit_assay_config', assay_id=assay._id) }}',
+                          url: '{{ url_for('admin_bp.edit_assay_config', assay_id=assay_ref) }}',
                           title: 'Edit assay configuration',
-                          message: 'Are you sure you want to edit <b>{{ assay._id }} </b> assay configuration?',
+                          message: 'Are you sure you want to edit <b>{{ assay_ref }} </b> assay configuration?',
                           confirmText: 'Edit',
                           confirmColor: 'blue'
                         })"
@@ -91,9 +88,9 @@
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
                       </button>
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.toggle_assay_config_active', assay_id=assay._id) }}',
-                          title: '{{ 'Deactivate' if assay.is_active else 'Activate' }} Schema',
-                          message: 'Are you sure you want to {{ 'deactivate' if assay.is_active else 'activate' }} <b>{{ assay._id }}</b>?',
+                          url: '{{ url_for('admin_bp.toggle_assay_config_active', assay_id=assay_ref) }}',
+                          title: '{{ 'Deactivate' if assay.is_active else 'Activate' }} Configuration',
+                          message: 'Are you sure you want to {{ 'deactivate' if assay.is_active else 'activate' }} <b>{{ assay_ref }}</b>?',
                           confirmText: '{{ 'Deactivate' if assay.is_active else 'Activate' }}',
                           confirmColor: '{{ 'red' if assay.is_active else 'green' }}'
                         })"
@@ -102,11 +99,11 @@
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
                       </button>
                     {% endif %}
-                    {% if has_access("delete_assay_config", min_role="admin", min_level=99999) %}
+                    {% if has_access("assay.config:delete", min_role="admin", min_level=99999) %}
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.delete_assay_config', assay_id=assay._id) }}',
+                          url: '{{ url_for('admin_bp.delete_assay_config', assay_id=assay_ref) }}',
                           title: 'Delete Assay',
-                          message: 'Are you sure you want to delete <b>{{ assay._id }}</b> assay configuration?',
+                          message: 'Are you sure you want to delete <b>{{ assay_ref }}</b> assay configuration?',
                           confirmText: 'Delete',
                           confirmColor: 'red'
                         })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">
@@ -117,50 +114,29 @@
                 </tr>
                 {% else %}
                   <tr class="border-b border-gray-300">
-                    <td colspan="9" class="p-2 font-medium text-center">No assays found.</td>
+                    <td colspan="11" class="p-2 font-medium text-center">No assays found.</td>
                   </tr>
                 {% endfor %}
               </tbody>
             </table>
+          </div>
+          <div class="mt-3 flex items-center justify-end gap-2 text-xs">
+            <span class="text-gray-600">Total: {{ total }}</span>
+            {% if page > 1 %}
+              <a class="px-2 py-1 rounded border border-gray-300 bg-white" href="{{ url_for('admin_bp.assay_configs', q=q, page=page-1, per_page=per_page) }}">Prev</a>
+            {% else %}
+              <span class="px-2 py-1 rounded border border-gray-200 text-gray-400">Prev</span>
+            {% endif %}
+            <span class="px-2 py-1 rounded border border-gray-300 bg-gray-50">Page {{ page }}</span>
+            {% if has_next %}
+              <a class="px-2 py-1 rounded border border-gray-300 bg-white" href="{{ url_for('admin_bp.assay_configs', q=q, page=page+1, per_page=per_page) }}">Next</a>
+            {% else %}
+              <span class="px-2 py-1 rounded border border-gray-200 text-gray-400">Next</span>
+            {% endif %}
           </div>
         </div>
       </div>
     </section>
   </main>
 </div>
-
-
-<script>
-
-  const input = document.getElementById('search-assay');
-  const body = document.getElementById('assay-config-list-body');
-  const container = document.getElementById('assay-config-list');
-  const rowsPerPage = parseInt(container.dataset.rowsPerPage) || 20;
-  const originalRows = [...body.querySelectorAll('tr')].map(r => r.cloneNode(true));
-  const id = body.id;
-
-  input.addEventListener('input', () => {
-    const term = input.value.toLowerCase().trim();
-
-    // Remove any existing pagination controls
-    container.querySelectorAll('[data-prev], [data-next], [data-page-info]').forEach(el => el.parentElement?.remove());
-
-    // Filter rows or reset
-    const filtered = term
-      ? originalRows.filter(row =>
-          [...row.querySelectorAll('td')].slice(0, 4).some(td =>
-            td.textContent.toLowerCase().includes(term)
-          )
-        )
-      : originalRows;
-
-    // Replace table body with filtered or full rows
-    body.innerHTML = '';
-    filtered.forEach(row => body.appendChild(row));
-
-    // Trigger pagination if needed
-    filtered.length > rowsPerPage ? initializePagination() : displayPage(1, id, rowsPerPage);
-  });
-</script>
 {% endblock %}
-

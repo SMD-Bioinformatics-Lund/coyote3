@@ -4,96 +4,189 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Coyote3"
-version = "1.0.0"
+version = "4.0.0"
+requires-python = ">=3.12"
+readme = "README.md"
+license = {file = "LICENSE.txt"}
 description = "A Bioinformatics Interpretation and Analysis Tool built for Section for Molecular Diagnostics, Region Skåne, Lund, Sweden"
+authors = [
+    {name = "Coyote3 Authors"},
+]
+keywords = [
+    "bioinformatics",
+    "clinical-genomics",
+    "molecular-diagnostics",
+    "flask",
+    "fastapi",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Healthcare Industry",
+    "Intended Audience :: Science/Research",
+    "License :: Other/Proprietary License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: Flask",
+    "Framework :: FastAPI",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
 dependencies = [
-    "arrow==1.3.0",
-    "Brotli==1.1.0",
-    "black==24.4.2",
-    "colorlog==6.8.2",
-    "cffi==1.17.1",
-    "click==8.1.7",
-    "cryptography==44.0.3",
-    "cssselect2==0.7.0",
-    "dnspython==2.6.1",
-    "email_validator==2.2.0",
-    "filelock==3.15.4",
-    "flake8==7.1.0",
-    "Flask==3.0.3",
+    "arrow==1.4.0",
+    "bleach==6.3.0",
+    "Brotli==1.2.0",
+    "colorlog==6.10.1",
+    "cffi==2.0.0",
+    "click==8.3.2",
+    "cryptography==46.0.7",
+    "cssselect2==0.9.0",
+    "dnspython==2.8.0",
+    "email_validator==2.3.0",
+    "filelock==3.25.2",
+    "Flask==3.1.3",
     "Flask-Caching==2.3.1",
-    "Flask-Cors==6.0.0",
+    "Flask-Cors==6.0.2",
     "Flask-LDAPConn==0.10.2",
     "Flask-Login==0.6.3",
-    "Flask-PyMongo==2.3.0",
-    "flask_weasyprint==1.1.0",
-    "Flask-WTF==1.2.1",
+    "Flask-PyMongo==3.0.1",
+    "flask_weasyprint==1.2.0",
+    "Flask-WTF==1.2.2",
     "flash==1.0.3",
-    "fonttools==4.54.1",
-    "json5==0.10.0",
-    "gunicorn==23.0.0",
+    "fonttools==4.62.1",
+    "json5==0.14.0",
+    "gunicorn==25.3.0",
     "ldap3==2.9.1",
-    "isort==5.13.2",
     "itsdangerous==2.2.0",
     "Jinja2==3.1.6",
-    "ldap3==2.9.1",
-    "Markdown==3.6",
-    "MarkupSafe==2.1.5",
-    "mccabe==0.7.0",
-    "mongomock==4.1.2",
-    "mypy==1.11.0",
-    "mypy-extensions==1.0.0",
-    "pillow==10.4.0",
-    "pre-commit==3.7.1",
-    "pydantic==2.11.1",
-    "pydantic_core==2.33.0",
-    "pydyf==0.11.0",
-    "pyflakes==3.2.0",
-    "pymongo==3.13.0",
-    "pytest==8.3.2",
-    "pytest-mock==3.14.0",
+    "Markdown==3.10.2",
+    "MarkupSafe==3.0.3",
+    "pillow==12.2.0",
+    "pydantic==2.13.0",
+    "pydantic_core==2.46.0",
+    "fastapi==0.135.3",
+    "python-multipart==0.0.26",
+    "uvicorn==0.44.0",
+    "httpx==0.28.1",
+    "pydyf==0.12.1",
+    "pymongo==4.16.0",
+    "pysam==0.23.3",
     "python-dateutil==2.9.0.post0",
-    "redis==5.2.1",
-    "pytz==2024.1",
-    "PyYAML==6.0.1",
-    "sentinels==1.0.0",
-    "six==1.16.0",
-    "tinycss2==1.4.0",
-    "tinyhtml5==2.0.0",
+    "python-dotenv==1.2.2",
+    "redis==7.4.0",
+    "pytz==2026.1.post1",
+    "PyYAML==6.0.3",
+    "rich-click==1.9.7",
+    "sentinels==1.1.1",
+    "six==1.17.0",
+    "tinycss2==1.5.1",
+    "tinyhtml5==2.1.0",
     "toml==0.10.2",
-    "types-python-dateutil==2.9.0.20240316",
-    "typing_extensions==4.12.2",
-    "weasyprint==63.0",
+    "types-python-dateutil==2.9.0.20260408",
+    "typing_extensions==4.15.0",
+    "weasyprint==68.1",
     "webencodings==0.5.1",
-    "Werkzeug==3.0.6",
-    "WTForms==3.1.2",
-    "rich-click==1.8.4"
+    "Werkzeug==3.1.8",
+    "WTForms==3.2.1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
+Repository = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
+Documentation = "https://smd-bioinformatics-lund.github.io/coyote3"
+"Bug Tracker" = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues"
+
+[project.optional-dependencies]
+dev = [
+    "mypy==1.20.1",
+    "mypy-extensions==1.1.0",
+    "pre-commit==4.5.1",
+    "shellcheck-py==0.11.0.1",
+    "black==26.3.1",
+    "ruff==0.15.10",
+]
+test = [
+    "pytest==9.0.3",
+    "pytest-mock==3.15.1",
+    "pytest-cov==7.1.0",
+    "pytest-asyncio==1.3.0",
+    "coverage==7.13.5",
+    "mongomock==4.3.0",
+]
+docs = [
+    "mkdocs",
+    "mkdocs-readthedocs",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "D", "TID"]
+# D1xx: missing docstrings — not enforced yet (too many to add at once; future work)
+# D203/D213: conflict with Google style (D211/D212 selected by convention)
+# D400/D401/D415: first-line punctuation — too noisy for existing codebase
+ignore = [
+    "E501",
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D107",
+    "D200",
+    "D202",
+    "D203",
+    "D205",
+    "D212",
+    "D213",
+    "D400",
+    "D401",
+    "D403",
+    "D410",
+    "D411",
+    "D415",
+    "D416",
+    "D417",
+    "D419",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"api" = { msg = "UI/runtime-adjacent code must not import backend api.* modules directly; use the HTTP client boundary instead." }
+"pymongo" = { msg = "Mongo driver imports are restricted to infra/common/script layers; keep UI and higher-level runtime code storage-agnostic." }
+"bson" = { msg = "Mongo BSON helpers are restricted to infra/common/script layers; use owned helper seams outside those layers." }
+"motor" = { msg = "Mongo driver imports are restricted to infra/common/script layers; keep UI and higher-level runtime code storage-agnostic." }
+"flask_pymongo" = { msg = "UI and runtime code must not talk to Mongo through Flask-PyMongo; use backend HTTP or infra handler seams instead." }
+
+[tool.ruff.lint.per-file-ignores]
+"api/**/*.py" = ["TID251"]
+"scripts/**/*.py" = ["TID251"]
+"tests/**/*.py" = ["TID251"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
 
 [tool.black]
 line-length = 100
-target-version = ['py312']
-skip-string-normalization = false
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
+target-version = ["py312"]
 
+[tool.setuptools]
+include-package-data = true
 
+[tool.setuptools.packages.find]
+include = ["api*", "coyote*", "shared*"]
 
-[tool.flake8]
-max-line-length = 100
-exclude = ".git,__pycache__,build,dist"
-
-[tool.isort]
-profile = "black"
+[tool.setuptools.package-data]
+coyote = ["templates/**/*.html", "static/**/*"]

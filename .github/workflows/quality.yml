@@ -1,0 +1,42 @@
+name: quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    env:
+      TESTING: "1"
+      DEVELOPMENT: "0"
+      COYOTE3_FERNET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      SECRET_KEY: ci-test-secret-key
+      INTERNAL_API_TOKEN: ci-test-internal-token
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "requirements.txt"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Ruff check
+        run: PYTHONPATH=. ruff check api coyote tests scripts
+
+      - name: Ruff format check
+        run: PYTHONPATH=. ruff format --check api coyote tests scripts
+
+      - name: Full test suite
+        run: PYTHONPATH=. pytest -q

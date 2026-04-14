@@ -1,0 +1,16 @@
+[
+  {
+    "id": "BRCA_DEMO_1",
+    "chr": "17",
+    "pos": 43071077,
+    "ref": "A",
+    "alt": "G",
+    "chr38": "17",
+    "pos38": 43071077,
+    "ref38": "A",
+    "alt38": "G",
+    "enigma_clinsig": "Likely_pathogenic",
+    "enigma_clinsig_refs": "PMID:12345678",
+    "enigma_clinsig_comment": "Demo seed clinical significance"
+  }
+]

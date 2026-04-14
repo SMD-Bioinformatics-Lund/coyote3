@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="320" viewBox="0 0 980 320" role="img" aria-labelledby="title desc">
+  <title id="title">Coyote3 Runtime Topology</title>
+  <desc id="desc">Flow from browser to Flask UI to FastAPI and then MongoDB and Redis.</desc>
+  <defs>
+    <style>
+      .canvas { fill: #f8fafc; }
+      .title-band { fill: #e2e8f0; }
+      .title { font: 700 22px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .label { font: 700 15px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .sub { font: 12px 'Segoe UI', Arial, sans-serif; fill: #334155; }
+      .box { stroke: #334155; stroke-width: 1.8; rx: 12; ry: 12; }
+      .arrow { stroke: #334155; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0,0 10,4 0,8" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="320" class="canvas"/>
+  <rect x="20" y="16" width="940" height="36" rx="10" class="title-band"/>
+  <text x="40" y="40" class="title">Coyote3 Runtime Topology</text>
+
+  <rect x="40" y="96" width="180" height="74" class="box" fill="#dbeafe"/>
+  <text x="130" y="123" text-anchor="middle" class="label">User Browser</text>
+  <text x="130" y="142" text-anchor="middle" class="sub">UI interactions</text>
+
+  <rect x="290" y="96" width="220" height="74" class="box" fill="#e0f2fe"/>
+  <text x="400" y="123" text-anchor="middle" class="label">Flask UI (`coyote`)</text>
+  <text x="400" y="142" text-anchor="middle" class="sub">Routes and templates</text>
+
+  <rect x="580" y="96" width="230" height="74" class="box" fill="#dcfce7"/>
+  <text x="695" y="123" text-anchor="middle" class="label">FastAPI (`api`)</text>
+  <text x="695" y="142" text-anchor="middle" class="sub">Contracts and logic</text>
+
+  <rect x="560" y="222" width="170" height="70" class="box" fill="#fef3c7"/>
+  <text x="645" y="248" text-anchor="middle" class="label">MongoDB</text>
+  <text x="645" y="267" text-anchor="middle" class="sub">Persistent data</text>
+
+  <rect x="780" y="222" width="150" height="70" class="box" fill="#fbcfe8"/>
+  <text x="855" y="248" text-anchor="middle" class="label">Redis</text>
+  <text x="855" y="267" text-anchor="middle" class="sub">Cache/session</text>
+
+  <path d="M220 133 L290 133" class="arrow"/>
+  <path d="M510 133 L580 133" class="arrow"/>
+  <path d="M695 170 L645 222" class="arrow"/>
+  <path d="M730 170 L840 222" class="arrow"/>
+</svg>

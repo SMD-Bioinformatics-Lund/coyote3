@@ -1,5 +1,7 @@
 {# coyote/blueprints/common/templates/tiered_variant_info.html #}
 {% extends "layout.html" %}
+{% from "macros/actions.html" import link_button %}
+{% from "macros/badges.html" import meta_chip, status_badge, tier_badge %}
 {% block title %}Reported Variant – Tier {{ tier }}{% endblock %}
 
 {% block body %}
@@ -18,24 +20,16 @@
                 {{ variant.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL", "Unknown") }}
               </span>
 
-              <span class="inline-flex items-center px-3 py-1 rounded-full bg-tier{{tier}} text-white text-sm shadow-md">
-                Tier {{ tier }}
-              </span>
+              {{ tier_badge(tier, label='Tier ' ~ tier, extra_classes='text-sm') }}
 
               {% if variant.get("fp") %}
-                <span class="inline-flex items-center px-3 py-1 rounded-full bg-orange-100 text-orange-900 border border-orange-200 text-sm">
-                  FP
-                </span>
+                {{ status_badge('FP', tone='orange') }}
               {% endif %}
               {% if variant.get("interesting") %}
-                <span class="inline-flex items-center px-3 py-1 rounded-full bg-teal-100 text-teal-900 border border-teal-200 text-sm">
-                  Interesting
-                </span>
+                {{ status_badge('Interesting', tone='teal') }}
               {% endif %}
               {% if variant.get("irrelevant") %}
-                <span class="inline-flex items-center px-3 py-1 rounded-full bg-gray-200 text-gray-900 border border-gray-200 text-sm">
-                  Irrelevant
-                </span>
+                {{ status_badge('Irrelevant', tone='gray') }}
               {% endif %}
             </h1>
 
@@ -43,38 +37,24 @@
               {% set csq = variant.get("INFO", {}).get("selected_CSQ", {}) or {} %}
               <div class="flex flex-wrap gap-2">
                 {% if variant.get("simple_id") %}
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-200 border border-gray-200 text-xs">
-                    simple_id: <span class="ml-1 font-semibold">{{ variant.simple_id }}</span>
-                  </span>
+                  {{ meta_chip('simple_id', variant.simple_id) }}
                 {% endif %}
                 {% if variant.get("simple_id_hash") %}
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-200 border border-gray-200 text-xs">
-                    hash: <span class="ml-1 font-semibold">{{ variant.simple_id_hash }}</span>
-                  </span>
+                  {{ meta_chip('hash', variant.simple_id_hash) }}
                 {% endif %}
                 {% if csq.get("HGVSc") %}
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-200 border border-gray-200 text-xs">
-                    HGVSc: <span class="ml-1 font-semibold">{{ csq.HGVSc }}</span>
-                  </span>
+                  {{ meta_chip('HGVSc', csq.HGVSc) }}
                 {% endif %}
                 {% if csq.get("HGVSp") %}
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-200 border border-gray-200 text-xs">
-                    HGVSp: <span class="ml-1 font-semibold">{{ csq.HGVSp }}</span>
-                  </span>
+                  {{ meta_chip('HGVSp', csq.HGVSp) }}
                 {% endif %}
               </div>
             </div>
           </div>
 
           <div class="shrink-0 flex items-center gap-2">
-            <a href="{{ url_for('home_bp.edit_sample', sample_id=variant.get('SAMPLE_ID', '')) }}"
-               class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200 text-sm shadow">
-              Edit Sample
-            </a>
-            <a href="{{ url_for('dna_bp.list_variants', sample_id=variant.get('SAMPLE_ID', '')) }}"
-                class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200 text-sm shadow">
-              Analysis
-            </a>
+            {{ link_button('Edit Sample', url_for('home_bp.edit_sample', sample_id=variant.get('SAMPLE_ID', ''))) }}
+            {{ link_button('Analysis', url_for('dna_bp.list_dna_findings', sample_id=variant.get('SAMPLE_ID', ''))) }}
           </div>
         </div>
       </div>
@@ -167,7 +147,7 @@
                       <td class="px-3 py-2">
                         <div class="font-semibold text-gray-900 flex items-center gap-2">
                           {% if d.get('sample', {}).get('sample_name') %}
-                            <a href="{{ url_for('dna_bp.list_variants', sample_id=d.get('sample', {}).get('sample_name')) }}" class="font-semibold text-blue-500 hover:underline">
+                            <a href="{{ url_for('dna_bp.list_dna_findings', sample_id=d.get('sample', {}).get('sample_name')) }}" class="font-semibold text-blue-500 hover:underline">
                               {{ d.get('sample', {}).get('sample_name') }}
                             </a>
                           {% else %}
@@ -280,7 +260,7 @@
                       <td class="px-3 py-2">
                         <div class="flex items-center gap-2">
                           {% if d.sample_name %}
-                            <a href="{{ url_for('dna_bp.list_variants', sample_id=d.sample_name) }}"
+                            <a href="{{ url_for('dna_bp.list_dna_findings', sample_id=d.sample_name) }}"
                               title="View"
                               class="font-medium text-gray-700 hover:text-blue-600">
                               <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">

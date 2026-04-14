@@ -1,0 +1,32 @@
+[
+  {
+    "email": "demo@example.org",
+    "username": "demo@example.org",
+    "firstname": "Demo",
+    "lastname": "User",
+    "fullname": "Demo User",
+    "job_title": "Clinical Scientist",
+    "auth_type": "coyote3",
+    "must_change_password": false,
+    "roles": [
+      "admin"
+    ],
+    "is_active": true,
+    "environments": [
+      "production",
+      "development",
+      "testing",
+      "validation"
+    ],
+    "assays": [
+      "assay_1"
+    ],
+    "assay_groups": [
+      "hematology"
+    ],
+    "permissions": [
+      "sample:edit:own"
+    ],
+    "deny_permissions": []
+  }
+]

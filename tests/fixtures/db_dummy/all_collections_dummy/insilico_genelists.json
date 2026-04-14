@@ -1,0 +1,36 @@
+[
+  {
+    "isgl_id": "hematology_myeloid",
+    "diagnosis": [
+      "hematology_myeloid"
+    ],
+    "name": "List A",
+    "displayname": "List A",
+    "list_type": [
+      "small_variant_genelist",
+      "cnv_genelist",
+      "fusion_genelist"
+    ],
+    "adhoc": false,
+    "is_public": true,
+    "is_active": true,
+    "assay_groups": [
+      "hematology"
+    ],
+    "genes": [
+      "UBA1",
+      "APOB",
+      "EGFR",
+      "PHIP",
+      "ASXL2",
+      "ASXL1",
+      "FLT3",
+      "KMT2D",
+      "GNB1",
+      "TP53"
+    ],
+    "assays": [
+      "assay_1"
+    ]
+  }
+]

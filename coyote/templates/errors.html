@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+{% block title %}{{ status_code or "Error" }}{% endblock %}
+
+{% block body %}
+<div class="container mx-auto px-4 py-10">
+    <div class="mx-auto max-w-3xl rounded-2xl border border-red-200 bg-white p-8 shadow-sm">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-wide text-red-700">Request Failed</p>
+                <h1 class="text-3xl font-semibold text-slate-900">{{ status_code or "Error" }}</h1>
+            </div>
+            <div class="rounded-full bg-red-50 px-4 py-2 text-sm font-medium text-red-700">
+                {{ error or "Unexpected error" }}
+            </div>
+        </div>
+        <div class="space-y-4 text-slate-700">
+            {% if details %}
+                <p class="whitespace-pre-line">{{ details }}</p>
+            {% else %}
+                <p>The request could not be completed.</p>
+            {% endif %}
+            {% if request_id %}
+                <p class="text-sm text-slate-500">Request ID: <span class="font-mono">{{ request_id }}</span></p>
+            {% endif %}
+        </div>
+        <div class="mt-8 flex flex-wrap gap-3">
+            <a href="{{ url_for('home_bp.samples_home') }}" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Go to Samples</a>
+            <a href="{{ url_for('dashboard_bp.dashboard') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Go to Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

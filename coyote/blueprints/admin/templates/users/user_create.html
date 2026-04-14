@@ -13,14 +13,6 @@
             <img src="{{ url_for('static', filename='icons/heroicons_outline_24/user-plus.svg') }}" class="h-6 w-6">
             Create New User
           </h1>
-          <form method="GET" action="{{ url_for('admin_bp.create_user') }}">
-            <label class="text-sm font-semibold text-gray-800">Schema:</label>
-            <select name="schema_id" onchange="this.form.submit()" class="text-sm border border-gray-300 rounded-md shadow-sm px-2 py-1 bg-gray-50">
-              {% for s in schemas %}
-                <option value="{{ s._id }}" {% if s._id == selected_schema._id %}selected{% endif %}>{{ s._id }} (v{{ s.version }})</option>
-              {% endfor %}
-            </select>
-          </form>
         </div>
 
         <form method="POST" id="userForm" class="space-y-6 text-sm text-gray-700">
@@ -112,9 +104,14 @@
                     </select>
                   </div>
                 {% elif field.display_type == "checkbox" %}
-                  <div class="flex items-center space-x-2">
-                    <input type="checkbox" name="{{ key }}" value="true" {% if value %}checked{% endif %} class="accent-blue-600 rounded">
-                    <label class="text-xs font-semibold">{{ field.label }}</label>
+                  <div class="flex flex-col gap-1">
+                    <label class="inline-flex items-center space-x-2">
+                      <input type="checkbox" name="{{ key }}" value="true" {% if value %}checked{% endif %} class="accent-blue-600 rounded">
+                      <span class="text-xs font-semibold">{{ field.label }}</span>
+                    </label>
+                    {% if key == "must_change_password" %}
+                      <p class="text-[11px] text-gray-500">If checked, the user must set a new password on first successful sign-in or invite-link use.</p>
+                    {% endif %}
                   </div>
                 {% elif field.display_type == "password" %}
                   <div id="password-wrapper" class="col-span-full flex flex-col">
@@ -129,7 +126,10 @@
                     <input type="text" name="{{ key }}" id="{{ key }}" placeholder="{{ field.placeholder }}" value="{{ value }}"
                       {% if is_readonly %}readonly class="w-full bg-blue-50 border border-blue-300 text-gray-500 rounded-md p-2 text-sm"{% else %}
                       class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm"{% endif %}>
-                    {% if key == "username" %}<p id="username_check" class="text-xs mt-1"></p>{% endif %}
+                    {% if key == "username" %}
+                      <p class="text-[11px] mt-1 text-gray-500">Editable during creation only. Letters are normalized to an ASCII login id.</p>
+                      <p id="username_check" class="text-xs mt-1"></p>
+                    {% endif %}
                     {% if key == "email" %}<p id="email_check" class="text-xs mt-1"></p>{% endif %}
                   </div>
                 {% endif %}
@@ -168,6 +168,21 @@
     const passwordMsg = document.getElementById("password_match_msg");
     const authSource = document.querySelector('[name="auth_type"]');
     const passwordWrapper = document.getElementById("password-wrapper");
+    let usernameExists = false;
+    let emailExists = false;
+    let usernamePending = false;
+    let emailPending = false;
+    let permissionConflict = false;
+
+    function slugifyUsernamePart(value) {
+      const ascii = (value || "")
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^A-Za-z0-9._-]+/g, ".")
+        .replace(/[._-]{2,}/g, ".")
+        .replace(/^[._-]+|[._-]+$/g, "");
+      return ascii.toLowerCase();
+    }
 
     /* --------------------------------------------------------------------
      * 1. AUTO FULLNAME + USERNAME
@@ -178,9 +193,10 @@
       const full = `${f} ${l}`.trim();
 
       let user = "";
-      if (f && l) user = `${f}.${l}`.toLowerCase();
-      else if (f) user = f.toLowerCase();
-      else if (l) user = l.toLowerCase();
+      if (f && l) user = `${slugifyUsernamePart(f)}.${slugifyUsernamePart(l)}`;
+      else if (f) user = slugifyUsernamePart(f);
+      else if (l) user = slugifyUsernamePart(l);
+      user = user.replace(/[._-]{2,}/g, ".").replace(/^[._-]+|[._-]+$/g, "");
 
       if (fullname) fullname.value = full;
       if (username) {
@@ -199,15 +215,21 @@
       const msg = document.getElementById("username_check");
       if (!msg) return;
 
-      const res = await fetch("{{ url_for('admin_bp.validate_username') }}", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: value })
-      });
-
-      const data = await res.json();
-      msg.textContent = data.exists ? "❌ Username already exists." : "✅ Username available.";
-      msg.className = data.exists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+      usernamePending = true;
+      try {
+        const res = await fetch("{{ url_for('admin_bp.validate_username') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: value })
+        });
+        const data = await res.json();
+        usernameExists = !!data.exists;
+        msg.textContent = usernameExists ? "Username already exists." : "Username available.";
+        msg.className = usernameExists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+      } finally {
+        usernamePending = false;
+        syncSaveButtonState();
+      }
     }
 
     async function checkEmail() {
@@ -217,20 +239,28 @@
 
       const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
       if (!isEmail) {
+        emailExists = true;
         msg.textContent = "❌ Invalid email format.";
         msg.className = "text-xs mt-1 text-red-500";
+        syncSaveButtonState();
         return;
       }
 
-      const res = await fetch("{{ url_for('admin_bp.validate_email') }}", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: val })
-      });
-
-      const data = await res.json();
-      msg.textContent = data.exists ? "❌ Email already in use." : "✅ Email available.";
-      msg.className = data.exists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+      emailPending = true;
+      try {
+        const res = await fetch("{{ url_for('admin_bp.validate_email') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: val })
+        });
+        const data = await res.json();
+        emailExists = !!data.exists;
+        msg.textContent = emailExists ? "Email already in use." : "Email available.";
+        msg.className = emailExists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+      } finally {
+        emailPending = false;
+        syncSaveButtonState();
+      }
     }
 
     /* --------------------------------------------------------------------
@@ -364,7 +394,7 @@
     /* --------------------------------------------------------------------
      * 5. ROLE → PERMISSIONS + CONFLICT WARNINGS
      * -------------------------------------------------------------------- */
-    const roleSelect = document.getElementById("role");
+    const roleCheckboxes = document.querySelectorAll('input[name="roles"]');
     const permissionCheckboxes = document.querySelectorAll('input[name="permissions"]');
     const denyPermissionCheckboxes = document.querySelectorAll('input[name="deny_permissions"]');
 
@@ -375,12 +405,26 @@
     conflictWarning.innerHTML = "⚠️ Cannot save: A permission is both ALLOWED and DENIED.";
     document.getElementById("userForm").prepend(conflictWarning);
 
-    function updatePermissionsFromRole(rid) {
-      const role = roleMap[rid];
-      if (!role) return;
+    function selectedRoleIds() {
+      return Array.from(roleCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    }
 
-      permissionCheckboxes.forEach(cb => cb.checked = role.permissions.includes(cb.value));
-      denyPermissionCheckboxes.forEach(cb => cb.checked = role.deny_permissions.includes(cb.value));
+    function rolePolicy(roleIds) {
+      const policy = { permissions: new Set(), deny_permissions: new Set() };
+      roleIds.forEach(rid => {
+        const role = roleMap[rid];
+        if (!role) return;
+        (role.permissions || []).forEach(permissionId => policy.permissions.add(permissionId));
+        (role.deny_permissions || []).forEach(permissionId => policy.deny_permissions.add(permissionId));
+      });
+      return policy;
+    }
+
+    function updatePermissionsFromRoles() {
+      const policy = rolePolicy(selectedRoleIds());
+
+      permissionCheckboxes.forEach(cb => cb.checked = policy.permissions.has(cb.value));
+      denyPermissionCheckboxes.forEach(cb => cb.checked = policy.deny_permissions.has(cb.value));
 
       highlightConflicts();
     }
@@ -408,18 +452,37 @@
 
       if (hasConflict) {
         conflictWarning.classList.remove("hidden");
-        saveBtn.disabled = true;
+        permissionConflict = true;
       } else {
         conflictWarning.classList.add("hidden");
-        saveBtn.disabled = false;
+        permissionConflict = false;
       }
+      syncSaveButtonState();
+    }
+
+    function syncSaveButtonState() {
+      if (!saveBtn) return;
+      saveBtn.disabled = !!(
+        permissionConflict ||
+        usernameExists ||
+        emailExists ||
+        usernamePending ||
+        emailPending
+      );
     }
 
     permissionCheckboxes.forEach(cb => cb.addEventListener("change", highlightConflicts));
     denyPermissionCheckboxes.forEach(cb => cb.addEventListener("change", highlightConflicts));
-    if (roleSelect) roleSelect.addEventListener("change", () => updatePermissionsFromRole(roleSelect.value));
+    roleCheckboxes.forEach(cb => cb.addEventListener("change", updatePermissionsFromRoles));
 
-    if (roleSelect?.value) updatePermissionsFromRole(roleSelect.value);
+    if (selectedRoleIds().length > 0) updatePermissionsFromRoles();
+
+    document.getElementById("userForm")?.addEventListener("submit", (event) => {
+      syncSaveButtonState();
+      if (saveBtn?.disabled) {
+        event.preventDefault();
+      }
+    });
 
     /* --------------------------------------------------------------------
      * 6. BIND EVENTS + INITIALIZE
@@ -427,6 +490,10 @@
     fname?.addEventListener("input", updateFullAndUsername);
     lname?.addEventListener("input", updateFullAndUsername);
     username?.addEventListener("input", () => checkUsername());
+    username?.addEventListener("input", () => {
+      const next = slugifyUsernamePart(username.value);
+      if (username.value !== next) username.value = next;
+    });
     email?.addEventListener("input", checkEmail);
 
     passwordInput?.addEventListener("input", validatePassword);
@@ -436,6 +503,7 @@
     updateFullAndUsername();
     updatePasswordVisibility();
     setupAssayBehavior();
+    syncSaveButtonState();
 
   });
   </script>

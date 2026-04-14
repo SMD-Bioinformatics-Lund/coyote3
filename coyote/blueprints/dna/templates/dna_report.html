@@ -6,7 +6,7 @@
   <div class="report-preview-card">
     <h2 class="report-heading">*** PREVIEW OF REPORT ***</h2>
 
-    {% if has_access('create_report', min_role='admin') %}
+    {% if has_access('report:create', min_role='admin') %}
       <a href="{{ url_for('dna_bp.save_dna_report', sample_id=sample.name) }}" class="report-button">Finalize Report</a>
     {% endif %}
   </div>
@@ -438,10 +438,10 @@
 <div class="analysis_description">
   {{ assay_config.reporting.report_description|safe }}
 
-  <form id="genelist-form" action="{{ url_for('common_bp.get_sample_genelists', sample_id=sample.name, sample_assay=sample_assay, _external=True) }}" method="POST" target="_blank">
-    <input type="hidden" name="enc_genelists" id="enc-genelists-input">
-    <input type="hidden" name="enc_panel_doc" id="enc-panel-input">
-    <input type="hidden" name="enc_sample_filters" id="enc-sample-filters-input">
+  <form id="genelist-form" action="{{ url_for('common_bp.get_sample_genelists', sample_id=sample.name, _external=True) }}#config" method="POST" target="_blank">
+    <input type="hidden" name="report_genelists" id="genelists-input">
+    <input type="hidden" name="panel_doc" id="panel-input">
+    <input type="hidden" name="report_sample_filters" id="sample-filters-input">
   </form>
 
   {% set ns = namespace(table_no=1) %}
@@ -469,7 +469,7 @@
 
 
   <p>
-    For complete panel gene lists, and configurations, see
+    For the complete gene lists and filters used for this report, see
     <a href="#config" onclick="submitGenelistForm(event)" class="text-blue-600 hover:underline" target="_blank">here.</a>
     <br>Or, for ASP genelist, visit <a href="{{url_for("public_bp.asp_genes",asp_id=sample.assay, _external=True)}}"> {{url_for("public_bp.asp_genes",asp_id=sample.assay , _external=True)}} </a>
   </p>
@@ -510,22 +510,21 @@
 
 <!-- Embed assay_panel_doc -->
 
-<script type="application/json" id="encrypted-genelists">{{ encrypted_genelists }}</script>
-<script type="application/json" id="encrypted-panel-doc">{{ encrypted_panel_doc }}</script>
-<script type="application/json" id="encrypted-sample-filters">{{ encrypted_sample_filters }}</script>
+<script type="application/json" id="report-genelists">{{ report_genelists | tojson }}</script>
+<script type="application/json" id="report-panel-doc">{{ panel_doc | tojson }}</script>
+<script type="application/json" id="report-sample-filters">{{ report_sample_filters | tojson }}</script>
 
 <script>
-  // Function to submit the form with encrypted genelists and panel doc
   function submitGenelistForm(e) {
     e.preventDefault();
 
-    const genelistsEnc = document.getElementById("encrypted-genelists").textContent.trim();
-    const panelEnc = document.getElementById("encrypted-panel-doc").textContent.trim();
-    const sampleFiltersEnc = document.getElementById("encrypted-sample-filters").textContent.trim();
+    const genelists = JSON.parse(document.getElementById("report-genelists").textContent);
+    const panelDoc = JSON.parse(document.getElementById("report-panel-doc").textContent);
+    const sampleFilters = JSON.parse(document.getElementById("report-sample-filters").textContent);
 
-    document.getElementById("enc-genelists-input").value = genelistsEnc;
-    document.getElementById("enc-panel-input").value = panelEnc;
-    document.getElementById("enc-sample-filters-input").value = sampleFiltersEnc;
+    document.getElementById("genelists-input").value = genelists;
+    document.getElementById("panel-input").value = panelDoc;
+    document.getElementById("sample-filters-input").value = sampleFilters;
 
     document.getElementById("genelist-form").submit();
   }

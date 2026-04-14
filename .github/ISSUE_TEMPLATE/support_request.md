@@ -26,4 +26,3 @@ Attach clean logs or screenshots if they help.
 
 ## Additional Information
 Add any extra context that may help us assist you.
-

@@ -1,0 +1,17 @@
+{% from "macros/assets.html" import static %}
+
+<div id="alert-container" class="fixed top-20 right-10 z-50 space-y-3">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash-message flex items-center bg-{{ category }}-100 border-l-4 border-{{ category }}-500 text-{{ category }}-900 px-4 py-2 rounded-xl shadow-2xl relative z-50 transform transition-all duration-500 ease-in-out translate-x-full opacity-0 backdrop-blur-lg">
+          <img src="{{ static('icons/heroicons_outline_24/exclamation-circle.svg') }}" alt="Alert" class="h-6 w-6 mr-3 text-{{ category }}-500 transition-transform duration-300 transform hover:scale-125 hover:rotate-12">
+          <span class="flex-1 text-sm font-semibold tracking-wide">{{ message }}</span>
+          <button type="button" class="ml-4 p-2 rounded-full bg-{{ category }}-200 hover:bg-{{ category }}-300 transition duration-300 close-btn">
+            <img src="{{ static('icons/heroicons_outline_24/x-mark.svg') }}" alt="Close" class="h-5 w-5 transition-transform duration-300 transform hover:scale-125 hover:rotate-12">
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</div>

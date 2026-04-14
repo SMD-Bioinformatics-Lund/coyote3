@@ -1,332 +1,159 @@
-### Core Stack
+# Coyote3
+
+Coyote3 is a secure, schema-driven clinical genomics platform for interpretation, triage, and reporting of DNA and RNA findings in governed diagnostic workflows.
+
+## Status
+
+[![Quality Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml/badge.svg)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml)
+
+## Platform
+
 ![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-Framework-000000?logo=flask&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-Database-47A248?logo=mongodb&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4.1.12-38BDF8?logo=tailwindcss&logoColor=white)
-### Domain & Capabilities
-![Clinical Genomics](https://img.shields.io/badge/Domain-Clinical%20Genomics-6A5ACD)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
+![Flask](https://img.shields.io/badge/Web-Flask-000000?logo=flask&logoColor=white)
+![MongoDB](https://img.shields.io/badge/Database-MongoDB-47A248?logo=mongodb&logoColor=white)
+![Redis](https://img.shields.io/badge/Cache-Redis-DC382D?logo=redis&logoColor=white)
+![Docker Compose](https://img.shields.io/badge/Deploy-Docker%20Compose-2496ED?logo=docker&logoColor=white)
+
+## Domain and Governance
+
+![Clinical Genomics](https://img.shields.io/badge/Domain-Clinical%20Genomics-1F6FEB)
 ![DNA Support](https://img.shields.io/badge/DNA-Supported-1E90FF)
 ![RNA Support](https://img.shields.io/badge/RNA-Supported-20B2AA)
-![Schema Driven](https://img.shields.io/badge/Architecture-Schema%20Driven-708090)
-### Security & Governance
-![RBAC Enabled](https://img.shields.io/badge/Security-RBAC%20Enabled-darkgreen)
-![Audit Logging](https://img.shields.io/badge/Audit-Logging%20Enabled-2E8B57)
-### Status & Release
-![Status](https://img.shields.io/badge/Status-Production%20%7C%20Active%20Development-blue)
-![Version](https://img.shields.io/github/v/release/SMD-Bioinformatics-Lund/coyote3?label=version&logo=github)
-![License: Proprietary](https://img.shields.io/badge/License-Proprietary-8B0000?style=flat&logo=shield&logoColor=white)
+![RBAC](https://img.shields.io/badge/Security-RBAC-2E8B57)
+![Audit Logging](https://img.shields.io/badge/Audit-Enabled-2E8B57)
+![License: Proprietary](https://img.shields.io/badge/License-Proprietary-8B0000)
 
-# Coyote3 – Genomic Variant Interpretation & Reporting Platform
+## What It Is
 
-**Coyote3** is a secure, scalable, and extensible web application designed as a one-stop solution for **genomic variant interpretation**, **data management**, and **clinical reporting**. Built by the **Section for Molecular Diagnostics (SMD), Lund**, Coyote3 streamlines complex diagnostics workflows into a unified interface for clinical geneticists, bioinformaticians, and laboratory personnel.
+Coyote3 is split into two runtime applications:
 
----
+- `api/` FastAPI backend for business logic, contracts, security, and persistence operations
+- `coyote/` Flask web application for user workflows and management UI, consuming API endpoints
 
-## Overview
+It is designed for molecular diagnostics teams that need traceability, policy-driven behavior, and role-based access across interpretation and reporting flows.
 
-Coyote3 serves as a comprehensive platform for managing and interpreting DNA and RNA variant data within a clinical diagnostics context. It supports detailed analysis, collaborative review, and permission-controlled access to variant annotations, assay configurations, and reporting assets.
+## Who Can Use It
 
-Coyote3 is engineered to meet the needs of modern molecular diagnostics laboratories by offering:
-
-- Secure and auditable access to variant data
-- Seamless integration with existing directory (LDAP) and storage systems (MongoDB)
-- Role-based workflows supporting multiple user groups
-- Extensible architecture tailored to evolving diagnostic pipelines
-
----
-
-## Purpose
-
-Coyote3 was developed to address the growing complexity and regulatory requirements in **clinical genomics**, particularly:
-
-- Ensuring secure, traceable access to sensitive patient-derived variant data
-- Supporting multi-assay, multi-user workflows across DNA and RNA pipelines
-- Centralizing variant review, interpretation, and reporting in one application
-- Allowing dynamic adaptation to different diagnostic panels, rules, and labs
-
----
-
-## Who Built It?
-
-Coyote3 is developed and maintained by the bioinformaticians at **Section for Molecular Diagnostics (SMD)**, **Lund**, in close collaboration with clinical geneticists. The system is in active use for diagnostics casework, variant interpretation, and report creation.
-
----
+- Molecular diagnostics and clinical genomics teams
+- Bioinformatics teams operating interpretation/reporting pipelines
+- Clinical lab operations teams managing assays, configurations, and governed user access
+- Developers and maintainers extending domain logic, API contracts, and operations tooling
 
 ## Core Capabilities
 
-### Variant Interpretation
-- Centralized views for DNA, RNA, CNVs, and fusions
-- Assay-specific panel and gene filtering
-- Clinical-grade annotations and classification workflows
+- DNA and RNA variant interpretation workflows in one platform
+- Assay and gene-list driven filtering and interpretation configuration
+- Variant and structural finding review flows (SNV, CNV, translocation, fusion)
+- Report preview, save, version-aware update flows, and controlled reporting outputs
+- Internal ingestion APIs with contract-backed validation (Pydantic)
+- Role and permission management with explicit policy boundaries and deny control support
+- Structured audit-aware operations and deployment checks
 
-### Data Management & Reporting
-- Sample metadata, gene panels, and variant tracking
-- Per-assay default configurations for filtering and quality
-- Exportable reports for review boards and clinicians
+## Who Developed It
 
-### Identity & Access Management
-- LDAP authentication with organizational group sync
-- Role- and group-based permissions (admin, user, reviewer)
-- Audit trail of changes and logins
+Coyote3 is developed and maintained by the bioinformatics team at the **Section for Molecular Diagnostics (SMD), Lund**, in collaboration with clinical users and platform maintainers.
 
-### Dashboards & Oversight
-- Assay-level summaries and quality metrics
-- Sample and variant statistics by panel or user group
-- Custom dashboards for reviewers or leads
+## Why Teams Use It
 
----
+- One operational platform instead of separate ad hoc tools for interpretation and reporting
+- Contract-first data handling to reduce schema drift across environments
+- Center-operable deployment model with explicit environment templates and operational checks
+- Clear separation between UI workflows and API domain logic
 
-## Architecture
+## Project Structure
 
-Coyote3 is built using Python’s **Flask** web framework and structured with a **modular blueprint-based architecture**.
+- `api/` backend services, contracts, routers, handlers, and security
+- `coyote/` Flask UI blueprints, templates, and web-side API client
+- `deploy/` Docker Compose stacks and deployment assets
+- `scripts/` bootstrap, ingest, validation, and operations scripts
+- `docs/` full project, architecture, API, operations, and testing documentation
+- `tests/` unit, API, integration, and UI boundary tests
 
-| Layer            | Technology / Pattern                            |
-|------------------|--------------------------------------------------|
-| Web Framework     | Flask (Blueprint modules for each feature)      |
-| Backend Database  | MongoDB (via PyMongo)                           |
-| Authentication    | LDAP (via Flask-LDAP3-Login or custom binding)  |
-| Frontend          | Jinja2 templates + Tailwind CSS                 |
-| Permissions       | Role-Based Access Control (RBAC)                |
-| Audit Logging     | Action/event logging for traceability           |
+## Quick Start
 
----
-
-## Feature Modules
-
-Each major functionality is organized into a Flask blueprint:
-
-- `home` – Landing page and samples dashboard
-- `dna` – DNA variant search, filter, review
-- `rna` – RNA fusion events
-- `coverage` – Depth metrics by panel/sample
-- `admin` – Users, roles, permissions
-- `dashboard` – Case review summaries
-- `profile` – User-specific profile and account operations
-- `login` – LDAP auth and session handling
-- `public` – Minimal open endpoints (optional)
-- `common` – Shared comments, search, and cross-workflow utilities
-- `docs` – In-app handbook and release information
-
----
-
-## Installation and Deployment
-
-Production is the default and recommended path. Development options are listed after production.
-
-### 1. Prerequisites
-
-Install and verify:
+1. Create environment files from templates:
 
 ```bash
-git --version
-docker --version
-docker compose version
-python3 --version
+cp deploy/env/example.prod.env .coyote3_env
+cp deploy/env/example.dev.env .coyote3_dev_env
+cp deploy/env/example.stage.env .coyote3_stage_env
+cp deploy/env/example.test.env .coyote3_test_env
 ```
 
-### 2. Clone repository
+2. Set real secret values in the env files (`SECRET_KEY`, `INTERNAL_API_TOKEN`, `PASSWORD_TOKEN_SALT`, Mongo credentials).
+
+3. Start development stack:
 
 ```bash
-git clone git@github.com:SMD-Bioinformatics-Lund/coyote3.git
-cd coyote3
+./scripts/compose-with-version.sh \
+  --env-file .coyote3_dev_env \
+  -f deploy/compose/docker-compose.dev.yml \
+  up -d --build
 ```
 
-### 3. Configure environment files
-
-Production env file:
+4. Verify API health:
 
 ```bash
-cp example.env .coyote3_env
+curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_DEV_API_PORT:-6802}/api/v1/health"
 ```
 
-Development env file:
+5. For first-time center setup, use:
 
 ```bash
-cp example.env .coyote3_dev_env
+scripts/center_first_run.sh --help
 ```
 
-Update values in `.coyote3_env` / `.coyote3_dev_env` (at minimum):
+## Deployment Profiles
 
-- `SECRET_KEY`
-- `COYOTE3_FERNET_KEY`
-- `FLASK_MONGO_HOST`
-- `FLASK_MONGO_PORT`
-- `COYOTE3_DB_NAME`
-- `CACHE_REDIS_URL`
-- `CACHE_REDIS_HOST`
-- `REPORTS_BASE_PATH`
-- `APP_DNS`
-- `PORT_NBR`
-- `GENS_URI`
-- `IGV_URI`
+Coyote3 ships with four standard environment profiles:
 
-### 4. Production install and deploy (recommended)
+- `prod` using `.coyote3_env`
+- `stage` using `.coyote3_stage_env`
+- `dev` using `.coyote3_dev_env`
+- `test` using `.coyote3_test_env`
 
-Option A: compose wrapper (recommended)
+Compose definitions live in `deploy/compose/`, and environment templates live in `deploy/env/`.
 
-```bash
-./scripts/compose-with-version.sh up -d --build
-```
+Optional deployment profile:
 
-Option B: scripted wrapper
+- `with-proxy` profile adds an Nginx reverse proxy for single-entry routing (`/`, `/api/`, `/docs-site/`).
 
-```bash
-./scripts/install.sh
-```
+## Data And Configuration Model
 
-### 5. Verify production deployment
+- Runtime behavior is driven by typed contracts in `api/contracts/`.
+- Collection ingest and updates are validated through Pydantic-backed normalization.
+- Assay and list configuration is managed through ASP/ASPC/ISGL resources.
+- Governance is enforced through roles, permissions, and auditable internal operations.
 
-```bash
-./scripts/compose-with-version.sh ps
-./scripts/compose-with-version.sh logs --tail=100 coyote3_app
-```
+## Development And Contribution
 
-Open:
+- Main project standards and contribution expectations: [Contributing](docs/project/contributing.md)
+- Architecture orientation: [Codebase Map](docs/architecture/codebase-map.md)
+- Feature development path: [Add New Feature](docs/developer/adding-features.md)
+- Quality gates and test strategy: [Testing And Quality](docs/testing/testing-and-quality.md)
 
-- App: `/`
-- Handbook: `/handbook`
+## Documentation
 
-### 6. Development deploy (secondary)
+- Start here: [Quickstart](docs/start-here/quickstart.md)
+- Configuration model: [Configuration](docs/start-here/configuration.md)
+- Architecture: [System Overview](docs/architecture/system-overview.md)
+- API ingestion and contracts:
+  - [Ingestion API](docs/api/ingestion-api.md)
+  - [Collection Contracts](docs/api/collection_contracts.md)
+- Operations:
+  - [Center Deployment Guide](docs/operations/center-deployment-guide.md)
+  - [Deployment Guide](docs/operations/deployment-guide.md)
+  - [Initial Deployment Checklist](docs/operations/initial-deployment-checklist.md)
+- Testing and quality: [Testing And Quality](docs/testing/testing-and-quality.md)
 
-Option A: compose wrapper
+## Security and Compliance Notes
 
-```bash
-./scripts/compose-with-version.sh -f docker-compose.dev.yml up -d --build
-```
-
-Option B: scripted wrapper
-
-```bash
-./scripts/install.dev.sh
-```
-
-### 7. Direct compose (manual version export)
-
-```bash
-export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
-docker compose up -d --build
-docker compose -f docker-compose.dev.yml up -d --build
-```
-
-### 8. Stop services
-
-```bash
-./scripts/compose-with-version.sh down
-./scripts/compose-with-version.sh -f docker-compose.dev.yml down
-```
-
-Documentation for setup, operations, user workflows, and developer internals is maintained in `docs/handbook/`.
-
-### In-app handbook routes
-
-- Handbook home: `/handbook`
-- Handbook page renderer: `/handbook/<path-to-markdown>.md`
-- About page: `/handbook/about`
-- Changelog: `/handbook/changelog`
-- License: `/handbook/license`
-
-The in-app handbook renders markdown directly from `docs/handbook/`.
-
-### Static docs site (MkDocs, ReadTheDocs theme)
-
-MkDocs configuration lives in `mkdocs.yml`.
-
-Run locally:
-
-```bash
-pip install -r requirements-docs.txt
-mkdocs serve
-```
-
-Build static site:
-
-```bash
-mkdocs build
-```
-
----
-
-## Frontend CSS build (Tailwind via npm)
-
-Tailwind is compiled locally from source instead of using a CDN stylesheet.
-
-Input source:
-
-- `coyote/static/css/tailwind.input.css`
-- `tailwind.config.js`
-
-Generated output used by templates:
-
-- `coyote/static/css/tailwind.css`
-
-Tailwind scans templates/source files and generates only the classes used by the application. Custom project color aliases (for example `brown` and `olive`) are defined once in `tailwind.config.js` and full shade scales are generated automatically.
-
-Install frontend build dependencies:
-
-```bash
-npm install
-```
-
-Build CSS once:
-
-```bash
-npm run build:css
-```
-
-Run continuous CSS build in development:
-
-```bash
-npm run dev:css
-```
-
-Keep `npm run dev:css` running while editing templates/styles so the generated CSS stays up to date.
-
-`package.json` version is auto-synced from `coyote/__version__.py` by:
-
-- `scripts/sync-package-version.js`
-- `npm install` (via `postinstall`)
-- `npm run build:css` / `npm run dev:css` (via pre-scripts)
-
-### Docker/Compose behavior
-
-- Production image build (`Dockerfile`) compiles Tailwind CSS during image build.
-- Development app image (`Dockerfile.dev`) does not compile Tailwind during build.
-- `docker-compose.dev.yml` includes a dedicated `coyote3_dev_tailwind` service that installs npm dependencies, builds CSS, and continuously rebuilds CSS (`npm run dev:css`) while developing.
-- Compose image tags use `COYOTE3_VERSION` instead of hardcoded values.
-- Use `./scripts/compose-with-version.sh up -d` to run compose with `COYOTE3_VERSION` exported from `coyote/__version__.py`.
-
----
-
-## Security & Compliance
-
-- Fine-grained permissions enforced by custom RBAC middleware
-- LDAP-based identity binding and group mapping
-- Full audit logging of user logins, data changes, and role escalations
-- Access isolation between diagnostic groups or hospital units
-
----
-
-## Extensibility
-
-Coyote3 is architected to support lab-specific workflows and pipelines:
-
-- **Custom assay configuration UI**
-- **Dynamic filtering and gene set expansion**
-- **Extendable role definitions and permission schemes**
-- **Schema-aware editing of variant data and QC thresholds**
-
----
+- Production deployment expects explicit secrets and controlled environment files.
+- Internal ingest and management operations are protected by role/permission checks.
+- Data operations are validated against typed contracts before persistence.
+- API internal metrics endpoint: `/api/v1/internal/metrics` (requires `X-Internal-Token`).
 
 ## License
 
-© 2026 Section for Molecular Diagnostics (SMD), Lund.
-All rights reserved. Internal use only.
-
----
-
-## Contact
-
-For inquiries, feedback, or deployment support, please contact the SMD development team at Lund.
-
----
+Proprietary. See [LICENSE.txt](LICENSE.txt).

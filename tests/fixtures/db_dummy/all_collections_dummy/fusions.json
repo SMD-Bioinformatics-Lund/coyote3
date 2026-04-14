@@ -1,0 +1,22 @@
+[
+  {
+    "SAMPLE_ID": "65f0c0ffee00000000000001",
+    "gene1": "BCR",
+    "gene2": "ABL1",
+    "genes": "BCR-ABL1",
+    "calls": [
+      {
+        "selected": 1,
+        "longestanchor": 30,
+        "caller": "arriba",
+        "spanpairs": 20,
+        "spanreads": 42,
+        "breakpoint1": "22:23632600",
+        "breakpoint2": "9:133589000",
+        "effect": "gene_fusion",
+        "commonreads": 15,
+        "desc": "Demo fusion call"
+      }
+    ]
+  }
+]

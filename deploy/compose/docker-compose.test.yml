@@ -1,0 +1,181 @@
+name: coyote3-test
+# usage:
+#   cp deploy/env/example.test.env .coyote3_test_env
+#   ./scripts/compose-with-version.sh --env-file .coyote3_test_env \
+#     -f deploy/compose/docker-compose.test.yml --profile tests up -d --build
+x-runtime-defaults: &runtime-defaults
+  mem_limit: ${COYOTE3_TEST_CONTAINER_MEM_LIMIT:-2g}
+  cpus: ${COYOTE3_TEST_CONTAINER_CPU_LIMIT:-2.0}
+
+services:
+  coyote3_test_api:
+    <<: *runtime-defaults
+    container_name: coyote3_test_api_${COYOTE3_VERSION:-local}
+    image: coyote3-api:${COYOTE3_VERSION:-local}-test
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.dev
+      target: coyote3_dev_api
+      network: host
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    env_file:
+      - ../../.coyote3_test_env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - CACHE_ENABLED=1
+      - CACHE_REQUIRED=1
+      - TZ=Europe/Stockholm
+      - GIT_COMMIT=${GIT_COMMIT:-unknown}
+      - BUILD_TIME=${BUILD_TIME:-unknown}
+    ports:
+      - "${COYOTE3_TEST_API_PORT:-6812}:8001"
+    command: "python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8001 --workers ${API_WORKERS:-2}"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=2).read()\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    networks:
+      - coyote3-test-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      coyote3_test_mongo:
+        condition: service_healthy
+      redis_coyote3_test:
+        condition: service_started
+
+  coyote3_test_web:
+    <<: *runtime-defaults
+    container_name: coyote3_test_web_${COYOTE3_VERSION:-local}
+    image: coyote3-web:${COYOTE3_VERSION:-local}-test
+    profiles: ["with-ui"]
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.dev
+      target: coyote3_dev_web
+      network: host
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    env_file:
+      - ../../.coyote3_test_env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - FLASK_APP=wsgi
+      - FLASK_DEBUG=0
+      - CACHE_ENABLED=1
+      - CACHE_REQUIRED=1
+      - API_BASE_URL=http://coyote3_test_api:8001
+      - API_BROWSER_BASE=/api
+      - HELP_CENTER_URL=${HELP_CENTER_URL:-}
+      - TZ=Europe/Stockholm
+      - GIT_COMMIT=${GIT_COMMIT:-unknown}
+      - BUILD_TIME=${BUILD_TIME:-unknown}
+    ports:
+      - "${COYOTE3_TEST_WEB_PORT:-6811}:8000"
+    command: "python3 -m wsgi"
+    networks:
+      - coyote3-test-net
+    depends_on:
+      coyote3_test_api:
+        condition: service_healthy
+
+  coyote3_test_docs:
+    <<: *runtime-defaults
+    container_name: coyote3_test_docs_${COYOTE3_VERSION:-local}
+    image: coyote3-docs:${COYOTE3_VERSION:-local}-test
+    profiles: ["with-ui"]
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.docs
+      network: host
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    ports:
+      - "${COYOTE3_TEST_DOCS_PORT:-6815}:8080"
+    restart: always
+    networks:
+      - coyote3-test-net
+
+  coyote3_test_runner:
+    <<: *runtime-defaults
+    container_name: coyote3_test_runner_${COYOTE3_VERSION:-local}
+    image: coyote3-all:${COYOTE3_VERSION:-local}-test
+    profiles: ["tests"]
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.dev
+      target: coyote3_dev_all
+      network: host
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    env_file:
+      - ../../.coyote3_test_env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - TZ=Europe/Stockholm
+    command: "bash -lc 'PYTHONPATH=. pytest -q'"
+    networks:
+      - coyote3-test-net
+    depends_on:
+      coyote3_test_api:
+        condition: service_healthy
+
+  redis_coyote3_test:
+    <<: *runtime-defaults
+    container_name: redis_coyote3_test_${COYOTE3_VERSION:-local}
+    image: redis:7.4.3
+    ports:
+      - "${COYOTE3_TEST_REDIS_PORT:-6813}:6379"
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    networks:
+      - coyote3-test-net
+    restart: unless-stopped
+
+  coyote3_test_mongo:
+    <<: *runtime-defaults
+    container_name: coyote3_test_mongo_${COYOTE3_VERSION:-local}
+    image: mongo:7.0
+    command: ["--bind_ip_all"]
+    env_file:
+      - ../../.coyote3_test_env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-coyote3_root}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-CHANGE_ME_TEST_ROOT_PASSWORD}
+      - COYOTE3_DB=${COYOTE3_DB:-coyote3_test}
+      - MONGO_APP_USER=${MONGO_APP_USER:-coyote3_app}
+      - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD:-CHANGE_ME_TEST_APP_PASSWORD}
+    ports:
+      - "${COYOTE3_TEST_MONGO_PORT:-6814}:27017"
+    volumes:
+      - test-mongodb:/data/db
+      - ./mongo-init/create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh \"mongodb://$$MONGO_INITDB_ROOT_USERNAME:$$MONGO_INITDB_ROOT_PASSWORD@127.0.0.1:27017/admin?authSource=admin\" --quiet --eval \"db.getSiblingDB('$$COYOTE3_DB').runCommand({ usersInfo: '$$MONGO_APP_USER' }).users.length\" | grep 1 >/dev/null",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 10s
+    networks:
+      - coyote3-test-net
+
+networks:
+  coyote3-test-net:
+    driver: bridge
+
+volumes:
+  test-mongodb:

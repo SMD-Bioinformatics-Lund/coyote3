@@ -1,0 +1,16 @@
+FROM python:3.12.0-slim-bullseye AS mkdocs_builder
+
+WORKDIR /app
+
+COPY requirements-docs.txt mkdocs.yml ./
+RUN pip install --no-cache-dir -r requirements-docs.txt
+
+COPY docs/ ./docs/
+RUN mkdocs build --strict
+
+FROM nginx:1.27-alpine
+
+EXPOSE 8080
+
+COPY docker/nginx/docs.conf /etc/nginx/conf.d/default.conf
+COPY --from=mkdocs_builder /app/site/ /usr/share/nginx/html/

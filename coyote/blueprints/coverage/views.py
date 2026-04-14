@@ -1,23 +1,9 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
-#  All rights reserved.
-#
-#  This source file is part of the Coyote3 codebase.
-#  The Coyote3 project provides a framework for genomic data analysis,
-#  interpretation, reporting, and clinical diagnostics.
-#
-#  Unauthorized use, distribution, or modification of this software or its
-#  components is strictly prohibited without prior written permission from
-#  the copyright holders.
-#
+"""Coverage review routes for low-coverage inspection and blacklist actions."""
 
-"""
-Coyote coverage for mane-transcripts
-"""
-
-
-from collections import defaultdict
 from flask import (
     current_app as app,
+)
+from flask import (
     jsonify,
     redirect,
     render_template,
@@ -25,125 +11,100 @@ from flask import (
     url_for,
 )
 from flask_login import login_required
+
 from coyote.blueprints.coverage import cov_bp
-from coyote.extensions import store, util
-from coyote.util.decorators.access import (
-    require_group_access,
-    require_sample_access,
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import (
+    ApiRequestError,
+    forward_headers,
+    get_web_api_client,
 )
+from coyote.services.api_client.web import flash_api_failure, raise_page_load_error
 
 
 @cov_bp.route("/<string:sample_id>", methods=["GET", "POST"])
-@require_sample_access("sample_id")
 def get_cov(sample_id):
+    """Render the coverage review page for a sample."""
     cov_cutoff = 500
     if request.method == "POST":
         cov_cutoff_form = request.form.get("depth_cutoff")
         cov_cutoff = int(cov_cutoff_form)
-    # cov_cutoff = 1500
-    sample = store.sample_handler.get_sample(sample_id)
-
-    sample_assay = sample.get("assay", "unknown")
-    sample_profile = sample.get("profile", "production")
-    assay_config = store.aspc_handler.get_aspc_no_meta(sample_assay, sample_profile)
-    assay_group: str = assay_config.get("assay_group", "unknown")  # myeloid, solid, lymphoid
-    subpanel: str | None = sample.get("subpanel")  # breast, LP, lung, etc.
-
-    # Get the entire genelist for the sample panel
-    assay_panel_doc = store.asp_handler.get_asp(asp_name=sample_assay)
-
-    # Get group parameters from the sample group config file
-    sample_filters = sample.get("filters", {})
-
-    # Checked genelists
-    checked_genelists = sample_filters.get("genelists", [])
-
-    # Get the genelists for the sample panel checked genelists from the filters
-    if checked_genelists:
-        checked_genelists_genes_dict: list[dict] = store.isgl_handler.get_isgl_by_ids(
-            checked_genelists
+    try:
+        payload = get_web_api_client().get_json(
+            api_endpoints.coverage("samples", sample_id),
+            headers=forward_headers(),
+            params={"cov_cutoff": cov_cutoff},
         )
-
-        genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
-            sample, assay_panel_doc, checked_genelists_genes_dict
+    except ApiRequestError as exc:
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load coverage via API for sample {sample_id}",
+            summary="Unable to load coverage data for this sample.",
+            not_found_summary="Coverage data for this sample was not found.",
         )
-    else:
-        checked_genelists = assay_panel_doc.get("_id")
-        filter_genes = assay_panel_doc.get("covered_genes", [])
-
-    cov_dict = store.coverage2_handler.get_sample_coverage(str(sample["_id"]))
-    del cov_dict["_id"]
-    del sample["_id"]
-    filtered_dict = util.coverage.filter_genes_from_form(cov_dict, filter_genes, assay_group)
-    filtered_dict = util.coverage.find_low_covered_genes(filtered_dict, cov_cutoff, assay_group)
-    cov_table = util.coverage.coverage_table(filtered_dict, cov_cutoff)
-
-    filtered_dict = util.coverage.organize_data_for_d3(filtered_dict)
 
     return render_template(
         "show_cov.html",
-        coverage=filtered_dict,
-        cov_cutoff=cov_cutoff,
-        sample=sample,
-        genelists=checked_genelists,
-        smp_grp=assay_group,
-        cov_table=cov_table,
+        coverage=payload.coverage,
+        cov_cutoff=payload.cov_cutoff,
+        sample=payload.sample,
+        genelists=payload.genelists,
+        smp_grp=payload.smp_grp,
+        cov_table=payload.cov_table,
     )
 
 
-@app.route("/update-gene-status", methods=["POST"])
+@cov_bp.route("/update-gene-status", methods=["POST"])
 @login_required
 def update_gene_status():
+    """Apply a blacklist mutation for a coverage gene row via AJAX."""
     data = request.get_json()
-    gene = data.get("gene")
-    status = data.get("status")
-    coord = data.get("coord")
-    smp_grp = data.get("smp_grp")
-    region = data.get("region")
-    if coord != "":
-        coord = coord.replace(":", "_")
-        coord = coord.replace("-", "_")
-        store.groupcov_handler.blacklist_coord(gene, coord, region, smp_grp)
-        # Return a response
-        return jsonify(
-            {
-                "message": f" Status for {gene}:{region}:{coord} was set as {status} for group: {smp_grp}. Page needs to be reload to take effect"
-            }
+    try:
+        payload = get_web_api_client().post_json(
+            api_endpoints.coverage("blacklist", "entries"),
+            headers=forward_headers(),
+            json_body=data,
         )
-    else:
-        store.groupcov_handler.blacklist_gene(gene, smp_grp)
-        return jsonify(
-            {
-                "message": f" Status for full gene: {gene} was set as {status} for group: {smp_grp}. Page needs to be reload to take effect"
-            }
-        )
+        return jsonify(payload)
+    except ApiRequestError as exc:
+        app.logger.warning("Coverage blacklist update failed: %s", exc)
+        return jsonify({"message": str(exc)}), exc.status_code or 502
 
 
 @cov_bp.route("/blacklisted/<string:group>", methods=["GET", "POST"])
-@require_group_access("group")
 def show_blacklisted_regions(group):
-    """
-    show what regions/genes that has been blacklisted by user
-    function to remove blacklisted status
-    """
-    grouped_by_gene = defaultdict(dict)
-    blacklisted = store.groupcov_handler.get_regions_per_group(group)
-    for entry in blacklisted:
-        if entry["region"] == "gene":
-            grouped_by_gene[entry["gene"]]["gene"] = entry["_id"]
-        elif entry["region"] == "CDS":
-            grouped_by_gene[entry["gene"]]["CDS"] = entry
-        elif entry["region"] == "probe":
-            grouped_by_gene[entry["gene"]]["probe"] = entry
+    """Render the blacklist overview for an assay or sample group."""
+    try:
+        payload = get_web_api_client().get_json(
+            api_endpoints.coverage("blacklisted", group),
+            headers=forward_headers(),
+        )
+    except ApiRequestError as exc:
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load blacklisted regions via API for group {group}",
+            summary="Unable to load the blacklist overview.",
+            not_found_summary="The requested blacklist group was not found.",
+        )
 
-    return render_template("show_blacklisted.html", blacklisted=grouped_by_gene, group=group)
+    return render_template(
+        "show_blacklisted.html", blacklisted=payload.blacklisted, group=payload.group
+    )
 
 
 @cov_bp.route("/remove_blacklist/<string:obj_id>/<string:group>", methods=["GET"])
-@require_group_access("group")
 def remove_blacklist(obj_id, group):
-    """
-    removes blacklisted region/gene
-    """
-    response = store.groupcov_handler.remove_blacklist(obj_id)
+    """Remove a blacklist entry and return to the blacklist overview."""
+    try:
+        get_web_api_client().delete_json(
+            api_endpoints.coverage("blacklist", "entries", obj_id),
+            headers=forward_headers(),
+        )
+    except ApiRequestError as exc:
+        app.logger.warning(
+            "Failed to remove blacklist entry %s for group %s: %s", obj_id, group, exc
+        )
+        flash_api_failure("Unable to remove the blacklist entry.", exc)
     return redirect(url_for("cov_bp.show_blacklisted_regions", group=group))

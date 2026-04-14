@@ -1,0 +1,283 @@
+{
+  "17:42337980-42338541": {
+    "callers": [
+      "manta"
+    ],
+    "ratio": -1.0,
+    "size": 561,
+    "PR": "350,73",
+    "SR": "314,52",
+    "chr": "17",
+    "start": 42337980,
+    "end": 42338541,
+    "genes": [
+      {
+        "gene": "STAT3",
+        "class": "somatic",
+        "cnv_type": "unspec"
+      }
+    ],
+    "NORMAL": 1,
+    "nprobes": 0
+  },
+  "22:29299960-29300030": {
+    "callers": [
+      "manta"
+    ],
+    "ratio": -1.0,
+    "size": 70,
+    "PR": "160,0",
+    "SR": "286,195",
+    "chr": "22",
+    "start": 29299960,
+    "end": 29300030,
+    "genes": [
+      {
+        "gene": "EWSR1",
+        "class": "somatic",
+        "cnv_type": "unspec"
+      }
+    ],
+    "NORMAL": 1,
+    "nprobes": 0
+  },
+  "X:1465209-1466828": {
+    "callers": [
+      "gatk"
+    ],
+    "ratio": 1,
+    "size": 1620,
+    "chr": "X",
+    "start": 1465209,
+    "end": 1466828,
+    "genes": [
+      {
+        "gene": "P2RY8",
+        "class": "somatic",
+        "cnv_type": "unspec"
+      }
+    ],
+    "NORMAL": 1,
+    "nprobes": 0
+  },
+  "12:11494344-13048029": {
+    "nprobes": 50,
+    "callers": [
+      "cnvkit"
+    ],
+    "ratio": -0.388376,
+    "size": 1553685,
+    "chr": "12",
+    "start": 11494344,
+    "end": 13048029,
+    "genes": [
+      {
+        "gene": "FAM234B"
+      },
+      {
+        "gene": "HEBP1"
+      },
+      {
+        "gene": "BORCS5"
+      },
+      {
+        "gene": "LRP6"
+      },
+      {
+        "gene": "BCL2L14"
+      },
+      {
+        "gene": "ETV6"
+      },
+      {
+        "gene": "PRB2"
+      },
+      {
+        "gene": "GPRC5D"
+      },
+      {
+        "gene": "GPRC5A"
+      },
+      {
+        "gene": "DDX47"
+      },
+      {
+        "gene": "APOLD1"
+      },
+      {
+        "gene": "GPR19"
+      },
+      {
+        "gene": "CREBL2"
+      },
+      {
+        "gene": "DUSP16"
+      },
+      {
+        "gene": "MANSC1"
+      },
+      {
+        "gene": "CDKN1B",
+        "class": "somatic",
+        "cnv_type": "unspec"
+      }
+    ]
+  },
+  "17:30848892-31940534": {
+    "nprobes": 80,
+    "callers": [
+      "cnvkit"
+    ],
+    "ratio": -0.427682,
+    "size": 1091642,
+    "chr": "17",
+    "start": 30848892,
+    "end": 31940534,
+    "genes": [
+      {
+        "gene": "RAB11FIP4"
+      },
+      {
+        "gene": "SUZ12",
+        "class": "somatic",
+        "cnv_type": "unspec"
+      },
+      {
+        "gene": "NF1",
+        "class": "somatic",
+        "cnv_type": "unspec"
+      },
+      {
+        "gene": "ADAP2"
+      },
+      {
+        "gene": "UTP6"
+      },
+      {
+        "gene": "AC134669.1"
+      },
+      {
+        "gene": "EVI2B"
+      },
+      {
+        "gene": "OMG"
+      },
+      {
+        "gene": "RNF135"
+      },
+      {
+        "gene": "TEFM"
+      },
+      {
+        "gene": "ATAD5"
+      },
+      {
+        "gene": "COPRS"
+      },
+      {
+        "gene": "EVI2A"
+      }
+    ]
+  },
+  "20:32435750-32779550": {
+    "nprobes": 9,
+    "callers": [
+      "cnvkit"
+    ],
+    "ratio": -0.37609,
+    "size": 343800,
+    "chr": "20",
+    "start": 32435750,
+    "end": 32779550,
+    "genes": [
+      {
+        "gene": "NOL4L"
+      },
+      {
+        "gene": "DNMT3B",
+        "class": "somatic",
+        "cnv_type": "unspec"
+      },
+      {
+        "gene": "FO393400.1"
+      },
+      {
+        "gene": "C20orf203"
+      },
+      {
+        "gene": "ASXL1",
+        "class": "somatic",
+        "cnv_type": "unspec"
+      },
+      {
+        "gene": "COMMD7"
+      }
+    ]
+  },
+  "20:36930737-38377475": {
+    "nprobes": 17,
+    "callers": [
+      "cnvkit"
+    ],
+    "ratio": -0.415085,
+    "size": 1446738,
+    "chr": "20",
+    "start": 36930737,
+    "end": 38377475,
+    "genes": [
+      {
+        "gene": "CTNNBL1"
+      },
+      {
+        "gene": "TGM2"
+      },
+      {
+        "gene": "TTI1"
+      },
+      {
+        "gene": "SRC"
+      },
+      {
+        "gene": "RPN2"
+      },
+      {
+        "gene": "RBL1"
+      },
+      {
+        "gene": "LBP"
+      },
+      {
+        "gene": "BPI"
+      },
+      {
+        "gene": "KIAA1755"
+      },
+      {
+        "gene": "RPRD1B"
+      },
+      {
+        "gene": "VSTM2L"
+      },
+      {
+        "gene": "BLCAP"
+      },
+      {
+        "gene": "MANBAL"
+      },
+      {
+        "gene": "GHRH"
+      },
+      {
+        "gene": "MROH8"
+      },
+      {
+        "gene": "SAMHD1",
+        "class": "somatic",
+        "cnv_type": "unspec"
+      },
+      {
+        "gene": "NNAT"
+      }
+    ]
+  }
+}

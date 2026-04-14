@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="360" viewBox="0 0 980 360" role="img" aria-labelledby="title desc">
+  <title id="title">Dashboard Metric Path</title>
+  <desc id="desc">Dashboard request uses service then Redis and Mongo to build response for UI.</desc>
+  <defs>
+    <style>
+      .canvas { fill: #f8fafc; }
+      .title-band { fill: #e2e8f0; }
+      .title { font: 700 22px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .label { font: 700 14px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .sub { font: 12px 'Segoe UI', Arial, sans-serif; fill: #334155; }
+      .box { stroke: #334155; stroke-width: 1.8; rx: 12; ry: 12; }
+      .arrow { stroke: #334155; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0,0 10,4 0,8" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="360" class="canvas"/>
+  <rect x="20" y="16" width="940" height="36" rx="10" class="title-band"/>
+  <text x="30" y="40" class="title">Dashboard Metric Path</text>
+
+  <rect x="50" y="96" width="180" height="68" class="box" fill="#dbeafe"/>
+  <text x="140" y="122" text-anchor="middle" class="label">UI dashboard</text>
+  <text x="140" y="140" text-anchor="middle" class="sub">card load request</text>
+
+  <rect x="290" y="96" width="210" height="68" class="box" fill="#e0f2fe"/>
+  <text x="395" y="122" text-anchor="middle" class="label">GET /dashboard API</text>
+  <text x="395" y="140" text-anchor="middle" class="sub">router and contract</text>
+
+  <rect x="560" y="96" width="220" height="68" class="box" fill="#dcfce7"/>
+  <text x="670" y="122" text-anchor="middle" class="label">Dashboard service</text>
+  <text x="670" y="140" text-anchor="middle" class="sub">compose metrics</text>
+
+  <rect x="530" y="234" width="170" height="68" class="box" fill="#fbcfe8"/>
+  <text x="615" y="260" text-anchor="middle" class="label">Redis cache</text>
+  <text x="615" y="278" text-anchor="middle" class="sub">hot path read/write</text>
+
+  <rect x="750" y="234" width="170" height="68" class="box" fill="#fef3c7"/>
+  <text x="835" y="260" text-anchor="middle" class="label">Mongo aggregate</text>
+  <text x="835" y="278" text-anchor="middle" class="sub">source-of-truth query</text>
+
+  <rect x="790" y="96" width="150" height="68" class="box" fill="#ddd6fe"/>
+  <text x="865" y="122" text-anchor="middle" class="label">UI render</text>
+  <text x="865" y="140" text-anchor="middle" class="sub">response cards</text>
+
+  <path d="M230 130 L290 130" class="arrow"/>
+  <path d="M500 130 L560 130" class="arrow"/>
+  <path d="M760 130 L790 130" class="arrow"/>
+  <path d="M650 164 L615 234" class="arrow"/>
+  <path d="M695 164 L835 234" class="arrow"/>
+  <path d="M700 268 L790 146" class="arrow"/>
+  <path d="M750 268 L820 164" class="arrow"/>
+</svg>

@@ -2,13 +2,14 @@
 {% block title %}Sample – {{ sample.name }}{% endblock %}
 
 {% block body %}
+{% set sample_omics_layer = sample.get("omics_layer", "").lower() %}
 
 {# ---------- Macros: ---------- #}
 {# Reusable components for this template #}
 
 {# File row in Files & QC section #}
-{% macro file_row(label, path, present, icon=None, extra_badge=None, missing_msg="No file available") -%}
-  <li class="flex items-center justify-between gap-4 bg-brown-50 border border-gray-100 rounded-2xl py-2 px-1 hover:shadow-md transition">
+{% macro file_row(label, path, present, icon=None, extra_badge=None, missing_msg="No file available", required=False, exists=False, status_label=None, status_tone="warning", warning_message=None) -%}
+  <li class="flex items-start justify-between gap-4 bg-brown-50 border border-gray-100 rounded-2xl py-2 px-1 hover:shadow-md transition">
     <div class="min-w-0 flex-1">
       <div class="flex items-center gap-2">
         {% if icon %}
@@ -16,19 +17,32 @@
                 alt="{{ label }} icon" class="h-5 w-5 opacity-80">
         {% endif %}
         <div class="font-medium text-gray-900">{{ label }}</div>
+        {% if required %}
+          <span class="text-xs px-2 py-0.5 rounded-full border bg-blue-50 text-blue-800 border-blue-200">Required</span>
+        {% else %}
+          <span class="text-xs px-2 py-0.5 rounded-full border bg-gray-50 text-gray-700 border-gray-200">Optional</span>
+        {% endif %}
       </div>
 
-      {% if path %}
+      {% if path and exists %}
         <div class="mt-1 text-xs text-gray-600 truncate max-w-[80ch] break-all">{{ path }}</div>
+      {% elif path and not exists %}
+        <div class="mt-1 text-xs text-red-700 break-all">{{ path }}</div>
       {% else %}
-        <div class="mt-1 text-xs text-red-700">{{ missing_msg }}</div>
+        <div class="mt-1 text-xs {{ 'text-red-700' if required else 'text-orange-700' }}">{{ missing_msg }}</div>
+      {% endif %}
+
+      {% if warning_message %}
+        <div class="mt-1 text-xs {{ 'text-red-700' if status_tone == 'error' else 'text-orange-700' }}">
+          {{ warning_message }}
+        </div>
       {% endif %}
     </div>
 
     <div class="flex items-center gap-2 shrink-0">
       <span class="text-xs px-2 py-1 rounded-full border
-                    {{ 'bg-teal-100 border-teal-200' if present else 'bg-orange-100 border-red-200' }}">
-        {{ 'Present' if present else 'Missing' }}
+                    {% if status_tone == 'ok' %}bg-teal-100 text-teal-900 border-teal-200{% elif status_tone == 'error' %}bg-red-100 text-red-900 border-red-200{% else %}bg-orange-100 text-orange-900 border-orange-200{% endif %}">
+        {{ status_label or ('Present' if present else 'Missing') }}
       </span>
       {% if extra_badge %}{{ extra_badge|safe }}{% endif %}
     </div>
@@ -65,9 +79,9 @@
 
             <h1 class="text-2xl text-3xl font-semibold text-gray-900 flex items-center gap-3">
               {% if sample.get("omics_layer", "").lower() == "rna" %}
-                <a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="hover:underline hover:text-blue-500">{{ sample.name }}</a>
+                <a href="{{ url_for('rna_bp.list_fusions', sample_id=sample.name) }}" class="hover:underline hover:text-blue-500">{{ sample.name }}</a>
               {% elif sample.get("omics_layer", "").lower() == "dna" %}
-                <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="hover:underline hover:text-blue-500">{{ sample.name }}</a>
+                <a href="{{ url_for('dna_bp.list_dna_findings', sample_id=sample.name) }}" class="hover:underline hover:text-blue-500">{{ sample.name }}</a>
               {% endif %}
               {% if sample.paired %}
                 <span class="text-sm px-2 py-1 rounded-full bg-green-100 text-green-800 border border-green-200">Paired</span>
@@ -108,11 +122,20 @@
 
           <!-- Quick Actions -->
           <div class="flex flex-wrap gap-2">
-            <button id="btnChooseISGL" class="px-3 py-2 rounded-xl bg-brown-200 hover:bg-brown-300 shadow">
-              Choose ISGL
+            {% if sample_omics_layer == 'dna' %}
+            <button id="btnChooseISGLSnv" class="px-3 py-2 rounded-xl bg-brown-200 hover:bg-brown-300 shadow">
+              Choose SNV ISGL
             </button>
+            <button id="btnChooseISGLCnv" class="px-3 py-2 rounded-xl bg-orange-200 hover:bg-orange-300 shadow">
+              Choose CNV ISGL
+            </button>
+            {% elif sample_omics_layer == 'rna' %}
+            <button id="btnChooseISGLFusion" class="px-3 py-2 rounded-xl bg-teal-200 hover:bg-teal-300 shadow">
+              Choose Fusion ISGL
+            </button>
+            {% endif %}
             <button id="btnPasteAdHoc" class="px-3 py-2 rounded-xl bg-blue-200 hover:bg-blue-300 shadow">
-              Paste Ad-Hoc Genes
+              Paste Scoped Ad-Hoc Genes
             </button>
             {% if sample.filters and sample.filters.adhoc_genes %}
             <button id="btnClearTemp" class="px-3 py-2 rounded-xl bg-yellow-200 hover:bg-yellow-300 text-yellow-900 shadow">
@@ -235,67 +258,23 @@
         <h2 class="text-sm font-semibold text-gray-900 tracking-wide mb-4 uppercase">Files & QC ({{ sample.omics_layer }})</h2>
 
         <ul class="divide-y divide-gray-100 text-sm space-y-3">
-          <!-- FOR DNA SAMPLES -->
-          {% if sample.omics_layer == 'DNA' %}
-            {{ file_row("VCF", sample.vcf_files, sample.vcf_files | file_state,
-                        icon="document-text",
-                        extra_badge=(('<span class="text-sm px-2 py-1 rounded-full border bg-gray-50 text-gray-900 border-gray-200">'
-                                      ~ sample.data_counts.snvs ~ ' SNVs</span>')
-                                      if sample.data_counts and sample.data_counts.snvs else None),
-                        missing_msg="No VCF file available") }}
-
-            {{ file_row("CNV JSON", sample.cnv, sample.cnv | file_state,
-                        icon="clipboard-document-list",
-                        extra_badge=(('<span class="text-sm px-2 py-1 rounded-full border bg-gray-50 text-gray-900 border-gray-200">'
-                                      ~ sample.data_counts.cnvs ~ ' CNVs</span>')
-                                      if sample.data_counts and sample.data_counts.cnvs else None),
-                        missing_msg="No CNV JSON available") }}
-
-            {{ file_row("Transloc VCF", sample.transloc, sample.transloc | file_state,
-                        icon="link",
-                        extra_badge=(('<span class="text-sm px-2 py-1 rounded-full border bg-gray-50 text-gray-900 border-gray-200">'
-                                      ~ sample.data_counts.transloc ~ ' Translocs</span>')
-                                      if sample.data_counts and sample.data_counts.transloc else None),
-                        missing_msg="No Transloc VCF available") }}
-
-            {{ file_row("Coverage JSON", sample.cov, sample.cov | file_state,
-                        icon="chart-bar",
-                        extra_badge=(('<span class="text-sm px-2 py-1 rounded-full border bg-gray-50 text-gray-900 border-gray-200">Loaded</span>')if sample.data_counts and sample.data_counts.cov else None),
-                        missing_msg="No coverage file available") }}
-
-            {{ file_row("Biomarkers JSON", sample.biomarkers, sample.biomarkers | file_state,
-                        icon="finger-print",
-                        extra_badge=(('<span class="text-sm px-2 py-1 rounded-full border bg-gray-50 text-gray-900 border-gray-200">Loaded</span>')if sample.data_counts and sample.data_counts.biomarkers else None),
-                        missing_msg="No biomarkers file available") }}
-
-            {{ file_row("CNV Profile (image)", sample.cnvprofile, sample.cnvprofile | file_state,
-                        icon="photo",
-                        missing_msg="No CNV profile available") }}
-
-          <!-- FOR RNA SAMPLES -->
-          {% elif sample.omics_layer == 'RNA' %}
-
-            {{ file_row("Expression", sample.expression_path, sample.expression_path | file_state,
-                        icon="clipboard-document-list",
-                        extra_badge=(('<span class="text-sm px-2 py-1 rounded-full border bg-gray-50 text-gray-900 border-gray-200">'
-                                      ~ sample.data_counts.rna_expr ~ ' Expr</span>')
-                                      if sample.data_counts and sample.data_counts.rna_expr else None),
-                        missing_msg="No Expression file available") }}
-
-            {{ file_row("Classification", sample.classification_path, sample.classification_path | file_state,
-                        icon="document-text",
-                        extra_badge=(('<span class="text-sm px-2 py-1 rounded-full border bg-gray-50 text-gray-900 border-gray-200">'
-                                      ~ sample.data_counts.rna_class ~ ' classes</span>')
-                                      if sample.data_counts and sample.data_counts.rna_class else None),
-                        missing_msg="No Classification file available") }}
-
-            {{ file_row("QC", sample.qc, sample.qc | file_state,
-                        icon="chart-bar",
-                        extra_badge=(('<span class="text-sm px-2 py-1 rounded-full border bg-gray-50 text-gray-900 border-gray-200">'
-                                      ~ sample.data_counts.qc ~ ' data</span>')
-                                      if sample.data_counts and sample.data_counts.qc else None),
-                        missing_msg="No QC file available") }}
-          {% endif %}
+          {% for file_item in sample_expected_files %}
+            {% set count_badge = none %}
+            {% if file_item.count_badge %}
+              {% set count_badge = '<span class="text-sm px-2 py-1 rounded-full border bg-gray-50 text-gray-900 border-gray-200">' ~ file_item.count_badge ~ '</span>' %}
+            {% endif %}
+            {{ file_row(file_item.label, file_item.path, file_item.present,
+                        icon=file_item.icon,
+                        extra_badge=count_badge,
+                        missing_msg=file_item.missing_msg,
+                        required=file_item.required,
+                        exists=file_item.exists,
+                        status_label=file_item.status_label,
+                        status_tone=file_item.status_tone,
+                        warning_message=file_item.warning_message) }}
+          {% else %}
+            <li class="text-sm text-gray-500 py-2">No assay-configured files for this sample.</li>
+          {% endfor %}
         </ul>
       </div>
     </section>
@@ -314,15 +293,15 @@
         </div>
 
         <!-- ISGLs -->
-        <div class="mt-4">
-          <div class="text-sm font-semibold text-green-800 uppercase tracking-wide">Selected ISGLs</div>
+        <div class="mt-4" data-scope-panel="snv">
+          <div class="text-sm font-semibold text-green-800 uppercase tracking-wide">Selected SNV ISGLs</div>
           {% set isgl_names = (sample.filters.genelists if sample.filters and sample.filters.genelists else []) %}
           {% if isgl_names %}
             <div class="mt-2 flex flex-wrap gap-2">
               {% for n in isgl_names %}
                 {% if n|isgl_adhoc_status %}
                   <span class="px-2 py-1 rounded-full border bg-orange-100 border-orange-200 text-xs font-medium hover:shadow-md transition">
-                    {{ n|isgl_display_name }} <i>( Ad Hoc )</i>
+                    {{ n|isgl_display_name }} <i>(adhoc)</i>
                   </span>
                 {% else %}
                   <span class="px-2 py-1 rounded-full border bg-teal-100 border-teal-200 text-xs font-medium hover:shadow-md transition">
@@ -336,32 +315,89 @@
           {% endif %}
         </div>
 
+        {% if sample_omics_layer == 'dna' %}
+        <div class="mt-4" data-scope-panel="cnv">
+          <div class="text-sm font-semibold text-orange-800 uppercase tracking-wide">Selected CNV ISGLs</div>
+          {% set cnv_isgl_names = (sample.filters.cnv_genelists if sample.filters and sample.filters.cnv_genelists else []) %}
+          {% if cnv_isgl_names %}
+            <div class="mt-2 flex flex-wrap gap-2">
+              {% for n in cnv_isgl_names %}
+                <span class="px-2 py-1 rounded-full border bg-orange-100 border-orange-200 text-xs font-medium hover:shadow-md transition">
+                  {{ n|isgl_display_name }}
+                </span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="mt-2 text-sm text-gray-600">No CNV ISGLs selected for this sample.</div>
+          {% endif %}
+        </div>
+        {% elif sample_omics_layer == 'rna' %}
+        <div class="mt-4" data-scope-panel="fusion">
+          <div class="text-sm font-semibold text-teal-800 uppercase tracking-wide">Selected Fusion Lists</div>
+          {% set fusionlist_names = (sample.filters.fusionlists if sample.filters and sample.filters.fusionlists else []) %}
+          {% if fusionlist_names %}
+            <div class="mt-2 flex flex-wrap gap-2">
+              {% for n in fusionlist_names %}
+                <span class="px-2 py-1 rounded-full border bg-teal-100 border-teal-200 text-xs font-medium hover:shadow-md transition">
+                  {{ n|isgl_display_name }}
+                </span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="mt-2 text-sm text-gray-600">No fusion lists selected for this sample.</div>
+          {% endif %}
+        </div>
+        {% endif %}
+
         <!-- Ad Hoc Genes -->
         <div class="mt-6">
           <div class="flex items-center justify-between">
             <div>
               <div class="text-sm font-semibold text-blue-800 uppercase tracking-wide">Sample Ad-Hoc Genes</div>
-              {% if sample.filters and sample.filters.adhoc_genes %}
-                <div class="text-sm text-gray-800 mt-1">
-                  {{ sample.filters.adhoc_genes.label }} • {{ sample.filters.adhoc_genes.genes|length }} genes
-                </div>
-              {% else %}
-                <div class="text-sm text-gray-600 mt-1">No Ad-Hoc genes set.</div>
-              {% endif %}
+              <div class="text-sm text-gray-600 mt-1">Stored separately for each scope so SNV/CNV/Fusion can differ.</div>
             </div>
-            {% if sample.filters and sample.filters.adhoc_genes %}
-              <button id="btnShowAdHocGenes" class="inline-block px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs border border-blue-100 hover:bg-blue-100">View Ad-Hoc Genes</button>
-            {% endif %}
           </div>
-          <div class="mt-3 flex flex-wrap gap-1 text-xs">
-            {% if sample.filters and sample.filters.adhoc_genes %}
-              {% for g in sample.filters.adhoc_genes.genes[:36] %}
-                <span class="px-2 py-0.5 rounded-full border {% if g in asp.covered_genes %} bg-gray-200 {% else %} bg-orange-200 {% endif %} text-gray-800 hover:shadow-md transition">{{ g }}</span>
-              {% endfor %}
-              {% if sample.filters.adhoc_genes.genes|length > 36 %}
-                <span class="px-2 py-0.5 bg-blue-100 text-blue-800 border border-blue-200 rounded-full hover:shadow-md transition">+{{ sample.filters.adhoc_genes.genes|length - 36 }} more</span>
-              {% endif %}
-            {% endif %}
+          {% set adhoc_scopes = sample.filters.adhoc_genes if sample.filters and sample.filters.adhoc_genes is mapping else {} %}
+          {% if sample_omics_layer == 'dna' %}
+            {% set adhoc_scope_cards = [('snv', 'SNV'), ('cnv', 'CNV'), ('all', 'All DNA scopes')] %}
+          {% else %}
+            {% set adhoc_scope_cards = [('fusion', 'Fusion'), ('all', 'All RNA scopes')] %}
+          {% endif %}
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+            {% for scope_key, scope_label in adhoc_scope_cards %}
+              {% set entry = adhoc_scopes.get(scope_key, {}) if adhoc_scopes else {} %}
+              <div class="rounded-2xl border bg-white p-3" data-adhoc-scope-panel="{{ scope_key }}">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <div class="text-xs font-semibold uppercase tracking-wide text-gray-700">{{ scope_label }}</div>
+                    {% if entry and entry.genes %}
+                      <div class="text-sm text-gray-800 mt-1">{{ entry.label }} • {{ entry.genes|length }} genes</div>
+                    {% else %}
+                      <div class="text-sm text-gray-500 mt-1">No genes set for this scope.</div>
+                    {% endif %}
+                  </div>
+                  {% if entry and entry.genes %}
+                    <button
+                      type="button"
+                      class="btnShowAdHocScope inline-block px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs border border-blue-100 hover:bg-blue-100"
+                      data-target="{{ scope_key }}"
+                    >
+                      View
+                    </button>
+                  {% endif %}
+                </div>
+                {% if entry and entry.genes %}
+                  <div class="mt-3 flex flex-wrap gap-1 text-xs">
+                    {% for g in entry.genes[:18] %}
+                      <span class="px-2 py-0.5 rounded-full border {% if g in asp.covered_genes %} bg-gray-200 {% else %} bg-orange-200 {% endif %} text-gray-800 hover:shadow-md transition"><a href="{{ url_for('common_bp.public_gene_info', id=g) }}" class="hover:underline">{{ g }}</a></span>
+                    {% endfor %}
+                    {% if entry.genes|length > 18 %}
+                      <span class="px-2 py-0.5 bg-blue-100 text-blue-800 border border-blue-200 rounded-full hover:shadow-md transition">+{{ entry.genes|length - 18 }} more</span>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
           </div>
         </div>
 
@@ -370,6 +406,14 @@
           <div class="flex items-start justify-between">
             <div>
               <div class="text-sm font-semibold text-yellow-800 uppercase tracking-wide">Effective Genes</div>
+              <div class="mt-2 flex flex-wrap gap-2">
+                {% if sample_omics_layer == 'dna' %}
+                  <button type="button" class="effective-target-btn px-2 py-1 rounded-lg border bg-yellow-50 text-yellow-800 text-xs" data-target="snv">SNV</button>
+                  <button type="button" class="effective-target-btn px-2 py-1 rounded-lg border bg-orange-50 text-orange-800 text-xs" data-target="cnv">CNV</button>
+                {% elif sample_omics_layer == 'rna' %}
+                  <button type="button" class="effective-target-btn px-2 py-1 rounded-lg border bg-teal-50 text-teal-800 text-xs" data-target="fusion">Fusion</button>
+                {% endif %}
+              </div>
               <div id="effectiveSummary" class="text-sm text-gray-800 mt-1">Loading…</div>
             </div>
             <button id="btnShowEffective" class="inline-block px-2 py-1 rounded-lg bg-yellow-100 text-yellow-700 text-xs border border-yellow-200 hover:bg-yellow-200 hidden">View all</button>
@@ -380,27 +424,47 @@
       </div>
 
       <!-- Counts -->
-      <!-- TODO: Add HTML CODE to show variant Class Info -->
-      <!-- TODO: Add CNVs, Translocation etc -->
       <div class="col-span-1 rounded-3xl border border-gray-200 bg-gray-50 backdrop-blur shadow-xl p-6 border-t-4 border-blue-400 break-all hover:shadow-md transition">
         <h2 class="text-sm uppercase font-semibold tracking-wider text-gray-900">Analysis Counts: Filtered by Genes</h2>
         <span class="text-xs mt-1 mb-4">Count Format - filtered_counts (raw_counts)</span>
         <div class="mt-4 grid grid-cols-2 gap-3">
           <div class="rounded-2xl border bg-gray-50 p-3 hover:shadow-md transition">
-            <div class="text-xs text-gray-500">Variants</div>
-            <div class="text-xl font-semibold">{{ variant_stats_filtered.variants }} ({{ variant_stats_raw.variants }})</div>
+            <div class="text-xs text-gray-500">SNV</div>
+            <div class="text-xl font-semibold">{{ analysis_counts_filtered.get('snv', 0) }} ({{ analysis_counts_raw.get('snv', 0) }})</div>
           </div>
           <div class="rounded-2xl border bg-gray-50 p-3 hover:shadow-md transition">
-            <div class="text-xs text-gray-500">Interesting</div>
-            <div class="text-xl font-semibold">{{ variant_stats_filtered.interesting }} ({{ variant_stats_raw.interesting }})</div>
+            <div class="text-xs text-gray-500">CNV</div>
+            <div class="text-xl font-semibold">{{ analysis_counts_filtered.get('cnv', 0) }} ({{ analysis_counts_raw.get('cnv', 0) }})</div>
           </div>
           <div class="rounded-2xl border bg-gray-50 p-3 hover:shadow-md transition">
-            <div class="text-xs text-gray-500">Irrelevant</div>
-            <div class="text-xl font-semibold">{{ variant_stats_filtered.irrelevant }} ({{ variant_stats_raw.irrelevant }})</div>
+            <div class="text-xs text-gray-500">Transloc</div>
+            <div class="text-xl font-semibold">{{ analysis_counts_filtered.get('transloc', 0) }} ({{ analysis_counts_raw.get('transloc', 0) }})</div>
           </div>
           <div class="rounded-2xl border bg-gray-50 p-3 hover:shadow-md transition">
-            <div class="text-xs text-gray-500">False Positives</div>
-            <div class="text-xl font-semibold">{{ variant_stats_filtered.false_positives }} ({{ variant_stats_raw.false_positives }})</div>
+            <div class="text-xs text-gray-500">Fusion</div>
+            <div class="text-xl font-semibold">{{ analysis_counts_filtered.get('fusion', 0) }} ({{ analysis_counts_raw.get('fusion', 0) }})</div>
+          </div>
+          <div class="rounded-2xl border bg-gray-50 p-3 hover:shadow-md transition col-span-2">
+            <div class="text-xs text-gray-500">Biomarker</div>
+            <div class="text-xl font-semibold">{{ analysis_counts_filtered.get('biomarker', 0) }} ({{ analysis_counts_raw.get('biomarker', 0) }})</div>
+          </div>
+        </div>
+
+        <div class="mt-4 border-t pt-4">
+          <div class="text-xs uppercase font-semibold tracking-wider text-gray-700">SNV Flags</div>
+          <div class="mt-3 grid grid-cols-2 gap-3">
+            <div class="rounded-2xl border bg-gray-50 p-3 hover:shadow-md transition">
+              <div class="text-xs text-gray-500">Interesting</div>
+              <div class="text-xl font-semibold">{{ variant_stats_filtered.interesting }} ({{ variant_stats_raw.interesting }})</div>
+            </div>
+            <div class="rounded-2xl border bg-gray-50 p-3 hover:shadow-md transition">
+              <div class="text-xs text-gray-500">Irrelevant</div>
+              <div class="text-xl font-semibold">{{ variant_stats_filtered.irrelevant }} ({{ variant_stats_raw.irrelevant }})</div>
+            </div>
+            <div class="rounded-2xl border bg-gray-50 p-3 hover:shadow-md transition col-span-2">
+              <div class="text-xs text-gray-500">False Positives</div>
+              <div class="text-xl font-semibold">{{ variant_stats_filtered.false_positives }} ({{ variant_stats_raw.false_positives }})</div>
+            </div>
           </div>
         </div>
       </div>
@@ -518,7 +582,7 @@
             </div>
             <div class="flex items-center gap-2 shrink-0">
               {% if r.filepath %}
-                {% if has_access('view_reports', min_role='admin') %}
+                {% if has_access('report:view', min_role='admin') %}
                   <a href="{{ url_for('home_bp.view_report', sample_id=sample.name, report_id=r.report_id) }}" target="_blank">
                     <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}"
                           alt="view" class="h-5 w-5 mr-1">
@@ -563,6 +627,19 @@
           <input id="pasteLabel" class="bg-gray-50 border border-gray-300 rounded-xl p-2" placeholder="Transplant focus">
         </label>
         <label class="flex flex-col gap-1">
+          <span class="text-xs font-medium text-gray-700">Apply To</span>
+          <select id="pasteListType" class="bg-gray-50 border border-gray-300 rounded-xl p-2">
+            {% if sample_omics_layer == 'dna' %}
+              <option value="snv">SNV</option>
+              <option value="cnv">CNV</option>
+              <option value="all">All DNA scopes</option>
+            {% elif sample_omics_layer == 'rna' %}
+              <option value="fusion">Fusion</option>
+              <option value="all">All RNA scopes</option>
+            {% endif %}
+          </select>
+        </label>
+        <label class="flex flex-col gap-1">
           <span class="text-xs font-medium text-gray-700">Genes (comma/space/newline-separated)</span>
           <textarea id="pasteGenes" rows="8" class="bg-gray-50 border border-gray-300 rounded-xl p-2" placeholder="DNMT3A TET2 ASXL1 ..."></textarea>
         </label>
@@ -578,7 +655,7 @@
   <div id="modalChooseISGL" class="fixed inset-0 hidden items-center justify-center z-50">
     <div class="bg-white rounded-3xl shadow-2xl border border-2 border-black p-6 m-2">
       <div class="flex items-start justify-between mb-4">
-        <h3 class="text-lg font-semibold text-gray-900">Available ISGLs for ({{ sample.assay }})</h3>
+        <h3 id="chooseIsglTitle" class="text-lg font-semibold text-gray-900">Available ISGLs for ({{ sample.assay }})</h3>
       </div>
       <div id="chooseBodyISGL" class="text-sm">
         <div class="text-xs text-gray-600">Loading…</div>
@@ -593,18 +670,10 @@
   <div id="modalAdHocView" class="fixed inset-0 hidden items-center justify-center z-50">
     <div class="bg-white rounded-3xl shadow-2xl border border-2 border-black p-6 m-2 overflow-hidden flex flex-col max-w-2xl w-full">
       <div class="flex items-center justify-between mb-3">
-        <h3 class="text-lg font-semibold text-gray-900">Ad Hoc Genes ({{ sample.filters.adhoc_genes.genes|length if sample.filters and sample.filters.adhoc_genes else 0 }})</h3>
+        <h3 id="adhocModalTitle" class="text-lg font-semibold text-gray-900">Ad-Hoc Genes</h3>
       </div>
       <div class="overflow-auto border rounded-2xl p-3 bg-gray-50">
-        {% if sample.filters and sample.filters.adhoc_genes %}
-          <div class="flex flex-wrap gap-1 text-xs">
-            {% for g in sample.filters.adhoc_genes.genes %}
-              <span class="px-2 py-0.5 {% if g in asp.covered_genes %} bg-gray-200 {% else %} bg-orange-200 {% endif %} border rounded-full hover:shadow-md transition">{{ g }}</span>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div class="text-sm text-gray-700">No adhoc genes set.</div>
-        {% endif %}
+        <div id="adhocModalBody" class="flex flex-wrap gap-1 text-xs"></div>
       </div>
       <div class="mt-5 flex justify-end">
         <button class="px-3 py-2 rounded-xl border modal-close">Close</button>
@@ -669,13 +738,45 @@
   <script>
     const sampleId = {{ sample._id|string | tojson }};
 
-    const currentTempGenes = {{ (sample.filters.adhoc_genes if sample.filters and sample.filters.adhoc_genes else []) | tojson }};
-    const currentTempLabel = {{ (sample.filters.temp_label if sample.filters and sample.filters.temp_label else '') | tojson }};
-    const currentTempMode  = {{ ((sample.filters.temp_mode if sample.filters and sample.filters.temp_mode else 'intersection')) | tojson }};
+    const currentAdhoc = {{ (sample.filters.adhoc_genes if sample.filters and sample.filters.adhoc_genes else {}) | tojson }};
     const appliedISGLs = {{ (sample.filters.genelists if sample.filters and sample.filters.genelists else []) | tojson }};
+    const appliedCnvISGLs = {{ (sample.filters.cnv_genelists if sample.filters and sample.filters.cnv_genelists else []) | tojson }};
+    const appliedFusionLists = {{ (sample.filters.fusionlists if sample.filters and sample.filters.fusionlists else []) | tojson }};
+    const sampleOmicsLayer = {{ sample_omics_layer | tojson }};
     const aspGroup = {{ asp.asp_group | tojson }};
+    const aspCoveredGenes = new Set({{ (asp.covered_genes if asp and asp.covered_genes else []) | tojson }});
     const ISGLS_FETCH_URL = {{ url_for("home_bp.list_isgls", sample_id=sample._id|string) | tojson }};
     const ISGLS_APPLY_URL = {{ url_for("home_bp.apply_isgl", sample_id=sample._id|string) | tojson }};
+    const ADHOC_SAVE_URL = {{ url_for("home_bp.save_adhoc_genes", sample_id=sample._id|string) | tojson }};
+    const ADHOC_CLEAR_URL = {{ url_for("home_bp.clear_adhoc_genes", sample_id=sample._id|string) | tojson }};
+
+    function normalizedAdhocMap(raw) {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+      const scopedKeys = ['snv', 'cnv', 'fusion', 'all'];
+      const hasScopedKeys = scopedKeys.some(key => raw[key] && typeof raw[key] === 'object');
+      if (hasScopedKeys) {
+        return scopedKeys.reduce((acc, key) => {
+          const entry = raw[key];
+          if (entry && typeof entry === 'object' && Array.isArray(entry.genes) && entry.genes.length) {
+            acc[key] = {
+              label: entry.label || 'adhoc',
+              genes: entry.genes.slice(),
+            };
+          }
+          return acc;
+        }, {});
+      }
+      if (Array.isArray(raw.genes) && raw.genes.length) {
+        const listTypes = Array.isArray(raw.list_types) && raw.list_types.length ? raw.list_types : ['snv'];
+        return listTypes.reduce((acc, key) => {
+          acc[key] = { label: raw.label || 'adhoc', genes: raw.genes.slice() };
+          return acc;
+        }, {});
+      }
+      return {};
+    }
+
+    const currentAdhocMap = normalizedAdhocMap(currentAdhoc);
 
 
 
@@ -696,7 +797,13 @@
 
     // Buttons
     document.getElementById('btnPasteAdHoc')?.addEventListener('click', () => {
-      document.getElementById('pasteLabel').value = currentTempLabel || '';
+      const defaultTarget = window.currentGeneScopeTarget || (sampleOmicsLayer === 'rna' ? 'fusion' : 'snv');
+      const entry = currentAdhocMap[defaultTarget] || currentAdhocMap.all || {};
+      document.getElementById('pasteLabel').value = entry.label || '';
+      document.getElementById('pasteGenes').value = Array.isArray(entry.genes) ? entry.genes.join('\n') : '';
+      document.getElementById('pasteListType').value = currentAdhocMap[defaultTarget]
+        ? defaultTarget
+        : (currentAdhocMap.all ? 'all' : defaultTarget);
       openModal(modalPaste);
     });
 
@@ -707,21 +814,27 @@
       fetchUrl,
       applyUrl,
       modalElement,
-      bodyId
+      bodyId,
+      listType,
+      title
     }) {
       const btn = document.getElementById(buttonId);
       if (!btn) return;
 
       btn.addEventListener('click', async () => {
         openModal(modalElement);
+        document.getElementById('chooseIsglTitle').textContent = title;
 
         const body = document.getElementById(bodyId);
         body.innerHTML = '<div class="text-xs mx-2 text-gray-600">Loading…</div>';
 
         try {
-          const res = await fetch(fetchUrl);
+          const res = await fetch(`${fetchUrl}?target=${encodeURIComponent(listType)}`);
           const data = await res.json();
           const items = Array.isArray(data.items) ? data.items : [];
+          const appliedIds = listType === 'cnv'
+            ? appliedCnvISGLs
+            : (listType === 'fusion' ? appliedFusionLists : appliedISGLs);
 
           if (!items.length) {
             body.innerHTML = '<div class="text-sm text-gray-700">No ISGLs found for this assay.</div>';
@@ -748,15 +861,12 @@
                 </thead>
                 <tbody>
                   ${items.map(it => `
-                    <tr class="border-t" data-row="${it._id}">
+                    <tr class="border-t" data-row="${it.isgl_id}">
                       <td class="px-3 py-2">
-                        <input type="checkbox" class="selRow" value="${it._id}" ${appliedISGLs.includes(it._id) ? 'checked' : ''}>
+                        <input type="checkbox" class="selRow" value="${it.isgl_id}" ${appliedIds.includes(it.isgl_id) ? 'checked' : ''}>
                       </td>
                       <td class="px-3 py-2">
-                        ${it.label || it.name || 'Unnamed'}
-                        ${it.adhoc
-                          ? '<span class="ml-2 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-xs border border-orange-200">AdHoc</span>'
-                          : ''}
+                        ${(it.label || it.name || 'Unnamed')}${it.adhoc ? ' (adhoc)' : ''}
                       </td>
                       <td class="px-3 py-2">${it.version ?? '—'}</td>
                       <td class="px-3 py-2">${it.gene_count ?? 0}</td>
@@ -795,37 +905,44 @@
             const ids = selectedIds();   // ← compute selection first (may be [])
 
             // CONFIRM CLEAR-ALL
-            if (ids.length === 0 && appliedISGLs.length > 0) {
-              if (!confirm('Remove all applied gene lists from this sample?')) {
-                applyBtn.disabled = false;
-                applyBtn.textContent = 'Apply selected';
-                return;
-              }
-            }
+            const submitSelection = async () => {
+              applyBtn.disabled = true;
+              applyBtn.textContent = 'Applying…';
 
-            applyBtn.disabled = true;
-            applyBtn.textContent = 'Applying…';
+              try {
+                const res2 = await fetch(applyUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ isgl_ids: ids, list_type: listType })
+                });
 
-            try {
-              const res2 = await fetch(applyUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isgl_ids: ids })
-              });
-
-              const data2 = await res2.json();
-              if (data2.ok) {
-                window.location.reload();
-              } else {
+                const data2 = await res2.json();
+                if (res2.ok && data2.status === 'ok') {
+                  window.location.reload();
+                  return;
+                }
                 applyBtn.disabled = false;
                 applyBtn.textContent = 'Apply selected';
                 alert(data2.error || 'Failed to apply selected');
+              } catch {
+                applyBtn.disabled = false;
+                applyBtn.textContent = 'Apply selected';
+                alert('Network error while applying selected');
               }
-            } catch {
-              applyBtn.disabled = false;
-              applyBtn.textContent = 'Apply selected';
-              alert('Network error while applying selected');
+            };
+
+            if (ids.length === 0 && appliedIds.length > 0) {
+              showActionModal({
+                title: 'Remove Applied Gene Lists',
+                message: 'This will remove the applied gene lists for this scope from this sample.',
+                confirmText: 'Remove lists',
+                confirmColor: 'orange',
+                onConfirm: submitSelection,
+              });
+              return;
             }
+
+            await submitSelection();
           });
 
 
@@ -837,36 +954,75 @@
 
     // Regular ISGL
     initISGLChooser({
-      buttonId: "btnChooseISGL",
-      // fetchUrl: `/samples/${sampleId}/isgls`,
+      buttonId: "btnChooseISGLSnv",
       fetchUrl: ISGLS_FETCH_URL,
-      // applyUrl: `/samples/${sampleId}/genes/apply-isgl`,
       applyUrl: ISGLS_APPLY_URL,
       modalElement: modalChooseISGL,
-      bodyId: "chooseBodyISGL"
+      bodyId: "chooseBodyISGL",
+      listType: "snv",
+      title: `Available SNV ISGLs for ({{ sample.assay }})`
+    });
+    initISGLChooser({
+      buttonId: "btnChooseISGLCnv",
+      fetchUrl: ISGLS_FETCH_URL,
+      applyUrl: ISGLS_APPLY_URL,
+      modalElement: modalChooseISGL,
+      bodyId: "chooseBodyISGL",
+      listType: "cnv",
+      title: `Available CNV ISGLs for ({{ sample.assay }})`
+    });
+    initISGLChooser({
+      buttonId: "btnChooseISGLFusion",
+      fetchUrl: ISGLS_FETCH_URL,
+      applyUrl: ISGLS_APPLY_URL,
+      modalElement: modalChooseISGL,
+      bodyId: "chooseBodyISGL",
+      listType: "fusion",
+      title: `Available Fusion Lists for ({{ sample.assay }})`
     });
 
 
     // End of choose Adhoc ISGL
 
 
-    document.getElementById('btnShowAdHocGenes')?.addEventListener('click', () => openModal(modalAdHocView));
     document.getElementById('btnShowEffective')?.addEventListener('click', () => openModal(modalEffectiveView));
+    document.querySelectorAll('.btnShowAdHocScope').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.target;
+        const entry = currentAdhocMap[target];
+        const genes = Array.isArray(entry?.genes) ? entry.genes : [];
+        document.getElementById('adhocModalTitle').textContent = `Ad-Hoc Genes • ${target === 'all' ? 'All scopes' : target.toUpperCase()} (${genes.length})`;
+        const body = document.getElementById('adhocModalBody');
+        body.innerHTML = '';
+        if (!genes.length) {
+          body.innerHTML = '<div class="text-sm text-gray-700">No ad-hoc genes set for this scope.</div>';
+        } else {
+          genes.forEach(g => {
+            const span = document.createElement('span');
+            span.className = `px-2 py-0.5 ${aspCoveredGenes.has(g) ? 'bg-gray-200' : 'bg-orange-200'} border rounded-full hover:shadow-md transition`;
+            span.textContent = g;
+            body.appendChild(span);
+          });
+        }
+        openModal(modalAdHocView);
+      });
+    });
 
     // Save pasted ad hoc genes
     document.getElementById('btnPasteSave')?.addEventListener('click', async () => {
       const label = document.getElementById('pasteLabel').value || 'Ad Hoc';
       const genes = document.getElementById('pasteGenes').value || '';
+      const listType = document.getElementById('pasteListType').value || (sampleOmicsLayer === 'rna' ? 'fusion' : 'snv');
       if (!genes.trim()) {
         alert('Please enter genes to save.');
         return;
       }
-      const res = await fetch(`/samples/${sampleId}/adhoc_genes`, {
+      const res = await fetch(ADHOC_SAVE_URL, {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ label, genes })
+        body: JSON.stringify({ label, genes, list_type: listType })
       });
       const data = await res.json();
-      if (data.ok) {
+      if (res.ok && data.status === 'ok') {
         window.location.reload();
       } else {
         alert(data.error || 'Failed to save');
@@ -875,14 +1031,23 @@
 
     // Clear temp ad hoc genes
     document.getElementById('btnClearTemp')?.addEventListener('click', async () => {
-      if (!confirm('Clear adhoc genes for this sample?')) return;
-      const res = await fetch(`/samples/${sampleId}/adhoc_genes/clear`, { method: 'POST' });
-      const data = await res.json();
-      if (data.ok) {
-        window.location.reload();
-      } else {
-        alert(data.error || 'Failed to clear');
-      }
+      showActionModal({
+        title: 'Clear Ad-Hoc Genes',
+        message: 'This will remove the saved ad-hoc gene list for the current scope from this sample.',
+        confirmText: 'Clear genes',
+        confirmColor: 'yellow',
+        onConfirm: async () => {
+          const activeTarget = window.currentGeneScopeTarget || (sampleOmicsLayer === 'rna' ? 'fusion' : 'snv');
+          const clearTarget = currentAdhocMap[activeTarget] ? activeTarget : (currentAdhocMap.all ? 'all' : activeTarget);
+          const res = await fetch(`${ADHOC_CLEAR_URL}?target=${encodeURIComponent(clearTarget)}`, { method: 'POST' });
+          const data = await res.json();
+          if (res.ok && data.status === 'ok') {
+            window.location.reload();
+          } else {
+            alert(data.error || 'Failed to clear');
+          }
+        }
+      });
     });
 
     // Effective genes
@@ -894,6 +1059,19 @@
       const modal      = document.getElementById('modalEffectiveView');
       const modalTitle = document.getElementById('effectiveModalTitle');
       const allEl      = document.getElementById('effectiveAll');
+      const targetButtons = Array.from(document.querySelectorAll('.effective-target-btn'));
+      let currentEffectiveTarget = sampleOmicsLayer === 'rna' ? 'fusion' : 'snv';
+      window.currentGeneScopeTarget = currentEffectiveTarget;
+
+      function syncScopePanels() {
+        document.querySelectorAll('[data-scope-panel]').forEach(panel => {
+          panel.classList.toggle('hidden', panel.dataset.scopePanel !== currentEffectiveTarget);
+        });
+        document.querySelectorAll('[data-adhoc-scope-panel]').forEach(panel => {
+          const scope = panel.dataset.adhocScopePanel;
+          panel.classList.toggle('hidden', !(scope === currentEffectiveTarget || scope === 'all'));
+        });
+      }
 
 
       // modal helpers
@@ -904,7 +1082,7 @@
 
       async function loadEffectiveGenesAll() {
         try {
-          const res  = await fetch(`/samples/${sampleId}/effective-genes/all`);
+          const res  = await fetch(`/samples/${sampleId}/effective-genes/all?target=${encodeURIComponent(currentEffectiveTarget)}`);
           const data = await res.json();
           const genes = Array.isArray(data.items) ? data.items : [];
           const asp_covered_genes_count = data.asp_covered_genes_count || 0;
@@ -915,12 +1093,12 @@
           if (!['tumwgs', 'wts'].includes(asp_group)) {
             summaryEl.innerHTML =
               sel > 0
-                ? `<b>${sel}</b> genes selected of <b>${asp_covered_genes_count}</b> total ASP covered genes`
+                ? `<b>${currentEffectiveTarget.toUpperCase()}</b> • <b>${sel}</b> genes selected of <b>${asp_covered_genes_count}</b> total ASP covered genes`
                 : 'No effective genes';
           } else {
             summaryEl.innerHTML =
               sel > 0
-                ? `<b>${sel}</b> genes shown`
+                ? `<b>${currentEffectiveTarget.toUpperCase()}</b> • <b>${sel}</b> genes shown`
                 : 'No genes shown';
           }
 
@@ -948,7 +1126,7 @@
           if (sel > limit) {
             btnViewAll.classList.remove('hidden');
             btnViewAll.onclick = () => {
-              modalTitle.textContent = `Effective Genes (${sel})`;
+              modalTitle.textContent = `Effective Genes • ${currentEffectiveTarget.toUpperCase()} (${sel})`;
               allEl.innerHTML = '';
               genes.forEach(g => {
                 const span = document.createElement('span');
@@ -970,6 +1148,19 @@
         }
       }
 
+      targetButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentEffectiveTarget = btn.dataset.target;
+          window.currentGeneScopeTarget = currentEffectiveTarget;
+          targetButtons.forEach(other => other.classList.remove('ring-2', 'ring-yellow-400'));
+          btn.classList.add('ring-2', 'ring-yellow-400');
+          syncScopePanels();
+          loadEffectiveGenesAll();
+        });
+      });
+      targetButtons.find(btn => btn.dataset.target === currentEffectiveTarget)?.classList.add('ring-2', 'ring-yellow-400');
+
+      syncScopePanels();
       loadEffectiveGenesAll();
     });
 

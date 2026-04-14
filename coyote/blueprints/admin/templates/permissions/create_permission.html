@@ -14,17 +14,9 @@
             <img src="{{ url_for('static', filename='icons/heroicons_outline_24/shield-check.svg') }}" class="h-6 w-6">
             Create New Permission
           </h1>
-          <form method="GET" action="{{ url_for('admin_bp.create_user') }}">
-            <label class="text-sm font-semibold text-gray-800">Schema:</label>
-            <select name="schema_id" onchange="this.form.submit()" class="text-sm border border-gray-300 rounded-md shadow-sm px-2 py-1 bg-gray-50">
-              {% for s in schemas %}
-                <option value="{{ s._id }}" {% if s._id == selected_schema._id %}selected{% endif %}>{{ s._id }} (v{{ s.version }})</option>
-              {% endfor %}
-            </select>
-          </form>
         </div>
 
-        <form method="POST" id="permissionForm" class="space-y-6 text-sm text-gray-700">
+        <form method="POST" action="{{ url_for('admin_bp.create_permission') }}" id="permissionForm" class="space-y-6 text-sm text-gray-700">
           {% for section, keys in schema.sections.items() %}
           <div class="mb-6 border-l-4 border-blue-300 bg-blue-50 rounded-xl shadow-lg p-4">
             <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') | title }}</h2>
@@ -57,6 +49,7 @@
                       value="{% if value is iterable and value is not string %}{{ value | join(', ') }}{% else %}{{ value }}{% endif %}"
                       {% if is_readonly %}readonly class="w-full bg-blue-50 border border-blue-300 text-gray-500 rounded-md p-2 text-sm"{% else %}
                       class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm"{% endif %}>
+                    {% if key == "permission_name" %}<p id="permission_id_check" class="text-xs mt-1"></p>{% endif %}
                   </div>
                 {% endif %}
               {% endfor %}
@@ -76,4 +69,61 @@
     </section>
   </main>
 </div>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("permissionForm");
+    const saveBtn = form?.querySelector("button[type='submit']");
+    const idInput = form?.querySelector("input[name='permission_name']");
+    const status = document.getElementById("permission_id_check");
+    let exists = false;
+    let pending = false;
+    let timer = null;
+
+    function setStatus(message, css, disable) {
+      if (!status) return;
+      status.textContent = message;
+      status.className = `text-xs mt-1 ${css}`;
+      if (saveBtn) saveBtn.disabled = !!disable;
+    }
+
+    async function checkPermissionId() {
+      const permissionId = (idInput?.value || "").trim();
+      exists = false;
+      if (!permissionId) {
+        setStatus("", "", false);
+        return;
+      }
+      pending = true;
+      setStatus(`Checking permission_id: ${permissionId} ...`, "text-gray-500", true);
+      try {
+        const res = await fetch("{{ url_for('admin_bp.validate_permission_id') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ permission_id: permissionId })
+        });
+        const data = await res.json();
+        exists = !!data.exists;
+        if (exists) setStatus(`permission_id '${permissionId}' already exists.`, "text-red-500", true);
+        else setStatus(`permission_id '${permissionId}' is available.`, "text-green-600", false);
+      } catch (_) {
+        exists = false;
+        setStatus("Unable to validate permission_id right now.", "text-yellow-600", false);
+      } finally {
+        pending = false;
+      }
+    }
+
+    idInput?.addEventListener("input", () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(checkPermissionId, 250);
+    });
+
+    form?.addEventListener("submit", (event) => {
+      if (pending || exists) {
+        event.preventDefault();
+        setStatus("Use a unique permission_id before saving.", "text-red-500", true);
+      }
+    });
+  });
+</script>
 {% endblock %}

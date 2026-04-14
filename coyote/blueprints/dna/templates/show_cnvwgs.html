@@ -35,7 +35,7 @@
 {% endif %}
 
 {# Build the final IGV URL #}
-{% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9)  %}
+{% if all_samples_bam_paths and has_access("igv:view", min_role="user", min_level=9)  %}
   {% set igv_url = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ cnv_region %}
   {% set igv_url_left = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ cnv_region_left %}
   {% set igv_url_right = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ cnv_region_right %}
@@ -52,7 +52,7 @@
 {% endif %}
 
 {# check permissions for dna cnv actions buttons #}
-{% set cnv_actions_disabled = not has_access('manage_cnvs', min_role='user', min_level=9) %}
+{% set cnv_actions_disabled = not has_access('cnv:manage', min_role='user', min_level=9) %}
 {% set cnv_actions_class = "opacity-70 select-none cursor-not-allowed pointer-events-none" if cnv_actions_disabled else "" %}
 {% set cnv_actions_attr = "disabled" if cnv_actions_disabled else "" %}
 
@@ -183,11 +183,11 @@
         <div class="relative">
           <div class="absolute top-0 left-0 w-full h-1 bg-yellow-400 break-all"></div>
           {% if cnv.fp == true %}
-            <form action="{{ url_for('dna_bp.unmark_false_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.unmark_false_cnv', sample_id=sample_id, cnv_id=cnv._id) }}" method="post">
               <input class="relative bg-yellow-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{cnv_actions_class}}" type="submit" name="mark_fp" value="Unmark False Positive" {{cnv_actions_attr}}>
             </form>
           {% else %}
-            <form action="{{ url_for('dna_bp.mark_false_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.mark_false_cnv', sample_id=sample_id, cnv_id=cnv._id) }}" method="post">
               <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-yellow-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{cnv_actions_class}}" type="submit" name="mark_fp" value="Mark as False Positive" {{cnv_actions_attr}}>
             </form>
           {% endif %}
@@ -195,11 +195,11 @@
         <div class="relative">
           <div class="absolute top-0 left-0 w-full h-1 bg-green-400"></div>
           {% if cnv.interesting == true %}
-            <form action="{{ url_for('dna_bp.unmark_interesting_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.unmark_interesting_cnv', sample_id=sample_id, cnv_id=cnv._id) }}" method="post">
               <input class="relative bg-green-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{cnv_actions_class}}" type="submit" name="exclude_from_report" value="Exclude from report" {{cnv_actions_attr}}>
             </form>
           {% else %}
-            <form action="{{ url_for('dna_bp.mark_interesting_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.mark_interesting_cnv', sample_id=sample_id, cnv_id=cnv._id) }}" method="post">
               <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-green-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{cnv_actions_class}}" type="submit" name="include_in_report" value="Include in report" {{cnv_actions_attr}}>
             </form>
           {% endif %}
@@ -207,11 +207,11 @@
         <div class="relative">
           <div class="absolute top-0 left-0 w-full h-1 bg-brown-500"></div>
           {% if cnv.noteworthy == true %}
-            <form action="{{ url_for('dna_bp.unmark_noteworthy_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.unmark_noteworthy_cnv', sample_id=sample_id, cnv_id=cnv._id) }}" method="post">
               <input class="relative bg-brown-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{cnv_actions_class}}" type="submit" name="mark_irr" value="Unmark as interesting" {{cnv_actions_attr}}>
             </form>
           {% else %}
-            <form action="{{ url_for('dna_bp.mark_noteworthy_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.mark_noteworthy_cnv', sample_id=sample_id, cnv_id=cnv._id) }}" method="post">
               <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-brown-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{cnv_actions_class}}" type="submit" name="mark_irr" value="Mark as interesting" {{cnv_actions_attr}}>
             </form>
           {% endif %}
@@ -226,15 +226,15 @@
       <!-- Comment box, other tiering and pon -->
       <div class="flex flex-col gap-y-4 min-w-[450px] max-w-xl">
         <!-- Comment box -->
-        {% if has_access("add_variant_comment", min_role="manager", min_level=99) %}
+        {% if has_access("variant.comment:add:own", min_role="manager", min_level=99) %}
           <div class="bg-transparent w-full max-w-xl" id="commenting-box-card">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
             <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
-              <form action="{{ url_for('dna_bp.add_cnv_comment', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+              <form action="{{ url_for('dna_bp.add_cnv_comment', sample_id=sample_id, cnv_id=cnv._id) }}" method="post">
                 <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="h-40 w-full p-2 border border-gray-300 rounded-lg focus:bg-yellow-50 mb-4"></textarea><br>
                 <input type="hidden" name="cnvvar" value="{{cnv.chr}}:{{cnv.start}}-{{cnv.end}}">
                 <input type="submit" value="Save" class="bg-blue-500 text-white py-1 px-2 mx-1 mb-1 rounded-lg cursor-pointer shadow-md">&nbsp;&nbsp;
-                {% if has_access("add_global_variant_comment", min_role="admin") %}
+                {% if has_access("variant.comment:add:global", min_role="admin") %}
                   <label class="items-center">
                     <input type="checkbox" name="global" value="global" class="form-checkbox text-blue-500">
                     <span class="ml-2">Use as global annotation</span>
@@ -308,19 +308,17 @@
                   </thead>
                   <tbody id="cnv-annotations-body" class="{% if annotations|length > 1 %}border-b border-gray-400 {% endif %}">
                     {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
-                      {% if loop.first == True %}
-                        <tr class="hover:bg-green-100 border-t border-gray-400 text-left align-top">
-                          <td class="p-2 font-medium">{{ anno.author }}<br><small>{{ anno.time_created|human_date }}</small></td>
-                          <td class="p-2" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
-                          <td class="p-2">
-                            {% if "assay" in anno %}
-                              {{ anno.assay }}<br><small>{{ anno.subpanel }}</small>
-                            {% else %}
-                              historic
-                            {% endif %}
-                          </td>
-                        </tr>
-                      {% endif %}
+                      <tr class="hover:bg-green-100 border-t border-gray-400 text-left align-top">
+                        <td class="p-2 font-medium">{{ anno.author }}<br><small>{{ anno.time_created|human_date }}</small></td>
+                        <td class="p-2" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
+                        <td class="p-2">
+                          {% if "assay" in anno %}
+                            {{ anno.assay }}<br><small>{{ anno.subpanel }}</small>
+                          {% else %}
+                            historic
+                          {% endif %}
+                        </td>
+                      </tr>
                     {% endfor %}
                   </tbody>
                 </table>
@@ -356,14 +354,14 @@
                       <td class="p-2" onclick="addText(event)">{{ comment.text|format_comment|safe }}</td>
                       <td class="p-2">
                         {% if comment.hidden != 1 %}
-                          <form action="{{ url_for('dna_bp.hide_cnv_comment', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+                          <form action="{{ url_for('dna_bp.hide_cnv_comment', sample_id=sample_id, cnv_id=cnv._id) }}" method="post">
                             <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                            <input id="hide_comment" type="image" class="w-5 {% if not has_access('hide_variant_comment', min_role='manager', min_level=9) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
+                            <input id="hide_comment" type="image" class="w-5 {% if not has_access('variant.comment:hide', min_role='manager', min_level=9) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
                           </form>
                         {% else %}
-                          <form action="{{ url_for('dna_bp.unhide_cnv_comment', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+                          <form action="{{ url_for('dna_bp.unhide_cnv_comment', sample_id=sample_id, cnv_id=cnv._id) }}" method="post">
                             <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                            <input id="unhide_comment" type="image" class="w-5 {% if not has_access('unhide_variant_comment', min_role='manager', min_level=9) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
+                            <input id="unhide_comment" type="image" class="w-5 {% if not has_access('variant.comment:unhide', min_role='manager', min_level=9) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
                           </form>
                         {% endif %}
                       </td>
@@ -398,8 +396,9 @@
 <script type="text/javascript">
 
   window.onload = function() {
-    $('[data-autoclick="true"]').click();
-    $('[data-autoclick="true"]').click();
+    document
+      .querySelectorAll('[data-autoclick="true"]')
+      .forEach((el) => el.click());
   };
 
   function addText(event) {

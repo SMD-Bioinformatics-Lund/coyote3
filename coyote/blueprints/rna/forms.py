@@ -1,24 +1,11 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
-#  All rights reserved.
-#
-#  This source file is part of the Coyote3 codebase.
-#  The Coyote3 project provides a framework for genomic data analysis,
-#  interpretation, reporting, and clinical diagnostics.
-#
-#  Unauthorized use, distribution, or modification of this software or its
-#  components is strictly prohibited without prior written permission from
-#  the copyright holders.
-#
-
 """
 This module defines form classes for filtering and processing gene fusion events in genomic data analysis.
 It provides Flask-WTF forms to customize filtering criteria, including fusion lists, caller tools, read thresholds, and effect types.
 """
 
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, IntegerField, FloatField
+from wtforms import BooleanField, IntegerField
 from wtforms.validators import InputRequired, NumberRange, Optional
-from coyote.extensions import store
 
 
 class FusionFilter(FlaskForm):
@@ -35,21 +22,25 @@ class FusionFilter(FlaskForm):
     Used in the Coyote3 workflow to allow users to customize fusion event filtering criteria.
     """
 
-    fusionlist_FCknown = BooleanField(validators=[Optional()])
-    fusionlist_mitelman = BooleanField(validators=[Optional()])
+    fusionlist_FCknown = BooleanField("FC Known", validators=[Optional()])
+    fusionlist_mitelman = BooleanField("Mittleman", validators=[Optional()])
 
-    fusioncaller_arriba = BooleanField(validators=[Optional()])
-    fusioncaller_fusioncatcher = BooleanField(validators=[Optional()])
-    fusioncaller_starfusion = BooleanField(validators=[Optional()])
+    fusioncaller_arriba = BooleanField("Arriba", validators=[Optional()])
+    fusioncaller_fusioncatcher = BooleanField("Fusion Catcher", validators=[Optional()])
+    fusioncaller_starfusion = BooleanField("Star Fusion", validators=[Optional()])
 
-    min_spanpairs = IntegerField(
-        "Spanning pairs", validators=[InputRequired(), NumberRange(min=0)]
+    min_spanning_pairs = IntegerField(
+        "Min Spanning pairs",
+        validators=[InputRequired(), NumberRange(min=0)],
+        render_kw={"step": "1", "min": "0", "type": "number"},
     )
-    min_spanreads = IntegerField(
-        "Spanning reads", validators=[InputRequired(), NumberRange(min=0)]
+    min_spanning_reads = IntegerField(
+        "Min Spanning reads",
+        validators=[InputRequired(), NumberRange(min=0)],
+        render_kw={"step": "1", "min": "0", "type": "number"},
     )
 
-    fusioneffect_inframe = BooleanField(validators=[Optional()])
-    fusioneffect_outframe = BooleanField(validators=[Optional()])
+    fusioneffect_inframe = BooleanField("In-Frame", validators=[Optional()])
+    fusioneffect_outframe = BooleanField("Out-of-Frame", validators=[Optional()])
 
     reset = BooleanField("reset")

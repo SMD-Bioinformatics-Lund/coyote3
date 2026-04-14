@@ -1,15 +1,3 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
-#  All rights reserved.
-#
-#  This source file is part of the Coyote3 codebase.
-#  The Coyote3 project provides a framework for genomic data analysis,
-#  interpretation, reporting, and clinical diagnostics.
-#
-#  Unauthorized use, distribution, or modification of this software or its
-#  components is strictly prohibited without prior written permission from
-#  the copyright holders.
-#
-
 """
 This module provides a collection of Jinja2 template filters for use in Flask-based
 genomic data analysis and reporting applications. The filters support formatting,
@@ -23,16 +11,42 @@ Key functionalities include:
 - Utility filters for string manipulation, set operations, and rounding.
 """
 
-from flask import current_app as app
 import os
 import re
-from math import floor, log10
-import arrow
-from markupsafe import Markup, escape
-import markdown
 from datetime import datetime
-from dateutil import tz
+from math import floor, log10
 from urllib.parse import unquote
+
+from flask import current_app as app
+from markupsafe import Markup
+
+from coyote.filters.shared import (
+    format_fusion_desc_spans as shared_format_fusion_desc_spans,
+)
+from coyote.filters.shared import (
+    render_markdown_basic as shared_render_markdown_basic,
+)
+from coyote.filters.shared import (
+    uniq_callers as shared_uniq_callers,
+)
+
+_HOTSPOT_NOTE_BADGES: tuple[tuple[str, str, str], ...] = (
+    ("MM", "Malignt Melanom", "bg-melanoma"),
+    ("CNS", "Centrala Nervsystemet", "bg-cns"),
+    ("LU", "Lunga", "bg-lung"),
+    ("CO", "Kolorektal", "bg-colon"),
+    ("GI", "Gastro-Intestinal", "bg-gi"),
+    ("D", "Generell Solid", "bg-dna"),
+)
+
+_HOTSPOT_BADGES: tuple[tuple[str, str, str, str], ...] = (
+    ("mm", "mm", "Present in Melanoma hotspot list", "bg-melanoma"),
+    ("cns", "cns", "Present in CNS hotspot list", "bg-cns"),
+    ("lu", "lu", "Present in Lung hotspot list", "bg-lung"),
+    ("co", "co", "Present in Colon hotspot list", "bg-colon"),
+    ("gi", "gi", "Present in Gastro Intestinal hotspot list", "bg-gi"),
+    ("d", "d", "Present in DNA-panel hotspot list", "bg-dna"),
+)
 
 
 @app.template_filter("has_hotspot")
@@ -68,9 +82,11 @@ def format_panel_flag_snv(panel_str: str) -> str:
     classification = set()
     variant_type = set()
     for gene in genes:
-        parts = panel_str.split(":")
-        classification.add(parts[0])
-        variant_type.add(parts[1])
+        parts = gene.strip().split(":", 1)
+        if len(parts) != 2:
+            continue
+        classification.add(parts[0].strip())
+        variant_type.add(parts[1].strip())
 
     html = ""
     if "somatic" in classification:
@@ -328,90 +344,7 @@ def format_fusion_desc(st: str | None) -> str:
     Returns:
         str: HTML string with each term wrapped in a span with a class indicating its category.
     """
-    html = ""
-
-    good_terms = [
-        "mitelman",
-        "18cancers",
-        "known",
-        "oncogene",
-        "cgp",
-        "cancer",
-        "cosmic",
-        "gliomas",
-        "oesophagus",
-        "tumor",
-        "pancreases",
-        "prostates",
-        "tcga",
-        "ticdb",
-    ]
-
-    verybad_terms = [
-        "1000genomes",
-        "banned",
-        "bodymap2",
-        "cacg",
-        "conjoing",
-        "cortex",
-        "cta",
-        "ctb",
-        "ctc",
-        "ctd",
-        "distance1000bp",
-        "ensembl_fully_overlapping",
-        "ensembl_same_strand_overlapping",
-        "gtex",
-        "hpa",
-        "matched-normal",
-        "mt",
-        "non_cancer_tissues",
-        "non_tumor_cells",
-        "pair_pseudo_genes",
-        "paralogs",
-        "readthrough",
-        "refseq_fully_overlapping",
-        "rp11",
-        "rp",
-        "rrna",
-        "similar_reads",
-        "similar_symbols",
-        "ucsc_fully_overlapping",
-        "ucsc_same_strand_overlapping",
-    ]
-
-    bad_terms = [
-        "distance100kbp",
-        "distance10kbp",
-        "duplicates",
-        "ensembl_partially_overlapping",
-        "fragments",
-        "healthy",
-        "short_repeats",
-        "long_repeats",
-        "partial-matched-normal",
-        "refseq_partially_overlapping",
-        "short_distance",
-        "ucsc_partially_overlapping",
-    ]
-
-    if st:
-        vals = st.split(",")
-
-        for v in vals:
-            v_str = v
-            v_str = v_str.replace("<", "&lt;")
-            v_str = v_str.replace(">", "&gt;")
-            if v in good_terms:
-                html = html + "<span class='fusion fusion-good'>" + v_str + "</span>"
-            elif v in verybad_terms:
-                html = html + "<span class='fusion fusion-verybad'>" + v_str + "</span>"
-            elif v in bad_terms:
-                html = html + "<span class='fusion fusion-bad'>" + v_str + "</span>"
-            else:
-                html = html + "<span class='fusion fusion-neutral'>" + v_str + "</span>"
-
-    return html
+    return shared_format_fusion_desc_spans(st)
 
 
 @app.template_filter()
@@ -425,15 +358,20 @@ def uniq_callers(calls: list) -> set:
     Returns:
         set: Set of unique caller names.
     """
-    callers = []
-    for c in calls:
-        callers.append(c["caller"])
-    return set(callers)
+    return shared_uniq_callers(calls)
 
 
 @app.template_filter("markdown")
 def markdown_filter(s):
-    return markdown.markdown(s)
+    """Markdown filter.
+
+    Args:
+        s: Normalized ``s``.
+
+    Returns:
+        Normalized return value.
+    """
+    return shared_render_markdown_basic(s)
 
 
 @app.template_filter()
@@ -469,7 +407,7 @@ def no_transid(nom: str) -> str | None:
 
 
 @app.template_filter(name="format_hotspot_note")
-def format_hotspot_note(dummy) -> str:
+def format_hotspot_note(_unused) -> str:
     """
     Generates a legend of hotspot types as colored HTML badges for display in templates.
 
@@ -480,12 +418,11 @@ def format_hotspot_note(dummy) -> str:
         str: HTML string with colored badges and their corresponding cancer type descriptions.
     """
     html = ""
-    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-melanoma rounded-full'>MM: Malignt Melanom</span>&nbsp;"
-    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-cns rounded-full'>CNS: Centrala Nervsystemet</span>&nbsp;"
-    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-lung rounded-full'>LU: Lunga</span>&nbsp;"
-    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-colon rounded-full'>CO: Kolorektal</span>&nbsp;"
-    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-gi rounded-full'>GI: Gastro-Intestinal</span>&nbsp;"
-    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-dna rounded-full'>D: Generell Solid</span>&nbsp;"
+    for code, description, color_class in _HOTSPOT_NOTE_BADGES:
+        html += (
+            "<span class='inline-block p-1 m-1 text-xs text-white "
+            f"{color_class} rounded-full'>{code}: {description}</span>&nbsp;"
+        )
     return html
 
 
@@ -497,18 +434,13 @@ def format_hotspot(filters: list) -> str:
     """
     html = ""
     for f in filters:
-        if "mm" in f:
-            html += "<span data-export-value='mm' title='Present in Melanoma hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-melanoma rounded-full'>MM</span>"
-        if "cns" in f:
-            html += "<span data-export-value='cns' title='Present in CNS hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-cns rounded-full'>CNS</span>"
-        if "lu" in f:
-            html += "<span data-export-value='lu' title='Present in Lung hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-lung rounded-full'>LU</span>"
-        if "co" in f:
-            html += "<span data-export-value='co' title='Present in Colon hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-colon rounded-full'>CO</span>"
-        if "gi" in f:
-            html += "<span data-export-value='gi' title='Present in Gastro Intestinal hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-gi rounded-full'>GI</span>"
-        if "d" in f:
-            html += "<span data-export-value='d' title='Present in DNA-panel hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-dna rounded-full'>D</span>"
+        for marker, export_value, title, color_class in _HOTSPOT_BADGES:
+            if marker in f:
+                html += (
+                    f"<span data-export-value='{export_value}' title='{title}' "
+                    "class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white "
+                    f"{color_class} rounded-full'>{export_value.upper()}</span>"
+                )
 
     return html
 
@@ -559,21 +491,21 @@ def one_letter_p(st: str) -> str | None:
 
 
 @app.template_filter()
-def ellipsify(st: str, l: int) -> str:
+def ellipsify(st: str, max_len: int) -> str:
     """
     Truncates a string to a specified length and adds an ellipsis with a tooltip showing the full string.
 
     Args:
         st (str): The input string to truncate.
-        l (int): The maximum length of the truncated string.
+        max_len (int): The maximum length of the truncated string.
 
     Returns:
         str: The truncated string with an ellipsis and a tooltip containing the full string if it exceeds the specified length.
     """
-    if len(st) <= l:
+    if len(st) <= max_len:
         return st
     else:
-        return "<span title='" + st + "'>" + st[0:l] + "...</span>"
+        return "<span title='" + st + "'>" + st[0:max_len] + "...</span>"
 
 
 @app.template_filter()
@@ -701,7 +633,7 @@ def pubmed_links(st: str | None) -> str:
 
 
 @app.template_filter()
-def three_dec(val: float | int) -> str:
+def three_dec(val: float | int | None) -> str:
     """
     Converts a numeric value to a percentage string with up to 3 significant digits.
 
@@ -711,6 +643,8 @@ def three_dec(val: float | int) -> str:
     Returns:
         str: The value multiplied by 100, rounded to 3 significant digits, as a string.
     """
+    if val is None:
+        return ""
     return str(round_to_3(float(val) * 100))
 
 
@@ -744,9 +678,9 @@ def format_oncokbtext(st: str) -> str:
         str: The formatted string with newlines replaced by <br /> and PubMed references as links.
     """
     st = st.replace("\n", "<br />")
-    l = re.findall(r"\(PMID:.*?\)", st)
+    references = re.findall(r"\(PMID:.*?\)", st)
     i = 0
-    for a in l:
+    for a in references:
         b = a.replace(")", "")
         b = b.replace("(PMID:", "")
         b = b.replace(" ", "")

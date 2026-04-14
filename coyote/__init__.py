@@ -1,16 +1,3 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
-#  All rights reserved.
-#
-#  This source file is part of the Coyote3 codebase.
-#  The Coyote3 project provides a framework for genomic data analysis,
-#  interpretation, reporting, and clinical diagnostics.
-#
-#  Unauthorized use, distribution, or modification of this software or its
-#  components is strictly prohibited without prior written permission from
-#  the copyright holders.
-#
-
-
 """
 Coyote3 Meta Information
 =====================================
@@ -22,32 +9,46 @@ Key Responsibilities:
 - Initialize and configure the Flask application.
 - Set up caching, database, and authentication mechanisms.
 - Register blueprints for modular application structure.
-- Enforce permissions and access control.
+- Register request/response lifecycle hooks and helpers.
 - Provide centralized logging configuration.
 """
 
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from flask import Flask, request, redirect, url_for, flash
-from flask_cors import CORS
-import config
-from coyote import extensions
-from .errors import register_error_handlers
-from flask_login import current_user, login_user
-from coyote.services.auth.user_session import User
-from coyote.models.user import UserModel
-from coyote.extensions import store
-from coyote.util.misc import get_dynamic_assay_nav
-from pymongo.errors import ConnectionFailure
-from flask_caching import Cache
-from typing import Any
 import json
 import os
+import time
+import uuid
+from datetime import datetime, timezone
 
+import httpx
+from flask import Flask, g, request
+from flask_cors import CORS
+from flask_login import current_user
 
-# Initialize Flask-Caching
-cache = Cache()
+from coyote import extensions
+from coyote.services.api_client import ApiRequestError
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import (
+    build_internal_headers,
+    close_web_api_client,
+    get_web_api_client,
+)
+from coyote.util.misc import get_dynamic_assay_nav
+from shared import app_config
+from shared.cache_backend import create_cache_backend
+from shared.logging import emit_audit_event
+from shared.rate_limit import FixedWindowRateLimiter
+
+from .errors import register_error_handlers
+
+_WEB_ACCESS_LOG_EXCLUDED_PATHS = frozenset(
+    {
+        "/health",
+        "/heartbeat",
+    }
+)
 
 
 class PrefixMiddleware:
@@ -56,10 +57,25 @@ class PrefixMiddleware:
     """
 
     def __init__(self, app, prefix: str):
+        """__init__.
+
+        Args:
+                app: App.
+                prefix: Prefix.
+        """
         self.app = app
         self.prefix = prefix.rstrip("/")
 
     def __call__(self, environ, start_response):
+        """__call__.
+
+        Args:
+                environ: Environ.
+                start_response: Start response.
+
+        Returns:
+                The __call__ result.
+        """
         if self.prefix:
             path = environ.get("PATH_INFO", "")
             environ["SCRIPT_NAME"] = self.prefix
@@ -68,7 +84,7 @@ class PrefixMiddleware:
         return self.app(environ, start_response)
 
 
-def init_app(testing: bool = False, development: bool = False) -> Flask:
+def init_app(testing: bool = False, development: bool = False, staging: bool = False) -> Flask:
     """
     Creates and configures the Flask application instance.
 
@@ -79,6 +95,7 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
     Args:
         testing (bool): If True, loads testing configuration.
         development (bool): If True, loads development configuration and enables debug mode.
+        staging (bool): If True, loads staging configuration.
 
     Returns:
         Flask: The configured Flask application instance.
@@ -95,14 +112,13 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
     app.jinja_env.add_extension("jinja2.ext.do")
     app.jinja_env.filters["from_json"] = json.loads
 
-    # Allows cross-origin requests for CDM/api
-    # /trends needs this to work.
-    CORS(app)
+    env_name = os.getenv("ENV_NAME", "").strip().lower()
+    staging_enabled = staging or os.getenv("STAGING", "0") == "1" or env_name == "staging"
 
     if testing:
         app.logger.info("Testing mode ON.")
         app.logger.info("Loading config.TestConfig")
-        app.config.from_object(config.TestConfig())
+        app.config.from_object(app_config.TestConfig())
         app.debug = True
 
     elif development:
@@ -111,29 +127,55 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
             "(Jag ropar ut mitt innersta hav, jag ropar ut all min skit och allt mitt skav!)"
         )
         app.logger.info("Loading config.DevelopmentConfig")
-        app.config.from_object(config.DevelopmentConfig())
+        app.config.from_object(app_config.DevelopmentConfig())
         app.debug = True
+
+    elif staging_enabled:
+        app.logger.info("Loading config.StageConfig")
+        app_config.StageConfig.validate_required_env()
+        app.config.from_object(app_config.StageConfig())
 
     else:
         app.logger.info("Loading config.ProductionConfig")
-        app.config.from_object(config.ProductionConfig())  # Note initialization of Config
+        app_config.ProductionConfig.validate_required_env()
+        app.config.from_object(app_config.ProductionConfig())  # Note initialization of Config
+
+    # CORS: restrict to configured origins, or allow all if CORS_ORIGINS is not set.
+    # See README Security section and shared/app_config.py CORS_ORIGINS for details.
+    _cors_origins = app.config.get("CORS_ORIGINS") or []
+    if _cors_origins:
+        CORS(app, origins=_cors_origins)
+    else:
+        CORS(app)  # allows all origins — set CORS_ORIGINS env var to restrict
+
+    app.logger.info(
+        "Runtime banner: env=%s version=%s git=%s build=%s",
+        app.config.get("ENV_NAME"),
+        app.config.get("APP_VERSION"),
+        app.config.get("GIT_COMMIT", "unknown"),
+        app.config.get("BUILD_TIME", "unknown"),
+    )
 
     app.logger.info("Initializing app extensions + blueprints:")
     with app.app_context():
         init_login_manager(app)
-        init_db(app)
-        init_store(app)
+        init_template_filters(app)
         register_blueprints(app)
-        init_ldap(app)
         init_utility(app)
-        app.logger.debug("init_db() completed")
+        app.logger.debug("Web UI extensions initialized")
         # Register error handlers
         register_error_handlers(app)
 
         # Cache roles access levels in app context
-        app.role_access_levels = {
-            role["_id"]: role.get("level", 0) for role in store.roles_handler.get_all_roles()
-        }
+        app.role_access_levels = {}
+        try:
+            role_levels_payload = get_web_api_client().get_json(
+                api_endpoints.internal("roles", "levels"),
+                headers=build_internal_headers(),
+            )
+            app.role_access_levels = dict(role_levels_payload.role_levels)
+        except ApiRequestError as exc:
+            app.logger.warning("Unable to preload role access levels from API: %s", exc)
 
         @app.context_processor
         def inject_config():
@@ -165,116 +207,24 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
 
         @app.context_processor
         def inject_build_meta():
+            """Inject build meta.
+
+            Returns:
+                    The inject build meta result.
+            """
             return {
                 "APP_VERSION": app.config.get("APP_VERSION"),
                 "ENV_NAME": app.config.get("ENV_NAME"),
+                "CURRENT_YEAR": datetime.now(timezone.utc).year,
             }
 
-    # Refresh user session with latest data from the database before each request.
-    @app.before_request
-    def refresh_user_session() -> None:
-        """
-        Refreshes the current user's session data before each request.
-
-        This `before_request` hook ensures that any updates to the user's profile, role,
-        permissions, or assay access are reflected immediately in the session without requiring logout.
-
-        Behavior:
-            - If the user is authenticated:
-                - Fetches the latest user document from the database.
-                - Rebuilds the `UserModel` with updated role and assay configuration.
-                - Compares the current session user data to the freshly loaded data.
-                - If changes are detected (e.g., permission updates, role changes):
-                    - Re-authenticates the user to update the session state.
-
-        This is useful in environments where user data can change dynamically during a session,
-        such as through an admin panel or external provisioning system.
-
-        Returns:
-            None
-        """
-        if current_user.is_authenticated:
-            fresh_user_data = store.user_handler.user_with_id(current_user.username)
-            if fresh_user_data:
-                role_doc = store.roles_handler.get_role(fresh_user_data.get("role")) or {}
-                asp_docs = store.asp_handler.get_all_asps(is_active=True)
-                user_model = UserModel.from_mongo(fresh_user_data, role_doc, asp_docs)
-                updated_user = User(user_model)
-
-                # Re-login only if things have changed
-                current = current_user.to_dict()
-                updated = updated_user.to_dict()
-
-                if current != updated:
-                    login_user(updated_user)
-                    app.logger.debug(f"Session refreshed: {updated_user.username}")
-
-    @app.before_request
-    def enforce_permissions() -> None:
-        """
-        Enforces role- or permission-based access control before processing each request.
-
-        This `before_request` hook checks if the target view function has access control metadata
-        defined using the `@require(...)` decorator. It then validates whether the current user
-        satisfies at least one of the following:
-
-            - Has the required permission (`required_permission`)
-            - Meets the required access level (`required_access_level`)
-            - Has a role equal to or above the required role (`required_role_name`)
-
-        If the route defines any of these requirements and the user is not authenticated,
-        the user is redirected to the login page.
-
-        If the user is authenticated but fails to meet **all** of the defined criteria,
-        a flash message is shown and the user is redirected to the default home page.
-
-        Requirements are expected to be attached to view functions via the `@require(...)`
-        decorator which sets the following attributes:
-            - `required_permission`
-            - `required_access_level`
-            - `required_role_name`
-
-        Returns:
-            None: Either continues processing the request or redirects the user on failure.
-        """
-        view = app.view_functions.get(request.endpoint)
-        if not view:
-            return None
-
-        # Fetch required metadata
-        required_permission = getattr(view, "required_permission", None)
-        required_level = getattr(view, "required_access_level", None)
-        required_role = getattr(view, "required_role_name", None)
-
-        # If any access control is defined, require authentication
-        if required_permission or required_level is not None or required_role:
+        @app.context_processor
+        def inject_password_flags() -> dict:
+            """Inject password-related UI flags."""
             if not current_user.is_authenticated:
-                flash("Login required", "yellow")
-                return redirect(url_for("login_bp.login"))
-
-            # Resolve role level from cached access levels
-            resolved_role_level = 0
-            if required_role:
-                role_levels = app.role_access_levels
-                resolved_role_level = role_levels.get(required_role, 0)
-
-            # --------------------------
-            # Evaluate all three checks:
-            # --------------------------
-            permission_ok = (
-                required_permission
-                and required_permission in current_user.permissions
-                and required_permission not in current_user.denied_permissions
-            )
-
-            level_ok = required_level is not None and current_user.access_level >= required_level
-
-            role_ok = required_role is not None and current_user.access_level >= resolved_role_level
-
-            if not (permission_ok or level_ok or role_ok):
-                flash("You do not have access to this page.", "red")
-                return redirect(url_for("home_bp.samples_home"))
-        return None
+                return {"password_changed_enabled": False}
+            auth_type = str(getattr(current_user, "auth_type", "coyote3") or "coyote3").lower()
+            return {"password_changed_enabled": auth_type == "coyote3"}
 
     @app.context_processor
     def inject_permission_helpers():
@@ -291,7 +241,7 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
             - `min_level(level: int) -> bool`: Returns True if the user has an access level ≥ `level`.
             - `min_role(role_name: str) -> bool`: Returns True if the user's role is ≥ the given role.
             - `has_access(permission=None, min_role=None, min_level=None) -> bool`: Returns True if the
-              user meets **any** of the provided access criteria.
+              user meets **all** of the provided access criteria (conjunctive AND).
 
         Example (Jinja2 Template):
             ```jinja2
@@ -304,7 +254,7 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
             {% endif %}
 
             {% if has_access(permission="config:edit", min_role="admin") %}
-                <a href="/admin/config">Edit Config</a>
+                <a href="{{ url_for('admin_bp.create_dna_assay_config') }}">Edit Config</a>
             {% endif %}
             ```
 
@@ -330,10 +280,13 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
                 bool: True if the user is authenticated, has the permission, and it is not denied.
             """
 
-            return (
-                current_user.is_authenticated
-                and permission in current_user.permissions
-                and permission not in current_user.denied_permissions
+            return current_user.is_authenticated and (
+                bool(getattr(current_user, "is_superuser", False))
+                or (
+                    bool(permission)
+                    and permission in current_user.permissions
+                    and permission not in current_user.denied_permissions
+                )
             )
 
         def min_level(level: int) -> bool:
@@ -353,7 +306,10 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
             Returns:
                 bool: True if the user is authenticated and meets the level requirement; False otherwise.
             """
-            return current_user.is_authenticated and current_user.access_level >= level
+            return current_user.is_authenticated and (
+                bool(getattr(current_user, "is_superuser", False))
+                or current_user.access_level >= level
+            )
 
         def min_role(role_name: str) -> bool:
             """
@@ -375,8 +331,12 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
             """
             if not current_user.is_authenticated:
                 return False
+            if bool(getattr(current_user, "is_superuser", False)):
+                return True
 
-            required_level = app.role_access_levels.get(role_name, 0)
+            required_level = app.role_access_levels.get(role_name)
+            if required_level is None:
+                return current_user.role == role_name
             return current_user.access_level >= required_level
 
         # Store reference to avoid shadowing
@@ -386,15 +346,12 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
 
         def has_access(permission: str = None, min_role: str = None, min_level: int = None) -> bool:
             """
-            Evaluates whether the current user has access based on permission, role, or access level.
+            Evaluates whether the current user meets **all** provided access criteria.
 
-            This function serves as a flexible shortcut for checking any combination of:
-              - A specific granted permission (not denied).
-              - A minimum role, resolved via `app.role_access_levels`.
-              - A numeric minimum access level.
-
-            Access is granted if **any** of the provided criteria are satisfied. If no criteria
-            are passed, the function defaults to allowing access.
+            Each non-None argument adds a requirement. Access is granted only when
+            every specified check passes (conjunctive / AND logic).  If no criteria
+            are provided the function defaults to allowing access for any
+            authenticated user.
 
             Args:
                 permission (str, optional): A specific permission to check (e.g., "samples:edit").
@@ -402,8 +359,8 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
                 min_level (int, optional): The minimum numeric access level required (e.g., 999).
 
             Returns:
-                bool: True if the user is authenticated and satisfies at least one of the access checks,
-                      or if no checks are defined. False otherwise.
+                bool: True if the user is authenticated and satisfies **all** of the
+                      specified access checks, or if no checks are defined. False otherwise.
 
             Example:
                 ```jinja2
@@ -418,11 +375,13 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
             if not permission and not min_role and min_level is None:
                 return True
 
-            return (
-                (permission and _can(permission))
-                or (min_role and _min_role(min_role))
-                or (min_level is not None and _min_level(min_level))
-            )
+            if permission and not _can(permission):
+                return False
+            if min_role and not _min_role(min_role):
+                return False
+            if min_level is not None and not _min_level(min_level):
+                return False
+            return True
 
         return {
             "can": can,
@@ -431,63 +390,174 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
             "has_access": has_access,
         }
 
-    # Register the cache with the app
-    cache.init_app(app)
-    app.cache = cache
+    verify_external_api_dependency(app)
+    web_limiter: FixedWindowRateLimiter | None = None
+
+    @app.before_request
+    def _bind_request_id() -> None:
+        """Bind request id.
+
+        Returns:
+                None.
+        """
+        g.request_id = (request.headers.get("X-Request-ID") or "").strip() or str(uuid.uuid4())
+        g.request_start = time.perf_counter()
+        nonlocal web_limiter
+        if not bool(app.config.get("WEB_RATE_LIMIT_ENABLED", True)):
+            return None
+        path = request.path or ""
+        if (
+            path.startswith("/static/")
+            or path.startswith("/favicon")
+            or path.startswith("/assets/")
+            or path.startswith("/api/")
+        ):
+            return None
+        if web_limiter is None:
+            web_limiter = FixedWindowRateLimiter(
+                limit=int(app.config.get("WEB_RATE_LIMIT_REQUESTS_PER_MINUTE", 300)),
+                window_seconds=int(app.config.get("WEB_RATE_LIMIT_WINDOW_SECONDS", 60)),
+            )
+        client_ip = (
+            (request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown")
+            .split(",")[0]
+            .strip()
+        )
+        allowed, retry_after = web_limiter.check(f"{client_ip}|{request.method}")
+        if not allowed:
+            app.logger.warning(
+                "ui_rate_limited request_id=%s method=%s path=%s ip=%s retry_after=%ss",
+                g.request_id,
+                request.method,
+                path,
+                client_ip,
+                retry_after,
+            )
+            return (
+                "Too many requests",
+                429,
+                {"Retry-After": str(retry_after), "X-Request-ID": str(g.request_id)},
+            )
+        return None
+
+    @app.after_request
+    def _log_request(response):
+        """Log request.
+
+        Args:
+                response: Response.
+
+        Returns:
+                The  log request result.
+        """
+        request_id = getattr(g, "request_id", "-")
+        start = getattr(g, "request_start", None)
+        duration_ms = ((time.perf_counter() - start) * 1000.0) if start is not None else 0.0
+        forwarded_for = (request.headers.get("X-Forwarded-For") or "").strip()
+        client_ip = (
+            forwarded_for.split(",")[0].strip() if forwarded_for else (request.remote_addr or "N/A")
+        )
+        username = current_user.username if current_user.is_authenticated else "-"
+        _log_ui_request(
+            app=app,
+            request_id=str(request_id),
+            method=request.method,
+            path=request.path,
+            status_code=int(response.status_code),
+            duration_ms=duration_ms,
+            username=username,
+            ip=client_ip,
+        )
+        emit_audit_event(
+            source="web",
+            action="request",
+            status=(
+                "success"
+                if 200 <= int(response.status_code) < 400
+                else ("error" if int(response.status_code) >= 500 else "failed")
+            ),
+            severity=(
+                "error"
+                if int(response.status_code) >= 500
+                else ("warning" if int(response.status_code) >= 400 else "info")
+            ),
+            status_code=int(response.status_code),
+            duration_ms=round(float(duration_ms), 2),
+            method=request.method,
+            path=request.path,
+            request_id=request_id,
+            username=username,
+            user=username,
+            role=getattr(current_user, "role", "-") if current_user.is_authenticated else "-",
+            ip=client_ip,
+        )
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+    @app.teardown_appcontext
+    def _close_api_client(_exc) -> None:
+        """Close api client.
+
+        Args:
+                _exc:  exc.
+
+        Returns:
+                None.
+        """
+        close_web_api_client()
+
+    # Register shared cache backend (Redis when reachable; disabled backend otherwise).
+    app.cache = create_cache_backend(
+        config=app.config,
+        logger=app.logger,
+        namespace="web",
+    )
     app.logger.info("Flask app initialized successfully.")
     return app
 
 
-def init_db(app) -> None:
+def verify_external_api_dependency(app: Flask) -> None:
     """
-    Initializes the MongoDB database connection for the Flask application.
-
-    This function sets up the application's connection to MongoDB using
-    parameters defined in the Flask config (e.g., `MONGO_URI`, `DB_NAME`).
-    It also performs a health check via a `ping` command to ensure the
-    database is reachable.
-
-    This function should be called during application startup to ensure
-    database availability and to register the connection for later use.
-
-    Args:
-        app (Flask): The Flask application instance containing configuration settings.
-
-    Raises:
-        RuntimeError: If the database connection or health check (ping) fails.
+    Require external API runtime before serving web traffic.
     """
+    api_base = str(app.config.get("API_BASE_URL", "")).rstrip("/")
+    api_health_path = app.config.get("API_HEALTH_PATH", "/api/v1/health")
+    health_url = f"{api_base}{api_health_path}"
+    timeout = httpx.Timeout(3.0, connect=2.0)
+    retries = max(1, int(app.config.get("API_HEALTH_RETRIES", 15)))
+    retry_interval = float(app.config.get("API_HEALTH_RETRY_INTERVAL_SECONDS", 1.0))
+    last_error = None
 
-    app.logger.info("Initializing MongoDB...")
+    for attempt in range(1, retries + 1):
+        try:
+            with httpx.Client(timeout=timeout) as client:
+                response = client.get(health_url)
+                response.raise_for_status()
+                payload = (
+                    response.json()
+                    if "application/json" in response.headers.get("content-type", "")
+                    else {}
+                )
+                if isinstance(payload, dict) and payload.get("status") not in ("ok", None):
+                    raise RuntimeError(f"Unexpected API health payload: {payload}")
+            app.logger.debug("External API dependency check passed: %s", health_url)
+            return
+        except Exception as exc:
+            last_error = exc
+            if attempt < retries:
+                app.logger.warning(
+                    "External API dependency check failed (attempt %s/%s): %s (%s). Retrying in %.1fs",
+                    attempt,
+                    retries,
+                    health_url,
+                    exc,
+                    retry_interval,
+                )
+                time.sleep(retry_interval)
+            else:
+                app.logger.error("External API dependency check failed: %s (%s)", health_url, exc)
 
-    mongo_uri = app.config.get("MONGO_URI")
-    app.logger.info(f"Connecting to MongoDB at: {mongo_uri}")
-
-    # Initialize the PyMongo extension
-    extensions.mongo.init_app(app)
-
-    # Check the connection
-    try:
-        client = extensions.mongo.cx  # Get PyMongo client
-        client.admin.command("ping")  # Basic ping to confirm connection
-        app.logger.info("MongoDB connection established successfully.")
-    except ConnectionFailure as e:
-        app.logger.error(f"MongoDB connection failed: {e}")
-        raise RuntimeError("Could not connect to MongoDB. Aborting.") from e
-
-
-def init_store(app) -> None:
-    """
-    Initializes the data store for the application.
-
-    This function sets up the data store connection using the configuration
-    provided in the Flask application instance. It ensures that the store
-    is properly initialized and ready for use.
-
-    Args:
-        app (Flask): The Flask application instance.
-    """
-    app.logger.info(f"Initializing MongoAdapter at: {app.config['MONGO_URI']}")
-    extensions.store.init_from_app(app)
+    raise RuntimeError(f"External API is required but unavailable: {health_url}") from last_error
 
 
 def init_utility(app) -> None:
@@ -503,6 +573,37 @@ def init_utility(app) -> None:
     """
     app.logger.info("Initializing Utility")
     extensions.util.init_util()
+
+
+def _log_ui_request(
+    *,
+    app: Flask,
+    request_id: str,
+    method: str,
+    path: str,
+    status_code: int,
+    duration_ms: float,
+    username: str,
+    ip: str,
+) -> None:
+    """Log web requests, suppressing successful health/heartbeat chatter."""
+    if status_code < 400 and path in _WEB_ACCESS_LOG_EXCLUDED_PATHS:
+        return
+    log_fn = (
+        app.logger.error
+        if status_code >= 500
+        else (app.logger.warning if status_code >= 400 else app.logger.info)
+    )
+    log_fn(
+        "ui_request request_id=%s method=%s path=%s status=%s duration_ms=%.2f user=%s ip=%s",
+        request_id,
+        method,
+        path,
+        status_code,
+        duration_ms,
+        username,
+        ip,
+    )
 
 
 def register_blueprints(app) -> None:
@@ -531,7 +632,7 @@ def register_blueprints(app) -> None:
         :param msg: The name or identifier of the blueprint being registered.
         :type msg: str
         """
-        app.logger.debug(f"Blueprint registered: {msg}")
+        app.logger.debug("Blueprint registered: %s", msg)
 
     # Coyote main:
     bp_debug_msg("home_bp")
@@ -593,11 +694,26 @@ def register_blueprints(app) -> None:
 
     app.register_blueprint(public_bp, url_prefix="/public")
 
-    # register docs bp
+    # register docs metadata bp (about/changelog/license)
     bp_debug_msg("docs_bp")
     from coyote.blueprints.docs import docs_bp
 
     app.register_blueprint(docs_bp, url_prefix="/handbook")
+
+    app.logger.info("Flask API blueprint removed; using FastAPI service for API routes.")
+
+
+def init_template_filters(app) -> None:
+    """
+    Registers all Jinja template filters from a centralized registry.
+    """
+    app.logger.debug("Initializing template filters")
+    from coyote.filters.registry import register_filters
+    from coyote.filters.shared import human_date as shared_human_date
+
+    register_filters(app)
+    # Ensure core shared filters exist for every app instance (including test-created apps).
+    app.jinja_env.filters["human_date"] = shared_human_date
 
 
 def init_login_manager(app) -> None:
@@ -613,17 +729,3 @@ def init_login_manager(app) -> None:
     app.logger.debug("Initializing login_manager")
     extensions.login_manager.init_app(app)
     extensions.login_manager.login_view = "login_bp.login"
-
-
-def init_ldap(app):
-    """
-    Initializes the LDAP manager for the Flask application.
-
-    This function sets up the LDAP manager extension for the Flask app,
-    enabling integration with an LDAP server for authentication and user management.
-
-    Args:
-        app (Flask): The Flask application instance.
-    """
-    app.logger.debug("Initializing ldap login_manager")
-    extensions.ldap_manager.init_app(app)

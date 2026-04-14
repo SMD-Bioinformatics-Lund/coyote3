@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520" role="img" aria-labelledby="title desc">
+  <title id="title">Request Lifecycle</title>
+  <desc id="desc">Request moves through browser, Flask, FastAPI, service, data, then response rendering.</desc>
+  <defs>
+    <style>
+      .canvas { fill: #f8fafc; }
+      .title-band { fill: #e2e8f0; }
+      .title { font: 700 22px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .label { font: 700 14px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .sub { font: 12px 'Segoe UI', Arial, sans-serif; fill: #334155; }
+      .box { stroke: #334155; stroke-width: 1.8; rx: 12; ry: 12; }
+      .arrow { stroke: #334155; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0,0 10,4 0,8" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="520" class="canvas"/>
+  <rect x="20" y="16" width="860" height="36" rx="10" class="title-band"/>
+  <text x="30" y="40" class="title">Request Lifecycle</text>
+
+  <rect x="60" y="80" width="240" height="62" class="box" fill="#dbeafe"/>
+  <text x="180" y="104" text-anchor="middle" class="label">1. Browser/UI request</text>
+  <text x="180" y="122" text-anchor="middle" class="sub">User action triggers route</text>
+
+  <rect x="60" y="172" width="240" height="62" class="box" fill="#e0f2fe"/>
+  <text x="180" y="196" text-anchor="middle" class="label">2. Flask route</text>
+  <text x="180" y="214" text-anchor="middle" class="sub">Context and API call prep</text>
+
+  <rect x="60" y="264" width="240" height="62" class="box" fill="#dcfce7"/>
+  <text x="180" y="288" text-anchor="middle" class="label">3. FastAPI router</text>
+  <text x="180" y="306" text-anchor="middle" class="sub">Validation and auth boundary</text>
+
+  <rect x="380" y="172" width="240" height="62" class="box" fill="#fef3c7"/>
+  <text x="500" y="196" text-anchor="middle" class="label">4. Service/Core logic</text>
+  <text x="500" y="214" text-anchor="middle" class="sub">Domain rule execution</text>
+
+  <rect x="380" y="264" width="240" height="62" class="box" fill="#fde68a"/>
+  <text x="500" y="288" text-anchor="middle" class="label">5. Mongo/Redis access</text>
+  <text x="500" y="306" text-anchor="middle" class="sub">Read/write and cache</text>
+
+  <rect x="680" y="216" width="170" height="62" class="box" fill="#fbcfe8"/>
+  <text x="765" y="240" text-anchor="middle" class="label">6. API response</text>
+  <text x="765" y="258" text-anchor="middle" class="sub">Structured payload</text>
+
+  <rect x="680" y="322" width="170" height="62" class="box" fill="#ddd6fe"/>
+  <text x="765" y="346" text-anchor="middle" class="label">7. UI render</text>
+  <text x="765" y="364" text-anchor="middle" class="sub">Template/result output</text>
+
+  <path d="M180 142 L180 172" class="arrow"/>
+  <path d="M180 234 L180 264" class="arrow"/>
+  <path d="M300 295 L380 203" class="arrow"/>
+  <path d="M500 234 L500 264" class="arrow"/>
+  <path d="M620 295 L680 247" class="arrow"/>
+  <path d="M765 278 L765 322" class="arrow"/>
+</svg>

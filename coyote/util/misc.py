@@ -1,16 +1,3 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
-#  All rights reserved.
-#
-#  This source file is part of the Coyote3 codebase.
-#  The Coyote3 project provides a framework for genomic data analysis,
-#  interpretation, reporting, and clinical diagnostics.
-#
-#  Unauthorized use, distribution, or modification of this software or its
-#  components is strictly prohibited without prior written permission from
-#  the copyright holders.
-#
-
-
 """
 Coyote3 Miscellaneous Utilities
 =====================================
@@ -27,15 +14,16 @@ functions used across the application.
 # Imports
 # -------------------------------------------------------------------------
 import json
+from collections import defaultdict
 from datetime import datetime
 from typing import Any
-from collections import defaultdict
-from coyote.extensions import store, util
+
 from flask_login import current_user
-from flask import flash, redirect, url_for
-from flask import current_app as app
-from copy import deepcopy
-from bson import ObjectId
+
+
+def _is_object_id_instance(value: Any) -> bool:
+    """UI-safe check for BSON ObjectId without importing backend Mongo libs."""
+    return value.__class__.__name__ == "ObjectId"
 
 
 # -------------------------------------------------------------------------
@@ -71,7 +59,7 @@ class EnhancedJSONEncoder(json.JSONEncoder):
         if isinstance(obj, datetime):
             return obj.isoformat()  # or use obj.strftime(...) for a custom format
 
-        if isinstance(obj, ObjectId):
+        if _is_object_id_instance(obj):
             return str(obj)
 
         return super().default(obj)
@@ -136,40 +124,3 @@ def get_dynamic_assay_nav() -> dict:
 
     sorted_nav = sort_nested_dict(nav)
     return dict(dynamic_assay_nav=sorted_nav)
-
-
-def get_sample_and_assay_config(sample_id: str) -> tuple:
-    """
-    Fetches the sample, its assay configuration, and the formatted config schema for a given `sample_id`.
-
-    Checks if the sample exists using the provided `sample_id`. If not found, flashes an error and redirects to the samples home page.
-
-    If the sample exists, retrieves its assay configuration. If the configuration is missing, flashes an error and redirects to the samples home page.
-
-    If both the sample and its configuration are found, fetches the associated schema and formats the configuration.
-
-    Returns:
-        tuple: (sample, formatted_assay_config, assay_config_schema)
-        If a redirect is needed due to missing data, returns a Flask redirect response instead.
-    """
-    sample = store.sample_handler.get_sample(sample_id)
-    if not sample:
-        flash(f"Sample '{sample_id}' not found.", "red")
-        return redirect(url_for("home_bp.samples_home"))
-
-    assay_config = store.aspc_handler.get_aspc_no_meta(
-        sample.get("assay"), sample.get("profile", "production")
-    )
-
-    if not assay_config:
-        flash(
-            f"No config found for assay '{sample.get("assay")}' ({sample.get("profile", "production")})",
-            "red",
-        )
-        return redirect(url_for("home_bp.samples_home"))
-
-    schema_name = assay_config.get("schema_name")
-    assay_config_schema = store.schema_handler.get_schema(schema_name)
-    formatted_config = util.common.format_assay_config(deepcopy(assay_config), assay_config_schema)
-
-    return sample, formatted_config, assay_config_schema

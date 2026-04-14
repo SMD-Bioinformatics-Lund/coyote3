@@ -1,60 +1,77 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
-#  All rights reserved.
-#
-#  This source file is part of the Coyote3 codebase.
-#  The Coyote3 project provides a framework for genomic data analysis,
-#  interpretation, reporting, and clinical diagnostics.
-#
-#  Unauthorized use, distribution, or modification of this software or its
-#  components is strictly prohibited without prior written permission from
-#  the copyright holders.
-#
+"""Flask UI launcher with explicit runtime mode handling.
 
-
-"""
-Run Configuration for Coyote3
-=============================
-
-This file contains the entry point and configuration for running the Coyote3
-application, including logging setup for both Gunicorn and standalone modes.
+This launcher starts only the web presentation runtime and mirrors the
+environment-sensitive setup used by containerized deployments:
+- production -> ProductionConfig, logs/prod, debug off
+- development -> DevelopmentConfig, logs/dev, debug on by default
+- testing -> TestConfig, logs/test, debug on by default
 """
 
-# -------------------------------------------------------------------------
-# Imports
-# -------------------------------------------------------------------------
-import logging.config
-from typing import Any
-from flask import Flask
-from coyote import init_app
-from logging_setup import custom_logging, add_unique_handlers
+from __future__ import annotations
+
 import os
+from typing import Literal
+
+from coyote import init_app
+from shared.logging_setup import custom_logging
+
+RunMode = Literal["production", "development", "testing"]
+_TRUE_VALUES = {"1", "true", "yes", "on"}
 
 
-# Command to run this
-# gunicorn -w 2 -b 10.231.229.20:8000 run:app
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in _TRUE_VALUES
 
 
-if __name__ != "__main__":
-    print("Setting up Gunicorn logging.")
-    app: Flask = init_app()
-    log_dir: str | Any = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
-    custom_logging(log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=True)
-    app.secret_key = "SomethingSecret"
+def _resolve_mode() -> RunMode:
+    requested = str(os.getenv("COYOTE3_RUN_MODE", "")).strip().lower()
+    aliases = {
+        "prod": "production",
+        "production": "production",
+        "dev": "development",
+        "development": "development",
+        "test": "testing",
+        "testing": "testing",
+    }
+    if requested in aliases:
+        return aliases[requested]
+    if _env_bool("TESTING"):
+        return "testing"
+    if _env_bool("DEVELOPMENT"):
+        return "development"
+    return "production"
 
-    gunicorn_logger_error = logging.getLogger("gunicorn.error")
-    gunicorn_logger_access = logging.getLogger("gunicorn.access")
 
-    # Add unique handlers from gunicorn loggers to app logger
-    add_unique_handlers(app.logger, gunicorn_logger_error.handlers)
-    add_unique_handlers(app.logger, gunicorn_logger_access.handlers)
+def _apply_mode_defaults(mode: RunMode) -> tuple[bool, bool]:
+    if mode == "testing":
+        os.environ["TESTING"] = "1"
+        os.environ["DEVELOPMENT"] = "0"
+        os.environ.setdefault("FLASK_DEBUG", "1")
+        return True, False
+    if mode == "development":
+        os.environ["TESTING"] = "0"
+        os.environ["DEVELOPMENT"] = "1"
+        os.environ.setdefault("FLASK_DEBUG", "1")
+        return False, True
+    os.environ["TESTING"] = "0"
+    os.environ["DEVELOPMENT"] = "0"
+    os.environ.setdefault("FLASK_DEBUG", "0")
+    return False, False
 
-    # Set the app logger level to the gunicorn error logger level (you can choose which one to match)
-    app.logger.setLevel(gunicorn_logger_error.level)
-    app.logger.error("This is an error message")
+
+_mode = _resolve_mode()
+_testing, _development = _apply_mode_defaults(_mode)
+
+app = init_app(testing=_testing, development=_development)
+app.secret_key = app.config.get("SECRET_KEY")
+
 
 if __name__ == "__main__":
-    app = init_app(testing=False, debug=True)
     log_dir = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
-    custom_logging(log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=False)
-    app.secret_key = "SomethingSecret"
-    app.run(host="0.0.0.0")
+    custom_logging(log_dir, app.config.get("PRODUCTION", True))
+    host = os.getenv("HOST", os.getenv("FLASK_RUN_HOST", "0.0.0.0"))
+    port = int(os.getenv("PORT", os.getenv("FLASK_RUN_PORT", "8000")))
+    app.run(host=host, port=port, debug=_env_bool("FLASK_DEBUG"))

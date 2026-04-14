@@ -1,0 +1,100 @@
+[
+  {
+    "SAMPLE_ID": "65f0c0ffee00000000000001",
+    "CHROM": "7",
+    "POS": 140453136,
+    "REF": "A",
+    "ALT": "T",
+    "ID": "VAR_DEMO_001",
+    "QUAL": 99.0,
+    "FILTER": [
+      "PASS"
+    ],
+    "INFO": {
+      "variant_callers": [
+        "tnscope"
+      ],
+      "PON_NUM_tnscope": "0/20",
+      "PON_VAFS_tnscope": "0.0",
+      "selected_CSQ": {
+        "Feature": "ENST00000288602",
+        "HGNC_ID": "HGNC:3236",
+        "SYMBOL": "EGFR",
+        "Consequence": [
+          "missense_variant"
+        ],
+        "IMPACT": "MODERATE",
+        "VARIANT_CLASS": "SNV",
+        "HGVSc": "c.2573T>G",
+        "HGVSp": "p.Leu858Arg"
+      },
+      "selected_CSQ_criteria": "canonical+mane",
+      "CSQ": [
+        {
+          "Feature": "ENST00000288602",
+          "HGNC_ID": "HGNC:3236",
+          "SYMBOL": "EGFR",
+          "Consequence": [
+            "missense_variant"
+          ],
+          "IMPACT": "MODERATE",
+          "VARIANT_CLASS": "SNV",
+          "HGVSc": "c.2573T>G",
+          "HGVSp": "p.Leu858Arg"
+        }
+      ]
+    },
+    "GT": [
+      {
+        "AF": 0.43,
+        "DP": 510,
+        "GT": "0/1",
+        "VD": 220,
+        "sample": "CASE_DEMO",
+        "type": "case"
+      },
+      {
+        "AF": 0.0,
+        "DP": 420,
+        "GT": "0/0",
+        "VD": 0,
+        "sample": "CTRL_DEMO",
+        "type": "control"
+      }
+    ],
+    "selected_csq_feature": "ENST00000288602",
+    "genes": [
+      "EGFR"
+    ],
+    "transcripts": [
+      "ENST00000288602"
+    ],
+    "HGVSc": [
+      "c.2573T>G"
+    ],
+    "HGVSp": [
+      "p.Leu858Arg"
+    ],
+    "simple_id": "7_140453136_A_T",
+    "simple_id_hash": "4aa9ac62e43950e3daaa4a54c1a6bd4e",
+    "variant_class": "SNV",
+    "cosmic_ids": [
+      "COSM6240"
+    ],
+    "dbsnp_id": "rs121434568",
+    "pubmed_ids": [
+      "12345678"
+    ],
+    "gnomad_frequency": 0.0,
+    "gnomad_max": 0.0,
+    "exac_frequency": 0.0,
+    "thousandG_frequency": 0.0,
+    "hotspots": [
+      {
+        "lu": [
+          "HS_DEMO_1"
+        ]
+      }
+    ]
+  }
+]

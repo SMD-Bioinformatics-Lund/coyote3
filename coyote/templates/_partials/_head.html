@@ -1,0 +1,20 @@
+{% from "macros/assets.html" import static %}
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}COYOT3{% endblock %}</title>
+
+<link href="{{ static('css/tailwind.css') }}" rel="stylesheet">
+<link href="{{ static('icons/favicon.ico') }}" rel="shortcut icon">
+<link rel="stylesheet" href="{{ static('vendor/easymde/easymde.min.css') }}">
+
+<script defer src="{{ static('js/cdn.min.js') }}"></script>
+<script src="{{ static('js/sortableTable.js') }}"></script>
+<script src="{{ static('js/pagination.js') }}"></script>
+<script>
+  window.COYOTE_API_BASE = "{{ app_config.get('API_BROWSER_BASE', '/api')|replace('\"', '\\\"') }}";
+</script>
+<script src="{{ static('js/api_client.js') }}"></script>
+
+<script src="{{ static('vendor/easymde/easymde.min.js') }}"></script>
+<script src="{{ static('vendor/markdown-it/markdown-it.min.js') }}"></script>

@@ -1,0 +1,369 @@
+"""
+Main Configuration Module for Coyote3
+=====================================
+
+This module defines the configuration classes for the Coyote3 application,
+including default, production, development, and testing configurations.
+
+It provides centralized settings for Flask, MongoDB, LDAP, and other
+application-specific configurations, ensuring consistency and flexibility
+across different environments.
+"""
+
+# -------------------------------------------------------------------------
+# Imports
+# -------------------------------------------------------------------------
+import os
+from os import path
+from typing import Any
+from urllib.parse import urlparse, urlunparse
+
+import toml
+from dotenv import load_dotenv
+
+from coyote.__version__ import __version__ as app_version
+
+CONTACT_HOURS = ["Mon–Fri: 08:00–16:30", "Closed on public holidays"]
+
+# Load environment variables from the repo root .env file if present.
+REPO_ROOT = path.abspath(path.join(path.dirname(__file__), ".."))
+load_dotenv(path.join(REPO_ROOT, ".env"))
+
+MANE_SUMMARY_PATH = os.getenv("MANE_SUMMARY_PATH", "").strip()
+
+
+def _require_env(key: str, context: str = "production") -> str:
+    """Raise RuntimeError if the environment variable is not set or empty."""
+    value = os.getenv(key, "").strip()
+    if not value:
+        raise RuntimeError(
+            f"{key} must be set in {context} environments. Add it to your env file and re-deploy."
+        )
+    return value
+
+
+def _active_git_branch_name() -> str:
+    """Return current git branch name for debug/test version labels."""
+    head_file = path.join(REPO_ROOT, ".git", "HEAD")
+    if not path.exists(head_file):
+        return "unknown branch"
+    with open(head_file, "r", encoding="utf-8") as f:
+        for line in f.read().splitlines():
+            if line.startswith("ref:"):
+                return line.partition("refs/heads/")[2] or "unknown branch"
+    return "unknown branch"
+
+
+# -------------------------------------------------------------------------
+# Class Definition
+# -------------------------------------------------------------------------
+class DefaultConfig:
+    """
+    Default configuration class for the Coyote3 application.
+
+    This class provides the base configuration settings for the application,
+    including application version, logging paths, MongoDB settings, LDAP
+    configurations, and other default values. It serves as the foundation
+    for other environment-specific configurations such as production,
+    development, and testing.
+    """
+
+    # GITHUB REPO
+    CODEBASE = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
+
+    # In-app changelog
+    CHANGELOG_FILE = "CHANGELOG.md"
+
+    # Optional link out to Git
+    CHANGELOG_URL = f"{CODEBASE}/blob/master/CHANGELOG.md"
+
+    # Readme
+    README_URL = f"{CODEBASE}/blob/master/README.md"
+
+    # LICENSE
+    LICENSE_FILE = "LICENSE.txt"
+    LICENSE_URL = f"{CODEBASE}/blob/master/LICENSE.txt"
+
+    # CODE OF CONDUCT
+    CODE_OF_CONDUCT_URL = f"{CODEBASE}/blob/master/CODE_OF_CONDUCT.md"
+
+    # SECURITY
+    SECURITY_URL = f"{CODEBASE}/blob/master/SECURITY.md"
+
+    # CONTRIBUTING
+    CONTRIBUTING_URL = f"{CODEBASE}/blob/master/CONTRIBUTING.md"
+
+    # Public ASSAY CATALOG
+    ASSAY_CATALOG_YAML = "coyote/static/data/assay_catalog.yaml"
+
+    APP_VERSION = app_version
+    LOGS = "logs"
+    PRODUCTION = False
+
+    # REDIS CACHE TIMEOUTS
+    CACHE_DEFAULT_TIMEOUT = 300  # 300 secs, 5 minutes
+    CACHE_KEY_PREFIX = "coyote3_cache"
+    CACHE_TYPE = "RedisCache"
+    CACHE_ENABLED = os.getenv("CACHE_ENABLED", "1") == "1"
+    CACHE_REQUIRED = os.getenv("CACHE_REQUIRED", "0") == "1"
+    CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL", "redis://localhost:6379/0")
+    CACHE_REDIS_CONNECT_TIMEOUT = float(os.getenv("CACHE_REDIS_CONNECT_TIMEOUT", "1.0"))
+    CACHE_REDIS_SOCKET_TIMEOUT = float(os.getenv("CACHE_REDIS_SOCKET_TIMEOUT", "1.0"))
+    DASHBOARD_SUMMARY_CACHE_TTL_SECONDS = int(
+        os.getenv("DASHBOARD_SUMMARY_CACHE_TTL_SECONDS", "60")
+    )
+    DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS = int(
+        os.getenv("DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS", "300")
+    )
+    DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS = int(
+        os.getenv("DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS", "604800")
+    )
+
+    WTF_CSRF_ENABLED = True
+    API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8001")
+    API_BROWSER_BASE = os.getenv("API_BROWSER_BASE", "/api")
+    API_HEALTH_PATH = os.getenv("API_HEALTH_PATH", "/api/v1/health")
+    API_HEALTH_RETRIES = int(os.getenv("API_HEALTH_RETRIES", "15"))
+    API_HEALTH_RETRY_INTERVAL_SECONDS = float(os.getenv("API_HEALTH_RETRY_INTERVAL_SECONDS", "1.0"))
+    INTERNAL_API_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
+    # CORS configuration.
+    # Set CORS_ORIGINS as a comma-separated list of allowed origins, e.g.:
+    #   CORS_ORIGINS=https://coyote3.example.com,https://staging.example.com
+    # If unset or empty, ALL origins are permitted (Flask-Cors default).
+    # See the README Security section for production recommendations.
+    CORS_ORIGINS: list[str] = [
+        o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()
+    ]
+    API_SESSION_COOKIE_NAME = os.getenv("API_SESSION_COOKIE_NAME", "coyote3_api_session")
+    API_SESSION_TTL_SECONDS = int(os.getenv("API_SESSION_TTL_SECONDS", str(12 * 60 * 60)))
+    API_SESSION_SALT = os.getenv("API_SESSION_SALT", "coyote3-api-session-v1")
+    API_RATE_LIMIT_ENABLED = os.getenv("API_RATE_LIMIT_ENABLED", "1") == "1"
+    API_RATE_LIMIT_REQUESTS_PER_MINUTE = int(os.getenv("API_RATE_LIMIT_REQUESTS_PER_MINUTE", "600"))
+    API_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("API_RATE_LIMIT_WINDOW_SECONDS", "60"))
+    PASSWORD_TOKEN_SALT = os.getenv("PASSWORD_TOKEN_SALT", "")
+    PASSWORD_TOKEN_TTL_SECONDS = int(os.getenv("PASSWORD_TOKEN_TTL_SECONDS", str(60 * 60)))
+    WEB_RATE_LIMIT_ENABLED = os.getenv("WEB_RATE_LIMIT_ENABLED", "1") == "1"
+    WEB_RATE_LIMIT_REQUESTS_PER_MINUTE = int(os.getenv("WEB_RATE_LIMIT_REQUESTS_PER_MINUTE", "300"))
+    WEB_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("WEB_RATE_LIMIT_WINDOW_SECONDS", "60"))
+    WEB_APP_BASE_URL = os.getenv("WEB_APP_BASE_URL", "")
+    HELP_CENTER_URL = os.getenv("HELP_CENTER_URL", "")
+    SMTP_HOST = os.getenv("SMTP_HOST", "")
+    SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+    SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "1") == "1"
+    SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "0") == "1"
+    SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "noreply@coyote3.local")
+    SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Coyote3")
+
+    _MONGO_URI_ENV: str = os.getenv("MONGO_URI", "").strip()
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3")
+    BAM_DB = os.getenv("BAM_DB", "BAM_Service")
+    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
+
+    # LDAP — all values must be set via environment variables per center.
+    # No SMD-specific defaults are provided here.
+    LDAP_HOST = os.getenv("LDAP_HOST", "")
+    LDAP_BASE_DN = os.getenv("LDAP_BASE_DN", "")
+    LDAP_USER_LOGIN_ATTR = os.getenv("LDAP_USER_LOGIN_ATTR", "mail")
+    LDAP_USE_SSL = False
+    LDAP_USE_TLS = True
+    LDAP_BINDDN = os.getenv("LDAP_BINDDN", "")
+    LDAP_SECRET = os.getenv("LDAP_SECRET", "")
+    LDAP_USER_DN = os.getenv("LDAP_USER_DN", "ou=people")
+
+    # Gens URI — optional integration; set per center or leave empty.
+    GENS_URI_OLD = os.getenv("GENS_URI_OLD", "")
+    GENS_URI = os.getenv("GENS_URI", "")
+
+    # IGV URI — optional integration; set per center or leave empty.
+    IGV_URI = os.getenv("IGV_URI", "")
+
+    # Report Config
+    REPORTS_BASE_PATH = os.getenv("REPORTS_BASE_PATH", "/data/coyote3/reports")
+
+    # Contact information — set all values via environment variables per center.
+    CONTACT: dict[str, str | list[str]] = {
+        "clinical_email": os.getenv("CONTACT_CLINICAL_EMAIL", ""),
+        "research_email": os.getenv("CONTACT_RESEARCH_EMAIL", ""),
+        "samples_email": os.getenv("CONTACT_SAMPLES_EMAIL", ""),
+        "phone_main": os.getenv("CONTACT_PHONE_MAIN", ""),
+        "phone_urgent": os.getenv("CONTACT_PHONE_URGENT", ""),
+        "address": os.getenv("CONTACT_ADDRESS", ""),
+        "hours": CONTACT_HOURS,
+    }
+
+    # SEARCH LIMITS
+    TIERED_VARIANT_SEARCH_LIMIT = 1000
+    SAMPLE_SEARCH_LIMIT = 1000
+    REPORTED_SAMPLES_SEARCH_LIMIT = 50
+
+    @property
+    def MONGO_URI(self) -> str:
+        """
+        Construct a MongoDB URI for connecting to the database.
+
+        This property requires MONGO_URI.
+        If MONGO_URI is provided without a database path, the current
+        configured COYOTE3_DB is appended.
+
+        Returns:
+            str: The MongoDB connection URI.
+        """
+        if not self._MONGO_URI_ENV:
+            raise ValueError("MONGO_URI must be set.")
+
+        parsed = urlparse(self._MONGO_URI_ENV)
+        has_db_path = bool((parsed.path or "").strip("/"))
+        if has_db_path:
+            return self._MONGO_URI_ENV
+        return urlunparse(parsed._replace(path=f"/{self.COYOTE3_DB}"))
+
+    @classmethod
+    def validate_required_env(cls) -> None:
+        """Hook for environment-specific required-variable validation."""
+        return None
+
+    @property
+    def DB_COLLECTIONS_CONFIG(self) -> dict[str, Any]:
+        """
+        Load and validate the database collections configuration.
+
+        This method reads the database collections configuration from a TOML file,
+        validates that the required databases are present, and filters the configuration
+        to include only the relevant databases.
+
+        Returns:
+            dict[str, Any]: A dictionary containing the filtered database collections configuration.
+
+        Raises:
+            ValueError: If any required database is missing from the configuration file.
+        """
+        db_config: dict[str, Any] = toml.load(self._PATH_DB_COLLECTIONS_CONFIG)
+
+        if not all(db in db_config for db in [self.COYOTE3_DB, self.BAM_DB]):
+            missing_dbs = [db for db in [self.COYOTE3_DB, self.BAM_DB] if db not in db_config]
+            raise ValueError(
+                f"Database(s) {', '.join(missing_dbs)} not found in the database configuration. Check the config file. ({self._PATH_DB_COLLECTIONS_CONFIG})"
+            )
+
+        # Filter the config to include only the relevant databases
+        custom_db_config: dict[str, Any] = {
+            db_name: collections
+            for db_name, collections in db_config.items()
+            if db_name in [self.COYOTE3_DB, self.BAM_DB]
+        }
+
+        return custom_db_config
+
+
+class ProductionConfig(DefaultConfig):
+    """
+    Production configuration.
+
+    This class defines the configuration settings for the production
+    environment of the Coyote3 application. It inherits from the
+    `DefaultConfig` class and overrides specific attributes to suit
+    the production setup.
+    """
+
+    LOGS = "logs/prod"
+    PRODUCTION = True
+    ENV_NAME = os.getenv("ENV_NAME", "Production")
+    APP_VERSION: str = f"{app_version}"
+    SECRET_KEY: str | None = os.getenv("SECRET_KEY")
+    INTERNAL_API_TOKEN: str = os.getenv("INTERNAL_API_TOKEN", "")
+    PASSWORD_TOKEN_SALT: str = os.getenv("PASSWORD_TOKEN_SALT", "")
+    SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_prod")
+    CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
+    DEBUG: bool = False
+
+    @classmethod
+    def validate_required_env(cls) -> None:
+        """Require critical secrets for production startup."""
+        _require_env("SECRET_KEY", "production")
+        _require_env("INTERNAL_API_TOKEN", "production")
+        _require_env("PASSWORD_TOKEN_SALT", "production")
+
+
+class DevelopmentConfig(DefaultConfig):
+    """
+    Development configuration.
+
+    This class defines the configuration settings for the development
+    environment of the Coyote3 application. It inherits from the
+    `DefaultConfig` class and overrides specific attributes to suit
+    the development setup.
+    """
+
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3")
+    BAM_DB = os.getenv("BAM_DB", "BAM_Service")
+    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
+
+    CACHE_DEFAULT_TIMEOUT = 1  # 300 secs, 5 minutes
+
+    LOGS = "logs/dev"
+    PRODUCTION = False
+    ENV_NAME = os.getenv("ENV_NAME", "Development")
+    SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_dev")
+    SECRET_KEY = os.getenv("SECRET_KEY")
+    CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
+    APP_VERSION: str = f"{app_version}-DEV (git: {_active_git_branch_name()})"
+    DEBUG: bool = True
+
+
+class TestConfig(DefaultConfig):
+    """
+    Placeholder for future test code.
+
+    This docstring indicates that this section or class is reserved
+    for implementing test-related configurations or functionality
+    in the future.
+    """
+
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3_test")
+    BAM_DB = os.getenv("BAM_DB", "BAM_Service")
+    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
+
+    LOGS = "logs/test"
+    PRODUCTION = False
+    ENV_NAME = os.getenv("ENV_NAME", "Testing")
+    SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_test")
+    SECRET_KEY = os.getenv("SECRET_KEY")
+    CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
+
+    APP_VERSION: str = f"{app_version}-Test (git: {_active_git_branch_name()})"
+
+    TESTING = True
+    LOGIN_DISABLED = True
+    DEBUG: bool = True
+
+    # Disable Redis cache in tests — avoids 10s DNS timeout for unreachable hosts.
+    CACHE_REDIS_URL = ""
+
+
+class StageConfig(DefaultConfig):
+    """Staging configuration."""
+
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3")
+    BAM_DB = os.getenv("BAM_DB", "BAM_Service")
+    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
+
+    LOGS = "logs/stage"
+    PRODUCTION = True
+    STAGING = True
+    ENV_NAME = os.getenv("ENV_NAME", "Staging")
+    APP_VERSION: str = f"{app_version}-STAGE"
+    SECRET_KEY: str | None = os.getenv("SECRET_KEY")
+    INTERNAL_API_TOKEN: str = os.getenv("INTERNAL_API_TOKEN", "")
+    PASSWORD_TOKEN_SALT: str = os.getenv("PASSWORD_TOKEN_SALT", "")
+    SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_stage")
+    CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
+    DEBUG: bool = False
+
+    @classmethod
+    def validate_required_env(cls) -> None:
+        """Require critical secrets for staging startup."""
+        _require_env("SECRET_KEY", "staging")
+        _require_env("INTERNAL_API_TOKEN", "staging")
+        _require_env("PASSWORD_TOKEN_SALT", "staging")

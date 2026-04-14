@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "var": "p.R175H",
+    "polymorphism": "no",
+    "cpg": "yes",
+    "splice": "no",
+    "transactivation_class": "non-functional",
+    "AGVGD_class": "C65",
+    "residue_func": "DNA-binding",
+    "motif": "L2",
+    "structure_function_class": "disruptive",
+    "domain_func": "core",
+    "n_somatic": 120,
+    "n_germline": 3,
+    "topology_count": 5
+  }
+]

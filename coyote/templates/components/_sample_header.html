@@ -1,0 +1,74 @@
+<!-- shared sample header -->
+{% set sample_header_sample_url = sample_header_sample_url|default(url_for('dna_bp.list_dna_findings', sample_id=sample.name)) %}
+{% set sample_header_action_url = sample_header_action_url|default(None) %}
+{% set sample_header_action_label = sample_header_action_label|default(None) %}
+{% set sample_header_action_target = sample_header_action_target|default(None) %}
+{% set sample_header_action_rel = sample_header_action_rel|default('noopener') %}
+
+<section class="bg-gray-100 px-2 py-1 my-1 grid grid-cols-2 justify-between w-full shadow-lg rounded-xl relative gap-2 border-l-8 border-r-8 border-indigo-400 z-0" id="sample-info">
+  <div class="text-sm font-semibold text-black flex flex-wrap items-center ml-2 mr-4 break-all">
+    Sample:
+    <a href="{{ sample_header_sample_url }}"
+       class="ml-2 font-semibold text-blue-500 hover:underline">
+      {{ sample.name }}
+    </a>
+  </div>
+
+  <div id="sample-meta-info" class="pr-2 flex flex-wrap text-xs text-gray-700 font-medium items-center justify-end space-x-1 ml-2 mr-2 break-all overflow-x-auto">
+    {% if sample_header_action_url and sample_header_action_label %}
+      <div class="flex items-center">
+        <a href="{{ sample_header_action_url }}"
+           class="font-semibold text-blue-600 hover:underline"
+           {% if sample_header_action_target %}target="{{ sample_header_action_target }}"{% endif %}
+           {% if sample_header_action_target %}rel="{{ sample_header_action_rel }}"{% endif %}>
+          {{ sample_header_action_label }}
+        </a>
+      </div>
+    {% endif %}
+
+    {% if "subpanel" in sample %}
+      <span class="text-base font-light pb-1">|</span>
+      <div class="flex items-center">
+        <span class="font-semibold ">Type:</span>
+        <span class="ml-1 text-black">{{ sample.subpanel }}</span>
+      </div>
+    {% endif %}
+
+    {% if "purity" in sample %}
+      <span class="text-base font-light pb-1">|</span>
+      <div class="flex items-center">
+        <span class="font-semibold ">Purity:</span>
+        <span class="ml-1 text-black">{{ sample.purity * 100 }}%</span>
+      </div>
+    {% endif %}
+
+    {% if "BIOMARKER" in analysis_sections|default([]) %}
+      {% set biomarker = display_sections_data.get("biomarkers", []) %}
+      {% for bio in biomarker %}
+        {% if "MSIS" in bio %}
+          <span class="text-base font-light pb-1">|</span>
+          <div class="flex items-center inline-block cursor-pointer" onmouseover="showTooltip(event, `<span class='text-yellow-400'>Total: {{ bio.MSIS.tot }}<br>Somatic: {{ bio.MSIS.som }}</span>`)">
+            <span class="font-semibold ">MSI (Single):</span>
+            <span class="ml-1 text-black">{{ bio.MSIS.perc }}%</span>
+          </div>
+        {% endif %}
+
+        {% if "MSIP" in bio %}
+          <span class="text-base font-light pb-1">|</span>
+          <div class="flex items-center inline-block cursor-pointer" onmouseover="showTooltip(event, `<span class='text-yellow-400'>Total: {{ bio.MSIP.tot }}<br>Somatic: {{ bio.MSIP.som }}</span>`)">
+            <span class="font-semibold ">MSI (Paired):</span>
+            <span class="ml-1 text-black">{{ bio.MSIP.perc }}%</span>
+          </div>
+        {% endif %}
+
+        {% if "HRD" in bio %}
+          <span class="text-base font-light pb-1">|</span>
+          <div class="flex items-center inline-block cursor-pointer" onmouseover="showTooltip(event, `<span class='text-yellow-400'>TAI: {{ bio.HRD.tai }}<br>HRD: {{ bio.HRD.hrd }}<br>LST: {{ bio.HRD.lst }}</span>`)">
+            <span class="font-semibold ">HRD:</span>
+            <span class="ml-1 text-black">{{ bio.HRD.sum }}</span>
+          </div>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  </div>
+</section>

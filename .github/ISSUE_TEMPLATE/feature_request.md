@@ -42,4 +42,3 @@ Provide a concrete workflow showing *when and how* this feature would be used.
 
 ## Additional Notes
 Add sketches, mockups, or references if helpful.
-

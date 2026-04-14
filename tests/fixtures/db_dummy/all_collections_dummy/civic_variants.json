@@ -1,0 +1,30 @@
+[
+  {
+    "variant_id": 1001,
+    "entrez_id": 1956,
+    "gene": "EGFR",
+    "variant": "EGFR L858R",
+    "summary": "Demo EGFR missense variant.",
+    "variant_types": "Missense Mutation",
+    "variant_groups": "SNV",
+    "chromosome": "7",
+    "start": 140453136,
+    "stop": 140453136,
+    "chromosome2": "7",
+    "start2": 140453136,
+    "stop2": 140453136,
+    "reference_build": "GRCh38",
+    "ensembl_version": 111,
+    "representative_transcript": "ENST00000275493",
+    "representative_transcript2": "ENST00000275493",
+    "reference_bases": "A",
+    "variant_bases": "T",
+    "hgvs_expressions": [
+      "ENST00000275493:c.2573T>G",
+      "p.Leu858Arg"
+    ],
+    "civic_actionability_score": 1.0,
+    "variant_civic_url": "https://civicdb.org/variants/1001",
+    "last_review_date": "2017-03-06 00:00:15 UTC"
+  }
+]

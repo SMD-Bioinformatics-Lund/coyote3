@@ -1,0 +1,33 @@
+[
+  {
+    "SAMPLE_ID": "65f0c0ffee00000000000001",
+    "expression_version": "1.0.0",
+    "sample": [
+      {
+        "hgnc_symbol": "WT1",
+        "ensembl_gene_id": "ENSG00000184937",
+        "sample_expression": 12.5,
+        "reference_sd": 1.0,
+        "reference_mean": 8.0,
+        "reference_median": 7.8,
+        "reference_mean_mod": 8.1,
+        "sample_mod": 12.0,
+        "z": 4.5
+      }
+    ],
+    "reference": [
+      {
+        "hgnc_symbol": "WT1",
+        "ensembl_gene_id": "ENSG00000184937",
+        "reference_sd": 1.0,
+        "reference_mean": 8.0,
+        "reference_median": 7.8,
+        "q01": 6.8,
+        "q05": 7.0,
+        "q50": 7.8,
+        "q95": 9.0,
+        "q99": 9.2
+      }
+    ]
+  }
+]

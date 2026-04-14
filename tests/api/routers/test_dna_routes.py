@@ -1,0 +1,908 @@
+"""Behavior tests for DNA API route helpers and endpoints."""
+
+from __future__ import annotations
+
+from types import SimpleNamespace
+
+import pytest
+from fastapi import HTTPException
+from starlette.requests import Request
+
+from api.extensions import store
+from api.main import app as api_app
+from api.routers import biomarkers as biomarker_router
+from api.routers import classifications as classification_router
+from api.routers import small_variants as dna
+from api.security import access
+from api.security.access import ApiUser
+from api.services.common.change_payload import change_payload
+from api.services.dna import variant_analysis as dna_service_module
+from api.services.dna.variant_analysis import DnaService
+from tests.fixtures.api import mock_collections as fx
+
+
+def _dna_service() -> DnaService:
+    """Build a DNA service for route tests."""
+    return DnaService(
+        assay_panel_handler=store.assay_panel_handler,
+        gene_list_handler=store.gene_list_handler,
+        variant_handler=store.variant_handler,
+        blacklist_handler=store.blacklist_handler,
+        copy_number_variant_handler=store.copy_number_variant_handler,
+        oncokb_handler=store.oncokb_handler,
+        annotation_handler=store.annotation_handler,
+        fusion_handler=store.fusion_handler,
+        translocation_handler=store.translocation_handler,
+        biomarker_handler=store.biomarker_handler,
+        bam_record_handler=store.bam_record_handler,
+        vep_metadata_handler=store.vep_metadata_handler,
+        sample_handler=store.sample_handler,
+        expression_handler=store.expression_handler,
+        civic_handler=store.civic_handler,
+        brca_handler=store.brca_handler,
+        iarc_tp53_handler=store.iarc_tp53_handler,
+    )
+
+
+def _biomarker_service() -> biomarker_router.BiomarkerService:
+    """Build a biomarker service for route tests."""
+    return biomarker_router.BiomarkerService(biomarker_handler=store.biomarker_handler)
+
+
+def _classification_service() -> classification_router.ResourceClassificationService:
+    """Build a classification service for route tests."""
+    return classification_router.ResourceClassificationService(
+        annotation_handler=store.annotation_handler,
+        variant_handler=store.variant_handler,
+        oncokb_handler=store.oncokb_handler,
+        fusion_handler=store.fusion_handler,
+        copy_number_variant_handler=store.copy_number_variant_handler,
+        translocation_handler=store.translocation_handler,
+    )
+
+
+def test_change_payload_shape():
+    """Test change payload shape.
+
+    Returns:
+        The function result.
+    """
+    payload = change_payload(sample_id="S1", resource="variant", resource_id="V1", action="flag")
+    assert payload["status"] == "ok"
+    assert payload["sample_id"] == "S1"
+    assert payload["resource"] == "variant"
+    assert payload["resource_id"] == "V1"
+    assert payload["action"] == "flag"
+
+
+def test_load_cnvs_for_sample_uses_collection_shaped_docs(monkeypatch):
+    """Test load cnvs for sample uses collection shaped docs.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
+    sample = fx.sample_doc()
+    sample_filters = sample["filters"]
+    cnv_rows = [fx.cnv_doc()]
+    service = _dna_service()
+
+    monkeypatch.setattr(
+        store.copy_number_variant_handler, "get_sample_cnvs", lambda query: cnv_rows
+    )
+    monkeypatch.setattr(
+        dna_service_module,
+        "build_cnv_query",
+        lambda sample_id, filters: {"sample_id": sample_id, **filters},
+    )
+    monkeypatch.setattr(dna_service_module, "create_cnveffectlist", lambda cnv_effects: [])
+    monkeypatch.setattr(dna_service_module, "cnv_organizegenes", lambda cnvs: cnvs)
+
+    rows = service.load_cnvs_for_sample(
+        sample=sample, sample_filters=sample_filters, filter_genes=["ERBB2"]
+    )
+    assert rows == cnv_rows
+
+
+def test_list_dna_biomarkers_success(monkeypatch):
+    """Test list dna biomarkers success.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
+    sample = fx.sample_doc()
+    biomarkers = [{"_id": "b1", "name": "TMB", "value": "High"}]
+    service = _biomarker_service()
+
+    monkeypatch.setattr(biomarker_router, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(
+        store.biomarker_handler,
+        "get_sample_biomarkers",
+        lambda sample_id: biomarkers,
+    )
+    monkeypatch.setattr(
+        biomarker_router.util.common, "convert_to_serializable", lambda payload: payload
+    )
+
+    payload = biomarker_router.list_dna_biomarkers("S1", user=fx.api_user(), service=service)
+    assert payload["meta"]["count"] == 1
+    assert payload["biomarkers"][0]["name"] == "TMB"
+
+
+def test_show_dna_variant_not_found_raises_404(monkeypatch):
+    """Test show dna variant not found raises 404.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
+    service = _dna_service()
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(store.variant_handler, "get_variant", lambda var_id: None)
+
+    with pytest.raises(HTTPException) as exc:
+        dna.show_dna_variant("S1", "V404", user=fx.api_user(), service=service)
+
+    assert exc.value.status_code == 404
+    assert exc.value.detail["error"] == "Variant not found"
+
+
+def test_list_dna_variants_missing_asp_raises_specific_422(monkeypatch):
+    """Missing ASP should raise a specific setup error for the sample assay."""
+    sample = fx.sample_doc()
+    sample["name"] = "S1"
+    sample["assay"] = "unknown_assay"
+    service = _dna_service()
+    request = SimpleNamespace(url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"))
+
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(store.assay_panel_handler, "get_asp", lambda assay_name: None)
+
+    with pytest.raises(HTTPException) as exc:
+        dna.list_dna_variants(request=request, sample_id="S1", user=fx.api_user(), service=service)
+
+    assert exc.value.status_code == 422
+    assert exc.value.detail["error"] == "ASP not registered for assay 'unknown_assay'"
+
+
+def test_list_dna_variants_missing_aspc_raises_specific_422(monkeypatch):
+    """Missing ASPC should include the assay and environment in the error."""
+    sample = fx.sample_doc()
+    sample["name"] = "S1"
+    sample["assay"] = "hema_GMSv1"
+    sample["profile"] = "production"
+    service = _dna_service()
+    request = SimpleNamespace(url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"))
+
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(
+        store.assay_panel_handler,
+        "get_asp",
+        lambda assay_name: {"assay_name": assay_name, "asp_group": "dna"},
+    )
+    monkeypatch.setattr(
+        store.assay_configuration_handler,
+        "get_aspc_no_meta",
+        lambda assay_name, profile: None,
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        dna.list_dna_variants(request=request, sample_id="S1", user=fx.api_user(), service=service)
+
+    assert exc.value.status_code == 422
+    assert (
+        exc.value.detail["error"]
+        == "ASPC not registered for assay 'hema_GMSv1' in environment 'production'"
+    )
+
+
+def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
+    """Test show dna variant handles list consequence for oncokb."""
+    sample = fx.sample_doc()
+    sample["_id"] = "sample-1"
+    variant = {
+        "_id": "v1",
+        "SAMPLE_ID": "sample-1",
+        "CHROM": "7",
+        "POS": 140453136,
+        "REF": "A",
+        "ALT": "T",
+        "INFO": {
+            "selected_CSQ": {
+                "SYMBOL": "TP53",
+                "Consequence": ["frameshift_variant", "splice_region_variant"],
+                "HGVSp": "",
+            }
+        },
+        "transcripts": [],
+    }
+    captured: dict = {"hgvsp": None}
+    service = _dna_service()
+
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(dna, "_get_formatted_assay_config", lambda _sample: {"asp_group": "dna"})
+    monkeypatch.setattr(store.variant_handler, "get_variant", lambda var_id: variant)
+    monkeypatch.setattr(
+        store.blacklist_handler,
+        "add_blacklist_data",
+        lambda variants, assay_group: variants,
+    )
+    monkeypatch.setattr(store.variant_handler, "get_variant_in_other_samples", lambda var: [])
+    monkeypatch.setattr(store.variant_handler, "hidden_var_comments", lambda var_id: False)
+    monkeypatch.setattr(
+        store.annotation_handler,
+        "get_global_annotations",
+        lambda variant, assay_group, subpanel: ({}, None, [], []),
+    )
+    monkeypatch.setattr(dna, "add_alt_class", lambda var, assay_group, subpanel: var)
+    monkeypatch.setattr(store.expression_handler, "get_expression_data", lambda transcripts: {})
+    monkeypatch.setattr(store.civic_handler, "get_civic_data", lambda variant, desc: {})
+    monkeypatch.setattr(store.civic_handler, "get_civic_gene_info", lambda symbol: {})
+    monkeypatch.setattr(
+        store.oncokb_handler,
+        "get_oncokb_anno",
+        lambda variant, oncokb_hgvsp: captured.__setitem__("hgvsp", oncokb_hgvsp) or {},
+    )
+    monkeypatch.setattr(store.oncokb_handler, "get_oncokb_action", lambda variant, hgvsp: {})
+    monkeypatch.setattr(store.oncokb_handler, "get_oncokb_gene", lambda symbol: {})
+    monkeypatch.setattr(store.brca_handler, "get_brca_data", lambda variant, assay_group: {})
+    monkeypatch.setattr(store.iarc_tp53_handler, "find_iarc_tp53", lambda variant: {})
+    monkeypatch.setattr(
+        dna.util.common,
+        "get_case_and_control_sample_ids",
+        lambda sample_doc: {"case": "sample-1"},
+    )
+    monkeypatch.setattr(store.bam_record_handler, "get_bams", lambda sample_ids: {})
+    monkeypatch.setattr(
+        store.vep_metadata_handler, "get_variant_class_translations", lambda vep: {}
+    )
+    monkeypatch.setattr(store.vep_metadata_handler, "get_conseq_translations", lambda vep: {})
+    monkeypatch.setattr(store.assay_panel_handler, "get_asp_group_mappings", lambda: {})
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = dna.show_dna_variant("S1", "v1", user=fx.api_user(), service=service)
+
+    assert payload["variant"]["_id"] == "v1"
+    assert captured["hgvsp"] == ["Truncating Mutations"]
+
+
+def test_list_dna_variants_does_not_require_report_path(monkeypatch):
+    """Test list dna variants does not require report path.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
+    sample = fx.sample_doc()
+    sample.setdefault("filters", {}).setdefault("max_freq", 1.0)
+    sample["filters"].setdefault("min_freq", 0.0)
+    sample["filters"].setdefault("max_control_freq", 1.0)
+    sample["filters"].setdefault("min_depth", 0)
+    sample["filters"].setdefault("min_alt_reads", 0)
+    sample["filters"].setdefault("max_popfreq", 1.0)
+    sample["filters"].setdefault("vep_consequences", [])
+    sample["filters"].setdefault("genelists", [])
+    sample.setdefault("subpanel", "")
+
+    assay_config = {
+        "asp_group": "tumwgs",
+        "analysis_types": [],
+        "reporting": {},  # intentionally missing report_path
+    }
+
+    service = _dna_service()
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(dna, "_get_formatted_assay_config", lambda _sample: assay_config)
+    monkeypatch.setattr(dna.util.common, "merge_sample_settings_with_assay_config", lambda s, a: s)
+    monkeypatch.setattr(
+        store.assay_panel_handler, "get_asp", lambda asp_name: {"asp_name": asp_name}
+    )
+    monkeypatch.setattr(store.gene_list_handler, "get_isgl_by_ids", lambda ids: {})
+    monkeypatch.setattr(dna.util.common, "get_sample_effective_genes", lambda *a, **kw: ([], []))
+    monkeypatch.setattr(dna, "get_filter_conseq_terms", lambda values, vep_version=None: [])
+    monkeypatch.setattr(
+        dna, "build_query", lambda assay_group, params: {"assay_group": assay_group, **params}
+    )
+    monkeypatch.setattr(store.variant_handler, "get_case_variants", lambda query: [])
+    monkeypatch.setattr(
+        store.blacklist_handler,
+        "add_blacklist_data",
+        lambda variants, assay_group: variants,
+    )
+    monkeypatch.setattr(
+        dna,
+        "add_global_annotations",
+        lambda variants, assay_group, subpanel, annotation_handler=None: (variants, []),
+    )
+    monkeypatch.setattr(
+        dna.util.common, "get_case_and_control_sample_ids", lambda s: {"case": "C1"}
+    )
+    monkeypatch.setattr(store.bam_record_handler, "get_bams", lambda sample_ids: {})
+    monkeypatch.setattr(
+        store.vep_metadata_handler, "get_variant_class_translations", lambda vep: {}
+    )
+    monkeypatch.setattr(store.vep_metadata_handler, "get_conseq_translations", lambda vep: {})
+    monkeypatch.setattr(store.sample_handler, "hidden_sample_comments", lambda sample_oid: False)
+    monkeypatch.setattr(
+        store.gene_list_handler, "get_isgl_by_asp", lambda assay, is_active=True: []
+    )
+    monkeypatch.setattr(dna.util.common, "get_assay_genelist_names", lambda docs: [])
+    monkeypatch.setattr(dna, "generate_summary_text", lambda *args, **kwargs: "")
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    req = SimpleNamespace(url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"))
+    payload = dna.list_dna_variants(req, "S1", user=fx.api_user(), service=service)
+
+    assert payload["sample"]["name"] == sample["name"]
+    assert payload["meta"]["count"] == 0
+
+
+def test_classify_variant_mutation_calls_insert(monkeypatch):
+    """Test classify variant mutation calls insert.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
+    captured: dict = {}
+
+    monkeypatch.setattr(
+        classification_router, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc()
+    )
+    monkeypatch.setattr(
+        classification_router.util.common, "get_tier_classification", lambda form_data: 3
+    )
+    monkeypatch.setattr(
+        classification_router, "get_variant_nomenclature", lambda form_data: ("p", "TP53 p.R175H")
+    )
+    monkeypatch.setattr(
+        store.annotation_handler,
+        "insert_classified_variant",
+        lambda variant, nomenclature, class_num, form_data, **kwargs: captured.update(
+            {
+                "variant": variant,
+                "nomenclature": nomenclature,
+                "class_num": class_num,
+                "author": kwargs.get("author"),
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        classification_router.util.common, "convert_to_serializable", lambda payload: payload
+    )
+
+    payload = classification_router.classify_resource_change(
+        "S1",
+        payload={"id": "V1", "form_data": {"tier3": "on"}},
+        user=fx.api_user(),
+        service=_classification_service(),
+    )
+
+    assert payload["status"] == "ok"
+    assert captured["variant"] == "TP53 p.R175H"
+    assert captured["class_num"] == 3
+
+
+def test_set_variant_false_positive_bulk_prefers_json_payload(monkeypatch):
+    """Test set variant false positive bulk prefers json payload.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
+    calls: dict = {"mark": None, "unmark": None}
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(
+        store.variant_handler,
+        "mark_false_positive_var_bulk",
+        lambda ids: calls.__setitem__("mark", ids),
+    )
+    monkeypatch.setattr(
+        store.variant_handler,
+        "unmark_false_positive_var_bulk",
+        lambda ids: calls.__setitem__("unmark", ids),
+    )
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = dna.set_variant_false_positive_bulk(
+        "S1",
+        apply=False,
+        resource_ids=["ignored-query-id"],
+        payload={"apply": True, "resource_ids": ["V1", "V2"]},
+        user=fx.api_user(),
+        service=_dna_service(),
+    )
+
+    assert payload["status"] == "ok"
+    assert calls["mark"] == ["V1", "V2"]
+    assert calls["unmark"] is None
+
+
+def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
+    """Test set variant irrelevant bulk remove uses json payload.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
+    calls: dict = {"mark": None, "unmark": None}
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(
+        store.variant_handler,
+        "mark_irrelevant_var_bulk",
+        lambda ids: calls.__setitem__("mark", ids),
+    )
+    monkeypatch.setattr(
+        store.variant_handler,
+        "unmark_irrelevant_var_bulk",
+        lambda ids: calls.__setitem__("unmark", ids),
+    )
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = dna.set_variant_irrelevant_bulk(
+        "S1",
+        apply=True,
+        resource_ids=["ignored-query-id"],
+        payload={"apply": False, "resource_ids": ["V9"]},
+        user=fx.api_user(),
+        service=_dna_service(),
+    )
+
+    assert payload["status"] == "ok"
+    assert calls["mark"] is None
+    assert calls["unmark"] == ["V9"]
+
+
+def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
+    """Test set variant tier bulk apply inserts class and text docs.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
+    sample = fx.sample_doc()
+    sample["_id"] = "sample-1"
+    captured: dict = {"docs": None}
+    variant = {
+        "_id": "v1",
+        "SAMPLE_ID": "sample-1",
+        "CHROM": "7",
+        "POS": 140453136,
+        "REF": "A",
+        "ALT": "T",
+        "INFO": {
+            "selected_CSQ": {
+                "Feature": "NM_0000.1",
+                "SYMBOL": "BRAF",
+                "HGVSp": "p.V600E",
+                "Consequence": [],
+            }
+        },
+    }
+
+    monkeypatch.setattr(
+        classification_router, "_get_sample_for_api", lambda sample_id, user: sample
+    )
+    monkeypatch.setattr(store.variant_handler, "get_variant", lambda variant_id: variant)
+    monkeypatch.setattr(store.oncokb_handler, "get_oncokb_gene", lambda gene: None)
+    monkeypatch.setattr(
+        classification_router,
+        "create_annotation_text_from_gene",
+        lambda *args, **kwargs: "AUTO_TEXT",
+    )
+    monkeypatch.setattr(
+        classification_router.util.common,
+        "create_classified_variant_doc",
+        lambda variant, nomenclature, class_num, variant_data, **kwargs: {
+            "variant": variant,
+            "nomenclature": nomenclature,
+            "class": class_num if "text" not in kwargs else None,
+            "text": kwargs.get("text"),
+            "source": kwargs.get("source"),
+            "variant_data": variant_data,
+        },
+    )
+    monkeypatch.setattr(
+        store.annotation_handler,
+        "insert_annotation_bulk",
+        lambda docs: captured.__setitem__("docs", docs),
+    )
+    monkeypatch.setattr(
+        classification_router.util.common, "convert_to_serializable", lambda payload: payload
+    )
+
+    payload = classification_router.set_resource_tier_bulk(
+        "S1",
+        payload={
+            "apply": True,
+            "resource_ids": ["v1"],
+            "resource_type": "small_variant",
+            "assay_group": "solid",
+            "subpanel": "A",
+            "tier": 3,
+        },
+        user=fx.api_user(),
+        service=_classification_service(),
+    )
+
+    assert payload["status"] == "ok"
+    assert captured["docs"] is not None
+    assert len(captured["docs"]) == 2
+    assert any(doc.get("class") == 3 for doc in captured["docs"])
+    assert any(doc.get("text") == "AUTO_TEXT" for doc in captured["docs"])
+
+
+def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatch):
+    """Test set variant tier bulk remove deletes class and matching text.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
+    sample = fx.sample_doc()
+    sample["_id"] = "sample-1"
+    captured: list[dict] = []
+    variant = {
+        "_id": "v1",
+        "SAMPLE_ID": "sample-1",
+        "CHROM": "7",
+        "POS": 140453136,
+        "REF": "A",
+        "ALT": "T",
+        "INFO": {
+            "selected_CSQ": {
+                "Feature": "NM_0000.1",
+                "SYMBOL": "BRAF",
+                "HGVSp": "p.V600E",
+                "Consequence": [],
+            }
+        },
+    }
+
+    monkeypatch.setattr(
+        classification_router, "_get_sample_for_api", lambda sample_id, user: sample
+    )
+    monkeypatch.setattr(store.variant_handler, "get_variant", lambda variant_id: variant)
+    monkeypatch.setattr(store.oncokb_handler, "get_oncokb_gene", lambda gene: None)
+    monkeypatch.setattr(
+        classification_router,
+        "create_annotation_text_from_gene",
+        lambda *args, **kwargs: "AUTO_TEXT",
+    )
+    monkeypatch.setattr(
+        store.annotation_handler,
+        "delete_classified_variant",
+        lambda **kwargs: captured.append(kwargs),
+    )
+    monkeypatch.setattr(
+        store.annotation_handler,
+        "insert_annotation_bulk",
+        lambda docs: pytest.fail("insert_annotation_bulk must not be called on tier remove"),
+    )
+    monkeypatch.setattr(
+        classification_router.util.common, "convert_to_serializable", lambda payload: payload
+    )
+
+    payload = classification_router.set_resource_tier_bulk(
+        "S1",
+        payload={
+            "apply": False,
+            "resource_ids": ["v1"],
+            "resource_type": "small_variant",
+            "assay_group": "solid",
+            "subpanel": "A",
+            "tier": 3,
+        },
+        user=fx.api_user(),
+        service=_classification_service(),
+    )
+
+    assert payload["status"] == "ok"
+    assert len(captured) == 1
+    assert captured[0]["class_num"] == 3
+    assert captured[0]["annotation_text"] == "AUTO_TEXT"
+
+
+def test_bulk_flag_routes_use_non_colliding_paths():
+    """Test bulk flag routes use non colliding paths.
+
+    Returns:
+        The function result.
+    """
+    paths = {route.path for route in api_app.routes}
+    assert "/api/v1/samples/{sample_id}/small-variants/flags/false-positive" in paths
+    assert "/api/v1/samples/{sample_id}/small-variants/flags/irrelevant" in paths
+    assert "/api/v1/samples/{sample_id}/classifications/tier" in paths
+    assert "/api/v1/samples/{sample_id}/classifications" in paths
+    assert "/api/v1/samples/{sample_id}/annotations" in paths
+    assert "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/false-positive" in paths
+    assert "/api/v1/samples/{sample_id}/small-variants/exports/snvs/context" in paths
+    assert "/api/v1/samples/{sample_id}/small-variants/exports/cnvs/context" in paths
+    assert "/api/v1/samples/{sample_id}/small-variants/exports/translocs/context" in paths
+
+
+def _route_test_user() -> ApiUser:
+    """Route test user.
+
+    Returns:
+            The  route test user result.
+    """
+    return ApiUser(
+        id="u1",
+        email="tester@example.com",
+        fullname="Test User",
+        username="tester",
+        role="user",
+        roles=["user"],
+        access_level=9,
+        permissions=["snv:manage"],
+        denied_permissions=[],
+        assays=["WGS"],
+        assay_groups=["dna"],
+        envs=["production"],
+        asp_map={},
+    )
+
+
+def test_bulk_fp_endpoint_dispatches_in_real_http_route(monkeypatch):
+    """Test bulk fp endpoint dispatches in real http route.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
+    captured: dict = {}
+    service = _dna_service()
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(
+        service,
+        "set_variant_bulk_flag",
+        lambda *, resource_ids, apply, flag: captured.update(
+            {"resource_ids": resource_ids, "apply": apply, "flag": flag}
+        ),
+    )
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = dna.set_variant_false_positive_bulk(
+        "S1",
+        payload={"apply": True, "resource_ids": ["V1", "V2"], "resource_type": "small_variant"},
+        user=_route_test_user(),
+        service=service,
+    )
+
+    assert payload["status"] == "ok"
+    assert captured == {"resource_ids": ["V1", "V2"], "apply": True, "flag": "false_positive"}
+
+
+def test_bulk_irrelevant_endpoint_dispatches_in_real_http_route(monkeypatch):
+    """Test bulk irrelevant endpoint dispatches in real http route.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
+    captured: dict = {}
+    service = _dna_service()
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(
+        service,
+        "set_variant_bulk_flag",
+        lambda *, resource_ids, apply, flag: captured.update(
+            {"resource_ids": resource_ids, "apply": apply, "flag": flag}
+        ),
+    )
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = dna.set_variant_irrelevant_bulk(
+        "S1",
+        payload={"apply": True, "resource_ids": ["V5"], "resource_type": "small_variant"},
+        user=_route_test_user(),
+        service=service,
+    )
+
+    assert payload["status"] == "ok"
+    assert captured == {"resource_ids": ["V5"], "apply": True, "flag": "irrelevant"}
+
+
+def _download_test_user() -> ApiUser:
+    """Build a user with download permissions for export endpoints."""
+    return ApiUser(
+        id="u1",
+        email="tester@example.com",
+        fullname="Test User",
+        username="tester",
+        role="user",
+        roles=["user"],
+        access_level=9,
+        permissions=["snv:download", "cnv:download", "translocation:download"],
+        denied_permissions=[],
+        assays=["WGS"],
+        assay_groups=["dna"],
+        envs=["production"],
+        asp_map={},
+    )
+
+
+def test_snv_export_context_route_returns_typed_csv_payload(monkeypatch):
+    """SNV export context endpoint returns generated CSV content and filename."""
+    monkeypatch.setattr(access, "_decode_session_user", lambda _request: _download_test_user())
+    monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9, "manager": 99, "admin": 999})
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(
+        DnaService,
+        "list_variants_payload",
+        lambda self, **kwargs: {
+            "display_sections_data": {
+                "snvs": [
+                    {
+                        "CHROM": "chr7",
+                        "POS": 140453136,
+                        "REF": "A",
+                        "ALT": "T",
+                        "INFO": {
+                            "selected_CSQ": {
+                                "SYMBOL": "BRAF",
+                                "HGVSp": "p.Val600Glu",
+                                "HGVSc": "c.1799T>A",
+                                "Consequence": ["missense_variant"],
+                                "EXON": "15/18",
+                                "INTRON": "",
+                            }
+                        },
+                        "GT": [],
+                        "FILTER": ["PASS"],
+                        "classification": {"class": 3, "transcript": ""},
+                    }
+                ]
+            }
+        },
+    )
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/api/v1/samples/S1/small-variants/exports/snvs/context",
+            "headers": [],
+            "query_string": b"",
+            "client": ("testclient", 50000),
+            "server": ("testserver", 80),
+            "scheme": "http",
+        }
+    )
+    body = dna.export_snv_csv_context(
+        request=request,
+        sample_id="S1",
+        user=_download_test_user(),
+        service=_dna_service(),
+    )
+    assert body["filename"].endswith(".filtered.snvs.csv")
+    assert "hgvsp" in body["content"]
+    assert "BRAF" in body["content"]
+
+
+def test_transloc_export_context_route_returns_typed_csv_payload(monkeypatch):
+    """Translocation export context endpoint returns generated CSV content and filename."""
+    monkeypatch.setattr(access, "_decode_session_user", lambda _request: _download_test_user())
+    monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9, "manager": 99, "admin": 999})
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(
+        DnaService,
+        "list_variants_payload",
+        lambda self, **kwargs: {
+            "display_sections_data": {
+                "translocs": [
+                    {
+                        "CHROM": "chr9",
+                        "POS": 133729451,
+                        "ALT": "chr22:23632628",
+                        "INFO": {
+                            "PANEL": "DNA",
+                            "MANE_ANN": {
+                                "Gene_Name": "ABL1&BCR",
+                                "Annotation": ["gene_fusion"],
+                                "HGVSp": "p.X",
+                                "HGVSc": "c.X",
+                            },
+                        },
+                        "interesting": True,
+                    }
+                ]
+            }
+        },
+    )
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/api/v1/samples/S1/small-variants/exports/translocs/context",
+            "headers": [],
+            "query_string": b"",
+            "client": ("testclient", 50000),
+            "server": ("testserver", 80),
+            "scheme": "http",
+        }
+    )
+    body = dna.export_transloc_csv_context(
+        request=request,
+        sample_id="S1",
+        user=_download_test_user(),
+        service=_dna_service(),
+    )
+    assert body["filename"].endswith(".filtered.translocs.csv")
+    assert "gene_1" in body["content"]
+    assert "ABL1" in body["content"]
+
+
+def test_override_variant_blacklist_updates_variant(monkeypatch):
+    """Override blacklist should update the per-sample variant flag."""
+    calls: dict[str, object] = {}
+    service = _dna_service()
+
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(
+        dna,
+        "_require_variant_for_sample",
+        lambda sample_id, var_id, user, service: (fx.sample_doc(), fx.variant_doc()),
+    )
+    monkeypatch.setattr(
+        service,
+        "set_variant_override_blacklist",
+        lambda *, var_id, override: calls.update({"var_id": var_id, "override": override}),
+    )
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = dna.override_variant_blacklist("S1", "v1", user=fx.api_user(), service=service)
+
+    assert calls == {"var_id": "v1", "override": True}
+    assert payload["action"] == "override_blacklist"
+
+
+def test_clear_variant_blacklist_override_updates_variant(monkeypatch):
+    """Removing a blacklist override should restore the default blacklist behavior."""
+    calls: dict[str, object] = {}
+    service = _dna_service()
+
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(
+        dna,
+        "_require_variant_for_sample",
+        lambda sample_id, var_id, user, service: (fx.sample_doc(), fx.variant_doc()),
+    )
+    monkeypatch.setattr(
+        service,
+        "set_variant_override_blacklist",
+        lambda *, var_id, override: calls.update({"var_id": var_id, "override": override}),
+    )
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = dna.clear_variant_blacklist_override("S1", "v1", user=fx.api_user(), service=service)
+
+    assert calls == {"var_id": "v1", "override": False}
+    assert payload["action"] == "clear_override_blacklist"

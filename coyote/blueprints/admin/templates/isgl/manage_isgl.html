@@ -15,16 +15,15 @@
         <!-- Header -->
         <div class="flex flex-row justify-between items-center gap-4 px-2 py-2">
           <h2 class="text-base font-semibold text-black tracking-wide uppercase">Manage In-Silico Genelists</h2>
-          <div class="relative w-64">
-            <input type="text" id="search-genelist" class="w-full border border-gray-300 rounded-lg py-2 pl-4 pr-10 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="Search Genelists">
-            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
-              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="search genelist" class="h-5 w-5 text-gray-500 cursor-pointer" onclick="document.getElementById('search-genelist').focus()">
-            </div>
-          </div>
+          <form method="get" action="{{ url_for('admin_bp.manage_genelists') }}" class="flex items-center gap-2">
+            <input type="text" name="q" value="{{ q or '' }}" class="w-64 border border-gray-300 rounded-lg py-2 px-3 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="Search Genelists">
+            <input type="hidden" name="per_page" value="{{ per_page }}">
+            <button type="submit" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">Search</button>
+          </form>
         </div>
 
         <!-- Table -->
-        <div class="overflow-x-auto rounded-2xl  relative pagination" id="genelists-div" data-rows-per-page="20" pagination-button-color="blue" pagination-button-text-color="black">
+        <div class="overflow-x-auto rounded-2xl relative">
           <table id="genelists-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
             <thead class="rounded-t-2xl overflow-hidden border-gray-800">
               <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
@@ -43,11 +42,41 @@
             </thead>
             <tbody id="genelists-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
               {% for genelist in genelists %}
+                {% set genelist_ref = genelist.isgl_id or genelist._id %}
                 <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
                   <td class="p-2 font-medium">{{ genelist.name }}</td>
                   <td class="p-2 font-medium">{{ genelist.displayname }}</td>
                   <td class="p-2 font-medium">
-                    <span class="bg-{{genelist.list_type}} text-black rounded-full px-2 py-1 text-xs">{{ genelist.list_type }}</span>
+                    {% set raw_list_types = genelist.list_type if genelist.list_type is not none else [] %}
+                    {% if raw_list_types is string %}
+                      {% set list_types = [raw_list_types] %}
+                    {% else %}
+                      {% set list_types = raw_list_types %}
+                    {% endif %}
+                    {% if list_types %}
+                      <div class="flex flex-wrap gap-1">
+                        {% for list_type in list_types %}
+                          {% set normalized_type = (list_type|string)|trim|lower %}
+                          {% set badge_class = "bg-gray-300 text-gray-800" %}
+                          {% if normalized_type == "small_variant_genelist" %}
+                            {% set badge_class = "bg-genelist text-black" %}
+                          {% elif normalized_type == "cnv_genelist" %}
+                            {% set badge_class = "bg-cnvlist text-black" %}
+                          {% elif normalized_type == "fusion_genelist" %}
+                            {% set badge_class = "bg-fusionlist text-black" %}
+                          {% elif normalized_type == "dna" %}
+                            {% set badge_class = "bg-dna text-black" %}
+                          {% elif normalized_type == "rna" %}
+                            {% set badge_class = "bg-rna text-black" %}
+                          {% elif normalized_type == "panel" %}
+                            {% set badge_class = "bg-panel text-white" %}
+                          {% endif %}
+                          <span class="rounded-full px-2 py-1 text-xs font-semibold {{ badge_class }}">{{ list_type }}</span>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      -
+                    {% endif %}
                   </td>
                   <td class="p-2 font-medium">
                     {% if genelist.is_public %}
@@ -96,18 +125,18 @@
                     {% endif %}
                   </td>
                   <td class="p-2 font-medium flex gap-2 flex-wrap">
-                    <a href="{{ url_for('admin_bp.view_genelist', genelist_id=genelist._id) }}"
+                    <a href="{{ url_for('admin_bp.view_genelist', genelist_id=genelist_ref) }}"
                       title="View"
                       class="font-medium text-gray-700 hover:text-blue-600">
                       <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
                     </a>
 
 
-                    {% if has_access("edit_isgl", min_role="manager", min_level=99) and not is_public %}
+                    {% if has_access("gene_list.insilico:edit", min_role="manager", min_level=99) and not is_public %}
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.edit_genelist', genelist_id=genelist._id) }}',
+                          url: '{{ url_for('admin_bp.edit_genelist', genelist_id=genelist_ref) }}',
                           title: 'Edit genelist configuration',
-                          message: 'Are you sure you want to edit <b>{{ genelist._id }} </b> genelist configuration?',
+                          message: 'Are you sure you want to edit <b>{{ genelist_ref }} </b> genelist configuration?',
                           confirmText: 'Edit',
                           confirmColor: 'blue'
                         })"
@@ -116,9 +145,9 @@
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
                       </button>
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.toggle_genelist', genelist_id=genelist._id) }}',
-                          title: '{{ 'Deactivate' if genelist.is_active else 'Activate' }} Schema',
-                          message: 'Are you sure you want to {{ 'deactivate' if genelist.is_active else 'activate' }} <b>{{ genelist._id }}</b>?',
+                          url: '{{ url_for('admin_bp.toggle_genelist', genelist_id=genelist_ref) }}',
+                          title: '{{ 'Deactivate' if genelist.is_active else 'Activate' }} Configuration',
+                          message: 'Are you sure you want to {{ 'deactivate' if genelist.is_active else 'activate' }} <b>{{ genelist_ref }}</b>?',
                           confirmText: '{{ 'Deactivate' if genelist.is_active else 'Activate' }}',
                           confirmColor: '{{ 'red' if genelist.is_active else 'green' }}'
                         })"
@@ -127,11 +156,11 @@
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
                       </button>
                     {% endif %}
-                    {% if has_access("delete_isgl", min_role="admin", min_level=99999) and not is_public %}
+                    {% if has_access("gene_list.insilico:delete", min_role="admin", min_level=99999) and not is_public %}
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.delete_genelist', genelist_id=genelist._id) }}',
+                          url: '{{ url_for('admin_bp.delete_genelist', genelist_id=genelist_ref) }}',
                           title: 'Delete genelist',
-                          message: 'Are you sure you want to delete <b>{{ genelist._id }}</b> genelist configuration?',
+                          message: 'Are you sure you want to delete <b>{{ genelist_ref }}</b> genelist configuration?',
                           confirmText: 'Delete',
                           confirmColor: 'red'
                         })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">
@@ -148,6 +177,20 @@
             </tbody>
           </table>
         </div>
+        <div class="mt-3 flex items-center justify-end gap-2 text-xs">
+          <span class="text-gray-600">Total: {{ total }}</span>
+          {% if page > 1 %}
+            <a class="px-2 py-1 rounded border border-gray-300 bg-white" href="{{ url_for('admin_bp.manage_genelists', q=q, page=page-1, per_page=per_page) }}">Prev</a>
+          {% else %}
+            <span class="px-2 py-1 rounded border border-gray-200 text-gray-400">Prev</span>
+          {% endif %}
+          <span class="px-2 py-1 rounded border border-gray-300 bg-gray-50">Page {{ page }}</span>
+          {% if has_next %}
+            <a class="px-2 py-1 rounded border border-gray-300 bg-white" href="{{ url_for('admin_bp.manage_genelists', q=q, page=page+1, per_page=per_page) }}">Next</a>
+          {% else %}
+            <span class="px-2 py-1 rounded border border-gray-200 text-gray-400">Next</span>
+          {% endif %}
+        </div>
 
       </div>
     </section>
@@ -155,36 +198,4 @@
   </main>
 </div>
 
-<script>
-
-  const input = document.getElementById('search-genelist');
-  const body = document.getElementById('genelists-body');
-  const container = document.getElementById('genelists-div');
-  const rowsPerPage = parseInt(container.dataset.rowsPerPage) || 20;
-  const originalRows = [...body.querySelectorAll('tr')].map(r => r.cloneNode(true));
-  const id = body.id;
-
-  input.addEventListener('input', () => {
-    const term = input.value.toLowerCase().trim();
-
-    // Remove any existing pagination controls
-    container.querySelectorAll('[data-prev], [data-next], [data-page-info]').forEach(el => el.parentElement?.remove());
-
-    // Filter rows or reset
-    const filtered = term
-      ? originalRows.filter(row =>
-          [...row.querySelectorAll('td')].slice(0, 4).some(td =>
-            td.textContent.toLowerCase().includes(term)
-          )
-        )
-      : originalRows;
-
-    // Replace table body with filtered or full rows
-    body.innerHTML = '';
-    filtered.forEach(row => body.appendChild(row));
-
-    // Trigger pagination if needed
-    filtered.length > rowsPerPage ? initializePagination() : displayPage(1, id, rowsPerPage);
-  });
-</script>
 {% endblock %}

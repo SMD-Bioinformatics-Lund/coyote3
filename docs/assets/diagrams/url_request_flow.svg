@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="420" viewBox="0 0 1120 420" role="img" aria-labelledby="title desc">
+  <title id="title">URL and Request Flow</title>
+  <desc id="desc">Lane-based flow from browser URL through Flask and FastAPI into service and persistence, then back to UI.</desc>
+  <defs>
+    <style>
+      .canvas { fill: #f8fafc; }
+      .title-band { fill: #e2e8f0; }
+      .title { font: 700 22px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .lane { font: 700 13px 'Segoe UI', Arial, sans-serif; fill: #334155; }
+      .label { font: 700 13px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .sub { font: 12px 'Segoe UI', Arial, sans-serif; fill: #334155; }
+      .box { stroke: #334155; stroke-width: 1.8; rx: 12; ry: 12; }
+      .arrow { stroke: #334155; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
+      .lane-line { stroke: #cbd5e1; stroke-width: 1.2; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0,0 10,4 0,8" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1120" height="420" class="canvas"/>
+  <rect x="20" y="16" width="1080" height="36" rx="10" class="title-band"/>
+  <text x="24" y="40" class="title">URL and Request Flow (UI to API to Backend)</text>
+
+  <text x="24" y="94" class="lane">Browser</text>
+  <text x="24" y="170" class="lane">Flask UI (`coyote`)</text>
+  <text x="24" y="246" class="lane">FastAPI (`api`)</text>
+  <text x="24" y="322" class="lane">Data Layer</text>
+
+  <line x1="170" y1="98" x2="1080" y2="98" class="lane-line"/>
+  <line x1="170" y1="174" x2="1080" y2="174" class="lane-line"/>
+  <line x1="170" y1="250" x2="1080" y2="250" class="lane-line"/>
+  <line x1="170" y1="326" x2="1080" y2="326" class="lane-line"/>
+
+  <rect x="190" y="62" width="220" height="54" class="box" fill="#dbeafe"/>
+  <text x="300" y="84" text-anchor="middle" class="label">Open URL</text>
+  <text x="300" y="101" text-anchor="middle" class="sub">/variants/search?...</text>
+
+  <rect x="460" y="138" width="230" height="54" class="box" fill="#e0f2fe"/>
+  <text x="575" y="160" text-anchor="middle" class="label">Flask route handler</text>
+  <text x="575" y="177" text-anchor="middle" class="sub">Prepare params and auth context</text>
+
+  <rect x="730" y="214" width="220" height="54" class="box" fill="#dcfce7"/>
+  <text x="840" y="236" text-anchor="middle" class="label">FastAPI router</text>
+  <text x="840" y="253" text-anchor="middle" class="sub">Validate and permission check</text>
+
+  <rect x="730" y="290" width="220" height="54" class="box" fill="#fef3c7"/>
+  <text x="840" y="312" text-anchor="middle" class="label">Service and handlers</text>
+  <text x="840" y="329" text-anchor="middle" class="sub">Mongo query and Redis cache</text>
+
+  <rect x="460" y="214" width="210" height="54" class="box" fill="#ddd6fe"/>
+  <text x="565" y="236" text-anchor="middle" class="label">API response</text>
+  <text x="565" y="253" text-anchor="middle" class="sub">JSON payload</text>
+
+  <rect x="190" y="138" width="220" height="54" class="box" fill="#fbcfe8"/>
+  <text x="300" y="160" text-anchor="middle" class="label">UI template render</text>
+  <text x="300" y="177" text-anchor="middle" class="sub">Table/cards/messages</text>
+
+  <path d="M300 116 L300 138" class="arrow"/>
+  <path d="M410 165 L460 165" class="arrow"/>
+  <path d="M690 192 L730 214" class="arrow"/>
+  <path d="M840 268 L840 290" class="arrow"/>
+  <path d="M730 241 L670 241" class="arrow"/>
+  <path d="M460 241 L300 192" class="arrow"/>
+</svg>

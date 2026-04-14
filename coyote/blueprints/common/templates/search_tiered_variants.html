@@ -206,12 +206,12 @@
                           {% if total_samples > 0 %}
                             {% for sample_oid, sample_info in samples_list[:max_visible] %}
                               <div>
-                                <a href="{{ url_for('dna_bp.list_variants', sample_id=sample_info.sample_name) }}"
+                                <a href="{{ url_for('dna_bp.list_dna_findings', sample_id=sample_info.sample_name) }}"
                                    class="text-blue-500 hover:underline">
                                   {{ sample_info.sample_name }}
                                 </a>
 
-                                {% if has_access('view_reports', min_role='admin') %}
+                                {% if has_access('report:view', min_role='admin') %}
                                   <span class="inline-block text-lg mx-1">|</span>
                                   {% for report_id, report_num in sample_info.report_oids.items() %}
                                     <a href="{{ url_for('home_bp.view_report', sample_id=sample_info.sample_name, report_id=report_id) }}"
@@ -234,12 +234,12 @@
                           <div data-samples-hidden class="hidden">
                             {% for sample_oid, sample_info in samples_list[max_visible:] %}
                               <div>
-                                <a href="{{ url_for('dna_bp.list_variants', sample_id=sample_info.sample_name) }}"
+                                <a href="{{ url_for('dna_bp.list_dna_findings', sample_id=sample_info.sample_name) }}"
                                    class="text-blue-500 hover:underline">
                                   {{ sample_info.sample_name }}
                                 </a>
 
-                                {% if has_access('view_reports', min_role='admin') %}
+                                {% if has_access('report:view', min_role='admin') %}
                                   <span class="inline-block text-lg mx-1">|</span>
                                   {% for report_id, report_num in sample_info.report_oids.items() %}
                                     <a href="{{ url_for('home_bp.view_report', sample_id=sample_info.sample_name, report_id=report_id) }}"

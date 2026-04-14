@@ -1,0 +1,6 @@
+config:
+  default: true
+ignores:
+  - ".github/ISSUE_TEMPLATE/*.md"
+  - ".github/pull_request_template.md"
+  - "docs/api/collection_contracts.md"

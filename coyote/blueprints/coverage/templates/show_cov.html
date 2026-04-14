@@ -1,91 +1,101 @@
 {% extends "layout.html" %}
 
+{% block style %}
+    {{ super() }}
+{% endblock %}
+
 {% block body %}
-    <style>
-        .containery {
-            display: grid;
-            padding: 20px;
-        }
+    {% set sample_omics_layer = sample.get("omics_layer", "").lower() %}
+    {% if sample_omics_layer == "rna" %}
+        {% set sample_variants_url = url_for('rna_bp.list_fusions', sample_id=sample.name) %}
+        {% set sample_variants_label = "Open RNA findings" %}
+    {% else %}
+        {% set sample_variants_url = url_for('dna_bp.list_dna_findings', sample_id=sample.name) %}
+        {% set sample_variants_label = "Open DNA findings" %}
+    {% endif %}
+    <div
+        class="flex h-full w-full overflow-hidden"
+        data-coverage-page
+        data-coverage-payload='{{ coverage | tojson }}'
+        data-depth-cutoff="{{ cov_cutoff }}"
+        data-sample-group="{{ smp_grp }}"
+        data-update-gene-status-url="{{ url_for('cov_bp.update_gene_status') }}"
+    >
+        <main class="flex-1 overflow-y-auto bg-transparent p-4">
+            <section class="rounded-xl border border-slate-300 bg-slate-100 shadow-md">
+                <div class="rounded-t-xl border-b border-indigo-200 bg-slate-50 px-4 py-3">
+                    <h1 class="text-sm font-semibold uppercase tracking-wide text-gray-800">Coverage Review</h1>
+                    {% set sample_header_sample_url = sample_variants_url %}
+                    {% set sample_header_action_url = sample_variants_url %}
+                    {% set sample_header_action_label = sample_variants_label %}
+                    {% set sample_header_action_target = "_blank" %}
+                    {% set sample_header_action_rel = "noopener" %}
+                    {% include "components/_sample_header.html" %}
+                </div>
 
-        .button-containery {
-            max-width: 2000px; /* Optional: Limit the width */
-            max-height: 1000px; /* Set the maximum height */
-            overflow-y: auto; /* Enable vertical scrolling for long lists */
-        }
+                <div id="coverage-split-layout" data-collapsed="false" class="coverage-split-layout flex flex-col gap-3 p-4 md:flex-row">
+                    <aside id="coverage-sidebar" class="coverage-sidebar shrink-0 space-y-4 rounded-xl border border-indigo-300 border-t-4 border-t-indigo-500 bg-indigo-50/40 p-3 shadow-sm md:w-[28%] md:min-w-[280px] md:max-w-[30%]">
+                        <div class="flex items-center justify-between border-b border-indigo-100 pb-2">
+                            <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-600">Coverage Sidebar</h2>
+                            <button id="collapse-sidebar-btn"
+                                    type="button"
+                                    class="inline-flex items-center rounded-md border border-indigo-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 transition hover:bg-gray-100">
+                                Collapse
+                            </button>
+                        </div>
+                        <div id="button-containery" class="rounded-xl border border-blue-200 border-t-4 border-t-blue-500 bg-white/80 p-3">
+                            <div class="mb-3 flex flex-wrap items-end gap-3">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-600">Actions</p>
+                                    <a class="mt-2 inline-flex items-center rounded-md border border-blue-700 bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700"
+                                       href="{{ url_for('cov_bp.show_blacklisted_regions', group=smp_grp) }}">
+                                        Blacklisted Regions
+                                    </a>
+                                </div>
 
-        .plot-container {
-            padding: 20px;
-        }
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-600">Cutoff</p>
+                                    <form action="{{ url_for('cov_bp.get_cov', sample_id=sample.name) }}" method="POST" class="mt-2 flex flex-wrap gap-2">
+                                        <button type="submit" class="rounded-md border border-indigo-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-800 transition hover:bg-gray-100" name="depth_cutoff" value="100">100X</button>
+                                        <button type="submit" class="rounded-md border border-indigo-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-800 transition hover:bg-gray-100" name="depth_cutoff" value="500">500X</button>
+                                        <button type="submit" class="rounded-md border border-indigo-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-800 transition hover:bg-gray-100" name="depth_cutoff" value="1000">1000X</button>
+                                    </form>
+                                </div>
+                            </div>
 
-        .data-container {
-            padding: 20px;
-        }
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wide text-gray-600">Genelists</p>
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    {% for list in genelists %}
+                                        <span class="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-900">
+                                            {{ list }}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
 
-        .gene-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1px; /* Space between buttons */
-            justify-content: left; /* Center-align buttons */
-            margin-top: 10px;
-        }
-
-        .gene-button {
-            background-color: steelblue; /* Blue background */
-            color: white; /* White text */
-            border: none;
-            border-radius: 5px;
-            padding: 5px 10px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        .gene-button:hover {
-            background-color: #1678e0;
-        }
-    </style>
-    <div class="flex w-full h-full overflow-hidden">
-        <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
-            <div id="containery" class="containery">
-                <div id="button-containery" class="button-containery">
-                    <div>
-                        <button class="gene-button"><a
-                                href="{{ url_for('cov_bp.show_blacklisted_regions', group=smp_grp) }}">Blacklisted
-                            Regions</a></button>
-                    </div>
-                    Using the following genelists:
-                    {% for list in genelists %}
-                        {{ list }}
-                    {% endfor %}
-                    <form action="" method="POST" name="form" class="no-spin">
-                        <form action="{{ url_for('cov_bp.get_cov', sample_id=sample.name) }}" method="POST">
-                            <button type="submit" class="gene-button" name="depth_cutoff" value="100">100X</button>
-                            <button type="submit" class="gene-button" name="depth_cutoff" value="500">500X</button>
-                            <button type="submit" class="gene-button" name="depth_cutoff" value="1000">1000X</button>
-                        </form>
-                    </form>
-
-                    <div class="gene-buttons">
-                        <!-- Low Coverage Regions -->
-                        <div id="lowcovlist_div" style="clear:left;" class="bg-white shadow-md rounded-lg p-6 mb-6">
-                            <h2 class="text-xl font-semibold text-gray-800 mb-4">Low Coverage Regions</h2>
-                            <div class="overflow-auto">
-                                <table class="min-w-full mt-4 table-auto text-xs" id="sortable-table">
-                                    <thead>
-                                    <tr class="bg-gradient-to-r from-yellow-300 to-green-300 text-black">
-                                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer"
-                                            data-column="0" data-type="text">Chromosomal region
+                        <div id="lowcovlist_div" class="rounded-xl border border-purple-200 border-t-4 border-t-purple-500 bg-white/90 shadow-sm">
+                            <div class="rounded-t-xl border-b border-indigo-200 bg-slate-50 px-3 py-2">
+                                <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-700">Low Coverage Regions</h2>
+                            </div>
+                            <div class="max-h-[65vh] overflow-auto">
+                                <table class="min-w-full table-auto text-xs text-gray-800" id="sortable-table">
+                                    <thead class="sticky top-0 z-10 bg-slate-100 text-gray-600">
+                                    <tr>
+                                        <th class="cursor-pointer border-b border-indigo-200 px-3 py-2 text-left text-[11px] uppercase font-semibold"
+                                            data-column="0" data-type="text">Chromosomal Region
                                         </th>
-                                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer"
+                                        <th class="cursor-pointer border-b border-indigo-200 px-3 py-2 text-right text-[11px] uppercase font-semibold"
                                             data-column="1" data-type="number">Size (bp)
                                         </th>
-                                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer"
-                                            data-column="2" data-type="number">Avg depth (x)
+                                        <th class="cursor-pointer border-b border-indigo-200 px-3 py-2 text-right text-[11px] uppercase font-semibold"
+                                            data-column="2" data-type="number">Avg Depth (x)
                                         </th>
-                                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer"
+                                        <th class="cursor-pointer border-b border-indigo-200 px-3 py-2 text-left text-[11px] uppercase font-semibold"
                                             data-column="3" data-type="text">Exon
                                         </th>
-                                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer"
+                                        <th class="cursor-pointer border-b border-indigo-200 px-3 py-2 text-left text-[11px] uppercase font-semibold"
                                             data-column="4" data-type="text">Gene
                                         </th>
                                     </tr>
@@ -94,16 +104,20 @@
                                     {% for gene in cov_table %}
                                         {% for CDS in cov_table[gene] %}
                                             {% set exon = cov_table[gene][CDS] %}
-                                            {% if '_' in CDS %}
+                                            {% if '_' in CDS|string %}
                                                 {% set CDS = "NCP" %}
                                             {% endif %}
-                                            <tr class="hover:bg-gray-100">
-                                                <td class="py-2 px-4 border-b border-gray-300">{{ exon.chr }}:{{ exon.start }}-{{ exon.end }}</td>
-                                                <td class="py-2 px-4 border-b border-gray-300">{{ exon.end | int - exon.start | int }}</td>
-                                                <td class="py-2 px-4 border-b border-gray-300">{{ exon.cov | float | round() }}</td>
-                                                <td class="py-2 px-4 border-b border-gray-300">{{ CDS }}</td>
-                                                <td class="py-2 px-4 border-b border-gray-300">
-                                                    <button onclick="plotGene('{{ gene }}')">{{ gene }}</button>
+                                            <tr class="hover:bg-blue-50">
+                                                <td class="border-b border-indigo-100 px-3 py-2">{{ exon.chr }}:{{ exon.start }}-{{ exon.end }}</td>
+                                                <td class="border-b border-indigo-100 px-3 py-2 text-right">{{ exon.end | int - exon.start | int }}</td>
+                                                <td class="border-b border-indigo-100 px-3 py-2 text-right">{{ (exon.cov | float | round()) if exon.cov is not none else "N/A" }}</td>
+                                                <td class="border-b border-indigo-100 px-3 py-2">{{ CDS }}</td>
+                                                <td class="border-b border-indigo-100 px-3 py-2">
+                                                    <button class="font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900"
+                                                            type="button"
+                                                            data-plot-gene="{{ gene }}">
+                                                        {{ gene }}
+                                                    </button>
                                                 </td>
                                             </tr>
                                         {% endfor %}
@@ -112,344 +126,35 @@
                                 </table>
                             </div>
                         </div>
+                    </aside>
+
+                    <div id="coverage-resize-handle"
+                         class="coverage-resize-handle"
+                         role="separator"
+                         aria-label="Resize sidebar"
+                         aria-orientation="vertical"></div>
+
+                    <div id="coverage-main" class="coverage-main min-w-0 flex-1 overflow-hidden rounded-xl border border-cyan-200 border-t-4 border-t-cyan-500 bg-cyan-50/30 p-2">
+                        <div class="mb-2 flex justify-end">
+                            <button id="expand-sidebar-btn"
+                                    type="button"
+                                    class="hidden inline-flex items-center rounded-md border border-indigo-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 transition hover:bg-gray-100">
+                                Expand Sidebar
+                            </button>
+                        </div>
+                        <div class="space-y-4 md:sticky md:top-4 md:max-h-[calc(100vh-7rem)] md:overflow-y-auto md:pr-1">
+                            <div id="selection-hint" class="rounded-xl border border-dashed border-sky-200 border-t-4 border-t-sky-500 bg-white/70 px-4 py-8 text-center text-sm text-slate-600">
+                                Select a gene from the table to inspect transcript coverage and blacklist low regions.
+                            </div>
+                            <div id="plot-container" class="hidden overflow-hidden rounded-xl border border-cyan-200 border-t-4 border-t-cyan-500 bg-cyan-50/60 p-3 shadow-sm"></div>
+                            <div id="data-container" class="hidden overflow-hidden rounded-xl border border-emerald-200 border-t-4 border-t-emerald-500 bg-emerald-50/60 p-3 shadow-sm"></div>
+                        </div>
                     </div>
                 </div>
-                <div class="plot-container" id="plot-container"></div>
-                <div class="data-container" id="data-container"></div>
-            </div>
+            </section>
         </main>
     </div>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-
-    <script>
-        function plotGene(gene) {
-            // Parse the data from Jinja2
-            const geneData = {{ coverage | tojson | safe }};
-            const depthCutoff = {{ cov_cutoff }}
-            // Get the specific gene data dynamically
-            const selectedGene = geneData.genes[gene];
-            if (!selectedGene) {
-                console.error(`Gene ${gene} not found in the data.`);
-                return;
-            }
-
-            // Remove any existing plot
-            d3.select("#plot-container").select("#gene-plot-container").remove();
-
-            // Create a new container for the plot
-            const plotContainer = d3.select("#plot-container")
-                .append("div")
-                .attr("id", "gene-plot-container")
-                .style("margin", "20px 0");
-
-            // Add a title or information
-            plotContainer.append("h3").text(`Gene: ${gene} @ ${depthCutoff}X `)
-                .append("button")
-                .style("color", "red")
-                .text("Blacklist")
-                .on("click", () => blacklistRegion(gene, "", ""));
-
-            // Create the SVG for the plot
-            const svg = plotContainer.append("svg");
-
-            // Calculate dynamic width based on gene length
-
-            const geneStart = selectedGene.transcript.start
-            const geneEnd = selectedGene.transcript.end
-            const geneLength = geneEnd - geneStart;
-            const baseWidthPerBp = 0.01; // Scale factor: 0.1px per base pair
-            const svgWidth = Math.min(Math.max(geneLength * baseWidthPerBp, 2000), 2000); // always scale to 2000 BP
-            const svgHeight = 200;
-            const margin = {top: 20, right: 200, bottom: 20, left: 200};
-            const plotHeight = svgHeight - margin.top - margin.bottom;
-
-            svg.attr("width", svgWidth)
-                .attr("height", svgHeight);
-
-            // Dynamic scale based on gene size
-            const xScale = d3.scaleLinear()
-                .domain([geneStart, geneEnd])
-                .range([margin.left, svgWidth - margin.right]);
-
-            const geneY = plotHeight / 2;
-
-            // Draw the gene line
-            svg.append("line")
-                .style("stroke", "black")
-                .style("stroke-width", 1)
-                .attr("x1", xScale(selectedGene.transcript.start))
-                .attr("y1", geneY)
-                .attr("x2", xScale(selectedGene.transcript.end))
-                .attr("y2", geneY);
-
-
-            // Draw exons as rectangles
-            svg.selectAll("exon")
-                .data(selectedGene.exons)
-                .enter()
-                .append("rect")
-                .style("fill", "lightgrey")
-                .attr("x", d => xScale(d.start))
-                .attr("y", geneY - 10)
-                .attr("width", d => xScale(d.end) - xScale(d.start))
-                .attr("height", 20)
-                .append("title") // Tooltip
-                .text(d => `${d.chr}:${d.start}-${d.end} (Exon ${d.nbr}), Cov: ${Number(d.cov).toFixed(2)}`);
-
-            // Draw coding regions as rectangles
-            svg.selectAll("cds")
-                .data(selectedGene.CDS)
-                .enter()
-                .append("rect")
-                .attr("fill", d => {
-                    if (isNaN(d.cov)) {
-                        return "black"; // Use gray for NaN values
-                    }
-                    // Color based on coverage cutoff
-                    return d.cov < depthCutoff ? "pink" : "lightgreen"; // Red if cov < 500, green otherwise
-                })
-                .attr("x", d => xScale(d.start))
-                .attr("y", geneY - 10)
-                .attr("width", d => xScale(d.end) - xScale(d.start))
-                .attr("height", 20)
-                .append("title") // Tooltip
-                .text(d => `${d.chr}:${d.start}-${d.end} (Exon ${d.nbr}), Cov: ${Number(d.cov).toFixed(2)}`);
-
-            svg.selectAll("probes")
-                .data(selectedGene.probes)
-                .enter()
-                .append("rect")
-                .attr("fill", d => {
-                    // Color based on coverage cutoff
-                    return d.cov < depthCutoff ? "pink" : "lightblue"; // Red if cov < 500, green otherwise
-                })
-                .attr("x", d => xScale(d.start))
-                .attr("y", geneY - 35)
-                .attr("width", d => xScale(d.end) - xScale(d.start))
-                .attr("height", 20)
-                .append("title") // Tooltip
-                .text(d => `${d.chr}:${d.start}-${d.end}, Cov: ${Number(d.cov).toFixed(2)}X`);
-
-
-            // Define legend data
-            const legendData = [
-                {color: "pink", label: "Any coverage < " + depthCutoff},
-                {color: "lightblue", label: "Probe coverage ≥ " + depthCutoff},
-                {color: "lightgreen", label: "CDS coverage ≥ " + depthCutoff},
-                {color: "black", label: "Not covered by design"}
-            ];
-
-            // Create legend container in the top-left corner
-            const legend = svg.append("g")
-                .attr("transform", "translate(10, 10)") // Position at top-left
-                .attr("class", "legend");
-
-            // Append legend items
-            legend.selectAll("legendItems")
-                .data(legendData)
-                .enter()
-                .append("g")
-                .attr("transform", (d, i) => `translate(0, ${i * 20})`) // Space items vertically
-                .each(function (d) {
-                    // Append color box
-                    d3.select(this)
-                        .append("rect")
-                        .attr("x", 0)
-                        .attr("y", 0)
-                        .attr("width", 15)
-                        .attr("height", 15)
-                        .attr("fill", d.color);
-
-                    // Append text
-                    d3.select(this)
-                        .append("text")
-                        .attr("x", 25) // Offset text to the right
-                        .attr("y", 12)
-                        .style("font-size", "12px")
-                        .style("dominant-baseline", "middle")
-                        .text(d.label);
-                });
-
-            // Remove old data before adding a new gene to the container
-            d3.select("#data-container").select("#gene-data-container").remove();
-
-            // Create a new container for the data
-            const dataContainer = d3.select("#data-container")
-                .append("div")
-                .attr("id", "gene-data-container")
-                .style("margin", "20px 0");
-
-
-            // CODING SEQUENCE
-            const lowCoverageExons = selectedGene.CDS.filter(d => d.cov < depthCutoff);
-            if (lowCoverageExons.length > 0) {
-                dataContainer.append("h4")
-                    .style("font-size", "18px")
-                    .style("font-weight", "bold")
-                    .text("Exons not meeting criteria:");
-                // Create CDS table
-                const table = dataContainer.append("table")
-                    .style("border-collapse", "collapse")
-                    .style("width", "auto") // Set table width to adjust to its content
-                    .style("margin-left", "0") // Align the table to the left
-                    .style("margin-top", "20px"); // Optional: Add some spacing at the top
-
-                // Add table headers
-                const thead = table.append("thead");
-                thead.append("tr")
-                    .selectAll("th")
-                    .data(["Exon", "Coordinates", "Coverage", "Actions"])
-                    .enter()
-                    .append("th")
-                    .style("padding", "4px")
-                    .style("text-align", "left")
-                    .text(d => d);
-
-                // Add table body
-                const tbody = table.append("tbody");
-
-                // Populate table rows with data
-
-                lowCoverageExons.forEach(exon => {
-                    const row = tbody.append("tr");
-                    const coord = `${exon.chr}:${exon.start}-${exon.end}`
-                    // Add data cells
-                    row.append("td")
-                        .style("padding", "4px")
-                        .text(`${exon.nbr}`);
-                    row.append("td")
-                        .style("padding", "4px")
-                        .text(`${coord}`);
-                    row.append("td")
-                        .style("padding", "4px")
-                        .text(`${Number(exon.cov).toFixed(2)}X`);
-
-                    // Add the "Blacklist" button
-                    row.append("td")
-                        .style("padding", "4px")
-                        .style("color", "red")
-                        .append("button")
-                        .text("Blacklist")
-                        .on("click", () => blacklistRegion(gene, coord, "CDS"));
-                });
-            }
-
-            // PROBES
-            const lowCoverageProbes = selectedGene.probes.filter(d => d.cov < depthCutoff);
-            // if probe data
-            if (lowCoverageProbes.length > 0) {
-                dataContainer.append("br");
-                dataContainer.append("br");
-                dataContainer.append("h4")
-                    .style("font-size", "18px")
-                    .style("font-weight", "bold")
-                    .text("Probes not meeting criteria:");
-
-                // Create probe table
-                const probe_table = dataContainer.append("table")
-                    .style("border-collapse", "collapse")
-                    .style("width", "auto") // Set table width to adjust to its content
-                    .style("margin-left", "0") // Align the table to the left
-                    .style("margin-top", "20px"); // Optional: Add some spacing at the top
-
-                // Add table headers
-                const thead_probe = probe_table.append("thead");
-                thead_probe.append("tr")
-                    .selectAll("th")
-                    .data(["Coordinates", "Coverage", "Actions"])
-                    .enter()
-                    .append("th")
-                    .style("padding", "4px")
-                    .style("text-align", "left")
-                    .text(d => d);
-
-                // Add table body
-                const tbody_probe = probe_table.append("tbody");
-
-
-                lowCoverageProbes.forEach(probe => {
-                    const row = tbody_probe.append("tr");
-                    const coord = `${probe.chr}:${probe.start}-${probe.end}`
-                    // Add data cells
-                    row.append("td")
-                        .style("padding", "4px")
-                        .text(`${coord}`);
-                    row.append("td")
-                        .style("padding", "4px")
-                        .text(`${Number(probe.cov).toFixed(2)}X`);
-
-                    // Add the "Blacklist" button
-                    row.append("td")
-                        .style("padding", "4px")
-                        .style("color", "red")
-                        .append("button")
-                        .text("Blacklist")
-                        .on("click", () => blacklistRegion(gene, coord, "probe"));
-                });
-            }
-        }
-
-        function sendDataToBackend(gene, coord, region, status) {
-            // The data to send
-            const sampleAssay = {{ smp_grp | tojson | safe }}
-            const payload = {gene: gene, region: region, coord: coord, status: status, smp_grp: sampleAssay};
-
-            // Send the data to the backend using fetch
-            fetch('/update-gene-status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            })
-                .then(response => response.json())
-                .then(data => {
-                    alert('Success:' + data.message);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
-        }
-
-        function blacklistRegion(gene, coord, region) {
-            // Example of sending true/false
-            sendDataToBackend(gene, coord, region, "blacklist");
-        }
-
-        document.addEventListener("DOMContentLoaded", function () {
-            const table = document.getElementById("sortable-table");
-            const headers = table.querySelectorAll("th");
-
-            headers.forEach(header => {
-                header.addEventListener("click", function () {
-                    const columnIndex = this.getAttribute("data-column");
-                    const type = this.getAttribute("data-type");
-                    const tbody = table.querySelector("tbody");
-                    const rows = Array.from(tbody.querySelectorAll("tr"));
-
-                    // Determine sort direction
-                    const isAscending = this.getAttribute("data-order") === "asc";
-                    this.setAttribute("data-order", isAscending ? "desc" : "asc");
-
-                    // Sort function
-                    const sortedRows = rows.sort((a, b) => {
-                        let aValue = a.children[columnIndex].textContent.trim();
-                        let bValue = b.children[columnIndex].textContent.trim();
-
-                        if (type === "number") {
-                            aValue = parseFloat(aValue) || 0;
-                            bValue = parseFloat(bValue) || 0;
-                        }
-
-                        return isAscending ? aValue > bValue ? 1 : -1 : aValue < bValue ? 1 : -1;
-                    });
-
-                    // Append sorted rows
-                    tbody.innerHTML = "";
-                    sortedRows.forEach(row => tbody.appendChild(row));
-                });
-            });
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/vendor/d3.v7.min.js') }}"></script>
+    <script src="{{ url_for('cov_bp.static', filename='js/show_cov.js', v=config['APP_VERSION']) }}"></script>
 
 {% endblock %}

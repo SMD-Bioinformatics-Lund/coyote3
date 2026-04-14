@@ -15,15 +15,6 @@
             <img src="{{ url_for('static', filename='icons/heroicons_outline_24/document-plus.svg') }}" class="h-6 w-6">
             Add New Assay Panel
           </h1>
-          <form method="GET" action="{{ url_for('admin_bp.create_assay_panel') }}">
-            <label class="text-sm font-semibold text-gray-800">Schema:</label>
-            <select name="schema_id" onchange="this.form.submit()"
-              class="text-sm border border-gray-300 rounded-md shadow-sm px-2 py-1 bg-gray-50">
-              {% for s in schemas %}
-                <option value="{{ s._id }}" {% if s._id == selected_schema._id %}selected{% endif %}>{{ s._id }} (v{{ s.version }})</option>
-              {% endfor %}
-            </select>
-          </form>
         </div>
 
         <form method="POST" enctype="multipart/form-data" class="space-y-6 text-sm text-gray-700">
@@ -33,6 +24,46 @@
               <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') | title }}</h2>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {% for key in keys %}
+                  {% if key == 'expected_files' and 'required_files' in keys %}
+                    {% set expected_field = schema.fields['expected_files'] %}
+                    {% set required_field = schema.fields['required_files'] %}
+                    <div class="w-full col-span-1 md:col-span-2 lg:col-span-3">
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-xl border border-blue-200 bg-white/70 p-4">
+                        <div class="flex flex-col gap-2">
+                          <label class="text-xs font-semibold block">
+                            {{ expected_field.label }}{% if expected_field.required %}<span class="text-red-500">*</span>{% endif %}
+                            <span class="text-gray-400">({{ expected_field.data_type }})</span>
+                          </label>
+                          <p class="text-xs text-gray-500">Files we accept and use for this assay.</p>
+                          <div class="flex flex-col gap-1">
+                            {% for opt in expected_field.options %}
+                              {% set opt_category = 'dna' if opt in expected_field.category_options.get('dna', []) else 'rna' %}
+                              <label class="inline-flex items-center gap-2" data-file-option data-file-category="{{ opt_category }}" data-file-key="{{ opt }}">
+                                <input type="checkbox" name="expected_files" value="{{ opt }}" class="accent-blue-600 rounded" data-expected-file="{{ opt }}">
+                                <span class="text-xs">{{ opt }}</span>
+                              </label>
+                            {% endfor %}
+                          </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                          <label class="text-xs font-semibold block">
+                            {{ required_field.label }}{% if required_field.required %}<span class="text-red-500">*</span>{% endif %}
+                            <span class="text-gray-400">({{ required_field.data_type }})</span>
+                          </label>
+                          <p class="text-xs text-gray-500">If a file is expected but not required, ingest will accept the sample without it and simply ignore the missing file.</p>
+                          <div class="flex flex-col gap-1">
+                            {% for opt in required_field.options %}
+                              {% set opt_category = 'dna' if opt in required_field.category_options.get('dna', []) else 'rna' %}
+                              <label class="inline-flex items-center gap-2" data-file-option data-file-category="{{ opt_category }}" data-file-key="{{ opt }}">
+                                <input type="checkbox" name="required_files" value="{{ opt }}" class="accent-blue-600 rounded" data-required-file="{{ opt }}">
+                                <span class="text-xs">{{ opt }}</span>
+                              </label>
+                            {% endfor %}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {% elif key != 'required_files' %}
                   {% set field = schema.fields[key] %}
                   <div class="w-full {% if field.display_type in ['checkbox-group', 'radio'] %}col-span-1 flex flex-col gap-1{% endif %}">
                     <label class="text-xs font-semibold block mb-1">
@@ -88,23 +119,33 @@
                       <textarea name="genes_paste" rows="6" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y"></textarea>
                       <div class="flex flex-col items-start mt-2">
                         <span class="text-xs font-semibold mb-1">OR Upload File</span>
-                        <input type="file" name="genes_file" accept=".txt,.csv" class="text-xs">
+                        <label for="genes_file" class="inline-flex items-center gap-2 rounded-md border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 cursor-pointer hover:bg-blue-100">
+                          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-up-tray.svg') }}" class="h-4 w-4">
+                          Upload gene file (.txt, .csv)
+                        </label>
+                        <input type="file" id="genes_file" name="genes_file" accept=".txt,.csv" class="hidden">
                       </div>
                     {% elif field.display_type == 'jsoneditor-or-upload' and key == 'germline_genes' %}
                       <label class="text-xs text-gray-500 italic block mb-1">If both a gene list is pasted and a file is uploaded, the uploaded file will be used.</label>
                       <textarea name="germline_genes_paste" rows="6" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y"></textarea>
                       <div class="flex flex-col items-start mt-2">
                         <span class="text-xs font-semibold mb-1">OR Upload File</span>
-                        <input type="file" name="germline_genes_file" accept=".txt,.csv" class="text-xs">
+                        <label for="germline_genes_file" class="inline-flex items-center gap-2 rounded-md border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 cursor-pointer hover:bg-blue-100">
+                          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-up-tray.svg') }}" class="h-4 w-4">
+                          Upload germline gene file (.txt, .csv)
+                        </label>
+                        <input type="file" id="germline_genes_file" name="germline_genes_file" accept=".txt,.csv" class="hidden">
                       </div>
 
                     {% else %}
                       <input type="{{ 'number' if field.data_type in ['int', 'float'] else 'text' }}"
-                              name="{{ key }}" placeholder="{{ field.placeholder }}"
+                              name="{{ key }}" id="{{ key }}" placeholder="{{ field.placeholder }}"
                               value="{{ field.default or '' }}"
                               class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                      {% if key == "assay_name" %}<p id="asp_id_check" class="text-xs mt-1"></p>{% endif %}
                     {% endif %}
                   </div>
+                  {% endif %}
                 {% endfor %}
               </div>
             </div>
@@ -122,4 +163,130 @@
     </section>
   </main>
 </div>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.querySelector("form[enctype='multipart/form-data']");
+    const saveBtn = form?.querySelector("button[type='submit']");
+    const aspInput = document.getElementById("asp_id");
+    const assayInput = document.getElementById("assay_name");
+    const status = document.getElementById("asp_id_check");
+    let exists = false;
+    let pending = false;
+    let timer = null;
+    const familySelect = document.querySelector('select[name="asp_family"]');
+    const categorySelect = document.querySelector('select[name="asp_category"]');
+    const expectedInputs = Array.from(document.querySelectorAll('input[data-expected-file]'));
+    const requiredInputs = Array.from(document.querySelectorAll('input[data-required-file]'));
+
+    function syncCategoryFromFamily() {
+      if (!familySelect || !categorySelect) return;
+      const family = (familySelect.value || '').trim().toLowerCase();
+      categorySelect.value = family === 'panel-rna' || family === 'wts' ? 'rna' : 'dna';
+    }
+
+    function syncFileOptions() {
+      if (!categorySelect) return;
+      const category = (categorySelect.value || 'dna').trim().toLowerCase();
+      document.querySelectorAll('[data-file-option]').forEach((row) => {
+        const matchesCategory = row.dataset.fileCategory === category;
+        row.classList.toggle('hidden', !matchesCategory);
+        const input = row.querySelector('input[type="checkbox"]');
+        if (!input) return;
+        input.disabled = !matchesCategory;
+        if (!matchesCategory) {
+          input.checked = false;
+        }
+      });
+      syncRequiredFiles();
+    }
+
+    function syncRequiredFiles() {
+      requiredInputs.forEach((input) => {
+        const allowed = !input.disabled;
+        if (!allowed) {
+          input.checked = false;
+        }
+      });
+    }
+
+    function syncExpectedFilesFromRequired(event) {
+      const requiredInput = event?.target;
+      if (!requiredInput || requiredInput.disabled || !requiredInput.checked) return;
+      const expectedInput = expectedInputs.find((input) => input.value === requiredInput.value);
+      if (!expectedInput || expectedInput.disabled) return;
+      expectedInput.checked = true;
+    }
+
+    function currentAspId() {
+      return (aspInput?.value || assayInput?.value || "").trim();
+    }
+
+    function setStatus(message, css, disable) {
+      if (!status) return;
+      status.textContent = message;
+      status.className = `text-xs mt-1 ${css}`;
+      if (saveBtn) saveBtn.disabled = !!disable;
+    }
+
+    async function checkAspId() {
+      const aspId = currentAspId();
+      exists = false;
+      if (!aspId) {
+        setStatus("", "", false);
+        return;
+      }
+      pending = true;
+      setStatus(`Checking asp_id: ${aspId} ...`, "text-gray-500", true);
+      try {
+        const res = await fetch("{{ url_for('admin_bp.validate_asp_id') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ asp_id: aspId })
+        });
+        const data = await res.json();
+        exists = !!data.exists;
+        if (exists) setStatus(`asp_id '${aspId}' already exists.`, "text-red-500", true);
+        else setStatus(`asp_id '${aspId}' is available.`, "text-green-600", false);
+      } catch (_) {
+        exists = false;
+        setStatus("Unable to validate asp_id right now.", "text-yellow-600", false);
+      } finally {
+        pending = false;
+      }
+    }
+
+    [aspInput, assayInput].forEach((el) => {
+      el?.addEventListener("input", () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(checkAspId, 250);
+      });
+      el?.addEventListener("change", () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(checkAspId, 100);
+      });
+    });
+
+    familySelect?.addEventListener("change", () => {
+      syncCategoryFromFamily();
+      syncFileOptions();
+    });
+    categorySelect?.addEventListener("change", syncFileOptions);
+    expectedInputs.forEach((input) => input.addEventListener("change", syncRequiredFiles));
+    requiredInputs.forEach((input) =>
+      input.addEventListener("change", (event) => {
+        syncExpectedFilesFromRequired(event);
+        syncRequiredFiles();
+      })
+    );
+    syncCategoryFromFamily();
+    syncFileOptions();
+
+    form?.addEventListener("submit", (event) => {
+      if (pending || exists) {
+        event.preventDefault();
+        setStatus("Use a unique asp_id before saving.", "text-red-500", true);
+      }
+    });
+  });
+</script>
 {% endblock %}

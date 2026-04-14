@@ -76,7 +76,7 @@
         <div class="mt-3 space-y-1 text-sm">
           <div>
             <span class="font-medium">Commit:</span>
-            <span class="font-mono"><strong>{{ meta.git_commit or '-' }}</article></strong></span>
+            <span class="font-mono"><strong>{{ meta.git_commit or '-' }}</strong></span>
           </div>
           <div>
             <span class="font-medium">Built:</span>
@@ -89,12 +89,46 @@
       <div class="rounded-3xl border-t-4 border-pink-400 bg-white shadow-2xl p-5 hover:shadow-lg hover:bg-pink-50 transition duration-500">
         <h2 class="text-sm font-semibold">Links</h2>
         <p class="mt-1 text-sm">Quick access</p>
+        {% set docs_root = (app_config.get('HELP_CENTER_URL') or '')|trim %}
+        {% if not docs_root %}
+          {% set docs_root = '#' %}
+        {% endif %}
+        {% if docs_root != '#' %}
+          {% set req_host = request.host.split(':')[0] %}
+          {% if docs_root.startswith('http://localhost') %}
+            {% set docs_root = docs_root|replace('http://localhost', 'http://' ~ req_host, 1) %}
+          {% elif docs_root.startswith('https://localhost') %}
+            {% set docs_root = docs_root|replace('https://localhost', 'https://' ~ req_host, 1) %}
+          {% elif docs_root.startswith('http://127.0.0.1') %}
+            {% set docs_root = docs_root|replace('http://127.0.0.1', 'http://' ~ req_host, 1) %}
+          {% elif docs_root.startswith('https://127.0.0.1') %}
+            {% set docs_root = docs_root|replace('https://127.0.0.1', 'https://' ~ req_host, 1) %}
+          {% endif %}
+        {% endif %}
+        {% set docs_base = (docs_root.rstrip('/') ~ '/') if docs_root != '#' else '#' %}
         <div class="mt-3 space-y-2 text-sm">
-          <a href="{{ url_for('docs_bp.docs_page', doc_path='index.md') }}"
+          <a href="{{ docs_root }}"
+              target="_blank" rel="noopener"
               class="flex items-center gap-2 text-indigo-700 hover:underline">
             <img src="{{ url_for('static', filename='icons/heroicons_outline_24/book-open.svg') }}"
                   alt="Docs" class="h-4 w-4">
-            Handbook
+            Docs (MkDocs Home)
+          </a>
+
+          <a href="{{ docs_base ~ 'developer/adding-features/' if docs_base != '#' else '#' }}"
+             target="_blank" rel="noopener"
+             class="flex items-center gap-2 text-indigo-700 hover:underline">
+            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/code-bracket-square.svg') }}"
+                 alt="Developer Docs" class="h-4 w-4">
+            Docs: Add New Feature
+          </a>
+
+          <a href="{{ docs_base ~ 'operations/deployment-guide/' if docs_base != '#' else '#' }}"
+             target="_blank" rel="noopener"
+             class="flex items-center gap-2 text-indigo-700 hover:underline">
+            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/wrench-screwdriver.svg') }}"
+                 alt="Operations Docs" class="h-4 w-4">
+            Docs: Deployment Guide
           </a>
 
           {% if meta.changelog_in_app %}

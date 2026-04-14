@@ -1,110 +1,64 @@
 {% extends "layout.html" %}
 
 {% block body %}
-<!-- FLEX CONTAINER: Sidebar (Fixed) + Main Content (Scrollable)-->
+{% set extra_args = {} %}
+{% if panel_type %}{% set _ = extra_args.update({'panel_type': panel_type}) %}{% endif %}
+{% if panel_tech %}{% set _ = extra_args.update({'panel_tech': panel_tech}) %}{% endif %}
+{% if assay_group %}{% set _ = extra_args.update({'assay_group': assay_group}) %}{% endif %}
+{% if live_per_page and live_per_page != 30 %}{% set _ = extra_args.update({'lpp': live_per_page}) %}{% endif %}
+{% if done_per_page and done_per_page != 30 %}{% set _ = extra_args.update({'dpp': done_per_page}) %}{% endif %}
+{% if search_str %}{% set _ = extra_args.update({'q': search_str}) %}{% endif %}
 <div class="flex w-full h-full overflow-hidden">
-
-  <!-- LEFT SIDEBAR (Fixed Width, Full Height) -->
-  {% set extra_args = {} %}
-  {% if panel_type %}{% set _ = extra_args.update({'panel_type': panel_type}) %}{% endif %}
-  {% if panel_tech %}{% set _ = extra_args.update({'panel_tech': panel_tech}) %}{% endif %}
-  {% if assay_group %}{% set _ = extra_args.update({'assay_group': assay_group}) %}{% endif %}
-  <aside class="w-8 bg-transparent text-white flex flex-col">
-    <div class="flex border-l-8 border-blue-400 mt-1">
-      <a href="{{ url_for(request.endpoint, status='done', **extra_args) }}"
-        class="relative bg-gray-500 text-white text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-        <span class="vertical-text">Analysed</span>
-      </a>
-    </div>
-    <div class="flex border-l-8 border-green-400 mt-1">
-      <a href="{{ url_for(request.endpoint, status='live', **extra_args) }}"
-        class="relative bg-gray-500 text-white text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-        <span class="vertical-text">Pending</span>
-      </a>
-    </div>
-  </aside>
-
-
-  <!-- MAIN CONTENT (Scrollable & Auto-Resizing) -->
   <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
-
-    <!-- Search Bar -->
-    <section id="sample-search" class="mt-2 flex">
-      <form action="" method="POST" class="flex items-center space-x-4 relative max-w-lg w-full pl-5">
-        {{ form.hidden_tag() }}
-
-        <div class="relative group flex-grow min-w-[250px]">
-          <input
-            type="text"
-            name="sample_search"
-            id="search-input"
-            value="{{ search_str or '' }}"
-            class="border border-gray-500 rounded-full py-1 pl-10 pr-4 focus:outline-none focus:border-blue-500 w-full bg-white"
-            placeholder="Search samples">
-
-          <!-- Search Icon -->
-          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="Search Icon" class=" transition-transform duration-500 transform hover:scale-110 hover:rotate-6 absolute left-1 top-1 pb-1 h-7 w-9 text-gray-700 cursor-pointer hover:text-blue-500" onclick="document.getElementById('search-input').focus()">
+    <section class="mt-2 mb-3 ml-2 w-5/6 rounded-2xl border border-gray-200 bg-blue-50 p-4 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-2 py-0.5 text-xs font-semibold">
+          <span class="text-gray-700">Profiles:</span>
+          <a
+            href="{{ url_for(request.endpoint, status='live', **extra_args) }}"
+            class="rounded-lg px-2 py-1 mx-1 transition {% if profile_scope != 'all' %}bg-blue-600 text-white{% else %}text-gray-700 hover:bg-gray-100{% endif %}"
+          >
+            Production
+          </a>
+          <a
+            href="{{ url_for(request.endpoint, status='live', scope='all', **extra_args) }}"
+            class="rounded-lg px-2 py-1 mx-1 transition {% if profile_scope == 'all' %}bg-blue-600 text-white{% else %}text-gray-700 hover:bg-gray-100{% endif %}"
+          >
+            All Profiles
+          </a>
         </div>
+      </div>
 
-        <!-- Compact Three-Way Toggle -->
-        <div class="relative w-32">
-          <div class="relative flex bg-blue-50 rounded-full border border-gray-400 h-8 overflow-hidden">
-            <!-- Slider -->
-            <div
-              id="slider-thumb"
-              class="absolute top-0 h-full w-1/3 bg-orange-300 transition-all duration-200 ease-in-out rounded-full"
-              style="left: calc({% if search_mode == 'done' %}0%{% elif search_mode == 'both' %}33.33%{% else %}66.66%{% endif %});">
-            </div>
+      <div id="sample-search" class="mt-4 flex flex-wrap items-center gap-3">
+        <form action="{{ url_for(request.endpoint, status='live') }}" method="GET" class="relative min-w-[260px] flex-1 max-w-xl">
+          {% if panel_type %}<input type="hidden" name="panel_type" value="{{ panel_type }}">{% endif %}
+          {% if panel_tech %}<input type="hidden" name="panel_tech" value="{{ panel_tech }}">{% endif %}
+          {% if assay_group %}<input type="hidden" name="assay_group" value="{{ assay_group }}">{% endif %}
+          {% if profile_scope == 'all' %}<input type="hidden" name="scope" value="all">{% endif %}
+          {% if live_per_page and live_per_page != 30 %}<input type="hidden" name="lpp" value="{{ live_per_page }}">{% endif %}
+          {% if done_per_page and done_per_page != 30 %}<input type="hidden" name="dpp" value="{{ done_per_page }}">{% endif %}
 
-            <!-- Options -->
-            <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
-              <input
-                type="radio"
-                name="search_mode_slider"
-                value="1"
-                class="absolute inset-0 opacity-0 cursor-pointer"
-                onclick="moveSlider(0)"
-                {% if search_mode == 'done' %}checked{% endif %}>
-              <span class="text-xs font-bold text-gray-800">Done</span>
-            </label>
-            <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
-              <input
-                type="radio"
-                name="search_mode_slider"
-                value="2"
-                class="absolute inset-0 opacity-0 cursor-pointer"
-                onclick="moveSlider(33.33)"
-                {% if search_mode == 'both' %}checked{% endif %}>
-              <span class="text-xs font-bold text-gray-800">All</span>
-            </label>
-            <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
-              <input
-                type="radio"
-                name="search_mode_slider"
-                value="3"
-                class="absolute inset-0 opacity-0 cursor-pointer"
-                onclick="moveSlider(66.66)"
-                {% if search_mode == 'live' %}checked{% endif %}>
-              <span class="text-xs font-bold text-gray-800">Live</span>
-            </label>
+          <div class="relative group">
+            <input
+              type="text"
+              name="q"
+              id="search-input"
+              value="{{ search_str or '' }}"
+              class="w-full rounded-full border border-gray-400 bg-white py-2 pl-10 pr-4 focus:border-blue-500 focus:outline-none"
+              placeholder="Search samples">
+
+            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="Search Icon" class="absolute left-1 top-2 h-7 w-9 cursor-pointer pb-1 text-gray-700 transition-transform duration-300 hover:scale-110" onclick="document.getElementById('search-input').focus()">
           </div>
-        </div>
-      </form>
-
-      <button id="toggle-other-profile"
-        class="inline-flex items-center px-4 py-1.5 mx-4 bg-orange-200 rounded-lg
-              text-sm font-medium shadow-md transition duration-300">
-        Show All Samples
-      </button>
-
+        </form>
+      </div>
     </section>
 
     <!-- Sample Table -->
     <section class="p-2 ml-2 mt-2">
       <div class="justify-start">
         {% if live_samples %}
-          <div class="w-4/5 bg-blue-50  rounded-2xl p-4 relative overflow-hidden">
-            <div class="overflow-x-auto rounded-2xl  relative pagination" data-rows-per-page="30" pagination-button-color="blue">
+          <div class="w-5/6 bg-blue-50  rounded-2xl p-4 relative overflow-hidden">
+            <div class="overflow-x-auto rounded-2xl relative">
               <span class="text-lg font-semibold">Live Samples</span>
               <table class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
                 <thead class="rounded-t-2xl overflow-hidden border-gray-800">
@@ -128,9 +82,9 @@
                 <tbody id="pagination-table-body-live" class="text-gray-800 rounded-b-2xl overflow-hidden">
                   {% for sample in live_samples %}
                     {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
-                    <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile hidden {% endif %}">
+                    <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
                       <td class="p-2 font-medium text-center">
-                        {% if has_access("edit_sample", min_role="admin", min_level=99999) %}
+                        {% if has_access("sample:edit:own", min_role="admin", min_level=99999) %}
                           <button onclick="showActionModal({
                               url: '{{ url_for('home_bp.edit_sample', sample_id=sample.name) }}',
                               title: 'Edit sample settings',
@@ -150,10 +104,13 @@
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
-                        {% if sample.get("omics_layer", "").lower() == "rna" %}
-                          <a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
-                        {% elif sample.get("omics_layer", "").lower() == "dna" %}
-                          <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                        {% set omics_layer = (sample.get("omics_layer", "") or "")|lower %}
+                        {% set assay_name = (sample.get("assay", "") or "")|lower %}
+                        {% set is_rna_sample = (omics_layer == "rna") or ("rna" in assay_name) or ("fusion" in assay_name) or ("wts" in assay_name) %}
+                        {% if is_rna_sample %}
+                          <a href="{{ url_for('rna_bp.list_fusions', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                        {% else %}
+                          <a href="{{ url_for('dna_bp.list_dna_findings', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% endif %}
                         {% if sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}
                           *
@@ -222,12 +179,29 @@
                   {% endfor %}
                 </tbody>
               </table>
+              {% if not search_str %}
+                <div class="mt-2 flex items-center justify-end gap-2 text-sm">
+                  <span class="text-gray-600">Live page {{ live_page }}</span>
+                  {% if live_page > 1 %}
+                    <a
+                      href="{{ url_for(request.endpoint, status='live', lp=live_page-1, dp=done_page, scope='all' if profile_scope == 'all' else None, **extra_args) }}"
+                      class="rounded-md border border-gray-300 px-2 py-1 font-medium hover:bg-gray-100"
+                    >Previous</a>
+                  {% endif %}
+                  {% if has_next_live %}
+                    <a
+                      href="{{ url_for(request.endpoint, status='live', lp=live_page+1, dp=done_page, scope='all' if profile_scope == 'all' else None, **extra_args) }}"
+                      class="rounded-md bg-blue-600 px-2 py-1 font-medium text-white hover:bg-blue-700"
+                    >Next</a>
+                  {% endif %}
+                </div>
+              {% endif %}
             </div>
           </div>
         {% endif %}
         {% if done_samples %}
-          <div class="w-4/5 bg-blue-50  rounded-2xl p-3 mt-10 relative">
-            <div class="overflow-x-auto rounded-2xl  relative pagination" data-rows-per-page="15" pagination-button-color="blue">
+          <div class="w-5/6 bg-blue-50  rounded-2xl p-3 mt-10 relative">
+            <div class="overflow-x-auto rounded-2xl relative">
               <span class="text-lg font-semibold">Reported samples
               </span>
               <table class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
@@ -254,9 +228,9 @@
                 <tbody id="pagination-table-body-done"class="text-gray-700 rounded-b-2xl border-gray-300">
                   {% for sample in done_samples|sort(attribute="last_report_time_created", reverse=True) %}
                     {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
-                    <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile hidden {% endif %}">
-                      <td class"p-2 font-medium text-center">
-                        {% if has_access("edit_sample", min_role="admin", min_level=99999) %}
+                    <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
+                      <td class="p-2 font-medium text-center">
+                        {% if has_access("sample:edit:own", min_role="admin", min_level=99999) %}
                           <button onclick="showActionModal({
                               url: '{{ url_for('home_bp.edit_sample', sample_id=sample.name) }}',
                               title: 'Edit sample settings',
@@ -276,7 +250,14 @@
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
-                        <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                        {% set omics_layer = (sample.get("omics_layer", "") or "")|lower %}
+                        {% set assay_name = (sample.get("assay", "") or "")|lower %}
+                        {% set is_rna_sample = (omics_layer == "rna") or ("rna" in assay_name) or ("fusion" in assay_name) or ("wts" in assay_name) %}
+                        {% if is_rna_sample %}
+                          <a href="{{ url_for('rna_bp.list_fusions', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                        {% else %}
+                          <a href="{{ url_for('dna_bp.list_dna_findings', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                        {% endif %}
                       </td>
                       <td class="p-2 font-medium">
                         {{ sample.case_id or '-' }}
@@ -338,7 +319,7 @@
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
-                        {% if has_access('view_reports', min_role='admin') %}
+                        {% if has_access('report:view', min_role='admin') %}
                             {% for rep in sample.reports %}
                               <a
                                 href="{{ url_for('home_bp.view_report', sample_id=sample.name, report_id=rep.report_id) }}"
@@ -359,6 +340,23 @@
                   {% endfor %}
                 </tbody>
               </table>
+              {% if not search_str %}
+                <div class="mt-2 flex items-center justify-end gap-2 text-sm">
+                  <span class="text-gray-600">Reported page {{ done_page }}</span>
+                  {% if done_page > 1 %}
+                    <a
+                      href="{{ url_for(request.endpoint, status='live', lp=live_page, dp=done_page-1, scope='all' if profile_scope == 'all' else None, **extra_args) }}"
+                      class="rounded-md border border-gray-300 px-2 py-1 font-medium hover:bg-gray-100"
+                    >Previous</a>
+                  {% endif %}
+                  {% if has_next_done %}
+                    <a
+                      href="{{ url_for(request.endpoint, status='live', lp=live_page, dp=done_page+1, scope='all' if profile_scope == 'all' else None, **extra_args) }}"
+                      class="rounded-md bg-blue-600 px-2 py-1 font-medium text-white hover:bg-blue-700"
+                    >Next</a>
+                  {% endif %}
+                </div>
+              {% endif %}
             </div>
           </div>
         {% endif %}
@@ -378,64 +376,5 @@
     </section>
   </main>
 </div>
-
-<script>
-
-  function moveSlider(percentage) {
-    const sliderThumb = document.getElementById('slider-thumb');
-    sliderThumb.style.left = `${percentage}%`;
-  }
-
-  // document.getElementById("toggle-other-profile").addEventListener("click", function () {
-  //  const rows = document.querySelectorAll("tr.other_profile");
-  //  rows.forEach(row => row.classList.toggle("hidden"));
-  // });
-
-  const btn = document.getElementById("toggle-other-profile");
-
-  const PROD_ONLY_CLASSES = [
-    "bg-orange-300", "text-black", "hover:bg-orange-400"
-  ];
-
-  const ALL_CLASSES = [
-    "bg-orange-300", "text-black", "hover:bg-orange-400"
-  ];
-
-  function setButtonState(isProdOnly) {
-    // Remove all color classes first
-    btn.classList.remove(...PROD_ONLY_CLASSES, ...ALL_CLASSES);
-
-    if (isProdOnly) {
-      btn.textContent = "Show All Samples";
-      btn.classList.add(...PROD_ONLY_CLASSES);
-    } else {
-      btn.textContent = "Show Prod Only";
-      btn.classList.add(...ALL_CLASSES);
-    }
-  }
-
-  // Initial state: prod-only (other profiles hidden)
-  setButtonState(true);
-
-  btn.addEventListener("click", function () {
-    const rows = document.querySelectorAll("tr.other_profile");
-    if (!rows.length) return;
-
-    rows.forEach(row => row.classList.toggle("hidden"));
-
-    const nowProdOnly = rows[0].classList.contains("hidden");
-    setButtonState(nowProdOnly);
-
-    // btn.blur(); // removes persistent focus highlight (orange)
-  });
-
-
-
-
-
-
-</script>
-
-
 
 {% endblock %}

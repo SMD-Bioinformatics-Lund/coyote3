@@ -3,12 +3,24 @@
   <head>
     <title>Sample Gene Lists</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
-    <script src="{{ url_for('static', filename='js/jquery-3.1.1.slim.min.js') }}"></script>
   </head>
 
   <body>
   <script type=text/javascript>
     $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+
+    function renderLocalTimestamps() {
+      const nodes = document.querySelectorAll('time.js-local-datetime[datetime]');
+      for (const node of nodes) {
+        const raw = node.getAttribute('datetime');
+        if (!raw) continue;
+        const dt = new Date(raw);
+        if (Number.isNaN(dt.getTime())) continue;
+        node.textContent = dt.toLocaleString();
+        node.setAttribute('title', dt.toLocaleString());
+      }
+    }
+    window.addEventListener('DOMContentLoaded', renderLocalTimestamps);
   </script>
 
 

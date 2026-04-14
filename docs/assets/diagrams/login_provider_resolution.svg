@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="360" viewBox="0 0 980 360" role="img" aria-labelledby="title desc">
+  <title id="title">Login Provider Resolution</title>
+  <desc id="desc">Login flow resolves user then branches by login_type to local or LDAP auth.</desc>
+  <defs>
+    <style>
+      .canvas { fill: #f8fafc; }
+      .title-band { fill: #e2e8f0; }
+      .title { font: 700 22px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .label { font: 700 14px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .sub { font: 12px 'Segoe UI', Arial, sans-serif; fill: #334155; }
+      .box { stroke: #334155; stroke-width: 1.8; rx: 12; ry: 12; }
+      .arrow { stroke: #334155; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0,0 10,4 0,8" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="360" class="canvas"/>
+  <rect x="20" y="16" width="940" height="36" rx="10" class="title-band"/>
+  <text x="30" y="40" class="title">Login Provider Resolution</text>
+
+  <rect x="40" y="94" width="200" height="70" class="box" fill="#dbeafe"/>
+  <text x="140" y="120" text-anchor="middle" class="label">Login request</text>
+  <text x="140" y="138" text-anchor="middle" class="sub">username and password</text>
+
+  <rect x="300" y="94" width="230" height="70" class="box" fill="#e0f2fe"/>
+  <text x="415" y="120" text-anchor="middle" class="label">Find user document</text>
+  <text x="415" y="138" text-anchor="middle" class="sub">read login_type</text>
+
+  <rect x="590" y="94" width="160" height="70" class="box" fill="#dcfce7"/>
+  <text x="670" y="120" text-anchor="middle" class="label">Decision</text>
+  <text x="670" y="138" text-anchor="middle" class="sub">coyote3 or ldap</text>
+
+  <rect x="520" y="234" width="170" height="70" class="box" fill="#fde68a"/>
+  <text x="605" y="260" text-anchor="middle" class="label">Local auth</text>
+  <text x="605" y="278" text-anchor="middle" class="sub">password hash check</text>
+
+  <rect x="760" y="234" width="170" height="70" class="box" fill="#fbcfe8"/>
+  <text x="845" y="260" text-anchor="middle" class="label">LDAP auth</text>
+  <text x="845" y="278" text-anchor="middle" class="sub">directory bind/check</text>
+
+  <rect x="700" y="24" width="220" height="56" class="box" fill="#ddd6fe"/>
+  <text x="810" y="56" text-anchor="middle" class="label">Issue session/token</text>
+
+  <path d="M240 129 L300 129" class="arrow"/>
+  <path d="M530 129 L590 129" class="arrow"/>
+  <path d="M670 164 L605 234" class="arrow"/>
+  <path d="M700 164 L825 234" class="arrow"/>
+  <path d="M690 264 L760 264" class="arrow"/>
+  <path d="M845 234 L820 80" class="arrow"/>
+  <path d="M605 234 L780 80" class="arrow"/>
+</svg>

@@ -1,164 +1,188 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
-#  All rights reserved.
-#
-#  This source file is part of the Coyote3 codebase.
-#  The Coyote3 project provides a framework for genomic data analysis,
-#  interpretation, reporting, and clinical diagnostics.
-#
-#  Unauthorized use, distribution, or modification of this software or its
-#  components is strictly prohibited without prior written permission from
-#  the copyright holders.
-#
+from flask import g, jsonify, render_template, request
+from werkzeug.exceptions import HTTPException
 
-from flask import render_template
+from shared.logging import emit_audit_event
+
 from .exceptions import AppError
 
 
 def register_error_handlers(app):
     """Register error handlers for the application."""
+    from coyote.services.api_client import ApiRequestError
+
+    def is_api_request() -> bool:
+        """Return whether the active request targets the JSON API."""
+        path = request.path or ""
+        app_root = app.config.get("APPLICATION_ROOT", "")
+        if app_root and path.startswith(app_root):
+            path = path[len(app_root) :] or "/"
+        return path == "/api" or path.startswith("/api/")
+
+    def error_response(status_code: int, error: str, details: str):
+        """Build a consistent HTML or JSON error response.
+
+        Args:
+            status_code: HTTP status code to return.
+            error: User-facing summary of the failure.
+            details: Additional troubleshooting context.
+
+        Returns:
+            tuple | Response: Flask response payload for the active request.
+        """
+        request_id = getattr(g, "request_id", None) or request.headers.get("X-Request-ID") or "-"
+        app.logger.warning(
+            "web_error request_id=%s method=%s path=%s status=%s error=%s",
+            request_id,
+            request.method,
+            request.path,
+            status_code,
+            error,
+        )
+        emit_audit_event(
+            source="web",
+            action="error",
+            status="error" if status_code >= 500 else "failed",
+            severity="error" if status_code >= 500 else "warning",
+            status_code=status_code,
+            method=request.method,
+            path=request.path,
+            request_id=request_id,
+            user=getattr(getattr(g, "_login_user", None), "id", None),
+            message=error,
+            details=details,
+        )
+        if is_api_request():
+            return jsonify({"status": status_code, "error": error, "details": details}), status_code
+        return (
+            render_template(
+                "errors.html",
+                status_code=status_code,
+                error=error,
+                details=details,
+                request_id=request_id,
+            ),
+            status_code,
+        )
 
     @app.errorhandler(AppError)
     def handle_app_error(error):
         """Handles custom application errors."""
-        return (
-            render_template(
-                "error.html",
-                error=error.message,
-                details=error.details,
-            ),
-            error.status_code,
-        )
+        return error_response(error.status_code, error.message, error.details)
+
+    @app.errorhandler(ApiRequestError)
+    def handle_api_request_error(error):
+        """Handles upstream API client failures from web routes."""
+        status_code = error.status_code or 502
+        return error_response(status_code, "API request failed.", str(error))
 
     @app.errorhandler(400)
     def handle_400_error(error):
         """Handles 400 Bad Request."""
-        return (
-            render_template(
-                "error.html",
-                error="Bad Request: The server could not understand your request.",
-                details="Check the request parameters and try again.",
-            ),
+        return error_response(
             400,
+            "Bad Request: The server could not understand your request.",
+            "Check the request parameters and try again.",
         )
 
     @app.errorhandler(401)
     def handle_401_error(error):
         """Handles 401 Unauthorized."""
-        return (
-            render_template(
-                "error.html",
-                error="Unauthorized: Access is denied.",
-                details="You need to log in to access this resource.",
-            ),
+        return error_response(
             401,
+            "Unauthorized: Access is denied.",
+            "You need to log in to access this resource.",
         )
 
     @app.errorhandler(403)
     def handle_403_error(error):
         """Handles 403 Forbidden."""
-        return (
-            render_template(
-                "error.html",
-                error="Forbidden: You do not have permission to access this resource.",
-                details="If you believe this is an error, contact support.",
-            ),
+        return error_response(
             403,
+            "Forbidden: You do not have permission to access this resource.",
+            "If you believe this is an error, contact support.",
         )
 
     @app.errorhandler(404)
     def handle_404_error(error):
         """Handles 404 Not Found."""
-        return (
-            render_template(
-                "error.html",
-                error="The requested resource was not found.",
-                details="Ensure the URL is correct or try a different resource.",
-            ),
+        return error_response(
             404,
+            "The requested resource was not found.",
+            "Ensure the URL is correct or try a different resource.",
         )
 
     @app.errorhandler(405)
     def handle_405_error(error):
         """Handles 405 Method Not Allowed."""
-        return (
-            render_template(
-                "error.html",
-                error="Method Not Allowed: The HTTP method is not supported for this route.",
-                details="Check the request method and try again.",
-            ),
+        return error_response(
             405,
+            "Method Not Allowed: The HTTP method is not supported for this route.",
+            "Check the request method and try again.",
         )
 
     @app.errorhandler(408)
     def handle_408_error(error):
         """Handles 408 Request Timeout."""
-        return (
-            render_template(
-                "error.html",
-                error="Request Timeout: The server timed out waiting for your request.",
-                details="Try submitting the request again.",
-            ),
+        return error_response(
             408,
+            "Request Timeout: The server timed out waiting for your request.",
+            "Try submitting the request again.",
         )
 
     @app.errorhandler(409)
     def handle_409_error(error):
         """Handles 409 Conflict."""
-        return (
-            render_template(
-                "error.html",
-                error="Conflict: A conflict occurred with the current state of the resource.",
-                details="Resolve the conflict and try again.",
-            ),
+        return error_response(
             409,
+            "Conflict: A conflict occurred with the current state of the resource.",
+            "Resolve the conflict and try again.",
         )
 
     @app.errorhandler(500)
     def handle_500_error(error):
         """Handles 500 Internal Server Error."""
-        return (
-            render_template(
-                "error.html",
-                error="An internal server error occurred.",
-                details="Please try again later. If the issue persists, contact support.",
-            ),
+        return error_response(
             500,
+            "An internal server error occurred.",
+            "Please try again later. If the issue persists, contact support.",
         )
 
     @app.errorhandler(502)
     def handle_502_error(error):
         """Handles 502 Bad Gateway."""
-        return (
-            render_template(
-                "error.html",
-                error="Bad Gateway: The server received an invalid response from the upstream server.",
-                details="Try again later. If the issue persists, contact support.",
-            ),
+        return error_response(
             502,
+            "Bad Gateway: The server received an invalid response from the upstream server.",
+            "Try again later. If the issue persists, contact support.",
         )
 
     @app.errorhandler(503)
     def handle_503_error(error):
         """Handles 503 Service Unavailable."""
-        return (
-            render_template(
-                "error.html",
-                error="Service Unavailable: The server is temporarily unable to handle your request.",
-                details="Try again later.",
-            ),
+        return error_response(
             503,
+            "Service Unavailable: The server is temporarily unable to handle your request.",
+            "Try again later.",
         )
 
     @app.errorhandler(504)
     def handle_504_error(error):
         """Handles 504 Gateway Timeout."""
-        return (
-            render_template(
-                "error.html",
-                error="Gateway Timeout: The server did not receive a response from the upstream server.",
-                details="Try again later. If the issue persists, contact support.",
-            ),
+        return error_response(
             504,
+            "Gateway Timeout: The server did not receive a response from the upstream server.",
+            "Try again later. If the issue persists, contact support.",
+        )
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_error(error):
+        """Handles unexpected uncaught exceptions with the standard error page."""
+        if isinstance(error, HTTPException):
+            return error
+        return error_response(
+            500,
+            "An internal server error occurred.",
+            "Please try again later. If the issue persists, contact support.",
         )
 
     app.logger.info("Error handlers registered.")

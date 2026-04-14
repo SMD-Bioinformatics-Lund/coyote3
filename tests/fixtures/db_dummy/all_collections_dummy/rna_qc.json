@@ -1,0 +1,27 @@
+[
+  {
+    "SAMPLE_ID": "65f0c0ffee00000000000001",
+    "sample_id": "DEMO_SAMPLE_001",
+    "tot_reads": 1000000,
+    "mapped_pct": 95.0,
+    "multimap_pct": 3.0,
+    "mismatch_pct": 0.5,
+    "canon_splice": 12000,
+    "non_canon_splice": 200,
+    "splice_ratio": 60,
+    "genebody_cov": [
+      10,
+      20,
+      30,
+      40,
+      50
+    ],
+    "genebody_cov_slope": 0.2,
+    "provider_genotypes": {
+      "SNP1": "AA",
+      "SNP2": "AG"
+    },
+    "provider_called_genotypes": 2,
+    "flendist": 250
+  }
+]
