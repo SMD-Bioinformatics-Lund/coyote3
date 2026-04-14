@@ -189,8 +189,10 @@ class _AdminRepoStub:
             (),
             {
                 "user_exists": staticmethod(
-                    lambda **kwargs: kwargs.get("user_id") == "taken"
-                    or kwargs.get("email") == "taken@example.com"
+                    lambda **kwargs: (
+                        kwargs.get("user_id") == "taken"
+                        or kwargs.get("email") == "taken@example.com"
+                    )
                 )
             },
         )()

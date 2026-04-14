@@ -347,10 +347,9 @@ def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatc
         subpanel=None,
         apply=True,
         class_num=2,
-        create_annotation_text_fn=lambda gene,
-        consequence,
-        assay_group,
-        gene_oncokb=None: f"{gene}:{assay_group}",
+        create_annotation_text_fn=lambda gene, consequence, assay_group, gene_oncokb=None: (
+            f"{gene}:{assay_group}"
+        ),
         create_classified_variant_doc_fn=_classification_doc,
     )
 
@@ -380,10 +379,9 @@ def test_resource_classification_service_supports_translocation_bulk_removal(mon
         subpanel="solid",
         apply=False,
         class_num=3,
-        create_annotation_text_fn=lambda gene,
-        consequence,
-        assay_group,
-        gene_oncokb=None: f"{gene}:{assay_group}",
+        create_annotation_text_fn=lambda gene, consequence, assay_group, gene_oncokb=None: (
+            f"{gene}:{assay_group}"
+        ),
         create_classified_variant_doc_fn=_classification_doc,
     )
 

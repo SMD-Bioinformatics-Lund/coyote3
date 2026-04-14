@@ -4,15 +4,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 def test_findings_templates_open_coverage_in_new_tab():
     """DNA and RNA findings pages should open coverage in a new tab."""
-    dna_template = Path(
-        "/home/ram/dev/projects/coyote3/coyote/blueprints/dna/templates/list_dna_findings.html"
-    ).read_text(encoding="utf-8")
-    rna_template = Path(
-        "/home/ram/dev/projects/coyote3/coyote/blueprints/rna/templates/list_fusions.html"
-    ).read_text(encoding="utf-8")
+    dna_template = (REPO_ROOT / "coyote/blueprints/dna/templates/list_dna_findings.html").read_text(
+        encoding="utf-8"
+    )
+    rna_template = (REPO_ROOT / "coyote/blueprints/rna/templates/list_fusions.html").read_text(
+        encoding="utf-8"
+    )
 
     assert 'target="_blank"' in dna_template
     assert 'rel="noopener"' in dna_template
