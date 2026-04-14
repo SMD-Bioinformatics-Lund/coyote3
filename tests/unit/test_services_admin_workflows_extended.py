@@ -15,6 +15,7 @@ from api.extensions import util as shared_util
 from api.services.accounts.permissions import PermissionManagementService
 from api.services.accounts.roles import RoleManagementService
 from api.services.accounts.users import UserManagementService
+from shared.config_constants import ASP_GROUP_OPTIONS, AUTH_TYPE_OPTIONS, ENVIRONMENT_OPTIONS
 
 
 class _Repo:
@@ -242,6 +243,9 @@ def test_create_user_sanitizes_username_and_defaults_user_role(monkeypatch):
     monkeypatch.setattr(user_module, "issue_password_token_for_user", lambda **_: {})
     payload = service.create_context_payload(actor_username="actor")
     assert payload["form"]["fields"]["roles"]["default"] == ["user"]
+    assert payload["form"]["fields"]["auth_type"]["options"] == list(AUTH_TYPE_OPTIONS)
+    assert payload["form"]["fields"]["environments"]["options"] == list(ENVIRONMENT_OPTIONS)
+    assert payload["form"]["fields"]["assay_groups"]["options"] == list(ASP_GROUP_OPTIONS)
 
     service.create_user(
         payload={
@@ -428,7 +432,7 @@ def test_permission_create_and_update_success(monkeypatch):
         lambda _spec, form_data: {
             "permission_name": form_data["permission_name"],
             "label": form_data["permission_name"],
-            "category": "General",
+            "category": "Analysis Actions",
             "tags": [],
         },
     )

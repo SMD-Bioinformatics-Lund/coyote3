@@ -59,9 +59,6 @@ class IsglService:
             dict[str, Any]: Form payload for the create view.
         """
         form = build_managed_form(self._spec, actor_username=actor_username)
-        form["fields"]["assay_groups"]["options"] = list(
-            self.assay_panel_handler.get_all_asp_groups() or []
-        )
         return {
             "form": form,
             "assay_group_map": util.common.create_assay_group_map(
@@ -82,9 +79,6 @@ class IsglService:
         if not genelist:
             raise api_error(404, "Genelist not found")
         form = build_managed_form(self._spec)
-        form["fields"]["assay_groups"]["options"] = list(
-            self.assay_panel_handler.get_all_asp_groups() or []
-        )
         form["fields"]["assay_groups"]["default"] = genelist.get("assay_groups", [])
         form["fields"]["assays"]["default"] = genelist.get("assays", [])
         return {

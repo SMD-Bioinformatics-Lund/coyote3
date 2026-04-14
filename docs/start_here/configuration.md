@@ -1,21 +1,21 @@
-# Enterprise Configuration and Environment Architecture
+# Configuration And Environments
 
-This document serves as the authoritative specification for platform configuration management. Coyote3 utilizes a strictly environment-aware configuration model, isolating and enforcing operational parameters across development, staging, and production runtimes.
+This document describes how Coyote3 configuration is organized across environments.
 
-## Environment Domain Partitioning
+## Environment Files
 
-Application behavior is governed by targeted environment files (`.coyote3_env*`). Standardized templates are maintained within `deploy/env/` to ensure structural parity and secure credential management:
+Application behavior is controlled by environment files (`.coyote3_env*`). Templates live in `deploy/env/`:
 
 - **Production**: Managed via `.coyote3_env` (Ref: `example.prod.env`).
 - **Staging**: Managed via `.coyote3_stage_env` (Ref: `example.stage.env`).
 - **Development**: Managed via `.coyote3_dev_env` (Ref: `example.dev.env`).
 - **Continuous Validation**: Managed via `.coyote3_test_env` (Ref: `example.test.env`).
 
-Each configuration template serves as the non-negotiable schema for its respective profile. Centers must utilize these templates to provision localized environment files.
+Use these templates as the starting point for each environment.
 
-## Deterministic Network Topology
+## Default Port Layout
 
-The platform assigns non-overlapping host-port ranges to prevent environmental collisions in shared hosting contexts:
+The platform uses separate host-port ranges to avoid collisions between environments:
 
 | Domain Layer | Production | Staging | Development | Test/CI |
 | --- | --- | --- | --- | --- |
@@ -28,39 +28,39 @@ The platform assigns non-overlapping host-port ranges to prevent environmental c
 
 ## Critical Configuration Parameters
 
-### Cryptographic and Identity Secrets
-The following parameters are mission-critical for system security. These must be randomized per environment and excluded from all version control:
+### Cryptographic And Identity Secrets
+These parameters are security-sensitive. They should be unique per environment and must not be committed to version control:
 - `SECRET_KEY`: Primary cryptographic anchor for session signing and data protection.
-- `INTERNAL_API_TOKEN`: Shared secret for localized service-to-service orchestration.
+- `INTERNAL_API_TOKEN`: Shared secret for service-to-service requests.
 - `PASSWORD_TOKEN_SALT`: Cryptographic salt for user lifecycle link generation.
 - `MONGO_APP_PASSWORD`: Identity secret for least-privilege database access.
 
 ### Core Execution Definitions
-- `MONGO_URI`: Authoritative connection string for the persistent database cluster.
-- `CACHE_REDIS_URL`: Endpoint for unified Redis-based caching and state synchronization.
-- `API_WORKERS`: Configurable worker count for high-performance FastAPI orchestration.
-- `WEB_APP_BASE_URL`: Mandated public-facing URI for identity link generation.
-- `HELP_CENTER_URL`: Defined endpoint for the standalone enterprise help environment.
+- `MONGO_URI`: Connection string for MongoDB.
+- `CACHE_REDIS_URL`: Connection string for Redis.
+- `API_WORKERS`: Worker count for the FastAPI service.
+- `WEB_APP_BASE_URL`: Public web URL used for generated links.
+- `HELP_CENTER_URL`: Documentation or help URL shown in the web UI.
 
-## Caching Architecture and Persistence
+## Caching
 
-Coyote3 employs a multi-tier caching strategy to optimize diagnostic performance:
-- **Hot Tier (Redis)**: Managed per-identity request caching for rapid interpretive views.
-- **Warm Tier (MongoDB)**: Persisted snapshots of complex analytic rollups and dashboard states.
-- **Cache Requirements**: The `CACHE_REQUIRED` directive controls the platform's behavior during Redis failure (Fail-fast vs. Degraded execution).
+Coyote3 uses a layered caching model:
+- **Hot Tier (Redis)**: Shared request/session-adjacent cache data.
+- **Warm Tier (MongoDB)**: Stored snapshots of dashboard or summary data.
+- **Cache Requirements**: `CACHE_REQUIRED` controls whether Redis failure is fatal or tolerated.
 
-### Analytics Performance Tuning
-To ensure data freshness and system responsiveness, the platform enforces strict TTL boundaries:
+### Dashboard Cache Tuning
+The following settings control dashboard cache freshness and retention:
 - `DASHBOARD_SUMMARY_CACHE_TTL_SECONDS`: Maximum age for localized hot-cache data.
 - `DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS`: Refresh threshold for persistent Mongo snapshots.
 - `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS`: Physical retention period for historical dashboard data.
 
-## Access Control and Identity Governance
+## Access Control And Identity
 
-The platform supports a provider-aware identity model, enforcing strict separation between local and centralized authentication sources.
+The platform supports multiple authentication providers and keeps local and centralized authentication separate.
 
-### Role-Based Access Level (RBAC) Standards
-Assigned role levels provide the baseline for system-wide permission evaluation.
+### Role Levels
+Assigned role levels provide the baseline for permission evaluation.
 
 | Role Designation | Access Level | Professional Scope |
 | --- | --- | --- |
@@ -70,7 +70,7 @@ Assigned role levels provide the baseline for system-wide permission evaluation.
 | `admin` | `99999` | System-wide configuration and security control. |
 
 ### Identity Normalization
-To prevent credential fragmentation, the platform enforces mandatory normalization of login identifiers:
+Login identifiers are normalized to reduce duplicates and mismatches:
 - All email-style identifiers are normalized to lowercase.
 - Validation requires explicit local and domain segment definitions to ensure organizational compatibility.
 

@@ -114,4 +114,16 @@ def _compose_flash_message(message: str, exc: ApiRequestError) -> str:
             The  compose flash message result.
     """
     status_suffix = f" (HTTP {exc.status_code})" if exc.status_code else ""
-    return f"{message}{status_suffix}"
+    payload = exc.payload if isinstance(exc.payload, dict) else {}
+    details = str(payload.get("details") or "").strip()
+    hint = str(payload.get("hint") or "").strip()
+    extra = ""
+    if details:
+        extra = f" {details}"
+    elif str(exc).strip() and str(exc).strip() != message:
+        extra = f" {str(exc).strip()}"
+    if hint:
+        extra = f"{extra} Hint: {hint}".strip()
+        if not extra.startswith(" "):
+            extra = f" {extra}"
+    return f"{message}{status_suffix}{extra}"

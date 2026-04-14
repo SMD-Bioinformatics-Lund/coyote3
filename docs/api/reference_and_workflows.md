@@ -1,50 +1,50 @@
 # API Routing Architecture and Workflows
 
-## Enterprise Route Design
+## Route Layout
 
-The backend application provides a highly modularized series of RESTful JSON endpoints categorized by domain features under `api/routers/`:
+The backend exposes REST JSON endpoints grouped by domain under `api/routers/`:
 
 - `auth.py`: Authentication, token exchange, and password management.
-- `samples.py`: Core sample-level orchestrations, retrieval, and mutability configurations.
+- `samples.py`: Sample retrieval and update routes.
 - `small_variants.py`: SNV and Indel-based read operations.
 - `cnvs.py`: Copy Number Variant retrieval contexts.
 - `translocations.py`: Broad structural translocation queries.
 - `fusions.py`: Transcribed RNA fusion boundary endpoints.
 - `biomarkers.py`: Genomic-level diagnostic indicator endpoints.
-- `reports.py`: Complex reporting aggregation handlers.
-- `users.py`, `roles.py`, `permissions.py`: Administrative boundary domains governing authorization mapping constraints.
-- `dashboard.py`, `coverage.py`, `public.py`: Analytics and generalized endpoint definitions.
-- `internal.py`: Service-to-service internal communication channels.
+- `reports.py`: Report preview and save routes.
+- `users.py`, `roles.py`, `permissions.py`: Administrative routes for access control.
+- `dashboard.py`, `coverage.py`, `public.py`: Dashboard, coverage, and public-facing routes.
+- `internal.py`: Internal service and ingest routes.
 
-## Health Diagnostics
+## Health Endpoint
 
-An orchestration-wide health verification endpoint handles real-time viability mapping against data backends:
+Use the health endpoint to check that the API is up:
 
 ```bash
 curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_API_PORT:-5818}/api/v1/health"
 ```
 
-## Standard Execution Processes
+## Common Request Patterns
 
-### Composition Workflows
+### Read Flows
 
-Data payloads are retrieved through chained requests spanning domains to ensure maximum efficiency:
-1. Core resolution logic identifies intended samples through `samples.py` queries.
-2. Distinct finding queries are dispatched in parallel against omics branches (variants, CNVs, fusions) utilizing validated sample identifiers.
-3. System compiles structural JSON metadata components dynamically via targeted payloads.
+A typical read flow looks like this:
+1. Resolve the sample through `samples.py`.
+2. Query the relevant finding collections such as variants, CNVs, or fusions.
+3. Build the response payload from those results and the matching configuration data.
 
-### Write-State Mutability Boundaries
+### Write Flows
 
-Updating stored states enforces rigorous transactional compliance parameters:
+For write operations:
 1. Systems transport targeted actions or classifications through structured Pydantic body definitions.
 2. Required authorization policies validate standard execution permissions automatically derived through token extraction.
-3. Successful validation leads to synchronized database mutations triggering real-time auditing logic.
+3. Successful validation leads to database updates and audit events.
 
 ## Engineering Standards
 
-Developing new system routes necessitates strict adherence to deployment criteria:
+When adding or changing routes:
 1. Implement or extend strictly typed input schemas within `api/contracts/`.
 2. Map endpoints natively through FastAPI router modules linking to authorization interceptors.
 3. Decouple domain functions via constructor-injected implementations within standard Service structures.
 4. Expand targeted unit and integration suites located inside explicit `tests/api` suites before submission.
-5. Deploy automated analytical regression checks ensuring quality gate validations maintain complete stability scores natively.
+5. Run the relevant automated checks before submitting the change.

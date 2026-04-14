@@ -18,6 +18,7 @@ def write_dependents(
     preload: dict[str, Any],
     sample_id: str,
     sample_name: str,
+    session: Any | None = None,
 ) -> dict[str, int]:
     """Write all dependent analysis documents for a newly created sample."""
     sid = str(sample_id)
@@ -35,7 +36,8 @@ def write_dependents(
             if key == "cov":
                 doc["sample"] = sample_name
             normalized_doc = service._normalize_collection_docs(col_name, [doc])[0]
-            service._collection(col_name).insert_one(dict(normalized_doc))
+            kwargs = {"session": session} if session is not None else {}
+            service._collection(col_name).insert_one(dict(normalized_doc), **kwargs)
             written[key] = 1
             continue
 
@@ -52,7 +54,7 @@ def write_dependents(
             docs.append(doc)
         normalized_docs = service._normalize_collection_docs(col_name, docs)
         if normalized_docs:
-            insert_many_documents(service._collection(col_name), normalized_docs)
+            insert_many_documents(service._collection(col_name), normalized_docs, session=session)
         written[key] = len(normalized_docs)
     return written
 

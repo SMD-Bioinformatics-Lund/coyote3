@@ -1,47 +1,47 @@
 # Clinical Data Architecture and Workflow Integration
 
-Coyote3 utilizes a dual-layer data architecture that enforces absolute synchronization between enterprise configuration and individualized sample findings to deliver a consistent clinical interpretation experience.
+Coyote3 uses two connected data layers: configuration data and sample-specific findings. The system works correctly only when those layers stay aligned.
 
-## Architectural Layers
+## Data Layers
 
-The platform's operational reliability is built upon two distinct yet synchronized data domains:
+The platform depends on two distinct but connected data domains:
 
-1. **Strategic Configuration Tier**: Composed of Assay Panels (ASP), Configurations (ASPC), Gene Lists (ISGL), and associated RBAC policies. This layer defines the platform's interpretive boundaries and reporting logic.
-2. **Operational Sample Tier**: Composed of persistent Sample metadata and specific downstream findings (Variants, CNVs, Fusions, Coverage). This layer manages the active interpretive state for individual diagnostic cases.
+1. **Configuration Layer**: Assay Panels (ASP), Configurations (ASPC), Gene Lists (ISGL), and RBAC policy documents. This layer defines filtering, reporting, and access behavior.
+2. **Sample Layer**: Sample metadata and downstream findings such as variants, CNVs, fusions, and coverage. This layer holds the case-specific state.
 
-Structural alignment between these tiers is mandatory; configuration drift results in fragmented interpretation gene scopes, incorrect filtering thresholds, and unstable reporting output.
+If these layers drift apart, the result is wrong gene scope resolution, incorrect filtering thresholds, and unstable report output.
 
 ## Core Relationship Framework
 
-### Managed Lifecycle Configuration
+### Configuration Relationships
 
-The relationship between configuration resources is strictly governed by assay identifier resolution:
+Configuration resources are linked by assay identifiers:
 
 ```text
 Assay Configuration (asp_configs)
   - Key Mapping: aspc_id = "<assay>:<environment>"
-  - Authorities: Default filter thresholds, analysis scopes, and report schemas.
+  - Defines: default filters, analysis scopes, and report settings.
             ↓
 Assay Panels (assay_specific_panels)
   - Key Mapping: asp_id (Maps to sample.assay)
-  - Authorities: Physical gene universe coverage and germline definitions.
+  - Defines: covered genes and germline genes.
             ↓
 In-Silico Gene Lists (insilico_genelists)
   - Key Mapping: isgl_id
-  - Authorities: Curated clinical gene cohorts for targeted interpretation.
+  - Defines: curated gene subsets for targeted interpretation.
 ```
 
-### Transactional Sample Orchestration
+### Sample Persistence Flow
 
-Upon sample ingestion, the platform establishes a persistent Sample anchor with explicit foreign-key links to finding collections:
+During ingest, the system creates a sample anchor and then links finding collections back to it:
 
 | Originating Event | Persistence Action | Structural Link |
 |---|---|---|
 | **Bundle Ingest** | Creation of parent `samples` document | Primary system anchor |
 | **Finding Persistence** | Writing to `variants`, `cnvs`, `fusions`, etc. | Keyed by `SAMPLE_ID` |
-| **Logic Resolution** | Dynamic yield of ASPC, ASP, and ISGL metadata | Resolved by `assay` + `profile` |
+| **Logic Resolution** | Resolve ASPC, ASP, and ISGL metadata | Resolved by `assay` + `profile` |
 
-## Resolution of Interpretive Gene Scopes
+## Effective Gene Scope
 
 For DNA and RNA workflows, the platform dynamically computes **effective gene scope** per data type:
 
@@ -54,36 +54,36 @@ For DNA and RNA workflows, the platform dynamically computes **effective gene sc
 3. **RNA Fusion**:
    - Active fusion lists and ad-hoc fusion genes define fusion scope.
 
-## Platform Execution Sequence
+## Execution Sequence
 
-The diagnostic lifecycle follows a standardized operational flow from initial ingestion to finalized reporting:
+The usual flow from ingest to reporting is:
 
 1. **Ingest Verification**: Input payloads are parsed and validated against strict Pydantic JSON contracts.
-2. **Atomic Ingestion**: The system persists the sample anchor and dependent evidence documents as a synchronized bundle.
-3. **Data Assembly**: Upon document access, the API dynamically merges sample evidence with environment configurations.
+2. **Atomic Ingestion**: The system stages the sample anchor as `loading`, persists dependent evidence documents, and only then marks the sample `ready`. On failure, the create flow rolls back staged evidence and removes the sample anchor; when Mongo transaction support is available, the same flow also runs inside a transaction boundary.
+3. **Data Assembly**: On read, the API combines sample evidence with the matching environment configuration.
 4. **Interpretation**: Functional finding flags (Classification, Comments, Actions) are committed to live annotation stores.
 5. **Report Finalization**: The system reads the joined interpretation context and persists an immutable report snapshot in `reported_variants`.
    - DNA SNV report inclusion follows reportable-variant filtering after consequence resolution using `sample.vep_version`.
    - DNA CNV report inclusion requires both report-level inclusion (`interesting`) and the active CNV sample filters. A CNV outside the selected CNV genelist is not included in the report.
 
-## Functional Domain Catalog
+## Main Collections
 
 | Collection | Operational Responsibility | Primary Relational Mapping |
 |---|---|---|
-| **asp_configs** | Runtime environment orchestration | `sample.assay` + `sample.profile` |
+| **asp_configs** | Environment-specific assay configuration | `sample.assay` + `sample.profile` |
 | **assay_specific_panels** | Panel-level gene universe definition | `sample.assay` (ASP ID) |
-| **insilico_genelists** | Clinical cohort management | `isgl_id` via `sample.filters` |
+| **insilico_genelists** | Curated gene lists | `isgl_id` via `sample.filters` |
 | **samples** | Parent clinical entity and user filter state | Core system root for all case findings |
 | **findings** | Genomic evidence (Variants/CNV/Fusions) | Linked strictly by `SAMPLE_ID` |
 | **reported_variants** | Immutable report-time audit snapshots | Linked to finalized clinical reports |
 
-## Operational Integrity Standards
+## Integrity Rules
 
-To ensure optimal platform performance, system administrators must adhere to the following standards:
+The following rules matter for correct behavior:
 
 - **Identifier Synchronization**: Maintain exact nomenclature across `samples.assay`, `asp.asp_id`, and `aspc.assay_name`.
 - **Environment Integrity**: Every sample `profile` must map to a valid `production`, `development`, or `validation` environment within the configuration tier.
-- **Relational Atomic Behavior**: Treat `samples` as the non-negotiable parent record for all findings; orphaned finding documents without a valid `SAMPLE_ID` relationship are prohibited.
+- **Relational Atomic Behavior**: Treat `samples` as the parent record for all findings; orphaned finding documents without a valid `SAMPLE_ID` are not allowed.
 - **Metadata Alignment**: The `vep_version` specified during sample ingestion must precisely track the required knowledgebase versions stored within the auxiliary `vep_metadata` collections.
 - **Reporting Alignment**: `sample.vep_version` is mandatory for DNA report generation because consequence-group resolution and variant-class translations are version-specific.
 

@@ -56,6 +56,48 @@
               <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') | title }}</h2>
               <div class="grid grid-cols-3 gap-4">
                 {% for key in keys %}
+                  {% if key == 'expected_files' and 'required_files' in keys %}
+                    {% set expected_field = schema.fields['expected_files'] %}
+                    {% set required_field = schema.fields['required_files'] %}
+                    {% set expected_value = panel.get('expected_files') or [] %}
+                    {% set required_value = panel.get('required_files') or [] %}
+                    <div class="col-span-3">
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-xl border border-blue-200 bg-white/70 p-4">
+                        <div class="flex flex-col gap-2">
+                          <label class="text-xs font-semibold block">
+                            {{ expected_field.label }}{% if expected_field.required %}<span class="text-red-500">*</span>{% endif %}
+                            <span class="text-gray-400">({{ expected_field.data_type }})</span>
+                          </label>
+                          <p class="text-xs text-gray-500">Files we accept and use for this assay.</p>
+                          <div class="flex flex-col gap-1">
+                            {% for opt in expected_field.options %}
+                              {% set opt_category = 'dna' if opt in expected_field.category_options.get('dna', []) else 'rna' %}
+                              <label class="inline-flex items-center gap-2" data-file-option data-file-category="{{ opt_category }}" data-file-key="{{ opt }}">
+                                <input type="checkbox" name="expected_files" value="{{ opt }}" {% if expected_value and opt in expected_value %}checked{% endif %} class="accent-blue-600 rounded" data-expected-file="{{ opt }}">
+                                <span class="text-xs">{{ opt }}</span>
+                              </label>
+                            {% endfor %}
+                          </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                          <label class="text-xs font-semibold block">
+                            {{ required_field.label }}{% if required_field.required %}<span class="text-red-500">*</span>{% endif %}
+                            <span class="text-gray-400">({{ required_field.data_type }})</span>
+                          </label>
+                          <p class="text-xs text-gray-500">If a file is expected but not required, ingest will accept the sample without it and simply ignore the missing file.</p>
+                          <div class="flex flex-col gap-1">
+                            {% for opt in required_field.options %}
+                              {% set opt_category = 'dna' if opt in required_field.category_options.get('dna', []) else 'rna' %}
+                              <label class="inline-flex items-center gap-2" data-file-option data-file-category="{{ opt_category }}" data-file-key="{{ opt }}">
+                                <input type="checkbox" name="required_files" value="{{ opt }}" {% if required_value and opt in required_value %}checked{% endif %} class="accent-blue-600 rounded" data-required-file="{{ opt }}">
+                                <span class="text-xs">{{ opt }}</span>
+                              </label>
+                            {% endfor %}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {% elif key != 'required_files' %}
                   {% set field = schema.fields[key] %}
                   {% set value = panel.get(key) %}
                   {% if value is none %}
@@ -139,6 +181,7 @@
                       <input type="{{ 'number' if field.data_type in ['int', 'float'] else 'text' }}" name="{{ key }}" value="{{ value }}" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
                     {% endif %}
                   </div>
+                  {% endif %}
                 {% endfor %}
               </div>
             </div>
@@ -160,11 +203,56 @@
   document.addEventListener("DOMContentLoaded", () => {
     const familySelect = document.querySelector('select[name="asp_family"]');
     const categorySelect = document.querySelector('select[name="asp_category"]');
+    const expectedInputs = Array.from(document.querySelectorAll('input[data-expected-file]'));
+    const requiredInputs = Array.from(document.querySelectorAll('input[data-required-file]'));
     if (!familySelect || !categorySelect) return;
+
+    function syncFileOptions() {
+      const category = (categorySelect.value || 'dna').trim().toLowerCase();
+      document.querySelectorAll('[data-file-option]').forEach((row) => {
+        const matchesCategory = row.dataset.fileCategory === category;
+        row.classList.toggle('hidden', !matchesCategory);
+        const input = row.querySelector('input[type="checkbox"]');
+        if (!input) return;
+        input.disabled = !matchesCategory;
+        if (!matchesCategory) {
+          input.checked = false;
+        }
+      });
+      syncRequiredFiles();
+    }
+
+    function syncRequiredFiles() {
+      requiredInputs.forEach((input) => {
+        const allowed = !input.disabled;
+        if (!allowed) {
+          input.checked = false;
+        }
+      });
+    }
+
+    function syncExpectedFilesFromRequired(event) {
+      const requiredInput = event?.target;
+      if (!requiredInput || requiredInput.disabled || !requiredInput.checked) return;
+      const expectedInput = expectedInputs.find((input) => input.value === requiredInput.value);
+      if (!expectedInput || expectedInput.disabled) return;
+      expectedInput.checked = true;
+    }
+
     familySelect.addEventListener("change", () => {
       const family = (familySelect.value || '').trim().toLowerCase();
       categorySelect.value = family === 'panel-rna' || family === 'wts' ? 'rna' : 'dna';
+      syncFileOptions();
     });
+    categorySelect.addEventListener("change", syncFileOptions);
+    expectedInputs.forEach((input) => input.addEventListener("change", syncRequiredFiles));
+    requiredInputs.forEach((input) =>
+      input.addEventListener("change", (event) => {
+        syncExpectedFilesFromRequired(event);
+        syncRequiredFiles();
+      })
+    );
+    syncFileOptions();
   });
 </script>
 {% endblock %}

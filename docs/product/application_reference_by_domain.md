@@ -66,9 +66,9 @@ Sample-level filters are persisted within the `samples.filters` document. These 
 | `fusion_callers` | List | Array of authorized or selected fusion callers. | Query Gate |
 | `fusion_effects` | List | Functional effect classifications (e.g., in-frame). | Query Gate |
 
-### Query Operator Architecture
+### Query Operators
 
-The backend orchestration utilizes standardized MongoDB operators to enforce analytic thresholds:
+The backend uses standard MongoDB operators to enforce analysis thresholds:
 - **Range Constraints**: `$gte` / `$lte` for numeric metric boundaries.
 - **Set Inclusion**: `$in` for list-based filtering (genes, callers, consequences).
 - **Complex Objects**: `$elemMatch` for traversing nested array structures (Genotypes, VEP consequences).
@@ -78,13 +78,13 @@ The backend orchestration utilizes standardized MongoDB operators to enforce ana
 
 The platform utilizes a dual pagination strategy to balance backend performance with interface responsiveness:
 
-### Server-Side Orchestration (Volume Datasets)
+### Server-Side Pagination
 
 Primary sample listings utilize independent server-side pagination for "Live" versus "Finalized" cohorts.
 - **State Partitioning**: Navigating one dataset does not reset the cursor of the parallel list.
 - **Metadata**: Response payloads provide `has_next` flags to control interface control visibility.
 
-### Client-Side Orchestration (Review Interfaces)
+### Client-Side Pagination
 
 Localized interpretation tables utilize in-page pagination to allow for rapid sorting and filtering after the initial data packet is delivered to the browser.
 

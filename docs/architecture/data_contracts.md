@@ -36,7 +36,7 @@ Design principles:
 Sample ingestion contract ownership:
 
 - `api/contracts/schemas/samples.py` defines DNA/RNA ingest file-key groups and source-path keys
-- `api/services/ingest/service.py` is the public ingest service and consumes those schema-defined constants directly, with helper modules in the same package handling parsing, dependent writes, and update orchestration
+- `api/services/ingest/service.py` is the public ingest service and consumes those schema-defined constants directly, with helper modules in the same package handling parsing, dependent writes, and updates
 - sample documents persist canonical file path fields from the ingest payload
 - dependent writes use registry-owned mappings in `api/contracts/schemas/registry.py`
 

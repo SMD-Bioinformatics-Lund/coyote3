@@ -59,13 +59,6 @@ def ingest_sample_bundle(
     counts = data_counts(preload)
 
     try:
-        written = write_dependents(
-            service,
-            preload=preload,
-            sample_id=sample_id,
-            sample_name=sample_name,
-        )
-
         meta = build_sample_meta_dict(validated_payload)
         meta.update(
             {
@@ -73,7 +66,7 @@ def ingest_sample_bundle(
                 "name": sample_name,
                 "data_counts": counts,
                 "time_added": datetime.now(timezone.utc),
-                "ingest_status": "ready",
+                "ingest_status": "loading",
             }
         )
         if uploaded_checksums:
@@ -83,7 +76,23 @@ def ingest_sample_bundle(
         document = final_sample.model_dump(exclude_none=True)
         if "_id" in document:
             document["_id"] = service._provider_sample_id(str(document["_id"]))
-        service._sample_collection().insert_one(document)
+        with service._session_scope() as session:
+            with service._transaction_scope(session):
+                sample_kwargs = {"session": session} if session is not None else {}
+                service._sample_collection().insert_one(document, **sample_kwargs)
+                written = write_dependents(
+                    service,
+                    preload=preload,
+                    sample_id=sample_id,
+                    sample_name=sample_name,
+                    session=session,
+                )
+                service._sample_collection().update_one(
+                    {"_id": service._provider_sample_id(str(sample_id))},
+                    {"$set": {"ingest_status": "ready", "data_counts": counts}},
+                    upsert=False,
+                    **sample_kwargs,
+                )
 
         service._invalidate_dashboard_cache_after_ingest()
     except Exception:

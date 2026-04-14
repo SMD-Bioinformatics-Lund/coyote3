@@ -34,7 +34,7 @@ nav:
       - Action Effects: product/ui_action_effects_reference.md
       - Query Strategy: product/aspc_driven_query_strategy.md
   - Getting Started:
-      - Quickstart (5 Minutes): start_here/quickstart.md
+      - Quickstart: start_here/quickstart.md
       - Local Development: start_here/local_development.md
       - Configuration Architecture: start_here/configuration.md
   - Software Engineering:

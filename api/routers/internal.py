@@ -260,6 +260,10 @@ async def ingest_sample_bundle_upload_internal(
         yaml_bytes = await yaml_file.read()
         yaml_content = yaml_bytes.decode("utf-8")
         source_payload = ingest_service.parse_yaml_payload(yaml_content)
+        expected_keys, required_keys = ingest_service._assay_file_policy(
+            assay_name=source_payload.get("assay"),
+            omics_layer=source_payload.get("omics_layer"),
+        )
 
         for upload in data_files:
             if not upload.filename:
@@ -295,6 +299,9 @@ async def ingest_sample_bundle_upload_internal(
             raw_value = source_payload.get(key)
             if not isinstance(raw_value, str) or not raw_value.strip():
                 continue
+            if key not in expected_keys:
+                source_payload.pop(key, None)
+                continue
             path_value = raw_value.strip()
             resolved = uploads_by_exact.get(path_value)
             if not resolved:
@@ -307,7 +314,10 @@ async def ingest_sample_bundle_upload_internal(
                 if os.path.exists(path_value):
                     runtime_files[key] = path_value
                 else:
-                    missing.append(f"{key}:{path_value}")
+                    if key in required_keys:
+                        missing.append(f"{key}:{path_value}")
+                    else:
+                        source_payload.pop(key, None)
                 continue
             runtime_files[key] = resolved
 

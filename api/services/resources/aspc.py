@@ -190,8 +190,14 @@ class AspcService:
         if not config:
             raise api_error(400, "Missing assay config payload")
         _sanitize_aspc_filters(config)
+        panel = self.assay_panel_handler.get_asp(str(config.get("assay_name", "")))
+        if not panel:
+            raise api_error(400, "Selected ASP does not exist")
+        category = _normalize_asp_category((panel or {}).get("asp_category"))
         config.setdefault("is_active", True)
-        config["asp_category"] = _normalize_asp_category_doc(config.get("asp_category"))
+        config["asp_group"] = panel.get("asp_group")
+        config["asp_category"] = _normalize_asp_category_doc(panel.get("asp_category"))
+        config["platform"] = panel.get("platform")
         config["aspc_id"] = (
             config.get("aspc_id")
             or f"{str(config.get('assay_name', '')).strip()}:{str(config.get('environment', '')).strip().lower()}"
@@ -201,8 +207,6 @@ class AspcService:
         existing_config = self.assay_configuration_handler.get_aspc_with_id(config.get("aspc_id"))
         if existing_config:
             raise api_error(409, "Assay config already exists")
-        panel = self.assay_panel_handler.get_asp(str(config.get("assay_name", "")))
-        category = _normalize_asp_category((panel or {}).get("asp_category"))
         spec = aspc_spec_for_category(category)
         actor = current_actor(actor_username)
         now = utc_now()
@@ -241,7 +245,6 @@ class AspcService:
             raise api_error(400, "Missing assay config payload")
         updated_doc = {**assay_config, **updated_config}
         _sanitize_aspc_filters(updated_doc)
-        updated_doc["asp_category"] = _normalize_asp_category_doc(updated_doc.get("asp_category"))
         updated_doc["aspc_id"] = assay_config.get("aspc_id", assay_id)
         updated_doc["_id"] = assay_config.get("_id")
         actor = current_actor(actor_username)
@@ -249,7 +252,12 @@ class AspcService:
         updated_doc["updated_on"] = utc_now()
         updated_doc["version"] = int(assay_config.get("version", 1) or 1) + 1
         panel = self.assay_panel_handler.get_asp(str(updated_doc.get("assay_name", "")))
+        if not panel:
+            raise api_error(400, "Selected ASP does not exist")
         category = _normalize_asp_category((panel or {}).get("asp_category"))
+        updated_doc["asp_group"] = panel.get("asp_group")
+        updated_doc["asp_category"] = _normalize_asp_category_doc(panel.get("asp_category"))
+        updated_doc["platform"] = panel.get("platform")
         spec = aspc_spec_for_category(category)
         updated_doc = inject_version_history(
             actor_username=actor,

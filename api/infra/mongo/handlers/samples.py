@@ -95,7 +95,7 @@ class SampleHandler(BaseHandler):
             - If `report` is False, filters samples with report_num = 0 or not present.
             - If `search_str` is provided, filters samples by name using regex.
         """
-        query: dict[str, Any] = {}
+        query: dict[str, Any] = {"ingest_status": "ready"}
         if user_assays is not None:
             query["assay"] = {"$in": user_assays}
         if user_envs is not None:
@@ -705,9 +705,10 @@ class SampleHandler(BaseHandler):
         search_str: str = "",
         page: int = 1,
         per_page: int = 30,
+        ready_only: bool = True,
     ) -> tuple[list[dict], int]:
         """Search samples in MongoDB for admin listings with pagination."""
-        query: dict[str, Any] = {}
+        query: dict[str, Any] = {"ingest_status": "ready"} if ready_only else {}
         if assays:
             query["assay"] = {"$in": assays}
         normalized_q = str(search_str or "").strip()

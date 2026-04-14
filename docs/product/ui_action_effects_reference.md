@@ -1,8 +1,8 @@
 # User Action and Operational Impact Reference
 
-This reference document maps platform user interface controls to their corresponding backend execution endpoints, persistent state mutations, and primary visual outcomes. It serves as the definitive functional contract for Quality Assurance and System Engineering.
+This reference maps UI controls to backend endpoints, persistent state changes, and visible outcomes. It is mainly intended for QA and engineering work.
 
-## Core Sample Orchestration
+## Core Sample Actions
 
 | UI Interceptor | Interface Context | Execution Endpoint | Persistent Mutation | Operational Outcome |
 |---|---|---|---|---|
@@ -17,7 +17,7 @@ This reference document maps platform user interface controls to their correspon
 |---|---|---|---|---|
 | **Apply (Filters)** | Discovery Sidebar | `PUT /samples/{id}/filters` | `samples.filters` (DNA) | Recalculation of findings within active review tables. |
 | **Reset** | Discovery Sidebar | `DELETE /samples/{id}/filters` | `samples.filters` (Defaults) | Re-initialization of assay-original thresholds. |
-| **Apply (Bulk)** | Bulk Action Panel | Patch bulk orchestration | Multi-document Tier/Flag updates | Synchronization of clinical state across selected cohorts. |
+| **Apply (Bulk)** | Bulk Action Panel | Bulk patch endpoint | Multi-document Tier/Flag updates | Update clinical state across selected cohorts. |
 | **Finalize Report** | Report Preview | Report creation endpoint | `reported_variants` snapshots | Generation of immutable clinical report record. |
 
 ## Finding-Level Clinical Interactions (SNV, CNV, SV)
@@ -52,7 +52,7 @@ This reference document maps platform user interface controls to their correspon
 
 The following controls manipulate the Browser Document Object Model (DOM) without triggering persistent backend state changes:
 - **Hide False Positives**: Localized visibility toggle for finding filters.
-- **Navigation Collapse**: Sidebar and menu layout orchestration.
+- **Navigation Collapse**: Sidebar and menu layout changes.
 - **Pagination**: Local table paging within client-orchestrated datasets.
 - **Expand/Collapse**: User-driven text visibility for long descriptions.
 - **Chart Toggles**: Analytical chart mode switching (e.g., Target vs. Evidence).

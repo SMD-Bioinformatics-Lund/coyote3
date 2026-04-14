@@ -34,6 +34,12 @@ _API_RATE_LIMIT_EXCLUDED_PATHS = frozenset(
         "/api/v1/internal/metrics",
     }
 )
+_API_ACCESS_LOG_EXCLUDED_PATHS = frozenset(
+    {
+        "/api/v1/health",
+        "/api/v1/internal/metrics",
+    }
+)
 _API_LIMITER: FixedWindowRateLimiter | None = None
 _API_LIMITER_CFG: tuple[int, int] | None = None
 
@@ -127,15 +133,14 @@ def build_authentication_middleware(
             if authenticated_user is not None
             else current_username(default="anonymous")
         )
-        runtime_app.logger.info(
-            "api_request request_id=%s method=%s path=%s status=%s duration_ms=%.2f user=%s ip=%s",
-            request_id,
-            request.method,
-            path,
-            response.status_code,
-            duration_ms,
-            username,
-            request_ip(request),
+        _log_api_request(
+            request_id=request_id,
+            method=request.method,
+            path=path,
+            status_code=int(response.status_code),
+            duration_ms=duration_ms,
+            username=username,
+            ip=request_ip(request),
         )
         if path.startswith("/api/v1/"):
             observe_request(
@@ -181,15 +186,14 @@ def _unauthorized_response(*, request: Request, request_id: str, start: float) -
     response = JSONResponse(status_code=exc.status_code, content=payload)
     response.headers["X-Request-ID"] = request_id
     duration_ms = (time.perf_counter() - start) * 1000.0
-    runtime_app.logger.info(
-        "api_request request_id=%s method=%s path=%s status=%s duration_ms=%.2f user=%s ip=%s",
-        request_id,
-        request.method,
-        request.url.path,
-        exc.status_code,
-        duration_ms,
-        "anonymous",
-        request_ip(request),
+    _log_api_request(
+        request_id=request_id,
+        method=request.method,
+        path=request.url.path,
+        status_code=exc.status_code,
+        duration_ms=duration_ms,
+        username="anonymous",
+        ip=request_ip(request),
     )
     observe_request(
         method=request.method,
@@ -205,3 +209,33 @@ def _unauthorized_response(*, request: Request, request_id: str, start: float) -
         extra={"kind": "authentication"},
     )
     return response
+
+
+def _log_api_request(
+    *,
+    request_id: str,
+    method: str,
+    path: str,
+    status_code: int,
+    duration_ms: float,
+    username: str,
+    ip: str,
+) -> None:
+    """Log API requests, suppressing successful health/heartbeat chatter."""
+    if status_code < 400 and path in _API_ACCESS_LOG_EXCLUDED_PATHS:
+        return
+    log_fn = (
+        runtime_app.logger.error
+        if status_code >= 500
+        else (runtime_app.logger.warning if status_code >= 400 else runtime_app.logger.info)
+    )
+    log_fn(
+        "api_request request_id=%s method=%s path=%s status=%s duration_ms=%.2f user=%s ip=%s",
+        request_id,
+        method,
+        path,
+        status_code,
+        duration_ms,
+        username,
+        ip,
+    )

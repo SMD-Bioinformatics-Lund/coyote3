@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import os
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from typing import Any
 
@@ -12,8 +14,6 @@ from api.contracts.schemas.registry import (
     normalize_collection_document,
 )
 from api.contracts.schemas.samples import (
-    DNA_SAMPLE_FILE_KEYS,
-    RNA_SAMPLE_FILE_KEYS,
     SAMPLE_SOURCE_PATH_KEYS,
     SamplesDoc,  # noqa: F401 - re-exported for existing tests/importers
 )
@@ -47,6 +47,7 @@ from api.services.ingest.sample_updates import (
     prepare_update_payload as _prepare_update_payload,
 )
 from api.services.ingest.sample_updates import update_meta_fields as _update_meta_fields
+from shared.config_constants import SAMPLE_FILE_KEYS, expected_file_keys
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +139,36 @@ class InternalIngestService:
         """Return the sample collection used by internal ingest workflows."""
         return self.sample_collection
 
+    def _mongo_client(self) -> Any | None:
+        """Return the underlying Mongo client when available."""
+        database = getattr(self.sample_collection, "database", None)
+        return getattr(database, "client", None)
+
+    def _session_scope(self):
+        """Return a best-effort Mongo session context when supported."""
+        client = self._mongo_client()
+        if client is None or not hasattr(client, "start_session"):
+            return nullcontext(None)
+        try:
+            hello = client.admin.command("hello")
+            if not (hello.get("setName") or hello.get("msg") == "isdbgrid"):
+                return nullcontext(None)
+        except Exception:
+            return nullcontext(None)
+        try:
+            return client.start_session()
+        except Exception:
+            return nullcontext(None)
+
+    def _transaction_scope(self, session: Any):
+        """Return a transaction context for an active session when supported."""
+        if session is None or not hasattr(session, "start_transaction"):
+            return nullcontext()
+        try:
+            return session.start_transaction()
+        except Exception:
+            return nullcontext()
+
     def _collection(self, name: str):
         """Return the collection backing an ingest-dependent document type."""
         return self.collections[name]
@@ -206,44 +237,72 @@ class InternalIngestService:
             return RnaIngestParser.parse(args)
         raise ValueError("Could not determine data type (DNA/RNA) from payload")
 
-    def _assay_expected_file_keys(
-        self, *, assay_name: str | None, omics_layer: str | None
-    ) -> set[str]:
-        """Return ASP-configured expected file keys for an assay."""
+    def _assay_file_policy(
+        self,
+        *,
+        assay_name: str | None,
+        omics_layer: str | None,
+    ) -> tuple[set[str], set[str]]:
+        """Return ASP-controlled expected and required file keys for an assay."""
         normalized_omics = str(omics_layer or "").strip().lower()
-        default_keys = (
-            set(RNA_SAMPLE_FILE_KEYS) if normalized_omics == "rna" else set(DNA_SAMPLE_FILE_KEYS)
-        )
+        default_category = "rna" if normalized_omics == "rna" else "dna"
         if not assay_name:
-            return default_keys
+            raise ValueError("assay is required for sample ingest")
         panel_collection = self.collections.get("assay_specific_panels")
         if panel_collection is None or not hasattr(panel_collection, "find_one"):
-            return default_keys
+            raise ValueError("assay_specific_panels collection is not available for sample ingest")
         panel = panel_collection.find_one({"asp_id": assay_name})
         if not isinstance(panel, dict):
-            return default_keys
-        raw = panel.get("expected_files")
-        if not isinstance(raw, list):
-            return default_keys
-        keys = {str(item or "").strip() for item in raw if str(item or "").strip()}
-        return keys or default_keys
+            raise ValueError(f"ASP is not registered for assay '{assay_name}'")
+        asp_category = str(panel.get("asp_category") or default_category).strip().lower()
+        allowed = set(SAMPLE_FILE_KEYS.get(asp_category, expected_file_keys(default_category)))
+        raw_expected = panel.get("expected_files")
+        if isinstance(raw_expected, list):
+            expected = {str(item or "").strip() for item in raw_expected if str(item or "").strip()}
+        else:
+            expected = set(expected_file_keys(asp_category))
+        expected = expected or set(expected_file_keys(asp_category))
+        raw_required = panel.get("required_files")
+        if isinstance(raw_required, list):
+            required = {str(item or "").strip() for item in raw_required if str(item or "").strip()}
+        else:
+            required = set()
+        invalid_required = required - expected
+        if invalid_required:
+            raise ValueError(
+                f"ASP '{assay_name}' has required_files outside expected_files: {sorted(invalid_required)}"
+            )
+        return expected & allowed, required & allowed
 
     def _sanitize_payload_file_keys(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """Strip sample file keys that are not expected for the assay."""
+        """Strip unexpected file keys and drop unreadable optional file paths."""
         sanitized = dict(payload)
         omics_layer = (
             str(sanitized.get("omics_layer") or infer_omics_layer(sanitized) or "").strip().lower()
         )
-        expected_keys = self._assay_expected_file_keys(
+        expected_keys, required_keys = self._assay_file_policy(
             assay_name=sanitized.get("assay"),
             omics_layer=omics_layer,
         )
+        runtime_files = sanitized.get("_runtime_files")
+        runtime_dict = runtime_files if isinstance(runtime_files, dict) else None
         for key in SAMPLE_SOURCE_PATH_KEYS:
             if key not in expected_keys:
                 sanitized.pop(key, None)
-                runtime_files = sanitized.get("_runtime_files")
-                if isinstance(runtime_files, dict):
-                    runtime_files.pop(key, None)
+                if runtime_dict is not None:
+                    runtime_dict.pop(key, None)
+                continue
+            resolved_path = None
+            if runtime_dict is not None and runtime_dict.get(key):
+                resolved_path = str(runtime_dict.get(key))
+            elif sanitized.get(key):
+                resolved_path = str(sanitized.get(key))
+            if key in required_keys or not resolved_path:
+                continue
+            if not os.path.exists(resolved_path):
+                sanitized.pop(key, None)
+                if runtime_dict is not None:
+                    runtime_dict.pop(key, None)
         return sanitized
 
     def _normalize_collection_docs(
@@ -266,6 +325,7 @@ class InternalIngestService:
         preload: dict[str, Any],
         sample_id: str,
         sample_name: str,
+        session: Any | None = None,
     ) -> dict[str, int]:
         """Write all dependent analysis documents for a newly created sample.
 
@@ -298,7 +358,8 @@ class InternalIngestService:
                 if key == "cov":
                     doc["sample"] = sample_name
                 normalized_doc = self._normalize_collection_docs(col_name, [doc])[0]
-                self._collection(col_name).insert_one(dict(normalized_doc))
+                kwargs = {"session": session} if session is not None else {}
+                self._collection(col_name).insert_one(dict(normalized_doc), **kwargs)
                 written[key] = 1
                 continue
 
@@ -315,7 +376,7 @@ class InternalIngestService:
                 docs.append(doc)
             normalized_docs = self._normalize_collection_docs(col_name, docs)
             if normalized_docs:
-                insert_many_documents(self._collection(col_name), normalized_docs)
+                insert_many_documents(self._collection(col_name), normalized_docs, session=session)
             written[key] = len(normalized_docs)
         return written
 
@@ -635,11 +696,6 @@ class InternalIngestService:
         counts = self._data_counts(preload)
 
         try:
-            written = self._write_dependents(
-                preload=preload,
-                sample_id=sample_id,
-                sample_name=sample_name,
-            )
             meta = build_sample_meta_dict(validated_payload)
             meta.update(
                 {
@@ -647,7 +703,7 @@ class InternalIngestService:
                     "name": sample_name,
                     "data_counts": counts,
                     "time_added": datetime.now(timezone.utc),
-                    "ingest_status": "ready",
+                    "ingest_status": "loading",
                 }
             )
             if uploaded_checksums:
@@ -657,7 +713,23 @@ class InternalIngestService:
             document = final_sample.model_dump(exclude_none=True)
             if "_id" in document:
                 document["_id"] = self._provider_sample_id(str(document["_id"]))
-            self._sample_collection().insert_one(document)
+
+            with self._session_scope() as session:
+                with self._transaction_scope(session):
+                    sample_kwargs = {"session": session} if session is not None else {}
+                    self._sample_collection().insert_one(document, **sample_kwargs)
+                    written = self._write_dependents(
+                        preload=preload,
+                        sample_id=sample_id,
+                        sample_name=sample_name,
+                        session=session,
+                    )
+                    self._sample_collection().update_one(
+                        {"_id": self._provider_sample_id(str(sample_id))},
+                        {"$set": {"ingest_status": "ready", "data_counts": counts}},
+                        upsert=False,
+                        **sample_kwargs,
+                    )
             self._invalidate_dashboard_cache_after_ingest()
         except Exception:
             self._cleanup(sample_id)

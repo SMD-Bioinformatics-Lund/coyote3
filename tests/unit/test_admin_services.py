@@ -23,6 +23,14 @@ from api.services.resources.asp import AspService
 from api.services.resources.aspc import AspcService
 from api.services.resources.isgl import IsglService
 from api.services.resources.sample import ResourceSampleService
+from shared.config_constants import (
+    ASP_CATEGORY_OPTIONS,
+    ASP_FAMILY_OPTIONS,
+    ASP_GROUP_OPTIONS,
+    PERMISSION_CATEGORY_OPTIONS,
+    PLATFORM_OPTIONS,
+    SAMPLE_FILE_KEYS,
+)
 
 
 class _AdminRepoStub:
@@ -390,6 +398,7 @@ class _AdminRepoStub:
         return {
             "_id": panel_id,
             "asp_id": panel_id,
+            "asp_group": "dna",
             "is_active": False,
             "covered_genes": ["TP53"],
             "germline_genes": ["BRCA1"],
@@ -1059,6 +1068,7 @@ def test_admin_permission_service_create_context_uses_backend_contract_form(monk
 
     assert payload["form"]["form_type"] == "permission"
     assert payload["form"]["fields"]["created_by"]["default"] == "actor@example.com"
+    assert payload["form"]["fields"]["category"]["options"] == list(PERMISSION_CATEGORY_OPTIONS)
 
 
 def test_admin_permission_service_toggle_permission_sets_status(monkeypatch):
@@ -1091,6 +1101,42 @@ def test_admin_panel_service_toggle_panel_sets_status(monkeypatch):
 
     assert payload["meta"]["is_active"] is True
     assert repo.updated_panel == ("WGS", {"is_active": True})
+
+
+def test_admin_panel_service_create_context_populates_asp_group_dropdown(monkeypatch):
+    """ASP create-context should expose the fixed assay-group vocabulary."""
+    repo = _AdminRepoStub()
+    _patch_admin_stores(monkeypatch, repo)
+    service = _asp_service(repo)
+
+    payload = service.create_context_payload(actor_username="actor@example.com")
+
+    field = payload["form"]["fields"]["asp_group"]
+    assert field["display_type"] == "select"
+    assert field["options"] == list(ASP_GROUP_OPTIONS)
+    assert payload["form"]["fields"]["asp_family"]["options"] == list(ASP_FAMILY_OPTIONS)
+    assert payload["form"]["fields"]["asp_category"]["options"] == list(ASP_CATEGORY_OPTIONS)
+    assert payload["form"]["fields"]["platform"]["options"] == list(PLATFORM_OPTIONS)
+    assert payload["form"]["fields"]["expected_files"]["category_options"] == {
+        key: list(values) for key, values in SAMPLE_FILE_KEYS.items()
+    }
+    assert payload["form"]["fields"]["required_files"]["category_options"] == {
+        key: list(values) for key, values in SAMPLE_FILE_KEYS.items()
+    }
+
+
+def test_admin_panel_service_edit_context_keeps_current_asp_group_selected(monkeypatch):
+    """ASP edit-context should preselect the panel's current assay group."""
+    repo = _AdminRepoStub()
+    _patch_admin_stores(monkeypatch, repo)
+    service = _asp_service(repo)
+
+    payload = service.context_payload(panel_id="WGS")
+
+    field = payload["form"]["fields"]["asp_group"]
+    assert field["display_type"] == "select"
+    assert field["default"] == payload["panel"]["asp_group"]
+    assert field["options"] == list(ASP_GROUP_OPTIONS)
 
 
 def test_admin_genelist_service_view_context_filters_genes(monkeypatch):

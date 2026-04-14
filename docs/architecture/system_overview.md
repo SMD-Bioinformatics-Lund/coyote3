@@ -2,13 +2,13 @@
 
 ## Architecture Philosophy
 
-The Coyote3 architecture is engineered for **uncompromising modularity** and **auditable precision**. In high-stakes clinical diagnostic environments, the separation of concerns is not just a best practice—it is a requirement for safety, scalability, and maintainability.
+Coyote3 is split into separate layers so the UI, API, and persistence code stay predictable and maintainable. In a clinical system, this separation is part of the safety model, not just a code-style preference.
 
-The platform follow a strict "Separated Layer" topology:
+The platform follows a strict separated-layer design:
 
-1.  **UI Core (`coyote/`)**: A lean Flask-based rendering engine. It handles presentation, session management, and routing, but contains **zero clinical business logic**.
-2.  **API Core (`api/`)**: A high-concurrency FastAPI engine. This is the "brain" of the system where all genomic calculations, authorization checks, and data orchestrations occur.
-3.  **Persistence Layer**: MongoDB provides the high-fidelity indexing required for clinical records, while Redis acts as the cross-process session synchronizer.
+1.  **UI Core (`coyote/`)**: Flask-based rendering, session handling, and web routing. It should not contain clinical business logic.
+2.  **API Core (`api/`)**: FastAPI-based backend logic, authorization checks, and domain workflows.
+3.  **Persistence Layer**: MongoDB stores application data, and Redis supports shared session state and caching.
 
 ---
 
@@ -26,34 +26,34 @@ graph TD
 
 ---
 
-## Internal Modular Standards
+## Internal Structure
 
-### 1. The API Engine (The Source of Truth)
+### 1. The API Layer
 
-The `api/` directory contains the definitive logic of the platform. It is organized into functional layers to minimize cross-coupling:
+The `api/` directory contains the main system logic. It is organized into separate layers to keep responsibilities clear:
 
 *   **Routers (`api/routers/`)**: Define the public-facing HTTP interface. They use Pydantic models to enforce strict schema validation on every request, ensuring no malformed data reaches the core logic.
-*   **Services (`api/services/`)**: The orchestration layer. Services coordinate complex operations across multiple database collections (e.g., generating a report from variants, samples, and annotations).
-*   **Core (`api/core/`)**: Pure, data-agnostic computational logic. This is where clinical formulas and genomic transformations reside.
-*   **Contracts (`api/contracts/`)**: The "Legal Agreements" of the system. Pydantic schemas define exactly how data MUST look when entering the API or being saved to the database.
+*   **Services (`api/services/`)**: Use-case workflows that coordinate operations across collections.
+*   **Core (`api/core/`)**: Pure computational logic and transformation code.
+*   **Contracts (`api/contracts/`)**: Pydantic schemas that define how data must look at API and persistence boundaries.
 
-### 2. The Presentation Layer (Coyote)
+### 2. The Web Layer
 
-The `coyote/` directory manages the user's window into the clinical data. It is structured into **Blueprints**, each representing a functional domain (DNA, RNA, Admin).
+The `coyote/` directory contains the web application. It is organized into **Blueprints** for functional domains such as DNA, RNA, and Admin.
 
 *   **Blueprints**: Manage the URL routing and Jinja template rendering.
-*   **Static Assets**: Standardized CSS/JS controllers ensuring a premium, responsive interface.
+*   **Static Assets**: CSS and JavaScript used by the templates.
 
 ---
 
 ## Runtime Infrastructure
 
 ### API Concurrency
-The API utilizes an **ASGI event-loop** (Uvicorn/Uvicorn), allowing it to handle thousands of concurrent connections efficiently. Heavy I/O operations (like database reads) are performed asynchronously, ensuring the engine remains responsive even under intense workloads.
+The API uses an **ASGI event loop** (Uvicorn). Heavy I/O operations such as database reads can run asynchronously, which helps keep the service responsive under load.
 
 ### UI Pre-Fork Model
-The UI application runs on a **WSGI pre-fork model** (Gunicorn). This ensures that each user session is handled in an isolated process, providing stability and security. By offloading all "heavy lifting" to the API, the UI remains lightning-fast for the clinician.
+The UI application runs on a **WSGI pre-fork model** (Gunicorn). Each user session is handled in an isolated process, which improves stability and security. Compute-heavy work stays in the API layer so the UI remains responsive.
 
 ### Resilience and State
 *   **Database Handlers**: Every MongoDB interaction is gated by specialized Handlers (`api/infra/mongo/handlers`). This prevents raw database queries from leaking into business logic.
-*   **Redis Cache**: Used for real-time session sharing and ephemeral data. If Redis is unavailable, the system intelligently downgrades to a cache-less state to ensure zero clinical downtime.
+*   **Redis Cache**: Used for shared session state and short-lived cached data. If Redis is unavailable, the system falls back to a cache-less mode.

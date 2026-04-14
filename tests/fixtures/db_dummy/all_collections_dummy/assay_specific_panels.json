@@ -22,6 +22,17 @@
     "germline_genes": [
       "BRCA1"
     ],
-    "is_active": true
+    "is_active": true,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "biomarkers"
+    ],
+    "required_files": [
+      "vcf_files"
+    ]
   }
 ]

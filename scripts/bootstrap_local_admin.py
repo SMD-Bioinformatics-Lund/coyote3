@@ -193,7 +193,7 @@ def main() -> int:
     _fail_if_placeholder_values(args)
     args.role_id = str(args.role_id).strip().lower()
     args.assay_group = str(args.assay_group).strip().lower()
-    args.assay = str(args.assay).strip().lower()
+    args.assay = str(args.assay).strip()
     seed_data_dir = Path(str(args.seed_data_dir)).expanduser().resolve()
     permission_docs, role_docs = _load_bootstrap_rbac(seed_data_dir)
     role_map = {

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import Response, abort, g, jsonify, redirect, render_template, request, url_for
+from flask import Response, abort, flash, g, jsonify, redirect, render_template, request, url_for
 from flask import current_app as app
 from flask_login import login_required
 
@@ -106,26 +106,29 @@ def create_assay_panel():
         )
 
     if request.method == "POST":
-        form_data: dict[str, list[str] | str] = {
-            key: (
-                request.form.getlist(key)
-                if len(request.form.getlist(key)) > 1
-                else request.form[key]
-            )
-            for key in request.form
-        }
-        covered_genes = util.admin.extract_gene_list(
-            request.files.get("genes_file"), form_data.get("genes_paste", "")
-        )
-        germline_genes = util.admin.extract_gene_list(
-            request.files.get("germline_genes_file"),
-            form_data.get("germline_genes_paste", ""),
-        )
-        config = util.admin.process_form_to_config(form_data, context.form)
-        config["_id"] = config["assay_name"]
-        config["covered_genes"] = covered_genes
-        config["germline_genes"] = germline_genes
         try:
+            form_data: dict[str, list[str] | str] = {
+                key: (
+                    request.form.getlist(key)
+                    if len(request.form.getlist(key)) > 1
+                    else request.form[key]
+                )
+                for key in request.form
+            }
+            covered_genes = util.admin.extract_gene_list(
+                request.files.get("genes_file"), form_data.get("genes_paste", "")
+            )
+            germline_genes = util.admin.extract_gene_list(
+                request.files.get("germline_genes_file"),
+                form_data.get("germline_genes_paste", ""),
+            )
+            config = util.admin.process_form_to_config(form_data, context.form)
+            assay_name = str(config.get("assay_name") or "").strip()
+            if not assay_name:
+                raise ValueError("Assay name is required.")
+            config["_id"] = assay_name
+            config["covered_genes"] = covered_genes
+            config["germline_genes"] = germline_genes
             get_web_api_client().post_json(
                 api_endpoints.admin("asp"),
                 headers=forward_headers(),
@@ -135,6 +138,9 @@ def create_assay_panel():
             flash_api_success(f"Panel {config['assay_name']} created successfully.")
         except ApiRequestError as exc:
             flash_api_failure("Failed to create assay panel.", exc)
+        except Exception as exc:
+            app.logger.exception("Failed to build assay panel create payload: %s", exc)
+            flash(f"Failed to create assay panel. {exc}", "red")
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     return render_template(

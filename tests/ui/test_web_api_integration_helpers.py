@@ -7,6 +7,7 @@ from flask import Flask, g
 from coyote.errors.exceptions import from_api_request_error
 from coyote.services.api_client import api_client, endpoints
 from coyote.services.api_client.base import ApiRequestError
+from coyote.services.api_client.web import _compose_flash_message
 
 
 def test_get_web_api_client_uses_configured_base_url():
@@ -248,3 +249,22 @@ def test_from_api_request_error_preserves_4xx_headline_and_details():
     assert endpoints.public("catalog") == "/api/v1/public/catalog"
     assert endpoints.rna_sample("S1", "fusions") == "/api/v1/samples/S1/fusions"
     assert endpoints.sample("S1", "report") == "/api/v1/samples/S1/report"
+
+
+def test_compose_flash_message_includes_upstream_details_and_hint():
+    """Flash messages should include the actionable upstream reason when available."""
+    exc = ApiRequestError(
+        message="body.config.asp_group: Value error, asp_group must be one of ['hematology']",
+        status_code=400,
+        payload={
+            "error": "Invalid assay_specific_panels payload",
+            "details": "body.config.asp_group: Value error, asp_group must be one of ['hematology']",
+            "hint": "Select one of the supported assay groups from the dropdown.",
+        },
+    )
+
+    message = _compose_flash_message("Failed to create assay panel.", exc)
+
+    assert "Failed to create assay panel. (HTTP 400)" in message
+    assert "body.config.asp_group: Value error" in message
+    assert "Hint: Select one of the supported assay groups from the dropdown." in message

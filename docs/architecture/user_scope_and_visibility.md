@@ -44,7 +44,7 @@ Examples:
 
 The durable source of truth is the user document in the database.
 
-The main schema lives in [governance.py](../../api/contracts/schemas/governance.py).
+The main schema lives in `api/contracts/schemas/governance.py`.
 
 Important user fields:
 
@@ -62,7 +62,7 @@ runtime user model.
 
 ### Runtime user model
 
-The runtime model is built in [user.py](../../api/core/models/user.py).
+The runtime model is built in `api/core/models/user.py`.
 
 This model computes the effective user state used across the application:
 
@@ -75,7 +75,7 @@ This model computes the effective user state used across the application:
 - environment access
 - `is_superuser`
 
-The API-facing runtime representation is built in [access.py](../../api/security/access.py).
+The API-facing runtime representation is built in `api/security/access.py`.
 
 ## Roles vs Scope
 
@@ -125,13 +125,13 @@ the same place.
 
 Role options come from the roles collection.
 
-They are loaded in [users.py](../../api/services/accounts/users.py):
+They are loaded in `api/services/accounts/users.py`:
 
 - `self.roles_handler.get_all_role_names()`
 
 These are attached to the managed form in:
 
-- [users.py](../../api/services/accounts/users.py)
+- `api/services/accounts/users.py`
 
 ### Permissions
 
@@ -139,7 +139,7 @@ Permission options come from the permissions collection.
 
 They are loaded in:
 
-- [users.py](../../api/services/accounts/users.py)
+- `api/services/accounts/users.py`
 
 through:
 
@@ -147,25 +147,38 @@ through:
 
 ### Assay groups
 
-Assay-group options come from the ASP collection, not from the user table and
-not from the role table.
+Assay groups use a fixed platform vocabulary, not a free-text or DB-derived list.
 
-The options are loaded through:
+The canonical source is:
 
-- [users.py](../../api/services/accounts/users.py)
+- `shared/config_constants.py`
 
-using:
+Current values:
 
-- `self.assay_panel_handler.get_all_asp_groups()`
+- `hematology`
+- `solid`
+- `pgx`
+- `tumwgs`
+- `wts`
+- `myeloid`
+- `lymphoid`
+- `dna`
+- `rna`
 
-That query is implemented in [assay_panels.py](../../api/infra/mongo/handlers/assay_panels.py),
-which uses distinct `asp_group` values from the ASP collection.
+Those values are used in:
+
+- ASP contracts
+- ASPC contracts
+- user scope assignment
+- genelist scope assignment
+- admin form dropdowns / checkbox groups
 
 So:
 
-- assay-group choices are DB-derived
-- the source is the ASP collection
-- they reflect the actual installed assay model
+- assay-group choices are contract-defined
+- centers can register any ASP they need
+- each ASP must link to one of the existing assay groups
+- adding a new assay group is a product/release change, not an ad hoc admin edit
 
 ### Assays
 
@@ -176,11 +189,11 @@ represent which assays belong to which assay groups.
 
 That map is built from all ASP records using:
 
-- [users.py](../../api/services/accounts/users.py)
+- `api/services/accounts/users.py`
 
 which call:
 
-- [assay_filters.py](../../api/common/assay_filters.py)
+- `api/common/assay_filters.py`
 
 The resulting structure groups ASPs by:
 
@@ -190,15 +203,16 @@ The resulting structure groups ASPs by:
   - `display_name`
   - `asp_category`
 
-So assays shown in the UI are also DB-derived from ASP definitions.
+So assays shown in the UI are DB-derived from ASP definitions, but they are
+organized under the fixed assay-group vocabulary above.
 
 ### Environments
 
-Environment options are currently schema-defined rather than DB-derived.
+Environment options are fixed product constants rather than DB-derived.
 
-They are defined in the managed-form schema:
+The canonical source is:
 
-- [managed_ui_schemas.py](../../api/contracts/managed_ui_schemas.py)
+- `shared/config_constants.py`
 
 Current values:
 
@@ -207,17 +221,56 @@ Current values:
 - `testing`
 - `validation`
 
-Those values are validated again in the user schema:
+Those values are reused in the admin forms and validated again in the user and
+sample contracts:
 
-- [governance.py](../../api/contracts/schemas/governance.py)
+- `api/contracts/schemas/governance.py`
+- `api/contracts/schemas/samples.py`
 
 So today:
 
 - roles: DB-derived
 - permissions: DB-derived
-- assay groups: DB-derived from ASPs
+- assay groups: fixed contract vocabulary
 - assays: DB-derived from ASPs
-- environments: schema-defined
+- environments: fixed contract vocabulary
+
+### Other fixed option sets
+
+Several other admin/runtime vocabularies also come from
+`shared/config_constants.py`:
+
+- ASP family:
+  - `panel-dna`
+  - `panel-rna`
+  - `wgs`
+  - `wts`
+- ASP category:
+  - `dna`
+  - `rna`
+- auth type:
+  - `coyote3`
+  - `ldap`
+- platform:
+  - `illumina`
+  - `pacbio`
+  - `nanopore`
+  - `iontorrent`
+- permission categories:
+  - `Analysis Actions`
+  - `Assay Configuration Management`
+  - `Assay Panel Management`
+  - `Audit & Monitoring`
+  - `Data Downloads`
+  - `Gene List Management`
+  - `Permission Policy Management`
+  - `Reports`
+  - `Role Management`
+  - `Sample Management`
+  - `Schema Management`
+  - `User Management`
+  - `Variant Curation`
+  - `Visualization`
 
 ## Request-Time Flow
 
@@ -238,8 +291,8 @@ Main path:
 
 Important code:
 
-- [access.py](../../api/security/access.py)
-- [user.py](../../api/core/models/user.py)
+- `api/security/access.py`
+- `api/core/models/user.py`
 
 ### Runtime flowchart
 
@@ -322,10 +375,10 @@ The sample catalog is a good example of how scope is applied.
 
 Main path:
 
-- web route: [views_samples.py](../../coyote/blueprints/home/views_samples.py)
-- API route: [samples.py](../../api/routers/samples.py)
-- service: [catalog.py](../../api/services/sample/catalog.py)
-- Mongo handler: [samples.py](../../api/infra/mongo/handlers/samples.py)
+- web route: `coyote/blueprints/home/views_samples.py`
+- API route: `api/routers/samples.py`
+- service: `api/services/sample/catalog.py`
+- Mongo handler: `api/infra/mongo/handlers/samples.py`
 
 Runtime behavior:
 
@@ -351,8 +404,8 @@ That means the Mongo query is intentionally unscoped.
 
 This behavior is implemented in:
 
-- [catalog.py](../../api/services/sample/catalog.py)
-- [samples.py](../../api/infra/mongo/handlers/samples.py)
+- `api/services/sample/catalog.py`
+- `api/infra/mongo/handlers/samples.py`
 
 ## Why ASP Data Matters For User Scope
 

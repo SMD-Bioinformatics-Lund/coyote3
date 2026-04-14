@@ -1,14 +1,14 @@
 # Coyote3 Clinical Genomics Platform
 
-Welcome to the official technical documentation for **Coyote3**, a premier enterprise solution for precision diagnostic workflows and large-scale clinical genomics data orchestration.
+This documentation covers how Coyote3 is built, configured, deployed, and used.
 
-Coyote3 is engineered to bridge the gap between high-complexity genomic sequencing and actionable clinical insights. By combining a modern, scalable architecture with rigid diagnostic standards, Coyote3 provides a robust framework for laboratories and medical centers to manage the entire diagnostic lifecycle—from raw data ingestion to finalized clinical reports.
+Coyote3 supports clinical genomics workflows from data ingestion through review and reporting. The docs are organized so teams can find operational guidance, product behavior, and implementation details without guessing where the source of truth lives.
 
 ---
 
-## Platform Philosophy
+## Platform Principles
 
-Coyote3 is built on three core pillars that define its operational excellence:
+Coyote3 is built around three practical goals:
 
 1.  **Clinical Precision**: Every component is designed to ensure the integrity of clinical data. Strict typing, contract-based schemas, and comprehensive audit trails provide the reliability required for diagnostic-grade environments.
 2.  **Architectural Scalability**: Utilizing a decoupled **Flask-to-FastAPI** topology, Coyote3 scales horizontally to handle massive omics datasets without compromising UI responsiveness.
@@ -16,13 +16,13 @@ Coyote3 is built on three core pillars that define its operational excellence:
 
 ---
 
-## System Architecture at a Glance
+## System Architecture At A Glance
 
-The platform is designed as a distributed environment, ensuring that high-load computational tasks never interfere with the user experience.
+The platform is split into separate services so compute-heavy API work does not block the web application.
 
-*   **The Interface (Coyote)**: A sleek, high-performance web application focused on clinical interpretation and workflow management.
-*   **The Engine (API)**: A high-concurrency RESTful backend that handles all business logic, omics interpretation, and persistent data orchestration.
-*   **The Infrastructure**: Powered by MongoDB for flexible clinical indexing and Redis for lightning-fast session state and caching.
+*   **The Interface (Coyote)**: The web application used for review and workflow management.
+*   **The API**: The backend service that handles business logic, analysis workflows, and persistence.
+*   **The Infrastructure**: MongoDB stores operational data, and Redis is used for session and cache support.
 
 ---
 
@@ -31,7 +31,7 @@ The platform is designed as a distributed environment, ensuring that high-load c
 This documentation is structured by operational domain to help you find the information you need quickly.
 
 ### For Clinical & Laboratory Users
-*   **Getting Started**: [Quickstart Guide](start_here/quickstart.md) for a rapid first look.
+*   **Getting Started**: [Quickstart Guide](start_here/quickstart.md) for a local first run.
 *   **Understanding Workflows**: [DNA and RNA Workflow Chain](product/workflow_dna_rna.md) and [UI User Flows](product/ui_map_and_user_flows.md).
 *   **Terminology**: [Clinical Semantics Reference](product/clinical_semantics_reference.md) for tiers and flags.
 
@@ -54,4 +54,4 @@ This documentation is structured by operational domain to help you find the info
 ---
 
 > [!TIP]
-> **Need a hand?** If you are troubleshooting an existing installation, jump straight to the [Operations Troubleshooting Guide](operations/troubleshooting.md) or the [Developer Troubleshooting Reference](developer/troubleshooting_guide.md).
+> If you are troubleshooting an existing installation, start with the [Operations Troubleshooting Guide](operations/troubleshooting.md) or the [Developer Troubleshooting Reference](developer/troubleshooting_guide.md).

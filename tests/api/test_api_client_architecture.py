@@ -190,6 +190,42 @@ def test_http_error_payload_is_mapped(monkeypatch):
     assert exc.value.payload == {"error": "Forbidden"}
 
 
+def test_http_error_payload_prefers_nested_detail_message(monkeypatch):
+    """FastAPI-style validation payloads should surface useful detail text."""
+
+    class _ClientReturns422:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def request(self, **kwargs):
+            return _ResponseStub(
+                422,
+                {
+                    "detail": [
+                        {
+                            "loc": ["body", "config", "asp_group"],
+                            "msg": "Value error, asp_group must be one of ['hematology']",
+                        }
+                    ]
+                },
+            )
+
+    monkeypatch.setattr(httpx, "Client", _ClientReturns422)
+
+    client = BaseApiClient(base_url="http://example.invalid")
+    with pytest.raises(ApiRequestError) as exc:
+        client._request("POST", "/api/v1/resources/asp")
+    assert exc.value.status_code == 422
+    assert "body.config.asp_group" in exc.value.message
+    assert "asp_group must be one of" in exc.value.message
+
+
 def test_non_dict_payload_rejected(monkeypatch):
     """Test non dict payload rejected.
 

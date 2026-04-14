@@ -108,7 +108,7 @@ def test_coverage_blacklisted_read_denies_non_member_group():
         coverage.coverage_blacklisted_read("dna", user=user, service=_coverage_service())
 
     assert exc.value.status_code == 403
-    assert "Access denied" in exc.value.detail["error"]
+    assert "outside your scope" in exc.value.detail["error"]
 
 
 def _route_test_user() -> ApiUser:

@@ -19,6 +19,32 @@ _SENSITIVE_KEYS = {
 }
 
 
+def _extract_error_text(value: Any) -> str:
+    """Return the most useful short error text from a nested API payload."""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, list):
+        parts = [_extract_error_text(item) for item in value]
+        return "; ".join(part for part in parts if part)
+    if isinstance(value, dict):
+        loc = value.get("loc")
+        msg = _extract_error_text(value.get("msg"))
+        if msg:
+            prefix = ".".join(str(item) for item in loc) if isinstance(loc, list) else ""
+            return f"{prefix}: {msg}".strip(": ")
+        priority = ("error", "message", "msg", "details", "detail", "hint")
+        parts: list[str] = []
+        for key in priority:
+            part = _extract_error_text(value.get(key))
+            if part:
+                parts.append(part)
+        if parts:
+            return "; ".join(dict.fromkeys(parts))
+    return str(value).strip()
+
+
 @dataclass
 class ApiRequestError(Exception):
     """Represent the api request error type."""
@@ -243,13 +269,12 @@ class BaseApiClient:
         Returns:
                 The  safe error message result.
         """
-        if isinstance(payload, dict):
-            raw = str(payload.get("error") or payload.get("details") or "").strip()
-            if raw:
-                lowered = raw.lower()
-                if any(key in lowered for key in _SENSITIVE_KEYS):
-                    return f"API request failed ({status_code})"
-                return raw[:200]
+        raw = _extract_error_text(payload)
+        if raw:
+            lowered = raw.lower()
+            if any(key in lowered for key in _SENSITIVE_KEYS):
+                return f"API request failed ({status_code})"
+            return raw[:400]
         return f"API request failed ({status_code})"
 
     def get_json(

@@ -81,6 +81,9 @@ def _render_create_form(category: str) -> Response | str:
             key: (vals[0] if len(vals) == 1 else vals)
             for key, vals in request.form.to_dict(flat=False).items()
         }
+        for structured_key in ("filters", "reporting", "query"):
+            if structured_key in form_data and isinstance(form_data[structured_key], str):
+                form_data[structured_key] = util.common.safe_json_load(form_data[structured_key])
         if category == "DNA":
             form_data["verification_samples"] = json.loads(
                 request.form.get("verification_samples", "{}")
@@ -225,6 +228,9 @@ def edit_assay_config(assay_id: str) -> Response | str:
             )
             for key in request.form
         }
+        for structured_key in ("filters", "reporting", "query"):
+            if structured_key in form_data and isinstance(form_data[structured_key], str):
+                form_data[structured_key] = util.common.safe_json_load(form_data[structured_key])
         form_data["verification_samples"] = util.common.safe_json_load(
             request.form.get("verification_samples", "{}")
         )

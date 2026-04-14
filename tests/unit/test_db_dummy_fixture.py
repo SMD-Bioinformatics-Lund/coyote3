@@ -38,3 +38,15 @@ def test_all_collections_dummy_fixture_validates():
         assert isinstance(docs, list)
         for doc in docs:
             validate_collection_document(collection, doc)
+
+
+def test_assay_panel_fixture_includes_required_files() -> None:
+    fixture_path = Path("tests/fixtures/db_dummy/all_collections_dummy")
+    payload = _load_fixture_bundle(fixture_path)
+    assay_panels = payload["assay_specific_panels"]
+
+    assert isinstance(assay_panels, list)
+    assert assay_panels
+    for doc in assay_panels:
+        assert doc.get("required_files") == ["vcf_files"]
+        validate_collection_document("assay_specific_panels", doc)

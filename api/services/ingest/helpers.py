@@ -128,7 +128,7 @@ def assay_default_filters_from_collections(
     aspc_collection = collections.get("asp_configs")
     if aspc_collection is None or not hasattr(aspc_collection, "find_one"):
         return None
-    assay_name = str(sample_doc.get("assay") or "").strip().lower()
+    assay_name = str(sample_doc.get("assay") or "").strip()
     profile = str(sample_doc.get("profile") or "production").strip().lower() or "production"
     raw_config = aspc_collection.find_one({"assay_name": assay_name, "environment": profile})
     if not isinstance(raw_config, dict):

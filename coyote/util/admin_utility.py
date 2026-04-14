@@ -362,6 +362,28 @@ class AdminUtility:
 
         return patched
 
+    @staticmethod
+    def extract_gene_list(file_obj, pasted_text: str) -> list[str]:
+        """
+        Extracts a sorted, deduplicated gene list from either a file or pasted text.
+
+        Parameters:
+            file_obj (FileStorage | None): A file-like object containing gene identifiers, typically from `request.files.get(...)`.
+            pasted_text (str): Raw text input containing gene identifiers, usually pasted into a textarea.
+
+        Returns:
+            list[str]: A sorted list of unique gene identifiers.
+        """
+        if file_obj and getattr(file_obj, "filename", ""):
+            genes = file_obj.read().decode("utf-8")
+        elif pasted_text and pasted_text.strip():
+            genes = pasted_text
+        else:
+            return []
+
+        gene_list = [g.strip() for g in genes.replace(",", "\n").splitlines() if g.strip()]
+        return sorted(set(gene_list))
+
 
 def apply_selected_version(
     doc: dict,
@@ -422,34 +444,6 @@ def apply_selected_version(
         if keep_version:
             doc["version"] = selected_version
     return doc, delta
-
-    @staticmethod
-    def extract_gene_list(file_obj, pasted_text: str) -> list[str]:
-        """
-        Extracts a sorted, deduplicated gene list from either a file or pasted text.
-
-        Parameters:
-            file_obj (FileStorage | None): A file-like object containing gene identifiers, typically from `request.files.get(...)`.
-            pasted_text (str): Raw text input containing gene identifiers, usually pasted into a textarea.
-
-        Returns:
-            list[str]: A sorted list of unique gene identifiers.
-        """
-        # Process file if provided and has a filename
-        if file_obj and getattr(file_obj, "filename", ""):
-            content = file_obj.read().decode("utf-8")
-            genes = content
-
-        # If no valid file, fallback to pasted text
-        elif pasted_text and pasted_text.strip():
-            genes = pasted_text
-
-        else:
-            return []
-
-        gene_list = [g.strip() for g in genes.replace(",", "\n").splitlines() if g.strip()]
-
-        return sorted(set(gene_list))
 
     @staticmethod
     def clean_config_for_comparison(cfg: dict) -> dict:

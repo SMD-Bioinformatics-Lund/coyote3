@@ -84,7 +84,7 @@ These categories are meant to help:
 
 ## Shared API Helpers
 
-Shared helpers live in [http.py](../../api/http.py).
+Shared helpers live in `api/http.py`.
 
 Primary helper:
 
@@ -103,9 +103,9 @@ Use these instead of ad hoc `HTTPException(...)` whenever possible.
 
 The web layer receives upstream API failures through:
 
-- [base.py](../../coyote/services/api_client/base.py)
-- [exceptions.py](../../coyote/errors/exceptions.py)
-- [web.py](../../coyote/services/api_client/web.py)
+- `coyote/services/api_client/base.py`
+- `coyote/errors/exceptions.py`
+- `coyote/services/api_client/web.py`
 
 Current intended behavior:
 

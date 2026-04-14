@@ -303,6 +303,39 @@ def test_collection_validator_rejects_invalid_aspc_id_environment_mismatch():
         )
 
 
+def test_collection_validator_rejects_unknown_asp_group():
+    """ASP and ASPC docs should only allow known assay-group values."""
+    with pytest.raises(ValueError):
+        normalize_collection_document(
+            "assay_specific_panels",
+            {
+                "asp_id": "assay_unknown",
+                "assay_name": "assay_unknown",
+                "asp_group": "custom-group",
+                "asp_family": "panel-dna",
+                "asp_category": "dna",
+                "display_name": "Assay Unknown",
+            },
+        )
+
+
+def test_collection_validator_rejects_unknown_platform():
+    """ASP docs should only allow known sequencing platform values."""
+    with pytest.raises(ValueError):
+        normalize_collection_document(
+            "assay_specific_panels",
+            {
+                "asp_id": "assay_bad_platform",
+                "assay_name": "assay_bad_platform",
+                "asp_group": "hematology",
+                "asp_family": "panel-dna",
+                "asp_category": "dna",
+                "display_name": "Assay Bad Platform",
+                "platform": "bgiseq",
+            },
+        )
+
+
 def test_collection_validator_normalizes_aspc_analysis_aliases():
     """asp_configs should normalize biomarker-related and CNV-profile aliases."""
     payload = normalize_collection_document(
@@ -333,6 +366,41 @@ def test_collection_validator_normalizes_aspc_analysis_aliases():
     assert payload["reporting"]["report_sections"] == ["TMB", "CNV_PROFILE"]
 
 
+def test_collection_validator_normalizes_user_assay_groups_to_known_values():
+    """User assay-group scope should use the fixed assay-group vocabulary."""
+    payload = normalize_collection_document(
+        "users",
+        {
+            "email": "admin@your-center.org",
+            "username": "admin.center",
+            "firstname": "Admin",
+            "lastname": "Center",
+            "fullname": "Admin Center",
+            "job_title": "Administrator",
+            "roles": ["admin"],
+            "environments": ["prod"],
+            "assay_groups": [" Hematology ", "solid"],
+        },
+    )
+
+    assert payload["assay_groups"] == ["hematology", "solid"]
+
+
+def test_collection_validator_rejects_unknown_permission_category():
+    """Permission policy category should use the fixed category vocabulary."""
+    with pytest.raises(ValueError):
+        normalize_collection_document(
+            "permissions",
+            {
+                "permission_id": "sample:inspect",
+                "permission_name": "sample:inspect",
+                "label": "Inspect sample",
+                "category": "Custom Category",
+                "tags": [],
+            },
+        )
+
+
 def test_collection_validator_applies_default_expected_files_for_dna_asp():
     """assay_specific_panels should default expected_files from asp_category when omitted."""
     payload = normalize_collection_document(
@@ -354,6 +422,7 @@ def test_collection_validator_applies_default_expected_files_for_dna_asp():
         "transloc",
         "biomarkers",
     ]
+    assert payload["required_files"] == []
 
 
 def test_collection_validator_rejects_cross_category_expected_files():
@@ -369,6 +438,24 @@ def test_collection_validator_rejects_cross_category_expected_files():
                 "asp_category": "rna",
                 "display_name": "RNA Assay",
                 "expected_files": ["fusion_files", "vcf_files"],
+            },
+        )
+
+
+def test_collection_validator_rejects_required_files_outside_expected_files():
+    """assay_specific_panels should keep required_files as a subset of expected_files."""
+    with pytest.raises(ValueError):
+        normalize_collection_document(
+            "assay_specific_panels",
+            {
+                "asp_id": "assay_dna",
+                "assay_name": "assay_dna",
+                "asp_group": "hematology",
+                "asp_family": "panel-dna",
+                "asp_category": "dna",
+                "display_name": "DNA Assay",
+                "expected_files": ["vcf_files", "cov"],
+                "required_files": ["transloc"],
             },
         )
 

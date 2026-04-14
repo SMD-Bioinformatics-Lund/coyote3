@@ -68,6 +68,7 @@ class ResourceSampleService:
             search_str=search,
             page=page,
             per_page=per_page,
+            ready_only=False,
         )
         samples = [dict(item) for item in rows if isinstance(item, dict)]
         return {

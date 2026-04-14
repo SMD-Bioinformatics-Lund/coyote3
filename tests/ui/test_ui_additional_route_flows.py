@@ -664,6 +664,7 @@ def test_edit_sample_page_renders_dna_files_for_lowercase_omics(monkeypatch):
                         "asp_group": "dna",
                         "covered_genes": ["TP53", "NPM1"],
                         "expected_files": ["vcf_files", "cov", "cnvprofile"],
+                        "required_files": ["vcf_files", "cov"],
                     },
                     "sample_expected_files": [
                         {
@@ -671,27 +672,42 @@ def test_edit_sample_page_renders_dna_files_for_lowercase_omics(monkeypatch):
                             "label": "VCF",
                             "path": "/data/case_demo.vcf.gz",
                             "present": True,
+                            "exists": True,
+                            "required": True,
                             "icon": "document-text",
                             "missing_msg": "No VCF file available",
                             "count_badge": "12 SNVs",
+                            "status_label": "Uploaded",
+                            "status_tone": "ok",
+                            "warning_message": None,
                         },
                         {
                             "key": "cov",
                             "label": "Coverage JSON",
-                            "path": "/data/case_demo.coverage.json",
-                            "present": True,
+                            "path": None,
+                            "present": False,
+                            "exists": False,
+                            "required": True,
                             "icon": "chart-bar",
                             "missing_msg": "No coverage file available",
                             "count_badge": "Loaded",
+                            "status_label": "Required Missing",
+                            "status_tone": "error",
+                            "warning_message": "Required file not uploaded for this sample.",
                         },
                         {
                             "key": "cnvprofile",
                             "label": "CNV Profile (image)",
                             "path": "/data/case_demo.cnvprofile.png",
                             "present": True,
+                            "exists": False,
+                            "required": False,
                             "icon": "photo",
                             "missing_msg": "No CNV profile available",
                             "count_badge": None,
+                            "status_label": "Broken Path",
+                            "status_tone": "error",
+                            "warning_message": "Sample references a file path that is not currently readable.",
                         },
                     ],
                     "analysis_counts_raw": {
@@ -739,6 +755,11 @@ def test_edit_sample_page_renders_dna_files_for_lowercase_omics(monkeypatch):
     assert "VCF" in body
     assert "Coverage JSON" in body
     assert "CNV Profile (image)" in body
+    assert "Required" in body
+    assert "Optional" in body
+    assert "Required Missing" in body
+    assert "Broken Path" in body
+    assert "Required file not uploaded for this sample." in body
     assert "Biomarkers JSON" not in body
     assert "SNV" in body
     assert "CNV" in body

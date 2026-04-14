@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from copy import deepcopy
 from typing import Any
@@ -130,33 +131,65 @@ class SampleCatalogService:
             return list(RNA_EXPECTED_FILE_OPTIONS)
         return list(DNA_EXPECTED_FILE_OPTIONS)
 
+    @staticmethod
+    def _required_file_keys_for_sample(asp: dict[str, Any]) -> set[str]:
+        """Return the assay-configured required file keys for a sample."""
+        raw = asp.get("required_files")
+        if not isinstance(raw, list):
+            return set()
+        return {str(item or "").strip() for item in raw if str(item or "").strip()}
+
     @classmethod
     def _file_rows_for_sample(
         cls, sample: dict[str, Any], asp: dict[str, Any]
     ) -> list[dict[str, Any]]:
         """Build Files & QC rows from assay-configured expected file keys."""
         data_counts = dict(sample.get("data_counts") or {})
+        required_keys = cls._required_file_keys_for_sample(asp)
         rows: list[dict[str, Any]] = []
         for key in cls._expected_file_keys_for_sample(sample, asp):
             meta = FILE_DISPLAY_METADATA.get(key)
             if not meta:
                 continue
             path = sample.get(key)
+            required = key in required_keys
+            path_exists = bool(path) and os.path.exists(str(path))
             count_key, count_suffix = FILE_COUNT_BADGE_METADATA.get(key, ("", ""))
             count_badge = None
             if count_key and data_counts.get(count_key):
                 count_badge = f"{data_counts[count_key]} {count_suffix}"
             elif key in {"cov", "biomarkers"} and data_counts.get(key):
                 count_badge = "Loaded"
+            if path and path_exists:
+                status_label = "Uploaded"
+                status_tone = "ok"
+                warning_message = None
+            elif path and not path_exists:
+                status_label = "Broken Path"
+                status_tone = "error"
+                warning_message = "Sample references a file path that is not currently readable."
+            elif required:
+                status_label = "Required Missing"
+                status_tone = "error"
+                warning_message = "Required file not uploaded for this sample."
+            else:
+                status_label = "Optional Missing"
+                status_tone = "warning"
+                warning_message = "Optional file not uploaded for this sample."
             rows.append(
                 {
                     "key": key,
                     "label": meta["label"],
                     "path": path,
                     "present": bool(path),
+                    "exists": path_exists,
+                    "required": required,
                     "icon": meta["icon"],
                     "missing_msg": meta["missing_msg"],
                     "count_badge": count_badge,
+                    "status_label": status_label,
+                    "status_tone": status_tone,
+                    "warning_message": warning_message,
                 }
             )
         return rows

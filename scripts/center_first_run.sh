@@ -251,15 +251,29 @@ wait_for_api_health() {
 
 bootstrap_local_admin() {
   echo "[step] bootstrap first local superuser"
-  PYTHONPATH=. "$PYTHON_BIN" scripts/bootstrap_local_admin.py \
-    --mongo-uri "$MONGO_URI" \
-    --db "$COYOTE3_DB" \
-    --username "$ADMIN_USERNAME" \
-    --email "$ADMIN_EMAIL" \
-    --password "$ADMIN_PASSWORD" \
-    --role-id "superuser" \
-    --assay-group "hematology" \
-    --assay "assay_1"
+  local output
+  if output="$(
+    PYTHONPATH=. "$PYTHON_BIN" scripts/bootstrap_local_admin.py \
+      --mongo-uri "$MONGO_URI" \
+      --db "$COYOTE3_DB" \
+      --username "$ADMIN_USERNAME" \
+      --email "$ADMIN_EMAIL" \
+      --password "$ADMIN_PASSWORD" \
+      --role-id "superuser" \
+      --assay-group "hematology" \
+      --assay "assay_1" 2>&1
+  )"; then
+    printf '%s\n' "$output"
+    return 0
+  fi
+
+  if grep -Fq "A superuser already exists." <<<"$output"; then
+    echo "[info] bootstrap superuser already exists; continuing with seed + ingest"
+    return 0
+  fi
+
+  printf '%s\n' "$output" >&2
+  return 1
 }
 
 seed_baseline_collections() {

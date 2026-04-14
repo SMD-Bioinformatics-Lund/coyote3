@@ -154,9 +154,6 @@ class UserManagementService:
             form["fields"]["roles"]["default"] = ["user"]
         form["fields"]["permissions"]["options"] = options
         form["fields"]["deny_permissions"]["options"] = options
-        form["fields"]["assay_groups"]["options"] = list(
-            self.assay_panel_handler.get_all_asp_groups() or []
-        )
 
         return {
             "form": form,
@@ -184,9 +181,6 @@ class UserManagementService:
         )
         form["fields"]["deny_permissions"]["default"] = normalize_permission_ids(
             user_doc.get("deny_permissions")
-        )
-        form["fields"]["assay_groups"]["options"] = list(
-            self.assay_panel_handler.get_all_asp_groups() or []
         )
         form["fields"]["assay_groups"]["default"] = user_doc.get("assay_groups", [])
         form["fields"]["assays"]["default"] = user_doc.get("assays", [])

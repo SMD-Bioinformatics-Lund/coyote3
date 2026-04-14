@@ -1,81 +1,81 @@
-# Localized Development and Engineering Standards
+# Local Development
 
-This document defines the authoritative configuration and execution standards for localized engineering environments. Adherence to these protocols ensures environmental parity with staging and production clusters and maintains the platform's rigorous quality engineering baseline.
+This document describes the standard local development setup for Coyote3.
 
-## Virtual Environment Provisioning
+## Virtual Environment
 
-Localized development must occur within an isolated, project-specific virtual environment. System-level Python installations are prohibited for application execution.
+Use a project-local virtual environment. Do not run the application from a system Python installation.
 
 ```bash
-# Provision the localized environment
+# Create the local environment
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Harmonize dependencies with the project baseline
+# Install dependencies
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python -m pip install -r requirements-docs.txt
 ```
 
-## Static Analysis and Validation Protocols
+## Validation Commands
 
-Engineers are required to execute continuous validation cycles within the activated environment. The following commands represent the mandatory quality markers:
+Run these commands from the activated environment:
 
 ```bash
-# Standardized static analysis and linting
+# Linting and static checks
 python -m ruff check api coyote tests scripts
 
-# Unit and functional validation
+# Tests
 python -m pytest -q
 
-# Strict documentation build verification
+# Strict docs build
 python -m mkdocs build --strict
 ```
 
-## Isolated Application Orchestration
+## Running The Services Directly
 
-For debugging process-level behaviors independent of the Docker orchestration layer, developers may initiate the core runtimes directly using the following execution strings:
+If you want to debug outside Docker, you can run the main services directly:
 
 ```bash
-# Backend Execution (FastAPI)
+# API
 PYTHONPATH=. python -m uvicorn api.main:app --reload --port 8001
 
-# Frontend Execution (Flask / WSGI)
+# Web UI
 PYTHONPATH=. python -m wsgi
 ```
 
-## Standard Development Cycle
+## Development Loop
 
-To preserve the platform's stability, every engineering contribution must follow a mandated iterative validation loop:
+For most code changes:
 
-1. **Feature Modification**: Update API contracts, service orchestration, or routing logic.
+1. **Feature Modification**: Update contracts, service logic, routes, or templates.
 2. **Focused Validation**: Execute targeted unit tests matching the modified domain.
 3. **Static Correction**: Run full repository linting and format verification.
-4. **Quality Gate Evaluation**: Pass the multi-family coverage gates and contract integrity checks before commit submission.
+4. **Quality Gate Evaluation**: Run the coverage and contract checks before commit.
 
 ```bash
-# Example: Focused contract and coverage validation
+# Example: contract and coverage checks
 PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_gates.sh
 PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
 ```
 
-## Git Hook Architecture
+## Git Hooks
 
-The repository utilizes a mandatory pre-commit framework to enforce quality gates at the point of commit creation. This framework is strictly versioned and does not rely on host-specific Python paths.
+The repository uses `pre-commit` hooks to enforce basic quality checks before a commit is created.
 
 ```bash
-# Initialize repository-managed hooks (Execute once per clone)
+# Install hooks once per clone
 bash scripts/setup_git_hooks.sh
 
-# Force manual verification across the entire project
+# Run hooks manually across the repository
 python -m pre_commit run --all-files
 ```
 
-**Security Mandate**: Pre-commit hooks are configured to block commits that violate static analysis thresholds or leak suspected cryptographic material. Any bypass of the pre-commit layer must be explicitly documented and approved by the core engineering maintainers.
+**Security note**: The hooks are configured to block common static analysis failures and possible secret leaks. If they are bypassed, that should be documented and reviewed.
 
-## Execution Environment Persistence
+## Shell Environment
 
-All engineering commands must be executed within the project's `.venv` shell. If utilizing automated tools or IDE integrations, ensure the `PYTHON_BIN` environment variable points strictly to the project-local executable.
+Run engineering commands inside the project's `.venv`. If you use IDE integrations or helper scripts, make sure `PYTHON_BIN` points to the project-local interpreter.
 
 ```bash
 export PYTHON_BIN="$(command -v python)"

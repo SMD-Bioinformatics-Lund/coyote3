@@ -10,22 +10,17 @@ from pydantic import Field, field_validator, model_validator
 from api.contracts.schemas.base import _DocBase
 from api.contracts.schemas.dna import DnaFiltersDoc
 from api.contracts.schemas.rna import RnaFiltersDoc
+from shared.config_constants import (
+    ALL_SAMPLE_FILE_KEYS,
+    SAMPLE_FILE_KEYS,
+    normalize_environment,
+    normalize_platform,
+    normalize_sequencing_scope,
+)
 
-DNA_SAMPLE_FILE_KEYS: tuple[str, ...] = (
-    "vcf_files",
-    "cnv",
-    "cnvprofile",
-    "cov",
-    "transloc",
-    "biomarkers",
-)
-RNA_SAMPLE_FILE_KEYS: tuple[str, ...] = (
-    "fusion_files",
-    "expression_path",
-    "classification_path",
-    "qc",
-)
-SAMPLE_SOURCE_PATH_KEYS: tuple[str, ...] = DNA_SAMPLE_FILE_KEYS + RNA_SAMPLE_FILE_KEYS
+DNA_SAMPLE_FILE_KEYS: tuple[str, ...] = SAMPLE_FILE_KEYS["dna"]
+RNA_SAMPLE_FILE_KEYS: tuple[str, ...] = SAMPLE_FILE_KEYS["rna"]
+SAMPLE_SOURCE_PATH_KEYS: tuple[str, ...] = ALL_SAMPLE_FILE_KEYS
 
 
 class SampleCaseControlDoc(_DocBase):
@@ -61,14 +56,14 @@ class SamplesDoc(_DocBase):
     name: str
     assay: str
     subpanel: str | None
-    profile: Literal["production", "development", "testing", "validation"]
+    profile: str
     genome_build: int | None = None
     vep_version: str | None = None
     case_id: str
     control_id: str | None = None
     sample_no: int
     paired: bool | None = False
-    sequencing_scope: Literal["panel", "wgs", "wts"]
+    sequencing_scope: str
     omics_layer: Literal["dna", "rna"]
     sequencing_technology: str | None = None
     pipeline: str
@@ -103,7 +98,7 @@ class SamplesDoc(_DocBase):
     @classmethod
     def _normalize_assay_identifiers(cls, value: Any) -> Any:
         if isinstance(value, str):
-            return value.strip().lower()
+            return value.strip()
         return value
 
     @field_validator("profile", mode="before")
@@ -111,21 +106,17 @@ class SamplesDoc(_DocBase):
     def _normalize_profile(cls, value: Any) -> Any:
         if value is None:
             return None
-        raw = str(value).strip().lower()
-        aliases = {
-            "prod": "production",
-            "production": "production",
-            "dev": "development",
-            "development": "development",
-            "test": "testing",
-            "testing": "testing",
-            "validation": "validation",
-            "stage": "validation",
-            "staging": "validation",
-        }
-        if raw not in aliases:
-            raise ValueError("profile must be one of: production, development, testing, validation")
-        return aliases[raw]
+        return normalize_environment(value, label="profile")
+
+    @field_validator("sequencing_scope", mode="before")
+    @classmethod
+    def _normalize_sequencing_scope(cls, value: Any) -> str:
+        return normalize_sequencing_scope(value)
+
+    @field_validator("sequencing_technology", mode="before")
+    @classmethod
+    def _normalize_sequencing_technology(cls, value: Any) -> str | None:
+        return normalize_platform(value)
 
     @field_validator("vep_version", mode="before")
     @classmethod

@@ -8,8 +8,8 @@
 {# Reusable components for this template #}
 
 {# File row in Files & QC section #}
-{% macro file_row(label, path, present, icon=None, extra_badge=None, missing_msg="No file available") -%}
-  <li class="flex items-center justify-between gap-4 bg-brown-50 border border-gray-100 rounded-2xl py-2 px-1 hover:shadow-md transition">
+{% macro file_row(label, path, present, icon=None, extra_badge=None, missing_msg="No file available", required=False, exists=False, status_label=None, status_tone="warning", warning_message=None) -%}
+  <li class="flex items-start justify-between gap-4 bg-brown-50 border border-gray-100 rounded-2xl py-2 px-1 hover:shadow-md transition">
     <div class="min-w-0 flex-1">
       <div class="flex items-center gap-2">
         {% if icon %}
@@ -17,19 +17,32 @@
                 alt="{{ label }} icon" class="h-5 w-5 opacity-80">
         {% endif %}
         <div class="font-medium text-gray-900">{{ label }}</div>
+        {% if required %}
+          <span class="text-xs px-2 py-0.5 rounded-full border bg-blue-50 text-blue-800 border-blue-200">Required</span>
+        {% else %}
+          <span class="text-xs px-2 py-0.5 rounded-full border bg-gray-50 text-gray-700 border-gray-200">Optional</span>
+        {% endif %}
       </div>
 
-      {% if path %}
+      {% if path and exists %}
         <div class="mt-1 text-xs text-gray-600 truncate max-w-[80ch] break-all">{{ path }}</div>
+      {% elif path and not exists %}
+        <div class="mt-1 text-xs text-red-700 break-all">{{ path }}</div>
       {% else %}
-        <div class="mt-1 text-xs text-red-700">{{ missing_msg }}</div>
+        <div class="mt-1 text-xs {{ 'text-red-700' if required else 'text-orange-700' }}">{{ missing_msg }}</div>
+      {% endif %}
+
+      {% if warning_message %}
+        <div class="mt-1 text-xs {{ 'text-red-700' if status_tone == 'error' else 'text-orange-700' }}">
+          {{ warning_message }}
+        </div>
       {% endif %}
     </div>
 
     <div class="flex items-center gap-2 shrink-0">
       <span class="text-xs px-2 py-1 rounded-full border
-                    {{ 'bg-teal-100 border-teal-200' if present else 'bg-orange-100 border-red-200' }}">
-        {{ 'Present' if present else 'Missing' }}
+                    {% if status_tone == 'ok' %}bg-teal-100 text-teal-900 border-teal-200{% elif status_tone == 'error' %}bg-red-100 text-red-900 border-red-200{% else %}bg-orange-100 text-orange-900 border-orange-200{% endif %}">
+        {{ status_label or ('Present' if present else 'Missing') }}
       </span>
       {% if extra_badge %}{{ extra_badge|safe }}{% endif %}
     </div>
@@ -253,7 +266,12 @@
             {{ file_row(file_item.label, file_item.path, file_item.present,
                         icon=file_item.icon,
                         extra_badge=count_badge,
-                        missing_msg=file_item.missing_msg) }}
+                        missing_msg=file_item.missing_msg,
+                        required=file_item.required,
+                        exists=file_item.exists,
+                        status_label=file_item.status_label,
+                        status_tone=file_item.status_tone,
+                        warning_message=file_item.warning_message) }}
           {% else %}
             <li class="text-sm text-gray-500 py-2">No assay-configured files for this sample.</li>
           {% endfor %}

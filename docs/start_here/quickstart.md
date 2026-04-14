@@ -1,15 +1,15 @@
-# Quickstart: Launching Coyote3 in 5 Minutes
+# Quickstart: Run Coyote3 Locally
 
-This guide will take you from a clean terminal to a running instance of Coyote3 with demo data. Follow these steps to experience the platform's clinical interpretation environment immediately.
+This guide takes you from a clean terminal to a working local Coyote3 instance with demo data.
 
 ---
 
-## Step 1: Environment Readiness
+## Step 1: Check Prerequisites
 
-Ensure your machine has the necessary tools. Coyote3 is distributed as a series of containerized services.
+Make sure the required tools are installed. Coyote3 runs as a set of containerized services.
 
 ```bash
-# Check your toolbelt
+# Check required tools
 git --version
 docker --version
 docker compose version
@@ -18,26 +18,26 @@ python3 --version
 
 ---
 
-## Step 2: Clone and Preparation
+## Step 2: Clone The Repository
 
-Clone the repository and prepare your environment configuration files. Coyote3 uses `.env` files to manage secrets and connection strings across different stages.
+Clone the repository and create a local environment file. Coyote3 uses `.env` files for secrets and connection settings.
 
 ```bash
 git clone git@github.com:SMD-Bioinformatics-Lund/coyote3.git
 cd coyote3
 
-# Create your local environment profile
+# Create your local environment file
 cp deploy/env/example.dev.env .coyote3_dev_env
 ```
 
 > [!NOTE]
-> For this quickstart, the default values in the `.dev.env` file are sufficient for a local run. In a production environment, you would strictly manage the `SECRET_KEY` and `INTERNAL_API_TOKEN` here.
+> For a local run, the default values in `.coyote3_dev_env` are enough. In production, you should set `SECRET_KEY`, `INTERNAL_API_TOKEN`, and related secrets explicitly.
 
 ---
 
-## Step 3: Ignition
+## Step 3: Start The Stack
 
-We will stand up the **Development Stack**. This includes the API engine, the UI presentation layer, a MongoDB instance, and a Redis cache.
+Start the development stack. This brings up the API, web UI, MongoDB, and Redis.
 
 ```bash
 ./scripts/compose-with-version.sh \
@@ -48,9 +48,9 @@ We will stand up the **Development Stack**. This includes the API engine, the UI
 
 ---
 
-## Step 4: First-Run Bootstrap
+## Step 4: Load Seed Data
 
-Now that the infrastructure is breathing, we need to "seed" it with clinical logic (Assays, Gene Lists) and a demo sample case.
+Once the stack is running, load the initial data and the demo sample.
 
 ```bash
 scripts/center_first_run.sh \
@@ -63,21 +63,21 @@ scripts/center_first_run.sh \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 ```
 
-**What just happened?**
-1.  **Identity Creation**: An admin account was created (`admin@coyote3.local`).
-2.  **Logic Seeding**: Standard clinical categories and gene list definitions were imported.
-3.  **Data Ingestion**: A demo DNA case was parsed, validated against contracts, and stored.
+This command does three things:
+1. Creates the first local superuser.
+2. Loads the demo configuration data.
+3. Ingests the demo DNA sample.
 
 ---
 
-## Step 5: Mission Accomplished
+## Step 5: Open The Application
 
 Open your browser and navigate to:
 **[http://localhost:6801](http://localhost:6801)**
 
-*   **Login**: Use the credentials provided in Step 4.
-*   **Explore**: You should see the "Demo DNA Case" on your dashboard.
-*   **Verify**: Check the API health directly at [http://localhost:6802/api/v1/health](http://localhost:6802/api/v1/health).
+*   **Login**: Use the credentials from Step 4.
+*   **Check the dashboard**: You should see the demo DNA case.
+*   **Check the API**: [http://localhost:6802/api/v1/health](http://localhost:6802/api/v1/health)
 
 ---
 

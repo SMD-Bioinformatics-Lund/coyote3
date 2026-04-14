@@ -11,6 +11,19 @@ from pydantic.fields import PydanticUndefined
 
 from api.contracts.managed_resources import ManagedResourceSpec
 from api.contracts.schemas import COLLECTION_MODEL_ADAPTERS
+from shared.config_constants import (
+    ALL_SAMPLE_FILE_KEYS,
+    ASP_CATEGORY_OPTIONS,
+    ASP_FAMILY_OPTIONS,
+    ASP_GROUP_OPTIONS,
+    AUTH_TYPE_OPTIONS,
+    DNA_ANALYSIS_TYPE_OPTIONS,
+    ENVIRONMENT_OPTIONS,
+    PERMISSION_CATEGORY_OPTIONS,
+    PLATFORM_OPTIONS,
+    RNA_ANALYSIS_TYPE_OPTIONS,
+    SAMPLE_FILE_KEYS,
+)
 
 
 def _unwrap_optional(annotation: Any) -> Any:
@@ -82,28 +95,24 @@ RESOURCE_EXTRA_FIELDS: dict[str, dict[str, dict[str, Any]]] = {
 RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     "asp": {
         "assay_name": {"display_type": "input"},
-        "asp_group": {"display_type": "input"},
+        "asp_group": {"display_type": "select", "options": list(ASP_GROUP_OPTIONS)},
         "asp_family": {
             "display_type": "select",
-            "options": ["panel-dna", "panel-rna", "wgs", "wts"],
+            "options": list(ASP_FAMILY_OPTIONS),
         },
-        "asp_category": {"display_type": "select", "options": ["dna", "rna"]},
+        "asp_category": {"display_type": "select", "options": list(ASP_CATEGORY_OPTIONS)},
+        "platform": {"display_type": "select", "options": list(PLATFORM_OPTIONS)},
         "display_name": {"display_type": "input"},
         "description": {"display_type": "textarea"},
         "expected_files": {
             "display_type": "checkbox-group",
-            "options": [
-                "vcf_files",
-                "cnv",
-                "cnvprofile",
-                "cov",
-                "transloc",
-                "biomarkers",
-                "fusion_files",
-                "expression_path",
-                "classification_path",
-                "qc",
-            ],
+            "options": list(ALL_SAMPLE_FILE_KEYS),
+            "category_options": {key: list(values) for key, values in SAMPLE_FILE_KEYS.items()},
+        },
+        "required_files": {
+            "display_type": "checkbox-group",
+            "options": list(ALL_SAMPLE_FILE_KEYS),
+            "category_options": {key: list(values) for key, values in SAMPLE_FILE_KEYS.items()},
         },
         "covered_genes": {"display_type": "jsoneditor-or-upload"},
         "germline_genes": {"display_type": "jsoneditor-or-upload"},
@@ -126,23 +135,15 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         },
         "environment": {
             "display_type": "select",
-            "options": ["production", "development", "testing", "validation"],
+            "options": list(ENVIRONMENT_OPTIONS),
         },
         "analysis_types": {
             "display_type": "checkbox-group",
-            "options": [
-                "SNV",
-                "CNV",
-                "TRANSLOCATION",
-                "BIOMARKER",
-                "CNV_PROFILE",
-                "FUSION",
-                "TMB",
-                "PGX",
-            ],
+            "options": list(DNA_ANALYSIS_TYPE_OPTIONS),
             "default": ["SNV", "CNV"],
         },
         "filters": {
+            "data_type": "json",
             "label": "Filters (SNV and CNV strategy)",
             "display_type": "filters-structured",
             "placeholder": "Configure threshold keys for SNV/CNV filtering",
@@ -244,16 +245,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "key": "report_sections",
                             "label": "Report Sections",
                             "type": "checkbox-group",
-                            "options": [
-                                "SNV",
-                                "CNV",
-                                "TRANSLOCATION",
-                                "BIOMARKER",
-                                "CNV_PROFILE",
-                                "FUSION",
-                                "TMB",
-                                "PGX",
-                            ],
+                            "options": list(DNA_ANALYSIS_TYPE_OPTIONS),
                             "default": ["SNV", "CNV"],
                         }
                     ],
@@ -332,14 +324,15 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         },
         "environment": {
             "display_type": "select",
-            "options": ["production", "development", "testing", "validation"],
+            "options": list(ENVIRONMENT_OPTIONS),
         },
         "analysis_types": {
             "display_type": "checkbox-group",
-            "options": ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"],
+            "options": list(RNA_ANALYSIS_TYPE_OPTIONS),
             "default": ["FUSION"],
         },
         "filters": {
+            "data_type": "json",
             "label": "Filters (Fusion strategy)",
             "display_type": "filters-structured",
             "placeholder": "Configure RNA thresholds and fusion_* strategy keys",
@@ -392,7 +385,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "key": "report_sections",
                             "label": "Report Sections",
                             "type": "checkbox-group",
-                            "options": ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"],
+                            "options": list(RNA_ANALYSIS_TYPE_OPTIONS),
                             "default": ["FUSION"],
                         }
                     ],
@@ -468,7 +461,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             ],
         },
         "diagnosis": {"display_type": "textarea"},
-        "assay_groups": {"display_type": "checkbox-group"},
+        "assay_groups": {"display_type": "checkbox-group", "options": list(ASP_GROUP_OPTIONS)},
         "assays": {"display_type": "checkbox-group"},
         "genes": {"display_type": "jsoneditor-or-upload"},
         "adhoc": {"display_type": "checkbox"},
@@ -491,15 +484,15 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "version": {"readonly": True},
     },
     "user": {
-        "auth_type": {"display_type": "select"},
+        "auth_type": {"display_type": "select", "options": list(AUTH_TYPE_OPTIONS)},
         "roles": {"display_type": "checkbox-group"},
         "username": {"readonly_mode": ["edit"]},
         "password": {"display_type": "password"},
         "environments": {
             "display_type": "checkbox-group",
-            "options": ["production", "development", "testing", "validation"],
+            "options": list(ENVIRONMENT_OPTIONS),
         },
-        "assay_groups": {"display_type": "checkbox-group"},
+        "assay_groups": {"display_type": "checkbox-group", "options": list(ASP_GROUP_OPTIONS)},
         "assays": {"display_type": "checkbox-group"},
         "permissions": {"display_type": "checkbox-group"},
         "deny_permissions": {"display_type": "checkbox-group"},
@@ -512,6 +505,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "version": {"readonly": True},
     },
     "permission": {
+        "category": {"display_type": "select", "options": list(PERMISSION_CATEGORY_OPTIONS)},
         "tags": {"display_type": "textarea"},
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
@@ -535,6 +529,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
                 "platform",
                 "description",
                 "expected_files",
+                "required_files",
             ],
         ),
         ("gene_content", ["covered_genes", "germline_genes"]),

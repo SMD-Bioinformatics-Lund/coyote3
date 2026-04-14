@@ -30,10 +30,12 @@ def insert_one_document(
     document: dict[str, Any],
     *,
     ignore_duplicate: bool = False,
+    session: Any | None = None,
 ) -> str | None:
     """Insert one document and optionally suppress duplicate-key errors."""
     try:
-        result = collection.insert_one(dict(document))
+        kwargs = {"session": session} if session is not None else {}
+        result = collection.insert_one(dict(document), **kwargs)
     except DuplicateKeyError:
         if not ignore_duplicate:
             raise
@@ -46,10 +48,12 @@ def insert_many_documents(
     documents: list[dict[str, Any]],
     *,
     ignore_duplicates: bool = False,
+    session: Any | None = None,
 ) -> int:
     """Insert many documents and optionally suppress duplicate-key-only errors."""
     try:
-        result = collection.insert_many([dict(doc) for doc in documents], ordered=False)
+        kwargs = {"session": session} if session is not None else {}
+        result = collection.insert_many([dict(doc) for doc in documents], ordered=False, **kwargs)
         return len(result.inserted_ids)
     except BulkWriteError as exc:
         if not ignore_duplicates:

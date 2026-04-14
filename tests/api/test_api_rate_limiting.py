@@ -103,3 +103,33 @@ async def test_api_excluded_health_route_is_not_rate_limited(monkeypatch: pytest
 
     assert first.status_code == 200
     assert second.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_successful_health_route_is_suppressed_from_api_access_log(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Successful health checks should skip normal API access logging."""
+    monkeypatch.setattr(middleware, "ensure_runtime_initialized", lambda **_: None)
+    monkeypatch.setattr(middleware, "resolve_request_user", lambda _request: _user())
+    monkeypatch.setattr(middleware, "emit_request_event", lambda **_: None)
+    logged: list[tuple] = []
+    monkeypatch.setattr(
+        middleware.runtime_app.logger, "info", lambda *args, **kwargs: logged.append(args)
+    )
+    monkeypatch.setattr(
+        middleware.runtime_app.logger, "warning", lambda *args, **kwargs: logged.append(args)
+    )
+    monkeypatch.setattr(
+        middleware.runtime_app.logger, "error", lambda *args, **kwargs: logged.append(args)
+    )
+
+    auth_mw = middleware.build_authentication_middleware(testing=True, development=False)
+
+    async def _call_next(_request: Request) -> JSONResponse:
+        return JSONResponse(status_code=200, content={"status": "ok"})
+
+    response = await auth_mw(_request(path="/api/v1/health"), _call_next)
+
+    assert response.status_code == 200
+    assert logged == []

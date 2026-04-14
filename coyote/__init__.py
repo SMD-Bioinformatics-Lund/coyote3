@@ -43,6 +43,13 @@ from shared.rate_limit import FixedWindowRateLimiter
 
 from .errors import register_error_handlers
 
+_WEB_ACCESS_LOG_EXCLUDED_PATHS = frozenset(
+    {
+        "/health",
+        "/heartbeat",
+    }
+)
+
 
 class PrefixMiddleware:
     """
@@ -451,15 +458,15 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
             forwarded_for.split(",")[0].strip() if forwarded_for else (request.remote_addr or "N/A")
         )
         username = current_user.username if current_user.is_authenticated else "-"
-        app.logger.info(
-            "ui_request request_id=%s method=%s path=%s status=%s duration_ms=%.2f user=%s ip=%s",
-            request_id,
-            request.method,
-            request.path,
-            response.status_code,
-            duration_ms,
-            username,
-            client_ip,
+        _log_ui_request(
+            app=app,
+            request_id=str(request_id),
+            method=request.method,
+            path=request.path,
+            status_code=int(response.status_code),
+            duration_ms=duration_ms,
+            username=username,
+            ip=client_ip,
         )
         emit_audit_event(
             source="web",
@@ -533,7 +540,7 @@ def verify_external_api_dependency(app: Flask) -> None:
                 )
                 if isinstance(payload, dict) and payload.get("status") not in ("ok", None):
                     raise RuntimeError(f"Unexpected API health payload: {payload}")
-            app.logger.info("External API dependency check passed: %s", health_url)
+            app.logger.debug("External API dependency check passed: %s", health_url)
             return
         except Exception as exc:
             last_error = exc
@@ -566,6 +573,37 @@ def init_utility(app) -> None:
     """
     app.logger.info("Initializing Utility")
     extensions.util.init_util()
+
+
+def _log_ui_request(
+    *,
+    app: Flask,
+    request_id: str,
+    method: str,
+    path: str,
+    status_code: int,
+    duration_ms: float,
+    username: str,
+    ip: str,
+) -> None:
+    """Log web requests, suppressing successful health/heartbeat chatter."""
+    if status_code < 400 and path in _WEB_ACCESS_LOG_EXCLUDED_PATHS:
+        return
+    log_fn = (
+        app.logger.error
+        if status_code >= 500
+        else (app.logger.warning if status_code >= 400 else app.logger.info)
+    )
+    log_fn(
+        "ui_request request_id=%s method=%s path=%s status=%s duration_ms=%.2f user=%s ip=%s",
+        request_id,
+        method,
+        path,
+        status_code,
+        duration_ms,
+        username,
+        ip,
+    )
 
 
 def register_blueprints(app) -> None:

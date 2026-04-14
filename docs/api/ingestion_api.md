@@ -2,15 +2,39 @@
 
 ## Purpose
 
-Replace external ad-hoc import flows with validated API-driven ingestion.
+Use the API to load configuration data and sample bundles in a validated, repeatable way.
 
 For an end-to-end relationship map of `asp`/`aspc`/`isgl` with `samples`, `variants`, `cnvs`, and RNA collections, see [Product / DNA And RNA Workflow Chain](../product/workflow_dna_rna.md).
 For full per-collection key contracts (required and optional), see [API / Collection Contracts](collection_contracts.md).
 For the sample ingest manifest shape used by these routes, see [API / Sample YAML Guide](sample_yaml.md).
 
-All ingest endpoints validate request documents with backend Pydantic collection contracts
-before any database write. Collection payloads are normalized from those contracts and then
-persisted, so ingest behavior remains consistent across scripts and API routes.
+All ingest endpoints validate request documents with backend Pydantic contracts before any database write. Payloads are normalized from those contracts and then persisted, so the behavior is the same whether the caller is a script or an API client.
+
+## Atomicity and rollback guarantees
+
+For fresh sample creation through:
+
+- `POST /api/v1/internal/ingest/sample-bundle`
+- `POST /api/v1/internal/ingest/sample-bundle/upload`
+
+the ingest flow now follows this order:
+
+1. Validate the top-level sample payload.
+2. Parse referenced data files into preload payloads.
+3. Insert the sample anchor with `ingest_status="loading"`.
+4. Write dependent analysis collections (`variants`, `cnvs`, `fusions`, coverage, and related evidence).
+5. Mark the sample as `ingest_status="ready"` only after all dependent writes succeed.
+
+Failure behavior:
+
+- If validation or file parsing fails, no sample document is inserted.
+- If any write fails after the sample anchor is created, ingest attempts rollback cleanup and deletes the staged sample plus dependent analysis documents.
+- When Mongo sessions/transactions are supported by the runtime, the create flow executes inside a transaction boundary as an additional safeguard.
+
+Scope note:
+
+- These guarantees apply to **fresh sample creation**.
+- `update_existing=true` still uses dependent-data replacement with rollback for evidence collections, but sample metadata updates are not yet a full multi-document transaction.
 
 ## Endpoints
 
@@ -84,7 +108,7 @@ ${PYTHON_BIN:-python} scripts/validate_assay_consistency.py \
   --yaml tests/data/ingest_demo/generic_case_control.yaml
 ```
 
-The demo YAML includes `vep_version`, which is persisted onto the sample document and later used to resolve the correct `vep_metadata` translations/group mappings during DNA/report workflows.
+The demo YAML includes `vep_version`. It is stored on the sample and later used to resolve the correct `vep_metadata` translations and consequence-group mappings during DNA findings and reporting.
 
 This validator checks:
 
@@ -477,6 +501,65 @@ Managed-admin form source:
 
 - For ASP/ASPC/ISGL/users/roles/permissions, admin UI forms use backend-generated schemas from contracts (`api/contracts/managed_ui_schemas.py`).
 - Version and history are tracked via `version` and `version_history`.
+
+Assay-group contract:
+
+- `asp_group` is a fixed platform vocabulary defined in `shared/config_constants.py`.
+- Current allowed values are:
+  - `hematology`
+  - `solid`
+  - `pgx`
+  - `tumwgs`
+  - `wts`
+  - `myeloid`
+  - `lymphoid`
+  - `dna`
+  - `rna`
+- Centers may register any ASP they need, but each ASP and ASPC must link to one of those existing assay groups.
+- Adding a new assay group requires a product/code release, not only an admin-side data change.
+
+Other fixed admin/runtime vocabularies:
+
+- `asp_family`:
+  - `panel-dna`
+  - `panel-rna`
+  - `wgs`
+  - `wts`
+- `asp_category`:
+  - `dna`
+  - `rna`
+- `environment` / sample `profile`:
+  - `production`
+  - `development`
+  - `testing`
+  - `validation`
+- sample `sequencing_scope`:
+  - `panel`
+  - `wgs`
+  - `wts`
+- `auth_type`:
+  - `coyote3`
+  - `ldap`
+- `platform`:
+  - `illumina`
+  - `pacbio`
+  - `nanopore`
+  - `iontorrent`
+- permission `category`:
+  - `Analysis Actions`
+  - `Assay Configuration Management`
+  - `Assay Panel Management`
+  - `Audit & Monitoring`
+  - `Data Downloads`
+  - `Gene List Management`
+  - `Permission Policy Management`
+  - `Reports`
+  - `Role Management`
+  - `Sample Management`
+  - `Schema Management`
+  - `User Management`
+  - `Variant Curation`
+  - `Visualization`
 
 ## Sample bundle request modes
 

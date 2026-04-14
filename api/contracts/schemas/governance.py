@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import AliasChoices, Field, field_validator
 
 from api.contracts.schemas.base import VersionHistoryEntryDoc, _StrictDocBase
+from shared.config_constants import (
+    normalize_asp_group,
+    normalize_auth_type,
+    normalize_environment,
+    normalize_permission_category,
+)
 
 
 class UsersDoc(_StrictDocBase):
@@ -18,7 +24,7 @@ class UsersDoc(_StrictDocBase):
     lastname: str
     fullname: str
     job_title: str
-    auth_type: Literal["coyote3", "ldap"] | None = "coyote3"
+    auth_type: str | None = "coyote3"
     password: str | None = None
     last_login: datetime | None = None
     must_change_password: bool = False
@@ -29,9 +35,7 @@ class UsersDoc(_StrictDocBase):
     password_action_issued_at: datetime | None = None
     password_action_issued_by: str | None = None
     roles: list[str] = Field(default_factory=list)
-    environments: list[Literal["production", "development", "testing", "validation"]] = Field(
-        default_factory=list
-    )
+    environments: list[str] = Field(default_factory=list)
     assays: list[str] = Field(default_factory=list)
     assay_groups: list[str] = Field(default_factory=list)
     is_active: bool = True
@@ -82,34 +86,37 @@ class UsersDoc(_StrictDocBase):
                 seen.add(role_id)
         return normalized
 
+    @field_validator("auth_type", mode="before")
+    @classmethod
+    def _normalize_auth_type(cls, value: Any) -> str:
+        return normalize_auth_type(value or "coyote3")
+
     @field_validator("environments", mode="before")
     @classmethod
     def _normalize_environments(cls, value: Any) -> Any:
         if value is None:
             return []
-        aliases = {
-            "prod": "production",
-            "p": "production",
-            "production": "production",
-            "dev": "development",
-            "development": "development",
-            "d": "development",
-            "test": "testing",
-            "testing": "testing",
-            "t": "testing",
-            "validation": "validation",
-            "stage": "validation",
-            "staging": "validation",
-            "v": "validation",
-        }
+        if isinstance(value, (str, bytes)):
+            value = [value]
         normalized: list[str] = []
         for item in value:
-            key = str(item).strip().lower()
-            if key not in aliases:
-                raise ValueError(
-                    "environments must be in: production, development, testing, validation"
-                )
-            normalized.append(aliases[key])
+            normalized.append(normalize_environment(item, label="environments"))
+        return normalized
+
+    @field_validator("assay_groups", mode="before")
+    @classmethod
+    def _normalize_assay_groups(cls, value: Any) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, (str, bytes)):
+            value = [value]
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            group = normalize_asp_group(item)
+            if group not in seen:
+                normalized.append(group)
+                seen.add(group)
         return normalized
 
 
@@ -145,3 +152,8 @@ class PermissionsDoc(_StrictDocBase):
     updated_by: str | None = None
     updated_on: datetime | None = None
     version_history: list[VersionHistoryEntryDoc] = Field(default_factory=list)
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def _normalize_category(cls, value: Any) -> str:
+        return normalize_permission_category(value)

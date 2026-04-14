@@ -465,6 +465,7 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
             "vcf_files": "generic_case_control.final.filtered.vcf",
             "cnv": "generic_case_control.cnvs.merged.json",
         },
+        _assay_file_policy=lambda **_: ({"vcf_files", "cnv"}, {"vcf_files", "cnv"}),
         ingest_sample_bundle=_ingest,
     )
 
@@ -521,7 +522,8 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
             "pipeline": "pipeline",
             "pipeline_version": "v1",
             "vcf_files": "required.vcf",
-        }
+        },
+        _assay_file_policy=lambda **_: ({"vcf_files"}, {"vcf_files"}),
     )
 
     yaml_upload = _FakeUpload(filename="ingest.yaml", payload=b"name: UPLOAD_SAMPLE")
@@ -538,6 +540,69 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
         )
     assert exc_info.value.status_code == 400
     assert "Missing files for YAML references" in str(exc_info.value)
+
+
+def test_ingest_sample_bundle_upload_internal_ignores_missing_optional_file(monkeypatch):
+    """Optional YAML file refs should not block upload ingest when the ASP does not require them."""
+    calls: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        internal.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
+
+    def _ingest(payload, *, allow_update=False, increment=False):
+        calls["payload"] = payload
+        calls["allow_update"] = allow_update
+        calls["increment"] = increment
+        return {
+            "status": "ok",
+            "sample_id": "upload-optional",
+            "sample_name": payload["name"],
+            "written": {"snvs": 1},
+            "data_counts": {"snvs": 1},
+        }
+
+    ingest_service = _ingest_service_stub(
+        parse_yaml_payload=lambda _text: {
+            "name": "UPLOAD_SAMPLE",
+            "assay": "assay_1",
+            "profile": "testing",
+            "genome_build": 38,
+            "case_id": "CASE_UPLOAD",
+            "sample_no": 1,
+            "paired": False,
+            "sequencing_scope": "panel",
+            "omics_layer": "dna",
+            "pipeline": "pipeline",
+            "pipeline_version": "v1",
+            "vcf_files": "required.vcf",
+            "transloc": "optional.vcf",
+        },
+        _assay_file_policy=lambda **_: ({"vcf_files", "transloc"}, {"vcf_files"}),
+        ingest_sample_bundle=_ingest,
+    )
+
+    yaml_upload = _FakeUpload(filename="ingest.yaml", payload=b"name: UPLOAD_SAMPLE")
+    files = [_FakeUpload(filename="required.vcf", payload=b"##fileformat=VCFv4.2\n")]
+
+    response = asyncio.run(
+        internal.ingest_sample_bundle_upload_internal(
+            yaml_file=yaml_upload,
+            data_files=files,
+            update_existing=False,
+            increment=True,
+            user=_admin_user(),
+            ingest_service=ingest_service,
+        )
+    )
+
+    assert response["status"] == "ok"
+    payload = calls["payload"]
+    assert "transloc" not in payload
+    assert payload["_runtime_files"]["vcf_files"].endswith("required.vcf")
 
 
 def test_ingest_collection_upload_internal_insert(monkeypatch):

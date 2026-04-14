@@ -3,45 +3,30 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
 from api.contracts.schemas.base import VersionHistoryEntryDoc, _DocBase, _StrictDocBase
 from api.contracts.schemas.dna import DnaFiltersDoc
 from api.contracts.schemas.rna import RnaFiltersDoc
+from shared.config_constants import (
+    ALL_SAMPLE_FILE_KEYS,
+    DNA_ANALYSIS_TYPE_OPTIONS,
+    RNA_ANALYSIS_TYPE_OPTIONS,
+    SAMPLE_FILE_KEYS,
+    expected_file_keys,
+    normalize_asp_category,
+    normalize_asp_family,
+    normalize_asp_group,
+    normalize_environment,
+    normalize_platform,
+    validate_identifier,
+)
 
-DNA_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = (
-    "SNV",
-    "CNV",
-    "TRANSLOCATION",
-    "BIOMARKER",
-    "CNV_PROFILE",
-    "FUSION",
-    "TMB",
-    "PGX",
-)
-RNA_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = (
-    "FUSION",
-    "EXPRESSION",
-    "CLASSIFICATION",
-    "QC",
-    "PGX",
-)
-DNA_EXPECTED_FILE_OPTIONS: tuple[str, ...] = (
-    "vcf_files",
-    "cnv",
-    "cnvprofile",
-    "cov",
-    "transloc",
-    "biomarkers",
-)
-RNA_EXPECTED_FILE_OPTIONS: tuple[str, ...] = (
-    "fusion_files",
-    "expression_path",
-    "classification_path",
-    "qc",
-)
+DNA_EXPECTED_FILE_OPTIONS: tuple[str, ...] = SAMPLE_FILE_KEYS["dna"]
+RNA_EXPECTED_FILE_OPTIONS: tuple[str, ...] = SAMPLE_FILE_KEYS["rna"]
+ALL_EXPECTED_FILE_OPTIONS: tuple[str, ...] = ALL_SAMPLE_FILE_KEYS
 
 
 def _normalize_analysis_option(value: Any) -> str:
@@ -122,9 +107,9 @@ class AspcQueryDoc(BaseModel):
 class AspConfigDoc(_StrictDocBase):
     aspc_id: str
     assay_name: str
-    environment: Literal["production", "development", "testing", "validation"]
+    environment: str
     asp_group: str
-    asp_category: Literal["dna", "rna"]
+    asp_category: str
     analysis_types: list[str] = Field(default_factory=list)
     is_active: bool = True
     display_name: str
@@ -149,34 +134,17 @@ class AspConfigDoc(_StrictDocBase):
     @field_validator("environment", mode="before")
     @classmethod
     def _normalize_environment(cls, value: Any) -> str:
-        aliases = {
-            "prod": "production",
-            "production": "production",
-            "dev": "development",
-            "development": "development",
-            "test": "testing",
-            "testing": "testing",
-            "validation": "validation",
-            "stage": "validation",
-            "staging": "validation",
-        }
-        key = str(value).strip().lower()
-        if key not in aliases:
-            raise ValueError("environment must be in: production, development, testing, validation")
-        return aliases[key]
+        return normalize_environment(value)
 
     @field_validator("asp_category", mode="before")
     @classmethod
     def _normalize_asp_category(cls, value: Any) -> str:
-        aliases = {
-            "dna": "dna",
-            "somatic": "dna",
-            "rna": "rna",
-        }
-        key = str(value or "").strip().lower()
-        if key not in aliases:
-            raise ValueError("asp_category must be either 'dna' or 'rna'")
-        return aliases[key]
+        return normalize_asp_category(value)
+
+    @field_validator("platform", mode="before")
+    @classmethod
+    def _normalize_platform(cls, value: Any) -> str | None:
+        return normalize_platform(value)
 
     @field_validator("aspc_id")
     @classmethod
@@ -185,12 +153,15 @@ class AspConfigDoc(_StrictDocBase):
             raise ValueError("aspc_id must use assay:environment format")
         return value
 
-    @field_validator("assay_name")
+    @field_validator("assay_name", mode="before")
     @classmethod
-    def _validate_assay_name(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError("assay_name must be non-empty")
-        return value.strip()
+    def _validate_assay_name(cls, value: Any) -> str:
+        return validate_identifier(value, label="assay_name")
+
+    @field_validator("asp_group", mode="before")
+    @classmethod
+    def _normalize_asp_group(cls, value: Any) -> str:
+        return normalize_asp_group(value)
 
     @model_validator(mode="after")
     def _validate_aspc_match(self) -> "AspConfigDoc":
@@ -262,11 +233,12 @@ class AssaySpecificPanelsDoc(_StrictDocBase):
     asp_id: str
     assay_name: str
     asp_group: str
-    asp_family: Literal["panel-dna", "panel-rna", "wgs", "wts"]
-    asp_category: Literal["dna", "rna"]
+    asp_family: str
+    asp_category: str
     display_name: str
     description: str | None = None
     expected_files: list[str] = Field(default_factory=list)
+    required_files: list[str] = Field(default_factory=list)
     covered_genes: list[str] = Field(default_factory=list)
     germline_genes: list[str] = Field(default_factory=list)
     accredited: bool = False
@@ -286,22 +258,52 @@ class AssaySpecificPanelsDoc(_StrictDocBase):
     updated_on: datetime | None = None
     version_history: list[VersionHistoryEntryDoc] = Field(default_factory=list)
 
+    @field_validator("asp_id", mode="before")
+    @classmethod
+    def _validate_asp_id(cls, value: Any) -> str:
+        return validate_identifier(value, label="asp_id")
+
+    @field_validator("assay_name", mode="before")
+    @classmethod
+    def _validate_assay_name(cls, value: Any) -> str:
+        return validate_identifier(value, label="assay_name")
+
     @field_validator("asp_category", mode="before")
     @classmethod
     def _normalize_asp_category(cls, value: Any) -> str:
-        aliases = {
-            "dna": "dna",
-            "somatic": "dna",
-            "rna": "rna",
-        }
-        key = str(value or "").strip().lower()
-        if key not in aliases:
-            raise ValueError("asp_category must be either 'dna' or 'rna'")
-        return aliases[key]
+        return normalize_asp_category(value)
+
+    @field_validator("asp_family", mode="before")
+    @classmethod
+    def _normalize_asp_family(cls, value: Any) -> str:
+        return normalize_asp_family(value)
+
+    @field_validator("asp_group", mode="before")
+    @classmethod
+    def _normalize_asp_group(cls, value: Any) -> str:
+        return normalize_asp_group(value)
+
+    @field_validator("platform", mode="before")
+    @classmethod
+    def _normalize_platform(cls, value: Any) -> str | None:
+        return normalize_platform(value)
 
     @field_validator("expected_files", mode="before")
     @classmethod
     def _normalize_expected_files(cls, value: Any) -> list[str]:
+        if value is None:
+            return []
+        values = value if isinstance(value, list) else [value]
+        normalized: list[str] = []
+        for item in values:
+            key = str(item or "").strip().lower()
+            if key:
+                normalized.append(key)
+        return list(dict.fromkeys(normalized))
+
+    @field_validator("required_files", mode="before")
+    @classmethod
+    def _normalize_required_files(cls, value: Any) -> list[str]:
         if value is None:
             return []
         values = value if isinstance(value, list) else [value]
@@ -320,17 +322,26 @@ class AssaySpecificPanelsDoc(_StrictDocBase):
             else set(RNA_EXPECTED_FILE_OPTIONS)
         )
         if not self.expected_files:
-            self.expected_files = (
-                list(DNA_EXPECTED_FILE_OPTIONS)
-                if self.asp_category == "dna"
-                else list(RNA_EXPECTED_FILE_OPTIONS)
-            )
-            return self
+            self.expected_files = list(expected_file_keys(self.asp_category))
         invalid = [value for value in self.expected_files if value not in allowed]
         if invalid:
             raise ValueError(
                 f"expected_files contains invalid values: {invalid}. "
                 f"Allowed values are: {sorted(allowed)}"
+            )
+        invalid_required = [value for value in self.required_files if value not in allowed]
+        if invalid_required:
+            raise ValueError(
+                f"required_files contains invalid values: {invalid_required}. "
+                f"Allowed values are: {sorted(allowed)}"
+            )
+        missing_from_expected = [
+            value for value in self.required_files if value not in self.expected_files
+        ]
+        if missing_from_expected:
+            raise ValueError(
+                "required_files must also be included in expected_files. "
+                f"Missing from expected_files: {missing_from_expected}"
             )
         return self
 
@@ -387,7 +398,14 @@ class InsilicoGenelistsDoc(_StrictDocBase):
     def _validate_assay_groups(cls, value: list[str]) -> list[str]:
         if not value:
             raise ValueError("assay_groups must include at least one assay group")
-        return value
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            group = normalize_asp_group(item)
+            if group not in seen:
+                normalized.append(group)
+                seen.add(group)
+        return normalized
 
     @computed_field
     @property

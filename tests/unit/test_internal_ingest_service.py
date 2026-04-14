@@ -89,7 +89,44 @@ def _store_stub(sample_docs=None):
         "rna_classification": _Col(),
         "rna_qc": _Col(),
         "asp_configs": _Col(),
-        "assay_specific_panels": _Col(),
+        "assay_specific_panels": _Col(
+            [
+                {
+                    "asp_id": "assay_1",
+                    "assay_name": "assay_1",
+                    "asp_group": "hematology",
+                    "asp_family": "panel-dna",
+                    "asp_category": "dna",
+                    "display_name": "Assay 1",
+                    "expected_files": [
+                        "vcf_files",
+                        "cnv",
+                        "cov",
+                        "cnvprofile",
+                        "transloc",
+                        "biomarkers",
+                    ],
+                    "required_files": ["vcf_files"],
+                },
+                {
+                    "asp_id": "A",
+                    "assay_name": "A",
+                    "asp_group": "hematology",
+                    "asp_family": "panel-dna",
+                    "asp_category": "dna",
+                    "display_name": "Assay A",
+                    "expected_files": [
+                        "vcf_files",
+                        "cnv",
+                        "cov",
+                        "cnvprofile",
+                        "transloc",
+                        "biomarkers",
+                    ],
+                    "required_files": ["vcf_files"],
+                },
+            ]
+        ),
     }
     return SimpleNamespace(
         sample_handler=_Handler(sample_col),
@@ -201,7 +238,7 @@ def test_type_and_string_helpers(monkeypatch):
     assert hot == {"a": ["1"]}
 
 
-def test_ingest_sanitizes_file_keys_using_asp_expected_files(monkeypatch):
+def test_ingest_sanitizes_file_keys_using_asp_expected_files(monkeypatch, tmp_path):
     store_stub = _store_stub()
     store_stub.coyote_db["assay_specific_panels"].docs = [
         {
@@ -215,6 +252,12 @@ def test_ingest_sanitizes_file_keys_using_asp_expected_files(monkeypatch):
         }
     ]
     service = _use_store(monkeypatch, store_stub)
+    vcf_path = tmp_path / "a.vcf.gz"
+    cov_path = tmp_path / "a.cov.json"
+    runtime_vcf_path = tmp_path / "runtime.a.vcf.gz"
+    runtime_cov_path = tmp_path / "runtime.a.cov.json"
+    for path in (vcf_path, cov_path, runtime_vcf_path, runtime_cov_path):
+        path.write_text("{}", encoding="utf-8")
     payload = {
         "name": "S1",
         "assay": "assay_1",
@@ -225,27 +268,64 @@ def test_ingest_sanitizes_file_keys_using_asp_expected_files(monkeypatch):
         "omics_layer": "dna",
         "pipeline": "SomaticPanelPipeline",
         "pipeline_version": "1.0.0",
-        "vcf_files": "/data/a.vcf.gz",
-        "cov": "/data/a.cov.json",
+        "vcf_files": str(vcf_path),
+        "cov": str(cov_path),
         "cnv": "/data/a.cnv.json",
         "biomarkers": "/data/a.biomarkers.json",
         "_runtime_files": {
-            "vcf_files": "/runtime/a.vcf.gz",
-            "cov": "/runtime/a.cov.json",
+            "vcf_files": str(runtime_vcf_path),
+            "cov": str(runtime_cov_path),
             "cnv": "/runtime/a.cnv.json",
         },
     }
 
     sanitized = service._sanitize_payload_file_keys(payload)
 
-    assert sanitized["vcf_files"] == "/data/a.vcf.gz"
-    assert sanitized["cov"] == "/data/a.cov.json"
+    assert sanitized["vcf_files"] == str(vcf_path)
+    assert sanitized["cov"] == str(cov_path)
     assert "cnv" not in sanitized
     assert "biomarkers" not in sanitized
     assert sanitized["_runtime_files"] == {
-        "vcf_files": "/runtime/a.vcf.gz",
-        "cov": "/runtime/a.cov.json",
+        "vcf_files": str(runtime_vcf_path),
+        "cov": str(runtime_cov_path),
     }
+
+
+def test_ingest_drops_unreadable_optional_file_keys(monkeypatch, tmp_path):
+    store_stub = _store_stub()
+    store_stub.coyote_db["assay_specific_panels"].docs = [
+        {
+            "asp_id": "assay_1",
+            "assay_name": "assay_1",
+            "asp_group": "hematology",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
+            "display_name": "Assay 1",
+            "expected_files": ["vcf_files", "transloc"],
+            "required_files": ["vcf_files"],
+        }
+    ]
+    service = _use_store(monkeypatch, store_stub)
+    vcf_path = tmp_path / "sample.vcf"
+    vcf_path.write_text("##fileformat=VCFv4.2\n", encoding="utf-8")
+    payload = {
+        "name": "S1",
+        "assay": "assay_1",
+        "profile": "production",
+        "case_id": "CASE1",
+        "sample_no": 1,
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
+        "pipeline": "SomaticPanelPipeline",
+        "pipeline_version": "1.0.0",
+        "vcf_files": str(vcf_path),
+        "transloc": str(tmp_path / "missing.annotated.vcf"),
+    }
+
+    sanitized = service._sanitize_payload_file_keys(payload)
+
+    assert sanitized["vcf_files"] == str(vcf_path)
+    assert "transloc" not in sanitized
 
 
 def test_float_and_af_helpers():
@@ -697,7 +777,9 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
         ingest, "build_sample_meta_dict", lambda _: {"assay": "A", "case_id": "C", "sample_no": 1}
     )
 
-    out = service.ingest_sample_bundle({"name": "S1"}, allow_update=False)
+    out = service.ingest_sample_bundle(
+        {"name": "S1", "assay": "A", "omics_layer": "dna"}, allow_update=False
+    )
     assert out["status"] == "ok"
 
     monkeypatch.setattr(
@@ -706,7 +788,9 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     cleaned = {"called": False}
     monkeypatch.setattr(service, "_cleanup", lambda _sid: cleaned.update(called=True))
     with pytest.raises(RuntimeError):
-        service.ingest_sample_bundle({"name": "S2"}, allow_update=False)
+        service.ingest_sample_bundle(
+            {"name": "S2", "assay": "A", "omics_layer": "dna"}, allow_update=False
+        )
     assert cleaned["called"]
 
     monkeypatch.setattr(ingest, "normalize_collection_document", lambda _c, doc: dict(doc))
@@ -721,6 +805,46 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
 
     zero = service.insert_collection_documents(collection="variants", documents=[])
     assert zero["inserted_count"] == 0
+
+
+def test_ingest_sample_bundle_stages_loading_then_marks_ready(monkeypatch):
+    sample_col = _Col([])
+    stub = _store_stub()
+    stub.sample_handler = _Handler(sample_col)
+    service = _use_store(monkeypatch, stub, new_sample_id="507f1f77bcf86cd799439019")
+    monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": []})
+    monkeypatch.setattr(service, "_next_unique_name", lambda *_: "S3")
+    monkeypatch.setattr(service, "_write_dependents", lambda **_: {"snvs": 0})
+
+    class _Valid:
+        def __init__(self, payload):
+            self.payload = dict(payload)
+
+        def model_dump(self, *args, **kwargs):
+            _ = args, kwargs
+            return dict(self.payload)
+
+    monkeypatch.setattr(ingest.SamplesDoc, "model_validate", lambda payload: _Valid(payload))
+    monkeypatch.setattr(
+        ingest,
+        "build_sample_meta_dict",
+        lambda payload: {
+            "assay": payload.get("assay", "A"),
+            "case_id": payload.get("case_id", "C"),
+            "sample_no": payload.get("sample_no", 1),
+        },
+    )
+
+    out = service.ingest_sample_bundle(
+        {"name": "S3", "assay": "A", "case_id": "C", "sample_no": 1},
+        allow_update=False,
+    )
+
+    assert out["status"] == "ok"
+    assert sample_col.inserted_one[0]["ingest_status"] == "loading"
+    assert sample_col.updated[-1][1] == {
+        "$set": {"ingest_status": "ready", "data_counts": {"snvs": 0}}
+    }
 
 
 def test_ingest_sample_bundle_initializes_sample_filters_from_aspc(monkeypatch):

@@ -67,7 +67,10 @@ class AspService:
         panel = self.assay_panel_handler.get_asp(panel_id)
         if not panel:
             raise api_error(404, "Panel not found")
-        return {"panel": panel, "form": build_managed_form(self._spec)}
+        form = build_managed_form(self._spec)
+        if form.get("fields", {}).get("asp_group"):
+            form["fields"]["asp_group"]["default"] = panel.get("asp_group", "")
+        return {"panel": panel, "form": form}
 
     def create(
         self, *, payload: dict[str, Any], actor_username: str = "admin-ui"
