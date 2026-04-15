@@ -46,7 +46,7 @@ services:
     depends_on:
       coyote3_test_mongo:
         condition: service_healthy
-      redis_coyote3_test:
+      coyote3_redis_test:
         condition: service_started
 
   coyote3_test_web:
@@ -130,9 +130,9 @@ services:
       coyote3_test_api:
         condition: service_healthy
 
-  redis_coyote3_test:
+  coyote3_redis_test:
     <<: *runtime-defaults
-    container_name: redis_coyote3_test_${COYOTE3_VERSION:-local}
+    container_name: coyote3_redis_test_${COYOTE3_VERSION:-local}
     image: redis:7.4.3
     ports:
       - "${COYOTE3_TEST_REDIS_PORT:-6813}:6379"

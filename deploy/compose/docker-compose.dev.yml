@@ -150,7 +150,7 @@ services:
     depends_on:
       coyote3_dev_mongo:
         condition: service_healthy
-      redis_coyote3_dev:
+      coyote3_redis_dev:
         condition: service_started
 
   # UI asset build/watch helper for development.
@@ -178,9 +178,9 @@ services:
     restart: unless-stopped
 
   # Shared infrastructure dependency.
-  redis_coyote3_dev:
+  coyote3_redis_dev:
     <<: *runtime-defaults
-    container_name: redis_coyote3_dev_${COYOTE3_VERSION:-local}
+    container_name: coyote3_redis_dev_${COYOTE3_VERSION:-local}
     image: redis:7.4.3
     ports:
       - "${COYOTE3_DEV_REDIS_PORT:-6803}:6379"

@@ -17,7 +17,7 @@ jobs:
       COYOTE3_FERNET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       SECRET_KEY: ci-test-secret-key
       INTERNAL_API_TOKEN: ci-test-internal-token
-      CACHE_REDIS_URL: redis://redis_coyote3_stage:6379/0
+      CACHE_REDIS_URL: redis://coyote3_redis_stage:6379/0
       COYOTE3_STAGE_WEB_PORT: "8005"
       COYOTE3_STAGE_API_PORT: "8006"
       COYOTE3_STAGE_REDIS_PORT: "8007"

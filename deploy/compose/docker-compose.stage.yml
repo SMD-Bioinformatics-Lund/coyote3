@@ -117,12 +117,12 @@ services:
     depends_on:
       coyote3_stage_mongo:
         condition: service_healthy
-      redis_coyote3_stage:
+      coyote3_redis_stage:
         condition: service_started
 
-  redis_coyote3_stage:
+  coyote3_redis_stage:
     <<: *runtime-defaults
-    container_name: redis_coyote3_stage_${COYOTE3_VERSION:-local}
+    container_name: coyote3_redis_stage_${COYOTE3_VERSION:-local}
     image: redis:7.4.3
     ports:
       - "${COYOTE3_STAGE_REDIS_PORT:-8807}:6379"

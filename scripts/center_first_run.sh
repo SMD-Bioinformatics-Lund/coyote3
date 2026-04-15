@@ -11,6 +11,8 @@ Usage:
     --env-file <path> \
     --compose-file <path> \
     [--compose-profile <name>] \
+    [--with-mongo] \
+    [--with-proxy] \
     --api-base-url <url> \
     --admin-username <username> \
     --admin-email <email> \
@@ -94,6 +96,8 @@ parse_args() {
       --env-file) ENV_FILE="$2"; shift 2 ;;
       --compose-file) COMPOSE_FILE="$2"; shift 2 ;;
       --compose-profile) COMPOSE_PROFILES+=("$2"); shift 2 ;;
+      --with-mongo) COMPOSE_PROFILES+=("with-mongo"); shift ;;
+      --with-proxy) COMPOSE_PROFILES+=("with-proxy"); shift ;;
       --api-base-url) API_BASE_URL="$2"; shift 2 ;;
       --admin-username) ADMIN_USERNAME="$2"; shift 2 ;;
       --admin-email) ADMIN_EMAIL="$2"; shift 2 ;;

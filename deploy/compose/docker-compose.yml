@@ -65,7 +65,7 @@ services:
       dockerfile: docker/Dockerfile.docs
       network: host
     ports:
-      - "${COYOTE3_DOCS_PORT:-5821}:8080"
+      - "${COYOTE3_DOCS_PORT:-5807}:8080"
     restart: always
     dns:
       - ${APP_DNS:-1.1.1.1}
@@ -119,7 +119,7 @@ services:
       retries: 20
       start_period: 10s
     depends_on:
-      - redis_coyote3
+      - coyote3_redis
 
   coyote3_first_run:
     <<: *runtime-defaults
@@ -155,9 +155,9 @@ services:
         condition: service_healthy
 
   # Shared infrastructure dependency.
-  redis_coyote3:
+  coyote3_redis:
     <<: *runtime-defaults
-    container_name: redis_coyote3_${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
+    container_name: coyote3_redis_${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
     image: redis:7.4.3
     ports:
       - "${COYOTE3_REDIS_PORT:-5819}:6379"
