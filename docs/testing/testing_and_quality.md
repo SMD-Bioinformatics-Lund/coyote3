@@ -1,5 +1,24 @@
 # Quality Engineering and Validation Standards
 
+## Testing Boundary Diagram
+
+```text
+Unit tests
+  -> pure logic, contracts, helpers
+
+API router tests
+  -> request validation, auth dependencies, response shapes
+
+Integration tests
+  -> selected multi-component seams
+
+UI tests
+  -> Flask routes, templates, user-facing flows
+
+Docs build / lint / coverage gates
+  -> repo-wide quality checks
+```
+
 This document defines the test and validation expectations for Coyote3.
 
 ## Formal Testing Tiers
@@ -63,3 +82,7 @@ All permission-gate testing must operate at the logical boundary being enforced:
 ## Performance Checks
 
 Use dedicated profiling or staged environment testing when you need performance numbers.
+
+See also:
+
+- [System Relationships](../architecture/system_relationships.md)

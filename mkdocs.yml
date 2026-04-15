@@ -39,6 +39,8 @@ nav:
       - Configuration Architecture: start_here/configuration.md
   - Software Engineering:
       - System Overview: architecture/system_overview.md
+      - HTTP Layers: architecture/http_layers.md
+      - System Relationships: architecture/system_relationships.md
       - Request Lifecycle: architecture/request_lifecycle.md
       - Schema & Versioning: developer/schema_contracts_and_versioning.md
       - Permission Naming: developer/permissions_naming.md

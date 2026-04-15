@@ -640,7 +640,7 @@ Core collections typically seeded first:
 ## Client example (Python)
 
 ```python
-import requests
+import httpx
 
 base = "http://localhost:6802"
 headers = {"Authorization": "Bearer YOUR_API_BEARER_TOKEN"}
@@ -658,9 +658,14 @@ payload = {
     "update_existing": False,
 }
 
-r = requests.post(f"{base}/api/v1/internal/ingest/sample-bundle", json=payload, headers=headers, timeout=120)
-r.raise_for_status()
-print(r.json())
+response = httpx.post(
+    f"{base}/api/v1/internal/ingest/sample-bundle",
+    json=payload,
+    headers=headers,
+    timeout=120.0,
+)
+response.raise_for_status()
+print(response.json())
 ```
 
 ## Troubleshooting by error

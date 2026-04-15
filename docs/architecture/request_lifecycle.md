@@ -43,4 +43,5 @@ The request path follows a consistent error model:
 
 See also:
 
+- [HTTP Layers and Boundaries](http_layers.md) for a layered map of inbound web HTTP, inbound API HTTP, and outbound `httpx` client flows.
 - [error_contract.md](error_contract.md) for the standard API/web error payload shape, categories, and user-facing mapping rules.

@@ -57,3 +57,11 @@ The UI application runs on a **WSGI pre-fork model** (Gunicorn). Each user sessi
 ### Resilience and State
 *   **Database Handlers**: Every MongoDB interaction is gated by specialized Handlers (`api/infra/mongo/handlers`). This prevents raw database queries from leaking into business logic.
 *   **Redis Cache**: Used for shared session state and short-lived cached data. If Redis is unavailable, the system falls back to a cache-less mode.
+
+---
+
+## HTTP Boundary Reference
+
+For a focused view of inbound versus outbound HTTP ownership, see [HTTP Layers and Boundaries](http_layers.md).
+
+For dependency and data-shape diagrams covering ASP, ASPC, ISGL, samples, and findings, see [System Relationships](system_relationships.md).

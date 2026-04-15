@@ -15,20 +15,45 @@ If these layers drift apart, gene scope, filtering, and reports can become wrong
 
 ### Configuration Relationships
 
-Configuration resources are linked by assay identifiers:
+Configuration resources are linked by assay identifiers and runtime filter state:
 
 ```text
-Assay Configuration (asp_configs)
-  - Key Mapping: aspc_id = "<assay>:<environment>"
-  - Defines: default filters, analysis scopes, and report settings.
-            ↓
-Assay Panels (assay_specific_panels)
-  - Key Mapping: asp_id (Maps to sample.assay)
-  - Defines: covered genes and germline genes.
-            ↓
-In-Silico Gene Lists (insilico_genelists)
-  - Key Mapping: isgl_id
-  - Defines: curated gene subsets for targeted interpretation.
+[ASP: assay_specific_panels]
+  key: asp_id
+  maps to: sample.assay
+  defines: assay metadata, covered_genes, germline_genes, expected_files
+      |
+      +--> [ASPC: asp_configs]
+      |      key: aspc_id = "<assay>:<environment>"
+      |      maps to: sample.assay + sample.profile
+      |      defines: default filters, analysis types, reporting settings
+      |
+      -?> [ISGL: insilico_genelists]
+             key: isgl_id
+             linked by: assays[] and assay_groups[]
+             defines: optional curated gene subsets
+```
+
+Interpretation notes:
+
+- ASP is the assay anchor used by both ingest and read paths.
+- ASPC is the assay-plus-environment strategy contract.
+- ISGL is optional and becomes active only when selected into `sample.filters`.
+
+### Sample-to-configuration relationship
+
+```text
+[sample]
+  assay   -------> [ASP.asp_id]
+  profile -------> (environment)
+                      |
+                      v
+                  [ASPC.aspc_id = "<assay>:<profile>"]
+
+[sample.filters]
+  genelists     -?> [ISGL.isgl_id]
+  cnv_genelists -?> [ISGL.isgl_id]
+  fusionlists   -?> [ISGL.isgl_id]
 ```
 
 ### Sample Persistence Flow
@@ -40,6 +65,27 @@ During ingest, the system creates a sample anchor and then links finding collect
 | **Bundle Ingest** | Creation of parent `samples` document | Primary system anchor |
 | **Finding Persistence** | Writing to `variants`, `cnvs`, `fusions`, etc. | Keyed by `SAMPLE_ID` |
 | **Logic Resolution** | Resolve ASPC, ASP, and ISGL metadata | Resolved by `assay` + `profile` |
+
+### Parent-child persistence model
+
+```text
+[sample]
+  _id
+  assay
+  profile
+  filters
+  ingest_status
+      |
+      +--> [variants]         by SAMPLE_ID
+      +--> [cnvs]             by SAMPLE_ID
+      +--> [panel_coverage]   by SAMPLE_ID
+      +--> [fusions]          by SAMPLE_ID
+      +--> [translocations]   by SAMPLE_ID
+      +--> [biomarkers]       by SAMPLE_ID
+      +--> [rna_expression]   by SAMPLE_ID
+      +--> [rna_qc]           by SAMPLE_ID
+      +--> [rna_classification] by SAMPLE_ID
+```
 
 ## Effective Gene Scope
 
@@ -54,6 +100,27 @@ For DNA and RNA workflows, the platform dynamically computes **effective gene sc
 3. **RNA Fusion**:
    - Active fusion lists and ad-hoc fusion genes define fusion scope.
 
+### Gene-scope dependency diagram
+
+```text
+SNV scope
+  ASP.covered_genes
+  + optional selected SNV ISGLs
+  + optional SNV ad hoc genes
+  -> if no list/adhoc selected: SNVs stay unfiltered by genes
+
+CNV scope
+  ASP.covered_genes
+  + optional selected CNV ISGLs
+  + optional CNV ad hoc genes
+  -> if no list/adhoc selected: use ASP.covered_genes
+
+Fusion scope
+  ASP assay context
+  + optional selected fusion ISGLs
+  + optional fusion ad hoc genes
+```
+
 ## Execution Sequence
 
 The usual flow from ingest to reporting is:
@@ -65,6 +132,28 @@ The usual flow from ingest to reporting is:
 5. **Report Finalization**: The system reads the joined interpretation context and persists an immutable report snapshot in `reported_variants`.
    - DNA SNV report inclusion follows reportable-variant filtering after consequence resolution using `sample.vep_version`.
    - DNA CNV report inclusion requires both report-level inclusion (`interesting`) and the active CNV sample filters. A CNV outside the selected CNV genelist is not included in the report.
+
+### Ingest and read sequence diagram
+
+```text
+Ingest
+  payload
+    -> validate sample contract
+    -> resolve ASP for file policy
+    -> seed sample.filters from ASPC if missing
+    -> create sample with ingest_status="loading"
+    -> write dependent findings with SAMPLE_ID
+    -> mark sample ingest_status="ready"
+
+Read / clinical review
+  sample
+    -> resolve ASPC by assay + profile
+    -> resolve ASP by assay
+    -> resolve selected ISGLs from sample.filters
+    -> compute effective genes per target
+    -> load filtered findings
+    -> render review / reporting context
+```
 
 ## Main Collections
 
@@ -102,3 +191,7 @@ RNA ingest artifacts typically include:
 - Quality Control (QC) metrics
 
 *Detailed payload structures and YAML specifications are documented in the [API / Sample YAML Guide](../api/sample_yaml.md).*
+
+See also:
+
+- [System Relationships](../architecture/system_relationships.md)

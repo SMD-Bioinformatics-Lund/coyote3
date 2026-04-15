@@ -1,5 +1,30 @@
 # Error Contract
 
+## Error Propagation Diagram
+
+```text
+Route / service detects failure
+  |
+  +--> known domain/setup/validation issue
+  |       |
+  |       v
+  |   build normalized API error payload
+  |
+  +--> unexpected fault
+          |
+          v
+      internal error handling
+                |
+                v
+         API returns error response
+                |
+                v
+     Flask API client translates upstream failure
+                |
+                +--> 4xx -> preserve specific message/details/hint
+                +--> 5xx -> show safe generic summary
+```
+
 This document defines the intended error behavior across the API and web layers.
 
 The goal is simple:
@@ -199,3 +224,7 @@ The next cleanup areas should be:
 3. standardize ingest validation errors with per-file remediation hints
 4. standardize public/catalog route not-found messages
 5. add tests for each major error family
+
+See also:
+
+- [System Relationships](system_relationships.md)

@@ -1,5 +1,31 @@
 # Security Model
 
+## Security Flow Diagram
+
+```text
+Incoming request
+  |
+  v
+Identify auth mechanism
+  |
+  +--> session cookie
+  +--> bearer token
+  +--> internal token
+  |
+  v
+Resolve user / principal
+  |
+  v
+Apply access rules
+  |
+  +--> role gate
+  +--> permission gate
+  +--> assay / scope visibility
+  |
+  v
+Allow request or return structured denial
+```
+
 ## Layers
 
 1. Authentication (session/login)
@@ -107,6 +133,22 @@ forgot password (local user)
   -> same SMTP/fallback behavior as invite
 ```
 
+### Access semantics diagram
+
+```text
+API route access (`require_access`)
+  -> permission match
+   OR min role match
+   OR access-level match
+   OR superuser bypass
+
+UI visibility (`has_access`)
+  -> permission match
+   AND min role match
+   AND any other supplied criteria
+   unless superuser bypass applies
+```
+
 ### Planned hardening items
 
 - Add LDAP/IdP-native self-service password change integration endpoint/UI where supported by center policy.
@@ -133,3 +175,7 @@ Required secrets include:
 - Use dedicated app user with least required role (`readWrite` on target DB)
 - Use separate Mongo instances per environment for strict isolation
 - Never rely on unauthenticated DB in shared/non-local environments
+
+See also:
+
+- [System Relationships](system_relationships.md)

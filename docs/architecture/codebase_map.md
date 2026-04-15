@@ -1,5 +1,36 @@
 # Codebase Map
 
+## Dependency Diagram
+
+```text
+Browser
+  |
+  v
+Flask blueprints (`coyote/blueprints`)
+  |
+  v
+Web API client (`coyote/services/api_client`)
+  |
+  v
+FastAPI routers (`api/routers`)
+  |
+  v
+Services (`api/services`)
+  |
+  v
+Core logic (`api/core`) + contracts (`api/contracts`)
+  |
+  v
+Mongo handlers / integrations (`api/infra/...`)
+```
+
+Read this top to bottom:
+
+- web concerns stay in `coyote/`
+- backend HTTP boundary starts in `api/routers`
+- orchestration lives in `api/services`
+- persistence details live in `api/infra`
+
 ## Top-level directories
 
 - `api/`: FastAPI backend
@@ -119,3 +150,7 @@ Typical path:
 - `deploy/compose/docker-compose.dev.yml`: dev stack
 - `deploy/compose/docker-compose.stage.yml`: stage stack
 - `deploy/compose/mongo-init/create-app-user.js`: mongo app-user bootstrap
+
+See also:
+
+- [System Relationships](system_relationships.md)
