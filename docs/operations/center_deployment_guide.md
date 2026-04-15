@@ -64,6 +64,8 @@ Standard command shape:
 scripts/center_first_run.sh \
   --env-file <ENV_FILE> \
   --compose-file <COMPOSE_FILE> \
+  [--with-mongo] \
+  [--with-proxy] \
   [--compose-profile <PROFILE>] \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:<API_PORT>" \
   --admin-username "admin.coyote3" \
@@ -78,7 +80,7 @@ scripts/center_first_run.sh \
 If `MONGO_URI` points to `coyote3_mongo`, include:
 
 ```bash
---compose-profile with-mongo
+--with-mongo
 ```
 
 Prod-like local Docker command:
@@ -87,7 +89,7 @@ Prod-like local Docker command:
 scripts/center_first_run.sh \
   --env-file .coyote3_env \
   --compose-file deploy/compose/docker-compose.yml \
-  --compose-profile with-mongo \
+  --with-mongo \
   --api-base-url "http://localhost:5818" \
   --admin-username "admin.coyote3" \
   --admin-email "admin@coyote3.local" \
@@ -112,6 +114,7 @@ Operational defaults:
 Sample manifest reference:
 
 - Use [API / Sample YAML Guide](../api/sample_yaml.md) for the required DNA/RNA YAML shape.
+- Use [API / Sample Input Files](../api/sample_input_files.md) for the raw VCF and JSON payload formats consumed by the ingest parsers.
 - Ensure the YAML `vep_version` matches a seeded `vep_metadata.vep_id` value before first sample ingest.
 
 ASPC contract rule for first-load data:

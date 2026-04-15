@@ -18,9 +18,10 @@ The primary variant table lists every finding passing the laboratory's quality f
 
 ### Key Table Features:
 *   **Gene & HGVS**: Direct identification of the gene and specific mutation string. Gene names highlighted in red indicate high-priority "OncoKB" actionable genes.
-*   **Consequence (CSQ)**: Color-coded badges indicating the functional impact (e.g., Missense, Nonsense, Frameshift).
+*   **Consequence (CSQ)**: The selected transcript consequence terms from VEP. A variant can show more than one consequence term when the selected transcript carries a combined effect such as `missense_variant&splice_region_variant`.
 *   **PopFreq %**: The frequency of the variant in public populations (gnomAD).
 *   **GT (Genotype)**: Shows the Allelic Fraction (AF) and raw read depth (e.g., `12.5% (45 / 360)`).
+*   **Quality Filter Badges**: Compact status badges summarize raw VCF filter output. Common examples are `PASS`, `GERM`, `HP`, `SB`, `LO`, `XLO`, `PON`, `FFPE`, `N`, `P`, and `LD`.
 
 ### Interpretation Actions:
 Clinicians can perform the following actions directly on the table:
@@ -28,6 +29,14 @@ Clinicians can perform the following actions directly on the table:
 *   **False Positive (FP)**: Flag artifacts or sequencing errors to remove them from the reporting pool.
 *   **Blacklist**: Permantly flag a specific variant coordinate as a known technical artifact for that assay.
 *   **IGV Viewing**: Clicking on the **Chr:Pos** badge will remotely load the genomic region in your local IGV (Interactive Genomics Viewer).
+
+### Reading the filter badges
+
+- `PASS` means the variant passed the primary quality gates.
+- `GERM` represents `GERMLINE` or `GERMLINE_RISK` style flags.
+- `HP`, `SB`, `LO`, `XLO`, `PON`, and `FFPE` are grouped warning or caution badges.
+- `N`, `P`, and `LD` are grouped failure badges.
+- The interface may collapse several raw pipeline-specific warning or failure tokens into the same short badge for readability.
 
 ---
 

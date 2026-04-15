@@ -7,6 +7,7 @@ Use the API to load configuration data and sample bundles in a validated, repeat
 For an end-to-end relationship map of `asp`/`aspc`/`isgl` with `samples`, `variants`, `cnvs`, and RNA collections, see [Product / DNA And RNA Workflow Chain](../product/workflow_dna_rna.md).
 For full per-collection key contracts (required and optional), see [API / Collection Contracts](collection_contracts.md).
 For the sample ingest manifest shape used by these routes, see [API / Sample YAML Guide](sample_yaml.md).
+For the raw VCF and JSON file shapes consumed by the ingest parsers, see [API / Sample Input Files](sample_input_files.md).
 
 All ingest endpoints validate request documents with backend Pydantic contracts before any database write. Payloads are normalized before persistence, so the behavior is the same whether the caller is a script or an API client.
 

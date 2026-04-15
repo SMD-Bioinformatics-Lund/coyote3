@@ -36,28 +36,65 @@ These operational flags are boolean state indicators that control the visibility
 
 The platform normalizes raw sequencing metadata into concise diagnostic badges. These indicators provide immediate context regarding variant quality and technical reliability.
 
-| Indicator | Metric Group | Professional Meaning |
-|---|---|---|
-| `PASS` | Resolved | Significant variant passing all primary quality filters. |
-| `GERM` | Origin | Potential or confirmed germline variant. |
-| `HP` | Warning | Located within a homopolymer region. |
-| `SB` | Caution | Strand-bias detected above acceptable thresholds. |
-| `LO` / `XLO` | Sensitivity | Low or Extremely Low Allele Frequency (VAF). |
-| `PON` | Comparative | Frequently observed in technical Panel-Of-Normals. |
-| `FFPE` | Preparation | Preparation artifact typical of FFPE tissue samples. |
-| `N` | Background | Observed in matched normal sample above acceptable limits. |
+### Canonical grouped badges
+
+The DNA findings UI does not show every raw VCF `FILTER` token verbatim. In `coyote/blueprints/dna/filters.py`, multiple raw values are collapsed into a smaller badge vocabulary for display.
+
+| Badge | Metric Group | Professional Meaning | Raw filter examples |
+|---|---|---|---|
+| `PASS` | Resolved | Variant passed all primary quality filters. | `PASS` |
+| `GERM` | Origin | Confirmed or suspected germline-origin signal. | `GERMLINE`, `GERMLINE_RISK` |
+| `HP` | Warning | Variant falls in a homopolymer context. | `WARN_HOMOPOLYMER*` |
+| `SB` | Warning / Failure | Strand-bias warning or strand-bias failure. | `WARN_STRANDBIAS`, `FAIL_STRANDBIAS` |
+| `LO` | Warning | Low tumor allele fraction. | `WARN_LOW_TVAF` |
+| `XLO` | Warning | Very low tumor allele fraction. | `WARN_VERYLOW_TVAF` |
+| `PON` | Warning / Failure | Seen in a panel of normals. | `WARN_PON_*`, `FAIL_PON_*` |
+| `FFPE` | Warning / Failure | Seen in an FFPE artifact panel. | `WARN_FFPE_PON_*`, `FAIL_FFPE_PON_*` |
+| `N` | Failure | Too much signal in matched normal. | `FAIL_NVAF` |
+| `P` | Failure | P-value based failure. | `FAIL_PVALUE` |
+| `LD` | Failure | Long deletion failure. | `FAIL_LONGDEL` |
+
+### Rendering rules
+
+- Repeated raw filters that map to the same grouped badge are shown only once.
+- `WARN_NOVAR` is intentionally hidden from display.
+- Unknown `WARN_*` and `FAIL_*` tokens are still rendered as raw badges so new pipeline output remains visible.
+- Badge color communicates warning versus failure, even when the short text token is the same, for example `SB`, `PON`, and `FFPE`.
 
 ## Sequence Consequence Terminology
 
-The platform maps VEP-managed genomic consequences into standardized labels according to biological impact classes.
+The platform uses VEP Sequence Ontology consequence terms from the selected transcript (`selected_CSQ`). These are not a single fixed platform vocabulary hardcoded in templates. Instead, consequence grouping and translation are sourced from the `vep_metadata` collection for the sample's `vep_version`.
 
-| Canonical Key | Platform Label | Impact Classification |
+### Consequence sources in the code
+
+- Raw transcript consequence terms are stored from VEP on each variant.
+- Filter-group options for the UI come from `vep_metadata.consequence_groups`.
+- Report-time wording and translations come from `vep_metadata.conseq_translations`.
+- Query filters expand a selected group such as `missense` or `splicing` into one or more underlying SO terms.
+
+### Common consequence terms
+
+The exact available groups depend on the seeded `vep_metadata` document, but common terms and examples include:
+
+| SO Term | Typical short label | Impact Classification |
 |---|---|---|
 | `splice_acceptor_variant` | `splice acceptor` | `HIGH` |
+| `splice_donor_variant` | `splice donor` | `HIGH` |
+| `stop_gained` | `stop gained` | `HIGH` |
 | `frameshift_variant` | `frameshift` | `HIGH` |
 | `missense_variant` | `missense` | `MODERATE` |
+| `splice_region_variant` | `splice region` | `MODERATE` |
+| `inframe_insertion` | `inframe insertion` | `MODERATE` |
+| `inframe_deletion` | `inframe deletion` | `MODERATE` |
 | `synonymous_variant` | `synonymous` | `LOW` |
+| `intron_variant` | `intron` | `MODIFIER` |
 | `intergenic_variant` | `intergenic` | `MODIFIER` |
+
+### Important behavior
+
+- A single transcript consequence may contain more than one SO term, for example `missense_variant&splice_region_variant`.
+- The DNA review UI splits multi-valued consequences and shows the selected transcript consequence terms directly.
+- Filter groups in `sample.filters.vep_consequences` are version-aware through `sample.vep_version`, not a permanent global list baked into the frontend.
 
 ## Population Frequency Logic
 

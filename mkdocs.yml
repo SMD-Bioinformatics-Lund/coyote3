@@ -63,6 +63,7 @@ nav:
       - Workflow Architecture: api/reference_and_workflows.md
       - Ingestion API: api/ingestion_api.md
       - Sample YAML Guide: api/sample_yaml.md
+      - Sample Input Files: api/sample_input_files.md
       - Collection Reference: api/collection_contracts.md
       - RBAC Mapping: api/collection_operations_and_permissions.md
   - Operations:

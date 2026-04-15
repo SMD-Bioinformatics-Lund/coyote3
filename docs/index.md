@@ -38,6 +38,7 @@ This documentation is grouped by role and task.
 ### For Software Engineers & Developers
 *   **Foundation**: [Local Development Setup](start_here/local_development.md) and [Configuration Model](start_here/configuration.md).
 *   **Architecture**: [System Architecture](architecture/system_overview.md) and [Request Lifecycle](architecture/request_lifecycle.md).
+*   **Ingestion Contracts**: [Sample YAML Guide](api/sample_yaml.md) and [Sample Input Files](api/sample_input_files.md).
 *   **Extending the Platform**: [Adding Features](developer/adding_features.md) and [Schema Contracts](developer/schema_contracts_and_versioning.md).
 
 ### For DevOps & System Administrators

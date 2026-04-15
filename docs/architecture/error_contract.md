@@ -36,23 +36,14 @@ The goal is simple:
 
 ## Why This Exists
 
-Historically, Coyote3 had a mix of:
+The platform uses a normalized error contract so failures are understandable across API and web flows.
 
-- precise domain errors
-- generic `Forbidden`
-- generic `not found`
-- vague page summaries such as `Unable to load DNA findings`
+That means:
 
-That made real operational problems hard to understand, especially when the
-underlying issue was setup-related rather than permission-related.
-
-Examples of bad outcomes:
-
-- missing ASP surfaced as a vague findings-page load error
-- missing ASPC looked like a generic forbidden or config-not-found failure
-- sample scope denials did not explain what scope was violated
-
-The error contract exists to prevent that drift.
+- domain and setup failures should stay specific
+- permission and scope failures should describe the blocked boundary
+- page-level errors should preserve useful API context when it is safe to show
+- internal failures should stay generic at the UI boundary
 
 ## Standard API Error Shape
 

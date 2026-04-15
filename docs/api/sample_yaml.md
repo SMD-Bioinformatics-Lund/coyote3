@@ -4,6 +4,7 @@ This page describes the YAML contract used when ingesting a sample bundle throug
 
 For the exact persisted `samples` collection contract, see [API / Collection Contracts](collection_contracts.md).
 For endpoint usage, see [API / Ingestion API](ingestion_api.md).
+For the raw VCF and JSON file shapes referenced by the YAML, see [API / Sample Input Files](sample_input_files.md).
 
 ## Purpose
 
@@ -126,6 +127,7 @@ Notes:
 - `cov` is used for coverage/gene coverage views.
 - `cnv` and `cnvprofile` are optional but common for panel DNA workflows.
 - `vep_version` should match the annotation version used to produce the VCF.
+- The raw file expectations for `vcf_files`, `cnv`, `cov`, `biomarkers`, and `transloc` are documented in [API / Sample Input Files](sample_input_files.md#dna-raw-input-files).
 
 ## RNA sample YAML
 
@@ -169,6 +171,7 @@ Notes:
 - `expression_path`, `classification_path`, and `qc` are optional but recommended for richer RNA workflows.
 - RNA samples still carry `vep_version` so the sample document stays consistent across omics layers and future downstream consumers.
 - A repo-local example is available at `tests/data/ingest_demo/generic_rna_sample.yaml`.
+- The raw JSON file expectations for `fusion_files`, `expression_path`, `classification_path`, and `qc` are documented in [API / Sample Input Files](sample_input_files.md#rna-raw-input-files).
 
 ## VEP version behavior
 
@@ -180,7 +183,7 @@ Notes:
 
 This means the sample keeps an explicit record of which VEP metadata version should be used when reopening or reporting the sample later.
 
-DNA report generation requires `sample.vep_version`. There is no legacy fallback to older sample fields during report-time consequence resolution.
+DNA report generation reads `sample.vep_version` directly during consequence resolution.
 
 ## Validation reminders
 

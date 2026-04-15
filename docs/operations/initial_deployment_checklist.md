@@ -209,6 +209,8 @@ General first-run command shape:
 scripts/center_first_run.sh \
   --env-file <ENV_FILE> \
   --compose-file <COMPOSE_FILE> \
+  [--with-mongo] \
+  [--with-proxy] \
   [--compose-profile <PROFILE>] \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:<API_PORT>" \
   --admin-username "admin.coyote3" \
@@ -226,7 +228,7 @@ Prod-like local Docker command with compose-managed Mongo:
 scripts/center_first_run.sh \
   --env-file .coyote3_env \
   --compose-file deploy/compose/docker-compose.yml \
-  --compose-profile with-mongo \
+  --with-mongo \
   --api-base-url "http://localhost:5818" \
   --admin-username "admin.coyote3" \
   --admin-email "admin@coyote3.local" \
@@ -277,6 +279,7 @@ Notes:
 - `center_check.sh` sets `increment=true` in the submitted YAML payload to avoid duplicate-sample failures on reruns.
 - On local Docker deployments (`localhost` API), the script auto-stages ingest input files into the API container when needed.
 - In general, ingest file paths in YAML must be readable from inside the API runtime (container/host where API runs), not only from your shell machine.
+- Use [API / Sample YAML Guide](../api/sample_yaml.md) for the manifest contract and [API / Sample Input Files](../api/sample_input_files.md) for the raw file formats behind that manifest.
 
 If you are upgrading an older deployment, run this one-time repair before the ingest check:
 
