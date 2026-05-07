@@ -26,6 +26,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 from bson.objectid import ObjectId
 from coyote.db.base import BaseHandler
 from flask import current_app as app
+from typing import Any
 
 
 # -------------------------------------------------------------------------
@@ -308,10 +309,13 @@ class TranslocsHandler(BaseHandler):
             callidx (int): The index of the annotation to be selected.
             num_calls (int): The total number of annotations available for the translocation.
 
+        Returns:
+            None
+
         """
 
         num_calls = int(num_calls)
-        idx = int(callidx) - 1
+        idx = int(callidx)
 
         update_fields = {}
 

@@ -842,7 +842,13 @@
                     </thead>
                     <tbody>
                       {% for tl in transloc %}
-                        {% set ANN = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
+                        {% set ANN = tl.INFO.MANE_ANN %}
+                        {% if not ANN %}
+                          {% set ANN = (tl.INFO.ANN | selectattr ('selected', 'equalto', 1) | list | first) %} 
+                        {% endif %}
+                        {% if not ANN %}
+                          {% set ANN = tl.INFO.ANN[0] %}
+                        {% endif %}
                         {% set genes = ANN.Gene_Name.split('&') %}
                         {% if tl.interesting %}
                           <tr class="bg-green-100 hover:bg-green-200 border-t border-gray-400 text-left" id="transloc-table-row-interesting">

@@ -1397,7 +1397,7 @@ def save_dna_report(sample_id: str) -> Response:
 
 
 @dna_bp.route(
-    "/<string:sample_id>/transloc/picktransloccall/<string:id>/<string:callidx>/<string:num_calls>",
+    "/<string:sample_id>/transloc/picktransloccall/<string:transloc_id>/<string:callidx>/<string:num_calls>",
     methods=["GET", "POST"],
 )
 @require_sample_access("sample_id")

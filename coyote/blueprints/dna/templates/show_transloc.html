@@ -2,7 +2,13 @@
 
 {% block body %}
 
-{% set sel_ann = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
+{% set sel_ann = tl.INFO.MANE_ANN %}        
+{% if not sel_ann %}
+  {% set sel_ann = (tl.INFO.ANN | selectattr ('selected', 'equalto', 1) | list | first) %} 
+{% endif %}
+{% if not sel_ann %}
+  {% set sel_ann = tl.INFO.ANN[0] %}
+{% endif %}
 {% set genes = sel_ann.Gene_Name.split('&') %}
 
 {% set gene2 = tl.ALT.split(':') %}
@@ -250,6 +256,7 @@
                   <th class="px-1 py-2 font-semibold">Protein Change</th>
                   <th class="px-1 py-2 font-semibold">CDS Change</th>
                   <th class="px-1 py-2 font-semibold">Consequence</th>
+                  <th class="px-1 py-2 font-semibold">Status</th>
                 </tr>
               </thead>
               <tbody id="transloc-alternate-transcripts-info-body" class="{% if tl.INFO.ANN|length > 1 %}border-b border-gray-400 {% endif %}">
@@ -302,7 +309,15 @@
                     <td class="p-2">
                       {% for annot in ann.Annotation%}{{annot}}<br>{% endfor %}
                     </td>
+                    <td class="p-2">
+                      {% if ann.HGVSp == sel_ann.HGVSp %}
+                        <span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-200 rounded-full">Selected</span>
+                      {% else %}
+                       <a href="{{ url_for('dna_bp.pick_transloc_call', sample_id=sample.name, transloc_id=tl._id, callidx=loop.index0, num_calls=tl.INFO.ANN|length) }}" class="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-200 rounded-full hover:bg-blue-300 transition-colors duration-200">Pick</a>
+                      {% endif %}
+                    </td>
                   </tr>
+          
                 {% endfor %}
               </tbody>
             </table>
