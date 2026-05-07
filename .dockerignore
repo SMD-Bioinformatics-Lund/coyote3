@@ -1,2 +1,5 @@
 # Ignore generated files
 **/*.pyc
+*/.coyote3_dev_env
+*/config/db_collections_beta2.toml
+.env_test

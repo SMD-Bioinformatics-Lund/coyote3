@@ -166,3 +166,7 @@ coyote3-core
 
 # CSS
 coyote/static/css/tailwind.css
+.env_test
+config/old_toml
+make_dev_env_key.sh
+docker-compose.dev_saile.yml

@@ -296,3 +296,28 @@ class TranslocsHandler(BaseHandler):
             None
         """
         return self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
+
+    def pick_transloc(self, id, callidx, num_calls) -> Any:
+        """
+        Pick specific translocation annotation from a translocation annotations documents.
+
+        This method updates the 'annotation' field of a translocation document by selecting a specific annotation based on the provided index and total number of calls.
+
+        Args:
+            id (str): The unique identifier of the translocation.
+            callidx (int): The index of the annotation to be selected.
+            num_calls (int): The total number of annotations available for the translocation.
+
+        """
+
+        num_calls = int(num_calls)
+        idx = int(callidx) - 1
+
+        update_fields = {}
+
+        for i in range(num_calls):
+            update_fields["INFO.ANN." + str(i) + ".selected"] = 0
+
+        update_fields["INFO.ANN." + str(idx) + ".selected"] = 1
+
+        self.get_collection().update({"_id": ObjectId(id)}, {"$set": update_fields})

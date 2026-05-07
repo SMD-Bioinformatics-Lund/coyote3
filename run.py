@@ -57,4 +57,4 @@ if __name__ == "__main__":
     log_dir = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
     custom_logging(log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=False)
     app.secret_key = "SomethingSecret"
-    app.run(host="0.0.0.0")
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT_NBR")))

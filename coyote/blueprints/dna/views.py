@@ -1518,3 +1518,28 @@ def save_dna_report(sample_id: str) -> Response:
         app.logger.exception(f"Unexpected error: {exc}")
 
     return redirect(url_for("home_bp.samples_home", reload=True))
+
+
+@dna_bp.route(
+    "/<string:sample_id>/transloc/picktransloccall/<string:id>/<string:callidx>/<string:num_calls>",
+    methods=["GET", "POST"],
+)
+@require_sample_access("sample_id")
+def pick_transloc_call(
+    sample_id: str, transloc_id: str, callidx: str, num_calls: str
+) -> Response | str:
+    """
+    Pick a specific translocation annotation from a list of annotations for a given translocation event.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        transloc_id (str): The unique identifier of the translocation event.
+        callidx (str): The index of the translocation call to pick.
+        num_calls (str): The total number of translocation calls.
+
+    Returns:
+        Response: Redirects to the translocation details page after updating the picked call.
+
+    """
+    store.transloc_handler.pick_transloc(transloc_id, callidx, num_calls)
+    return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))
