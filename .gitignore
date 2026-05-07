@@ -170,3 +170,5 @@ coyote/static/css/tailwind.css
 config/old_toml
 make_dev_env_key.sh
 docker-compose.dev_saile.yml
+.internal
+coyote3_dir_structure.txt

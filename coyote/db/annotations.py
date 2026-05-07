@@ -145,14 +145,17 @@ class AnnotationsHandler(BaseHandler):
                 - annotations_interesting (dict): A dictionary of annotations
                   deemed interesting based on assay and subpanel.
         """
-        genomic_location = (
-            f"{str(variant['CHROM'])}:{str(variant['POS'])}:{variant['REF']}/{variant['ALT']}"
-        )
-        selected_CSQ = variant["INFO"]["selected_CSQ"]
+        try:
+            genomic_location = (
+                f"{str(variant['CHROM'])}:{str(variant['POS'])}:{variant['REF']}/{variant['ALT']}"
+            )
+        except KeyError:
+            genomic_location = ""
+        selected_CSQ = variant.get("INFO", {}).get("selected_CSQ", {})
         hgvsp = unquote(selected_CSQ.get("HGVSp", ""))
         hgvsc = unquote(selected_CSQ.get("HGVSc", ""))
 
-        if len(hgvsp) > 0:
+        if len(hgvsp) > 0 and genomic_location:
             annotations = (
                 self.get_collection()
                 .find(
@@ -174,7 +177,7 @@ class AnnotationsHandler(BaseHandler):
                 .sort("time_created", 1)
             )
 
-        elif len(hgvsc) > 0:
+        elif len(hgvsc) > 0 and genomic_location:
             annotations = (
                 self.get_collection()
                 .find(
@@ -191,7 +194,7 @@ class AnnotationsHandler(BaseHandler):
                 )
                 .sort("time_created", 1)
             )
-        else:
+        elif genomic_location:
             annotations = (
                 self.get_collection()
                 .find(
@@ -203,6 +206,19 @@ class AnnotationsHandler(BaseHandler):
                 )
                 .sort("time_created", 1)
             )
+        elif "breakpoint1" in variant and "breakpoint2" in variant:
+            annotations = (
+                self.get_collection()
+                .find(
+                    {
+                        "nomenclature": "f",
+                        "variant": f"{variant['breakpoint1']}^{variant['breakpoint2']}",
+                    }
+                )
+                .sort("time_created", 1)
+            )
+        else:
+            annotations = []
 
         latest_classification = {"class": 999}
         latest_classification_other = {}
@@ -281,22 +297,34 @@ class AnnotationsHandler(BaseHandler):
             list: A list of annotations that match the query criteria, sorted by the time they were created.
 
         """
-        transcripts = variant["transcripts"]
+        transcripts = variant.get("transcripts", [])
         transcript_patterns = [f"^{transcript}(\\..*)?$" for transcript in transcripts]
-        hgvsp = variant["HGVSp"]
-        hgvsc = variant["HGVSc"]
-        genes = variant["genes"]
-        query = {
-            "gene": {"$in": genes},
-            "transcript": {"$regex": "|".join(transcript_patterns)},
-            "$or": [
-                {"nomenclature": "p", "variant": {"$in": hgvsp}},
-                {"nomenclature": "c", "variant": {"$in": hgvsc}},
-                {"nomenclature": "g", "variant": variant["simple_id"]},
-            ],
-            "assay": assay_group,
-            "class": {"$exists": True},
-        }
+        simple_id = variant.get("simple_id", "")
+        hgvsp = variant.get("HGVSp", "")
+        hgvsc = variant.get("HGVSc", "")
+        genes = variant.get("genes", "")
+        breakpoint1 = variant.get("breakpoint1", "")
+        breakpoint2 = variant.get("breakpoint2", "")
+
+        if simple_id:
+            query = {
+                "gene": {"$in": genes},
+                "transcript": {"$regex": "|".join(transcript_patterns)},
+                "$or": [
+                    {"nomenclature": "p", "variant": {"$in": hgvsp}},
+                    {"nomenclature": "c", "variant": {"$in": hgvsc}},
+                    {"nomenclature": "g", "variant": simple_id},
+                ],
+                "assay": assay_group,
+                "class": {"$exists": True},
+            }
+        else:
+            query = {
+                "nomenclature": "f",
+                "variant": f"{breakpoint1}^{breakpoint2}",
+                "assay": assay_group,
+                "class": {"$exists": True},
+            }
         if assay_group == "solid":
             query["subpanel"] = subpanel
 
@@ -393,6 +421,8 @@ class AnnotationsHandler(BaseHandler):
                     "variant": variant,
                     "assay": variant_data.get("assay_group", None),
                     "gene": variant_data.get("gene", None),
+                    "gene1": variant_data.get("gene1", None),  # this is for fusion
+                    "gene2": variant_data.get("gene2", None),  # this is for fusion
                     "nomenclature": nomenclature,
                     "subpanel": variant_data.get("subpanel", None),
                 }
@@ -400,15 +430,15 @@ class AnnotationsHandler(BaseHandler):
         )
         ## If variant has no match to current assay, it has an historical variant, i.e. not assigned to an assay. THIS IS DANGEROUS, maybe limit to admin?
         if len(classified_docs) == 0 and current_user.is_admin:
-            delete_result = list(
-                self.get_collection().find(  # may be change it to delete later
-                    {
-                        "class": {"$exists": True},
-                        "variant": variant,
-                        "gene": variant_data.get("gene", None),
-                        "nomenclature": nomenclature,
-                    }
-                )
+            delete_result = self.get_collection().find(  # may be change it to delete later
+                {
+                    "class": {"$exists": True},
+                    "variant": variant,
+                    "gene": variant_data.get("gene", None),
+                    "gene1": variant_data.get("gene1", None),  # this is for fusion
+                    "gene2": variant_data.get("gene2", None),  # this is for fusion
+                    "nomenclature": nomenclature,
+                }
             )
         else:
             delete_result = self.get_collection().delete_many(
@@ -417,6 +447,8 @@ class AnnotationsHandler(BaseHandler):
                     "variant": variant,
                     "assay": variant_data.get("assay_group", None),
                     "gene": variant_data.get("gene", None),
+                    "gene1": variant_data.get("gene1", None),  # this is for fusion
+                    "gene2": variant_data.get("gene2", None),  # this is for fusion
                     "nomenclature": nomenclature,
                     "subpanel": variant_data.get("subpanel", None),
                 }

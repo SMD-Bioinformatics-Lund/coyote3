@@ -269,7 +269,11 @@ class ISGLHandler(BaseHandler):
         return self.get_collection().count_documents(query) > 0
 
     def get_isgl_by_asp(
-        self, asp_name: str, is_active: bool | None = None, adhoc: bool | None = None
+        self,
+        asp_name: str,
+        is_active: bool | None = None,
+        adhoc: bool | None = None,
+        list_type: str | None = None,
     ) -> list[dict]:
         """
         Retrieve all gene lists associated with a specific assay panel.
@@ -291,9 +295,11 @@ class ISGLHandler(BaseHandler):
         """
         query = {"assays": asp_name}
         if is_active is not None:
-            query["is_active"]: is_active
+            query["is_active"] = is_active
         if adhoc is not None:
             query["adhoc"] = adhoc
+        if list_type is not None:
+            query["list_type"] = list_type
         projection = {
             "genes": 0,
             "created_on": 0,

@@ -20,6 +20,7 @@ from collections import defaultdict
 from datetime import datetime
 from coyote.util.common_utility import CommonUtility
 from coyote.util.report.report_util import ReportUtility
+from coyote.blueprints.rna.util import RNAUtility
 from flask import current_app as app
 from coyote.extensions import store
 from typing import Any, Dict, List, Optional, Tuple
@@ -162,6 +163,11 @@ class DNAUtility:
         """
         selected_variants = []
         for var_idx, var in enumerate(variants):
+            try:
+                variant = RNAUtility.get_selected_fusioncall(var)
+            except Exception:
+                variant = var
+
             (
                 variants[var_idx]["global_annotations"],
                 variants[var_idx]["classification"],
@@ -708,7 +714,12 @@ class DNAUtility:
             )
 
         if "FUSION" in report_sections:
-            report_sections_data["fusions"] = []
+            fusions = store.transloc_handler.get_interesting_sample_translocations(
+                sample_id=str(sample["_id"])
+            )
+            report_sections_data["fusions"] = fusions
+            # Backward-compatible alias for templates that still read translocs.
+            report_sections_data.setdefault("translocs", fusions)
 
         assay_config["reporting"]["report_header"] = CommonUtility.get_report_header(
             assay_group,

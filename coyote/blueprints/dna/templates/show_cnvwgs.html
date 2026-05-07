@@ -230,7 +230,7 @@
           <div class="bg-transparent w-full max-w-xl" id="commenting-box-card">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
             <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
-              <form action="{{ url_for('dna_bp.add_cnv_comment', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+              <form action="{{ url_for('common_bp.add_cnv_comment', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
                 <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="h-40 w-full p-2 border border-gray-300 rounded-lg focus:bg-yellow-50 mb-4"></textarea><br>
                 <input type="hidden" name="cnvvar" value="{{cnv.chr}}:{{cnv.start}}-{{cnv.end}}">
                 <input type="submit" value="Save" class="bg-blue-500 text-white py-1 px-2 mx-1 mb-1 rounded-lg cursor-pointer shadow-md">&nbsp;&nbsp;

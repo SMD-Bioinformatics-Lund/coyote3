@@ -28,6 +28,9 @@
     coverage2_collection = "panel_cov"
     groupcov_collection = "group_coverage"
     expression_collection = "hpaexpr"
+    rna_expression_collection = "rna_expression"
+    rna_qc_collection = "rna_qc"
+    rna_classification_collection = "rna_classification"
     reported_variants_collection = "reported_variants"
 
 [coyote_dev_3]
@@ -44,7 +47,7 @@
     blacklist_collection = "blacklist"
     samples_collection = "samples"
     variants_collection = "variants"
-    cnvs_collection = "cnvs_wgs"
+    cnvs_collection = "cnvs"
     fusions_collection = "fusions"
     transloc_collection = "transloc"
     biomarkers_collection = "biomarkers"
@@ -62,6 +65,9 @@
     cosmic_collection = "cosmic"
     vep_metadata_collection = "vep_metadata"
     hgnc_collection = "hgnc_genes"
+    rna_expression_collection = "rna_expression"
+    rna_qc_collection = "rna_qc"
+    rna_classification_collection = "rna_classification"
     reported_variants_collection = "reported_variants"
 
 [BAM_Service]
