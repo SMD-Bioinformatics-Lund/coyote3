@@ -131,6 +131,7 @@ def list_fusions(sample_id: str) -> str | Response:
             filters_from_form["fusion_effects"] = util.rna.create_fusioneffectlist(
                 filters_from_form.get("fusion_effects", [])
             )
+            filters_from_form["fusion_description"] = request.form.getlist("fusionannot_term")
             # if there are any adhoc genes for the sample, add them to the form data before saving
             if sample.get("filters", {}).get("adhoc_genes"):
                 filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
@@ -188,7 +189,7 @@ def list_fusions(sample_id: str) -> str | Response:
             "min_spanning_pairs": sample_filters.get("min_spanning_pairs", 0),
             "fusion_effects": fusion_effects,
             "fusion_callers": fusion_callers,
-            "checked_fusionlists": checked_fusionlists,
+            "fusion_description": sample_filters.get("fusion_description", []),
             "filter_genes": filter_genes,
         },
     )

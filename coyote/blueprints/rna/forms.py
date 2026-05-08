@@ -16,9 +16,8 @@ It provides Flask-WTF forms to customize filtering criteria, including fusion li
 """
 
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, IntegerField, FloatField
+from wtforms import BooleanField, IntegerField
 from wtforms.validators import InputRequired, NumberRange, Optional
-from coyote.extensions import store
 
 
 class FusionFilter(FlaskForm):
