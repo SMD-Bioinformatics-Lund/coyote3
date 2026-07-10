@@ -49,6 +49,10 @@ BASE_COLUMNS = [
     "alt",
     "chr_pos",
     "hotspot",
+    "false_positive",
+    "irrelevant",
+    "blacklisted",
+    "interesting",
     "flags",
 ]
 
@@ -178,6 +182,14 @@ def row_for_variant(sample_name: str, variant: dict, genotype_columns: list[str]
         "alt": alt,
         "chr_pos": f"{compact(variant.get('CHROM'))}:{compact(variant.get('POS'))}",
         "hotspot": compact(variant.get("INFO", {}).get("HOTSPOT")),
+        "false_positive": "true" if variant.get("fp") else "false",
+        "irrelevant": "true" if variant.get("irrelevant") else "false",
+        "blacklisted": (
+            "true"
+            if variant.get("blacklist") and not variant.get("override_blacklist")
+            else "false"
+        ),
+        "interesting": "true" if variant.get("interesting") else "false",
         "flags": get_flags(variant),
     }
 
