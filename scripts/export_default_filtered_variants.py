@@ -85,14 +85,17 @@ def load_app(development: bool):
     global build_query, store, util
 
     from coyote import init_app
-    from coyote.blueprints.dna.varqueries import build_query as coyote_build_query
     from coyote.extensions import store as coyote_store
     from coyote.extensions import util as coyote_util
+
+    app = init_app(development=development)
+
+    from coyote.blueprints.dna.varqueries import build_query as coyote_build_query
 
     build_query = coyote_build_query
     store = coyote_store
     util = coyote_util
-    return init_app(development=development)
+    return app
 
 
 def compact(value: Any) -> str:
