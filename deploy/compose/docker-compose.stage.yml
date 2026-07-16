@@ -1,42 +1,23 @@
 name: coyote3-stage
 # usage:
 #   cp deploy/env/example.stage.env .coyote3_stage_env
-#   export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
+#   export COYOTE3_VERSION="$(python3 api/version.py)"
 #   docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml up -d --build
 x-runtime-defaults: &runtime-defaults
   mem_limit: ${COYOTE3_STAGE_CONTAINER_MEM_LIMIT:-2g}
   cpus: ${COYOTE3_STAGE_CONTAINER_CPU_LIMIT:-2.0}
 
 services:
-  coyote3_stage_web:
+  coyote3_stage_frontend:
     <<: *runtime-defaults
-    container_name: coyote3_stage_web_${COYOTE3_VERSION:-local}
-    image: coyote3-web:${COYOTE3_VERSION:-local}
-    build:
-      context: ../..
-      dockerfile: docker/Dockerfile
-      target: coyote3_web
-      network: host
-      args:
-        GIT_COMMIT: ${GIT_COMMIT:-unknown}
-        BUILD_TIME: ${BUILD_TIME:-unknown}
-    ports:
-      - "${COYOTE3_STAGE_WEB_PORT:-8805}:8000"
+    container_name: coyote3_stage_frontend_${COYOTE3_VERSION:-local}
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run build && npm run preview -- --host 0.0.0.0 --port 3000"
     env_file:
       - ../../.coyote3_stage_env
     environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      - FLASK_APP=wsgi
-      - FLASK_DEBUG=0
-      - CACHE_ENABLED=1
-      - CACHE_REQUIRED=1
-      - API_BASE_URL=http://coyote3_stage_api:8001
-      - API_BROWSER_BASE=/api
-      - HELP_CENTER_URL=${HELP_CENTER_URL:-}
       - TZ=Europe/Stockholm
-      - GIT_COMMIT=${GIT_COMMIT:-unknown}
-      - BUILD_TIME=${BUILD_TIME:-unknown}
     restart: always
     dns:
       - ${APP_DNS:-1.1.1.1}
@@ -44,11 +25,7 @@ services:
     networks:
       - coyote3-stage-net
     volumes:
-      - "/access:/access"
-      - "/media:/media"
-      - "/data:/data"
-      - "/fs1:/fs1"
-    command: "gunicorn --config gunicorn.conf.py --bind 0.0.0.0:8000 wsgi:app"
+      - "../../frontend:/app"
     depends_on:
       coyote3_stage_api:
         condition: service_healthy
@@ -61,8 +38,6 @@ services:
       context: ../..
       dockerfile: docker/Dockerfile.docs
       network: host
-    ports:
-      - "${COYOTE3_STAGE_DOCS_PORT:-8809}:8080"
     restart: always
     dns:
       - ${APP_DNS:-1.1.1.1}
@@ -82,8 +57,6 @@ services:
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
-    ports:
-      - "${COYOTE3_STAGE_API_PORT:-8806}:8001"
     env_file:
       - ../../.coyote3_stage_env
     environment:
@@ -105,9 +78,9 @@ services:
     volumes:
       - "/access:/access"
       - "/media:/media"
-      - "/data:/data"
+      - "${COYOTE3_DATA_HOST_ROOT:-/data}:${COYOTE3_DATA_CONTAINER_ROOT:-/data}"
       - "/fs1:/fs1"
-    command: "python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8001 --workers ${API_WORKERS:-4}"
+    command: "python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --workers ${API_WORKERS:-4}"
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=2).read()\""]
       interval: 5s
@@ -115,8 +88,76 @@ services:
       retries: 20
       start_period: 10s
     depends_on:
-      coyote3_stage_mongo:
-        condition: service_healthy
+      coyote3_redis_stage:
+        condition: service_started
+
+  coyote3_stage_worker:
+    <<: *runtime-defaults
+    container_name: coyote3_stage_worker_${COYOTE3_VERSION:-local}
+    image: coyote3-api:${COYOTE3_VERSION:-local}
+    env_file:
+      - ../../.coyote3_stage_env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - CACHE_ENABLED=1
+      - CACHE_REQUIRED=1
+      - TZ=Europe/Stockholm
+      - GIT_COMMIT=${GIT_COMMIT:-unknown}
+      - BUILD_TIME=${BUILD_TIME:-unknown}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://coyote3_redis_stage:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://coyote3_redis_stage:6379/0}
+      - CELERY_INGEST_QUEUE=${CELERY_INGEST_QUEUE:-ingest}
+    restart: always
+    dns:
+      - ${APP_DNS:-1.1.1.1}
+      - 8.8.8.8
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - coyote3-stage-net
+    volumes:
+      - "/access:/access"
+      - "/media:/media"
+      - "${COYOTE3_DATA_HOST_ROOT:-/data}:${COYOTE3_DATA_CONTAINER_ROOT:-/data}"
+      - "/fs1:/fs1"
+    command: "celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=${CELERY_INGEST_QUEUE:-ingest},default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}"
+    depends_on:
+      coyote3_redis_stage:
+        condition: service_started
+
+  coyote3_stage_beat:
+    <<: *runtime-defaults
+    container_name: coyote3_stage_beat_${COYOTE3_VERSION:-local}
+    image: coyote3-api:${COYOTE3_VERSION:-local}
+    env_file:
+      - ../../.coyote3_stage_env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - CACHE_ENABLED=1
+      - CACHE_REQUIRED=1
+      - TZ=Europe/Stockholm
+      - GIT_COMMIT=${GIT_COMMIT:-unknown}
+      - BUILD_TIME=${BUILD_TIME:-unknown}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://coyote3_redis_stage:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://coyote3_redis_stage:6379/0}
+      - CELERY_INGEST_QUEUE=${CELERY_INGEST_QUEUE:-ingest}
+    restart: always
+    dns:
+      - ${APP_DNS:-1.1.1.1}
+      - 8.8.8.8
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - coyote3-stage-net
+    volumes:
+      - "/access:/access"
+      - "/media:/media"
+      - "${COYOTE3_DATA_HOST_ROOT:-/data}:${COYOTE3_DATA_CONTAINER_ROOT:-/data}"
+      - "/fs1:/fs1"
+    command: "celery -A api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO}"
+    depends_on:
       coyote3_redis_stage:
         condition: service_started
 
@@ -124,8 +165,6 @@ services:
     <<: *runtime-defaults
     container_name: coyote3_redis_stage_${COYOTE3_VERSION:-local}
     image: redis:7.4.3
-    ports:
-      - "${COYOTE3_STAGE_REDIS_PORT:-8807}:6379"
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     dns:
@@ -136,10 +175,12 @@ services:
     restart: unless-stopped
     privileged: true
 
+  # Optional local Mongo. Enable with --profile with-mongo.
   coyote3_stage_mongo:
     <<: *runtime-defaults
     container_name: coyote3_stage_mongo_${COYOTE3_VERSION:-local}
     image: mongo:7.0
+    profiles: ["with-mongo"]
     command: ["--bind_ip_all"]
     ports:
       - "${COYOTE3_STAGE_MONGO_PORT:-8808}:27017"
@@ -174,15 +215,14 @@ services:
     <<: *runtime-defaults
     container_name: coyote3_stage_proxy_${COYOTE3_VERSION:-local}
     image: nginx:1.27-alpine
-    profiles: ["with-proxy"]
     ports:
-      - "${COYOTE3_STAGE_PROXY_PORT:-8804}:8088"
+      - "${COYOTE3_STAGE_PORT:-8804}:8088"
     volumes:
       - ./nginx/stage.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - coyote3-stage-net
     depends_on:
-      coyote3_stage_web:
+      coyote3_stage_frontend:
         condition: service_started
       coyote3_stage_api:
         condition: service_healthy

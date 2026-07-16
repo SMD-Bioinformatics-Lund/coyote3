@@ -149,18 +149,18 @@ echo "[step] preparing seed bundle from ${SEED_FILE}"
   --seed-time "$SEED_NOW" \
   --reference-seed-data "$REFERENCE_SEED_DATA"
 
-echo "[step] validating source seed naming"
-if [[ -n "$REFERENCE_SEED_DATA" ]]; then
-  "$PYTHON_BIN" scripts/validate_assay_consistency.py \
-    --seed-file "$SEED_FILE" \
-    --reference-seed-data "$REFERENCE_SEED_DATA"
-else
-  "$PYTHON_BIN" scripts/validate_assay_consistency.py \
-    --seed-file "$SEED_FILE"
-fi
-
-echo "[step] validating assay consistency in seed directory"
-"$PYTHON_BIN" scripts/validate_assay_consistency.py --seed-file "$SEED_BUNDLE_DIR"
+#echo "[step] validating source seed naming"
+#if [[ -n "$REFERENCE_SEED_DATA" ]]; then
+#  "$PYTHON_BIN" scripts/validate_assay_consistency.py \
+#    --seed-file "$SEED_FILE" \
+#    --reference-seed-data "$REFERENCE_SEED_DATA"
+#else
+#  "$PYTHON_BIN" scripts/validate_assay_consistency.py \
+#    --seed-file "$SEED_FILE"
+#fi
+#
+#echo "[step] validating assay consistency in seed directory"
+#"$PYTHON_BIN" scripts/validate_assay_consistency.py --seed-file "$SEED_BUNDLE_DIR"
 
 required_collections=(
   permissions

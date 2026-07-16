@@ -2,14 +2,14 @@ var fs = require("fs");
 var path = require("path");
 
 var repoRoot = path.resolve(__dirname, "..");
-var versionPyPath = path.join(repoRoot, "coyote", "__version__.py");
+var versionPyPath = path.join(repoRoot, "api", "version.py");
 var packageJsonPath = path.join(repoRoot, "package.json");
 
 var versionPy = fs.readFileSync(versionPyPath, "utf8");
 var match = versionPy.match(/__version__\s*=\s*"([^"]+)"/);
 
 if (!match) {
-  console.error("Could not parse __version__ from coyote/__version__.py");
+  console.error("Could not parse __version__ from api/version.py");
   process.exit(1);
 }
 

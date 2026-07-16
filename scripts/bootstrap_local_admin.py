@@ -108,8 +108,6 @@ def _upsert_permission(db, permission_doc: dict) -> None:
         {
             **permission_doc,
             "permission_id": canonical_id,
-            "permission_name": _normalize_permission_id(permission_doc.get("permission_name"))
-            or canonical_id,
         },
     )
     db["permissions"].update_one(
@@ -161,12 +159,10 @@ def _upsert_user(
             "firstname": fullname.split(" ")[0],
             "lastname": " ".join(fullname.split(" ")[1:]) if len(fullname.split(" ")) > 1 else "",
             "job_title": "Center Bootstrap User",
-            "auth_type": "coyote3",
+            "auth_type": ["local"],
             "password": generate_password_hash(password, method="pbkdf2:sha256"),
             "roles": [role_id],
             "is_active": True,
-            "permissions": [],
-            "deny_permissions": [],
             "must_change_password": True,
             "environments": ["production", "development", "testing", "validation"],
             "assay_groups": [assay_group],

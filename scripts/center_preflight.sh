@@ -134,7 +134,7 @@ if app_password and parsed.password and unquote(parsed.password) != app_password
 ' "$ENV_FILE"
 
 echo "[check] endpoint ports"
-for key in COYOTE3_WEB_PORT COYOTE3_API_PORT COYOTE3_STAGE_WEB_PORT COYOTE3_STAGE_API_PORT COYOTE3_DEV_WEB_PORT COYOTE3_DEV_API_PORT; do
+for key in COYOTE3_PORT COYOTE3_STAGE_PORT COYOTE3_DEV_PORT COYOTE3_TEST_PORT; do
   if grep -qE "^${key}=" "$ENV_FILE"; then
     val="$(grep -E "^${key}=" "$ENV_FILE" | tail -n1 | cut -d'=' -f2- | tr -d "'\"")"
     if [[ -n "$val" && ! "$val" =~ ^[0-9]+$ ]]; then

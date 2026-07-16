@@ -22,42 +22,33 @@ fi
 CORE_MIN="${CORE_MIN:-30}"
 SERVICES_MIN="${SERVICES_MIN:-55}"
 ROUTERS_MIN="${ROUTERS_MIN:-60}"
-BLUEPRINTS_MIN="${BLUEPRINTS_MIN:-52}"
 UNIFORM_MIN="${UNIFORM_MIN:-}"
 
 if [[ -n "${UNIFORM_MIN}" ]]; then
   CORE_MIN="${UNIFORM_MIN}"
   SERVICES_MIN="${UNIFORM_MIN}"
   ROUTERS_MIN="${UNIFORM_MIN}"
-  BLUEPRINTS_MIN="${UNIFORM_MIN}"
 fi
 
-echo "[coverage-gates] api/core >= ${CORE_MIN}%"
+echo "[coverage-gates] api/domain/core >= ${CORE_MIN}%"
 "${PYTHON_BIN}" -m pytest -q tests/unit tests/api tests/integration \
-  --cov=api.core \
+  --cov=api.domain.core \
   --cov-config=.coveragerc \
   --cov-report=term-missing \
   --cov-fail-under="${CORE_MIN}"
 
-echo "[coverage-gates] api/services >= ${SERVICES_MIN}%"
+echo "[coverage-gates] api/domains >= ${SERVICES_MIN}%"
 "${PYTHON_BIN}" -m pytest -q tests/unit tests/api \
-  --cov=api.services \
+  --cov=api.domains \
   --cov-config=.coveragerc \
   --cov-report=term-missing \
   --cov-fail-under="${SERVICES_MIN}"
 
-echo "[coverage-gates] api/routers >= ${ROUTERS_MIN}%"
+echo "[coverage-gates] api/interfaces/http >= ${ROUTERS_MIN}%"
 "${PYTHON_BIN}" -m pytest -q tests/api tests/integration \
-  --cov=api.routers \
+  --cov=api.interfaces.http \
   --cov-config=.coveragerc \
   --cov-report=term-missing \
   --cov-fail-under="${ROUTERS_MIN}"
-
-echo "[coverage-gates] coyote/blueprints >= ${BLUEPRINTS_MIN}%"
-"${PYTHON_BIN}" -m pytest -q tests/ui tests/integration \
-  --cov=coyote.blueprints \
-  --cov-config=.coveragerc \
-  --cov-report=term-missing \
-  --cov-fail-under="${BLUEPRINTS_MIN}"
 
 echo "[coverage-gates] All family gates passed."

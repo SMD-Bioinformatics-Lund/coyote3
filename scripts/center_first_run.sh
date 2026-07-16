@@ -12,7 +12,6 @@ Usage:
     --compose-file <path> \
     [--compose-profile <name>] \
     [--with-mongo] \
-    [--with-proxy] \
     --api-base-url <url> \
     --admin-username <username> \
     --admin-email <email> \
@@ -97,7 +96,6 @@ parse_args() {
       --compose-file) COMPOSE_FILE="$2"; shift 2 ;;
       --compose-profile) COMPOSE_PROFILES+=("$2"); shift 2 ;;
       --with-mongo) COMPOSE_PROFILES+=("with-mongo"); shift ;;
-      --with-proxy) COMPOSE_PROFILES+=("with-proxy"); shift ;;
       --api-base-url) API_BASE_URL="$2"; shift 2 ;;
       --admin-username) ADMIN_USERNAME="$2"; shift 2 ;;
       --admin-email) ADMIN_EMAIL="$2"; shift 2 ;;
@@ -153,12 +151,12 @@ resolve_version() {
   if [[ -n "${COYOTE3_VERSION:-}" ]]; then
     return 0
   fi
-  if [[ ! -f "coyote/__version__.py" ]]; then
+  if [[ ! -f "api/version.py" ]]; then
     return 0
   fi
 
   local resolved_version=""
-  if resolved_version="$("$PYTHON_BIN" coyote/__version__.py 2>/dev/null)"; then
+  if resolved_version="$("$PYTHON_BIN" api/version.py 2>/dev/null)"; then
     resolved_version="$(echo "$resolved_version" | tr -d "[:space:]")"
     if [[ -n "$resolved_version" ]]; then
       export COYOTE3_VERSION="$resolved_version"
