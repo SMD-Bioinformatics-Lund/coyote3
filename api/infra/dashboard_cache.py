@@ -1,4 +1,4 @@
-"""Shared helpers for dashboard summary cache/snapshot invalidation."""
+"""Common helpers for dashboard summary cache/snapshot invalidation."""
 
 from __future__ import annotations
 

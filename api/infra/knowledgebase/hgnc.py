@@ -1,23 +1,23 @@
 """
-HGNCHandler module for Coyote3
+HGNCRepository module for Coyote3
 ===============================
 
-This module defines the `HGNCHandler` class used for accessing and managing
+This module defines the `HGNCRepository` class used for accessing and managing
 HGNC gene data in MongoDB.
 
-It is part of the `coyote.db` package and extends the base handler functionality.
+It is part of the MongoDB infrastructure layer.
 """
 
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.infra.mongo.handlers.base import BaseHandler
+from api.infra.mongo.repositories.base import BaseRepository
 
 
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class HGNCHandler(BaseHandler):
+class HGNCRepository(BaseRepository):
     """
     Handler for managing HGNC gene data stored in the coyote database.
 
@@ -29,7 +29,7 @@ class HGNCHandler(BaseHandler):
 
     def __init__(self, adapter):
         """
-        Initialize the handler with a given adapter and bind the collection.
+        Initialize the repository with a given adapter and bind the collection.
         """
         super().__init__(adapter)
         self.set_collection(self.adapter.hgnc_collection)

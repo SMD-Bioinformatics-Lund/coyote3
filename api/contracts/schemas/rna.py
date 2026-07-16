@@ -17,7 +17,7 @@ from api.contracts.schemas.base import (
 class RnaFiltersDoc(_StrictDocBase):
     fusion_callers: list[str] = Field(default_factory=list)
     fusion_effects: list[str] = Field(default_factory=list)
-    fusion_genelists: list[str] = Field(default_factory=list)
+    fusionlists: list[str] = Field(default_factory=list)
     min_spanning_pairs: int = 0
     min_spanning_reads: int = 0
 
@@ -32,7 +32,7 @@ class RnaFiltersDoc(_StrictDocBase):
         for key in {"min_spanning_pairs", "min_spanning_reads"}:
             if key in normalized and normalized[key] is None:
                 normalized.pop(key, None)
-        for key in {"fusion_callers", "fusion_effects", "fusion_genelists"}:
+        for key in {"fusion_callers", "fusion_effects", "fusionlists"}:
             if key in normalized and (
                 normalized[key] is None
                 or (isinstance(normalized[key], list) and len(normalized[key]) == 0)

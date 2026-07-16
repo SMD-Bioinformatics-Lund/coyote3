@@ -21,8 +21,8 @@ class DnaVariantsListPayload(BaseModel):
     assay_panel_doc: dict[str, Any] | None = None
     assay_panels: list[dict[str, Any]]
     all_panel_genelist_names: list[Any]
-    checked_genelists: list[Any]
-    checked_genelists_dict: dict[str, Any]
+    checked_snvlists: list[Any]
+    checked_snvlists_dict: dict[str, Any]
     filter_genes: list[str]
     sample_ids: dict[str, str]
     bam_id: Any

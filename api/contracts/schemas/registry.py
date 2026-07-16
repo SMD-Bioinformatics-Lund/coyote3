@@ -40,10 +40,12 @@ from api.contracts.schemas.reference import (
     VepMetadataDoc,
 )
 from api.contracts.schemas.rna import FusionsDoc, RnaClassificationDoc, RnaExpressionDoc, RnaQcDoc
-from api.contracts.schemas.samples import SamplesDoc
+from api.contracts.schemas.samples import SampleCommentRecordDoc, SampleReportRecordDoc, SamplesDoc
 
 COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "samples": TypeAdapter(SamplesDoc),
+    "sample_comments": TypeAdapter(SampleCommentRecordDoc),
+    "reports": TypeAdapter(SampleReportRecordDoc),
     "variants": TypeAdapter(VariantsDoc),
     "cnvs": TypeAdapter(CnvsDoc),
     "translocations": TypeAdapter(TranslocationsDoc),

@@ -1,4 +1,4 @@
-"""Shared DB document contract primitives."""
+"""Common DB document contract primitives."""
 
 from __future__ import annotations
 

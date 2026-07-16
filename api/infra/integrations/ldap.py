@@ -40,7 +40,7 @@ class LdapManager:
         self._config = config
         ssl_defaults = ssl.get_default_verify_paths()
 
-        # Match old Flask LDAP defaults/behavior exactly.
+        # Preserve the historical LDAP environment variable names used by deployments.
         host = str(config.get("LDAP_HOST") or config.get("LDAP_SERVER") or "localhost")
         if host.startswith("ldap://"):
             host = host[len("ldap://") :]

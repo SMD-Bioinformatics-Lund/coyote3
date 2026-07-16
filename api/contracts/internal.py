@@ -70,6 +70,27 @@ class InternalIngestSampleBundlePayload(BaseModel):
     data_counts: dict[str, int | bool]
 
 
+class InternalTaskSubmitPayload(BaseModel):
+    """Represent an enqueued internal background task."""
+
+    status: str
+    task_id: str
+    task_name: str
+    queue: str
+
+
+class InternalTaskStatusPayload(BaseModel):
+    """Represent Celery task state and optional result metadata."""
+
+    status: str
+    task_id: str
+    state: str
+    ready: bool
+    successful: bool | None = None
+    result: dict[str, Any] | list[Any] | str | int | float | bool | None = None
+    error: str | None = None
+
+
 class InternalCollectionInsertRequest(BaseModel):
     """Represent request body for single document insert."""
 
@@ -130,12 +151,14 @@ class InternalCollectionUpsertRequest(BaseModel):
         json_schema_extra={
             "example": {
                 "collection": "asp_configs",
-                "match": {"aspc_id": "assay_1:production"},
+                "match": {"aspc_id": "assay_1_base_production"},
                 "document": {
-                    "aspc_id": "assay_1:production",
-                    "assay_name": "assay_1",
+                    "aspc_id": "assay_1_base_production",
+                    "asp_id": "assay_1",
+                    "subpanel_id": "base",
                     "environment": "production",
                     "asp_group": "hematology",
+                    "asp_category": "dna",
                     "is_active": True,
                 },
                 "upsert": False,

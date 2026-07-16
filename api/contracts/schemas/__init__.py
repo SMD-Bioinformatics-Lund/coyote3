@@ -47,8 +47,8 @@ from api.contracts.schemas.registry import (
 from api.contracts.schemas.rna import FusionsDoc, RnaClassificationDoc, RnaExpressionDoc, RnaQcDoc
 from api.contracts.schemas.samples import (
     SampleCaseControlDoc,
-    SampleCommentDoc,
-    SampleReportDoc,
+    SampleCommentRecordDoc,
+    SampleReportRecordDoc,
     SamplesDoc,
 )
 
@@ -56,8 +56,8 @@ __all__ = [
     "_DocBase",
     "VersionHistoryEntryDoc",
     "SampleCaseControlDoc",
-    "SampleCommentDoc",
-    "SampleReportDoc",
+    "SampleCommentRecordDoc",
+    "SampleReportRecordDoc",
     "SamplesDoc",
     "VariantCsqDoc",
     "VariantInfoDoc",

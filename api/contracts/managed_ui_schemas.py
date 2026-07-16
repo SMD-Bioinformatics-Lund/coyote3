@@ -9,9 +9,7 @@ from typing import Any, Literal, Union, get_args, get_origin
 from pydantic import BaseModel
 from pydantic.fields import PydanticUndefined
 
-from api.contracts.managed_resources import ManagedResourceSpec
-from api.contracts.schemas import COLLECTION_MODEL_ADAPTERS
-from shared.config_constants import (
+from api.config.constants import (
     ALL_SAMPLE_FILE_KEYS,
     ASP_CATEGORY_OPTIONS,
     ASP_FAMILY_OPTIONS,
@@ -19,11 +17,18 @@ from shared.config_constants import (
     AUTH_TYPE_OPTIONS,
     DNA_ANALYSIS_TYPE_OPTIONS,
     ENVIRONMENT_OPTIONS,
+    GENELIST_ADHOC_TYPE_OPTIONS,
+    GENELIST_STANDARD_TYPE_OPTIONS,
+    GENELIST_TYPE_OPTIONS,
     PERMISSION_CATEGORY_OPTIONS,
     PLATFORM_OPTIONS,
+    READ_MODE_OPTIONS,
     RNA_ANALYSIS_TYPE_OPTIONS,
     SAMPLE_FILE_KEYS,
+    SUBPANEL_BASE_ID,
 )
+from api.contracts.managed_resources import ManagedResourceSpec
+from api.contracts.schemas import COLLECTION_MODEL_ADAPTERS
 
 
 def _unwrap_optional(annotation: Any) -> Any:
@@ -102,6 +107,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         },
         "asp_category": {"display_type": "select", "options": list(ASP_CATEGORY_OPTIONS)},
         "platform": {"display_type": "select", "options": list(PLATFORM_OPTIONS)},
+        "read_mode": {"display_type": "select", "options": list(READ_MODE_OPTIONS)},
         "display_name": {"display_type": "input"},
         "description": {"display_type": "textarea"},
         "expected_files": {
@@ -124,7 +130,25 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "version": {"readonly": True},
     },
     "aspc_dna": {
-        "assay_name": {"display_type": "select"},
+        "asp_id": {
+            "display_type": "select",
+            "label": "ASP",
+            "dynamic_options": {"resource": "asp", "value": "asp_id", "label": "display_name"},
+        },
+        "subpanel_id": {
+            "display_type": "select",
+            "label": "Subpanel",
+            "options": [SUBPANEL_BASE_ID],
+            "default": SUBPANEL_BASE_ID,
+            "dynamic_options": {
+                "resource": "isgl",
+                "value": "subpanel_id",
+                "label": "displayname",
+                "depends_on": "asp_id",
+                "include_base": True,
+            },
+        },
+        "aspc_id": {"readonly": True, "derive_from": ["asp_id", "subpanel_id", "environment"]},
         "asp_group": {"readonly": True},
         "asp_category": {"readonly": True},
         "platform": {"readonly": True},
@@ -141,6 +165,47 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "display_type": "checkbox-group",
             "options": list(DNA_ANALYSIS_TYPE_OPTIONS),
             "default": ["SNV", "CNV"],
+        },
+        "catalog": {
+            "data_type": "json",
+            "label": "Public Catalog Metadata",
+            "display_type": "catalog-structured",
+            "groups": [
+                {
+                    "title": "Public Display",
+                    "fields": [
+                        {
+                            "key": "is_public",
+                            "label": "Show In Public Catalog",
+                            "type": "checkbox",
+                            "default": True,
+                        },
+                        {
+                            "key": "display_order",
+                            "label": "Display Order",
+                            "type": "int",
+                            "default": 100,
+                        },
+                        {"key": "title", "label": "Catalog Title", "type": "text"},
+                        {"key": "description", "label": "Catalog Description", "type": "textarea"},
+                    ],
+                },
+                {
+                    "title": "Operational Metadata",
+                    "fields": [
+                        {"key": "input_material", "label": "Input Material", "type": "text"},
+                        {"key": "tat", "label": "Turnaround Time", "type": "text"},
+                        {"key": "sample_modes", "label": "Sample Modes", "type": "list"},
+                        {
+                            "key": "clinical_indications",
+                            "label": "Clinical Indications",
+                            "type": "list",
+                        },
+                        {"key": "limitations", "label": "Limitations", "type": "textarea"},
+                        {"key": "public_notes", "label": "Public Notes", "type": "textarea"},
+                    ],
+                },
+            ],
         },
         "filters": {
             "data_type": "json",
@@ -223,6 +288,31 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "label": "VEP Consequences",
                             "type": "checkbox-group",
                             "options": [],
+                            "dynamic_options": {"resource": "vep_consequence_groups"},
+                        },
+                        {
+                            "key": "snvlists",
+                            "label": "SNV Gene Lists",
+                            "type": "checkbox-group",
+                            "options": [],
+                            "dynamic_options": {
+                                "resource": "isgl",
+                                "filter": {"list_type": "snv", "adhoc": False},
+                                "value": "isgl_id",
+                                "label": "displayname",
+                            },
+                        },
+                        {
+                            "key": "cnvlists",
+                            "label": "CNV Gene Lists",
+                            "type": "checkbox-group",
+                            "options": [],
+                            "dynamic_options": {
+                                "resource": "isgl",
+                                "filter": {"list_type": "cnv", "adhoc": False},
+                                "value": "isgl_id",
+                                "label": "displayname",
+                            },
                         },
                         {
                             "key": "cnveffects",
@@ -247,7 +337,14 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "type": "checkbox-group",
                             "options": list(DNA_ANALYSIS_TYPE_OPTIONS),
                             "default": ["SNV", "CNV"],
-                        }
+                        },
+                        {
+                            "key": "analysis",
+                            "label": "Available Analysis",
+                            "type": "checkbox-group",
+                            "options": list(DNA_ANALYSIS_TYPE_OPTIONS),
+                            "default": ["SNV", "CNV"],
+                        },
                     ],
                 },
                 {
@@ -298,12 +395,6 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                 },
             ],
         },
-        "query": {
-            "label": "Query Overrides",
-            "display_type": "jsoneditor",
-            "placeholder": "Optional Mongo query overrides. Keys: snv/cnv/fusion/transloc",
-            "default": {},
-        },
         "verification_samples": {"display_type": "jsoneditor"},
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
@@ -313,7 +404,25 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "version": {"readonly": True},
     },
     "aspc_rna": {
-        "assay_name": {"display_type": "select"},
+        "asp_id": {
+            "display_type": "select",
+            "label": "ASP",
+            "dynamic_options": {"resource": "asp", "value": "asp_id", "label": "display_name"},
+        },
+        "subpanel_id": {
+            "display_type": "select",
+            "label": "Subpanel",
+            "options": [SUBPANEL_BASE_ID],
+            "default": SUBPANEL_BASE_ID,
+            "dynamic_options": {
+                "resource": "isgl",
+                "value": "subpanel_id",
+                "label": "displayname",
+                "depends_on": "asp_id",
+                "include_base": True,
+            },
+        },
+        "aspc_id": {"readonly": True, "derive_from": ["asp_id", "subpanel_id", "environment"]},
         "asp_group": {"readonly": True},
         "asp_category": {"readonly": True},
         "platform": {"readonly": True},
@@ -330,6 +439,47 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "display_type": "checkbox-group",
             "options": list(RNA_ANALYSIS_TYPE_OPTIONS),
             "default": ["FUSION"],
+        },
+        "catalog": {
+            "data_type": "json",
+            "label": "Public Catalog Metadata",
+            "display_type": "catalog-structured",
+            "groups": [
+                {
+                    "title": "Public Display",
+                    "fields": [
+                        {
+                            "key": "is_public",
+                            "label": "Show In Public Catalog",
+                            "type": "checkbox",
+                            "default": True,
+                        },
+                        {
+                            "key": "display_order",
+                            "label": "Display Order",
+                            "type": "int",
+                            "default": 100,
+                        },
+                        {"key": "title", "label": "Catalog Title", "type": "text"},
+                        {"key": "description", "label": "Catalog Description", "type": "textarea"},
+                    ],
+                },
+                {
+                    "title": "Operational Metadata",
+                    "fields": [
+                        {"key": "input_material", "label": "Input Material", "type": "text"},
+                        {"key": "tat", "label": "Turnaround Time", "type": "text"},
+                        {"key": "sample_modes", "label": "Sample Modes", "type": "list"},
+                        {
+                            "key": "clinical_indications",
+                            "label": "Clinical Indications",
+                            "type": "list",
+                        },
+                        {"key": "limitations", "label": "Limitations", "type": "textarea"},
+                        {"key": "public_notes", "label": "Public Notes", "type": "textarea"},
+                    ],
+                },
+            ],
         },
         "filters": {
             "data_type": "json",
@@ -371,6 +521,14 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "options": ["in-frame", "out-of-frame"],
                             "default": ["in-frame", "out-of-frame"],
                         },
+                        {
+                            "key": "fusionlists",
+                            "label": "Fusion Gene Lists",
+                            "type": "checkbox-group",
+                            "options": [],
+                            "disabled": True,
+                            "help": "TODO: define fusion genelist partner/breakpoint schema before enabling this selector.",
+                        },
                     ],
                 },
             ],
@@ -387,7 +545,14 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "type": "checkbox-group",
                             "options": list(RNA_ANALYSIS_TYPE_OPTIONS),
                             "default": ["FUSION"],
-                        }
+                        },
+                        {
+                            "key": "analysis",
+                            "label": "Available Analysis",
+                            "type": "checkbox-group",
+                            "options": list(RNA_ANALYSIS_TYPE_OPTIONS),
+                            "default": ["FUSION"],
+                        },
                     ],
                 },
                 {
@@ -438,12 +603,6 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                 },
             ],
         },
-        "query": {
-            "label": "Query Overrides",
-            "display_type": "jsoneditor",
-            "placeholder": "Optional Mongo query overrides. Keys: snv/cnv/fusion/transloc",
-            "default": {},
-        },
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
         "created_on": {"readonly": True},
@@ -454,16 +613,26 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     "isgl": {
         "list_type": {
             "display_type": "checkbox-group",
-            "options": [
-                "small_variant_genelist",
-                "cnv_genelist",
-                "fusion_genelist",
-            ],
+            "options": list(GENELIST_TYPE_OPTIONS),
+            "conditional_options": {
+                "field": "adhoc",
+                "truthy": list(GENELIST_ADHOC_TYPE_OPTIONS),
+                "falsy": list(GENELIST_STANDARD_TYPE_OPTIONS),
+            },
+        },
+        "subpanel_id": {
+            "display_type": "input",
+            "default": SUBPANEL_BASE_ID,
+            "help": "Use 'base' for global assay lists, or a clinical subpanel identifier such as myeloid.",
         },
         "diagnosis": {"display_type": "textarea"},
         "assay_groups": {"display_type": "checkbox-group", "options": list(ASP_GROUP_OPTIONS)},
-        "assays": {"display_type": "checkbox-group"},
+        "assays": {
+            "display_type": "checkbox-group",
+            "dynamic_options": {"resource": "asp", "value": "asp_id", "label": "display_name"},
+        },
         "genes": {"display_type": "jsoneditor-or-upload"},
+        "germline_genes": {"display_type": "jsoneditor-or-upload"},
         "adhoc": {"display_type": "checkbox"},
         "is_public": {"display_type": "checkbox"},
         "is_active": {"display_type": "checkbox", "default": True},
@@ -475,7 +644,6 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     },
     "role": {
         "permissions": {"display_type": "checkbox-group"},
-        "deny_permissions": {"display_type": "checkbox-group"},
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
         "created_on": {"readonly": True},
@@ -484,7 +652,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "version": {"readonly": True},
     },
     "user": {
-        "auth_type": {"display_type": "select", "options": list(AUTH_TYPE_OPTIONS)},
+        "auth_type": {"display_type": "checkbox-group", "options": list(AUTH_TYPE_OPTIONS)},
         "roles": {"display_type": "checkbox-group"},
         "username": {"readonly_mode": ["edit"]},
         "password": {"display_type": "password"},
@@ -494,8 +662,6 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         },
         "assay_groups": {"display_type": "checkbox-group", "options": list(ASP_GROUP_OPTIONS)},
         "assays": {"display_type": "checkbox-group"},
-        "permissions": {"display_type": "checkbox-group"},
-        "deny_permissions": {"display_type": "checkbox-group"},
         "must_change_password": {"display_type": "checkbox"},
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
@@ -527,6 +693,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
                 "asp_family",
                 "asp_category",
                 "platform",
+                "read_mode",
                 "description",
                 "expected_files",
                 "required_files",
@@ -537,46 +704,44 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "aspc_dna": [
-        ("identity", ["assay_name", "environment", "asp_group"]),
+        ("identity", ["asp_id", "subpanel_id", "environment", "asp_group", "asp_category"]),
         ("analysis", ["analysis_types"]),
         ("filters", ["filters"]),
-        ("query", ["query"]),
-        ("reporting", ["reporting", "verification_samples"]),
+        ("reporting", ["catalog", "reporting", "verification_samples"]),
         ("status", ["is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "aspc_rna": [
-        ("identity", ["assay_name", "environment", "asp_group"]),
+        ("identity", ["asp_id", "subpanel_id", "environment", "asp_group", "asp_category"]),
         ("analysis", ["analysis_types"]),
         ("filters", ["filters"]),
-        ("query", ["query"]),
-        ("reporting", ["reporting"]),
+        ("reporting", ["catalog", "reporting"]),
         ("status", ["is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "isgl": [
-        ("identity", ["name", "displayname", "list_type", "diagnosis"]),
+        ("identity", ["name", "displayname", "subpanel_id", "list_type", "diagnosis"]),
         ("assignment", ["assay_groups", "assays"]),
-        ("gene_content", ["genes"]),
+        ("gene_content", ["genes", "germline_genes"]),
         ("status", ["adhoc", "is_public", "is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "user": [
         ("identity", ["firstname", "lastname", "fullname", "username", "email", "job_title"]),
         ("auth", ["auth_type", "password", "must_change_password"]),
-        ("role_access", ["roles", "permissions", "deny_permissions"]),
+        ("role_access", ["roles"]),
         ("scope", ["environments", "assay_groups", "assays"]),
         ("status", ["is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "role": [
         ("identity", ["name", "label", "description", "color", "level"]),
-        ("permissions", ["permissions", "deny_permissions"]),
+        ("permissions", ["permissions"]),
         ("status", ["is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "permission": [
-        ("identity", ["permission_name", "label", "category", "description", "tags"]),
+        ("identity", ["permission_id", "label", "category", "description", "tags"]),
         ("status", ["is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
@@ -584,9 +749,8 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
 
 RESOURCE_EXCLUDED_FIELDS: dict[str, set[str]] = {
     "asp": {"asp_id", "version_history"},
-    "aspc_dna": {"aspc_id", "id_", "version_history"},
+    "aspc_dna": {"id_", "version_history"},
     "aspc_rna": {
-        "aspc_id",
         "id_",
         "version_history",
     },
@@ -601,7 +765,7 @@ RESOURCE_EXCLUDED_FIELDS: dict[str, set[str]] = {
         "password_action_issued_by",
     },
     "role": {"role_id", "version_history"},
-    "permission": {"permission_id", "version_history"},
+    "permission": {"version_history"},
 }
 
 

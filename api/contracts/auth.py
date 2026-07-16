@@ -24,14 +24,26 @@ class ApiSessionDeleteResponse(BaseModel):
     status: str = Field(default="ok")
 
 
+class ApiStatusResponse(BaseModel):
+    """Represent a simple successful API status response."""
+
+    status: str = Field(default="ok")
+
+
+class ApiPasswordChangeResponse(ApiStatusResponse):
+    """Represent a successful password change response."""
+
+    username: str
+
+
 class ApiAuthWhoAmIResponse(BaseModel):
     """Represent the api auth who am i response payload."""
 
     username: str
+    roles: list[str]
     role: str
     access_level: int
     permissions: list[str]
-    denied_permissions: list[str]
 
 
 class ApiPasswordChangeRequest(BaseModel):

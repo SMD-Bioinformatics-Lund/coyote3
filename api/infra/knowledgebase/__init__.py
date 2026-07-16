@@ -1,1 +1,1 @@
-"""Knowledgebase handlers for annotation and curation datasets."""
+"""Knowledgebase repositories for annotation and curation datasets."""

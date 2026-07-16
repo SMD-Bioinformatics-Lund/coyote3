@@ -6,31 +6,31 @@ from dataclasses import dataclass
 from typing import Any
 
 from api.config import get_enabled_knowledgebase_plugins
-from api.infra.knowledgebase.brcaexchange import BRCAHandler
-from api.infra.knowledgebase.civic import CivicHandler
-from api.infra.knowledgebase.cosmic import CosmicHandler
-from api.infra.knowledgebase.hgnc import HGNCHandler
-from api.infra.knowledgebase.iarc_tp53 import IARCTP53Handler
-from api.infra.knowledgebase.oncokb import OnkoKBHandler
+from api.infra.knowledgebase.brcaexchange import BRCARepository
+from api.infra.knowledgebase.civic import CivicRepository
+from api.infra.knowledgebase.cosmic import CosmicRepository
+from api.infra.knowledgebase.hgnc import HGNCRepository
+from api.infra.knowledgebase.iarc_tp53 import IARCTP53Repository
+from api.infra.knowledgebase.oncokb import OnkoKBRepository
 
 
 @dataclass(frozen=True)
 class KnowledgebasePlugin:
-    """Describe one optional knowledgebase handler binding."""
+    """Describe one optional knowledgebase repository binding."""
 
     name: str
-    handler_attr: str
-    handler_cls: type
+    repository_attr: str
+    repository_cls: type
     index_name: str
 
 
 KNOWLEDGEBASE_PLUGINS: tuple[KnowledgebasePlugin, ...] = (
-    KnowledgebasePlugin("civic", "civic_handler", CivicHandler, "civic"),
-    KnowledgebasePlugin("iarc_tp53", "iarc_tp53_handler", IARCTP53Handler, "iarc_tp53"),
-    KnowledgebasePlugin("brca", "brca_handler", BRCAHandler, "brca"),
-    KnowledgebasePlugin("oncokb", "oncokb_handler", OnkoKBHandler, "oncokb"),
-    KnowledgebasePlugin("cosmic", "cosmic_handler", CosmicHandler, "cosmic"),
-    KnowledgebasePlugin("hgnc", "hgnc_handler", HGNCHandler, "hgnc"),
+    KnowledgebasePlugin("civic", "civic_repository", CivicRepository, "civic"),
+    KnowledgebasePlugin("iarc_tp53", "iarc_tp53_repository", IARCTP53Repository, "iarc_tp53"),
+    KnowledgebasePlugin("brca", "brca_repository", BRCARepository, "brca"),
+    KnowledgebasePlugin("oncokb", "oncokb_repository", OnkoKBRepository, "oncokb"),
+    KnowledgebasePlugin("cosmic", "cosmic_repository", CosmicRepository, "cosmic"),
+    KnowledgebasePlugin("hgnc", "hgnc_repository", HGNCRepository, "hgnc"),
 )
 
 

@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from pydantic import BaseModel, ConfigDict
 
 
-@dataclass(frozen=True)
-class ManagedResourceSpec:
+class ManagedResourceSpec(BaseModel):
+    """Represent a managed resource descriptor."""
+
+    model_config = ConfigDict(frozen=True)
+
     resource: str
     key: str
     collection: str

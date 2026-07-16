@@ -6,15 +6,15 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-from pydantic import AliasChoices, Field, field_validator
+from pydantic import Field, field_validator
 
-from api.contracts.schemas.base import VersionHistoryEntryDoc, _StrictDocBase
-from shared.config_constants import (
+from api.config.constants import (
     normalize_asp_group,
-    normalize_auth_type,
+    normalize_auth_types,
     normalize_environment,
     normalize_permission_category,
 )
+from api.contracts.schemas.base import VersionHistoryEntryDoc, _StrictDocBase
 
 
 class UsersDoc(_StrictDocBase):
@@ -24,7 +24,7 @@ class UsersDoc(_StrictDocBase):
     lastname: str
     fullname: str
     job_title: str
-    auth_type: str | None = "coyote3"
+    auth_type: list[str] = Field(default_factory=lambda: ["ldap"])
     password: str | None = None
     last_login: datetime | None = None
     must_change_password: bool = False
@@ -39,17 +39,11 @@ class UsersDoc(_StrictDocBase):
     assays: list[str] = Field(default_factory=list)
     assay_groups: list[str] = Field(default_factory=list)
     is_active: bool = True
-    permissions: list[str] = Field(default_factory=list)
-    deny_permissions: list[str] = Field(
-        validation_alias=AliasChoices("deny_permissions", "denied_permissions"),
-        default_factory=list,
-    )
     version: int = 1
     created_by: str | None = None
     created_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_by: str | None = None
     updated_on: datetime | None = None
-    version_history: list[VersionHistoryEntryDoc] = Field(default_factory=list)
 
     @field_validator("email")
     @classmethod
@@ -88,8 +82,8 @@ class UsersDoc(_StrictDocBase):
 
     @field_validator("auth_type", mode="before")
     @classmethod
-    def _normalize_auth_type(cls, value: Any) -> str:
-        return normalize_auth_type(value or "coyote3")
+    def _normalize_auth_type(cls, value: Any) -> list[str]:
+        return normalize_auth_types(value)
 
     @field_validator("environments", mode="before")
     @classmethod
@@ -125,11 +119,10 @@ class RolesDoc(_StrictDocBase):
     name: str
     label: str
     description: str | None = None
-    color: str  # yes
-    level: int | float  # yes
+    color: str
+    level: int | float
     is_active: bool = True
     permissions: list[str] = Field(default_factory=list)
-    deny_permissions: list[str] = Field(default_factory=list)
     version: int = 1
     created_by: str | None = None
     created_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -137,14 +130,30 @@ class RolesDoc(_StrictDocBase):
     updated_on: datetime | None = None
     version_history: list[VersionHistoryEntryDoc] = Field(default_factory=list)
 
+    @field_validator("role_id", "name", mode="before")
+    @classmethod
+    def _normalize_role_id(cls, value: Any) -> str:
+        normalized = str(value or "").strip().lower()
+        if not normalized:
+            raise ValueError("role_id/name is required")
+        if not re.fullmatch(r"[a-z0-9]+(?:[._-][a-z0-9]+)*", normalized):
+            raise ValueError(
+                "role identifiers may contain lowercase letters, numbers, '.', '_' and '-'"
+            )
+        return normalized
+
+    @field_validator("permissions", mode="before")
+    @classmethod
+    def _normalize_permissions(cls, value: Any) -> list[str]:
+        return _normalize_permission_ids(value)
+
 
 class PermissionsDoc(_StrictDocBase):
     permission_id: str
-    permission_name: str
     label: str
     category: str
     description: str | None = None
-    tags: list[str]
+    tags: list[str] = Field(default_factory=list)
     is_active: bool = True
     version: int = 1
     created_by: str | None = None
@@ -157,3 +166,28 @@ class PermissionsDoc(_StrictDocBase):
     @classmethod
     def _normalize_category(cls, value: Any) -> str:
         return normalize_permission_category(value)
+
+    @field_validator("permission_id", mode="before")
+    @classmethod
+    def _normalize_permission_id(cls, value: Any) -> str:
+        permission_id = str(value or "").strip().lower()
+        if not permission_id:
+            raise ValueError("permission_id is required")
+        if not re.fullmatch(r"[a-z0-9_.]+:[a-z0-9_.]+(?::[a-z0-9_.]+)*", permission_id):
+            raise ValueError("permission_id must use resource:action[:scope] format")
+        return permission_id
+
+
+def _normalize_permission_ids(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (str, bytes)):
+        value = [value]
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in value:
+        permission_id = str(item or "").strip().lower()
+        if permission_id and permission_id not in seen:
+            normalized.append(permission_id)
+            seen.add(permission_id)
+    return normalized

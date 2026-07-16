@@ -1,27 +1,27 @@
 """
-IARCTP53Handler module for Coyote3
+IARCTP53Repository module for Coyote3
 ==================================
 
-This module defines the `IARCTP53Handler` class used for accessing and managing
+This module defines the `IARCTP53Repository` class used for accessing and managing
 TP53 variant data in MongoDB.
 
-It is part of the `coyote.db` package and extends the base handler functionality.
+It is part of the MongoDB infrastructure layer.
 """
 
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.infra.mongo.handlers.base import BaseHandler
+from api.infra.mongo.repositories.base import BaseRepository
 
 
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class IARCTP53Handler(BaseHandler):
+class IARCTP53Repository(BaseRepository):
     """
-    The `IARCTP53Handler` class is designed to manage and interact with TP53 variant data
+    The `IARCTP53Repository` class is designed to manage and interact with TP53 variant data
     stored in the IARC TP53 collection within a MongoDB database. It extends the functionality
-    of the `BaseHandler` class and provides specialized methods for querying, retrieving,
+    of the `BaseRepository` class and provides specialized methods for querying, retrieving,
     and processing TP53-related variant information.
 
     This handler is particularly useful for applications that require access to curated
@@ -31,7 +31,7 @@ class IARCTP53Handler(BaseHandler):
 
     def __init__(self, adapter):
         """
-        Initialize the handler with a given adapter and bind the collection.
+        Initialize the repository with a given adapter and bind the collection.
         """
         super().__init__(adapter)
         self.set_collection(self.adapter.iarc_tp53_collection)

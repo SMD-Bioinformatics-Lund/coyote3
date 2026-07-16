@@ -3,6 +3,7 @@
 arrow==1.4.0
 bleach==6.3.0
 Brotli==1.2.0
+celery==5.5.3
 colorlog==6.10.1
 cffi==2.0.0
 click==8.3.2
@@ -50,3 +51,4 @@ weasyprint==68.1
 webencodings==0.5.1
 Werkzeug==3.1.8
 WTForms==3.2.1
+casbin==1.36.1

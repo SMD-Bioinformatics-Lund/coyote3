@@ -187,3 +187,36 @@ def get_api_session_cookie_secure(config: Mapping[str, Any]) -> bool:
         ``True`` when the session cookie should only be sent over HTTPS.
     """
     return to_bool(config.get("SESSION_COOKIE_SECURE"), default=not _is_non_production(config))
+
+
+def get_api_session_cookie_samesite(config: Mapping[str, Any]) -> str:
+    """Return the session cookie SameSite policy."""
+    value = str(config.get("API_SESSION_COOKIE_SAMESITE") or "lax").strip().lower()
+    return value if value in {"lax", "strict", "none"} else "lax"
+
+
+def get_api_sessions_collection_name(config: Mapping[str, Any]) -> str:
+    """Return the MongoDB collection used for API sessions."""
+    return str(config.get("API_SESSIONS_COLLECTION") or "api_sessions")
+
+
+def get_audit_events_collection_name(config: Mapping[str, Any]) -> str:
+    """Return the MongoDB collection used for durable audit events."""
+    return str(config.get("AUDIT_EVENTS_COLLECTION") or "audit_events")
+
+
+def get_audit_retention_days(config: Mapping[str, Any]) -> int:
+    """Return audit retention in days."""
+    try:
+        return int(config.get("AUDIT_RETENTION_DAYS", 730))
+    except (TypeError, ValueError):
+        return 730
+
+
+def get_runtime_environment(config: Mapping[str, Any]) -> str:
+    """Return the normalized runtime environment label."""
+    if to_bool(config.get("TESTING"), False):
+        return "test"
+    if to_bool(config.get("DEVELOPMENT"), False):
+        return "development"
+    return str(config.get("ENVIRONMENT") or config.get("PROFILE") or "production").strip().lower()

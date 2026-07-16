@@ -15,10 +15,10 @@ class WhoamiPayload(BaseModel):
     """Represent the whoami payload."""
 
     username: str
+    roles: list[str]
     role: str
     access_level: int
     permissions: list[str]
-    denied_permissions: list[str]
 
 
 class AuthUserEnvelope(BaseModel):

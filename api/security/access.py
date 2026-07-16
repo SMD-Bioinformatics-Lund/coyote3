@@ -4,34 +4,36 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from dataclasses import dataclass
-from functools import lru_cache
 
 from fastapi import HTTPException, Request
-from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
-from api.core.models.user import UserModel
-from api.deps.handlers import (
-    get_roles_handler,
-    get_sample_handler,
-    get_user_handler,
+from api.app.deps.repositories import (
+    get_permissions_repository,
+    get_roles_repository,
+    get_sample_repository,
+    get_user_repository,
 )
-from api.runtime_state import app as runtime_app
-from api.runtime_state import reset_current_user, set_current_user
+from api.app.deps.services import get_api_session_repository
+from api.app.runtime_state import app as runtime_app
+from api.app.runtime_state import reset_current_user, set_current_user
+from api.domain.core.models.user import UserModel
 from api.security.audit_events import emit_access_event
 from api.security.auth_service import _load_user_access_context
-from api.settings import (
-    get_api_secret_key,
-    get_api_session_salt,
-    get_internal_api_token,
-)
+from api.security.policy import build_access_policy
 from api.settings import (
     get_api_session_cookie_name as settings_session_cookie_name,
+)
+from api.settings import (
+    get_api_session_cookie_samesite as settings_session_cookie_samesite,
 )
 from api.settings import (
     get_api_session_cookie_secure as settings_session_cookie_secure,
 )
 from api.settings import (
     get_api_session_ttl_seconds as settings_session_ttl_seconds,
+)
+from api.settings import (
+    get_internal_api_token,
 )
 
 PUBLIC_API_EXACT_PATHS = {
@@ -62,12 +64,11 @@ class ApiUser:
     role: str
     access_level: int
     permissions: list[str]
-    denied_permissions: list[str]
     assays: list[str]
     assay_groups: list[str]
     envs: list[str]
     asp_map: dict
-    auth_type: str = "coyote3"
+    auth_type: list[str]
     must_change_password: bool = False
 
     @property
@@ -146,8 +147,6 @@ def _audit_access_event(
     request: Request | None = None,
     user: ApiUser | None = None,
     permission: str | None = None,
-    min_level: int | None = None,
-    min_role: str | None = None,
     sample_id: str | None = None,
     extra: dict | None = None,
 ) -> None:
@@ -159,8 +158,6 @@ def _audit_access_event(
         request: Active request, when available.
         user: Authenticated user, when available.
         permission: Required permission, when applicable.
-        min_level: Minimum required access level.
-        min_role: Minimum required role.
         sample_id: Related sample identifier.
         extra: Additional structured metadata to emit.
     """
@@ -172,19 +169,8 @@ def _audit_access_event(
         roles=user.roles if user else None,
         role=user.role if user else None,
         permission=permission,
-        min_level=min_level,
-        min_role=min_role,
         sample_id=sample_id,
         extra=extra,
-    )
-
-
-@lru_cache(maxsize=1)
-def _api_session_serializer() -> URLSafeTimedSerializer:
-    """Return the serializer used for signed API session tokens."""
-    return URLSafeTimedSerializer(
-        secret_key=get_api_secret_key(runtime_app.config),
-        salt=get_api_session_salt(runtime_app.config),
     )
 
 
@@ -215,29 +201,36 @@ def get_api_session_cookie_secure() -> bool:
     return settings_session_cookie_secure(runtime_app.config)
 
 
-def create_api_session_token(username: str) -> str:
-    """Create a signed API session token for a user.
+def get_api_session_cookie_samesite() -> str:
+    """Return the API session cookie SameSite policy."""
+    return settings_session_cookie_samesite(runtime_app.config)
+
+
+def create_api_session_token(username: str, *, provider: str | None = None) -> str:
+    """Create an opaque Mongo-backed API session token for a user.
 
     Args:
         username: Username to embed in the token.
 
     Returns:
-        str: Signed session token.
+        str: Opaque session token.
     """
-    return str(_api_session_serializer().dumps({"uid": str(username).strip().lower()}))
+    user_doc = get_user_repository().user_with_id(str(username).strip().lower())
+    if not user_doc or not user_doc.get("is_active", True):
+        raise _api_error(401, "Login required")
+    user = api_user_from_user_doc(user_doc)
+    session_provider = provider or (user.auth_type[0] if user.auth_type else "ldap")
+    session = get_api_session_repository().create(user, provider=session_provider)
+    return session.token
 
 
-def _role_levels() -> dict[str, int]:
-    """Return access levels keyed by role identifier."""
-    roles_handler = get_roles_handler()
-    return {
-        role.get("role_id"): role.get("level", 0)
-        for role in (roles_handler.get_all_roles() or [])
-        if role.get("role_id")
-    }
+def delete_api_session_token(token: str | None) -> None:
+    """Delete an opaque API session token when present."""
+    if token:
+        get_api_session_repository().delete(token)
 
 
-def _api_user_from_doc(user_doc: dict) -> ApiUser:
+def api_user_from_user_doc(user_doc: dict) -> ApiUser:
     """Build an ``ApiUser`` from the stored user document.
 
     Args:
@@ -257,12 +250,11 @@ def _api_user_from_doc(user_doc: dict) -> ApiUser:
         role=user_model.role,
         access_level=user_model.access_level,
         permissions=list(user_model.permissions),
-        denied_permissions=list(user_model.denied_permissions),
         assays=list(user_model.assays),
         assay_groups=list(user_model.assay_groups),
         envs=list(user_model.envs),
         asp_map=dict(user_model.asp_map),
-        auth_type=str(getattr(user_model, "auth_type", "coyote3") or "coyote3"),
+        auth_type=list(getattr(user_model, "auth_type", ["ldap"]) or ["ldap"]),
         must_change_password=bool(getattr(user_model, "must_change_password", False)),
     )
 
@@ -285,7 +277,6 @@ def serialize_api_user(user: ApiUser) -> dict:
         "role": user.role,
         "access_level": user.access_level,
         "permissions": sorted(user.permissions),
-        "denied_permissions": sorted(user.denied_permissions),
         "assays": sorted(user.assays),
         "assay_groups": sorted(user.assay_groups),
         "envs": sorted(user.envs),
@@ -323,63 +314,50 @@ def _decode_session_user(request: Request) -> ApiUser:
     """
     api_token = _extract_api_session_token(request)
     if api_token:
-        try:
-            token_data = _api_session_serializer().loads(
-                api_token,
-                max_age=get_api_session_ttl_seconds(),
-            )
-        except SignatureExpired:
+        session = get_api_session_repository().get(api_token)
+        if session is None:
             raise _api_error(401, "Login required")
-        except BadSignature:
-            raise _api_error(401, "Login required")
-
-        username = token_data.get("uid")
-        if not username:
-            raise _api_error(401, "Login required")
-
-        user_doc = get_user_handler().user_with_id(str(username))
-        if not user_doc or not user_doc.get("is_active", True):
-            raise _api_error(401, "Login required")
-        return _api_user_from_doc(user_doc)
+        return session.user
     raise _api_error(401, "Login required")
 
 
 def _enforce_access(
     user: ApiUser,
     permission: str | None = None,
-    min_level: int | None = None,
-    min_role: str | None = None,
+    context: dict | None = None,
 ) -> None:
-    """Enforce permission, level, or role requirements for a user.
+    """Enforce permission and optional resource-scope requirements for a user.
 
     Args:
         user: Authenticated user to evaluate.
         permission: Required permission, when applicable.
-        min_level: Minimum required access level.
-        min_role: Minimum required role.
+        context: Resource attributes for ABAC scope checks.
     """
-    resolved_role_level = 0
     if user.is_superuser:
         return
-    if min_role:
-        resolved_role_level = _role_levels().get(min_role, 0)
+    if not permission and not context:
+        return
 
-    permission_ok = (
-        permission is not None
-        and permission in user.permissions
-        and permission not in user.denied_permissions
+    policy = build_access_policy(
+        user=user,
+        roles_repository=get_roles_repository(),
+        permissions_repository=get_permissions_repository(),
     )
-    level_ok = min_level is not None and user.access_level >= min_level
-    role_ok = min_role is not None and user.access_level >= resolved_role_level
 
-    if permission or min_level is not None or min_role:
-        if not (permission_ok or level_ok or role_ok):
-            raise _api_error(
-                403,
-                "Access denied",
-                "You do not satisfy the required permission, role, or access-level policy.",
-                category="auth",
-            )
+    if permission and not policy.permission_allowed(user, permission, context=context):
+        raise _api_error(
+            403,
+            "Access denied",
+            "You do not satisfy the required permission policy.",
+            category="auth",
+        )
+    if context and not policy.scope_allowed(user, context):
+        raise _api_error(
+            403,
+            "Access denied",
+            "You do not satisfy the required attribute-scope policy.",
+            category="scope",
+        )
 
 
 def require_authenticated(request: Request) -> ApiUser:
@@ -400,17 +378,11 @@ def resolve_request_user(request: Request) -> ApiUser | None:
         return None
 
 
-def require_access(
-    permission: str | None = None,
-    min_level: int | None = None,
-    min_role: str | None = None,
-):
+def require_access(permission: str | None = None):
     """Build a dependency that enforces route-level access requirements.
 
     Args:
         permission: Required permission, when applicable.
-        min_level: Minimum required access level.
-        min_role: Minimum required role.
 
     Returns:
         Callable: FastAPI dependency that yields the authenticated user.
@@ -428,7 +400,7 @@ def require_access(
         user: ApiUser | None = None
         try:
             user = _decode_session_user(request)
-            _enforce_access(user, permission=permission, min_level=min_level, min_role=min_role)
+            _enforce_access(user, permission=permission)
         except HTTPException as exc:
             _audit_access_event(
                 status="denied",
@@ -436,8 +408,6 @@ def require_access(
                 request=request,
                 user=user,
                 permission=permission,
-                min_level=min_level,
-                min_role=min_role,
             )
             raise
         _audit_access_event(
@@ -446,8 +416,6 @@ def require_access(
             request=request,
             user=user,
             permission=permission,
-            min_level=min_level,
-            min_role=min_role,
         )
         token = set_current_user(user)
         try:
@@ -469,10 +437,10 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
     Returns:
         dict: Sample payload authorized for the user.
     """
-    sample_handler = get_sample_handler()
-    sample = sample_handler.get_sample(sample_id)
+    sample_repository = get_sample_repository()
+    sample = sample_repository.get_sample(sample_id)
     if not sample:
-        sample = sample_handler.get_sample_by_id(sample_id)
+        sample = sample_repository.get_sample_by_id(sample_id)
     if not sample:
         _audit_access_event(
             status="denied",
@@ -485,7 +453,22 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
         raise _api_error(404, "Sample not found", category="not_found")
 
     sample_assay = sample.get("assay", "")
-    if sample_assay not in set(user.assays or []) and not user.is_superuser:
+    if not user.is_superuser:
+        policy = build_access_policy(
+            user=user,
+            roles_repository=get_roles_repository(),
+            permissions_repository=get_permissions_repository(),
+        )
+        sample_scope = {
+            "assay": sample_assay,
+            "profile": sample.get("profile") or sample.get("environment"),
+            "assay_group": sample.get("assay_group"),
+        }
+        scope_allowed = policy.scope_allowed(user, sample_scope)
+    else:
+        scope_allowed = True
+
+    if not scope_allowed and sample_assay not in set(user.assays or []):
         _audit_access_event(
             status="denied",
             reason="Forbidden",
@@ -503,6 +486,26 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
             ),
             category="scope",
             hint="Ask an administrator to assign the assay to your user, or use a superuser account.",
+        )
+    if not scope_allowed:
+        _audit_access_event(
+            status="denied",
+            reason="Forbidden",
+            request=request,
+            user=user,
+            sample_id=sample_id,
+            extra={
+                "sample_assay": sample_assay,
+                "sample_profile": sample.get("profile") or sample.get("environment"),
+                "sample_assay_group": sample.get("assay_group"),
+            },
+        )
+        raise _api_error(
+            403,
+            f"Sample '{sample_id}' is outside your access scope",
+            "The sample attributes do not match your assigned assay, environment, or assay-group scope.",
+            category="scope",
+            hint="Ask an administrator to update your sample access scope.",
         )
     return sample
 

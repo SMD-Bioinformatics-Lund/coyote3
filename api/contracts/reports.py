@@ -27,6 +27,7 @@ class ReportPreviewBody(BaseModel):
 
     template: str
     context: dict[str, Any]
+    html: str
     snapshot_rows: list[Any]
 
 
@@ -44,6 +45,7 @@ class ReportSaveBody(BaseModel):
     id: str
     oid: str
     file: str
+    pdf_file: str | None = None
     snapshot_count: int
 
 

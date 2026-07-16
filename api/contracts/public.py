@@ -21,6 +21,9 @@ class PublicAspGenesPayload(BaseModel):
     """Represent the public asp genes payload."""
 
     asp_id: str
+    asp: dict[str, Any] = {}
+    catalog: dict[str, Any] = {}
+    stats: dict[str, Any] = {}
     gene_details: list[dict[str, Any]]
     germline_gene_symbols: list[str]
 
@@ -41,6 +44,12 @@ class PublicAssayCatalogMatrixPayload(BaseModel):
     cat_spans: dict[str, int]
     genes: list[str]
     matrix: dict[str, Any]
+    page: int = 1
+    per_page: int = 100
+    total: int = 0
+    search: str | None = None
+    has_next: bool = False
+    has_previous: bool = False
 
 
 class PublicAssayCatalogPayload(BaseModel):
@@ -64,3 +73,11 @@ class PublicAssayCatalogGenesCsvPayload(BaseModel):
 
     filename: str
     content: str
+
+
+class PublicFilterFlagMetadataPayload(BaseModel):
+    """Represent center-configurable filter flag metadata."""
+
+    exact: dict[str, Any]
+    prefixes: dict[str, Any]
+    terms: dict[str, Any]

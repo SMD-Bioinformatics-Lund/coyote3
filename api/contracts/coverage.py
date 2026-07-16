@@ -13,7 +13,7 @@ class CoverageSamplePayload(BaseModel):
     coverage: dict[str, Any]
     cov_cutoff: int
     sample: dict[str, Any]
-    genelists: list[str]
+    snvlists: list[str]
     smp_grp: str
     cov_table: dict[str, dict[str | int, Any]]
 

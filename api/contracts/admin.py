@@ -208,3 +208,18 @@ class AdminSampleContextPayload(BaseModel):
     """Represent the admin sample context payload."""
 
     sample: dict[str, Any]
+
+
+class AdminSchemasPayload(BaseModel):
+    """Represent registered document schema contracts for admin inspection."""
+
+    schemas: list[dict[str, Any]]
+    total: int
+
+
+class AdminAuditPayload(BaseModel):
+    """Represent audit log rows read from configured audit log files."""
+
+    events: list[dict[str, Any]]
+    total: int
+    log_dir: str | None = None

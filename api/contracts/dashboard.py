@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class DashboardSummaryPayload(BaseModel):
@@ -25,3 +25,9 @@ class DashboardSummaryPayload(BaseModel):
     capacity_counts: dict[str, Any] = {}
     isgl_visibility: dict[str, Any] = {}
     isgl_association: dict[str, Any] = {}
+
+
+class DashboardAdminInsightsPayload(BaseModel):
+    """Represent flexible administrative dashboard insight payloads."""
+
+    model_config = ConfigDict(extra="allow")

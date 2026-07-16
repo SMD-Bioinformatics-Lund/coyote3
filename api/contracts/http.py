@@ -1,4 +1,4 @@
-"""Shared HTTP contracts for REST responses and validation errors."""
+"""Common HTTP contracts for REST responses and validation errors."""
 
 from __future__ import annotations
 

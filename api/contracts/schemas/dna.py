@@ -28,13 +28,10 @@ class DnaFiltersDoc(_StrictDocBase):
     warn_cov: int = Field(default=100, ge=0)
     error_cov: int = Field(default=10, ge=0)
 
-    genelists: list[str] = Field(
-        validation_alias=AliasChoices("genelists", "small_variants_genelists"),
-        default_factory=list,
-    )
+    snvlists: list[str] = Field(default_factory=list)
     vep_consequences: list[str] = Field(default_factory=list)
     cnveffects: list[str] = Field(default_factory=lambda: ["gain", "loss"])
-    cnv_genelists: list[str] = Field(default_factory=list)
+    cnvlists: list[str] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod
@@ -59,11 +56,10 @@ class DnaFiltersDoc(_StrictDocBase):
             "error_cov",
         }
         list_defaults_to_restore = {
-            "genelists",
-            "small_variants_genelists",
+            "snvlists",
             "vep_consequences",
             "cnveffects",
-            "cnv_genelists",
+            "cnvlists",
         }
 
         for key in scalar_defaults_to_restore:

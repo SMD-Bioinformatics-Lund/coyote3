@@ -45,12 +45,18 @@ class HomeEditContextPayload(BaseModel):
     """Represent the home edit context payload."""
 
     sample: dict[str, Any]
+    comments: list[dict[str, Any]] = Field(default_factory=list)
     asp: dict[str, Any]
     sample_expected_files: list[dict[str, Any]] = Field(default_factory=list)
+    snv_genelist_options: list[dict[str, Any]] = Field(default_factory=list)
+    cnvlist_options: list[dict[str, Any]] = Field(default_factory=list)
+    fusionlist_options: list[dict[str, Any]] = Field(default_factory=list)
+    analysis_sections: list[str] = Field(default_factory=list)
     analysis_counts_raw: dict[str, int] = Field(default_factory=dict)
     analysis_counts_filtered: dict[str, int] = Field(default_factory=dict)
     variant_stats_raw: Any = None
     variant_stats_filtered: Any = None
+    biomarkers: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class HomeChangeStatusPayload(BaseModel):
@@ -72,3 +78,5 @@ class HomeReportContextPayload(BaseModel):
     report_id: str
     report_name: str | None = None
     filepath: str | None = None
+    pdf_report_name: str | None = None
+    pdf_filepath: str | None = None
