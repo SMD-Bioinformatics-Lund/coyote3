@@ -1,0 +1,569 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Subtle UI palettes */
+  --color-brown-50: #f5f5ef;
+  --color-brown-100: #e2d6c0;
+  --color-brown-200: #caae80;
+  --color-brown-300: #b08d57;
+  --color-brown-400: #926a3d;
+  --color-brown-500: #79553a;
+  --color-brown-600: #604330;
+  --color-brown-700: #4d3526;
+  --color-brown-800: #3d2a1e;
+  --color-brown-900: #312218;
+  --color-brown-950: #1f140f;
+
+  --color-olive-50: #fafdf5;
+  --color-olive-100: #e3edcd;
+  --color-olive-200: #ccdbae;
+  --color-olive-300: #b2c48c;
+  --color-olive-400: #99ad6b;
+  --color-olive-500: #7d9151;
+  --color-olive-600: #667741;
+  --color-olive-700: #515f34;
+  --color-olive-800: #3d4927;
+  --color-olive-900: #2f391d;
+  --color-olive-950: #1e2412;
+
+  --color-sage-50: #f6faf8;
+  --color-sage-100: #e7f0ec;
+  --color-sage-200: #cedfd7;
+  --color-sage-300: #adc8bc;
+  --color-sage-400: #88ad9d;
+  --color-sage-500: #6e9383;
+  --color-sage-600: #587767;
+  --color-sage-700: #475f53;
+  --color-sage-800: #394d44;
+  --color-sage-900: #2f4039;
+
+  --color-sand-50: #fdfbf7;
+  --color-sand-100: #f7f1e7;
+  --color-sand-200: #ede1cc;
+  --color-sand-300: #dfcbab;
+  --color-sand-400: #d1b58a;
+  --color-sand-500: #b89a6d;
+  --color-sand-600: #967e57;
+  --color-sand-700: #796648;
+  --color-sand-800: #62523c;
+  --color-sand-900: #524535;
+
+  --color-mist-50: #f8fafb;
+  --color-mist-100: #eef2f4;
+  --color-mist-200: #dce3e8;
+  --color-mist-300: #c3ced6;
+  --color-mist-400: #a4b3bf;
+  --color-mist-500: #889aa8;
+  --color-mist-600: #6e7f8d;
+  --color-mist-700: #596771;
+  --color-mist-800: #4a555c;
+  --color-mist-900: #40474e;
+
+  /* Semantic single colors */
+  --color-production: #216869;
+  --color-development: #3b5ba0;
+  --color-testing: #857d88;
+  --color-validation: #a37c27;
+  --color-pass: #166534;
+  --color-germline: #b5761b;
+  --color-germline-risk: #9b3d12;
+  --color-warn: #c17c00;
+  --color-fail: #8c1d1d;
+  --color-tier1: #d55e00;
+  --color-tier2: #e69f00;
+  --color-tier3: #0072b2;
+  --color-tier4: #009e73;
+  --color-tier999: #666666;
+  --color-tierother: #999999;
+  --color-tier-header1: rgb(213 94 0 / 50%);
+  --color-tier-header2: rgb(230 159 0 / 50%);
+  --color-tier-header3: rgb(0 114 178 / 50%);
+  --color-tier-header4: rgb(0 158 115 / 50%);
+  --color-tier-header999: rgb(102 102 102 / 50%);
+  --color-melanoma: #fb6b6b;
+  --color-cns: #76c7a6;
+  --color-lung: #f57c94;
+  --color-colon: #bbbbbb;
+  --color-gi: #f8a488;
+  --color-dna: #f5a25d;
+  --color-rna: #ab7dff;
+  --color-genelist: #d1d2fa;
+  --color-fusionlist: #ccf9d8;
+  --color-cnvlist: #ffe3c2;
+  --color-panel: #2563eb;
+  --color-wts: #7c3aed;
+  --color-wgs: #0f766e;
+  --color-paired: #009e73;
+  --color-unpaired: #e69f00;
+  --color-unknown: #6b7280;
+}
+
+:root {
+  --background: oklch(0.972 0.012 255);
+  --foreground: oklch(0.2 0.01 240);
+  --card: oklch(0.992 0.006 255);
+  --card-foreground: oklch(0.2 0.01 240);
+  --popover: oklch(0.992 0.006 255 / 96%);
+  --popover-foreground: oklch(0.2 0.01 240);
+  --primary: oklch(0.45 0.16 280);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.945 0.018 255);
+  --secondary-foreground: oklch(0.2 0.01 240);
+  --muted: oklch(0.94 0.014 255);
+  --muted-foreground: oklch(0.55 0.01 240);
+  --accent: oklch(0.935 0.024 265);
+  --accent-foreground: oklch(0.2 0.01 240);
+  --destructive: oklch(0.55 0.15 25);
+  --border: oklch(0.89 0.014 250);
+  --input: oklch(0.89 0.014 250);
+  --ring: oklch(0.45 0.16 280);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.972 0.012 255 / 72%);
+  --sidebar-foreground: oklch(0.2 0.01 240);
+  --sidebar-primary: oklch(0.45 0.1 250);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.935 0.024 265);
+  --sidebar-accent-foreground: oklch(0.2 0.01 240);
+  --sidebar-border: oklch(0.89 0.014 250);
+  --sidebar-ring: oklch(0.45 0.16 280);
+}
+
+.dark {
+  --background: oklch(0.235 0.012 240);
+  --foreground: oklch(0.88 0.012 240);
+  --card: oklch(0.285 0.014 240 / 88%);
+  --card-foreground: oklch(0.89 0.012 240);
+  --popover: oklch(0.315 0.014 240 / 96%);
+  --popover-foreground: oklch(0.9 0.012 240);
+  --primary: oklch(0.62 0.13 280);
+  --primary-foreground: oklch(0.98 0.004 240);
+  --secondary: oklch(0.34 0.018 240);
+  --secondary-foreground: oklch(0.9 0.012 240);
+  --muted: oklch(0.35 0.016 240);
+  --muted-foreground: oklch(0.74 0.012 240);
+  --accent: oklch(0.38 0.024 250);
+  --accent-foreground: oklch(0.91 0.012 240);
+  --destructive: oklch(0.67 0.13 25);
+  --border: oklch(0.62 0.015 240 / 30%);
+  --input: oklch(0.43 0.014 240 / 70%);
+  --ring: oklch(0.66 0.12 280);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.27 0.012 240 / 88%);
+  --sidebar-foreground: oklch(0.88 0.012 240);
+  --sidebar-primary: oklch(0.62 0.1 250);
+  --sidebar-primary-foreground: oklch(0.98 0.004 240);
+  --sidebar-accent: oklch(0.37 0.02 250);
+  --sidebar-accent-foreground: oklch(0.9 0.012 240);
+  --sidebar-border: oklch(0.62 0.015 240 / 30%);
+  --sidebar-ring: oklch(0.62 0.1 250);
+
+  --color-production: #5ea5a4;
+  --color-development: #8ba6e8;
+  --color-testing: #b0a9b5;
+  --color-validation: #cfa85b;
+  --color-pass: #64b77e;
+  --color-germline: #d4a053;
+  --color-germline-risk: #d98b65;
+  --color-warn: #d69a3a;
+  --color-fail: #d56f6f;
+  --color-tier1: #d98245;
+  --color-tier2: #d5a23a;
+  --color-tier3: #64a6d8;
+  --color-tier4: #63b99a;
+  --color-tier999: #a8a8a8;
+  --color-tierother: #b0b0b0;
+  --color-tier-header1: rgb(217 130 69 / 24%);
+  --color-tier-header2: rgb(213 162 58 / 24%);
+  --color-tier-header3: rgb(100 166 216 / 24%);
+  --color-tier-header4: rgb(99 185 154 / 24%);
+  --color-tier-header999: rgb(168 168 168 / 20%);
+  --color-dna: #d79a61;
+  --color-rna: #a58be8;
+  --color-panel: #7fa6ee;
+  --color-wts: #a58be8;
+  --color-wgs: #6bb7a9;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground tracking-normal;
+    font-feature-settings: "kern";
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  html {
+    @apply font-sans;
+    font-size: 16px;
+  }
+
+  @media (max-width: 1440px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
+  @media (max-width: 1180px) {
+    html {
+      font-size: 14px;
+    }
+  }
+
+  @media (max-width: 1600px) and (max-height: 820px) {
+    html {
+      font-size: 14.5px;
+    }
+  }
+}
+
+@layer utilities {
+  .app-chrome-bg {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-mist-100) 86%, var(--background)), var(--background));
+  }
+  .dark .app-chrome-bg {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--background) 90%, var(--color-mist-800)), var(--background));
+  }
+  .brand-gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(90deg, var(--primary), var(--color-rna));
+  }
+  .brand-gradient-fill {
+    background-image: linear-gradient(135deg, var(--color-dna), var(--primary), var(--color-rna));
+  }
+  .glass-panel {
+    @apply border border-border/75 bg-card/95;
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--foreground) 7%, transparent);
+  }
+  .dark .glass-panel {
+    box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
+  }
+  .glass-card {
+    @apply rounded-xl border border-border/75 bg-card/95;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--foreground) 7%, transparent);
+  }
+  .dark .glass-card {
+    box-shadow: 0 2px 8px rgb(0 0 0 / 16%);
+  }
+  .surface-panel {
+    @apply relative overflow-hidden rounded-xl border border-border/80 bg-card/95 shadow-sm;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--foreground) 6%, transparent);
+  }
+  .dark .surface-panel {
+    box-shadow: 0 4px 14px rgb(0 0 0 / 16%);
+  }
+  .metric-card {
+    @apply rounded-xl border border-border/80 bg-card/95 p-3 shadow-sm transition-colors duration-100;
+  }
+  .metric-card::before {
+    content: "";
+    @apply mb-3 block h-1 rounded-full;
+    background: linear-gradient(90deg, var(--color-tier3), var(--color-tier4));
+  }
+  .detail-page {
+    @apply flex h-full flex-col;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-mist-100) 86%, var(--background)), var(--background));
+  }
+  .dark .detail-page {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--background) 90%, var(--color-mist-800)), var(--background));
+  }
+  .detail-hero {
+    @apply relative overflow-hidden rounded-xl border border-border bg-card/95 p-3;
+    box-shadow: 0 5px 16px color-mix(in srgb, var(--foreground) 7%, transparent);
+  }
+  .dark .detail-hero {
+    box-shadow: 0 5px 16px rgb(0 0 0 / 18%);
+  }
+  .detail-hero::before {
+    content: "";
+    @apply pointer-events-none absolute left-0 right-0 top-0 h-1;
+    background: linear-gradient(90deg, var(--color-dna), var(--primary), var(--color-rna));
+  }
+  .detail-card {
+    @apply rounded-xl border border-border/70 bg-card/95 p-3;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--foreground) 6%, transparent);
+  }
+  .dark .detail-card {
+    box-shadow: 0 4px 14px rgb(0 0 0 / 16%);
+  }
+  .detail-card-accent {
+    @apply rounded-xl border border-border/70 bg-card/95 p-3;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--foreground) 6%, transparent);
+  }
+  .dark .detail-card-accent {
+    box-shadow: 0 4px 14px rgb(0 0 0 / 16%);
+  }
+  .detail-card-success {
+    @apply rounded-xl border border-border/70 bg-card/95 p-3;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--foreground) 6%, transparent);
+  }
+  .dark .detail-card-success {
+    box-shadow: 0 4px 14px rgb(0 0 0 / 16%);
+  }
+  .detail-card-info {
+    @apply rounded-xl border border-border/70 bg-card/95 p-3;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--foreground) 6%, transparent);
+  }
+  .dark .detail-card-info {
+    box-shadow: 0 4px 14px rgb(0 0 0 / 16%);
+  }
+  .detail-section-title {
+    @apply mb-3 border-b border-border pb-2 text-sm font-black uppercase tracking-wide text-foreground;
+  }
+  .detail-field-label {
+    @apply mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted-foreground;
+  }
+  .detail-field-value {
+    @apply min-w-0 break-words text-sm font-semibold text-foreground;
+  }
+  .detail-stat-positive {
+    @apply font-mono text-xl font-black text-tier4;
+  }
+  .soft-chip {
+    @apply inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary;
+  }
+  .soft-icon-button {
+    @apply inline-flex shrink-0 items-center justify-center rounded-full border border-border bg-background p-3 text-muted-foreground transition-colors duration-100 hover:bg-muted hover:text-foreground;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--foreground) 8%, transparent);
+  }
+  .dark .soft-icon-button {
+    box-shadow: 0 2px 8px rgb(0 0 0 / 18%);
+  }
+  .table-checkbox {
+    @apply rounded border-border text-primary focus:ring-primary;
+  }
+  .matrix-head-mod {
+    background: color-mix(in srgb, var(--primary) 18%, var(--background));
+  }
+  .matrix-head-group {
+    background: color-mix(in srgb, var(--primary) 14%, var(--background));
+  }
+  .matrix-head-assay {
+    background: color-mix(in srgb, var(--primary) 10%, var(--background));
+  }
+  .matrix-head-subpanel {
+    background: color-mix(in srgb, var(--primary) 7%, var(--background));
+  }
+  .matrix-head-list {
+    background: color-mix(in srgb, var(--primary) 4%, var(--background));
+  }
+}
+
+@layer components {
+  .login-page {
+    @apply relative grid min-h-screen grid-rows-[auto_1fr_auto] overflow-hidden px-[clamp(20px,5vw,76px)] py-6;
+  }
+
+  .login-page::before {
+    content: "";
+    @apply pointer-events-none fixed -bottom-70 -right-52 size-130 rounded-full;
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+  }
+
+  .login-header {
+    @apply z-10 flex items-center justify-between;
+  }
+
+  .login-layout {
+    @apply z-10 m-auto grid w-full max-w-[1500px] grid-cols-[minmax(0,1.1fr)_minmax(340px,430px)] items-center gap-[clamp(40px,7vw,96px)] py-10;
+  }
+
+  .login-intro {
+    @apply max-w-[620px];
+  }
+
+  .login-orbit {
+    @apply mb-6 grid size-24 place-items-center rounded-full border border-border text-primary;
+    background: color-mix(in srgb, var(--card) 84%, transparent);
+  }
+
+  .login-title {
+    @apply text-[clamp(2.5rem,5vw,4rem)] leading-[1.02] font-[760] tracking-[-0.055em];
+  }
+
+  .login-description {
+    @apply mt-4 max-w-[560px] text-[0.92rem] leading-6 text-muted-foreground;
+  }
+
+  .login-card {
+    @apply border border-border p-[clamp(22px,3vw,34px)] rounded-xl bg-card/95 shadow-sm;
+  }
+
+  .login-footer {
+    @apply z-10 flex items-center gap-4 text-[0.82rem] text-muted-foreground;
+  }
+
+  .login-footer span:last-child {
+    @apply ml-auto;
+  }
+}
+
+@media (max-width: 850px) {
+  .login-layout {
+    @apply grid-cols-1 gap-9 py-10;
+  }
+
+  .login-intro {
+    @apply mx-auto text-center;
+  }
+
+  .login-orbit {
+    @apply hidden;
+  }
+
+  .login-card {
+    @apply mx-auto w-full max-w-[480px];
+  }
+}
+
+@media (max-width: 560px) {
+  .login-page {
+    @apply p-4;
+  }
+  .login-layout {
+    @apply py-8;
+  }
+  .login-description {
+    @apply hidden;
+  }
+  .login-footer {
+    @apply flex-wrap;
+  }
+  .login-footer span:last-child {
+    @apply ml-0 w-full;
+  }
+}
+
+@layer components {
+  .markdown-body h1 {
+    @apply mb-2 mt-3 text-xl font-black;
+  }
+  .markdown-body h2 {
+    @apply mb-2 mt-3 text-lg font-black;
+  }
+  .markdown-body h3 {
+    @apply mb-1 mt-2 text-base font-bold;
+  }
+  .markdown-body h4,
+  .markdown-body h5,
+  .markdown-body h6 {
+    @apply mb-1 mt-2 font-bold;
+  }
+  .markdown-body p {
+    @apply my-1;
+  }
+  .markdown-body ul {
+    @apply my-2 list-disc pl-5;
+  }
+  .markdown-body ol {
+    @apply my-2 list-decimal pl-5;
+  }
+  .markdown-body blockquote {
+    @apply my-2 border-l-4 border-primary/30 bg-muted/50 py-1 pl-3 text-muted-foreground;
+  }
+  .markdown-body code {
+    @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.92em];
+  }
+  .markdown-body pre {
+    @apply my-2 overflow-x-auto rounded-lg bg-muted p-3;
+  }
+  .markdown-body pre code {
+    @apply bg-transparent p-0;
+  }
+  .markdown-body table {
+    @apply my-2 w-full border-collapse text-xs;
+  }
+  .markdown-body th,
+  .markdown-body td {
+    @apply border border-border px-2 py-1 text-left;
+  }
+  .markdown-body th {
+    @apply bg-muted font-bold;
+  }
+  .markdown-body hr {
+    @apply my-3 border-border;
+  }
+  .markdown-body a {
+    @apply text-primary underline underline-offset-2;
+  }
+}
+
+:is(.transition-all, .transition-colors, .transition-transform, .transition-opacity):not([class*="duration-"]) {
+  transition-duration: 120ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+:is(.animate-in, .animate-out):not([class*="duration-"]) {
+  animation-duration: 120ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.transition-all, .transition-colors, .transition-transform, .transition-opacity, .animate-in, .animate-out) {
+    transition-duration: 1ms;
+    animation-duration: 1ms;
+  }
+}
+
+/* Ensure critical dashboard card color utilities are always generated. */
+@source inline("border-slate-200 border-t-tier1 border-t-tier2 border-t-tier3 border-t-tier4 border-t-panel border-t-wgs border-t-dna bg-sage-50 bg-sand-50 bg-mist-50");
+
+/* Ensure dynamic profile/scope classes are always generated in Tailwind v4. */
+@source inline("bg-production bg-validation bg-development bg-testing bg-pass bg-warn bg-fail bg-germline bg-germline-risk bg-tier1 bg-tier2 bg-tier3 bg-tier4 bg-tier999 bg-tierother bg-tier-header1 bg-tier-header2 bg-tier-header3 bg-tier-header4 bg-tier-header999 bg-melanoma bg-cns bg-lung bg-colon bg-gi bg-dna bg-rna bg-genelist bg-fusionlist bg-cnvlist bg-panel bg-wts bg-wgs bg-paired bg-unpaired bg-unknown text-production text-validation text-development text-testing text-pass text-warn text-fail text-germline text-germline-risk text-tier1 text-tier2 text-tier3 text-tier4 text-tier999 text-tierother text-tier-header1 text-tier-header2 text-tier-header3 text-tier-header4 text-tier-header999 text-melanoma text-cns text-lung text-colon text-gi text-dna text-rna text-genelist text-fusionlist text-cnvlist text-panel text-wts text-wgs text-paired text-unpaired text-unknown border-production border-validation border-development border-testing border-pass border-warn border-fail border-germline border-germline-risk border-tier1 border-tier2 border-tier3 border-tier4 border-tier999 border-tierother border-tier-header1 border-tier-header2 border-tier-header3 border-tier-header4 border-tier-header999 border-melanoma border-cns border-lung border-colon border-gi border-dna border-rna border-genelist border-fusionlist border-cnvlist border-panel border-wts border-wgs border-paired border-unpaired border-unknown ring-production ring-validation ring-development ring-testing ring-pass ring-warn ring-fail ring-germline ring-germline-risk ring-tier1 ring-tier2 ring-tier3 ring-tier4 ring-tier999 ring-tierother ring-tier-header1 ring-tier-header2 ring-tier-header3 ring-tier-header4 ring-tier-header999 ring-melanoma ring-cns ring-lung ring-colon ring-gi ring-dna ring-rna ring-genelist ring-fusionlist ring-cnvlist ring-panel ring-wts ring-wgs ring-paired ring-unpaired ring-unknown hover:bg-production hover:bg-validation hover:bg-development hover:bg-testing hover:bg-pass hover:bg-warn hover:bg-fail hover:bg-germline hover:bg-germline-risk hover:bg-tier1 hover:bg-tier2 hover:bg-tier3 hover:bg-tier4 hover:bg-tier999 hover:bg-tierother hover:bg-tier-header1 hover:bg-tier-header2 hover:bg-tier-header3 hover:bg-tier-header4 hover:bg-tier-header999 hover:bg-melanoma hover:bg-cns hover:bg-lung hover:bg-colon hover:bg-gi hover:bg-dna hover:bg-rna hover:bg-genelist hover:bg-fusionlist hover:bg-cnvlist hover:bg-panel hover:bg-wts hover:bg-wgs hover:bg-paired hover:bg-unpaired hover:bg-unknown focus:bg-production focus:bg-validation focus:bg-development focus:bg-testing focus:bg-pass focus:bg-warn focus:bg-fail focus:bg-germline focus:bg-germline-risk focus:bg-tier1 focus:bg-tier2 focus:bg-tier3 focus:bg-tier4 focus:bg-tier999 focus:bg-tierother focus:bg-tier-header1 focus:bg-tier-header2 focus:bg-tier-header3 focus:bg-tier-header4 focus:bg-tier-header999 focus:bg-melanoma focus:bg-cns focus:bg-lung focus:bg-colon focus:bg-gi focus:bg-dna focus:bg-rna focus:bg-genelist focus:bg-fusionlist focus:bg-cnvlist focus:bg-panel focus:bg-wts focus:bg-wgs focus:bg-paired focus:bg-unpaired focus:bg-unknown");
