@@ -33,51 +33,46 @@ Permissions are defined as colon-separated segments following the `resource:acti
 
 ## Enforcement Logic
 
-Access control is enforced at two layers with different semantics:
+Access control is enforced with one route-level model:
 
-### API Layer (`require_access` — disjunctive OR)
+### API Layer (`require_access`)
 
-The FastAPI `require_access` dependency uses **OR** logic: the user is authorized if
-**any** of the specified criteria are met.  Superusers bypass all checks via an
-early return.
+The FastAPI `require_access` dependency accepts a route permission id and checks
+it through the Casbin-backed policy generated from active role and permission
+documents. Superusers bypass checks via an early return.
 
-Authorization is granted if **ANY** of the following conditions are met:
+Authorization is granted only when the configured checks pass:
 
-1.  **Permission Match**: The user's active permission set includes the exact string required by the route.
-2.  **Access Level Gate**: The user's `access_level` meets or exceeds the `min_level` required by the route.
-3.  **Role Gate**: The user's `access_level` meets or exceeds the resolved level of the `min_role` required by the route.
+1.  **Permission Match**: At least one assigned active role grants the exact permission required by the route.
+2.  **Attribute Scope**: When route/resource context is provided, assay, assay group, and environment scope must match the user's assignments.
+3.  **Superuser Bypass**: `superuser` bypasses permission and scope checks.
+
+Routes declare permission ids only. Role hierarchy belongs in the role documents
+by assigning the appropriate permission set to each role.
 
 ```python
-# Route: Mark Small Variant False Positive
-@router.patch("/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/false-positive")
-def mark_false_variant(
-    # ...
-    user: ApiUser = Depends(require_access(permission="snv:manage", min_role="admin")),
+@router.post("/api/v1/coverage/blacklist/entries")
+def create_coverage_blacklist_entry(
+    user: ApiUser = Depends(require_access(permission="coverage.blacklist:manage")),
 ):
-    # Authorized if:
-    # 1. User has "snv:manage" permission
-    # OR
-    # 2. User has 'admin' role (Level 99999)
+    # Authorized if one assigned active role grants coverage.blacklist:manage.
+    # Resource handlers may apply ABAC context for assay/profile/group scope.
 ```
 
-### UI Layer (`has_access` — conjunctive AND)
+### UI Layer
 
-The Jinja template helper `has_access()` uses **AND** logic: the user must satisfy
-**all** specified criteria to see/access the UI element.
-
-```jinja2
-{# User must BOTH have the permission AND meet the role requirement #}
-{% if has_access(permission="report:create", min_role="admin") %}
-    <button>Create Report</button>
-{% endif %}
-```
+React UI components should use the session payload and route/resource metadata to
+hide unavailable actions, but the API remains authoritative. UI gating must never
+replace route-level enforcement.
 
 ## Inventory Requirements
 
 *   **Case Sensitivity**: All permission strings are enforced in lowercase.
 *   **dot-nesting**: Sub-resources must use dots, never underscores (e.g., `sample.comment:add:global`).
 *   **Persistence**: Permissions are managed in the `permissions` collection and mapped to users via the `roles` collection.
+*   **No user overrides**: User documents do not carry permission allow/deny override fields. Assign or update roles instead.
+*   **Versioning**: Editing a role or permission updates that document in place, increments `version`, appends `version_history`, and writes an audit event. Active-version rotation is reserved for clinical configuration resources such as ASP, ASPC, and ISGL.
 
 ## Wildcard Support (Future)
 
-The `resource:action[:scope]` structure is designed to support wildcard resolution (e.g., `sample:*` or `sample:view:*`). While the current implementation requires explicit string matches, all new integrations must adhere to the structured naming to ensure compatibility with future policy-based enforcement (ABAC).
+The `resource:action[:scope]` structure is designed to support wildcard resolution (e.g., `sample:*` or `sample:view:*`). New integrations must adhere to the structured naming so policy-based enforcement (ABAC) remains predictable.

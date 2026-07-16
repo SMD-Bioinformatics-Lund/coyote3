@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from api.services.classification.tiering import ResourceClassificationService
-from api.services.classification.variant_annotation import ResourceAnnotationService
+from api.application.classification.tiering import ResourceClassificationService
+from api.application.classification.variant_annotation import ResourceAnnotationService
 
 
 class _AnnotationHandlerStub:
@@ -192,12 +192,12 @@ class _RepoStub:
 
     def __init__(self) -> None:
         """__init__."""
-        self.annotation_handler = _AnnotationHandlerStub()
-        self.fusion_handler = _FusionHandlerStub()
-        self.copy_number_variant_handler = _CnvHandlerStub()
-        self.translocation_handler = _TranslocHandlerStub()
-        self.variant_handler = _VariantHandlerStub()
-        self.oncokb_handler = type(
+        self.annotation_repository = _AnnotationHandlerStub()
+        self.fusion_repository = _FusionHandlerStub()
+        self.copy_number_variant_repository = _CnvHandlerStub()
+        self.translocation_repository = _TranslocHandlerStub()
+        self.variant_repository = _VariantHandlerStub()
+        self.oncokb_repository = type(
             "_OncoKB", (), {"get_oncokb_gene": staticmethod(lambda gene: None)}
         )()
 
@@ -261,16 +261,16 @@ def _classification_doc(
 
 def _classification_service(repo: _RepoStub) -> ResourceClassificationService:
     return ResourceClassificationService(
-        annotation_handler=repo.annotation_handler,
-        variant_handler=repo.variant_handler,
-        oncokb_handler=repo.oncokb_handler,
-        fusion_handler=repo.fusion_handler,
-        copy_number_variant_handler=repo.copy_number_variant_handler,
-        translocation_handler=repo.translocation_handler,
+        annotation_repository=repo.annotation_repository,
+        variant_repository=repo.variant_repository,
+        oncokb_repository=repo.oncokb_repository,
+        fusion_repository=repo.fusion_repository,
+        copy_number_variant_repository=repo.copy_number_variant_repository,
+        translocation_repository=repo.translocation_repository,
     )
 
 
-def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_handler(
+def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_repository(
     monkeypatch,
 ):
     """Test resource annotation service routes cnv comment to copy-number-variant handler.
@@ -281,11 +281,11 @@ def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_h
     _ = monkeypatch
     repo = _RepoStub()
     service = ResourceAnnotationService(
-        annotation_handler=repo.annotation_handler,
-        fusion_handler=repo.fusion_handler,
-        translocation_handler=repo.translocation_handler,
-        copy_number_variant_handler=repo.copy_number_variant_handler,
-        variant_handler=repo.variant_handler,
+        annotation_repository=repo.annotation_repository,
+        fusion_repository=repo.fusion_repository,
+        translocation_repository=repo.translocation_repository,
+        copy_number_variant_repository=repo.copy_number_variant_repository,
+        variant_repository=repo.variant_repository,
     )
 
     resource = service.create_annotation(
@@ -296,12 +296,12 @@ def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_h
     )
 
     assert resource == "cnv_comment"
-    assert repo.copy_number_variant_handler.comments == [
+    assert repo.copy_number_variant_repository.comments == [
         ("cnv-1", {"text": "note", "nomenclature": "cn", "variant": "7:10-20"})
     ]
 
 
-def test_resource_annotation_service_routes_translocation_comment_to_translocation_handler(
+def test_resource_annotation_service_routes_translocation_comment_to_translocation_repository(
     monkeypatch,
 ):
     """Test resource annotation service routes translocation comment to translocation handler.
@@ -312,11 +312,11 @@ def test_resource_annotation_service_routes_translocation_comment_to_translocati
     _ = monkeypatch
     repo = _RepoStub()
     service = ResourceAnnotationService(
-        annotation_handler=repo.annotation_handler,
-        fusion_handler=repo.fusion_handler,
-        translocation_handler=repo.translocation_handler,
-        copy_number_variant_handler=repo.copy_number_variant_handler,
-        variant_handler=repo.variant_handler,
+        annotation_repository=repo.annotation_repository,
+        fusion_repository=repo.fusion_repository,
+        translocation_repository=repo.translocation_repository,
+        copy_number_variant_repository=repo.copy_number_variant_repository,
+        variant_repository=repo.variant_repository,
     )
 
     resource = service.create_annotation(
@@ -327,7 +327,7 @@ def test_resource_annotation_service_routes_translocation_comment_to_translocati
     )
 
     assert resource == "translocation_comment"
-    assert repo.translocation_handler.comments[0][0] == "tl-1"
+    assert repo.translocation_repository.comments[0][0] == "tl-1"
 
 
 def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatch):
@@ -353,7 +353,7 @@ def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatc
         create_classified_variant_doc_fn=_classification_doc,
     )
 
-    docs = repo.annotation_handler.inserted_bulk
+    docs = repo.annotation_repository.inserted_bulk
     assert docs is not None
     assert len(docs) == 2
     assert docs[0]["nomenclature"] == "f"
@@ -385,6 +385,6 @@ def test_resource_classification_service_supports_translocation_bulk_removal(mon
         create_classified_variant_doc_fn=_classification_doc,
     )
 
-    assert len(repo.annotation_handler.deleted) == 1
-    assert repo.annotation_handler.deleted[0]["nomenclature"] == "t"
-    assert repo.annotation_handler.deleted[0]["variant"] == "1:100^2:200"
+    assert len(repo.annotation_repository.deleted) == 1
+    assert repo.annotation_repository.deleted[0]["nomenclature"] == "t"
+    assert repo.annotation_repository.deleted[0]["variant"] == "1:100^2:200"

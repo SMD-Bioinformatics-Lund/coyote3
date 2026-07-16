@@ -2,7 +2,9 @@
 
 This page defines the internal ingest commands and permission requirements for supported collections.
 
-Role gate for all internal ingest routes: `developer` or `superuser`.
+All authenticated internal ingest routes require explicit RBAC permissions.
+Collection/sample ingest mutations require `internal.ingest:manage`; task-status
+inspection requires `internal.task:view`. `superuser` still bypasses RBAC checks.
 
 `superuser` is always allowed. Other roles must satisfy the mapped permission or route requirement directly.
 Permission IDs in this page are the same IDs shipped in the out-of-the-box seed file:
@@ -147,10 +149,8 @@ curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection" \
     "email": "analyst@your-center.org",
     "username": "analyst1",
     "fullname": "Analyst One",
-    "role": "viewer",
-    "access_level": 10,
-    "permissions": [],
-    "denied_permissions": [],
+    "roles": ["viewer"],
+    "auth_type": ["ldap"],
     "is_active": true
   },
   "ignore_duplicate": true
@@ -169,10 +169,10 @@ curl -sS -X PUT "${API_BASE_URL}/api/v1/internal/ingest/collection" \
   "match": {"role_id": "viewer"},
   "document": {
     "role_id": "viewer",
-    "role_name": "Viewer",
+    "name": "viewer",
+    "label": "Viewer",
     "level": 10,
-    "permissions": ["view_sample_global"],
-    "denied_permissions": []
+    "permissions": ["sample:list:global"]
   },
   "upsert": true
 }
@@ -227,10 +227,12 @@ curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection" \
 {
   "collection": "asp_configs",
   "document": {
-    "aspc_id": "assay_1:prod",
-    "assay_name": "assay_1",
-    "environment": "prod",
+    "aspc_id": "assay_1_base_production",
+    "asp_id": "assay_1",
+    "subpanel_id": "base",
+    "environment": "production",
     "asp_group": "hematology",
+    "asp_category": "dna",
     "is_active": true
   }
 }

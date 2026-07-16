@@ -267,9 +267,30 @@ def test_managed_isgl_form_uses_predefined_list_type_choices():
     form = build_form_spec(managed_resource_spec("isgl"))
     assert form["fields"]["list_type"]["display_type"] == "checkbox-group"
     assert form["fields"]["list_type"]["options"] == [
-        "small_variant_genelist",
-        "cnv_genelist",
-        "fusion_genelist",
+        "snv",
+        "cnv",
+        "fusion",
+        "expression",
+        "pgx",
+        "adhoc_snv",
+        "adhoc_cnv",
+        "adhoc_fusion",
+        "adhoc_expression",
+        "adhoc_pgx",
+    ]
+    assert form["fields"]["list_type"]["conditional_options"]["falsy"] == [
+        "snv",
+        "cnv",
+        "fusion",
+        "expression",
+        "pgx",
+    ]
+    assert form["fields"]["list_type"]["conditional_options"]["truthy"] == [
+        "adhoc_snv",
+        "adhoc_cnv",
+        "adhoc_fusion",
+        "adhoc_expression",
+        "adhoc_pgx",
     ]
 
 
@@ -289,15 +310,16 @@ def test_supported_collections_exposes_expected_core_names():
         assert required in names
 
 
-def test_collection_validator_rejects_invalid_aspc_id_environment_mismatch():
-    """asp_configs must keep aspc_id aligned with assay_name/environment fields."""
+def test_collection_validator_rejects_invalid_aspc_identifier():
+    """asp_configs should use simple generated identifiers, not compound punctuation keys."""
     with pytest.raises(ValueError):
         validate_collection_document(
             "asp_configs",
             {
                 "aspc_id": "assay_1:production",
-                "assay_name": "assay_1",
-                "environment": "development",
+                "asp_id": "assay_1",
+                "subpanel_id": "base",
+                "environment": "production",
                 "asp_group": "hematology",
             },
         )
@@ -341,15 +363,15 @@ def test_collection_validator_normalizes_aspc_analysis_aliases():
     payload = normalize_collection_document(
         "asp_configs",
         {
-            "aspc_id": "assay_1:development",
-            "assay_name": "assay_1",
+            "aspc_id": "assay_1_base_development",
+            "asp_id": "assay_1",
+            "subpanel_id": "base",
             "environment": "development",
             "asp_group": "hematology",
             "asp_category": "dna",
             "analysis_types": ["snv", "tmb", "pgx", "cnv profile"],
             "display_name": "Assay 1 Dev",
             "filters": {"vep_consequences": ["missense"], "cnveffects": ["gain", "loss"]},
-            "query": {},
             "reporting": {
                 "report_sections": ["tmb", "cnv-profile"],
                 "report_header": "Header",
@@ -393,7 +415,6 @@ def test_collection_validator_rejects_unknown_permission_category():
             "permissions",
             {
                 "permission_id": "sample:inspect",
-                "permission_name": "sample:inspect",
                 "label": "Inspect sample",
                 "category": "Custom Category",
                 "tags": [],

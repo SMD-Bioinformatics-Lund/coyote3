@@ -28,36 +28,27 @@ nav:
       - Core Concepts: product/core_concepts.md
       - Clinical Workflow Chain: product/workflow_dna_rna.md
       - UI Map And Navigation: product/ui_map_and_user_flows.md
-      - Clinical Semantics Reference: product/clinical_semantics_reference.md
       - Functional Matrix: product/ui_functionality_matrix.md
       - Domain Reference: product/application_reference_by_domain.md
       - Action Effects: product/ui_action_effects_reference.md
       - Query Strategy: product/aspc_driven_query_strategy.md
+      - Reporting Workflow And Snapshots: product/reporting_workflow_and_variant_snapshots.md
   - Getting Started:
       - Quickstart: start_here/quickstart.md
       - Local Development: start_here/local_development.md
       - Configuration Architecture: start_here/configuration.md
   - Software Engineering:
-      - System Overview: architecture/system_overview.md
-      - HTTP Layers: architecture/http_layers.md
       - System Relationships: architecture/system_relationships.md
-      - Request Lifecycle: architecture/request_lifecycle.md
       - Schema & Versioning: developer/schema_contracts_and_versioning.md
       - Permission Naming: developer/permissions_naming.md
-      - Codebase Map: architecture/codebase_map.md
       - Data Contracts: architecture/data_contracts.md
       - Security Model: architecture/security_model.md
-      - Route Walkthrough: developer/route_walkthrough_dashboard_summary.md
       - Architecture ADRs:
           - ADR-0001 Auth Resolution: architecture/adr_0001_auth_provider_resolution.md
           - ADR-0002 Password Lifecycle: architecture/adr_0002_local_user_password_lifecycle_and_mail_fallback.md
   - Developer Guide:
-      - Add New Feature: developer/adding_features.md
       - Add a New Domain: developer/adding_a_domain.md
-      - Template Components: developer/template_components.md
-      - Testing Permissions: developer/testing_permissions.md
       - UI Modal Reference: developer/ui_modals.md
-      - E2E Testing: developer/e2e_testing.md
       - Troubleshooting: developer/troubleshooting_guide.md
   - API Reference:
       - Workflow Architecture: api/reference_and_workflows.md
@@ -73,11 +64,18 @@ nav:
       - Observability & SLOs: operations/observability_slos_and_alerts.md
       - Initial Checklist: operations/initial_deployment_checklist.md
       - Backup & Recovery: operations/backup_restore_and_snapshots.md
+      - Audit And Logging: operations/audit-and-logging.md
+      - Maintenance And Quality: operations/maintenance_and_quality.md
       - Minimum Baseline: operations/minimum_production_baseline.md
       - Troubleshooting: operations/troubleshooting.md
+  - Testing:
+      - Quality Standards: testing/testing_and_quality.md
+      - Test Data And Fixtures: testing/test_data_and_fixtures.md
   - Project Info:
       - Governance: project/governance.md
       - Contributing: project/contributing.md
+      - Code Of Conduct: project/code_of_conduct.md
+      - License: project/license.md
       - Maintenance: maintainers/maintainer_guide.md
+      - Developer Guide: maintainers/developer_guide.md
       - Refactor Guidelines: maintainers/refactor_guidelines.md
-      - Standards: maintainers/architecture_standards.md

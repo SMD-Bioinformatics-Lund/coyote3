@@ -14,7 +14,7 @@ This document defines the governance policies and maintenance procedures for the
 
 Contributions must follow a structured implementation sequence to maintain architectural alignment:
 
-1. **Domain Definition**: Implement core logic modifications within `api/core` and `api/services`.
+1. **Domain Definition**: Implement core logic modifications within `api/domain/core` and `api/application`.
 2. **Contract Synchronization**: Update the corresponding API contracts and router interfaces.
 3. **Validation Suite**: Submit the associated `tests/unit` and `tests/api` suites.
 4. **Manual Documentation**: Update the technical documentation tree to reflect the updated platform behavior.

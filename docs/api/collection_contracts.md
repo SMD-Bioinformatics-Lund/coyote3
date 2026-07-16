@@ -39,7 +39,7 @@ Optional keys:
 
 Required keys:
 - `aspc_id` (str)
-- `assay_name` (str)
+- `asp_id` (str)
 - `environment` (str)
 - `asp_group` (str)
 - `asp_category` (str)
@@ -49,6 +49,7 @@ Required keys:
 
 Optional keys:
 - `id_` (Any | None)
+- `subpanel_id` (str)
 - `analysis_types` (list[str])
 - `is_active` (bool)
 - `description` (str | None)
@@ -56,7 +57,6 @@ Optional keys:
 - `platform` (str | None)
 - `verification_samples` (dict[str, list[int]])
 - `use_diagnosis_genelist` (bool)
-- `query` (AspcQueryDoc)
 - `version` (int)
 - `created_by` (str | None)
 - `created_on` (datetime)
@@ -326,6 +326,7 @@ Required keys:
 
 Optional keys:
 - `id_` (Any | None)
+- `subpanel_id` (str)
 - `diagnosis` (list[str])
 - `list_type` (list[str])
 - `adhoc` (bool)
@@ -333,6 +334,7 @@ Optional keys:
 - `is_active` (bool)
 - `assay_groups` (list[str])
 - `genes` (list[str])
+- `germline_genes` (list[str])
 - `assays` (list[str])
 - `version` (int)
 - `created_by` (str | None)
@@ -391,14 +393,13 @@ Optional keys:
 
 Required keys:
 - `permission_id` (str)
-- `permission_name` (str)
 - `label` (str)
 - `category` (str)
-- `tags` (list[str])
 
 Optional keys:
 - `id_` (Any | None)
 - `description` (str | None)
+- `tags` (list[str])
 - `is_active` (bool)
 - `version` (int)
 - `created_by` (str | None)
@@ -498,7 +499,6 @@ Optional keys:
 - `description` (str | None)
 - `is_active` (bool)
 - `permissions` (list[str])
-- `deny_permissions` (list[str])
 - `version` (int)
 - `created_by` (str | None)
 - `created_on` (datetime)
@@ -574,7 +574,7 @@ Required keys:
 
 Optional keys:
 - `id_` (Any | None)
-- `auth_type` (str | None)
+- `auth_type` (list[str])
 - `password` (str | None)
 - `last_login` (datetime.datetime | None)
 - `must_change_password` (bool)
@@ -589,14 +589,11 @@ Optional keys:
 - `assays` (list[str])
 - `assay_groups` (list[str])
 - `is_active` (bool)
-- `permissions` (list[str])
-- `deny_permissions` (list[str])
 - `version` (int)
 - `created_by` (str | None)
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
-- `version_history` (list[api.contracts.schemas.base.VersionHistoryEntryDoc])
 
 ## `variants`
 

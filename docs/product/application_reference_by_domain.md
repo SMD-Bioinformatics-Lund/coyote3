@@ -56,7 +56,7 @@ Sample-level filters are persisted within the `samples.filters` document. These 
 | `min_cnv_size` | Integer | Minimum structural size for CNV consideration. | Query Gate |
 | `cnv_loss_cutoff` | Float | Segment ratio threshold for designated loss events. | Query Gate |
 | `vep_consequences`| List | Array of SO terms defining prioritized consequences. | Query Gate |
-| `genelists` | List | Active ISGL identifiers restricting analysis scope. | Logic Gate |
+| `snvlists` / `cnvlists` / `fusionlists` | List | Active ISGL identifiers restricting analysis scope. | Logic Gate |
 
 ### Persistent RNA Filter Specifications
 
@@ -92,3 +92,40 @@ Localized interpretation tables utilize in-page pagination to allow for rapid so
 
 - **Durable Storage**: All timestamps are stored in UTC (ISO-8601).
 - **Client Visualization**: The UI renders time in the viewer's local timezone.
+
+## 6. Center-Configurable UI Metadata
+
+### VCF Filter Flag Metadata
+
+VCF caller/filter badges are described in `api/data/filter_flag_metadata.yaml`.
+The UI reads this metadata through:
+
+`GET /api/v1/public/filter-flags/metadata`
+
+Centers can update labels and descriptions without changing React code. Matching order is:
+
+1. `terms`: exact flag-specific metadata, for example `FAIL_STRANDBIAS`.
+2. `exact`: exact generic values, for example `PASS`.
+3. `prefixes`: first matching prefix, for example `WARN`, `FAIL`, or `PON`.
+4. UI fallback prefix rules if no metadata exists.
+
+Each metadata entry supports:
+
+| Key | Purpose |
+|---|---|
+| `label` | Short UI label shown inside the badge. |
+| `severity` | Badge tone: `pass`, `warn`, `fail`, `info`, or `neutral`. |
+| `description` | Tooltip explanation shown on hover/focus. |
+
+Example:
+
+```yaml
+terms:
+  WARN_PON_FREEBAYES:
+    label: PON FreeBayes
+    severity: warn
+    description: FreeBayes evidence overlaps the panel of normals.
+```
+
+This lets a center adapt filter descriptions to its caller stack, local validation rules,
+and naming conventions while retaining the same API and UI contract.

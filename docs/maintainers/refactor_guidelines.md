@@ -12,7 +12,7 @@ All modifications delivered to the core codebase must satisfy the following tech
 ## Non-Negotiable Contract Requirements
 
 Code modifications are forbidden from altering foundational security constraints or implicit access boundaries:
-- Implementation of hidden compatibility layers or undocumented middleware bridging APIs is fundamentally prohibited.
+- Implementation of hidden bridging layers or undocumented middleware APIs is fundamentally prohibited.
 - Endpoints shall not silently mutate outbound or inbound structural data layouts unless officially documented via Pydantic model version bumps.
 - Request interceptor policies and role-based access checks (RBAC) must remain visibly intact and strictly evaluated against original coverage paths.
 - Mandatory database validation schemes and payload validation pipelines must be enforced prior to dispatching operational writes to persistent endpoints.

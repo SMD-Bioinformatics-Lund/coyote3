@@ -5,11 +5,11 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException
 
-import api.services.dna.structural_variants as service_module
-from api.services.common.change_payload import change_payload
-from api.services.dna.structural_variants import DnaStructuralService
+import api.application.dna.structural_variants as service_module
+from api.application.common.change_payload import change_payload
+from api.application.dna.structural_variants import DnaStructuralService
+from api.domain.core.exceptions import AppError
 
 
 class _CnvHandlerStub:
@@ -49,12 +49,12 @@ class _TranslocHandlerStub:
 
 class _RepoStub:
     def __init__(self) -> None:
-        self.copy_number_variant_handler = _CnvHandlerStub()
-        self.translocation_handler = _TranslocHandlerStub()
-        self.assay_panel_handler = SimpleNamespace(get_asp=lambda asp_name: {"_id": asp_name})
-        self.gene_list_handler = SimpleNamespace(get_isgl_by_ids=lambda ids: {i: [] for i in ids})
-        self.bam_record_handler = SimpleNamespace(get_bams=lambda sample_ids: {"ids": sample_ids})
-        self.vep_metadata_handler = SimpleNamespace(get_conseq_translations=lambda _vep: {"A": "B"})
+        self.copy_number_variant_repository = _CnvHandlerStub()
+        self.translocation_repository = _TranslocHandlerStub()
+        self.assay_panel_repository = SimpleNamespace(get_asp=lambda asp_name: {"_id": asp_name})
+        self.gene_list_repository = SimpleNamespace(get_isgl_by_ids=lambda ids: {i: [] for i in ids})
+        self.bam_record_repository = SimpleNamespace(get_bams=lambda sample_ids: {"ids": sample_ids})
+        self.vep_metadata_repository = SimpleNamespace(get_conseq_translations=lambda _vep: {"A": "B"})
 
 
 class _UtilModule:
@@ -78,12 +78,12 @@ def _request(path: str):
 
 def _service_from_repo(repo: _RepoStub) -> DnaStructuralService:
     return DnaStructuralService(
-        copy_number_variant_handler=repo.copy_number_variant_handler,
-        translocation_handler=repo.translocation_handler,
-        assay_panel_handler=repo.assay_panel_handler,
-        gene_list_handler=repo.gene_list_handler,
-        bam_record_handler=repo.bam_record_handler,
-        vep_metadata_handler=repo.vep_metadata_handler,
+        copy_number_variant_repository=repo.copy_number_variant_repository,
+        translocation_repository=repo.translocation_repository,
+        assay_panel_repository=repo.assay_panel_repository,
+        gene_list_repository=repo.gene_list_repository,
+        bam_record_repository=repo.bam_record_repository,
+        vep_metadata_repository=repo.vep_metadata_repository,
     )
 
 
@@ -116,7 +116,7 @@ def test_load_cnvs_for_sample_applies_query_and_filter(monkeypatch):
     assert cnvs[1]["effects"] == ["gain"]
 
 
-def test_list_cnvs_payload_uses_selected_cnv_genelists_for_effective_genes(monkeypatch):
+def test_list_cnvs_payload_uses_selected_cnvlists_for_effective_genes(monkeypatch):
     repo = _RepoStub()
     captured: dict[str, object] = {}
 
@@ -124,17 +124,17 @@ def test_list_cnvs_payload_uses_selected_cnv_genelists_for_effective_genes(monke
         captured["ids"] = list(ids)
         return {"GL1": {"genes": ["TP53"]}}
 
-    repo.gene_list_handler = SimpleNamespace(get_isgl_by_ids=_get_isgl_by_ids)
+    repo.gene_list_repository = SimpleNamespace(get_isgl_by_ids=_get_isgl_by_ids)
     service = DnaStructuralService(
-        copy_number_variant_handler=repo.copy_number_variant_handler,
-        translocation_handler=repo.translocation_handler,
-        assay_panel_handler=repo.assay_panel_handler,
-        gene_list_handler=repo.gene_list_handler,
-        bam_record_handler=repo.bam_record_handler,
-        vep_metadata_handler=repo.vep_metadata_handler,
+        copy_number_variant_repository=repo.copy_number_variant_repository,
+        translocation_repository=repo.translocation_repository,
+        assay_panel_repository=repo.assay_panel_repository,
+        gene_list_repository=repo.gene_list_repository,
+        bam_record_repository=repo.bam_record_repository,
+        vep_metadata_repository=repo.vep_metadata_repository,
     )
     sample = _sample()
-    sample["filters"] = {"cnv_genelists": ["GL1"], "cnveffects": ["gain"]}
+    sample["filters"] = {"cnvlists": ["GL1"], "cnveffects": ["gain"]}
 
     monkeypatch.setattr(
         service_module, "get_formatted_assay_config", lambda _sample: {"asp_group": "dna"}
@@ -159,7 +159,7 @@ def test_list_cnvs_payload_raises_when_assay_config_missing(monkeypatch):
     service = _service_from_repo(repo)
     monkeypatch.setattr(service_module, "get_formatted_assay_config", lambda _sample: None)
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         service.list_cnvs_payload(
             request=_request("/api/v1/cnvs/S1"), sample=_sample(), util_module=_UtilModule
         )
@@ -189,13 +189,13 @@ def test_list_cnvs_payload_returns_count(monkeypatch):
 
 def test_show_cnv_payload_rejects_cross_sample(monkeypatch):
     repo = _RepoStub()
-    repo.copy_number_variant_handler.cnv_doc = {"_id": "cnv1", "SAMPLE_ID": "S2"}
+    repo.copy_number_variant_repository.cnv_doc = {"_id": "cnv1", "SAMPLE_ID": "S2"}
     service = _service_from_repo(repo)
     monkeypatch.setattr(
         service_module, "get_formatted_assay_config", lambda _sample: {"asp_group": "dna"}
     )
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         service.show_cnv_payload(sample=_sample(), cnv_id="cnv1", util_module=_UtilModule)
 
     assert exc.value.status_code == 404
@@ -225,13 +225,13 @@ def test_list_translocations_payload_returns_count(monkeypatch):
 
 def test_show_translocation_payload_rejects_cross_sample(monkeypatch):
     repo = _RepoStub()
-    repo.translocation_handler.doc = {"_id": "t1", "SAMPLE_ID": "S2"}
+    repo.translocation_repository.doc = {"_id": "t1", "SAMPLE_ID": "S2"}
     service = _service_from_repo(repo)
     monkeypatch.setattr(
         service_module, "get_formatted_assay_config", lambda _sample: {"asp_group": "dna"}
     )
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         service.show_translocation_payload(
             sample=_sample(), transloc_id="t1", util_module=_UtilModule
         )

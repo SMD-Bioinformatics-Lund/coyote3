@@ -31,6 +31,8 @@ DNA review usually follows this sequence:
 5. **Structural Review**: Perform assessment of CNV and translocation findings within integrated structural views.
 6. **Report Generation**: Compile the finalized clinical report document or access existing reporting versions.
 
+Finding detail pages keep the sample context visible through a direct sample link in the header. Caller evidence is presented as individual badges, and finding-specific action buttons are constrained to the supported clinical state transitions for that finding type.
+
 ### RNA Fusion Review and Reporting
 
 RNA review usually follows this sequence:
@@ -51,4 +53,13 @@ Administrators manage the configuration layer:
 
 ## Interface Execution Logic
 
-The platform uses server-side rendering. User actions call backend API services and pass through permission checks. Error pages should show specific setup or validation messages instead of generic failures.
+The platform uses a React client with FastAPI JSON endpoints. User actions call backend API services and pass through permission checks. Error pages should show specific setup or validation messages instead of generic failures.
+
+Tables use a shared bordered header style and local CSV export for the loaded result set. Search screens that query cross-sample clinical knowledge require explicit submission so that displayed data always corresponds to a visible set of query controls.
+
+Sample overview distinguishes:
+
+- **Bundle ingest status**: whether the sample bundle loaded and passed ingest validation.
+- **Analysis availability**: whether each configured analysis domain has files, raw counts, or filtered result counts ready for review.
+
+This separation prevents a sample-level `ready` state from hiding missing or absent analysis-specific outputs.

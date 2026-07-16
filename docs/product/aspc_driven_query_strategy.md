@@ -34,13 +34,30 @@ The SNV analytics engine utilizes a standardized dual-branch resolver architectu
 
 Assay groups (e.g., Hematology, Myeloid) utilize these branches either in isolation or through unified logical unions to enforce specific center policies.
 
+### SNV Consequence Semantics
+
+SNV retrieval uses transcript-aware consequence matching. A consequence filter matches a variant when either of the following is true:
+
+- `INFO.selected_CSQ.Consequence` is in the resolved consequence terms.
+- Any transcript entry in `INFO.CSQ` has `Consequence` in the resolved consequence terms.
+
+This is broader than filtering only on the transcript displayed in the UI. It avoids dropping variants where another clinically relevant transcript carries the selected consequence class. The UI may therefore display a selected transcript consequence that is not itself one of the checked consequence groups, because the row was admitted by another `INFO.CSQ` transcript.
+
+Assay-group rescue branches are part of the configured query semantics:
+
+- Hematology-like groups (`myeloid`, `hematology`, `fusion`, `tumwgs`, `unknown`) include germline rescue branches for `INFO.MYELOID_GERMLINE`, CEBPA `GERMLINE`, and the configured chromosome 1 position interval.
+- `solid` keeps the direct `GERMLINE` rescue branch and the TERT/NFKBIE regulatory rescue branch.
+- `swea` and `gmsonco` use the case-only consequence strategy.
+
+Future changes to selected-transcript-only filtering must be treated as a clinical/product behavior change. Such a change should update this section, include count comparisons against the current validated behavior, and explicitly state how rows admitted only by non-selected `INFO.CSQ` transcripts are handled.
+
 ## Administrative Configuration Protocol
 
-The administrative interface controls query behavior through validated JSON-based schema editing:
+The administrative interface controls query behavior through validated managed forms backed by Pydantic contracts:
 
 - **Parameter Envelopes**: Core thresholds (depth, frequency, etc.) are managed through structured form interfaces synced to backend Pydantic models.
-- **Dynamic Policy Injections**: Direct MongoDB Query JSON enables complex logic overrides for specific assay types without requiring software modifications.
-- **Query Operators**: The system permits all standard MongoDB operational syntax (e.g., `$or`, `$and`, `$nor`) allowing for highly nuanced finding prioritization.
+- **Typed Filter Sections**: SNV, CNV, fusion, coverage, and reporting behavior are expressed as typed ASPC fields instead of arbitrary MongoDB query JSON.
+- **Versioned Clinical Configuration**: Changes to ASPC behavior are represented as versioned center configuration, making count changes and report behavior auditable.
 - **Gene List Defaults**: ASPC may seed initial defaults when a sample is created or reset, but active sample-level list selection is stored on `samples.filters`.
 
 ## Analytic Threshold Specifications

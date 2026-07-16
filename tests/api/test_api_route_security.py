@@ -61,7 +61,7 @@ def test_non_public_api_routes_are_guarded():
     Returns:
         The function result.
     """
-    route_files = sorted(Path("api/routers").glob("*.py"))
+    route_files = sorted(Path("api/interfaces/http").glob("*.py"))
     unguarded: list[str] = []
 
     for py_file in route_files:

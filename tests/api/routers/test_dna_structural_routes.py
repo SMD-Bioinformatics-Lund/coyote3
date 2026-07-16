@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.main import app as api_app
+from api.app.main import app as api_app
 
 
 def test_restful_dna_structural_mutation_routes_are_registered():

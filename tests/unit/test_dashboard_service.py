@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from api.services.dashboard.analytics import DashboardService
+from api.application.dashboard.analytics import DashboardService
 
 
 class _DashboardBackendStub:
@@ -132,43 +132,43 @@ def _noop_handler(**methods):
 def _dashboard_service(backend=None) -> DashboardService:
     backend = backend or _DashboardBackendStub()
     return DashboardService(
-        user_handler=_noop_handler(
+        user_repository=_noop_handler(
             count_users=backend.count_users,
             user_with_id=backend.get_user_by_id,
             get_dashboard_user_rollup=backend.get_dashboard_user_rollup,
         ),
-        roles_handler=_noop_handler(count_roles=backend.count_roles),
-        assay_panel_handler=_noop_handler(
+        roles_repository=_noop_handler(count_roles=backend.count_roles),
+        assay_panel_repository=_noop_handler(
             count_asps=backend.count_asps,
             resolve_active_asp_ids_for_scope=backend.resolve_active_asp_ids_for_scope,
             get_all_asps_unique_gene_count=backend.get_all_asps_unique_gene_count,
             get_all_asp_gene_counts=backend.get_all_asp_gene_counts,
         ),
-        assay_configuration_handler=_noop_handler(count_aspcs=backend.count_aspcs),
-        gene_list_handler=_noop_handler(
+        assay_configuration_repository=_noop_handler(count_aspcs=backend.count_aspcs),
+        gene_list_repository=_noop_handler(
             count_isgls=backend.count_isgls,
             get_dashboard_visibility_rollup=backend.get_dashboard_isgl_visibility,
             get_dashboard_assay_association_rollup=backend.get_dashboard_isgl_association,
         ),
-        sample_handler=_noop_handler(
+        sample_repository=_noop_handler(
             get_dashboard_sample_rollup=backend.get_dashboard_sample_rollup
         ),
-        variant_handler=_noop_handler(
+        variant_repository=_noop_handler(
             get_dashboard_variant_counts=backend.get_dashboard_variant_counts,
             get_unique_variant_quality_counts=backend.get_unique_variant_quality_counts,
         ),
-        copy_number_variant_handler=_noop_handler(get_total_cnv_count=backend.get_total_cnv_count),
-        translocation_handler=_noop_handler(
+        copy_number_variant_repository=_noop_handler(get_total_cnv_count=backend.get_total_cnv_count),
+        translocation_repository=_noop_handler(
             get_total_transloc_count=backend.get_total_transloc_count
         ),
-        fusion_handler=_noop_handler(get_total_fusion_count=backend.get_total_fusion_count),
-        blacklist_handler=_noop_handler(
+        fusion_repository=_noop_handler(get_total_fusion_count=backend.get_total_fusion_count),
+        blacklist_repository=_noop_handler(
             get_unique_blacklist_count=backend.get_unique_blacklist_count
         ),
-        reported_variant_handler=_noop_handler(
+        reported_variant_repository=_noop_handler(
             get_dashboard_tier_stats=backend.get_dashboard_tier_stats
         ),
-        coyote_db=None,
+        dashboard_metrics_repository=None,
     )
 
 
@@ -219,7 +219,7 @@ def test_summary_payload_calculates_quality_rates(monkeypatch):
     )
     monkeypatch.setattr(service, "build_admin_insights", lambda: {"counts": {"users_total": 12}})
     monkeypatch.setattr(
-        "api.services.dashboard.analytics.util",
+        "api.application.dashboard.analytics.util",
         SimpleNamespace(
             dashboard=SimpleNamespace(format_asp_gene_stats=lambda rows: {"formatted": rows})
         ),

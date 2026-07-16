@@ -6,24 +6,23 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException
 
-import api.services.accounts.permissions as admin_permission_service_module
-import api.services.accounts.roles as admin_role_service_module
-import api.services.accounts.users as admin_user_service_module
-import api.services.resources.asp as admin_asp_service_module
-import api.services.resources.aspc as admin_aspc_service_module
-import api.services.resources.isgl as admin_isgl_service_module
-import api.services.resources.sample as admin_resource_service_module
-from api.extensions import util as shared_util
-from api.services.accounts.permissions import PermissionManagementService
-from api.services.accounts.roles import RoleManagementService
-from api.services.accounts.users import UserManagementService
-from api.services.resources.asp import AspService
-from api.services.resources.aspc import AspcService
-from api.services.resources.isgl import IsglService
-from api.services.resources.sample import ResourceSampleService
-from shared.config_constants import (
+import api.application.accounts.permissions as admin_permission_service_module
+import api.application.accounts.roles as admin_role_service_module
+import api.application.accounts.users as admin_user_service_module
+import api.application.resources.asp as admin_asp_service_module
+import api.application.resources.aspc as admin_aspc_service_module
+import api.application.resources.isgl as admin_isgl_service_module
+import api.application.resources.sample as admin_resource_service_module
+from api.app.container import util as shared_util
+from api.application.accounts.permissions import PermissionManagementService
+from api.application.accounts.roles import RoleManagementService
+from api.application.accounts.users import UserManagementService
+from api.application.resources.asp import AspService
+from api.application.resources.aspc import AspcService
+from api.application.resources.isgl import IsglService
+from api.application.resources.sample import ResourceSampleService
+from api.config.constants import (
     ASP_CATEGORY_OPTIONS,
     ASP_FAMILY_OPTIONS,
     ASP_GROUP_OPTIONS,
@@ -31,6 +30,7 @@ from shared.config_constants import (
     PLATFORM_OPTIONS,
     SAMPLE_FILE_KEYS,
 )
+from api.domain.core.exceptions import AppError
 
 
 class _AdminRepoStub:
@@ -88,7 +88,7 @@ class _AdminRepoStub:
         Returns:
             The function result.
         """
-        return {"admin": {"permissions": ["perm.a"], "deny_permissions": [], "level": 99}}
+        return {"admin": {"permissions": ["perm.a"], "level": 99}}
 
     def get_assay_group_map(self):
         """Return assay group map.
@@ -135,11 +135,9 @@ class _AdminRepoStub:
             "roles": ["admin"],
             "password": "hashed",
             "version": 3,
-            "permissions": [],
-            "deny_permissions": [],
             "assay_groups": [],
             "assays": [],
-            "auth_type": "coyote3",
+            "auth_type": ["ldap"],
         }
 
     def update_user(self, user_id, user_data):
@@ -178,7 +176,7 @@ class _AdminRepoStub:
         self.updated_user = (user_id, {"is_active": is_active})
 
     @property
-    def user_handler(self):
+    def user_repository(self):
         """User handler.
 
         Returns:
@@ -226,7 +224,6 @@ class _AdminRepoStub:
             "role_id": "admin",
             "name": "Admin",
             "permissions": [],
-            "deny_permissions": [],
             "version": 4,
         }
 
@@ -287,8 +284,8 @@ class _AdminRepoStub:
         """
         return [
             {
-                "_id": "perm.read",
-                "permission_id": "perm.read",
+                "_id": "sample:view",
+                "permission_id": "sample:view",
                 "category": "General",
                 "is_active": True,
             }
@@ -300,8 +297,8 @@ class _AdminRepoStub:
         return (
             [
                 {
-                    "_id": "perm.read",
-                    "permission_id": "perm.read",
+                    "_id": "sample:view",
+                    "permission_id": "sample:view",
                     "category": "General",
                     "is_active": True,
                 }
@@ -318,12 +315,11 @@ class _AdminRepoStub:
         Returns:
             The function result.
         """
-        if permission_id in {"missing", "perm.create"}:
+        if permission_id in {"missing", "sample:create"}:
             return None
         return {
             "_id": permission_id,
             "permission_id": permission_id,
-            "permission_name": permission_id,
             "version": 4,
             "is_active": True,
             "category": "General",
@@ -429,6 +425,19 @@ class _AdminRepoStub:
         """
         self.updated_panel = (panel_id, panel)
 
+    def rotate_panel(self, panel_id, panel, retire_fields=None):
+        """Rotate panel.
+
+        Args:
+            panel_id: Value for ``panel_id``.
+            panel: Value for ``panel``.
+            retire_fields: Value for ``retire_fields``.
+
+        Returns:
+            The function result.
+        """
+        self.updated_panel = (panel_id, panel, retire_fields or {})
+
     def set_panel_active(self, panel_id, is_active):
         """Set panel active.
 
@@ -511,6 +520,19 @@ class _AdminRepoStub:
         """
         self.updated_genelist = (genelist_id, genelist)
 
+    def rotate_genelist(self, genelist_id, genelist, retire_fields=None):
+        """Rotate genelist.
+
+        Args:
+            genelist_id: Value for ``genelist_id``.
+            genelist: Value for ``genelist``.
+            retire_fields: Value for ``retire_fields``.
+
+        Returns:
+            The function result.
+        """
+        self.updated_genelist = (genelist_id, genelist, retire_fields or {})
+
     def set_genelist_active(self, genelist_id, is_active):
         """Set genelist active.
 
@@ -578,6 +600,19 @@ class _AdminRepoStub:
             The function result.
         """
         self.updated_aspc = (assay_id, config)
+
+    def rotate_assay_config(self, assay_id, config, retire_fields=None):
+        """Rotate assay config.
+
+        Args:
+            assay_id: Value for ``assay_id``.
+            config: Value for ``config``.
+            retire_fields: Value for ``retire_fields``.
+
+        Returns:
+            The function result.
+        """
+        self.updated_aspc = (assay_id, config, retire_fields or {})
 
     def set_assay_config_active(self, assay_id, is_active):
         """Set assay config active.
@@ -744,16 +779,16 @@ class _AdminRepoStub:
 
 def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
     return SimpleNamespace(
-        user_handler=SimpleNamespace(
+        user_repository=SimpleNamespace(
             search_users=repo.search_users,
             user_with_id=repo.get_user,
             create_user=repo.create_user,
             update_user=repo.update_user,
             toggle_user_active=repo.set_user_active,
             delete_user=repo.delete_user,
-            user_exists=repo.user_handler.user_exists,
+            user_exists=repo.user_repository.user_exists,
         ),
-        roles_handler=SimpleNamespace(
+        roles_repository=SimpleNamespace(
             search_roles=repo.search_roles,
             get_role_colors=repo.get_role_colors,
             get_all_role_names=repo.get_role_names,
@@ -761,7 +796,6 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
                 {
                     "role_id": role_id,
                     "permissions": role_data.get("permissions", []),
-                    "deny_permissions": role_data.get("deny_permissions", []),
                     "level": role_data.get("level", 0),
                 }
                 for role_id, role_data in repo.get_roles_policy_map().items()
@@ -772,7 +806,7 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
             toggle_role_active=repo.set_role_active,
             delete_role=repo.delete_role,
         ),
-        permissions_handler=SimpleNamespace(
+        permissions_repository=SimpleNamespace(
             search_permissions=repo.search_permissions,
             get_all_permissions=repo.list_permissions,
             get_permission=repo.get_permission,
@@ -781,60 +815,63 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
             toggle_policy_active=repo.set_permission_active,
             delete_policy=repo.delete_permission,
         ),
-        vep_metadata_handler=SimpleNamespace(
+        vep_metadata_repository=SimpleNamespace(
             get_consequence_group_options=lambda vep=None: ["missense", "splicing"],
         ),
-        assay_panel_handler=SimpleNamespace(
+        assay_panel_repository=SimpleNamespace(
             search_asps=repo.search_panels,
             get_all_asp_groups=repo.get_asp_groups,
             get_all_asps=lambda is_active=None: [repo.get_panel("WGS")],
             get_asp=repo.get_panel,
             create_panel=repo.create_panel,
             update_asp=repo.update_panel,
+            rotate_asp=repo.rotate_panel,
             toggle_asp_active=repo.set_panel_active,
             delete_panel=repo.delete_panel,
         ),
-        gene_list_handler=SimpleNamespace(
+        gene_list_repository=SimpleNamespace(
             search_isgls=repo.search_genelists,
             get_all_isgl=repo.list_genelists,
             get_isgl=repo.get_genelist,
             create_genelist=repo.create_genelist,
             update_isgl=repo.update_genelist,
+            rotate_isgl=repo.rotate_genelist,
             toggle_isgl_active=repo.set_genelist_active,
             delete_genelist=repo.delete_genelist,
         ),
-        assay_configuration_handler=SimpleNamespace(
+        assay_configuration_repository=SimpleNamespace(
             search_aspcs=repo.search_assay_configs,
             get_aspc=repo.get_assay_config,
             get_aspc_with_id=repo.get_assay_config,
             get_available_assay_envs=repo.get_available_assay_envs,
             create_assay_config=repo.create_assay_config,
             update_aspc=repo.update_assay_config,
+            rotate_aspc=repo.rotate_assay_config,
             toggle_aspc_active=repo.set_assay_config_active,
             delete_assay_config=repo.delete_assay_config,
         ),
-        sample_handler=SimpleNamespace(
+        sample_repository=SimpleNamespace(
             search_samples_for_admin=repo.list_samples_for_admin,
             get_sample=repo.get_sample,
             update_sample=repo.update_sample,
             get_sample_name=repo.get_sample_name,
         ),
-        variant_handler=SimpleNamespace(),
-        copy_number_variant_handler=SimpleNamespace(),
-        coverage_handler=SimpleNamespace(),
-        translocation_handler=SimpleNamespace(),
-        fusion_handler=SimpleNamespace(),
-        biomarker_handler=SimpleNamespace(),
+        variant_repository=SimpleNamespace(),
+        copy_number_variant_repository=SimpleNamespace(),
+        coverage_repository=SimpleNamespace(),
+        translocation_repository=SimpleNamespace(),
+        fusion_repository=SimpleNamespace(),
+        biomarker_repository=SimpleNamespace(),
     )
 
 
 def _user_service(repo: _AdminRepoStub) -> UserManagementService:
     store = _build_store(repo)
     return UserManagementService(
-        user_handler=store.user_handler,
-        roles_handler=store.roles_handler,
-        permissions_handler=store.permissions_handler,
-        assay_panel_handler=store.assay_panel_handler,
+        user_repository=store.user_repository,
+        roles_repository=store.roles_repository,
+        permissions_repository=store.permissions_repository,
+        assay_panel_repository=store.assay_panel_repository,
         common_util=shared_util.common,
     )
 
@@ -842,34 +879,34 @@ def _user_service(repo: _AdminRepoStub) -> UserManagementService:
 def _role_service(repo: _AdminRepoStub) -> RoleManagementService:
     store = _build_store(repo)
     return RoleManagementService(
-        roles_handler=store.roles_handler,
-        permissions_handler=store.permissions_handler,
+        roles_repository=store.roles_repository,
+        permissions_repository=store.permissions_repository,
     )
 
 
 def _permission_service(repo: _AdminRepoStub) -> PermissionManagementService:
     store = _build_store(repo)
-    return PermissionManagementService(permissions_handler=store.permissions_handler)
+    return PermissionManagementService(permissions_repository=store.permissions_repository)
 
 
 def _asp_service(repo: _AdminRepoStub) -> AspService:
     store = _build_store(repo)
-    return AspService(assay_panel_handler=store.assay_panel_handler)
+    return AspService(assay_panel_repository=store.assay_panel_repository)
 
 
 def _isgl_service(repo: _AdminRepoStub) -> IsglService:
     store = _build_store(repo)
     return IsglService(
-        gene_list_handler=store.gene_list_handler, assay_panel_handler=store.assay_panel_handler
+        gene_list_repository=store.gene_list_repository, assay_panel_repository=store.assay_panel_repository
     )
 
 
 def _aspc_service(repo: _AdminRepoStub) -> AspcService:
     store = _build_store(repo)
     return AspcService(
-        assay_configuration_handler=store.assay_configuration_handler,
-        assay_panel_handler=store.assay_panel_handler,
-        vep_metadata_handler=store.vep_metadata_handler,
+        assay_configuration_repository=store.assay_configuration_repository,
+        assay_panel_repository=store.assay_panel_repository,
+        vep_metadata_repository=store.vep_metadata_repository,
         common_util=shared_util.common,
     )
 
@@ -877,13 +914,13 @@ def _aspc_service(repo: _AdminRepoStub) -> AspcService:
 def _resource_sample_service(repo: _AdminRepoStub) -> ResourceSampleService:
     store = _build_store(repo)
     return ResourceSampleService(
-        sample_handler=store.sample_handler,
-        variant_handler=store.variant_handler,
-        copy_number_variant_handler=store.copy_number_variant_handler,
-        coverage_handler=store.coverage_handler,
-        translocation_handler=store.translocation_handler,
-        fusion_handler=store.fusion_handler,
-        biomarker_handler=store.biomarker_handler,
+        sample_repository=store.sample_repository,
+        variant_repository=store.variant_repository,
+        copy_number_variant_repository=store.copy_number_variant_repository,
+        coverage_repository=store.coverage_repository,
+        translocation_repository=store.translocation_repository,
+        fusion_repository=store.fusion_repository,
+        biomarker_repository=store.biomarker_repository,
         records_util=shared_util.records,
     )
 
@@ -914,12 +951,8 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _user_service(repo)
-    monkeypatch.setattr("api.services.accounts.users.current_actor", lambda username: username)
-    monkeypatch.setattr(
-        "api.services.accounts.users.inject_version_history",
-        lambda **kwargs: kwargs["new_config"],
-    )
-    monkeypatch.setattr("api.services.accounts.users.utc_now", lambda: datetime.now(timezone.utc))
+    monkeypatch.setattr("api.application.accounts.users.current_actor", lambda username: username)
+    monkeypatch.setattr("api.application.accounts.users.utc_now", lambda: datetime.now(timezone.utc))
     monkeypatch.setattr(
         shared_util,
         "records",
@@ -932,9 +965,7 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
                 "fullname": form_data.get("fullname", "Test User"),
                 "job_title": form_data.get("job_title", "Analyst"),
                 "roles": form_data["roles"],
-                "permissions": form_data.get("permissions", []),
-                "deny_permissions": form_data.get("deny_permissions", []),
-                "auth_type": "coyote3",
+                "auth_type": ["ldap"],
                 "password": "secret",
             }
         ),
@@ -947,21 +978,21 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
         raising=False,
     )
     service = UserManagementService(
-        user_handler=service.user_handler,
-        roles_handler=service.roles_handler,
-        permissions_handler=service.permissions_handler,
-        assay_panel_handler=service.assay_panel_handler,
+        user_repository=service.user_repository,
+        roles_repository=service.roles_repository,
+        permissions_repository=service.permissions_repository,
+        assay_panel_repository=service.assay_panel_repository,
         common_util=shared_util.common,
     )
 
     payload = service.create_user(
         payload={
-            "form_data": {
-                "username": "NewTester",
-                "email": "NewTester@Example.com",
-                "roles": ["admin"],
-                "permissions": ["perm.a", "perm.b"],
-            }
+                "form_data": {
+                    "username": "NewTester",
+                        "email": "NewTester@Example.com",
+                        "password": "secret",
+                        "roles": ["admin"],
+                    }
         },
         actor_username="actor@example.com",
     )
@@ -969,8 +1000,9 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
     assert payload["resource"] == "user"
     assert repo.created_user["username"] == "newtester"
     assert repo.created_user["email"] == "newtester@example.com"
-    assert repo.created_user["password"] == "H:secret"
-    assert repo.created_user["permissions"] == ["perm.b"]
+    assert repo.created_user["auth_type"] == ["ldap"]
+    assert repo.created_user["password"] is None
+    assert "permissions" not in repo.created_user
 
 
 def test_admin_user_service_toggle_user_sets_status(monkeypatch):
@@ -1001,9 +1033,9 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _role_service(repo)
-    monkeypatch.setattr("api.services.accounts.roles.current_actor", lambda username: username)
+    monkeypatch.setattr("api.application.accounts.roles.current_actor", lambda username: username)
     monkeypatch.setattr(
-        "api.services.accounts.roles.inject_version_history",
+        "api.application.accounts.roles.inject_version_history",
         lambda **kwargs: kwargs["new_config"],
     )
     monkeypatch.setattr(
@@ -1014,7 +1046,6 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
             "label": form_data.get("name", ""),
             "color": "#1f2937",
             "permissions": [],
-            "deny_permissions": [],
         },
     )
 
@@ -1024,7 +1055,7 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
 
     assert payload["resource"] == "role"
     assert repo.created_role["role_id"] == "developer"
-    assert repo.created_role["name"] == "Developer"
+    assert repo.created_role["name"] == "developer"
     assert repo.created_role["level"] == 9999
 
 
@@ -1056,7 +1087,7 @@ def test_admin_permission_service_groups_permissions(monkeypatch):
 
     payload = service.list_permissions_payload()
 
-    assert payload["permission_policies"][0]["permission_id"] == "perm.read"
+    assert payload["permission_policies"][0]["permission_id"] == "sample:view"
     assert "General" in payload["grouped_permissions"]
 
 
@@ -1083,10 +1114,10 @@ def test_admin_permission_service_toggle_permission_sets_status(monkeypatch):
     _patch_admin_stores(monkeypatch, repo)
     service = _permission_service(repo)
 
-    payload = service.toggle_permission(permission_id="perm.read")
+    payload = service.toggle_permission(permission_id="sample:view")
 
     assert payload["meta"]["is_active"] is False
-    assert repo.updated_permission == ("perm.read", {"is_active": False})
+    assert repo.updated_permission == ("sample:view", {"is_active": False})
 
 
 def test_admin_panel_service_toggle_panel_sets_status(monkeypatch):
@@ -1173,9 +1204,9 @@ def test_admin_aspc_create_context_uses_analysis_sections_not_genelist_fields(mo
 
     assert "TMB" in analysis_options
     assert "PGX" in analysis_options
-    assert "genelists" not in filter_keys
-    assert "cnv_genelists" not in filter_keys
-    assert "fusion_genelists" not in filter_keys
+    assert "snvlists" in filter_keys
+    assert "cnvlists" in filter_keys
+    assert "fusionlists" not in filter_keys
     assert "TMB" in report_section_options
     assert "PGX" in report_section_options
 
@@ -1190,7 +1221,7 @@ def test_admin_aspc_service_create_rejects_duplicate(monkeypatch):
     _patch_admin_stores(monkeypatch, repo)
     service = _aspc_service(repo)
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         service.create(payload={"config": {"aspc_id": "WGS:prod"}})
 
     assert exc.value.status_code == 409
@@ -1208,8 +1239,8 @@ def test_admin_sample_service_update_restores_ids(monkeypatch):
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _resource_sample_service(repo)
-    monkeypatch.setattr("api.services.resources.sample.current_actor", lambda username: username)
-    monkeypatch.setattr("api.services.resources.sample.utc_now", lambda: datetime.now(timezone.utc))
+    monkeypatch.setattr("api.application.resources.sample.current_actor", lambda username: username)
+    monkeypatch.setattr("api.application.resources.sample.utc_now", lambda: datetime.now(timezone.utc))
     service.records_util = SimpleNamespace(restore_object_ids=lambda payload: payload)
 
     payload = service.update(

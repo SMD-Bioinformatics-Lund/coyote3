@@ -6,21 +6,12 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
-from api.main import app
+from api.app.main import app
 from api.security import access
 from api.security.access import ApiUser
 
-ROLE_LEVELS = {
-    "user": 9,
-    "manager": 99,
-    "admin": 99999,
-    "developer": 9999,
-}
 
-
-def _user(
-    *, level: int, permissions: list[str] | None = None, denied: list[str] | None = None
-) -> ApiUser:
+def _user(*, level: int, permissions: list[str] | None = None) -> ApiUser:
     """Build a lightweight ApiUser for access checks."""
     return ApiUser(
         id="U1",
@@ -31,11 +22,11 @@ def _user(
         roles=["user"],
         access_level=level,
         permissions=list(permissions or []),
-        denied_permissions=list(denied or []),
         assays=["DNA", "RNA"],
         assay_groups=[],
         envs=["production"],
         asp_map={},
+        auth_type=["local"],
     )
 
 
@@ -68,14 +59,14 @@ def _request_for(path: str, method: str) -> Request:
 
 
 @pytest.mark.parametrize(
-    ("method", "path", "required_permission", "required_level"),
+    ("method", "path", "required_permission"),
     [
-        ("GET", "/api/v1/users", "user:list", 99999),
-        ("GET", "/api/v1/roles", "role:list", 99999),
-        ("GET", "/api/v1/permissions", "permission.policy:list", 99999),
-        ("GET", "/api/v1/resources/aspc", "assay.config:list", 9),
-        ("POST", "/api/v1/coverage/blacklist/entries", None, 1),
-        ("GET", "/api/v1/samples/{sample_id}/reports/{report_type}/preview", "report:preview", 9),
+        ("GET", "/api/v1/users", "user:list"),
+        ("GET", "/api/v1/roles", "role:list"),
+        ("GET", "/api/v1/permissions", "permission.policy:list"),
+        ("GET", "/api/v1/resources/aspc", "assay.config:list"),
+        ("POST", "/api/v1/coverage/blacklist/entries", "coverage.blacklist:manage"),
+        ("GET", "/api/v1/samples/{sample_id}/reports/{report_type}/preview", "report:preview"),
     ],
 )
 def test_high_risk_endpoints_auth_matrix(
@@ -83,12 +74,22 @@ def test_high_risk_endpoints_auth_matrix(
     method: str,
     path: str,
     required_permission: str | None,
-    required_level: int,
 ):
     """Verify high-risk route access dependency behavior across auth scenarios."""
-    monkeypatch.setattr(access, "_role_levels", lambda: ROLE_LEVELS)
+    monkeypatch.setattr(access, "get_permissions_repository", lambda: None)
     dep = _resolve_access_dependency(method=method, path=path)
     request = _request_for(path=path, method=method)
+
+    def _roles_repo(permissions: list[str]):
+        return type(
+            "_Roles",
+            (),
+            {
+                "get_all_roles": staticmethod(
+                    lambda: [{"role_id": "user", "is_active": True, "permissions": permissions}]
+                )
+            },
+        )()
 
     def _raise_unauth(_request):
         raise HTTPException(status_code=401, detail={"status": 401, "error": "Login required"})
@@ -98,15 +99,16 @@ def test_high_risk_endpoints_auth_matrix(
         next(dep(request))
     assert unauth_exc.value.status_code == 401
 
-    restricted_user = _user(level=max(0, required_level - 1), permissions=[])
+    restricted_user = _user(level=99999, permissions=[])
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: restricted_user)
+    monkeypatch.setattr(access, "get_roles_repository", lambda: _roles_repo([]))
     with pytest.raises(HTTPException) as forbidden_exc:
         next(dep(request))
     assert forbidden_exc.value.status_code == 403
 
-    allowed_permissions = [required_permission] if required_permission else []
-    allowed_user = _user(level=max(required_level, 99999), permissions=allowed_permissions)
+    allowed_user = _user(level=1, permissions=[])
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: allowed_user)
+    monkeypatch.setattr(access, "get_roles_repository", lambda: _roles_repo([required_permission]))
     generator = dep(request)
     assert next(generator) == allowed_user
     generator.close()

@@ -15,46 +15,70 @@ Use these templates as the starting point for each environment.
 
 ## Default Port Layout
 
-The platform uses separate host-port ranges to avoid collisions between environments:
+Each environment exposes one HTTP entrypoint through nginx. Web UI, API, and
+docs remain on internal container ports and are routed through the proxy:
 
 | Domain Layer | Production | Staging | Development | Test/CI |
 | --- | --- | --- | --- | --- |
-| **Edge Proxy** | `5815` | `8804` | n/a | n/a |
-| **Web UI** | `5816` | `8805` | `6801` | `6811` |
-| **REST API** | `5818` | `8806` | `6802` | `6812` |
-| **Redis Cache** | `5819` | `8807` | `6803` | `6813` |
+| **HTTP proxy** | `5815` | `8804` | `6801` | `6811` |
 | **MongoDB** | `5820` | `8808` | `6804` | `6814` |
-| **Documentation** | `5807` | `8809` | `6805` | `6815` |
 
-The **Edge Proxy** is an optional nginx reverse proxy (Docker profile `with-proxy`) that exposes web, API, and docs behind a single port. It is not required — without it, access each service on its own port directly.
+Routes:
+
+- `/` -> Web UI
+- `/api/` -> FastAPI
+- `/docs-site/` -> documentation site
+
+Redis is internal-only. MongoDB is only exposed when the optional `with-mongo`
+profile is used.
 
 ### Customizing Ports
 
-All host ports are configurable via environment variables. Override them in your `.coyote3_env` file or export them before running `docker compose`:
+The HTTP proxy host port is configurable via environment variables. Override it
+in your `.coyote3_env` file or export it before running `docker compose`:
 
 | Environment Variable | Default | Service |
 | --- | --- | --- |
-| `COYOTE3_PROXY_PORT` | `5815` | Edge proxy — optional (`--profile with-proxy`) |
-| `COYOTE3_WEB_PORT` | `5816` | Web UI (Flask/Gunicorn) |
-| `COYOTE3_API_PORT` | `5818` | REST API (FastAPI/Uvicorn) |
-| `COYOTE3_REDIS_PORT` | `5819` | Redis cache |
+| `COYOTE3_PORT` | `5815` | Production HTTP proxy |
+| `COYOTE3_STAGE_PORT` | `8804` | Staging HTTP proxy |
+| `COYOTE3_DEV_PORT` | `6801` | Development HTTP proxy |
+| `COYOTE3_TEST_PORT` | `6811` | Test HTTP proxy |
 | `COYOTE3_MONGO_PORT` | `5820` | MongoDB — optional (`--profile with-mongo`) |
-| `COYOTE3_DOCS_PORT` | `5807` | Documentation site (MkDocs) |
+| `COYOTE3_STAGE_MONGO_PORT` | `8808` | Staging MongoDB — optional (`--profile with-mongo`) |
+| `COYOTE3_DEV_MONGO_PORT` | `6804` | Development MongoDB — optional (`--profile with-mongo`) |
+| `COYOTE3_TEST_MONGO_PORT` | `6814` | Test MongoDB — optional (`--profile with-mongo`) |
 
-The same pattern applies to other environments with different prefixes:
-
-- **Development**: `COYOTE3_DEV_WEB_PORT`, `COYOTE3_DEV_API_PORT`, `COYOTE3_DEV_REDIS_PORT`, `COYOTE3_DEV_MONGO_PORT` (defined in `deploy/compose/docker-compose.dev.yml`)
-- **Staging**: `COYOTE3_STAGE_WEB_PORT`, etc. (defined in `deploy/compose/docker-compose.stage.yml`)
-- **Test/CI**: `COYOTE3_TEST_WEB_PORT`, etc. (defined in `deploy/compose/docker-compose.test.yml`)
-
-Example — run production Web UI on port 9000 instead of 5816:
+Example — run the production HTTP proxy on port 9000 instead of 5815:
 
 ```bash
-export COYOTE3_WEB_PORT=9000
+export COYOTE3_PORT=9000
 docker compose -f deploy/compose/docker-compose.yml up -d
 ```
 
-> **Note**: Internal container ports (8000 for web, 8001 for API, 6379 for Redis, 27017 for MongoDB) are fixed and should not be changed. Only the host-side ports are configurable via these variables.
+> **Note**: Internal container ports (3000 or 8000 for web, 8001 for API, 6379 for Redis, 27017 for MongoDB) are fixed and should not be changed.
+
+### Data Mounts
+
+Runtime data paths are mounted through a data-root pair, not hardcoded in the
+Compose files:
+
+| Environment Variable | Default | Purpose |
+| --- | --- | --- |
+| `COYOTE3_DATA_HOST_ROOT` | `/data` | Host-side data root mounted into app containers |
+| `COYOTE3_DATA_CONTAINER_ROOT` | `/data` | Container-side data root |
+
+Paths such as `REPORTS_BASE_PATH`, `CELERY_INGEST_STAGING_DIR`, and
+`COYOTE3_INGEST_WATCH_DIR` should live under `COYOTE3_DATA_CONTAINER_ROOT`.
+When sample manifests contain absolute file paths, set the container root to the
+same path used in those manifests.
+
+Example for local development data under `/data/coyote3`:
+
+```env
+COYOTE3_DATA_HOST_ROOT='/data/coyote3'
+COYOTE3_DATA_CONTAINER_ROOT='/data/coyote3'
+COYOTE3_INGEST_WATCH_DIR='/data/coyote3/ingest'
+```
 
 ## Critical Configuration Parameters
 
@@ -102,7 +126,7 @@ Assigned role levels provide the baseline for permission evaluation.
 ### Identity Normalization
 Login identifiers are normalized to reduce duplicates and mismatches:
 - All email-style identifiers are normalized to lowercase.
-- Validation requires explicit local and domain segment definitions to ensure organizational compatibility.
+- Validation requires explicit local and domain segment definitions to ensure organizational alignment.
 
 ## Service Integration Guidelines
 

@@ -4,10 +4,10 @@ from types import SimpleNamespace
 
 import mongomock
 
-from api.infra.mongo.handlers.samples import SampleHandler
+from api.infra.mongo.repositories.samples import SampleRepository
 
 
-def _handler_with_docs(*docs: dict) -> SampleHandler:
+def _handler_with_docs(*docs: dict) -> SampleRepository:
     client = mongomock.MongoClient()
     collection = client["coyote3_test"]["samples"]
     if docs:
@@ -16,7 +16,7 @@ def _handler_with_docs(*docs: dict) -> SampleHandler:
         samples_collection=collection,
         app=SimpleNamespace(config={}, logger=SimpleNamespace(debug=lambda *a, **k: None)),
     )
-    return SampleHandler(adapter)
+    return SampleRepository(adapter)
 
 
 def test_get_samples_returns_only_ready_docs() -> None:

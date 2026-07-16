@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.infra.mongo.handlers.variants import VariantsHandler
+from api.infra.mongo.repositories.variants import VariantsRepository
 
 
 class _FakeCursor:
@@ -33,7 +33,7 @@ class _FakeAdapter:
 
 
 def test_get_variants_by_identity_uses_hash_and_simple_id() -> None:
-    handler = VariantsHandler(_FakeAdapter())
+    handler = VariantsRepository(_FakeAdapter())
     handler.get_variants_by_identity(simple_id="17_7579472_C_T", sample_id="s1")
 
     assert handler.get_collection().query == {
@@ -44,7 +44,7 @@ def test_get_variants_by_identity_uses_hash_and_simple_id() -> None:
 
 
 def test_get_variants_by_gene_plus_variant_list_hashes_simple_id_filters() -> None:
-    handler = VariantsHandler(_FakeAdapter())
+    handler = VariantsRepository(_FakeAdapter())
     handler.get_variants_by_gene_plus_variant_list(
         gene="TP53",
         variant_list=["17_7579472_C_T", "p.R175H"],

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.routers import permissions
+from api.interfaces.http import permissions
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -105,8 +105,8 @@ def test_toggle_permission_status_sets_is_active_meta(monkeypatch):
     assert payload["meta"]["is_active"] is True
 
 
-def test_toggle_permission_status_defaults_legacy_doc_to_active(monkeypatch):
-    """Test toggle permission status defaults legacy doc to active.
+def test_toggle_permission_status_defaults_historical_doc_to_active(monkeypatch):
+    """Test toggle permission status defaults historical doc to active.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -123,7 +123,7 @@ def test_toggle_permission_status_defaults_legacy_doc_to_active(monkeypatch):
                 lambda **kwargs: {
                     "status": "ok",
                     "resource": "permission",
-                    "resource_id": "perm.legacy",
+                    "resource_id": "perm.historical",
                     "action": "toggle",
                     "sample_id": "admin",
                     "meta": {"is_active": False},
@@ -133,7 +133,7 @@ def test_toggle_permission_status_defaults_legacy_doc_to_active(monkeypatch):
     )()
 
     payload = permissions.toggle_permission_status(
-        "perm.legacy", user=fx.api_user(), service=service
+        "perm.historical", user=fx.api_user(), service=service
     )
 
     assert payload["meta"]["is_active"] is False

@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from api.routers import internal
+from api.interfaces.http import internal
 
 
 def _admin_user():
@@ -18,7 +18,6 @@ def _admin_user():
         roles=["superuser"],
         access_level=99999,
         permissions=["sample:edit:own"],
-        denied_permissions=[],
         is_superuser=True,
     )
 
@@ -62,11 +61,11 @@ def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
         SimpleNamespace(convert_to_serializable=lambda payload: payload),
         raising=False,
     )
-    roles_handler = SimpleNamespace(
+    roles_repository = SimpleNamespace(
         get_all_roles=lambda: [{"role_id": "admin", "level": 99}, {"role_id": "viewer"}]
     )
 
-    payload = internal.get_role_levels_internal(request=object(), roles_handler=roles_handler)
+    payload = internal.get_role_levels_internal(request=object(), roles_repository=roles_repository)
 
     assert calls["token"] == 1
     assert payload["status"] == "ok"
@@ -93,13 +92,13 @@ def test_get_isgl_meta_internal_reads_adhoc_and_display_name(monkeypatch):
         SimpleNamespace(convert_to_serializable=lambda payload: payload),
         raising=False,
     )
-    gene_list_handler = SimpleNamespace(
+    gene_list_repository = SimpleNamespace(
         is_isgl_adhoc=lambda _isgl_id: True,
         get_isgl_display_name=lambda _isgl_id: "Focus Panel",
     )
 
     payload = internal.get_isgl_meta_internal(
-        "isgl123", request=object(), gene_list_handler=gene_list_handler
+        "isgl123", request=object(), gene_list_repository=gene_list_repository
     )
 
     assert calls["token"] == 1
@@ -160,7 +159,7 @@ def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
 
     assert calls["payload"]["name"] == "S1"
     assert calls["payload"]["genome_build"] == 38
-    assert calls["payload"]["vcf_files"] == "/tmp/a.vcf"
+    assert calls["payload"]["files"]["vcf_files"]["path"] == "/tmp/a.vcf"
     assert calls["increment"] is True
     assert response["status"] == "ok"
 
@@ -245,7 +244,7 @@ def test_ingest_sample_bundle_internal_requires_sample_edit_own_permission_for_u
     monkeypatch.setattr(
         internal,
         "_enforce_access",
-        lambda _user, permission=None, min_level=None, min_role=None: calls.__setitem__(
+        lambda _user, permission=None, context=None: calls.__setitem__(
             "enforced", 1
         ),
     )

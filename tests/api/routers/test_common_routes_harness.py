@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from api.routers import common
-from api.services.common.query_service import CommonQueryService
+from api.interfaces.http import common
+from api.application.common.query_service import CommonQueryService
 from tests.fixtures.api import mock_collections as fx
 from tests.fixtures.api.fake_store import build_fake_store
 
@@ -21,16 +21,16 @@ def test_common_gene_info_read_numeric_path_with_fake_store(monkeypatch):
     """
     fake_store = build_fake_store()
     service = CommonQueryService(
-        hgnc_handler=SimpleNamespace(
-            get_metadata_by_hgnc_id=lambda hgnc_id: fake_store.hgnc_handler.get_metadata_by_hgnc_id(
+        hgnc_repository=SimpleNamespace(
+            get_metadata_by_hgnc_id=lambda hgnc_id: fake_store.hgnc_repository.get_metadata_by_hgnc_id(
                 hgnc_id=hgnc_id
             )
         ),
-        variant_handler=SimpleNamespace(),
-        reported_variant_handler=SimpleNamespace(),
-        assay_panel_handler=SimpleNamespace(),
-        annotation_handler=SimpleNamespace(),
-        sample_handler=SimpleNamespace(),
+        variant_repository=SimpleNamespace(),
+        reported_variant_repository=SimpleNamespace(),
+        assay_panel_repository=SimpleNamespace(),
+        annotation_repository=SimpleNamespace(),
+        sample_repository=SimpleNamespace(),
     )
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
@@ -50,21 +50,21 @@ def test_common_tiered_variant_context_read_with_fake_store(monkeypatch):
     """
     fake_store = build_fake_store()
     service = CommonQueryService(
-        variant_handler=SimpleNamespace(
-            get_variant=lambda variant_id: fake_store.variant_handler.get_variant(variant_id)
+        variant_repository=SimpleNamespace(
+            get_variant=lambda variant_id: fake_store.variant_repository.get_variant(variant_id)
         ),
-        reported_variant_handler=SimpleNamespace(
+        reported_variant_repository=SimpleNamespace(
             list_reported_variants=lambda query: list(
-                fake_store.reported_variant_handler.list_reported_variants(query) or []
+                fake_store.reported_variant_repository.list_reported_variants(query) or []
             )
         ),
-        hgnc_handler=SimpleNamespace(),
-        assay_panel_handler=SimpleNamespace(),
-        annotation_handler=SimpleNamespace(),
-        sample_handler=SimpleNamespace(),
+        hgnc_repository=SimpleNamespace(),
+        assay_panel_repository=SimpleNamespace(),
+        annotation_repository=SimpleNamespace(),
+        sample_repository=SimpleNamespace(),
     )
     monkeypatch.setattr(
-        "api.services.common.query_service.enrich_reported_variant_docs", lambda docs, **_: docs
+        "api.application.common.query_service.enrich_reported_variant_docs", lambda docs, **_: docs
     )
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 

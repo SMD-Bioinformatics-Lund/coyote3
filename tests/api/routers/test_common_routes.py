@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from fastapi import HTTPException
+from api.domain.core.exceptions import AppError
 
-from api.routers import common
+from api.interfaces.http import common
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -20,7 +20,7 @@ def test_common_gene_info_read_by_symbol(monkeypatch):
     """
     service = common.get_common_query_service()
     monkeypatch.setattr(
-        service.hgnc_handler, "get_metadata_by_symbol", lambda symbol: {"symbol": symbol}
+        service.hgnc_repository, "get_metadata_by_symbol", lambda symbol: {"symbol": symbol}
     )
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
@@ -38,9 +38,9 @@ def test_common_tiered_variant_context_not_found_raises_404(monkeypatch):
         The function result.
     """
     service = common.get_common_query_service()
-    monkeypatch.setattr(service.variant_handler, "get_variant", lambda variant_id: None)
+    monkeypatch.setattr(service.variant_repository, "get_variant", lambda variant_id: None)
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         common.common_tiered_variant_context_read(
             "missing",
             2,
@@ -63,7 +63,7 @@ def test_common_tiered_variant_context_insufficient_identity_returns_error_paylo
     """
     variant = {"_id": "v1", "INFO": {"selected_CSQ": {}}, "simple_id": None, "simple_id_hash": None}
     service = common.get_common_query_service()
-    monkeypatch.setattr(service.variant_handler, "get_variant", lambda variant_id: variant)
+    monkeypatch.setattr(service.variant_repository, "get_variant", lambda variant_id: variant)
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = common.common_tiered_variant_context_read(
@@ -77,8 +77,8 @@ def test_common_tiered_variant_context_insufficient_identity_returns_error_paylo
     assert payload["error"] == "Variant has insufficient identity fields"
 
 
-def test_common_tiered_variant_context_uses_hash_and_simple_id(monkeypatch):
-    """Exact identity lookup must prefilter by hash and verify by simple_id."""
+def test_common_tiered_variant_context_uses_master_style_identity_lookup(monkeypatch):
+    """Exact identity lookup should match historical reported-variant behavior."""
     variant = {
         "_id": "v1",
         "simple_id": " chr17_7579472_c_t ",
@@ -87,15 +87,15 @@ def test_common_tiered_variant_context_uses_hash_and_simple_id(monkeypatch):
     }
     captured: dict = {}
     service = common.get_common_query_service()
-    monkeypatch.setattr(service.variant_handler, "get_variant", lambda variant_id: variant)
+    monkeypatch.setattr(service.variant_repository, "get_variant", lambda variant_id: variant)
     monkeypatch.setattr(
-        service.reported_variant_handler,
+        service.reported_variant_repository,
         "list_reported_variants",
         lambda query: captured.setdefault("query", query) or [],
     )
     monkeypatch.setattr(common, "get_common_query_service", lambda: service)
     monkeypatch.setattr(
-        "api.services.common.query_service.enrich_reported_variant_docs", lambda docs, **_: docs
+        "api.application.common.query_service.enrich_reported_variant_docs", lambda docs, **_: docs
     )
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
@@ -109,12 +109,5 @@ def test_common_tiered_variant_context_uses_hash_and_simple_id(monkeypatch):
     assert payload["error"] is None
     assert captured["query"] == {
         "gene": "TP53",
-        "$or": [
-            {
-                "$and": [
-                    {"simple_id_hash": "862b46287a08e369aa99f8f3777f44b9"},
-                    {"simple_id": "17_7579472_C_T"},
-                ]
-            }
-        ],
+        "$or": [{"simple_id_hash": "862b46287a08e369aa99f8f3777f44b9"}],
     }

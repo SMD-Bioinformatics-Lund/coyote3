@@ -90,13 +90,13 @@ ${PYTHON_BIN:-python} scripts/mongo_bootstrap_users.py \
 
 ## 3. Health checks
 
-- API: `http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}/api/v1/health`
-- UI: `http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_WEB_PORT:-8805}`
+- API: `http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_PORT:-8804}/api/v1/health`
+- UI: `http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_PORT:-8804}`
 
 Command-line API check:
 
 ```bash
-curl -fsS "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}/api/v1/health"
+curl -fsS "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_PORT:-8804}/api/v1/health"
 ```
 
 ## 4. Bootstrap first API superuser
@@ -195,7 +195,7 @@ Recommended one-shot command:
 
 ```bash
 scripts/bootstrap_center_collections.sh \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_PORT:-8804}" \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
   --seed-file tests/fixtures/db_dummy/all_collections_dummy \
@@ -210,7 +210,6 @@ scripts/center_first_run.sh \
   --env-file <ENV_FILE> \
   --compose-file <COMPOSE_FILE> \
   [--with-mongo] \
-  [--with-proxy] \
   [--compose-profile <PROFILE>] \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:<API_PORT>" \
   --admin-username "admin.coyote3" \
@@ -268,7 +267,7 @@ ${PYTHON_BIN:-python} scripts/validate_ingest_spec.py \
 
 ```bash
 scripts/center_check.sh \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_PORT:-8804}" \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml
@@ -306,7 +305,7 @@ Admin verification matrix:
    - Create role with allow/deny permissions
    - Verify role appears in user-create role dropdown
 3. Permissions:
-   - Create permission and confirm it appears in role/user permission lists
+   - Create permission and confirm it appears in role permission lists
 4. ASP:
    - Create assay panel and verify it appears in ASP list
 5. ASPC (DNA/RNA):
@@ -351,7 +350,7 @@ For fully automated initial setup:
 scripts/center_first_run.sh \
   --env-file .coyote3_stage_env \
   --compose-file deploy/compose/docker-compose.stage.yml \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_PORT:-8804}" \
   --admin-email "admin@your-center.org" \
   --admin-password "CHANGE_ME" \
   --seed-file tests/fixtures/db_dummy/all_collections_dummy \

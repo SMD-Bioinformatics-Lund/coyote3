@@ -11,7 +11,7 @@ Check the release metadata before starting a deployment:
 
 ```bash
 # Capture version and build context
-export COYOTE3_VERSION="$(python coyote/__version__.py)"
+export COYOTE3_VERSION="$(python api/version.py)"
 export GIT_COMMIT="$(git rev-parse --short HEAD)"
 export BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ```
@@ -54,10 +54,10 @@ Check service health after each deployment:
 ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml ps
 
 # Check API health
-curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_API_PORT:-5818}/api/v1/health"
+curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}/api/v1/health"
 
 # Check internal metrics
-curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_API_PORT:-5818}/api/v1/internal/metrics" \
+curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}/api/v1/internal/metrics" \
   -H "X-Internal-Token: ${INTERNAL_API_TOKEN}"
 ```
 
@@ -68,7 +68,7 @@ curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_API_PORT:-5818}/api/v1/inte
 - **Durable Volume Protection**: Destructive volume operations (`down -v`) are blocked in production unless `COYOTE3_ALLOW_PROD_VOLUME_PRUNE=1` is set.
 - **Cache Persistence**: Redis instances are pinned to specific versioned images (`7.4.3`) to prevent state corruption during floating tag updates.
 
-## Upgrades And Patches
+## Upgrades
 
 For upgrades:
 

@@ -1,7 +1,7 @@
 """Unit tests for ASPC-driven CNV/fusion/translocation query strategy."""
 
-from api.core.dna.cnvqueries import build_cnv_query
-from api.core.rna.fusion_query_builder import build_fusion_query
+from api.domain.core.dna.cnvqueries import build_cnv_query
+from api.domain.core.rna.fusion_query_builder import build_fusion_query
 
 
 def test_build_cnv_query_applies_base_guards() -> None:

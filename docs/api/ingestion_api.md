@@ -40,21 +40,126 @@ Scope note:
 ## Endpoints
 
 - `POST /api/v1/internal/ingest/sample-bundle`
+- `POST /api/v1/internal/ingest/sample-bundle/async`
 - `POST /api/v1/internal/ingest/sample-bundle/upload`
+- `POST /api/v1/internal/ingest/sample-bundle/upload/async`
 - `POST /api/v1/internal/ingest/dependents`
+- `POST /api/v1/internal/ingest/dependents/async`
 - `POST /api/v1/internal/ingest/collection`
+- `POST /api/v1/internal/ingest/collection/async`
 - `POST /api/v1/internal/ingest/collection/bulk`
+- `POST /api/v1/internal/ingest/collection/bulk/async`
 - `PUT /api/v1/internal/ingest/collection`
+- `PUT /api/v1/internal/ingest/collection/async`
 - `POST /api/v1/internal/ingest/collection/upload`
 - `GET /api/v1/internal/ingest/collections`
+- `GET /api/v1/internal/tasks/{task_id}`
 - `GET /api/v1/internal/metrics`
+
+## Celery-backed async ingest
+
+The async routes perform the same API authentication and authorization checks as
+the synchronous internal ingest routes, then enqueue work on the Celery `ingest`
+queue. Workers are defined in the Compose stacks as `coyote3_worker`,
+`coyote3_dev_worker`, `coyote3_stage_worker`, and `coyote3_test_worker`.
+
+Runtime settings:
+
+- `CELERY_BROKER_URL`: Redis broker URL. Defaults to `CACHE_REDIS_URL`.
+- `CELERY_RESULT_BACKEND`: Redis result backend URL. Defaults to the broker URL.
+- `CELERY_INGEST_QUEUE`: Queue used for ingest work. Defaults to `ingest`.
+- `CELERY_WORKER_CONCURRENCY`: Worker concurrency. Defaults to `2`.
+- `CELERY_INGEST_STAGING_DIR`: Durable server-side staging root for async upload files. Defaults to `/tmp/coyote3_ingest_jobs`.
+
+Async response:
+
+```json
+{
+  "status": "accepted",
+  "task_id": "6f3a...",
+  "task_name": "api.tasks.ingest.ingest_sample_bundle",
+  "queue": "ingest"
+}
+```
+
+Poll status:
+
+```bash
+curl -sS "${API_BASE_URL}/api/v1/internal/tasks/${TASK_ID}" \
+  -H "Authorization: Bearer ${API_BEARER_TOKEN}"
+```
+
+The async upload route stores uploaded YAML/data files in a durable staging
+directory before enqueueing the task. The worker removes that staging directory
+after the ingest task finishes or fails.
+
+## Admin ingest workspace
+
+The Admin Ingest Workspace is a UI wrapper around the async upload endpoint.
+Operators provide:
+
+- one `coyote3.yaml` / `*.coyote3.yaml` manifest
+- optional data files referenced by the manifest
+- `update_existing` when the manifest should replace data for an existing sample
+- `increment` when a new unique sample name should be generated from the case id
+
+The UI submits multipart form data to:
+
+```text
+POST /api/v1/internal/ingest/sample-bundle/upload/async
+```
+
+The response returns a Celery `task_id`. The workspace polls:
+
+```text
+GET /api/v1/internal/tasks/{task_id}
+```
+
+and displays worker state, completion status, errors, and the final ingest result.
+This is the supported browser workflow for manual operator-triggered ingestion.
+
+## Folder watcher ingest
+
+Compose also defines a Celery beat scheduler (`coyote3_beat`,
+`coyote3_dev_beat`, `coyote3_stage_beat`, and `coyote3_test_beat`). When
+`COYOTE3_INGEST_WATCH_ENABLED=1`, beat periodically enqueues
+`api.tasks.ingest.ingest_watch_directory_once`, which scans
+`COYOTE3_INGEST_WATCH_DIR` for `coyote3.yaml`.
+
+Watcher settings:
+
+- `COYOTE3_INGEST_WATCH_DIR`: root folder to scan recursively.
+- `COYOTE3_INGEST_WATCH_FILENAME`: manifest filename. Defaults to `coyote3.yaml`.
+- `COYOTE3_INGEST_WATCH_INTERVAL_SECONDS`: beat interval. Defaults to `30`.
+- `COYOTE3_INGEST_WATCH_UPDATE_EXISTING`: pass `allow_update=true` to sample ingest.
+- `COYOTE3_INGEST_WATCH_INCREMENT`: pass `increment=true` to sample ingest.
+- `COYOTE3_INGEST_DONE_SUFFIX`: success marker suffix. Defaults to `.done`.
+- `COYOTE3_INGEST_FAILED_SUFFIX`: failure marker suffix. Defaults to `.failed`.
+
+Relative file paths inside each manifest are resolved from that manifest's
+directory. After successful ingest, the watcher renames the manifest to
+`coyote3.yaml.done`; failed manifests are renamed to `coyote3.yaml.failed` so
+they do not loop continuously.
+
+## Compose Mongo profile
+
+The Compose Mongo service is optional. By default, API and worker containers use
+the configured `MONGO_URI`, which can point at a local or managed MongoDB. Start
+the bundled Mongo only when needed:
+
+```bash
+docker compose -f deploy/compose/docker-compose.dev.yml --profile with-mongo up -d
+```
+
+Without `--profile with-mongo`, only Redis, API, frontend/docs, Celery worker,
+and Celery beat are included in the stack.
 
 ## Route commands (full examples)
 
 Set runtime variables once:
 
 ```bash
-export API_BASE_URL="http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}"
+export API_BASE_URL="http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_PORT:-8804}"
 # Option A: existing bearer token
 export API_BEARER_TOKEN="<YOUR_API_BEARER_TOKEN>"
 
@@ -95,9 +200,10 @@ Seed source policy for a new deployment:
   seed files (`--seed-file`, for example `tests/fixtures/db_dummy/all_collections_dummy`).
   If matching compressed files exist in `--reference-seed-data`, bootstrap loads them,
   but they are not required reference-pack files.
-- `asp_configs` documents are contract-driven and must carry `filters` and `reporting` objects.
-  Base behavior is configured with `filters` keys and optional assay-specific
-  operator overrides in top-level `query.snv`, `query.cnv`, `query.fusion`, and `query.transloc`.
+- `asp_configs` documents are contract-driven and must carry typed `filters`,
+  `analysis_types`, and `reporting` objects. Query behavior is derived from those
+  typed sections and the domain query builders; arbitrary top-level Mongo query
+  overrides are not part of the supported ingest contract.
   CNV behavior is configured with `filters.cnv_*` keys.
   Fusion behavior is configured with `filters.fusion_*` keys.
 
@@ -146,28 +252,24 @@ curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection" \
 {
   "collection": "asp_configs",
   "document": {
-    "aspc_id": "assay_1:production",
-    "assay_name": "assay_1",
+    "aspc_id": "assay_1_base_production",
+    "asp_id": "assay_1",
+    "subpanel_id": "base",
     "environment": "production",
     "asp_group": "hematology",
     "asp_category": "dna",
-    "analysis_types": ["small_variants", "cnv"],
+    "analysis_types": ["SNV", "CNV"],
     "display_name": "assay_1 production",
     "filters": {
       "min_freq": 0.05,
       "max_freq": 1.0,
       "max_control_freq": 0.05,
-      "max_popfreq": 0.01
-    },
-    "query": {
-      "snv": {
-        "$or": [
-          {"INFO.MYELOID_GERMLINE": 1}
-        ]
-      }
+      "max_popfreq": 0.01,
+      "snvlists": [],
+      "cnvlists": []
     },
     "reporting": {
-      "report_sections": ["summary", "snv", "cnv"],
+      "report_sections": ["SNV", "CNV"],
       "report_header": "assay_1 Report",
       "report_method": "Standard analysis",
       "report_description": "Validated reporting profile",
@@ -219,30 +321,26 @@ curl -sS -X PUT "${API_BASE_URL}/api/v1/internal/ingest/collection" \
   --data @- <<'JSON'
 {
   "collection": "asp_configs",
-  "match": {"aspc_id": "assay_1:production"},
+  "match": {"aspc_id": "assay_1_base_production"},
   "document": {
-    "aspc_id": "assay_1:production",
-    "assay_name": "assay_1",
+    "aspc_id": "assay_1_base_production",
+    "asp_id": "assay_1",
+    "subpanel_id": "base",
     "environment": "production",
     "asp_group": "hematology",
     "asp_category": "dna",
-    "analysis_types": ["small_variants", "cnv"],
+    "analysis_types": ["SNV", "CNV"],
     "display_name": "assay_1 production",
     "filters": {
       "min_freq": 0.05,
       "max_freq": 1.0,
       "max_control_freq": 0.05,
-      "max_popfreq": 0.01
-    },
-    "query": {
-      "snv": {
-        "$or": [
-          {"INFO.MYELOID_GERMLINE": 1}
-        ]
-      }
+      "max_popfreq": 0.01,
+      "snvlists": [],
+      "cnvlists": []
     },
     "reporting": {
-      "report_sections": ["summary", "snv", "cnv"],
+      "report_sections": ["SNV", "CNV"],
       "report_header": "assay_1 Report",
       "report_method": "Standard analysis",
       "report_description": "Validated reporting profile",
@@ -388,20 +486,20 @@ JSON
 
 - Ingest/collection internal endpoints require authenticated API user session and RBAC.
 - Internal ingest endpoints are restricted to `developer` and `admin` role levels.
-- `update_existing=true` on sample-bundle requires authenticated user with `edit_sample` permission.
+- `update_existing=true` on sample-bundle requires authenticated user with `sample:edit:own` permission.
 - Admin UI ingestion workspace (`/admin/ingest`) is also restricted to `developer` and `admin`.
 
 Collection action permissions (from seeded permission catalog):
 
 | Collection group | Create/Bulk permission | Update/Upsert permission |
 | --- | --- | --- |
-| `users` | `create_user` | `edit_user` |
-| `roles` | `create_role` | `edit_role` |
-| `permissions` | `create_permission_policy` | `edit_permission_policy` |
-| `assay_specific_panels` (`asp`) | `create_asp` | `edit_asp` |
-| `asp_configs` (`aspc`) | `create_aspc` | `edit_aspc` |
-| `insilico_genelists` (`isgl`) | `create_isgl` | `edit_isgl` |
-| Sample-linked data (`samples`, `variants`, `cnvs`, `translocations`, `biomarkers`, `panel_coverage`, `fusions`, `rna_expression`, `rna_classification`, `rna_qc`, `reported_variants`, `group_coverage`) | `edit_sample` | `edit_sample` |
+| `users` | `user:create` | `user:edit` |
+| `roles` | `role:create` | `role:edit` |
+| `permissions` | `permission.policy:create` | `permission.policy:edit` |
+| `assay_specific_panels` (`asp`) | `assay.panel:create` | `assay.panel:edit` |
+| `asp_configs` (`aspc`) | `assay.config:create` | `assay.config:edit` |
+| `insilico_genelists` (`isgl`) | `gene_list.insilico:create` | `gene_list.insilico:edit` |
+| Sample-linked data (`samples`, `variants`, `cnvs`, `translocations`, `biomarkers`, `panel_coverage`, `fusions`, `rna_expression`, `rna_classification`, `rna_qc`, `reported_variants`, `group_coverage`) | `sample:edit:own` | `sample:edit:own` |
 | Shared and annotation knowledgebase collections (`hgnc_genes`, `refseq_canonical`, `vep_metadata`, `civic_*`, `oncokb_*`, `cosmic`, `hpaexpr`, `iarc_tp53`, `annotation`, `blacklist`, `dashboard_metrics`, `brcaexchange`, `mane_select`, `asp_to_groups`) | developer/admin role-level gate | developer/admin role-level gate |
 
 `admin` role-level users are always allowed for these operations.
@@ -489,7 +587,7 @@ Use this as the minimum deployment contract:
 
 | Collection | Minimum required keys | Why required |
 | --- | --- | --- |
-| `permissions` | `permission_id`, `permission_name` | RBAC policy definitions |
+| `permissions` | `permission_id` | RBAC policy definitions |
 | `roles` | `role_id`, `level`, `permissions[]` | RBAC role resolution |
 | `users` | `username`, `email`, `roles[]`, `environments[]` | Login + authorization subject (first superuser should be created by `bootstrap_local_admin.py`) |
 | `asp_configs` | `aspc_id`, `assay_name`, `environment`, `asp_group`, `asp_category`, `analysis_types[]`, `display_name`, `filters{...}`, `reporting{...}`, `is_active` | Assay+environment runtime config |
@@ -505,7 +603,7 @@ Managed-admin form source:
 
 Assay-group contract:
 
-- `asp_group` is a fixed platform vocabulary defined in `shared/config_constants.py`.
+- `asp_group` is a fixed platform vocabulary defined in `api/config/constants.py`.
 - Current allowed values are:
   - `hematology`
   - `solid`
@@ -539,7 +637,7 @@ Other fixed admin/runtime vocabularies:
   - `wgs`
   - `wts`
 - `auth_type`:
-  - `coyote3`
+  - `local`
   - `ldap`
 - `platform`:
   - `illumina`
@@ -679,5 +777,5 @@ print(response.json())
 | `Assay config not found for sample` | `asp_configs` doc missing, inactive, or mismatched `aspc_id`/profile | Ensure `aspc_id=assay:profile`, set `is_active=true`, and keep `sample.profile` aligned |
 | `No DB document model registered` | Unsupported collection name in ingest request | Use `/api/v1/internal/ingest/collections` and correct `collection` |
 | `diagnosis must include at least one value` | ISGL payload missing diagnosis | Provide non-empty `diagnosis` list/string |
-| `aspc_id environment segment must match environment` | `aspc_id` and `environment` mismatch | Keep `aspc_id` as `assay:environment` and matching fields |
-| `403 Forbidden` on update mode | User missing `edit_sample` permission | Add `edit_sample` to role or user permissions |
+| `aspc_id environment segment must match environment` | `aspc_id` and `environment` mismatch | Use the center ASPC identifier format and keep `environment`, `asp_id`, and `subpanel_id` aligned with the document identity |
+| `403 Forbidden` on update mode | User missing `sample:edit:own` permission | Add `sample:edit:own` to an assigned role |

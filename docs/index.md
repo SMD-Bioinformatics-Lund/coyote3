@@ -20,7 +20,7 @@ Coyote3 is built around three practical goals:
 
 The platform is split into separate services so compute-heavy API work does not block the web application.
 
-*   **The Interface (Coyote)**: The web application used for review and workflow management.
+*   **The Interface**: The React application used for review and workflow management.
 *   **The API**: The backend service that handles business logic, analysis workflows, and persistence.
 *   **The Infrastructure**: MongoDB stores operational data, and Redis is used for session and cache support.
 
@@ -33,13 +33,13 @@ This documentation is grouped by role and task.
 ### For Clinical & Laboratory Users
 *   **Getting Started**: [Quickstart Guide](start_here/quickstart.md) for a local first run.
 *   **Understanding Workflows**: [DNA and RNA Workflow Chain](product/workflow_dna_rna.md) and [UI User Flows](product/ui_map_and_user_flows.md).
-*   **Terminology**: [Clinical Semantics Reference](product/clinical_semantics_reference.md) for tiers and flags.
+*   **Terminology**: [Core Concepts](product/core_concepts.md) for tiers and flags.
 
 ### For Software Engineers & Developers
 *   **Foundation**: [Local Development Setup](start_here/local_development.md) and [Configuration Model](start_here/configuration.md).
-*   **Architecture**: [System Architecture](architecture/system_overview.md) and [Request Lifecycle](architecture/request_lifecycle.md).
+*   **Architecture**: [System Relationships](architecture/system_relationships.md) and [Data Contracts](architecture/data_contracts.md).
 *   **Ingestion Contracts**: [Sample YAML Guide](api/sample_yaml.md) and [Sample Input Files](api/sample_input_files.md).
-*   **Extending the Platform**: [Adding Features](developer/adding_features.md) and [Schema Contracts](developer/schema_contracts_and_versioning.md).
+*   **Extending the Platform**: [Adding a Domain](developer/adding_a_domain.md) and [Schema Contracts](developer/schema_contracts_and_versioning.md).
 
 ### For DevOps & System Administrators
 *   **Deployment**: [Deployment Guide](operations/deployment_guide.md) and [Initial Checklist](operations/initial_deployment_checklist.md).

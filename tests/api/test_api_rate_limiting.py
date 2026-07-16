@@ -8,7 +8,7 @@ import pytest
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
 
-from api import middleware
+from api.app import middleware
 from api.security.access import ApiUser
 
 
@@ -23,11 +23,11 @@ def _user() -> ApiUser:
         roles=["user"],
         access_level=9,
         permissions=[],
-        denied_permissions=[],
         assays=["DNA"],
         assay_groups=[],
         envs=["production"],
         asp_map={},
+        auth_type=["local"],
     )
 
 

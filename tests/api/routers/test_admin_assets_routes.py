@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.main import app as api_app
-from api.routers.resources import asp, genelists
+from api.app.main import app as api_app
+from api.interfaces.http.resources import asp, genelists
 
 
 def test_list_asp_read_returns_panels(monkeypatch):

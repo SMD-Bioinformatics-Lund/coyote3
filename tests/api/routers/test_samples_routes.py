@@ -5,10 +5,10 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException
+from api.domain.core.exceptions import AppError
 from pydantic import ValidationError
 
-from api.routers import samples
+from api.interfaces.http import samples
 from api.security.access import ApiUser
 from tests.fixtures.api import mock_collections as fx
 
@@ -32,12 +32,13 @@ def _route_test_user() -> ApiUser:
             "sample.comment:add",
             "sample.comment:hide",
             "sample.comment:unhide",
+            "coverage.blacklist:manage",
         ],
-        denied_permissions=[],
         assays=["WGS"],
         assay_groups=["dna"],
         envs=["production"],
         asp_map={},
+        auth_type=["local"],
     )
 
 
@@ -66,7 +67,7 @@ def test_reset_sample_filters_requires_assay_config(monkeypatch):
     monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(samples, "get_formatted_assay_config", lambda _sample: None)
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         samples.reset_sample_filters("S1", user=fx.api_user())
 
     assert exc.value.status_code == 422
@@ -104,6 +105,7 @@ def test_remove_coverage_blacklist_returns_change_payload(monkeypatch):
     calls = {}
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
     service = SimpleNamespace(
+        get_coverage_blacklist_entry=lambda *, obj_id: {"_id": obj_id, "group": "dna"},
         remove_coverage_blacklist=lambda *, obj_id: calls.setdefault("obj_id", obj_id)
     )
 

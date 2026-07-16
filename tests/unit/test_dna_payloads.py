@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from api.services.dna import payloads
+from api.application.dna import payloads
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -23,20 +23,20 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
     ]
 
     service = SimpleNamespace(
-        assay_panel_handler=SimpleNamespace(get_asp=lambda asp_name: {"asp_name": asp_name}),
-        gene_list_handler=SimpleNamespace(
+        assay_panel_repository=SimpleNamespace(get_asp=lambda asp_name: {"asp_name": asp_name}),
+        gene_list_repository=SimpleNamespace(
             get_isgl_by_ids=lambda ids: {},
             get_isgl_by_asp=lambda assay, is_active=True: [],
         ),
-        variant_handler=SimpleNamespace(get_case_variants=lambda query: variants),
-        blacklist_handler=SimpleNamespace(add_blacklist_data=lambda rows, assay_group: rows),
-        bam_record_handler=SimpleNamespace(get_bams=lambda sample_ids: {}),
-        vep_metadata_handler=SimpleNamespace(
+        variant_repository=SimpleNamespace(get_case_variants=lambda query: variants),
+        blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay_group: rows),
+        bam_record_repository=SimpleNamespace(get_bams=lambda sample_ids: {}),
+        vep_metadata_repository=SimpleNamespace(
             get_variant_class_translations=lambda vep: {},
             get_conseq_translations=lambda vep: {},
         ),
-        sample_handler=SimpleNamespace(hidden_sample_comments=lambda sample_oid: False),
-        oncokb_handler=SimpleNamespace(get_oncokb_action_gene=lambda symbol: None),
+        sample_repository=SimpleNamespace(hidden_sample_comments=lambda sample_oid: False),
+        oncokb_repository=SimpleNamespace(get_oncokb_action_gene=lambda symbol: None),
     )
     util_module = SimpleNamespace(
         common=SimpleNamespace(
@@ -77,25 +77,25 @@ def test_list_variants_payload_maps_tmb_and_pgx_to_biomarker_section() -> None:
     }
 
     service = SimpleNamespace(
-        assay_panel_handler=SimpleNamespace(get_asp=lambda asp_name: {"asp_name": asp_name}),
-        gene_list_handler=SimpleNamespace(
+        assay_panel_repository=SimpleNamespace(get_asp=lambda asp_name: {"asp_name": asp_name}),
+        gene_list_repository=SimpleNamespace(
             get_isgl_by_ids=lambda ids: {},
             get_isgl_by_asp=lambda assay, is_active=True: [],
         ),
-        variant_handler=SimpleNamespace(get_case_variants=lambda query: []),
-        blacklist_handler=SimpleNamespace(add_blacklist_data=lambda rows, assay_group: rows),
-        bam_record_handler=SimpleNamespace(get_bams=lambda sample_ids: {}),
-        vep_metadata_handler=SimpleNamespace(
+        variant_repository=SimpleNamespace(get_case_variants=lambda query: []),
+        blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay_group: rows),
+        bam_record_repository=SimpleNamespace(get_bams=lambda sample_ids: {}),
+        vep_metadata_repository=SimpleNamespace(
             get_variant_class_translations=lambda vep: {},
             get_conseq_translations=lambda vep: {},
         ),
-        sample_handler=SimpleNamespace(hidden_sample_comments=lambda sample_oid: False),
-        oncokb_handler=SimpleNamespace(get_oncokb_action_gene=lambda symbol: None),
-        biomarker_handler=SimpleNamespace(
+        sample_repository=SimpleNamespace(hidden_sample_comments=lambda sample_oid: False),
+        oncokb_repository=SimpleNamespace(get_oncokb_action_gene=lambda symbol: None),
+        biomarker_repository=SimpleNamespace(
             get_sample_biomarkers=lambda sample_id: [{"name": "TMB", "value": "High"}]
         ),
         load_cnvs_for_sample=lambda **kwargs: [],
-        translocation_handler=SimpleNamespace(get_sample_translocations=lambda query: []),
+        translocation_repository=SimpleNamespace(get_sample_translocations=lambda query: []),
     )
     util_module = SimpleNamespace(
         common=SimpleNamespace(

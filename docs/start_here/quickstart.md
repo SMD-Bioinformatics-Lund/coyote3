@@ -94,7 +94,6 @@ Ingest references:
 | `--admin-email <email>` | Yes | Email address for the first superuser account. |
 | `--admin-password <password>` | Yes | Password for the first superuser account. |
 | `--with-mongo` | No | Enable the compose-managed MongoDB container (`with-mongo` profile). Use when `MONGO_URI` points to `coyote3_mongo`. |
-| `--with-proxy` | No | Enable the optional nginx reverse proxy (`with-proxy` profile). |
 | `--compose-profile <name>` | No | Activate an arbitrary Docker Compose profile. Can be repeated. |
 | `--seed-file <path>` | No | Path to the baseline collection seed directory. Default: `tests/fixtures/db_dummy/all_collections_dummy`. |
 | `--seed-data-pack <path>` | No | Path to a reference seed data directory (ASP, ASPC, ISGL definitions). Auto-detected from `tests/data/seed_data` if present. |

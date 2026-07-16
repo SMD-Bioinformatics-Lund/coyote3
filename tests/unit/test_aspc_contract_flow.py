@@ -4,43 +4,29 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from coyote.util.admin_utility import AdminUtility
 
+def test_business_identifiers_allow_clinical_subpanel_hyphens() -> None:
+    """Clinical subpanel identifiers may contain hyphens, e.g. Hem-Snabb."""
+    from api.config.constants import validate_identifier
 
-def test_admin_utility_process_form_to_config_keeps_structured_aspc_fields_as_dicts() -> None:
-    """Structured ASPC form fields should stay as dict payloads."""
-    schema = {
-        "fields": {
-            "filters": {"data_type": "json", "display_type": "filters-structured"},
-            "reporting": {"data_type": "json", "display_type": "reporting-structured"},
-            "query": {"data_type": "json", "display_type": "jsoneditor"},
-        }
-    }
-    form = {
-        "filters": {"min_alt_reads": 5},
-        "reporting": {"report_sections": ["SNV"]},
-        "query": {"snv": {"flag": True}},
-    }
-
-    config = AdminUtility.process_form_to_config(form, schema)
-
-    assert config["filters"] == {"min_alt_reads": 5}
-    assert config["reporting"] == {"report_sections": ["SNV"]}
-    assert config["query"] == {"snv": {"flag": True}}
+    assert validate_identifier("Hem-Snabb", label="subpanel_id") == "Hem-Snabb"
 
 
 def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch) -> None:
     """ASPC create should trust the selected ASP for scope and platform metadata."""
-    import api.services.resources.aspc as aspc_module
-    from api.services.resources.aspc import AspcService
+    import api.application.resources.aspc as aspc_module
+    from api.application.resources.aspc import AspcService
 
     created: list[dict] = []
     service = AspcService(
-        assay_configuration_handler=SimpleNamespace(
+        assay_configuration_repository=SimpleNamespace(
             get_aspc_with_id=lambda _id: None,
             create_assay_config=lambda config: created.append(config),
+            build_aspc_id=lambda asp_id, environment, subpanel_id="base": (
+                f"{asp_id}_{subpanel_id}_{environment}"
+            ),
         ),
-        assay_panel_handler=SimpleNamespace(
+        assay_panel_repository=SimpleNamespace(
             get_asp=lambda assay: {
                 "asp_id": assay,
                 "assay_name": assay,
@@ -49,7 +35,7 @@ def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch
                 "platform": "illumina",
             }
         ),
-        vep_metadata_handler=SimpleNamespace(get_consequence_group_options=lambda *a, **k: []),
+        vep_metadata_repository=SimpleNamespace(get_consequence_group_options=lambda *a, **k: []),
         common_util=SimpleNamespace(),
     )
 
@@ -65,7 +51,8 @@ def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch
     service.create(
         payload={
             "config": {
-                "assay_name": "hema_GMSv1",
+                "asp_id": "hema_GMSv1",
+                "subpanel_id": "base",
                 "environment": "production",
                 "display_name": "Demo ASPC",
                 "analysis_types": ["SNV"],
@@ -82,4 +69,5 @@ def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch
     assert created[0]["asp_group"] == "hematology"
     assert created[0]["asp_category"] == "dna"
     assert created[0]["platform"] == "illumina"
+    assert created[0]["aspc_id"] == "hema_GMSv1_base_production"
     assert created[0]["filters"] == {"min_alt_reads": 5}

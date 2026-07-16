@@ -10,7 +10,7 @@ Coyote3 is a secure, schema-driven clinical genomics platform for interpretation
 
 ![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
-![Flask](https://img.shields.io/badge/Web-Flask-000000?logo=flask&logoColor=white)
+![React](https://img.shields.io/badge/UI-React-61DAFB?logo=react&logoColor=black)
 ![MongoDB](https://img.shields.io/badge/Database-MongoDB-47A248?logo=mongodb&logoColor=white)
 ![Redis](https://img.shields.io/badge/Cache-Redis-DC382D?logo=redis&logoColor=white)
 ![Docker Compose](https://img.shields.io/badge/Deploy-Docker%20Compose-2496ED?logo=docker&logoColor=white)
@@ -26,10 +26,11 @@ Coyote3 is a secure, schema-driven clinical genomics platform for interpretation
 
 ## What It Is
 
-Coyote3 is split into two runtime applications:
+Coyote3 is split into three runtime surfaces:
 
 - `api/` FastAPI backend for business logic, contracts, security, and persistence operations
-- `coyote/` Flask web application for user workflows and management UI, consuming API endpoints
+- `frontend/` React user interface consuming API endpoints
+- Celery workers for ingestion and scheduled operational jobs
 
 It is designed for molecular diagnostics teams that need traceability, policy-driven behavior, and role-based access across interpretation and reporting flows.
 
@@ -64,7 +65,7 @@ Coyote3 is developed and maintained by the bioinformatics team at the **Section 
 ## Project Structure
 
 - `api/` backend services, contracts, routers, handlers, and security
-- `coyote/` Flask UI blueprints, templates, and web-side API client
+- `frontend/` React UI, API client, and reusable interface components
 - `deploy/` Docker Compose stacks and deployment assets
 - `scripts/` bootstrap, ingest, validation, and operations scripts
 - `docs/` full project, architecture, API, operations, and testing documentation
@@ -92,10 +93,10 @@ cp deploy/env/example.test.env .coyote3_test_env
   up -d --build
 ```
 
-4. Verify API health:
+4. Verify API health through the reverse proxy:
 
 ```bash
-curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_DEV_API_PORT:-6802}/api/v1/health"
+curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_DEV_PORT:-6801}/api/v1/health"
 ```
 
 5. For first-time center setup, use:
@@ -117,7 +118,7 @@ Compose definitions live in `deploy/compose/`, and environment templates live in
 
 Optional deployment profile:
 
-- `with-proxy` profile adds an Nginx reverse proxy for single-entry routing (`/`, `/api/`, `/docs-site/`).
+- `with-mongo` starts the bundled MongoDB service. Without it, the stack uses `MONGO_URI`.
 
 ## Data And Configuration Model
 

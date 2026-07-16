@@ -7,8 +7,9 @@ from types import SimpleNamespace
 
 import pytest
 
-import api.services.ingest.parsers as ingest_parsers
-import api.services.ingest.service as ingest
+import api.application.ingest.parsers as ingest_parsers
+import api.application.ingest.service as ingest
+from api.infra.mongo.ingest_gateway import IngestCollectionGateway
 
 
 class _Col:
@@ -129,17 +130,17 @@ def _store_stub(sample_docs=None):
         ),
     }
     return SimpleNamespace(
-        sample_handler=_Handler(sample_col),
-        variant_handler=_Handler(db["variants"]),
-        copy_number_variant_handler=_Handler(db["cnvs"]),
-        biomarker_handler=_Handler(db["biomarkers"]),
-        translocation_handler=_Handler(db["transloc"]),
-        coverage_handler=_Handler(db["panel_coverage"]),
-        grouped_coverage_handler=_Handler(db["group_coverage"]),
-        fusion_handler=_Handler(db["fusions"]),
-        rna_expression_handler=_Handler(db["rna_expression"]),
-        rna_classification_handler=_Handler(db["rna_classification"]),
-        rna_quality_handler=_Handler(db["rna_qc"]),
+        sample_repository=_Handler(sample_col),
+        variant_repository=_Handler(db["variants"]),
+        copy_number_variant_repository=_Handler(db["cnvs"]),
+        biomarker_repository=_Handler(db["biomarkers"]),
+        translocation_repository=_Handler(db["transloc"]),
+        coverage_repository=_Handler(db["panel_coverage"]),
+        grouped_coverage_repository=_Handler(db["group_coverage"]),
+        fusion_repository=_Handler(db["fusions"]),
+        rna_expression_repository=_Handler(db["rna_expression"]),
+        rna_classification_repository=_Handler(db["rna_classification"]),
+        rna_quality_repository=_Handler(db["rna_qc"]),
         coyote_db=db,
     )
 
@@ -148,22 +149,23 @@ def _use_store(monkeypatch, store_stub, *, new_sample_id="507f1f77bcf86cd7994390
     monkeypatch.setattr(ingest, "_provider_sample_id", lambda sample_id: sample_id)
     monkeypatch.setattr(ingest, "_new_sample_id", lambda: new_sample_id)
     return ingest.InternalIngestService(
-        sample_collection=store_stub.sample_handler.get_collection(),
-        refseq_canonical_collection=store_stub.coyote_db["refseq_canonical"],
-        collections={
-            "samples": store_stub.sample_handler.get_collection(),
-            "variants": store_stub.variant_handler.get_collection(),
-            "cnvs": store_stub.copy_number_variant_handler.get_collection(),
-            "biomarkers": store_stub.biomarker_handler.get_collection(),
-            "translocations": store_stub.translocation_handler.get_collection(),
-            "panel_coverage": store_stub.coverage_handler.get_collection(),
-            "fusions": store_stub.fusion_handler.get_collection(),
-            "rna_expression": store_stub.rna_expression_handler.get_collection(),
-            "rna_classification": store_stub.rna_classification_handler.get_collection(),
-            "rna_qc": store_stub.rna_quality_handler.get_collection(),
-            "asp_configs": store_stub.coyote_db["asp_configs"],
-            "assay_specific_panels": store_stub.coyote_db["assay_specific_panels"],
-        },
+        collection_gateway=IngestCollectionGateway(
+            collections={
+                "samples": store_stub.sample_repository.get_collection(),
+                "variants": store_stub.variant_repository.get_collection(),
+                "cnvs": store_stub.copy_number_variant_repository.get_collection(),
+                "biomarkers": store_stub.biomarker_repository.get_collection(),
+                "translocations": store_stub.translocation_repository.get_collection(),
+                "panel_coverage": store_stub.coverage_repository.get_collection(),
+                "fusions": store_stub.fusion_repository.get_collection(),
+                "rna_expression": store_stub.rna_expression_repository.get_collection(),
+                "rna_classification": store_stub.rna_classification_repository.get_collection(),
+                "rna_qc": store_stub.rna_quality_repository.get_collection(),
+                "asp_configs": store_stub.coyote_db["asp_configs"],
+                "assay_specific_panels": store_stub.coyote_db["assay_specific_panels"],
+                "refseq_canonical": store_stub.coyote_db["refseq_canonical"],
+            }
+        ),
         invalidate_variant_cache=lambda: None,
         invalidate_summary_cache=lambda: None,
     )
@@ -207,6 +209,7 @@ def test_small_helpers_and_build_meta(tmp_path):
             "case_id": "C1",
             "control_id": "N1",
             "vep_version": "110",
+            "database_versions": {"ClinVar": "202402", "dbSNP": 154},
             "case_reads": 10,
             "control_reads": 20,
             "increment": True,
@@ -214,8 +217,56 @@ def test_small_helpers_and_build_meta(tmp_path):
     )
     assert "increment" not in meta
     assert meta["vep_version"] == "110"
+    assert meta["database_versions"] == {"clinvar": "202402", "dbsnp": "154"}
     assert meta["case"]["reads"] == 10
     assert meta["control"]["reads"] == 20
+
+
+def test_sample_meta_extracts_vep_database_versions_from_vcf_header(tmp_path):
+    vcf = tmp_path / "sample.vcf"
+    vcf.write_text(
+        '##fileformat=VCFv4.2\n'
+        '##VEP="v103" time="2026-07-12 00:47:04" COSMIC="92" ClinVar="202008" dbSNP="154" gnomAD="r2.1"\n'
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n",
+        encoding="utf-8",
+    )
+    meta = ingest.build_sample_meta_dict(
+        {
+            "name": "S1",
+            "case_id": "C1",
+            "sample_no": 1,
+            "vcf_files": str(vcf),
+        }
+    )
+    assert meta["vep_version"] == "103"
+    assert meta["database_versions"]["vep"] == "103"
+    assert meta["database_versions"]["cosmic"] == "92"
+    assert meta["database_versions"]["clinvar"] == "202008"
+    assert meta["database_versions"]["dbsnp"] == "154"
+    assert meta["database_versions"]["gnomad"] == "r2.1"
+
+
+def test_sample_meta_extracts_versions_from_runtime_vcf_path(tmp_path):
+    vcf = tmp_path / "uploaded.vcf"
+    vcf.write_text(
+        '##fileformat=VCFv4.2\n'
+        '##VEP="v112" COSMIC="99" ClinVar="202406"\n'
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n",
+        encoding="utf-8",
+    )
+    meta = ingest.build_sample_meta_dict(
+        {
+            "name": "S1",
+            "case_id": "C1",
+            "sample_no": 1,
+            "_runtime_files": {"vcf_files": str(vcf)},
+            "files": {"vcf_files": {"path": "/staged/original-name.vcf"}},
+        }
+    )
+    assert meta["vep_version"] == "112"
+    assert meta["database_versions"]["vep"] == "112"
+    assert meta["database_versions"]["cosmic"] == "99"
+    assert meta["database_versions"]["clinvar"] == "202406"
 
 
 def test_type_and_string_helpers(monkeypatch):
@@ -434,19 +485,68 @@ def test_read_mane(tmp_path):
         handle.write("NM_1.1\tENST1.2\tENSG1.3\n")
     out = ingest_parsers._read_mane(str(gz))
     assert out["ENSG1"]["refseq"] == "NM_1"
+    assert ingest_parsers._read_mane("") == {}
+    assert ingest_parsers._read_mane(str(tmp_path / "missing.tsv.gz")) == {}
+
+
+def test_normalize_historical_biomarkers_doc():
+    out = ingest_parsers._normalize_biomarkers_doc(
+        {"name": "S1", "MSIS": {"tot": 10, "som": 2, "perc": 20.0}}
+    )
+    assert out["MSIS"] == {"tot": 10, "som": 2, "per": 20.0}
+
+
+def test_normalize_historical_transloc_doc():
+    out = ingest_parsers._normalize_transloc_doc(
+        {
+            "FILTER": "PASS",
+            "FORMAT": "UR",
+            "GT": [{"UR": "2", "_sample_id": "S1"}],
+            "INFO": {
+                "SVTYPE": "BND",
+                "set": "genefuse",
+                "ANN": [
+                    {
+                        "Allele": "G",
+                        "Annotation": ["bidirectional_gene_fusion"],
+                        "Gene_Name": "ALK&ROS1",
+                        "Gene_ID": "ENSG1&ENSG2",
+                        "Feature_Type": "transcript",
+                        "Feature_ID": "ENST1",
+                    }
+                ],
+            },
+        }
+    )
+    assert out["FILTER"] == ["PASS"]
+    assert out["FORMAT"] == ["UR"]
+    assert out["GT"] == [{"UR": 2.0, "sample": "S1", "PR": "", "SR": ""}]
+    assert out["INFO"][0]["SOMATIC"] is False
+    assert out["INFO"][0]["PANEL"] == ["genefuse"]
 
 
 def test_parse_yaml_payload():
     service = ingest.InternalIngestService(
-        sample_collection=None,
-        refseq_canonical_collection=_Col(),
-        collections={},
+        collection_gateway=IngestCollectionGateway(
+            collections={"samples": _Col(), "refseq_canonical": _Col()}
+        ),
         invalidate_variant_cache=lambda: None,
         invalidate_summary_cache=lambda: None,
     )
     parsed = service.parse_yaml_payload("name: S1\nassay: A\nvep_version: 110\n")
     assert parsed["name"] == "S1"
     assert parsed["vep_version"] == 110
+    parsed = service.parse_yaml_payload(
+        "name: S1\nassay: A\ndb_versions:\n  clinvar: 202402\n  cosmic: '99'\n"
+    )
+    assert parsed["db_versions"]["clinvar"] == 202402
+    assert parsed["db_versions"]["cosmic"] == "99"
+    parsed = service.parse_yaml_payload(
+        "name: S1\nassay: A\ncontrol_id: 'null'\ncontrol_reads: n/a\ncase_purity: NONE\n"
+    )
+    assert parsed["control_id"] is None
+    assert parsed["control_reads"] is None
+    assert parsed["case_purity"] is None
     with pytest.raises(ValueError):
         service.parse_yaml_payload("- 1\n- 2\n")
 
@@ -605,7 +705,7 @@ def test_snapshot_restore_replace_and_counts(monkeypatch):
     cov_col = _Col([{"_id": "x", "SAMPLE_ID": str(sid), "a": 1}])
     stub = _store_stub()
     stub.coyote_db["panel_coverage"] = cov_col
-    stub.coverage_handler = _Handler(cov_col)
+    stub.coverage_repository = _Handler(cov_col)
     service = _use_store(monkeypatch, stub)
 
     snap = service._snapshot_dependents(sample_id=sid, keys={"cov"})
@@ -648,9 +748,9 @@ def test_replace_dependents_restores_on_failure(monkeypatch):
 
 def test_update_payload_guard_and_meta_update(monkeypatch):
     service = ingest.InternalIngestService(
-        sample_collection=None,
-        refseq_canonical_collection=_Col(),
-        collections={},
+        collection_gateway=IngestCollectionGateway(
+            collections={"samples": _Col(), "refseq_canonical": _Col()}
+        ),
         invalidate_variant_cache=lambda: None,
         invalidate_summary_cache=lambda: None,
     )
@@ -668,7 +768,7 @@ def test_update_payload_guard_and_meta_update(monkeypatch):
 
     sample_col = _Col([{"_id": "id1", "name": "S1", "assay": "A", "x": 1}])
     stub = _store_stub()
-    stub.sample_handler = _Handler(sample_col)
+    stub.sample_repository = _Handler(sample_col)
     service = _use_store(monkeypatch, stub)
 
     service._update_meta_fields(
@@ -707,7 +807,7 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
         ]
     )
     stub = _store_stub()
-    stub.sample_handler = _Handler(sample_col)
+    stub.sample_repository = _Handler(sample_col)
     service = _use_store(monkeypatch, stub)
     monkeypatch.setattr(
         service,
@@ -761,7 +861,7 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
 def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     sample_col = _Col([])
     stub = _store_stub()
-    stub.sample_handler = _Handler(sample_col)
+    stub.sample_repository = _Handler(sample_col)
     service = _use_store(monkeypatch, stub, new_sample_id="507f1f77bcf86cd799439017")
     monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": []})
     monkeypatch.setattr(service, "_next_unique_name", lambda *_: "S1")
@@ -810,7 +910,7 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
 def test_ingest_sample_bundle_stages_loading_then_marks_ready(monkeypatch):
     sample_col = _Col([])
     stub = _store_stub()
-    stub.sample_handler = _Handler(sample_col)
+    stub.sample_repository = _Handler(sample_col)
     service = _use_store(monkeypatch, stub, new_sample_id="507f1f77bcf86cd799439019")
     monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": []})
     monkeypatch.setattr(service, "_next_unique_name", lambda *_: "S3")
@@ -850,10 +950,11 @@ def test_ingest_sample_bundle_stages_loading_then_marks_ready(monkeypatch):
 def test_ingest_sample_bundle_initializes_sample_filters_from_aspc(monkeypatch):
     sample_col = _Col([])
     stub = _store_stub()
-    stub.sample_handler = _Handler(sample_col)
+    stub.sample_repository = _Handler(sample_col)
     stub.coyote_db["asp_configs"].docs = [
         {
-            "assay_name": "assay_1",
+            "asp_id": "assay_1",
+            "subpanel_id": "base",
             "environment": "production",
             "asp_category": "dna",
             "filters": {
@@ -863,10 +964,10 @@ def test_ingest_sample_bundle_initializes_sample_filters_from_aspc(monkeypatch):
                 "max_popfreq": 0.05,
                 "min_depth": 100,
                 "min_alt_reads": 5,
-                "genelists": ["hematology_myeloid"],
+                "snvlists": ["hematology_myeloid"],
                 "vep_consequences": ["missense"],
                 "cnveffects": ["gain", "loss"],
-                "cnv_genelists": [],
+                "cnvlists": [],
             },
             "reporting": {"report_sections": ["SNV"]},
         }
@@ -896,5 +997,6 @@ def test_ingest_sample_bundle_initializes_sample_filters_from_aspc(monkeypatch):
 
     assert out["status"] == "ok"
     inserted = sample_col.inserted_one[-1]
-    assert inserted["filters"]["genelists"] == ["hematology_myeloid"]
-    assert inserted["filters"]["vep_consequences"] == ["missense"]
+    assert inserted["filters"]["snv"]["snvlists"] == ["hematology_myeloid"]
+    assert inserted["filters"]["snv"]["vep_consequences"] == ["missense"]
+    assert inserted["filters"]["cnv"]["cnveffects"] == ["gain", "loss"]

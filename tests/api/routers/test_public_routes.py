@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from fastapi import HTTPException
+from api.domain.core.exceptions import AppError
 
-from api.routers import public
+from api.interfaces.http import public
 
 
 def test_public_genelist_view_context_not_found_raises_404(monkeypatch):
@@ -21,7 +21,7 @@ def test_public_genelist_view_context_not_found_raises_404(monkeypatch):
         public.PublicCatalogService, "genelist_view_context", lambda self, *_args, **_kwargs: None
     )
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         public.public_genelist_view_context_read("missing")
 
     assert exc.value.status_code == 404
@@ -66,7 +66,7 @@ def test_public_assay_catalog_context_missing_catalog_raises_404(monkeypatch):
     monkeypatch.setattr(public.PublicCatalogService, "load_catalog", lambda self: {})
     monkeypatch.setattr(public.PublicCatalogService, "modalities_order", lambda self: [])
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         public.public_assay_catalog_context_read()
 
     assert exc.value.status_code == 404

@@ -4,49 +4,49 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from api.services.reporting import dna_workflow, rna_workflow
+from api.application.reporting import dna_workflow, rna_workflow
 
 
 def _dna_workflow() -> dna_workflow.DNAWorkflowService:
     stub = SimpleNamespace()
     return dna_workflow.DNAWorkflowService(
-        assay_panel_handler=stub,
-        gene_list_handler=stub,
-        variant_handler=stub,
-        blacklist_handler=stub,
-        sample_handler=stub,
-        copy_number_variant_handler=stub,
-        biomarker_handler=stub,
-        translocation_handler=stub,
-        vep_metadata_handler=stub,
-        annotation_handler=stub,
-        reported_variant_handler=stub,
+        assay_panel_repository=stub,
+        gene_list_repository=stub,
+        variant_repository=stub,
+        blacklist_repository=stub,
+        sample_repository=stub,
+        copy_number_variant_repository=stub,
+        biomarker_repository=stub,
+        translocation_repository=stub,
+        vep_metadata_repository=stub,
+        annotation_repository=stub,
+        reported_variant_repository=stub,
     )
 
 
 def _rna_workflow(
     *,
-    sample_handler=None,
-    gene_list_handler=None,
-    rna_expression_handler=None,
-    rna_classification_handler=None,
-    rna_quality_handler=None,
-    fusion_handler=None,
-    annotation_handler=None,
-    assay_panel_handler=None,
-    reported_variant_handler=None,
+    sample_repository=None,
+    gene_list_repository=None,
+    rna_expression_repository=None,
+    rna_classification_repository=None,
+    rna_quality_repository=None,
+    fusion_repository=None,
+    annotation_repository=None,
+    assay_panel_repository=None,
+    reported_variant_repository=None,
 ) -> rna_workflow.RNAWorkflowService:
     stub = SimpleNamespace()
     return rna_workflow.RNAWorkflowService(
-        sample_handler=sample_handler or stub,
-        gene_list_handler=gene_list_handler or stub,
-        rna_expression_handler=rna_expression_handler or stub,
-        rna_classification_handler=rna_classification_handler or stub,
-        rna_quality_handler=rna_quality_handler or stub,
-        fusion_handler=fusion_handler or stub,
-        annotation_handler=annotation_handler or stub,
-        assay_panel_handler=assay_panel_handler or stub,
-        reported_variant_handler=reported_variant_handler or stub,
+        sample_repository=sample_repository or stub,
+        gene_list_repository=gene_list_repository or stub,
+        rna_expression_repository=rna_expression_repository or stub,
+        rna_classification_repository=rna_classification_repository or stub,
+        rna_quality_repository=rna_quality_repository or stub,
+        fusion_repository=fusion_repository or stub,
+        annotation_repository=annotation_repository or stub,
+        assay_panel_repository=assay_panel_repository or stub,
+        reported_variant_repository=reported_variant_repository or stub,
     )
 
 
@@ -119,7 +119,7 @@ def test_dna_report_payload_requires_sample_vep_version():
                 "assay": "assay_1",
                 "subpanel": "hema",
                 "filters": {
-                    "genelists": [],
+                    "snvlists": [],
                     "vep_consequences": ["missense"],
                     "max_freq": 1,
                     "min_freq": 0,
@@ -132,7 +132,7 @@ def test_dna_report_payload_requires_sample_vep_version():
             assay_config={
                 "asp_group": "hematology",
                 "filters": {
-                    "genelists": [],
+                    "snvlists": [],
                     "vep_consequences": ["missense"],
                     "max_freq": 1,
                     "min_freq": 0,
@@ -143,26 +143,26 @@ def test_dna_report_payload_requires_sample_vep_version():
                 },
                 "reporting": {"report_sections": ["SNV"], "report_header": "Demo"},
             },
-            assay_panel_handler=SimpleNamespace(get_asp=lambda asp_name: {"asp_name": asp_name}),
-            gene_list_handler=SimpleNamespace(
+            assay_panel_repository=SimpleNamespace(get_asp=lambda asp_name: {"asp_name": asp_name}),
+            gene_list_repository=SimpleNamespace(
                 get_isgl_by_asp=lambda assay, is_active=True: [],
                 get_isgl_by_ids=lambda ids: {},
             ),
-            variant_handler=SimpleNamespace(get_case_variants=lambda query: []),
-            blacklist_handler=SimpleNamespace(add_blacklist_data=lambda rows, assay=None: rows),
-            sample_handler=SimpleNamespace(get_latest_sample_comment=lambda sample_id: None),
-            copy_number_variant_handler=SimpleNamespace(
+            variant_repository=SimpleNamespace(get_case_variants=lambda query: []),
+            blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay=None: rows),
+            sample_repository=SimpleNamespace(get_latest_sample_comment=lambda sample_id: None),
+            copy_number_variant_repository=SimpleNamespace(
                 get_interesting_sample_cnvs=lambda sample_id: []
             ),
-            biomarker_handler=SimpleNamespace(get_sample_biomarkers=lambda sample_id: []),
-            translocation_handler=SimpleNamespace(
+            biomarker_repository=SimpleNamespace(get_sample_biomarkers=lambda sample_id: []),
+            translocation_repository=SimpleNamespace(
                 get_interesting_sample_translocations=lambda sample_id: []
             ),
-            vep_metadata_handler=SimpleNamespace(
+            vep_metadata_repository=SimpleNamespace(
                 get_consequence_group_map=lambda version: {},
                 get_variant_class_translations=lambda version: {},
             ),
-            annotation_handler=SimpleNamespace(),
+            annotation_repository=SimpleNamespace(),
         )
     except ValueError as exc:
         assert str(exc) == "sample.vep_version is required for DNA report generation"
@@ -170,7 +170,7 @@ def test_dna_report_payload_requires_sample_vep_version():
         raise AssertionError("Expected DNA report payload generation to require sample.vep_version")
 
 
-def test_dna_report_payload_filters_reported_cnvs_by_selected_cnv_genelist():
+def test_dna_report_payload_filters_reported_cnvs_by_selected_cnv_list():
     template_name, context, snapshot_rows = dna_workflow.build_dna_report_payload(
         sample={
             "_id": "s1",
@@ -179,9 +179,9 @@ def test_dna_report_payload_filters_reported_cnvs_by_selected_cnv_genelist():
             "subpanel": "hema",
             "vep_version": "110",
             "filters": {
-                "genelists": [],
+                "snvlists": [],
                 "vep_consequences": ["missense"],
-                "cnv_genelists": ["CNV_GL"],
+                "cnvlists": ["CNV_GL"],
                 "cnveffects": ["gain", "loss"],
                 "max_freq": 1,
                 "min_freq": 0,
@@ -194,9 +194,9 @@ def test_dna_report_payload_filters_reported_cnvs_by_selected_cnv_genelist():
         assay_config={
             "asp_group": "hematology",
             "filters": {
-                "genelists": [],
+                "snvlists": [],
                 "vep_consequences": ["missense"],
-                "cnv_genelists": [],
+                "cnvlists": [],
                 "cnveffects": ["gain", "loss"],
                 "max_freq": 1,
                 "min_freq": 0,
@@ -207,33 +207,33 @@ def test_dna_report_payload_filters_reported_cnvs_by_selected_cnv_genelist():
             },
             "reporting": {"report_sections": ["SNV", "CNV"], "report_header": "Demo"},
         },
-        assay_panel_handler=SimpleNamespace(
+        assay_panel_repository=SimpleNamespace(
             get_asp=lambda asp_name: {"asp_name": asp_name, "covered_genes": ["TP53", "EGFR"]}
         ),
-        gene_list_handler=SimpleNamespace(
+        gene_list_repository=SimpleNamespace(
             get_isgl_by_asp=lambda assay, is_active=True: [],
             get_isgl_by_ids=lambda ids: {
                 "CNV_GL": {"displayname": "CNV GL", "is_active": True, "genes": ["TP53"]}
             },
         ),
-        variant_handler=SimpleNamespace(get_case_variants=lambda query: []),
-        blacklist_handler=SimpleNamespace(add_blacklist_data=lambda rows, assay=None: rows),
-        sample_handler=SimpleNamespace(get_latest_sample_comment=lambda sample_id: None),
-        copy_number_variant_handler=SimpleNamespace(
+        variant_repository=SimpleNamespace(get_case_variants=lambda query: []),
+        blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay=None: rows),
+        sample_repository=SimpleNamespace(get_latest_sample_comment=lambda sample_id: None),
+        copy_number_variant_repository=SimpleNamespace(
             get_interesting_sample_cnvs=lambda sample_id: [
                 {"_id": "cnv1", "genes": [{"gene": "TP53", "class": 1}], "ratio": 0.7},
                 {"_id": "cnv2", "genes": [{"gene": "EGFR", "class": 1}], "ratio": 0.8},
             ]
         ),
-        biomarker_handler=SimpleNamespace(get_sample_biomarkers=lambda sample_id: []),
-        translocation_handler=SimpleNamespace(
+        biomarker_repository=SimpleNamespace(get_sample_biomarkers=lambda sample_id: []),
+        translocation_repository=SimpleNamespace(
             get_interesting_sample_translocations=lambda sample_id: []
         ),
-        vep_metadata_handler=SimpleNamespace(
+        vep_metadata_repository=SimpleNamespace(
             get_consequence_group_map=lambda version: {"missense": ["missense_variant"]},
             get_variant_class_translations=lambda version: {},
         ),
-        annotation_handler=SimpleNamespace(),
+        annotation_repository=SimpleNamespace(),
     )
 
     assert template_name == "dna_report.html"
@@ -244,7 +244,7 @@ def test_dna_report_payload_filters_reported_cnvs_by_selected_cnv_genelist():
 def test_rna_workflow_merge_and_persist_filters(monkeypatch):
     """RNA workflow normalizes and persists form filters."""
     calls = {}
-    sample_handler = SimpleNamespace(
+    sample_repository = SimpleNamespace(
         update_sample_filters=lambda _id, filters: None,
         get_sample=lambda _id: {"filters": {"min_spanning_reads": 2, "min_spanning_pairs": 3}},
     )
@@ -286,7 +286,7 @@ def test_rna_workflow_merge_and_persist_filters(monkeypatch):
     assert calls["validate"][1] == "S1"
 
     req = SimpleNamespace(getlist=lambda _key: ["L1"])
-    workflow = _rna_workflow(sample_handler=sample_handler)
+    workflow = _rna_workflow(sample_repository=sample_repository)
     updated_sample, updated_filters = workflow.persist_form_filters(
         {"_id": "sample-1", "filters": {}},
         form={},
@@ -301,7 +301,7 @@ def test_rna_workflow_build_context_and_query(monkeypatch):
     """RNA workflow builds filter context and fusion query payload."""
     calls = {}
     workflow = _rna_workflow(
-        gene_list_handler=SimpleNamespace(get_isgl_by_ids=lambda _ids: {"L1": {"genes": ["TP53"]}})
+        gene_list_repository=SimpleNamespace(get_isgl_by_ids=lambda _ids: {"L1": {"genes": ["TP53"]}})
     )
 
     monkeypatch.setattr(rna_workflow, "create_fusioneffectlist", lambda values: values)
@@ -349,7 +349,7 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
         "calls": [{"selected": 1, "breakpoint1": "chr11:1", "breakpoint2": "chr4:2"}],
         "classification": {"class": 2, "_id": "ann1"},
     }
-    fusion_handler = SimpleNamespace(
+    fusion_repository = SimpleNamespace(
         get_sample_fusions=lambda _query: [dict(fusion_doc)],
         get_fusion_annotations=lambda fusion: ([{"text": "a"}], fusion.get("classification")),
     )
@@ -385,9 +385,9 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
     )
 
     workflow = _rna_workflow(
-        fusion_handler=fusion_handler,
-        sample_handler=SimpleNamespace(),
-        reported_variant_handler=SimpleNamespace(),
+        fusion_repository=fusion_repository,
+        sample_repository=SimpleNamespace(),
+        reported_variant_repository=SimpleNamespace(),
     )
     rows = workflow._build_snapshot_rows([fusion_doc])
     assert rows[0]["simple_id"] == "KMT2A::AFF1::chr11:1::chr4:2"

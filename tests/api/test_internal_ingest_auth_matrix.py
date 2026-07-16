@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
+import io
 from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
-from api.routers import internal as internal_router
+from api.interfaces.http import internal as internal_router
 from api.security import access
 from api.security.access import ApiUser
-from api.services.ingest.service import InternalIngestService
+from api.application.ingest.service import InternalIngestService
 
 
 def _user(*, role: str, level: int, permissions: list[str] | None = None) -> ApiUser:
@@ -24,11 +25,11 @@ def _user(*, role: str, level: int, permissions: list[str] | None = None) -> Api
         roles=[role],
         access_level=level,
         permissions=list(permissions or []),
-        denied_permissions=[],
         assays=["assay_1"],
         assay_groups=["hematology"],
         envs=["production"],
         asp_map={},
+        auth_type=["local"],
     )
 
 
@@ -58,11 +59,21 @@ def _request_for(path: str, method: str) -> Request:
     return Request({"type": "http", "method": method, "path": path, "headers": []})
 
 
+class _Upload:
+    def __init__(self, *, filename: str, content: bytes):
+        self.filename = filename
+        self._handle = io.BytesIO(content)
+        self.closed = False
+
+    async def read(self, size: int = -1):
+        return self._handle.read(size)
+
+    async def close(self):
+        self.closed = True
+
+
 def test_internal_ingest_collection_requires_auth_and_admin(monkeypatch):
     """Collection ingest requires authenticated admin-level user."""
-    monkeypatch.setattr(
-        access, "_role_levels", lambda: {"viewer": 10, "developer": 50, "admin": 100}
-    )
     monkeypatch.setattr(
         InternalIngestService,
         "insert_collection_document",
@@ -99,7 +110,7 @@ def test_internal_ingest_collection_requires_auth_and_admin(monkeypatch):
     monkeypatch.setattr(
         access,
         "_decode_session_user",
-        lambda _request: _user(role="admin", level=100, permissions=["user:create"]),
+        lambda _request: _user(role="developer", level=9999, permissions=["user:create"]),
     )
     user = next(dep(request))
     ingest_service = SimpleNamespace(
@@ -171,3 +182,146 @@ def test_internal_ingest_sample_bundle_update_requires_sample_edit_own_permissio
     )
     assert response["status"] == "ok"
     assert calls["allow_update"] is True
+
+
+def test_internal_ingest_async_collection_enqueues_after_permission_check(monkeypatch):
+    """Async collection ingest enqueues the Celery task after route-level permission checks."""
+    captured: dict[str, object] = {}
+
+    def _fake_apply_async(*, kwargs, queue):
+        captured["kwargs"] = kwargs
+        captured["queue"] = queue
+        return SimpleNamespace(id="task-123")
+
+    monkeypatch.setattr(internal_router.insert_collection_document_task, "apply_async", _fake_apply_async)
+    payload = internal_router.InternalCollectionInsertRequest(
+        collection="users",
+        document={"username": "new.user", "email": "new.user@example.org"},
+        ignore_duplicate=True,
+    )
+    response = internal_router.enqueue_ingest_collection_document_internal(
+        payload=payload,
+        user=_user(role="admin", level=100, permissions=["user:create"]),
+    )
+
+    assert response == {
+        "status": "accepted",
+        "task_id": "task-123",
+        "task_name": "api.tasks.ingest.insert_collection_document",
+        "queue": "ingest",
+    }
+    assert captured["queue"] == "ingest"
+    assert captured["kwargs"] == {
+        "collection": "users",
+        "document": {"username": "new.user", "email": "new.user@example.org"},
+        "ignore_duplicate": True,
+    }
+
+
+def test_internal_ingest_async_sample_bundle_enqueues_yaml_payload(monkeypatch):
+    """Async sample-bundle ingest parses YAML on the API side and enqueues worker execution."""
+    captured: dict[str, object] = {}
+
+    def _fake_apply_async(*, kwargs, queue):
+        captured["kwargs"] = kwargs
+        captured["queue"] = queue
+        return SimpleNamespace(id="task-sample")
+
+    monkeypatch.setattr(internal_router.ingest_sample_bundle_task, "apply_async", _fake_apply_async)
+    payload = internal_router.InternalIngestSampleBundleRequest(
+        yaml_content="name: SAMPLE_1\nassay: assay_1\n",
+        update_existing=True,
+        increment=True,
+    )
+    response = internal_router.enqueue_ingest_sample_bundle_internal(
+        payload=payload,
+        user=_user(role="developer", level=50, permissions=["sample:edit:own"]),
+        ingest_service=SimpleNamespace(parse_yaml_payload=lambda raw: {"name": "SAMPLE_1"}),
+    )
+
+    assert response["status"] == "accepted"
+    assert response["task_id"] == "task-sample"
+    assert captured["queue"] == "ingest"
+    assert captured["kwargs"] == {
+        "source_payload": {"name": "SAMPLE_1"},
+        "update_existing": True,
+        "increment": True,
+    }
+
+
+@pytest.mark.asyncio
+async def test_internal_ingest_async_sample_bundle_upload_stages_files(monkeypatch, tmp_path):
+    """Async upload ingest stages uploaded files durably before enqueueing."""
+    captured: dict[str, object] = {}
+
+    def _fake_apply_async(*, kwargs, queue):
+        captured["kwargs"] = kwargs
+        captured["queue"] = queue
+        return SimpleNamespace(id="task-upload")
+
+    monkeypatch.setenv("CELERY_INGEST_STAGING_DIR", str(tmp_path))
+    monkeypatch.setattr(internal_router.ingest_sample_bundle_task, "apply_async", _fake_apply_async)
+    yaml_upload = _Upload(
+        filename="sample.yaml",
+        content=b"name: SAMPLE_1\nassay: assay_1\nvcf_files: case.vcf\n",
+    )
+    data_upload = _Upload(filename="case.vcf", content=b"##fileformat=VCFv4.2\n")
+    service = SimpleNamespace(
+        parse_yaml_payload=lambda _raw: {
+            "name": "SAMPLE_1",
+            "assay": "assay_1",
+            "omics_layer": "dna",
+            "vcf_files": "case.vcf",
+        },
+        _assay_file_policy=lambda **_: ({"vcf_files"}, {"vcf_files"}),
+    )
+
+    response = await internal_router.enqueue_ingest_sample_bundle_upload_internal(
+        yaml_file=yaml_upload,
+        data_files=[data_upload],
+        update_existing=False,
+        increment=False,
+        user=_user(role="developer", level=50, permissions=["sample:edit:own"]),
+        ingest_service=service,
+    )
+
+    assert response["status"] == "accepted"
+    assert response["task_id"] == "task-upload"
+    kwargs = captured["kwargs"]
+    assert kwargs["staging_dir"].startswith(str(tmp_path))
+    staged_vcf = kwargs["source_payload"]["_runtime_files"]["vcf_files"]
+    assert staged_vcf.startswith(kwargs["staging_dir"])
+    assert kwargs["source_payload"]["_uploaded_file_checksums"]["vcf_files"]
+
+
+def test_internal_task_status_payload_success(monkeypatch):
+    """Task status endpoint returns successful Celery result payloads."""
+
+    class _Result:
+        state = "SUCCESS"
+        result = {"status": "ok"}
+
+        def __init__(self, task_id, app=None):
+            self.task_id = task_id
+            self.app = app
+
+        def ready(self):
+            return True
+
+        def successful(self):
+            return True
+
+    monkeypatch.setattr(internal_router, "AsyncResult", _Result)
+    response = internal_router.get_internal_task_status(
+        task_id="task-123",
+        _user=_user(role="developer", level=50),
+    )
+
+    assert response == {
+        "status": "ok",
+        "task_id": "task-123",
+        "state": "SUCCESS",
+        "ready": True,
+        "successful": True,
+        "result": {"status": "ok"},
+    }

@@ -33,7 +33,7 @@ Symptoms:
 Checks:
 
 1. Confirm user doc exists in DB.
-2. Confirm `login_type` value is correct (`coyote3` or `ldap`).
+2. Confirm `auth_type` is a provider list, for example `["ldap"]`, `["local"]`, or `["local", "ldap"]`.
 3. Verify LDAP connectivity for LDAP users.
 4. Verify password hash and local auth flow for local users.
 5. Verify local-user email/username shape:

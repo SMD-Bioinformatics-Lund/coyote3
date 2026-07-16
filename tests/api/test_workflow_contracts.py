@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from fastapi import HTTPException
+from api.domain.core.exceptions import AppError
 
-from api.core.workflows.contracts import validate_report_inputs, validate_rna_filter_inputs
+from api.domain.core.workflows.contracts import validate_report_inputs, validate_rna_filter_inputs
 
 
 class _LoggerStub:
@@ -53,7 +53,7 @@ def test_validate_report_inputs_raises_on_missing_report_folder():
         The function result.
     """
     logger = _LoggerStub()
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         validate_report_inputs(
             logger,
             sample={
@@ -76,7 +76,7 @@ def test_validate_report_inputs_raises_on_missing_assay():
         The function result.
     """
     logger = _LoggerStub()
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         validate_report_inputs(
             logger,
             sample={"name": "S1", "case_id": "C1", "case": {"clarity_id": "CL1"}},
@@ -97,7 +97,7 @@ def test_validate_rna_filter_inputs_raises_on_non_list_field():
         The function result.
     """
     logger = _LoggerStub()
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         validate_rna_filter_inputs(
             logger,
             sample_name="S1",
@@ -114,7 +114,7 @@ def test_validate_rna_filter_inputs_raises_on_non_integer_threshold():
         The function result.
     """
     logger = _LoggerStub()
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         validate_rna_filter_inputs(
             logger,
             sample_name="S1",

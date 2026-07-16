@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from api.infra.knowledgebase.civic import CivicHandler
-from api.infra.knowledgebase.oncokb import OnkoKBHandler
+from api.infra.knowledgebase.civic import CivicRepository
+from api.infra.knowledgebase.oncokb import OnkoKBRepository
 
 
 class _FakeCollection:
@@ -23,7 +23,7 @@ class _FakeAdapter:
 
 
 def test_get_oncokb_action_builds_flat_alteration_list():
-    handler = OnkoKBHandler(_FakeAdapter())
+    handler = OnkoKBRepository(_FakeAdapter())
     variant = {"INFO": {"selected_CSQ": {"SYMBOL": "TP53"}}}
 
     rows = handler.get_oncokb_action(variant, ["R175H", "Truncating Mutations"])
@@ -36,7 +36,7 @@ def test_get_oncokb_action_builds_flat_alteration_list():
 
 
 def test_get_civic_data_returns_materialized_documents():
-    handler = CivicHandler(_FakeAdapter())
+    handler = CivicRepository(_FakeAdapter())
     variant = {
         "CHROM": "17",
         "POS": 7674220,

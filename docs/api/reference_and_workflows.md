@@ -2,7 +2,7 @@
 
 ## Route Layout
 
-The backend exposes REST JSON endpoints grouped by domain under `api/routers/`:
+The backend exposes REST JSON endpoints grouped by domain under `api/interfaces/http/`:
 
 - `auth.py`: Authentication, token exchange, and password management.
 - `samples.py`: Sample retrieval and update routes.
@@ -21,7 +21,7 @@ The backend exposes REST JSON endpoints grouped by domain under `api/routers/`:
 Use the health endpoint to check that the API is up:
 
 ```bash
-curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_API_PORT:-5818}/api/v1/health"
+curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}/api/v1/health"
 ```
 
 ## Common Request Patterns

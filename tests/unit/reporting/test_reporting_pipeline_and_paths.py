@@ -6,9 +6,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.core.exceptions import AppError
-from api.core.reporting import report_paths
-from api.services.reporting import persistence as pipeline
+from api.domain.core.exceptions import AppError
+from api.domain.core.reporting import report_paths
+from api.application.reporting import persistence as pipeline
 
 
 def test_build_report_file_location_with_control_id(monkeypatch):
@@ -176,10 +176,10 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
             )
         ),
     )
-    sample_handler = SimpleNamespace(
+    sample_repository = SimpleNamespace(
         save_report=lambda **kwargs: (calls.setdefault("save_report", kwargs), "oid1")[1]
     )
-    reported_variant_handler = SimpleNamespace(
+    reported_variant_repository = SimpleNamespace(
         bulk_upsert_from_snapshot_rows=lambda **kwargs: calls.setdefault("bulk_upsert", kwargs)
     )
 
@@ -192,8 +192,8 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
         html="<html/>",
         snapshot_rows=None,
         created_by="tester",
-        sample_handler=sample_handler,
-        reported_variant_handler=reported_variant_handler,
+        sample_repository=sample_repository,
+        reported_variant_repository=reported_variant_repository,
     )
 
     assert report_oid == "oid1"
@@ -227,8 +227,8 @@ def test_persist_report_and_snapshot_raises_when_report_write_fails(monkeypatch)
             html="<html/>",
             snapshot_rows=[],
             created_by="tester",
-            sample_handler=SimpleNamespace(),
-            reported_variant_handler=SimpleNamespace(),
+            sample_repository=SimpleNamespace(),
+            reported_variant_repository=SimpleNamespace(),
         )
 
     assert exc.value.status_code == 500

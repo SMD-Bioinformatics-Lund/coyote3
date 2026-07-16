@@ -65,8 +65,8 @@ One ASPC
                   [ASPC.aspc_id = "<assay>:<profile>"]
 
 [sample.filters]
-  genelists     -?> [ISGL.isgl_id]
-  cnv_genelists -?> [ISGL.isgl_id]
+  snvlists      -?> [ISGL.isgl_id]
+  cnvlists      -?> [ISGL.isgl_id]
   fusionlists   -?> [ISGL.isgl_id]
   adhoc_genes   -?> runtime-only target-specific overlay
 ```
@@ -173,13 +173,13 @@ Reset sample filters
 
 ```text
 SNV target
-  sample.filters.genelists
+  sample.filters.snvlists
   + sample.filters.adhoc_genes["snv"]
   -?> selected ISGL genes
   -> if nothing selected: no SNV gene restriction
 
 CNV target
-  sample.filters.cnv_genelists
+  sample.filters.cnvlists
   + sample.filters.adhoc_genes["cnv"]
   -?> selected ISGL genes
   -> if nothing selected: fall back to ASP.covered_genes
@@ -270,7 +270,5 @@ SAMPLE_ID-linked findings
 
 ## 8. Companion References
 
-- [HTTP Layers and Boundaries](http_layers.md)
-- [System Architecture](system_overview.md)
 - [Clinical Data Architecture and Workflow Integration](../product/workflow_dna_rna.md)
 - [Assay Configuration and Dynamic Query Orchestration](../product/aspc_driven_query_strategy.md)

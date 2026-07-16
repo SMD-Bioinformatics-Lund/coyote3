@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
-from fastapi import HTTPException
-
-from api.main import app as api_app
-from api.routers import reports
+from api.app.main import app as api_app
+from api.interfaces.http import reports
 from api.security.access import ApiUser
 
 
@@ -29,49 +26,12 @@ def _user(username: str = "tester", role: str = "admin") -> ApiUser:
         roles=[role],
         access_level=99,
         permissions=["report:preview", "report:create"],
-        denied_permissions=[],
         assays=["WGS"],
         assay_groups=["dna", "rna"],
         envs=["dev"],
         asp_map={},
+        auth_type=["local"],
     )
-
-
-def test_normalize_rendered_report_payload_success():
-    """Test normalize rendered report payload success.
-
-    Returns:
-        The function result.
-    """
-    html, rows = reports._normalize_rendered_report_payload(
-        {"html": "<html>ok</html>", "snapshot_rows": [{"id": 1}]}
-    )
-    assert html == "<html>ok</html>"
-    assert rows == [{"id": 1}]
-
-
-def test_normalize_rendered_report_payload_missing_html_raises_400():
-    """Test normalize rendered report payload missing html raises 400.
-
-    Returns:
-        The function result.
-    """
-    with pytest.raises(HTTPException) as exc:
-        reports._normalize_rendered_report_payload({"snapshot_rows": []})
-    assert exc.value.status_code == 400
-    assert exc.value.detail["error"] == "Missing rendered report html"
-
-
-def test_normalize_rendered_report_payload_invalid_snapshot_rows_raises_400():
-    """Test normalize rendered report payload invalid snapshot rows raises 400.
-
-    Returns:
-        The function result.
-    """
-    with pytest.raises(HTTPException) as exc:
-        reports._normalize_rendered_report_payload({"html": "<html>x</html>", "snapshot_rows": {}})
-    assert exc.value.status_code == 400
-    assert exc.value.detail["error"] == "Invalid snapshot_rows payload"
 
 
 def test_preview_report_success_includes_snapshot_when_requested(monkeypatch):
@@ -104,6 +64,7 @@ def test_preview_report_success_includes_snapshot_when_requested(monkeypatch):
         ),
     )
     monkeypatch.setattr(reports.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(reports, "render_report_html", lambda **kwargs: "<html>preview</html>")
 
     payload = reports.preview_report(
         sample_id="S1",
@@ -116,6 +77,7 @@ def test_preview_report_success_includes_snapshot_when_requested(monkeypatch):
     assert payload["sample"]["id"] == "s1"
     assert payload["meta"]["snapshot_count"] == 1
     assert payload["report"]["template"] == "dna_report.html"
+    assert payload["report"]["html"] == "<html>preview</html>"
     assert payload["report"]["snapshot_rows"] == [{"var": "v1"}]
 
 
@@ -149,6 +111,7 @@ def test_preview_report_hides_snapshot_when_not_requested(monkeypatch):
         ),
     )
     monkeypatch.setattr(reports.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(reports, "render_report_html", lambda **kwargs: "<html>preview</html>")
 
     payload = reports.preview_report(
         sample_id="S1",
@@ -185,70 +148,36 @@ def test_save_report_success(monkeypatch):
     monkeypatch.setattr(
         reports,
         "_build_report_location",
-        lambda analyte, sample, assay_config: ("RID3", "/tmp", "RID3.pdf"),
+        lambda analyte, sample, assay_config: ("RID3", "/tmp", "/tmp/RID3.html"),
     )
     monkeypatch.setattr(
         reports, "_prepare_report_output", lambda analyte, report_path, report_file: None
     )
+    monkeypatch.setattr(reports.store.report_repository, "next_report_num", lambda sample_oid: 3)
     monkeypatch.setattr(
         reports,
-        "_persist_report",
-        lambda analyte, **kwargs: "oid-123",
+        "_build_preview_report",
+        lambda analyte, sample, assay_config, save, include_snapshot: (
+            "dna_report.html",
+            {"sample": sample, "assay_config": {}, "report_sections_data": {}},
+            [{"v": 1}],
+        ),
     )
+    monkeypatch.setattr(reports, "render_report_html", lambda **kwargs: "<html>ready</html>")
+    monkeypatch.setattr(reports, "_persist_report", lambda analyte, **kwargs: ("oid-123", "/tmp/RID3.pdf"))
     monkeypatch.setattr(reports.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = reports.save_report(
         sample_id="S1",
         report_type="dna",
-        report_payload={"html": "<html>ready</html>", "snapshot_rows": [{"v": 1}]},
         user=_user(role="admin"),
     )
 
     assert payload["report"]["id"] == "RID3"
     assert payload["report"]["oid"] == "oid-123"
+    assert payload["report"]["pdf_file"] == "/tmp/RID3.pdf"
     assert payload["report"]["snapshot_count"] == 1
     assert payload["meta"]["status"] == "saved"
-
-
-def test_save_dna_report_missing_html_raises_400(monkeypatch):
-    """Test save dna report missing html raises 400.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
-    monkeypatch.setattr(
-        reports,
-        "_load_report_context",
-        lambda sample_id, user: (
-            {"_id": "s1", "name": "S1", "assay": "WGS", "profile": "prod", "report_num": 2},
-            {"x": 1},
-        ),
-    )
-    monkeypatch.setattr(
-        reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None
-    )
-    monkeypatch.setattr(
-        reports,
-        "_build_report_location",
-        lambda analyte, sample, assay_config: ("RID3", "/tmp", "RID3.pdf"),
-    )
-    monkeypatch.setattr(
-        reports, "_prepare_report_output", lambda analyte, report_path, report_file: None
-    )
-
-    with pytest.raises(HTTPException) as exc:
-        reports.save_report(
-            sample_id="S1",
-            report_type="dna",
-            report_payload={"snapshot_rows": []},
-            user=_user(role="admin"),
-        )
-
-    assert exc.value.status_code == 400
-    assert exc.value.detail["error"] == "Missing rendered report html"
 
 
 def test_save_report_calls_rna_persist_path(monkeypatch):
@@ -276,11 +205,22 @@ def test_save_report_calls_rna_persist_path(monkeypatch):
     monkeypatch.setattr(
         reports,
         "_build_report_location",
-        lambda analyte, sample, assay_config: ("RID6", "/tmp", "RID6.pdf"),
+        lambda analyte, sample, assay_config: ("RID6", "/tmp", "/tmp/RID6.html"),
     )
     monkeypatch.setattr(
         reports, "_prepare_report_output", lambda analyte, report_path, report_file: None
     )
+    monkeypatch.setattr(reports.store.report_repository, "next_report_num", lambda sample_oid: 6)
+    monkeypatch.setattr(
+        reports,
+        "_build_preview_report",
+        lambda analyte, sample, assay_config, save, include_snapshot: (
+            "report_fusion.html",
+            {"sample": sample, "assay_config": {}, "report_sections_data": {}},
+            [],
+        ),
+    )
+    monkeypatch.setattr(reports, "render_report_html", lambda **kwargs: "<html>rna</html>")
 
     def _persist(analyte, **kwargs):
         """Persist.
@@ -294,7 +234,7 @@ def test_save_report_calls_rna_persist_path(monkeypatch):
         """
         calls["analyte"] = analyte
         calls["report_id"] = kwargs["report_id"]
-        return "oid-rna"
+        return "oid-rna", "/tmp/RID6.pdf"
 
     monkeypatch.setattr(reports, "_persist_report", _persist)
     monkeypatch.setattr(reports.util.common, "convert_to_serializable", lambda payload: payload)
@@ -302,13 +242,13 @@ def test_save_report_calls_rna_persist_path(monkeypatch):
     payload = reports.save_report(
         sample_id="S1",
         report_type="rna",
-        report_payload={"html": "<html>rna</html>", "snapshot_rows": []},
         user=_user(role="admin"),
     )
 
     assert calls["analyte"] == "rna"
     assert calls["report_id"] == "RID6"
     assert payload["report"]["oid"] == "oid-rna"
+    assert payload["report"]["pdf_file"] == "/tmp/RID6.pdf"
 
 
 def test_restful_report_routes_are_registered():
@@ -319,4 +259,5 @@ def test_restful_report_routes_are_registered():
     """
     paths = {route.path for route in api_app.routes}
     assert "/api/v1/samples/{sample_id}/reports/{report_type}/preview" in paths
+    assert "/api/v1/samples/{sample_id}/reports/{report_type}/preview/pdf" in paths
     assert "/api/v1/samples/{sample_id}/reports/{report_type}" in paths

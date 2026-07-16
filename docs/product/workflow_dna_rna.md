@@ -21,24 +21,25 @@ Configuration resources are linked by assay identifiers and runtime filter state
 [ASP: assay_specific_panels]
   key: asp_id
   maps to: sample.assay
-  defines: assay metadata, covered_genes, germline_genes, expected_files
+      defines: assay metadata, covered_genes, germline_genes, expected_files
       |
       +--> [ASPC: asp_configs]
-      |      key: aspc_id = "<assay>:<environment>"
-      |      maps to: sample.assay + sample.profile
+      |      key: aspc_id generated from asp_id + subpanel_id + environment
+      |      maps to: sample.assay + sample.profile + selected/base subpanel
       |      defines: default filters, analysis types, reporting settings
       |
       -?> [ISGL: insilico_genelists]
              key: isgl_id
-             linked by: assays[] and assay_groups[]
-             defines: optional curated gene subsets
+             linked by: assays[], subpanel_id, and assay_groups[]
+             defines: optional curated SNV/CNV gene subsets and germline genes
 ```
 
 Interpretation notes:
 
 - ASP is the assay anchor used by both ingest and read paths.
-- ASPC is the assay-plus-environment strategy contract.
+- ASPC is the assay-plus-subpanel-plus-environment strategy contract. The base ASPC uses `subpanel_id=base`.
 - ISGL is optional and becomes active only when selected into `sample.filters`.
+- Fusion genelists are pending a dedicated partner/breakpoint contract; for now ISGL is limited to SNV and CNV lists.
 
 ### Sample-to-configuration relationship
 
@@ -48,12 +49,12 @@ Interpretation notes:
   profile -------> (environment)
                       |
                       v
-                  [ASPC.aspc_id = "<assay>:<profile>"]
+                  [ASPC.asp_id + ASPC.subpanel_id + ASPC.environment]
 
 [sample.filters]
-  genelists     -?> [ISGL.isgl_id]
-  cnv_genelists -?> [ISGL.isgl_id]
-  fusionlists   -?> [ISGL.isgl_id]
+  snvlists      -?> [ISGL.isgl_id]
+  cnvlists      -?> [ISGL.isgl_id]
+  fusionlists   -?> TODO: pending fusion-list schema
 ```
 
 ### Sample Persistence Flow
@@ -92,10 +93,10 @@ During ingest, the system creates a sample anchor and then links finding collect
 For DNA and RNA workflows, the platform dynamically computes **effective gene scope** per data type:
 
 1. **SNV**:
-   - Active `sample.filters.genelists` and SNV ad-hoc genes define the SNV gene restriction.
+   - Active `sample.filters.snvlists` and SNV ad-hoc genes define the SNV gene restriction.
    - If no SNV genelist is selected, SNV findings are not gene-restricted.
 2. **CNV**:
-   - Active `sample.filters.cnv_genelists` and CNV ad-hoc genes define the CNV gene restriction.
+   - Active `sample.filters.cnvlists` and CNV ad-hoc genes define the CNV gene restriction.
    - If no CNV genelist is selected, CNV workflows fall back to ASP `covered_genes`.
 3. **RNA Fusion**:
    - Active fusion lists and ad-hoc fusion genes define fusion scope.
@@ -170,7 +171,7 @@ Read / clinical review
 
 The following rules matter for correct behavior:
 
-- **Identifier Synchronization**: keep `samples.assay`, `asp.asp_id`, and `aspc.assay_name` aligned.
+- **Identifier Synchronization**: keep `samples.assay`, `asp.asp_id`, and `aspc.asp_id` aligned; ASPC uniqueness is `asp_id + subpanel_id + environment`.
 - **Environment Integrity**: Every sample `profile` must map to a valid `production`, `development`, or `validation` environment within the configuration tier.
 - **Relational Atomic Behavior**: Treat `samples` as the parent record for all findings; orphaned finding documents without a valid `SAMPLE_ID` are not allowed.
 - **Metadata Alignment**: `vep_version` in the sample must match the relevant `vep_metadata` entry.

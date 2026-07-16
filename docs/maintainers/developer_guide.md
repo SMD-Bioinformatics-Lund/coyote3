@@ -8,7 +8,7 @@ Engineers must maintain the following baseline within their localized virtual en
 
 ```bash
 # Run static analysis
-PYTHONPATH=. ruff check api coyote tests scripts
+PYTHONPATH=. ruff check api tests scripts
 
 # Execute localized unit and functional tests
 PYTHONPATH=. pytest -q
@@ -24,7 +24,7 @@ PYTHONPATH=. mypy --follow-imports=skip --ignore-missing-imports \
   api/security/auth_service.py \
   api/security/password_flows.py \
   api/infra/notifications/email.py \
-  api/services/accounts/users.py
+  api/application/accounts/users.py
 ```
 
 ## Architectural Orchestration (Docker Compose)
@@ -74,5 +74,3 @@ Every platform release must satisfy the following criteria:
 3. **Manual Alignment**: Verify that the technical manuals built in strict-mode without warnings.
 4. **Security Audit**: Ensure that environment templates contain no active secrets or credentials.
 5. **Commit Atomic Preservation**: Segment changes into logical `feat`, `chore`, and `docs` commits.
-
-*For detailed architectural specifications, refer to the [Runtime Architecture and Engineering Standards](architecture_standards.md).*

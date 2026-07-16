@@ -65,7 +65,6 @@ scripts/center_first_run.sh \
   --env-file <ENV_FILE> \
   --compose-file <COMPOSE_FILE> \
   [--with-mongo] \
-  [--with-proxy] \
   [--compose-profile <PROFILE>] \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:<API_PORT>" \
   --admin-username "admin.coyote3" \

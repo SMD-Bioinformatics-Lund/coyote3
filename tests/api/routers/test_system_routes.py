@@ -8,8 +8,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from api.routers import auth as auth_router
-from api.routers import health as health_router
+from api.interfaces.http import auth as auth_router
+from api.interfaces.http import health as health_router
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -33,7 +33,7 @@ def test_docs_alias_vi_redirects_to_v1_docs():
     assert response.headers["location"] == "/api/v1/docs"
 
 
-def test_whoami_sorts_permission_lists():
+def test_whoami_sorts_permission_list():
     """Test whoami sorts permission lists.
 
     Returns:
@@ -41,12 +41,11 @@ def test_whoami_sorts_permission_lists():
     """
     user = fx.api_user()
     user.permissions = ["b", "a"]
-    user.denied_permissions = ["z", "y"]
 
     payload = auth_router.whoami(user=user)
 
     assert payload["permissions"] == ["a", "b"]
-    assert payload["denied_permissions"] == ["y", "z"]
+    assert "denied_permissions" not in payload
 
 
 def test_auth_login_rejects_invalid_credentials(monkeypatch):
@@ -86,7 +85,7 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
         lambda user_id: calls.setdefault("updated_user", user_id),
     )
     monkeypatch.setattr(
-        auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}"
+        auth_router, "create_api_session_token", lambda user_id, **_kwargs: f"session-{user_id}"
     )
     monkeypatch.setattr(
         auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"}
@@ -128,7 +127,7 @@ def test_create_auth_session_returns_201(monkeypatch):
     monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p: user_doc)
     monkeypatch.setattr(auth_router, "update_user_last_login", lambda user_id: None)
     monkeypatch.setattr(
-        auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}"
+        auth_router, "create_api_session_token", lambda user_id, **_kwargs: f"session-{user_id}"
     )
     monkeypatch.setattr(
         auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"}
@@ -170,7 +169,7 @@ def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
         lambda user_id: calls.setdefault("updated_user", user_id),
     )
     monkeypatch.setattr(
-        auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}"
+        auth_router, "create_api_session_token", lambda user_id, **_kwargs: f"session-{user_id}"
     )
     monkeypatch.setattr(
         auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"}

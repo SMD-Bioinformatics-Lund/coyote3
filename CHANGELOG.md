@@ -18,7 +18,7 @@
 
 ## v3.1.21
 - Fixed HGVS display/toggle behavior across DNA variant list, tiered search, and reported variants views (unique row IDs, stacked HGVS lines, and no blank indent when only one HGVS value exists).
-- Replaced legacy custom width utility usage (`max-w-15c` style) with Tailwind arbitrary values where used.
+- Replaced historical custom width utility usage (`max-w-15c` style) with Tailwind arbitrary values where used.
 - Removed deprecated DNA gene view routes/templates (`/gene_simple/<gene_name>`, `/gene/<gene_name>`).
 
 ## v3.1.20
@@ -26,7 +26,7 @@
 
 ## v3.1.19
 - Fixed Tailwind v4 dynamic class generation gaps by expanding template scan coverage (`.jinja/.jinja2`) and explicit inline source classes for semantic/admin color tokens.
-- Added Tailwind v4 border compatibility base layer and stabilized modal/button styling with Tailwind-safe static class mapping.
+- Added Tailwind v4 border base layer and stabilized modal/button styling with Tailwind-safe static class mapping.
 - Restored same-line live validation feedback in schema creation editor (inline line highlight + inline error widget).
 - Updated admin audit logs view to sort entries by parsed log timestamp in descending order (latest first).
 - Fixed subpath static asset behavior for containerized deployment under `SCRIPT_NAME` (e.g., `/coyote3`) by adding prefix-aware WSGI middleware and normalizing compose env formatting.
@@ -39,10 +39,10 @@
 - Updated dev container flow to build/watch Tailwind only in the dedicated dev Tailwind service, avoiding npm install dependency during `coyote3_dev_app` image build.
 - Added version-aware compose workflow:
   - `docker-compose*.yml` now use `COYOTE3_VERSION` image tags instead of hardcoded app versions.
-  - Added `scripts/compose-with-version.sh` to export version from `coyote/__version__.py` and run `docker compose`.
+  - Added `scripts/compose-with-version.sh` to export version from `api/version.py` and run `docker compose`.
 - Added npm package version sync from Python version source:
   - Added `scripts/sync-package-version.js`.
-  - Wired `postinstall`, `prebuild:css`, and `predev:css` to sync `package.json` version from `coyote/__version__.py`.
+  - Wired package version sync from `api/version.py`.
 - Reworked installation/deployment documentation to production-first, step-by-step runbooks in README and handbook.
 
 ## v3.1.17
@@ -85,7 +85,7 @@
 - Improved HGVS protein normalization to support complex clinical variants and enhanced backfill reliability using JSONL-based dry-run and bulk insert workflows.
 - Fixed gene links to correctly deep-link into tiered variant search with proper query parameters and assay filtering.
 
-## v3.1.5- Added CNV aftefct column from the legacy coyote
+## v3.1.5- Added CNV aftefct column from the historical coyote
 
 ## v3.1.4- Adjusted sample search behavior to remove the time limit for user-initiated searches, while keeping a default 90-day time filter for reported samples.
 - Changed the sample profile filter to hide non-production samples by default, with a toggle to show all samples.

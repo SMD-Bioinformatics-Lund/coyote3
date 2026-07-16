@@ -10,7 +10,7 @@ from typing import Iterable
 
 from fastapi.routing import APIRoute
 
-from api.main import app
+from api.app.main import app
 
 _OPEN_EXACT = {
     "/api/v1/health",

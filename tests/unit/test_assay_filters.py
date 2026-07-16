@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.common.assay_filters import (
+from api.app.utilities.assay_filters import (
     format_assay_config,
     get_sample_effective_genes,
     merge_sample_settings_with_assay_config,
@@ -20,7 +20,7 @@ def test_merge_sample_settings_only_uses_assay_defaults_when_filters_missing() -
             "vep_consequences": [],
             "cnveffects": None,
             "min_depth": None,
-            "genelists": [],
+            "snvlists": [],
         }
     }
     assay_config = {
@@ -28,7 +28,7 @@ def test_merge_sample_settings_only_uses_assay_defaults_when_filters_missing() -
             "vep_consequences": ["splicing", "missense"],
             "cnveffects": ["gain", "loss"],
             "min_depth": 100,
-            "genelists": ["hematology_myeloid"],
+            "snvlists": ["hematology_myeloid"],
         }
     }
 
@@ -37,7 +37,7 @@ def test_merge_sample_settings_only_uses_assay_defaults_when_filters_missing() -
     assert merged["filters"]["vep_consequences"] == []
     assert merged["filters"]["cnveffects"] is None
     assert merged["filters"]["min_depth"] is None
-    assert merged["filters"]["genelists"] == []
+    assert merged["filters"]["snvlists"] == []
 
 
 def test_merge_sample_settings_uses_assay_defaults_when_filters_missing() -> None:
@@ -48,7 +48,7 @@ def test_merge_sample_settings_uses_assay_defaults_when_filters_missing() -> Non
             "vep_consequences": ["splicing", "missense"],
             "cnveffects": ["gain", "loss"],
             "min_depth": 100,
-            "genelists": ["hematology_myeloid"],
+            "snvlists": ["hematology_myeloid"],
         }
     }
 
@@ -57,7 +57,7 @@ def test_merge_sample_settings_uses_assay_defaults_when_filters_missing() -> Non
     assert merged["filters"]["vep_consequences"] == ["splicing", "missense"]
     assert merged["filters"]["cnveffects"] == ["gain", "loss"]
     assert merged["filters"]["min_depth"] == 100
-    assert merged["filters"]["genelists"] == ["hematology_myeloid"]
+    assert merged["filters"]["snvlists"] == ["hematology_myeloid"]
 
 
 def test_format_assay_config_excludes_meta_keys_from_filters_section() -> None:
@@ -86,14 +86,14 @@ def test_dna_filters_doc_restores_defaults_for_null_and_empty_values() -> None:
             "min_depth": None,
             "vep_consequences": [],
             "cnveffects": [],
-            "small_variants_genelists": [],
+            "snvlists": [],
         }
     )
 
     assert filters.min_depth == 100
     assert filters.vep_consequences == []
     assert filters.cnveffects == ["gain", "loss"]
-    assert filters.genelists == []
+    assert filters.snvlists == []
 
 
 def test_rna_filters_doc_restores_defaults_for_null_and_empty_values() -> None:
@@ -103,14 +103,14 @@ def test_rna_filters_doc_restores_defaults_for_null_and_empty_values() -> None:
             "min_spanning_reads": None,
             "fusion_callers": [],
             "fusion_effects": None,
-            "fusion_genelists": [],
+            "fusionlists": [],
         }
     )
 
     assert filters.min_spanning_reads == 0
     assert filters.fusion_callers == []
     assert filters.fusion_effects == []
-    assert filters.fusion_genelists == []
+    assert filters.fusionlists == []
 
 
 def test_effective_genes_respects_adhoc_list_types_for_target() -> None:
@@ -127,7 +127,7 @@ def test_effective_genes_respects_adhoc_list_types_for_target() -> None:
 
 def test_effective_genes_leave_snv_unfiltered_when_no_genelists_selected() -> None:
     """SNV effective genes should stay empty until a list or ad hoc genes are selected."""
-    sample = {"filters": {"genelists": []}}
+    sample = {"filters": {"snvlists": []}}
     asp = {"covered_genes": ["TP53", "EGFR"], "asp_family": "panel"}
 
     _, snv_effective = get_sample_effective_genes(sample, asp, {}, target="snv")
@@ -135,9 +135,9 @@ def test_effective_genes_leave_snv_unfiltered_when_no_genelists_selected() -> No
     assert snv_effective == []
 
 
-def test_effective_genes_fall_back_to_asp_genes_when_no_cnv_genelist_selected() -> None:
+def test_effective_genes_fall_back_to_asp_genes_when_no_cnv_list_selected() -> None:
     """CNV effective genes should default to assay covered genes when no lists are selected."""
-    sample = {"filters": {"cnv_genelists": []}}
+    sample = {"filters": {"cnvlists": []}}
     asp = {"covered_genes": ["TP53", "EGFR"], "asp_family": "panel"}
 
     _, cnv_effective = get_sample_effective_genes(sample, asp, {}, target="cnv")
@@ -145,9 +145,9 @@ def test_effective_genes_fall_back_to_asp_genes_when_no_cnv_genelist_selected() 
     assert cnv_effective == ["EGFR", "TP53"]
 
 
-def test_effective_genes_use_selected_cnv_genelist_when_present() -> None:
+def test_effective_genes_use_selected_cnv_list_when_present() -> None:
     """CNV effective genes should narrow to the selected CNV genelist when provided."""
-    sample = {"filters": {"cnv_genelists": ["GL1"]}}
+    sample = {"filters": {"cnvlists": ["GL1"]}}
     asp = {"covered_genes": ["TP53", "EGFR", "MYC"], "asp_family": "panel"}
     selected_lists = {
         "GL1": {

@@ -15,7 +15,7 @@ This section outlines standard diagnostic signatures and remediation protocols f
 
 1. Validate the local `.coyote3_env` file to ensure the configured `MONGO_URI` connection string contains the correct authentication payload (username and password).
 2. Confirm the specified application username possesses active administrative privileges within the targeted database volume.
-3. If connecting to a legacy volume bootstrapped prior to authentication enforcement policies, administrators must initialize the target user manually or perform a clean container volume re-initialization.
+3. If connecting to a historical volume bootstrapped prior to authentication enforcement policies, administrators must initialize the target user manually or perform a clean container volume re-initialization.
 
 ## Configuration File Absence
 

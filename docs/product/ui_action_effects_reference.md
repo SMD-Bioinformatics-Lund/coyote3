@@ -6,9 +6,9 @@ This reference maps UI controls to backend endpoints, persistent state changes, 
 
 | UI Interceptor | Interface Context | Execution Endpoint | Persistent Mutation | Operational Outcome |
 |---|---|---|---|---|
-| **Apply selected** | Gene List Selection | `POST /home/<id>/apply_isgl` | `samples.filters.genelists` | Update of effective gene scope and variant summaries. |
-| **Save (Ad-Hoc)** | Ad-Hoc Gene Entry | `POST /home/<id>/adhoc_genes` | `samples.filters.adhoc_genes` | Insertion of targeted gene inclusions. |
-| **Clear Ad-Hoc** | Sample Settings | `POST /home/<id>/adhoc_genes/clear` | `samples.filters.adhoc_genes` (NULL) | Reversion of gene scope to baseline config. |
+| **Apply selected** | Sample Overview Gene Settings | `PUT /api/v1/samples/{id}/genelists/selection?target={snv,cnv,fusion}` | `samples.filters.snv.snvlists`, `samples.filters.cnv.cnvlists`, or `samples.filters.fusion.fusionlists` | Update of effective gene scope, active table queries, report preview snapshots, and sample summaries. |
+| **Save Ad-Hoc** | Sample Overview Gene Settings | `PUT /api/v1/samples/{id}/adhoc-genes?target={snv,cnv,fusion}` | `samples.filters.<target>.adhoc_genes` | Insertion of targeted gene inclusions for the selected analysis domain. |
+| **Clear Ad-Hoc** | Sample Overview Gene Settings | `DELETE /api/v1/samples/{id}/adhoc-genes?target={snv,cnv,fusion}` | Removes `samples.filters.<target>.adhoc_genes` | Reversion of the selected target to ISGL/ASPC-defined gene scope. |
 | **Download** | Report Catalog | Service file stream | (Read-only) | Local archival retrieval of report PDF/JSON. |
 
 ## DNA Interpretation Actions
@@ -30,6 +30,29 @@ This reference maps UI controls to backend endpoints, persistent state changes, 
 | **Save Comment** | Annotation Form | `POST .../annotations` | `annotations` collection record | Persistence of review notes and diagnostic audit trail. |
 | **Add to Blacklist** | Variant Details | `POST .../blacklist_entries` | `blacklist` collection update | Systematic exclusion from future center-level findings. |
 
+### Detail Page Action Rules
+
+Finding detail pages expose only actions that are meaningful for the active domain:
+
+- **Small variants**: false-positive toggle, interesting toggle, irrelevant toggle, add-to-blacklist, blacklist override, and clear blacklist override.
+- **CNVs**: false-positive toggle, report inclusion toggle, and noteworthy toggle.
+- **Translocations**: false-positive toggle and report inclusion toggle.
+- **Fusions**: false-positive toggle and selected-call control. Fusion call selection is separate from the finding flag controls because it changes the evidence source rather than the clinical interpretation state.
+
+Blacklist entry creation asks for confirmation because it changes center-level future filtering. Blacklist override is sample-scoped and is only available when a blacklist match is present.
+
+### Comment Composer Rules
+
+Comment behavior is intentionally different between sample-level review and finding-level review:
+
+- **Sample comments** use the markdown toolbar and show a live rendered preview below the editor while the user writes.
+- **Finding detail comments** use the markdown toolbar and explicit Edit/Preview mode only. They do not show a second live preview.
+- **Suggested text** is available only in sample comment composition. Finding comments are written explicitly by the reviewer.
+- Clicking an existing visible comment loads that comment text into the composer as a draft for reuse or editing.
+- Hide/unhide controls mutate visibility; hidden comments remain auditable but are visually de-emphasized.
+
+Global finding annotations and sample-specific finding annotations are shown in separate cards so reviewers can distinguish center-wide interpretation knowledge from comments tied to the active sample.
+
 ## RNA Interpretation Actions
 
 | UI Interceptor | Interface Context | Execution Endpoint | Persistent Mutation | Operational Outcome |
@@ -47,6 +70,21 @@ This reference maps UI controls to backend endpoints, persistent state changes, 
 | **Send Invite** | User Management | `POST .../invite` | Crypto-token generation | Email-link delivery or manual credential hand-off. |
 | **Save Policy** | Roles/Permissions | Authorization endpoints | `roles` / `permissions` docs | Real-time update of RBAC enforcement policies. |
 | **Save Panel/Config** | Assay Resources | ASP/ASPC endpoints | `asp_configs` / `assay_specific_panels` | Versioned update of center-level analytic logic. |
+| **Queue Ingest** | Ingest Workspace | `POST /api/v1/internal/ingest/sample-bundle/upload/async` | Celery task entry plus staged upload files | Validated sample-bundle ingest is executed by workers and task state is visible in the UI. |
+
+## Notification Semantics
+
+Every mutating UI action emits a notification event to the client-side notification
+store. Notifications include:
+
+- tone: success, info, warning, or error
+- source: UI module that initiated the action
+- resource context: sample name, finding identity, admin resource type, or task id
+- readable message: what changed and which clinical or administrative object was affected
+
+The notification history is therefore useful for operator review, not only transient
+toast display. Sample-related events include the sample name, and admin events include
+the edited resource key or business identifier.
 
 ## Local Interface Controls (Non-Persistent)
 
@@ -56,6 +94,25 @@ The following controls manipulate the Browser Document Object Model (DOM) withou
 - **Pagination**: Local table paging within client-orchestrated datasets.
 - **Expand/Collapse**: User-driven text visibility for long descriptions.
 - **Chart Toggles**: Analytical chart mode switching (e.g., Target vs. Evidence).
+
+## Table and Search Rules
+
+All clinical tables use a visibly separated header row with bordered cells. Column content is left-aligned by default; tier columns are centered because they are categorical severity indicators. CSV export operates on the currently loaded table model and excludes selection/action columns.
+
+Tiered variant search is a submitted search workflow. The user enters a query, chooses a mode, optionally includes annotation text, optionally restricts assays, and then clicks **Search**. This prevents unnecessary cross-sample annotation queries on every keystroke and keeps the displayed result set tied to the visible search criteria.
+
+Supported tiered-variant search modes:
+
+- **Variant**: searches the annotation variant identity across protein, cDNA, and genomic representations.
+- **HGVSp**: searches protein notation fields and protein-nomenclature annotation rows.
+- **HGVSc**: searches cDNA notation fields and cDNA-nomenclature annotation rows.
+- **Genomic**: searches genomic variant identifiers and genomic-nomenclature annotation rows.
+- **Gene symbol**: searches annotation gene symbols case-insensitively.
+- **Transcript ID**: searches transcript identifiers.
+- **Subpanel**: searches clinical subpanel labels.
+- **Author**: searches annotation author names.
+- **Annotation text**: searches free-text annotation/comment records.
+- **All fields**: searches identity, context, author, subpanel, and annotation text fields together.
 
 ## Quality Assurance Execution Protocol
 
