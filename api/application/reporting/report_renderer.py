@@ -644,7 +644,7 @@ def _environment() -> Environment:
 
 
 def _perc_no_dec(value: Any) -> str:
-    """Format allele frequency like the master report template filter."""
+    """Format allele frequency for clinical report display."""
     if value in (None, "", "N/A"):
         return "N/A" if value == "N/A" else "-"
     try:
@@ -659,7 +659,7 @@ def _unesc(value: Any) -> str:
 
 
 def _format_tier(value: Any) -> str:
-    """Format a numeric tier using the master report wording."""
+    """Format a numeric tier using clinical report wording."""
     try:
         return f"Tier {TIER_NAME.get(int(value), int(value))}"
     except (TypeError, ValueError):
@@ -698,25 +698,25 @@ def _format_comment(value: Any) -> str:
     )
 
 
-def _current_user() -> SimpleNamespace:
-    """Return a current-user object compatible with master report templates."""
+def _clinical_report_user() -> SimpleNamespace:
+    """Return the default user context for server-rendered clinical reports."""
     return SimpleNamespace(fullname="Coyote3", get_fullname=lambda: "Coyote3")
 
 
-def _request() -> SimpleNamespace:
-    """Return a request object compatible with master report templates."""
+def _clinical_report_request() -> SimpleNamespace:
+    """Return the default request context for server-rendered clinical reports."""
     return SimpleNamespace(script_root="")
 
 
 def _template_defaults(context: dict[str, Any], *, analyte: str, preview: bool) -> dict[str, Any]:
-    """Add master-template globals and missing optional fields."""
+    """Add clinical report globals and missing optional fields."""
     sample = dict(context.get("sample") or {})
     sample.setdefault("comments", [])
     sample.setdefault("report_num", 0)
     context = dict(context)
     context["sample"] = sample
-    context.setdefault("current_user", _current_user())
-    context.setdefault("request", _request())
+    context.setdefault("current_user", _clinical_report_user())
+    context.setdefault("request", _clinical_report_request())
     context.setdefault("has_access", lambda *_args, **_kwargs: False)
     context.setdefault("url_for", lambda endpoint, **_kwargs: f"#{endpoint}")
     context.setdefault("germline", False)

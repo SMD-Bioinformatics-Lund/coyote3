@@ -5,7 +5,6 @@ import { Activity, ArrowLeft, CalendarDays, Database, Dna, ExternalLink, Fingerp
 import { ColumnDef } from "@tanstack/react-table"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
-import { CollapsibleJson } from "@/components/detail/JsonInspector"
 import { PageShell } from "@/components/layout/PageShell"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 
@@ -359,12 +358,9 @@ export function PublicGenelistPage() {
   return (
     <PageShell eyebrow="Public" title={data?.genelist?.name || data?.title || genelistId} description="Public gene list view migrated from the historical catalog.">
       {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (
-        <div className="space-y-3">
-          <section className="surface-panel border-t-4 border-t-genelist p-3">
-            <DataTable columns={columns} data={rows} filename={`${genelistId}_genes.csv`} />
-          </section>
-          <CollapsibleJson title="Genelist Payload" value={data || {}} />
-        </div>
+        <section className="surface-panel border-t-4 border-t-genelist p-3">
+          <DataTable columns={columns} data={rows} filename={`${genelistId}_genes.csv`} />
+        </section>
       )}
     </PageShell>
   )
@@ -567,12 +563,9 @@ export function CoverageBlacklistPage() {
       actions={<Link to="/samples" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"><ArrowLeft className="h-4 w-4" /> Samples</Link>}
     >
       {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (
-        <div className="space-y-3">
-          <section className="surface-panel border-t-4 border-t-cnvlist p-3">
-            <DataTable columns={columns} data={rows} filename={`coverage_blacklist_${group}.csv`} />
-          </section>
-          <CollapsibleJson title="Coverage Blacklist Payload" value={data || {}} />
-        </div>
+        <section className="surface-panel border-t-4 border-t-cnvlist p-3">
+          <DataTable columns={columns} data={rows} filename={`coverage_blacklist_${group}.csv`} />
+        </section>
       )}
     </PageShell>
   )

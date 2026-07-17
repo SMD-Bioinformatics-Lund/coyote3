@@ -11,6 +11,8 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+from typing import Any
+
 import pymongo
 from pymongo.errors import OperationFailure
 
@@ -41,6 +43,35 @@ from api.infra.mongo.repositories.translocations import TranslocsRepository
 from api.infra.mongo.repositories.users import UsersRepository
 from api.infra.mongo.repositories.variants import VariantsRepository
 from api.infra.mongo.repositories.vep_metadata import VEPMetaRepository
+
+CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
+    ("translocation_repository", TranslocsRepository, "translocs"),
+    ("copy_number_variant_repository", CNVsRepository, "cnvs"),
+    ("variant_repository", VariantsRepository, "variants"),
+    ("annotation_repository", AnnotationsRepository, "annotations"),
+    ("sample_repository", SampleRepository, "samples"),
+    ("sample_comment_repository", SampleCommentsRepository, "sample_comments"),
+    ("assay_panel_repository", ASPRepository, "asp"),
+    ("blacklist_repository", BlacklistRepository, "blacklist"),
+    ("expression_repository", ExpressionRepository, "expression"),
+    ("bam_record_repository", BamServiceRepository, "bam_service"),
+    ("user_repository", UsersRepository, "users"),
+    ("fusion_repository", FusionsRepository, "fusions"),
+    ("biomarker_repository", BiomarkerRepository, "biomarkers"),
+    ("coverage_repository", CoverageRepository, "coverage"),
+    ("grouped_coverage_repository", GroupCoverageRepository, "groupcov"),
+    ("assay_configuration_repository", ASPConfigRepository, "aspc"),
+    ("roles_repository", RolesRepository, "roles"),
+    ("permissions_repository", PermissionsRepository, "permissions"),
+    ("vep_metadata_repository", VEPMetaRepository, "vep_meta"),
+    ("gene_list_repository", ISGLRepository, "isgl"),
+    ("rna_expression_repository", RNAExpressionRepository, "rna_expression"),
+    ("rna_classification_repository", RNAClassificationRepository, "rna_classification"),
+    ("rna_quality_repository", RNAQCRepository, "rna_qc"),
+    ("reported_variant_repository", ReportedVariantsRepository, "reported_variants"),
+    ("report_repository", ReportRepository, "reports"),
+    ("dashboard_metrics_repository", DashboardMetricsRepository, "dashboard_metrics"),
+)
 
 
 # -------------------------------------------------------------------------
@@ -157,60 +188,13 @@ class MongoAdapter:
         This method initializes various database operation repositories as attributes of the `MongoAdapter` instance.
         Each repository is responsible for managing a specific collection or set of operations in the database.
         """
-        self.translocation_repository = TranslocsRepository(self)
-        self.copy_number_variant_repository = CNVsRepository(self)
-        self.variant_repository = VariantsRepository(self)
-        self.annotation_repository = AnnotationsRepository(self)
-        self.sample_repository = SampleRepository(self)
-        self.sample_comment_repository = SampleCommentsRepository(self)
-        self.assay_panel_repository = ASPRepository(self)
-        self.blacklist_repository = BlacklistRepository(self)
-        self.expression_repository = ExpressionRepository(self)
-        self.bam_record_repository = BamServiceRepository(self)
-        self.user_repository = UsersRepository(self)
-        self.fusion_repository = FusionsRepository(self)
-        self.biomarker_repository = BiomarkerRepository(self)
-        self.coverage_repository = CoverageRepository(self)
-        self.grouped_coverage_repository = GroupCoverageRepository(self)
-        self.assay_configuration_repository = ASPConfigRepository(self)
-        self.roles_repository = RolesRepository(self)
-        self.permissions_repository = PermissionsRepository(self)
-        self.vep_metadata_repository = VEPMetaRepository(self)
-        self.gene_list_repository = ISGLRepository(self)
-        self.rna_expression_repository = RNAExpressionRepository(self)
-        self.rna_classification_repository = RNAClassificationRepository(self)
-        self.rna_quality_repository = RNAQCRepository(self)
-        self.reported_variant_repository = ReportedVariantsRepository(self)
-        self.report_repository = ReportRepository(self)
-        self.dashboard_metrics_repository = DashboardMetricsRepository(self)
+        self.index_setup_conflicts: list[dict[str, str]] = []
+        for repository_attr, repository_cls, _index_name in CORE_REPOSITORIES:
+            setattr(self, repository_attr, repository_cls(self))
         for plugin in enabled_knowledgebase_plugins(self.app.config):
             setattr(self, plugin.repository_attr, plugin.repository_cls(self))
-        self._ensure_repository_indexes("users", self.user_repository)
-        self._ensure_repository_indexes("roles", self.roles_repository)
-        self._ensure_repository_indexes("permissions", self.permissions_repository)
-        self._ensure_repository_indexes("asp", self.assay_panel_repository)
-        self._ensure_repository_indexes("aspc", self.assay_configuration_repository)
-        self._ensure_repository_indexes("isgl", self.gene_list_repository)
-        self._ensure_repository_indexes("samples", self.sample_repository)
-        self._ensure_repository_indexes("sample_comments", self.sample_comment_repository)
-        self._ensure_repository_indexes("annotations", self.annotation_repository)
-        self._ensure_repository_indexes("variants", self.variant_repository)
-        self._ensure_repository_indexes("biomarkers", self.biomarker_repository)
-        self._ensure_repository_indexes("cnvs", self.copy_number_variant_repository)
-        self._ensure_repository_indexes("translocs", self.translocation_repository)
-        self._ensure_repository_indexes("fusions", self.fusion_repository)
-        self._ensure_repository_indexes("blacklist", self.blacklist_repository)
-        self._ensure_repository_indexes("coverage", self.coverage_repository)
-        self._ensure_repository_indexes("groupcov", self.grouped_coverage_repository)
-        self._ensure_repository_indexes("reported_variants", self.reported_variant_repository)
-        self._ensure_repository_indexes("reports", self.report_repository)
-        self._ensure_repository_indexes("dashboard_metrics", self.dashboard_metrics_repository)
-        self._ensure_repository_indexes("vep_meta", self.vep_metadata_repository)
-        self._ensure_repository_indexes("bam_service", self.bam_record_repository)
-        self._ensure_repository_indexes("rna_expression", self.rna_expression_repository)
-        self._ensure_repository_indexes("rna_classification", self.rna_classification_repository)
-        self._ensure_repository_indexes("rna_qc", self.rna_quality_repository)
-        self._ensure_repository_indexes("expression", self.expression_repository)
+        for repository_attr, _repository_cls, index_name in CORE_REPOSITORIES:
+            self._ensure_repository_indexes(index_name, getattr(self, repository_attr))
         for plugin in enabled_knowledgebase_plugins(self.app.config):
             self._ensure_repository_indexes(
                 plugin.index_name, getattr(self, plugin.repository_attr)
@@ -224,11 +208,23 @@ class MongoAdapter:
             code = getattr(exc, "code", None)
             # MongoDB can report either IndexOptionsConflict (85) or
             # IndexKeySpecsConflict (86) when an existing deployment already has
-            # a compatible key pattern under the same/different name but older
-            # options. Do not block API startup for that migration residue.
+            # a same-name or same-key index with different options. Do not block
+            # API startup, but make the reconciliation action visible to ops.
             if code in {85, 86}:
+                self.index_setup_conflicts.append(
+                    {
+                        "repository": repository_name,
+                        "code": str(code),
+                        "message": str(exc),
+                    }
+                )
                 self.app.logger.warning(
-                    "Skipping index-name conflict for repository=%s: %s",
+                    (
+                        "Mongo index conflict for repository=%s was tolerated at startup. "
+                        "Review docs/operations/troubleshooting.md#mongo-index-conflicts, "
+                        "compare db.<collection>.getIndexes(), then reconcile the index definition "
+                        "during a maintenance window. Mongo error: %s"
+                    ),
                     repository_name,
                     exc,
                 )

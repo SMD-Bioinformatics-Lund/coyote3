@@ -20,7 +20,7 @@ The core rule is:
 4. The Reports tab asks the backend for a report preview.
 5. The backend resolves the sample and ASPC, reruns the report query workflow
    from the current filters, builds a temporary report context, and renders
-   master-style report HTML.
+   clinical report HTML.
 6. The UI shows the report preview and snapshot rows. Nothing is persisted yet.
 7. The user confirms Save.
 8. The backend reruns the same report workflow in save mode, renders HTML,
@@ -86,7 +86,7 @@ Rules:
 - Preview does not write `reported_variants`.
 - Preview uses the current sample filters.
 - Preview resolves the current ASPC at request time.
-- Preview renders the same master-style report HTML used for PDF/save.
+- Preview renders the same clinical report HTML used for PDF/save.
 - Preview can include `snapshot_rows` for UI inspection when requested.
 
 The response contains:
@@ -147,7 +147,7 @@ Saved outputs:
 The report artifact must be self-contained HTML:
 
 - report CSS is embedded in the HTML
-- the layout mirrors the historical master report format
+- the layout follows the validated clinical report format
 - PDF generation uses the same HTML
 - preview, saved HTML, and saved PDF should therefore have matching structure
 
@@ -155,7 +155,7 @@ The report renderer is an implementation detail. The product contract is the
 generated artifact:
 
 ```text
-workflow context -> master-style HTML with embedded CSS -> PDF from same HTML
+workflow context -> clinical report HTML with embedded CSS -> PDF from same HTML
 ```
 
 ## DNA Report Build Logic
@@ -197,11 +197,11 @@ Consequence filtering uses the VEP metadata group map for the sample VEP
 version. UI-facing groups such as `missense`, `frameshift`, or `splicing` are
 expanded to concrete VEP consequence terms before querying variants.
 
-Current query compatibility rule:
+Current query reproducibility rule:
 
-- consequence matching must preserve the master behavior
+- consequence matching must preserve the clinical query behavior
 - selected transcript consequence and other transcript consequences can both
-  affect inclusion where the master query did so
+  affect inclusion where the clinical query did so
 - hematology/solid germline rescue behavior is preserved where applicable
 
 After querying:
@@ -227,7 +227,7 @@ Rules:
 - apply selected CNV effect filters, such as gain/loss
 - apply selected CNV gene lists
 - organize genes for display
-- render the master-style CNV summary table
+- render the clinical report CNV summary table
 
 ### CNV Profile Logic
 
@@ -253,7 +253,7 @@ Rules:
 
 Biomarker data is loaded when `BIOMARKER` is in report sections.
 
-The master DNA template historically disabled biomarker rendering in the
+The clinical DNA report template historically disabled biomarker rendering in the
 visible report body. The backend context can carry biomarker data, but visible
 report rendering should be controlled deliberately by the report template and
 ASPC reporting requirements.
@@ -279,7 +279,7 @@ Rules:
 - attach fusion annotations
 - filter blacklisted, Tier IV, and `999` classifications from visible report
   sections
-- render master-style RNA fusion summary and detailed fusion tables
+- render clinical report RNA fusion summary and detailed fusion tables
 - build optional snapshot rows for report persistence
 
 RNA report sections use the RNA report context shape, not the DNA
@@ -566,7 +566,7 @@ This design gives Coyote3:
   report context when configured, but equivalent dedicated snapshot collections
   or snapshot row schemas should be designed before treating them as immutable
   cross-sample evidence in the same way as SNVs.
-- The renderer outputs master-style HTML with embedded CSS. The internal
+- The renderer outputs clinical report HTML with embedded CSS. The internal
   rendering mechanism is not part of the product contract; the artifact format
   is.
 - Preview PDF is for review. Saved PDF is created only during report save.

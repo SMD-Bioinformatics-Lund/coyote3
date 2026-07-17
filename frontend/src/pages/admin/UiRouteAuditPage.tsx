@@ -2,7 +2,13 @@ import { ShieldCheck } from "lucide-react"
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
 import { Badge } from "@/components/ui/badge"
-import { uiRouteRegistry, type UiRouteAudit } from "@/lib/routes/ui-route-registry"
+import {
+  routeEmptyState,
+  routeErrorState,
+  routeExpectedFields,
+  uiRouteRegistry,
+  type UiRouteAudit,
+} from "@/lib/routes/ui-route-registry"
 import type { ColumnDef } from "@tanstack/react-table"
 
 const areaTone: Record<UiRouteAudit["area"], string> = {
@@ -53,11 +59,22 @@ const columns: ColumnDef<UiRouteAudit, any>[] = [
   },
   {
     id: "dataUsed",
-    header: "UI Data Usage",
+    header: "Expected Fields",
     accessorFn: (row) => row.dataUsed.join(" "),
     cell: ({ row }) => (
       <div className="max-w-[520px] text-xs leading-5 text-muted-foreground">
-        {row.original.dataUsed.join(", ")}
+        {routeExpectedFields(row.original).join(", ")}
+      </div>
+    ),
+  },
+  {
+    id: "states",
+    header: "Empty / Error States",
+    accessorFn: (row) => `${routeEmptyState(row)} ${routeErrorState(row)}`,
+    cell: ({ row }) => (
+      <div className="max-w-[420px] space-y-1 text-xs leading-5 text-muted-foreground">
+        <p><span className="font-bold text-foreground">Empty:</span> {routeEmptyState(row.original)}</p>
+        <p><span className="font-bold text-foreground">Error:</span> {routeErrorState(row.original)}</p>
       </div>
     ),
   },
@@ -69,7 +86,7 @@ export function UiRouteAuditPage() {
     <PageShell
       eyebrow="Admin"
       title="UI Route & Data Audit"
-      description="Inventory of client routes, backing API calls, and the data each view consumes. Use this as the checklist for route-by-route live verification."
+      description="Inventory of client routes, backing API calls, expected response fields, and required empty/error states. Use this as the checklist for route-by-route contract verification."
       actions={
         <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-3 py-2 text-sm font-bold shadow-sm">
           <ShieldCheck className="h-4 w-4 text-primary" />

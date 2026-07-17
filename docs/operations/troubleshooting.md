@@ -80,3 +80,43 @@ db.dashboard_metrics.getIndexes().filter(i => i.name === "updated_at_ttl_1")
 
 - If the required TTL index is absent from the metrics query, forcibly restart the primary API container. The initial synchronization protocol will automatically provision missing indexes.
 - If storage policies require extended or limited retention periods, modify the `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS` deployment configuration value accordingly.
+
+## Mongo Index Conflicts
+
+**Signature:**
+
+- API startup continues, but logs include `Mongo index conflict for repository=<name> was tolerated at startup`.
+- MongoDB reports `IndexOptionsConflict` (`85`) or `IndexKeySpecsConflict` (`86`) during repository index creation.
+
+**Diagnostic Cause:**
+
+- The collection already contains an index with the same name and different options, or the same key pattern under a different name.
+- This usually happens after a schema/index contract change against an existing database volume.
+
+**Diagnostic Command:**
+
+Run the relevant collection index inventory from `mongosh`:
+
+```javascript
+use coyote3_dev
+db.<collection>.getIndexes()
+```
+
+Compare the output with the repository `ensure_indexes()` method for the named repository.
+
+**Remediation Protocol:**
+
+1. Confirm the conflicting index is not required by the currently deployed application version.
+2. Schedule a maintenance window when writes to the affected collection are paused.
+3. Drop only the stale conflicting index by exact name:
+
+   ```javascript
+   db.<collection>.dropIndex("<stale_index_name>")
+   ```
+
+4. Restart the API container or run the repository index setup through the normal application startup path.
+5. Confirm `db.<collection>.getIndexes()` now matches the repository contract.
+
+!!! warning "Index maintenance safety"
+
+    Do not drop all indexes from clinical collections. Remove only the stale conflicting index that was identified from the startup warning and repository contract comparison.

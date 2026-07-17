@@ -289,6 +289,25 @@ The React application is organized around:
 
 The frontend should consume backend contracts and metadata rather than duplicating clinical logic. Hardcoded colors and clinical vocabularies should be avoided when a backend/config constant or metadata file exists.
 
+API calls should go through `frontend/src/lib/api.ts`. That wrapper provides:
+
+- typed methods such as `api.get<T>()`, `api.post<T>()`, `api.put<T>()`, and `api.delete<T>()`
+- centralized success-envelope unwrapping through `responsePayload`, `responseItems`, `unwrapPayload`, and `unwrapItems`
+- consistent global notification behavior for failed requests
+
+Normal clinical pages should not display raw backend JSON. JSON inspectors are reserved for explicit debug, admin diagnostic, and route-audit workflows. Clinical views should render domain-specific cards, tables, and badges from the same payload.
+
+Route-level contract coverage should verify every page in `frontend/src/lib/routes/ui-route-registry.ts`:
+
+- expected endpoint shape and required backend fields
+- empty state rendering
+- permission/error state rendering
+- export/download behavior when the route offers it
+
+!!! info "Frontend contract tests"
+
+    The route registry is the source checklist for page-level API contract tests. When a frontend test runner is added, each route entry should have a matching test that mocks the listed API dependencies and verifies the fields listed in `dataUsed`.
+
 ## Developer Rules
 
 When adding or changing functionality:

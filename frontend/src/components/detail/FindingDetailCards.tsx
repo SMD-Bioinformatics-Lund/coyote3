@@ -1,7 +1,6 @@
 import { MessageSquare, ScrollText, Tags } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
-import { CollapsibleJson } from "@/components/detail/JsonInspector"
 import { TierBadge } from "@/lib/variant-ui"
 import { FindingResourceType, findingQueryKeys } from "@/lib/finding-actions"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
@@ -162,9 +161,15 @@ export function ClassificationsCard({
 }
 
 export function RawPayloadCard({ value }: { value: unknown }) {
+  if (!import.meta.env.DEV || localStorage.getItem("coyote3:showRawPayloads") !== "true") {
+    return null
+  }
+
   return (
     <DetailCard title="Raw Payload" icon={ScrollText} tone="border-t-mist-500">
-      <CollapsibleJson title="Inspect backend payload" value={value} />
+      <pre className="max-h-96 overflow-auto rounded-lg border border-border bg-muted/30 p-3 text-xs leading-relaxed text-foreground">
+        {JSON.stringify(value, null, 2)}
+      </pre>
     </DetailCard>
   )
 }
