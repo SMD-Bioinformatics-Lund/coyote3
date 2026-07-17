@@ -37,7 +37,7 @@ This documentation is grouped by role and task.
 
 ### For Software Engineers & Developers
 *   **Foundation**: [Local Development Setup](start_here/local_development.md) and [Configuration Model](start_here/configuration.md).
-*   **Architecture**: [System Relationships](architecture/system_relationships.md) and [Data Contracts](architecture/data_contracts.md).
+*   **Architecture**: [Current Application Context](architecture/current_application_context.md), [System Relationships](architecture/system_relationships.md), and [Data Contracts](architecture/data_contracts.md).
 *   **Ingestion Contracts**: [Sample YAML Guide](api/sample_yaml.md) and [Sample Input Files](api/sample_input_files.md).
 *   **Extending the Platform**: [Adding a Domain](developer/adding_a_domain.md) and [Schema Contracts](developer/schema_contracts_and_versioning.md).
 

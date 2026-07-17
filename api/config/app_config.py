@@ -5,6 +5,7 @@
 # -------------------------------------------------------------------------
 import os
 from os import path
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse, urlunparse
 
@@ -14,6 +15,7 @@ from dotenv import load_dotenv
 from api.version import __version__ as app_version
 
 CONTACT_HOURS = ["Mon–Fri: 08:00–16:30", "Closed on public holidays"]
+API_CONFIG_DIR = Path(__file__).resolve().parent
 
 # Load environment variables from the repo root .env file if present.
 REPO_ROOT = path.abspath(path.join(path.dirname(__file__), "..", ".."))
@@ -156,7 +158,7 @@ class DefaultConfig:
     _MONGO_URI_ENV: str = os.getenv("MONGO_URI", "").strip()
     COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3")
     BAM_DB = os.getenv("BAM_DB", "BAM_Service")
-    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
+    _PATH_DB_COLLECTIONS_CONFIG = API_CONFIG_DIR / "coyote3_collections.toml"
 
     # LDAP — all values must be set via environment variables per center.
     # No SMD-specific defaults are provided here.
@@ -236,7 +238,7 @@ class DefaultConfig:
         Raises:
             ValueError: If any required database is missing from the configuration file.
         """
-        db_config: dict[str, Any] = toml.load(self._PATH_DB_COLLECTIONS_CONFIG)
+        db_config: dict[str, Any] = toml.load(str(self._PATH_DB_COLLECTIONS_CONFIG))
 
         if not all(db in db_config for db in [self.COYOTE3_DB, self.BAM_DB]):
             missing_dbs = [db for db in [self.COYOTE3_DB, self.BAM_DB] if db not in db_config]
@@ -295,7 +297,6 @@ class DevelopmentConfig(DefaultConfig):
 
     COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3")
     BAM_DB = os.getenv("BAM_DB", "BAM_Service")
-    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
 
     CACHE_DEFAULT_TIMEOUT = 1  # 300 secs, 5 minutes
 
@@ -320,7 +321,6 @@ class TestConfig(DefaultConfig):
 
     COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3_test")
     BAM_DB = os.getenv("BAM_DB", "BAM_Service")
-    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
 
     LOGS = "logs/test"
     PRODUCTION = False
@@ -344,7 +344,6 @@ class StageConfig(DefaultConfig):
 
     COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3")
     BAM_DB = os.getenv("BAM_DB", "BAM_Service")
-    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
 
     LOGS = "logs/stage"
     PRODUCTION = True

@@ -80,6 +80,28 @@ COYOTE3_DATA_CONTAINER_ROOT='/data/coyote3'
 COYOTE3_INGEST_WATCH_DIR='/data/coyote3/ingest'
 ```
 
+## Repository Configuration Boundaries
+
+Coyote3 keeps API and UI configuration inside the component that owns it.
+
+API-owned configuration lives under `api/config/`:
+
+- `app_config.py` selects production, staging, development, and test runtime settings.
+- `constants.py` defines product vocabularies such as assay categories, analysis types, auth providers, file keys, list types, and permission categories.
+- `runtime.py` exposes stable helper functions for the rest of the backend.
+- `coyote3_collections.toml` maps logical repository collection attributes to MongoDB collection names.
+
+The root-level `config/` directory is not used for API runtime configuration. New API TOML files should be added under `api/config/` and loaded relative to that package.
+
+UI-owned configuration stays under `frontend/`:
+
+- `frontend/vite.config.ts` owns Vite development and build behavior.
+- `frontend/tailwind.config.*` or theme files own UI theme tokens when present.
+- `frontend/src/lib/` owns frontend-only formatting and presentation helpers.
+- `frontend/public/` owns static UI assets.
+
+The UI should consume backend contracts and metadata for clinical rules. It should not duplicate API constants unless the value is strictly presentational.
+
 ## Critical Configuration Parameters
 
 ### Cryptographic And Identity Secrets

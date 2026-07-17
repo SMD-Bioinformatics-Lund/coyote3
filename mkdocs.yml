@@ -38,6 +38,7 @@ nav:
       - Local Development: start_here/local_development.md
       - Configuration Architecture: start_here/configuration.md
   - Software Engineering:
+      - Current Application Context: architecture/current_application_context.md
       - System Relationships: architecture/system_relationships.md
       - Schema & Versioning: developer/schema_contracts_and_versioning.md
       - Permission Naming: developer/permissions_naming.md
