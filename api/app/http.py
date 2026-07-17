@@ -9,6 +9,7 @@ from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.domain.common.assay_filters import format_assay_config
 from api.domain.common.errors import (
+    api_error,
     setup_error,
     validation_error,
 )
@@ -64,3 +65,6 @@ def get_formatted_assay_config(sample: dict):
         omics = "RNA" if sample.get("fusion_files") else "DNA"
     assay_config_schema = build_form_spec(aspc_spec_for_category(omics))
     return format_assay_config(deepcopy(assay_config), assay_config_schema)
+
+
+__all__ = ["api_error", "get_formatted_assay_config"]
