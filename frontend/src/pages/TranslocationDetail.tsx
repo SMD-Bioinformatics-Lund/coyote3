@@ -4,7 +4,8 @@ import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { ClassificationsCard } from "@/components/detail/FindingDetailCards"
 import { CommentsPanel } from "@/components/comments/CommentsPanel"
-import { CallerBadges, selectedTranslocationAnnotation, translocationGenes, translocationPositionLabel } from "@/lib/variant-ui"
+import { CallerBadges } from "@/lib/variant-ui"
+import { selectedTranslocationAnnotation, translocationGenes, translocationPositionLabel } from "@/lib/variant-helpers"
 import {
   DetailDataTable,
   DetailMetricTable,

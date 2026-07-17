@@ -8,15 +8,17 @@ import { BulkActionDropdown, BulkActionOption } from "@/components/data-table/Bu
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
 import { ColumnDef } from "@tanstack/react-table"
 import {
+  StatusBadges,
+  TierBadge,
+} from "@/lib/variant-ui"
+import {
   findingRowClass,
   fusionCallers,
   fusionGenes,
   selectedFusionCall,
-  StatusBadges,
   statusLabels,
-  TierBadge,
   tierValue,
-} from "@/lib/variant-ui"
+} from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 

@@ -9,18 +9,20 @@ import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
 import { ColumnDef } from "@tanstack/react-table"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import {
+  StatusBadges,
+  TierBadge,
+} from "@/lib/variant-ui"
+import {
   findingRowClass,
   selectedTranslocationAnnotation,
-  StatusBadges,
   statusLabels,
-  TierBadge,
   tierValue,
   translocationGenes,
   translocationHgvs,
   translocationPanelStatus,
   translocationPositionLabel,
   translocationType,
-} from "@/lib/variant-ui"
+} from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 

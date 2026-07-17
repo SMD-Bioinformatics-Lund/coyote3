@@ -8,7 +8,8 @@ import { BulkActionDropdown, BulkActionOption } from "@/components/data-table/Bu
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
 import { ColumnDef } from "@tanstack/react-table"
 import { AlertTriangle, ExternalLink } from "lucide-react"
-import { ConsequenceBadges, FilterFlagBadges, filterFlags, findingRowClass, StatusBadges, statusLabels, TierBadge, tierValue } from "@/lib/variant-ui"
+import { ConsequenceBadges, FilterFlagBadges, StatusBadges, TierBadge } from "@/lib/variant-ui"
+import { filterFlags, findingRowClass, statusLabels, tierValue } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 
 const variantBulkActions: BulkActionOption[] = [

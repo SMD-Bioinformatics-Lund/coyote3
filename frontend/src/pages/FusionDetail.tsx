@@ -5,7 +5,8 @@ import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { ClassificationsCard } from "@/components/detail/FindingDetailCards"
 import { CommentsPanel } from "@/components/comments/CommentsPanel"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
-import { CallerBadges, fusionCallers, fusionGenes, selectedFusionCall } from "@/lib/variant-ui"
+import { CallerBadges } from "@/lib/variant-ui"
+import { fusionCallers, fusionGenes, selectedFusionCall } from "@/lib/variant-helpers"
 import {
   DetailDataTable,
   DetailMetricTable,
