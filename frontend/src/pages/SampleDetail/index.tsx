@@ -74,7 +74,7 @@ export function SampleDetail() {
 
   return (
     <div className="flex h-full flex-col bg-muted/20">
-      <div className="mx-auto w-full max-w-[2600px] flex-1 space-y-3 pt-1">
+      <div className="w-full max-w-[2600px] flex-1 space-y-3 pt-1">
         <div className="detail-hero">
           <div className="relative z-10 flex items-center gap-4">
           <Link to="/samples" className="soft-icon-button p-2">

@@ -17,7 +17,7 @@ export function PageShell({
   children: ReactNode
 }) {
   return (
-    <div className={cn("mx-auto w-full max-w-[2600px] space-y-3", className)}>
+    <div className={cn("w-full max-w-[2600px] space-y-3", className)}>
       <div className="surface-panel p-3 text-left">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0 text-left">

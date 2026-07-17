@@ -79,7 +79,7 @@ export function Dashboard() {
   const capacityEntries = Object.entries(capacity)
 
   return (
-    <div className="mx-auto max-w-[2600px] space-y-3">
+    <div className="max-w-[2600px] space-y-3">
       <div className="surface-panel flex flex-col gap-3 p-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-primary">Operations</p>

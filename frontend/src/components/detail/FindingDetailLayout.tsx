@@ -34,7 +34,7 @@ export function FindingError({
 export function FindingDetailShell({ children }: { children: ReactNode }) {
   return (
     <div className="detail-page">
-      <div className="mx-auto w-full max-w-[2600px] flex-1 space-y-3 p-2 lg:p-3">{children}</div>
+      <div className="w-full max-w-[2600px] flex-1 space-y-3 p-2 lg:p-3">{children}</div>
     </div>
   )
 }
