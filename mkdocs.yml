@@ -13,6 +13,8 @@ markdown_extensions:
   - fenced_code
   - tables
   - sane_lists
+  - admonition
+  - attr_list
 
 nav:
   - Welcome: index.md
@@ -25,6 +27,7 @@ nav:
       - Coverage Analytics: user_guide/coverage_analytics.md
       - Management (Admins): user_guide/management_guide.md
   - Product & Concepts:
+      - Complete Application Manual: product/complete_application_manual.md
       - Core Concepts: product/core_concepts.md
       - Clinical Workflow Chain: product/workflow_dna_rna.md
       - UI Map And Navigation: product/ui_map_and_user_flows.md

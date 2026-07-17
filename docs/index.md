@@ -4,6 +4,10 @@ This documentation covers how Coyote3 is built, configured, deployed, and used.
 
 Coyote3 supports clinical genomics workflows from data ingestion through review and reporting. The docs are organized by task so teams can find deployment, product, and implementation details quickly.
 
+!!! info "Start here"
+
+    For a complete system explanation, read the [Complete Application Manual](product/complete_application_manual.md). It connects user workflows, clinical configuration, API behavior, background workers, audit logging, and operations in one place.
+
 ---
 
 ## Platform Principles
@@ -32,11 +36,13 @@ This documentation is grouped by role and task.
 
 ### For Clinical & Laboratory Users
 *   **Getting Started**: [Quickstart Guide](start_here/quickstart.md) for a local first run.
+*   **Complete Manual**: [Complete Application Manual](product/complete_application_manual.md) for the full workflow from ingest to reporting.
 *   **Understanding Workflows**: [DNA and RNA Workflow Chain](product/workflow_dna_rna.md) and [UI User Flows](product/ui_map_and_user_flows.md).
 *   **Terminology**: [Core Concepts](product/core_concepts.md) for tiers and flags.
 
 ### For Software Engineers & Developers
 *   **Foundation**: [Local Development Setup](start_here/local_development.md) and [Configuration Model](start_here/configuration.md).
+*   **System Context**: [Complete Application Manual](product/complete_application_manual.md) and [Current Application Context](architecture/current_application_context.md).
 *   **Architecture**: [Current Application Context](architecture/current_application_context.md), [System Relationships](architecture/system_relationships.md), and [Data Contracts](architecture/data_contracts.md).
 *   **Ingestion Contracts**: [Sample YAML Guide](api/sample_yaml.md) and [Sample Input Files](api/sample_input_files.md).
 *   **Extending the Platform**: [Adding a Domain](developer/adding_a_domain.md) and [Schema Contracts](developer/schema_contracts_and_versioning.md).

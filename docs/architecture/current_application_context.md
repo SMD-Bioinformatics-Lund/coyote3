@@ -6,6 +6,10 @@ This document explains how the current Coyote3 application works as one connecte
 
 Coyote3 is a clinical genomics review and reporting platform. It receives validated sample manifests and analysis files, persists normalized MongoDB documents, applies assay-specific configuration, exposes sample review workflows in React, and stores report and audit snapshots so clinical decisions can be reconstructed later.
 
+!!! info "Current architecture source"
+
+    This document describes the current application architecture. For a workflow-first explanation across clinical, operational, and engineering concerns, use the [Complete Application Manual](../product/complete_application_manual.md).
+
 The application is organized around a few stable principles:
 
 - the React UI never owns clinical rules
@@ -49,6 +53,10 @@ Environment variables remain the right place for deployment-specific or sensitiv
 
 Admin-controlled runtime settings are stored in MongoDB `app_controls`. Those controls are for behavior switches and retention policies, not infrastructure secrets.
 
+!!! warning "Configuration boundary"
+
+    Keep secrets, infrastructure endpoints, and mount paths in environment configuration. Use Admin application controls only for runtime behavior switches and retention policy.
+
 ## Collection Mapping
 
 The Mongo adapter reads `DB_COLLECTIONS_CONFIG` from the active config object. Each configured collection key becomes an adapter attribute, and repositories bind to those attributes.
@@ -66,6 +74,10 @@ api/config/coyote3_collections.toml
 ```
 
 The application should not hardcode clinical collection names in services or routes. Exceptions are operational singleton collections such as `app_controls`, API sessions, and audit events where the name is explicitly configured or intentionally fixed.
+
+!!! tip "Adding collections"
+
+    Add collection names through `api/config/coyote3_collections.toml`, then bind them through repositories and typed contracts. Avoid hardcoded collection names in routes or domain services.
 
 ## Document Contracts
 
@@ -128,6 +140,10 @@ coyote3.yaml
 ```
 
 The Celery worker can ingest explicitly queued bundles or scan the configured watch directory. The watch task should rename successfully processed manifests with the configured `.done` suffix and failed manifests with the configured failure suffix.
+
+!!! caution "Ingest safety"
+
+    Ingest changes can affect sample availability, reportability, and downstream search. Validate required files, ASPC resolution, and dependent collection counts before treating a migration or parser change as complete.
 
 ## Sample Review Flow
 
@@ -196,6 +212,10 @@ Saving a report persists:
 
 This means later searches can answer which samples reported a gene/variant/tier and which filters/configuration were in force at report time. Report snapshots are not just display data; they are part of the clinical reconstruction model.
 
+!!! warning "Report reconstruction"
+
+    Saved reports must carry the reportable finding snapshot, filter snapshot, and ASPC context. Do not rely on current mutable sample filters to explain an old report.
+
 ## Comments And Annotations
 
 Sample-level comments belong in the `sample_comments` collection. Finding-level comments and annotations are shown on detail pages and may be local to a sample finding or global to the variant/finding identity, depending on the selected option.
@@ -239,6 +259,10 @@ Controls include:
 - disk log gzip threshold
 
 Disabling a Celery task family prevents new executions from doing work. It does not resize the worker pool or terminate tasks already running. Capacity is effectively returned as tasks stop being queued or return early.
+
+!!! info "Task controls"
+
+    Application controls gate behavior. Worker process count and CPU capacity are controlled by deployment settings, not by toggling a task family off.
 
 ## Audit, Logs, And Retention
 
