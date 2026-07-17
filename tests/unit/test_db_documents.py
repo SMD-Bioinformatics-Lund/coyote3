@@ -11,6 +11,7 @@ import pytest
 
 from api.contracts.managed_resources import managed_resource_spec
 from api.contracts.managed_ui_schemas import build_form_spec
+from api.contracts.schemas.app_controls import AppControlsDoc
 from api.contracts.schemas.dna import CnvsDoc, VariantsDoc
 from api.contracts.schemas.governance import UsersDoc
 from api.contracts.schemas.registry import (
@@ -248,6 +249,23 @@ def test_users_doc_rejects_non_canonical_username_characters():
                 "job_title": "Scientist",
             }
         )
+
+
+def test_app_controls_doc_accepts_persisted_created_timestamp():
+    """Persisted app controls should validate after Mongo adds created_on."""
+    doc = AppControlsDoc.model_validate(
+        {
+            "control_id": "default",
+            "celery": {"enabled": True},
+            "retention": {"audit_events_days": 730, "notification_days": 180},
+            "modules": {"dna_enabled": True},
+            "created_on": "2026-07-17T16:02:06.074000Z",
+            "updated_on": "2026-07-17T16:02:06.074000Z",
+            "updated_by": "coyote3.admin",
+        }
+    )
+    assert doc.created_on is not None
+    assert doc.control_id == "default"
 
 
 def test_managed_user_form_exposes_environment_options_and_username_readonly_on_edit():

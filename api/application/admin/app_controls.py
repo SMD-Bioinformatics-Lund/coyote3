@@ -57,7 +57,7 @@ def merge_controls(defaults: AppControlsDoc, stored: dict[str, Any] | None) -> A
         for section in ("celery", "retention", "modules"):
             if isinstance(stored.get(section), dict):
                 payload[section].update(stored[section])
-        for key in ("updated_by", "updated_on"):
+        for key in ("created_on", "updated_by", "updated_on"):
             if stored.get(key) is not None:
                 payload[key] = stored[key]
     return AppControlsDoc.model_validate(payload)

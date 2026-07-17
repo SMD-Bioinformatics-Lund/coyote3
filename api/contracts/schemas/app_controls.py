@@ -56,5 +56,6 @@ class AppControlsDoc(_StrictDocBase):
     celery: CeleryControlDoc = Field(default_factory=CeleryControlDoc)
     retention: RetentionControlDoc = Field(default_factory=RetentionControlDoc)
     modules: ModuleControlDoc = Field(default_factory=ModuleControlDoc)
+    created_on: datetime | None = None
     updated_by: str | None = None
     updated_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
