@@ -18,6 +18,7 @@ def ensure_security_indexes(*, db: Any, config: dict[str, Any], logger: logging.
     """Create session and audit indexes without rewriting existing data."""
     sessions = db[get_api_sessions_collection_name(config)]
     audit = db[get_audit_events_collection_name(config)]
+    controls = db["app_controls"]
     _create_index(
         sessions,
         [("expires_at", ASCENDING)],
@@ -47,6 +48,19 @@ def ensure_security_indexes(*, db: Any, config: dict[str, Any], logger: logging.
         ([("tags", ASCENDING), ("occurred_at", DESCENDING)], "idx_audit_tags_time"),
     ):
         _create_index(audit, fields, name=name, logger=logger)
+    _create_index(
+        controls,
+        [("control_id", ASCENDING)],
+        name="uniq_app_controls_control_id",
+        unique=True,
+        logger=logger,
+    )
+    _create_index(
+        controls,
+        [("updated_on", DESCENDING)],
+        name="idx_app_controls_updated_on",
+        logger=logger,
+    )
 
 
 def _create_index(

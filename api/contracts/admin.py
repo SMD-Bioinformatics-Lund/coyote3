@@ -223,3 +223,23 @@ class AdminAuditPayload(BaseModel):
     events: list[dict[str, Any]]
     total: int
     log_dir: str | None = None
+
+
+class AdminAppControlsPayload(BaseModel):
+    """Represent current application controls and their defaults."""
+
+    controls: dict[str, Any]
+    defaults: dict[str, Any]
+
+
+class AdminAppControlsUpdatePayload(BaseModel):
+    """Represent an application-controls update request."""
+
+    controls: dict[str, Any]
+
+
+class AdminMaintenanceRunPayload(BaseModel):
+    """Represent a manually queued maintenance task."""
+
+    status: str
+    task_id: str | None = None

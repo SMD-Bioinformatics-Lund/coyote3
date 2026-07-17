@@ -11,12 +11,18 @@ import {
   FileUp,
   Info,
   RefreshCw,
+  Save,
   Search,
+  Settings2,
   Siren,
+  SlidersHorizontal,
 } from "lucide-react"
 import { api } from "@/lib/api"
 import { PageShell } from "@/components/layout/PageShell"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 type Severity = "info" | "warning" | "error" | "critical"
 type TimeWindow = "24h" | "7d" | "30d" | "all"
@@ -65,6 +71,172 @@ function ModuleNotice({ children }: { children: ReactNode }) {
     <div className="rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">
       {children}
     </div>
+  )
+}
+
+type AppControls = {
+  celery: Record<string, boolean>
+  retention: Record<string, number>
+  modules: Record<string, boolean>
+  updated_by?: string | null
+  updated_on?: string | null
+}
+
+const controlLabels: Record<string, string> = {
+  enabled: "Enable Celery workers",
+  ingest_watch_enabled: "Watch-folder ingest",
+  ingest_bundle_enabled: "Sample bundle ingest",
+  ingest_dependents_enabled: "Dependent analysis writes",
+  collection_writes_enabled: "Validated collection writes",
+  maintenance_enabled: "Nightly maintenance",
+  dna_enabled: "DNA module",
+  rna_enabled: "RNA module",
+  reports_enabled: "Reports",
+  ingest_workspace_enabled: "Ingest workspace",
+  audit_ui_enabled: "Audit UI",
+  assay_catalog_enabled: "Assay catalog",
+  audit_events_days: "Audit event retention",
+  notification_days: "Notification retention",
+  disk_log_days: "Disk log retention",
+  gzip_disk_logs_after_days: "Gzip disk logs after",
+}
+
+export function AdminControlsPage() {
+  const [draft, setDraft] = useState<AppControls | null>(null)
+  const controlsQuery = useQuery({
+    queryKey: ["admin-controls"],
+    queryFn: () => api.get("/admin/controls").then((res) => res.data),
+    retry: false,
+  })
+  const controls = (draft || controlsQuery.data?.controls || null) as AppControls | null
+
+  const saveControls = useMutation({
+    mutationFn: (controlsPayload: AppControls) => api.put("/admin/controls", { controls: controlsPayload }).then((res) => res.data),
+    onSuccess: (data) => {
+      setDraft(data.controls)
+      controlsQuery.refetch()
+      notifySuccess("Application controls saved", "Runtime controls and retention settings were updated.", "Admin controls")
+    },
+    onError: (error) => notifyActionError("Unable to save application controls", error, "Admin controls"),
+  })
+
+  const runMaintenance = useMutation({
+    mutationFn: () => api.post("/admin/controls/maintenance").then((res) => res.data),
+    onSuccess: (data) => notifySuccess("Maintenance queued", `Task ${data.task_id || "queued"} will run cleanup policies.`, "Admin controls"),
+    onError: (error) => notifyActionError("Unable to queue maintenance", error, "Admin controls"),
+  })
+
+  const updateBool = (section: "celery" | "modules", key: string, value: boolean) => {
+    const base = controls || controlsQuery.data?.controls
+    if (!base) return
+    setDraft({
+      ...base,
+      [section]: { ...base[section], [key]: value },
+    })
+  }
+
+  const updateNumber = (key: string, value: string) => {
+    const base = controls || controlsQuery.data?.controls
+    if (!base) return
+    const parsed = Number.parseInt(value, 10)
+    setDraft({
+      ...base,
+      retention: { ...base.retention, [key]: Number.isFinite(parsed) ? parsed : 0 },
+    })
+  }
+
+  return (
+    <PageShell
+      eyebrow="Admin"
+      title="Application Controls"
+      description="Runtime switches for background workers, application modules, and operational retention policies."
+      actions={
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => runMaintenance.mutate()} disabled={runMaintenance.isPending || !controls?.celery?.maintenance_enabled}>
+            <RefreshCw className={`h-4 w-4 ${runMaintenance.isPending ? "animate-spin" : ""}`} />
+            Run maintenance
+          </Button>
+          <Button type="button" onClick={() => controls && saveControls.mutate(controls)} disabled={!controls || saveControls.isPending}>
+            {saveControls.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save controls
+          </Button>
+        </div>
+      }
+    >
+      {controlsQuery.error ? (
+        <ModuleNotice>{controlsQuery.error instanceof Error ? controlsQuery.error.message : "Unable to load application controls."}</ModuleNotice>
+      ) : controlsQuery.isLoading || !controls ? (
+        <section className="surface-panel p-8 text-center text-muted-foreground">
+          <Activity className="mx-auto mb-2 h-6 w-6 animate-spin" />
+          Loading controls...
+        </section>
+      ) : (
+        <div className="grid gap-3 xl:grid-cols-[1fr_1fr]">
+          <ControlSection
+            title="Celery Task Families"
+            description="Disabling a family prevents new executions. Already running tasks are not killed."
+            icon={<SlidersHorizontal className="h-4 w-4" />}
+          >
+            {Object.entries(controls.celery).map(([key, value]) => (
+              <ControlToggle key={key} label={controlLabels[key] || key} checked={Boolean(value)} onChange={(checked) => updateBool("celery", key, checked)} />
+            ))}
+          </ControlSection>
+
+          <ControlSection
+            title="Application Modules"
+            description="Feature switches for operational UI and major analysis areas."
+            icon={<Settings2 className="h-4 w-4" />}
+          >
+            {Object.entries(controls.modules).map(([key, value]) => (
+              <ControlToggle key={key} label={controlLabels[key] || key} checked={Boolean(value)} onChange={(checked) => updateBool("modules", key, checked)} />
+            ))}
+          </ControlSection>
+
+          <section className="surface-panel p-3 xl:col-span-2">
+            <div className="mb-3">
+              <h2 className="text-base font-bold">Retention Policies</h2>
+              <p className="text-sm text-muted-foreground">All values are days. Audit retention also updates the expiry horizon used when new audit events are written.</p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {Object.entries(controls.retention).map(([key, value]) => (
+                <div key={key} className="rounded-xl border border-border bg-background/70 p-3">
+                  <Label htmlFor={key} className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">{controlLabels[key] || key}</Label>
+                  <Input id={key} type="number" min={key === "audit_events_days" ? 30 : 1} value={String(value)} onChange={(event) => updateNumber(key, event.target.value)} />
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+              Last updated by <span className="font-semibold text-foreground">{controls.updated_by || "system defaults"}</span>
+              {controls.updated_on ? ` on ${new Date(controls.updated_on).toLocaleString()}` : ""}.
+            </div>
+          </section>
+        </div>
+      )}
+    </PageShell>
+  )
+}
+
+function ControlSection({ title, description, icon, children }: { title: string; description: string; icon: ReactNode; children: ReactNode }) {
+  return (
+    <section className="surface-panel p-3">
+      <div className="mb-3 flex items-start gap-2">
+        <div className="rounded-lg bg-primary/10 p-2 text-primary">{icon}</div>
+        <div>
+          <h2 className="text-base font-bold">{title}</h2>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      <div className="grid gap-2">{children}</div>
+    </section>
+  )
+}
+
+function ControlToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold">
+      <span>{label}</span>
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-primary" />
+    </label>
   )
 }
 

@@ -6,6 +6,7 @@ from typing import Any
 
 from pydantic import TypeAdapter
 
+from api.contracts.schemas.app_controls import AppControlsDoc
 from api.contracts.schemas.assay import (
     AspConfigDoc,
     AssayPanelToAssayGroupMappingDoc,
@@ -79,6 +80,7 @@ COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "refseq_canonical": TypeAdapter(RefSeqCanonicalDoc),
     "vep_metadata": TypeAdapter(VepMetadataDoc),
     "asp_to_groups": TypeAdapter(AssayPanelToAssayGroupMappingDoc),
+    "app_controls": TypeAdapter(AppControlsDoc),
 }
 
 INGEST_DEPENDENT_COLLECTIONS: dict[str, str] = {

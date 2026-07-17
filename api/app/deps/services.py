@@ -9,6 +9,7 @@ from api.application.accounts.permissions import PermissionManagementService
 from api.application.accounts.roles import RoleManagementService
 from api.application.accounts.user_profile import UserService
 from api.application.accounts.users import UserManagementService
+from api.application.admin.app_controls import AppControlsService, effective_audit_retention_days
 from api.application.audit.service import AuditService
 from api.application.biomarker.biomarker_lookup import BiomarkerService
 from api.application.classification.tiering import ResourceClassificationService
@@ -36,7 +37,6 @@ from api.settings import (
     get_api_session_ttl_seconds,
     get_api_sessions_collection_name,
     get_audit_events_collection_name,
-    get_audit_retention_days,
     get_runtime_environment,
 )
 
@@ -214,6 +214,15 @@ def get_audit_service() -> AuditService | None:
         return None
     return AuditService(
         store.coyote_db[get_audit_events_collection_name(runtime_app.config)],
-        retention_days=get_audit_retention_days(runtime_app.config),
+        retention_days=effective_audit_retention_days(store.coyote_db, runtime_app.config),
         environment=get_runtime_environment(runtime_app.config),
+    )
+
+
+def get_app_controls_service() -> AppControlsService:
+    """Return the DB-backed application controls service."""
+    return AppControlsService(
+        get_store().coyote_db,
+        config=runtime_app.config,
+        audit_service=get_audit_service(),
     )

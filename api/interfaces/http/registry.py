@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from api.interfaces.http.admin import router as admin_router
+from api.interfaces.http.app_controls import router as app_controls_router
 from api.interfaces.http.auth import http_exception_handler as auth_http_exception_handler
 from api.interfaces.http.auth import router as auth_router
 from api.interfaces.http.biomarkers import router as biomarkers_router
@@ -31,6 +32,7 @@ ROUTERS = (
     health_router,
     auth_router,
     admin_router,
+    app_controls_router,
     resource_asp_router,
     resource_aspc_router,
     resource_genelists_router,

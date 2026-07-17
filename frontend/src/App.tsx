@@ -18,6 +18,7 @@ const AdminHub = lazy(() => import("./pages/AdminResourcePage").then((module) =>
 const AdminResourceEditorPage = lazy(() => import("./pages/AdminResourcePage").then((module) => ({ default: module.AdminResourceEditorPage })))
 const AdminResourcePage = lazy(() => import("./pages/AdminResourcePage").then((module) => ({ default: module.AdminResourcePage })))
 const AdminAuditPage = lazy(() => import("./pages/AdminUtilityPages").then((module) => ({ default: module.AdminAuditPage })))
+const AdminControlsPage = lazy(() => import("./pages/AdminUtilityPages").then((module) => ({ default: module.AdminControlsPage })))
 const AdminIngestPage = lazy(() => import("./pages/AdminUtilityPages").then((module) => ({ default: module.AdminIngestPage })))
 const AdminSchemasPage = lazy(() => import("./pages/AdminUtilityPages").then((module) => ({ default: module.AdminSchemasPage })))
 const PublicCatalog = lazy(() => import("./pages/PublicCatalog").then((module) => ({ default: module.PublicCatalog })))
@@ -105,6 +106,7 @@ export default function App() {
               <Route path="/coverage/blacklisted/:group" element={<CoverageBlacklistPage />} />
               <Route path="/admin" element={<AdminHub />} />
               <Route path="/admin/audit" element={<AdminAuditPage />} />
+              <Route path="/admin/controls" element={<AdminControlsPage />} />
               <Route path="/admin/ingest" element={<AdminIngestPage />} />
               <Route path="/admin/schemas" element={<AdminSchemasPage />} />
               <Route path="/admin/ui-routes" element={<UiRouteAuditPage />} />

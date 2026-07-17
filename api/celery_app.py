@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 from celery import Celery
+from celery.schedules import crontab
 
 from api.config import configure_process_env
 
@@ -29,7 +30,7 @@ celery_app = Celery(
     "coyote3",
     broker=_redis_url(),
     backend=os.getenv("CELERY_RESULT_BACKEND") or _redis_url(),
-    include=("api.tasks.ingest",),
+    include=("api.tasks.ingest", "api.tasks.maintenance"),
 )
 
 celery_app.conf.update(
@@ -44,10 +45,19 @@ celery_app.conf.update(
     },
 )
 
+celery_app.conf.beat_schedule = {
+    "coyote3-retention-maintenance": {
+        "task": "api.tasks.maintenance.run_retention_maintenance",
+        "schedule": crontab(hour=int(os.getenv("COYOTE3_MAINTENANCE_HOUR", "2")), minute=0),
+    },
+}
+
 if _truthy(os.getenv("COYOTE3_INGEST_WATCH_ENABLED")):
-    celery_app.conf.beat_schedule = {
+    celery_app.conf.beat_schedule.update(
+        {
         "coyote3-ingest-watch-directory": {
             "task": "api.tasks.ingest.ingest_watch_directory_once",
             "schedule": int(os.getenv("COYOTE3_INGEST_WATCH_INTERVAL_SECONDS", "30")),
         },
-    }
+        }
+    )

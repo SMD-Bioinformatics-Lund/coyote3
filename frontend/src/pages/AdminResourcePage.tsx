@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Activity, AlertTriangle, Edit, Eye, FileUp, MailPlus, Plus, Power, Save, Search, ShieldCheck, Trash2, X } from "lucide-react"
+import { Activity, AlertTriangle, Edit, Eye, FileUp, MailPlus, Plus, Power, Save, Search, Settings2, ShieldCheck, Trash2, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
@@ -977,6 +977,12 @@ function PermissionCategoryOverview({ rows }: { rows: any[] }) {
 
 export function AdminHub() {
   const utilityModules = [
+    {
+      title: "Application Controls",
+      description: "Manage runtime module switches, Celery task gates, and retention settings.",
+      href: "/admin/controls",
+      icon: Settings2,
+    },
     {
       title: "Audit",
       description: "Review administrative and workflow audit events.",

@@ -15,6 +15,7 @@ from api.app.lifecycle import ensure_runtime_initialized
 from api.celery_app import celery_app
 from api.config import get_runtime_mode_flags
 from api.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
+from api.tasks.controls import disabled_result, task_family_enabled
 
 logger = get_task_logger(__name__)
 
@@ -75,6 +76,8 @@ def _resolve_relative_sample_paths(payload: dict[str, Any], manifest_path: Path)
 def ingest_watch_directory_once(self) -> dict[str, Any]:
     """Scan the configured ingest folder for coyote3.yaml and ingest each bundle once."""
     _ensure_worker_runtime()
+    if not task_family_enabled("ingest_watch"):
+        return disabled_result("ingest_watch")
     raw_watch_dir = str(os.getenv("COYOTE3_INGEST_WATCH_DIR", "")).strip()
     if not raw_watch_dir:
         return {"status": "disabled", "reason": "COYOTE3_INGEST_WATCH_DIR is not configured"}
@@ -181,6 +184,8 @@ def ingest_sample_bundle_task(
 ) -> dict[str, Any]:
     """Create or update a sample bundle through the internal ingest service."""
     _ensure_worker_runtime()
+    if not task_family_enabled("ingest_bundle"):
+        return disabled_result("ingest_bundle")
     logger.info("celery_ingest_sample_bundle_started task_id=%s", self.request.id)
     try:
         result = get_internal_ingest_service().ingest_sample_bundle(
@@ -223,6 +228,8 @@ def ingest_dependents_task(
 ) -> dict[str, Any]:
     """Write dependent analysis documents for an existing sample."""
     _ensure_worker_runtime()
+    if not task_family_enabled("ingest_dependents"):
+        return disabled_result("ingest_dependents")
     logger.info(
         "celery_ingest_dependents_started task_id=%s sample_id=%s", self.request.id, sample_id
     )
@@ -245,6 +252,8 @@ def insert_collection_document_task(
 ) -> dict[str, Any]:
     """Insert one validated document into a supported collection."""
     _ensure_worker_runtime()
+    if not task_family_enabled("collection_writes"):
+        return disabled_result("collection_writes")
     logger.info(
         "celery_insert_collection_document_started task_id=%s collection=%s",
         self.request.id,
@@ -268,6 +277,8 @@ def insert_collection_documents_task(
 ) -> dict[str, Any]:
     """Insert many validated documents into a supported collection."""
     _ensure_worker_runtime()
+    if not task_family_enabled("collection_writes"):
+        return disabled_result("collection_writes")
     logger.info(
         "celery_insert_collection_documents_started task_id=%s collection=%s count=%s",
         self.request.id,
@@ -293,6 +304,8 @@ def upsert_collection_document_task(
 ) -> dict[str, Any]:
     """Replace/update one validated document in a supported collection."""
     _ensure_worker_runtime()
+    if not task_family_enabled("collection_writes"):
+        return disabled_result("collection_writes")
     logger.info(
         "celery_upsert_collection_document_started task_id=%s collection=%s",
         self.request.id,
