@@ -560,9 +560,9 @@ export function AdminSchemasPage() {
 
   return (
     <PageShell
-      eyebrow="Admin"
-      title="Contract Catalog"
-      description="Backend-owned Pydantic contracts and admin form sources used by the API, ingest, and managed-resource editors."
+      eyebrow="Diagnostics"
+      title="Contract Diagnostics"
+      description="Read-only backend Pydantic contracts and managed form sources used by the API, ingest, and resource editors."
     >
       <section className="surface-panel p-3">
         <div className="mb-3 flex flex-wrap items-start justify-between gap-3 px-1">
@@ -571,7 +571,7 @@ export function AdminSchemasPage() {
             <div>
               <h2 className="text-lg font-bold">Managed Collection Contracts</h2>
               <p className="text-sm text-muted-foreground">
-                These contracts are inspectable for support and QA. They are not edited here; managed resources are edited through their dedicated admin forms.
+                These contracts are inspectable for support, QA, and developer diagnostics. They are not edited here; managed resources are edited through their dedicated admin forms.
               </p>
             </div>
           </div>

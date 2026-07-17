@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Activity, AlertTriangle, Database, Edit, Eye, FileUp, MailPlus, Plus, Power, Save, Search, ShieldCheck, Trash2, X } from "lucide-react"
+import { Activity, AlertTriangle, Edit, Eye, FileUp, MailPlus, Plus, Power, Save, Search, ShieldCheck, Trash2, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
@@ -987,12 +987,6 @@ export function AdminHub() {
       description: "Queue validated sample-bundle ingestion and inspect worker task state.",
       href: "/admin/ingest",
       icon: FileUp,
-    },
-    {
-      title: "Contract Catalog",
-      description: "Inspect backend-owned Pydantic collection contracts and managed form fields.",
-      href: "/admin/schemas",
-      icon: Database,
     },
     {
       title: "UI Route Audit",
