@@ -52,7 +52,7 @@ class RolesRepository(BaseRepository):
             background=True,
             partialFilterExpression={"role_id": {"$exists": True, "$type": "string"}},
         )
-        col.create_index([("level", -1)], name="level_-1", background=True)
+        col.create_index([("level", -1)], name="roles_level_desc_1", background=True)
         col.create_index([("is_active", 1)], name="is_active_1", background=True)
 
     @staticmethod
