@@ -33,10 +33,10 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Ruff check
-        run: PYTHONPATH=. ruff check api coyote tests scripts
+        run: PYTHONPATH=. ruff check api tests scripts
 
       - name: Ruff format check
-        run: PYTHONPATH=. ruff format --check api coyote tests scripts
+        run: PYTHONPATH=. ruff format --check api tests scripts
 
       - name: Full test suite
         run: PYTHONPATH=. pytest -q

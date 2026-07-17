@@ -111,7 +111,7 @@ class CommonUtility:
     Collection of utility functions and helper methods for common operations
     used throughout the Coyote3 project. These utilities include configuration
     handling, data formatting, serialization, reporting, and common logic
-    across Coyote main, RNA, and other blueprints.
+    across Coyote3 API domains, React-facing payloads, and reporting workflows.
     """
 
     @staticmethod

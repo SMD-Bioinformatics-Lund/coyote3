@@ -34,15 +34,15 @@ Provide additional details or clarify missing information in the **Summary** sec
 
 ---
 
-### Schemas & Backward Compatibility
+### Schemas & Migration Safety
 - [ ] No schema changes
 - [ ] User schema updated and migration path documented
-- [ ] Role/permission schema updated (permission policies, roles, deny_permissions)
+- [ ] Role/permission schema updated through roles, permissions, and PyCasbin policy checks
 - [ ] Assay config (ASP, ASPC) schema updated with defaults validated
 - [ ] ISGL (In Silico Genelist) schema updated and validated
-- [ ] Schema backward compatibility tested (old documents still valid)
+- [ ] Migration path tested with representative current documents
 - [ ] Changelog/history for versioned documents preserved and restorable
-- [ ] Validation enforced via `store.schema_handler`
+- [ ] Validation enforced via Pydantic contracts in `api/contracts/schemas`
 
 Provide additional details or clarify missing information in the **Summary** section.
 
@@ -50,7 +50,7 @@ Provide additional details or clarify missing information in the **Summary** sec
 
 ### Routes & Functionality
 - [ ] New route introduced documented (path, params, permissions)
-- [ ] Route-level permission declared (`@require("permission")` or `min_role`)
+- [ ] Route-level permission declared with `require_access(permission="resource:action")`
 - [ ] Input validated (forms, JSON, query params)
 - [ ] Proper error handling and user feedback added
 - [ ] Access control verified (admin, developer, tester, manager, user, viewer, external)
@@ -63,9 +63,9 @@ Provide additional details or clarify missing information in the **Summary** sec
 
 ### Security & Permissions
 - [ ] No new permissions
-- [ ] New permission policy added in `permission_policies` collection
-- [ ] Role documents updated with new permissions/denies (priority preserved)
-- [ ] RBAC hierarchy verified (admin > developer > manager > user > viewer > external)
+- [ ] New permission added to the permissions collection and seeded/tested if required
+- [ ] Role documents updated with effective permissions
+- [ ] RBAC/ABAC scope behavior verified with PyCasbin policy checks
 - [ ] Route metadata checked against permission model
 - [ ] Personal Identifiable Information minimized/redacted in logs and UI
 
@@ -131,7 +131,7 @@ Examples:
 - New schema migration (users, assay configs, ISGLs)
 - Route-level permission correctness
 - Cache invalidation (done samples, dashboard stats)
-- Assay config backward compatibility
+- Assay config migration and report reconstruction behavior
 - Atomic sample ingestion (sample + variants + CNVs + coverage)
 
 ---

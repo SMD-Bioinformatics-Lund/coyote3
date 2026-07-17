@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="980" height="320" viewBox="0 0 980 320" role="img" aria-labelledby="title desc">
   <title id="title">Coyote3 Runtime Topology</title>
-  <desc id="desc">Flow from browser to Flask UI to FastAPI and then MongoDB and Redis.</desc>
+  <desc id="desc">Flow from browser to React UI, FastAPI, MongoDB, Redis, and Celery workers.</desc>
   <defs>
     <style>
       .canvas { fill: #f8fafc; }
@@ -25,8 +25,8 @@
   <text x="130" y="142" text-anchor="middle" class="sub">UI interactions</text>
 
   <rect x="290" y="96" width="220" height="74" class="box" fill="#e0f2fe"/>
-  <text x="400" y="123" text-anchor="middle" class="label">Flask UI (`coyote`)</text>
-  <text x="400" y="142" text-anchor="middle" class="sub">Routes and templates</text>
+  <text x="400" y="123" text-anchor="middle" class="label">React UI (`frontend`)</text>
+  <text x="400" y="142" text-anchor="middle" class="sub">Pages and components</text>
 
   <rect x="580" y="96" width="230" height="74" class="box" fill="#dcfce7"/>
   <text x="695" y="123" text-anchor="middle" class="label">FastAPI (`api`)</text>

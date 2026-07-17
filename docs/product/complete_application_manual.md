@@ -445,7 +445,7 @@ Developers should preserve clean domain boundaries:
 - Contracts own document and response shapes.
 - React components render typed API data and user interaction.
 
-Avoid compatibility shims, legacy Flask-era concepts, raw Mongo result exposure, and duplicated business logic in React.
+Avoid compatibility shims, template-era UI patterns, raw Mongo result exposure, and duplicated business logic in React.
 
 !!! tip "Adding functionality"
 

@@ -17,7 +17,7 @@ const docs = {
     title: "Changelog",
     icon: FileText,
     body: [
-      "The migrated UI exposes the changelog route that existed in the Flask UI.",
+      "The React UI exposes the Coyote3 changelog for release review.",
       "Release notes should be populated from the project changelog source once the documentation API is connected.",
     ],
   },

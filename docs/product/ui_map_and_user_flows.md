@@ -4,7 +4,7 @@ This document lists the main UI areas and the main user flows.
 
 ## System Interfaces
 
-The UI is split into domain-specific modules with separate blueprints and access rules.
+The UI is split into domain-specific React pages backed by FastAPI routers and permission rules.
 
 - **Dashboard and Global Search (`home`)**: sample overview and report access.
 - **DNA Interpretation (`dna`)**: SNV/Indel, CNV, and translocation review.
