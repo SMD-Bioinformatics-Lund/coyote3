@@ -7,12 +7,14 @@ from typing import Any
 
 from api.application.common.assay_config import get_formatted_assay_config
 from api.application.common.pagination import paginate_items, request_pagination
+from api.application.dna.export import export_rows_to_csv, join_tokens, safe_text, yes_no
 from api.application.interpretation.annotation_enrichment import add_global_annotations
 from api.application.interpretation.report_summary import generate_summary_text
 from api.application.reporting.rna_workflow import RNAWorkflowService
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.contracts.operations import OperationResult
+from api.contracts.rna import RnaFusionExportRow
 from api.domain.common.errors import api_error, setup_error
 
 logger = logging.getLogger(__name__)
@@ -235,6 +237,97 @@ class RnaService:
             "subpanel": subpanel,
             "assay_group_mappings": show_context["assay_group_mappings"],
         }
+
+    def build_fusion_export_rows(self, fusions: list[dict[str, Any]]) -> list[RnaFusionExportRow]:
+        """Build typed fusion export rows from filtered fusion documents."""
+        rows: list[RnaFusionExportRow] = []
+        for fusion in fusions:
+            calls = fusion.get("calls") if isinstance(fusion.get("calls"), list) else []
+            selected_call = next(
+                (
+                    call
+                    for call in calls
+                    if call.get("selected") == 1 or call.get("selected") is True
+                ),
+                calls[0] if calls else {},
+            )
+            genes = self._fusion_genes(fusion)
+            comments = fusion.get("comments") or []
+            latest_comment = comments[-1] if comments else {}
+            classification = fusion.get("classification") or {}
+            tier = classification.get("class")
+            breakpoints = fusion.get("breakpoints")
+            if not isinstance(breakpoints, list):
+                breakpoints = []
+            status = []
+            if fusion.get("interesting"):
+                status.append("report")
+            if fusion.get("fp"):
+                status.append("false positive")
+            if fusion.get("irrelevant"):
+                status.append("irrelevant")
+
+            rows.append(
+                RnaFusionExportRow(
+                    gene_1=safe_text(genes[0] if len(genes) > 0 else ""),
+                    gene_2=safe_text(genes[1] if len(genes) > 1 else ""),
+                    effect=safe_text(selected_call.get("effect") or fusion.get("frame")),
+                    spanning_pairs=safe_text(
+                        selected_call.get("spanpairs")
+                        or fusion.get("supporting_reads", {}).get("span")
+                        or ""
+                    ),
+                    unique_spanning_reads=safe_text(
+                        selected_call.get("spanreads")
+                        or fusion.get("supporting_reads", {}).get("split")
+                        or ""
+                    ),
+                    breakpoint_1=safe_text(
+                        selected_call.get("breakpoint1")
+                        or (breakpoints[0] if len(breakpoints) > 0 else "")
+                    ),
+                    breakpoint_2=safe_text(
+                        selected_call.get("breakpoint2")
+                        or (breakpoints[1] if len(breakpoints) > 1 else "")
+                    ),
+                    tier=safe_text(tier if tier not in {None, 999} else ""),
+                    callers=join_tokens(
+                        [call.get("caller") for call in calls if call.get("caller")]
+                        or fusion.get("callers")
+                        or selected_call.get("caller")
+                    ),
+                    description=safe_text(selected_call.get("desc") or fusion.get("desc")),
+                    status=join_tokens(status),
+                    false_positive=yes_no(fusion.get("fp")),
+                    irrelevant=yes_no(fusion.get("irrelevant")),
+                    interesting=yes_no(fusion.get("interesting")),
+                    latest_comment=safe_text(latest_comment.get("text")),
+                    latest_comment_author=safe_text(latest_comment.get("author")),
+                    latest_comment_time=safe_text(latest_comment.get("time_created")),
+                )
+            )
+        return rows
+
+    @staticmethod
+    def export_rows_to_csv(rows: list[RnaFusionExportRow]) -> str:
+        """Serialize fusion export rows as CSV text."""
+        return export_rows_to_csv(rows)
+
+    @staticmethod
+    def _fusion_genes(fusion: dict[str, Any]) -> list[str]:
+        """Return a stable two-gene fusion label from known payload shapes."""
+        if fusion.get("gene1") or fusion.get("gene2"):
+            return [safe_text(fusion.get("gene1")), safe_text(fusion.get("gene2"))]
+        genes = fusion.get("genes")
+        if isinstance(genes, str):
+            separator = "^" if "^" in genes else "--" if "--" in genes else "-"
+            return [part.strip() for part in genes.split(separator) if part.strip()]
+        if isinstance(genes, list):
+            return [safe_text(gene) for gene in genes if safe_text(gene)]
+        fusion_name = fusion.get("fusion_name")
+        if isinstance(fusion_name, str):
+            return [part.strip() for part in fusion_name.split("--") if part.strip()]
+        return []
 
     def set_fusion_flag(self, *, fusion_id: str, apply: bool, flag: str) -> None:
         """Apply or remove a boolean flag on a single fusion."""

@@ -45,3 +45,33 @@ class RnaFusionContextPayload(BaseModel):
     assay_group: str
     subpanel: str | None = None
     assay_group_mappings: dict[str, Any]
+
+
+class RnaFusionExportRow(BaseModel):
+    """Represent one fusion CSV export row."""
+
+    gene_1: str = ""
+    gene_2: str = ""
+    effect: str = ""
+    spanning_pairs: str = ""
+    unique_spanning_reads: str = ""
+    breakpoint_1: str = ""
+    breakpoint_2: str = ""
+    tier: str = ""
+    callers: str = ""
+    description: str = ""
+    status: str = ""
+    false_positive: str = ""
+    irrelevant: str = ""
+    interesting: str = ""
+    latest_comment: str = ""
+    latest_comment_author: str = ""
+    latest_comment_time: str = ""
+
+
+class RnaCsvExportContextPayload(BaseModel):
+    """Represent CSV download context for RNA routes."""
+
+    filename: str
+    content: str
+    row_count: int

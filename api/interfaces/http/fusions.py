@@ -8,7 +8,11 @@ from api.app.container import util
 from api.app.deps.services import get_rna_service
 from api.application.common.change_payload import change_payload
 from api.application.rna.expression_analysis import RnaService
-from api.contracts.rna import RnaFusionContextPayload, RnaFusionListPayload
+from api.contracts.rna import (
+    RnaCsvExportContextPayload,
+    RnaFusionContextPayload,
+    RnaFusionListPayload,
+)
 from api.contracts.samples import SampleChangePayload
 from api.interfaces.http.change_helpers import comment_change, resource_change
 from api.security.access import ApiUser, _get_sample_for_api, require_access
@@ -27,6 +31,31 @@ def list_rna_fusions(
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.list_fusions_payload(request=request, sample=sample, util_module=util)
+    )
+
+
+@router.get(
+    "/api/v1/samples/{sample_id}/fusions/exports/context",
+    response_model=RnaCsvExportContextPayload,
+)
+def export_rna_fusions_context(
+    request: Request,
+    sample_id: str,
+    user: ApiUser = Depends(require_access()),
+    service: RnaService = Depends(get_rna_service),
+):
+    """Return backend-generated CSV content for the current filtered fusion set."""
+    sample = _get_sample_for_api(sample_id, user)
+    payload = service.list_fusions_payload(
+        request=request, sample=sample, util_module=util, paginate=False
+    )
+    rows = service.build_fusion_export_rows(payload.get("fusions", []))
+    return util.common.convert_to_serializable(
+        {
+            "filename": f"{sample.get('name', sample_id)}.filtered.fusions.csv",
+            "content": service.export_rows_to_csv(rows),
+            "row_count": len(rows),
+        }
     )
 
 

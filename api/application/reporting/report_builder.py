@@ -54,12 +54,23 @@ class ReportService:
         Returns:
             ReportPreviewPayload: Preview response payload.
         """
+        has_html = bool(str(html or "").strip())
         return {
             "sample": ReportService.sample_meta(sample),
             "meta": {
                 "request_path": request_path,
                 "include_snapshot": include_snapshot,
                 "snapshot_count": len(snapshot_rows),
+                "template_status": {
+                    "status": "ready" if has_html else "unavailable",
+                    "template": template_name,
+                    "has_html": has_html,
+                    "message": (
+                        "Report preview is ready."
+                        if has_html
+                        else "No rendered report HTML was returned for this sample and report type."
+                    ),
+                },
             },
             "report": {
                 "template": template_name,

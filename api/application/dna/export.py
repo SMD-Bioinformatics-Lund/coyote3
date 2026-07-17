@@ -7,6 +7,8 @@ import re
 from io import StringIO
 from typing import Any
 
+from pydantic import BaseModel
+
 from api.contracts.dna import DnaCnvExportRow, DnaSnvExportRow, DnaTranslocExportRow
 from api.domain.core.dna.notation import one_letter_p
 
@@ -96,9 +98,7 @@ def protect_excel(value: object) -> str:
     return f"'{text}" if risky else text
 
 
-def export_rows_to_csv(
-    rows: list[DnaSnvExportRow] | list[DnaCnvExportRow] | list[DnaTranslocExportRow],
-) -> str:
+def export_rows_to_csv(rows: list[BaseModel]) -> str:
     """Serialize typed export rows into CSV text with stable column ordering."""
     output = StringIO()
     if not rows:

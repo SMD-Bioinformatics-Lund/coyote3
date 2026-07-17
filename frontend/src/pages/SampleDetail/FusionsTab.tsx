@@ -5,6 +5,7 @@ import { api } from "@/lib/api"
 import { Activity, AlertTriangle, ExternalLink } from "lucide-react"
 import { DataTable } from "@/components/data-table/DataTable"
 import { BulkActionDropdown, BulkActionOption } from "@/components/data-table/BulkActionDropdown"
+import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
 import { ColumnDef } from "@tanstack/react-table"
 import {
   findingRowClass,
@@ -197,6 +198,13 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
               action,
               resourceIds: table.getSelectedRowModel().rows.map((row: any) => String(row.original._id)),
             })}
+          />
+        )}
+        renderExportButton={() => (
+          <ServerCsvButton
+            endpoint={`/samples/${sampleId}/fusions/exports/context`}
+            fallbackFilename={`${sampleId}.filtered.fusions.csv`}
+            label="Export to CSV"
           />
         )}
       />

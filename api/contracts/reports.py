@@ -20,6 +20,7 @@ class ReportPreviewMeta(BaseModel):
     request_path: str
     include_snapshot: bool
     snapshot_count: int
+    template_status: dict[str, Any]
 
 
 class ReportPreviewBody(BaseModel):

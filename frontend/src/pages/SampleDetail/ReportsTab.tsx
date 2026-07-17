@@ -113,6 +113,10 @@ export function ReportsTab({ sampleId }: { sampleId: string }) {
     },
   })
 
+  const templateStatus = data?.meta?.template_status
+  const hasRenderedHtml = Boolean(templateStatus?.has_html && data?.report?.html)
+  const templateStatusMessage = templateStatus?.message || "Report preview has not been rendered yet."
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -146,7 +150,8 @@ export function ReportsTab({ sampleId }: { sampleId: string }) {
             type="button"
             variant="outline"
             onClick={() => downloadPreviewPdf.mutate()}
-            disabled={!data || downloadPreviewPdf.isPending}
+            disabled={!hasRenderedHtml || downloadPreviewPdf.isPending}
+            title={hasRenderedHtml ? "Download preview PDF" : templateStatusMessage}
           >
             {downloadPreviewPdf.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             PDF
@@ -154,7 +159,8 @@ export function ReportsTab({ sampleId }: { sampleId: string }) {
           <Button
             type="button"
             onClick={() => setConfirmOpen(true)}
-            disabled={!data || saveReport.isPending}
+            disabled={!hasRenderedHtml || saveReport.isPending}
+            title={hasRenderedHtml ? "Save this rendered report" : templateStatusMessage}
           >
             {saveReport.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save
@@ -175,10 +181,24 @@ export function ReportsTab({ sampleId }: { sampleId: string }) {
             <div className="mb-3 flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
               <h4 className="font-bold">{data?.sample?.name || sampleId} {reportType.toUpperCase()} report</h4>
+              <span
+                className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                  templateStatus?.status === "ready"
+                    ? "bg-pass/10 text-pass"
+                    : "bg-warn/10 text-warn"
+                }`}
+              >
+                {templateStatus?.status === "ready" ? "template ready" : "template unavailable"}
+              </span>
               <span className="ml-auto rounded-full bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground">
                 {data?.meta?.snapshot_count || 0} snapshot row(s)
               </span>
             </div>
+            {templateStatus?.status !== "ready" && (
+              <div className="mb-3 rounded-lg border border-warn/30 bg-warn/10 px-3 py-2 text-sm text-warn">
+                {templateStatusMessage}
+              </div>
+            )}
             <DataTable
               columns={snapshotColumns}
               data={data?.report?.snapshot_rows || []}
@@ -195,7 +215,7 @@ export function ReportsTab({ sampleId }: { sampleId: string }) {
             </div>
             <iframe
               title="Report preview"
-              srcDoc={data?.report?.html || "<p>No report preview available.</p>"}
+              srcDoc={hasRenderedHtml ? data?.report?.html : "<p>No report preview available.</p>"}
               className="h-[36rem] w-full rounded-lg border border-border bg-white"
             />
           </section>

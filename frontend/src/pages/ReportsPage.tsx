@@ -29,7 +29,7 @@ export function ReportsPage() {
       snapshot_rows: data?.report?.snapshot_rows || [],
     }),
     onSuccess: (res) => {
-      const reportId = res.data?.report?.report_id || res.data?.report_id || "created"
+      const reportId = res.data?.report?.id || res.data?.report_id || "created"
       setMessage(`Report saved: ${reportId}`)
       notifySuccess("Report saved", `Report ${reportId} was saved.`, "Reports")
     },
@@ -45,7 +45,10 @@ export function ReportsPage() {
     setSampleId(sampleIdInput.trim())
   }
 
-  const snapshotRows = data?.report?.snapshot_rows || []
+  const snapshotRows = useMemo(() => data?.report?.snapshot_rows || [], [data?.report?.snapshot_rows])
+  const templateStatus = data?.meta?.template_status
+  const hasRenderedHtml = Boolean(templateStatus?.has_html && data?.report?.html)
+  const templateStatusMessage = templateStatus?.message || "Report preview has not been rendered yet."
   const snapshotColumns: ColumnDef<any, any>[] = useMemo(() => {
     const keys = Array.from(new Set<string>(snapshotRows.flatMap((row: any) => Object.keys(row || {})))).slice(0, 12)
     return keys.map((key) => ({
@@ -122,16 +125,31 @@ export function ReportsPage() {
                 <h2 className="text-lg font-bold">{sampleId} {reportType.toUpperCase()} Preview</h2>
                 <p className="text-sm text-muted-foreground">Rendered report HTML and report context from the backend workflow.</p>
               </div>
+              <span
+                className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                  templateStatus?.status === "ready"
+                    ? "bg-pass/10 text-pass"
+                    : "bg-warn/10 text-warn"
+                }`}
+              >
+                {templateStatus?.status === "ready" ? "template ready" : "template unavailable"}
+              </span>
               <button
                 onClick={() => saveReport.mutate()}
-                disabled={saveReport.isPending || !data?.report?.html}
+                disabled={saveReport.isPending || !hasRenderedHtml}
+                title={hasRenderedHtml ? "Finalize this rendered report" : templateStatusMessage}
                 className="inline-flex items-center gap-2 rounded-lg bg-pass px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
               >
                 {saveReport.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Finalize
               </button>
             </div>
-            {data?.report?.html ? (
+            {templateStatus?.status !== "ready" && (
+              <div className="mb-3 rounded-lg border border-warn/30 bg-warn/10 px-3 py-2 text-sm text-warn">
+                {templateStatusMessage}
+              </div>
+            )}
+            {hasRenderedHtml ? (
               <iframe
                 title={`${sampleId} report preview`}
                 srcDoc={data.report.html}
