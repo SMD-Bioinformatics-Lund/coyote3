@@ -1,7 +1,7 @@
 import { Bell, CheckCheck, Trash2 } from "lucide-react"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
-import { useNotifications } from "@/components/notifications/NotificationProvider"
+import { useNotifications } from "@/components/notifications/use-notifications"
 import { cn } from "@/lib/utils"
 
 const toneClass = {

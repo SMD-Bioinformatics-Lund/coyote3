@@ -771,16 +771,17 @@ function FormControl({
   compact?: boolean
   formValues?: Record<string, any>
 }) {
-  const readOnly = Boolean(disabled || mode === "view" || field.readonly || field.readonly_mode?.includes(mode))
+  const readOnly = disabled || mode === "view" || field.readonly || field.readonly_mode?.includes(mode)
   const label = fieldLabel(name, field)
   const commonClass = "w-full rounded-lg border border-input bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
 
   let control
   if (field.display_type === "checkbox") {
+    const checked = Boolean(value)
     control = (
       <label className="flex min-h-9 items-center gap-2 rounded-lg border border-border bg-background/60 px-2 py-1.5 text-sm">
-        <input type="checkbox" checked={Boolean(value)} disabled={readOnly} onChange={(event) => onChange(event.target.checked)} />
-        <span>{Boolean(value) ? "Enabled" : "Disabled"}</span>
+        <input type="checkbox" checked={checked} disabled={readOnly} onChange={(event) => onChange(event.target.checked)} />
+        <span>{checked ? "Enabled" : "Disabled"}</span>
       </label>
     )
   } else if (field.display_type === "select") {

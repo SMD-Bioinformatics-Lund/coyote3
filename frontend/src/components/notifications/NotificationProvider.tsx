@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { NotificationContext, type NotificationContextValue } from "./notification-context"
 import {
   type AppNotification,
   type NotificationInput,
@@ -9,18 +10,6 @@ import {
   saveNotifications,
   subscribeNotifications,
 } from "./notification-store"
-
-type NotificationContextValue = {
-  notifications: AppNotification[]
-  unreadCount: number
-  push: (input: NotificationInput) => AppNotification
-  markRead: (id: string) => void
-  markAllRead: () => void
-  remove: (id: string) => void
-  clear: () => void
-}
-
-const NotificationContext = createContext<NotificationContextValue | null>(null)
 
 const toneMeta = {
   success: { icon: CheckCircle2, className: "border-pass/35 bg-pass/10 text-pass" },
@@ -149,12 +138,4 @@ function NotificationToast({
       </div>
     </div>
   )
-}
-
-export function useNotifications() {
-  const context = useContext(NotificationContext)
-  if (!context) {
-    throw new Error("useNotifications must be used inside NotificationProvider")
-  }
-  return context
 }

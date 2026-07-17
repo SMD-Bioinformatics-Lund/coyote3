@@ -183,7 +183,7 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
 
   useEffect(() => {
     setFilters(activeSection ? sampleFilterSection(sample, activeSection) : {})
-  }, [activeSection, sample?._id, sample?.filters])
+  }, [activeSection, sample])
 
   const listOptions = useMemo(() => {
     const all = [

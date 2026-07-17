@@ -6,7 +6,7 @@ import { Bell, BookOpen, LayoutDashboard, Dna, Database, FileText, Settings, Use
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
-import { useNotifications } from "@/components/notifications/NotificationProvider"
+import { useNotifications } from "@/components/notifications/use-notifications"
 
 export function Layout() {
   const location = useLocation()

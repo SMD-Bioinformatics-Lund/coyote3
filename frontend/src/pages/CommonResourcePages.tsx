@@ -352,8 +352,8 @@ export function PublicGenelistPage() {
     queryFn: () => api.get(`/public/genelists/${genelistId}/view_context${assay ? `?assay=${encodeURIComponent(assay)}` : ""}`).then((res) => res.data),
     enabled: Boolean(genelistId),
   })
-  const genes = data?.genes || data?.gene_objects || data?.rows || []
-  const rows = Array.isArray(genes) ? genes.map((gene: any) => typeof gene === "string" ? { gene } : gene) : []
+  const genes = useMemo(() => data?.genes || data?.gene_objects || data?.rows || [], [data])
+  const rows = useMemo(() => Array.isArray(genes) ? genes.map((gene: any) => typeof gene === "string" ? { gene } : gene) : [], [genes])
   const columns = useMemo(() => columnsFor(rows, ["hgnc_symbol", "symbol", "gene"]), [rows])
 
   return (
@@ -377,8 +377,8 @@ export function PublicAspGenesPage() {
     queryFn: () => api.get(`/public/asp/${aspId}/genes`).then((res) => res.data),
     enabled: Boolean(aspId),
   })
-  const genes = data?.gene_details || data?.genes || data?.gene_objects || []
-  const rows = Array.isArray(genes) ? genes.map((gene: any) => typeof gene === "string" ? { gene } : gene) : []
+  const genes = useMemo(() => data?.gene_details || data?.genes || data?.gene_objects || [], [data])
+  const rows = useMemo(() => Array.isArray(genes) ? genes.map((gene: any) => typeof gene === "string" ? { gene } : gene) : [], [genes])
   const columns = useMemo(() => columnsFor(rows, ["hgnc_symbol", "symbol", "gene", "hgnc_id", "ensembl_gene_id"]), [rows])
   const catalog = data?.catalog || {}
   const asp = data?.asp || {}

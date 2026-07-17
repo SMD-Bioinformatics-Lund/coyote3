@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { Link } from "react-router-dom"
@@ -381,13 +381,16 @@ function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sample: an
   const [listPickerOpen, setListPickerOpen] = useState(false)
   const [listSearch, setListSearch] = useState("")
 
-  const selectedFromSample = sampleFilterSection(sample, target as any)?.[filterKeyForTarget(target)] || []
+  const selectedFromSample = useMemo(
+    () => sampleFilterSection(sample, target as any)?.[filterKeyForTarget(target)] || [],
+    [sample, target],
+  )
   useEffect(() => {
     setSelectedIds(Array.isArray(selectedFromSample) ? selectedFromSample.map(String) : [])
     const adhoc = sampleFilterSection(sample, target as any)?.adhoc_genes
     setAdhocLabel(adhoc?.label || "adhoc")
     setAdhocGenes(Array.isArray(adhoc?.genes) ? adhoc.genes.join("\n") : "")
-  }, [target, sample])
+  }, [target, sample, selectedFromSample])
 
   const genelists = useQuery({
     queryKey: ["sample-genelists", sampleId, target],
