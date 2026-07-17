@@ -5,6 +5,8 @@ from __future__ import annotations
 from copy import deepcopy
 
 from api.app.container import store
+from api.config.constants import SUBPANEL_BASE_ID
+from api.contracts.http import ApiListPayload, ApiMutationPayload, ApiPageMeta, ApiSuccessPayload
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.domain.common.assay_filters import format_assay_config
@@ -13,6 +15,53 @@ from api.domain.common.errors import (
     setup_error,
     validation_error,
 )
+
+
+def api_success(payload, *, meta: dict | None = None) -> dict:
+    """Return the standard success envelope for new HTTP routes."""
+    return ApiSuccessPayload(payload=payload, meta=meta or {}).model_dump(mode="json")
+
+
+def api_list(
+    items: list,
+    *,
+    page: int = 1,
+    per_page: int = 50,
+    total: int | None = None,
+    has_next: bool = False,
+    has_previous: bool = False,
+    meta: dict | None = None,
+) -> dict:
+    """Return the standard list envelope for new HTTP routes."""
+    return ApiListPayload(
+        items=items,
+        pagination=ApiPageMeta(
+            page=page,
+            per_page=per_page,
+            total=len(items) if total is None else total,
+            has_next=has_next,
+            has_previous=has_previous,
+        ),
+        meta=meta or {},
+    ).model_dump(mode="json")
+
+
+def api_mutation(
+    *,
+    resource: str,
+    action: str,
+    resource_id: str | None = None,
+    message: str | None = None,
+    meta: dict | None = None,
+) -> dict:
+    """Return the standard mutation envelope for new HTTP routes."""
+    return ApiMutationPayload(
+        resource=resource,
+        resource_id=resource_id,
+        action=action,
+        message=message,
+        meta=meta or {},
+    ).model_dump(mode="json")
 
 
 def get_formatted_assay_config(sample: dict):
@@ -28,6 +77,9 @@ def get_formatted_assay_config(sample: dict):
     assay_name = str(sample.get("assay") or "").strip()
     sample_name = str(sample.get("name") or sample.get("_id") or "unknown_sample").strip()
     environment = str(sample.get("profile", "production") or "production").strip() or "production"
+    subpanel_id = str(
+        sample.get("subpanel_id") or sample.get("subpanel") or SUBPANEL_BASE_ID
+    ).strip() or SUBPANEL_BASE_ID
 
     if not assay_name:
         raise validation_error(
@@ -50,15 +102,20 @@ def get_formatted_assay_config(sample: dict):
     assay_config = store.assay_configuration_repository.get_aspc_no_meta(
         assay_name,
         environment,
+        subpanel_id,
     )
     if not assay_config:
         raise setup_error(
-            f"ASPC not registered for assay '{assay_name}' in environment '{environment}'",
+            (
+                f"ASPC not registered for assay '{assay_name}', "
+                f"subpanel '{subpanel_id}', environment '{environment}'"
+            ),
             (
                 f"Sample '{sample_name}' belongs to environment '{environment}', "
-                f"but no ASPC exists for assay '{assay_name}' in that environment."
+                f"but no active ASPC exists for assay '{assay_name}' and subpanel "
+                f"'{subpanel_id}' or fallback subpanel 'base'."
             ),
-            hint="Create and activate the ASPC for this assay/environment combination.",
+            hint="Create and activate the ASPC for this assay, subpanel/base, and environment combination.",
         )
     omics = str(sample.get("omics_layer") or "").upper()
     if not omics:
@@ -67,4 +124,10 @@ def get_formatted_assay_config(sample: dict):
     return format_assay_config(deepcopy(assay_config), assay_config_schema)
 
 
-__all__ = ["api_error", "get_formatted_assay_config"]
+__all__ = [
+    "api_error",
+    "api_list",
+    "api_mutation",
+    "api_success",
+    "get_formatted_assay_config",
+]

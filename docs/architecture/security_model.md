@@ -36,6 +36,35 @@ Allow request or return structured denial
 Roles, permissions, environments, assay groups, assays, and `superuser`
 visibility are resolved in the API security layer before request handlers run.
 
+## Package boundaries
+
+Coyote3 keeps security code in two deliberately separate packages:
+
+- `api/security` contains policy and application security behavior. It resolves
+  users from sessions or tokens, evaluates route permissions through
+  `require_access`, constructs the Casbin-backed RBAC/ABAC policy, issues and
+  verifies password-action tokens, and emits security/audit events.
+- `api/infra/security` contains storage and runtime infrastructure for security
+  concerns. It owns Mongo-backed API session persistence and security index
+  creation. It must not contain route permissions, role semantics, or clinical
+  authorization decisions.
+
+Route modules should depend on `api.security.access.require_access` or the
+thin dependency re-export in `api.app.deps.auth`. They should not query role or
+permission collections directly and should not implement local minimum-role
+checks. The API remains the authorization source of truth; UI visibility is only
+an ergonomic reflection of the session payload.
+
+!!! info
+    Keep policy decisions close to `api/security` and persistence details close
+    to `api/infra/security`. This makes authorization auditable and keeps
+    storage changes from silently changing access behavior.
+
+!!! warning
+    Do not add user-level allow/deny overrides or ad-hoc role gates in route
+    handlers. A route should declare the required permission id and let the
+    Casbin-backed policy decide whether the current user satisfies it.
+
 ## Role permissions
 
 Permission checks use the `resource:action[:scope]` naming convention (see
