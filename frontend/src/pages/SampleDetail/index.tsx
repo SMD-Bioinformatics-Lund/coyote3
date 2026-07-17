@@ -70,6 +70,7 @@ export function SampleDetail() {
   }
 
   const showComments = ["snvs", "cnvs", "fusions", "translocations"].includes(activeTab)
+  const showFilters = ["snvs", "cnvs", "fusions", "translocations"].includes(activeTab)
 
   return (
     <div className="flex h-full flex-col bg-muted/20">
@@ -153,7 +154,7 @@ export function SampleDetail() {
             )}
           </div>
           
-          {activeTab !== "overview" && activeTab !== "coverage" && (
+          {showFilters && (
             <FiltersSidebar sampleId={id!} sample={sample} context={data} activeTab={activeTab} />
           )}
         </div>
