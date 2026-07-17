@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
+import { Link } from "react-router-dom"
 import { Activity, AlertTriangle, Download, Eye, FileText, Save, ShieldCheck, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
@@ -165,6 +166,12 @@ export function ReportsTab({ sampleId }: { sampleId: string }) {
             {saveReport.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save
           </Button>
+          <Link
+            to={`/reports?sample_id=${encodeURIComponent(sampleId)}&report_type=${reportType}`}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold hover:bg-muted"
+          >
+            Workspace
+          </Link>
         </div>
       </div>
 

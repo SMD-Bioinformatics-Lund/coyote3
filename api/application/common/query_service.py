@@ -94,7 +94,36 @@ class CommonQueryService:
             sample_repository=self.sample_repository,
             annotation_repository=self.annotation_repository,
         )
+        for doc in docs:
+            sample_doc = doc.get("sample") or {}
+            sample_oid = doc.get("sample_oid") or sample_doc.get("_id")
+            if sample_oid is not None:
+                doc["sample_id"] = str(sample_oid)
+                sample_doc["sample_id"] = str(sample_oid)
+            if sample_doc:
+                doc["sample"] = sample_doc
         return {"variant": variant, "docs": docs, "tier": tier, "error": None}
+
+    def _sample_reference(
+        self,
+        *,
+        sample_oid: Any,
+        sample_doc: dict[str, Any] | None,
+        sample_name: str | None,
+    ) -> dict[str, Any]:
+        """Build the sample reference carried by common search payloads."""
+        sample_id = str(sample_oid) if sample_oid is not None else None
+        resolved_name = sample_name or (sample_doc or {}).get("name") or "UNKNOWN_SAMPLE"
+        return {
+            "sample_id": sample_id,
+            "sample_name": resolved_name,
+            "name": resolved_name,
+            "assay": (sample_doc or {}).get("assay"),
+            "subpanel": (sample_doc or {}).get("subpanel")
+            or (sample_doc or {}).get("subpanel_id"),
+            "profile": (sample_doc or {}).get("profile"),
+            "report_oids": {},
+        }
 
     def tiered_variant_search_payload(
         self,
@@ -173,10 +202,11 @@ class CommonQueryService:
                 if sample_oid:
                     sample_key = str(sample_oid)
                     if sample_key not in sample_oids:
-                        sample_oids[sample_key] = {
-                            "sample_name": sample_name if sample_name else "UNKNOWN_SAMPLE",
-                            "report_oids": {},
-                        }
+                        sample_oids[sample_key] = self._sample_reference(
+                            sample_oid=sample_oid,
+                            sample_doc=sample_doc,
+                            sample_name=sample_name,
+                        )
                     if report_oid and report_id:
                         report_oids = sample_oids.get(sample_key, {}).get("report_oids", {})
                         if report_id not in report_oids:
@@ -225,7 +255,11 @@ class CommonQueryService:
                 "author": annotation_doc.get("author") or reported_doc.get("created_by"),
                 "samples": {
                     sample_key: {
-                        "sample_name": sample_name,
+                        **self._sample_reference(
+                            sample_oid=sample_oid,
+                            sample_doc=sample_doc,
+                            sample_name=sample_name,
+                        ),
                         "report_oids": {report_id: report_num} if report_id else {},
                     }
                 },

@@ -1,20 +1,39 @@
 import { FormEvent, useMemo, useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { Activity, FileText, Save } from "lucide-react"
+import { Link, useSearchParams } from "react-router-dom"
+import { Activity, FileText, Save, Search } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
+import { humanRelativeDate } from "@/lib/detail-formatters"
+import { sampleSubpanel } from "@/lib/sample-shape"
 
 type ReportType = "dna" | "rna"
 
 export function ReportsPage() {
-  const [sampleIdInput, setSampleIdInput] = useState("")
-  const [sampleId, setSampleId] = useState("")
-  const [reportType, setReportType] = useState<ReportType>("dna")
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialSampleId = searchParams.get("sample_id") || searchParams.get("sample") || ""
+  const initialReportType = (searchParams.get("report_type") || "dna") as ReportType
+  const [sampleIdInput, setSampleIdInput] = useState(initialSampleId)
+  const [sampleId, setSampleId] = useState(initialSampleId)
+  const [reportType, setReportType] = useState<ReportType>(initialReportType === "rna" ? "rna" : "dna")
   const [includeSnapshot, setIncludeSnapshot] = useState(true)
   const [message, setMessage] = useState("")
+
+  const sampleLookup = useQuery({
+    queryKey: ["report-sample-lookup", sampleIdInput],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      params.set("profile_scope", "all")
+      params.set("per_page", "8")
+      params.set("search_str", sampleIdInput.trim())
+      return api.get(`/samples?${params.toString()}`).then((res) => res.data)
+    },
+    enabled: sampleIdInput.trim().length >= 2,
+    staleTime: 30_000,
+  })
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["report-workspace", sampleId, reportType, includeSnapshot],
@@ -42,7 +61,29 @@ export function ReportsPage() {
   const submit = (event: FormEvent) => {
     event.preventDefault()
     setMessage("")
-    setSampleId(sampleIdInput.trim())
+    selectSample(sampleIdInput.trim())
+  }
+
+  const selectSample = (nextSampleId: string, nextReportType: ReportType = reportType) => {
+    setMessage("")
+    setSampleId(nextSampleId)
+    setSampleIdInput(nextSampleId)
+    const nextParams = new URLSearchParams(searchParams)
+    if (nextSampleId) nextParams.set("sample_id", nextSampleId)
+    else nextParams.delete("sample_id")
+    nextParams.set("report_type", nextReportType)
+    setSearchParams(nextParams, { replace: true })
+  }
+
+  const sampleOptions = sampleLookup.data?.live_samples || []
+  const updateReportType = (nextType: ReportType) => {
+    setReportType(nextType)
+    if (sampleId) {
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.set("sample_id", sampleId)
+      nextParams.set("report_type", nextType)
+      setSearchParams(nextParams, { replace: true })
+    }
   }
 
   const snapshotRows = useMemo(() => data?.report?.snapshot_rows || [], [data?.report?.snapshot_rows])
@@ -76,21 +117,49 @@ export function ReportsPage() {
       }
     >
       <section className="surface-panel border-t-4 border-t-tier3 p-4">
-        <form onSubmit={submit} className="grid gap-3 md:grid-cols-[1fr_12rem_12rem_auto] md:items-end">
-          <label className="space-y-1.5">
+        <form onSubmit={submit} className="grid gap-3 md:grid-cols-[minmax(20rem,1fr)_12rem_12rem_auto] md:items-end">
+          <label className="relative space-y-1.5">
             <span className="text-xs font-bold uppercase text-muted-foreground">Sample ID</span>
-            <input
-              value={sampleIdInput}
-              onChange={(event) => setSampleIdInput(event.target.value)}
-              className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-              placeholder="CASE_DEMO"
-            />
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <input
+                value={sampleIdInput}
+                onChange={(event) => setSampleIdInput(event.target.value)}
+                className="h-10 w-full rounded-lg border border-input bg-background px-9 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                placeholder="Search sample name, case id, or ObjectId"
+              />
+              {sampleLookup.isFetching && (
+                <Activity className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+            {sampleOptions.length > 0 && sampleIdInput.trim() !== sampleId && (
+              <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-80 overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-xl">
+                {sampleOptions.map((sample: any) => (
+                  <button
+                    key={String(sample._id)}
+                    type="button"
+                    onClick={() => selectSample(String(sample._id))}
+                    className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-primary/10"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate font-bold text-foreground">{sample.name || sample.case_id || sample._id}</span>
+                      <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                        {sample.assay || "-"} / {sampleSubpanel(sample) || "-"} / {sample.profile || "-"}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+                      {humanRelativeDate(sample.time_added)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </label>
           <label className="space-y-1.5">
             <span className="text-xs font-bold uppercase text-muted-foreground">Report type</span>
             <select
               value={reportType}
-              onChange={(event) => setReportType(event.target.value as ReportType)}
+              onChange={(event) => updateReportType(event.target.value as ReportType)}
               className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
             >
               <option value="dna">DNA</option>
@@ -105,6 +174,14 @@ export function ReportsPage() {
             Preview
           </button>
         </form>
+        {sampleId && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-bold uppercase tracking-wide">Selected sample</span>
+            <Link to={`/samples/${sampleId}`} className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 font-semibold text-primary hover:bg-primary/15">
+              {data?.sample?.name || sampleId}
+            </Link>
+          </div>
+        )}
       </section>
 
       {message && (

@@ -22,6 +22,10 @@ function sampleName(row: any) {
   return row?.sample?.sample_name || row?.sample_name || row?.sample?.name || "-"
 }
 
+function sampleId(row: any) {
+  return row?.sample?.sample_id || row?.sample_id || row?.sample_oid || row?.sample?._id || row?.sample?.name || row?.sample_name
+}
+
 export function TieredVariantContext() {
   const { variantId, tier } = useParams()
   const { data, isLoading, error } = useQuery({
@@ -57,10 +61,11 @@ export function TieredVariantContext() {
       accessorFn: sampleName,
       cell: ({ row }) => {
         const name = sampleName(row.original)
+        const id = sampleId(row.original)
         return name === "-" ? (
           <span className="text-muted-foreground">-</span>
         ) : (
-          <Link to={`/samples/${name}`} className="font-bold text-primary hover:underline">{name}</Link>
+          <Link to={`/samples/${id}`} className="font-bold text-primary hover:underline">{name}</Link>
         )
       },
     },
@@ -80,11 +85,11 @@ export function TieredVariantContext() {
       header: "Report",
       accessorFn: (row) => row.report_id || row.report_num || row.report_oid || "-",
       cell: ({ row }) => {
-        const name = sampleName(row.original)
+        const id = sampleId(row.original)
         const reportId = row.original.report_id
         const label = row.original.report_num || reportId || row.original.report_oid || "-"
-        return name !== "-" && reportId ? (
-          <Link to={`/samples/${name}/reports/${reportId}`} className="rounded-md bg-tier2 px-2 py-0.5 text-xs font-black text-white hover:bg-tier2/90">
+        return id && reportId ? (
+          <Link to={`/samples/${id}/reports/${reportId}`} className="rounded-md bg-tier2 px-2 py-0.5 text-xs font-black text-white hover:bg-tier2/90">
             {String(label)}
           </Link>
         ) : <span>{String(label)}</span>
@@ -123,10 +128,10 @@ export function TieredVariantContext() {
       header: "Actions",
       enableSorting: false,
       cell: ({ row }) => {
-        const name = sampleName(row.original)
+        const id = sampleId(row.original)
         const varOid = row.original.var_oid || row.original.variant_oid
-        return name !== "-" && varOid ? (
-          <Link to={`/samples/${name}/variant/${varOid}`} className="inline-flex rounded-md bg-primary/10 p-1.5 text-primary hover:bg-primary hover:text-white">
+        return id && varOid ? (
+          <Link to={`/samples/${id}/variant/${varOid}`} className="inline-flex rounded-md bg-primary/10 p-1.5 text-primary hover:bg-primary hover:text-white">
             <ExternalLink className="h-4 w-4" />
           </Link>
         ) : <span className="text-muted-foreground">-</span>
