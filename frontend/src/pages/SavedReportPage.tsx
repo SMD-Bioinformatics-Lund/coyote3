@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { Activity, ArrowLeft, Download } from "lucide-react"
 import { PageShell } from "@/components/layout/PageShell"
+import { ReportHtmlFrame } from "@/components/reports/ReportHtmlFrame"
 
 export function SavedReportPage() {
   const { id = "", reportId = "" } = useParams()
@@ -59,7 +60,7 @@ export function SavedReportPage() {
       ) : error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>
       ) : (
-        <iframe title={`${id} saved report`} srcDoc={html} className="h-[calc(100vh-12rem)] w-full rounded-xl border border-border bg-white shadow-sm" />
+        <ReportHtmlFrame title={`${id} saved report`} html={html} className="rounded-xl shadow-sm" />
       )}
     </PageShell>
   )

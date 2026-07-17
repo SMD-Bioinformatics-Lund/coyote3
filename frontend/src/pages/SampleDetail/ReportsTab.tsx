@@ -4,6 +4,7 @@ import { Link } from "react-router-dom"
 import { Activity, AlertTriangle, Download, Eye, FileText, Save, ShieldCheck, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
+import { ReportHtmlFrame } from "@/components/reports/ReportHtmlFrame"
 import { ColumnDef } from "@tanstack/react-table"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { Button } from "@/components/ui/button"
@@ -220,10 +221,9 @@ export function ReportsTab({ sampleId }: { sampleId: string }) {
                 Temporary until saved
               </span>
             </div>
-            <iframe
+            <ReportHtmlFrame
               title="Report preview"
-              srcDoc={hasRenderedHtml ? data?.report?.html : "<p>No report preview available.</p>"}
-              className="h-[36rem] w-full rounded-lg border border-border bg-white"
+              html={hasRenderedHtml ? data?.report?.html : "<p>No report preview available.</p>"}
             />
           </section>
         </div>

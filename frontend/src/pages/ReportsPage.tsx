@@ -6,6 +6,7 @@ import { ColumnDef } from "@tanstack/react-table"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
+import { ReportHtmlFrame } from "@/components/reports/ReportHtmlFrame"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { humanRelativeDate } from "@/lib/detail-formatters"
 import { sampleSubpanel } from "@/lib/sample-shape"
@@ -227,10 +228,9 @@ export function ReportsPage() {
               </div>
             )}
             {hasRenderedHtml ? (
-              <iframe
+              <ReportHtmlFrame
                 title={`${sampleId} report preview`}
-                srcDoc={data.report.html}
-                className="h-[42rem] w-full rounded-lg border border-border bg-white"
+                html={data.report.html}
               />
             ) : (
               <div className="rounded-lg border border-dashed border-border bg-muted/25 p-6 text-sm text-muted-foreground">
