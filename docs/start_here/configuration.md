@@ -4,14 +4,14 @@ This document describes how Coyote3 configuration is organized across environmen
 
 ## Environment Files
 
-Application behavior is controlled by environment files (`.coyote3_env*`). Templates live in `deploy/env/`:
+Application behavior is controlled by environment files (`.coyote3_env*`). The single template is `deploy/env/example.env`:
 
-- **Production**: Managed via `.coyote3_env` (Ref: `example.prod.env`).
-- **Staging**: Managed via `.coyote3_stage_env` (Ref: `example.stage.env`).
-- **Development**: Managed via `.coyote3_dev_env` (Ref: `example.dev.env`).
-- **Continuous Validation**: Managed via `.coyote3_test_env` (Ref: `example.test.env`).
+- **Production**: copy `deploy/env/example.env` to `.coyote3_env`.
+- **Staging**: copy `deploy/env/example.env` to `.coyote3_stage_env`.
+- **Development**: copy `deploy/env/example.env` to `.coyote3_dev_env`.
+- **Continuous Validation**: copy `deploy/env/example.env` to `.coyote3_test_env`.
 
-Use these templates as the starting point for each environment.
+After copying, update `ENV_NAME`, `DEVELOPMENT`, `TESTING`, `COYOTE3_DB`, `MONGO_URI`, HTTP ports, data paths, secrets, and integration URLs for the target environment.
 
 ## Default Port Layout
 
@@ -35,7 +35,7 @@ profile is used.
 ### Customizing Ports
 
 The HTTP proxy host port is configurable via environment variables. Override it
-in your `.coyote3_env` file or export it before running `docker compose`:
+in the copied `.coyote3_*_env` file or export it before running `docker compose`:
 
 | Environment Variable | Default | Service |
 | --- | --- | --- |
@@ -160,6 +160,12 @@ Mail relay defaults for Skane (MXIS):
 
 ### External Analytic Integrations
 The platform enables optional one-way deep-linking to secondary analytic platforms such as Gens and IGV through the `GENS_URI` and `IGV_URI` directives.
+
+## Local Migration Workspace
+
+One-off migration, repair, or local data-conversion scripts belong under `migration_scripts/`. That directory is ignored by git so center-specific scripts, sample paths, and scratch payloads do not pollute normal reviews.
+
+Use `scripts/` only for supported bootstrap, backup, restore, validation, seed, and operations commands. Promote any migration that must become part of supported operations into `scripts/` with tests and documentation.
 
 ## Environmental Verification
 

@@ -10,20 +10,25 @@ Use isolated stacks and databases for each environment:
 
 ## Default port matrix
 
-| Environment | Web | API | Redis | Mongo |
-| --- | --- | --- | --- | --- |
-| prod | 5816 | 5818 | 5819 | 5820 |
-| stage | 8805 | 8806 | 8807 | 8808 |
-| dev | 6801 | 6802 | 6803 | 6804 |
-| test | 6811 | 6812 | 6813 | 6814 |
+Each stack exposes one HTTP entrypoint through nginx. Web UI, FastAPI, and docs
+are routed behind that proxy; Redis stays internal.
 
-These defaults are encoded in both compose files and example env templates.
+| Environment | HTTP proxy | Optional Mongo |
+| --- | --- | --- |
+| prod | 5815 | 5820 |
+| stage | 8804 | 8808 |
+| dev | 6801 | 6804 |
+| test | 6811 | 6814 |
+
+These defaults are encoded in the compose files and the canonical
+`deploy/env/example.env` template.
 
 ## Host Drive Mounts Per Center
 
-Centers can have different host filesystem layouts. For deployment, edit the
-compose file for that environment and set bind mounts to the center-specific
-drive paths.
+Centers can have different host filesystem layouts. Configure runtime data paths
+with `COYOTE3_DATA_HOST_ROOT` and `COYOTE3_DATA_CONTAINER_ROOT` in the copied
+`.coyote3_*_env` file. Edit compose only for permanent center infrastructure
+mounts that are outside the data root.
 
 Examples:
 
@@ -91,7 +96,7 @@ python scripts/mongo_bootstrap_users.py \
 ## Secrets handling
 
 - Keep real values out of git
-- Use example env files only as templates
+- Use `deploy/env/example.env` only as a template
 - Rotate secrets on team membership changes
 - Validate before deployment with `scripts/validate_env_secrets.sh`
 

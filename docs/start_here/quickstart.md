@@ -27,11 +27,13 @@ git clone git@github.com:SMD-Bioinformatics-Lund/coyote3.git
 cd coyote3
 
 # Create your local environment file
-cp deploy/env/example.dev.env .coyote3_dev_env
+cp deploy/env/example.env .coyote3_dev_env
 ```
 
 > [!NOTE]
-> For local development, the default values in `.coyote3_dev_env` are enough.
+> For local development, the template defaults are intentionally close to the
+> development compose profile, but you still need to review `MONGO_URI`, data
+> paths, and secret values for your machine.
 > For production, set all secrets explicitly.
 
 ---
@@ -61,7 +63,7 @@ Once the stack is running, create the first superuser, load the baseline collect
 scripts/center_first_run.sh \
   --env-file .coyote3_dev_env \
   --compose-file deploy/compose/docker-compose.dev.yml \
-  --api-base-url "http://localhost:6802" \
+  --api-base-url "http://localhost:6801" \
   --admin-username "admin.coyote3" \
   --admin-email "admin@coyote3.local" \
   --admin-password "Coyote3.Admin" \
@@ -89,7 +91,7 @@ Ingest references:
 | --- | --- | --- |
 | `--env-file <path>` | Yes | Path to the environment file (e.g. `.coyote3_dev_env`). |
 | `--compose-file <path>` | Yes | Path to the Docker Compose file to use. |
-| `--api-base-url <url>` | Yes | Base URL of the API service (e.g. `http://localhost:6802`). |
+| `--api-base-url <url>` | Yes | Base URL of the HTTP proxy or API service (e.g. `http://localhost:6801`). The scripts append `/api/v1/...`. |
 | `--admin-username <name>` | Yes | Username for the first superuser account. |
 | `--admin-email <email>` | Yes | Email address for the first superuser account. |
 | `--admin-password <password>` | Yes | Password for the first superuser account. |
@@ -111,7 +113,7 @@ Ingest references:
 
 Open:
 - UI: [http://localhost:6801](http://localhost:6801)
-- API health: [http://localhost:6802/api/v1/health](http://localhost:6802/api/v1/health)
+- API health: [http://localhost:6801/api/v1/health](http://localhost:6801/api/v1/health)
 
 Login with:
 - username: `admin.coyote3`
@@ -131,7 +133,7 @@ scripts/center_first_run.sh \
   --env-file .coyote3_env \
   --compose-file deploy/compose/docker-compose.yml \
   --with-mongo \
-  --api-base-url "http://localhost:5818" \
+  --api-base-url "http://localhost:5815" \
   --admin-username "admin.coyote3" \
   --admin-email "admin@coyote3.local" \
   --admin-password "Coyote3.Admin" \

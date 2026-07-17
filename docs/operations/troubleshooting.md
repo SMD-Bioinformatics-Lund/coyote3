@@ -24,10 +24,10 @@ This section outlines standard diagnostic signatures and remediation protocols f
 
 **Remediation Protocol:**
 
-Initialize the environment file from the templates in the repository:
+Initialize the environment file from the canonical template in the repository:
 
 ```bash
-cp deploy/env/example.prod.env .coyote3_env
+cp deploy/env/example.env .coyote3_env
 ```
 
 Ensure all explicit cryptographic secrets and API token parameters are manually populated within the file before re-initiating the compose commands.

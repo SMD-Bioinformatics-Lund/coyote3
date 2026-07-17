@@ -38,7 +38,7 @@ Example staging command:
 scripts/center_first_run.sh \
   --env-file .coyote3_stage_env \
   --compose-file deploy/compose/docker-compose.stage.yml \
-  --api-base-url "http://localhost:8806" \
+  --api-base-url "http://localhost:8804" \
   --admin-username "admin.coyote3" \
   --admin-email "admin@coyote3.local" \
   --admin-password "ENFORCED_SECRET" \

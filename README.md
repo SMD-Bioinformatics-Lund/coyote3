@@ -73,16 +73,16 @@ Coyote3 is developed and maintained by the bioinformatics team at the **Section 
 
 ## Quick Start
 
-1. Create environment files from templates:
+1. Create environment files from the canonical template:
 
 ```bash
-cp deploy/env/example.prod.env .coyote3_env
-cp deploy/env/example.dev.env .coyote3_dev_env
-cp deploy/env/example.stage.env .coyote3_stage_env
-cp deploy/env/example.test.env .coyote3_test_env
+cp deploy/env/example.env .coyote3_env
+cp deploy/env/example.env .coyote3_dev_env
+cp deploy/env/example.env .coyote3_stage_env
+cp deploy/env/example.env .coyote3_test_env
 ```
 
-2. Set real secret values in the env files (`SECRET_KEY`, `INTERNAL_API_TOKEN`, `PASSWORD_TOKEN_SALT`, Mongo credentials).
+2. Set environment-specific values in each copied file (`ENV_NAME`, `COYOTE3_DB`, `MONGO_URI`, ports, data paths, `SECRET_KEY`, `INTERNAL_API_TOKEN`, `PASSWORD_TOKEN_SALT`, Mongo credentials).
 
 3. Start development stack:
 
@@ -114,7 +114,7 @@ Coyote3 ships with four standard environment profiles:
 - `dev` using `.coyote3_dev_env`
 - `test` using `.coyote3_test_env`
 
-Compose definitions live in `deploy/compose/`, and environment templates live in `deploy/env/`.
+Compose definitions live in `deploy/compose/`, and the canonical environment template is `deploy/env/example.env`.
 
 Optional deployment profile:
 

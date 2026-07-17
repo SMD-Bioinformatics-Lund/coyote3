@@ -20,8 +20,12 @@ bash scripts/mongo_restore_archive.sh \
 
 ## Identity normalization migration (after restore)
 
+One-off restore migrations are local operational scripts and belong in the
+ignored `migration_scripts/` directory. Keep those scripts out of git unless
+they become supported maintenance commands with tests.
+
 ```bash
-python scripts/migrate_db_identity.py \
+python migration_scripts/<restore-migration-script>.py \
   --mongo-uri "${TARGET_MONGO_URI}" \
   --db "${TARGET_DB:-coyote3}"
 ```

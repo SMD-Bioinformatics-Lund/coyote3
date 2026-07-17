@@ -741,7 +741,7 @@ Core collections typically seeded first:
 ```python
 import httpx
 
-base = "http://localhost:6802"
+base = "http://localhost:6801"
 headers = {"Authorization": "Bearer YOUR_API_BEARER_TOKEN"}
 
 payload = {

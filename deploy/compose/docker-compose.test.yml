@@ -1,6 +1,6 @@
 name: coyote3-test
 # usage:
-#   cp deploy/env/example.test.env .coyote3_test_env
+#   cp deploy/env/example.env .coyote3_test_env
 #   ./scripts/compose-with-version.sh --env-file .coyote3_test_env \
 #     -f deploy/compose/docker-compose.test.yml --profile tests up -d --build
 x-runtime-defaults: &runtime-defaults

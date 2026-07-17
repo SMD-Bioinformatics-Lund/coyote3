@@ -151,7 +151,8 @@ app.log*
 test
 logs/
 example_dev*
-migration_scripts
+/migration_scripts/*
+!/migration_scripts/README.md
 /reports/
 ./bugs
 .ruff_cache

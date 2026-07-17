@@ -1,6 +1,6 @@
 name: coyote3-stage
 # usage:
-#   cp deploy/env/example.stage.env .coyote3_stage_env
+#   cp deploy/env/example.env .coyote3_stage_env
 #   export COYOTE3_VERSION="$(python3 api/version.py)"
 #   docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml up -d --build
 x-runtime-defaults: &runtime-defaults

@@ -66,7 +66,7 @@ scripts/center_first_run.sh \
   --compose-file <COMPOSE_FILE> \
   [--with-mongo] \
   [--compose-profile <PROFILE>] \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:<API_PORT>" \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:<HTTP_PORT>" \
   --admin-username "admin.coyote3" \
   --admin-email "admin@your-center.org" \
   --admin-password "<ADMIN_PASSWORD>" \
@@ -89,7 +89,7 @@ scripts/center_first_run.sh \
   --env-file .coyote3_env \
   --compose-file deploy/compose/docker-compose.yml \
   --with-mongo \
-  --api-base-url "http://localhost:5818" \
+  --api-base-url "http://localhost:5815" \
   --admin-username "admin.coyote3" \
   --admin-email "admin@coyote3.local" \
   --admin-password "Coyote3.Admin" \
