@@ -9,6 +9,7 @@ import { PageShell } from "@/components/layout/PageShell"
 import { ReportHtmlFrame } from "@/components/reports/ReportHtmlFrame"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { humanRelativeDate } from "@/lib/detail-formatters"
+import { sampleDetailPath } from "@/lib/sample-routing"
 import { sampleSubpanel } from "@/lib/sample-shape"
 
 type ReportType = "dna" | "rna"
@@ -139,7 +140,7 @@ export function ReportsPage() {
                   <button
                     key={String(sample._id)}
                     type="button"
-                    onClick={() => selectSample(String(sample._id))}
+                    onClick={() => selectSample(String(sample.name || sample.sample_name || sample._id))}
                     className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-primary/10"
                   >
                     <span className="min-w-0">
@@ -178,7 +179,7 @@ export function ReportsPage() {
         {sampleId && (
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="font-bold uppercase tracking-wide">Selected sample</span>
-            <Link to={`/samples/${sampleId}`} className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 font-semibold text-primary hover:bg-primary/15">
+            <Link to={sampleDetailPath(data?.sample, sampleId)} className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 font-semibold text-primary hover:bg-primary/15">
               {data?.sample?.name || sampleId}
             </Link>
           </div>

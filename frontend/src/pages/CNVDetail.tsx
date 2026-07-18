@@ -1,4 +1,5 @@
-import { Link, useParams } from "react-router-dom"
+import { useEffect } from "react"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
@@ -22,6 +23,7 @@ import {
   FindingLoading,
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
+import { sampleDetailPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
 
 function cnvRegion(cnv: any) {
   if (!cnv) return "-"
@@ -55,11 +57,18 @@ function structuralEvidenceMetrics(cnv: any) {
 
 export function CNVDetail() {
   const { id, varId } = useParams()
+  const navigate = useNavigate()
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['cnv', id, varId],
     queryFn: () => api.get(`/samples/${id}/cnvs/${varId}`).then(res => res.data)
   })
+  const routeSample = data?.sample
+  useEffect(() => {
+    if (routeSample?.name && id && varId && id !== routeSample.name) {
+      navigate(sampleFindingPath(routeSample, id, "cnv", varId), { replace: true })
+    }
+  }, [id, navigate, routeSample, routeSample?.name, varId])
 
   if (isLoading) {
     return <FindingLoading />
@@ -80,12 +89,13 @@ export function CNVDetail() {
   const region = cnvRegion(cnv)
   const type = String(cnv?.type || cnv?.cnv_type || "").toLowerCase()
   const callers = cnv?.callers || cnv?.INFO?.variant_callers
-  const sampleHref = `/samples/${sample?._id || id}`
+  const sampleRouteKey = sampleUrlKey(sample, id)
+  const sampleHref = sampleDetailPath(sample, id)
 
   return (
     <FindingDetailShell>
       <FindingHero
-        backTo={`/samples/${id}`}
+        backTo={sampleHref}
         title={primaryGenes.length > 0 ? primaryGenes.join(', ') : "Intergenic CNV"}
         chips={
           <>
@@ -98,7 +108,7 @@ export function CNVDetail() {
         }
         actions={
           <VariantActionButtons
-            sampleId={id!}
+            sampleId={sampleRouteKey}
             resourceType="cnv"
             variant={cnv}
             onUpdate={() => refetch()}
@@ -112,7 +122,7 @@ export function CNVDetail() {
         main={
           <>
             <CommentsPanel
-              sampleId={id!}
+              sampleId={sampleRouteKey}
               title="Add Comment Or Annotation"
               resourceType="cnv"
               resource={cnv}
@@ -127,7 +137,7 @@ export function CNVDetail() {
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <CommentsPanel
-                sampleId={id!}
+                sampleId={sampleRouteKey}
                 title="Sample-Specific CNV Comments"
                 resourceType="cnv"
                 resource={cnv}
@@ -136,7 +146,7 @@ export function CNVDetail() {
                 queryKeys={[["cnv", id, varId]]}
               />
               <CommentsPanel
-                sampleId={id!}
+                sampleId={sampleRouteKey}
                 title="Global CNV Annotations"
                 resourceType="cnv"
                 resource={cnv}
@@ -215,7 +225,7 @@ export function CNVDetail() {
                   : null,
               ].filter(Boolean) as any[]}
             />
-            
+
             <DetailCard title="Artefact Signatures" tone="info">
               <div className="space-y-2">
                 {Object.keys(cnv || {}).filter(k => k.startsWith('AFRQ_')).map(k => (

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { api } from "@/lib/api"
 import { ExpandableText } from "@/components/detail/ExpandableText"
@@ -11,6 +11,7 @@ import { AlertTriangle, ExternalLink } from "lucide-react"
 import { ConsequenceBadges, FilterFlagBadges, StatusBadges, TierBadge } from "@/lib/variant-ui"
 import { filterFlags, findingRowClass, statusLabels, tierValue } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
+import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
 
 const variantBulkActions: BulkActionOption[] = [
   { value: "tier_1", label: "Classify as Tier 1" },
@@ -52,9 +53,24 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
   const bulkAction = useBulkFindingAction(sampleId, "small_variant")
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(50)
+  const [searchText, setSearchText] = useState("")
+  const [debouncedSearchText, setDebouncedSearchText] = useState("")
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedSearchText(searchText.trim())
+    }, 250)
+    return () => window.clearTimeout(timeout)
+  }, [searchText])
   const { data, isLoading, error } = useQuery({
-    queryKey: ['sample-variants', sampleId, page, perPage],
-    queryFn: () => api.get(`/samples/${sampleId}/small-variants?page=${page}&per_page=${perPage}`).then(res => res.data),
+    queryKey: ['sample-variants', sampleId, page, perPage, debouncedSearchText],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        page: String(page),
+        per_page: String(perPage),
+      })
+      if (debouncedSearchText) params.set("q", debouncedSearchText)
+      return api.get(`/samples/${sampleId}/small-variants?${params.toString()}`).then(res => res.data)
+    },
     placeholderData: (previousData) => previousData,
   })
   const { data: filterFlagMetadata } = useQuery({
@@ -67,6 +83,9 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
   if (error) return <div className="text-destructive p-4 flex gap-2"><AlertTriangle /> Error loading variants</div>
 
   const variants = data?.display_sections_data?.snvs || []
+  const oncokbGeneMap = data?.oncokb_gene_map || {}
+  const oncokbActionableGeneMap = data?.oncokb_actionable_gene_map || {}
+  const clinpgxGeneMap = data?.clinpgx_gene_map || {}
   const variantCount = Number(data?.meta?.count ?? variants.length)
   const hasNext = Boolean(data?.meta?.has_next)
   const hasPrevious = Boolean(data?.meta?.has_previous)
@@ -80,16 +99,16 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
     {
       id: "select",
       header: ({ table }) => (
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate" as any)}
           onChange={table.getToggleAllPageRowsSelectedHandler()}
           className="table-checkbox"
         />
       ),
       cell: ({ row }) => (
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           checked={row.getIsSelected()}
           onChange={row.getToggleSelectedHandler()}
           className="table-checkbox"
@@ -102,13 +121,23 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
       id: "badges",
       header: "S",
       accessorFn: (row) => statusLabels(row),
-      meta: { exportValue: statusLabels, headerClassName: "w-14 min-w-14 max-w-14", cellClassName: "w-14 min-w-14 max-w-14" },
+      meta: { exportValue: statusLabels, headerClassName: "w-24 min-w-24 max-w-24", cellClassName: "w-24 min-w-24 max-w-24" },
       enableSorting: false,
-      size: 46,
-      minSize: 42,
-      maxSize: 56,
+      size: 88,
+      minSize: 82,
+      maxSize: 96,
       cell: ({ row }) => {
-        return <StatusBadges finding={row.original} />
+        const symbol = row.original.INFO?.selected_CSQ?.SYMBOL
+        return (
+          <StatusBadges
+            finding={row.original}
+            gene={symbol}
+            hasOncoKbCancerGene={Boolean(oncokbGeneMap?.[symbol])}
+            hasOncoKbActionable={Boolean(oncokbActionableGeneMap?.[symbol])}
+            hasClinPgxGene={Boolean(clinpgxGeneMap?.[symbol])}
+            clinPgxRecord={clinpgxGeneMap?.[symbol]}
+          />
+        )
       }
     },
     {
@@ -118,7 +147,19 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
       meta: { headerClassName: "w-20 min-w-20", cellClassName: "w-20 min-w-20" },
       cell: ({ row }) => {
         const csq = row.original.INFO?.selected_CSQ || {}
-        return <span className="font-bold text-primary hover:underline cursor-pointer">{csq.SYMBOL || "-"}</span>
+        const displayGene = csq.VEP_SYMBOL || csq.display_symbol || csq.SYMBOL
+        const resolvedGene = csq.SYMBOL
+        return (
+          <GeneWithOncoKbBadge
+            gene={resolvedGene}
+            displayGene={displayGene}
+            resolvedGene={resolvedGene}
+            hgncId={csq.HGNC_ID}
+            matchSource={csq.HGNC_MATCH_SOURCE}
+            showOncoKbBadge={false}
+            className="max-w-full"
+          />
+        )
       }
     },
     {
@@ -315,9 +356,9 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
 
   return (
     <div className="p-2">
-      <DataTable 
-        columns={columns} 
-        data={variants || []} 
+      <DataTable
+        columns={columns}
+        data={variants || []}
         rowLabel="variants"
         totalCount={variantCount}
         page={Number(data?.meta?.page ?? page)}
@@ -329,12 +370,18 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
           setPerPage(value)
           setPage(1)
         }}
-        filename={`variants_${sampleId}.csv`} 
+        searchValue={searchText}
+        onSearchChange={(value) => {
+          setSearchText(value)
+          setPage(1)
+        }}
+        searchPlaceholder="Search variants, genes, HGVS, flags..."
+        filename={`variants_${sampleId}.csv`}
         getRowClassName={findingRowClass}
         renderToolbar={(table) => (
           <>
-            <BulkActionDropdown 
-              selectedCount={Object.keys(table.getState().rowSelection).length} 
+            <BulkActionDropdown
+              selectedCount={Object.keys(table.getState().rowSelection).length}
               actions={variantBulkActions}
               isPending={bulkAction.isPending}
               onAction={(action) => bulkAction.mutateAsync({
@@ -346,7 +393,9 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
         )}
         renderExportButton={() => (
             <ServerCsvButton
-              endpoint={`/samples/${sampleId}/small-variants/exports/snvs/context`}
+              endpoint={`/samples/${sampleId}/small-variants/exports/snvs/context${
+                debouncedSearchText ? `?q=${encodeURIComponent(debouncedSearchText)}` : ""
+              }`}
               fallbackFilename={`${sampleId}.filtered.snvs.csv`}
               label="Export to CSV"
             />

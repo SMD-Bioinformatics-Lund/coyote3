@@ -107,7 +107,21 @@ export function TierBadge({ tier, className }: { tier: unknown; className?: stri
   )
 }
 
-export function StatusBadges({ finding }: { finding: any }) {
+export function StatusBadges({
+  finding,
+  gene,
+  hasOncoKbCancerGene = false,
+  hasOncoKbActionable = false,
+  hasClinPgxGene = false,
+  clinPgxRecord,
+}: {
+  finding: any
+  gene?: string
+  hasOncoKbCancerGene?: boolean
+  hasOncoKbActionable?: boolean
+  hasClinPgxGene?: boolean
+  clinPgxRecord?: any
+}) {
   const isFp = Boolean(finding?.fp)
   const isBlacklist = Boolean(finding?.blacklisted || (finding?.blacklist && finding?.override_blacklist !== true))
   const isIrrelevant = Boolean(finding?.irrelevant)
@@ -115,12 +129,55 @@ export function StatusBadges({ finding }: { finding: any }) {
   const hasComments = Array.isArray(finding?.comments) && finding.comments.length > 0
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-1">
       {isFp && <XCircle className="h-4 w-4 text-fail" aria-label="False positive" />}
       {isBlacklist && <Ban className="h-4 w-4 text-fail" aria-label="Blacklisted" />}
       {isIrrelevant && <XSquare className="h-4 w-4 text-warn" aria-label="Irrelevant" />}
       {isInteresting && <AlertCircle className="h-4 w-4 text-pass" aria-label="Interesting" />}
       {hasComments && <MessageSquare className="h-4 w-4 text-tier2" aria-label="Has comments" />}
+      {hasOncoKbCancerGene && (
+        <a
+          href={`https://www.oncokb.org/gene/${encodeURIComponent(gene || "")}`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex h-4 items-center rounded border border-tier3/35 bg-tier3/10 px-1 text-[8px] font-black leading-none text-tier3"
+          title="OncoKB public cancer gene"
+          aria-label="OncoKB public cancer gene"
+        >
+          OKB
+        </a>
+      )}
+      {hasOncoKbActionable && (
+        <span
+          className="inline-flex h-4 items-center rounded border border-tier1/35 bg-tier1/10 px-1 text-[8px] font-black leading-none text-tier1"
+          title="Historical local OncoKB actionable evidence with drug-level fields"
+          aria-label="Historical local OncoKB actionable evidence"
+        >
+          Rx
+        </span>
+      )}
+      {hasClinPgxGene && (
+        <a
+          href={
+            clinPgxRecord?.pharmgkb_accession_id
+              ? `https://api.clinpgx.org/v1/data/gene/${encodeURIComponent(clinPgxRecord.pharmgkb_accession_id)}`
+              : `https://api.clinpgx.org/v1/data/gene?symbol=${encodeURIComponent(gene || "")}&view=max`
+          }
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex h-4 items-center rounded border border-primary/35 bg-primary/10 px-1 text-[8px] font-black leading-none text-primary"
+          title={
+            clinPgxRecord?.has_cpic_dosing_guideline
+              ? "ClinPGx gene with CPIC dosing guideline"
+              : clinPgxRecord?.has_variant_annotation
+                ? "ClinPGx gene with variant annotation"
+                : "ClinPGx gene"
+          }
+          aria-label="ClinPGx gene"
+        >
+          PGx
+        </a>
+      )}
     </div>
   )
 }

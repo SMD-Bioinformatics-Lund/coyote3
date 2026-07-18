@@ -8,6 +8,7 @@ import { FileText, Activity, ArrowRight, Dna, Search as SearchIcon } from "lucid
 import { Input } from "@/components/ui/input"
 import { PageShell } from "@/components/layout/PageShell"
 import { fullDateTime, humanRelativeDate, shortCount } from "@/lib/detail-formatters"
+import { sampleDetailPath } from "@/lib/sample-routing"
 import { sampleReported, sampleSubpanel } from "@/lib/sample-shape"
 
 function countBadges(sample: any) {
@@ -23,7 +24,7 @@ function countBadges(sample: any) {
 
 export function Samples() {
   const [searchParams, setSearchParams] = useSearchParams()
-  
+
   // Extract filters from URL
   const category = searchParams.get("panel_type") || searchParams.get("category")
   const assay = searchParams.get("assay")
@@ -33,7 +34,7 @@ export function Samples() {
   const searchStr = searchParams.get("search_str") || ""
 
   const [searchInput, setSearchInput] = useState(searchStr)
-  
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['samples', category, panelTech, assay, group, profileScope, searchStr],
     queryFn: () => {
@@ -44,7 +45,7 @@ export function Samples() {
       if (group) params.set("assay_group", group)
       params.set("profile_scope", profileScope)
       if (searchStr) params.set("search_str", searchStr)
-      
+
       return api.get(`/samples?${params.toString()}`).then(res => res.data)
     }
   })
@@ -104,7 +105,7 @@ export function Samples() {
                 All profiles
               </button>
             </div>
-            <form 
+            <form
               onSubmit={(e) => {
                 e.preventDefault()
                 const newParams = new URLSearchParams(searchParams)
@@ -116,9 +117,9 @@ export function Samples() {
             >
               <div className="relative">
                 <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  type="text" 
-                  placeholder="Search by Case ID..." 
+                <Input
+                  type="text"
+                  placeholder="Search by Case ID..."
                   className="w-[250px] rounded-xl border-border bg-card pl-9 shadow-sm focus-visible:ring-primary lg:w-[350px]"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
@@ -176,7 +177,7 @@ export function Samples() {
                   samples.map((sample: any) => (
                     <tr key={sample._id} className="hover:bg-primary/5 transition-colors border-b border-border/20 last:border-0 group">
                       <td className="border-r border-border/55 px-3 py-2 font-bold text-primary">
-                        <Link to={`/samples/${sample._id}`} className="hover:underline flex items-center gap-2">
+                        <Link to={sampleDetailPath(sample)} className="hover:underline flex items-center gap-2">
                           <div className="bg-primary/10 p-1.5 rounded-lg text-primary shadow-sm transition-colors duration-100 group-hover:bg-primary/15">
                             <FileText className="h-4 w-4" />
                           </div>
@@ -195,10 +196,10 @@ export function Samples() {
                       <td className="border-r border-border/55 px-3 py-2 font-semibold">{sample.assay || "-"}</td>
                       <td className="border-r border-border/55 px-3 py-2 text-muted-foreground font-medium">{sampleSubpanel(sample) || "-"}</td>
                       <td className="border-r border-border/55 px-3 py-2">
-                        <Badge 
+                        <Badge
                           className={
-                            sample.ingest_status === "ready" 
-                              ? "border-pass/30 bg-pass/15 text-pass hover:bg-pass/20 font-bold" 
+                            sample.ingest_status === "ready"
+                              ? "border-pass/30 bg-pass/15 text-pass hover:bg-pass/20 font-bold"
                               : "border-warn/30 bg-warn/15 text-warn hover:bg-warn/20 font-bold"
                           }
                         >
@@ -229,7 +230,7 @@ export function Samples() {
                         {humanRelativeDate(sample.time_added)}
                       </td>
                       <td className="px-3 py-2 text-center">
-                        <Link to={`/samples/${sample._id}`}>
+                        <Link to={sampleDetailPath(sample)}>
                           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary hover:text-primary-foreground shadow-sm">
                             <ArrowRight className="h-4 w-4" />
                           </Button>
@@ -241,7 +242,7 @@ export function Samples() {
               </tbody>
             </table>
           </div>
-          
+
           {samples.length > 0 && (
             <div className="border-t border-border/50 p-4 flex items-center justify-between text-xs font-semibold text-muted-foreground bg-muted/20">
               <div>

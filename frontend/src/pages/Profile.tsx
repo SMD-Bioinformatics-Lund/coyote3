@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { Activity, KeyRound, User } from "lucide-react"
+import { Activity, BadgeCheck, Dna, KeyRound, Mail, ShieldCheck, User } from "lucide-react"
 import { api } from "@/lib/api"
 import { PageShell } from "@/components/layout/PageShell"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
@@ -37,6 +37,12 @@ export function Profile() {
   const assignedRoles = Array.isArray(user.roles) && user.roles.length
     ? user.roles
     : (user.role || user.primary_role ? [user.role || user.primary_role] : [])
+  const authTypes = Array.isArray(user.auth_type) ? user.auth_type : (user.auth_type ? [user.auth_type] : [])
+  const canChangePassword = authTypes.includes("local")
+  const permissions = Array.isArray(user.permissions) ? user.permissions : []
+  const environments = Array.isArray(user.environments) ? user.environments : []
+  const assays = Array.isArray(user.assays) ? user.assays : []
+  const assayGroups = Array.isArray(user.assay_groups) ? user.assay_groups : []
 
   return (
     <PageShell
@@ -51,35 +57,52 @@ export function Profile() {
           {error instanceof Error ? error.message : "Unable to load profile"}
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[1fr_26rem]">
+        <div className="grid gap-4 xl:grid-cols-[1fr_28rem]">
           <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <div className="mb-4 flex items-center gap-3">
               <div className="rounded-xl bg-primary/10 p-3 text-primary">
                 <User className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-xl font-bold">{data?.user?.username || "Current user"}</h2>
-                <p className="text-sm text-muted-foreground">{effectiveRole}</p>
+                <h2 className="text-xl font-bold">{data?.user?.fullname || data?.user?.username || "Current user"}</h2>
+                <p className="text-sm text-muted-foreground">{data?.user?.job_title || effectiveRole}</p>
               </div>
             </div>
-            <dl className="grid gap-3 rounded-lg border border-border bg-muted/20 p-3 text-sm sm:grid-cols-2">
+            <dl className="grid gap-3 rounded-lg border border-border bg-muted/20 p-3 text-sm sm:grid-cols-2 xl:grid-cols-3">
               <div>
                 <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Username</dt>
                 <dd className="mt-1 font-semibold">{data?.user?.username || data?.user?._id || "-"}</dd>
               </div>
               <div>
                 <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email</dt>
-                <dd className="mt-1 font-semibold">{data?.user?.email || "-"}</dd>
+                <dd className="mt-1 font-semibold">
+                  {data?.user?.email ? (
+                    <a className="inline-flex items-center gap-1 text-primary hover:underline" href={`mailto:${data.user.email}`}>
+                      <Mail className="h-3.5 w-3.5" />
+                      {data.user.email}
+                    </a>
+                  ) : "-"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Name</dt>
+                <dd className="mt-1 font-semibold">{data?.user?.firstname || data?.user?.lastname ? `${data?.user?.firstname || ""} ${data?.user?.lastname || ""}`.trim() : "-"}</dd>
               </div>
               <div>
                 <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Highest role</dt>
-                <dd className="mt-1 font-semibold">{effectiveRole}</dd>
+                <dd className="mt-1"><RoleChip role={effectiveRole} /></dd>
               </div>
               <div>
                 <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Access level</dt>
                 <dd className="mt-1 font-semibold">{data?.user?.access_level ?? "-"}</dd>
               </div>
-              <div className="sm:col-span-2">
+              <div>
+                <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Authentication</dt>
+                <dd className="mt-2 flex flex-wrap gap-1">
+                  {authTypes.length ? authTypes.map((auth: string) => <AuthChip key={auth} value={auth} />) : "-"}
+                </dd>
+              </div>
+              <div className="sm:col-span-2 xl:col-span-3">
                 <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Assigned roles</dt>
                 <dd className="mt-2 flex flex-wrap gap-2">
                   {assignedRoles.length ? assignedRoles.map((role: string) => (
@@ -88,7 +111,7 @@ export function Profile() {
                       className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1 text-xs font-semibold"
                     >
                       <input type="checkbox" checked readOnly className="h-3.5 w-3.5 accent-primary" />
-                      {role}
+                      <RoleChip role={role} />
                     </label>
                   )) : (
                     <span className="text-sm text-muted-foreground">No roles assigned</span>
@@ -96,6 +119,25 @@ export function Profile() {
                 </dd>
               </div>
             </dl>
+            <div className="mt-4 grid gap-3 lg:grid-cols-3">
+              <ScopeCard title="Profiles" icon={BadgeCheck} values={environments} empty="No profile scope" />
+              <ScopeCard title="Assays" icon={Dna} values={assays} empty="No assay scope" />
+              <ScopeCard title="Assay groups" icon={ShieldCheck} values={assayGroups} empty="No assay group scope" />
+            </div>
+            <section className="mt-4 rounded-lg border border-border bg-background/70 p-3">
+              <h3 className="mb-2 text-xs font-black uppercase tracking-wide text-muted-foreground">Effective permissions</h3>
+              {permissions.length ? (
+                <div className="flex max-h-48 flex-wrap gap-1.5 overflow-auto pr-1">
+                  {permissions.map((permission: string) => (
+                    <span key={permission} className="rounded-md border border-border bg-muted/40 px-2 py-1 text-[11px] font-semibold text-muted-foreground" title={permission}>
+                      {permission.split(":").slice(0, 2).join(":")}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Permissions are inherited from assigned roles.</p>
+              )}
+            </section>
           </section>
 
           <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
@@ -104,12 +146,18 @@ export function Profile() {
               <h2 className="font-bold">Change Password</h2>
             </div>
             <div className="space-y-3">
+              {!canChangePassword && (
+                <div className="rounded-lg border border-warn/35 bg-warn/10 p-3 text-xs font-semibold text-warn">
+                  This account is not configured for local password changes. LDAP-only accounts are managed by the center identity provider.
+                </div>
+              )}
               <label className="block text-sm font-semibold">
                 Current password
                 <input
                   type="password"
                   value={currentPassword}
                   onChange={(event) => setCurrentPassword(event.target.value)}
+                  disabled={!canChangePassword}
                   className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                 />
               </label>
@@ -119,12 +167,13 @@ export function Profile() {
                   type="password"
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
+                  disabled={!canChangePassword}
                   className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                 />
               </label>
               <button
                 onClick={() => changePassword.mutate()}
-                disabled={!currentPassword || !newPassword || changePassword.isPending}
+                disabled={!canChangePassword || !currentPassword || !newPassword || changePassword.isPending}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50"
               >
                 {changePassword.isPending && <Activity className="h-4 w-4 animate-spin" />}
@@ -136,5 +185,36 @@ export function Profile() {
         </div>
       )}
     </PageShell>
+  )
+}
+
+function RoleChip({ role }: { role: string }) {
+  return <span className="rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-black uppercase text-primary">{role}</span>
+}
+
+function AuthChip({ value }: { value: string }) {
+  const isLocal = value === "local"
+  return (
+    <span className={isLocal ? "rounded-full border border-tier3/30 bg-tier3/10 px-2 py-0.5 text-[11px] font-black uppercase text-tier3" : "rounded-full border border-pass/30 bg-pass/10 px-2 py-0.5 text-[11px] font-black uppercase text-pass"}>
+      {value}
+    </span>
+  )
+}
+
+function ScopeCard({ title, icon: Icon, values, empty }: { title: string; icon: any; values: string[]; empty: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-background/70 p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <Icon className="h-4 w-4 text-primary" />
+        <h3 className="text-xs font-black uppercase tracking-wide text-muted-foreground">{title}</h3>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {values.length ? values.map((value) => (
+          <span key={value} className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-bold uppercase text-muted-foreground">
+            {value}
+          </span>
+        )) : <span className="text-xs text-muted-foreground">{empty}</span>}
+      </div>
+    </div>
   )
 }

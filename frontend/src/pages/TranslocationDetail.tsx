@@ -1,4 +1,5 @@
-import { Link, useParams } from "react-router-dom"
+import { useEffect } from "react"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
@@ -23,6 +24,7 @@ import {
   FindingLoading,
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
+import { sampleDetailPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
 
 function translatedConsequence(annotation: any, translations: Record<string, any> = {}) {
   const raw = annotation?.Annotation || annotation?.Consequence
@@ -44,11 +46,18 @@ function genotypeRows(translocation: any) {
 
 export function TranslocationDetail() {
   const { id, varId } = useParams()
+  const navigate = useNavigate()
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['translocation', id, varId],
     queryFn: () => api.get(`/samples/${id}/translocations/${varId}`).then(res => res.data)
   })
+  const routeSample = data?.sample
+  useEffect(() => {
+    if (routeSample?.name && id && varId && id !== routeSample.name) {
+      navigate(sampleFindingPath(routeSample, id, "translocation", varId), { replace: true })
+    }
+  }, [id, navigate, routeSample, routeSample?.name, varId])
 
   if (isLoading) {
     return <FindingLoading />
@@ -71,12 +80,13 @@ export function TranslocationDetail() {
   const annRows = Array.isArray(translocation?.INFO?.ANN) ? translocation.INFO.ANN : []
   const position = translocationPositionLabel(translocation)
   const callers = translocation?.INFO?.variant_callers || translocation?.callers
-  const sampleHref = `/samples/${sample?._id || id}`
+  const sampleRouteKey = sampleUrlKey(sample, id)
+  const sampleHref = sampleDetailPath(sample, id)
 
   return (
     <FindingDetailShell>
       <FindingHero
-        backTo={`/samples/${id}`}
+        backTo={sampleHref}
         title={genes.length > 0 ? genes.join(" - ") : "Unknown Translocation"}
         chips={
           <>
@@ -90,7 +100,7 @@ export function TranslocationDetail() {
         }
         actions={
           <VariantActionButtons
-            sampleId={id!}
+            sampleId={sampleRouteKey}
             resourceType="translocation"
             variant={translocation}
             onUpdate={() => refetch()}
@@ -102,7 +112,7 @@ export function TranslocationDetail() {
         main={
           <>
             <CommentsPanel
-              sampleId={id!}
+              sampleId={sampleRouteKey}
               title="Add Comment Or Annotation"
               resourceType="translocation"
               resource={translocation}
@@ -117,7 +127,7 @@ export function TranslocationDetail() {
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <CommentsPanel
-                sampleId={id!}
+                sampleId={sampleRouteKey}
                 title="Sample-Specific Translocation Comments"
                 resourceType="translocation"
                 resource={translocation}
@@ -126,7 +136,7 @@ export function TranslocationDetail() {
                 queryKeys={[["translocation", id, varId]]}
               />
               <CommentsPanel
-                sampleId={id!}
+                sampleId={sampleRouteKey}
                 title="Global Translocation Annotations"
                 resourceType="translocation"
                 resource={translocation}

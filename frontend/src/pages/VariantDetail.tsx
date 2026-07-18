@@ -1,5 +1,6 @@
-import { Link, useParams } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
+import { useEffect } from "react"
+import { Link, useNavigate, useParams } from "react-router-dom"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
@@ -13,6 +14,7 @@ import {
   ExternalLinksCard,
 } from "@/components/detail/DetailEvidenceCards"
 import { displayValue, isPresent, percentValue } from "@/lib/detail-formatters"
+import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
 import {
   DetailCard,
   DetailField,
@@ -23,6 +25,9 @@ import {
   FindingLoading,
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
+import { Button } from "@/components/ui/button"
+import { notifyActionError } from "@/lib/notifications"
+import { sampleDetailPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
 
 function variantLocation(variant: any) {
   if (!variant) return "-"
@@ -47,6 +52,136 @@ function compactObjectSummary(value: any) {
     return `${Object.keys(value).length} field(s)`
   }
   return displayValue(value)
+}
+
+function oncokbApiSummary(payload: any) {
+  const response = payload?.response || {}
+  const query = payload?.query || response?.query || {}
+  const mutationEffect = response?.mutationEffect || {}
+  return [
+    { label: "Status", value: payload?.status || "-" },
+    { label: "HGVSg", value: query?.hgvsg || query?.hgvs || "-", monospace: true },
+    { label: "Gene", value: response?.query?.hugoSymbol || query?.gene?.hugoSymbol || query?.hugoSymbol || "-" },
+    { label: "Alteration", value: response?.query?.alteration || query?.alteration || "-" },
+    { label: "Data version", value: response?.dataVersion || "-" },
+    { label: "Gene exists", value: response?.geneExist == null ? "-" : String(Boolean(response.geneExist)) },
+    { label: "Variant exists", value: response?.variantExist == null ? (response?.alleleExist == null ? "-" : String(Boolean(response.alleleExist))) : String(Boolean(response.variantExist)) },
+    { label: "Oncogenic", value: response?.oncogenic || "-" },
+    { label: "Mutation effect", value: mutationEffect?.knownEffect || mutationEffect?.description || "-" },
+    { label: "Diagnostic level", value: response?.highestDiagnosticImplicationLevel || "-" },
+    { label: "Prognostic level", value: response?.highestPrognosticImplicationLevel || "-" },
+    { label: "Gene summary", value: response?.geneSummary || "-" },
+    { label: "Variant summary", value: response?.variantSummary || "-" },
+  ]
+}
+
+function oncokbPublicGeneMetrics(record: any) {
+  if (!record) return []
+  const cancerGene = record.public_cancer_gene || record
+  const geneSummary = record.public_gene_summary || record
+  return [
+    { label: "Public cancer gene", value: record.public_cancer_gene || record.oncokb_annotated != null ? "Yes" : "-" },
+    { label: "Gene type", value: cancerGene.gene_type || geneSummary.gene_type },
+    { label: "Entrez", value: cancerGene.entrez_gene_id || geneSummary.entrez_gene_id, monospace: true },
+    { label: "Setting", value: geneSummary.setting },
+    { label: "Sensitive level", value: geneSummary.highest_sensitive_level || "-" },
+    { label: "Resistance level", value: geneSummary.highest_resistance_level || "-" },
+    { label: "GRCh38 RefSeq", value: geneSummary.grch38_refseq || cancerGene.grch38_refseq, monospace: true },
+  ]
+}
+
+function oncokbActionRows(value: any) {
+  if (!value) return []
+  return Array.isArray(value) ? value : [value]
+}
+
+function clinpgxGeneMetrics(record: any) {
+  if (!record) return []
+  return [
+    { label: "ClinPGx ID", value: record.pharmgkb_accession_id, monospace: true },
+    { label: "HGNC", value: record.hgnc_id, monospace: true },
+    { label: "VIP", value: record.is_vip == null ? "-" : String(Boolean(record.is_vip)) },
+    {
+      label: "Variant annotation",
+      value: record.has_variant_annotation == null ? "-" : String(Boolean(record.has_variant_annotation)),
+    },
+    {
+      label: "CPIC dosing guideline",
+      value: record.has_cpic_dosing_guideline == null ? "-" : String(Boolean(record.has_cpic_dosing_guideline)),
+    },
+  ]
+}
+
+function clinpgxApiSummary(payload: any) {
+  const response = payload?.response || {}
+  const gene = response?.gene || response || {}
+  const counts = response?.counts || {}
+  const flags = response?.flags || {}
+  return [
+    { label: "Status", value: payload?.status || "-" },
+    { label: "ClinPGx ID", value: response?.clinpgx_id || gene?.id || payload?.query?.clinpgx_id || "-", monospace: true },
+    { label: "Symbol", value: response?.symbol || gene?.symbol || payload?.query?.symbol || "-" },
+    { label: "Name", value: response?.name || gene?.name || payload?.local_record?.name || "-" },
+    { label: "VIP tier", value: flags?.vip_tier || response?.vip?.tier || "-" },
+    { label: "CPIC gene", value: flags?.cpic_gene == null ? "-" : String(Boolean(flags.cpic_gene)) },
+    { label: "Guidelines", value: counts?.guideline_annotations },
+    { label: "Labels", value: counts?.label_annotations },
+    { label: "Variant annotations", value: counts?.variant_annotations },
+    { label: "Connected drugs", value: counts?.connected_chemicals },
+    { label: "Pathways", value: counts?.pathways },
+  ]
+}
+
+function KnowledgeBlock({ title, badges, defaultOpen = false, children }: { title: string; badges?: any; defaultOpen?: boolean; children: any }) {
+  return (
+    <details open={defaultOpen} className="group rounded-lg border border-border bg-background/70">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2">
+        <span className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="text-xs font-black uppercase tracking-wide text-muted-foreground">{title}</span>
+          {badges}
+        </span>
+        <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground group-open:hidden">Expand</span>
+        <span className="hidden rounded-md bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground group-open:inline">Collapse</span>
+      </summary>
+      <div className="border-t border-border px-3 py-3">
+        {children}
+      </div>
+    </details>
+  )
+}
+
+function clinpgxEvidenceRows(payload: any, key: string) {
+  const response = payload?.response || {}
+  return Array.isArray(response?.[key]) ? response[key] : []
+}
+
+function clinpgxEvidenceColumns(kind: "annotation" | "object") {
+  if (kind === "object") {
+    return [
+      { key: "name", header: "Name", render: (row: any) => <span className="font-semibold">{row.name || "-"}</span> },
+      { key: "type", header: "Type", render: (row: any) => row.type || "-" },
+      {
+        key: "connections",
+        header: "Connections",
+        render: (row: any) => (Array.isArray(row.connection_types) && row.connection_types.length ? row.connection_types.join(", ") : "-"),
+      },
+    ]
+  }
+  return [
+    { key: "name", header: "Annotation", render: (row: any) => <span className="font-semibold">{row.name || row.id || "-"}</span> },
+    { key: "type", header: "Type", render: (row: any) => row.type || "-" },
+    {
+      key: "summary",
+      header: "Summary",
+      render: (row: any) => (
+        <ExpandableText
+          text={row.sentence || row.description || row.significance || "-"}
+          maxLength={96}
+          className="max-w-xl text-xs leading-5 text-muted-foreground"
+        />
+      ),
+    },
+  ]
 }
 
 function ponRows(value: any) {
@@ -85,6 +220,7 @@ function externalLinks(variant: any, csq: any, data: any) {
 
 export function VariantDetail() {
   const { id, varId } = useParams()
+  const navigate = useNavigate()
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['variant', id, varId],
@@ -95,6 +231,20 @@ export function VariantDetail() {
     queryFn: () => api.get("/public/filter-flags/metadata").then(res => res.data),
     staleTime: 10 * 60 * 1000,
   })
+  const oncokbPublic = useMutation({
+    mutationFn: () => api.get(`/samples/${id}/small-variants/${varId}/oncokb-public`).then(res => res.data),
+    onError: (err) => notifyActionError("Unable to load public OncoKB annotation", err, "OncoKB API"),
+  })
+  const clinpgxPublic = useMutation({
+    mutationFn: () => api.get(`/samples/${id}/small-variants/${varId}/clinpgx-public`).then(res => res.data),
+    onError: (err) => notifyActionError("Unable to load public ClinPGx gene context", err, "ClinPGx API"),
+  })
+  const routeSample = data?.sample
+  useEffect(() => {
+    if (routeSample?.name && id && varId && id !== routeSample.name) {
+      navigate(sampleFindingPath(routeSample, id, "variant", varId), { replace: true })
+    }
+  }, [id, navigate, routeSample, routeSample?.name, varId])
 
   if (isLoading) {
     return <FindingLoading />
@@ -111,18 +261,33 @@ export function VariantDetail() {
   }
 
   const { variant, sample, latest_classification } = data
+  const sampleRouteKey = sampleUrlKey(sample, id)
+  const sampleHref = sampleDetailPath(sample, id)
   const csq = variant?.INFO?.selected_CSQ || {}
+  const displayGene = csq.VEP_SYMBOL || csq.display_symbol || csq.SYMBOL
+  const resolvedGene = csq.SYMBOL
   const transcripts = Array.isArray(variant?.INFO?.CSQ) ? variant.INFO.CSQ : []
   const callers = variant?.INFO?.variant_callers || variant?.callers || []
-  const sampleHref = `/samples/${sample?._id || id}`
 
   const titleVariantId = csq.HGVSp && csq.HGVSp !== "-" ? csq.HGVSp : (csq.HGVSc || variant?.ALT?.[0] || "")
 
   return (
     <FindingDetailShell>
       <FindingHero
-        backTo={`/samples/${id}`}
-        title={csq.SYMBOL || "Unknown Gene"}
+        backTo={sampleHref}
+        title={
+          <span className="inline-flex items-center gap-2">
+            <GeneWithOncoKbBadge
+              gene={resolvedGene}
+              displayGene={displayGene}
+              resolvedGene={resolvedGene}
+              hgncId={csq.HGNC_ID}
+              matchSource={csq.HGNC_MATCH_SOURCE}
+              record={data.oncokb_gene}
+              showOncoKbBadge={false}
+            />
+          </span>
+        }
         subtitle={
           <div className="space-y-2">
             <span className="block text-xl font-bold text-muted-foreground">
@@ -141,7 +306,7 @@ export function VariantDetail() {
         }
         actions={
           <VariantActionButtons
-            sampleId={id!}
+            sampleId={sampleRouteKey}
             resourceType="small_variant"
             variant={variant}
             onUpdate={() => refetch()}
@@ -157,7 +322,17 @@ export function VariantDetail() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <DetailCard title="Variant Identity">
                 <DetailFieldGrid>
-                  <DetailField label="Gene">{csq.SYMBOL}</DetailField>
+                  <DetailField label="Gene">
+                    <GeneWithOncoKbBadge
+                      gene={resolvedGene}
+                      displayGene={displayGene}
+                      resolvedGene={resolvedGene}
+                      hgncId={csq.HGNC_ID}
+                      matchSource={csq.HGNC_MATCH_SOURCE}
+                      record={data.oncokb_gene}
+                      showOncoKbBadge={false}
+                    />
+                  </DetailField>
                   <DetailField label="Canonical transcript" valueClassName="font-mono text-primary/80">{csq.Feature}</DetailField>
                   <DetailField label="Consequence">
                     <ConsequenceBadges value={csq.Consequence} translations={data.vep_conseq_translations} />
@@ -200,7 +375,7 @@ export function VariantDetail() {
             </div>
 
             <CommentsPanel
-              sampleId={id!}
+              sampleId={sampleRouteKey}
               title="Add Comment Or Annotation"
               resourceType="small_variant"
               resource={variant}
@@ -215,7 +390,7 @@ export function VariantDetail() {
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <CommentsPanel
-                sampleId={id!}
+                sampleId={sampleRouteKey}
                 title="Sample-Specific Variant Comments"
                 resourceType="small_variant"
                 resource={variant}
@@ -224,7 +399,7 @@ export function VariantDetail() {
                 queryKeys={[["variant", id, varId]]}
               />
               <CommentsPanel
-                sampleId={id!}
+                sampleId={sampleRouteKey}
                 title="Global Variant Annotations"
                 resourceType="small_variant"
                 resource={variant}
@@ -307,18 +482,177 @@ export function VariantDetail() {
             </DetailCard>
 
             <DetailCard title="Knowledge Bases" tone="success">
-              <DetailMetricTable
-                metrics={[
-                  { label: "CIViC variant", value: compactObjectSummary(data.civic) },
-                  { label: "CIViC gene", value: compactObjectSummary(data.civic_gene) },
-                  { label: "OncoKB variant", value: compactObjectSummary(data.oncokb) },
-                  { label: "OncoKB action", value: compactObjectSummary(data.oncokb_action) },
-                  { label: "OncoKB gene", value: compactObjectSummary(data.oncokb_gene) },
-                  { label: "BRCA Exchange", value: compactObjectSummary(data.brca_exchange) },
-                  { label: "IARC TP53", value: compactObjectSummary(data.iarc_tp53) },
-                ]}
-                dense
-              />
+              <div className="space-y-2">
+                <KnowledgeBlock title="Clinical knowledgebase summary" defaultOpen>
+                  <DetailMetricTable
+                    metrics={[
+                      { label: "CIViC variant", value: compactObjectSummary(data.civic) },
+                      { label: "CIViC gene", value: compactObjectSummary(data.civic_gene) },
+                      { label: "BRCA Exchange", value: compactObjectSummary(data.brca_exchange) },
+                      { label: "IARC TP53", value: compactObjectSummary(data.iarc_tp53) },
+                    ]}
+                    dense
+                  />
+                </KnowledgeBlock>
+
+                <KnowledgeBlock
+                  title="OncoKB public cache"
+                  badges={
+                    <>
+                      {data.oncokb_gene?.public_cancer_gene || data.oncokb_gene?.oncokb_annotated != null ? (
+                        <EvidenceBadge tone="info">Cancer gene</EvidenceBadge>
+                      ) : null}
+                      {data.oncokb_gene?.gene_summary || data.oncokb_gene?.background ? (
+                        <EvidenceBadge tone="success">Curated gene</EvidenceBadge>
+                      ) : null}
+                    </>
+                  }
+                >
+                  <DetailMetricTable metrics={oncokbPublicGeneMetrics(data.oncokb_gene)} dense />
+                  {data.oncokb_gene?.gene_summary ? (
+                    <div className="mt-2 rounded-lg border border-border/70 bg-card/60 p-3">
+                      <p className="text-[11px] font-black uppercase tracking-wide text-muted-foreground">Gene summary</p>
+                      <p className="mt-1 text-sm leading-relaxed text-foreground">{data.oncokb_gene.gene_summary}</p>
+                    </div>
+                  ) : null}
+                  {data.oncokb_gene?.background ? (
+                    <div className="mt-2 rounded-lg border border-border/70 bg-card/60 p-3">
+                      <p className="text-[11px] font-black uppercase tracking-wide text-muted-foreground">Background</p>
+                      <p className="mt-1 text-sm leading-relaxed text-foreground">{data.oncokb_gene.background}</p>
+                    </div>
+                  ) : null}
+                </KnowledgeBlock>
+
+                <KnowledgeBlock
+                  title="Local actionable evidence"
+                  badges={oncokbActionRows(data.oncokb_action).length ? <EvidenceBadge tone="warning">Historical local</EvidenceBadge> : null}
+                >
+                  <DetailDataTable
+                    rows={oncokbActionRows(data.oncokb_action)}
+                    empty="No local OncoKB actionable evidence for this variant."
+                    columns={[
+                      { key: "alteration", header: "Alteration", render: (row: any) => row.Alteration || row["Protein Change"] || "-" },
+                      { key: "level", header: "Level", render: (row: any) => row.Level || "-" },
+                      { key: "drug", header: "Drug", render: (row: any) => row["Drugs(s)"] || "-" },
+                      { key: "cancer", header: "Cancer type", render: (row: any) => row["Cancer Type"] || "-" },
+                    ]}
+                  />
+                </KnowledgeBlock>
+
+                <KnowledgeBlock title="OncoKB API">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[11px] text-muted-foreground">
+                      Public API lookup. Therapeutic data is excluded by public OncoKB access.
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={oncokbPublic.isPending}
+                      onClick={() => oncokbPublic.mutate()}
+                    >
+                      {oncokbPublic.isPending ? "Loading..." : "Fetch public OncoKB"}
+                    </Button>
+                  </div>
+                  {oncokbPublic.data ? (
+                    <div className="mt-3">
+                      <DetailMetricTable metrics={oncokbApiSummary(oncokbPublic.data)} dense />
+                      <p className="mt-2 text-[11px] text-muted-foreground">
+                        Query: {oncokbPublic.data.query?.hgvsg || `${oncokbPublic.data.query?.gene?.hugoSymbol || ""} ${oncokbPublic.data.query?.alteration || ""}`.trim() || "-"} ({oncokbPublic.data.query?.referenceGenome || "-"})
+                      </p>
+                    </div>
+                  ) : null}
+                </KnowledgeBlock>
+
+                <KnowledgeBlock
+                  title="ClinPGx"
+                  badges={
+                    <>
+                      {data.clinpgx_gene?.is_vip ? <EvidenceBadge tone="warning">VIP</EvidenceBadge> : null}
+                      {data.clinpgx_gene?.has_variant_annotation ? <EvidenceBadge tone="info">Variant annotation</EvidenceBadge> : null}
+                      {data.clinpgx_gene?.has_cpic_dosing_guideline ? <EvidenceBadge tone="success">CPIC guideline</EvidenceBadge> : null}
+                    </>
+                  }
+                >
+                  <DetailMetricTable metrics={clinpgxGeneMetrics(data.clinpgx_gene)} dense />
+                  {data.clinpgx_gene?.alternate_symbols?.length ? (
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      Alternate symbols: {data.clinpgx_gene.alternate_symbols.join(", ")}
+                    </p>
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-card/60 p-3">
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      Public API lookup for PGx guidelines, labels, variant annotations, drugs, and pathways.
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={clinpgxPublic.isPending}
+                      onClick={() => clinpgxPublic.mutate()}
+                    >
+                      {clinpgxPublic.isPending ? "Loading..." : "Fetch ClinPGx"}
+                    </Button>
+                  </div>
+
+                  {clinpgxPublic.data ? (
+                    <div className="mt-3 space-y-3">
+                      <DetailMetricTable metrics={clinpgxApiSummary(clinpgxPublic.data)} dense />
+                      {clinpgxPublic.data.response?.vip?.summary ? (
+                        <div className="rounded-lg border border-border/70 bg-card/60 p-3">
+                          <p className="text-[11px] font-black uppercase tracking-wide text-muted-foreground">VIP summary</p>
+                          <p className="mt-1 text-sm leading-relaxed text-foreground">{clinpgxPublic.data.response.vip.summary}</p>
+                        </div>
+                      ) : null}
+                      <div className="grid gap-3 xl:grid-cols-2">
+                        <div>
+                          <h5 className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-muted-foreground">Guidelines</h5>
+                          <DetailDataTable
+                            rows={clinpgxEvidenceRows(clinpgxPublic.data, "guidelines")}
+                            columns={clinpgxEvidenceColumns("annotation")}
+                            empty="No guideline annotations returned by ClinPGx."
+                          />
+                        </div>
+                        <div>
+                          <h5 className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-muted-foreground">Drug labels</h5>
+                          <DetailDataTable
+                            rows={clinpgxEvidenceRows(clinpgxPublic.data, "labels")}
+                            columns={clinpgxEvidenceColumns("annotation")}
+                            empty="No drug-label annotations returned by ClinPGx."
+                          />
+                        </div>
+                        <div>
+                          <h5 className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-muted-foreground">Top connected drugs</h5>
+                          <DetailDataTable
+                            rows={clinpgxEvidenceRows(clinpgxPublic.data, "top_chemicals")}
+                            columns={clinpgxEvidenceColumns("object")}
+                            empty="No connected drugs returned by ClinPGx."
+                          />
+                        </div>
+                        <div>
+                          <h5 className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-muted-foreground">Pathways</h5>
+                          <DetailDataTable
+                            rows={clinpgxEvidenceRows(clinpgxPublic.data, "pathways")}
+                            columns={clinpgxEvidenceColumns("object")}
+                            empty="No pathways returned by ClinPGx."
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <h5 className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-muted-foreground">Variant annotation examples</h5>
+                        <DetailDataTable
+                          rows={clinpgxEvidenceRows(clinpgxPublic.data, "variant_annotations")}
+                          columns={clinpgxEvidenceColumns("annotation")}
+                          empty="No variant annotations returned by ClinPGx."
+                        />
+                      </div>
+                      <p className="mt-2 text-[11px] text-muted-foreground">
+                        Query: {clinpgxPublic.data.query?.clinpgx_id || clinpgxPublic.data.query?.symbol || "-"}
+                      </p>
+                    </div>
+                  ) : null}
+                </KnowledgeBlock>
+              </div>
             </DetailCard>
           </>
         }
@@ -327,7 +661,7 @@ export function VariantDetail() {
             <ClassificationsCard
               latest={latest_classification}
               other={data.other_classifications || variant?.additional_classifications || []}
-              sampleId={id}
+              sampleId={sampleRouteKey}
               resourceType="small_variant"
               resourceId={String(variant?._id || "")}
               onUpdate={() => refetch()}

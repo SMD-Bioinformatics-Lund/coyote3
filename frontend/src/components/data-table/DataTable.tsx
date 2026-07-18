@@ -28,6 +28,9 @@ interface DataTableProps<TData, TValue> {
   renderExportButton?: (table: any) => ReactNode
   hideExport?: boolean
   hideSearch?: boolean
+  searchValue?: string
+  onSearchChange?: (value: string) => void
+  searchPlaceholder?: string
   getRowClassName?: (row: TData) => string
 }
 
@@ -49,12 +52,17 @@ export function DataTable<TData, TValue>({
   renderExportButton,
   hideExport = false,
   hideSearch = false,
+  searchValue,
+  onSearchChange,
+  searchPlaceholder = "Search all columns...",
   getRowClassName,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState("")
   const [rowSelection, setRowSelection] = useState({})
   const [renderLimit, setRenderLimit] = useState(RENDER_BATCH_SIZE)
+  const controlledSearch = typeof onSearchChange === "function"
+  const displayedSearchValue = controlledSearch ? (searchValue ?? "") : (globalFilter ?? "")
 
   const table = useReactTable({
     data,
@@ -67,7 +75,7 @@ export function DataTable<TData, TValue>({
     onRowSelectionChange: setRowSelection,
     state: {
       sorting,
-      globalFilter,
+      globalFilter: controlledSearch ? "" : globalFilter,
       rowSelection,
     },
   })
@@ -125,7 +133,7 @@ export function DataTable<TData, TValue>({
 
   useEffect(() => {
     setRenderLimit(RENDER_BATCH_SIZE)
-  }, [data.length, globalFilter, sorting])
+  }, [data.length, displayedSearchValue, sorting])
 
   return (
     <div className="flex min-w-0 flex-col">
@@ -139,9 +147,16 @@ export function DataTable<TData, TValue>({
             <div className="relative w-56 sm:w-64">
               <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
               <input
-                placeholder="Search all columns..."
-                value={globalFilter ?? ""}
-                onChange={(event) => setGlobalFilter(event.target.value)}
+                placeholder={searchPlaceholder}
+                value={displayedSearchValue}
+                onChange={(event) => {
+                  const value = event.target.value
+                  if (controlledSearch) {
+                    onSearchChange?.(value)
+                    return
+                  }
+                  setGlobalFilter(value)
+                }}
                 className="w-full rounded-lg border border-input bg-background/80 py-1.5 pl-9 pr-3 text-xs shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:bg-background focus:ring-3 focus:ring-ring/30 dark:bg-input/30"
               />
             </div>

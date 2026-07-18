@@ -7,6 +7,7 @@ import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
 import { TierBadge } from "@/lib/variant-ui"
 import { displayValue } from "@/lib/detail-formatters"
+import { sampleDetailPath } from "@/lib/sample-routing"
 
 function selectedCsq(variant: any) {
   return variant?.INFO?.selected_CSQ || {}
@@ -23,7 +24,11 @@ function sampleName(row: any) {
 }
 
 function sampleId(row: any) {
-  return row?.sample?.sample_id || row?.sample_id || row?.sample_oid || row?.sample?._id || row?.sample?.name || row?.sample_name
+  return row?.sample?.name || row?.sample_name || row?.sample?.sample_name || row?.sample_id || row?.sample_oid || row?.sample?._id
+}
+
+function samplePayload(row: any) {
+  return row?.sample || { name: row?.sample_name, sample_name: row?.sample_name, sample_id: row?.sample_id, sample_oid: row?.sample_oid }
 }
 
 export function TieredVariantContext() {
@@ -65,7 +70,7 @@ export function TieredVariantContext() {
         return name === "-" ? (
           <span className="text-muted-foreground">-</span>
         ) : (
-          <Link to={`/samples/${id}`} className="font-bold text-primary hover:underline">{name}</Link>
+          <Link to={sampleDetailPath(samplePayload(row.original), id)} className="font-bold text-primary hover:underline">{name}</Link>
         )
       },
     },
@@ -89,7 +94,7 @@ export function TieredVariantContext() {
         const reportId = row.original.report_id
         const label = row.original.report_num || reportId || row.original.report_oid || "-"
         return id && reportId ? (
-          <Link to={`/samples/${id}/reports/${reportId}`} className="rounded-md bg-tier2 px-2 py-0.5 text-xs font-black text-white hover:bg-tier2/90">
+          <Link to={`${sampleDetailPath(samplePayload(row.original), id)}/reports/${reportId}`} className="rounded-md bg-tier2 px-2 py-0.5 text-xs font-black text-white hover:bg-tier2/90">
             {String(label)}
           </Link>
         ) : <span>{String(label)}</span>
@@ -131,7 +136,7 @@ export function TieredVariantContext() {
         const id = sampleId(row.original)
         const varOid = row.original.var_oid || row.original.variant_oid
         return id && varOid ? (
-          <Link to={`/samples/${id}/variant/${varOid}`} className="inline-flex rounded-md bg-primary/10 p-1.5 text-primary hover:bg-primary hover:text-white">
+          <Link to={`${sampleDetailPath(samplePayload(row.original), id)}/variant/${varOid}`} className="inline-flex rounded-md bg-primary/10 p-1.5 text-primary hover:bg-primary hover:text-white">
             <ExternalLink className="h-4 w-4" />
           </Link>
         ) : <span className="text-muted-foreground">-</span>
@@ -145,7 +150,7 @@ export function TieredVariantContext() {
       title={`${csq.SYMBOL || "Unknown"} tier ${variantTier}`}
       description="Reported samples and reports matching this variant identity."
       actions={
-        <Link to={`/samples/${variant.SAMPLE_ID || ""}`} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-bold hover:bg-muted">
+        <Link to={sampleDetailPath(data.sample, variant.SAMPLE_ID || data.sample_id || "")} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-bold hover:bg-muted">
           <ArrowLeft className="h-4 w-4" />
           Back to sample
         </Link>

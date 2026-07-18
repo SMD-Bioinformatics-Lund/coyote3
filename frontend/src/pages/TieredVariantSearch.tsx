@@ -7,6 +7,7 @@ import { DataTable } from "@/components/data-table/DataTable"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import { PageShell } from "@/components/layout/PageShell"
 import { TierBadge } from "@/lib/variant-ui"
+import { sampleDetailPath } from "@/lib/sample-routing"
 import { shortCount } from "@/lib/detail-formatters"
 import { ColumnDef } from "@tanstack/react-table"
 
@@ -144,12 +145,12 @@ export function TieredVariantSearch() {
         return (
           <div className="flex max-w-sm flex-col gap-1">
             {samples.slice(0, 5).map((sample: any, index) => {
-              const sampleId = sample.sample_id || sample._id || sample.id || sample.sample_oid || sample.sample_name || sample.name
+              const sampleId = sample.name || sample.sample_name || sample.sample_id || sample._id || sample.id || sample.sample_oid
               const sampleLabel = sample.sample_name || sample.name || "sample"
               return (
                 <div key={sampleId || index} className="flex flex-wrap items-center gap-1">
                   <Link
-                    to={`/samples/${sampleId}`}
+                    to={sampleDetailPath(sample, sampleId)}
                     className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary hover:bg-primary/15 hover:underline"
                     title={[sampleLabel, sample.assay, sample.subpanel, sample.profile].filter(Boolean).join(" / ")}
                   >
@@ -158,7 +159,7 @@ export function TieredVariantSearch() {
                   {Object.entries(sample.report_oids || {}).map(([reportId, reportNum]) => (
                     <Link
                       key={reportId}
-                      to={`/samples/${sampleId}/reports/${reportId}`}
+                      to={`${sampleDetailPath(sample, sampleId)}/reports/${reportId}`}
                       className="rounded-md bg-tier2 px-1.5 py-0.5 text-[10px] font-black text-white hover:bg-tier2/90"
                       title={`Report ${String(reportNum || reportId)}`}
                     >

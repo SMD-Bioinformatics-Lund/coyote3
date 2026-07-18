@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { useParams, Link } from "react-router-dom"
+import { useNavigate, useParams, Link } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { Activity, ArrowLeft } from "lucide-react"
@@ -14,6 +14,7 @@ import { CoverageTab } from "./CoverageTab"
 import { FiltersSidebar } from "./FiltersSidebar"
 import { CommentsPanel } from "@/components/comments/CommentsPanel"
 import { hasSampleFile } from "@/lib/sample-shape"
+import { sampleUrlKey } from "@/lib/sample-routing"
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -38,6 +39,7 @@ function visibleTabs(sample: any, context: any) {
 
 export function SampleDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState("overview")
 
   const { data, isLoading, error } = useQuery({
@@ -45,7 +47,13 @@ export function SampleDetail() {
     queryFn: () => api.get(`/samples/${id}/edit-context`).then(res => res.data)
   })
   const sample = data?.sample || {}
+  const sampleRouteKey = sampleUrlKey(sample, id)
   const tabs = useMemo(() => visibleTabs(data?.sample || {}, data), [data])
+  useEffect(() => {
+    if (sample?.name && id && id !== sample.name) {
+      navigate(`/samples/${encodeURIComponent(sample.name)}`, { replace: true })
+    }
+  }, [id, navigate, sample?.name])
   useEffect(() => {
     if (!tabs.some((tab) => tab.id === activeTab)) {
       setActiveTab("overview")
@@ -118,32 +126,32 @@ export function SampleDetail() {
                 {activeTab !== "overview" && <PanelSummary sample={sample} context={data} />}
 
                 <div className={activeTab === "overview" ? "block" : "hidden"}>
-                  <OverviewTab sampleId={id!} sample={sample} context={data} />
+                  <OverviewTab sampleId={sampleRouteKey} sample={sample} context={data} />
                 </div>
                 <div className={activeTab === "snvs" ? "block" : "hidden"}>
-                  <VariantsTab sampleId={id!} />
+                  <VariantsTab sampleId={sampleRouteKey} />
                 </div>
                 <div className={activeTab === "cnvs" ? "block" : "hidden"}>
-                  <CNVTab sampleId={id!} />
+                  <CNVTab sampleId={sampleRouteKey} />
                 </div>
                 <div className={activeTab === "fusions" ? "block" : "hidden"}>
-                  <FusionsTab sampleId={id!} />
+                  <FusionsTab sampleId={sampleRouteKey} />
                 </div>
                 <div className={activeTab === "translocations" ? "block" : "hidden"}>
-                  <TranslocationsTab sampleId={id!} />
+                  <TranslocationsTab sampleId={sampleRouteKey} />
                 </div>
                 <div className={activeTab === "coverage" ? "block" : "hidden"}>
-                  <CoverageTab sampleId={id!} />
+                  <CoverageTab sampleId={sampleRouteKey} />
                 </div>
                 <div className={activeTab === "reports" ? "block" : "hidden"}>
-                  <ReportsTab sampleId={id!} />
+                  <ReportsTab sampleId={sampleRouteKey} />
                 </div>
               </div>
             </div>
             {showComments && (
               <div className="mt-3">
                 <CommentsPanel
-                  sampleId={id!}
+                  sampleId={sampleRouteKey}
                   title="Sample Comments"
                   comments={data?.comments || sample?.comments || []}
                   queryKeys={[["sample", id]]}
@@ -153,9 +161,9 @@ export function SampleDetail() {
               </div>
             )}
           </div>
-          
+
           {showFilters && (
-            <FiltersSidebar sampleId={id!} sample={sample} context={data} activeTab={activeTab} />
+            <FiltersSidebar sampleId={sampleRouteKey} sample={sample} context={data} activeTab={activeTab} />
           )}
         </div>
       </div>

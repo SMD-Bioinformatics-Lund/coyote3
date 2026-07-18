@@ -29,6 +29,8 @@ export type NotificationInput = {
 
 const STORAGE_KEY = "coyote3.notifications"
 const listeners = new Set<(notification: AppNotification) => void>()
+const recentNotificationKeys = new Map<string, number>()
+const DEDUPE_WINDOW_MS = 10_000
 
 function createId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -63,6 +65,23 @@ export function saveNotifications(notifications: AppNotification[]) {
 }
 
 export function notify(input: NotificationInput) {
+  const fingerprint = [
+    input.tone ?? "info",
+    input.title,
+    input.message ?? "",
+    input.source ?? "",
+    input.resource?.type ?? "",
+    input.resource?.id ?? input.resource?.name ?? "",
+  ].join("|")
+  const now = Date.now()
+  const previous = recentNotificationKeys.get(fingerprint)
+  if (previous && now - previous < DEDUPE_WINDOW_MS) {
+    return null
+  }
+  recentNotificationKeys.set(fingerprint, now)
+  for (const [key, timestamp] of recentNotificationKeys.entries()) {
+    if (now - timestamp > DEDUPE_WINDOW_MS) recentNotificationKeys.delete(key)
+  }
   const notification = createNotification(input)
   for (const listener of listeners) {
     listener(notification)

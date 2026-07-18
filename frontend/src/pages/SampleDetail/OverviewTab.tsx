@@ -25,6 +25,20 @@ function formatDate(value: unknown) {
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString()
 }
 
+function formatFileSize(value: unknown) {
+  const size = Number(value)
+  if (!Number.isFinite(size) || size < 0) return null
+  const units = ["B", "KB", "MB", "GB", "TB"]
+  let scaled = size
+  let unitIndex = 0
+  while (scaled >= 1024 && unitIndex < units.length - 1) {
+    scaled /= 1024
+    unitIndex += 1
+  }
+  const formatted = unitIndex === 0 || scaled >= 10 ? scaled.toFixed(0) : scaled.toFixed(1)
+  return `${formatted} ${units[unitIndex]}`
+}
+
 function StatusPill({ children, tone = "muted" }: { children: ReactNode; tone?: "blue" | "green" | "yellow" | "red" | "indigo" | "muted" }) {
   const tones = {
     blue: "bg-blue-100 text-blue-800 border-blue-200",
@@ -157,21 +171,69 @@ export function BiomarkerRow({ context }: { context?: any }) {
   )
 }
 
-function normalizePanelMap(context: any, sample: any) {
-  return (
-    context?.checked_snvlists_dict ||
-    context?.checked_fusionlists_dict ||
-    sample?.checked_snvlists_dict ||
-    sample?.checked_fusionlists_dict ||
-    {}
-  )
+function selectedPanelEntriesFromContext(context: any) {
+  const selected = context?.selected_gene_panels
+  if (!selected || typeof selected !== "object") return []
+  return Object.entries(selected).flatMap(([target, raw]: [string, any]) => {
+    const lists = Array.isArray(raw?.lists) ? raw.lists : []
+    return lists.map((entry: any) => ({
+      ...entry,
+      target: String(target).toUpperCase(),
+    }))
+  })
+}
+
+function selectedPanelEntriesFromFilters(context: any, sample: any) {
+  const filters = sample?.filters || context?.sample?.filters || {}
+  const sections = [
+    {
+      target: "SNV",
+      ids: filters?.snv?.snvlists,
+      options: context?.snv_genelist_options,
+    },
+    {
+      target: "CNV",
+      ids: filters?.cnv?.cnvlists,
+      options: context?.cnvlist_options,
+    },
+    {
+      target: "FUSION",
+      ids: filters?.fusion?.fusionlists,
+      options: context?.fusionlist_options,
+    },
+  ]
+  return sections.flatMap((section) => {
+    const ids = Array.isArray(section.ids) ? section.ids : []
+    const options = Array.isArray(section.options) ? section.options : []
+    return ids.map((id: string) => {
+      const option = options.find((item: any) => String(item?.id || item?.isgl_id || item?._id) === String(id))
+      return {
+        id: String(id),
+        name: option?.display_name || option?.name || option?.label || String(id),
+        target: section.target,
+        adhoc: Boolean(option?.adhoc),
+        is_active: true,
+        gene_count: Number(option?.gene_count || 0),
+        covered_count: Number(option?.gene_count || 0),
+        uncovered_count: 0,
+        genes: [],
+        covered: [],
+        uncovered: [],
+      }
+    })
+  })
+}
+
+function normalizePanelEntries(context: any, sample: any) {
+  const richEntries = selectedPanelEntriesFromContext(context)
+  if (richEntries.length) return richEntries
+  return selectedPanelEntriesFromFilters(context, sample)
 }
 
 export function PanelSummary({ sample, context }: { sample: any; context?: any }) {
   const [open, setOpen] = useState(false)
-  const panelMap = normalizePanelMap(context, sample)
-  const entries = Object.entries(panelMap)
-  const isFusion = !!(context?.checked_fusionlists_dict || sample?.checked_fusionlists_dict)
+  const entries = normalizePanelEntries(context, sample)
+  const isFusion = entries.length > 0 && entries.every((entry: any) => entry.target === "FUSION")
   const title = isFusion ? "Fusion List(s)" : "Gene Panel(s)"
   const emptyText = isFusion ? "No fusion list filters applied" : "No genelist filters applied"
 
@@ -189,12 +251,13 @@ export function PanelSummary({ sample, context }: { sample: any; context?: any }
       <div className="px-4 pb-3 text-sm font-medium">
         {entries.length ? (
           <div className="flex flex-wrap gap-1.5">
-            {entries.map(([name, raw]: [string, any]) => {
+            {entries.map((raw: any) => {
               const covered = raw?.covered || []
               const genes = raw?.genes || []
+              const name = raw?.name || raw?.id
               return (
                 <span
-                  key={name}
+                  key={`${raw?.target || "GENE"}-${raw?.id || name}`}
                   className={`rounded-md px-3 py-1 text-xs shadow-sm transition ${
                     raw?.is_active === false
                       ? "bg-orange-400 text-orange-950 hover:bg-orange-500"
@@ -203,7 +266,8 @@ export function PanelSummary({ sample, context }: { sample: any; context?: any }
                         : "bg-gray-200 text-gray-900 hover:bg-green-200"
                   }`}
                 >
-                  {name} {raw?.adhoc ? <i>(AdHoc)</i> : null}: {covered.length} of {genes.length} gene(s) covered
+                  <span className="font-black">{raw?.target || "GENE"}</span>: {name} {raw?.adhoc ? <i>(AdHoc)</i> : null}:{" "}
+                  {Number(raw?.covered_count ?? covered.length)} of {Number(raw?.gene_count ?? genes.length)} gene(s) covered
                 </span>
               )
             })}
@@ -215,26 +279,35 @@ export function PanelSummary({ sample, context }: { sample: any; context?: any }
 
       {open && entries.length > 0 && (
         <div className="space-y-2 px-3 pb-3">
-          {entries.map(([name, raw]: [string, any]) => {
+          {entries.map((raw: any) => {
             const covered = raw?.covered || []
             const genes = raw?.genes || []
+            const uncovered = raw?.uncovered || []
+            const name = raw?.name || raw?.id
             return (
-              <div key={name} className="rounded-md bg-background/70 p-2 shadow-sm">
+              <div key={`${raw?.target || "GENE"}-${raw?.id || name}`} className="rounded-md bg-background/70 p-2 shadow-sm">
                 <p className={raw?.is_active === false ? "text-sm font-bold text-red-700 dark:text-red-300" : "text-sm font-bold text-foreground"}>
-                  {name} {raw?.adhoc ? <i>(AdHoc)</i> : null} - {covered.length} of {genes.length} gene(s) covered
+                  {raw?.target ? `${raw.target}: ` : ""}{name} {raw?.adhoc ? <i>(AdHoc)</i> : null} - {Number(raw?.covered_count ?? covered.length)} of {Number(raw?.gene_count ?? genes.length)} gene(s) covered
                   {raw?.is_active === false ? ": This list is inactive and the filter has not been applied." : ":"}
                 </p>
-                <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
-                  {genes.map((gene: string) => (
-                    <span
-                      key={gene}
-                      title={covered.includes(gene) ? "This gene is covered in the panel" : "This gene is not covered in the panel"}
-                      className={covered.includes(gene) ? "rounded-md bg-green-200 px-1.5 py-0.5 text-green-950" : "rounded-md bg-orange-400 px-1.5 py-0.5 text-orange-950"}
-                    >
-                      {gene}
-                    </span>
-                  ))}
-                </div>
+                {genes.length > 0 ? (
+                  <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
+                    {genes.map((gene: string) => (
+                      <span
+                        key={gene}
+                        title={covered.includes(gene) ? "This gene is covered in the panel" : "This gene is not covered in the panel"}
+                        className={covered.includes(gene) ? "rounded-md bg-green-200 px-1.5 py-0.5 text-green-950" : "rounded-md bg-orange-400 px-1.5 py-0.5 text-orange-950"}
+                      >
+                        {gene}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {Number(raw?.covered_count || 0)} covered gene(s)
+                    {uncovered.length ? `, ${uncovered.length} outside assay coverage` : ""}
+                  </p>
+                )}
               </div>
             )
           })}
@@ -798,10 +871,19 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold">{file.label || file.name || "File"}</span>
                     <StatusPill tone={file.required ? "blue" : "muted"}>{file.required ? "Required" : "Optional"}</StatusPill>
+                    {formatFileSize(file.size_bytes) && (
+                      <StatusPill tone="muted">{formatFileSize(file.size_bytes)}</StatusPill>
+                    )}
+                    {file.count_badge && <StatusPill tone="green">{file.count_badge}</StatusPill>}
                   </div>
                   <p className={`mt-0.5 break-all text-[11px] ${file.path && file.exists === false ? "text-red-700 dark:text-red-300" : "text-muted-foreground"}`}>
                     {file.path || file.missing_msg || "No file available"}
                   </p>
+                  {file.checksum && (
+                    <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                      checksum {file.checksum}
+                    </p>
+                  )}
                 </div>
                 <StatusPill tone={file.present || file.exists ? "green" : file.required ? "red" : "yellow"}>
                   {file.status_label || (file.present || file.exists ? "Present" : "Missing")}

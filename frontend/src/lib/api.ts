@@ -8,6 +8,15 @@ const BASE_URL = "/api/v1"
 
 export class ApiClientError extends Error {
   notificationShown = true
+  status?: number
+  endpoint?: string
+
+  constructor(message: string, status?: number, endpoint?: string) {
+    super(message)
+    this.name = "ApiClientError"
+    this.status = status
+    this.endpoint = endpoint
+  }
 }
 
 export type ApiSuccessEnvelope<T> = {
@@ -82,19 +91,40 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
   const data = text ? safeJson(text) : {}
 
   if (!response.ok) {
-    const message = data?.error || data?.message || response.statusText || "Request failed"
-    const details = typeof data?.details === "string" ? `: ${data.details}` : ""
-    const errorMessage = `API Error: ${response.status} ${message}${details}`
+    const errorMessage = userFacingApiError(response.status, data, response.statusText)
     notify({
       tone: response.status >= 500 ? "error" : "warning",
-      title: "API request failed",
+      title: response.status >= 500 ? "System action failed" : "Request could not be completed",
       message: errorMessage,
       source: `${options.method ?? "GET"} ${endpoint}`,
     })
-    throw new ApiClientError(errorMessage)
+    throw new ApiClientError(errorMessage, response.status, endpoint)
   }
 
   return { data: data as T, status: response.status }
+}
+
+function userFacingApiError(status: number, data: any, statusText: string) {
+  const rawError = data?.error || data?.message || data?.detail?.error || statusText || "Request failed"
+  const details = data?.details || data?.detail?.details || data?.detail?.message
+  if (status === 403) {
+    return "You do not have permission to perform this action. Contact an administrator if this access is expected."
+  }
+  if (status === 404) {
+    return String(rawError || "The requested record was not found.")
+  }
+  if (status === 409) {
+    return String(rawError || "This change conflicts with an existing record.")
+  }
+  if (status === 422) {
+    return [rawError, details].filter(Boolean).join(": ")
+  }
+  if (status >= 500) {
+    return details
+      ? `The server could not complete the request: ${details}`
+      : `The server could not complete the request. ${rawError}`
+  }
+  return [rawError, details].filter(Boolean).join(": ")
 }
 
 function safeJson(text: string) {

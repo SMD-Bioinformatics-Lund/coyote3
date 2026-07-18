@@ -6,6 +6,7 @@ import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
 import { ColumnDef } from "@tanstack/react-table"
+import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
 
 export function PublicCatalog() {
   const [selection, setSelection] = useState<{ mod?: string; cat?: string; isgl_key?: string }>({})
@@ -40,16 +41,38 @@ export function PublicCatalog() {
 
   const geneColumns: ColumnDef<any, any>[] = useMemo(() => {
     const genes = data?.genes || []
-    const keys = Array.from(new Set<string>(genes.flatMap((gene: any) => Object.keys(gene || {})))).slice(0, 8)
+    const preferredKeys = [
+      "display_symbol",
+      "hgnc_id",
+      "hgnc_symbol",
+      "gene_name",
+      "status",
+      "locus",
+      "locus_sortable",
+      "alias_symbol",
+    ]
+    const availableKeys = new Set<string>(genes.flatMap((gene: any) => Object.keys(gene || {})))
+    const keys = preferredKeys
+      .filter((key) => availableKeys.has(key))
+      .concat(Array.from(availableKeys).filter((key) => !preferredKeys.includes(key)))
+      .slice(0, 8)
     return keys.map((key) => ({
       id: key,
       header: key.replaceAll("_", " "),
       accessorFn: (row: any) => row[key] ?? "",
       cell: ({ row }) => {
         const value = String(row.original[key] ?? "-")
-        const geneId = row.original.hgnc_id || row.original.hgnc_symbol || row.original.symbol
-        if (["hgnc_symbol", "symbol", "gene"].includes(key) && geneId) {
-          return <Link to={`/gene/${encodeURIComponent(String(geneId).replace("HGNC:", ""))}`} className="text-xs font-bold text-primary hover:underline">{value}</Link>
+        if (["display_symbol", "hgnc_symbol", "symbol", "gene"].includes(key)) {
+          return (
+            <GeneWithOncoKbBadge
+              gene={row.original.resolved_symbol || row.original.hgnc_symbol || row.original.symbol}
+              displayGene={row.original.display_symbol || value}
+              resolvedGene={row.original.resolved_symbol || row.original.hgnc_symbol || row.original.symbol}
+              hgncId={row.original.hgnc_id || row.original._id}
+              matchSource={row.original.hgnc_match_source}
+              showOncoKbBadge={false}
+            />
+          )
         }
         return <span className="text-xs">{value}</span>
       },

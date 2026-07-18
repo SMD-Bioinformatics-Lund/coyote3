@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react"
 import { Outlet, Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { ThemeToggle } from "./theme-toggle"
-import { Bell, BookOpen, LayoutDashboard, Dna, Database, FileText, Settings, User, ChevronDown, LogOut, Search, PanelLeftClose, PanelRightClose } from "lucide-react"
+import { Bell, BookOpen, Bug, FileQuestion, LayoutDashboard, Dna, Database, FileText, Settings, User, ChevronDown, LogOut, Search, PanelLeftClose, PanelRightClose } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
@@ -255,7 +255,7 @@ export function Layout() {
               </button>
 
               {isUserMenuOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-border bg-card py-1 shadow-lg">
+                <div className="absolute right-0 top-full z-50 mt-2 w-60 rounded-xl border border-border bg-card py-1 shadow-lg">
               <Link to="/profile" className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
                     <User className="mr-3 h-4 w-4 text-primary" /> Profile
                   </Link>
@@ -269,6 +269,22 @@ export function Layout() {
                       </span>
                     )}
                   </Link>
+                  <div className="my-1 border-t border-border/50"></div>
+                  <Link to="/docs/about" className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
+                    <FileQuestion className="mr-3 h-4 w-4 text-primary" /> About Coyote3
+                  </Link>
+                  <Link to="/docs/changelog" className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
+                    <BookOpen className="mr-3 h-4 w-4 text-primary" /> Changelog
+                  </Link>
+                  <a
+                    href={import.meta.env.VITE_ISSUE_TRACKER_URL || "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues/new"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80"
+                    onClick={() => setIsUserMenuOpen(false)}
+                  >
+                    <Bug className="mr-3 h-4 w-4 text-primary" /> Submit an issue
+                  </a>
                   <div className="my-1 border-t border-border/50"></div>
                   <button onClick={handleLogout} className="flex w-full items-center px-4 py-2.5 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10">
                     <LogOut className="mr-3 h-4 w-4" /> Logout

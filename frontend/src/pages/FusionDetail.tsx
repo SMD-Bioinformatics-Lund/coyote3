@@ -1,4 +1,5 @@
-import { Link, useParams } from "react-router-dom"
+import { useEffect } from "react"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
@@ -24,6 +25,7 @@ import {
   FindingLoading,
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
+import { sampleDetailPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
 
 function fusionName(fusion: any) {
   const genes = fusionGenes(fusion)
@@ -44,6 +46,7 @@ function fusionDescription(value: unknown) {
 
 export function FusionDetail() {
   const { id, varId } = useParams()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -60,6 +63,12 @@ export function FusionDetail() {
     },
     onError: (err) => notifyActionError("Unable to select fusion call", err, "fusion"),
   })
+  const routeSample = data?.sample
+  useEffect(() => {
+    if (routeSample?.name && id && varId && id !== routeSample.name) {
+      navigate(sampleFindingPath(routeSample, id, "fusion", varId), { replace: true })
+    }
+  }, [id, navigate, routeSample, routeSample?.name, varId])
 
   if (isLoading) {
     return <FindingLoading />
@@ -79,12 +88,13 @@ export function FusionDetail() {
   const genes = fusionGenes(fusion)
   const selectedCall = selectedFusionCall(fusion)
   const calls = Array.isArray(fusion?.calls) ? fusion.calls : []
-  const sampleHref = `/samples/${sample?._id || id}`
+  const sampleRouteKey = sampleUrlKey(sample, id)
+  const sampleHref = sampleDetailPath(sample, id)
 
   return (
     <FindingDetailShell>
       <FindingHero
-        backTo={`/samples/${id}`}
+        backTo={sampleHref}
         title={fusionName(fusion)}
         chips={
           <>
@@ -97,7 +107,7 @@ export function FusionDetail() {
         }
         actions={
           <VariantActionButtons
-            sampleId={id!}
+            sampleId={sampleRouteKey}
             resourceType="fusion"
             variant={fusion}
             onUpdate={() => refetch()}
@@ -109,7 +119,7 @@ export function FusionDetail() {
         main={
           <>
             <CommentsPanel
-              sampleId={id!}
+              sampleId={sampleRouteKey}
               title="Add Comment Or Annotation"
               resourceType="fusion"
               resource={fusion}
@@ -124,7 +134,7 @@ export function FusionDetail() {
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <CommentsPanel
-                sampleId={id!}
+                sampleId={sampleRouteKey}
                 title="Sample-Specific Fusion Comments"
                 resourceType="fusion"
                 resource={fusion}
@@ -133,7 +143,7 @@ export function FusionDetail() {
                 queryKeys={[["fusion", id, varId]]}
               />
               <CommentsPanel
-                sampleId={id!}
+                sampleId={sampleRouteKey}
                 title="Global Fusion Annotations"
                 resourceType="fusion"
                 resource={fusion}

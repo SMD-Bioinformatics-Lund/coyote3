@@ -4,7 +4,7 @@ import type { AppNotification, NotificationInput } from "./notification-store"
 export type NotificationContextValue = {
   notifications: AppNotification[]
   unreadCount: number
-  push: (input: NotificationInput) => AppNotification
+  push: (input: NotificationInput) => AppNotification | null
   markRead: (id: string) => void
   markAllRead: () => void
   remove: (id: string) => void
