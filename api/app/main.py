@@ -29,6 +29,14 @@ def _get_formatted_assay_config(sample: dict):
     return get_formatted_assay_config(sample)
 
 
+def _script_name() -> str:
+    """Return the externally mounted application prefix."""
+    raw = os.getenv("SCRIPT_NAME", "").strip()
+    if not raw or raw == "/":
+        return ""
+    return "/" + raw.strip("/")
+
+
 async def unhandled_exception_handler(request: Request, exc: Exception):
     """Return a consistent JSON payload for unexpected API failures."""
     runtime_app.logger.exception(
@@ -121,10 +129,13 @@ def create_api_app() -> FastAPI:
     """Build and return the canonical FastAPI application instance."""
     configure_process_env()
     mode_flags = get_runtime_mode_flags()
+    script_name = _script_name()
 
     app = FastAPI(
         title="Coyote3 API",
         version="1.0.0",
+        root_path=script_name,
+        root_path_in_servers=bool(script_name),
         docs_url="/api/v1/docs",
         redoc_url="/api/v1/redoc",
         openapi_url="/api/v1/openapi.json",

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { Eye, EyeOff, Loader2, Sun, Cloud } from "lucide-react"
 import { useTheme } from "next-themes"
+import { apiPath, appPath } from "@/lib/runtime-paths"
 
 export function Login() {
   const navigate = useNavigate()
@@ -24,7 +25,7 @@ export function Login() {
     setLoading(true)
 
     try {
-      const res = await fetch("/api/v1/auth/sessions", {
+      const res = await fetch(apiPath("/auth/sessions"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
@@ -80,7 +81,7 @@ export function Login() {
           {/* Big Coyote Logo bottom left */}
           <div className="absolute -bottom-16 -left-16 opacity-[0.04]">
             <img
-              src="/logo.png"
+              src={appPath("/logo.png")}
               alt=""
               className="w-[900px] h-[650px] dark:invert"
             />
@@ -91,7 +92,7 @@ export function Login() {
       <header className="login-header relative z-10">
         <div className="inline-flex min-w-max items-center gap-2.5">
           <img
-            src="/logo.png"
+            src={appPath("/logo.png")}
             alt="Coyote3"
             className="w-10 h-8 dark:invert"
           />
@@ -209,6 +210,18 @@ export function Login() {
               ? "Use your organization credentials. Your Coyote3 access comes from your local user profile."
               : "Use your existing Coyote3 local account."}
           </p>
+          <div className="mt-4 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+            <p className="font-semibold text-foreground">Public resources</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Assay catalog, gene lists, and public reference views are available without signing in.
+            </p>
+            <Link
+              to="/public"
+              className="mt-3 inline-flex items-center rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-muted"
+            >
+              Open public catalog
+            </Link>
+          </div>
         </section>
       </section>
 

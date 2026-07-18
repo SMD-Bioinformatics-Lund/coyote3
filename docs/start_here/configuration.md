@@ -21,16 +21,38 @@ docs remain on internal container ports and are routed through the proxy:
 | Domain Layer | Production | Staging | Development | Test/CI |
 | --- | --- | --- | --- | --- |
 | **HTTP proxy** | `5815` | `8804` | `6801` | `6811` |
-| **MongoDB** | `5820` | `8808` | `6804` | `6814` |
 
-Routes:
+Internal proxy targets:
 
 - `/` -> Web UI
 - `/api/` -> FastAPI
 - `/docs-site/` -> documentation site
+- `/public/` -> unauthenticated public catalog and reference UI
 
-Redis is internal-only. MongoDB is only exposed when the optional `with-mongo`
-profile is used.
+When `SCRIPT_NAME` is set, user-facing URLs include that prefix. For example,
+with `SCRIPT_NAME=/coyote3_dev` and `COYOTE3_DEV_PORT=6801`, the browser URLs are:
+
+- `http://localhost:6801/coyote3_dev/` -> Web UI
+- `http://localhost:6801/coyote3_dev/public/catalog` -> public catalog
+- `http://localhost:6801/coyote3_dev/api/v1/docs` -> Swagger UI
+- `http://localhost:6801/coyote3_dev/docs-site/` -> documentation site
+
+The unprefixed `/api/` and `/docs-site/` paths remain internal proxy targets for
+container health checks and reverse proxies that remove the public mount prefix
+before forwarding.
+
+Redis and compose-managed MongoDB are internal-only. When the optional
+`with-mongo` profile is used, the MongoDB container is reachable by Coyote3
+services on the Docker network, not through a host port. For local development
+against a host MongoDB, point `MONGO_URI` at the host service instead.
+
+!!! warning "Bounded service restart policy"
+
+    Coyote3 app containers use bounded `on-failure:5` restart policies. A broken
+    frontend build, API import error, or worker crash should stop after a small
+    number of attempts instead of creating continuous Docker network interface
+    churn. Use `docker compose logs <service>` and fix the failure before
+    starting the service again.
 
 ### Customizing Ports
 
@@ -43,10 +65,6 @@ in the copied `.coyote3_*_env` file or export it before running `docker compose`
 | `COYOTE3_STAGE_PORT` | `8804` | Staging HTTP proxy |
 | `COYOTE3_DEV_PORT` | `6801` | Development HTTP proxy |
 | `COYOTE3_TEST_PORT` | `6811` | Test HTTP proxy |
-| `COYOTE3_MONGO_PORT` | `5820` | MongoDB — optional (`--profile with-mongo`) |
-| `COYOTE3_STAGE_MONGO_PORT` | `8808` | Staging MongoDB — optional (`--profile with-mongo`) |
-| `COYOTE3_DEV_MONGO_PORT` | `6804` | Development MongoDB — optional (`--profile with-mongo`) |
-| `COYOTE3_TEST_MONGO_PORT` | `6814` | Test MongoDB — optional (`--profile with-mongo`) |
 
 Example — run the production HTTP proxy on port 9000 instead of 5815:
 
@@ -115,8 +133,23 @@ These parameters are security-sensitive. They should be unique per environment a
 - `MONGO_URI`: Connection string for MongoDB.
 - `CACHE_REDIS_URL`: Connection string for Redis.
 - `API_WORKERS`: Worker count for the FastAPI service.
+- `SCRIPT_NAME`: External URL prefix when the application is mounted below the domain
+  root by Apache or another reverse proxy. Use an empty value for root deployments
+  and a leading-slash value such as `/coyote3` for subpath deployments.
 - `WEB_APP_BASE_URL`: Public web URL used for generated links.
 - `HELP_CENTER_URL`: Documentation or help URL shown in the web UI.
+
+!!! info "Subpath deployments"
+
+    `SCRIPT_NAME` is the only source of truth for the browser-facing prefix.
+    FastAPI uses it as `root_path`, Vite uses it as the React basename and static
+    asset base, and the compose nginx proxy renders exact prefixed routes from
+    the same value at startup. Internal service calls and container health checks
+    continue to use the stable `/api/v1/...` routes.
+    Public unauthenticated UI routes are browser-facing and are served below the
+    same prefix, for example `/coyote3/public/catalog`.
+    The mount root accepts both `/coyote3` and `/coyote3/`; the frontend
+    normalizes the slashless form before React Router starts.
 
 ## Caching
 

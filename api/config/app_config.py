@@ -24,6 +24,14 @@ load_dotenv(path.join(REPO_ROOT, ".env"))
 MANE_SUMMARY_PATH = os.getenv("MANE_SUMMARY_PATH", "").strip()
 
 
+def _normalize_url_prefix(value: str | None) -> str:
+    """Normalize an externally mounted URL prefix such as SCRIPT_NAME."""
+    raw = (value or "").strip()
+    if not raw or raw == "/":
+        return ""
+    return "/" + raw.strip("/")
+
+
 def _require_env(key: str, context: str = "production") -> str:
     """Raise RuntimeError if the environment variable is not set or empty."""
     value = os.getenv(key, "").strip()
@@ -109,6 +117,7 @@ class DefaultConfig:
     )
 
     WTF_CSRF_ENABLED = True
+    SCRIPT_NAME = _normalize_url_prefix(os.getenv("SCRIPT_NAME", ""))
     API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8001")
     API_BROWSER_BASE = os.getenv("API_BROWSER_BASE", "/api")
     API_HEALTH_PATH = os.getenv("API_HEALTH_PATH", "/api/v1/health")

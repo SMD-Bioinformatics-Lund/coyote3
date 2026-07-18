@@ -3,6 +3,7 @@ import { Suspense, lazy } from "react"
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Layout } from "./components/layout/Layout"
 import { notify } from "./components/notifications/notification-store"
+import { APP_BASENAME } from "./lib/runtime-paths"
 
 const Dashboard = lazy(() => import("./pages/Dashboard").then((module) => ({ default: module.Dashboard })))
 const Samples = lazy(() => import("./pages/Samples").then((module) => ({ default: module.Samples })))
@@ -73,7 +74,7 @@ function RouteFallback() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={APP_BASENAME || undefined}>
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -93,16 +94,16 @@ export default function App() {
               <Route path="/variants/reported/:variantId/:tier" element={<TieredVariantContext />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/notifications" element={<NotificationHistoryPage />} />
-              <Route path="/catalog" element={<PublicCatalog />} />
-              <Route path="/matrix" element={<PublicCatalogMatrix />} />
-              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/public" element={<PublicCatalog />} />
+              <Route path="/public/catalog" element={<PublicCatalog />} />
+              <Route path="/public/matrix" element={<PublicCatalogMatrix />} />
+              <Route path="/public/contact" element={<ContactPage />} />
+              <Route path="/public/genelists/:genelistId/view" element={<PublicGenelistPage />} />
+              <Route path="/public/asp/:aspId/genes" element={<PublicAspGenesPage />} />
               <Route path="/docs/about" element={<StaticDocPage kind="about" />} />
               <Route path="/docs/changelog" element={<StaticDocPage kind="changelog" />} />
               <Route path="/docs/license" element={<StaticDocPage kind="license" />} />
-              <Route path="/gene/:geneId" element={<GeneInfoPage />} />
               <Route path="/public/gene/:geneId/info" element={<GeneInfoPage />} />
-              <Route path="/genelists/:genelistId/view" element={<PublicGenelistPage />} />
-              <Route path="/asp/:aspId/genes" element={<PublicAspGenesPage />} />
               <Route path="/coverage/blacklisted/:group" element={<CoverageBlacklistPage />} />
               <Route path="/admin" element={<AdminHub />} />
               <Route path="/admin/audit" element={<AdminAuditPage />} />

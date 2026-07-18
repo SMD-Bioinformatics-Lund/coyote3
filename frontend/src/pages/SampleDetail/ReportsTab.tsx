@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { Activity, AlertTriangle, Download, Eye, FileText, Save, ShieldCheck, X } from "lucide-react"
 import { api } from "@/lib/api"
+import { apiPath } from "@/lib/runtime-paths"
 import { DataTable } from "@/components/data-table/DataTable"
 import { ReportHtmlFrame } from "@/components/reports/ReportHtmlFrame"
 import { ColumnDef } from "@tanstack/react-table"
@@ -80,7 +81,7 @@ export function ReportsTab({ sampleId }: { sampleId: string }) {
   const downloadPreviewPdf = useMutation({
     mutationFn: async () => {
       const response = await fetch(
-        `/api/v1/samples/${sampleId}/reports/${reportType}/preview/pdf?include_snapshot=${includeSnapshot}`,
+        apiPath(`/samples/${sampleId}/reports/${reportType}/preview/pdf?include_snapshot=${includeSnapshot}`),
         { credentials: "same-origin" }
       )
       if (!response.ok) {

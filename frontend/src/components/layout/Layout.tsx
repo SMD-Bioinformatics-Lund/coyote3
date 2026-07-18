@@ -6,12 +6,14 @@ import { Bell, BookOpen, Bug, FileQuestion, LayoutDashboard, Dna, Database, File
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
+import { apiPath, appPath } from "@/lib/runtime-paths"
 import { useNotifications } from "@/components/notifications/use-notifications"
 
 export function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const isPublicRoute = location.pathname === "/public" || location.pathname.startsWith("/public/")
   const [isCollapsed, setIsCollapsed] = useState(true)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [activeAssayCategory, setActiveAssayCategory] = useState<string | null>(null)
@@ -22,7 +24,13 @@ export function Layout() {
 
   const { data: user } = useQuery({
     queryKey: ['whoami'],
-    queryFn: () => api.get('/auth/whoami').then(res => res.data)
+    queryFn: async () => {
+      if (!isPublicRoute) return api.get('/auth/whoami').then(res => res.data)
+      const response = await fetch(apiPath('/auth/whoami'), { credentials: "same-origin" })
+      if (response.status === 401 || response.status === 403) return null
+      if (!response.ok) return null
+      return response.json()
+    },
   })
 
   const { data: catalogData } = useQuery({
@@ -54,8 +62,22 @@ export function Layout() {
   }
 
   const isAdmin = user?.role === 'superuser' || user?.role === 'admin'
+  const publicOnlyMode = isPublicRoute && !user
 
   const navigationSections = useMemo(() => {
+    if (publicOnlyMode) {
+      return [
+        {
+          label: "Public",
+          items: [
+            { name: "Public Home", href: "/public", icon: BookOpen },
+            { name: "Catalog", href: "/public/catalog", icon: FileText },
+            { name: "Matrix", href: "/public/matrix", icon: Database },
+            { name: "Contact", href: "/public/contact", icon: FileQuestion },
+          ],
+        },
+      ]
+    }
     const sections = [
       {
         label: "Workspace",
@@ -69,8 +91,8 @@ export function Layout() {
       {
         label: "Reference",
         items: [
-          { name: "Matrix", href: "/matrix", icon: Database },
-          { name: "Catalog", href: "/catalog", icon: FileText },
+          { name: "Matrix", href: "/public/matrix", icon: Database },
+          { name: "Catalog", href: "/public/catalog", icon: FileText },
           { name: "Docs", href: "/docs/about", icon: BookOpen },
         ],
       },
@@ -82,7 +104,7 @@ export function Layout() {
       })
     }
     return sections
-  }, [isAdmin])
+  }, [isAdmin, publicOnlyMode])
 
   const activeCategory = searchParams.get("panel_type") || searchParams.get("category") || ""
   const activePanelTech = searchParams.get("panel_tech") || ""
@@ -144,13 +166,14 @@ export function Layout() {
         <div className="flex h-full w-full items-center justify-between gap-4 px-4">
           <Link to="/" className="flex shrink-0 items-center gap-3">
             <div className="rounded-lg bg-card/75 p-1 ">
-              <img src="/logo.png" alt="Coyote3" className="h-7 w-10 shrink-0 dark:invert" />
+              <img src={appPath("/logo.png")} alt="Coyote3" className="h-7 w-10 shrink-0 dark:invert" />
             </div>
             <div className="hidden sm:flex flex-col leading-tight">
               <span className="brand-gradient-text text-lg font-black tracking-wider">COYOT3</span>
             </div>
           </Link>
 
+          {!publicOnlyMode && (
           <div className="relative flex h-full min-w-0 items-center" ref={assayMenuRef}>
             <div className="flex h-full items-center gap-1.5 py-2 text-xs font-bold text-foreground/80">
               {assayCategories.map(category => (
@@ -221,24 +244,35 @@ export function Layout() {
               </div>
             )}
           </div>
+          )}
 
           <div className="ml-auto flex h-full items-center gap-2">
-            <Link
-              to="/notifications"
-              className={cn(
-                "relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background/70 text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground",
-                location.pathname.startsWith("/notifications") && "bg-primary/10 text-primary"
-              )}
-              title="Notifications"
-              aria-label="Notifications"
-            >
-              <Bell className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-[10px] font-black leading-none text-primary-foreground shadow-sm">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
-            </Link>
+            {!publicOnlyMode && (
+              <Link
+                to="/notifications"
+                className={cn(
+                  "relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background/70 text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground",
+                  location.pathname.startsWith("/notifications") && "bg-primary/10 text-primary"
+                )}
+                title="Notifications"
+                aria-label="Notifications"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-[10px] font-black leading-none text-primary-foreground shadow-sm">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
+            {publicOnlyMode ? (
+              <Link
+                to="/login"
+                className="inline-flex h-10 items-center rounded-xl border border-border bg-background/70 px-3 text-sm font-bold text-primary shadow-sm transition-colors hover:bg-muted"
+              >
+                Sign in
+              </Link>
+            ) : (
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -292,6 +326,7 @@ export function Layout() {
                 </div>
               )}
             </div>
+            )}
           </div>
         </div>
       </header>

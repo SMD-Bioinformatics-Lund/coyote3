@@ -89,10 +89,48 @@ Deployment-specific secrets and endpoints remain in environment files or secret 
 
 - MongoDB URI
 - Redis URL
+- `SCRIPT_NAME` reverse-proxy mount prefix
 - API secret keys
 - LDAP and SMTP credentials
 - mounted watch directories
 - CORS and cookie settings
+
+`SCRIPT_NAME` controls the browser-facing mount point when Coyote3 is served
+below a domain path, for example `https://example.org/coyote3`. The value is
+empty for root deployments and a leading-slash prefix such as `/coyote3` for
+subpath deployments. The API keeps stable internal routes such as
+`/api/v1/health`, while FastAPI publishes the configured `root_path`, React uses
+the same prefix as its router basename, and static assets and direct report
+downloads are generated below that prefix. The compose nginx proxy also renders
+exact prefixed routes from this value, so direct access to the compose proxy uses
+the same browser paths as the Apache-mounted deployment.
+
+The unauthenticated public UI is mounted below `/public` inside the same app.
+With `SCRIPT_NAME=/coyote3`, the public catalog is reached at
+`/coyote3/public/catalog`. Public mode keeps the normal application shell but
+shows only public catalog/reference navigation and a sign-in action.
+The browser mount root accepts both `/coyote3` and `/coyote3/`; the slashless
+form is normalized by the frontend before React Router starts.
+
+With `SCRIPT_NAME=/coyote3`, browser-facing support URLs are:
+
+- `/coyote3/api/v1/docs` for Swagger UI.
+- `/coyote3/docs-site/` for the documentation site.
+- `/coyote3/public/catalog` for the public assay catalog.
+
+!!! info "Reverse proxy behavior"
+
+    The public URL always includes `SCRIPT_NAME` for subpath deployments. Inside
+    the container network, nginx still forwards to stable internal targets:
+    `/` for the React UI, `/api/` for FastAPI, and `/docs-site/` for the
+    documentation site. These internal targets are not the URLs given to users.
+
+!!! warning "Restart behavior"
+
+    Application containers use bounded `on-failure:5` restart policies. This is
+    intentional: failed frontend builds, API imports, or Celery startup errors
+    should surface quickly instead of restarting indefinitely and creating Docker
+    network churn. Fix the underlying error, then start the service again.
 
 Admin-controlled runtime behavior lives in the `app_controls` collection. These settings are for safe behavior toggles and retention policy, not secrets.
 

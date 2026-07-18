@@ -4,6 +4,9 @@ import { ThemeProvider } from "@/components/layout/theme-provider"
 import { NotificationProvider } from "@/components/notifications/NotificationProvider"
 import App from './App.tsx'
 import './index.css'
+import { normalizeMountedRootUrl } from "@/lib/runtime-paths"
+
+normalizeMountedRootUrl()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

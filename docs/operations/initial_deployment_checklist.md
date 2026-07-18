@@ -82,11 +82,15 @@ If Mongo volume was pre-existing, bootstrap/rotate app DB user:
 
 ```bash
 ${PYTHON_BIN:-python} scripts/mongo_bootstrap_users.py \
-  --mongo-uri "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/admin?authSource=admin" \
+  --mongo-uri "<admin-mongo-uri>" \
   --app-db "${COYOTE3_DB:-coyote3}" \
   --app-user "${MONGO_APP_USER}" \
   --app-password "${MONGO_APP_PASSWORD}"
 ```
+
+Compose-managed MongoDB is internal-only. Use an external/admin MongoDB URI for
+host-side maintenance, or run database maintenance from a container attached to
+the compose network.
 
 ## 3. Health checks
 
@@ -123,7 +127,7 @@ Role level note:
 
 ```bash
 ${PYTHON_BIN:-python} scripts/bootstrap_local_admin.py \
-  --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
+  --mongo-uri "${MONGO_URI}" \
   --db "${COYOTE3_DB:-coyote3}" \
   --username "admin" \
   --email "admin@your-center.org" \

@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom"
 import { Activity, ArrowLeft, Download } from "lucide-react"
 import { PageShell } from "@/components/layout/PageShell"
 import { ReportHtmlFrame } from "@/components/reports/ReportHtmlFrame"
+import { apiPath } from "@/lib/runtime-paths"
 
 export function SavedReportPage() {
   const { id = "", reportId = "" } = useParams()
@@ -14,7 +15,7 @@ export function SavedReportPage() {
     let cancelled = false
     setLoading(true)
     setError("")
-    fetch(`/api/v1/samples/${id}/reports/${reportId}/html`)
+    fetch(apiPath(`/samples/${id}/reports/${reportId}/html`))
       .then(async (response) => {
         const text = await response.text()
         if (!response.ok) throw new Error(text || `Report request failed (${response.status})`)
@@ -42,7 +43,7 @@ export function SavedReportPage() {
       actions={
         <>
           <a
-            href={`/api/v1/samples/${id}/reports/${reportId}/download`}
+            href={apiPath(`/samples/${id}/reports/${reportId}/download`)}
             className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
           >
             <Download className="h-4 w-4" />

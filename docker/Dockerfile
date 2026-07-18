@@ -29,7 +29,6 @@ FROM coyote3_runtime_base AS coyote3_api
 
 EXPOSE 8001
 
-COPY config/ ./config/
 COPY api/ ./api/
 COPY scripts/ ./scripts/
 COPY asgi.py run_api.py CHANGELOG.md README.md LICENSE.txt ./

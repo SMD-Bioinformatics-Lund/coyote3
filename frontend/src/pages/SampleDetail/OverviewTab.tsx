@@ -8,6 +8,7 @@ import { api } from "@/lib/api"
 import { shortCount } from "@/lib/detail-formatters"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { sampleFilterSection, sampleReported } from "@/lib/sample-shape"
+import { apiPath } from "@/lib/runtime-paths"
 
 function displayValue(value: unknown) {
   if (value === undefined || value === null || value === "") return "-"
@@ -908,7 +909,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
                     <Link to={`/samples/${sample?.name || sampleId}/reports/${reportId}`} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">
                       View
                     </Link>
-                    <a href={`/api/v1/samples/${sample?.name || sampleId}/reports/${reportId}/download`} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-muted">
+                    <a href={apiPath(`/samples/${sample?.name || sampleId}/reports/${reportId}/download`)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-muted">
                       Download
                     </a>
                   </div>

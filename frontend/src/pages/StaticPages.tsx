@@ -61,7 +61,7 @@ export function ContactPage() {
         <p className="text-sm leading-6 text-muted-foreground">
           Contact details are deployment-specific. Configure the backend public contact payload to show center contacts, assay support, and operational escalation details here.
         </p>
-        <Link to="/catalog" className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
+        <Link to="/public/catalog" className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
           <Home className="h-4 w-4" />
           Back to catalog
         </Link>

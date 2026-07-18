@@ -112,8 +112,10 @@ Ingest references:
 ## Step 5: Open The Application
 
 Open:
-- UI: [http://localhost:6801](http://localhost:6801)
-- API health: [http://localhost:6801/api/v1/health](http://localhost:6801/api/v1/health)
+- UI: [http://localhost:6801/coyote3_dev/](http://localhost:6801/coyote3_dev/)
+- API health: [http://localhost:6801/coyote3_dev/api/v1/health](http://localhost:6801/coyote3_dev/api/v1/health)
+- Swagger UI: [http://localhost:6801/coyote3_dev/api/v1/docs](http://localhost:6801/coyote3_dev/api/v1/docs)
+- Documentation site: [http://localhost:6801/coyote3_dev/docs-site/](http://localhost:6801/coyote3_dev/docs-site/)
 
 Login with:
 - username: `admin.coyote3`

@@ -3,8 +3,7 @@
 // React Query call sites can migrate incrementally without adding Axios.
 
 import { notify } from "@/components/notifications/notification-store"
-
-const BASE_URL = "/api/v1"
+import { apiPath, appPath } from "@/lib/runtime-paths"
 
 export class ApiClientError extends Error {
   notificationShown = true
@@ -69,7 +68,7 @@ function encodeBody(body: ApiBody): BodyInit | undefined {
 }
 
 async function request<T = any>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
-  const url = `${BASE_URL}${endpoint}`
+  const url = apiPath(endpoint)
   const isFormData = options.body instanceof FormData
   const headers = isFormData
     ? { ...options.headers }
@@ -81,8 +80,8 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
   const response = await fetch(url, { ...options, headers })
 
   // Global 401 interceptor
-  if (response.status === 401 && window.location.pathname !== "/login") {
-    window.location.href = "/login"
+  if (response.status === 401 && window.location.pathname !== appPath("/login")) {
+    window.location.href = appPath("/login")
     throw new Error("Unauthorized")
   }
 

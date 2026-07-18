@@ -126,7 +126,7 @@ export function Dashboard() {
         <div className="flex flex-wrap gap-2">
           <Link to="/samples" className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-sm">Open samples</Link>
           <Link to="/variants/search" className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-bold hover:bg-muted">Variant search</Link>
-          <Link to="/catalog" className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-bold hover:bg-muted">Catalog</Link>
+          <Link to="/public/catalog" className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-bold hover:bg-muted">Catalog</Link>
         </div>
       </div>
 
@@ -319,7 +319,7 @@ export function Dashboard() {
           <div className="rounded-lg border border-border bg-background/70 p-2.5">
             <div className="mb-2 flex items-center justify-between gap-3">
               <h3 className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Top Assay ISGL Associations</h3>
-              <Link to="/catalog" className="text-[11px] font-bold text-primary hover:underline">Open catalog</Link>
+              <Link to="/public/catalog" className="text-[11px] font-bold text-primary hover:underline">Open catalog</Link>
             </div>
             <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
               {isglAssociationRows.length ? isglAssociationRows.slice(0, 6).map((row: any) => (

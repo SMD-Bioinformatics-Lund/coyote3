@@ -11,6 +11,7 @@ import { findingRowClass, statusLabels } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { sampleFileName, hasSampleFile } from "@/lib/sample-shape"
+import { apiPath } from "@/lib/runtime-paths"
 
 const cnvBulkActions: BulkActionOption[] = [
   { value: "tier_1", label: "Classify as Tier 1" },
@@ -54,16 +55,16 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
     {
       id: "select",
       header: ({ table }) => (
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate" as any)}
           onChange={table.getToggleAllPageRowsSelectedHandler()}
           className="table-checkbox"
         />
       ),
       cell: ({ row }) => (
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           checked={row.getIsSelected()}
           onChange={row.getToggleSelectedHandler()}
           className="table-checkbox"
@@ -165,7 +166,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
         const isFp = cnv.fp
         const isNoteworthy = cnv.noteworthy
         const artefactKeys = Object.keys(cnv).filter(k => k.startsWith('AFRQ_'))
-        
+
         return (
           <div className="flex flex-col gap-1.5">
             <div className="flex flex-wrap gap-1">
@@ -217,9 +218,9 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
               </h4>
             </div>
             <div className="p-4 flex flex-col items-center justify-center bg-muted/10 flex-1 overflow-auto">
-              <img 
-                src={`/api/v1/samples/${sampleId}/plots/${cnvProfileName}?rotated=true`} 
-                alt="CNV Profile" 
+              <img
+                src={apiPath(`/samples/${sampleId}/plots/${cnvProfileName}?rotated=true`)}
+                alt="CNV Profile"
                 className="max-w-full rounded shadow-sm border border-border"
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
               />
@@ -233,9 +234,9 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
         )}
 
         <div className={`w-full ${hasCnvImage ? 'xl:w-3/5' : 'w-full'} flex flex-col bg-card shadow-sm border border-border/50 rounded-2xl overflow-hidden p-2`}>
-          <DataTable 
-            columns={columns} 
-            data={cnvs} 
+          <DataTable
+            columns={columns}
+            data={cnvs}
             rowLabel="CNVs"
             totalCount={cnvCount}
             page={Number(data?.meta?.page ?? page)}
@@ -247,12 +248,12 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
               setPerPage(value)
               setPage(1)
             }}
-            filename={`cnvs_${sampleId}.csv`} 
+            filename={`cnvs_${sampleId}.csv`}
             getRowClassName={findingRowClass}
             renderToolbar={(table) => (
               <>
-                <BulkActionDropdown 
-                  selectedCount={Object.keys(table.getState().rowSelection).length} 
+                <BulkActionDropdown
+                  selectedCount={Object.keys(table.getState().rowSelection).length}
                   actions={cnvBulkActions}
                   isPending={bulkAction.isPending}
                   onAction={(action) => bulkAction.mutateAsync({

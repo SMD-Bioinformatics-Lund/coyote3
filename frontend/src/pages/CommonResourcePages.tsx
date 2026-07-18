@@ -414,7 +414,7 @@ export function PublicAspGenesPage() {
                 <h2 className="text-xl font-black">{title}</h2>
                 <HtmlText value={description} className="mt-1" />
               </div>
-              <Link to="/catalog" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
+              <Link to="/public/catalog" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
                 Catalog
                 <ExternalLink className="h-4 w-4" />
               </Link>

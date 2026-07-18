@@ -312,7 +312,7 @@ The Reports page lists saved reports and provides access to saved clinical repor
 
 ## Assay Catalog
 
-Route: `/catalog`
+Route: `/public/catalog`
 
 The assay catalog combines YAML catalog metadata with ASP, ASPC, ISGL, and gene metadata from the database.
 
@@ -332,7 +332,7 @@ The assay catalog combines YAML catalog metadata with ASP, ASPC, ISGL, and gene 
 
 ## Assay Catalog Matrix
 
-Route: `/matrix`
+Route: `/public/matrix`
 
 The matrix shows gene coverage across catalog columns.
 
@@ -349,7 +349,6 @@ Matrix filters include gene search, modality, section, and gene list. Gene searc
 
 Routes:
 
-* `/gene/:geneId`
 * `/public/gene/:geneId/info`
 
 Gene pages present HGNC-centered gene context.

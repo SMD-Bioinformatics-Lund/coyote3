@@ -29,7 +29,6 @@ FROM coyote3_dev_runtime_base AS coyote3_dev_api
 
 EXPOSE 8001
 
-COPY config/ ./config/
 COPY api/ ./api/
 COPY scripts/ ./scripts/
 COPY tests/ ./tests/

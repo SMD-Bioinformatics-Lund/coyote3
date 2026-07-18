@@ -95,7 +95,7 @@ export function PublicCatalog() {
             {downloadCsv.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             Catalog CSV
           </button>
-          <Link to="/matrix" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
+          <Link to="/public/matrix" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
             <Grid2X2 className="h-4 w-4" />
             Matrix
           </Link>
@@ -488,9 +488,9 @@ export function PublicCatalogMatrix() {
       title="Assay Catalog Matrix"
       description="Gene coverage matrix across public assay catalog modalities and gene lists."
       actions={
-        <a href="/catalog" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
+        <Link to="/public/catalog" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
           Catalog
-        </a>
+        </Link>
       }
     >
       {isLoading ? (

@@ -3,9 +3,24 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
+function normalizeScriptName(value?: string) {
+  const raw = String(value || '').trim()
+  if (!raw || raw === '/') return ''
+  return `/${raw.replace(/^\/+|\/+$/g, '')}`
+}
+
+const scriptName = normalizeScriptName(process.env.SCRIPT_NAME || process.env.VITE_SCRIPT_NAME)
+const apiTarget = process.env.VITE_API_URL || 'http://coyote3_dev_api:8001'
+const stripScriptName = (requestPath: string) =>
+  scriptName ? requestPath.replace(new RegExp(`^${scriptName}(?=/)`), '') : requestPath
+
 // https://vite.dev/config/
 export default defineConfig({
+  base: scriptName ? `${scriptName}/` : '/',
   plugins: [react(), tailwindcss()],
+  define: {
+    'import.meta.env.VITE_SCRIPT_NAME': JSON.stringify(scriptName),
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -20,9 +35,18 @@ export default defineConfig({
     ],
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://coyote3_dev_api:8001',
+        target: apiTarget,
         changeOrigin: true,
-      }
+      },
+      ...(scriptName
+        ? {
+            [`${scriptName}/api`]: {
+              target: apiTarget,
+              changeOrigin: true,
+              rewrite: stripScriptName,
+            },
+          }
+        : {}),
     }
   }
 })

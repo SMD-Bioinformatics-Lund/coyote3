@@ -20,7 +20,7 @@ services:
       - ../../.coyote3_env
     environment:
       - TZ=Europe/Stockholm
-    restart: always
+    restart: on-failure:5
     dns:
       - ${APP_DNS:-1.1.1.1}
       - 8.8.8.8
@@ -41,7 +41,7 @@ services:
       context: ../..
       dockerfile: docker/Dockerfile.docs
       network: host
-    restart: always
+    restart: on-failure:5
     dns:
       - ${APP_DNS:-1.1.1.1}
       - 8.8.8.8
@@ -71,7 +71,7 @@ services:
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
-    restart: always
+    restart: on-failure:5
     dns:
       - ${APP_DNS:-1.1.1.1}
       - 8.8.8.8
@@ -111,7 +111,7 @@ services:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://coyote3_redis:6379/0}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://coyote3_redis:6379/0}
       - CELERY_INGEST_QUEUE=${CELERY_INGEST_QUEUE:-ingest}
-    restart: always
+    restart: on-failure:5
     dns:
       - ${APP_DNS:-1.1.1.1}
       - 8.8.8.8
@@ -145,7 +145,7 @@ services:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://coyote3_redis:6379/0}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://coyote3_redis:6379/0}
       - CELERY_INGEST_QUEUE=${CELERY_INGEST_QUEUE:-ingest}
-    restart: always
+    restart: on-failure:5
     dns:
       - ${APP_DNS:-1.1.1.1}
       - 8.8.8.8
@@ -207,26 +207,24 @@ services:
       - 8.8.8.8
     networks:
       - coyote3-net
-    restart: unless-stopped
+    restart: on-failure:5
     privileged: true
 
   # Optional self-hosted Mongo service for environments that do not use managed/external Mongo.
   # Enable with:
   #   ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml --profile with-mongo up -d
-  # With the default host.docker.internal MONGO_URI, this service is reached
-  # through the published COYOTE3_MONGO_PORT.
+  # This service is internal to the Docker network. For host MongoDB, set MONGO_URI
+  # to host.docker.internal or another external Mongo endpoint instead.
   coyote3_mongo:
     <<: *runtime-defaults
     container_name: coyote3_mongo_${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
     image: mongo:7.0
     profiles: ["with-mongo"]
     command: ["--bind_ip_all"]
-    restart: unless-stopped
+    restart: on-failure:5
     stop_grace_period: 120s
     networks:
       - coyote3-net
-    ports:
-      - "${COYOTE3_MONGO_PORT:-5820}:27017"
     env_file:
       - ../../.coyote3_env
     environment:
@@ -247,8 +245,15 @@ services:
     image: nginx:1.27-alpine
     ports:
       - "${COYOTE3_PORT:-5815}:8088"
+    command: ["sh", "-c", "sh /etc/nginx/render-config.sh && nginx -g 'daemon off;'"]
+    env_file:
+      - ../../.coyote3_env
+    environment:
+      - COYOTE3_NGINX_FRONTEND_UPSTREAM=http://coyote3_frontend:3000
+      - COYOTE3_NGINX_API_UPSTREAM=http://coyote3_api:8001
+      - COYOTE3_NGINX_DOCS_UPSTREAM=http://coyote3_docs:8080
     volumes:
-      - ./nginx/prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/render-config.sh:/etc/nginx/render-config.sh:ro
     networks:
       - coyote3-net
     depends_on:
@@ -258,7 +263,7 @@ services:
         condition: service_healthy
       coyote3_docs:
         condition: service_started
-    restart: unless-stopped
+    restart: on-failure:5
 
 networks:
   coyote3-net:
