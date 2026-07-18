@@ -581,6 +581,29 @@ class SampleRepository(BaseRepository):
                         {"$group": {"_id": "$paired", "count": {"$sum": 1}}},
                         {"$project": {"_id": 0, "key": "$_id", "count": 1}},
                     ],
+                    "ingest_statuses": [
+                        {"$group": {"_id": "$ingest_status", "count": {"$sum": 1}}},
+                        {"$project": {"_id": 0, "key": "$_id", "count": 1}},
+                    ],
+                    "recent_samples": [
+                        {"$sort": {"time_added": -1, "_id": -1}},
+                        {"$limit": 6},
+                        {
+                            "$project": {
+                                "_id": 0,
+                                "id": {"$toString": "$_id"},
+                                "name": 1,
+                                "assay": 1,
+                                "subpanel_id": 1,
+                                "subpanel": 1,
+                                "profile": 1,
+                                "reported": 1,
+                                "ingest_status": 1,
+                                "omics_layer": 1,
+                                "time_added": 1,
+                            }
+                        },
+                    ],
                 }
             }
         )
@@ -643,7 +666,9 @@ class SampleRepository(BaseRepository):
                 "omics_layers": _kv_to_dict(facet_doc.get("omics_layers", []) or []),
                 "sequencing_scopes": _kv_to_dict(facet_doc.get("sequencing_scopes", []) or []),
                 "pair_count": pair_counts,
+                "ingest_statuses": _kv_to_dict(facet_doc.get("ingest_statuses", []) or []),
             },
+            "recent_samples": list(facet_doc.get("recent_samples", []) or []),
         }
 
     def get_assay_specific_sample_stats(

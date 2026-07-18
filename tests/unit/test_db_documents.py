@@ -127,6 +127,34 @@ def test_collection_validator_accepts_oncokb_actionable_shape():
     validate_collection_document("oncokb_actionable", payload)
 
 
+def test_collection_validator_accepts_public_oncokb_cancer_gene_shape():
+    """Public OncoKB cancer-gene list records should validate as public markers."""
+    validate_collection_document(
+        "oncokb_cancer_genes_public",
+        {
+            "gene": "TP53",
+            "source": "public.api.oncokb.org",
+            "public_api": True,
+            "therapeutic_data_included": False,
+            "hgnc_id": "HGNC:11998",
+            "previous_symbols": ["P53"],
+            "alias_symbols": ["BCC7"],
+            "entrez_gene_id": 7157,
+            "gene_type": "TSG",
+            "occurrence_count": 100,
+            "oncokb_annotated": True,
+            "sanger_cgc": True,
+            "vogelstein": True,
+            "foundation": True,
+            "foundation_heme": True,
+            "msk_impact": True,
+            "msk_heme": True,
+            "grch37_refseq": "NM_000546.5",
+            "grch38_refseq": "NM_000546.6",
+        },
+    )
+
+
 def test_collection_validator_accepts_nested_sample_shape():
     """samples collection should validate nested case/control/filter/comment/report blocks."""
     fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/samples.json")
@@ -161,7 +189,7 @@ def test_samples_doc_keeps_filters_unset_until_initialized():
             "assay": "assay_1",
             "subpanel": "hem",
             "profile": "production",
-            "case_id": "CASE_DEMO",
+            "case_id": "seed_case",
             "sample_no": 1,
             "sequencing_scope": "panel",
             "omics_layer": "dna",

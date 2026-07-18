@@ -1,6 +1,6 @@
 [
   {
-    "SAMPLE_ID": "65f0c0ffee00000000000001",
+    "SAMPLE_ID": "sample_oid_seed",
     "CHROM": "2",
     "POS": 29443600,
     "REF": "N",
@@ -18,7 +18,7 @@
     "GT": [
       {
         "UR": 10.0,
-        "sample": "CASE_DEMO",
+        "sample": "seed_case",
         "PR": "8,12",
         "SR": "6,9"
       }

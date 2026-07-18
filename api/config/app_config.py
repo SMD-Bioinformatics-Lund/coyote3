@@ -146,6 +146,15 @@ class DefaultConfig:
     WEB_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("WEB_RATE_LIMIT_WINDOW_SECONDS", "60"))
     WEB_APP_BASE_URL = os.getenv("WEB_APP_BASE_URL", "")
     HELP_CENTER_URL = os.getenv("HELP_CENTER_URL", "")
+    ISSUE_TRACKER_URL = os.getenv("ISSUE_TRACKER_URL", "")
+    ONCOKB_BASE_URL = os.getenv("ONCOKB_BASE_URL", "https://public.api.oncokb.org/api/v1")
+    ONCOKB_DEMO_BASE_URL = os.getenv("ONCOKB_DEMO_BASE_URL", "https://demo.oncokb.org/api/v1")
+    ONCOKB_PUBLIC_LOOKUPS_ENABLED = os.getenv("ONCOKB_PUBLIC_LOOKUPS_ENABLED", "1") == "1"
+    ONCOKB_REQUEST_TIMEOUT_SECONDS = float(os.getenv("ONCOKB_REQUEST_TIMEOUT_SECONDS", "3.0"))
+    ONCOKB_PUBLIC_BATCH_SIZE = int(os.getenv("ONCOKB_PUBLIC_BATCH_SIZE", "200"))
+    CLINPGX_BASE_URL = os.getenv("CLINPGX_BASE_URL", "https://api.clinpgx.org/v1")
+    CLINPGX_PUBLIC_LOOKUPS_ENABLED = os.getenv("CLINPGX_PUBLIC_LOOKUPS_ENABLED", "1") == "1"
+    CLINPGX_REQUEST_TIMEOUT_SECONDS = float(os.getenv("CLINPGX_REQUEST_TIMEOUT_SECONDS", "3.0"))
     SMTP_HOST = os.getenv("SMTP_HOST", "")
     SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")

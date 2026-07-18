@@ -190,7 +190,7 @@ def test_list_dna_variants_missing_aspc_raises_specific_422(monkeypatch):
     monkeypatch.setattr(
         store.assay_configuration_repository,
         "get_aspc_no_meta",
-        lambda assay_name, profile: None,
+        lambda assay_name, profile, subpanel_id=None: None,
     )
 
     with pytest.raises(AppError) as exc:
@@ -199,7 +199,7 @@ def test_list_dna_variants_missing_aspc_raises_specific_422(monkeypatch):
     assert exc.value.status_code == 422
     assert (
         exc.value.detail["error"]
-        == "ASPC not registered for assay 'hema_GMSv1' in environment 'production'"
+        == "ASPC not registered for assay 'hema_GMSv1', subpanel 'myeloid', environment 'production'"
     )
 
 

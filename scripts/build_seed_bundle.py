@@ -6,12 +6,19 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import re
 import sys
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
+
+from api.config.constants import (  # noqa: E402
+    ALL_SAMPLE_FILE_KEYS,
+    SUBPANEL_BASE_ID,
+    normalize_environment,
+)
 
 
 def _normalize_permission_id(permission_id) -> str:
@@ -33,6 +40,23 @@ def _normalize_permission_ids(permission_ids) -> list[str]:
             normalized.append(normalized_id)
             seen.add(normalized_id)
     return normalized
+
+
+def _clean_identifier(value, *, default: str = SUBPANEL_BASE_ID) -> str:
+    """Normalize seed identifiers to the canonical contract-safe character set."""
+    text = str(value or "").strip()
+    text = text.replace(":", "_").replace(" ", "_")
+    text = re.sub(r"[^A-Za-z0-9_-]+", "_", text).strip("_")
+    return text or default
+
+
+def _normalize_username(value) -> str:
+    """Convert fixture usernames into contract-safe local usernames."""
+    text = str(value or "").strip().lower()
+    if "@" in text:
+        text = text.split("@", 1)[0]
+    text = re.sub(r"[^a-z0-9_.-]+", ".", text).strip(".")
+    return text or "seed.user"
 
 
 def parse_args() -> argparse.Namespace:
@@ -122,14 +146,12 @@ def lower_business_keys(seed: dict[str, list[dict]]) -> None:
             "roles",
             "assay_groups",
             "assays",
-            "permissions",
-            "deny_permissions",
         ),
-        "asp_configs": ("aspc_id", "assay_name", "asp_group"),
+        "asp_configs": ("aspc_id", "asp_id", "subpanel_id", "asp_group"),
         "assay_specific_panels": ("asp_id", "assay_name", "asp_group"),
         "insilico_genelists": ("isgl_id", "diagnosis", "assay_groups", "assays"),
         "blacklist": ("assay_group", "assay"),
-        "samples": ("assay", "subpanel"),
+        "samples": ("assay", "subpanel_id"),
     }
 
     def normalize_item(value):
@@ -152,21 +174,146 @@ def canonicalize_permission_fields(seed: dict[str, list[dict]]) -> None:
     for doc in seed.get("permissions", []) or []:
         if not isinstance(doc, dict):
             continue
-        permission_id = _normalize_permission_id(doc.get("permission_id"))
+        permission_id = _normalize_permission_id(
+            doc.get("permission_id") or doc.get("permission_name")
+        )
         if permission_id:
             doc["permission_id"] = permission_id
-        permission_name = _normalize_permission_id(doc.get("permission_name"))
-        if permission_name:
-            doc["permission_name"] = permission_name
+        doc.pop("permission_name", None)
 
-    for collection in ("roles", "users"):
-        for doc in seed.get(collection, []) or []:
-            if not isinstance(doc, dict):
+    for doc in seed.get("roles", []) or []:
+        if not isinstance(doc, dict):
+            continue
+        if "permissions" in doc:
+            doc["permissions"] = _normalize_permission_ids(doc.get("permissions"))
+        doc.pop("deny_permissions", None)
+
+    for doc in seed.get("users", []) or []:
+        if not isinstance(doc, dict):
+            continue
+        if "username" in doc:
+            doc["username"] = _normalize_username(doc.get("username"))
+
+
+def canonicalize_assay_config_fields(seed: dict[str, list[dict]]) -> None:
+    for doc in seed.get("asp_configs", []) or []:
+        if not isinstance(doc, dict):
+            continue
+
+        raw_aspc_id = str(doc.get("aspc_id") or "").strip()
+        assay_from_old_id = raw_aspc_id.split(":", 1)[0] if ":" in raw_aspc_id else ""
+        asp_id = _clean_identifier(
+            doc.get("asp_id") or doc.get("assay_name") or assay_from_old_id,
+            default="assay",
+        )
+        subpanel_id = _clean_identifier(
+            doc.get("subpanel_id") or doc.get("subpanel") or SUBPANEL_BASE_ID
+        )
+        environment = normalize_environment(doc.get("environment") or "production")
+
+        doc["asp_id"] = asp_id
+        doc["subpanel_id"] = subpanel_id
+        doc["environment"] = environment
+        doc["aspc_id"] = _clean_identifier(
+            f"{asp_id}_{subpanel_id}_{environment}", default=f"assay_{environment}"
+        )
+
+        doc.pop("assay_name", None)
+        doc.pop("query", None)
+        doc.pop("subpanel", None)
+
+        filters = doc.get("filters")
+        if isinstance(filters, dict):
+            if "genelists" in filters and "snvlists" not in filters:
+                filters["snvlists"] = filters.get("genelists") or []
+            if "cnv_genelists" in filters and "cnvlists" not in filters:
+                filters["cnvlists"] = filters.get("cnv_genelists") or []
+            filters.pop("genelists", None)
+            filters.pop("cnv_genelists", None)
+
+        reporting = doc.setdefault("reporting", {})
+        if isinstance(reporting, dict) and "analysis" not in reporting:
+            reporting["analysis"] = (
+                doc.get("analysis_types") or reporting.get("report_sections") or []
+            )
+
+
+def canonicalize_sample_fields(seed: dict[str, list[dict]]) -> None:
+    snv_filter_keys = {
+        "max_freq",
+        "min_freq",
+        "max_control_freq",
+        "max_popfreq",
+        "min_depth",
+        "min_alt_reads",
+        "vep_consequences",
+        "snvlists",
+        "adhoc_genes",
+    }
+    cnv_filter_keys = {
+        "min_cnv_size",
+        "max_cnv_size",
+        "cnv_loss_cutoff",
+        "cnv_gain_cutoff",
+        "cnveffects",
+        "cnvlists",
+        "adhoc_genes",
+    }
+    coverage_filter_keys = {"warn_cov", "error_cov"}
+
+    for doc in seed.get("samples", []) or []:
+        if not isinstance(doc, dict):
+            continue
+
+        if "subpanel_id" not in doc and "subpanel" in doc:
+            doc["subpanel_id"] = doc.get("subpanel")
+        doc.pop("subpanel", None)
+        if "profile" in doc:
+            doc["profile"] = normalize_environment(doc.get("profile"))
+        if "omics_layer" in doc and isinstance(doc.get("omics_layer"), str):
+            doc["omics_layer"] = doc["omics_layer"].strip().lower()
+        if "sequencing_technology" in doc and isinstance(doc.get("sequencing_technology"), str):
+            doc["sequencing_technology"] = doc["sequencing_technology"].strip().lower()
+
+        files = doc.get("files") if isinstance(doc.get("files"), dict) else {}
+        for file_key in ALL_SAMPLE_FILE_KEYS:
+            if file_key not in doc:
                 continue
-            if "permissions" in doc:
-                doc["permissions"] = _normalize_permission_ids(doc.get("permissions"))
-            if "deny_permissions" in doc:
-                doc["deny_permissions"] = _normalize_permission_ids(doc.get("deny_permissions"))
+            raw_file = doc.pop(file_key)
+            if raw_file in (None, ""):
+                continue
+            files[file_key] = raw_file if isinstance(raw_file, dict) else {"path": raw_file}
+        doc["files"] = files
+
+        filters = doc.get("filters")
+        if isinstance(filters, dict) and not any(
+            key in filters for key in ("snv", "cnv", "coverage", "fusion")
+        ):
+            if "genelists" in filters and "snvlists" not in filters:
+                filters["snvlists"] = filters.get("genelists") or []
+            if "cnv_genelists" in filters and "cnvlists" not in filters:
+                filters["cnvlists"] = filters.get("cnv_genelists") or []
+            doc["filters"] = {
+                "snv": {k: filters[k] for k in snv_filter_keys if k in filters},
+                "cnv": {k: filters[k] for k in cnv_filter_keys if k in filters},
+                "coverage": {k: filters[k] for k in coverage_filter_keys if k in filters},
+            }
+
+        for legacy_key in (
+            "comments",
+            "reports",
+            "groups",
+            "report_num",
+            "data_counts",
+            "ingest_status",
+        ):
+            doc.pop(legacy_key, None)
+
+
+def canonicalize_seed_contract(seed: dict[str, list[dict]]) -> None:
+    canonicalize_permission_fields(seed)
+    canonicalize_assay_config_fields(seed)
+    canonicalize_sample_fields(seed)
 
 
 def stamp_docs(seed: dict[str, list[dict]], seed_actor: str, seed_time: str) -> None:
@@ -197,8 +344,8 @@ def main() -> int:
     seed = load_seed(source)
     if reference_seed_data is not None:
         seed.update(load_reference_seed_pack(reference_seed_data))
+    canonicalize_seed_contract(seed)
     lower_business_keys(seed)
-    canonicalize_permission_fields(seed)
     stamp_docs(seed, args.seed_actor, args.seed_time)
 
     for collection, docs in seed.items():

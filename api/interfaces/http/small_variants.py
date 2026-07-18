@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import httpx
 from fastapi import APIRouter, Body, Depends, Query, Request
 
 from api.app.container import store, util
 from api.app.deps.services import get_dna_service, get_resource_annotation_service
 from api.app.http import api_error as _api_error
 from api.app.http import get_formatted_assay_config as _get_formatted_assay_config
+from api.app.runtime_state import app as runtime_app
 from api.application.classification.variant_annotation import ResourceAnnotationService
 from api.application.common.change_payload import change_payload
 from api.application.dna.variant_analysis import DnaService
@@ -22,7 +24,9 @@ from api.application.interpretation.report_summary import (
     generate_summary_text,
 )
 from api.contracts.dna import (
+    DnaClinPgxPublicPayload,
     DnaCsvExportContextPayload,
+    DnaOncoKbPublicPayload,
     DnaPlotContextPayload,
     DnaVariantContextPayload,
     DnaVariantsListPayload,
@@ -33,6 +37,8 @@ from api.domain.core.dna.dna_filters import (
 )
 from api.domain.core.dna.dna_variants import get_variant_nomenclature
 from api.domain.core.dna.varqueries import build_query
+from api.infra.knowledgebase.clinpgx_public import ClinPgxPublicClient
+from api.infra.knowledgebase.public_oncokb import PublicOncoKbClient
 from api.interfaces.http.change_helpers import comment_change, resource_change
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 
@@ -165,6 +171,114 @@ def show_dna_variant(
             util_module=util,
             assay_config_getter=_get_formatted_assay_config,
         )
+    )
+
+
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/oncokb-public",
+    response_model=DnaOncoKbPublicPayload,
+    summary="Fetch public OncoKB annotation for a small variant",
+)
+def show_dna_variant_public_oncokb(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access()),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Return an on-demand public OncoKB API annotation for a small variant."""
+    if not runtime_app.config.get("ONCOKB_PUBLIC_LOOKUPS_ENABLED", True):
+        return {
+            "status": "disabled",
+            "message": "Public OncoKB lookups are disabled by application controls.",
+            "query": {},
+            "response": None,
+        }
+    sample, variant = _require_variant_for_sample(sample_id, var_id, user, service)
+    client = PublicOncoKbClient(
+        base_url=runtime_app.config.get("ONCOKB_BASE_URL", "https://public.api.oncokb.org/api/v1"),
+        timeout=float(runtime_app.config.get("ONCOKB_REQUEST_TIMEOUT_SECONDS", 3.0)),
+    )
+    try:
+        return util.common.convert_to_serializable(
+            client.annotate_variant(sample=sample, variant=variant)
+        )
+    except httpx.HTTPStatusError as exc:
+        raise _api_error(
+            exc.response.status_code,
+            "Public OncoKB request failed",
+            details=exc.response.text[:500],
+        ) from exc
+    except httpx.HTTPError as exc:
+        raise _api_error(
+            502,
+            "Public OncoKB is currently unavailable",
+            details=str(exc),
+        ) from exc
+
+
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/clinpgx-public",
+    response_model=DnaClinPgxPublicPayload,
+    summary="Fetch public ClinPGx gene context for a small variant",
+)
+def show_dna_variant_public_clinpgx(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access()),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Return an on-demand public ClinPGx API gene lookup for a small variant."""
+    if not runtime_app.config.get("CLINPGX_PUBLIC_LOOKUPS_ENABLED", True):
+        return {
+            "status": "disabled",
+            "message": "Public ClinPGx lookups are disabled by application controls.",
+            "query": {},
+            "local_record": None,
+            "response": None,
+        }
+    _sample, variant = _require_variant_for_sample(sample_id, var_id, user, service)
+    selected_csq = variant.get("INFO", {}).get("selected_CSQ", {}) or {}
+    symbol = str(selected_csq.get("SYMBOL") or "").strip()
+    repository = getattr(service, "clinpgx_public_repository", None)
+    getter = getattr(repository, "get_gene_record", None)
+    local_record = getter(symbol) if callable(getter) else None
+    clinpgx_id = str((local_record or {}).get("pharmgkb_accession_id") or "").strip()
+    if not symbol and not clinpgx_id:
+        return {
+            "status": "not_queried",
+            "message": "No gene symbol is available for this variant.",
+            "query": {},
+            "local_record": None,
+            "response": None,
+        }
+    client = ClinPgxPublicClient(
+        base_url=runtime_app.config.get("CLINPGX_BASE_URL", "https://api.clinpgx.org/v1"),
+        timeout=float(runtime_app.config.get("CLINPGX_REQUEST_TIMEOUT_SECONDS", 3.0)),
+    )
+    query = {"clinpgx_id": clinpgx_id, "symbol": symbol}
+    try:
+        response = client.get_gene_knowledge(clinpgx_id=clinpgx_id or None, symbol=symbol or None)
+    except httpx.HTTPStatusError as exc:
+        raise _api_error(
+            exc.response.status_code,
+            "Public ClinPGx request failed",
+            details=exc.response.text[:500],
+        ) from exc
+    except httpx.HTTPError as exc:
+        raise _api_error(
+            502,
+            "Public ClinPGx is currently unavailable",
+            details=str(exc),
+        ) from exc
+    return util.common.convert_to_serializable(
+        {
+            "status": "ok",
+            "source": "api.clinpgx.org",
+            "license": "CC BY-SA 4.0; subject to ClinPGx Data Usage Policy",
+            "query": query,
+            "local_record": local_record,
+            "response": response,
+        }
     )
 
 

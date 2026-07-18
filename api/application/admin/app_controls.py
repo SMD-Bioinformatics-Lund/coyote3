@@ -26,7 +26,9 @@ def default_app_controls(config: dict[str, Any] | None = None) -> AppControlsDoc
         control_id=APP_CONTROLS_ID,
         celery={
             "enabled": True,
-            "ingest_watch_enabled": to_bool(config.get("COYOTE3_INGEST_WATCH_ENABLED"), default=False),
+            "ingest_watch_enabled": to_bool(
+                config.get("COYOTE3_INGEST_WATCH_ENABLED"), default=False
+            ),
             "ingest_bundle_enabled": True,
             "ingest_dependents_enabled": True,
             "collection_writes_enabled": True,
@@ -80,7 +82,9 @@ def effective_audit_retention_days(db: Any, config: dict[str, Any]) -> int:
 class AppControlsService:
     """DB-backed runtime switches for modules, Celery tasks, and retention."""
 
-    def __init__(self, db: Any, *, config: dict[str, Any], audit_service: Any | None = None) -> None:
+    def __init__(
+        self, db: Any, *, config: dict[str, Any], audit_service: Any | None = None
+    ) -> None:
         self.collection = db[APP_CONTROLS_COLLECTION]
         self.config = config
         self.audit_service = audit_service
@@ -100,7 +104,9 @@ class AppControlsService:
             "defaults": defaults.model_dump(by_alias=True),
         }
 
-    def update_controls(self, payload: dict[str, Any], *, actor: Any | None = None) -> dict[str, Any]:
+    def update_controls(
+        self, payload: dict[str, Any], *, actor: Any | None = None
+    ) -> dict[str, Any]:
         """Validate and persist a complete controls document."""
         current = self.get_controls().model_dump(by_alias=True)
         incoming = deepcopy(current)
@@ -111,7 +117,7 @@ class AppControlsService:
         incoming["updated_by"] = getattr(actor, "username", None) or current_username()
         incoming["updated_on"] = datetime.now(timezone.utc)
         validated = AppControlsDoc.model_validate(incoming)
-        update_doc = validated.model_dump(by_alias=True, exclude={"id_"})
+        update_doc = validated.model_dump(by_alias=True, exclude={"id_", "created_on"})
         saved = self.collection.find_one_and_update(
             {"control_id": APP_CONTROLS_ID},
             {"$set": update_doc, "$setOnInsert": {"created_on": datetime.now(timezone.utc)}},
@@ -144,7 +150,11 @@ class AppControlsService:
         cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
         audit_collection = self.collection.database[get_audit_events_collection_name(self.config)]
         result = audit_collection.delete_many({"occurred_at": {"$lt": cutoff}})
-        return {"retention_days": retention_days, "deleted": int(result.deleted_count), "cutoff": cutoff}
+        return {
+            "retention_days": retention_days,
+            "deleted": int(result.deleted_count),
+            "cutoff": cutoff,
+        }
 
     def cleanup_disk_logs(self) -> dict[str, Any]:
         """Gzip old plain-text logs and delete logs beyond retention."""

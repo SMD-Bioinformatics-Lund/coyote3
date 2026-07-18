@@ -114,6 +114,37 @@ class OnkoKBRepository(BaseRepository):
         """
         return self.adapter.oncokb_genes_collection.find_one({"name": gene})
 
+    def get_oncokb_gene_records(self, genes: list[str]) -> dict[str, dict]:
+        """Return local OncoKB gene records keyed by symbol."""
+        normalized = sorted({str(gene).strip() for gene in genes if str(gene).strip()})
+        if not normalized:
+            return {}
+        records = self.adapter.oncokb_genes_collection.find({"name": {"$in": normalized}})
+        return {record.get("name"): record for record in records if record.get("name")}
+
+    def get_oncokb_action_gene_records(self, genes: list[str]) -> dict[str, dict]:
+        """Return historical local actionable OncoKB records keyed by gene symbol."""
+        normalized = sorted({str(gene).strip() for gene in genes if str(gene).strip()})
+        if not normalized:
+            return {}
+        records = self.adapter.oncokb_actionable_collection.find(
+            {"Hugo Symbol": {"$in": normalized}},
+            {
+                "Hugo Symbol": 1,
+                "Entrez Gene ID": 1,
+                "Alteration": 1,
+                "Drugs(s)": 1,
+                "Level": 1,
+                "Cancer Type": 1,
+                "PMIDs for drug": 1,
+            },
+        )
+        return {
+            str(record.get("Hugo Symbol")): record
+            for record in records
+            if record.get("Hugo Symbol")
+        }
+
     def get_oncokb_action_gene(self, gene: str) -> dict:
         """
         Get OncoKB actionable for a variant.

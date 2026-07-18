@@ -31,8 +31,8 @@ class InternalIngestDependentsRequest(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "sample_id": "65f0c0ffee00000000000001",
-                "sample_name": "DEMO_SAMPLE_001",
+                "sample_id": "sample_oid_seed",
+                "sample_name": "seed_sample",
                 "delete_existing": True,
                 "preload": {"cnvs": [{"chr": "7", "start": 1, "end": 2}]},
             }

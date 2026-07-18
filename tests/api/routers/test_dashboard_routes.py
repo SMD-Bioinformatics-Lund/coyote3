@@ -46,7 +46,14 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
     monkeypatch.setattr(
         service.variant_repository,
         "get_dashboard_variant_counts",
-        lambda: {"total_variants": 100, "total_snps": 60, "fps": 1},
+        lambda: {
+            "total_variants": 100,
+            "snv": 100,
+            "small_variants": 100,
+            "total_snps": 60,
+            "fps": 1,
+            "by_variant_class": {"SNV": 60, "INDEL": 40},
+        },
     )
     monkeypatch.setattr(
         service.variant_repository,
@@ -62,7 +69,9 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
         "get_dashboard_tier_stats",
         lambda: {"total": {"tier1": 1, "tier2": 2, "tier3": 3, "tier4": 4}, "by_assay": {}},
     )
-    monkeypatch.setattr(service.assay_panel_repository, "get_all_asps_unique_gene_count", lambda: 250)
+    monkeypatch.setattr(
+        service.assay_panel_repository, "get_all_asps_unique_gene_count", lambda: 250
+    )
     monkeypatch.setattr(
         service.assay_panel_repository, "get_all_asp_gene_counts", lambda: {"dna": {"WGS": 120}}
     )
@@ -105,6 +114,13 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
     assert payload["analysed_samples"] == 8
     assert payload["pending_samples"] == 2
     assert payload["variant_stats"]["total_variants"] == 100
+    assert payload["variant_stats"]["snv"] == 100
+    assert payload["variant_stats"]["cnv"] == 5
+    assert payload["variant_stats"]["fusion"] == 3
+    assert payload["variant_stats"]["translocation"] == 2
+    assert payload["variant_stats"]["reported_findings"] == 10
+    assert payload["variant_stats"]["tier1_or_2"] == 3
+    assert payload["variant_stats"]["vus"] == 3
     assert payload["sample_stats"]["profiles"]["prod"] == 7
     assert payload["tier_stats"]["total"]["tier3"] == 3
     assert payload["quality_stats"]["analysed_rate_percent"] == 80.0

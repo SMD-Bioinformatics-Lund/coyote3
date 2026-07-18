@@ -93,6 +93,137 @@ def test_build_seed_bundle_normalizes_and_stamps(tmp_path):
     assert output_docs[0]["updated_by"] == "admin@center.local"
 
 
+def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
+    source_dir = tmp_path / "source"
+    dest_dir = tmp_path / "dest"
+    source_dir.mkdir()
+    dest_dir.mkdir()
+
+    (source_dir / "permissions.json").write_text(
+        json.dumps([{"permission_name": "SAMPLES:VIEW"}]), encoding="utf-8"
+    )
+    (source_dir / "roles.json").write_text(
+        json.dumps(
+            [
+                {
+                    "role_id": "Admin",
+                    "permissions": ["SAMPLES:VIEW", "samples:view"],
+                    "deny_permissions": ["reports:delete"],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (source_dir / "users.json").write_text(
+        json.dumps([{"username": "Seed.User@example.org"}]), encoding="utf-8"
+    )
+    (source_dir / "asp_configs.json").write_text(
+        json.dumps(
+            [
+                {
+                    "aspc_id": "Assay_1:testing",
+                    "assay_name": "Assay_1",
+                    "environment": "test",
+                    "subpanel": "Base",
+                    "asp_group": "Hematology",
+                    "filters": {
+                        "genelists": ["seed_snv_list"],
+                        "cnv_genelists": ["seed_cnv_list"],
+                    },
+                    "analysis_types": ["SNV", "CNV"],
+                    "reporting": {"report_sections": ["SNV"]},
+                    "query": {"legacy": True},
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (source_dir / "samples.json").write_text(
+        json.dumps(
+            [
+                {
+                    "name": "Seed Sample",
+                    "assay": "Assay_1",
+                    "subpanel": "Base",
+                    "profile": "test",
+                    "omics_layer": "DNA",
+                    "sequencing_technology": "Illumina",
+                    "vcf_files": "/data/seed/sample.vcf",
+                    "filters": {
+                        "min_depth": 100,
+                        "genelists": ["seed_snv_list"],
+                        "cnv_genelists": ["seed_cnv_list"],
+                        "warn_cov": 500,
+                    },
+                    "comments": [{"text": "legacy"}],
+                    "reports": [{"report_id": "legacy"}],
+                    "groups": ["legacy"],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = _run_script(
+        [
+            "scripts/build_seed_bundle.py",
+            "--seed-source",
+            str(source_dir),
+            "--dest-dir",
+            str(dest_dir),
+            "--seed-actor",
+            "admin@center.local",
+            "--seed-time",
+            "2026-03-30T00:00:00Z",
+        ]
+    )
+    assert result.returncode == 0, result.stderr
+
+    permission = json.loads((dest_dir / "permissions.json").read_text())[0]
+    assert permission == {
+        "permission_id": "samples:view",
+        "created_by": "admin@center.local",
+        "updated_by": "admin@center.local",
+        "created_on": "2026-03-30T00:00:00Z",
+        "updated_on": "2026-03-30T00:00:00Z",
+    }
+
+    role = json.loads((dest_dir / "roles.json").read_text())[0]
+    assert role["role_id"] == "admin"
+    assert role["permissions"] == ["samples:view"]
+    assert "deny_permissions" not in role
+
+    user = json.loads((dest_dir / "users.json").read_text())[0]
+    assert user["username"] == "seed.user"
+
+    aspc = json.loads((dest_dir / "asp_configs.json").read_text())[0]
+    assert aspc["aspc_id"] == "assay_1_base_testing"
+    assert aspc["asp_id"] == "assay_1"
+    assert aspc["subpanel_id"] == "base"
+    assert aspc["environment"] == "testing"
+    assert aspc["filters"]["snvlists"] == ["seed_snv_list"]
+    assert aspc["filters"]["cnvlists"] == ["seed_cnv_list"]
+    assert aspc["reporting"]["analysis"] == ["SNV", "CNV"]
+    assert "assay_name" not in aspc
+    assert "query" not in aspc
+    assert "genelists" not in aspc["filters"]
+    assert "cnv_genelists" not in aspc["filters"]
+
+    sample = json.loads((dest_dir / "samples.json").read_text())[0]
+    assert sample["subpanel_id"] == "base"
+    assert sample["profile"] == "testing"
+    assert sample["omics_layer"] == "dna"
+    assert sample["sequencing_technology"] == "illumina"
+    assert sample["files"]["vcf_files"]["path"] == "/data/seed/sample.vcf"
+    assert sample["filters"]["snv"]["snvlists"] == ["seed_snv_list"]
+    assert sample["filters"]["cnv"]["cnvlists"] == ["seed_cnv_list"]
+    assert sample["filters"]["coverage"]["warn_cov"] == 500
+    assert "vcf_files" not in sample
+    assert "comments" not in sample
+    assert "reports" not in sample
+    assert "groups" not in sample
+
+
 def test_check_markdown_links_script_runs_clean():
     result = _run_script(["scripts/check_markdown_links.py"])
     assert result.returncode == 0, result.stderr

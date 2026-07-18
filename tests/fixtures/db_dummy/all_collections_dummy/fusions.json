@@ -1,6 +1,6 @@
 [
   {
-    "SAMPLE_ID": "65f0c0ffee00000000000001",
+    "SAMPLE_ID": "sample_oid_seed",
     "gene1": "BCR",
     "gene2": "ABL1",
     "genes": "BCR-ABL1",

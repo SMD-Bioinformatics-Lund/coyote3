@@ -152,9 +152,18 @@ class VariantsRepository(BaseRepository):
         cache = getattr(self.adapter.app, "cache", None)
         if cache is not None:
             cache.set("dashboard:variant_rollup:v1", None, timeout=1)
+            cache.set("dashboard:variant_rollup:v2", None, timeout=1)
             cache.set("dashboard:variant_unique_quality:v1", None, timeout=1)
         self._dashboard_metrics_collection().delete_many(
-            {"_id": {"$in": ["variant_rollup_v1", "variant_unique_quality_v1"]}}
+            {
+                "_id": {
+                    "$in": [
+                        "variant_rollup_v1",
+                        "variant_rollup_v2",
+                        "variant_unique_quality_v1",
+                    ]
+                }
+            }
         )
         invalidate_dashboard_summary_cache(self.adapter)
 
@@ -737,29 +746,36 @@ class VariantsRepository(BaseRepository):
         """
         return self.get_collection().count_documents({"fp": True})
 
-    def get_dashboard_variant_counts(self) -> dict[str, int]:
+    def get_dashboard_variant_counts(self) -> dict[str, Any]:
         """
         Return variant summary counters for dashboard.
 
         Output keys:
           - total_variants
+          - snv / small_variants
           - total_snps
           - fps
+          - by_variant_class
         """
         app_obj = self.adapter.app
         cache = getattr(app_obj, "cache", None)
-        cache_key = "dashboard:variant_rollup:v1"
+        cache_key = "dashboard:variant_rollup:v2"
         if cache is not None:
             cached = cache.get(cache_key)
             if isinstance(cached, dict):
                 return {
                     "total_variants": int(cached.get("total_variants", 0) or 0),
+                    "snv": int(cached.get("snv", cached.get("total_variants", 0)) or 0),
+                    "small_variants": int(
+                        cached.get("small_variants", cached.get("total_variants", 0)) or 0
+                    ),
                     "total_snps": int(cached.get("total_snps", 0) or 0),
                     "fps": int(cached.get("fps", 0) or 0),
+                    "by_variant_class": dict(cached.get("by_variant_class", {}) or {}),
                 }
 
         persisted_metric = self._read_persisted_metric(
-            "variant_rollup_v1",
+            "variant_rollup_v2",
             max_age_seconds=int(
                 app_obj.config.get("DASHBOARD_VARIANT_ROLLUP_METRIC_MAX_AGE", 86400)
             ),
@@ -772,8 +788,18 @@ class VariantsRepository(BaseRepository):
         if isinstance(persisted_metric, dict):
             payload = {
                 "total_variants": int(persisted_metric.get("total_variants", 0) or 0),
+                "snv": int(
+                    persisted_metric.get("snv", persisted_metric.get("total_variants", 0)) or 0
+                ),
+                "small_variants": int(
+                    persisted_metric.get(
+                        "small_variants", persisted_metric.get("total_variants", 0)
+                    )
+                    or 0
+                ),
                 "total_snps": int(persisted_metric.get("total_snps", 0) or 0),
                 "fps": int(persisted_metric.get("fps", 0) or 0),
+                "by_variant_class": dict(persisted_metric.get("by_variant_class", {}) or {}),
             }
             if cache is not None:
                 timeout = int(app_obj.config.get("DASHBOARD_VARIANT_ROLLUP_CACHE_TTL", 1800))
@@ -781,12 +807,26 @@ class VariantsRepository(BaseRepository):
             return payload
 
         col = self.get_collection()
-        payload = {
-            "total_variants": int(col.estimated_document_count() or 0),
-            "total_snps": int(col.count_documents({"variant_class": "SNV"}) or 0),
-            "fps": int(col.count_documents({"fp": True}) or 0),
+        by_class_pipeline = [
+            {"$group": {"_id": {"$ifNull": ["$variant_class", "Unknown"]}, "count": {"$sum": 1}}},
+        ]
+        by_variant_class = {
+            str(row.get("_id") or "Unknown"): int(row.get("count", 0) or 0)
+            for row in col.aggregate(by_class_pipeline, allowDiskUse=True)
         }
-        self._write_persisted_metric("variant_rollup_v1", payload)
+        snp_like_count = sum(
+            count for key, count in by_variant_class.items() if str(key).upper() in {"SNV", "SNP"}
+        )
+        total_variants = int(col.estimated_document_count() or 0)
+        payload = {
+            "total_variants": total_variants,
+            "snv": total_variants,
+            "small_variants": total_variants,
+            "total_snps": int(snp_like_count or 0),
+            "fps": int(col.count_documents({"fp": True}) or 0),
+            "by_variant_class": by_variant_class,
+        }
+        self._write_persisted_metric("variant_rollup_v2", payload)
         if cache is not None:
             timeout = int(app_obj.config.get("DASHBOARD_VARIANT_ROLLUP_CACHE_TTL", 1800))
             cache.set(cache_key, payload, timeout=timeout)

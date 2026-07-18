@@ -60,6 +60,7 @@ class MongoStore:
     biomarker_repository: Any
     blacklist_repository: Any
     brca_repository: Any
+    clinpgx_public_repository: Any
     civic_repository: Any
     copy_number_variant_repository: Any
     cosmic_repository: Any
@@ -93,6 +94,7 @@ class MongoStore:
         "biomarker_repository",
         "blacklist_repository",
         "brca_repository",
+        "clinpgx_public_repository",
         "civic_repository",
         "copy_number_variant_repository",
         "cosmic_repository",
@@ -135,6 +137,7 @@ class MongoStore:
         self.biomarker_repository = _LazyRepositoryProxy()
         self.blacklist_repository = _LazyRepositoryProxy()
         self.brca_repository = _LazyRepositoryProxy()
+        self.clinpgx_public_repository = _LazyRepositoryProxy()
         self.civic_repository = _LazyRepositoryProxy()
         self.copy_number_variant_repository = _LazyRepositoryProxy()
         self.cosmic_repository = _LazyRepositoryProxy()

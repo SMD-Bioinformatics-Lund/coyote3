@@ -1,69 +1,79 @@
 [
   {
-    "name": "DEMO_SAMPLE_001",
+    "name": "seed_sample",
     "assay": "assay_1",
-    "subpanel": "hematology_myeloid",
-    "profile": "test",
+    "subpanel_id": "base",
+    "profile": "testing",
+    "current_aspc_id": "assay_1_base_testing",
+    "current_aspc_key": "assay_1:base:testing",
+    "current_aspc_version": 1,
     "genome_build": 38,
-    "case_id": "DEMO_CASE_001",
-    "control_id": "DEMO_CTRL_001",
+    "vep_version": "103",
+    "database_versions": {
+      "vep": "103",
+      "gnomad": "placeholder"
+    },
+    "case_id": "seed_case",
+    "control_id": "seed_control",
     "sample_no": 2,
     "sequencing_scope": "panel",
-    "omics_layer": "DNA",
-    "sequencing_technology": "Illumina",
+    "omics_layer": "dna",
+    "sequencing_technology": "illumina",
     "pipeline": "SomaticPanelPipeline",
     "pipeline_version": "0.0.1",
-    "vcf_files": "/data/demo.vcf",
-    "cnv": "/data/demo.cnv.json",
-    "cov": "/data/demo.cov.json",
+    "files": {
+      "vcf_files": {
+        "path": "/data/seed/sample.vcf"
+      },
+      "cnv": {
+        "path": "/data/seed/sample.cnv.json"
+      },
+      "cov": {
+        "path": "/data/seed/sample.cov.json"
+      }
+    },
     "paired": true,
     "case": {
-      "id": "DEMO_CASE_001",
-      "clarity_id": "GEN_DEMO_CASE_001",
-      "clarity_pool_id": "POOL_DEMO_001",
+      "id": "seed_case",
+      "clarity_id": "seed_case_clarity",
+      "clarity_pool_id": "seed_pool",
       "ffpe": false,
-      "sequencing_run": "RUN_DEMO_001",
+      "sequencing_run": "seed_run",
       "reads": 123456,
       "purity": null
     },
     "control": {
-      "id": "DEMO_CTRL_001",
-      "clarity_id": "GEN_DEMO_CTRL_001",
-      "clarity_pool_id": "POOL_DEMO_001",
+      "id": "seed_control",
+      "clarity_id": "seed_control_clarity",
+      "clarity_pool_id": "seed_pool",
       "ffpe": false,
-      "sequencing_run": "RUN_DEMO_001",
+      "sequencing_run": "seed_run",
       "reads": 120000,
       "purity": null
     },
     "filters": {
-      "min_depth": 100,
-      "max_popfreq": 0.01,
-      "vep_consequences": [
-        "missense_variant"
-      ],
-      "cnveffects": [
-        "gain",
-        "loss"
-      ],
-      "genelists": [
-        "Hem demo list"
-      ]
+      "snv": {
+        "min_depth": 100,
+        "max_popfreq": 0.01,
+        "vep_consequences": [
+          "missense"
+        ],
+        "snvlists": [
+          "seed_snv_list"
+        ]
+      },
+      "cnv": {
+        "cnveffects": [
+          "gain",
+          "loss"
+        ]
+      },
+      "coverage": {
+        "warn_cov": 500,
+        "error_cov": 100
+      }
     },
-    "comments": [
-      {
-        "author": "demo.user",
-        "text": "demo comment"
-      }
-    ],
-    "reports": [
-      {
-        "author": "demo.user",
-        "report_id": "RPT_DEMO_001",
-        "report_type": "final"
-      }
-    ],
-    "groups": [
-      "all_samples"
-    ]
+    "reported": false,
+    "version": 1
   }
 ]

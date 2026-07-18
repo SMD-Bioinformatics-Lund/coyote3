@@ -33,19 +33,108 @@ def _variant_case_af_value(variant: dict[str, Any]) -> float:
     return 0.0
 
 
+def _variant_search_text(variant: dict[str, Any]) -> str:
+    """Build the searchable text for one small-variant table row."""
+    selected_csq = variant.get("INFO", {}).get("selected_CSQ", {}) or {}
+    consequences = selected_csq.get("Consequence", "")
+    if isinstance(consequences, list):
+        consequences_text = " ".join(str(value) for value in consequences)
+    else:
+        consequences_text = str(consequences).replace("&", " ")
+    filters = variant.get("FILTER", [])
+    if isinstance(filters, list):
+        filters_text = " ".join(str(value) for value in filters)
+    else:
+        filters_text = str(filters)
+    genotype_text = " ".join(
+        " ".join(str(genotype.get(key, "")) for key in ("sample", "type", "AF", "VD", "DP"))
+        for genotype in variant.get("GT", []) or []
+        if isinstance(genotype, dict)
+    )
+    values = [
+        variant.get("_id"),
+        variant.get("CHROM"),
+        variant.get("POS"),
+        variant.get("REF"),
+        variant.get("ALT"),
+        variant.get("variant_class"),
+        selected_csq.get("SYMBOL"),
+        selected_csq.get("VEP_SYMBOL"),
+        selected_csq.get("display_symbol"),
+        selected_csq.get("HGNC_ID"),
+        selected_csq.get("Gene"),
+        selected_csq.get("Feature"),
+        selected_csq.get("HGVSc"),
+        selected_csq.get("HGVSp"),
+        selected_csq.get("EXON"),
+        selected_csq.get("INTRON"),
+        consequences_text,
+        filters_text,
+        genotype_text,
+    ]
+    return " ".join(str(value) for value in values if value not in (None, ""))
+
+
+def _search_variants(variants: list[dict[str, Any]], query: str) -> list[dict[str, Any]]:
+    """Search already filtered variants before pagination."""
+    terms = [term.lower() for term in str(query or "").split() if term.strip()]
+    if not terms:
+        return variants
+    return [
+        variant
+        for variant in variants
+        if all(term in _variant_search_text(variant).lower() for term in terms)
+    ]
+
+
 def _collect_oncokb_genes(service, variants: list[dict]) -> list[str]:
     """Collect unique OncoKB gene symbols present in the variant list."""
     oncokb_genes: list[str] = []
-    for variant in variants:
-        symbol = variant.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL")
-        if not symbol:
-            continue
-        oncokb_gene = service.oncokb_repository.get_oncokb_action_gene(symbol)
-        if oncokb_gene and "Hugo Symbol" in oncokb_gene:
-            hugo_symbol = oncokb_gene["Hugo Symbol"]
-            if hugo_symbol not in oncokb_genes:
-                oncokb_genes.append(hugo_symbol)
+    public_cache = getattr(service, "oncokb_public_cache_repository", None)
+    public_getter = getattr(public_cache, "get_gene_records", None)
+    symbols = [
+        symbol
+        for variant in variants
+        if (symbol := variant.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL"))
+    ]
+    if callable(public_getter):
+        public_records = public_getter(symbols)
+        oncokb_genes.extend(gene for gene in public_records if gene and gene not in oncokb_genes)
     return oncokb_genes
+
+
+def _collect_oncokb_gene_map(service, genes: list[str]) -> dict[str, dict]:
+    """Return OncoKB gene records keyed by gene symbol when locally available."""
+    if not genes:
+        return {}
+    public_cache = getattr(service, "oncokb_public_cache_repository", None)
+    public_getter = getattr(public_cache, "get_gene_records", None)
+    if callable(public_getter):
+        public_records = public_getter(genes)
+    else:
+        public_records = {}
+    return dict(public_records)
+
+
+def _collect_oncokb_actionable_gene_map(service, genes: list[str]) -> dict[str, dict]:
+    """Return historical local OncoKB actionable gene records keyed by gene symbol."""
+    if not genes:
+        return {}
+    getter = getattr(service.oncokb_repository, "get_oncokb_action_gene_records", None)
+    if callable(getter):
+        return dict(getter(genes))
+    return {}
+
+
+def _collect_clinpgx_gene_map(service, genes: list[str]) -> dict[str, dict]:
+    """Return ClinPGx public gene records keyed by variant gene symbol."""
+    if not genes:
+        return {}
+    repository = getattr(service, "clinpgx_public_repository", None)
+    getter = getattr(repository, "get_gene_records", None)
+    if callable(getter):
+        return dict(getter(genes))
+    return {}
 
 
 def _normalize_dna_analysis_sections(sections: list[str] | None) -> list[str]:
@@ -197,6 +286,9 @@ def list_variants_payload(
     variants, tiered_variants = add_global_annotations_fn(variants, assay_group, subpanel)
     variants = hotspot_variant(variants)
     variants = sorted(variants, key=_variant_case_af_value, reverse=True)
+    search_query = str(request.query_params.get("q", "")).strip()
+    if search_query:
+        variants = _search_variants(variants, search_query)
 
     sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
     bam_id = service.bam_record_repository.get_bams(sample_ids)
@@ -214,6 +306,17 @@ def list_variants_payload(
     assay_config_schema = build_form_spec(aspc_spec_for_category("DNA"))
 
     oncokb_genes = _collect_oncokb_genes(service, variants)
+    oncokb_gene_map = _collect_oncokb_gene_map(service, oncokb_genes)
+    variant_genes = [
+        symbol
+        for variant in variants
+        if (symbol := variant.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL"))
+    ]
+    oncokb_actionable_gene_map = _collect_oncokb_actionable_gene_map(
+        service,
+        variant_genes,
+    )
+    clinpgx_gene_map = _collect_clinpgx_gene_map(service, variant_genes)
     display_sections_data, summary_sections_data = _build_display_and_summary_sections(
         service,
         variants=variants,
@@ -257,6 +360,7 @@ def list_variants_payload(
             "request_path": request.url.path,
             **pagination_meta,
             "tiered": tiered_variants,
+            "search": search_query,
         },
         "filters": sample_filters,
         "assay_group": assay_group,
@@ -276,6 +380,11 @@ def list_variants_payload(
         "vep_var_class_translations": vep_variant_class_meta,
         "vep_conseq_translations": vep_conseq_meta,
         "oncokb_genes": oncokb_genes,
+        "oncokb_gene_map": oncokb_gene_map,
+        "oncokb_actionable_genes": list(oncokb_actionable_gene_map),
+        "oncokb_actionable_gene_map": oncokb_actionable_gene_map,
+        "clinpgx_genes": list(clinpgx_gene_map),
+        "clinpgx_gene_map": clinpgx_gene_map,
         "verification_sample_used": verification_sample_used,
         "variants": variants,
         "display_sections_data": display_sections_data,
@@ -388,7 +497,19 @@ def variant_context_payload(
 
     oncokb = service.oncokb_repository.get_oncokb_anno(variant, oncokb_hgvsp)
     oncokb_action = service.oncokb_repository.get_oncokb_action(variant, oncokb_hgvsp)
-    oncokb_gene = service.oncokb_repository.get_oncokb_gene(selected_csq.get("SYMBOL"))
+    public_cache = getattr(service, "oncokb_public_cache_repository", None)
+    public_gene_getter = getattr(public_cache, "get_gene_record", None)
+    oncokb_gene = (
+        public_gene_getter(selected_csq.get("SYMBOL")) if callable(public_gene_getter) else None
+    ) or service.oncokb_repository.get_oncokb_gene(selected_csq.get("SYMBOL"))
+    clinpgx_gene_getter = getattr(
+        getattr(service, "clinpgx_public_repository", None),
+        "get_gene_record",
+        None,
+    )
+    clinpgx_gene = (
+        clinpgx_gene_getter(selected_csq.get("SYMBOL")) if callable(clinpgx_gene_getter) else None
+    )
     brca_exchange = service.brca_repository.get_brca_data(variant, assay_group)
     iarc_tp53 = service.iarc_tp53_repository.find_iarc_tp53(variant)
 
@@ -417,6 +538,7 @@ def variant_context_payload(
         "oncokb": oncokb,
         "oncokb_action": oncokb_action,
         "oncokb_gene": oncokb_gene,
+        "clinpgx_gene": clinpgx_gene,
         "brca_exchange": brca_exchange,
         "iarc_tp53": iarc_tp53,
         "assay_group": assay_group,

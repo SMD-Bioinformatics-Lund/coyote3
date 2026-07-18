@@ -237,12 +237,9 @@ def _known_assays(seed: dict[str, Any]) -> set[str]:
     assays: set[str] = set()
     for doc in seed.get("asp_configs", []):
         if isinstance(doc, dict):
-            name = _norm(doc.get("assay_name", ""))
+            name = _norm(doc.get("asp_id") or doc.get("assay_name") or "")
             if name:
                 assays.add(name)
-            aspc_id = _norm(doc.get("aspc_id", ""))
-            if ":" in aspc_id:
-                assays.add(_norm(aspc_id.split(":", 1)[0]))
     for doc in seed.get("assay_specific_panels", []):
         if isinstance(doc, dict):
             for key in ("asp_id", "assay_name"):
@@ -317,11 +314,11 @@ def _validate_lowercase_business_ids(seed: dict[str, Any]) -> list[str]:
         "permissions": ("permission_id",),
         "roles": ("role_id",),
         "users": ("username", "email", "roles", "assay_groups", "assays"),
-        "asp_configs": ("aspc_id", "assay_name", "asp_group"),
+        "asp_configs": ("aspc_id", "asp_id", "subpanel_id", "asp_group"),
         "assay_specific_panels": ("asp_id", "assay_name", "asp_group"),
         "insilico_genelists": ("isgl_id", "diagnosis", "assay_groups", "assays"),
         "blacklist": ("assay_group", "assay"),
-        "samples": ("assay", "subpanel"),
+        "samples": ("assay", "subpanel_id"),
     }
 
     def _append_error(collection: str, idx: int, field: str, value: str) -> None:
@@ -363,45 +360,50 @@ def _collect_assay_group_map(seed: dict[str, Any]) -> dict[str, set[str]]:
 def _validate_aspc(seed: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     seen_ids: set[str] = set()
+    seen_active_keys: set[tuple[str, str, str]] = set()
     for idx, doc in enumerate(seed.get("asp_configs", [])):
         if not isinstance(doc, dict):
             errors.append(f"asp_configs[{idx}] must be an object")
             continue
         aspc_id = _norm(doc.get("aspc_id", ""))
-        assay_name = _norm(doc.get("assay_name", ""))
+        asp_id = _norm(doc.get("asp_id", ""))
+        subpanel_id = _norm(doc.get("subpanel_id", "base"))
         environment = _normalize_env(doc.get("environment", ""))
 
-        if not aspc_id or ":" not in aspc_id:
-            errors.append(
-                f"asp_configs[{idx}] has invalid aspc_id '{aspc_id}' (expected assay:environment)"
-            )
+        if not aspc_id:
+            errors.append(f"asp_configs[{idx}] must include aspc_id")
             continue
-
-        assay_from_id, env_from_id = aspc_id.split(":", 1)
-        assay_from_id = _norm(assay_from_id)
-        env_from_id = _normalize_env(env_from_id)
+        if ":" in aspc_id:
+            errors.append(
+                f"asp_configs[{idx}] has invalid aspc_id '{aspc_id}' "
+                "(expected asp_id_subpanel_id_environment)"
+            )
+        if not asp_id:
+            errors.append(f"asp_configs[{idx}] must include asp_id")
+        if not subpanel_id:
+            errors.append(f"asp_configs[{idx}] must include subpanel_id")
 
         if aspc_id in seen_ids:
             errors.append(f"Duplicate asp_configs.aspc_id '{aspc_id}'")
         seen_ids.add(aspc_id)
 
-        if assay_name and assay_name != assay_from_id:
+        expected_aspc_id = _norm(f"{asp_id}_{subpanel_id}_{environment}")
+        if asp_id and subpanel_id and environment and aspc_id != expected_aspc_id:
             errors.append(
-                f"asp_configs[{idx}] mismatch: assay_name '{assay_name}' != aspc_id assay '{assay_from_id}'"
-            )
-        if environment and environment != env_from_id:
-            errors.append(
-                f"asp_configs[{idx}] mismatch: environment '{environment}' != aspc_id environment '{env_from_id}'"
+                f"asp_configs[{idx}] mismatch: aspc_id '{aspc_id}' != expected '{expected_aspc_id}'"
             )
 
-        if env_from_id not in VALID_ENVIRONMENTS:
-            errors.append(
-                f"asp_configs[{idx}] invalid environment '{env_from_id}' in aspc_id '{aspc_id}'"
-            )
         if environment and environment not in VALID_ENVIRONMENTS:
             errors.append(f"asp_configs[{idx}] invalid environment '{environment}'")
         if "is_active" not in doc or not isinstance(doc.get("is_active"), bool):
             errors.append(f"asp_configs[{idx}] must include boolean is_active")
+        if doc.get("is_active") is True and asp_id and subpanel_id and environment:
+            active_key = (asp_id, subpanel_id, environment)
+            if active_key in seen_active_keys:
+                errors.append(
+                    f"Duplicate active ASPC for asp_id/subpanel_id/environment '{active_key}'"
+                )
+            seen_active_keys.add(active_key)
     return errors
 
 

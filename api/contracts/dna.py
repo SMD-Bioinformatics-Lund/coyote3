@@ -30,6 +30,11 @@ class DnaVariantsListPayload(BaseModel):
     vep_var_class_translations: dict[str, Any]
     vep_conseq_translations: dict[str, Any]
     oncokb_genes: list[str]
+    oncokb_gene_map: dict[str, Any] = {}
+    oncokb_actionable_genes: list[str] = []
+    oncokb_actionable_gene_map: dict[str, Any] = {}
+    clinpgx_genes: list[str] = []
+    clinpgx_gene_map: dict[str, Any] = {}
     verification_sample_used: str | None = None
     variants: list[dict[str, Any]]
     display_sections_data: dict[str, Any]
@@ -73,6 +78,7 @@ class DnaVariantContextPayload(BaseModel):
     oncokb: Any
     oncokb_action: Any
     oncokb_gene: Any
+    clinpgx_gene: Any = None
     brca_exchange: Any
     iarc_tp53: Any
     assay_group: str
@@ -193,6 +199,29 @@ class DnaTranslocExportRow(BaseModel):
     latest_comment: str = ""
     latest_comment_author: str = ""
     latest_comment_time: str = ""
+
+
+class DnaOncoKbPublicPayload(BaseModel):
+    """Represent an on-demand public OncoKB annotation lookup."""
+
+    status: str
+    source: str | None = None
+    license: str | None = None
+    message: str | None = None
+    query: dict[str, Any]
+    response: Any = None
+
+
+class DnaClinPgxPublicPayload(BaseModel):
+    """Represent an on-demand public ClinPGx gene knowledge lookup."""
+
+    status: str
+    source: str | None = None
+    license: str | None = None
+    message: str | None = None
+    query: dict[str, Any]
+    local_record: dict[str, Any] | None = None
+    response: Any = None
 
 
 class DnaCsvExportContextPayload(BaseModel):

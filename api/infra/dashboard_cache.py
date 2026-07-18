@@ -12,7 +12,7 @@ def invalidate_dashboard_summary_cache(adapter) -> None:
 
     try:
         adapter.coyote_db["dashboard_metrics"].delete_many(
-            {"_id": {"$regex": r"^dashboard_summary_v2:"}}
+            {"_id": {"$regex": r"^dashboard_summary_v[23]:"}}
         )
     except Exception as exc:  # pragma: no cover - defensive fallback
         if logger is not None:

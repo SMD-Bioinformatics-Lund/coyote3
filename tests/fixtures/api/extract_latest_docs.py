@@ -305,7 +305,7 @@ def main() -> None:
     Returns:
         None.
     """
-    from shared import app_config
+    from api.config import app_config
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 

@@ -25,6 +25,7 @@ from api.application.ingest.helpers import (
     build_sample_meta_dict,
     normalize_sample_version_metadata,
 )
+from api.application.ingest.oncokb_public import enrich_public_oncokb_cache
 from api.application.ingest.parsers import DnaIngestParser, RnaIngestParser, infer_omics_layer
 from api.application.ingest.sample_updates import catch_left_right
 from api.application.ingest.sample_updates import next_unique_name as _next_unique_name
@@ -44,6 +45,7 @@ from api.contracts.schemas.samples import (
 )
 from api.domain.common.sample_filters import sample_filters_from_aspc_filters
 from api.domain.core.dna.variant_identity import ensure_variant_identity_fields
+from api.infra.knowledgebase.public_oncokb import PublicOncoKbClient
 from api.infra.mongo.ingest_gateway import IngestCollectionGateway
 from api.infra.mongo.persistence import (
     insert_many_documents,
@@ -82,6 +84,15 @@ class InternalIngestService:
             collection_gateway=IngestCollectionGateway.from_store(store),
             invalidate_variant_cache=store.variant_repository.invalidate_dashboard_metrics_cache,
             invalidate_summary_cache=lambda: dashboard_summary_cache_invalidator(store),
+            oncokb_public_cache_repository=getattr(store, "oncokb_public_cache_repository", None),
+            oncokb_public_client=PublicOncoKbClient(
+                base_url=str(store.app.config.get("ONCOKB_BASE_URL")),
+                timeout=float(store.app.config.get("ONCOKB_REQUEST_TIMEOUT_SECONDS", 3.0)),
+            ),
+            oncokb_public_lookups_enabled=bool(
+                store.app.config.get("ONCOKB_PUBLIC_LOOKUPS_ENABLED", True)
+            ),
+            oncokb_public_batch_size=int(store.app.config.get("ONCOKB_PUBLIC_BATCH_SIZE", 200)),
         )
 
     def __init__(
@@ -90,11 +101,19 @@ class InternalIngestService:
         collection_gateway: IngestCollectionGateway,
         invalidate_variant_cache,
         invalidate_summary_cache,
+        oncokb_public_cache_repository: Any | None = None,
+        oncokb_public_client: PublicOncoKbClient | None = None,
+        oncokb_public_lookups_enabled: bool = False,
+        oncokb_public_batch_size: int = 200,
     ) -> None:
         """Create the service with an explicit collection gateway."""
         self.collection_gateway = collection_gateway
         self.invalidate_variant_cache = invalidate_variant_cache
         self.invalidate_summary_cache = invalidate_summary_cache
+        self.oncokb_public_cache_repository = oncokb_public_cache_repository
+        self.oncokb_public_client = oncokb_public_client
+        self.oncokb_public_lookups_enabled = oncokb_public_lookups_enabled
+        self.oncokb_public_batch_size = oncokb_public_batch_size
 
     def _sample_collection(self):
         """Return the sample collection used by internal ingest workflows."""
@@ -132,6 +151,58 @@ class InternalIngestService:
         except Exception as exc:
             logger.warning("ingest_dashboard_summary_cache_invalidate_failed error=%s", exc)
 
+    def _enrich_public_oncokb_cache(
+        self, *, sample_id: str, sample: dict[str, Any]
+    ) -> dict[str, int]:
+        """Populate the public OncoKB cache for persisted small variants."""
+        if not self.oncokb_public_lookups_enabled:
+            return {
+                "queried": 0,
+                "inserted": 0,
+                "genes_upserted": 0,
+                "skipped": 0,
+                "cached": 0,
+                "genes_seeded": 0,
+            }
+        if self.oncokb_public_cache_repository is None or self.oncokb_public_client is None:
+            return {
+                "queried": 0,
+                "inserted": 0,
+                "genes_upserted": 0,
+                "skipped": 0,
+                "cached": 0,
+                "genes_seeded": 0,
+            }
+        try:
+            variants = list(self._collection("variants").find({"SAMPLE_ID": str(sample_id)}))
+            try:
+                hgnc_collection = self._collection("hgnc_genes")
+            except KeyError:
+                hgnc_collection = None
+            return enrich_public_oncokb_cache(
+                sample=sample,
+                variants=variants,
+                client=self.oncokb_public_client,
+                cache_repository=self.oncokb_public_cache_repository,
+                batch_size=self.oncokb_public_batch_size,
+                hgnc_collection=hgnc_collection,
+            )
+        except Exception as exc:
+            logger.warning(
+                "public_oncokb_cache_enrichment_failed sample_id=%s sample=%s error=%s",
+                sample_id,
+                sample.get("name"),
+                exc,
+            )
+            return {
+                "queried": 0,
+                "inserted": 0,
+                "genes_upserted": 0,
+                "skipped": 0,
+                "cached": 0,
+                "genes_seeded": 0,
+            }
+
     def list_supported_collections(self) -> list[str]:
         """List collection names that can be validated/inserted via ingest APIs."""
         return _list_supported_collections()
@@ -164,6 +235,46 @@ class InternalIngestService:
                 mapping[gene] = canonical
         return mapping
 
+    def _hgnc_metadata_maps(self) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+        """Build HGNC metadata lookup maps by HGNC ID and symbol aliases."""
+        by_id: dict[str, dict[str, Any]] = {}
+        by_symbol: dict[str, dict[str, Any]] = {}
+        projection = {
+            "_id": 1,
+            "hgnc_id": 1,
+            "hgnc_symbol": 1,
+            "prev_symbol": 1,
+            "alias_symbol": 1,
+            "refseq_mane_select": 1,
+            "ensembl_mane_select": 1,
+            "refseq_mane_plus_clinical": 1,
+        }
+        try:
+            hgnc_collection = self._collection("hgnc_genes")
+        except KeyError:
+            return by_id, by_symbol
+        for doc in hgnc_collection.find({}, projection):
+            hgnc_id = str(doc.get("hgnc_id") or doc.get("_id") or "").strip()
+            if hgnc_id and not hgnc_id.startswith("HGNC:"):
+                hgnc_id = f"HGNC:{hgnc_id}"
+            if hgnc_id:
+                by_id[hgnc_id] = doc
+            symbols: list[str] = []
+            if doc.get("hgnc_symbol"):
+                symbols.append(str(doc["hgnc_symbol"]))
+            for key in ("prev_symbol", "alias_symbol"):
+                value = doc.get(key)
+                if isinstance(value, list):
+                    symbols.extend(str(item) for item in value if str(item).strip())
+                elif value:
+                    symbols.append(str(value))
+            for symbol in symbols:
+                normalized_symbol = str(symbol).strip()
+                if normalized_symbol:
+                    by_symbol.setdefault(normalized_symbol, doc)
+                    by_symbol.setdefault(normalized_symbol.upper(), doc)
+        return by_id, by_symbol
+
     def _parse_preload(self, args: dict[str, Any]) -> dict[str, Any]:
         """Detect omics layer and delegate payload parsing to the appropriate parser.
 
@@ -180,7 +291,12 @@ class InternalIngestService:
         if not omics_layer:
             omics_layer = infer_omics_layer(args) or ""
         if omics_layer == "dna":
-            return DnaIngestParser(self._canonical_map()).parse(args)
+            hgnc_by_id, hgnc_by_symbol = self._hgnc_metadata_maps()
+            return DnaIngestParser(
+                self._canonical_map(),
+                hgnc_by_id=hgnc_by_id,
+                hgnc_by_symbol=hgnc_by_symbol,
+            ).parse(args)
         if omics_layer == "rna":
             return RnaIngestParser.parse(args)
         raise ValueError("Could not determine data type (DNA/RNA) from payload")
@@ -594,6 +710,10 @@ class InternalIngestService:
             sample_id=sample_id,
             sample_name=str(current_doc["name"]),
         )
+        oncokb_public = self._enrich_public_oncokb_cache(
+            sample_id=sample_id,
+            sample={**dict(current_doc), **validated_payload, "_id": sample_id},
+        )
         self._invalidate_dashboard_cache_after_ingest()
         return {
             "status": "ok",
@@ -601,6 +721,7 @@ class InternalIngestService:
             "sample_name": str(current_doc["name"]),
             "written": written,
             "data_counts": counts,
+            "oncokb_public": oncokb_public,
         }
 
     def ingest_sample_bundle(
@@ -704,6 +825,10 @@ class InternalIngestService:
                         upsert=False,
                         **sample_kwargs,
                     )
+            oncokb_public = self._enrich_public_oncokb_cache(
+                sample_id=sample_id,
+                sample={**document, "_id": sample_id, "name": sample_name},
+            )
             self._invalidate_dashboard_cache_after_ingest()
         except Exception:
             self._cleanup(sample_id)
@@ -715,6 +840,7 @@ class InternalIngestService:
             "sample_name": sample_name,
             "written": written,
             "data_counts": counts,
+            "oncokb_public": oncokb_public,
         }
 
     def insert_collection_document(

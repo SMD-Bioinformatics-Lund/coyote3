@@ -7,7 +7,7 @@ from typing import Any
 import yaml  # type: ignore[import-untyped]
 
 from api.application.ingest.helpers import (
-    _validate_yaml_payload_like_import_script,
+    _validate_yaml_manifest_minimum_fields,
     normalize_null_placeholders,
 )
 from api.application.ingest.parsers import DnaIngestParser, RnaIngestParser, infer_omics_layer
@@ -30,7 +30,7 @@ def parse_yaml_payload(yaml_content: str) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         raise ValueError("YAML body must decode to an object")
     parsed = normalize_null_placeholders(parsed)
-    _validate_yaml_payload_like_import_script(parsed)
+    _validate_yaml_manifest_minimum_fields(parsed)
     return parsed
 
 
@@ -51,7 +51,13 @@ def parse_preload(service: Any, args: dict[str, Any]) -> dict[str, Any]:
     if not omics_layer:
         omics_layer = infer_omics_layer(args) or ""
     if omics_layer == "dna":
-        return DnaIngestParser(canonical_map(service)).parse(args)
+        hgnc_maps = getattr(service, "_hgnc_metadata_maps", None)
+        hgnc_by_id, hgnc_by_symbol = hgnc_maps() if callable(hgnc_maps) else ({}, {})
+        return DnaIngestParser(
+            canonical_map(service),
+            hgnc_by_id=hgnc_by_id,
+            hgnc_by_symbol=hgnc_by_symbol,
+        ).parse(args)
     if omics_layer == "rna":
         return RnaIngestParser.parse(args)
     raise ValueError("Could not determine data type (DNA/RNA) from payload")

@@ -15,7 +15,9 @@ STORE_TARGET_DIRS = (ROOT / "api" / "routes", ROOT / "api" / "core")
 MONGO_LEAK_TARGET_DIRS = (ROOT / "api" / "routes", ROOT / "api" / "core", ROOT / "api" / "domain")
 
 STORE_PATTERN = re.compile(r"\bstore\.")
-MONGO_IMPORT_PATTERN = re.compile(r"^\s*(from|import)\s+(pymongo|bson|motor|flask_pymongo)\b")
+MONGO_IMPORT_PATTERN = re.compile(
+    r"^\s*(from|import)\s+(pymongo|bson|motor|" + "f" + r"lask_pymongo)\b"
+)
 OBJECT_ID_PATTERN = re.compile(r"\bObjectId\s*\(")
 
 

@@ -7,9 +7,9 @@
     "name": "List A",
     "displayname": "List A",
     "list_type": [
-      "small_variant_genelist",
-      "cnv_genelist",
-      "fusion_genelist"
+      "snv",
+      "cnv",
+      "fusion"
     ],
     "adhoc": false,
     "is_public": true,

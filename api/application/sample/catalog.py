@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from api.application.common.assay_config import get_formatted_assay_config
+from api.domain.common.assay_filters import get_sample_effective_genes
 from api.domain.common.errors import api_error
 from api.domain.common.sample_filters import (
     merge_filter_defaults,
@@ -178,15 +179,32 @@ class SampleCatalogService:
     ) -> list[dict[str, Any]]:
         """Build Files & QC rows from assay-configured expected file keys."""
         data_counts = dict(sample.get("data_counts") or {})
+        sample_files = sample.get("files") if isinstance(sample.get("files"), dict) else {}
         required_keys = cls._required_file_keys_for_sample(asp)
         rows: list[dict[str, Any]] = []
         for key in cls._expected_file_keys_for_sample(sample, asp):
             meta = FILE_DISPLAY_METADATA.get(key)
             if not meta:
                 continue
-            path = sample.get(key)
+            file_doc = sample_files.get(key)
+            file_meta = file_doc if isinstance(file_doc, dict) else {}
+            path = (
+                file_meta.get("path")
+                if isinstance(file_meta, dict)
+                else file_doc
+                if isinstance(file_doc, str)
+                else None
+            )
+            if not path:
+                path = sample.get(key)
             required = key in required_keys
             path_exists = bool(path) and os.path.exists(str(path))
+            size_bytes = file_meta.get("size_bytes") if isinstance(file_meta, dict) else None
+            if size_bytes is None and path_exists:
+                try:
+                    size_bytes = os.path.getsize(str(path))
+                except OSError:
+                    size_bytes = None
             count_key, count_suffix = FILE_COUNT_BADGE_METADATA.get(key, ("", ""))
             count_badge = None
             if count_key and data_counts.get(count_key):
@@ -216,6 +234,11 @@ class SampleCatalogService:
                     "path": path,
                     "present": bool(path),
                     "exists": path_exists,
+                    "size_bytes": size_bytes,
+                    "checksum": file_meta.get("checksum") if isinstance(file_meta, dict) else None,
+                    "registered_on": file_meta.get("registered_on")
+                    if isinstance(file_meta, dict)
+                    else None,
                     "required": required,
                     "icon": meta["icon"],
                     "missing_msg": meta["missing_msg"],
@@ -355,6 +378,48 @@ class SampleCatalogService:
             list_type=list_type,
         )
         return [self._genelist_option(gl) for gl in isgls if self._is_matching_target(gl, target)]
+
+    def _selected_gene_panel_summary(
+        self, *, sample: dict[str, Any], asp: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Return selected ISGL/ad-hoc list summaries for the sample header card."""
+        omics = str(sample.get("omics_layer") or "dna").strip().lower()
+        targets = ["fusion"] if omics == "rna" else ["snv", "cnv"]
+        summary: dict[str, Any] = {}
+        for target in targets:
+            target_filters = self._target_filters(sample, target)
+            selected_ids = list(target_filters.get(self._filter_key_for_target(target), []) or [])
+            selected_docs = self.gene_list_repository.get_isgl_by_ids(selected_ids)
+            covered_map, effective_genes = get_sample_effective_genes(
+                sample, asp, selected_docs, target=target
+            )
+            lists: list[dict[str, Any]] = []
+            for list_id, raw in covered_map.items():
+                genes = list(raw.get("genes") or [])
+                covered = list(raw.get("covered") or [])
+                uncovered = list(raw.get("uncovered") or [])
+                lists.append(
+                    {
+                        "id": str(list_id),
+                        "name": str(raw.get("displayname") or raw.get("name") or list_id),
+                        "adhoc": bool(raw.get("adhoc")),
+                        "is_active": bool(raw.get("is_active", True)),
+                        "gene_count": len(genes),
+                        "covered_count": len(covered),
+                        "uncovered_count": len(uncovered),
+                        "genes": genes,
+                        "covered": covered,
+                        "uncovered": uncovered,
+                    }
+                )
+            summary[target] = {
+                "selected_ids": selected_ids,
+                "lists": lists,
+                "list_count": len(lists),
+                "effective_gene_count": len(effective_genes),
+                "effective_genes": effective_genes,
+            }
+        return summary
 
     @classmethod
     def _normalized_adhoc_genes(cls, filters: dict[str, Any]) -> dict[str, Any] | None:
@@ -831,6 +896,7 @@ class SampleCatalogService:
             "fusionlist_options": self._genelist_options_for_target(
                 sample=sample, asp=asp, target="fusion"
             ),
+            "selected_gene_panels": self._selected_gene_panel_summary(sample=sample, asp=asp),
             "analysis_sections": analysis_sections,
             "analysis_counts_raw": analysis_counts_raw,
             "analysis_counts_filtered": analysis_counts_filtered,

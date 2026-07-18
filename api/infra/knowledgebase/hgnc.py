@@ -41,6 +41,16 @@ class HGNCRepository(BaseRepository):
             name="hgnc_symbol_1",
             background=True,
         )
+        self.get_collection().create_index(
+            [("prev_symbol", 1)],
+            name="prev_symbol_1",
+            background=True,
+        )
+        self.get_collection().create_index(
+            [("alias_symbol", 1)],
+            name="alias_symbol_1",
+            background=True,
+        )
 
     def get_metadata_by_hgnc_id(self, hgnc_id: str) -> dict:
         """
@@ -52,7 +62,14 @@ class HGNCRepository(BaseRepository):
         Returns:
             dict: The metadata dictionary for the specified gene.
         """
-        return self.get_collection().find_one({"_id": f"HGNC:{hgnc_id}"})
+        normalized = str(hgnc_id or "").strip()
+        if not normalized:
+            return None
+        if not normalized.startswith("HGNC:"):
+            normalized = f"HGNC:{normalized}"
+        return self.get_collection().find_one(
+            {"$or": [{"_id": normalized}, {"hgnc_id": normalized}]}
+        )
 
     def get_metadata_by_symbol(self, symbol: str) -> dict:
         """
@@ -65,6 +82,21 @@ class HGNCRepository(BaseRepository):
             dict: The metadata of the gene.
         """
         return self.get_collection().find_one({"hgnc_symbol": symbol})
+
+    def get_metadata_by_symbol_or_alias(self, symbol: str) -> dict:
+        """Return HGNC metadata by approved symbol, previous symbol, or alias symbol."""
+        normalized = str(symbol or "").strip()
+        if not normalized:
+            return None
+        return self.get_collection().find_one(
+            {
+                "$or": [
+                    {"hgnc_symbol": normalized},
+                    {"prev_symbol": normalized},
+                    {"alias_symbol": normalized},
+                ]
+            }
+        )
 
     def get_metadata_by_symbols(self, symbols: list[str]) -> list[dict]:
         """
@@ -81,4 +113,18 @@ class HGNCRepository(BaseRepository):
         """
         if not symbols:
             return []
-        return list(self.get_collection().find({"hgnc_symbol": {"$in": symbols}}) or [])
+        normalized = sorted({str(symbol).strip() for symbol in symbols if str(symbol).strip()})
+        if not normalized:
+            return []
+        return list(
+            self.get_collection().find(
+                {
+                    "$or": [
+                        {"hgnc_symbol": {"$in": normalized}},
+                        {"prev_symbol": {"$in": normalized}},
+                        {"alias_symbol": {"$in": normalized}},
+                    ]
+                }
+            )
+            or []
+        )

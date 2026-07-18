@@ -44,6 +44,12 @@ class IngestCollectionGateway:
                 "mane_select": store.coyote_db["mane_select"],
                 "oncokb_actionable": store.oncokb_repository.get_collection(),
                 "oncokb_genes": store.coyote_db["oncokb_genes"],
+                "oncokb_public": store.oncokb_public_cache_repository.get_collection(),
+                "oncokb_genes_public": (store.oncokb_public_cache_repository.gene_collection),
+                "oncokb_cancer_genes_public": (
+                    store.oncokb_public_cache_repository.cancer_gene_collection
+                ),
+                "clinpgx_genes_public": store.clinpgx_public_repository.get_collection(),
                 "refseq_canonical": store.coyote_db["refseq_canonical"],
                 "vep_metadata": store.vep_metadata_repository.get_collection(),
                 "asp_to_groups": store.coyote_db["asp_to_groups"],

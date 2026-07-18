@@ -1,12 +1,14 @@
 [
   {
     "email": "demo@example.org",
-    "username": "demo@example.org",
+    "username": "demo.user",
     "firstname": "Demo",
     "lastname": "User",
     "fullname": "Demo User",
     "job_title": "Clinical Scientist",
-    "auth_type": "coyote3",
+    "auth_type": [
+      "ldap"
+    ],
     "must_change_password": false,
     "roles": [
       "admin"
@@ -24,9 +26,6 @@
     "assay_groups": [
       "hematology"
     ],
-    "permissions": [
-      "sample:edit:own"
-    ],
-    "deny_permissions": []
+    "version": 1
   }
 ]

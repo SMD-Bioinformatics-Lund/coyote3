@@ -47,9 +47,9 @@ def test_dna_report_renderer_uses_master_style_template():
                 ]
             },
             "sample": {
-                "name": "CASE_DEMO",
-                "case_id": "CASE_DEMO",
-                "control_id": "CTRL_DEMO",
+                "name": "seed_case",
+                "case_id": "seed_case",
+                "control_id": "seed_control",
                 "sample_no": 2,
                 "case": {"clarity_id": "GEN_CASE"},
                 "control": {"clarity_id": "GEN_CTRL"},

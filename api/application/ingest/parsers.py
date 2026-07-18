@@ -6,6 +6,7 @@ import csv
 import gzip
 import json
 import os
+from collections.abc import Callable
 from typing import Any
 
 from pysam import VariantFile
@@ -380,6 +381,7 @@ def _parse_transcripts(csq: list[dict[str, Any]]) -> tuple[Any, ...]:
             "EXON",
             "CANONICAL",
             "MANE_SELECT",
+            "MANE_PLUS_CLINICAL",
             "STRAND",
             "IMPACT",
             "CADD_PHRED",
@@ -463,16 +465,124 @@ def _refseq_no_version(accession: str) -> str:
     return accession.split(".")[0]
 
 
+def _feature_no_version(value: Any) -> str:
+    """Return a transcript accession without version from any CSQ-like field."""
+    return str(value or "").split(".")[0]
+
+
+def _hgnc_lookup_key(value: Any) -> str:
+    """Normalize an HGNC ID for dictionary lookup."""
+    normalized = str(value or "").strip()
+    if normalized.startswith("HGNC:"):
+        return normalized
+    return f"HGNC:{normalized}" if normalized else ""
+
+
+def _hgnc_doc_for_csq(
+    csq: dict[str, Any],
+    hgnc_by_id: dict[str, dict[str, Any]] | None,
+    hgnc_by_symbol: dict[str, dict[str, Any]] | None,
+) -> dict[str, Any] | None:
+    """Find HGNC metadata for a CSQ transcript by HGNC ID, approved symbol, previous symbol, or alias."""
+    by_id = hgnc_by_id or {}
+    by_symbol = hgnc_by_symbol or {}
+    hgnc_id = _hgnc_lookup_key(csq.get("HGNC_ID"))
+    if hgnc_id and hgnc_id in by_id:
+        return by_id[hgnc_id]
+    symbol = str(csq.get("SYMBOL") or "").strip()
+    return by_symbol.get(symbol) or by_symbol.get(symbol.upper())
+
+
+def _approved_hgnc_symbol_for_csq(
+    csq: dict[str, Any],
+    hgnc_by_id: dict[str, dict[str, Any]] | None,
+    hgnc_by_symbol: dict[str, dict[str, Any]] | None,
+) -> str:
+    """Return the approved HGNC symbol for a CSQ transcript when resolvable."""
+    doc = _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol)
+    return str((doc or {}).get("hgnc_symbol") or csq.get("SYMBOL") or "").strip()
+
+
+def _hgnc_refseq_values(doc: dict[str, Any] | None, key: str) -> set[str]:
+    """Return normalized RefSeq transcript values from an HGNC metadata field."""
+    if not doc:
+        return set()
+    value = doc.get(key)
+    if isinstance(value, str):
+        values = [value]
+    elif isinstance(value, list):
+        values = value
+    else:
+        values = []
+    return {_feature_no_version(item) for item in values if str(item or "").strip()}
+
+
+def _hgnc_mane_select_values(doc: dict[str, Any] | None) -> set[str]:
+    """Return normalized MANE Select transcript identifiers from HGNC metadata."""
+    if not doc:
+        return set()
+    values = {
+        _feature_no_version(doc.get("refseq_mane_select")),
+        _feature_no_version(doc.get("ensembl_mane_select")),
+    }
+    return {value for value in values if value}
+
+
+def _normalize_selected_csq_symbol(
+    csq: dict[str, Any],
+    hgnc_by_id: dict[str, dict[str, Any]] | None,
+    hgnc_by_symbol: dict[str, dict[str, Any]] | None,
+) -> dict[str, Any]:
+    """Canonicalize selected CSQ gene fields to current HGNC metadata."""
+    doc = _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol)
+    if not doc:
+        return csq
+    normalized = dict(csq)
+    original_symbol = normalized.get("SYMBOL")
+    approved_symbol = doc.get("hgnc_symbol")
+    if approved_symbol:
+        if original_symbol and original_symbol != approved_symbol:
+            normalized["VEP_SYMBOL"] = original_symbol
+        else:
+            normalized.pop("VEP_SYMBOL", None)
+        normalized["SYMBOL"] = approved_symbol
+    hgnc_id = doc.get("hgnc_id") or doc.get("_id")
+    if hgnc_id:
+        normalized["HGNC_ID"] = _hgnc_lookup_key(hgnc_id)
+    normalized["HGNC_MATCHED"] = True
+    normalized["HGNC_MATCH_SOURCE"] = (
+        "approved_symbol" if original_symbol == approved_symbol else "previous_or_alias_symbol"
+    )
+    return normalized
+
+
+def _first_csq_by_impact(
+    csq_arr: list[dict[str, Any]],
+    predicate: Callable[[dict[str, Any]], bool],
+) -> int:
+    """Return the first CSQ index matching a predicate in clinical impact order."""
+    for impact in ["HIGH", "MODERATE", "LOW", "MODIFIER"]:
+        for idx, csq in enumerate(csq_arr):
+            if csq.get("IMPACT") == impact and predicate(csq):
+                return idx
+    return -1
+
+
 def _select_csq(
-    csq_arr: list[dict[str, Any]], canonical: dict[str, str]
+    csq_arr: list[dict[str, Any]],
+    canonical: dict[str, str],
+    hgnc_by_id: dict[str, dict[str, Any]] | None = None,
+    hgnc_by_symbol: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[dict[str, Any], str]:
     """Select the canonical transcript from a slim CSQ array using a priority hierarchy.
 
     Priority order:
-    1. DB canonical (gene in canonical map and RefSeq matches).
-    2. VEP canonical (``CANONICAL == "YES"``).
-    3. First protein-coding transcript.
-    4. First transcript unconditionally.
+    1. HGNC MANE Plus Clinical transcript.
+    2. HGNC MANE Select transcript.
+    3. DB canonical (gene in canonical map and RefSeq matches).
+    4. VEP canonical (``CANONICAL == "YES"``).
+    5. First protein-coding transcript.
+    6. First transcript unconditionally.
 
     Selection iterates IMPACT order (HIGH → MODERATE → LOW → MODIFIER) before
     descending to lower-priority tiers.
@@ -485,27 +595,67 @@ def _select_csq(
         A tuple of (selected_csq_dict, selection_source_label) where label is one of
         ``"db"``, ``"vep"``, or ``"random"``.
     """
-    db_canonical = -1
-    vep_canonical = -1
-    first_protein = -1
-    for impact in ["HIGH", "MODERATE", "LOW", "MODIFIER"]:
-        for idx, csq in enumerate(csq_arr):
-            if csq["IMPACT"] != impact:
-                continue
-            symbol = csq["SYMBOL"]
-            feature = csq["Feature"]
-            if symbol in canonical and canonical[symbol] == _refseq_no_version(feature):
-                db_canonical = idx
-                return csq_arr[db_canonical], "db"
-            if csq["CANONICAL"] == "YES" and vep_canonical == -1:
-                vep_canonical = idx
-            if first_protein == -1 and csq["BIOTYPE"] == "protein_coding":
-                first_protein = idx
+    hgnc_mane_plus = _first_csq_by_impact(
+        csq_arr,
+        lambda csq: (
+            _feature_no_version(csq.get("Feature"))
+            in _hgnc_refseq_values(
+                _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol),
+                "refseq_mane_plus_clinical",
+            )
+            or bool(str(csq.get("MANE_PLUS_CLINICAL") or "").strip())
+        ),
+    )
+    if hgnc_mane_plus >= 0:
+        return (
+            _normalize_selected_csq_symbol(csq_arr[hgnc_mane_plus], hgnc_by_id, hgnc_by_symbol),
+            "hgnc_mane_plus_clinical",
+        )
+    hgnc_mane_select = _first_csq_by_impact(
+        csq_arr,
+        lambda csq: (
+            _feature_no_version(csq.get("Feature"))
+            in _hgnc_mane_select_values(_hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol))
+            or bool(str(csq.get("MANE") or "").strip())
+        ),
+    )
+    if hgnc_mane_select >= 0:
+        return (
+            _normalize_selected_csq_symbol(csq_arr[hgnc_mane_select], hgnc_by_id, hgnc_by_symbol),
+            "hgnc_mane_select",
+        )
+    db_canonical = _first_csq_by_impact(
+        csq_arr,
+        lambda csq: (
+            _approved_hgnc_symbol_for_csq(csq, hgnc_by_id, hgnc_by_symbol) in canonical
+            and canonical[_approved_hgnc_symbol_for_csq(csq, hgnc_by_id, hgnc_by_symbol)]
+            == _refseq_no_version(csq.get("Feature", ""))
+        ),
+    )
+    if db_canonical >= 0:
+        return (
+            _normalize_selected_csq_symbol(csq_arr[db_canonical], hgnc_by_id, hgnc_by_symbol),
+            "db",
+        )
+    vep_canonical = _first_csq_by_impact(
+        csq_arr,
+        lambda csq: csq.get("CANONICAL") == "YES",
+    )
     if vep_canonical >= 0:
-        return csq_arr[vep_canonical], "vep"
+        return (
+            _normalize_selected_csq_symbol(csq_arr[vep_canonical], hgnc_by_id, hgnc_by_symbol),
+            "vep",
+        )
+    first_protein = _first_csq_by_impact(
+        csq_arr,
+        lambda csq: csq.get("BIOTYPE") == "protein_coding",
+    )
     if first_protein >= 0:
-        return csq_arr[first_protein], "random"
-    return csq_arr[0], "random"
+        return (
+            _normalize_selected_csq_symbol(csq_arr[first_protein], hgnc_by_id, hgnc_by_symbol),
+            "random",
+        )
+    return _normalize_selected_csq_symbol(csq_arr[0], hgnc_by_id, hgnc_by_symbol), "random"
 
 
 def _read_mane(path: str) -> dict[str, dict[str, str]]:
@@ -608,13 +758,23 @@ class DnaIngestParser:
         canonical: Gene-to-RefSeq canonical transcript mapping loaded from DB.
     """
 
-    def __init__(self, canonical: dict[str, str]) -> None:
-        """Initialise the parser with a canonical transcript mapping.
+    def __init__(
+        self,
+        canonical: dict[str, str],
+        *,
+        hgnc_by_id: dict[str, dict[str, Any]] | None = None,
+        hgnc_by_symbol: dict[str, dict[str, Any]] | None = None,
+    ) -> None:
+        """Initialise the parser with transcript and HGNC reference metadata.
 
         Args:
             canonical: Mapping of gene symbol to canonical RefSeq accession (no version).
+            hgnc_by_id: HGNC metadata keyed by ``HGNC:<id>``.
+            hgnc_by_symbol: HGNC metadata keyed by approved, previous, and alias symbols.
         """
         self.canonical = canonical
+        self.hgnc_by_id = hgnc_by_id or {}
+        self.hgnc_by_symbol = hgnc_by_symbol or {}
 
     def parse(self, args: dict[str, Any]) -> dict[str, Any]:
         """Dispatch file-based parsing for all DNA data types present in args.
@@ -745,7 +905,12 @@ class DnaIngestParser:
                 hotspots,
             ) = _parse_transcripts(var_csq)
 
-            selected_csq, selected_source = _select_csq(slim_csq, self.canonical)
+            selected_csq, selected_source = _select_csq(
+                slim_csq,
+                self.canonical,
+                hgnc_by_id=self.hgnc_by_id,
+                hgnc_by_symbol=self.hgnc_by_symbol,
+            )
             var_dict["INFO"]["CSQ"] = _selected_transcript_removal(
                 slim_csq, selected_csq["Feature"]
             )

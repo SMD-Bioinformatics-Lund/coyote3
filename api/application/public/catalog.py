@@ -964,8 +964,53 @@ class PublicCatalogService:
         )
 
     @staticmethod
+    def _list_values(value: Any) -> list[str]:
+        """Normalize scalar/list HGNC fields to strings."""
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        if value:
+            return [str(value).strip()]
+        return []
+
+    @classmethod
+    def _row_symbols(cls, row: Dict[str, Any]) -> set[str]:
+        """Return all symbols that should resolve to one HGNC row."""
+        symbols = {
+            str(row.get("hgnc_symbol") or row.get("symbol") or "").strip(),
+        }
+        symbols.update(cls._list_values(row.get("prev_symbol")))
+        symbols.update(cls._list_values(row.get("alias_symbol")))
+        return {symbol.upper() for symbol in symbols if symbol}
+
+    @classmethod
+    def _row_with_requested_symbol(
+        cls, row: Dict[str, Any], requested_symbol: str
+    ) -> Dict[str, Any]:
+        """Attach panel-display and HGNC resolution metadata to a gene row."""
+        requested = str(requested_symbol or "").strip()
+        approved = str(row.get("hgnc_symbol") or row.get("symbol") or "").strip()
+        prev = {symbol.upper() for symbol in cls._list_values(row.get("prev_symbol"))}
+        aliases = {symbol.upper() for symbol in cls._list_values(row.get("alias_symbol"))}
+        requested_upper = requested.upper()
+        if approved and requested_upper == approved.upper():
+            source = "approved_symbol"
+        elif requested_upper in prev:
+            source = "previous_symbol"
+        elif requested_upper in aliases:
+            source = "alias_symbol"
+        else:
+            source = "unresolved"
+        return {
+            **row,
+            "display_symbol": requested or approved,
+            "resolved_symbol": approved or requested,
+            "hgnc_match_source": source,
+            "symbol_changed": bool(approved and requested and approved.upper() != requested_upper),
+        }
+
+    @staticmethod
     def _hgnc_placeholder(symbol: str) -> Dict[str, Any]:
-        """Hgnc placeholder.
+        """Return an explicit unresolved gene row without a fabricated HGNC ID.
 
         Args:
                 symbol: Symbol.
@@ -975,8 +1020,8 @@ class PublicCatalogService:
         """
         cleaned = (symbol or "").strip()
         return {
-            "_id": "HGNC:",
-            "hgnc_id": "HGNC:",
+            "_id": None,
+            "hgnc_id": None,
             "hgnc_symbol": cleaned,
             "gene_name": "",
             "status": "Unresolved",
@@ -1012,13 +1057,17 @@ class PublicCatalogService:
             "refseq_mane_plus_clinical": [],
             "addtional_transcript_info": {},
             "symbol": cleaned,
+            "display_symbol": cleaned,
+            "resolved_symbol": cleaned,
+            "hgnc_match_source": "unresolved",
+            "symbol_changed": False,
         }
 
-    @staticmethod
+    @classmethod
     def _merge_with_placeholders(
-        symbols: List[str], rows: List[Dict[str, Any]]
+        cls, symbols: List[str], rows: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        """Merge with placeholders.
+        """Return one catalog row per requested symbol with HGNC resolution metadata.
 
         Args:
                 symbols: Symbols.
@@ -1027,19 +1076,30 @@ class PublicCatalogService:
         Returns:
                 The  merge with placeholders result.
         """
-        have = set()
-        out_rows: List[Dict[str, Any]] = rows or []
-        for row in out_rows:
-            symbol = (row.get("hgnc_symbol") or row.get("symbol") or "").strip()
-            if symbol:
-                have.add(symbol.upper())
+        by_symbol: dict[str, Dict[str, Any]] = {}
+        for row in rows or []:
+            for symbol in cls._row_symbols(row):
+                by_symbol.setdefault(symbol, row)
 
+        out_rows: List[Dict[str, Any]] = []
+        seen_requested: set[str] = set()
         for symbol in symbols or []:
-            if symbol and symbol.upper() not in have:
-                out_rows.append(PublicCatalogService._hgnc_placeholder(symbol))
+            requested = str(symbol or "").strip()
+            if not requested:
+                continue
+            requested_upper = requested.upper()
+            if requested_upper in seen_requested:
+                continue
+            seen_requested.add(requested_upper)
+            resolved = by_symbol.get(requested_upper)
+            out_rows.append(
+                cls._row_with_requested_symbol(resolved, requested)
+                if resolved
+                else cls._hgnc_placeholder(requested)
+            )
 
         return sorted(
-            out_rows, key=lambda g: (g.get("hgnc_symbol") or g.get("symbol") or "").upper()
+            out_rows, key=lambda g: (g.get("display_symbol") or g.get("hgnc_symbol") or "").upper()
         )
 
     def apply_drug_info(

@@ -116,8 +116,6 @@ def user_doc() -> dict:
         "roles": ["admin", "superuser"],
         "role": "admin",
         "access_level": 99999,
-        "permissions": ["report:preview", "report:create", "role:view", "sample:edit:own"],
-        "deny_permissions": [],
         "assays": ["WGS", "RNA_PANEL"],
         "assay_groups": ["dna", "rna"],
         "envs": ["production"],
@@ -142,12 +140,15 @@ def api_user() -> ApiUser:
         roles=list(doc.get("roles") or [str(doc.get("role") or "admin")]),
         role=str(doc.get("role") or "admin"),
         access_level=int(doc.get("access_level") or 99),
-        permissions=list(doc.get("permissions") or []),
-        denied_permissions=list(doc.get("deny_permissions") or []),
+        permissions=list(
+            doc.get("permissions")
+            or ["report:preview", "report:create", "role:view", "sample:edit:own"]
+        ),
         assays=list(doc.get("assays") or []),
         assay_groups=list(doc.get("assay_groups") or []),
         envs=list(doc.get("envs") or []),
         asp_map=deepcopy(doc.get("asp_map") or {}),
+        auth_type=list(doc.get("auth_type") or ["local"]),
     )
 
 
@@ -183,8 +184,8 @@ def sample_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
             "min_alt_reads": 5,
             "max_popfreq": 0.01,
             "vep_consequences": ["missense_variant"],
-            "genelists": ["gl1"],
-            "cnv_genelists": ["gl1"],
+            "snvlists": ["gl1"],
+            "cnvlists": ["gl1"],
             "fusionlists": ["gl1"],
             "adhoc_genes": {"snv": {"label": "focus", "genes": ["TP53", "NPM1"]}},
         },
@@ -321,7 +322,6 @@ def role_doc() -> dict:
         "role_id": "admin",
         "label": "Administrator",
         "permissions": ["role:view", "role:create"],
-        "deny_permissions": [],
         "level": 99999,
     }
     doc = _latest_doc("roles_collection")
@@ -359,7 +359,6 @@ def schema_doc() -> dict:
         "version": 1,
         "fields": {
             "permissions": {"options": [], "default": []},
-            "deny_permissions": {"options": [], "default": []},
             "created_by": {"default": None},
             "created_on": {"default": None},
             "updated_by": {"default": None},
@@ -385,7 +384,7 @@ def isgl_doc() -> dict:
         "gene_count": 2,
         "genes": ["TP53", "NPM1"],
         "assays": ["WGS"],
-        "list_type": ["small_variant_genelist", "cnv_genelist", "fusion_genelist"],
+        "list_type": ["snv", "cnv", "fusion"],
         "is_active": True,
     }
     doc = _latest_doc("insilico_genelist_collection")

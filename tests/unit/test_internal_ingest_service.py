@@ -20,7 +20,8 @@ class _Col:
         self.deleted = []
         self.updated = []
 
-    def find(self, query=None):
+    def find(self, query=None, projection=None):
+        _ = projection
         query = query or {}
         if "_id" in query:
             needle = query["_id"]
@@ -128,6 +129,7 @@ def _store_stub(sample_docs=None):
                 },
             ]
         ),
+        "hgnc_genes": _Col(),
     }
     return SimpleNamespace(
         sample_repository=_Handler(sample_col),
@@ -164,6 +166,7 @@ def _use_store(monkeypatch, store_stub, *, new_sample_id="507f1f77bcf86cd7994390
                 "asp_configs": store_stub.coyote_db["asp_configs"],
                 "assay_specific_panels": store_stub.coyote_db["assay_specific_panels"],
                 "refseq_canonical": store_stub.coyote_db["refseq_canonical"],
+                "hgnc_genes": store_stub.coyote_db["hgnc_genes"],
             }
         ),
         invalidate_variant_cache=lambda: None,
@@ -222,10 +225,137 @@ def test_small_helpers_and_build_meta(tmp_path):
     assert meta["control"]["reads"] == 20
 
 
+def test_select_csq_prefers_hgnc_mane_plus_and_current_symbol():
+    csq_arr = [
+        {
+            "Feature": "NM_000002.1",
+            "HGNC_ID": "HGNC:1",
+            "SYMBOL": "OLD1",
+            "IMPACT": "MODERATE",
+            "CANONICAL": "YES",
+            "BIOTYPE": "protein_coding",
+            "MANE": "NM_000002.1",
+            "MANE_PLUS_CLINICAL": "",
+        },
+        {
+            "Feature": "NM_000001.1",
+            "HGNC_ID": "HGNC:1",
+            "SYMBOL": "OLD1",
+            "IMPACT": "MODERATE",
+            "CANONICAL": "",
+            "BIOTYPE": "protein_coding",
+            "MANE": "",
+            "MANE_PLUS_CLINICAL": "NM_000001.1",
+        },
+    ]
+    hgnc_doc = {
+        "hgnc_id": "HGNC:1",
+        "hgnc_symbol": "NEW1",
+        "prev_symbol": ["OLD1"],
+        "alias_symbol": [],
+        "refseq_mane_select": "NM_000002.1",
+        "ensembl_mane_select": "ENST000002",
+        "refseq_mane_plus_clinical": ["NM_000001.1"],
+    }
+
+    selected, source = ingest_parsers._select_csq(
+        csq_arr,
+        {},
+        hgnc_by_id={"HGNC:1": hgnc_doc},
+        hgnc_by_symbol={"OLD1": hgnc_doc, "NEW1": hgnc_doc},
+    )
+
+    assert source == "hgnc_mane_plus_clinical"
+    assert selected["Feature"] == "NM_000001.1"
+    assert selected["SYMBOL"] == "NEW1"
+    assert selected["VEP_SYMBOL"] == "OLD1"
+    assert selected["HGNC_ID"] == "HGNC:1"
+    assert selected["HGNC_MATCH_SOURCE"] == "previous_or_alias_symbol"
+
+
+def test_select_csq_uses_approved_hgnc_symbol_for_db_canonical():
+    hgnc_doc = {
+        "hgnc_id": "HGNC:2",
+        "hgnc_symbol": "NEW2",
+        "prev_symbol": ["OLD2"],
+        "alias_symbol": ["ALIAS2"],
+        "refseq_mane_select": "",
+        "ensembl_mane_select": "",
+        "refseq_mane_plus_clinical": [],
+    }
+
+    selected, source = ingest_parsers._select_csq(
+        [
+            {
+                "Feature": "NM_000004.1",
+                "HGNC_ID": "",
+                "SYMBOL": "OLD2",
+                "IMPACT": "MODERATE",
+                "CANONICAL": "",
+                "BIOTYPE": "protein_coding",
+            },
+            {
+                "Feature": "NM_000099.1",
+                "HGNC_ID": "",
+                "SYMBOL": "OTHER",
+                "IMPACT": "MODERATE",
+                "CANONICAL": "YES",
+                "BIOTYPE": "protein_coding",
+            },
+        ],
+        {"NEW2": "NM_000004"},
+        hgnc_by_symbol={"OLD2": hgnc_doc, "NEW2": hgnc_doc, "ALIAS2": hgnc_doc},
+    )
+
+    assert source == "db"
+    assert selected["Feature"] == "NM_000004.1"
+    assert selected["SYMBOL"] == "NEW2"
+    assert selected["VEP_SYMBOL"] == "OLD2"
+    assert selected["HGNC_MATCH_SOURCE"] == "previous_or_alias_symbol"
+
+
+def test_hgnc_metadata_maps_include_case_insensitive_aliases():
+    class _Gateway:
+        def collection(self, name):
+            assert name == "hgnc_genes"
+            return _Col(
+                [
+                    {
+                        "_id": "HGNC:3",
+                        "hgnc_id": "HGNC:3",
+                        "hgnc_symbol": "NEW3",
+                        "prev_symbol": ["Old3"],
+                        "alias_symbol": ["Alias3"],
+                    }
+                ]
+            )
+
+        def sample_collection(self):
+            return _Col()
+
+        def mongo_client(self):
+            return None
+
+        def session_scope(self):
+            return None
+
+    service = ingest.InternalIngestService(
+        collection_gateway=_Gateway(),
+        invalidate_variant_cache=lambda: None,
+        invalidate_summary_cache=lambda: None,
+    )
+    by_id, by_symbol = service._hgnc_metadata_maps()
+
+    assert by_id["HGNC:3"]["hgnc_symbol"] == "NEW3"
+    assert by_symbol["NEW3"]["hgnc_id"] == "HGNC:3"
+    assert by_symbol["OLD3"]["hgnc_id"] == "HGNC:3"
+    assert by_symbol["ALIAS3"]["hgnc_id"] == "HGNC:3"
+
+
 def test_sample_meta_extracts_vep_database_versions_from_vcf_header(tmp_path):
     vcf = tmp_path / "sample.vcf"
     vcf.write_text(
-        '##fileformat=VCFv4.2\n'
+        "##fileformat=VCFv4.2\n"
         '##VEP="v103" time="2026-07-12 00:47:04" COSMIC="92" ClinVar="202008" dbSNP="154" gnomAD="r2.1"\n'
         "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n",
         encoding="utf-8",
@@ -249,7 +379,7 @@ def test_sample_meta_extracts_vep_database_versions_from_vcf_header(tmp_path):
 def test_sample_meta_extracts_versions_from_runtime_vcf_path(tmp_path):
     vcf = tmp_path / "uploaded.vcf"
     vcf.write_text(
-        '##fileformat=VCFv4.2\n'
+        "##fileformat=VCFv4.2\n"
         '##VEP="v112" COSMIC="99" ClinVar="202406"\n'
         "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n",
         encoding="utf-8",
@@ -796,7 +926,7 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
                 "assay": "assay_1",
                 "subpanel": "Hem",
                 "profile": "production",
-                "case_id": "CASE_DEMO",
+                "case_id": "seed_case",
                 "sample_no": 1,
                 "sequencing_scope": "panel",
                 "omics_layer": "dna",
@@ -817,7 +947,7 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
             "assay": "assay_1",
             "subpanel": "Hem",
             "profile": "production",
-            "case_id": "CASE_DEMO",
+            "case_id": "seed_case",
             "sample_no": 1,
             "sequencing_scope": "panel",
             "omics_layer": "dna",
@@ -847,7 +977,7 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
         "assay": "assay_1",
         "subpanel": "Hem",
         "profile": "production",
-        "case_id": "CASE_DEMO",
+        "case_id": "seed_case",
         "sample_no": 1,
         "sequencing_scope": "panel",
         "omics_layer": "dna",
@@ -983,7 +1113,7 @@ def test_ingest_sample_bundle_initializes_sample_filters_from_aspc(monkeypatch):
             "assay": "assay_1",
             "subpanel": "Hem",
             "profile": "production",
-            "case_id": "CASE_DEMO",
+            "case_id": "seed_case",
             "sample_no": 1,
             "sequencing_scope": "panel",
             "omics_layer": "dna",

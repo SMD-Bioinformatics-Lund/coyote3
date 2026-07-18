@@ -1,7 +1,7 @@
 [
   {
-    "report_id": "RPT_DEMO_001",
-    "sample_name": "DEMO_SAMPLE_001",
+    "report_id": "seed_report",
+    "sample_name": "seed_sample",
     "report_oid": "report_oid_demo_001",
     "sample_oid": "sample_oid_demo_001",
     "var_oid": "var_oid_demo_001",

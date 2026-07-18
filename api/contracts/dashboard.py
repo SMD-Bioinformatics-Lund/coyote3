@@ -18,6 +18,7 @@ class DashboardSummaryPayload(BaseModel):
     unique_gene_count_all_panels: int
     assay_gene_stats_grouped: dict[str, Any]
     sample_stats: dict[str, Any]
+    user_scope_summary: dict[str, Any] = {}
     tier_stats: dict[str, Any] = {}
     quality_stats: dict[str, Any] = {}
     dashboard_meta: dict[str, Any] = {}

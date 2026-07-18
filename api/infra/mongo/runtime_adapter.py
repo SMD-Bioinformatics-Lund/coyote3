@@ -16,6 +16,8 @@ from typing import Any
 import pymongo
 from pymongo.errors import OperationFailure
 
+from api.infra.knowledgebase.clinpgx_public import ClinPgxPublicRepository
+from api.infra.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
 from api.infra.knowledgebase.plugins import enabled_knowledgebase_plugins
 from api.infra.mongo.repositories.annotations import AnnotationsRepository
 from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
@@ -71,6 +73,8 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("reported_variant_repository", ReportedVariantsRepository, "reported_variants"),
     ("report_repository", ReportRepository, "reports"),
     ("dashboard_metrics_repository", DashboardMetricsRepository, "dashboard_metrics"),
+    ("oncokb_public_cache_repository", OncoKbPublicCacheRepository, "oncokb_public_cache"),
+    ("clinpgx_public_repository", ClinPgxPublicRepository, "clinpgx_public"),
 )
 
 

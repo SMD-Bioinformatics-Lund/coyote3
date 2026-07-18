@@ -1,7 +1,6 @@
 [
   {
-    "aspc_id": "assay_1:production",
-    "assay_name": "assay_1",
+    "aspc_id": "assay_1_base_production",
     "display_name": "Hema GMS v1",
     "asp_group": "hematology",
     "asp_category": "dna",
@@ -42,71 +41,7 @@
         "gain",
         "loss"
       ],
-      "genelists": []
-    },
-    "query": {
-      "snv": {
-        "$or": [
-          {
-            "INFO.MYELOID_GERMLINE": 1
-          },
-          {
-            "FILTER": {
-              "$in": [
-                "GERMLINE"
-              ]
-            },
-            "INFO.CSQ": {
-              "$elemMatch": {
-                "SYMBOL": "CEBPA"
-              }
-            }
-          },
-          {
-            "$and": [
-              {
-                "POS": {
-                  "$gt": 115256520
-                }
-              },
-              {
-                "POS": {
-                  "$lt": 115256538
-                }
-              },
-              {
-                "CHROM": 1
-              }
-            ]
-          },
-          {
-            "$and": [
-              {
-                "genes": {
-                  "$in": [
-                    "FLT3"
-                  ]
-                }
-              },
-              {
-                "$or": [
-                  {
-                    "INFO.SVTYPE": {
-                      "$exists": "true"
-                    }
-                  },
-                  {
-                    "ALT": {
-                      "$regex": "\\w{10,200}",
-                      "$options": "i"
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      "snvlists": []
     },
     "reporting": {
       "report_sections": [
@@ -120,11 +55,12 @@
       "plots_path": "/tmp",
       "report_folder": "demo"
     },
-    "verification_samples": {}
+    "verification_samples": {},
+    "asp_id": "assay_1",
+    "subpanel_id": "base"
   },
   {
-    "aspc_id": "assay_1:testing",
-    "assay_name": "assay_1",
+    "aspc_id": "assay_1_base_testing",
     "display_name": "Hema GMS v1",
     "asp_group": "hematology",
     "asp_category": "dna",
@@ -165,71 +101,7 @@
         "gain",
         "loss"
       ],
-      "genelists": []
-    },
-    "query": {
-      "snv": {
-        "$or": [
-          {
-            "INFO.MYELOID_GERMLINE": 1
-          },
-          {
-            "FILTER": {
-              "$in": [
-                "GERMLINE"
-              ]
-            },
-            "INFO.CSQ": {
-              "$elemMatch": {
-                "SYMBOL": "CEBPA"
-              }
-            }
-          },
-          {
-            "$and": [
-              {
-                "POS": {
-                  "$gt": 115256520
-                }
-              },
-              {
-                "POS": {
-                  "$lt": 115256538
-                }
-              },
-              {
-                "CHROM": 1
-              }
-            ]
-          },
-          {
-            "$and": [
-              {
-                "genes": {
-                  "$in": [
-                    "FLT3"
-                  ]
-                }
-              },
-              {
-                "$or": [
-                  {
-                    "INFO.SVTYPE": {
-                      "$exists": "true"
-                    }
-                  },
-                  {
-                    "ALT": {
-                      "$regex": "\\w{10,200}",
-                      "$options": "i"
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      "snvlists": []
     },
     "reporting": {
       "report_sections": [
@@ -243,6 +115,8 @@
       "plots_path": "/tmp",
       "report_folder": "demo"
     },
-    "verification_samples": {}
+    "verification_samples": {},
+    "asp_id": "assay_1",
+    "subpanel_id": "base"
   }
 ]

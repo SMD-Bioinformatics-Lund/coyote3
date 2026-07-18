@@ -151,8 +151,8 @@ def _sample_path_value(payload: dict[str, Any], key: str) -> str | None:
     return str(path)
 
 
-def _validate_yaml_payload_like_import_script(payload: dict[str, Any]) -> None:
-    """Mirror `scripts/import_coyote_sample.py::validate_yaml` mandatory-field guard."""
+def _validate_yaml_manifest_minimum_fields(payload: dict[str, Any]) -> None:
+    """Validate the minimum fields required for an ingest YAML manifest."""
     if (
         ("vcf_files" not in payload or "fusion_files" not in payload)
         and "groups" not in payload

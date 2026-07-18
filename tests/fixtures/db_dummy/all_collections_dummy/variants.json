@@ -1,6 +1,6 @@
 [
   {
-    "SAMPLE_ID": "65f0c0ffee00000000000001",
+    "SAMPLE_ID": "sample_oid_seed",
     "CHROM": "7",
     "POS": 140453136,
     "REF": "A",
@@ -50,7 +50,7 @@
         "DP": 510,
         "GT": "0/1",
         "VD": 220,
-        "sample": "CASE_DEMO",
+        "sample": "seed_case",
         "type": "case"
       },
       {
@@ -58,7 +58,7 @@
         "DP": 420,
         "GT": "0/0",
         "VD": 0,
-        "sample": "CTRL_DEMO",
+        "sample": "seed_control",
         "type": "control"
       }
     ],

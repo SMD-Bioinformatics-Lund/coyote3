@@ -35,6 +35,21 @@ Optional keys:
 - `class_` (int | None)
 - `text` (str | None)
 
+## `app_controls`
+
+Required keys:
+- None
+
+Optional keys:
+- `id_` (Any | None)
+- `control_id` (str)
+- `celery` (CeleryControlDoc)
+- `retention` (RetentionControlDoc)
+- `modules` (ModuleControlDoc)
+- `created_on` (datetime.datetime | None)
+- `updated_by` (str | None)
+- `updated_on` (datetime)
+
 ## `asp_configs`
 
 Required keys:
@@ -57,6 +72,7 @@ Optional keys:
 - `platform` (str | None)
 - `verification_samples` (dict[str, list[int]])
 - `use_diagnosis_genelist` (bool)
+- `catalog` (AspcCatalogDoc)
 - `version` (int)
 - `created_by` (str | None)
 - `created_on` (datetime)
@@ -189,6 +205,35 @@ Required keys:
 
 Optional keys:
 - None
+
+## `clinpgx_genes_public`
+
+Required keys:
+- `pharmgkb_accession_id` (str)
+- `symbol` (str)
+
+Optional keys:
+- `ncbi_gene_id` (int | None)
+- `hgnc_id` (str | None)
+- `ensembl_id` (str | None)
+- `name` (str | None)
+- `alternate_names` (list[str])
+- `alternate_symbols` (list[str])
+- `is_vip` (bool)
+- `has_variant_annotation` (bool)
+- `has_cpic_dosing_guideline` (bool)
+- `cross_references` (list[str])
+- `chromosome` (str | None)
+- `grch37_start` (int | None)
+- `grch37_stop` (int | None)
+- `grch38_start` (int | None)
+- `grch38_stop` (int | None)
+- `source` (str | None)
+- `source_file` (str | None)
+- `source_reference` (str | None)
+- `source_created` (str | None)
+- `public_api` (bool)
+- `last_seen_at` (datetime.datetime | None)
 
 ## `cnvs`
 
@@ -371,6 +416,34 @@ Required keys:
 Optional keys:
 - None
 
+## `oncokb_cancer_genes_public`
+
+Required keys:
+- `gene` (str)
+
+Optional keys:
+- `source` (str | None)
+- `public_api` (bool)
+- `therapeutic_data_included` (bool)
+- `data_version` (str | None)
+- `hgnc_id` (str | None)
+- `previous_symbols` (list[str])
+- `alias_symbols` (list[str])
+- `entrez_gene_id` (int | None)
+- `gene_type` (str | None)
+- `occurrence_count` (int | None)
+- `oncokb_annotated` (bool | None)
+- `sanger_cgc` (bool | None)
+- `vogelstein` (bool | None)
+- `foundation` (bool | None)
+- `foundation_heme` (bool | None)
+- `msk_impact` (bool | None)
+- `msk_heme` (bool | None)
+- `grch37_refseq` (str | None)
+- `grch37_isoform` (str | None)
+- `grch38_refseq` (str | None)
+- `grch38_isoform` (str | None)
+
 ## `oncokb_genes`
 
 Required keys:
@@ -379,6 +452,54 @@ Required keys:
 
 Optional keys:
 - None
+
+## `oncokb_genes_public`
+
+Required keys:
+- `gene` (str)
+
+Optional keys:
+- `source` (str | None)
+- `public_api` (bool)
+- `therapeutic_data_included` (bool)
+- `data_version` (str | None)
+- `gene_exist` (bool | None)
+- `gene_summary` (str | None)
+- `background` (str | None)
+- `setting` (str | None)
+- `entrez_gene_id` (int | None)
+- `gene_type` (str | None)
+- `highest_sensitive_level` (str | None)
+- `highest_resistance_level` (str | None)
+- `grch37_refseq` (str | None)
+- `grch37_isoform` (str | None)
+- `grch38_refseq` (str | None)
+- `grch38_isoform` (str | None)
+- `hgnc_id` (str | None)
+- `previous_symbols` (list[str])
+- `alias_symbols` (list[str])
+
+## `oncokb_public`
+
+Required keys:
+- `query_hash` (str)
+- `gene` (str)
+
+Optional keys:
+- `alteration` (str | None)
+- `reference_genome` (str | None)
+- `public_api` (bool)
+- `therapeutic_data_included` (bool)
+- `source` (str | None)
+- `license` (str | None)
+- `query` (dict | None)
+- `response` (dict | None)
+- `data_version` (str | None)
+- `gene_exist` (bool | None)
+- `variant_exist` (bool | None)
+- `variant_ids` (list[str])
+- `sample_ids` (list[str])
+- `sample_names` (list[str])
 
 ## `panel_coverage`
 
@@ -443,6 +564,26 @@ Required keys:
 Optional keys:
 - None
 
+## `reports`
+
+Required keys:
+- `sample_oid` (Any)
+- `report_num` (int)
+- `report_id` (str)
+- `report_name` (str)
+- `filepath` (str)
+
+Optional keys:
+- `sample_name` (str | None)
+- `assay` (str | None)
+- `subpanel_id` (str | None)
+- `environment` (str | None)
+- `report_type` (str)
+- `author` (str | None)
+- `time_created` (datetime.datetime | None)
+- `filters_snapshot` (dict[str, Any])
+- `aspc` (dict[str, Any] | None)
+
 ## `rna_classification`
 
 Required keys:
@@ -506,12 +647,25 @@ Optional keys:
 - `updated_on` (datetime.datetime | None)
 - `version_history` (list[api.contracts.schemas.base.VersionHistoryEntryDoc])
 
+## `sample_comments`
+
+Required keys:
+- `sample_oid` (Any)
+- `author` (str)
+- `text` (str)
+
+Optional keys:
+- `sample_name` (str | None)
+- `hidden` (int | bool)
+- `hidden_by` (str | None)
+- `time_created` (datetime.datetime | None)
+- `time_hidden` (datetime.datetime | None)
+
 ## `samples`
 
 Required keys:
 - `name` (str)
 - `assay` (str)
-- `subpanel` (str | None)
 - `profile` (str)
 - `case_id` (str)
 - `sample_no` (int)
@@ -521,28 +675,23 @@ Required keys:
 - `pipeline_version` (str)
 
 Optional keys:
+- `subpanel_id` (str | None)
+- `current_aspc_id` (Any | None)
+- `current_aspc_key` (str | None)
+- `current_aspc_version` (int | None)
 - `genome_build` (int | None)
 - `vep_version` (str | None)
+- `database_versions` (dict[str, str])
 - `control_id` (str | None)
 - `paired` (bool | None)
 - `sequencing_technology` (str | None)
-- `vcf_files` (str | None)
-- `cnv` (str | None)
-- `cnvprofile` (str | None)
-- `cov` (str | None)
-- `transloc` (str | None)
-- `biomarkers` (str | None)
-- `fusion_files` (str | None)
-- `expression_path` (str | None)
-- `classification_path` (str | None)
-- `qc` (str | None)
-- `uploaded_file_checksums` (dict[str, str])
-- `filters` (api.contracts.schemas.dna.DnaFiltersDoc | api.contracts.schemas.rna.RnaFiltersDoc | None)
-- `comments` (list[api.contracts.schemas.samples.SampleCommentDoc])
-- `reports` (list[api.contracts.schemas.samples.SampleReportDoc])
+- `files` (dict[str, api.contracts.schemas.samples.SampleFileDoc])
+- `filters` (api.contracts.schemas.samples.SampleDnaFiltersDoc | api.contracts.schemas.samples.SampleRnaFiltersDoc | None)
 - `case` (SampleCaseControlDoc)
 - `control` (api.contracts.schemas.samples.SampleCaseControlDoc | None)
-- `report_num` (int)
+- `reported` (bool)
+- `latest_report_id` (Any | None)
+- `latest_report_on` (datetime.datetime | None)
 - `time_added` (datetime)
 
 ## `translocations`

@@ -343,14 +343,15 @@ class ASPRepository(BaseRepository):
         Returns:
             int: The total count of unique genes across all asp.
         """
-        docs = self.get_collection().find({}, {"covered_genes": 1})
+        docs = self.get_collection().find({"is_active": True}, {"covered_genes": 1})
         all_genes = set()
         for doc in docs:
             genes = doc.get("covered_genes", [])
-            all_genes.update(genes)
+            if isinstance(genes, list):
+                all_genes.update(str(gene).strip() for gene in genes if str(gene).strip())
         return len(all_genes)
 
-    def get_all_asp_gene_counts(self) -> dict:
+    def get_all_asp_gene_counts(self) -> list[dict]:
         """
         Get a dictionary mapping assay panel names to gene counts and metadata.
 
@@ -366,19 +367,45 @@ class ASPRepository(BaseRepository):
         Returns:
             dict: A dictionary mapping panel names to their gene counts and metadata.
         """
-        docs = self.get_collection().find(
-            {},
-            {
-                "covered_genes_count": 1,
-                "germline_genes_count": 1,
-                "assay_name": 1,
-                "display_name": 1,
-                "asp_group": 1,
-                "accredited": 1,
-            },
+        return list(
+            self.get_collection().aggregate(
+                [
+                    {"$match": {"is_active": True}},
+                    {
+                        "$project": {
+                            "_id": 0,
+                            "asp_id": 1,
+                            "assay_name": 1,
+                            "display_name": 1,
+                            "asp_group": 1,
+                            "asp_category": 1,
+                            "asp_family": 1,
+                            "accredited": 1,
+                            "covered_genes_count": {
+                                "$size": {
+                                    "$cond": [
+                                        {"$isArray": "$covered_genes"},
+                                        "$covered_genes",
+                                        [],
+                                    ]
+                                }
+                            },
+                            "germline_genes_count": {
+                                "$size": {
+                                    "$cond": [
+                                        {"$isArray": "$germline_genes"},
+                                        "$germline_genes",
+                                        [],
+                                    ]
+                                }
+                            },
+                        }
+                    },
+                    {"$sort": {"asp_group": 1, "display_name": 1, "assay_name": 1}},
+                ],
+                allowDiskUse=True,
+            )
         )
-
-        return docs
 
     def get_all_asp_groups(self) -> list:
         """

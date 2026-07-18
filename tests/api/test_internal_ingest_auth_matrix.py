@@ -9,10 +9,10 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
+from api.application.ingest.service import InternalIngestService
 from api.interfaces.http import internal as internal_router
 from api.security import access
 from api.security.access import ApiUser
-from api.application.ingest.service import InternalIngestService
 
 
 def _user(*, role: str, level: int, permissions: list[str] | None = None) -> ApiUser:
@@ -145,7 +145,7 @@ def test_internal_ingest_sample_bundle_update_requires_sample_edit_own_permissio
     monkeypatch.setattr(InternalIngestService, "ingest_sample_bundle", _ingest)
     payload = internal_router.InternalIngestSampleBundleRequest(
         sample={
-            "name": "DEMO_SAMPLE_001",
+            "name": "seed_sample",
             "assay": "assay_1",
             "subpanel": None,
             "profile": "testing",
@@ -193,7 +193,9 @@ def test_internal_ingest_async_collection_enqueues_after_permission_check(monkey
         captured["queue"] = queue
         return SimpleNamespace(id="task-123")
 
-    monkeypatch.setattr(internal_router.insert_collection_document_task, "apply_async", _fake_apply_async)
+    monkeypatch.setattr(
+        internal_router.insert_collection_document_task, "apply_async", _fake_apply_async
+    )
     payload = internal_router.InternalCollectionInsertRequest(
         collection="users",
         document={"username": "new.user", "email": "new.user@example.org"},

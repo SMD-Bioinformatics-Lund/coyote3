@@ -72,7 +72,14 @@ class _DashboardBackendStub:
         return {"user_samples_stats": {"scoped": len(assays)}}
 
     def get_dashboard_variant_counts(self):
-        return {"total_variants": 2000, "total_snps": 1700, "fps": 100}
+        return {
+            "total_variants": 2000,
+            "snv": 2000,
+            "small_variants": 2000,
+            "total_snps": 1700,
+            "fps": 100,
+            "by_variant_class": {"SNV": 1700, "INDEL": 300},
+        }
 
     def get_unique_variant_quality_counts(self):
         return {"unique_total_variants": 500, "unique_fp_variants": 25}
@@ -90,13 +97,21 @@ class _DashboardBackendStub:
         return 50
 
     def get_dashboard_tier_stats(self):
-        return {"tier_1": 10}
+        return {"total": {"tier1": 10, "tier2": 5, "tier3": 3, "tier4": 1}}
 
     def get_all_asps_unique_gene_count(self):
         return 1234
 
     def get_all_asp_gene_counts(self):
-        return [{"asp_id": "A1", "gene_count": 10}]
+        return [
+            {
+                "asp_id": "A1",
+                "display_name": "Assay 1",
+                "asp_group": "hematology",
+                "covered_genes_count": 42,
+                "germline_genes_count": 7,
+            }
+        ]
 
     def get_dashboard_isgl_association(self):
         return {"pairs": [{"isgl": "I1", "asp": "A1"}]}
@@ -157,7 +172,9 @@ def _dashboard_service(backend=None) -> DashboardService:
             get_dashboard_variant_counts=backend.get_dashboard_variant_counts,
             get_unique_variant_quality_counts=backend.get_unique_variant_quality_counts,
         ),
-        copy_number_variant_repository=_noop_handler(get_total_cnv_count=backend.get_total_cnv_count),
+        copy_number_variant_repository=_noop_handler(
+            get_total_cnv_count=backend.get_total_cnv_count
+        ),
         translocation_repository=_noop_handler(
             get_total_transloc_count=backend.get_total_transloc_count
         ),
@@ -231,6 +248,16 @@ def test_summary_payload_calculates_quality_rates(monkeypatch):
     assert payload["total_samples"] == 100
     assert payload["analysed_samples"] == 75
     assert payload["variant_stats"]["blacklisted"] == 50
+    assert payload["variant_stats"]["snv"] == 2000
+    assert payload["variant_stats"]["cnv"] == 40
+    assert payload["variant_stats"]["fusion"] == 8
+    assert payload["variant_stats"]["translocation"] == 12
+    assert payload["variant_stats"]["reported_findings"] == 19
+    assert payload["variant_stats"]["pathogenic"] == 15
+    assert payload["variant_stats"]["vus"] == 3
+    assert payload["variant_stats"]["by_variant_class"]["INDEL"] == 300
+    assert payload["assay_gene_stats_grouped"]["hematology"][0]["covered_genes_count"] == 42
+    assert payload["assay_gene_stats_grouped"]["hematology"][0]["germline_genes_count"] == 7
     assert payload["quality_stats"]["analysed_rate_percent"] == 75.0
     assert payload["quality_stats"]["fp_rate_percent"] == 5.0
     assert payload["quality_stats"]["blacklist_rate_percent"] == 10.0

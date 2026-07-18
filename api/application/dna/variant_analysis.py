@@ -76,6 +76,8 @@ class DnaService:
             civic_repository=store.civic_repository,
             brca_repository=store.brca_repository,
             iarc_tp53_repository=store.iarc_tp53_repository,
+            oncokb_public_cache_repository=getattr(store, "oncokb_public_cache_repository", None),
+            clinpgx_public_repository=getattr(store, "clinpgx_public_repository", None),
         )
 
     def __init__(
@@ -98,6 +100,8 @@ class DnaService:
         civic_repository: Any,
         brca_repository: Any,
         iarc_tp53_repository: Any,
+        oncokb_public_cache_repository: Any | None = None,
+        clinpgx_public_repository: Any | None = None,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.assay_panel_repository = assay_panel_repository
@@ -106,6 +110,8 @@ class DnaService:
         self.blacklist_repository = blacklist_repository
         self.copy_number_variant_repository = copy_number_variant_repository
         self.oncokb_repository = oncokb_repository
+        self.oncokb_public_cache_repository = oncokb_public_cache_repository
+        self.clinpgx_public_repository = clinpgx_public_repository
         self.annotation_repository = annotation_repository
         self.fusion_repository = fusion_repository
         self.translocation_repository = translocation_repository

@@ -361,6 +361,103 @@ class OncoKbGenesDoc(_DocBase):
     description: str
 
 
+class OncoKbPublicDoc(_DocBase):
+    query_hash: str
+    gene: str
+    alteration: str | None = None
+    reference_genome: str | None = None
+    public_api: bool = True
+    therapeutic_data_included: bool = False
+    source: str | None = None
+    license: str | None = None
+    query: dict | None = None
+    response: dict | None = None
+    data_version: str | None = None
+    gene_exist: bool | None = None
+    variant_exist: bool | None = None
+    variant_ids: list[str] = Field(default_factory=list)
+    sample_ids: list[str] = Field(default_factory=list)
+    sample_names: list[str] = Field(default_factory=list)
+
+
+class OncoKbGenesPublicDoc(_DocBase):
+    gene: str
+    source: str | None = None
+    public_api: bool = True
+    therapeutic_data_included: bool = False
+    data_version: str | None = None
+    gene_exist: bool | None = None
+    gene_summary: str | None = None
+    background: str | None = None
+    setting: str | None = None
+    entrez_gene_id: int | None = None
+    gene_type: str | None = None
+    highest_sensitive_level: str | None = None
+    highest_resistance_level: str | None = None
+    grch37_refseq: str | None = None
+    grch37_isoform: str | None = None
+    grch38_refseq: str | None = None
+    grch38_isoform: str | None = None
+    hgnc_id: str | None = None
+    previous_symbols: list[str] = Field(default_factory=list)
+    alias_symbols: list[str] = Field(default_factory=list)
+
+
+class OncoKbCancerGenesPublicDoc(_DocBase):
+    """Public OncoKB cancer-gene list record from /utils/cancerGeneList."""
+
+    gene: str
+    source: str | None = None
+    public_api: bool = True
+    therapeutic_data_included: bool = False
+    data_version: str | None = None
+    hgnc_id: str | None = None
+    previous_symbols: list[str] = Field(default_factory=list)
+    alias_symbols: list[str] = Field(default_factory=list)
+    entrez_gene_id: int | None = None
+    gene_type: str | None = None
+    occurrence_count: int | None = None
+    oncokb_annotated: bool | None = None
+    sanger_cgc: bool | None = None
+    vogelstein: bool | None = None
+    foundation: bool | None = None
+    foundation_heme: bool | None = None
+    msk_impact: bool | None = None
+    msk_heme: bool | None = None
+    grch37_refseq: str | None = None
+    grch37_isoform: str | None = None
+    grch38_refseq: str | None = None
+    grch38_isoform: str | None = None
+
+
+class ClinPgxGenesPublicDoc(_DocBase):
+    """Public ClinPGx gene cache record imported from genes.tsv."""
+
+    pharmgkb_accession_id: str
+    ncbi_gene_id: int | None = None
+    hgnc_id: str | None = None
+    ensembl_id: str | None = None
+    name: str | None = None
+    symbol: str
+    alternate_names: list[str] = Field(default_factory=list)
+    alternate_symbols: list[str] = Field(default_factory=list)
+    is_vip: bool = False
+    has_variant_annotation: bool = False
+    has_cpic_dosing_guideline: bool = False
+    cross_references: list[str] = Field(default_factory=list)
+    chromosome: str | None = None
+    grch37_start: int | None = None
+    grch37_stop: int | None = None
+    grch38_start: int | None = None
+    grch38_stop: int | None = None
+    source: str | None = None
+    source_file: str | None = None
+    source_reference: str | None = None
+    source_created: str | None = None
+    public_api: bool = True
+    last_seen_at: datetime | None = None
+
+
 class RefSeqCanonicalDoc(_DocBase):
     gene: str
     canonical: str

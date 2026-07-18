@@ -21,6 +21,7 @@ class CommonQueryService:
         """Build the service from the runtime store."""
         return cls(
             hgnc_repository=store.hgnc_repository,
+            oncokb_repository=store.oncokb_repository,
             variant_repository=store.variant_repository,
             reported_variant_repository=store.reported_variant_repository,
             assay_panel_repository=store.assay_panel_repository,
@@ -32,6 +33,7 @@ class CommonQueryService:
         self,
         *,
         hgnc_repository: Any,
+        oncokb_repository: Any,
         variant_repository: Any,
         reported_variant_repository: Any,
         assay_panel_repository: Any,
@@ -40,6 +42,7 @@ class CommonQueryService:
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.hgnc_repository = hgnc_repository
+        self.oncokb_repository = oncokb_repository
         self.variant_repository = variant_repository
         self.reported_variant_repository = reported_variant_repository
         self.assay_panel_repository = assay_panel_repository
@@ -48,11 +51,32 @@ class CommonQueryService:
 
     def gene_info_payload(self, gene_id: str) -> dict[str, Any]:
         """Return gene metadata by HGNC id or symbol."""
-        if gene_id.isnumeric():
-            gene = self.hgnc_repository.get_metadata_by_hgnc_id(hgnc_id=gene_id)
+        normalized_gene_id = str(gene_id or "").strip()
+        if normalized_gene_id.isnumeric() or normalized_gene_id.upper().startswith("HGNC:"):
+            gene = self.hgnc_repository.get_metadata_by_hgnc_id(hgnc_id=normalized_gene_id)
+        elif hasattr(self.hgnc_repository, "get_metadata_by_symbol_or_alias"):
+            gene = self.hgnc_repository.get_metadata_by_symbol_or_alias(symbol=normalized_gene_id)
         else:
-            gene = self.hgnc_repository.get_metadata_by_symbol(symbol=gene_id)
-        return {"gene": gene}
+            gene = self.hgnc_repository.get_metadata_by_symbol(symbol=normalized_gene_id)
+        symbol = (gene or {}).get("hgnc_symbol") or (gene or {}).get("symbol") or normalized_gene_id
+        oncokb_gene = self.oncokb_repository.get_oncokb_gene(str(symbol).upper())
+        return {
+            "gene": gene,
+            "query": {
+                "input": normalized_gene_id,
+                "resolved_symbol": symbol,
+                "symbol_changed": bool(
+                    normalized_gene_id
+                    and symbol
+                    and normalized_gene_id.upper() != str(symbol).upper()
+                    and not normalized_gene_id.upper().startswith("HGNC:")
+                ),
+            },
+            "knowledgebase": {
+                "oncokb": oncokb_gene,
+                "oncokb_url": f"https://www.oncokb.org/gene/{symbol}" if oncokb_gene else None,
+            },
+        }
 
     def tiered_variant_context_payload(self, *, variant_id: str, tier: int) -> dict[str, Any]:
         """Return reported-variant context for a tiered variant."""
@@ -119,8 +143,7 @@ class CommonQueryService:
             "sample_name": resolved_name,
             "name": resolved_name,
             "assay": (sample_doc or {}).get("assay"),
-            "subpanel": (sample_doc or {}).get("subpanel")
-            or (sample_doc or {}).get("subpanel_id"),
+            "subpanel": (sample_doc or {}).get("subpanel") or (sample_doc or {}).get("subpanel_id"),
             "profile": (sample_doc or {}).get("profile"),
             "report_oids": {},
         }

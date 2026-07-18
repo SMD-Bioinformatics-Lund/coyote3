@@ -11,6 +11,7 @@ class CommonGeneInfoPayload(BaseModel):
     """Represent the common gene info payload."""
 
     gene: dict[str, Any] | None = None
+    knowledgebase: dict[str, Any] = {}
 
 
 class CommonTieredVariantContextPayload(BaseModel):

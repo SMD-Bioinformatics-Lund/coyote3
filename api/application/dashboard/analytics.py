@@ -316,7 +316,7 @@ class DashboardService:
         """
         scope_assays = self.resolve_scope_assays(user=user)
         scope_key = self._summary_scope_key(user=user, scope_assays=scope_assays)
-        cache_key = f"dashboard:summary:v2:{self._cache_version_token()}:{scope_key}"
+        cache_key = f"dashboard:summary:v3:{self._cache_version_token()}:{scope_key}"
         cache_ttl = self._cache_ttl_seconds()
         snapshot_max_age = self._snapshot_max_age_seconds()
 
@@ -355,15 +355,46 @@ class DashboardService:
         pending_samples_count = int(sample_rollup_global.get("pending_samples", 0) or 0)
         sample_stats = sample_rollup_global.get("sample_stats", {})
         user_samples_stats = sample_rollup_scoped.get("user_samples_stats", {})
+        user_total_samples = int(sample_rollup_scoped.get("total_samples", 0) or 0)
+        user_analysed_samples = int(sample_rollup_scoped.get("analysed_samples", 0) or 0)
+        user_pending_samples = int(sample_rollup_scoped.get("pending_samples", 0) or 0)
 
+        tier_total = tier_stats.get("total", {}) if isinstance(tier_stats, dict) else {}
+        tier1 = int(tier_total.get("tier1", tier_total.get("tier_1", 0)) or 0)
+        tier2 = int(tier_total.get("tier2", tier_total.get("tier_2", 0)) or 0)
+        tier3 = int(tier_total.get("tier3", tier_total.get("tier_3", 0)) or 0)
+        tier4 = int(tier_total.get("tier4", tier_total.get("tier_4", 0)) or 0)
+        reported_findings = tier1 + tier2 + tier3 + tier4
+
+        total_small_variants = int(variant_rollup.get("total_variants", 0) or 0)
+        total_snv_like = int(
+            variant_rollup.get("snv")
+            or variant_rollup.get("small_variants")
+            or total_small_variants
+            or 0
+        )
+        total_fp = int(variant_rollup.get("fps", 0) or 0)
         variant_stats = {
-            "total_variants": int(variant_rollup.get("total_variants", 0) or 0),
-            "total_snps": int(variant_rollup.get("total_snps", 0) or 0),
-            "total_cnvs": int(total_cnvs or 0),
-            "total_translocs": int(total_translocs or 0),
-            "total_fusions": int(total_fusions or 0),
+            "total_variants": total_small_variants,
+            "unique_variants": unique_total_variants,
+            "snv": total_snv_like,
+            "small_variants": total_snv_like,
+            "snps": int(variant_rollup.get("total_snps", 0) or 0),
+            "cnv": int(total_cnvs or 0),
+            "cnvs": int(total_cnvs or 0),
+            "fusion": int(total_fusions or 0),
+            "fusions": int(total_fusions or 0),
+            "translocation": int(total_translocs or 0),
+            "translocations": int(total_translocs or 0),
             "blacklisted": int(unique_blacklisted_variants or 0),
-            "fps": int(variant_rollup.get("fps", 0) or 0),
+            "fps": total_fp,
+            "false_positives": total_fp,
+            "reported_findings": reported_findings,
+            "tier1_or_2": tier1 + tier2,
+            "vus": tier3,
+            "pathogenic": tier1 + tier2,
+            "tier4": tier4,
+            "by_variant_class": variant_rollup.get("by_variant_class", {}) or {},
         }
 
         analysed_rate = (
@@ -396,6 +427,18 @@ class DashboardService:
                 self.assay_panel_repository.get_all_asp_gene_counts()
             ),
             "sample_stats": sample_stats,
+            "user_scope_summary": {
+                "total_samples": user_total_samples,
+                "analysed_samples": user_analysed_samples,
+                "pending_samples": user_pending_samples,
+                "analysed_rate_percent": (
+                    round((user_analysed_samples / user_total_samples) * 100, 2)
+                    if user_total_samples
+                    else 0.0
+                ),
+                "recent_samples": sample_rollup_scoped.get("recent_samples", []) or [],
+                "sample_stats": sample_rollup_scoped.get("sample_stats", {}) or {},
+            },
             "tier_stats": tier_stats,
             "quality_stats": {
                 "analysed_rate_percent": analysed_rate,
