@@ -282,7 +282,7 @@ Observed fixture shape:
 ```json
 [
   {
-    "SAMPLE_ID": "65f0c0ffee00000000000001",
+    "SAMPLE_ID": "sample_oid_seed",
     "gene1": "BCR",
     "gene2": "ABL1",
     "genes": "BCR-ABL1",
@@ -382,7 +382,7 @@ Observed fixture shape:
 [
   {
     "SAMPLE_ID": "...",
-    "sample_id": "DEMO_SAMPLE_001",
+    "sample_id": "seed_sample",
     "tot_reads": 1000000,
     "mapped_pct": 95.0,
     "multimap_pct": 3.0,

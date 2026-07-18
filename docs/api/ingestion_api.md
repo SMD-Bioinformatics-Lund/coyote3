@@ -461,8 +461,8 @@ curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/dependents" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
 {
-  "sample_id": "65f0c0ffee00000000000001",
-  "sample_name": "DEMO_SAMPLE_001",
+  "sample_id": "sample_oid_seed",
+  "sample_name": "seed_sample",
   "delete_existing": true,
   "preload": {
     "cnvs": [
@@ -667,7 +667,7 @@ Other fixed admin/runtime vocabularies:
 ```json
 {
   "spec": {
-    "name": "DEMO_SAMPLE_001",
+    "name": "seed_sample",
     "assay": "assay_1",
     "profile": "test",
     "genome_build": 38,
@@ -684,7 +684,7 @@ Other fixed admin/runtime vocabularies:
 
 ```json
 {
-  "yaml_content": "name: DEMO_SAMPLE_001\nassay: assay_1\n...",
+  "yaml_content": "name: seed_sample\nassay: assay_1\n...",
   "update_existing": false
 }
 ```
@@ -697,7 +697,7 @@ Other fixed admin/runtime vocabularies:
 {
   "collection": "variants",
   "document": {
-    "SAMPLE_ID": "65f0c0ffee00000000000001",
+    "SAMPLE_ID": "sample_oid_seed",
     "CHROM": "7",
     "POS": 140453136,
     "REF": "A",
@@ -714,8 +714,8 @@ Other fixed admin/runtime vocabularies:
 {
   "collection": "cnvs",
   "documents": [
-    {"SAMPLE_ID": "65f0c0ffee00000000000001", "chr": "7", "start": 1, "end": 2},
-    {"SAMPLE_ID": "65f0c0ffee00000000000001", "chr": "12", "start": 3, "end": 4}
+    {"SAMPLE_ID": "sample_oid_seed", "chr": "7", "start": 1, "end": 2},
+    {"SAMPLE_ID": "sample_oid_seed", "chr": "12", "start": 3, "end": 4}
   ]
 }
 ```
@@ -746,7 +746,7 @@ headers = {"Authorization": "Bearer YOUR_API_BEARER_TOKEN"}
 
 payload = {
     "spec": {
-        "name": "DEMO_SAMPLE_001",
+        "name": "seed_sample",
         "assay": "assay_1",
         "profile": "test",
         "genome_build": 38,

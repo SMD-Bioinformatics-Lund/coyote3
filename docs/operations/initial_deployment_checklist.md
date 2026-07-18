@@ -280,13 +280,11 @@ Notes:
 - In general, ingest file paths in YAML must be readable from inside the API runtime (container/host where API runs), not only from your shell machine.
 - Use [API / Sample YAML Guide](../api/sample_yaml.md) for the manifest contract and [API / Sample Input Files](../api/sample_input_files.md) for the raw file formats behind that manifest.
 
-If you are upgrading an older deployment, run this one-time repair before the ingest check:
-
-```bash
-${PYTHON_BIN:-python} scripts/repair_center_seed_baseline.py \
-  --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
-  --db "${COYOTE3_DB:-coyote3}"
-```
+If you are upgrading an older deployment, write any reviewed one-time repair in
+`migration_scripts/`. That folder is ignored by git, so center-specific
+conversion code and operational scratch payloads stay out of the supported
+application scripts. Promote only repeatable maintenance workflows back into
+`scripts/` with tests and documentation.
 
 ## 7. Functional verification
 

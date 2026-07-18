@@ -31,11 +31,14 @@ nav:
       - Core Concepts: product/core_concepts.md
       - Clinical Workflow Chain: product/workflow_dna_rna.md
       - UI Map And Navigation: product/ui_map_and_user_flows.md
+      - UI Page And Table Reference: product/ui_page_table_reference.md
       - Functional Matrix: product/ui_functionality_matrix.md
       - Domain Reference: product/application_reference_by_domain.md
       - Action Effects: product/ui_action_effects_reference.md
       - Query Strategy: product/aspc_driven_query_strategy.md
       - Reporting Workflow And Snapshots: product/reporting_workflow_and_variant_snapshots.md
+      - OncoKB Integration: product/oncokb_integration.md
+      - ClinPGx Integration: product/clinpgx_integration.md
   - Getting Started:
       - Quickstart: start_here/quickstart.md
       - Local Development: start_here/local_development.md
@@ -52,6 +55,7 @@ nav:
           - ADR-0002 Password Lifecycle: architecture/adr_0002_local_user_password_lifecycle_and_mail_fallback.md
   - Developer Guide:
       - Add a New Domain: developer/adding_a_domain.md
+      - Plotting And Chart Export: frontend/plotting.md
       - UI Modal Reference: developer/ui_modals.md
       - Troubleshooting: developer/troubleshooting_guide.md
   - API Reference:

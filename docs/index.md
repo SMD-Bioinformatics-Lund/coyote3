@@ -37,7 +37,7 @@ This documentation is grouped by role and task.
 ### For Clinical & Laboratory Users
 *   **Getting Started**: [Quickstart Guide](start_here/quickstart.md) for a local first run.
 *   **Complete Manual**: [Complete Application Manual](product/complete_application_manual.md) for the full workflow from ingest to reporting.
-*   **Understanding Workflows**: [DNA and RNA Workflow Chain](product/workflow_dna_rna.md) and [UI User Flows](product/ui_map_and_user_flows.md).
+*   **Understanding Workflows**: [DNA and RNA Workflow Chain](product/workflow_dna_rna.md), [UI User Flows](product/ui_map_and_user_flows.md), and the [UI Page and Table Reference](product/ui_page_table_reference.md).
 *   **Terminology**: [Core Concepts](product/core_concepts.md) for tiers and flags.
 
 ### For Software Engineers & Developers

@@ -370,9 +370,87 @@ Variant search uses annotation and reported-finding data to locate relevant vari
 
 Search output should include gene, variant/HGVS, class/tier, merged class text where available, assay-wise counts, sample/report links, and compact evidence text.
 
+Knowledgebase markers are rendered in compact row-status badges, not as extra
+wide table columns and not beside the gene text in dense variant tables. OncoKB
+uses `OKB` for public cancer-gene membership and `Rx` for historical local
+actionability-style evidence. ClinPGx uses `PGx` for pharmacogenomics gene
+membership from `clinpgx_genes_public`. This keeps dense tables readable while
+still surfacing curated cancer-gene and PGx context.
+
+Variant detail pages consolidate all knowledgebase evidence into one
+**Knowledge Bases** card. CIViC, BRCA Exchange, TP53/IARC, local OncoKB cache,
+historical actionable OncoKB evidence, OncoKB public API lookup, and ClinPGx
+local/API context are shown as collapsible sections inside that card. Sections
+default to a compact state unless they contain the immediate summary a reviewer
+needs. This prevents pharmacogenomics or public API metadata from crowding the
+main variant decision area while keeping the evidence one click away.
+
+OncoKB public cancer-gene context is populated into
+`oncokb_cancer_genes_public` from OncoKB `/utils/cancerGeneList`. Gene-level
+public summaries, background text, settings, and public level metadata are
+prefilled into `oncokb_genes_public` from OncoKB
+`/utils/allCuratedGenes?includeEvidence=true`.
+
+ClinPGx public gene context is populated into `clinpgx_genes_public` from the
+official ClinPGx `genes.tsv` export. The cache stores PharmGKB/ClinPGx IDs,
+HGNC IDs, NCBI Gene IDs, Ensembl IDs, aliases, VIP status, variant-annotation
+availability, CPIC dosing guideline availability, cross-references, and genome
+coordinates. Rich API-derived ClinPGx summaries are fetched on demand from the
+variant detail page and are not stored as a separate MongoDB collection.
+
 !!! info "Search intent"
 
     Search is not just a table lookup. It helps reviewers understand recurrence, prior classification, reporting history, and assay context across samples.
+
+!!! warning "Knowledgebase reproducibility"
+
+    `oncokb_cancer_genes_public` and `oncokb_genes_public` are seeded by
+    explicit operational actions from the public OncoKB cancer-gene and
+    all-curated-gene endpoints. VCF ingest normalizes symbols through HGNC IDs
+    and previous/alias symbols, then batches missing public OncoKB lookups into
+    `oncokb_public` only for cached OncoKB genes. The preferred small-variant
+    query is HGVSg through `POST /annotate/mutations/byHGVSg`, using the exact
+    OncoKB-facing genomic format `chrom:g.positionRef>Alt`, for example
+    `17:g.76736896T>C`. VEP-provided `HGVSg` is normalized from `chr17:g...` or
+    RefSeq chromosome accessions into this chromosome-label format. If VEP does
+    not provide HGVSg, Coyote3 constructs HGVSg only for simple SNVs. Complex
+    indels are not hand-normalized from VCF fields; they use VEP HGVSg when
+    present or fall back to `POST /annotate/mutations/byProteinChange`.
+
+    Dense tables read the public cancer-gene cache for OncoKB markers. Variant
+    detail pages can fetch public OncoKB API evidence on demand from
+    `https://public.api.oncokb.org/api/v1`. The detail view renders a compact
+    subset: query, gene, alteration, data version, gene/variant existence,
+    oncogenic state, mutation effect, diagnostic/prognostic levels, and
+    gene/variant summaries. Public OncoKB access does not require a commercial
+    license or token, but therapeutic data is excluded. Historical local
+    `oncokb_actionable` rows contain treatment/actionability-style fields and
+    are displayed as a separate actionable-evidence section inside the same
+    Knowledge Bases card.
+
+    Dense tables read `clinpgx_genes_public` for PGx markers. Variant detail
+    pages can fetch public ClinPGx API context on demand from
+    `https://api.clinpgx.org/v1`. Identifier-based lookup
+    `/data/gene/{id}` is preferred when the local cache has a ClinPGx/PharmGKB
+    accession; symbol query `/data/gene?symbol={symbol}&view=max` is the
+    fallback. The public API summary also uses `/data/guidelineAnnotation`,
+    `/data/label`, `/data/variantAnnotation`, and
+    `/report/connectedObjects/{id}/{type}` for chemicals and pathways. The
+    normalized result is returned to the ClinPGx section of the Knowledge Bases
+    card for the current review session and is not persisted. ClinPGx asks
+    clients to limit requests to 2 per second, so Coyote3 does not call the
+    external API per table row.
+
+!!! info "DNA transcript selection"
+
+    DNA ingest selects `selected_CSQ` using clinical transcript priority:
+    HGNC MANE Plus Clinical first, then HGNC MANE Select, then the center
+    canonical map after HGNC-symbol normalization, VEP canonical,
+    protein-coding transcript, and finally the first available transcript.
+    HGNC resolution uses HGNC ID first, then approved symbol, previous symbol,
+    and alias symbol. If VEP uses a previous or alias gene symbol, HGNC metadata
+    normalizes the displayed symbol to the approved symbol and stores the raw VEP
+    value in `VEP_SYMBOL` only when it differs.
 
 ## 19. Access Control
 
@@ -403,6 +481,12 @@ Clinical configuration resources should preserve reconstruction history. Governa
 Application controls are runtime switches and retention settings managed from Admin. They can include enabling/disabling task families, module visibility, audit retention days, notification retention days, disk log retention days, and gzip thresholds for old logs.
 
 Disabling a Celery task family prevents future task executions from doing work or allows them to return early. It does not resize the worker process pool or release worker threads that are already allocated by the running worker container.
+
+Dashboard and operational plots use the shared React plotting layer. Plot panels
+support PNG, SVG, and CSV export, and all charts must provide useful empty
+states. Statistical plots should use shared chart components. Genomic track
+views may use specialized SVG when needed but should preserve the same theme and
+export conventions where practical.
 
 !!! tip "Capacity management"
 

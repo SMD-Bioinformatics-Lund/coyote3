@@ -1,71 +1,130 @@
 # User Guide: DNA Clinical Review
 
-The DNA Interpretation view is the main workspace for reviewing findings, assigning classifications, and building reports.
+The DNA review workspace is the main clinical area for reviewing sample findings, assigning tiers, writing comments, and preparing report previews. The page is driven by the sample ASPC, so only analysis tabs enabled for that sample's assay, subpanel, and environment are shown.
 
-## Navigating the Review Workspace
+!!! info "Detailed UI reference"
 
-The layout is organized for day-to-day review work:
+    This guide explains the DNA review workflow. For a complete page-by-page table and badge dictionary, see the [UI Page and Table Reference](../product/ui_page_table_reference.md).
 
-*   **Vertical Navigation Sidebar**: On the left side, vertical tabs allow you to jump between different finding categories: SNV, CNV, Translocations, and the Summary report.
-*   **Sample Context Card**: A persistent header showing patient details, assay configurations, and active gene list filters (ISGL).
-*   **Integrated Documentation**: The "HELP" tab in the sidebar provides quick access to clinical manuals and standard operating procedures.
+## Review Workspace
 
----
+The sample detail page is organized around a persistent sample header and analysis tabs.
 
-## 1. SNVs and Indels (Small Variants)
+| Area | Purpose |
+| --- | --- |
+| Sample header | Shows sample name, assay, profile, ingest status, and available biomarker badges. |
+| Overview | Shows sample settings, case/control context, files/QC, biomarkers, and gene settings. |
+| Small Variants | SNV/indel table with filtering, tiering, bulk actions, and detail links. |
+| CNVs | Copy-number event table and CNV detail workflow. |
+| Fusions | Fusion finding table and fusion detail workflow. |
+| Translocations | Structural rearrangement table and detail workflow. |
+| Coverage | Gene, exon, and probe coverage context. |
+| Reports | Temporary report preview and save/export workflow. |
 
-The primary variant table lists every finding passing the laboratory's quality filters.
+!!! caution "Raw payloads"
 
-### Key Table Features:
-*   **Gene & HGVS**: Direct identification of the gene and specific mutation string. Gene names highlighted in red indicate high-priority "OncoKB" actionable genes.
-*   **Consequence (CSQ)**: The selected transcript consequence terms from VEP. A variant can show more than one consequence term when the selected transcript carries a combined effect such as `missense_variant&splice_region_variant`.
-*   **PopFreq %**: The frequency of the variant in public populations (gnomAD).
-*   **GT (Genotype)**: Shows the Allelic Fraction (AF) and raw read depth (e.g., `12.5% (45 / 360)`).
-*   **Quality Filter Badges**: Compact status badges summarize raw VCF filter output. Common examples are `PASS`, `GERM`, `HP`, `SB`, `LO`, `XLO`, `PON`, `FFPE`, `N`, `P`, and `LD`.
+    Clinical users should not need raw JSON payloads. Raw inspection belongs in explicit diagnostic/admin views only.
 
-### Interpretation Actions:
-Clinicians can perform the following actions directly on the table:
-*   **Interesting Variant**: Flag a variant for further review or fellow clinician consultation.
-*   **False Positive (FP)**: Flag artifacts or sequencing errors to remove them from the reporting pool.
-*   **Blacklist**: Permantly flag a specific variant coordinate as a known technical artifact for that assay.
-*   **IGV Viewing**: Clicking on the **Chr:Pos** badge will remotely load the genomic region in your local IGV (Interactive Genomics Viewer).
+## Small Variants
 
-### Reading the filter badges
+The Small Variants table is the primary DNA review table for SNVs and indels.
 
-- `PASS` means the variant passed the primary quality gates.
-- `GERM` represents `GERMLINE` or `GERMLINE_RISK` style flags.
-- `HP`, `SB`, `LO`, `XLO`, `PON`, and `FFPE` are grouped warning or caution badges.
-- `N`, `P`, and `LD` are grouped failure badges.
-- The interface may collapse several raw pipeline-specific warning or failure tokens into the same short badge for readability.
+| Column | Meaning |
+| --- | --- |
+| Select | Checkbox used for bulk actions. |
+| `S` | Review and evidence status. This can include false-positive, blacklist, irrelevant, interesting, comment, `OKB`, `Rx`, and `PGx` markers. |
+| Gene | The displayed gene symbol from the selected consequence. HGNC normalization can add an info marker when a previous symbol or alias resolved to the approved HGNC record. |
+| HGVS | HGVSc and HGVSp for the selected transcript. Long values are expandable. |
+| Exon/Intron | Selected transcript exon and intron values. |
+| Type | Compact variant class such as `SNV`, `DEL`, `INS`, `INDEL`, or `SUB`. |
+| Consequence | VEP consequence badges. Hover shows VEP metadata and impact. |
+| PopFreq (%) | Public population frequency as a percentage. |
+| Tier | Current clinical tier. Clicking an assigned tier opens reported-variant context when available. |
+| Chr:Pos | Neutral chromosome coordinate link for IGV. |
+| Flags | Configured filter flag badges from the VCF `FILTER` field. |
+| Case | Case VAF and depth as `VAF% (VD/DP)`. |
+| Control | Control VAF and depth. Hidden for unpaired samples. |
+| Actions | Opens the variant detail page. |
 
----
+### Status And Knowledgebase Markers
 
-## 2. Copy Number Variants (CNV)
+| Marker | Meaning |
+| --- | --- |
+| False-positive icon | Finding is marked as false positive and the row is visually de-emphasized. |
+| Blacklist icon | Finding matches a known technical artifact unless overridden. |
+| Irrelevant icon | Finding is marked irrelevant for this review. |
+| Interesting icon | Finding is marked for additional attention. |
+| Comment icon | Comments or annotations exist. |
+| `OKB` | Gene exists in the local public OncoKB cancer gene cache. |
+| `Rx` | Historical local OncoKB actionable evidence exists. |
+| `PGx` | Gene exists in the ClinPGx public gene cache. |
 
-The CNV section combines a profile plot with tabular data.
+!!! warning "Knowledgebase evidence"
 
-### Visual Profile
-A high-resolution chromosome plot visualizing copy-number gain and loss across the genome.
-*   **Interactive Rotation**: Use the toggle switch to rotate the profile 90 degrees for better orientation during multi-monitor review.
-*   **External Links**: Buttons labeled "Open in Gens" allow you to open the sample in advanced CNV visualization tools for deeper breakpoint analysis.
+    Public OncoKB access excludes therapeutic data. The `Rx` badge is based on historical local actionable evidence, while the public OncoKB API card can be fetched from the detail page for current public summaries.
 
-### CNV Tabular Data
-A detailed list of specific gain/loss events, including:
-*   **Copy Number**: The calculated state (e.g., `Gain (3.2x)`).
-*   **Affected Genes**: A list of all clinical genes residing within the CNV region.
-*   **Artefact Probability**: A heat-mapped badge indicating whether similar events are common in the laboratory's background artifact frequentcy (AFRQ).
+### Bulk Actions
 
----
+Bulk actions operate on selected rows and are sent as one request.
 
-## 3. Structural Findings (Translocations)
+| Action family | Examples |
+| --- | --- |
+| Classification | Set Tier 1, 2, 3, or 4; remove a tier. |
+| Review state | Mark/unmark false positive, irrelevant, or interesting. |
+| Blacklist state | Add blacklist, override blacklist, or clear blacklist override. |
 
-Dedicated section for structural rearrangements and fusions identified at the DNA level. Each translocation includes detailed breakpoint coordinates and supporting read-count metrics.
+Successful actions update the table in place and create audit/notification context. Failure notifications should explain the clinical resource and action that failed.
 
----
+## Variant Detail
 
-## 4. Finalizing the Review
+The variant detail page arranges decision-making cards around the finding.
 
-The **SUMMARY** section at the bottom of the page acts as your "Report Builder."
-*   **Selected Findings**: Variants you have assigned a Tier (I-IV) or flagged as "Reportable" will automatically appear here.
-*   **Clinical Summary**: A markdown-enabled text editor for drafting the overall diagnostic narrative.
-*   **Report Generation**: Once the review is complete, use the "Preview Report" or "Generate Final Report" buttons to produce the clinical document.
+| Card/table | Information |
+| --- | --- |
+| Header | Gene, HGVS, sample link, caller badges, coordinate, and high-level status. |
+| Classification | Current tier and tier-changing controls. |
+| Add comment or annotation | Markdown editor with explicit preview. |
+| Sample comments | Comments attached to this sample/finding context. |
+| Global annotations | Reusable annotations for the same finding across samples. Clicking an annotation can use it as a draft. |
+| Variant identity | Coordinate, class, transcript, HGVS, gene/HGNC context, and selected consequence. |
+| Genotype/evidence | Case/control VAF, depth, and caller evidence. |
+| Transcript consequences | Selected and alternate transcript rows with consequence and impact badges. |
+| Prediction and clinical signals | SIFT, PolyPhen, population frequency, germline risk, or other configured signals. |
+| PON evidence | Separate panel-of-normals rows per tool/source. |
+| Knowledgebase | A single collapsible evidence card for CIViC, BRCA Exchange, IARC TP53, local/public OncoKB, and ClinPGx local/API context. |
+| Seen in other samples | Prior sample/report contexts for the same finding. |
+
+## CNVs, Fusions, And Translocations
+
+These tabs use the same review model as small variants: status/evidence badges, core biological identity, supporting evidence, tier, and detail link.
+
+| Tab | Primary review information |
+| --- | --- |
+| CNVs | Genes, region, gain/loss/effect, size, copy-number metrics, tier, and CNV detail context. |
+| Fusions | Fusion partners, breakpoints, read support, callers, tier, and fusion detail context. |
+| Translocations | Partner genes, breakpoints, structural type, HGVS/notation, panel context, tier, and translocation detail context. |
+
+## Coverage
+
+Coverage review shows whether the sample has adequate coverage for the configured assay and gene lists.
+
+| Area | Information |
+| --- | --- |
+| Summary | Warning/error cutoffs and aggregate coverage state. |
+| Gene coverage | Gene-level coverage, low-coverage intervals, exon/probe context, and pass/warning/error state. |
+| Gene links | Gene rows link to richer gene/probe/exon views when available. |
+
+## Reports
+
+The Reports tab previews clinical report output from the current filter state and reportable findings.
+
+| Step | Meaning |
+| --- | --- |
+| Build preview | Uses current filters and configured report sections to create a temporary report preview. |
+| Review rendered report | Shows the formatted report body before saving. |
+| Save report | Stores the report, filter snapshot, ASPC identifier, and reported finding snapshots. |
+| Export/PDF | Produces report output for downstream clinical use when enabled. |
+
+!!! tip "Why report snapshots matter"
+
+    Saved report snapshots let Coyote3 reproduce exactly what was reported, search reported variants across samples, and connect later evidence back to a stable clinical decision.
