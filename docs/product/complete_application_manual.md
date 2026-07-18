@@ -557,19 +557,29 @@ Use admonitions consistently:
 
     Use `caution` for migrations, reporting reconstruction, destructive operations, and changes that require review or backup.
 
-## 26. Rules That Must Not Be Broken
+## 26. Quality And Governance Principles
 
-- Do not show raw JSON payloads in normal clinical or admin workflows unless explicitly inspecting/debugging.
-- Do not hardcode collection names in domain services.
-- Do not bypass Pydantic contracts on writes.
-- Do not mix SNV, CNV, fusion, expression, and PGX gene-list semantics.
-- Do not save reports without filter and ASPC context.
-- Do not expose admin mutation routes without explicit permission checks.
-- Do not store secrets in app controls, audit events, or documentation.
-- Do not silently hide failed ingest or failed report generation.
-- Do not make UI actions succeed visually without refreshing persisted state.
-- Do not use compatibility shims as a long-term architecture.
+Coyote3 is designed as a clinical genomics platform, so product behavior,
+developer workflow, and operational controls are expected to preserve
+interpretability, auditability, and reproducibility. The principles below define
+the default quality model for clinical and administrative workflows.
+
+| Area | Principle | Expected outcome |
+| --- | --- | --- |
+| Clinical UI | Clinical and administrative pages present interpreted fields, forms, and action states rather than raw backend payloads. Diagnostic payload inspection belongs in explicit debug or operational tooling. | Reviewers see concise clinical context without needing to understand MongoDB document shape. |
+| Data contracts | Writes pass through Pydantic contracts and service-layer validation before reaching repositories. | Stored documents remain predictable, typed, and compatible with reporting and audit reconstruction. |
+| Collection access | Domain services use configured collection mappings and repository boundaries. | Collection renames and center-specific deployments can be managed through configuration rather than code edits across the domain layer. |
+| Analysis semantics | SNV, CNV, fusion, expression, PGX, and coverage data keep separate filters, gene-list semantics, and reporting rules. | A configuration change in one analysis domain cannot silently alter another domain's interpretation behavior. |
+| Reporting | Saved reports preserve the filter snapshot, ASPC context, report template context, selected findings, and rendered output required for later reconstruction. | A finalized report can be explained and reproduced from persisted application state. |
+| Permissions | Administrative mutation routes are protected by explicit authorization checks and audited outcomes. | Configuration, identity, and role changes are traceable and limited to authorized users. |
+| Secrets and retention | Credentials, tokens, LDAP bind secrets, and private keys remain outside app controls, audit events, and documentation. | Operational records stay useful without becoming a secret-storage risk. |
+| Failure visibility | Ingest, report generation, external knowledgebase lookups, and write actions surface meaningful success or failure states. | Users and operators can distinguish an absent result from a failed workflow. |
+| UI state | User actions refresh persisted state or clearly indicate pending work. | The interface reflects the backend source of truth after clinical or administrative changes. |
+| Architecture | Temporary migration helpers are retired after the target contract is established. Long-term behavior lives in explicit services, contracts, repositories, and UI components. | The codebase remains maintainable as the platform evolves beyond legacy workflows. |
 
 !!! info "Clinical engineering posture"
 
-    Coyote3 is a clinical genomics platform. Code, UI, schemas, and documentation should be reviewed for biological meaning, reporting consequences, auditability, and operational safety.
+    Code, UI, schemas, and documentation are reviewed for biological meaning,
+    reporting consequences, auditability, and operational safety. A technically
+    valid change is not complete until its clinical data flow and reconstruction
+    behavior are clear.
