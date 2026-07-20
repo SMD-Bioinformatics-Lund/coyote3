@@ -1,17 +1,23 @@
 import { useQuery } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { api } from "@/lib/api"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import { DataTable } from "@/components/data-table/DataTable"
 import { BulkActionDropdown, BulkActionOption } from "@/components/data-table/BulkActionDropdown"
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { ColumnDef } from "@tanstack/react-table"
 import { AlertTriangle, ExternalLink } from "lucide-react"
 import { ConsequenceBadges, FilterFlagBadges, StatusBadges, TierBadge } from "@/lib/variant-ui"
 import { filterFlags, findingRowClass, statusLabels, tierValue } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
+import { igvLoadUrl } from "@/lib/external-links"
+import {
+  CLINICAL_TABLE_CACHE_MS,
+  CLINICAL_TABLE_STALE_MS,
+  useClinicalTableState,
+} from "@/hooks/useClinicalTableState"
 
 const variantBulkActions: BulkActionOption[] = [
   { value: "tier_1", label: "Classify as Tier 1" },
@@ -51,27 +57,35 @@ function compactVariantClass(value: unknown) {
 
 export function VariantsTab({ sampleId }: { sampleId: string }) {
   const bulkAction = useBulkFindingAction(sampleId, "small_variant")
-  const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(50)
-  const [searchText, setSearchText] = useState("")
-  const [debouncedSearchText, setDebouncedSearchText] = useState("")
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setDebouncedSearchText(searchText.trim())
-    }, 250)
-    return () => window.clearTimeout(timeout)
-  }, [searchText])
+  const location = useLocation()
+  const {
+    page,
+    perPage,
+    sortParam,
+    debouncedSearchText,
+    tableProps,
+  } = useClinicalTableState({ prefix: "snv", tab: "snvs" })
   const { data, isLoading, error } = useQuery({
-    queryKey: ['sample-variants', sampleId, page, perPage, debouncedSearchText],
+    queryKey: [
+      "sample-variants",
+      sampleId,
+      page,
+      perPage,
+      debouncedSearchText,
+      sortParam,
+    ],
     queryFn: () => {
       const params = new URLSearchParams({
         page: String(page),
         per_page: String(perPage),
       })
       if (debouncedSearchText) params.set("q", debouncedSearchText)
+      if (sortParam) params.set("sort", sortParam)
       return api.get(`/samples/${sampleId}/small-variants?${params.toString()}`).then(res => res.data)
     },
     placeholderData: (previousData) => previousData,
+    staleTime: CLINICAL_TABLE_STALE_MS,
+    gcTime: CLINICAL_TABLE_CACHE_MS,
   })
   const { data: filterFlagMetadata } = useQuery({
     queryKey: ["filter-flag-metadata"],
@@ -79,7 +93,7 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
     staleTime: 10 * 60 * 1000,
   })
 
-  if (isLoading) return <div className="p-8 text-center text-muted-foreground animate-pulse">Loading variants...</div>
+  if (isLoading) return <AppLoader label="Loading variants" />
   if (error) return <div className="text-destructive p-4 flex gap-2"><AlertTriangle /> Error loading variants</div>
 
   const variants = data?.display_sections_data?.snvs || []
@@ -119,7 +133,7 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
     },
     {
       id: "badges",
-      header: "S",
+      header: "Info",
       accessorFn: (row) => statusLabels(row),
       meta: { exportValue: statusLabels, headerClassName: "w-24 min-w-24 max-w-24", cellClassName: "w-24 min-w-24 max-w-24" },
       enableSorting: false,
@@ -248,9 +262,9 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
     {
       id: "tier",
       accessorFn: tierValue,
-      meta: { exportValue: (row: any) => tierValue(row) === 999 ? "" : tierValue(row), headerClassName: "w-10 min-w-10 max-w-10", cellClassName: "w-10 min-w-10 max-w-10" },
+      meta: { exportValue: (row: any) => tierValue(row) === 999 ? "" : tierValue(row), headerClassName: "w-14 min-w-14", cellClassName: "w-14 min-w-14" },
       header: "Tier",
-      size: 44,
+      size: 56,
       cell: ({ row }) => {
         const tier = tierValue(row.original)
         if (tier === 999) return <TierBadge tier={tier} />
@@ -271,7 +285,7 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
         const loc = `${v.CHROM}:${v.POS}`
         // Simulate IGV link
         return (
-          <a href={`http://localhost:60151/load?file=${sampleId}&locus=${loc}`} target="_blank" rel="noreferrer" className="inline-block rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground shadow-sm transition-colors hover:bg-muted/80 hover:text-foreground dark:bg-muted/60">
+          <a href={igvLoadUrl(sampleId, loc)} target="_blank" rel="noreferrer" className="inline-block rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground shadow-sm transition-colors hover:bg-muted/80 hover:text-foreground dark:bg-muted/60">
             {loc}
           </a>
         )
@@ -345,7 +359,11 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
       cell: ({ row }) => {
         return (
           <div className="flex items-center justify-start">
-            <Link to={`/samples/${sampleId}/variant/${row.original._id}`} className="inline-block p-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-md transition-colors duration-100 shadow-sm">
+            <Link
+              to={`/samples/${sampleId}/variant/${row.original._id}`}
+              state={{ from: `${location.pathname}${location.search}` }}
+              className="inline-block p-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-md transition-colors duration-100 shadow-sm"
+            >
               <span title="View Detail"><ExternalLink className="w-4 h-4" /></span>
             </Link>
           </div>
@@ -365,16 +383,7 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
         perPage={Number(data?.meta?.per_page ?? perPage)}
         hasNext={hasNext}
         hasPrevious={hasPrevious}
-        onPageChange={setPage}
-        onPerPageChange={(value) => {
-          setPerPage(value)
-          setPage(1)
-        }}
-        searchValue={searchText}
-        onSearchChange={(value) => {
-          setSearchText(value)
-          setPage(1)
-        }}
+        {...tableProps}
         searchPlaceholder="Search variants, genes, HGVS, flags..."
         filename={`variants_${sampleId}.csv`}
         getRowClassName={findingRowClass}

@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { api } from "@/lib/api"
-import { Activity, AlertTriangle, ExternalLink } from "lucide-react"
+import { AlertTriangle, ExternalLink } from "lucide-react"
 import { DataTable } from "@/components/data-table/DataTable"
 import { BulkActionDropdown, BulkActionOption } from "@/components/data-table/BulkActionDropdown"
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { ColumnDef } from "@tanstack/react-table"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import {
@@ -25,6 +25,11 @@ import {
 } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
+import {
+  CLINICAL_TABLE_CACHE_MS,
+  CLINICAL_TABLE_STALE_MS,
+  useClinicalTableState,
+} from "@/hooks/useClinicalTableState"
 
 const translocationBulkActions: BulkActionOption[] = [
   { value: "tier_1", label: "Classify as Tier 1" },
@@ -43,15 +48,31 @@ const translocationBulkActions: BulkActionOption[] = [
 
 export function TranslocationsTab({ sampleId }: { sampleId: string }) {
   const bulkAction = useBulkFindingAction(sampleId, "translocation")
-  const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(50)
+  const location = useLocation()
+  const {
+    page,
+    perPage,
+    sortParam,
+    debouncedSearchText,
+    tableProps,
+  } = useClinicalTableState({ prefix: "transloc", tab: "translocations" })
   const { data, isLoading, error } = useQuery({
-    queryKey: ['sample-translocations', sampleId, page, perPage],
-    queryFn: () => api.get(`/samples/${sampleId}/translocations?page=${page}&per_page=${perPage}`).then(res => res.data),
+    queryKey: ["sample-translocations", sampleId, page, perPage, debouncedSearchText, sortParam],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        page: String(page),
+        per_page: String(perPage),
+      })
+      if (debouncedSearchText) params.set("q", debouncedSearchText)
+      if (sortParam) params.set("sort", sortParam)
+      return api.get(`/samples/${sampleId}/translocations?${params.toString()}`).then(res => res.data)
+    },
     placeholderData: (previousData) => previousData,
+    staleTime: CLINICAL_TABLE_STALE_MS,
+    gcTime: CLINICAL_TABLE_CACHE_MS,
   })
 
-  if (isLoading) return <div className="flex justify-center p-8"><Activity className="animate-spin text-muted-foreground" /></div>
+  if (isLoading) return <AppLoader label="Loading translocations" />
   if (error) return <div className="text-destructive p-4 flex gap-2"><AlertTriangle /> Error loading Translocations</div>
 
   const translocations = data?.display_sections_data?.translocs || data?.translocations || []
@@ -63,16 +84,16 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
     {
       id: "select",
       header: ({ table }) => (
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate" as any)}
           onChange={table.getToggleAllPageRowsSelectedHandler()}
           className="table-checkbox"
         />
       ),
       cell: ({ row }) => (
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           checked={row.getIsSelected()}
           onChange={row.getToggleSelectedHandler()}
           className="table-checkbox"
@@ -147,18 +168,23 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
       id: "tier",
       header: "Tier",
       accessorFn: tierValue,
-      meta: { exportValue: (row: any) => tierValue(row) === 999 ? "" : tierValue(row) },
+      meta: { exportValue: (row: any) => tierValue(row) === 999 ? "" : tierValue(row), headerClassName: "w-14 min-w-14", cellClassName: "w-14 min-w-14" },
       cell: ({ row }) => <TierBadge tier={tierValue(row.original)} />,
     },
 
     {
       id: "actions",
       header: "Actions",
+      enableSorting: false,
       cell: ({ row }) => {
         return (
           <div className="flex items-center gap-1">
             <VariantActionButtons sampleId={sampleId} resourceType="translocation" variant={row.original} compact />
-            <Link to={`/samples/${sampleId}/translocation/${row.original._id}`} className="inline-block p-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-md transition-colors duration-100 shadow-sm">
+            <Link
+              to={`/samples/${sampleId}/translocation/${row.original._id}`}
+              state={{ from: `${location.pathname}${location.search}` }}
+              className="inline-block p-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-md transition-colors duration-100 shadow-sm"
+            >
               <span title="View Detail"><ExternalLink className="w-4 h-4" /></span>
             </Link>
           </div>
@@ -168,27 +194,23 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
   ]
 
   return (
-    <div className="flex flex-col bg-card shadow-sm border border-border/50 rounded-2xl overflow-hidden p-2">
-      <DataTable 
-        columns={columns} 
-        data={translocations} 
+    <div className="glass-card flex flex-col overflow-hidden p-2">
+      <DataTable
+        columns={columns}
+        data={translocations}
         rowLabel="translocations"
         totalCount={translocationCount}
         page={Number(data?.meta?.page ?? page)}
         perPage={Number(data?.meta?.per_page ?? perPage)}
         hasNext={hasNext}
         hasPrevious={hasPrevious}
-        onPageChange={setPage}
-        onPerPageChange={(value) => {
-          setPerPage(value)
-          setPage(1)
-        }}
-        filename={`translocations_${sampleId}.csv`} 
+        {...tableProps}
+        filename={`translocations_${sampleId}.csv`}
         getRowClassName={findingRowClass}
         renderToolbar={(table) => (
           <>
-            <BulkActionDropdown 
-              selectedCount={Object.keys(table.getState().rowSelection).length} 
+            <BulkActionDropdown
+              selectedCount={Object.keys(table.getState().rowSelection).length}
               actions={translocationBulkActions}
               isPending={bulkAction.isPending}
               onAction={(action) => bulkAction.mutateAsync({
@@ -200,7 +222,7 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
         )}
         renderExportButton={() => (
             <ServerCsvButton
-              endpoint={`/samples/${sampleId}/small-variants/exports/translocs/context`}
+              endpoint={`/samples/${sampleId}/translocations/exports/context`}
               fallbackFilename={`${sampleId}.filtered.translocations.csv`}
               label="Export to CSV"
             />

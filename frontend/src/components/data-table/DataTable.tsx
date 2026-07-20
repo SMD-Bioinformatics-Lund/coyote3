@@ -6,6 +6,7 @@ import {
   getSortedRowModel,
   SortingState,
   getFilteredRowModel,
+  type OnChangeFn,
 } from "@tanstack/react-table"
 import { useEffect, useState, type ReactNode } from "react"
 import { Search, ArrowDownToLine, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
@@ -32,6 +33,10 @@ interface DataTableProps<TData, TValue> {
   onSearchChange?: (value: string) => void
   searchPlaceholder?: string
   getRowClassName?: (row: TData) => string
+  sortingState?: SortingState
+  onSortingChange?: (sorting: SortingState) => void
+  manualSorting?: boolean
+  stateKey?: string
 }
 
 const RENDER_BATCH_SIZE = 300
@@ -56,21 +61,49 @@ export function DataTable<TData, TValue>({
   onSearchChange,
   searchPlaceholder = "Search all columns...",
   getRowClassName,
+  sortingState,
+  onSortingChange,
+  manualSorting = false,
+  stateKey,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [globalFilter, setGlobalFilter] = useState("")
+  const tableStateKey = `coyote3.table.${stateKey || filename}`
+  const [internalSorting, setInternalSorting] = useState<SortingState>(() => {
+    if (typeof window === "undefined" || sortingState) return []
+    try {
+      const raw = window.sessionStorage.getItem(`${tableStateKey}.sorting`)
+      return raw ? JSON.parse(raw) : []
+    } catch {
+      return []
+    }
+  })
+  const [globalFilter, setGlobalFilter] = useState(() => {
+    if (typeof window === "undefined" || typeof onSearchChange === "function") return ""
+    return window.sessionStorage.getItem(`${tableStateKey}.search`) || ""
+  })
   const [rowSelection, setRowSelection] = useState({})
   const [renderLimit, setRenderLimit] = useState(RENDER_BATCH_SIZE)
   const controlledSearch = typeof onSearchChange === "function"
   const displayedSearchValue = controlledSearch ? (searchValue ?? "") : (globalFilter ?? "")
+  const sorting = sortingState ?? internalSorting
+  const handleSortingChange: OnChangeFn<SortingState> = (updater) => {
+    const nextSorting = typeof updater === "function" ? updater(sorting) : updater
+    if (onSortingChange) {
+      onSortingChange(nextSorting)
+      return
+    }
+    setInternalSorting(nextSorting)
+  }
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onSortingChange: setSorting,
+    ...(manualSorting ? {} : { getSortedRowModel: getSortedRowModel() }),
+    manualSorting,
+    enableMultiSort: true,
+    isMultiSortEvent: () => true,
+    onSortingChange: handleSortingChange,
     onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
     state: {
@@ -117,7 +150,7 @@ export function DataTable<TData, TValue>({
   const columnAlign = (columnId: string) => columnId === "tier" ? "center" : "left"
   const defaultColumnClass = (columnId: string) => {
     if (columnId === "badges") return "w-14 min-w-14 max-w-14"
-    if (columnId === "tier") return "w-10 min-w-10 max-w-10"
+    if (columnId === "tier") return "w-14 min-w-14"
     return ""
   }
   const returnedCount = totalCount ?? data.length
@@ -134,6 +167,17 @@ export function DataTable<TData, TValue>({
   useEffect(() => {
     setRenderLimit(RENDER_BATCH_SIZE)
   }, [data.length, displayedSearchValue, sorting])
+
+  useEffect(() => {
+    if (typeof window === "undefined" || sortingState) return
+    window.sessionStorage.setItem(`${tableStateKey}.sorting`, JSON.stringify(internalSorting))
+  }, [internalSorting, sortingState, tableStateKey])
+
+  useEffect(() => {
+    if (typeof window === "undefined" || controlledSearch) return
+    if (globalFilter) window.sessionStorage.setItem(`${tableStateKey}.search`, globalFilter)
+    else window.sessionStorage.removeItem(`${tableStateKey}.search`)
+  }, [controlledSearch, globalFilter, tableStateKey])
 
   return (
     <div className="flex min-w-0 flex-col">
@@ -194,6 +238,7 @@ export function DataTable<TData, TValue>({
                     }[header.column.getIsSorted() as string] ?? (
                       header.column.getCanSort() ? <ArrowUpDown className="h-3 w-3 shrink-0 opacity-30" /> : null
                     )
+                    const sortIndex = sorting.findIndex((item) => item.id === header.column.id)
                     return (
                       <th
                         key={header.id}
@@ -211,15 +256,21 @@ export function DataTable<TData, TValue>({
                               align === "center" ? "justify-center" : "justify-start",
                               header.column.getCanSort() ? "cursor-pointer select-none hover:text-foreground transition-colors" : ""
                             )}
+                            title={header.column.getCanSort() ? "Click to add or cycle this column in the multi-column sort order." : undefined}
                             onClick={header.column.getToggleSortingHandler()}
                           >
-                            <span className="min-w-0 break-words leading-tight">
+                            <span className={cn("min-w-0 break-words leading-tight", header.column.id === "tier" && "whitespace-nowrap break-normal")}>
                               {flexRender(
                                 header.column.columnDef.header,
                                 header.getContext()
                               )}
                             </span>
                             {sortedIcon}
+                            {sortIndex >= 0 && sorting.length > 1 && (
+                              <span className="ml-0.5 rounded-full bg-primary/15 px-1 text-[9px] font-black leading-4 text-primary">
+                                {sortIndex + 1}
+                              </span>
+                            )}
                           </div>
                         )}
                       </th>

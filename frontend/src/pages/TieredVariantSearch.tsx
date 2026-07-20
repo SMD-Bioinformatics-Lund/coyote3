@@ -1,15 +1,17 @@
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { Activity, Search, X } from "lucide-react"
+import { Search, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { ExpandableText } from "@/components/detail/ExpandableText"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { TierBadge } from "@/lib/variant-ui"
 import { sampleDetailPath } from "@/lib/sample-routing"
 import { shortCount } from "@/lib/detail-formatters"
 import { ColumnDef } from "@tanstack/react-table"
+import { useUrlTableState } from "@/hooks/useUrlTableState"
 
 const tierHeaderClasses = ["", "bg-tier-header1", "bg-tier-header2", "bg-tier-header3", "bg-tier-header4"]
 const tierDotClasses = ["", "bg-tier1", "bg-tier2", "bg-tier3", "bg-tier4"]
@@ -31,6 +33,11 @@ export function TieredVariantSearch() {
   const [appliedIncludeText, setAppliedIncludeText] = useState(false)
   const [selectedAssays, setSelectedAssays] = useState<string[]>([])
   const [appliedAssays, setAppliedAssays] = useState<string[]>([])
+  const {
+    sorting,
+    setSorting,
+    updateTableSearchParams,
+  } = useUrlTableState({ prefix: "tiered_variants" })
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["tiered-variant-search", appliedSearch, appliedMode, appliedIncludeText, appliedAssays],
@@ -79,6 +86,7 @@ export function TieredVariantSearch() {
       id: "tier",
       header: "Tier",
       accessorFn: (row) => row.class ?? row.tier ?? row.classification?.class ?? 999,
+      meta: { headerClassName: "w-14 min-w-14", cellClassName: "w-14 min-w-14" },
       cell: ({ row }) => <TierBadge tier={row.getValue("tier")} />,
     },
     {
@@ -182,7 +190,7 @@ export function TieredVariantSearch() {
       title="Tiered Variant Search"
       description="Search reported tiered variants and annotation text across samples and assays."
     >
-      <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+      <div className="glass-card p-3">
         <form
           className="mb-3 flex flex-wrap items-center gap-2"
           onSubmit={(event) => {
@@ -234,7 +242,7 @@ export function TieredVariantSearch() {
             <div className="mb-2 text-xs font-black uppercase tracking-wider text-muted-foreground">Assays</div>
             <div className="flex flex-wrap gap-2">
               {assayChoices.map((assay: string) => (
-                <label key={assay} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-bold hover:bg-muted">
+                <label key={assay} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/80 px-2.5 py-1.5 text-xs font-bold hover:bg-muted">
                   <input
                     type="checkbox"
                     checked={selectedAssays.includes(assay)}
@@ -273,7 +281,7 @@ export function TieredVariantSearch() {
             </div>
             <div className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
               {assayStats.map(({ assay, stats, total }) => (
-                <div key={assay} className="rounded-lg border border-border bg-card px-3 py-2 shadow-sm">
+                <div key={assay} className="glass-card rounded-lg px-3 py-2">
                   <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
                     <span className="truncate text-xs font-black uppercase text-foreground" title={assay}>
                       {assay}
@@ -300,13 +308,23 @@ export function TieredVariantSearch() {
         )}
 
         {isLoading ? (
-          <div className="flex justify-center p-10"><Activity className="animate-spin text-muted-foreground" /></div>
+          <AppLoader label="Loading variant search" />
         ) : error ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
             {error instanceof Error ? error.message : "Unable to search tiered variants"}
           </div>
         ) : (
-          <DataTable columns={columns} data={data?.docs || []} filename="tiered_variants.csv" />
+          <DataTable
+            columns={columns}
+            data={data?.docs || []}
+            filename="tiered_variants.csv"
+            stateKey="tiered_variants"
+            sortingState={sorting}
+            onSortingChange={(value) => {
+              setSorting(value)
+              updateTableSearchParams({ sorting: value })
+            }}
+          />
         )}
       </div>
     </PageShell>

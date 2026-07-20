@@ -1,17 +1,22 @@
 import { useQuery } from "@tanstack/react-query"
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { api } from "@/lib/api"
-import { Activity, AlertTriangle, ExternalLink, Image as ImageIcon } from "lucide-react"
+import { AlertTriangle, ExternalLink, Image as ImageIcon } from "lucide-react"
 import { DataTable } from "@/components/data-table/DataTable"
 import { BulkActionDropdown, BulkActionOption } from "@/components/data-table/BulkActionDropdown"
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { ColumnDef } from "@tanstack/react-table"
 import { findingRowClass, statusLabels } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { sampleFileName, hasSampleFile } from "@/lib/sample-shape"
 import { apiPath } from "@/lib/runtime-paths"
+import {
+  CLINICAL_TABLE_CACHE_MS,
+  CLINICAL_TABLE_STALE_MS,
+  useClinicalTableState,
+} from "@/hooks/useClinicalTableState"
 
 const cnvBulkActions: BulkActionOption[] = [
   { value: "tier_1", label: "Classify as Tier 1" },
@@ -32,15 +37,31 @@ const cnvBulkActions: BulkActionOption[] = [
 
 export function CNVTab({ sampleId }: { sampleId: string }) {
   const bulkAction = useBulkFindingAction(sampleId, "cnv")
-  const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(50)
+  const location = useLocation()
+  const {
+    page,
+    perPage,
+    sortParam,
+    debouncedSearchText,
+    tableProps,
+  } = useClinicalTableState({ prefix: "cnv", tab: "cnvs" })
   const { data, isLoading, error } = useQuery({
-    queryKey: ['sample-cnvs', sampleId, page, perPage],
-    queryFn: () => api.get(`/samples/${sampleId}/cnvs?page=${page}&per_page=${perPage}`).then(res => res.data),
+    queryKey: ["sample-cnvs", sampleId, page, perPage, debouncedSearchText, sortParam],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        page: String(page),
+        per_page: String(perPage),
+      })
+      if (debouncedSearchText) params.set("q", debouncedSearchText)
+      if (sortParam) params.set("sort", sortParam)
+      return api.get(`/samples/${sampleId}/cnvs?${params.toString()}`).then(res => res.data)
+    },
     placeholderData: (previousData) => previousData,
+    staleTime: CLINICAL_TABLE_STALE_MS,
+    gcTime: CLINICAL_TABLE_CACHE_MS,
   })
 
-  if (isLoading) return <div className="flex justify-center p-8"><Activity className="animate-spin text-muted-foreground" /></div>
+  if (isLoading) return <AppLoader label="Loading CNVs" />
   if (error) return <div className="text-destructive p-4 flex gap-2"><AlertTriangle /> Error loading CNVs</div>
 
   const cnvs = data?.display_sections_data?.cnvs || data?.cnvs || []
@@ -194,11 +215,16 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
     {
       id: "actions",
       header: "Actions",
+      enableSorting: false,
       cell: ({ row }) => {
         return (
           <div className="flex items-center gap-1">
             <VariantActionButtons sampleId={sampleId} resourceType="cnv" variant={row.original} compact />
-            <Link to={`/samples/${sampleId}/cnv/${row.original._id}`} className="inline-block rounded-md bg-primary/10 p-1.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-primary-foreground">
+            <Link
+              to={`/samples/${sampleId}/cnv/${row.original._id}`}
+              state={{ from: `${location.pathname}${location.search}` }}
+              className="inline-block rounded-md bg-primary/10 p-1.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-primary-foreground"
+            >
               <span title="View Detail"><ExternalLink className="w-4 h-4" /></span>
             </Link>
           </div>
@@ -211,7 +237,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
     <div className="space-y-4 flex flex-col">
       <div className="flex flex-col xl:flex-row gap-4 pb-4">
         {hasCnvImage && (
-          <div className="w-full xl:w-2/5 flex flex-col bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden h-[600px]">
+          <div className="glass-card w-full xl:w-2/5 flex flex-col overflow-hidden h-[600px]">
             <div className="bg-muted/50 p-3 border-b border-border/50 flex justify-between items-center">
               <h4 className="font-semibold text-sm flex items-center gap-2">
                 <ImageIcon className="w-4 h-4" /> CNV Profile
@@ -233,7 +259,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
           </div>
         )}
 
-        <div className={`w-full ${hasCnvImage ? 'xl:w-3/5' : 'w-full'} flex flex-col bg-card shadow-sm border border-border/50 rounded-2xl overflow-hidden p-2`}>
+        <div className={`glass-card w-full ${hasCnvImage ? 'xl:w-3/5' : 'w-full'} flex flex-col overflow-hidden p-2`}>
           <DataTable
             columns={columns}
             data={cnvs}
@@ -243,11 +269,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
             perPage={Number(data?.meta?.per_page ?? perPage)}
             hasNext={hasNext}
             hasPrevious={hasPrevious}
-            onPageChange={setPage}
-            onPerPageChange={(value) => {
-              setPerPage(value)
-              setPage(1)
-            }}
+            {...tableProps}
             filename={`cnvs_${sampleId}.csv`}
             getRowClassName={findingRowClass}
             renderToolbar={(table) => (
@@ -265,7 +287,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
             )}
             renderExportButton={() => (
                 <ServerCsvButton
-                  endpoint={`/samples/${sampleId}/small-variants/exports/cnvs/context`}
+                  endpoint={`/samples/${sampleId}/cnvs/exports/context`}
                   fallbackFilename={`${sampleId}.filtered.cnvs.csv`}
                   label="Export to CSV"
                 />

@@ -1,15 +1,22 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link, useSearchParams } from "react-router-dom"
+import type { ColumnDef } from "@tanstack/react-table"
 import { api } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { FileText, Activity, ArrowRight, Dna, Search as SearchIcon } from "lucide-react"
+import { FileText, ArrowRight, Dna, Search as SearchIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { fullDateTime, humanRelativeDate, shortCount } from "@/lib/detail-formatters"
 import { sampleDetailPath } from "@/lib/sample-routing"
 import { sampleReported, sampleSubpanel } from "@/lib/sample-shape"
+import { DataTable } from "@/components/data-table/DataTable"
+import { valueBadgeClass } from "@/lib/badge-colors"
+import { useUrlTableState } from "@/hooks/useUrlTableState"
+
+type SampleTab = "live" | "reported"
 
 function countBadges(sample: any) {
   const counts = sample?.data_counts || {}
@@ -22,6 +29,16 @@ function countBadges(sample: any) {
   ].filter(Boolean)
 }
 
+function sampleFindingTotal(sample: any) {
+  const counts = sample?.data_counts || {}
+  return (
+    Number(counts.snvs || 0) +
+    Number(counts.cnvs || 0) +
+    Number(counts.fusions || 0) +
+    Number(counts.translocations || 0)
+  )
+}
+
 export function Samples() {
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -31,7 +48,13 @@ export function Samples() {
   const panelTech = searchParams.get("panel_tech")
   const group = searchParams.get("assay_group") || searchParams.get("group")
   const profileScope = searchParams.get("profile_scope") === "all" ? "all" : "production"
+  const activeTab: SampleTab = searchParams.get("sample_tab") === "reported" ? "reported" : "live"
   const searchStr = searchParams.get("search_str") || ""
+  const {
+    sorting,
+    setSorting,
+    updateTableSearchParams,
+  } = useUrlTableState({ prefix: "samples" })
 
   const [searchInput, setSearchInput] = useState(searchStr)
 
@@ -50,15 +73,186 @@ export function Samples() {
     }
   })
 
+  const showAllProfiles = profileScope === "all"
+  const setProfileScope = (nextScope: "production" | "all") => {
+    const newParams = new URLSearchParams(searchParams)
+    if (nextScope === "all") newParams.set("profile_scope", "all")
+    else newParams.delete("profile_scope")
+    setSearchParams(newParams)
+  }
+  const setSampleTab = (nextTab: SampleTab) => {
+    const newParams = new URLSearchParams(searchParams)
+    if (nextTab === "reported") newParams.set("sample_tab", "reported")
+    else newParams.delete("sample_tab")
+    setSearchParams(newParams)
+  }
+  const columns = useMemo<ColumnDef<any, any>[]>(() => [
+    {
+      id: "sample",
+      header: "Sample",
+      accessorFn: (sample) => sample.name || sample.case_id || "",
+      cell: ({ row }) => {
+        const sample = row.original
+        return (
+          <Link to={sampleDetailPath(sample)} className="flex items-center gap-2 font-bold text-primary hover:underline">
+            <div className="rounded-lg bg-primary/10 p-1.5 text-primary shadow-sm transition-colors duration-100 group-hover:bg-primary/15">
+              <FileText className="h-4 w-4" />
+            </div>
+            {sample.name || sample.case_id}
+          </Link>
+        )
+      },
+      meta: {
+        exportValue: (sample: any) => sample.name || sample.case_id || "",
+        cellClassName: "min-w-[180px]",
+      },
+    },
+    {
+      id: "case_id",
+      header: "Case ID",
+      accessorFn: (sample) => sample.case_id || sample.case?.id || "",
+      cell: ({ row }) => <span className="font-semibold">{row.original.case_id || row.original.case?.id || "-"}</span>,
+    },
+    {
+      id: "case_clarity",
+      header: "Case Clarity",
+      accessorFn: (sample) => sample.case?.clarity_id || "",
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.case?.clarity_id || "-"}</span>,
+    },
+    {
+      id: "control",
+      header: "Control",
+      accessorFn: (sample) => sample.control_id || sample.control?.id || "",
+      cell: ({ row }) => <span className="font-semibold">{row.original.control_id || row.original.control?.id || "-"}</span>,
+    },
+    {
+      id: "control_clarity",
+      header: "Control Clarity",
+      accessorFn: (sample) => sample.control?.clarity_id || "",
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.control?.clarity_id || "-"}</span>,
+    },
+    {
+      id: "profile",
+      header: "Profile",
+      accessorFn: (sample) => sample.profile || "",
+      cell: ({ row }) => (
+        <Badge variant="outline" className={`${valueBadgeClass(row.original.profile || "")} font-bold uppercase`}>
+          {row.original.profile || "-"}
+        </Badge>
+      ),
+    },
+    {
+      id: "assay",
+      header: "Assay",
+      accessorFn: (sample) => sample.assay || "",
+      cell: ({ row }) => <span className="font-semibold">{row.original.assay || "-"}</span>,
+    },
+    {
+      id: "subpanel",
+      header: "Subpanel",
+      accessorFn: (sample) => sampleSubpanel(sample) || "",
+      cell: ({ row }) => <span className="font-medium text-muted-foreground">{sampleSubpanel(row.original) || "-"}</span>,
+    },
+    {
+      id: "analysis",
+      header: "Analysis",
+      accessorFn: (sample) => sample.ingest_status || "",
+      cell: ({ row }) => (
+        <Badge
+          className={
+            row.original.ingest_status === "ready"
+              ? "border-pass/30 bg-pass/15 text-pass hover:bg-pass/20 font-bold"
+              : "border-warn/30 bg-warn/15 text-warn hover:bg-warn/20 font-bold"
+          }
+        >
+          {row.original.ingest_status || "-"}
+        </Badge>
+      ),
+    },
+    {
+      id: "report",
+      header: "Report",
+      accessorFn: (sample) => sampleReported(sample) ? 1 : 0,
+      cell: ({ row }) => (
+        <Badge
+          variant="outline"
+          className={sampleReported(row.original) ? "border-primary/30 bg-primary/10 text-primary font-bold" : "border-warn/30 bg-warn/10 text-warn font-bold"}
+        >
+          {sampleReported(row.original) ? "reported" : "unreported"}
+        </Badge>
+      ),
+      meta: {
+        exportValue: (sample: any) => sampleReported(sample) ? "reported" : "unreported",
+      },
+    },
+    {
+      id: "counts",
+      header: "Counts",
+      accessorFn: sampleFindingTotal,
+      cell: ({ row }) => {
+        const badges = countBadges(row.original)
+        return (
+          <div className="flex flex-wrap gap-1">
+            {badges.length ? badges.map((item: any) => (
+              <Badge key={item.label} variant="outline" className={`${item.className} font-bold`}>
+                {item.label} {item.value}
+              </Badge>
+            )) : <span className="text-muted-foreground">-</span>}
+          </div>
+        )
+      },
+      meta: {
+        exportValue: (sample: any) => {
+          const counts = sample?.data_counts || {}
+          return [
+            counts.snvs !== undefined ? `SNV ${counts.snvs}` : "",
+            counts.cnvs !== undefined ? `CNV ${counts.cnvs}` : "",
+            counts.fusions !== undefined ? `Fusion ${counts.fusions}` : "",
+            counts.translocations !== undefined ? `SV ${counts.translocations}` : "",
+            counts.cov ? "Coverage.yes" : "",
+            counts.biomarker ? "Biomarker.yes" : "",
+          ].filter(Boolean).join("; ")
+        },
+        cellClassName: "min-w-[220px]",
+      },
+    },
+    {
+      id: "added",
+      header: "Added",
+      accessorFn: (sample) => sample.time_added ? new Date(sample.time_added).getTime() : 0,
+      cell: ({ row }) => (
+        <span className="whitespace-nowrap font-medium text-muted-foreground" title={fullDateTime(row.original.time_added)}>
+          {humanRelativeDate(row.original.time_added)}
+        </span>
+      ),
+      meta: {
+        exportValue: (sample: any) => fullDateTime(sample.time_added),
+        cellClassName: "whitespace-nowrap",
+      },
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      enableSorting: false,
+      cell: ({ row }) => (
+        <Link to={sampleDetailPath(row.original)}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl shadow-sm hover:bg-primary hover:text-primary-foreground">
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </Link>
+      ),
+      meta: {
+        headerClassName: "text-center",
+        cellClassName: "text-center",
+      },
+    },
+  ], [])
+  const liveSamples = data?.live_samples || []
+  const reportedSamples = data?.done_samples || []
+  const samples = activeTab === "reported" ? reportedSamples : liveSamples
+
   if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center p-8">
-        <div className="flex flex-col items-center gap-4 text-muted-foreground">
-          <Activity className="h-8 w-8 animate-spin" />
-          <p>Loading samples...</p>
-        </div>
-      </div>
-    )
+    return <AppLoader label="Loading samples" />
   }
 
   if (error) {
@@ -70,15 +264,6 @@ export function Samples() {
         </div>
       </div>
     )
-  }
-
-  const samples = data?.live_samples || []
-  const showAllProfiles = profileScope === "all"
-  const setProfileScope = (nextScope: "production" | "all") => {
-    const newParams = new URLSearchParams(searchParams)
-    if (nextScope === "all") newParams.set("profile_scope", "all")
-    else newParams.delete("profile_scope")
-    setSearchParams(newParams)
   }
 
   return (
@@ -145,115 +330,65 @@ export function Samples() {
           </div>
         )}
 
-        <div className="glass-card overflow-hidden border-border/50">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm border-separate border-spacing-0">
-              <thead className="bg-muted text-foreground font-black uppercase tracking-wider text-[11px] border-b-2 border-border shadow-sm dark:bg-muted/70">
-                <tr>
-                  <th className="border-b-2 border-r border-border px-3 py-2">Sample</th>
-                  <th className="border-b-2 border-r border-border px-3 py-2">Case ID</th>
-                  <th className="border-b-2 border-r border-border px-3 py-2">Case Clarity</th>
-                  <th className="border-b-2 border-r border-border px-3 py-2">Control</th>
-                  <th className="border-b-2 border-r border-border px-3 py-2">Control Clarity</th>
-                  <th className="border-b-2 border-r border-border px-3 py-2">Profile</th>
-                  <th className="border-b-2 border-r border-border px-3 py-2">Assay</th>
-                  <th className="border-b-2 border-r border-border px-3 py-2">Subpanel</th>
-                  <th className="border-b-2 border-r border-border px-3 py-2">Analysis</th>
-                  <th className="border-b-2 border-r border-border px-3 py-2">Report</th>
-                  <th className="border-b-2 border-r border-border px-3 py-2">Counts</th>
-                  <th className="border-b-2 border-r border-border px-3 py-2 text-right">Added</th>
-                  <th className="border-b-2 border-border px-3 py-2 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {samples.length === 0 ? (
-                  <tr>
-                    <td colSpan={13} className="px-4 py-12 text-center text-muted-foreground">
-                      <Dna className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
-                      <p>No samples found.</p>
-                    </td>
-                  </tr>
-                ) : (
-                  samples.map((sample: any) => (
-                    <tr key={sample._id} className="hover:bg-primary/5 transition-colors border-b border-border/20 last:border-0 group">
-                      <td className="border-r border-border/55 px-3 py-2 font-bold text-primary">
-                        <Link to={sampleDetailPath(sample)} className="hover:underline flex items-center gap-2">
-                          <div className="bg-primary/10 p-1.5 rounded-lg text-primary shadow-sm transition-colors duration-100 group-hover:bg-primary/15">
-                            <FileText className="h-4 w-4" />
-                          </div>
-                          {sample.name || sample.case_id}
-                        </Link>
-                      </td>
-                      <td className="border-r border-border/55 px-3 py-2 font-semibold">{sample.case_id || sample.case?.id || "-"}</td>
-                      <td className="border-r border-border/55 px-3 py-2 text-muted-foreground">{sample.case?.clarity_id || "-"}</td>
-                      <td className="border-r border-border/55 px-3 py-2 font-semibold">{sample.control_id || sample.control?.id || "-"}</td>
-                      <td className="border-r border-border/55 px-3 py-2 text-muted-foreground">{sample.control?.clarity_id || "-"}</td>
-                      <td className="border-r border-border/55 px-3 py-2">
-                        <Badge variant="outline" className="border-validation/30 bg-validation/10 font-bold uppercase text-validation">
-                          {sample.profile || "-"}
-                        </Badge>
-                      </td>
-                      <td className="border-r border-border/55 px-3 py-2 font-semibold">{sample.assay || "-"}</td>
-                      <td className="border-r border-border/55 px-3 py-2 text-muted-foreground font-medium">{sampleSubpanel(sample) || "-"}</td>
-                      <td className="border-r border-border/55 px-3 py-2">
-                        <Badge
-                          className={
-                            sample.ingest_status === "ready"
-                              ? "border-pass/30 bg-pass/15 text-pass hover:bg-pass/20 font-bold"
-                              : "border-warn/30 bg-warn/15 text-warn hover:bg-warn/20 font-bold"
-                          }
-                        >
-                          {sample.ingest_status}
-                        </Badge>
-                      </td>
-                      <td className="border-r border-border/55 px-3 py-2">
-                        <Badge
-                          variant="outline"
-                          className={sampleReported(sample) ? "border-primary/30 bg-primary/10 text-primary font-bold" : "border-warn/30 bg-warn/10 text-warn font-bold"}
-                        >
-                          {sampleReported(sample) ? "reported" : "unreported"}
-                        </Badge>
-                      </td>
-                      <td className="border-r border-border/55 px-3 py-2">
-                        <div className="flex flex-wrap gap-1">
-                          {countBadges(sample).length ? countBadges(sample).map((item: any) => (
-                            <Badge key={item.label} variant="outline" className={`${item.className} font-bold`}>
-                              {item.label} {item.value}
-                            </Badge>
-                          )) : <span className="text-muted-foreground">-</span>}
-                        </div>
-                      </td>
-                      <td
-                        className="border-r border-border/55 px-3 py-2 text-right text-muted-foreground font-medium whitespace-nowrap"
-                        title={fullDateTime(sample.time_added)}
-                      >
-                        {humanRelativeDate(sample.time_added)}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        <Link to={sampleDetailPath(sample)}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary hover:text-primary-foreground shadow-sm">
-                            <ArrowRight className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {samples.length > 0 && (
-            <div className="border-t border-border/50 p-4 flex items-center justify-between text-xs font-semibold text-muted-foreground bg-muted/20">
-              <div>
-                Showing <span className="text-foreground">1</span> to <span className="text-foreground">{samples.length}</span> of <span className="text-foreground">{samples.length}</span> results
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled className="rounded-lg font-bold">Previous</Button>
-                <Button variant="outline" size="sm" disabled className="rounded-lg font-bold">Next</Button>
-              </div>
+        <div className="glass-card border-border/50 p-3">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+            <div className="inline-flex rounded-xl border border-border bg-muted/45 p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setSampleTab("live")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-black uppercase tracking-wide transition-colors ${
+                  activeTab === "live"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-background/80 hover:text-foreground"
+                }`}
+              >
+                Live samples
+                <span className="ml-2 rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] text-foreground">
+                  {shortCount(liveSamples.length)}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSampleTab("reported")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-black uppercase tracking-wide transition-colors ${
+                  activeTab === "reported"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-background/80 hover:text-foreground"
+                }`}
+              >
+                Reported samples
+                <span className="ml-2 rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] text-foreground">
+                  {shortCount(reportedSamples.length)}
+                </span>
+              </button>
             </div>
-          )}
+            <p className="text-xs font-semibold text-muted-foreground">
+              {activeTab === "reported"
+                ? "Samples with saved clinical reports."
+                : "Samples awaiting review or active analysis."}
+            </p>
+          </div>
+          <DataTable
+            columns={columns}
+            data={samples}
+            filename={`${activeTab}_samples.csv`}
+            rowLabel="samples"
+            totalCount={samples.length}
+            hideSearch
+            stateKey={`samples.${activeTab}`}
+            sortingState={sorting}
+            onSortingChange={(value) => {
+              setSorting(value)
+              updateTableSearchParams({ sorting: value })
+            }}
+            getRowClassName={() => "group"}
+            renderToolbar={() => samples.length === 0 ? (
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <Dna className="h-4 w-4 text-muted-foreground/50" />
+                No samples found.
+              </div>
+            ) : null}
+          />
         </div>
       </PageShell>
     </div>
