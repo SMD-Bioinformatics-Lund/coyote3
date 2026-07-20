@@ -64,6 +64,7 @@ def build_fake_store() -> SimpleNamespace:
                 "get_isgl": lambda _id, **kwargs: isgl,
                 "get_isgl_by_ids": lambda ids: {isgl["isgl_id"]: isgl},
                 "get_isgl_by_asp": lambda asp_name=None, assay=None, **kwargs: [isgl],
+                "get_isgl_for_scope": lambda **kwargs: [isgl],
             }
         ),
         roles_repository=FakeHandler(
@@ -134,6 +135,7 @@ def build_fake_store() -> SimpleNamespace:
         hgnc_repository=FakeHandler(
             {
                 "get_metadata_by_symbol": lambda symbol: {"symbol": symbol},
+                "get_metadata_by_symbol_or_alias": lambda symbol: {"symbol": symbol},
                 "get_metadata_by_hgnc_id": lambda hgnc_id: {"hgnc_id": hgnc_id},
                 "get_metadata_by_symbols": lambda symbols: [{"symbol": s} for s in symbols],
             }

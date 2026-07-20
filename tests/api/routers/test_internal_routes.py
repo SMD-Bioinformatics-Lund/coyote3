@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from api.interfaces.http import internal
+from api.interfaces.http.operations import internal
 
 
 def _admin_user():
@@ -244,9 +244,7 @@ def test_ingest_sample_bundle_internal_requires_sample_edit_own_permission_for_u
     monkeypatch.setattr(
         internal,
         "_enforce_access",
-        lambda _user, permission=None, context=None: calls.__setitem__(
-            "enforced", 1
-        ),
+        lambda _user, permission=None, context=None: calls.__setitem__("enforced", 1),
     )
     monkeypatch.setattr(
         internal.util,

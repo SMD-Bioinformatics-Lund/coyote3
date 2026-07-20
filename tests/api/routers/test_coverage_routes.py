@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import pytest
-from api.domain.core.exceptions import AppError
 
-from api.contracts.coverage import CoverageSamplePayload
 from api.app.container import store
-from api.interfaces.http import coverage
-from api.security.access import ApiUser
 from api.application.sample import coverage as coverage_service_module
 from api.application.sample.coverage import CoverageService
+from api.contracts.coverage import CoverageSamplePayload
+from api.domain.core.exceptions import AppError
+from api.interfaces.http.clinical.dna import coverage
+from api.security.access import ApiUser
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -71,7 +71,11 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
         "find_low_covered_genes",
-        lambda filtered_dict, cutoff, assay_group, *, grouped_coverage_repository=None: filtered_dict,
+        lambda filtered_dict,
+        cutoff,
+        assay_group,
+        *,
+        grouped_coverage_repository=None: filtered_dict,
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
@@ -182,7 +186,11 @@ def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
         "find_low_covered_genes",
-        lambda filtered_dict, cutoff, assay_group, *, grouped_coverage_repository=None: filtered_dict,
+        lambda filtered_dict,
+        cutoff,
+        assay_group,
+        *,
+        grouped_coverage_repository=None: filtered_dict,
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,

@@ -212,7 +212,12 @@ def test_small_helpers_and_build_meta(tmp_path):
             "case_id": "C1",
             "control_id": "N1",
             "vep_version": "110",
-            "database_versions": {"ClinVar": "202402", "dbSNP": 154},
+            "database_versions": {
+                "ClinVar": "202402",
+                "dbSNP": 154,
+                "VEP": "v110",
+                "random_plugin": "ignored",
+            },
             "case_reads": 10,
             "control_reads": 20,
             "increment": True,
@@ -220,7 +225,7 @@ def test_small_helpers_and_build_meta(tmp_path):
     )
     assert "increment" not in meta
     assert meta["vep_version"] == "110"
-    assert meta["database_versions"] == {"clinvar": "202402", "dbsnp": "154"}
+    assert meta["database_versions"] == {"clinvar": "202402", "dbsnp": "154", "vep": "110"}
     assert meta["case"]["reads"] == 10
     assert meta["control"]["reads"] == 20
 
@@ -356,7 +361,11 @@ def test_sample_meta_extracts_vep_database_versions_from_vcf_header(tmp_path):
     vcf = tmp_path / "sample.vcf"
     vcf.write_text(
         "##fileformat=VCFv4.2\n"
-        '##VEP="v103" time="2026-07-12 00:47:04" COSMIC="92" ClinVar="202008" dbSNP="154" gnomAD="r2.1"\n'
+        '##VEP="v103" time="2026-07-12 00:47:04" cache="/tmp/cache" '
+        'Assembly="GRCh38.p13" COSMIC="92" ClinVar="202008" dbSNP="154" '
+        'Ensembl="103.4c8d44a" Gencode="GENCODE 37" Genebuild="2014-07" '
+        'gnomAD="r2.1" HGMD-Public="20194" PolyPhen="2.2.2" SIFT="sift5.2.2" '
+        'RandomPlugin="do-not-store"\n'
         "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n",
         encoding="utf-8",
     )
@@ -369,6 +378,20 @@ def test_sample_meta_extracts_vep_database_versions_from_vcf_header(tmp_path):
         }
     )
     assert meta["vep_version"] == "103"
+    assert meta["database_versions"] == {
+        "assembly": "GRCh38.p13",
+        "clinvar": "202008",
+        "cosmic": "92",
+        "dbsnp": "154",
+        "ensembl": "103.4c8d44a",
+        "gencode": "GENCODE 37",
+        "genebuild": "2014-07",
+        "gnomad": "r2.1",
+        "hgmd_public": "20194",
+        "polyphen": "2.2.2",
+        "sift": "sift5.2.2",
+        "vep": "103",
+    }
     assert meta["database_versions"]["vep"] == "103"
     assert meta["database_versions"]["cosmic"] == "92"
     assert meta["database_versions"]["clinvar"] == "202008"

@@ -5,12 +5,12 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from api.domain.core.exceptions import AppError
 
 from api.app.container import store
-from api.interfaces.http import samples
 from api.application.sample import catalog as sample_catalog_service_module
 from api.application.sample.catalog import SampleCatalogService
+from api.domain.core.exceptions import AppError
+from api.interfaces.http.clinical import samples
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -25,6 +25,9 @@ def _sample_catalog_service() -> SampleCatalogService:
         translocation_repository=store.translocation_repository,
         biomarker_repository=store.biomarker_repository,
         grouped_coverage_repository=store.grouped_coverage_repository,
+        sample_comment_repository=SimpleNamespace(
+            list_sample_comments=lambda sample_id: [],
+        ),
     )
 
 
@@ -249,8 +252,8 @@ def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
     assert payload["action"] == "save_adhoc_genes"
     assert payload["gene_count"] == 3
     assert payload["list_type"] == "cnv"
-    assert calls["filters"]["adhoc_genes"]["cnv"]["genes"] == ["IDH1", "NPM1", "TP53"]
-    assert calls["filters"]["adhoc_genes"]["cnv"]["label"] == "focus"
+    assert calls["filters"]["cnv"]["adhoc_genes"]["genes"] == ["IDH1", "NPM1", "TP53"]
+    assert calls["filters"]["cnv"]["adhoc_genes"]["label"] == "focus"
 
 
 def test_edit_context_payload_includes_analysis_counts(monkeypatch):
@@ -283,6 +286,7 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
         "get_isgl_by_ids",
         lambda ids: {"gl1": {"genes": ["TP53"]}},
     )
+    monkeypatch.setattr(service.gene_list_repository, "get_isgl_for_scope", lambda **kwargs: [])
     monkeypatch.setattr(
         service.variant_repository,
         "get_variant_stats",
@@ -366,12 +370,13 @@ def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
         "get_isgl_by_ids",
         lambda ids: {"gl1": {"genes": ["TP53"]}},
     )
+    monkeypatch.setattr(service.gene_list_repository, "get_isgl_for_scope", lambda **kwargs: [])
     service.sample_repository = SimpleNamespace(
-        reset_sample_settings=lambda sample_id, filters: None,
+        reset_sample_settings=lambda sample_id, filters, aspc=None: None,
         get_sample=lambda sample_id: {
             **sample,
             "_id": sample_id,
-            "filters": {"snvlists": ["gl1"]},
+            "filters": {"snv": {"snvlists": ["gl1"]}},
         },
     )
     monkeypatch.setattr(
@@ -393,5 +398,5 @@ def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
 
     payload = service.edit_context_payload(sample=sample)
 
-    assert payload["sample"]["filters"]["snvlists"] == ["gl1"]
+    assert payload["sample"]["filters"]["snv"]["snvlists"] == ["gl1"]
     assert payload["analysis_counts_filtered"]["snv"] == 2

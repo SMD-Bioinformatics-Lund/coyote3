@@ -3,20 +3,20 @@ Test suites for Coyote3 are organized by runtime behavior.
 - `tests/unit`: core business logic, contracts, query builders, ingest, reporting, and persistence helpers.
 - `tests/api`: FastAPI route, auth, and request/response behavior.
 - `tests/fixtures`: shared mock data and baseline datasets used by the main suites.
-- `tests/api/interfaces/http/test_reports_routes.py`: report preview/save API behavior.
-- `tests/api/interfaces/http/test_dna_routes.py`: DNA route helpers and endpoint behavior.
-- `tests/api/interfaces/http/test_rna_routes.py`: RNA route helpers and endpoint behavior.
-- `tests/api/interfaces/http/test_system_routes.py`: auth/session/system route behavior.
-- `tests/api/interfaces/http/test_internal_routes.py`: internal token-guarded ingest and admin behavior.
-- `tests/api/interfaces/http/test_home_routes.py`: sample home, edit-context, and mutation behavior.
-- `tests/api/interfaces/http/test_public_routes.py`: public route read/error behavior.
-- `tests/api/interfaces/http/test_common_routes.py`: shared search/context behavior.
-- `tests/api/interfaces/http/test_admin_routes.py`: admin route context and mutation behavior.
+- `tests/api/routers/test_reports_routes.py`: report preview/save API behavior.
+- `tests/api/routers/test_dna_routes.py`: DNA route helpers and endpoint behavior.
+- `tests/api/routers/test_rna_routes.py`: RNA route helpers and endpoint behavior.
+- `tests/api/routers/test_system_routes.py`: auth/session/system route behavior.
+- `tests/api/routers/test_internal_routes.py`: internal token-guarded ingest and admin behavior.
+- `tests/api/routers/test_home_routes.py`: sample home, edit-context, and mutation behavior.
+- `tests/api/routers/test_public_routes.py`: public route read/error behavior.
+- `tests/api/routers/test_common_routes.py`: shared search/context behavior.
+- `tests/api/routers/test_admin_routes.py`: admin route context and mutation behavior.
 - `tests/unit/workflows/test_filter_normalization.py`: workflow filter normalization.
 - `tests/unit/reporting/test_reporting_pipeline_and_paths.py`: reporting pipeline/path behavior.
 - `tests/fixtures/api/mock_collections.py`: collection-shaped mock data used by route tests.
 - `tests/fixtures/api/fake_store.py`: shared fake handler/store harness for route tests.
-- `tests/api/interfaces/http/*_harness.py`: fake-store route tests for common and home flows.
+- `tests/api/routers/*_harness.py`: fake-store route tests for common and home flows.
 - `tests/fixtures/api/extract_latest_docs.py`: read-only snapshot extractor (prod full + dev RNA/WGS scope).
 - `tests/fixtures/api/db_snapshots/prod_latest.json`: latest per-collection prod snapshot.
 - `tests/fixtures/api/db_snapshots/dev_rna_wgs_latest.json`: latest per-collection dev snapshot scoped to RNA/WGS patterns.

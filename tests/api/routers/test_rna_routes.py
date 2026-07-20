@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import pytest
-from api.domain.core.exceptions import AppError
 
 from api.app.container import store
 from api.app.main import app as api_app
-from api.interfaces.http import fusions as rna
 from api.application.common.change_payload import change_payload
 from api.application.rna import expression_analysis as rna_service_module
 from api.application.rna.expression_analysis import RnaService
+from api.domain.core.exceptions import AppError
+from api.interfaces.http.clinical.rna import fusions as rna
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -36,6 +36,7 @@ def _rna_service() -> RnaService:
         rna_quality_repository=store.rna_quality_repository,
         annotation_repository=store.annotation_repository,
         reported_variant_repository=store.reported_variant_repository,
+        report_repository=store.report_repository,
     )
 
 
@@ -86,7 +87,7 @@ def test_list_rna_fusions_success(monkeypatch):
     monkeypatch.setattr(
         store.gene_list_repository,
         "get_isgl_by_asp",
-        lambda assay, is_active=True, list_type=None: [fx.isgl_doc()],
+        lambda assay, is_active=True, list_type=None, adhoc=None: [fx.isgl_doc()],
     )
     monkeypatch.setattr(
         rna.util.common,

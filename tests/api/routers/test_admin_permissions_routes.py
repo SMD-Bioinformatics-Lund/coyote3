@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.interfaces.http import permissions
+from api.interfaces.http.admin import permissions
 from tests.fixtures.api import mock_collections as fx
 
 

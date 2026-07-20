@@ -5,10 +5,11 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from api.domain.core.exceptions import AppError
 from pydantic import ValidationError
 
-from api.interfaces.http import samples
+from api.app.main import app as api_app
+from api.domain.core.exceptions import AppError
+from api.interfaces.http.clinical import samples
 from api.security.access import ApiUser
 from tests.fixtures.api import mock_collections as fx
 
@@ -52,6 +53,49 @@ def test_update_sample_filters_rejects_invalid_filters_payload():
         samples.SampleFiltersUpdateRequest.model_validate({"filters": "bad"})
 
     assert "Input should be a valid dictionary" in str(exc.value)
+
+
+def test_bam_service_lookup_is_sample_scoped():
+    """BAM-service lookup should be owned by the clinical sample API."""
+    paths = {route.path for route in api_app.routes}
+
+    assert "/api/v1/samples/{sample_name}/bam-files" in paths
+    assert "/api/v1/knowledgebases/bam-files" not in paths
+
+
+def test_sample_bam_files_read_returns_case_control_bam_paths(monkeypatch):
+    """Sample BAM endpoint should resolve a sample name to case/control BAM paths."""
+    service = SimpleNamespace(
+        bam_files_payload=lambda *, sample_ids: {
+            "query": {"sample_ids": sample_ids},
+            "bam_files": {sample_id: [f"/bam/{sample_id}.bam"] for sample_id in sample_ids},
+        }
+    )
+    sample = {
+        "name": "CASE_DEMO",
+        "case": {"id": "CASE1"},
+        "control": {"id": "CTRL1"},
+        "paired": True,
+    }
+    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_name, user: sample)
+    monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = samples.sample_bam_files_read(
+        sample_name="CASE_DEMO",
+        user=fx.api_user(),
+        service=service,
+    )
+
+    assert payload["sample"] == {
+        "name": "CASE_DEMO",
+        "case_id": "CASE1",
+        "control_id": "CTRL1",
+        "paired": True,
+    }
+    assert payload["bam_files"] == {
+        "CASE1": ["/bam/CASE1.bam"],
+        "CTRL1": ["/bam/CTRL1.bam"],
+    }
 
 
 def test_reset_sample_filters_requires_assay_config(monkeypatch):
@@ -106,7 +150,7 @@ def test_remove_coverage_blacklist_returns_change_payload(monkeypatch):
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
     service = SimpleNamespace(
         get_coverage_blacklist_entry=lambda *, obj_id: {"_id": obj_id, "group": "dna"},
-        remove_coverage_blacklist=lambda *, obj_id: calls.setdefault("obj_id", obj_id)
+        remove_coverage_blacklist=lambda *, obj_id: calls.setdefault("obj_id", obj_id),
     )
 
     payload = samples.delete_coverage_blacklist_entry(

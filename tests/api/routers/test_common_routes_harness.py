@@ -5,7 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from api.application.common.query_service import CommonQueryService
-from api.interfaces.http import common
+from api.interfaces.http.knowledgebase import common
 from tests.fixtures.api import mock_collections as fx
 from tests.fixtures.api.fake_store import build_fake_store
 

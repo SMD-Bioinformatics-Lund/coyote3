@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from api.domain.core.exceptions import AppError
 
-from api.interfaces.http import public
+from api.domain.core.exceptions import AppError
+from api.interfaces.http.public import routes as public
 
 
 def test_public_genelist_view_context_not_found_raises_404(monkeypatch):
@@ -52,6 +52,33 @@ def test_public_asp_genes_read_success(monkeypatch):
     assert payload["asp_id"] == "WGS"
     assert payload["gene_details"][0]["symbol"] == "TP53"
     assert payload["germline_gene_symbols"] == ["BRCA1"]
+
+
+def test_public_contact_read_uses_runtime_config(monkeypatch):
+    """Test public contact metadata is served from runtime configuration."""
+    monkeypatch.setattr(
+        public.runtime_app,
+        "config",
+        {
+            "ORGANIZATION_NAME": "Center Genomics",
+            "CONTACT": {
+                "organization": {"department": "Molecular Pathology"},
+                "support": {"primary_email": "support@example.org"},
+                "contacts": [{"label": "Clinical", "email": "clinical@example.org"}],
+                "links": [{"label": "Docs", "url": "/docs-site/"}],
+                "hours": [{"label": "Office", "value": "08:00-16:00"}],
+                "meta": {"source": "test"},
+            },
+        },
+    )
+    monkeypatch.setattr(public.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = public.public_contact_read()
+
+    assert payload["organization"]["name"] == "Center Genomics"
+    assert payload["organization"]["department"] == "Molecular Pathology"
+    assert payload["support"]["primary_email"] == "support@example.org"
+    assert payload["contacts"][0]["label"] == "Clinical"
 
 
 def test_public_assay_catalog_context_missing_catalog_raises_404(monkeypatch):

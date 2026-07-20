@@ -21,6 +21,7 @@ def _dna_workflow() -> dna_workflow.DNAWorkflowService:
         vep_metadata_repository=stub,
         annotation_repository=stub,
         reported_variant_repository=stub,
+        report_repository=stub,
     )
 
 
@@ -35,6 +36,7 @@ def _rna_workflow(
     annotation_repository=None,
     assay_panel_repository=None,
     reported_variant_repository=None,
+    report_repository=None,
 ) -> rna_workflow.RNAWorkflowService:
     stub = SimpleNamespace()
     return rna_workflow.RNAWorkflowService(
@@ -47,6 +49,7 @@ def _rna_workflow(
         annotation_repository=annotation_repository or stub,
         assay_panel_repository=assay_panel_repository or stub,
         reported_variant_repository=reported_variant_repository or stub,
+        report_repository=report_repository or stub,
     )
 
 
@@ -301,7 +304,9 @@ def test_rna_workflow_build_context_and_query(monkeypatch):
     """RNA workflow builds filter context and fusion query payload."""
     calls = {}
     workflow = _rna_workflow(
-        gene_list_repository=SimpleNamespace(get_isgl_by_ids=lambda _ids: {"L1": {"genes": ["TP53"]}})
+        gene_list_repository=SimpleNamespace(
+            get_isgl_by_ids=lambda _ids: {"L1": {"genes": ["TP53"]}}
+        )
     )
 
     monkeypatch.setattr(rna_workflow, "create_fusioneffectlist", lambda values: values)

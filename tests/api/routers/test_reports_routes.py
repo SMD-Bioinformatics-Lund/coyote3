@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from api.app.main import app as api_app
-from api.interfaces.http import reports
+from api.interfaces.http.clinical.reporting import reports
 from api.security.access import ApiUser
 
 
@@ -153,7 +153,7 @@ def test_save_report_success(monkeypatch):
     monkeypatch.setattr(
         reports, "_prepare_report_output", lambda analyte, report_path, report_file: None
     )
-    monkeypatch.setattr(reports.store.report_repository, "next_report_num", lambda sample_oid: 3)
+    monkeypatch.setattr(reports, "_next_report_num", lambda analyte, sample: 3)
     monkeypatch.setattr(
         reports,
         "_build_preview_report",
@@ -164,7 +164,9 @@ def test_save_report_success(monkeypatch):
         ),
     )
     monkeypatch.setattr(reports, "render_report_html", lambda **kwargs: "<html>ready</html>")
-    monkeypatch.setattr(reports, "_persist_report", lambda analyte, **kwargs: ("oid-123", "/tmp/RID3.pdf"))
+    monkeypatch.setattr(
+        reports, "_persist_report", lambda analyte, **kwargs: ("oid-123", "/tmp/RID3.pdf")
+    )
     monkeypatch.setattr(reports.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = reports.save_report(
@@ -210,7 +212,7 @@ def test_save_report_calls_rna_persist_path(monkeypatch):
     monkeypatch.setattr(
         reports, "_prepare_report_output", lambda analyte, report_path, report_file: None
     )
-    monkeypatch.setattr(reports.store.report_repository, "next_report_num", lambda sample_oid: 6)
+    monkeypatch.setattr(reports, "_next_report_num", lambda analyte, sample: 6)
     monkeypatch.setattr(
         reports,
         "_build_preview_report",

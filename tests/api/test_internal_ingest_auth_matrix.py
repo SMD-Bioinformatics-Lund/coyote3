@@ -10,7 +10,7 @@ from fastapi import HTTPException
 from starlette.requests import Request
 
 from api.application.ingest.service import InternalIngestService
-from api.interfaces.http import internal as internal_router
+from api.interfaces.http.operations import internal as internal_router
 from api.security import access
 from api.security.access import ApiUser
 

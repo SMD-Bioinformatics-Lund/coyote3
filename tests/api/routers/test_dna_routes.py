@@ -13,9 +13,10 @@ from api.application.common.change_payload import change_payload
 from api.application.dna import variant_analysis as dna_service_module
 from api.application.dna.variant_analysis import DnaService
 from api.domain.core.exceptions import AppError
-from api.interfaces.http import biomarkers as biomarker_router
-from api.interfaces.http import classifications as classification_router
-from api.interfaces.http import small_variants as dna
+from api.interfaces.http.clinical.dna import biomarkers as biomarker_router
+from api.interfaces.http.clinical.dna import classifications as classification_router
+from api.interfaces.http.clinical.dna import small_variants as dna
+from api.interfaces.http.clinical.dna import translocations as translocation_router
 from api.security import access
 from api.security.access import ApiUser
 from tests.fixtures.api import mock_collections as fx
@@ -160,7 +161,10 @@ def test_list_dna_variants_missing_asp_raises_specific_422(monkeypatch):
     sample["name"] = "S1"
     sample["assay"] = "unknown_assay"
     service = _dna_service()
-    request = SimpleNamespace(url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"))
+    request = SimpleNamespace(
+        url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"),
+        query_params={},
+    )
 
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(store.assay_panel_repository, "get_asp", lambda assay_name: None)
@@ -179,7 +183,10 @@ def test_list_dna_variants_missing_aspc_raises_specific_422(monkeypatch):
     sample["assay"] = "hema_GMSv1"
     sample["profile"] = "production"
     service = _dna_service()
-    request = SimpleNamespace(url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"))
+    request = SimpleNamespace(
+        url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"),
+        query_params={},
+    )
 
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(
@@ -339,7 +346,10 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
     monkeypatch.setattr(dna, "generate_summary_text", lambda *args, **kwargs: "")
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
-    req = SimpleNamespace(url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"))
+    req = SimpleNamespace(
+        url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"),
+        query_params={},
+    )
     payload = dna.list_dna_variants(req, "S1", user=fx.api_user(), service=service)
 
     assert payload["sample"]["name"] == sample["name"]
@@ -636,8 +646,10 @@ def test_bulk_flag_routes_use_non_colliding_paths():
     assert "/api/v1/samples/{sample_id}/annotations" in paths
     assert "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/false-positive" in paths
     assert "/api/v1/samples/{sample_id}/small-variants/exports/snvs/context" in paths
-    assert "/api/v1/samples/{sample_id}/small-variants/exports/cnvs/context" in paths
-    assert "/api/v1/samples/{sample_id}/small-variants/exports/translocs/context" in paths
+    assert "/api/v1/samples/{sample_id}/cnvs/exports/context" in paths
+    assert "/api/v1/samples/{sample_id}/translocations/exports/context" in paths
+    assert "/api/v1/samples/{sample_id}/small-variants/exports/cnvs/context" not in paths
+    assert "/api/v1/samples/{sample_id}/small-variants/exports/translocs/context" not in paths
 
 
 def _route_test_user() -> ApiUser:
@@ -807,7 +819,9 @@ def test_snv_export_context_route_returns_typed_csv_payload(monkeypatch):
 def test_transloc_export_context_route_returns_typed_csv_payload(monkeypatch):
     """Translocation export context endpoint returns generated CSV content and filename."""
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: _download_test_user())
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(
+        translocation_router, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc()
+    )
     monkeypatch.setattr(
         DnaService,
         "list_variants_payload",
@@ -833,13 +847,15 @@ def test_transloc_export_context_route_returns_typed_csv_payload(monkeypatch):
             }
         },
     )
-    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(
+        translocation_router.util.common, "convert_to_serializable", lambda payload: payload
+    )
 
     request = Request(
         {
             "type": "http",
             "method": "GET",
-            "path": "/api/v1/samples/S1/small-variants/exports/translocs/context",
+            "path": "/api/v1/samples/S1/translocations/exports/context",
             "headers": [],
             "query_string": b"",
             "client": ("testclient", 50000),
@@ -847,7 +863,7 @@ def test_transloc_export_context_route_returns_typed_csv_payload(monkeypatch):
             "scheme": "http",
         }
     )
-    body = dna.export_transloc_csv_context(
+    body = translocation_router.export_transloc_csv_context(
         request=request,
         sample_id="S1",
         user=_download_test_user(),

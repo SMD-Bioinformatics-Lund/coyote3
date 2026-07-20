@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.interfaces.http import dashboard
+from api.interfaces.http.operations import dashboard
 from tests.fixtures.api import mock_collections as fx
 from tests.unit.test_dashboard_service import _dashboard_service, _DashboardBackendStub
 

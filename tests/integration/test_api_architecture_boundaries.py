@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import re
 import ast
+import re
 from pathlib import Path
-
 
 IMPORT_APP_PATTERN = re.compile(r"^\s*(from|import)\s+api\.app\b")
 HTTP_FRAMEWORK_IMPORT_PATTERN = re.compile(r"^\s*(from|import)\s+(fastapi|starlette)\b")
@@ -93,8 +92,8 @@ def test_domain_and_application_do_not_import_http_frameworks() -> None:
                 if HTTP_FRAMEWORK_IMPORT_PATTERN.search(line):
                     offenders.append(f"{path.as_posix()}:{line_no}: {line.strip()}")
 
-    assert not offenders, "api.domain/api.application must not import HTTP frameworks:\n" + "\n".join(
-        offenders
+    assert not offenders, (
+        "api.domain/api.application must not import HTTP frameworks:\n" + "\n".join(offenders)
     )
 
 
@@ -126,7 +125,9 @@ def test_mongo_handlers_package_path_is_retired() -> None:
     for root in (Path("api"), Path("tests"), Path("docs"), Path("scripts")):
         if not root.exists():
             continue
-        files = sorted(path for path in root.rglob("*") if path.is_file() and "__pycache__" not in path.parts)
+        files = sorted(
+            path for path in root.rglob("*") if path.is_file() and "__pycache__" not in path.parts
+        )
         for path in files:
             if path.suffix not in {".py", ".md", ".json", ".yml", ".yaml", ".toml"}:
                 continue
@@ -143,7 +144,9 @@ def test_persistence_dependency_names_use_repository_terms() -> None:
     """Persistence dependencies should not use handler naming."""
     offenders: list[str] = []
     for root in (Path("api"), Path("docs")):
-        files = sorted(path for path in root.rglob("*") if path.is_file() and "__pycache__" not in path.parts)
+        files = sorted(
+            path for path in root.rglob("*") if path.is_file() and "__pycache__" not in path.parts
+        )
         for path in files:
             if path.suffix not in {".py", ".md"}:
                 continue
@@ -221,9 +224,7 @@ def test_http_routes_declare_response_contracts() -> None:
                 if "include_in_schema" in keywords:
                     continue
                 if "response_model" not in keywords and "response_class" not in keywords:
-                    offenders.append(
-                        f"{path.as_posix()}:{node.lineno}: @{func.attr} {node.name}"
-                    )
+                    offenders.append(f"{path.as_posix()}:{node.lineno}: @{func.attr} {node.name}")
 
     assert not offenders, "HTTP routes must declare response contracts:\n" + "\n".join(offenders)
 
@@ -237,6 +238,4 @@ def test_contract_layers_use_pydantic_models_instead_of_dataclasses() -> None:
                 if "from dataclasses import" in line or "@dataclass" in line:
                     offenders.append(f"{path.as_posix()}:{line_no}: {line.strip()}")
 
-    assert not offenders, "Use Pydantic models for API/domain contracts:\n" + "\n".join(
-        offenders
-    )
+    assert not offenders, "Use Pydantic models for API/domain contracts:\n" + "\n".join(offenders)

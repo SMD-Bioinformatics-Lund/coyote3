@@ -1,27 +1,11 @@
 {
   "generated_at_utc": "2026-04-04T00:00:00+00:00",
-  "mongo_leak_usage_by_file": {
-    "api/domain/core/interpretation/report_summary.py": 2
-  },
-  "mongo_leak_usage_total": 2,
+  "mongo_leak_usage_by_file": {},
+  "mongo_leak_usage_total": 0,
   "store_usage_by_file": {
-    "api/domain/core/admin/sample_deletion.py": 8,
-    "api/domain/core/coverage/coverage_processing.py": 3,
-    "api/domain/core/dna/dna_reporting.py": 11,
-    "api/domain/core/interpretation/annotation_enrichment.py": 2,
-    "api/domain/core/interpretation/report_summary.py": 2,
-    "api/domain/core/public/catalog.py": 14,
-    "api/domain/core/reporting/pipeline.py": 2,
-    "api/domain/core/workflows/dna_workflow.py": 12,
-    "api/domain/core/workflows/rna_workflow.py": 12,
-    "api/interfaces/http/public.py": 4,
-    "api/interfaces/http/cnvs.py": 8,
-    "api/interfaces/http/common.py": 10,
-    "api/interfaces/http/fusions.py": 7,
-    "api/interfaces/http/internal.py": 3,
-    "api/interfaces/http/samples.py": 8,
-    "api/interfaces/http/small_variants.py": 9,
-    "api/interfaces/http/translocations.py": 6
+    "api/interfaces/http/clinical/dna/cnvs.py": 2,
+    "api/interfaces/http/clinical/dna/small_variants.py": 3,
+    "api/interfaces/http/clinical/dna/translocations.py": 2
   },
-  "store_usage_total": 121
+  "store_usage_total": 7
 }

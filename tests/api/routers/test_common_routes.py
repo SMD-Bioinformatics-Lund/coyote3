@@ -2,11 +2,58 @@
 
 from __future__ import annotations
 
-import pytest
-from api.domain.core.exceptions import AppError
+from types import SimpleNamespace
 
-from api.interfaces.http import common
+import pytest
+
+from api.domain.core.exceptions import AppError
+from api.interfaces.http.knowledgebase import common
 from tests.fixtures.api import mock_collections as fx
+
+
+def _knowledgebase_service() -> common.CommonQueryService:
+    """Build a common service with external knowledgebase fakes."""
+    return common.CommonQueryService(
+        hgnc_repository=SimpleNamespace(
+            get_metadata_by_symbol_or_alias=lambda symbol: {
+                "hgnc_symbol": symbol,
+                "hgnc_id": "HGNC:1",
+            },
+            get_metadata_by_hgnc_id=lambda hgnc_id: {
+                "hgnc_symbol": "TP53",
+                "hgnc_id": hgnc_id,
+            },
+        ),
+        oncokb_repository=SimpleNamespace(
+            get_oncokb_gene=lambda gene: {"name": gene},
+            get_oncokb_action_gene=lambda gene: {"Hugo Symbol": gene, "Level": "1"},
+            get_oncokb_anno=lambda variant, hgvsp: {
+                "Gene": variant["INFO"]["selected_CSQ"]["SYMBOL"]
+            },
+            get_oncokb_action=lambda variant, hgvsp: [
+                {"Gene": variant["INFO"]["selected_CSQ"]["SYMBOL"], "Alteration": hgvsp[0]}
+            ],
+        ),
+        variant_repository=SimpleNamespace(get_variant=lambda variant_id: None),
+        reported_variant_repository=SimpleNamespace(list_reported_variants=lambda query: []),
+        assay_panel_repository=SimpleNamespace(get_all_asp_groups=lambda: []),
+        annotation_repository=SimpleNamespace(),
+        sample_repository=SimpleNamespace(),
+        oncokb_public_cache_repository=SimpleNamespace(
+            get_gene_record=lambda gene: {"gene": gene, "public_api": True}
+        ),
+        clinpgx_public_repository=SimpleNamespace(
+            get_gene_record=lambda gene: {"symbol": gene, "pharmgkb_accession_id": "PA1"}
+        ),
+        civic_repository=SimpleNamespace(
+            get_civic_gene_info=lambda gene: {"name": gene},
+            get_civic_data=lambda variant, desc: [
+                {"gene": variant["INFO"]["selected_CSQ"]["SYMBOL"]}
+            ],
+        ),
+        brca_repository=SimpleNamespace(get_brca_data=lambda variant, assay: {"source": "brca"}),
+        iarc_tp53_repository=SimpleNamespace(find_iarc_tp53=lambda variant: {"source": "iarc"}),
+    )
 
 
 def test_common_gene_info_read_by_symbol(monkeypatch):
@@ -20,12 +67,100 @@ def test_common_gene_info_read_by_symbol(monkeypatch):
     """
     service = common.get_common_query_service()
     monkeypatch.setattr(
-        service.hgnc_repository, "get_metadata_by_symbol", lambda symbol: {"symbol": symbol}
+        service.hgnc_repository,
+        "get_metadata_by_symbol_or_alias",
+        lambda symbol: {"symbol": symbol},
     )
+    monkeypatch.setattr(service.oncokb_repository, "get_oncokb_gene", lambda symbol: {})
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = common.common_gene_info_read("TP53", service=service)
     assert payload["gene"]["symbol"] == "TP53"
+
+
+def test_knowledgebase_gene_read_returns_external_sources(monkeypatch):
+    """Aggregated gene knowledgebase endpoint should expose configured source blocks."""
+    service = _knowledgebase_service()
+    monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = common.knowledgebase_gene_read("TP53", user=fx.api_user(), service=service)
+
+    assert payload["query"]["resolved_symbol"] == "TP53"
+    assert payload["sources"]["oncokb_public"]["gene"] == "TP53"
+    assert payload["sources"]["clinpgx_public"]["pharmgkb_accession_id"] == "PA1"
+    assert "oncokb_public" in payload["available_sources"]
+
+
+def test_knowledgebase_variant_evidence_read_returns_variant_sources(monkeypatch):
+    """Variant evidence endpoint should query local coordinate and HGVS knowledgebases."""
+    service = _knowledgebase_service()
+    monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = common.knowledgebase_variant_evidence_read(
+        chrom="17",
+        pos=76736896,
+        ref="T",
+        alt="C",
+        gene="SRSF2",
+        hgvsp="p.Met89Val",
+        user=fx.api_user(),
+        service=service,
+    )
+
+    assert payload["query"]["gene"] == "SRSF2"
+    assert payload["sources"]["civic_variants"][0]["gene"] == "SRSF2"
+    assert payload["sources"]["oncokb_actionable_local"][0]["Alteration"] == "p.Met89Val"
+
+
+def test_source_specific_knowledgebase_routes_filter_sources(monkeypatch):
+    """Dedicated knowledgebase routes should expose only their source family."""
+    service = _knowledgebase_service()
+    monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
+
+    civic_gene = common.knowledgebase_civic_gene_read("TP53", user=fx.api_user(), service=service)
+    brca_gene = common.knowledgebase_brca_exchange_gene_read(
+        "BRCA1", user=fx.api_user(), service=service
+    )
+    iarc_gene = common.knowledgebase_iarc_tp53_gene_read(
+        "TP53", user=fx.api_user(), service=service
+    )
+    civic_variant = common.knowledgebase_civic_variant_evidence_read(
+        chrom="17",
+        pos=76736896,
+        ref="T",
+        alt="C",
+        gene="SRSF2",
+        hgvsp="p.Met89Val",
+        user=fx.api_user(),
+        service=service,
+    )
+    brca_variant = common.knowledgebase_brca_exchange_variant_evidence_read(
+        chrom="17",
+        pos=76736896,
+        ref="T",
+        alt="C",
+        gene="BRCA1",
+        hgvsp="p.Met89Val",
+        user=fx.api_user(),
+        service=service,
+    )
+    iarc_variant = common.knowledgebase_iarc_tp53_variant_evidence_read(
+        chrom="17",
+        pos=76736896,
+        ref="T",
+        alt="C",
+        gene="TP53",
+        hgvsp="p.Met89Val",
+        user=fx.api_user(),
+        service=service,
+    )
+
+    assert set(civic_gene["sources"]) == {"civic_gene"}
+    assert set(brca_gene["sources"]) == {"brca_exchange"}
+    assert set(iarc_gene["sources"]) == {"iarc_tp53"}
+    assert set(civic_variant["sources"]) == {"civic_variants"}
+    assert set(brca_variant["sources"]) == {"brca_exchange"}
+    assert set(iarc_variant["sources"]) == {"iarc_tp53"}
 
 
 def test_common_tiered_variant_context_not_found_raises_404(monkeypatch):
@@ -86,12 +221,17 @@ def test_common_tiered_variant_context_uses_master_style_identity_lookup(monkeyp
         "INFO": {"selected_CSQ": {"SYMBOL": "TP53"}},
     }
     captured: dict = {}
+
+    def _list_reported_variants(query):
+        captured["query"] = query
+        return []
+
     service = common.get_common_query_service()
     monkeypatch.setattr(service.variant_repository, "get_variant", lambda variant_id: variant)
     monkeypatch.setattr(
         service.reported_variant_repository,
         "list_reported_variants",
-        lambda query: captured.setdefault("query", query) or [],
+        _list_reported_variants,
     )
     monkeypatch.setattr(common, "get_common_query_service", lambda: service)
     monkeypatch.setattr(

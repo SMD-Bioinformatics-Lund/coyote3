@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.interfaces.http import roles
+from api.interfaces.http.admin import roles
 from tests.fixtures.api import mock_collections as fx
 
 

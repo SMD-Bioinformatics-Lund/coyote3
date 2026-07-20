@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from api.interfaces.http import samples
 from api.application.sample.catalog import SampleCatalogService
+from api.interfaces.http.clinical import samples
 from tests.fixtures.api import mock_collections as fx
 from tests.fixtures.api.fake_store import build_fake_store
 
@@ -20,7 +20,9 @@ def _catalog_service(fake_store) -> SampleCatalogService:
         fusion_repository=fake_store.fusion_repository,
         translocation_repository=fake_store.translocation_repository,
         biomarker_repository=fake_store.biomarker_repository,
-        grouped_coverage_repository=getattr(fake_store, "grouped_coverage_repository", SimpleNamespace()),
+        grouped_coverage_repository=getattr(
+            fake_store, "grouped_coverage_repository", SimpleNamespace()
+        ),
     )
 
 

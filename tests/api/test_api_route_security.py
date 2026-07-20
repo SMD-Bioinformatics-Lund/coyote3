@@ -15,7 +15,6 @@ ALLOW_UNGUARDED_EXACT = {
     "/api/v1/auth/sessions/current",
     "/api/v1/auth/password/reset/request",
     "/api/v1/auth/password/reset/confirm",
-    "/api/vi/docs",
 }
 ALLOW_UNGUARDED_PREFIX = ("/api/v1/public/",)
 
@@ -61,7 +60,7 @@ def test_non_public_api_routes_are_guarded():
     Returns:
         The function result.
     """
-    route_files = sorted(Path("api/interfaces/http").glob("*.py"))
+    route_files = sorted(Path("api/interfaces/http").rglob("*.py"))
     unguarded: list[str] = []
 
     for py_file in route_files:

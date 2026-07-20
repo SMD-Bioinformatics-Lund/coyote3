@@ -6,7 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from api.app.main import app as api_app
-from api.interfaces.http.resources import asp, genelists
+from api.interfaces.http.admin.resources import asp, genelists
 
 
 def test_list_asp_read_returns_panels(monkeypatch):

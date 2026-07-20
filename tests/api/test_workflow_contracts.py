@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from api.domain.core.exceptions import AppError
 
+from api.domain.core.exceptions import AppError
 from api.domain.core.workflows.contracts import validate_report_inputs, validate_rna_filter_inputs
 
 

@@ -8,8 +8,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from api.interfaces.http import auth as auth_router
-from api.interfaces.http import health as health_router
+from api.interfaces.http.operations import auth as auth_router
+from api.interfaces.http.operations import health as health_router
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -20,17 +20,6 @@ def test_health_returns_ok():
         The function result.
     """
     assert health_router.health() == {"status": "ok"}
-
-
-def test_docs_alias_vi_redirects_to_v1_docs():
-    """Test docs alias vi redirects to v1 docs.
-
-    Returns:
-        The function result.
-    """
-    response = health_router.docs_alias_vi()
-    assert response.status_code == 307
-    assert response.headers["location"] == "/api/v1/docs"
 
 
 def test_whoami_sorts_permission_list():
