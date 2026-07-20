@@ -1,5 +1,5 @@
-import { useEffect } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { ExpandableText } from "@/components/detail/ExpandableText"
@@ -27,7 +27,17 @@ import {
 } from "@/components/detail/FindingDetailLayout"
 import { Button } from "@/components/ui/button"
 import { notifyActionError } from "@/lib/notifications"
-import { sampleDetailPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
+import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
+import {
+  cbioportalOncoprintUrl,
+  clinvarSearchUrl,
+  cosmicSearchUrl,
+  dbsnpUrl,
+  igvLoadUrl,
+  litvarSearchUrl,
+  oncokbGeneUrl,
+  pubmedArticleUrl,
+} from "@/lib/external-links"
 
 function variantLocation(variant: any) {
   if (!variant) return "-"
@@ -207,20 +217,22 @@ function externalLinks(variant: any, csq: any, data: any) {
   const position = variant?.CHROM && variant?.POS ? `${variant.CHROM}:${variant.POS}` : ""
 
   return [
-    data?.bam_id && position ? { label: "Open region in IGV", value: position, href: `http://localhost:60151/load?file=${encodeURIComponent(String(data.bam_id))}&locus=${encodeURIComponent(position)}` } : null,
-    dbsnp ? { label: `dbSNP ${dbsnp}`, value: dbsnp, href: `https://www.ncbi.nlm.nih.gov/snp/${dbsnp}` } : null,
-    cosmic ? { label: `COSMIC ${cosmic}`, value: cosmic, href: `https://cancer.sanger.ac.uk/cosmic/search?q=${encodeURIComponent(cosmic)}` } : null,
-    clinvar ? { label: `ClinVar ${clinvar}`, value: clinvar, href: `https://www.ncbi.nlm.nih.gov/clinvar/?term=${encodeURIComponent(clinvar)}` } : null,
-    gene ? { label: `cBioPortal ${gene}`, value: gene, href: `https://www.cbioportal.org/results/oncoprint?gene_list=${encodeURIComponent(gene)}` } : null,
-    gene ? { label: `OncoKB ${gene}`, value: gene, href: `https://www.oncokb.org/gene/${encodeURIComponent(gene)}` } : null,
-    gene && hgvsp ? { label: "LitVar", value: `${gene} ${hgvsp}`, href: `https://www.ncbi.nlm.nih.gov/research/litvar2/docsum?query=${encodeURIComponent(`${gene} ${hgvsp}`)}` } : null,
-    pubmed ? { label: `PubMed ${pubmed}`, value: pubmed, href: `https://pubmed.ncbi.nlm.nih.gov/${pubmed}/` } : null,
+    data?.bam_id && position ? { label: "Open region in IGV", value: position, href: igvLoadUrl(data.bam_id, position) } : null,
+    dbsnp ? { label: `dbSNP ${dbsnp}`, value: dbsnp, href: dbsnpUrl(dbsnp) } : null,
+    cosmic ? { label: `COSMIC ${cosmic}`, value: cosmic, href: cosmicSearchUrl(cosmic) } : null,
+    clinvar ? { label: `ClinVar ${clinvar}`, value: clinvar, href: clinvarSearchUrl(clinvar) } : null,
+    gene ? { label: `cBioPortal ${gene}`, value: gene, href: cbioportalOncoprintUrl(gene) } : null,
+    gene ? { label: `OncoKB ${gene}`, value: gene, href: oncokbGeneUrl(gene) } : null,
+    gene && hgvsp ? { label: "LitVar", value: `${gene} ${hgvsp}`, href: litvarSearchUrl(`${gene} ${hgvsp}`) } : null,
+    pubmed ? { label: `PubMed ${pubmed}`, value: pubmed, href: pubmedArticleUrl(pubmed) } : null,
   ].filter(Boolean) as any[]
 }
 
 export function VariantDetail() {
   const { id, varId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [commentDraft, setCommentDraft] = useState("")
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['variant', id, varId],
@@ -242,9 +254,12 @@ export function VariantDetail() {
   const routeSample = data?.sample
   useEffect(() => {
     if (routeSample?.name && id && varId && id !== routeSample.name) {
-      navigate(sampleFindingPath(routeSample, id, "variant", varId), { replace: true })
+      navigate(sampleFindingPath(routeSample, id, "variant", varId), {
+        replace: true,
+        state: location.state,
+      })
     }
-  }, [id, navigate, routeSample, routeSample?.name, varId])
+  }, [id, location.state, navigate, routeSample, routeSample?.name, varId])
 
   if (isLoading) {
     return <FindingLoading />
@@ -262,7 +277,10 @@ export function VariantDetail() {
 
   const { variant, sample, latest_classification } = data
   const sampleRouteKey = sampleUrlKey(sample, id)
-  const sampleHref = sampleDetailPath(sample, id)
+  const sampleHref = sampleDetailTabPath(sample, id, "snvs")
+  const previousSampleHref = typeof location.state === "object" && location.state && "from" in location.state
+    ? String((location.state as { from?: string }).from || sampleHref)
+    : sampleHref
   const csq = variant?.INFO?.selected_CSQ || {}
   const displayGene = csq.VEP_SYMBOL || csq.display_symbol || csq.SYMBOL
   const resolvedGene = csq.SYMBOL
@@ -274,7 +292,7 @@ export function VariantDetail() {
   return (
     <FindingDetailShell>
       <FindingHero
-        backTo={sampleHref}
+        backTo={previousSampleHref}
         title={
           <span className="inline-flex items-center gap-2">
             <GeneWithOncoKbBadge
@@ -319,7 +337,7 @@ export function VariantDetail() {
       <FindingMainGrid
         main={
           <>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <DetailCard title="Variant Identity">
                 <DetailFieldGrid>
                   <DetailField label="Gene">
@@ -348,6 +366,50 @@ export function VariantDetail() {
                 </DetailFieldGrid>
               </DetailCard>
 
+            <div className="lg:col-span-2">
+              <CommentsPanel
+                sampleId={sampleRouteKey}
+                title="Add Comment Or Annotation"
+                resourceType="small_variant"
+                resource={variant}
+                comments={[]}
+                showList={false}
+                assayGroup={data.assay_group}
+                subpanel={data.subpanel}
+                queryKeys={[["variant", id, varId]]}
+                enableSuggestion={false}
+                livePreview={false}
+                draftText={commentDraft}
+                onDraftChange={setCommentDraft}
+              />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <CommentsPanel
+                sampleId={sampleRouteKey}
+                title="Sample-Specific Variant Comments"
+                resourceType="small_variant"
+                resource={variant}
+                comments={variant?.comments || []}
+                showComposer={false}
+                queryKeys={[["variant", id, varId]]}
+                onUseAsDraft={setCommentDraft}
+              />
+              <CommentsPanel
+                sampleId={sampleRouteKey}
+                title="Global Variant Annotations"
+                resourceType="small_variant"
+                resource={variant}
+                comments={data.annotations || variant?.global_annotations || []}
+                showComposer={false}
+                allowHide={false}
+                queryKeys={[["variant", id, varId]]}
+                onUseAsDraft={setCommentDraft}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <DetailCard title="Sample Genotype" tone="success">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
@@ -371,56 +433,6 @@ export function VariantDetail() {
                     </tbody>
                   </table>
                 </div>
-              </DetailCard>
-            </div>
-
-            <CommentsPanel
-              sampleId={sampleRouteKey}
-              title="Add Comment Or Annotation"
-              resourceType="small_variant"
-              resource={variant}
-              comments={[]}
-              showList={false}
-              assayGroup={data.assay_group}
-              subpanel={data.subpanel}
-              queryKeys={[["variant", id, varId]]}
-              enableSuggestion={false}
-              livePreview={false}
-            />
-
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <CommentsPanel
-                sampleId={sampleRouteKey}
-                title="Sample-Specific Variant Comments"
-                resourceType="small_variant"
-                resource={variant}
-                comments={variant?.comments || []}
-                showComposer={false}
-                queryKeys={[["variant", id, varId]]}
-              />
-              <CommentsPanel
-                sampleId={sampleRouteKey}
-                title="Global Variant Annotations"
-                resourceType="small_variant"
-                resource={variant}
-                comments={data.annotations || variant?.global_annotations || []}
-                showComposer={false}
-                allowHide={false}
-                queryKeys={[["variant", id, varId]]}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <DetailCard title="Population Frequencies" tone="info">
-                <DetailMetricTable
-                  metrics={[
-                    { label: "gnomAD", value: percentValue(variant?.gnomad_frequency, 4) },
-                    { label: "gnomAD max", value: percentValue(variant?.gnomad_max, 4) },
-                    { label: "ExAC", value: percentValue(variant?.exac_frequency, 4) },
-                    { label: "1000G", value: percentValue(variant?.thousandG_frequency, 4) },
-                  ]}
-                  dense
-                />
               </DetailCard>
 
               <DetailCard title="Prediction And Clinical Signals">
@@ -668,6 +680,18 @@ export function VariantDetail() {
             />
 
             <ExternalLinksCard links={externalLinks(variant, csq, data)} />
+
+            <DetailCard title="Population Frequencies" tone="info">
+              <DetailMetricTable
+                metrics={[
+                  { label: "gnomAD", value: percentValue(variant?.gnomad_frequency, 4) },
+                  { label: "gnomAD max", value: percentValue(variant?.gnomad_max, 4) },
+                  { label: "ExAC", value: percentValue(variant?.exac_frequency, 4) },
+                  { label: "1000G", value: percentValue(variant?.thousandG_frequency, 4) },
+                ]}
+                dense
+              />
+            </DetailCard>
 
             <DetailCard title="Seen In Other Samples" tone="info">
               <DetailDataTable

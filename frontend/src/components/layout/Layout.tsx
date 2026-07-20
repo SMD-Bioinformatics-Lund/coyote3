@@ -1,19 +1,30 @@
 import { useState, useRef, useEffect, useMemo } from "react"
 import { Outlet, Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
+import { useIsFetching, useQuery } from "@tanstack/react-query"
 import { ThemeToggle } from "./theme-toggle"
-import { Bell, BookOpen, Bug, FileQuestion, LayoutDashboard, Dna, Database, FileText, Settings, User, ChevronDown, LogOut, Search, PanelLeftClose, PanelRightClose } from "lucide-react"
+import { Bell, BookOpen, Bug, FileQuestion, LayoutDashboard, Dna, Database, FileText, LifeBuoy, Settings, User, ChevronDown, LogOut, Search, PanelLeftClose, PanelRightClose, Lightbulb } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { apiPath, appPath } from "@/lib/runtime-paths"
 import { useNotifications } from "@/components/notifications/use-notifications"
+import { GlobalLoadingIndicator } from "@/components/layout/AppLoader"
+
+type PublicContactPayload = {
+  support?: Record<string, string>
+  codebase?: Record<string, string>
+  links?: Array<Record<string, string>>
+}
 
 export function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const isPublicRoute = location.pathname === "/public" || location.pathname.startsWith("/public/")
+  const isPublicRoute =
+    location.pathname === "/about" ||
+    location.pathname === "/contact" ||
+    location.pathname === "/public" ||
+    location.pathname.startsWith("/public/")
   const [isCollapsed, setIsCollapsed] = useState(true)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [activeAssayCategory, setActiveAssayCategory] = useState<string | null>(null)
@@ -21,6 +32,9 @@ export function Layout() {
   const assayMenuRef = useRef<HTMLDivElement>(null)
   const appVersion = import.meta.env.VITE_APP_VERSION || "v4.0.0-dev"
   const { unreadCount } = useNotifications()
+  const backgroundFetches = useIsFetching({
+    predicate: (query) => query.state.data !== undefined,
+  })
 
   const { data: user } = useQuery({
     queryKey: ['whoami'],
@@ -37,6 +51,12 @@ export function Layout() {
     queryKey: ['assay-catalog-nav'],
     queryFn: () => api.get('/public/assay-catalog/context').then(res => res.data),
     staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: contactData } = useQuery({
+    queryKey: ["public-contact"],
+    queryFn: () => api.get<PublicContactPayload>("/public/contact").then(res => res.data),
+    staleTime: 10 * 60 * 1000,
   })
 
   useEffect(() => {
@@ -73,7 +93,8 @@ export function Layout() {
             { name: "Public Home", href: "/public", icon: BookOpen },
             { name: "Catalog", href: "/public/catalog", icon: FileText },
             { name: "Matrix", href: "/public/matrix", icon: Database },
-            { name: "Contact", href: "/public/contact", icon: FileQuestion },
+            { name: "About", href: "/about", icon: FileQuestion },
+            { name: "Contact", href: "/contact", icon: LifeBuoy },
           ],
         },
       ]
@@ -93,7 +114,8 @@ export function Layout() {
         items: [
           { name: "Matrix", href: "/public/matrix", icon: Database },
           { name: "Catalog", href: "/public/catalog", icon: FileText },
-          { name: "Docs", href: "/docs/about", icon: BookOpen },
+          { name: "About", href: "/about", icon: BookOpen },
+          { name: "Contact", href: "/contact", icon: LifeBuoy },
         ],
       },
     ]
@@ -114,6 +136,28 @@ export function Layout() {
     const groups = (catalogData?.meta?.nav_groups || catalogData?.nav_groups || []) as any[]
     return groups.filter((group) => group?.category && group?.family && group?.assay_group)
   }, [catalogData])
+
+  const issueMenuLinks = useMemo(() => {
+    const configuredLinks = contactData?.links || []
+    const codebase = contactData?.codebase || {}
+    return [
+      {
+        label: "Report a Bug",
+        url: findConfiguredLink(configuredLinks, "Report a Bug") || codebase.bug_report_url,
+        icon: Bug,
+      },
+      {
+        label: "Request a Feature",
+        url: findConfiguredLink(configuredLinks, "Request a Feature") || codebase.feature_request_url,
+        icon: Lightbulb,
+      },
+      {
+        label: "Support",
+        url: findConfiguredLink(configuredLinks, "Support") || codebase.support_request_url,
+        icon: LifeBuoy,
+      },
+    ].filter((link) => Boolean(link.url))
+  }, [contactData])
 
   const assayTree = useMemo(() => {
     const tree: Record<string, Record<string, any[]>> = {}
@@ -161,6 +205,7 @@ export function Layout() {
 
   return (
     <div className="flex h-screen flex-col bg-background font-sans antialiased overflow-hidden">
+      {backgroundFetches > 0 && <GlobalLoadingIndicator />}
       <div className="app-chrome-bg absolute inset-0 -z-10" />
       <header className="z-30 h-16 flex-shrink-0 border-b-2 border-primary/70 bg-card/95 shadow-sm">
         <div className="flex h-full w-full items-center justify-between gap-4 px-4">
@@ -304,21 +349,24 @@ export function Layout() {
                     )}
                   </Link>
                   <div className="my-1 border-t border-border/50"></div>
-                  <Link to="/docs/about" className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
+                  <Link to="/about" className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
                     <FileQuestion className="mr-3 h-4 w-4 text-primary" /> About Coyote3
                   </Link>
-                  <Link to="/docs/changelog" className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
-                    <BookOpen className="mr-3 h-4 w-4 text-primary" /> Changelog
+                  <Link to="/contact" className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
+                    <LifeBuoy className="mr-3 h-4 w-4 text-primary" /> Contact
                   </Link>
-                  <a
-                    href={import.meta.env.VITE_ISSUE_TRACKER_URL || "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues/new"}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80"
-                    onClick={() => setIsUserMenuOpen(false)}
-                  >
-                    <Bug className="mr-3 h-4 w-4 text-primary" /> Submit an issue
-                  </a>
+                  {issueMenuLinks.map((link) => (
+                    <a
+                      key={link.label}
+                      href={publicHref(link.url)}
+                      target={isExternalHref(link.url) ? "_blank" : undefined}
+                      rel={isExternalHref(link.url) ? "noreferrer" : undefined}
+                      className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      <link.icon className="mr-3 h-4 w-4 text-primary" /> {link.label}
+                    </a>
+                  ))}
                   <div className="my-1 border-t border-border/50"></div>
                   <button onClick={handleLogout} className="flex w-full items-center px-4 py-2.5 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10">
                     <LogOut className="mr-3 h-4 w-4" /> Logout
@@ -417,4 +465,19 @@ export function Layout() {
       </div>
     </div>
   )
+}
+
+function findConfiguredLink(links: Array<Record<string, string>>, label: string) {
+  const match = links.find((link) => link.label?.toLowerCase() === label.toLowerCase())
+  return match?.url || ""
+}
+
+function publicHref(url?: string) {
+  if (!url) return "#"
+  if (/^https?:\/\//i.test(url) || url.startsWith("mailto:") || url.startsWith("tel:")) return url
+  return appPath(url)
+}
+
+function isExternalHref(url?: string) {
+  return Boolean(url && /^https?:\/\//i.test(url))
 }

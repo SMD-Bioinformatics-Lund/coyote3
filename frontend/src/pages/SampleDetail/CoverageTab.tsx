@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { Activity, AlertTriangle } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { shortCount } from "@/lib/detail-formatters"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 
@@ -411,7 +412,7 @@ export function CoverageTab({ sampleId }: { sampleId: string }) {
   const [selectedGene, setSelectedGene] = useState<string | null>(null)
   const { data, isLoading, error } = useQuery({
     queryKey: ["sample-coverage", sampleId, cutoff],
-    queryFn: () => api.get(`/coverage/samples/${sampleId}?cov_cutoff=${cutoff}`).then((res) => res.data),
+    queryFn: () => api.get(`/samples/${sampleId}/coverage?cov_cutoff=${cutoff}`).then((res) => res.data),
     retry: false,
   })
 
@@ -500,7 +501,7 @@ export function CoverageTab({ sampleId }: { sampleId: string }) {
     },
   ]
 
-  if (isLoading) return <div className="flex justify-center p-8"><Activity className="animate-spin text-muted-foreground" /></div>
+  if (isLoading) return <AppLoader label="Loading coverage" />
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">

@@ -145,6 +145,9 @@ export function CommentsPanel({
   allowHide = true,
   assayGroup,
   subpanel,
+  draftText,
+  onDraftChange,
+  onUseAsDraft,
 }: {
   sampleId: string
   comments?: any[]
@@ -162,12 +165,17 @@ export function CommentsPanel({
   allowHide?: boolean
   assayGroup?: string
   subpanel?: string | null
+  draftText?: string
+  onDraftChange?: (value: string) => void
+  onUseAsDraft?: (value: string) => void
 }) {
-  const [text, setText] = useState("")
+  const [internalText, setInternalText] = useState("")
   const [global, setGlobal] = useState(false)
   const [mode, setMode] = useState<"edit" | "preview">("edit")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const queryClient = useQueryClient()
+  const text = draftText ?? internalText
+  const setText = onDraftChange ?? setInternalText
   const isDetailComposer = Boolean(resourceType && resource)
   const showSuggestion = enableSuggestion ?? !isDetailComposer
   const showLivePreview = livePreview ?? !isDetailComposer
@@ -261,7 +269,7 @@ export function CommentsPanel({
   }
 
   return (
-    <section className="rounded-xl border border-border border-t-4 border-t-tier2 bg-card/90 p-2.5 shadow-sm">
+    <section className="glass-card border-t-4 border-t-tier2 p-2.5">
       <div className="mb-2 flex items-center gap-2">
         <MessageSquare className="h-4 w-4 text-tier2" />
         <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{title}</h3>
@@ -282,7 +290,9 @@ export function CommentsPanel({
             <button
               type="button"
               onClick={() => {
-                setText(comment.text || comment.comment || "")
+                const commentText = comment.text || comment.comment || ""
+                setText(commentText)
+                onUseAsDraft?.(commentText)
                 setMode("edit")
                 window.setTimeout(() => textareaRef.current?.focus(), 0)
               }}
@@ -381,10 +391,10 @@ export function CommentsPanel({
             value={text}
             onChange={(event) => setText(event.target.value)}
             placeholder="Write a markdown comment..."
-            className="min-h-24 w-full resize-y rounded-lg border border-input bg-background p-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+            className="min-h-52 w-full resize-y rounded-lg border border-input bg-background p-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
           />
         ) : (
-          <div className="min-h-24 rounded-lg border border-input bg-background p-3">
+          <div className="min-h-52 rounded-lg border border-input bg-background p-3">
             {text.trim() ? <MarkdownText text={text} /> : <p className="text-sm text-muted-foreground">Nothing to preview.</p>}
           </div>
         )}

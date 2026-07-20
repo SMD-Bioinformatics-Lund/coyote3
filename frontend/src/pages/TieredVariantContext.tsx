@@ -1,9 +1,10 @@
 import { Link, useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { Activity, AlertTriangle, ArrowLeft, ExternalLink } from "lucide-react"
+import { AlertTriangle, ArrowLeft, ExternalLink } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { TierBadge } from "@/lib/variant-ui"
 import { displayValue } from "@/lib/detail-formatters"
@@ -40,7 +41,7 @@ export function TieredVariantContext() {
   })
 
   if (isLoading) {
-    return <div className="flex justify-center p-10"><Activity className="animate-spin text-muted-foreground" /></div>
+    return <AppLoader label="Loading reported variant" />
   }
 
   if (error || !data) {
@@ -110,6 +111,7 @@ export function TieredVariantContext() {
       id: "tier",
       header: "Tier",
       accessorFn: (row) => row.tier || row.class || 999,
+      meta: { headerClassName: "w-14 min-w-14", cellClassName: "w-14 min-w-14" },
       cell: ({ row }) => <TierBadge tier={row.getValue("tier")} />,
     },
     {

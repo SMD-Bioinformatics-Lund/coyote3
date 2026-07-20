@@ -1,14 +1,11 @@
 import { type ReactNode } from "react"
 import { Link } from "react-router-dom"
-import { Activity, ArrowLeft } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { cn } from "@/lib/utils"
 
 export function FindingLoading() {
-  return (
-    <div className="flex h-full items-center justify-center p-8">
-      <Activity className="h-8 w-8 animate-spin text-muted-foreground" />
-    </div>
-  )
+  return <AppLoader label="Loading finding" />
 }
 
 export function FindingError({
@@ -72,10 +69,9 @@ export function FindingHero({
         </div>
 
         {(actions || statValue) && (
-          <div className="flex shrink-0 flex-wrap items-start justify-end gap-3 md:ml-auto">
-            {actions}
-            {statValue && (
-              <div className="flex flex-col items-end">
+          <div className="flex shrink-0 flex-col items-start gap-3 md:ml-auto md:min-h-[5.75rem] md:items-end md:justify-between">
+            {statValue ? (
+              <div className="flex flex-col items-start md:items-end">
                 {statLabel && (
                   <span className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                     {statLabel}
@@ -83,7 +79,10 @@ export function FindingHero({
                 )}
                 <span className="detail-stat-positive">{statValue}</span>
               </div>
+            ) : (
+              <span className="hidden md:block" aria-hidden="true" />
             )}
+            {actions && <div className="flex flex-wrap items-center justify-start gap-2 md:justify-end">{actions}</div>}
           </div>
         )}
       </div>
@@ -149,5 +148,5 @@ export function DetailField({
 }
 
 export function DetailFieldGrid({ children }: { children: ReactNode }) {
-  return <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">{children}</div>
+  return <div className="grid grid-cols-1 gap-3 text-sm px-2 sm:grid-cols-2">{children}</div>
 }

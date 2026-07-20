@@ -1,12 +1,14 @@
 import { useMemo } from "react"
 import { Link, useParams, useSearchParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Activity, ArrowLeft, CalendarDays, Database, Dna, ExternalLink, Fingerprint, Link2, MapPinned, Tags, Trash2 } from "lucide-react"
+import { ArrowLeft, CalendarDays, Database, Dna, ExternalLink, Fingerprint, Link2, MapPinned, Tags, Trash2 } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
+import { clinGenGeneUrl, ensemblGeneSummaryUrl, geneCardsUrl, hgncReportUrl, ncbiGeneUrl } from "@/lib/external-links"
 
 function columnsFor(rows: any[], preferred: string[] = []): ColumnDef<any, any>[] {
   const keys = [...preferred, ...rows.flatMap((row) => Object.keys(row || {}))]
@@ -36,7 +38,7 @@ function columnsFor(rows: any[], preferred: string[] = []): ColumnDef<any, any>[
 }
 
 function Loading() {
-  return <div className="flex justify-center p-10"><Activity className="animate-spin text-muted-foreground" /></div>
+  return <AppLoader label="Loading reference data" />
 }
 
 function ErrorBox({ error }: { error: unknown }) {
@@ -167,11 +169,11 @@ export function GeneInfoPage() {
   const omimIds = asList(gene.omim_id)
   const transcriptInfo = gene.addtional_transcript_info || gene.additional_transcript_info || {}
   const links = [
-    hgncId && { label: "HGNC", href: `https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${String(hgncId).replace("HGNC:", "")}` },
-    gene.ensembl_gene_id && { label: "Ensembl", href: `https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=${gene.ensembl_gene_id}` },
-    gene.entrez_id && { label: "NCBI", href: `https://www.ncbi.nlm.nih.gov/gene/${gene.entrez_id}` },
-    symbol && { label: "GeneCards", href: `https://www.genecards.org/cgi-bin/carddisp.pl?gene=${encodeURIComponent(String(symbol))}` },
-    symbol && { label: "ClinGen", href: `https://search.clinicalgenome.org/kb/genes/${encodeURIComponent(String(symbol))}` },
+    hgncId && { label: "HGNC", href: hgncReportUrl(hgncId) },
+    gene.ensembl_gene_id && { label: "Ensembl", href: ensemblGeneSummaryUrl(gene.ensembl_gene_id) },
+    gene.entrez_id && { label: "NCBI", href: ncbiGeneUrl(gene.entrez_id) },
+    symbol && { label: "GeneCards", href: geneCardsUrl(symbol) },
+    symbol && { label: "ClinGen", href: clinGenGeneUrl(symbol) },
   ].filter(Boolean) as { label: string; href: string }[]
   const transcriptRows = Object.entries(transcriptInfo || {}).map(([transcript, value]: [string, any]) => ({
     transcript,
@@ -539,6 +541,7 @@ export function CoverageBlacklistPage() {
     {
       id: "actions",
       header: "Actions",
+      enableSorting: false,
       cell: ({ row }) => {
         const id = String(row.original._id || row.original.id || row.original.gene)
         return (

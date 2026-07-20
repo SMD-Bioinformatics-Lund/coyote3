@@ -1,4 +1,4 @@
-import { MessageSquare, ScrollText, Tags } from "lucide-react"
+import { MessageSquare, Tags } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { TierBadge } from "@/lib/variant-ui"
@@ -30,7 +30,7 @@ export function DetailCard({
   children: React.ReactNode
 }) {
   return (
-    <section className={`rounded-xl border border-border border-t-4 ${tone} bg-card/90 p-4 shadow-sm`}>
+    <section className={`glass-card border-t-4 ${tone} p-4`}>
       <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
         <Icon className="h-4 w-4 text-primary" />
         {title}
@@ -156,20 +156,6 @@ export function ClassificationsCard({
           </div>
         )}
       </div>
-    </DetailCard>
-  )
-}
-
-export function RawPayloadCard({ value }: { value: unknown }) {
-  if (!import.meta.env.DEV || localStorage.getItem("coyote3:showRawPayloads") !== "true") {
-    return null
-  }
-
-  return (
-    <DetailCard title="Raw Payload" icon={ScrollText} tone="border-t-mist-500">
-      <pre className="max-h-96 overflow-auto rounded-lg border border-border bg-muted/30 p-3 text-xs leading-relaxed text-foreground">
-        {JSON.stringify(value, null, 2)}
-      </pre>
     </DetailCard>
   )
 }

@@ -5,6 +5,7 @@ import { Activity, AlertTriangle, Download, Eye, FileText, Save, ShieldCheck, X 
 import { api } from "@/lib/api"
 import { apiPath } from "@/lib/runtime-paths"
 import { DataTable } from "@/components/data-table/DataTable"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { ReportHtmlFrame } from "@/components/reports/ReportHtmlFrame"
 import { ColumnDef } from "@tanstack/react-table"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
@@ -178,7 +179,7 @@ export function ReportsTab({ sampleId }: { sampleId: string }) {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center p-8"><Activity className="animate-spin text-muted-foreground" /></div>
+        <AppLoader label="Loading report preview" />
       ) : error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           <div className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-4 w-4" /> Error loading report preview</div>
@@ -186,7 +187,7 @@ export function ReportsTab({ sampleId }: { sampleId: string }) {
         </div>
       ) : (
         <div className="space-y-4">
-          <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <section className="glass-card p-4">
             <div className="mb-3 flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
               <h4 className="font-bold">{data?.sample?.name || sampleId} {reportType.toUpperCase()} report</h4>
@@ -214,7 +215,7 @@ export function ReportsTab({ sampleId }: { sampleId: string }) {
               filename={`${sampleId}_${reportType}_snapshot.csv`}
             />
           </section>
-          <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <section className="glass-card p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <Eye className="h-5 w-5 text-primary" />
               <h4 className="font-bold">Rendered report preview</h4>

@@ -8,16 +8,6 @@ const envPrefix = normalizePrefix(import.meta.env.VITE_SCRIPT_NAME)
 
 export const APP_BASENAME = envPrefix
 
-export function normalizeMountedRootUrl() {
-  if (!APP_BASENAME || typeof window === "undefined") return
-  if (window.location.pathname !== APP_BASENAME) return
-  window.history.replaceState(
-    window.history.state,
-    "",
-    `${APP_BASENAME}/${window.location.search}${window.location.hash}`,
-  )
-}
-
 export function appPath(path = "/") {
   const normalized = path.startsWith("/") ? path : `/${path}`
   if (!APP_BASENAME) return normalized

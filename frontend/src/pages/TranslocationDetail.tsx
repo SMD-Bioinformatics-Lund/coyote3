@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
@@ -24,7 +24,8 @@ import {
   FindingLoading,
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
-import { sampleDetailPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
+import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
+import { cbioportalOncoprintUrl, igvLoadUrl, pubmedSearchUrl } from "@/lib/external-links"
 
 function translatedConsequence(annotation: any, translations: Record<string, any> = {}) {
   const raw = annotation?.Annotation || annotation?.Consequence
@@ -47,6 +48,7 @@ function genotypeRows(translocation: any) {
 export function TranslocationDetail() {
   const { id, varId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['translocation', id, varId],
@@ -55,9 +57,12 @@ export function TranslocationDetail() {
   const routeSample = data?.sample
   useEffect(() => {
     if (routeSample?.name && id && varId && id !== routeSample.name) {
-      navigate(sampleFindingPath(routeSample, id, "translocation", varId), { replace: true })
+      navigate(sampleFindingPath(routeSample, id, "translocation", varId), {
+        replace: true,
+        state: location.state,
+      })
     }
-  }, [id, navigate, routeSample, routeSample?.name, varId])
+  }, [id, location.state, navigate, routeSample, routeSample?.name, varId])
 
   if (isLoading) {
     return <FindingLoading />
@@ -80,23 +85,36 @@ export function TranslocationDetail() {
   const annRows = Array.isArray(translocation?.INFO?.ANN) ? translocation.INFO.ANN : []
   const position = translocationPositionLabel(translocation)
   const callers = translocation?.INFO?.variant_callers || translocation?.callers
+  const maxSupport = genotypeRows(translocation).reduce(
+    (max: number, row: any) => Math.max(max, row.prPct || 0, row.srPct || 0),
+    0,
+  )
   const sampleRouteKey = sampleUrlKey(sample, id)
-  const sampleHref = sampleDetailPath(sample, id)
+  const sampleHref = sampleDetailTabPath(sample, id, "translocations")
+  const previousSampleHref = typeof location.state === "object" && location.state && "from" in location.state
+    ? String((location.state as { from?: string }).from || sampleHref)
+    : sampleHref
 
   return (
     <FindingDetailShell>
       <FindingHero
-        backTo={sampleHref}
+        backTo={previousSampleHref}
         title={genes.length > 0 ? genes.join(" - ") : "Unknown Translocation"}
-        chips={
-          <>
-            <span className="soft-chip">Translocation</span>
-            <span className="soft-chip">{position}</span>
-            <CallerBadges value={callers} />
-            <Link to={sampleHref} className="soft-chip hover:bg-primary/15 hover:text-primary">
+        subtitle={
+          <div className="space-y-2">
+            <span className="block text-xl font-bold text-muted-foreground">
+              Translocation · {position}
+            </span>
+            <Link to={sampleHref} className="inline-flex w-max rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
               Sample {sample?.name || id}
             </Link>
-          </>
+          </div>
+        }
+        chips={
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">Called by</span>
+            <CallerBadges value={callers} />
+          </div>
         }
         actions={
           <VariantActionButtons
@@ -106,6 +124,8 @@ export function TranslocationDetail() {
             onUpdate={() => refetch()}
           />
         }
+        statLabel="Max support"
+        statValue={percentValue(maxSupport, 1)}
       />
 
       <FindingMainGrid
@@ -218,13 +238,13 @@ export function TranslocationDetail() {
             <ExternalLinksCard
               links={[
                 data.bam_id && position !== "-"
-                  ? { label: "Open junction in IGV", value: position, href: `http://localhost:60151/load?file=${encodeURIComponent(String(data.bam_id))}&locus=${encodeURIComponent(position)}` }
+                  ? { label: "Open junction in IGV", value: position, href: igvLoadUrl(data.bam_id, position) }
                   : null,
                 genes[0]
-                  ? { label: `cBioPortal ${genes[0]}`, value: genes[0], href: `https://www.cbioportal.org/results/oncoprint?gene_list=${encodeURIComponent(genes.join("%20"))}` }
+                  ? { label: `cBioPortal ${genes[0]}`, value: genes[0], href: cbioportalOncoprintUrl(genes) }
                   : null,
                 genes.length >= 2
-                  ? { label: "PubMed gene pair", value: genes.join(" "), href: `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(genes.join(" "))}` }
+                  ? { label: "PubMed gene pair", value: genes.join(" "), href: pubmedSearchUrl(genes.join(" ")) }
                   : null,
               ].filter(Boolean) as any[]}
             />

@@ -4,6 +4,7 @@ import { Suspense, lazy } from "react"
 import { api } from "@/lib/api"
 import { Activity, AlertTriangle, ArrowRight, CheckCircle2, Clock, Users } from "lucide-react"
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { shortCount } from "@/lib/detail-formatters"
 import { sampleDetailPath } from "@/lib/sample-routing"
 
@@ -60,14 +61,7 @@ export function Dashboard() {
   })
 
   if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center p-8">
-        <div className="flex flex-col items-center gap-4 text-muted-foreground">
-          <Activity className="h-8 w-8 animate-spin" />
-          <p>Loading dashboard...</p>
-        </div>
-      </div>
-    )
+    return <AppLoader label="Loading dashboard" />
   }
 
   if (error) {

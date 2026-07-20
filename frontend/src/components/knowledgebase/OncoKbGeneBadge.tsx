@@ -2,6 +2,7 @@ import { Link } from "react-router-dom"
 import { ExternalLink, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { isOncoKbGene, type OncoKbGeneRecord } from "@/lib/oncokb-ui"
+import { oncokbGeneUrl } from "@/lib/external-links"
 
 export function OncoKbGeneBadge({
   gene,
@@ -20,7 +21,7 @@ export function OncoKbGeneBadge({
     `${gene} is present in the OncoKB public gene cache.`
   return (
     <a
-      href={`https://www.oncokb.org/gene/${encodeURIComponent(gene)}`}
+      href={oncokbGeneUrl(gene)}
       target="_blank"
       rel="noreferrer"
       className={cn(

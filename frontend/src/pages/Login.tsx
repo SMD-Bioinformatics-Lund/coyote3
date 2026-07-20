@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
-import { Eye, EyeOff, Loader2, Sun, Cloud } from "lucide-react"
+import { Eye, EyeOff, Loader2, Cloud } from "lucide-react"
 import { useTheme } from "next-themes"
 import { apiPath, appPath } from "@/lib/runtime-paths"
 
@@ -16,8 +16,10 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const { theme } = useTheme()
-  const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
+  const organizationName = import.meta.env.VITE_ORGANIZATION_NAME || "Coyote3"
+  const appVersion = import.meta.env.VITE_APP_VERSION || "v4.0.0-dev"
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,18 +54,33 @@ export function Login() {
 
         {/* Top Section: Sun/Moon & Clouds */}
         <div className="relative w-full h-1/2">
+          {isDark ? (
+            <div className="login-stars" aria-hidden="true" />
+          ) : (
+            <div className="login-birds" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+          )}
+
           {/* Sun / Moon top right */}
-          <div className="absolute top-12 right-[15%] opacity-40">
+          <div className={`absolute top-12 right-[15%] ${isDark ? "opacity-75" : "opacity-50"}`}>
             {isDark ? (
-              <div
-                className="w-[180px] h-[180px] rounded-full bg-slate-50"
-                style={{
-                  boxShadow: "0 0 60px 15px rgba(253, 253, 253, 1), inset -20px -20px 40px rgba(199, 199, 199, 1)",
-                  background: "radial-gradient(circle at 50% 60%, #ffffffec, #fffffff1)"
-                }}
-              />
+              <div className="login-moon" aria-hidden="true" />
             ) : (
-              <Sun size={200} strokeWidth={0.5} className="text-amber-500" />
+              <div className="login-sun" aria-hidden="true" />
             )}
           </div>
 
@@ -76,14 +93,13 @@ export function Login() {
           </div>
         </div>
 
-        {/* Bottom Section: Logo howling at moon */}
+        {/* Bottom Section: theme-specific pencil sketch */}
         <div className="relative w-full h-1/2">
-          {/* Big Coyote Logo bottom left */}
-          <div className="absolute -bottom-16 -left-16 opacity-[0.04]">
+          <div className="absolute bottom-[-2rem] -left-12 w-[min(130vw,1400px)] opacity-[0.2] dark:-bottom-15 dark:left-0 dark:w-[min(130vw,1400px)] dark:opacity-[0.26]">
             <img
-              src={appPath("/logo.png")}
+              src={appPath(isDark ? "/coyote-howling-sketch.svg" : "/coyote-walking-sketch.svg")}
               alt=""
-              className="w-[900px] h-[650px] dark:invert"
+              className="h-auto w-full"
             />
           </div>
         </div>
@@ -93,10 +109,10 @@ export function Login() {
         <div className="inline-flex min-w-max items-center gap-2.5">
           <img
             src={appPath("/logo.png")}
-            alt="Coyote3"
+            alt={organizationName}
             className="w-10 h-8 dark:invert"
           />
-          <span className="text-3xl tracking-[-0.035em] font-bold">COYOT3</span>
+          <span className="text-3xl tracking-wider font-bold">COYOT3</span>
         </div>
         <ThemeToggle />
       </header>
@@ -104,18 +120,18 @@ export function Login() {
       <section className="login-layout">
         <div className="login-intro">
           <h1 className="login-title">
-            Genomic variant analysis,<br /> from sequence to report.
+            From genomic data to confident clinical insight.
           </h1>
           <p className="login-description">
-            A focused clinical workspace for processing, interpretation,
-            and traceable reporting of complex genomic data.
+            Coyote3 brings variant analysis, interpretation, and traceable reporting
+            together in one focused clinical genomics workspace.
           </p>
         </div>
 
         <section className="login-card">
           <h2 className="text-2xl font-[750]">Welcome back</h2>
-          <p className="text-muted-foreground mt-1.5 mb-6 text-sm">
-            Sign in to continue to Coyote3.
+          <p className="text-muted-foreground mt-1 mb-4 text-sm">
+            Sign in to continue.
           </p>
 
           <div className="grid grid-cols-2 p-1 bg-muted rounded-lg mb-6 border border-border">
@@ -207,17 +223,17 @@ export function Login() {
 
           <p className="text-sm text-muted-foreground mt-5">
             {provider === "ldap"
-              ? "Use your organization credentials. Your Coyote3 access comes from your local user profile."
-              : "Use your existing Coyote3 local account."}
+              ? `Use your organization credentials. Your access comes from your local user profile.`
+              : `Use your existing local account.`}
           </p>
-          <div className="mt-4 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+          <div className="mt-2 rounded-lg border border-border bg-muted/40 p-3 text-sm">
             <p className="font-semibold text-foreground">Public resources</p>
             <p className="mt-1 text-xs text-muted-foreground">
               Assay catalog, gene lists, and public reference views are available without signing in.
             </p>
             <Link
               to="/public"
-              className="mt-3 inline-flex items-center rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-muted"
+              className="mt-2 inline-flex items-center rounded-lg border border-border bg-background px-3 py-1 text-xs font-bold text-primary transition-colors hover:bg-muted"
             >
               Open public catalog
             </Link>
@@ -226,9 +242,9 @@ export function Login() {
       </section>
 
       <footer className="login-footer">
-        <span>Coyote3 v4.0.0</span>
+        <span>Coyote3 {appVersion}</span>
         <span className="font-extrabold tracking-[0.08em] text-primary uppercase">DEVELOPMENT</span>
-        <span>Section for Molecular Diagnostics</span>
+        <span className="login-organization-name">{organizationName}</span>
       </footer>
     </main>
   )

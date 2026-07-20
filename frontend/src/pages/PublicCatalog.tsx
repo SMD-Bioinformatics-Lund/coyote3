@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import { Activity, Check, Download, Grid2X2, Info, ListTree, Search, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { ColumnDef } from "@tanstack/react-table"
 import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
@@ -103,14 +104,14 @@ export function PublicCatalog() {
       }
     >
       {isLoading ? (
-        <div className="flex justify-center p-10"><Activity className="animate-spin text-muted-foreground" /></div>
+        <AppLoader label="Loading assay catalog" />
       ) : error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {error instanceof Error ? error.message : "Unable to load catalog"}
         </div>
       ) : (
         <div className="grid gap-4 xl:grid-cols-[22rem_1fr]">
-          <div className="space-y-3 rounded-xl border border-border bg-card p-3 shadow-sm">
+          <div className="glass-card space-y-3 p-3">
             <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
               <ListTree className="h-4 w-4" />
               Modalities
@@ -165,7 +166,7 @@ export function PublicCatalog() {
           </div>
 
           <div className="space-y-4">
-            <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+            <section className="glass-card p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="text-xl font-bold">{right.title || right.label || "Assay Catalog"}</h2>
@@ -272,7 +273,7 @@ export function PublicCatalog() {
               )}
             </section>
 
-            <section className="rounded-xl border border-border bg-card p-3 shadow-sm">
+            <section className="glass-card border-border/50 p-3">
               <DataTable columns={geneColumns} data={data?.genes || []} filename="assay_catalog_genes.csv" />
             </section>
           </div>
@@ -494,7 +495,7 @@ export function PublicCatalogMatrix() {
       }
     >
       {isLoading ? (
-        <div className="flex justify-center p-10"><Activity className="animate-spin text-muted-foreground" /></div>
+        <AppLoader label="Loading assay matrix" />
       ) : error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {error instanceof Error ? error.message : "Unable to load matrix"}
@@ -629,9 +630,20 @@ function AssayMatrixTable({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-black text-foreground">Assay Catalog - Gene Coverage Matrix</h2>
+    <div className="glass-card border-border/50 p-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="rounded-lg border border-border bg-muted/60 px-2.5 py-1.5 text-xs font-black text-foreground shadow-sm">
+            {genes.length} genes
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-base font-black text-foreground">Assay Catalog - Gene Coverage Matrix</h2>
+            <p className="text-xs font-semibold text-muted-foreground">
+              {columns.length} visible catalog column(s)
+              {appliedGeneSearch ? ` for "${appliedGeneSearch}"` : ""}
+            </p>
+          </div>
+        </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
           <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
             Rows
@@ -686,7 +698,7 @@ function AssayMatrixTable({
         </form>
       </div>
 
-      <div className="mb-3 grid gap-2 md:grid-cols-3">
+      <div className="mb-3 grid gap-2 rounded-xl border border-border/70 bg-muted/25 p-3 md:grid-cols-3">
         {[
           ["mod", "Modality"],
           ["assayGroup", "Section"],
@@ -707,24 +719,25 @@ function AssayMatrixTable({
           </label>
         ))}
       </div>
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full min-w-max table-fixed border-collapse text-left text-xs">
+      <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm [contain:paint]">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-max table-fixed border-separate border-spacing-0 text-left text-sm tabular-nums">
           <colgroup>
             <col className="w-44" />
             {columns.map((col) => (
               <col key={col.key} className="w-32" />
             ))}
           </colgroup>
-          <thead className="sticky top-0 z-20 bg-card shadow-sm">
+          <thead className="sticky top-0 z-20 border-b-2 border-border bg-muted text-[11px] font-black uppercase tracking-wide text-foreground shadow-sm dark:bg-muted/70">
             <tr>
-              <th rowSpan={3} className="sticky left-0 z-30 border border-border matrix-head-list px-3 py-2 text-center align-middle text-xs font-black uppercase text-foreground">
+              <th rowSpan={3} className="sticky left-0 z-30 border-b-2 border-r border-border matrix-head-list px-3 py-2 text-center align-middle text-xs font-black uppercase text-foreground">
                 Gene
               </th>
               {headerSpans.mod.map((span, index) => (
                 <th
                   key={span.key}
                   colSpan={span.span}
-                  className="matrix-head-mod border border-border px-3 py-3 text-center align-middle text-xs font-black uppercase tracking-wider text-primary"
+                  className="matrix-head-mod border-b border-r border-border px-3 py-3 text-center align-middle text-xs font-black uppercase tracking-wider text-primary last:border-r-0"
                   style={index > 0 ? matrixBoundaryStyle("matrix-section") : undefined}
                 >
                   <span className="inline-block max-w-full truncate">
@@ -738,7 +751,7 @@ function AssayMatrixTable({
                 <th
                   key={span.key}
                   colSpan={span.span}
-                  className="matrix-head-group border border-border px-3 py-2.5 text-center align-middle text-[11px] font-black uppercase tracking-wider text-foreground"
+                  className="matrix-head-group border-b border-r border-border px-3 py-2.5 text-center align-middle text-[11px] font-black uppercase tracking-wider text-foreground last:border-r-0"
                   style={index > 0 ? matrixBoundaryStyle("matrix-group") : undefined}
                 >
                   <span className="inline-block max-w-full truncate">
@@ -753,7 +766,7 @@ function AssayMatrixTable({
                 return (
                   <th
                     key={col.key}
-                    className="matrix-head-list border border-border px-2 py-2 text-center align-middle text-[10px] font-black uppercase text-foreground"
+                    className="matrix-head-list border-b-2 border-r border-border px-2 py-2 text-center align-middle text-[10px] font-black uppercase text-foreground last:border-r-0"
                     title={col.isgl_key}
                     style={matrixBoundaryStyle(boundary)}
                   >
@@ -765,16 +778,21 @@ function AssayMatrixTable({
           </thead>
           <tbody>
             {genes.map((gene) => (
-              <tr key={gene} className="hover:bg-primary/5">
-                <th className="sticky left-0 z-10 border border-border bg-card px-3 py-1.5 text-xs font-black text-primary">
-                  {gene}
+              <tr key={gene} className="transition-colors duration-75 odd:bg-background/35 even:bg-card/60 hover:bg-primary/10 dark:hover:bg-primary/20">
+                <th className="sticky left-0 z-10 border-b border-r border-border/65 bg-card px-3 py-1.5 text-sm font-black">
+                  <Link
+                    to={`/public/gene/${encodeURIComponent(gene)}/info`}
+                    className="text-primary transition-colors duration-100 hover:text-primary/80 hover:underline"
+                  >
+                    {gene}
+                  </Link>
                 </th>
                 {columns.map((col) => {
                   const present = Boolean(matrix?.[gene]?.[col.mod]?.[col.cat]?.[col.isgl_key])
                   return (
                     <td
                       key={`${gene}:${col.key}`}
-                      className="h-7 border border-border px-2 py-1 text-center"
+                      className="h-8 border-b border-r border-border/65 px-2 py-1.5 text-center last:border-r-0"
                     >
                       {present ? (
                         <Check className="mx-auto h-4 w-4 rounded-full text-pass" strokeWidth={2.4} />
@@ -788,6 +806,7 @@ function AssayMatrixTable({
             ))}
           </tbody>
         </table>
+        </div>
       </div>
       <div className="mt-2 text-right text-xs font-semibold text-muted-foreground">
         Showing {genes.length} of {total} gene(s) across {columns.length} visible catalog column(s)

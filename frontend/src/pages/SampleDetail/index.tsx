@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate, useParams, Link } from "react-router-dom"
+import { useNavigate, useParams, Link, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
-import { Activity, ArrowLeft } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 
 import { BiomarkerRow, OverviewTab, PanelSummary } from "./OverviewTab"
 import { VariantsTab } from "./VariantsTab"
@@ -13,6 +13,7 @@ import { ReportsTab } from "./ReportsTab"
 import { CoverageTab } from "./CoverageTab"
 import { FiltersSidebar } from "./FiltersSidebar"
 import { CommentsPanel } from "@/components/comments/CommentsPanel"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { hasSampleFile } from "@/lib/sample-shape"
 import { sampleUrlKey } from "@/lib/sample-routing"
 
@@ -40,7 +41,9 @@ function visibleTabs(sample: any, context: any) {
 export function SampleDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState("overview")
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialTab = searchParams.get("tab") || "overview"
+  const [activeTab, setActiveTab] = useState(initialTab)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['sample', id],
@@ -51,21 +54,35 @@ export function SampleDetail() {
   const tabs = useMemo(() => visibleTabs(data?.sample || {}, data), [data])
   useEffect(() => {
     if (sample?.name && id && id !== sample.name) {
-      navigate(`/samples/${encodeURIComponent(sample.name)}`, { replace: true })
+      const query = searchParams.toString()
+      navigate(`/samples/${encodeURIComponent(sample.name)}${query ? `?${query}` : ""}`, { replace: true })
     }
-  }, [id, navigate, sample?.name])
+  }, [id, navigate, sample?.name, searchParams])
+  useEffect(() => {
+    const tab = searchParams.get("tab") || "overview"
+    if (tab !== activeTab) {
+      setActiveTab(tab)
+    }
+  }, [activeTab, searchParams])
   useEffect(() => {
     if (!tabs.some((tab) => tab.id === activeTab)) {
       setActiveTab("overview")
+      setSearchParams({}, { replace: true })
     }
-  }, [activeTab, tabs])
+  }, [activeTab, setSearchParams, tabs])
+
+  const selectTab = (tabId: string) => {
+    setActiveTab(tabId)
+    setSearchParams((current) => {
+      const params = new URLSearchParams(current)
+      if (tabId === "overview") params.delete("tab")
+      else params.set("tab", tabId)
+      return params
+    }, { replace: true })
+  }
 
   if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center p-8">
-        <Activity className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <AppLoader label="Loading sample" />
   }
 
   if (error) {
@@ -109,7 +126,7 @@ export function SampleDetail() {
                   {tabs.map(tab => (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => selectTab(tab.id)}
                       className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors duration-100 ${
                         activeTab === tab.id
                         ? "bg-primary text-primary-foreground shadow-md scale-105"

@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Activity, BadgeCheck, Dna, KeyRound, Mail, ShieldCheck, User } from "lucide-react"
 import { api } from "@/lib/api"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 
@@ -51,14 +52,14 @@ export function Profile() {
       description="View your active session and manage your local account password."
     >
       {isLoading ? (
-        <div className="flex justify-center p-10"><Activity className="animate-spin text-muted-foreground" /></div>
+        <AppLoader label="Loading profile" />
       ) : error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {error instanceof Error ? error.message : "Unable to load profile"}
         </div>
       ) : (
         <div className="grid gap-4 xl:grid-cols-[1fr_28rem]">
-          <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <section className="glass-card p-4">
             <div className="mb-4 flex items-center gap-3">
               <div className="rounded-xl bg-primary/10 p-3 text-primary">
                 <User className="h-6 w-6" />
@@ -140,7 +141,7 @@ export function Profile() {
             </section>
           </section>
 
-          <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <section className="glass-card p-4">
             <div className="mb-4 flex items-center gap-2">
               <KeyRound className="h-5 w-5 text-primary" />
               <h2 className="font-bold">Change Password</h2>

@@ -1,7 +1,8 @@
-import { AlertCircle, Ban, MessageSquare, XCircle, XSquare } from "lucide-react"
-import { useState, type FocusEvent, type MouseEvent } from "react"
+import { AlertCircle, Ban, MessageSquare, ShieldCheck, XCircle, XSquare } from "lucide-react"
+import { useState, type FocusEvent, type MouseEvent, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { cn } from "@/lib/utils"
+import { clinpgxGeneUrl, oncokbGeneUrl } from "@/lib/external-links"
 import { filterFlags, normalizedCallerList } from "@/lib/variant-helpers"
 
 export type FilterFlagMetadata = {
@@ -126,59 +127,193 @@ export function StatusBadges({
   const isBlacklist = Boolean(finding?.blacklisted || (finding?.blacklist && finding?.override_blacklist !== true))
   const isIrrelevant = Boolean(finding?.irrelevant)
   const isInteresting = Boolean(finding?.interesting)
+  const hasBlacklistOverride = Boolean(finding?.override_blacklist)
   const hasComments = Array.isArray(finding?.comments) && finding.comments.length > 0
 
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {isFp && <XCircle className="h-4 w-4 text-fail" aria-label="False positive" />}
-      {isBlacklist && <Ban className="h-4 w-4 text-fail" aria-label="Blacklisted" />}
-      {isIrrelevant && <XSquare className="h-4 w-4 text-warn" aria-label="Irrelevant" />}
-      {isInteresting && <AlertCircle className="h-4 w-4 text-pass" aria-label="Interesting" />}
-      {hasComments && <MessageSquare className="h-4 w-4 text-tier2" aria-label="Has comments" />}
+      {isFp && (
+        <StatusTooltipBadge
+          label="False positive"
+          description="This finding has been marked as a false positive for the current sample. It stays visible for traceability but should not be used as report evidence unless the flag is removed."
+          severity="fail"
+          ariaLabel="False positive"
+        >
+          <XCircle className="h-3.5 w-3.5" />
+        </StatusTooltipBadge>
+      )}
+      {isBlacklist && (
+        <StatusTooltipBadge
+          label="Blacklisted"
+          description="This finding matches the center blacklist. Blacklisted findings are de-prioritized and are normally excluded unless a sample-specific override is applied."
+          severity="fail"
+          ariaLabel="Blacklisted"
+        >
+          <Ban className="h-3.5 w-3.5" />
+        </StatusTooltipBadge>
+      )}
+      {hasBlacklistOverride && (
+        <StatusTooltipBadge
+          label="Blacklist override"
+          description="The center blacklist match has been overridden for this sample, so the finding remains eligible for review in this sample context."
+          severity="info"
+          ariaLabel="Blacklist override"
+        >
+          <ShieldCheck className="h-3.5 w-3.5" />
+        </StatusTooltipBadge>
+      )}
+      {isIrrelevant && (
+        <StatusTooltipBadge
+          label="Irrelevant"
+          description="This finding has been marked as irrelevant for the current sample review. It remains auditable and can be restored if the interpretation changes."
+          severity="warn"
+          ariaLabel="Irrelevant"
+        >
+          <XSquare className="h-3.5 w-3.5" />
+        </StatusTooltipBadge>
+      )}
+      {isInteresting && (
+        <StatusTooltipBadge
+          label="Interesting"
+          description="This finding has been marked as interesting or report-relevant for focused review."
+          severity="pass"
+          ariaLabel="Interesting"
+        >
+          <AlertCircle className="h-3.5 w-3.5" />
+        </StatusTooltipBadge>
+      )}
+      {hasComments && (
+        <StatusTooltipBadge
+          label="Comments available"
+          description="One or more sample-specific comments or annotations are attached to this finding."
+          severity="info"
+          ariaLabel="Has comments"
+        >
+          <MessageSquare className="h-3.5 w-3.5" />
+        </StatusTooltipBadge>
+      )}
       {hasOncoKbCancerGene && (
-        <a
-          href={`https://www.oncokb.org/gene/${encodeURIComponent(gene || "")}`}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex h-4 items-center rounded border border-tier3/35 bg-tier3/10 px-1 text-[8px] font-black leading-none text-tier3"
-          title="OncoKB public cancer gene"
-          aria-label="OncoKB public cancer gene"
+        <StatusTooltipBadge
+          href={oncokbGeneUrl(gene)}
+          label="OncoKB cancer gene"
+          description="The gene is present in the local OncoKB public cancer-gene cache. Open OncoKB for current public gene context."
+          severity="info"
+          ariaLabel="OncoKB public cancer gene"
+          textBadge
         >
           OKB
-        </a>
+        </StatusTooltipBadge>
       )}
       {hasOncoKbActionable && (
-        <span
-          className="inline-flex h-4 items-center rounded border border-tier1/35 bg-tier1/10 px-1 text-[8px] font-black leading-none text-tier1"
-          title="Historical local OncoKB actionable evidence with drug-level fields"
-          aria-label="Historical local OncoKB actionable evidence"
+        <StatusTooltipBadge
+          label="Local actionable evidence"
+          description="Historical local OncoKB actionable evidence is available for this gene, including drug-level fields from the local cache."
+          severity="warn"
+          ariaLabel="Historical local OncoKB actionable evidence"
+          textBadge
         >
           Rx
-        </span>
+        </StatusTooltipBadge>
       )}
       {hasClinPgxGene && (
-        <a
-          href={
-            clinPgxRecord?.pharmgkb_accession_id
-              ? `https://api.clinpgx.org/v1/data/gene/${encodeURIComponent(clinPgxRecord.pharmgkb_accession_id)}`
-              : `https://api.clinpgx.org/v1/data/gene?symbol=${encodeURIComponent(gene || "")}&view=max`
-          }
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex h-4 items-center rounded border border-primary/35 bg-primary/10 px-1 text-[8px] font-black leading-none text-primary"
-          title={
+        <StatusTooltipBadge
+          href={clinpgxGeneUrl(gene, clinPgxRecord?.pharmgkb_accession_id)}
+          label={
             clinPgxRecord?.has_cpic_dosing_guideline
-              ? "ClinPGx gene with CPIC dosing guideline"
+              ? "ClinPGx dosing gene"
               : clinPgxRecord?.has_variant_annotation
-                ? "ClinPGx gene with variant annotation"
+                ? "ClinPGx variant annotation"
                 : "ClinPGx gene"
           }
-          aria-label="ClinPGx gene"
+          description={
+            clinPgxRecord?.has_cpic_dosing_guideline
+              ? "ClinPGx contains pharmacogenomics context for this gene, including a CPIC dosing-guideline marker."
+              : clinPgxRecord?.has_variant_annotation
+                ? "ClinPGx contains pharmacogenomics variant-annotation context for this gene."
+                : "The gene is present in the local ClinPGx gene marker set."
+          }
+          severity="pgx"
+          ariaLabel="ClinPGx gene"
+          textBadge
         >
           PGx
-        </a>
+        </StatusTooltipBadge>
       )}
     </div>
+  )
+}
+
+function StatusTooltipBadge({
+  children,
+  label,
+  description,
+  severity,
+  href,
+  ariaLabel,
+  textBadge = false,
+  className,
+}: {
+  children: ReactNode
+  label: string
+  description: string
+  severity: string
+  href?: string
+  ariaLabel: string
+  textBadge?: boolean
+  className?: string
+}) {
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
+  const badgeClass = cn(
+    textBadge
+      ? "h-5 min-w-5 rounded-md px-1.5 text-[0.58rem] font-black leading-none"
+      : "h-5 w-5 rounded-full p-0",
+    "inline-flex cursor-help items-center justify-center border shadow-sm outline-none ring-offset-background transition-all duration-100 hover:-translate-y-0.5 hover:shadow-md focus:ring-2 focus:ring-ring/40",
+    severityClass(severity),
+    className,
+  )
+  const handlers = {
+    onMouseEnter: (event: MouseEvent<HTMLElement>) => setPosition(belowOrAboveTooltipPosition(event)),
+    onMouseMove: (event: MouseEvent<HTMLElement>) => setPosition(belowOrAboveTooltipPosition(event)),
+    onMouseLeave: () => setPosition(null),
+    onFocus: (event: FocusEvent<HTMLElement>) => setPosition(belowOrAboveTooltipPosition(event)),
+    onBlur: () => setPosition(null),
+  }
+  const content = href ? (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={badgeClass}
+      aria-label={ariaLabel}
+      tabIndex={0}
+      {...handlers}
+    >
+      {children}
+    </a>
+  ) : (
+    <span className={badgeClass} aria-label={ariaLabel} tabIndex={0} {...handlers}>
+      {children}
+    </span>
+  )
+
+  return (
+    <span className="inline-flex">
+      {content}
+      {position && createPortal(
+        <span
+          className={cn(
+            "pointer-events-none fixed z-[9999] w-72 rounded-lg border px-3 py-2 text-left text-xs shadow-lg",
+            tooltipSeverityClass(severity),
+          )}
+          style={{ left: position.left, top: position.top }}
+        >
+          <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">Finding marker</span>
+          <span className="block font-bold text-foreground">{label}</span>
+          <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{description}</span>
+        </span>,
+        document.body,
+      )}
+    </span>
   )
 }
 
@@ -194,6 +329,9 @@ function severityClass(severity: string) {
   }
   if (severity === "info") {
     return "border-tier3/35 bg-tier3/12 text-tier3"
+  }
+  if (severity === "pgx") {
+    return "border-fuchsia-300/70 bg-fuchsia-50 text-fuchsia-800 hover:bg-fuchsia-50 hover:text-fuchsia-800 dark:border-fuchsia-300/35 dark:bg-fuchsia-400/12 dark:text-fuchsia-200 dark:hover:bg-fuchsia-400/12 dark:hover:text-fuchsia-200"
   }
   if (severity === "neutral") {
     return "border-muted-foreground/25 bg-muted text-muted-foreground"
@@ -213,6 +351,9 @@ function tooltipSeverityClass(severity: string) {
   }
   if (severity === "info") {
     return "border-tier3/45 bg-popover text-tier3"
+  }
+  if (severity === "pgx") {
+    return "border-fuchsia-300/70 bg-fuchsia-50 text-fuchsia-800 dark:border-fuchsia-300/35 dark:bg-fuchsia-950/90 dark:text-fuchsia-200"
   }
   if (severity === "neutral") {
     return "border-muted-foreground/35 bg-popover text-muted-foreground"
@@ -412,11 +553,61 @@ function impactSeverity(value: unknown) {
   return "info"
 }
 
+function impactDescription(value: unknown) {
+  const impact = String(value || "").toUpperCase()
+  if (impact === "HIGH") {
+    return "High predicted consequence. These terms usually indicate a severe coding effect such as truncation, splice disruption, or loss of protein function."
+  }
+  if (impact === "MODERATE") {
+    return "Moderate predicted consequence. These terms usually alter the protein sequence but are not automatically interpreted as loss of function."
+  }
+  if (impact === "LOW") {
+    return "Low predicted consequence. These terms usually have limited expected effect on protein function, such as synonymous or retained-codon changes."
+  }
+  if (impact === "MODIFIER") {
+    return "Modifier consequence. These terms are typically non-coding, intronic, regulatory, intergenic, or otherwise indirect in predicted effect."
+  }
+  return "No VEP impact description is configured for this value."
+}
+
 export function ImpactBadge({ value }: { value: unknown }) {
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
   if (!value) return <span className="text-muted-foreground">-</span>
+  const severity = impactSeverity(value)
+  const impact = String(value).toUpperCase()
+
   return (
-    <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-[0.72rem] font-black uppercase leading-5", impactClass(value))}>
-      {String(value)}
+    <span
+      className="inline-flex"
+      onMouseEnter={(event) => setPosition(belowOrAboveTooltipPosition(event))}
+      onMouseMove={(event) => setPosition(belowOrAboveTooltipPosition(event))}
+      onMouseLeave={() => setPosition(null)}
+      onFocus={(event) => setPosition(belowOrAboveTooltipPosition(event))}
+      onBlur={() => setPosition(null)}
+    >
+      <span
+        tabIndex={0}
+        className={cn(
+          "inline-flex cursor-help rounded-md border px-2 py-0.5 text-[0.72rem] font-black uppercase leading-5 shadow-sm outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
+          impactClass(value),
+        )}
+      >
+        {impact}
+      </span>
+      {position && createPortal(
+        <span
+          className={cn(
+            "pointer-events-none fixed z-[9999] w-72 rounded-lg border px-3 py-2 text-left text-xs shadow-lg",
+            tooltipSeverityClass(severity),
+          )}
+          style={{ left: position.left, top: position.top }}
+        >
+          <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">VEP impact</span>
+          <span className="block font-bold text-foreground">{impact}</span>
+          <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{impactDescription(value)}</span>
+        </span>,
+        document.body,
+      )}
     </span>
   )
 }
@@ -445,12 +636,80 @@ function predictionSeverity(value: unknown) {
   return "info"
 }
 
+function predictionLabel(value: unknown) {
+  const text = String(value || "").toLowerCase()
+  if (text.includes("deleterious")) return "Deleterious"
+  if (text.includes("probably") || text.includes("damaging")) return "Damaging"
+  if (text.includes("possibly")) return "Possibly damaging"
+  if (text.includes("low_confidence")) return "Low confidence"
+  if (text.includes("tolerated")) return "Tolerated"
+  if (text.includes("benign")) return "Benign"
+  return "Prediction"
+}
+
+function predictionDescription(value: unknown) {
+  const text = String(value || "").toLowerCase()
+  if (text.includes("deleterious")) {
+    return "SIFT predicts that the amino-acid substitution is likely to affect protein function."
+  }
+  if (text.includes("probably")) {
+    return "PolyPhen predicts a probably damaging protein effect. Treat this as supporting computational evidence, not as a standalone classification."
+  }
+  if (text.includes("damaging")) {
+    return "The prediction suggests a damaging protein effect. Use together with clinical, population, and assay evidence."
+  }
+  if (text.includes("possibly")) {
+    return "PolyPhen predicts a possible damaging effect, with lower confidence than a probably damaging call."
+  }
+  if (text.includes("low_confidence")) {
+    return "The prediction is low confidence and should be interpreted cautiously."
+  }
+  if (text.includes("tolerated")) {
+    return "SIFT predicts that the amino-acid substitution is likely tolerated."
+  }
+  if (text.includes("benign")) {
+    return "PolyPhen predicts a benign protein effect."
+  }
+  return "Computational protein-effect prediction. Interpret as supporting evidence only."
+}
+
 export function PredictionBadge({ value }: { value: unknown }) {
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
   if (!value) return <span className="text-muted-foreground">-</span>
   const severity = predictionSeverity(value)
   return (
-    <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-[0.72rem] font-bold leading-5", severityClass(severity))}>
-      {String(value)}
+    <span
+      className="inline-flex"
+      onMouseEnter={(event) => setPosition(belowOrAboveTooltipPosition(event))}
+      onMouseMove={(event) => setPosition(belowOrAboveTooltipPosition(event))}
+      onMouseLeave={() => setPosition(null)}
+      onFocus={(event) => setPosition(belowOrAboveTooltipPosition(event))}
+      onBlur={() => setPosition(null)}
+    >
+      <span
+        tabIndex={0}
+        className={cn(
+          "inline-flex cursor-help rounded-md border px-2 py-0.5 text-[0.72rem] font-bold leading-5 shadow-sm outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
+          severityClass(severity),
+        )}
+      >
+        {String(value)}
+      </span>
+      {position && createPortal(
+        <span
+          className={cn(
+            "pointer-events-none fixed z-[9999] w-72 rounded-lg border px-3 py-2 text-left text-xs shadow-lg",
+            tooltipSeverityClass(severity),
+          )}
+          style={{ left: position.left, top: position.top }}
+        >
+          <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">Protein prediction</span>
+          <span className="block font-bold text-foreground">{predictionLabel(value)}</span>
+          <span className="mt-1 block break-words font-mono text-[11px] font-semibold text-foreground/85">{String(value)}</span>
+          <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{predictionDescription(value)}</span>
+        </span>,
+        document.body,
+      )}
     </span>
   )
 }

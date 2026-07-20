@@ -5,6 +5,7 @@ import { Activity, FileText, Save, Search } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { ReportHtmlFrame } from "@/components/reports/ReportHtmlFrame"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
@@ -187,10 +188,10 @@ export function ReportsPage() {
       </section>
 
       {message && (
-        <div className="rounded-lg border border-border bg-card p-3 text-sm font-semibold text-muted-foreground">{message}</div>
+        <div className="glass-card rounded-lg p-3 text-sm font-semibold text-muted-foreground">{message}</div>
       )}
 
-      {isLoading && <div className="flex justify-center p-10"><Activity className="animate-spin text-muted-foreground" /></div>}
+      {isLoading && <AppLoader label="Loading report preview" />}
       {error && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {error instanceof Error ? error.message : "Unable to load report preview"}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { Activity, ArrowLeft, Download } from "lucide-react"
+import { ArrowLeft, Download } from "lucide-react"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { ReportHtmlFrame } from "@/components/reports/ReportHtmlFrame"
 import { apiPath } from "@/lib/runtime-paths"
@@ -57,7 +58,7 @@ export function SavedReportPage() {
       }
     >
       {loading ? (
-        <div className="flex justify-center p-10"><Activity className="animate-spin text-muted-foreground" /></div>
+        <AppLoader label="Loading saved report" />
       ) : error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>
       ) : (

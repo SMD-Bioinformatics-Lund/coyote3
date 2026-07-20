@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
@@ -23,7 +23,8 @@ import {
   FindingLoading,
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
-import { sampleDetailPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
+import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
+import { cbioportalOncoprintUrl, igvLoadUrl } from "@/lib/external-links"
 
 function cnvRegion(cnv: any) {
   if (!cnv) return "-"
@@ -58,6 +59,7 @@ function structuralEvidenceMetrics(cnv: any) {
 export function CNVDetail() {
   const { id, varId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['cnv', id, varId],
@@ -66,9 +68,12 @@ export function CNVDetail() {
   const routeSample = data?.sample
   useEffect(() => {
     if (routeSample?.name && id && varId && id !== routeSample.name) {
-      navigate(sampleFindingPath(routeSample, id, "cnv", varId), { replace: true })
+      navigate(sampleFindingPath(routeSample, id, "cnv", varId), {
+        replace: true,
+        state: location.state,
+      })
     }
-  }, [id, navigate, routeSample, routeSample?.name, varId])
+  }, [id, location.state, navigate, routeSample, routeSample?.name, varId])
 
   if (isLoading) {
     return <FindingLoading />
@@ -90,21 +95,31 @@ export function CNVDetail() {
   const type = String(cnv?.type || cnv?.cnv_type || "").toLowerCase()
   const callers = cnv?.callers || cnv?.INFO?.variant_callers
   const sampleRouteKey = sampleUrlKey(sample, id)
-  const sampleHref = sampleDetailPath(sample, id)
+  const sampleHref = sampleDetailTabPath(sample, id, "cnvs")
+  const previousSampleHref = typeof location.state === "object" && location.state && "from" in location.state
+    ? String((location.state as { from?: string }).from || sampleHref)
+    : sampleHref
 
   return (
     <FindingDetailShell>
       <FindingHero
-        backTo={sampleHref}
+        backTo={previousSampleHref}
         title={primaryGenes.length > 0 ? primaryGenes.join(', ') : "Intergenic CNV"}
-        chips={
-          <>
-            <span className="soft-chip">{cnv?.chr}:{cnv?.start}-{cnv?.end}</span>
-            <CallerBadges value={callers} />
-            <Link to={sampleHref} className="soft-chip hover:bg-primary/15 hover:text-primary">
+        subtitle={
+          <div className="space-y-2">
+            <span className="block text-xl font-bold text-muted-foreground">
+              {type ? type.toUpperCase() : "CNV"} · {region}
+            </span>
+            <Link to={sampleHref} className="inline-flex w-max rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
               Sample {sample?.name || id}
             </Link>
-          </>
+          </div>
+        }
+        chips={
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">Called by</span>
+            <CallerBadges value={callers} />
+          </div>
         }
         actions={
           <VariantActionButtons
@@ -209,19 +224,15 @@ export function CNVDetail() {
             <ClassificationsCard
               latest={latest_classification}
               other={data.other_classifications || []}
-              sampleId={id}
-              resourceType="cnv"
-              resourceId={String(cnv?._id || "")}
-              onUpdate={() => refetch()}
             />
 
             <ExternalLinksCard
               links={[
                 data.bam_id && region !== "-"
-                  ? { label: "Open CNV in IGV", value: region, href: `http://localhost:60151/load?file=${encodeURIComponent(String(data.bam_id))}&locus=${encodeURIComponent(region)}` }
+                  ? { label: "Open CNV in IGV", value: region, href: igvLoadUrl(data.bam_id, region) }
                   : null,
                 primaryGenes[0]
-                  ? { label: `cBioPortal ${primaryGenes[0]}`, value: primaryGenes[0], href: `https://www.cbioportal.org/results/oncoprint?gene_list=${encodeURIComponent(primaryGenes[0])}` }
+                  ? { label: `cBioPortal ${primaryGenes[0]}`, value: primaryGenes[0], href: cbioportalOncoprintUrl(primaryGenes[0]) }
                   : null,
               ].filter(Boolean) as any[]}
             />

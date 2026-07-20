@@ -1,11 +1,10 @@
 import { ReactNode, useMemo, useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
+import type { ColumnDef } from "@tanstack/react-table"
 import {
   Activity,
   AlertTriangle,
   BookOpenCheck,
-  ChevronLeft,
-  ChevronRight,
   CircleAlert,
   Database,
   FileUp,
@@ -18,11 +17,13 @@ import {
   SlidersHorizontal,
 } from "lucide-react"
 import { api } from "@/lib/api"
+import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { DataTable } from "@/components/data-table/DataTable"
 
 type Severity = "info" | "warning" | "error" | "critical"
 type TimeWindow = "24h" | "7d" | "30d" | "all"
@@ -82,6 +83,23 @@ type AppControls = {
   updated_on?: string | null
 }
 
+type AppControlsRuntime = {
+  celery?: {
+    configured_enabled?: boolean
+    status?: string
+    workers_online?: number
+    worker_names?: string[]
+    active_count?: number
+    reserved_count?: number
+    scheduled_count?: number
+    registered_task_count?: number
+    beat_schedule_count?: number
+    queue_names?: string[]
+    error?: string | null
+  }
+  index_setup_conflicts?: { repository?: string; code?: string; message?: string }[]
+}
+
 const controlLabels: Record<string, string> = {
   enabled: "Enable Celery workers",
   ingest_watch_enabled: "Watch-folder ingest",
@@ -109,6 +127,7 @@ export function AdminControlsPage() {
     retry: false,
   })
   const controls = (draft || controlsQuery.data?.controls || null) as AppControls | null
+  const runtime = (controlsQuery.data?.runtime || {}) as AppControlsRuntime
 
   const saveControls = useMutation({
     mutationFn: (controlsPayload: AppControls) => api.put("/admin/controls", { controls: controlsPayload }).then((res) => res.data),
@@ -166,9 +185,8 @@ export function AdminControlsPage() {
       {controlsQuery.error ? (
         <ModuleNotice>{controlsQuery.error instanceof Error ? controlsQuery.error.message : "Unable to load application controls."}</ModuleNotice>
       ) : controlsQuery.isLoading || !controls ? (
-        <section className="surface-panel p-8 text-center text-muted-foreground">
-          <Activity className="mx-auto mb-2 h-6 w-6 animate-spin" />
-          Loading controls...
+        <section className="surface-panel">
+          <AppLoader label="Loading controls" />
         </section>
       ) : (
         <div className="grid gap-3 xl:grid-cols-[1fr_1fr]">
@@ -193,6 +211,42 @@ export function AdminControlsPage() {
           </ControlSection>
 
           <section className="surface-panel p-3 xl:col-span-2">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold">Observed Runtime State</h2>
+                <p className="text-sm text-muted-foreground">Live worker and repository health reported by the API runtime.</p>
+              </div>
+              <RuntimeStatusBadge status={runtime.celery?.status} />
+            </div>
+            <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
+              <RuntimeMetric label="Workers" value={runtime.celery?.workers_online ?? 0} />
+              <RuntimeMetric label="Active" value={runtime.celery?.active_count ?? 0} />
+              <RuntimeMetric label="Reserved" value={runtime.celery?.reserved_count ?? 0} />
+              <RuntimeMetric label="Scheduled" value={runtime.celery?.scheduled_count ?? 0} />
+              <RuntimeMetric label="Registered" value={runtime.celery?.registered_task_count ?? 0} />
+              <RuntimeMetric label="Beat entries" value={runtime.celery?.beat_schedule_count ?? 0} />
+            </div>
+            <div className="mt-3 grid gap-2 lg:grid-cols-2">
+              <RuntimeList
+                label="Worker nodes"
+                values={runtime.celery?.worker_names || []}
+                empty={runtime.celery?.status === "offline" ? "No workers responded." : "No worker names reported."}
+              />
+              <RuntimeList label="Queues" values={runtime.celery?.queue_names || []} empty="No queues reported by active workers." />
+            </div>
+            {runtime.celery?.error ? (
+              <div className="mt-3 rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">
+                Celery inspection did not complete: {runtime.celery.error}
+              </div>
+            ) : null}
+            {runtime.index_setup_conflicts?.length ? (
+              <div className="mt-3 rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">
+                {runtime.index_setup_conflicts.length} Mongo index conflict(s) were tolerated at startup. Review the operations troubleshooting guide before changing indexes.
+              </div>
+            ) : null}
+          </section>
+
+          <section className="surface-panel p-3 xl:col-span-2">
             <div className="mb-3">
               <h2 className="text-base font-bold">Retention Policies</h2>
               <p className="text-sm text-muted-foreground">All values are days. Audit retention also updates the expiry horizon used when new audit events are written.</p>
@@ -213,6 +267,44 @@ export function AdminControlsPage() {
         </div>
       )}
     </PageShell>
+  )
+}
+
+function RuntimeStatusBadge({ status }: { status?: string }) {
+  const normalized = (status || "unknown").toLowerCase()
+  const cls = normalized === "online"
+    ? "border-success/40 bg-success/10 text-success"
+    : normalized === "offline"
+      ? "border-warn/40 bg-warn/10 text-warn"
+      : "border-border bg-muted text-muted-foreground"
+  return <span className={`rounded-full border px-2.5 py-1 text-xs font-bold uppercase ${cls}`}>{normalized}</span>
+}
+
+function RuntimeMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-border bg-background/70 p-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-lg font-black tabular-nums text-foreground">{value}</p>
+    </div>
+  )
+}
+
+function RuntimeList({ label, values, empty }: { label: string; values: string[]; empty: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-background/70 p-3">
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+      {values.length ? (
+        <div className="flex flex-wrap gap-1.5">
+          {values.map((value) => (
+            <span key={value} className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+              {value}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">{empty}</p>
+      )}
+    </div>
   )
 }
 
@@ -241,14 +333,12 @@ function ControlToggle({ label, checked, onChange }: { label: string; checked: b
 }
 
 export function AdminAuditPage() {
-  const [page, setPage] = useState(1)
   const [severity, setSeverity] = useState<Severity | "">("")
   const [category, setCategory] = useState("")
   const [actor, setActor] = useState("")
   const [search, setSearch] = useState("")
   const [appliedSearch, setAppliedSearch] = useState("")
   const [timeWindow, setTimeWindow] = useState<TimeWindow>("7d")
-  const pageSize = 50
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["admin-audit"],
@@ -294,11 +384,140 @@ export function AdminAuditPage() {
     }, { info: 0, warning: 0, error: 0, critical: 0 })
   }, [rows])
   const categories = useMemo(() => Array.from(new Set(rows.map((event) => event.category).filter(Boolean) as string[])).sort(), [rows])
-  const pages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const columns = useMemo<ColumnDef<AuditEvent, any>[]>(() => [
+    {
+      id: "time",
+      header: "Time",
+      accessorFn: (event) => event.occurred_at ? new Date(event.occurred_at).getTime() : 0,
+      cell: ({ row }) => (
+        <span className="whitespace-nowrap">
+          <span className="block text-sm font-semibold">{relativeTime(row.original.occurred_at) || "-"}</span>
+          <span className="block text-xs text-muted-foreground">
+            {row.original.occurred_at ? new Date(row.original.occurred_at).toLocaleString() : "-"}
+          </span>
+        </span>
+      ),
+      meta: {
+        exportValue: (event: AuditEvent) => event.occurred_at ? new Date(event.occurred_at).toISOString() : "",
+        cellClassName: "whitespace-nowrap",
+      },
+    },
+    {
+      id: "level",
+      header: "Level",
+      accessorFn: (event) => severityRank(severityValue(event.severity)),
+      cell: ({ row }) => {
+        const level = severityValue(row.original.severity)
+        const Icon = severityIcon[level]
+        return (
+          <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-bold capitalize ${severityClass[level]}`}>
+            <Icon className="h-3 w-3" /> {level}
+          </span>
+        )
+      },
+      meta: {
+        exportValue: (event: AuditEvent) => severityValue(event.severity),
+      },
+    },
+    {
+      id: "event",
+      header: "Event",
+      accessorFn: (event) => `${event.message || ""} ${event.event_type || ""}`,
+      cell: ({ row }) => (
+        <div className="max-w-md">
+          <div className="font-semibold text-foreground">{row.original.message || "-"}</div>
+          <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">{row.original.event_type || "-"}</div>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {(row.original.tags || []).slice(0, 4).map((tag) => (
+              <span key={tag} className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{tag}</span>
+            ))}
+          </div>
+        </div>
+      ),
+      meta: {
+        exportValue: (event: AuditEvent) => `${event.message || ""} ${event.event_type || ""}`.trim(),
+        cellClassName: "min-w-[260px]",
+      },
+    },
+    {
+      id: "actor",
+      header: "Actor",
+      accessorFn: (event) => event.actor?.username || event.actor?.fullname || "",
+      cell: ({ row }) => {
+        const roles = row.original.actor?.roles || []
+        return (
+          <div>
+            <span className="block font-semibold">{row.original.actor?.fullname || row.original.actor?.username || "anonymous"}</span>
+            <span className="block text-sm text-muted-foreground">{row.original.actor?.username || "-"}</span>
+            {roles.length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {roles.map((role) => <span key={role} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">{role}</span>)}
+              </div>
+            )}
+            {row.original.source?.client_ip && <span className="block font-mono text-[11px] text-muted-foreground">{row.original.source.client_ip}</span>}
+          </div>
+        )
+      },
+      meta: {
+        exportValue: (event: AuditEvent) => event.actor?.username || event.actor?.fullname || "",
+      },
+    },
+    {
+      id: "resource",
+      header: "Resource",
+      accessorFn: (event) => `${event.resource?.type || ""} ${event.resource?.name || event.resource?.id || ""}`,
+      cell: ({ row }) => {
+        const resource = row.original.resource?.name || row.original.resource?.id
+        return (
+          <div>
+            <span className="block text-sm font-bold capitalize">{row.original.resource?.type?.replaceAll("_", " ") || "-"}</span>
+            <span className="block max-w-48 truncate font-mono text-[11px] text-muted-foreground" title={resource || ""}>{resource || "-"}</span>
+          </div>
+        )
+      },
+      meta: {
+        exportValue: (event: AuditEvent) => `${event.resource?.type || ""} ${event.resource?.name || event.resource?.id || ""}`.trim(),
+      },
+    },
+    {
+      id: "outcome",
+      header: "Outcome",
+      accessorFn: (event) => event.outcome || "unknown",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1.5">
+          <span className={`size-1.5 rounded-full ${row.original.outcome === "success" ? "bg-pass" : "bg-destructive"}`} />
+          <span className="text-sm capitalize">{row.original.outcome || "unknown"}</span>
+        </div>
+      ),
+    },
+    {
+      id: "category",
+      header: "Category",
+      accessorFn: (event) => event.category || "",
+      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.category || "uncategorized"}</span>,
+    },
+    {
+      id: "context",
+      header: "Context",
+      enableSorting: false,
+      cell: ({ row }) => (
+        <details className="text-xs">
+          <summary className="cursor-pointer text-primary">View details</summary>
+          <div className="mt-2 w-80 space-y-1 rounded-lg bg-muted/60 p-2 text-[11px]">
+            <Detail label="Request ID" value={row.original.source?.request_id} />
+            <Detail label="Request" value={row.original.source?.method && row.original.source?.path ? `${row.original.source.method} ${row.original.source.path}` : null} />
+            <Detail label="Provider" value={row.original.actor?.provider} />
+            <Detail label="Expires" value={row.original.expires_at ? new Date(row.original.expires_at).toLocaleDateString() : null} />
+            {row.original.metadata && Object.keys(row.original.metadata).length > 0 && (
+              <pre className="mt-2 max-h-36 overflow-auto whitespace-pre-wrap break-all rounded bg-background p-2">{JSON.stringify(row.original.metadata, null, 2)}</pre>
+            )}
+          </div>
+        </details>
+      ),
+    },
+  ], [])
 
   const clearFilters = () => {
-    setPage(1)
     setSeverity("")
     setCategory("")
     setActor("")
@@ -332,7 +551,6 @@ export function AdminAuditPage() {
               type="button"
               key={level}
               onClick={() => {
-                setPage(1)
                 setSeverity(severity === level ? "" : level)
               }}
               className={`flex items-center justify-between rounded-xl border p-3 text-left transition-colors duration-100 ${severityClass[level]} ${severity === level ? "ring-2 ring-current ring-offset-2 ring-offset-background" : ""}`}
@@ -353,7 +571,6 @@ export function AdminAuditPage() {
             className="relative"
             onSubmit={(event) => {
               event.preventDefault()
-              setPage(1)
               setAppliedSearch(search.trim())
             }}
           >
@@ -368,7 +585,6 @@ export function AdminAuditPage() {
           <select
             value={category}
             onChange={(event) => {
-              setPage(1)
               setCategory(event.target.value)
             }}
             className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
@@ -379,7 +595,6 @@ export function AdminAuditPage() {
           <select
             value={timeWindow}
             onChange={(event) => {
-              setPage(1)
               setTimeWindow(event.target.value as TimeWindow)
             }}
             className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
@@ -392,7 +607,6 @@ export function AdminAuditPage() {
           <input
             value={actor}
             onChange={(event) => {
-              setPage(1)
               setActor(event.target.value)
             }}
             placeholder="Filter by username"
@@ -402,7 +616,6 @@ export function AdminAuditPage() {
             <button
               type="button"
               onClick={() => {
-                setPage(1)
                 setAppliedSearch(search.trim())
               }}
               className="h-9 rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground"
@@ -416,54 +629,27 @@ export function AdminAuditPage() {
         </div>
       </section>
 
-      <section className="surface-panel overflow-hidden p-0">
-        <div className="flex items-center justify-between border-b border-border px-4 py-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5"><Database className="h-3.5 w-3.5" /> MongoDB audit_events</span>
-          <span>{filtered.length} matching events</span>
-        </div>
+      <section className="surface-panel p-3">
         {error ? (
           <div className="p-4"><ModuleNotice>{error instanceof Error ? error.message : "Unable to load audit events."}</ModuleNotice></div>
+        ) : isLoading ? (
+          <AppLoader label="Loading audit events" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[960px] text-left text-sm">
-              <thead className="bg-muted/80 text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-2.5 font-bold">Time</th>
-                  <th className="px-3 py-2.5 font-bold">Level</th>
-                  <th className="px-3 py-2.5 font-bold">Event</th>
-                  <th className="px-3 py-2.5 font-bold">Actor</th>
-                  <th className="px-3 py-2.5 font-bold">Resource</th>
-                  <th className="px-4 py-2.5 font-bold">Context</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {isLoading ? (
-                  <tr><td colSpan={6} className="p-12 text-center text-muted-foreground">Loading audit events...</td></tr>
-                ) : pageRows.length ? (
-                  pageRows.map((event, index) => <AuditEventRow event={event} key={event._id || `${event.occurred_at}-${index}`} />)
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="p-12 text-center text-muted-foreground">
-                      <Activity className="mx-auto mb-2 h-6 w-6" />
-                      No events match the current filters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={columns}
+            data={filtered}
+            filename="audit_events.csv"
+            rowLabel="events"
+            totalCount={filtered.length}
+            hideSearch
+            renderToolbar={() => (
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Database className="h-3.5 w-3.5" />
+                MongoDB audit_events
+              </span>
+            )}
+          />
         )}
-        <div className="flex items-center justify-between border-t border-border px-4 py-3 text-sm">
-          <span className="text-muted-foreground">Page {page} of {pages}</span>
-          <div className="flex gap-1">
-            <button type="button" aria-label="Previous page" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="rounded-md border border-border p-1.5 disabled:opacity-40">
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button type="button" aria-label="Next page" disabled={page >= pages} onClick={() => setPage((value) => Math.min(pages, value + 1))} className="rounded-md border border-border p-1.5 disabled:opacity-40">
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
       </section>
     </PageShell>
   )
@@ -487,6 +673,10 @@ function severityValue(value: unknown): Severity {
   return value === "warning" || value === "error" || value === "critical" ? value : "info"
 }
 
+function severityRank(value: Severity) {
+  return { info: 1, warning: 2, error: 3, critical: 4 }[value]
+}
+
 function relativeTime(value: unknown) {
   if (!value) return ""
   const elapsed = Date.now() - new Date(String(value)).getTime()
@@ -498,68 +688,6 @@ function relativeTime(value: unknown) {
   if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`
   const days = Math.round(hours / 24)
   return `${days} day${days === 1 ? "" : "s"} ago`
-}
-
-function AuditEventRow({ event }: { event: AuditEvent }) {
-  const level = severityValue(event.severity)
-  const Icon = severityIcon[level]
-  const resource = event.resource?.name || event.resource?.id
-  const roles = event.actor?.roles || []
-  return (
-    <tr className="align-top hover:bg-muted/40">
-      <td className="whitespace-nowrap px-4 py-3">
-        <span className="block text-sm font-semibold">{event.occurred_at ? new Date(event.occurred_at).toLocaleString() : "-"}</span>
-        <span className="text-sm text-muted-foreground">{relativeTime(event.occurred_at)}</span>
-      </td>
-      <td className="px-3 py-3">
-        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-bold capitalize ${severityClass[level]}`}>
-          <Icon className="h-3 w-3" /> {level}
-        </span>
-      </td>
-      <td className="max-w-sm px-3 py-3">
-        <div className="font-semibold text-foreground">{event.message || "-"}</div>
-        <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">{event.event_type || "-"}</div>
-        <div className="mt-1 flex flex-wrap gap-1">
-          {(event.tags || []).slice(0, 4).map((tag) => (
-            <span key={tag} className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{tag}</span>
-          ))}
-        </div>
-      </td>
-      <td className="px-3 py-3">
-        <span className="block font-semibold">{event.actor?.fullname || event.actor?.username || "anonymous"}</span>
-        <span className="block text-sm text-muted-foreground">{event.actor?.username || "-"}</span>
-        {roles.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-1">
-            {roles.map((role) => <span key={role} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">{role}</span>)}
-          </div>
-        )}
-        {event.source?.client_ip && <span className="block font-mono text-[11px] text-muted-foreground">{event.source.client_ip}</span>}
-      </td>
-      <td className="px-3 py-3">
-        <span className="block text-sm font-bold capitalize">{event.resource?.type?.replaceAll("_", " ") || "-"}</span>
-        <span className="block max-w-48 truncate font-mono text-[11px] text-muted-foreground" title={resource || ""}>{resource || "-"}</span>
-      </td>
-      <td className="px-4 py-3">
-        <div className="mb-1 flex items-center gap-1.5">
-          <span className={`size-1.5 rounded-full ${event.outcome === "success" ? "bg-pass" : "bg-destructive"}`} />
-          <span className="text-sm capitalize">{event.outcome || "unknown"}</span>
-          <span className="text-sm text-muted-foreground">- {event.category || "uncategorized"}</span>
-        </div>
-        <details className="text-xs">
-          <summary className="cursor-pointer text-primary">View event details</summary>
-          <div className="mt-2 w-80 space-y-1 rounded-lg bg-muted/60 p-2 text-[11px]">
-            <Detail label="Request ID" value={event.source?.request_id} />
-            <Detail label="Request" value={event.source?.method && event.source?.path ? `${event.source.method} ${event.source.path}` : null} />
-            <Detail label="Provider" value={event.actor?.provider} />
-            <Detail label="Expires" value={event.expires_at ? new Date(event.expires_at).toLocaleDateString() : null} />
-            {event.metadata && Object.keys(event.metadata).length > 0 && (
-              <pre className="mt-2 max-h-36 overflow-auto whitespace-pre-wrap break-all rounded bg-background p-2">{JSON.stringify(event.metadata, null, 2)}</pre>
-            )}
-          </div>
-        </details>
-      </td>
-    </tr>
-  )
 }
 
 function Detail({ label, value }: { label: string; value: string | null | undefined }) {
@@ -751,7 +879,7 @@ export function AdminSchemasPage() {
             {rows.length} contracts
           </span>
         </div>
-        {isLoading ? <div className="flex justify-center p-10"><Activity className="animate-spin text-muted-foreground" /></div> : error ? (
+        {isLoading ? <AppLoader label="Loading schema contracts" /> : error ? (
           <ModuleNotice>{error instanceof Error ? error.message : "Unable to load schema contracts."}</ModuleNotice>
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
@@ -760,7 +888,7 @@ export function AdminSchemasPage() {
                 <h3 className="mb-2 text-sm font-black uppercase tracking-wide text-foreground">{group}</h3>
                 <div className="space-y-2">
                   {contracts.map((contract) => (
-                    <article key={contract.collection} className="rounded-lg border border-border bg-card p-3">
+                    <article key={contract.collection} className="glass-card rounded-lg p-3">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <h4 className="text-sm font-black">{contract.title || contract.collection}</h4>

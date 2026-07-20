@@ -7,6 +7,10 @@ export function sampleDetailPath(sample: any, fallback?: unknown) {
   return `/samples/${sampleUrlKey(sample, fallback)}`
 }
 
+export function sampleDetailTabPath(sample: any, fallback: unknown, tab: string) {
+  return `${sampleDetailPath(sample, fallback)}?tab=${encodeURIComponent(tab)}`
+}
+
 export function sampleFindingPath(
   sample: any,
   fallback: unknown,
