@@ -29,6 +29,7 @@ class DNAWorkflowService:
             vep_metadata_repository=store.vep_metadata_repository,
             annotation_repository=store.annotation_repository,
             reported_variant_repository=store.reported_variant_repository,
+            report_repository=store.report_repository,
         )
 
     def __init__(
@@ -45,6 +46,7 @@ class DNAWorkflowService:
         vep_metadata_repository,
         annotation_repository,
         reported_variant_repository,
+        report_repository,
     ) -> None:
         """Create the workflow service with explicit injected repositories."""
         self.assay_panel_repository = assay_panel_repository
@@ -58,6 +60,11 @@ class DNAWorkflowService:
         self.vep_metadata_repository = vep_metadata_repository
         self.annotation_repository = annotation_repository
         self.reported_variant_repository = reported_variant_repository
+        self.report_repository = report_repository
+
+    def next_report_num(self, sample_id: str) -> int:
+        """Return the next sequential report number for a sample."""
+        return self.report_repository.next_report_num(sample_id)
 
     @staticmethod
     def validate_report_inputs(logger, sample: dict, assay_config: dict) -> None:

@@ -40,6 +40,14 @@ class SampleChangePayload(BaseModel):
     meta: dict[str, Any]
 
 
+class SampleBamFilesPayload(BaseModel):
+    """Represent BAM-service file mappings for a resolved sample."""
+
+    query: dict[str, Any]
+    sample: dict[str, Any]
+    bam_files: dict[str, list[str]] = Field(default_factory=dict)
+
+
 class CoverageBlacklistStatusPayload(BaseModel):
     """Represent the coverage blacklist status payload."""
 

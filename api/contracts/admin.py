@@ -230,6 +230,7 @@ class AdminAppControlsPayload(BaseModel):
 
     controls: dict[str, Any]
     defaults: dict[str, Any]
+    runtime: dict[str, Any] = Field(default_factory=dict)
 
 
 class AdminAppControlsUpdatePayload(BaseModel):

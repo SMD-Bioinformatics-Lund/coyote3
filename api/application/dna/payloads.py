@@ -6,6 +6,11 @@ from copy import deepcopy
 from typing import Any
 
 from api.application.common.pagination import paginate_items, request_pagination
+from api.application.common.table_state import (
+    parse_sort_specs,
+    sort_items,
+    sort_spec_to_query_value,
+)
 from api.application.dna.export import consequence_terms
 from api.application.reporting.dna_report_payload import hotspot_variant
 from api.contracts.managed_resources import aspc_spec_for_category
@@ -31,6 +36,134 @@ def _variant_case_af_value(variant: dict[str, Any]) -> float:
         except (TypeError, ValueError):
             return 0.0
     return 0.0
+
+
+def _numeric_value(value: Any) -> float | None:
+    """Convert table values to sortable numbers when possible."""
+    if value in (None, ""):
+        return None
+    if isinstance(value, bool):
+        return float(int(value))
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _selected_csq(variant: dict[str, Any]) -> dict[str, Any]:
+    """Return the selected consequence annotation for a small variant."""
+    csq = variant.get("INFO", {}).get("selected_CSQ", {})
+    return csq if isinstance(csq, dict) else {}
+
+
+def _sortable_text(value: Any) -> str | None:
+    """Normalize strings for stable case-insensitive table sorting."""
+    if value in (None, ""):
+        return None
+    return str(value).lower()
+
+
+def _sortable_fraction(value: Any) -> tuple[int, int, int | str] | None:
+    """Sort exon/intron fractions by their first numeric component when present."""
+    if value in (None, "", "-"):
+        return None
+    text = str(value)
+    try:
+        first, _, second = text.partition("/")
+        return (0, int(first), int(second) if second else 0)
+    except ValueError:
+        return (1, 0, text.lower())
+
+
+def _variant_gt_af_value(variant: dict[str, Any], gt_type: str) -> float | None:
+    """Extract allele frequency for a named genotype type."""
+    for genotype in variant.get("GT", []) or []:
+        if genotype.get("type") != gt_type:
+            continue
+        return _numeric_value(genotype.get("AF"))
+    return None
+
+
+def _chromosome_sort_value(chromosome: Any) -> tuple[int, int | str] | None:
+    """Sort common human chromosomes in biological order."""
+    if chromosome in (None, ""):
+        return None
+    text = str(chromosome).removeprefix("chr").upper()
+    if text.isdigit():
+        return (0, int(text))
+    special = {"X": 23, "Y": 24, "M": 25, "MT": 25}
+    if text in special:
+        return (0, special[text])
+    return (1, text)
+
+
+def _chrpos_sort_value(variant: dict[str, Any]) -> tuple[Any, float] | None:
+    """Sort genomic coordinates by chromosome then position."""
+    chromosome = _chromosome_sort_value(variant.get("CHROM"))
+    position = _numeric_value(variant.get("POS"))
+    if chromosome is None and position is None:
+        return None
+    return (chromosome if chromosome is not None else (2, ""), position or 0)
+
+
+def _variant_tier_sort_value(variant: dict[str, Any]) -> float | None:
+    """Extract the active tier/classification value for table sorting."""
+    for key in ("classification", "class", "tier"):
+        value = variant.get(key)
+        if isinstance(value, dict):
+            value = value.get("class") or value.get("tier") or value.get("value")
+        numeric = _numeric_value(value)
+        if numeric is not None:
+            return numeric
+    return None
+
+
+def _variant_sort_value(variant: dict[str, Any], sort_by: str) -> Any:
+    """Return the backend sort key for supported small-variant table columns."""
+    selected_csq = _selected_csq(variant)
+    consequences = selected_csq.get("Consequence")
+    if isinstance(consequences, list):
+        consequence_text = ", ".join(str(value) for value in consequences)
+    else:
+        consequence_text = str(consequences or "").replace("&", ", ")
+    filters = variant.get("FILTER", [])
+    filters_text = (
+        ", ".join(str(value) for value in filters)
+        if isinstance(filters, list)
+        else str(filters or "")
+    )
+    sort_map = {
+        "gene": lambda: _sortable_text(
+            selected_csq.get("SYMBOL")
+            or selected_csq.get("VEP_SYMBOL")
+            or selected_csq.get("display_symbol")
+        ),
+        "hgvs": lambda: _sortable_text(
+            f"{selected_csq.get('HGVSc', '')} {selected_csq.get('HGVSp', '')}".strip()
+        ),
+        "exon": lambda: _sortable_fraction(selected_csq.get("EXON")),
+        "intron": lambda: _sortable_fraction(selected_csq.get("INTRON")),
+        "type": lambda: _sortable_text(variant.get("variant_class")),
+        "indel_size": lambda: _numeric_value(variant.get("INFO", {}).get("SVLEN")),
+        "consequence": lambda: _sortable_text(consequence_text),
+        "popfreq": lambda: _numeric_value(variant.get("gnomad_frequency")),
+        "tier": lambda: _variant_tier_sort_value(variant),
+        "chrpos": lambda: _chrpos_sort_value(variant),
+        "flags": lambda: _sortable_text(filters_text),
+        "case_vaf": lambda: _variant_gt_af_value(variant, "case"),
+        "control_vaf": lambda: _variant_gt_af_value(variant, "control"),
+    }
+    builder = sort_map.get(sort_by)
+    return builder() if builder else None
+
+
+def _sort_variants_for_table(
+    variants: list[dict[str, Any]],
+    *,
+    sort_specs: list[tuple[str, str]],
+) -> list[dict[str, Any]]:
+    """Sort all filtered variants before pagination."""
+    return sort_items(variants, specs=sort_specs, value_getter=_variant_sort_value)
 
 
 def _variant_search_text(variant: dict[str, Any]) -> str:
@@ -286,9 +419,12 @@ def list_variants_payload(
     variants, tiered_variants = add_global_annotations_fn(variants, assay_group, subpanel)
     variants = hotspot_variant(variants)
     variants = sorted(variants, key=_variant_case_af_value, reverse=True)
-    search_query = str(request.query_params.get("q", "")).strip()
+    query_params = getattr(request, "query_params", {}) or {}
+    search_query = str(query_params.get("q", "")).strip()
     if search_query:
         variants = _search_variants(variants, search_query)
+    sort_specs = parse_sort_specs(query_params)
+    variants = _sort_variants_for_table(variants, sort_specs=sort_specs)
 
     sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
     bam_id = service.bam_record_repository.get_bams(sample_ids)
@@ -361,6 +497,7 @@ def list_variants_payload(
             **pagination_meta,
             "tiered": tiered_variants,
             "search": search_query,
+            "sort": sort_spec_to_query_value(sort_specs),
         },
         "filters": sample_filters,
         "assay_group": assay_group,

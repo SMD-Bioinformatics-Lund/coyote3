@@ -1,0 +1,82 @@
+[organization]
+name = "Coyote3"
+department = "Section For Molecular Diagnostics (SMD)"
+site_name = "Coyote3"
+description = "Clinical genomics interpretation, review, and reporting service."
+
+[support]
+primary_email = ""
+urgent_phone = ""
+web_app_base_url = ""
+help_center_url = ""
+
+[codebase]
+repository_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
+license_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/master/LICENSE.txt"
+issues_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues"
+bug_report_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues/new?template=bug_report.md"
+feature_request_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues/new?template=feature_request.md"
+support_request_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues/new?template=support_request.md"
+
+[[hours]]
+label = "Service desk"
+value = "Monday to Friday, 08:00-16:30"
+
+[[hours]]
+label = "Out of hours"
+value = "Use the center's established urgent clinical escalation pathway."
+
+[[contacts]]
+label = "Clinical support"
+role = "Interpretation and report questions"
+email = "Christina.Orsmark-Pietras@skane.se"
+phone = ""
+description = "Use this channel for questions about variant interpretation, report content, or clinical review workflow."
+
+[[contacts]]
+label = "Sample and sequencing support"
+role = "Sample intake, sequencing, and run-level questions"
+email = "ram.nanduri@skane, viktor.henmyr@skane.se, Sailendra.Pradhananga@skane.se"
+phone = ""
+description = "Use this channel for questions about submitted samples, sequencing runs, or file availability."
+
+[[contacts]]
+label = "Platform support"
+role = "Application access, configuration, and operational issues"
+email = "ram.nanduri@skane, viktor.henmyr@skane.se, Sailendra.Pradhananga@skane.se"
+phone = ""
+description = "Use this channel for login, permission, ingest, or system availability issues."
+
+[[links]]
+label = "User documentation"
+url = "/docs-site/"
+description = "Clinical user guide and operational documentation."
+
+[[links]]
+label = "Assay catalog"
+url = "/public/catalog"
+description = "Public assay, panel, and gene-list reference."
+
+[[links]]
+label = "Project repository"
+url = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
+description = "Source repository, release history, and technical project context."
+icon = "github"
+
+[[links]]
+label = "Report a Bug"
+url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues/new?template=bug_report.md"
+description = "Report an application defect or reproducible malfunction."
+icon = "bug"
+
+[[links]]
+label = "Request a Feature"
+url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues/new?template=feature_request.md"
+description = "Suggest a product improvement or workflow enhancement."
+icon = "feature"
+
+[[links]]
+label = "Support"
+url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues/new?template=support_request.md"
+description = "Ask for help with setup, usage, access, or operational behavior."
+icon = "issue"

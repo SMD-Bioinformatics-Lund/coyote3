@@ -17,6 +17,7 @@ from api.config import configure_process_env, get_runtime_mode_flags
 from api.contracts.http import ApiValidationIssue
 from api.domain.core.exceptions import AppError
 from api.interfaces.http.registry import ROUTERS, auth_http_exception_handler
+from api.interfaces.http.tags import OPENAPI_TAGS
 
 
 def _api_error(status_code: int, message: str) -> AppError:
@@ -139,6 +140,7 @@ def create_api_app() -> FastAPI:
         docs_url="/api/v1/docs",
         redoc_url="/api/v1/redoc",
         openapi_url="/api/v1/openapi.json",
+        openapi_tags=OPENAPI_TAGS,
         lifespan=create_lifespan(
             testing=mode_flags["testing"],
             development=mode_flags["development"],

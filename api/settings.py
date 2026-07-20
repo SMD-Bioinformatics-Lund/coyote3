@@ -51,12 +51,12 @@ def _is_non_production(config: Mapping[str, Any] | None = None) -> bool:
             The  is non production result.
     """
     if config is None:
-        return to_bool(os.getenv("TESTING"), False) or to_bool(os.getenv("DEVELOPMENT"), False)
-    return (
-        to_bool(config.get("TESTING"), False)
-        or to_bool(config.get("DEVELOPMENT"), False)
-        or _is_non_production(None)
-    )
+        env_name = str(os.getenv("ENV_NAME") or "production").strip().lower()
+    else:
+        env_name = (
+            str(config.get("ENV_NAME") or os.getenv("ENV_NAME") or "production").strip().lower()
+        )
+    return env_name in {"dev", "development", "test", "testing", "stage", "staging"}
 
 
 def _require_setting(config: Mapping[str, Any], key: str) -> str:
@@ -95,15 +95,16 @@ def configure_process_env() -> None:
 
 
 def get_runtime_mode_flags() -> dict[str, bool]:
-    """Read environment-backed runtime mode flags.
+    """Read runtime mode flags from ``ENV_NAME``.
 
     Returns:
         A mapping containing the normalized ``testing`` and ``development``
         runtime flags.
     """
+    env_name = str(os.getenv("ENV_NAME") or "production").strip().lower()
     return {
-        "testing": to_bool(os.getenv("TESTING"), default=False),
-        "development": to_bool(os.getenv("DEVELOPMENT"), default=False),
+        "testing": env_name in {"test", "testing"},
+        "development": env_name in {"dev", "development"},
     }
 
 
@@ -197,12 +198,12 @@ def get_api_session_cookie_samesite(config: Mapping[str, Any]) -> str:
 
 def get_api_sessions_collection_name(config: Mapping[str, Any]) -> str:
     """Return the MongoDB collection used for API sessions."""
-    return str(config.get("API_SESSIONS_COLLECTION") or "api_sessions")
+    return "api_sessions"
 
 
 def get_audit_events_collection_name(config: Mapping[str, Any]) -> str:
     """Return the MongoDB collection used for durable audit events."""
-    return str(config.get("AUDIT_EVENTS_COLLECTION") or "audit_events")
+    return "audit_events"
 
 
 def get_audit_retention_days(config: Mapping[str, Any]) -> int:
@@ -215,8 +216,11 @@ def get_audit_retention_days(config: Mapping[str, Any]) -> int:
 
 def get_runtime_environment(config: Mapping[str, Any]) -> str:
     """Return the normalized runtime environment label."""
-    if to_bool(config.get("TESTING"), False):
-        return "test"
-    if to_bool(config.get("DEVELOPMENT"), False):
+    env_name = str(config.get("ENV_NAME") or "production").strip().lower()
+    if env_name in {"dev", "development"}:
         return "development"
-    return str(config.get("ENVIRONMENT") or config.get("PROFILE") or "production").strip().lower()
+    if env_name in {"test", "testing"}:
+        return "test"
+    if env_name in {"stage", "staging"}:
+        return "staging"
+    return env_name or "production"

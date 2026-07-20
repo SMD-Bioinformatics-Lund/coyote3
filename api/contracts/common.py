@@ -33,3 +33,21 @@ class CommonTieredVariantSearchPayload(BaseModel):
     tier_stats: dict[str, Any]
     assays: list[str] | None = None
     assay_choices: list[str]
+
+
+class KnowledgebaseGenePayload(BaseModel):
+    """Represent aggregated gene-level knowledgebase context."""
+
+    query: dict[str, Any]
+    gene: dict[str, Any] | None = None
+    sources: dict[str, Any] = {}
+    available_sources: list[str] = []
+
+
+class KnowledgebaseVariantPayload(BaseModel):
+    """Represent aggregated variant-level knowledgebase context."""
+
+    query: dict[str, Any]
+    variant: dict[str, Any]
+    sources: dict[str, Any] = {}
+    available_sources: list[str] = []

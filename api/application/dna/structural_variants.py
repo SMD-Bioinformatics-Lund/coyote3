@@ -7,11 +7,125 @@ from typing import Any
 
 from api.application.common.assay_config import get_formatted_assay_config
 from api.application.common.pagination import paginate_items, request_pagination
+from api.application.common.table_state import (
+    numeric_value,
+    parse_sort_specs,
+    search_items,
+    sort_items,
+    sort_spec_to_query_value,
+    sortable_text,
+)
 from api.domain.common.errors import api_error, setup_error
 from api.domain.common.sample_filters import merged_dna_cnv_filters
 from api.domain.core.dna.cnvqueries import build_cnv_query
 from api.domain.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
 from api.domain.core.dna.translocqueries import build_transloc_query
+
+
+def _cnv_copy_number(cnv: dict[str, Any]) -> float | None:
+    ratio = numeric_value(cnv.get("ratio"))
+    if ratio is None:
+        return None
+    return 2 * (2**ratio)
+
+
+def _cnv_gene_text(cnv: dict[str, Any]) -> str:
+    genes = cnv.get("genes") or []
+    if not isinstance(genes, list):
+        return ""
+    return " ".join(str(gene.get("gene", "")) for gene in genes if isinstance(gene, dict))
+
+
+def _cnv_sort_value(cnv: dict[str, Any], sort_by: str) -> Any:
+    sort_map = {
+        "genes": lambda: sortable_text(_cnv_gene_text(cnv)),
+        "region": lambda: (
+            sortable_text(cnv.get("chr")),
+            numeric_value(cnv.get("start")) or 0,
+            numeric_value(cnv.get("end")) or 0,
+        ),
+        "callers": lambda: sortable_text(
+            ", ".join(cnv.get("callers", []))
+            if isinstance(cnv.get("callers"), list)
+            else cnv.get("callers")
+        ),
+        "copy_number": lambda: _cnv_copy_number(cnv),
+        "status_artefact": lambda: sortable_text(
+            " ".join(
+                str(value)
+                for value in (cnv.get("fp"), cnv.get("interesting"), cnv.get("noteworthy"))
+            )
+        ),
+    }
+    builder = sort_map.get(sort_by)
+    return builder() if builder else None
+
+
+def _cnv_search_text(cnv: dict[str, Any]) -> str:
+    values = [
+        cnv.get("_id"),
+        cnv.get("chr"),
+        cnv.get("start"),
+        cnv.get("end"),
+        cnv.get("ratio"),
+        cnv.get("callers"),
+        _cnv_gene_text(cnv),
+    ]
+    return " ".join(str(value) for value in values if value not in (None, ""))
+
+
+def _translocation_genes(translocation: dict[str, Any]) -> list[str]:
+    genes = translocation.get("genes")
+    if isinstance(genes, list):
+        return [str(gene) for gene in genes if gene]
+    gene1 = translocation.get("gene1") or translocation.get("GENE1")
+    gene2 = translocation.get("gene2") or translocation.get("GENE2")
+    return [str(gene) for gene in (gene1, gene2) if gene]
+
+
+def _translocation_sort_value(translocation: dict[str, Any], sort_by: str) -> Any:
+    genes = _translocation_genes(translocation)
+    annotations = translocation.get("annotations") or []
+    annotation_text = (
+        " ".join(str(value) for value in annotations)
+        if isinstance(annotations, list)
+        else str(annotations or "")
+    )
+    sort_map = {
+        "badges": lambda: sortable_text(
+            " ".join(
+                str(value) for value in (translocation.get("fp"), translocation.get("interesting"))
+            )
+        ),
+        "gene1": lambda: sortable_text(genes[0] if len(genes) > 0 else None),
+        "gene2": lambda: sortable_text(genes[1] if len(genes) > 1 else None),
+        "positions": lambda: sortable_text(
+            translocation.get("positions")
+            or translocation.get("POS")
+            or translocation.get("breakpoints")
+        ),
+        "type": lambda: sortable_text(translocation.get("type") or translocation.get("SVTYPE")),
+        "hgvs": lambda: sortable_text(annotation_text or translocation.get("HGVS")),
+        "panel": lambda: sortable_text(translocation.get("panel") or translocation.get("in_panel")),
+        "tier": lambda: numeric_value(
+            translocation.get("classification") or translocation.get("tier")
+        ),
+    }
+    builder = sort_map.get(sort_by)
+    return builder() if builder else None
+
+
+def _translocation_search_text(translocation: dict[str, Any]) -> str:
+    values = [
+        translocation.get("_id"),
+        translocation.get("type"),
+        translocation.get("SVTYPE"),
+        translocation.get("positions"),
+        translocation.get("breakpoints"),
+        translocation.get("HGVS"),
+        " ".join(_translocation_genes(translocation)),
+    ]
+    return " ".join(str(value) for value in values if value not in (None, ""))
 
 
 class DnaStructuralService:
@@ -134,6 +248,12 @@ class DnaStructuralService:
             sample_filters=cnv_filters,
             filter_genes=filter_genes,
         )
+        query_params = getattr(request, "query_params", {}) or {}
+        search_query = str(query_params.get("q", "")).strip()
+        if search_query:
+            cnvs = search_items(cnvs, search_query=search_query, text_builder=_cnv_search_text)
+        sort_specs = parse_sort_specs(query_params)
+        cnvs = sort_items(cnvs, specs=sort_specs, value_getter=_cnv_sort_value)
         page_cnvs = cnvs
         pagination_meta: dict[str, Any] = {
             "total": len(cnvs),
@@ -154,7 +274,12 @@ class DnaStructuralService:
                 "assay": sample.get("assay"),
                 "profile": sample.get("profile"),
             },
-            "meta": {"request_path": request.url.path, **pagination_meta},
+            "meta": {
+                "request_path": request.url.path,
+                **pagination_meta,
+                "search": search_query,
+                "sort": sort_spec_to_query_value(sort_specs),
+            },
             "filters": sample_filters,
             "cnvs": page_cnvs,
         }
@@ -252,6 +377,20 @@ class DnaStructuralService:
                 build_transloc_query(str(sample["_id"]))
             )
         )
+        query_params = getattr(request, "query_params", {}) or {}
+        search_query = str(query_params.get("q", "")).strip()
+        if search_query:
+            translocs = search_items(
+                translocs,
+                search_query=search_query,
+                text_builder=_translocation_search_text,
+            )
+        sort_specs = parse_sort_specs(query_params)
+        translocs = sort_items(
+            translocs,
+            specs=sort_specs,
+            value_getter=_translocation_sort_value,
+        )
         page_translocs = translocs
         pagination_meta: dict[str, Any] = {
             "total": len(translocs),
@@ -274,7 +413,12 @@ class DnaStructuralService:
                 "assay": sample.get("assay"),
                 "profile": sample.get("profile"),
             },
-            "meta": {"request_path": request.url.path, **pagination_meta},
+            "meta": {
+                "request_path": request.url.path,
+                **pagination_meta,
+                "search": search_query,
+                "sort": sort_spec_to_query_value(sort_specs),
+            },
             "translocations": page_translocs,
         }
 

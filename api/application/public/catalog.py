@@ -47,7 +47,7 @@ class PublicCatalogService:
         configured = os.getenv("COYOTE3_ASSAY_CATALOG_YAML", "").strip()
         if configured:
             return Path(configured)
-        return Path(REPO_ROOT) / "api" / "data" / "assay_catalog.yaml"
+        return Path(REPO_ROOT) / "api" / "config" / "assay_catalog.yaml"
 
     @classmethod
     def _load_catalog_overlay(cls) -> dict[str, Any]:

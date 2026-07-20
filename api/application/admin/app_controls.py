@@ -83,11 +83,17 @@ class AppControlsService:
     """DB-backed runtime switches for modules, Celery tasks, and retention."""
 
     def __init__(
-        self, db: Any, *, config: dict[str, Any], audit_service: Any | None = None
+        self,
+        db: Any,
+        *,
+        config: dict[str, Any],
+        audit_service: Any | None = None,
+        index_conflicts_provider: Any | None = None,
     ) -> None:
         self.collection = db[APP_CONTROLS_COLLECTION]
         self.config = config
         self.audit_service = audit_service
+        self.index_conflicts_provider = index_conflicts_provider
 
     def get_controls(self) -> AppControlsDoc:
         """Return effective controls with stored overrides applied."""
@@ -102,7 +108,78 @@ class AppControlsService:
         return {
             "controls": controls.model_dump(by_alias=True),
             "defaults": defaults.model_dump(by_alias=True),
+            "runtime": self.runtime_status(),
         }
+
+    def runtime_status(self) -> dict[str, Any]:
+        """Return observed task runtime state for the admin controls UI."""
+        controls = self.get_controls()
+        status: dict[str, Any] = {
+            "celery": {
+                "configured_enabled": controls.celery.enabled,
+                "status": "unknown",
+                "workers_online": 0,
+                "worker_names": [],
+                "active_count": 0,
+                "reserved_count": 0,
+                "scheduled_count": 0,
+                "registered_task_count": 0,
+                "beat_schedule_count": 0,
+                "queue_names": [],
+                "error": None,
+            },
+            "index_setup_conflicts": [],
+        }
+        if self.index_conflicts_provider is not None:
+            try:
+                conflicts = self.index_conflicts_provider()
+                if isinstance(conflicts, list):
+                    status["index_setup_conflicts"] = conflicts
+            except Exception:
+                status["index_setup_conflicts"] = []
+
+        try:
+            from api.celery_app import celery_app
+
+            inspect = celery_app.control.inspect(timeout=0.5)
+            stats = inspect.stats() or {}
+            active = inspect.active() or {}
+            reserved = inspect.reserved() or {}
+            scheduled = inspect.scheduled() or {}
+            registered = inspect.registered() or {}
+            active_queues = inspect.active_queues() or {}
+            queue_names = {
+                queue.get("name")
+                for worker_queues in active_queues.values()
+                for queue in (worker_queues or [])
+                if isinstance(queue, dict)
+            }
+            queue_names.update(
+                delivery.get("routing_key")
+                for worker_tasks in active.values()
+                for task in worker_tasks
+                if isinstance(task, dict)
+                for delivery in [task.get("delivery_info") or {}]
+                if delivery.get("routing_key")
+            )
+            status["celery"].update(
+                {
+                    "status": "online" if stats else "offline",
+                    "workers_online": len(stats),
+                    "worker_names": sorted(stats),
+                    "active_count": sum(len(tasks or []) for tasks in active.values()),
+                    "reserved_count": sum(len(tasks or []) for tasks in reserved.values()),
+                    "scheduled_count": sum(len(tasks or []) for tasks in scheduled.values()),
+                    "registered_task_count": len(
+                        {task for tasks in registered.values() for task in (tasks or [])}
+                    ),
+                    "beat_schedule_count": len(celery_app.conf.beat_schedule or {}),
+                    "queue_names": sorted(name for name in queue_names if name),
+                }
+            )
+        except Exception as exc:
+            status["celery"].update({"status": "unavailable", "error": str(exc)})
+        return status
 
     def update_controls(
         self, payload: dict[str, Any], *, actor: Any | None = None

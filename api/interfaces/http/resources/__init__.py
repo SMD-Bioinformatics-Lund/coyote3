@@ -1,1 +1,0 @@
-"""Configurable resource router package."""

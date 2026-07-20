@@ -221,8 +221,12 @@ def get_audit_service() -> AuditService | None:
 
 def get_app_controls_service() -> AppControlsService:
     """Return the DB-backed application controls service."""
+    store = get_store()
     return AppControlsService(
-        get_store().coyote_db,
+        store.coyote_db,
         config=runtime_app.config,
         audit_service=get_audit_service(),
+        index_conflicts_provider=lambda: getattr(
+            getattr(store, "_adapter", None), "index_setup_conflicts", []
+        ),
     )

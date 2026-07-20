@@ -6,7 +6,11 @@ import shlex
 from copy import deepcopy
 from typing import Any
 
-from api.config.constants import SUBPANEL_BASE_ID, normalize_environment
+from api.config.constants import (
+    SAMPLE_DATABASE_VERSION_KEY_ALIASES,
+    SUBPANEL_BASE_ID,
+    normalize_environment,
+)
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.domain.common.assay_filters import format_assay_config
@@ -51,20 +55,32 @@ def normalize_null_placeholders(value: Any) -> Any:
 
 
 def normalize_database_versions(value: Any) -> dict[str, str]:
-    """Normalize reference/database version metadata to a string mapping."""
+    """Normalize allowed reference/database version metadata to a string mapping."""
     if not isinstance(value, dict):
         return {}
     normalized: dict[str, str] = {}
     for key, raw_value in value.items():
-        clean_key = str(key or "").strip().lower().replace("-", "_")
-        clean_key = clean_key.replace(" ", "_")
+        clean_key = _canonical_database_version_key(key)
         if not clean_key:
             continue
         clean_value = normalize_null_placeholders(raw_value)
         if clean_value is None:
             continue
-        normalized[clean_key] = str(clean_value).strip()
+        normalized[clean_key] = _normalize_database_version_value(clean_key, clean_value)
     return normalized
+
+
+def _canonical_database_version_key(key: Any) -> str | None:
+    clean_key = str(key or "").strip().lower().replace("-", "_").replace(" ", "_")
+    clean_key = clean_key.replace(".", "_")
+    return SAMPLE_DATABASE_VERSION_KEY_ALIASES.get(clean_key)
+
+
+def _normalize_database_version_value(key: str, value: Any) -> str:
+    clean_value = str(value).strip()
+    if key == "vep":
+        return clean_value.lstrip("vV")
+    return clean_value
 
 
 def normalize_sample_version_metadata(payload: dict[str, Any]) -> dict[str, Any]:
@@ -116,18 +132,15 @@ def _parse_vep_header_line(line: str) -> dict[str, Any]:
     raw = line[2:]
     parts = shlex.split(raw)
     versions: dict[str, str] = {}
-    skip_keys = {"time", "cache"}
     for part in parts:
         if "=" not in part:
             continue
         key, value = part.split("=", 1)
-        clean_key = key.strip().lower().replace("-", "_")
-        if clean_key in skip_keys:
-            continue
+        clean_key = _canonical_database_version_key(key)
         clean_value = value.strip().strip('"')
         if not clean_key or not clean_value:
             continue
-        versions[clean_key] = clean_value
+        versions[clean_key] = _normalize_database_version_value(clean_key, clean_value)
     vep_raw = versions.get("vep")
     vep_version = vep_raw.lstrip("vV") if vep_raw else None
     if vep_version:

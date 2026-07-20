@@ -14,14 +14,11 @@ from dotenv import load_dotenv
 
 from api.version import __version__ as app_version
 
-CONTACT_HOURS = ["Mon–Fri: 08:00–16:30", "Closed on public holidays"]
 API_CONFIG_DIR = Path(__file__).resolve().parent
 
 # Load environment variables from the repo root .env file if present.
 REPO_ROOT = path.abspath(path.join(path.dirname(__file__), "..", ".."))
 load_dotenv(path.join(REPO_ROOT, ".env"))
-
-MANE_SUMMARY_PATH = os.getenv("MANE_SUMMARY_PATH", "").strip()
 
 
 def _normalize_url_prefix(value: str | None) -> str:
@@ -32,6 +29,17 @@ def _normalize_url_prefix(value: str | None) -> str:
     return "/" + raw.strip("/")
 
 
+def _join_public_url(base_url: str, script_name: str, suffix: str = "") -> str:
+    """Join public origin, mounted SCRIPT_NAME, and a browser-facing suffix."""
+    base = base_url.strip().rstrip("/")
+    if not base:
+        return ""
+    prefix = _normalize_url_prefix(script_name)
+    normalized_suffix = "/" + suffix.strip("/") if suffix.strip("/") else ""
+    trailing = "/" if suffix.endswith("/") else ""
+    return f"{base}{prefix}{normalized_suffix}{trailing}"
+
+
 def _require_env(key: str, context: str = "production") -> str:
     """Raise RuntimeError if the environment variable is not set or empty."""
     value = os.getenv(key, "").strip()
@@ -40,6 +48,45 @@ def _require_env(key: str, context: str = "production") -> str:
             f"{key} must be set in {context} environments. Add it to your env file and re-deploy."
         )
     return value
+
+
+def _load_contact_config(
+    config_path: str | Path,
+    *,
+    organization_name: str,
+    public_base_url: str,
+    script_name: str,
+) -> dict[str, Any]:
+    """Load center-owned public contact metadata from TOML."""
+    path_obj = Path(config_path)
+    if not path_obj.is_absolute():
+        path_obj = (REPO_ROOT / path_obj).resolve()
+    if not path_obj.exists():
+        raise RuntimeError(f"CONTACT_CONFIG_PATH does not exist: {path_obj}")
+
+    raw = toml.load(str(path_obj))
+    organization = dict(raw.get("organization") or {})
+    organization["name"] = organization_name
+
+    support = dict(raw.get("support") or {})
+    web_app_base_url = _join_public_url(public_base_url, script_name, "/")
+    help_center_url = _join_public_url(public_base_url, script_name, "/docs-site/")
+    if web_app_base_url:
+        support.setdefault("web_app_base_url", web_app_base_url)
+    if help_center_url:
+        support.setdefault("help_center_url", help_center_url)
+    return {
+        "organization": organization,
+        "support": support,
+        "codebase": dict(raw.get("codebase") or {}),
+        "contacts": list(raw.get("contacts") or []),
+        "links": list(raw.get("links") or []),
+        "hours": list(raw.get("hours") or []),
+        "meta": {
+            "source": str(path_obj),
+            "format": "toml",
+        },
+    }
 
 
 def _active_git_branch_name() -> str:
@@ -71,12 +118,6 @@ class DefaultConfig:
     # GITHUB REPO
     CODEBASE = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
 
-    # In-app changelog
-    CHANGELOG_FILE = "CHANGELOG.md"
-
-    # Optional link out to Git
-    CHANGELOG_URL = f"{CODEBASE}/blob/master/CHANGELOG.md"
-
     # Readme
     README_URL = f"{CODEBASE}/blob/master/README.md"
 
@@ -94,6 +135,7 @@ class DefaultConfig:
     CONTRIBUTING_URL = f"{CODEBASE}/blob/master/CONTRIBUTING.md"
 
     APP_VERSION = app_version
+    ORGANIZATION_NAME = os.getenv("ORGANIZATION_NAME", "Coyote3").strip() or "Coyote3"
     LOGS = "logs"
     PRODUCTION = False
 
@@ -118,11 +160,6 @@ class DefaultConfig:
 
     WTF_CSRF_ENABLED = True
     SCRIPT_NAME = _normalize_url_prefix(os.getenv("SCRIPT_NAME", ""))
-    API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8001")
-    API_BROWSER_BASE = os.getenv("API_BROWSER_BASE", "/api")
-    API_HEALTH_PATH = os.getenv("API_HEALTH_PATH", "/api/v1/health")
-    API_HEALTH_RETRIES = int(os.getenv("API_HEALTH_RETRIES", "15"))
-    API_HEALTH_RETRY_INTERVAL_SECONDS = float(os.getenv("API_HEALTH_RETRY_INTERVAL_SECONDS", "1.0"))
     INTERNAL_API_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
     # CORS configuration.
     # Set CORS_ORIGINS as a comma-separated list of allowed origins, e.g.:
@@ -136,8 +173,6 @@ class DefaultConfig:
     API_SESSION_TTL_SECONDS = int(os.getenv("API_SESSION_TTL_SECONDS", str(12 * 60 * 60)))
     API_SESSION_SALT = os.getenv("API_SESSION_SALT", "coyote3-api-session-v1")
     API_SESSION_COOKIE_SAMESITE = os.getenv("API_SESSION_COOKIE_SAMESITE", "lax")
-    API_SESSIONS_COLLECTION = os.getenv("API_SESSIONS_COLLECTION", "api_sessions")
-    AUDIT_EVENTS_COLLECTION = os.getenv("AUDIT_EVENTS_COLLECTION", "audit_events")
     AUDIT_RETENTION_DAYS = int(os.getenv("AUDIT_RETENTION_DAYS", "730"))
     LOG_SERVICE_NAME = os.getenv("LOG_SERVICE_NAME", "api")
     LOG_FILE_ENABLED = os.getenv("LOG_FILE_ENABLED", "1") == "1"
@@ -153,11 +188,9 @@ class DefaultConfig:
     WEB_RATE_LIMIT_ENABLED = os.getenv("WEB_RATE_LIMIT_ENABLED", "1") == "1"
     WEB_RATE_LIMIT_REQUESTS_PER_MINUTE = int(os.getenv("WEB_RATE_LIMIT_REQUESTS_PER_MINUTE", "300"))
     WEB_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("WEB_RATE_LIMIT_WINDOW_SECONDS", "60"))
-    WEB_APP_BASE_URL = os.getenv("WEB_APP_BASE_URL", "")
-    HELP_CENTER_URL = os.getenv("HELP_CENTER_URL", "")
-    ISSUE_TRACKER_URL = os.getenv("ISSUE_TRACKER_URL", "")
+    PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "")
+    CONTACT_CONFIG_PATH = os.getenv("CONTACT_CONFIG_PATH", str(API_CONFIG_DIR / "contact.toml"))
     ONCOKB_BASE_URL = os.getenv("ONCOKB_BASE_URL", "https://public.api.oncokb.org/api/v1")
-    ONCOKB_DEMO_BASE_URL = os.getenv("ONCOKB_DEMO_BASE_URL", "https://demo.oncokb.org/api/v1")
     ONCOKB_PUBLIC_LOOKUPS_ENABLED = os.getenv("ONCOKB_PUBLIC_LOOKUPS_ENABLED", "1") == "1"
     ONCOKB_REQUEST_TIMEOUT_SECONDS = float(os.getenv("ONCOKB_REQUEST_TIMEOUT_SECONDS", "3.0"))
     ONCOKB_PUBLIC_BATCH_SIZE = int(os.getenv("ONCOKB_PUBLIC_BATCH_SIZE", "200"))
@@ -171,7 +204,7 @@ class DefaultConfig:
     SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "1") == "1"
     SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "0") == "1"
     SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "noreply@coyote3.local")
-    SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Coyote3")
+    SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", ORGANIZATION_NAME)
 
     _MONGO_URI_ENV: str = os.getenv("MONGO_URI", "").strip()
     COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3")
@@ -190,7 +223,6 @@ class DefaultConfig:
     LDAP_USER_DN = os.getenv("LDAP_USER_DN", "ou=people")
 
     # Gens URI — optional integration; set per center or leave empty.
-    GENS_URI_OLD = os.getenv("GENS_URI_OLD", "")
     GENS_URI = os.getenv("GENS_URI", "")
 
     # IGV URI — optional integration; set per center or leave empty.
@@ -199,16 +231,14 @@ class DefaultConfig:
     # Report Config
     REPORTS_BASE_PATH = os.getenv("REPORTS_BASE_PATH", "/data/coyote3/reports")
 
-    # Contact information — set all values via environment variables per center.
-    CONTACT: dict[str, str | list[str]] = {
-        "clinical_email": os.getenv("CONTACT_CLINICAL_EMAIL", ""),
-        "research_email": os.getenv("CONTACT_RESEARCH_EMAIL", ""),
-        "samples_email": os.getenv("CONTACT_SAMPLES_EMAIL", ""),
-        "phone_main": os.getenv("CONTACT_PHONE_MAIN", ""),
-        "phone_urgent": os.getenv("CONTACT_PHONE_URGENT", ""),
-        "address": os.getenv("CONTACT_ADDRESS", ""),
-        "hours": CONTACT_HOURS,
-    }
+    # Center public contact metadata. Runtime endpoints and secrets remain in env;
+    # presentation content belongs in the center-owned TOML file.
+    CONTACT: dict[str, Any] = _load_contact_config(
+        CONTACT_CONFIG_PATH,
+        organization_name=ORGANIZATION_NAME,
+        public_base_url=PUBLIC_BASE_URL,
+        script_name=SCRIPT_NAME,
+    )
 
     # SEARCH LIMITS
     TIERED_VARIANT_SEARCH_LIMIT = 1000
@@ -291,7 +321,6 @@ class ProductionConfig(DefaultConfig):
     SECRET_KEY: str | None = os.getenv("SECRET_KEY")
     INTERNAL_API_TOKEN: str = os.getenv("INTERNAL_API_TOKEN", "")
     PASSWORD_TOKEN_SALT: str = os.getenv("PASSWORD_TOKEN_SALT", "")
-    SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_prod")
     CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
     DEBUG: bool = False
 
@@ -300,6 +329,7 @@ class ProductionConfig(DefaultConfig):
         """Require critical secrets for production startup."""
         _require_env("SECRET_KEY", "production")
         _require_env("INTERNAL_API_TOKEN", "production")
+        _require_env("API_SESSION_SALT", "production")
         _require_env("PASSWORD_TOKEN_SALT", "production")
 
 
@@ -321,7 +351,6 @@ class DevelopmentConfig(DefaultConfig):
     LOGS = "logs/dev"
     PRODUCTION = False
     ENV_NAME = os.getenv("ENV_NAME", "Development")
-    SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_dev")
     SECRET_KEY = os.getenv("SECRET_KEY")
     CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
     APP_VERSION: str = f"{app_version}-DEV (git: {_active_git_branch_name()})"
@@ -343,7 +372,6 @@ class TestConfig(DefaultConfig):
     LOGS = "logs/test"
     PRODUCTION = False
     ENV_NAME = os.getenv("ENV_NAME", "Testing")
-    SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_test")
     SECRET_KEY = os.getenv("SECRET_KEY")
     CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
 
@@ -371,7 +399,6 @@ class StageConfig(DefaultConfig):
     SECRET_KEY: str | None = os.getenv("SECRET_KEY")
     INTERNAL_API_TOKEN: str = os.getenv("INTERNAL_API_TOKEN", "")
     PASSWORD_TOKEN_SALT: str = os.getenv("PASSWORD_TOKEN_SALT", "")
-    SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_stage")
     CORS_ORIGINS: list[str] = DefaultConfig.CORS_ORIGINS
     DEBUG: bool = False
 
@@ -380,4 +407,5 @@ class StageConfig(DefaultConfig):
         """Require critical secrets for staging startup."""
         _require_env("SECRET_KEY", "staging")
         _require_env("INTERNAL_API_TOKEN", "staging")
+        _require_env("API_SESSION_SALT", "staging")
         _require_env("PASSWORD_TOKEN_SALT", "staging")

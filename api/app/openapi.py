@@ -31,6 +31,7 @@ def apply_openapi_security_schema(app: FastAPI) -> dict:
         version=app.version,
         description="Coyote3 API",
         routes=app.routes,
+        tags=app.openapi_tags,
     )
     components = schema.setdefault("components", {})
     security_schemes = components.setdefault("securitySchemes", {})

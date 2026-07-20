@@ -106,6 +106,7 @@ class SampleCatalogService:
             translocation_repository=store.translocation_repository,
             biomarker_repository=store.biomarker_repository,
             grouped_coverage_repository=store.grouped_coverage_repository,
+            sample_comment_repository=store.sample_comment_repository,
             reported_samples_search_limit=reported_samples_search_limit,
             reports_base_path=reports_base_path,
         )
@@ -123,6 +124,7 @@ class SampleCatalogService:
         translocation_repository: Any,
         biomarker_repository: Any,
         grouped_coverage_repository: Any,
+        sample_comment_repository: Any | None = None,
         reported_samples_search_limit: int = 50,
         reports_base_path: str = "",
     ) -> None:
@@ -137,6 +139,7 @@ class SampleCatalogService:
         self.translocation_repository = translocation_repository
         self.biomarker_repository = biomarker_repository
         self.grouped_coverage_repository = grouped_coverage_repository
+        self.sample_comment_repository = sample_comment_repository
         self.reported_samples_search_limit = int(reported_samples_search_limit or 50)
         self.reports_base_path = str(reports_base_path or "")
 
@@ -879,12 +882,15 @@ class SampleCatalogService:
         biomarker_rows = list(
             self.biomarker_repository.get_sample_biomarkers(str(sample.get("_id"))) or []
         )
+        sample_comments = []
+        if self.sample_comment_repository is not None:
+            sample_comments = list(
+                self.sample_comment_repository.list_sample_comments(str(sample.get("_id"))) or []
+            )
 
         return {
             "sample": sample,
-            "comments": self.sample_repository.adapter.sample_comment_repository.list_sample_comments(
-                str(sample.get("_id"))
-            ),
+            "comments": sample_comments,
             "asp": asp,
             "sample_expected_files": self._file_rows_for_sample(sample, asp),
             "snv_genelist_options": self._genelist_options_for_target(

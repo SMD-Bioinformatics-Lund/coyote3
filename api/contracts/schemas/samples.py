@@ -9,6 +9,7 @@ from pydantic import Field, field_validator, model_validator
 
 from api.config.constants import (
     ALL_SAMPLE_FILE_KEYS,
+    SAMPLE_DATABASE_VERSION_KEY_ALIASES,
     SAMPLE_FILE_KEYS,
     normalize_environment,
     normalize_platform,
@@ -214,10 +215,14 @@ class SamplesDoc(_DocBase):
             return {}
         normalized: dict[str, str] = {}
         for key, raw_value in value.items():
-            clean_key = str(key or "").strip().lower().replace("-", "_").replace(" ", "_")
+            lookup_key = str(key or "").strip().lower().replace("-", "_").replace(" ", "_")
+            lookup_key = lookup_key.replace(".", "_")
+            clean_key = SAMPLE_DATABASE_VERSION_KEY_ALIASES.get(lookup_key)
             if not clean_key or raw_value is None:
                 continue
             clean_value = str(raw_value).strip()
+            if clean_key == "vep":
+                clean_value = clean_value.lstrip("vV")
             if clean_value:
                 normalized[clean_key] = clean_value
         return normalized

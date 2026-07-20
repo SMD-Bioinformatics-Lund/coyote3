@@ -84,6 +84,50 @@ READ_MODE_OPTIONS: tuple[str, ...] = ("SE", "PE")
 
 DEFAULT_VEP_VERSION = "103"
 
+# Sample-level reference/software versions captured from VCF metadata.
+# Ingest stores only these keys under samples.database_versions so the sample
+# document remains clinically meaningful and does not accumulate arbitrary VCF
+# header fields such as cache paths, run timestamps, or transient plugin data.
+SAMPLE_DATABASE_VERSION_LABELS: dict[str, str] = {
+    "assembly": "Assembly",
+    "clinvar": "ClinVar",
+    "cosmic": "COSMIC",
+    "dbsnp": "dbSNP",
+    "ensembl": "Ensembl",
+    "gencode": "GENCODE",
+    "genebuild": "Genebuild",
+    "gnomad": "gnomAD",
+    "hgmd_public": "HGMD Public",
+    "polyphen": "PolyPhen",
+    "sift": "SIFT",
+    "vep": "VEP",
+}
+
+SAMPLE_DATABASE_VERSION_KEY_ALIASES: dict[str, str] = {
+    "assembly": "assembly",
+    "genome_assembly": "assembly",
+    "reference_assembly": "assembly",
+    "grch": "assembly",
+    "clinvar": "clinvar",
+    "cosmic": "cosmic",
+    "dbsnp": "dbsnp",
+    "db_snp": "dbsnp",
+    "ensembl": "ensembl",
+    "gencode": "gencode",
+    "genebuild": "genebuild",
+    "gene_build": "genebuild",
+    "gnomad": "gnomad",
+    "gnomad_exomes": "gnomad",
+    "hgmd_public": "hgmd_public",
+    "hgmdpublic": "hgmd_public",
+    "polyphen": "polyphen",
+    "polyphen2": "polyphen",
+    "sift": "sift",
+    "vep": "vep",
+}
+
+SAMPLE_DATABASE_VERSION_KEYS: tuple[str, ...] = tuple(SAMPLE_DATABASE_VERSION_LABELS)
+
 DNA_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = (
     "SNV",
     "CNV",

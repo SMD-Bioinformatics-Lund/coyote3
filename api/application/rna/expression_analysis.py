@@ -7,6 +7,14 @@ from typing import Any
 
 from api.application.common.assay_config import get_formatted_assay_config
 from api.application.common.pagination import paginate_items, request_pagination
+from api.application.common.table_state import (
+    numeric_value,
+    parse_sort_specs,
+    search_items,
+    sort_items,
+    sort_spec_to_query_value,
+    sortable_text,
+)
 from api.application.dna.export import export_rows_to_csv, join_tokens, safe_text, yes_no
 from api.application.interpretation.annotation_enrichment import add_global_annotations
 from api.application.interpretation.report_summary import generate_summary_text
@@ -18,6 +26,101 @@ from api.contracts.rna import RnaFusionExportRow
 from api.domain.common.errors import api_error, setup_error
 
 logger = logging.getLogger(__name__)
+
+
+def _fusion_calls(fusion: dict[str, Any]) -> list[dict[str, Any]]:
+    calls = fusion.get("fusion")
+    return calls if isinstance(calls, list) else []
+
+
+def _selected_fusion_call(fusion: dict[str, Any]) -> dict[str, Any]:
+    calls = _fusion_calls(fusion)
+    return calls[0] if calls else {}
+
+
+def _fusion_genes(fusion: dict[str, Any]) -> list[str]:
+    call = _selected_fusion_call(fusion)
+    values = [
+        call.get("gene1"),
+        call.get("gene2"),
+        fusion.get("gene1"),
+        fusion.get("gene2"),
+    ]
+    return [str(value) for value in values if value]
+
+
+def _fusion_callers(fusion: dict[str, Any]) -> str:
+    callers = fusion.get("callers")
+    if isinstance(callers, list):
+        return ", ".join(str(caller) for caller in callers)
+    return str(callers or "")
+
+
+def _fusion_tier_value(fusion: dict[str, Any]) -> float | None:
+    for key in ("classification", "class", "tier"):
+        value = fusion.get(key)
+        if isinstance(value, dict):
+            value = value.get("class") or value.get("tier") or value.get("value")
+        numeric = numeric_value(value)
+        if numeric is not None:
+            return numeric
+    return None
+
+
+def _fusion_supporting_reads(fusion: dict[str, Any]) -> dict[str, Any]:
+    reads = fusion.get("supporting_reads")
+    return reads if isinstance(reads, dict) else {}
+
+
+def _fusion_sort_value(fusion: dict[str, Any], sort_by: str) -> Any:
+    call = _selected_fusion_call(fusion)
+    genes = _fusion_genes(fusion)
+    supporting_reads = _fusion_supporting_reads(fusion)
+    sort_map = {
+        "badges": lambda: sortable_text(
+            " ".join(str(value) for value in (fusion.get("fp"), fusion.get("irrelevant")))
+        ),
+        "gene1": lambda: sortable_text(genes[0] if len(genes) > 0 else None),
+        "gene2": lambda: sortable_text(genes[1] if len(genes) > 1 else None),
+        "effect": lambda: sortable_text(call.get("effect") or fusion.get("frame")),
+        "spanpairs": lambda: numeric_value(call.get("spanpairs") or supporting_reads.get("span")),
+        "unique_spanpairs": lambda: numeric_value(
+            call.get("spanreads") or supporting_reads.get("split")
+        ),
+        "fusion_points": lambda: sortable_text(
+            " ".join(
+                str(value)
+                for value in (
+                    call.get("breakpoint1"),
+                    call.get("breakpoint2"),
+                    fusion.get("breakpoints"),
+                )
+                if value
+            )
+        ),
+        "tier": lambda: _fusion_tier_value(fusion),
+        "description": lambda: sortable_text(call.get("desc") or fusion.get("desc")),
+        "callers": lambda: sortable_text(_fusion_callers(fusion)),
+    }
+    builder = sort_map.get(sort_by)
+    return builder() if builder else None
+
+
+def _fusion_search_text(fusion: dict[str, Any]) -> str:
+    call = _selected_fusion_call(fusion)
+    values = [
+        fusion.get("_id"),
+        " ".join(_fusion_genes(fusion)),
+        _fusion_callers(fusion),
+        call.get("effect"),
+        call.get("desc"),
+        call.get("breakpoint1"),
+        call.get("breakpoint2"),
+        fusion.get("frame"),
+        fusion.get("desc"),
+        fusion.get("breakpoints"),
+    ]
+    return " ".join(str(value) for value in values if value not in (None, ""))
 
 
 class RnaService:
@@ -37,6 +140,7 @@ class RnaService:
             rna_quality_repository=store.rna_quality_repository,
             annotation_repository=store.annotation_repository,
             reported_variant_repository=store.reported_variant_repository,
+            report_repository=store.report_repository,
         )
 
     def __init__(
@@ -52,6 +156,7 @@ class RnaService:
         rna_quality_repository: Any,
         annotation_repository: Any,
         reported_variant_repository: Any,
+        report_repository: Any,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.assay_panel_repository = assay_panel_repository
@@ -73,6 +178,7 @@ class RnaService:
             annotation_repository=annotation_repository,
             assay_panel_repository=assay_panel_repository,
             reported_variant_repository=reported_variant_repository,
+            report_repository=report_repository,
         )
 
     def _get_formatted_assay_config(self, sample: dict) -> dict:
@@ -138,6 +244,14 @@ class RnaService:
             subpanel,
             annotation_repository=self.annotation_repository,
         )
+        query_params = getattr(request, "query_params", {}) or {}
+        search_query = str(query_params.get("q", "")).strip()
+        if search_query:
+            fusions = search_items(
+                fusions, search_query=search_query, text_builder=_fusion_search_text
+            )
+        sort_specs = parse_sort_specs(query_params)
+        fusions = sort_items(fusions, specs=sort_specs, value_getter=_fusion_sort_value)
         page_fusions = fusions
         pagination_meta: dict[str, Any] = {
             "total": len(fusions),
@@ -166,6 +280,8 @@ class RnaService:
                 "request_path": request.url.path,
                 **pagination_meta,
                 "tiered": tiered_fusions,
+                "search": search_query,
+                "sort": sort_spec_to_query_value(sort_specs),
             },
             "assay_group": assay_group,
             "subpanel": subpanel,

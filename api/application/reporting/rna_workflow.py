@@ -60,6 +60,7 @@ class RNAWorkflowService:
             annotation_repository=store.annotation_repository,
             assay_panel_repository=store.assay_panel_repository,
             reported_variant_repository=store.reported_variant_repository,
+            report_repository=store.report_repository,
             report_config=report_config,
         )
 
@@ -75,6 +76,7 @@ class RNAWorkflowService:
         annotation_repository,
         assay_panel_repository,
         reported_variant_repository,
+        report_repository,
         report_config: dict | None = None,
     ) -> None:
         """Create the workflow service with explicit injected repositories."""
@@ -87,7 +89,12 @@ class RNAWorkflowService:
         self.annotation_repository = annotation_repository
         self.assay_panel_repository = assay_panel_repository
         self.reported_variant_repository = reported_variant_repository
+        self.report_repository = report_repository
         self.report_config = report_config or {}
+
+    def next_report_num(self, sample_id: str) -> int:
+        """Return the next sequential report number for a sample."""
+        return self.report_repository.next_report_num(sample_id)
 
     @staticmethod
     def merge_and_normalize_sample_filters(

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import csv
-import gzip
 import json
 import os
 from collections.abc import Callable
@@ -11,7 +9,6 @@ from typing import Any
 
 from pysam import VariantFile
 
-from api.config import app_config
 from api.contracts.schemas.samples import DNA_SAMPLE_FILE_KEYS, RNA_SAMPLE_FILE_KEYS
 from api.domain.common.parsers import cmdvcf
 from api.domain.core.dna.variant_identity import ensure_variant_identity_fields
@@ -658,29 +655,6 @@ def _select_csq(
     return _normalize_selected_csq_symbol(csq_arr[0], hgnc_by_id, hgnc_by_symbol), "random"
 
 
-def _read_mane(path: str) -> dict[str, dict[str, str]]:
-    """Parse a gzipped MANE summary TSV file into a gene-keyed RefSeq/Ensembl mapping.
-
-    Args:
-        path: Absolute path to the gzipped MANE summary file.
-
-    Returns:
-        A dict mapping Ensembl gene ID (no version) to a sub-dict with keys
-        ``"refseq"`` and ``"ensembl"`` (transcript accessions without version).
-    """
-    mane: dict[str, dict[str, str]] = {}
-    if not path or not os.path.exists(path):
-        return mane
-    with gzip.open(path, "rt") as handle:
-        reader = csv.DictReader(handle, delimiter="\t")
-        for row in reader:
-            refseq = row["RefSeq_nuc"].split(".")[0]
-            ensembl = row["Ensembl_nuc"].split(".")[0]
-            gene = row["Ensembl_Gene"].split(".")[0]
-            mane[gene] = {"refseq": refseq, "ensembl": ensembl}
-    return mane
-
-
 def _normalize_biomarkers_doc(doc: Any) -> Any:
     """Normalize historical biomarker JSON field names to the current contract."""
     if not isinstance(doc, dict):
@@ -957,7 +931,7 @@ class DnaIngestParser:
     def _parse_transloc_only(infile: str) -> list[dict[str, Any]]:
         """Parse a translocation VCF into a list of gene-fusion variant dicts.
 
-        Processes ANN fields, extracts MANE select annotations, and retains only
+        Processes ANN fields, extracts supported fusion annotations, and retains only
         variants annotated as ``gene_fusion`` or ``bidirectional_gene_fusion``.
 
         Args:
@@ -966,7 +940,7 @@ class DnaIngestParser:
         Returns:
             A list of variant dicts representing confirmed gene fusions.
         """
-        mane = _read_mane(app_config.MANE_SUMMARY_PATH)
+        mane: dict[str, dict[str, str]] = {}
         filtered_data: list[dict[str, Any]] = []
         vcf_object = VariantFile(infile)
         for var in vcf_object.fetch():

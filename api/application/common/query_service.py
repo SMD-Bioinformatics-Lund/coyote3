@@ -27,6 +27,12 @@ class CommonQueryService:
             assay_panel_repository=store.assay_panel_repository,
             annotation_repository=store.annotation_repository,
             sample_repository=store.sample_repository,
+            oncokb_public_cache_repository=getattr(store, "oncokb_public_cache_repository", None),
+            clinpgx_public_repository=getattr(store, "clinpgx_public_repository", None),
+            civic_repository=getattr(store, "civic_repository", None),
+            brca_repository=getattr(store, "brca_repository", None),
+            iarc_tp53_repository=getattr(store, "iarc_tp53_repository", None),
+            bam_record_repository=getattr(store, "bam_record_repository", None),
         )
 
     def __init__(
@@ -39,6 +45,12 @@ class CommonQueryService:
         assay_panel_repository: Any,
         annotation_repository: Any,
         sample_repository: Any,
+        oncokb_public_cache_repository: Any | None = None,
+        clinpgx_public_repository: Any | None = None,
+        civic_repository: Any | None = None,
+        brca_repository: Any | None = None,
+        iarc_tp53_repository: Any | None = None,
+        bam_record_repository: Any | None = None,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.hgnc_repository = hgnc_repository
@@ -48,9 +60,15 @@ class CommonQueryService:
         self.assay_panel_repository = assay_panel_repository
         self.annotation_repository = annotation_repository
         self.sample_repository = sample_repository
+        self.oncokb_public_cache_repository = oncokb_public_cache_repository
+        self.clinpgx_public_repository = clinpgx_public_repository
+        self.civic_repository = civic_repository
+        self.brca_repository = brca_repository
+        self.iarc_tp53_repository = iarc_tp53_repository
+        self.bam_record_repository = bam_record_repository
 
-    def gene_info_payload(self, gene_id: str) -> dict[str, Any]:
-        """Return gene metadata by HGNC id or symbol."""
+    def _resolve_gene(self, gene_id: str) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+        """Resolve a gene identifier through HGNC id, current symbol, previous symbol, or alias."""
         normalized_gene_id = str(gene_id or "").strip()
         if normalized_gene_id.isnumeric() or normalized_gene_id.upper().startswith("HGNC:"):
             gene = self.hgnc_repository.get_metadata_by_hgnc_id(hgnc_id=normalized_gene_id)
@@ -59,23 +77,152 @@ class CommonQueryService:
         else:
             gene = self.hgnc_repository.get_metadata_by_symbol(symbol=normalized_gene_id)
         symbol = (gene or {}).get("hgnc_symbol") or (gene or {}).get("symbol") or normalized_gene_id
+        query = {
+            "input": normalized_gene_id,
+            "resolved_symbol": symbol,
+            "symbol_changed": bool(
+                normalized_gene_id
+                and symbol
+                and normalized_gene_id.upper() != str(symbol).upper()
+                and not normalized_gene_id.upper().startswith("HGNC:")
+            ),
+        }
+        return gene, query
+
+    @staticmethod
+    def _source_present(value: Any) -> bool:
+        """Return true when a source has useful content for a response."""
+        if value is None:
+            return False
+        if isinstance(value, dict | list | tuple | set):
+            return bool(value)
+        return True
+
+    @classmethod
+    def _available_sources(cls, sources: dict[str, Any]) -> list[str]:
+        """Return source names that have non-empty payloads."""
+        return sorted(name for name, value in sources.items() if cls._source_present(value))
+
+    def gene_info_payload(self, gene_id: str) -> dict[str, Any]:
+        """Return gene metadata by HGNC id or symbol."""
+        gene, query = self._resolve_gene(gene_id)
+        symbol = query["resolved_symbol"]
         oncokb_gene = self.oncokb_repository.get_oncokb_gene(str(symbol).upper())
         return {
             "gene": gene,
-            "query": {
-                "input": normalized_gene_id,
-                "resolved_symbol": symbol,
-                "symbol_changed": bool(
-                    normalized_gene_id
-                    and symbol
-                    and normalized_gene_id.upper() != str(symbol).upper()
-                    and not normalized_gene_id.upper().startswith("HGNC:")
-                ),
-            },
+            "query": query,
             "knowledgebase": {
                 "oncokb": oncokb_gene,
                 "oncokb_url": f"https://www.oncokb.org/gene/{symbol}" if oncokb_gene else None,
             },
+        }
+
+    def knowledgebase_gene_payload(self, gene_id: str) -> dict[str, Any]:
+        """Return aggregated external knowledgebase context for a gene."""
+        gene, query = self._resolve_gene(gene_id)
+        symbol = str(query["resolved_symbol"] or "").strip()
+        upper_symbol = symbol.upper()
+
+        public_oncokb_getter = getattr(self.oncokb_public_cache_repository, "get_gene_record", None)
+        clinpgx_getter = getattr(self.clinpgx_public_repository, "get_gene_record", None)
+        civic_getter = getattr(self.civic_repository, "get_civic_gene_info", None)
+        sources = {
+            "oncokb_public": public_oncokb_getter(symbol)
+            if callable(public_oncokb_getter)
+            else None,
+            "oncokb_local": self.oncokb_repository.get_oncokb_gene(upper_symbol),
+            "oncokb_actionable_local": self.oncokb_repository.get_oncokb_action_gene(upper_symbol),
+            "clinpgx_public": clinpgx_getter(symbol) if callable(clinpgx_getter) else None,
+            "civic_gene": civic_getter(symbol) if callable(civic_getter) else None,
+            "brca_exchange": {
+                "applies_to_gene": upper_symbol in {"BRCA1", "BRCA2"},
+                "lookup": "variant-coordinate",
+            },
+            "iarc_tp53": {
+                "applies_to_gene": upper_symbol == "TP53",
+                "lookup": "variant-hgvsc",
+            },
+        }
+        return {
+            "query": query,
+            "gene": gene,
+            "sources": sources,
+            "available_sources": self._available_sources(sources),
+        }
+
+    def knowledgebase_variant_payload(
+        self,
+        *,
+        chrom: str,
+        pos: int,
+        ref: str,
+        alt: str,
+        gene: str,
+        hgvsc: str | None = None,
+        hgvsp: str | None = None,
+        assay_group: str = "dna",
+    ) -> dict[str, Any]:
+        """Return local knowledgebase context for one variant identity."""
+        selected_csq = {
+            "SYMBOL": str(gene or "").strip(),
+            "HGVSc": str(hgvsc or "").strip(),
+            "HGVSp": str(hgvsp or "").strip(),
+        }
+        variant = {
+            "CHROM": str(chrom or "").removeprefix("chr"),
+            "POS": int(pos),
+            "REF": str(ref or "").strip(),
+            "ALT": str(alt or "").strip(),
+            "INFO": {"selected_CSQ": selected_csq},
+        }
+        hgvsp_candidates = [selected_csq["HGVSp"]] if selected_csq["HGVSp"] else []
+        sources = {
+            "civic_variants": self.civic_repository.get_civic_data(variant, selected_csq["HGVSp"])
+            if self.civic_repository is not None
+            else [],
+            "oncokb_local": self.oncokb_repository.get_oncokb_anno(variant, hgvsp_candidates)
+            if hgvsp_candidates
+            else None,
+            "oncokb_actionable_local": self.oncokb_repository.get_oncokb_action(
+                variant, hgvsp_candidates
+            )
+            if hgvsp_candidates
+            else [],
+            "brca_exchange": self.brca_repository.get_brca_data(variant, assay_group)
+            if self.brca_repository is not None
+            else None,
+            "iarc_tp53": self.iarc_tp53_repository.find_iarc_tp53(variant)
+            if self.iarc_tp53_repository is not None
+            else None,
+        }
+        return {
+            "query": {
+                "chrom": variant["CHROM"],
+                "pos": variant["POS"],
+                "ref": variant["REF"],
+                "alt": variant["ALT"],
+                "gene": selected_csq["SYMBOL"],
+                "hgvsc": selected_csq["HGVSc"] or None,
+                "hgvsp": selected_csq["HGVSp"] or None,
+                "assay_group": assay_group,
+            },
+            "variant": variant,
+            "sources": sources,
+            "available_sources": self._available_sources(sources),
+        }
+
+    def bam_files_payload(self, *, sample_ids: list[str]) -> dict[str, Any]:
+        """Return BAM-service file paths for sample IDs."""
+        normalized = [str(sample_id or "").strip() for sample_id in sample_ids]
+        normalized = [sample_id for sample_id in normalized if sample_id]
+        if not normalized:
+            raise api_error(400, "At least one sample_id must be provided")
+        if self.bam_record_repository is None:
+            return {"query": {"sample_ids": normalized}, "bam_files": {}}
+        lookup = {sample_id: sample_id for sample_id in normalized}
+        return {
+            "query": {"sample_ids": normalized},
+            "bam_files": self.bam_record_repository.get_bams(lookup) or {},
         }
 
     def tiered_variant_context_payload(self, *, variant_id: str, tier: int) -> dict[str, Any]:

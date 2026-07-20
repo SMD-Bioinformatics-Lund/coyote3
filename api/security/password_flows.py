@@ -101,7 +101,9 @@ def notify_user_change(
 
 
 def _build_set_password_url(token: str) -> str:
-    base = str(runtime_app.config.get("WEB_APP_BASE_URL") or "").strip().rstrip("/")
+    public_base = str(runtime_app.config.get("PUBLIC_BASE_URL") or "").strip().rstrip("/")
+    script_name = str(runtime_app.config.get("SCRIPT_NAME") or "").strip().rstrip("/")
+    base = f"{public_base}{script_name}" if public_base else ""
     path = f"/reset-password?token={token}"
     return f"{base}{path}" if base else path
 
