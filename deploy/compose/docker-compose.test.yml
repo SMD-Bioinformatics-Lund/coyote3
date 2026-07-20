@@ -4,8 +4,8 @@ name: coyote3-test
 #   ./scripts/compose-with-version.sh --env-file .coyote3_test_env \
 #     -f deploy/compose/docker-compose.test.yml --profile tests up -d --build
 x-runtime-defaults: &runtime-defaults
-  mem_limit: ${COYOTE3_TEST_CONTAINER_MEM_LIMIT:-2g}
-  cpus: ${COYOTE3_TEST_CONTAINER_CPU_LIMIT:-2.0}
+  mem_limit: ${COYOTE3_CONTAINER_MEM_LIMIT:-2g}
+  cpus: ${COYOTE3_CONTAINER_CPU_LIMIT:-2.0}
 
 services:
   coyote3_test_api:
@@ -27,6 +27,7 @@ services:
       - PYTHONUNBUFFERED=1
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
+      - CACHE_REDIS_URL=redis://coyote3_redis_test:6379/0
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
@@ -42,7 +43,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:${COYOTE3_DATA_CONTAINER_ROOT:-/data}"
+      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
     depends_on:
       coyote3_redis_test:
         condition: service_started
@@ -66,11 +67,12 @@ services:
       - PYTHONUNBUFFERED=1
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
+      - CACHE_REDIS_URL=redis://coyote3_redis_test:6379/0
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://coyote3_redis_test:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://coyote3_redis_test:6379/0}
+      - CELERY_BROKER_URL=redis://coyote3_redis_test:6379/0
+      - CELERY_RESULT_BACKEND=redis://coyote3_redis_test:6379/0
       - CELERY_INGEST_QUEUE=${CELERY_INGEST_QUEUE:-ingest}
     command: "celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=${CELERY_INGEST_QUEUE:-ingest},default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}"
     networks:
@@ -78,7 +80,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:${COYOTE3_DATA_CONTAINER_ROOT:-/data}"
+      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
     depends_on:
       coyote3_redis_test:
         condition: service_started
@@ -102,11 +104,12 @@ services:
       - PYTHONUNBUFFERED=1
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
+      - CACHE_REDIS_URL=redis://coyote3_redis_test:6379/0
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://coyote3_redis_test:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://coyote3_redis_test:6379/0}
+      - CELERY_BROKER_URL=redis://coyote3_redis_test:6379/0
+      - CELERY_RESULT_BACKEND=redis://coyote3_redis_test:6379/0
       - CELERY_INGEST_QUEUE=${CELERY_INGEST_QUEUE:-ingest}
     command: "celery -A api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO}"
     networks:
@@ -114,7 +117,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:${COYOTE3_DATA_CONTAINER_ROOT:-/data}"
+      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
     depends_on:
       coyote3_redis_test:
         condition: service_started
@@ -196,7 +199,7 @@ services:
     image: nginx:1.27-alpine
     profiles: ["with-ui"]
     ports:
-      - "${COYOTE3_TEST_PORT:-6811}:8088"
+      - "${COYOTE3_PORT:-6811}:8088"
     command: ["sh", "-c", "sh /etc/nginx/render-config.sh && nginx -g 'daemon off;'"]
     env_file:
       - ../../.coyote3_test_env

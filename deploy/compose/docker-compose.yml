@@ -68,6 +68,7 @@ services:
       - PYTHONUNBUFFERED=1
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
+      - CACHE_REDIS_URL=redis://coyote3_redis:6379/0
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
@@ -82,7 +83,7 @@ services:
     volumes:
       - "/access:/access"
       - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:${COYOTE3_DATA_CONTAINER_ROOT:-/data}"
+      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
       - "/fs1:/fs1"
     command: "python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --workers ${API_WORKERS:-4}"
     healthcheck:
@@ -105,11 +106,12 @@ services:
       - PYTHONUNBUFFERED=1
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
+      - CACHE_REDIS_URL=redis://coyote3_redis:6379/0
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://coyote3_redis:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://coyote3_redis:6379/0}
+      - CELERY_BROKER_URL=redis://coyote3_redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://coyote3_redis:6379/0
       - CELERY_INGEST_QUEUE=${CELERY_INGEST_QUEUE:-ingest}
     restart: on-failure:5
     dns:
@@ -122,7 +124,7 @@ services:
     volumes:
       - "/access:/access"
       - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:${COYOTE3_DATA_CONTAINER_ROOT:-/data}"
+      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
       - "/fs1:/fs1"
     command: "celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=${CELERY_INGEST_QUEUE:-ingest},default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}"
     depends_on:
@@ -139,11 +141,12 @@ services:
       - PYTHONUNBUFFERED=1
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
+      - CACHE_REDIS_URL=redis://coyote3_redis:6379/0
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://coyote3_redis:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://coyote3_redis:6379/0}
+      - CELERY_BROKER_URL=redis://coyote3_redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://coyote3_redis:6379/0
       - CELERY_INGEST_QUEUE=${CELERY_INGEST_QUEUE:-ingest}
     restart: on-failure:5
     dns:
@@ -156,7 +159,7 @@ services:
     volumes:
       - "/access:/access"
       - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:${COYOTE3_DATA_CONTAINER_ROOT:-/data}"
+      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
       - "/fs1:/fs1"
     command: "celery -A api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO}"
     depends_on:

@@ -25,6 +25,9 @@ cat >"$output_path" <<EOF
 server {
     listen 8088;
     server_name _;
+    absolute_redirect off;
+    port_in_redirect off;
+    server_name_in_redirect off;
 
     client_max_body_size 200m;
 
@@ -34,21 +37,32 @@ server {
     proxy_set_header X-Forwarded-Proto \$scheme;
     proxy_http_version 1.1;
     proxy_read_timeout 120s;
-
-    location /api/ {
-        proxy_pass ${api_upstream}/api/;
-    }
-
-    location /docs-site/ {
-        proxy_pass ${docs_upstream}/;
-    }
 EOF
 
 if [ -n "$script_name" ] && [ "$script_name" != "/" ]; then
   cat >>"$output_path" <<EOF
 
+    location /api/ {
+        if (\$http_x_forwarded_prefix != "${script_name}") {
+            return 404;
+        }
+        proxy_set_header X-Forwarded-Prefix ${script_name};
+        proxy_pass ${api_upstream}/api/;
+    }
+
+    location /docs-site/ {
+        if (\$http_x_forwarded_prefix != "${script_name}") {
+            return 404;
+        }
+        proxy_set_header X-Forwarded-Prefix ${script_name};
+        proxy_pass ${docs_upstream}/;
+    }
+
     location = ${script_name} {
-        return 308 ${script_name}/;
+        proxy_set_header X-Forwarded-Prefix ${script_name};
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_pass ${frontend_upstream}${script_name}/;
     }
 
     location ${script_name}/api/ {
@@ -67,18 +81,40 @@ if [ -n "$script_name" ] && [ "$script_name" != "/" ]; then
         proxy_set_header X-Forwarded-Prefix ${script_name};
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
-        rewrite ^${script_name}(/.*)\$ \$1 break;
+        proxy_pass ${frontend_upstream};
+    }
+
+    location / {
+        if (\$http_x_forwarded_prefix != "${script_name}") {
+            return 404;
+        }
+        proxy_set_header X-Forwarded-Prefix ${script_name};
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        rewrite ^/\$ ${script_name}/ break;
+        rewrite ^(.+)\$ ${script_name}\$1 break;
         proxy_pass ${frontend_upstream};
     }
 EOF
-fi
+else
+  cat >>"$output_path" <<EOF
 
-cat >>"$output_path" <<EOF
+    location /api/ {
+        proxy_pass ${api_upstream}/api/;
+    }
+
+    location /docs-site/ {
+        proxy_pass ${docs_upstream}/;
+    }
 
     location / {
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_pass ${frontend_upstream}/;
     }
+EOF
+fi
+
+cat >>"$output_path" <<EOF
 }
 EOF

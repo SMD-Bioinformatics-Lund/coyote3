@@ -5,8 +5,8 @@ name: coyote3-dev
 # docker compose -f deploy/compose/docker-compose.dev.yml up -d
 # docker compose -f deploy/compose/docker-compose.dev.yml down
 x-runtime-defaults: &runtime-defaults
-  mem_limit: ${COYOTE3_DEV_CONTAINER_MEM_LIMIT:-2g}
-  cpus: ${COYOTE3_DEV_CONTAINER_CPU_LIMIT:-2.0}
+  mem_limit: ${COYOTE3_CONTAINER_MEM_LIMIT:-2g}
+  cpus: ${COYOTE3_CONTAINER_CPU_LIMIT:-2.0}
 
 services:
   # UI container: Next.js presentation layer. Calls coyote3_dev_api over HTTP.
@@ -71,6 +71,7 @@ services:
       - PYTHONUNBUFFERED=1
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
+      - CACHE_REDIS_URL=redis://coyote3_redis_dev:6379/0
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
@@ -95,7 +96,7 @@ services:
       - "../../LICENSE.txt:/app/LICENSE.txt"
       - "/access:/access"
       - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:${COYOTE3_DATA_CONTAINER_ROOT:-/data}"
+      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
       - "/fs1:/fs1"
     command: "python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/api"
     healthcheck:
@@ -119,11 +120,12 @@ services:
       - PYTHONUNBUFFERED=1
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
+      - CACHE_REDIS_URL=redis://coyote3_redis_dev:6379/0
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://coyote3_redis_dev:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://coyote3_redis_dev:6379/0}
+      - CELERY_BROKER_URL=redis://coyote3_redis_dev:6379/0
+      - CELERY_RESULT_BACKEND=redis://coyote3_redis_dev:6379/0
       - CELERY_INGEST_QUEUE=${CELERY_INGEST_QUEUE:-ingest}
     restart: on-failure:5
     dns:
@@ -146,7 +148,7 @@ services:
       - "../../LICENSE.txt:/app/LICENSE.txt"
       - "/access:/access"
       - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:${COYOTE3_DATA_CONTAINER_ROOT:-/data}"
+      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
       - "/fs1:/fs1"
     command: "celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=${CELERY_INGEST_QUEUE:-ingest},default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}"
     depends_on:
@@ -164,11 +166,12 @@ services:
       - PYTHONUNBUFFERED=1
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
+      - CACHE_REDIS_URL=redis://coyote3_redis_dev:6379/0
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://coyote3_redis_dev:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://coyote3_redis_dev:6379/0}
+      - CELERY_BROKER_URL=redis://coyote3_redis_dev:6379/0
+      - CELERY_RESULT_BACKEND=redis://coyote3_redis_dev:6379/0
       - CELERY_INGEST_QUEUE=${CELERY_INGEST_QUEUE:-ingest}
     restart: on-failure:5
     dns:
@@ -191,7 +194,7 @@ services:
       - "../../LICENSE.txt:/app/LICENSE.txt"
       - "/access:/access"
       - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:${COYOTE3_DATA_CONTAINER_ROOT:-/data}"
+      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
       - "/fs1:/fs1"
     command: "celery -A api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO}"
     depends_on:
@@ -219,7 +222,7 @@ services:
     container_name: coyote3_dev_proxy_${COYOTE3_VERSION:-local}
     image: nginx:1.27-alpine
     ports:
-      - "${COYOTE3_DEV_PORT:-6801}:8088"
+      - "${COYOTE3_PORT:-6801}:8088"
     command: ["sh", "-c", "sh /etc/nginx/render-config.sh && nginx -g 'daemon off;'"]
     env_file:
       - ../../.coyote3_dev_env
