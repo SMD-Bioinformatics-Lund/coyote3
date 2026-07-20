@@ -15,10 +15,25 @@ All clinical tables follow the same basic conventions.
 | Search field | Filters the visible table rows or submits a backend search, depending on the page. |
 | Export to CSV | Downloads the same clinical context represented by the table, not a raw MongoDB dump. |
 | Row count | Shows the total number of returned rows for the current filters and page. |
+| Sorting | Server-paginated clinical tables sort the complete filtered result set before pagination. Sorting a column therefore changes the full result order, not only the currently visible page. Clicking additional sortable headers builds a multi-column sort. |
 | Human dates | Dates are shown as relative text when appropriate, such as `6 h ago`; detailed timestamps remain available in tooltips or detail views. |
 | Compact counts | Large counts use short forms such as `5K` so dense tables stay readable. |
 | Header rows | Header cells are visually separated from data cells with stronger background and borders. |
 | Detail action | Opens the clinical detail page for the row. |
+
+!!! info "Table caching and refresh"
+
+    Table requests are cached by their clinical query state: sample, page, page size,
+    search text, sort columns, and sort directions. Revisiting the same query state
+    can reuse cached data for a short time. Paged table state is also reflected
+    in the URL so opening a detail page and returning to the sample restores the
+    same tab, search, page size, page, and sorting context. Applying filters or
+    changing finding state, such as false positive, blacklist, irrelevant,
+    interesting, or tier, invalidates the relevant table queries so the next view
+    reflects persisted backend state. Smaller client-side tables use the same
+    multi-column sort component. When a page controls the table state, the
+    sort order is reflected in the URL; otherwise only search and sort settings
+    are stored in browser session storage. Row data is not duplicated there.
 
 !!! tip "Clinical table reading"
 
@@ -59,7 +74,7 @@ Clicking a tier badge in a finding table opens the reported-variant context page
 
 ### Filter Flag Badges
 
-Filter badges are compact labels derived from the VCF `FILTER` field and center-configured metadata in `api/data/filter_flag_metadata.yaml`.
+Filter badges are compact labels derived from the VCF `FILTER` field and center-configured metadata in `api/config/filter_flag_metadata.yaml`.
 
 | Badge family | Meaning |
 | --- | --- |
@@ -182,6 +197,13 @@ Route: `/samples/:id` with Small Variants tab
 | Actions | Opens variant detail. | Detail icon |
 
 Bulk actions include assigning or removing tiers, marking/unmarking false positive, marking/unmarking irrelevant, marking/unmarking interesting, adding blacklist entries, overriding blacklist, and clearing blacklist overrides. Bulk actions require confirmation and update the table in place after success.
+
+Small-variant sorting is performed after all active filters and search terms have
+been applied and before the page slice is returned. Frequency columns, including
+case VAF, control VAF, and population frequency, are sorted numerically across
+the complete filtered result set. CNV, fusion, and translocation tables follow
+the same rule: search and multi-column sort are applied to the filtered backend
+result before pagination.
 
 ### CNVs Tab
 
@@ -420,7 +442,6 @@ Notifications show clinically or operationally relevant events only. Errors are 
 | Route | Purpose |
 | --- | --- |
 | `/profile` | Shows account identity, roles, auth types, scopes, editable profile settings, and password controls when local auth is enabled. |
-| `/docs/about` | Product/version and application information. |
-| `/docs/changelog` | Release notes. |
-| `/docs/license` | License and usage terms. |
-| `/contact` | Contact and support information. |
+| `/about` | Product, application version, database names, software versions, reference versions, support summary, and useful operational links including documentation, license, repository, and issue submission. |
+| `/contact` | Public contact, service hours, support roles, address, and configured center links from the contact TOML file. |
+| External license link | License and usage terms from the configured codebase link. |

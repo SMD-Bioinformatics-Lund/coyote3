@@ -32,6 +32,38 @@ The platform runs as separate services:
 
 The API and worker initialize the same runtime configuration and Mongo repositories. This keeps request-driven and background-driven writes on the same contract path.
 
+## Frontend Data Table Contract
+
+Clinical tables use a single React pattern:
+
+- `@tanstack/react-table` owns table state, rendering, multi-column sorting,
+  filtering, row selection, and export row access.
+- `@tanstack/react-query` owns API request caching, request de-duplication,
+  stale-time behavior, and mutation-driven invalidation.
+- `frontend/src/hooks/useClinicalTableState.ts` is the shared hook for
+  server-paginated clinical review tables. It keeps page, page size, search,
+  and multi-column sort state in the URL, debounces search text, and exposes
+  shared cache timings.
+- `frontend/src/hooks/useUrlTableState.ts` is the lower-level URL-state helper
+  used by both server-paginated tables and client-side tables that need sort
+  state to survive navigation.
+- `frontend/src/components/data-table/DataTable.tsx` is the common table
+  renderer. Header clicks build multi-column sort order by default, and sort
+  priority numbers are shown when more than one column participates.
+
+Server-paginated clinical tables send sort state as comma-separated
+`field:direction` entries. The backend applies search and all sort keys to the
+complete filtered result set before pagination. This ensures that sorting by
+case VAF, control VAF, population frequency, tier, gene, or any other supported
+column ranks all matching rows, not only the visible page.
+
+!!! tip "Table invalidation"
+
+    Mutations that alter persisted finding state should invalidate the affected
+    React Query family, such as the current sample small-variant, CNV, fusion,
+    or translocation query. The next view then refreshes from MongoDB while
+    unchanged table states can still use short-lived cached results.
+
 ## Configuration Model
 
 API configuration is centralized under `api/config/`:
@@ -40,6 +72,7 @@ API configuration is centralized under `api/config/`:
 - `api/config/constants.py`: fixed product vocabularies such as assay categories, list types, auth providers, ASP groups, file keys, and analysis types
 - `api/config/runtime.py`: public helper facade used by the rest of the API
 - `api/config/coyote3_collections.toml`: MongoDB collection-name mapping
+- `api/config/contact.toml`: center-owned public contact and support content
 
 Collection names must come from `api/config/coyote3_collections.toml`. The API loads this file relative to the `api/config` package, so startup does not depend on the process working directory.
 
@@ -50,12 +83,21 @@ Environment variables remain the right place for deployment-specific or sensitiv
 - LDAP and SMTP credentials
 - mounted filesystem roots
 - CORS, cookie, and production hardening settings
+- organization identity and public content file paths
+- OpenAPI route grouping through the canonical tag taxonomy in
+  `api/interfaces/http/tags.py`
 
 Admin-controlled runtime settings are stored in MongoDB `app_controls`. Those controls are for behavior switches and retention policies, not infrastructure secrets.
 
 !!! warning "Configuration boundary"
 
     Keep secrets, infrastructure endpoints, and mount paths in environment configuration. Use Admin application controls only for runtime behavior switches and retention policy.
+
+Public content is controlled through explicit files instead of scattered UI
+copy. `CONTACT_CONFIG_PATH` drives the Contact page and `COYOTE3_ASSAY_CATALOG_YAML`
+drives the public assay catalog narrative. This allows each center or section to
+deploy the same application image with local service names, support contacts,
+sample-type descriptions, and TAT values.
 
 ## Collection Mapping
 
@@ -179,7 +221,7 @@ Small variants, CNVs, fusions, and translocations have list pages and detail pag
 - knowledgebase and population/quality evidence
 - panel-of-normal and caller evidence where available
 
-Flags are displayed as individual badges. Flag behavior and descriptions are metadata-driven through `api/data/filter_flag_metadata.yaml`. Badges should use consistent severity coloring:
+Flags are displayed as individual badges. Flag behavior and descriptions are metadata-driven through `api/config/filter_flag_metadata.yaml`. Badges should use consistent severity coloring:
 
 - pass-like values: green
 - warning-like values: yellow/amber

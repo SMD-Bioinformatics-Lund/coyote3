@@ -8,7 +8,7 @@ This guide provides a step-by-step walkthrough of the clinical analysis process 
 
 Every clinical analysis starts at the **Sample List**.
 
-![Sample List](../assets/screenshots/samples_list.png)
+![Coyote3 sample list](../assets/screenshots/samples.png)
 
 1.  **Locate Your Sample**: Use the search bar or filters to find the target patient or case.
 2.  **Access the View**: Click on the **Sample ID** (blue link).
@@ -20,15 +20,15 @@ Every clinical analysis starts at the **Sample List**.
 ## 2. Navigating the Interpretation Interface
 
 The analysis page is divided into three functional zones:
-*   **Central Workspace**: Displays clinical metadata, active gene panels, and interactive variant tables (SNV, CNV, Translocation).
-*   **Global Navigation Sidebar (Left)**: Vertical links to jump between sections (SNV, CNV, BIOMARKER, SUMMARY) or access the **Coverage Analytics** and **Report Preview**.
-*   **Action & Filter Sidebar (Right)**: The command center for fine-tuning data visualization and performing batch operations.
+*   **Central Workspace**: Displays clinical metadata, active gene panels, comments, report preview, and interactive review tables.
+*   **Global Navigation Sidebar (Left)**: Vertical application navigation grouped by clinical, public, operational, and administrative areas.
+*   **Filter Sidebar (Right)**: Domain-specific filters for the active analysis tab. The sidebar starts collapsed and can be expanded when filter editing is needed.
 
 ---
 
 ## 3. Mastering Analytical Filters
 
-The **Right Sidebar** contains real-time filters that allow you to narrow down thousands of sequencing artifacts to a handful of clinically significant variants.
+The **Right Sidebar** contains tab-specific filters that allow you to narrow down thousands of sequencing artifacts to a smaller clinical review set. Applying filters re-queries the backend and refreshes the table and temporary report preview context.
 
 ### SNV Filters
 *   **Min Depth & Alt Count**: Set minimum sequencing sensitivity (e.g., Depth ≥ 500x).
@@ -48,28 +48,49 @@ Coyote3 supports a standardized classification workflow based on ACMG/AMP and Co
 
 ### Individual Tiering
 1.  Click the **View** button next to any variant to see the detailed evidence page.
-2.  Click the **Tier** button in the variant header to open the classification modal.
+2.  Use the classification card on the detail page to assign or remove tiers.
 3.  Assign the **Tier (I-IV)** and select the specific evidence criteria (e.g., PM1, BA1).
 4.  **Save**: The classification persists across all clinical views and propagates to the final report.
 
 ### Bulk Operations (Batch Actions)
 For high-efficiency triage, use the **Bulk Action Bar**:
 1.  Select multiple variants using the checkboxes in the SNV table.
-2.  In the **Right Sidebar**, under "Modify Variants," select the desired status (e.g., **False Positive** or **Irrelevant**).
-3.  Click **Apply**: All selected variants are updated simultaneously, drastically reducing review time.
+2.  Open the bulk action menu above the table.
+3.  Select the desired action, confirm it, and let the table refresh from persisted backend state.
+
+### Sorting and Cached Table Views
+
+Large review tables may return one page at a time. When you sort a paged table,
+Coyote3 sorts the complete filtered result set on the backend before returning
+the visible page. For example, sorting by case VAF ranks all matching variants,
+not only the 50 variants currently visible. Click additional sortable headers
+to add secondary and tertiary sort keys.
+
+Repeated visits to the same table state can reuse a short-lived cache. The cache
+key includes sample, page, page size, search text, sort columns, and sort
+directions. The current table state is kept in the URL for small variants, CNVs,
+fusions, and translocations, so opening a finding detail page and returning to
+the sample restores the same table view. Applying filters or changing persisted
+finding state, including false-positive, blacklist, irrelevant, interesting, or
+tier changes, refreshes the affected table data.
+
+Smaller tables that load their complete row set in the browser use the same
+multi-column sorting controls. Where the page controls table state, the sort
+order is kept in the URL; otherwise only search text and sort order are stored
+for the current browser session. The application does not duplicate table row
+data in session storage.
 
 ---
 
 ## 5. Clinical Dialogue and Reporting
 
 ### Adding Comments
-*   **Variant Narrative**: Click the **Chat Bubble** icon on any variant to record professional narratives or internal laboratory notes.
-*   **Privacy**: You can "Hide" developer or technical feedback from the clinical interface to maintain a clean workspace.
+*   **Sample Comments**: Sample-level comments appear below review tables where the tab supports comments.
+*   **Finding Comments**: Detail pages show sample-specific and global annotations. Existing comments can be used as a draft by selecting them.
+*   **Markdown**: Comment fields support Markdown rendering and preview.
 
 ### Final Summary
-At the bottom of the page, the **SUMMARY** section allows you to draft the overall clinical interpretation.
-*   This text uses a Markdown editor for rich-text formatting.
-*   The summary enters the final PDF report exactly as rendered here.
+The **Reports** tab builds a temporary report preview from the current filter state and ASPC reporting configuration. Saving the report persists the report document, rendered artifacts, filter snapshot, ASPC context, and reported finding snapshots.
 
 ---
 
