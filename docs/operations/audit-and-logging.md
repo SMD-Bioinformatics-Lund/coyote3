@@ -6,8 +6,8 @@ Runtime logs are JSON Lines written to stdout and, when enabled, rotating files 
 Every API request binds a request context so log records can include `request_id`, client IP,
 method, and path. The API returns the correlation id in the `X-Request-ID` response header.
 
-Durable audit events are append-only MongoDB documents in `AUDIT_EVENTS_COLLECTION`
-(`audit_events` by default). Events include:
+Durable audit events are append-only MongoDB documents in the fixed
+`audit_events` collection. Events include:
 
 - `occurred_at` and `expires_at`
 - `severity`, `category`, `event_type`, and `outcome`
@@ -19,8 +19,8 @@ Durable audit events are append-only MongoDB documents in `AUDIT_EVENTS_COLLECTI
 Metadata keys resembling passwords, secrets, tokens, cookies, authorization headers, sequences,
 report bodies, or file contents are redacted before storage.
 
-API sessions are opaque random tokens. Only a SHA-256 hash is stored in `API_SESSIONS_COLLECTION`
-(`api_sessions` by default), together with `user_id`, `csrf_token`, `created_at`,
+API sessions are opaque random tokens. Only a SHA-256 hash is stored in the
+fixed `api_sessions` collection, together with `user_id`, `csrf_token`, `created_at`,
 `last_seen_at`, and `expires_at`. Disabled or missing users are rejected during session lookup.
 
 Indexes are created at runtime for session expiry and audit retention/filtering:
@@ -35,8 +35,6 @@ Relevant settings:
 API_SESSION_COOKIE_NAME
 API_SESSION_COOKIE_SAMESITE
 API_SESSION_TTL_SECONDS
-API_SESSIONS_COLLECTION
-AUDIT_EVENTS_COLLECTION
 AUDIT_RETENTION_DAYS
 LOG_SERVICE_NAME
 LOG_FILE_ENABLED
@@ -71,6 +69,17 @@ mounted filesystem roots.
 Disabling a Celery task family prevents new task executions from doing work. It does not kill tasks
 that are already running, and it does not resize the worker process pool. Capacity is effectively
 returned when disabled tasks stop being scheduled or return early.
+
+The Application Controls page includes an observed runtime-state panel. It uses the API runtime to
+inspect Celery and reports worker availability, active tasks, reserved tasks, scheduled tasks,
+registered task names, queues, and startup index conflicts. If workers or Redis are unavailable, the
+panel reports an offline or unavailable state instead of failing the whole page.
+
+!!! tip "Operational interpretation"
+
+    Use the editable switches to control whether work is allowed. Use the observed runtime state to
+    confirm whether workers are actually connected and doing work. Use container orchestration,
+    systemd, or Docker Compose settings to change process count, memory, and CPU allocation.
 
 ## Retention Maintenance
 

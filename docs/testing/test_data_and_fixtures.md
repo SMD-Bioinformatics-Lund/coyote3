@@ -56,4 +56,4 @@ Submissions to the fixture repository must adhere to the following engineering c
 1. **Minimize Footprint**: Limit fixture datasets to the smallest volume necessary to satisfy the specific test requirement.
 2. **Clinical Anonymization**: Absolute removal of all clinical identifiers is non-negotiable.
 3. **Structural Fidelity**: Preserve realistic data shapes, specifically within complex nested fields, to ensure valid contract testing.
-4. **Contract Verification**: All fixture updates must pass the full `check_contract_integrity.sh` protocol before being merged into the master branch.
+4. **Contract Verification**: All fixture updates must pass the full `check_contract_integrity.sh` protocol before being merged into the default integration branch.

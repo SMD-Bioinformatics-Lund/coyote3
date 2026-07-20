@@ -30,7 +30,7 @@ Expected behavior:
 
 Insert one document:
 ```bash
-curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection" \
+curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
@@ -46,7 +46,7 @@ JSON
 
 Bulk insert:
 ```bash
-curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection/bulk" \
+curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection/bulk" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
@@ -63,7 +63,7 @@ JSON
 
 Update/upsert one document:
 ```bash
-curl -sS -X PUT "${API_BASE_URL}/api/v1/internal/ingest/collection" \
+curl -sS -X PUT "${BASE_URL}/api/v1/internal/ingest/collection" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
@@ -82,7 +82,7 @@ JSON
 
 Upload JSON file (multipart; insert/bulk/upsert):
 ```bash
-curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection/upload" \
+curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection/upload" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   -F "collection=COLLECTION" \
   -F "mode=insert" \
@@ -139,7 +139,7 @@ Multipart mode rules:
 
 Users:
 ```bash
-curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection" \
+curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
@@ -160,7 +160,7 @@ JSON
 
 Roles:
 ```bash
-curl -sS -X PUT "${API_BASE_URL}/api/v1/internal/ingest/collection" \
+curl -sS -X PUT "${BASE_URL}/api/v1/internal/ingest/collection" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
@@ -181,7 +181,7 @@ JSON
 
 Permissions:
 ```bash
-curl -sS -X PUT "${API_BASE_URL}/api/v1/internal/ingest/collection" \
+curl -sS -X PUT "${BASE_URL}/api/v1/internal/ingest/collection" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
@@ -201,7 +201,7 @@ JSON
 
 ASP:
 ```bash
-curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection" \
+curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
@@ -220,7 +220,7 @@ JSON
 
 ASPC:
 ```bash
-curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection" \
+curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
@@ -241,7 +241,7 @@ JSON
 
 ISGL:
 ```bash
-curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection" \
+curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'

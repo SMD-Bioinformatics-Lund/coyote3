@@ -94,13 +94,13 @@ the compose network.
 
 ## 3. Health checks
 
-- API: `http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_PORT:-8804}/api/v1/health`
-- UI: `http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_PORT:-8804}`
+- API: `http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-8804}/api/v1/health`
+- UI: `http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-8804}`
 
 Command-line API check:
 
 ```bash
-curl -fsS "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_PORT:-8804}/api/v1/health"
+curl -fsS "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-8804}/api/v1/health"
 ```
 
 ## 4. Bootstrap first API superuser
@@ -199,7 +199,7 @@ Recommended one-shot command:
 
 ```bash
 scripts/bootstrap_center_collections.sh \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_PORT:-8804}" \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-8804}" \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
   --seed-file tests/fixtures/db_dummy/all_collections_dummy \
@@ -271,7 +271,7 @@ ${PYTHON_BIN:-python} scripts/validate_ingest_spec.py \
 
 ```bash
 scripts/center_check.sh \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_PORT:-8804}" \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-8804}" \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml
@@ -352,7 +352,7 @@ For fully automated initial setup:
 scripts/center_first_run.sh \
   --env-file .coyote3_stage_env \
   --compose-file deploy/compose/docker-compose.stage.yml \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_PORT:-8804}" \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-8804}" \
   --admin-email "admin@your-center.org" \
   --admin-password "CHANGE_ME" \
   --seed-file tests/fixtures/db_dummy/all_collections_dummy \

@@ -10,7 +10,8 @@ The backend now uses this structure:
 - `api/infra/mongo/repositories/*`: collection-scoped persistence
 - `api/application/*`: orchestration and use-case logic
 - `api/app/deps/services.py`: service factory layer
-- `api/interfaces/http/*`: HTTP boundary
+- `api/interfaces/http/{clinical,admin,public,operations,knowledgebase}`: HTTP boundary
+- `api/interfaces/http/clinical/{dna,rna,reporting,common}`: clinical route subcategories
 
 ## Option A: add a new analysis domain
 
@@ -22,9 +23,9 @@ Example: DNA methylation.
 api/contracts/schemas/dna.py              # extend or add schema
 api/infra/mongo/repositories/methylation.py   # collection repository
 api/application/dna/methylation.py           # application service
-api/interfaces/http/methylation.py                # HTTP routes
+api/interfaces/http/clinical/dna/methylation.py   # HTTP routes
 tests/unit/test_methylation_service.py
-tests/api/interfaces/http/test_methylation_routes.py
+tests/api/routers/test_methylation_routes.py
 ```
 
 ### 1. Add the collection contract

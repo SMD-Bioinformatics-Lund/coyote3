@@ -65,11 +65,12 @@ queue. Workers are defined in the Compose stacks as `coyote3_worker`,
 
 Runtime settings:
 
-- `CELERY_BROKER_URL`: Redis broker URL. Defaults to `CACHE_REDIS_URL`.
-- `CELERY_RESULT_BACKEND`: Redis result backend URL. Defaults to the broker URL.
 - `CELERY_INGEST_QUEUE`: Queue used for ingest work. Defaults to `ingest`.
 - `CELERY_WORKER_CONCURRENCY`: Worker concurrency. Defaults to `2`.
-- `CELERY_INGEST_STAGING_DIR`: Durable server-side staging root for async upload files. Defaults to `/tmp/coyote3_ingest_jobs`.
+- `CELERY_INGEST_STAGING_DIR`: Durable server-side staging root for async upload files.
+
+Redis broker/result URLs are internal Compose wiring. They are not center-owned
+environment-file settings.
 
 Async response:
 
@@ -85,7 +86,7 @@ Async response:
 Poll status:
 
 ```bash
-curl -sS "${API_BASE_URL}/api/v1/internal/tasks/${TASK_ID}" \
+curl -sS "${BASE_URL}/api/v1/internal/tasks/${TASK_ID}" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}"
 ```
 
@@ -159,13 +160,13 @@ and Celery beat are included in the stack.
 Set runtime variables once:
 
 ```bash
-export API_BASE_URL="http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_PORT:-8804}"
+export BASE_URL="http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-8804}"
 # Option A: existing bearer token
 export API_BEARER_TOKEN="<YOUR_API_BEARER_TOKEN>"
 
 # Option B: login via CLI helper
 ${PYTHON_BIN:-python} scripts/api_login.py \
-  --base-url "${API_BASE_URL}" \
+  --base-url "${BASE_URL}" \
   --mode password \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
@@ -176,7 +177,7 @@ One-shot ordered seeding (required + optional baseline collections):
 
 ```bash
 scripts/bootstrap_center_collections.sh \
-  --api-base-url "${API_BASE_URL}" \
+  --api-base-url "${BASE_URL}" \
   --bearer-token "${API_BEARER_TOKEN}" \
   --seed-file tests/fixtures/db_dummy/all_collections_dummy \
   --reference-seed-data tests/data/seed_data \
@@ -215,7 +216,7 @@ ${PYTHON_BIN:-python} scripts/validate_assay_consistency.py \
   --yaml tests/data/ingest_demo/generic_case_control.yaml
 ```
 
-The demo YAML includes `vep_version`. It is stored on the sample and later used to resolve the correct `vep_metadata` translations and consequence-group mappings during DNA findings and reporting.
+The demo YAML includes `vep_version`. It is stored on the sample and later used to resolve the correct `vep_metadata` translations and consequence-group mappings during DNA findings and reporting. DNA VCF ingest also captures a curated `database_versions` snapshot from the VEP header. The stored keys are limited to `assembly`, `clinvar`, `cosmic`, `dbsnp`, `ensembl`, `gencode`, `genebuild`, `gnomad`, `hgmd_public`, `polyphen`, `sift`, and `vep`.
 
 This validator checks:
 
@@ -232,7 +233,7 @@ This validator checks:
 Discover supported collection-ingest contracts:
 
 ```bash
-curl -sS "${API_BASE_URL}/api/v1/internal/ingest/collections" \
+curl -sS "${BASE_URL}/api/v1/internal/ingest/collections" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}"
 ```
 
@@ -245,7 +246,7 @@ Route:
 Command:
 
 ```bash
-curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection" \
+curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
@@ -292,7 +293,7 @@ Route:
 Command:
 
 ```bash
-curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection/bulk" \
+curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection/bulk" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
@@ -315,7 +316,7 @@ Route:
 Command:
 
 ```bash
-curl -sS -X PUT "${API_BASE_URL}/api/v1/internal/ingest/collection" \
+curl -sS -X PUT "${BASE_URL}/api/v1/internal/ingest/collection" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
@@ -374,7 +375,7 @@ Notes:
 Command:
 
 ```bash
-curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection/upload" \
+curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection/upload" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   -F "collection=users" \
   -F "mode=insert" \
@@ -390,7 +391,7 @@ Route:
 Command (YAML content mode):
 
 ```bash
-curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/sample-bundle" \
+curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/sample-bundle" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<JSON
@@ -415,7 +416,7 @@ Route:
 Command (multipart upload mode):
 
 ```bash
-curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/sample-bundle/upload" \
+curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/sample-bundle/upload" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   -F "yaml_file=@tests/data/ingest_demo/generic_case_control.yaml;type=text/yaml" \
   -F "data_files=@tests/data/ingest_demo/generic_case_control.final.filtered.vcf" \
@@ -443,7 +444,7 @@ Route:
 Command:
 
 ```bash
-curl -sS "${API_BASE_URL}/api/v1/internal/metrics" \
+curl -sS "${BASE_URL}/api/v1/internal/metrics" \
   -H "X-Internal-Token: ${INTERNAL_API_TOKEN}"
 ```
 
@@ -456,7 +457,7 @@ Route:
 Command:
 
 ```bash
-curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/dependents" \
+curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/dependents" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'

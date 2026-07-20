@@ -7,7 +7,7 @@ This document defines the governance policies and maintenance procedures for the
 1. **Behavioral Stability**: Existing platform behaviors must remain stable unless a modification is explicitly documented and justified through the architectural review process.
 2. **Explicit Contracts**: All system interactions must rely on explicit data contracts; reliance on implicit assumptions or side-effects is prohibited.
 3. **Validation Requirements**: Every bug fix or feature change must include tests that cover the critical path.
-4. **Continuous Integration**: The master branch must remain in a stable, validated state at all times. Automated CI cascades must pass 100% of checks before merge operations.
+4. **Continuous Integration**: The default integration branch must remain in a stable, validated state at all times. Automated CI cascades must pass 100% of checks before merge operations.
 5. **Security Uncompromising**: Security boundaries and authorization gates must never be absolute for development convenience.
 
 ## Mandated Pull Request Protocol

@@ -96,7 +96,7 @@ cp deploy/env/example.env .coyote3_test_env
 4. Verify API health through the reverse proxy:
 
 ```bash
-curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_DEV_PORT:-6801}/api/v1/health"
+curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-6801}/api/v1/health"
 ```
 
 5. For first-time center setup, use:

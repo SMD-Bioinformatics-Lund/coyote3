@@ -60,5 +60,15 @@ This documentation is grouped by role and task.
 
 ---
 
+## Current Interface Reference
+
+Use the [Interface Visual Reference](product/interface_visual_reference.md) for
+current screenshots of the login page, dashboard, sample list, assay catalog,
+variant search, administration workspace, and contact page. These images are
+sample-neutral and are intended for training, deployment validation, and UI
+orientation.
+
+---
+
 > [!TIP]
 > If you are troubleshooting an existing installation, start with the [Operations Troubleshooting Guide](operations/troubleshooting.md) or the [Developer Troubleshooting Reference](developer/troubleshooting_guide.md).

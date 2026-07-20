@@ -84,6 +84,7 @@ API-owned configuration lives under `api/config/`.
 | `api/config/constants.py` | Product vocabularies and stable option lists |
 | `api/config/runtime.py` | Public runtime helper facade |
 | `api/config/coyote3_collections.toml` | MongoDB collection-name mapping |
+| `api/config/contact.toml` | Center-owned public contact, support, hours, and useful-link content |
 
 Deployment-specific secrets and endpoints remain in environment files or secret stores:
 
@@ -94,6 +95,13 @@ Deployment-specific secrets and endpoints remain in environment files or secret 
 - LDAP and SMTP credentials
 - mounted watch directories
 - CORS and cookie settings
+- center organization name
+- public contact configuration path
+
+Public center content is separated from secrets and infrastructure endpoints.
+The contact page is generated from the TOML file configured by
+`CONTACT_CONFIG_PATH`, while the assay catalog and gene matrix use the YAML file
+configured by `COYOTE3_ASSAY_CATALOG_YAML`.
 
 `SCRIPT_NAME` controls the browser-facing mount point when Coyote3 is served
 below a domain path, for example `https://example.org/coyote3`. The value is
@@ -109,8 +117,8 @@ The unauthenticated public UI is mounted below `/public` inside the same app.
 With `SCRIPT_NAME=/coyote3`, the public catalog is reached at
 `/coyote3/public/catalog`. Public mode keeps the normal application shell but
 shows only public catalog/reference navigation and a sign-in action.
-The browser mount root accepts both `/coyote3` and `/coyote3/`; the slashless
-form is normalized by the frontend before React Router starts.
+The browser mount root accepts both `/coyote3` and `/coyote3/`; the compose
+nginx proxy serves both forms without exposing internal container ports.
 
 With `SCRIPT_NAME=/coyote3`, browser-facing support URLs are:
 
@@ -120,10 +128,27 @@ With `SCRIPT_NAME=/coyote3`, browser-facing support URLs are:
 
 !!! info "Reverse proxy behavior"
 
-    The public URL always includes `SCRIPT_NAME` for subpath deployments. Inside
-    the container network, nginx still forwards to stable internal targets:
-    `/` for the React UI, `/api/` for FastAPI, and `/docs-site/` for the
-    documentation site. These internal targets are not the URLs given to users.
+    The public URL always includes `SCRIPT_NAME` for subpath deployments. When
+    `SCRIPT_NAME=/coyote3`, the compose proxy exposes `/coyote3/`,
+    `/coyote3/api/`, `/coyote3/docs-site/`, and `/coyote3/public/`. Unprefixed
+    browser routes are outside the mounted application and are not redirected
+    into the app.
+
+For Apache deployments that strip the mount path before forwarding to the
+compose proxy, set `X-Forwarded-Prefix` on each mounted path:
+
+```apache
+ProxyPreserveHost On
+
+<Location /coyote3>
+    RequestHeader set X-Forwarded-Prefix "/coyote3"
+</Location>
+
+ProxyPass        /coyote3/ http://127.0.0.1:5815/
+ProxyPassReverse /coyote3/ http://127.0.0.1:5815/
+ProxyPass        /coyote3  http://127.0.0.1:5815
+ProxyPassReverse /coyote3  http://127.0.0.1:5815
+```
 
 !!! warning "Restart behavior"
 
@@ -290,7 +315,7 @@ Action buttons should be context-specific. For example, small variants support F
 
 ## 11. Badges, Flags, Consequences, And Tiers
 
-Flags are shown as individual badges. Metadata comes from `api/data/filter_flag_metadata.yaml`, which lets centers configure labels and explanations without changing React code.
+Flags are shown as individual badges. Metadata comes from `api/config/filter_flag_metadata.yaml`, which lets centers configure labels and explanations without changing React code.
 
 Recommended severity behavior:
 
@@ -423,6 +448,14 @@ default to a compact state unless they contain the immediate summary a reviewer
 needs. This prevents pharmacogenomics or public API metadata from crowding the
 main variant decision area while keeping the evidence one click away.
 
+The API exposes the same knowledgebase model in the
+`Knowledgebases & Annotations` group. Gene-level endpoints aggregate HGNC,
+OncoKB, ClinPGx, and CIViC context. Variant-level evidence endpoints expose
+coordinate/HGVS-backed local evidence from CIViC, historical OncoKB,
+BRCA Exchange, and IARC TP53. BAM-service lookup is sample-scoped through the
+clinical samples API so clinical views can link to registered alignment
+resources for the resolved sample's case and control IDs.
+
 OncoKB public cancer-gene context is populated into
 `oncokb_cancer_genes_public` from OncoKB `/utils/cancerGeneList`. Gene-level
 public summaries, background text, settings, and public level metadata are
@@ -479,6 +512,13 @@ variant detail page and are not stored as a separate MongoDB collection.
     clients to limit requests to 2 per second, so Coyote3 does not call the
     external API per table row.
 
+!!! info "BAM-service lookup"
+
+    `GET /api/v1/samples/{sample_name}/bam-files` returns path metadata only.
+    It does not stream BAM content, does not inspect alignment records, and
+    does not guarantee that a path is mounted on the review workstation at
+    request time.
+
 !!! info "DNA transcript selection"
 
     DNA ingest selects `selected_CSQ` using clinical transcript priority:
@@ -519,6 +559,21 @@ Clinical configuration resources should preserve reconstruction history. Governa
 Application controls are runtime switches and retention settings managed from Admin. They can include enabling/disabling task families, module visibility, audit retention days, notification retention days, disk log retention days, and gzip thresholds for old logs.
 
 Disabling a Celery task family prevents future task executions from doing work or allows them to return early. It does not resize the worker process pool or release worker threads that are already allocated by the running worker container.
+
+The same page also shows observed runtime state from the API process. The
+runtime section reports whether Celery workers respond to inspection, how many
+workers are online, how many tasks are active, reserved, or scheduled, how many
+registered task names are visible, which queues are reported by workers, and
+whether MongoDB index conflicts were tolerated during startup. These values are
+read-only operational facts; they complement the editable switches but do not
+replace deployment-level monitoring.
+
+!!! info "Configured state versus observed state"
+
+    A checked Celery control means the application is allowed to run that task
+    family. It does not prove that a worker is currently online. The runtime
+    state panel answers that second question by inspecting the active Celery
+    cluster with a short timeout.
 
 Dashboard and operational plots use the shared React plotting layer. Plot panels
 support PNG, SVG, and CSV export, and all charts must provide useful empty
@@ -567,7 +622,7 @@ Developers should preserve clean domain boundaries:
 - Contracts own document and response shapes.
 - React components render typed API data and user interaction.
 
-Avoid compatibility shims, template-era UI patterns, raw Mongo result exposure, and duplicated business logic in React.
+Keep application behavior in explicit services, contracts, repositories, and reusable React components. Clinical and administrative screens should render typed, interpreted fields rather than raw database payloads.
 
 !!! tip "Adding functionality"
 
@@ -613,7 +668,7 @@ the default quality model for clinical and administrative workflows.
 | Secrets and retention | Credentials, tokens, LDAP bind secrets, and private keys remain outside app controls, audit events, and documentation. | Operational records stay useful without becoming a secret-storage risk. |
 | Failure visibility | Ingest, report generation, external knowledgebase lookups, and write actions surface meaningful success or failure states. | Users and operators can distinguish an absent result from a failed workflow. |
 | UI state | User actions refresh persisted state or clearly indicate pending work. | The interface reflects the backend source of truth after clinical or administrative changes. |
-| Architecture | Temporary migration helpers are retired after the target contract is established. Long-term behavior lives in explicit services, contracts, repositories, and UI components. | The codebase remains maintainable as the platform evolves beyond legacy workflows. |
+| Architecture | Long-term behavior lives in explicit services, contracts, repositories, and UI components. Temporary migration utilities are kept outside normal runtime paths and retired after verified data transition. | The codebase remains maintainable as clinical contracts and operational workflows evolve. |
 
 !!! info "Clinical engineering posture"
 

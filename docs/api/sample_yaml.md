@@ -185,6 +185,32 @@ This means the sample keeps an explicit record of which VEP metadata version sho
 
 DNA report generation reads `sample.vep_version` directly during consequence resolution.
 
+## Database version metadata
+
+During DNA ingest, Coyote3 reads the VEP header in the case VCF and stores a
+curated version snapshot in `samples.database_versions`. Only clinically useful
+reference/software version fields are retained. Transient header fields such as
+cache paths, run timestamps, and plugin-specific values are ignored.
+
+| Stored key | Display label | Example |
+| --- | --- | --- |
+| `assembly` | Assembly | `GRCh38.p13` |
+| `clinvar` | ClinVar | `202008` |
+| `cosmic` | COSMIC | `92` |
+| `dbsnp` | dbSNP | `154` |
+| `ensembl` | Ensembl | `103.4c8d44a` |
+| `gencode` | GENCODE | `GENCODE 37` |
+| `genebuild` | Genebuild | `2014-07` |
+| `gnomad` | gnomAD | `r2.1` |
+| `hgmd_public` | HGMD Public | `20194` |
+| `polyphen` | PolyPhen | `2.2.2` |
+| `sift` | SIFT | `sift5.2.2` |
+| `vep` | VEP | `103` |
+
+The same allowlist is applied when version metadata is supplied explicitly in
+YAML under `database_versions`, `db_versions`, `reference_versions`, or
+`annotation_versions`.
+
 ## Validation reminders
 
 - DNA sample YAML must not include RNA file keys.

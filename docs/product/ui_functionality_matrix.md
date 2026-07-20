@@ -72,5 +72,5 @@ The following features apply across the platform:
 
 ## Platform Meta-Information
 
-- **Platform Identity**: Centralized access to environment build metadata, changelogs, and licensing constraints.
+- **Platform Identity**: Centralized access to environment build metadata, project links, and licensing constraints.
 - **Documentation Link**: Direct link to the documentation site.

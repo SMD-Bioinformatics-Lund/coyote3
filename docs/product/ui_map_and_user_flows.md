@@ -20,7 +20,8 @@ The UI is split into domain-specific React pages backed by FastAPI routers and p
 
 ## Support Architecture
 
-The documentation site is exposed through `HELP_CENTER_URL`. The UI links out to that site instead of rendering the docs inside the main application.
+The documentation site is exposed at `${PUBLIC_BASE_URL}${SCRIPT_NAME}/docs-site/`.
+The UI links out to that site instead of rendering the docs inside the main application.
 
 ## Standard User Workflows
 

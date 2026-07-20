@@ -124,6 +124,12 @@ Login with:
 
 You should see the demo DNA sample in the sample list.
 
+For direct API usage, create a session with
+`POST /api/v1/auth/sessions`. The API session token is returned as the
+configured session cookie and may also be sent as
+`Authorization: Bearer <token>` by API-only clients. See
+[API Authentication](../api/authentication.md) for exact examples.
+
 ---
 
 ## Prod-Like Local Run

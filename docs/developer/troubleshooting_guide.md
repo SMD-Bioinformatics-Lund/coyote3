@@ -62,8 +62,8 @@ Symptoms:
 
 Checks:
 
-1. Verify `HELP_CENTER_URL` env value.
-2. Verify docs container is healthy and published on configured port.
+1. Verify `PUBLIC_BASE_URL` and `SCRIPT_NAME` in the active env file.
+2. Open `${PUBLIC_BASE_URL}${SCRIPT_NAME}/docs-site/` and verify the docs container is healthy.
 3. Rebuild docs image after nav/content updates.
 
 ## Use the operations guide when needed

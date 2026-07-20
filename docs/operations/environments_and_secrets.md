@@ -20,15 +20,15 @@ are routed behind that proxy; Redis stays internal.
 | dev | 6801 | 6804 |
 | test | 6811 | 6814 |
 
-These defaults are encoded in the compose files and the canonical
-`deploy/env/example.env` template.
+These defaults are encoded in the compose files. The copied env file uses the
+single `COYOTE3_PORT` key when a center needs to override the active stack port.
 
 ## Host Drive Mounts Per Center
 
-Centers can have different host filesystem layouts. Configure runtime data paths
-with `COYOTE3_DATA_HOST_ROOT` and `COYOTE3_DATA_CONTAINER_ROOT` in the copied
-`.coyote3_*_env` file. Edit compose only for permanent center infrastructure
-mounts that are outside the data root.
+Centers can have different host filesystem layouts. Configure the host data root
+with `COYOTE3_DATA_HOST_ROOT` in the copied `.coyote3_*_env` file. Compose mounts
+that host directory at the fixed container path `/data`. Edit compose only for
+permanent center infrastructure mounts that are outside the data root.
 
 Examples:
 

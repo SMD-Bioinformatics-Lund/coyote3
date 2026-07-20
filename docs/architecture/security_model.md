@@ -167,6 +167,20 @@ forgot password (local user)
   -> same SMTP/fallback behavior as invite
 ```
 
+## API session transport
+
+The login endpoint `POST /api/v1/auth/sessions` creates an opaque API session
+token and stores it in the configured `api_sessions` collection. The response
+sets that token as an HTTP-only cookie named by `API_SESSION_COOKIE_NAME`.
+The request authentication layer accepts the same token through either:
+
+- the configured API session cookie (`ApiSessionCookie` in OpenAPI), or
+- `Authorization: Bearer <token>` (`BearerAuth` in OpenAPI).
+
+This keeps browser sessions and API-only clients on the same audited session
+model. See [API Authentication](../api/authentication.md) for command examples
+and Swagger behavior.
+
 ### Access semantics diagram
 
 ```text

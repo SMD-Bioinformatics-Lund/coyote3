@@ -1,12 +1,12 @@
-# Management Guide (Administrators)
+# Management Guide
 
 The Management suite is designed for platform administrators, laboratory leads, and data managers to govern the Coyote3 environment. It covers identity management, clinical resource configuration, and system-wide audit oversight for users granted `audit_log:view`.
+
+![Coyote3 administration workspace](../assets/screenshots/admin.png)
 
 ## 1. User and Role Administration
 
 Manage the identities of clinical and technical staff authorized to access the platform.
-
-![User Management](../assets/screenshots/mgmt_users.png)
 
 ### User Management
 *   **Creating Users**: Add staff by providing their official credentials and clinical profession.
@@ -17,8 +17,6 @@ Manage the identities of clinical and technical staff authorized to access the p
 
 ### Role-Based Access Control (RBAC)
 Coyote3 uses a granular role system where specific permissions are grouped into manageable roles.
-
-![Role Management](../assets/screenshots/mgmt_roles.png)
 
 *   **Standard Roles**: "Admin," "User," and "Guest" provide predefined access buckets.
 *   **Custom Roles**: Administrators can define library-specific roles (e.g., "Lead Clinical Reviewer") to match the laboratory's operational hierarchy.
@@ -44,9 +42,7 @@ Role colors should be stored as hex values in the role document. The UI may norm
 
 ## 2. Resource Configuration (ASP / ASPC)
 
-The platform's analytical logic is driven by Assay Service Profiles (ASP).
-
-![Resource Management](../assets/screenshots/mgmt_ingest.png)
+The platform's analytical logic is driven by Assay Service Profiles (ASP), Assay Service Performance Configurations (ASPC), and In-Silico Gene Lists (ISGL).
 
 ### Assay Service Profiles (ASP)
 An ASP is the "Scientific Definition" of an assay. It defines:
@@ -83,6 +79,17 @@ For fine-grained security, Coyote3 utilizes a `resource:action[:scope]` permissi
 
 ## 4. System Ingestion and Audit
 
-The **Ingest** workspace allows administrators to manually bridge data from external laboratory information systems (LIMS) or trigger re-analysis of existing clinical cases.
+The **Ingest** workspace allows administrators to queue validated sample bundles and monitor background ingest behavior.
 *   **Bulk Ingestion**: Monitor the status of high-throughput sequencer data arrivals.
 *   **System Logs**: Accessible via the Admin Home, these logs provide a tamper-proof record of every sign-in and clinical action taken on the platform.
+
+## Admin UI Conventions
+
+| Pattern | Description |
+| --- | --- |
+| Glass cards | Admin list, edit, view, and utility panels use the same glass-card surface as clinical pages. |
+| Read-only view pages | View actions render the same structured form layout as edit pages, but fields are read-only. |
+| Forms | Normal admin workflows use typed forms, not JSON editors. |
+| Permission selection | Permissions are grouped by category and shown as compact selectable rows with hover text for exact permission strings. |
+| Dates | Tables use human relative dates for recent events and concise absolute dates for older events. |
+| Notifications | Create, update, archive, delete, and error actions emit structured notifications. |

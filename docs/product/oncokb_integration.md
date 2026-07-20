@@ -218,7 +218,6 @@ because protein-change annotation can be isoform-sensitive.
 Coyote3 exposes configuration keys for controlled future use:
 
 - `ONCOKB_BASE_URL`
-- `ONCOKB_DEMO_BASE_URL`
 - `ONCOKB_PUBLIC_LOOKUPS_ENABLED`
 - `ONCOKB_REQUEST_TIMEOUT_SECONDS`
 - `ONCOKB_PUBLIC_BATCH_SIZE`

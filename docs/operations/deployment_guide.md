@@ -7,14 +7,11 @@ This guide covers deployment and routine upgrade work for Coyote3.
 - **Initial Provisioning**: For first-time environment setup, refer to the [Center Deployment Guide](center_deployment_guide.md) and the [Initial Deployment Checklist](initial_deployment_checklist.md).
 
 ## Release Metadata
-Check the release metadata before starting a deployment:
 
-```bash
-# Capture version and build context
-export COYOTE3_VERSION="$(python api/version.py)"
-export GIT_COMMIT="$(git rev-parse --short HEAD)"
-export BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-```
+The application version is defined in `api/version.py`. The
+`scripts/compose-with-version.sh` wrapper reads that file and exports transient
+Compose variables for image names and build metadata. Do not store
+`COYOTE3_VERSION`, `GIT_COMMIT`, or `BUILD_TIME` in copied env files.
 
 ## Deployment Commands
 
@@ -64,7 +61,7 @@ curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}/api/v1/internal
 ## Safety Guardrails
 
 - **Environment Identity**: Production deployment is blocked without a valid `.coyote3_env`.
-- **Immutable Versioning**: Use of floating `local` tags is prohibited in production; `COYOTE3_VERSION` is enforced for all image resolutions.
+- **Immutable Versioning**: Use of floating `local` tags is prohibited in production; the compose wrapper injects the version from `api/version.py` for all image resolutions.
 - **Durable Volume Protection**: Destructive volume operations (`down -v`) are blocked in production unless `COYOTE3_ALLOW_PROD_VOLUME_PRUNE=1` is set.
 - **Cache Persistence**: Redis instances are pinned to specific versioned images (`7.4.3`) to prevent state corruption during floating tag updates.
 

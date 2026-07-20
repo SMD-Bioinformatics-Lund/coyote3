@@ -69,7 +69,7 @@ sum(rate({container="coyote3_api"} |= "mail_metric" |= "metric=send_result"[15m]
 
 When an alert fires:
 
-1. Validate runtime config in active env file (`SMTP_*`, `WEB_APP_BASE_URL`, `CACHE_*`).
+1. Validate runtime config in the active env file (`SMTP_*`, `PUBLIC_BASE_URL`) and confirm Redis connectivity from the API container.
 2. Check API logs for recent `mail_metric` and `auth_metric` spikes.
 3. Confirm connectivity to SMTP relay/host from API container network.
 4. Verify fallback behavior in UI/admin flows (warning + manual setup URL still present).
