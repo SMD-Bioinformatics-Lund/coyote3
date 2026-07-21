@@ -530,6 +530,15 @@ variant detail page and are not stored as a separate MongoDB collection.
     normalizes the displayed symbol to the approved symbol and stores the raw VEP
     value in `VEP_SYMBOL` only when it differs.
 
+!!! info "Versioned VEP transcript vault"
+
+    DNA ingest stores all parsed transcript summaries in `anno_vep` using the
+    variant `simple_id_hash` and the sample VEP version. Variant rows keep only
+    the selected transcript plus compact alternate summaries. When a reviewer
+    selects another transcript on the detail page, Coyote3 reads the matching
+    `anno_vep` document for that exact VEP version and updates
+    `INFO.selected_CSQ`, `INFO.CSQ`, and `INFO.selected_CSQ_criteria`.
+
 ## 19. Access Control
 
 Coyote3 uses role-driven access control with scoped checks. Users can have multiple roles. The UI may show the highest role in compact places, but profile and user-management screens should show all assigned roles.

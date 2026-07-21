@@ -103,10 +103,17 @@ Parser behavior:
   - `INFO.selected_CSQ_criteria`
   - remaining transcript summaries in `INFO.CSQ`
 - Canonical transcript selection prefers:
-  1. internal canonical RefSeq mapping
-  2. VEP `CANONICAL == YES`
-  3. first protein-coding transcript
-  4. first transcript fallback
+  1. HGNC MANE Plus Clinical transcript
+  2. HGNC MANE Select transcript
+  3. internal canonical RefSeq mapping after HGNC normalization
+  4. VEP `CANONICAL == YES`
+  5. first protein-coding transcript
+  6. first transcript fallback
+- Every parsed transcript consequence is also written to the immutable
+  `anno_vep` vault under `simple_id_hash` and the sample VEP version. Manual
+  transcript changes read from this vault, so SIFT, PolyPhen, CADD, HGVS, exon,
+  intron, and consequence values remain tied to the exact VEP version used when
+  the sample was ingested.
 - The parser adds:
   - `genes`
   - `transcripts`

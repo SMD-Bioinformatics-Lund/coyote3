@@ -224,6 +224,12 @@ class DnaClinPgxPublicPayload(BaseModel):
     response: Any = None
 
 
+class DnaTranscriptSelectionRequest(BaseModel):
+    """Request to change the displayed transcript for a small variant."""
+
+    feature_id: str
+
+
 class DnaCsvExportContextPayload(BaseModel):
     """Represent CSV download context for web proxy routes."""
 

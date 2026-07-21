@@ -218,6 +218,37 @@ ${PYTHON_BIN:-python} scripts/validate_assay_consistency.py \
 
 The demo YAML includes `vep_version`. It is stored on the sample and later used to resolve the correct `vep_metadata` translations and consequence-group mappings during DNA findings and reporting. DNA VCF ingest also captures a curated `database_versions` snapshot from the VEP header. The stored keys are limited to `assembly`, `clinvar`, `cosmic`, `dbsnp`, `ensembl`, `gencode`, `genebuild`, `gnomad`, `hgmd_public`, `polyphen`, `sift`, and `vep`.
 
+DNA ingest writes two coordinated records for each small variant:
+
+- The sample-local variant row stores the clinical display anchor in
+  `INFO.selected_CSQ`, plus alternate transcript summaries in `INFO.CSQ`.
+- The global `anno_vep` vault stores all parsed transcript summaries by
+  `simple_id_hash` and `vep_version`.
+
+!!! info "Transcript vault"
+
+    `anno_vep` is version tagged. A manual transcript change for a variant
+    reads from the exact VEP version recorded on the sample and then updates the
+    sample-local display anchor. This keeps transcript switching deterministic
+    across VEP releases while keeping the variant table compact.
+
+Manual transcript selection is exposed through:
+
+```http
+PATCH /api/v1/samples/{sample_id}/small-variants/{var_id}/selected-transcript
+```
+
+Request body:
+
+```json
+{
+  "feature_id": "ENST00000359995"
+}
+```
+
+The endpoint requires small-variant management permission and returns the
+standard sample-change payload used by the UI to refresh the detail view.
+
 This validator checks:
 
 - assay references across `samples`, `blacklist`, `insilico_genelists`

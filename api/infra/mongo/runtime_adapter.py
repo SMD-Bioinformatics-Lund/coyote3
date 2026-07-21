@@ -19,6 +19,7 @@ from pymongo.errors import OperationFailure
 from api.infra.knowledgebase.clinpgx_public import ClinPgxPublicRepository
 from api.infra.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
 from api.infra.knowledgebase.plugins import enabled_knowledgebase_plugins
+from api.infra.mongo.repositories.anno_vep import AnnoVepRepository
 from api.infra.mongo.repositories.annotations import AnnotationsRepository
 from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
 from api.infra.mongo.repositories.assay_panels import ASPRepository
@@ -50,6 +51,7 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("translocation_repository", TranslocsRepository, "translocs"),
     ("copy_number_variant_repository", CNVsRepository, "cnvs"),
     ("variant_repository", VariantsRepository, "variants"),
+    ("anno_vep_repository", AnnoVepRepository, "anno_vep"),
     ("annotation_repository", AnnotationsRepository, "annotations"),
     ("sample_repository", SampleRepository, "samples"),
     ("sample_comment_repository", SampleCommentsRepository, "sample_comments"),

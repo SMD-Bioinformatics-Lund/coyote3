@@ -75,6 +75,15 @@ class _Handler:
         return self._col
 
 
+class _AnnoVepRepo:
+    def __init__(self):
+        self.docs = []
+
+    def upsert_many(self, docs, session=None):
+        _ = session
+        self.docs.extend(list(docs))
+
+
 def _store_stub(sample_docs=None):
     sample_col = _Col(sample_docs)
     refs = _Col([{"gene": "EGFR", "canonical": "NM_005228"}, {"gene": "BAD"}])
@@ -130,7 +139,9 @@ def _store_stub(sample_docs=None):
             ]
         ),
         "hgnc_genes": _Col(),
+        "anno_vep": _Col(),
     }
+    anno_vep_repository = _AnnoVepRepo()
     return SimpleNamespace(
         sample_repository=_Handler(sample_col),
         variant_repository=_Handler(db["variants"]),
@@ -143,6 +154,7 @@ def _store_stub(sample_docs=None):
         rna_expression_repository=_Handler(db["rna_expression"]),
         rna_classification_repository=_Handler(db["rna_classification"]),
         rna_quality_repository=_Handler(db["rna_qc"]),
+        anno_vep_repository=anno_vep_repository,
         coyote_db=db,
     )
 
@@ -167,8 +179,10 @@ def _use_store(monkeypatch, store_stub, *, new_sample_id="507f1f77bcf86cd7994390
                 "assay_specific_panels": store_stub.coyote_db["assay_specific_panels"],
                 "refseq_canonical": store_stub.coyote_db["refseq_canonical"],
                 "hgnc_genes": store_stub.coyote_db["hgnc_genes"],
+                "anno_vep": store_stub.coyote_db["anno_vep"],
             }
         ),
+        anno_vep_repository=store_stub.anno_vep_repository,
         invalidate_variant_cache=lambda: None,
         invalidate_summary_cache=lambda: None,
     )
@@ -346,6 +360,7 @@ def test_hgnc_metadata_maps_include_case_insensitive_aliases():
 
     service = ingest.InternalIngestService(
         collection_gateway=_Gateway(),
+        anno_vep_repository=_AnnoVepRepo(),
         invalidate_variant_cache=lambda: None,
         invalidate_summary_cache=lambda: None,
     )
@@ -629,17 +644,33 @@ def test_next_unique_name(monkeypatch):
     assert service._next_unique_name("CASE", increment=True) == "CASE-3"
 
 
-def test_read_mane(tmp_path):
-    gz = tmp_path / "mane.tsv.gz"
-    import gzip
+def test_build_anno_vep_docs_includes_selected_and_alternate_transcripts():
+    docs = ingest_parsers._build_anno_vep_docs(
+        [
+            {
+                "simple_id": "1:100:A:T",
+                "variant_class": "SNV",
+                "INFO": {
+                    "selected_CSQ": {"Feature": "ENST1", "SIFT": "deleterious"},
+                    "CSQ": [{"Feature": "ENST2", "SIFT": "tolerated"}],
+                },
+            }
+        ],
+        "v103",
+    )
 
-    with gzip.open(gz, "wt", encoding="utf-8") as handle:
-        handle.write("RefSeq_nuc\tEnsembl_nuc\tEnsembl_Gene\n")
-        handle.write("NM_1.1\tENST1.2\tENSG1.3\n")
-    out = ingest_parsers._read_mane(str(gz))
-    assert out["ENSG1"]["refseq"] == "NM_1"
-    assert ingest_parsers._read_mane("") == {}
-    assert ingest_parsers._read_mane(str(tmp_path / "missing.tsv.gz")) == {}
+    assert docs == [
+        {
+            "simple_id": "1:100:A:T",
+            "simple_id_hash": ingest_parsers.build_simple_id_hash_from_simple_id("1:100:A:T"),
+            "vep_version": "103",
+            "variant_class": "SNV",
+            "CSQ": [
+                {"Feature": "ENST1", "SIFT": "deleterious"},
+                {"Feature": "ENST2", "SIFT": "tolerated"},
+            ],
+        }
+    ]
 
 
 def test_normalize_historical_biomarkers_doc():
@@ -681,8 +712,9 @@ def test_normalize_historical_transloc_doc():
 def test_parse_yaml_payload():
     service = ingest.InternalIngestService(
         collection_gateway=IngestCollectionGateway(
-            collections={"samples": _Col(), "refseq_canonical": _Col()}
+            collections={"samples": _Col(), "refseq_canonical": _Col(), "anno_vep": _Col()}
         ),
+        anno_vep_repository=_AnnoVepRepo(),
         invalidate_variant_cache=lambda: None,
         invalidate_summary_cache=lambda: None,
     )
@@ -871,9 +903,9 @@ def test_snapshot_restore_replace_and_counts(monkeypatch):
     )
     assert cov_col.inserted_many
 
-    assert service._data_counts({"a": [1, 2], "b": {}}) == {
-        "a": 2,
-        "b": False,
+    assert service._data_counts({"snvs": [1, 2], "cov": {}, "anno_vep": [1]}) == {
+        "snvs": 2,
+        "cov": False,
     }
 
     monkeypatch.setattr(service, "_write_dependents", lambda **_: {"x": 1})
@@ -902,8 +934,9 @@ def test_replace_dependents_restores_on_failure(monkeypatch):
 def test_update_payload_guard_and_meta_update(monkeypatch):
     service = ingest.InternalIngestService(
         collection_gateway=IngestCollectionGateway(
-            collections={"samples": _Col(), "refseq_canonical": _Col()}
+            collections={"samples": _Col(), "refseq_canonical": _Col(), "anno_vep": _Col()}
         ),
+        anno_vep_repository=_AnnoVepRepo(),
         invalidate_variant_cache=lambda: None,
         invalidate_summary_cache=lambda: None,
     )

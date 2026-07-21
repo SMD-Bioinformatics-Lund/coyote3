@@ -23,11 +23,17 @@ def write_dependents(
     """Write all dependent analysis documents for a newly created sample."""
     sid = str(sample_id)
     written: dict[str, int] = {}
+    anno_vep_docs = preload.get("anno_vep")
+    if anno_vep_docs:
+        service.anno_vep_repository.upsert_many(list(anno_vep_docs), session=session)
+    dependent_preload = {
+        key: value for key, value in preload.items() if key in INGEST_DEPENDENT_COLLECTIONS
+    }
     for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
-        if key not in preload:
+        if key not in dependent_preload:
             continue
 
-        payload = preload[key]
+        payload = dependent_preload[key]
         if key in INGEST_SINGLE_DOCUMENT_KEYS:
             if not isinstance(payload, dict):
                 raise TypeError(f"{key} expected dict, got {type(payload).__name__}")
@@ -70,13 +76,19 @@ def ingest_dependents(
     """Insert dependent analysis payload for an existing sample id."""
     sid = str(sample_id)
     written: dict[str, int] = {}
+    anno_vep_docs = preload.get("anno_vep")
+    if anno_vep_docs:
+        service.anno_vep_repository.upsert_many(list(anno_vep_docs))
+    dependent_preload = {
+        key: value for key, value in preload.items() if key in INGEST_DEPENDENT_COLLECTIONS
+    }
     for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
-        if key not in preload:
+        if key not in dependent_preload:
             continue
         if delete_existing:
             service._collection(col_name).delete_many({"SAMPLE_ID": sid})
 
-        payload_value: Any = preload[key]
+        payload_value: Any = dependent_preload[key]
         if key in INGEST_SINGLE_DOCUMENT_KEYS:
             if not isinstance(payload_value, dict):
                 raise ValueError(f"{key} expected dict payload")
@@ -126,6 +138,7 @@ def data_counts(preload: dict[str, Any]) -> dict[str, int | bool]:
     return {
         key: (len(preload[key]) if isinstance(preload[key], list) else bool(preload[key]))
         for key in preload
+        if key in INGEST_DEPENDENT_COLLECTIONS
     }
 
 
@@ -171,7 +184,7 @@ def replace_dependents(
 ) -> dict[str, int]:
     """Atomically replace dependent data with rollback on failure."""
     sid = str(sample_id)
-    keys_to_replace = set(preload.keys())
+    keys_to_replace = set(preload.keys()) & set(INGEST_DEPENDENT_COLLECTIONS)
     backup = snapshot_dependents(service, sample_id=sample_id, keys=keys_to_replace)
     try:
         for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():

@@ -28,6 +28,11 @@ def _dna_service() -> DnaService:
         assay_panel_repository=store.assay_panel_repository,
         gene_list_repository=store.gene_list_repository,
         variant_repository=store.variant_repository,
+        anno_vep_repository=getattr(
+            store,
+            "anno_vep_repository",
+            SimpleNamespace(get_for_variant=lambda **_: None),
+        ),
         blacklist_repository=store.blacklist_repository,
         copy_number_variant_repository=store.copy_number_variant_repository,
         oncokb_repository=store.oncokb_repository,
@@ -74,6 +79,72 @@ def test_change_payload_shape():
     assert payload["resource"] == "variant"
     assert payload["resource_id"] == "V1"
     assert payload["action"] == "flag"
+
+
+def test_select_variant_transcript_uses_sample_vep_vault():
+    """Manual transcript switching reads the sample-versioned VEP vault."""
+
+    class _VariantRepo:
+        def __init__(self):
+            self.updated = None
+
+        def get_variant(self, var_id):
+            assert var_id == "V1"
+            return {
+                "_id": "V1",
+                "SAMPLE_ID": "S1",
+                "simple_id_hash": "hash-1",
+                "INFO": {"selected_CSQ": {"Feature": "ENST1"}},
+            }
+
+        def update_selected_transcript(self, **kwargs):
+            self.updated = kwargs
+            return SimpleNamespace(matched_count=1, modified_count=1)
+
+    class _AnnoVepRepo:
+        def get_for_variant(self, *, simple_id_hash, vep_version):
+            assert simple_id_hash == "hash-1"
+            assert vep_version == "103"
+            return {
+                "CSQ": [
+                    {"Feature": "ENST1", "SIFT": "tolerated"},
+                    {"Feature": "ENST2", "SIFT": "deleterious", "PolyPhen": "probably_damaging"},
+                ]
+            }
+
+    variant_repo = _VariantRepo()
+    service = DnaService(
+        assay_panel_repository=None,
+        gene_list_repository=None,
+        variant_repository=variant_repo,
+        anno_vep_repository=_AnnoVepRepo(),
+        blacklist_repository=None,
+        copy_number_variant_repository=None,
+        oncokb_repository=None,
+        annotation_repository=None,
+        fusion_repository=None,
+        translocation_repository=None,
+        biomarker_repository=None,
+        bam_record_repository=None,
+        vep_metadata_repository=None,
+        sample_repository=None,
+        expression_repository=None,
+        civic_repository=None,
+        brca_repository=None,
+        iarc_tp53_repository=None,
+    )
+
+    operation = service.select_variant_transcript(
+        sample={"_id": "S1", "database_versions": {"vep": "103"}},
+        var_id="V1",
+        feature_id="ENST2",
+    )
+
+    assert operation.matched_count == 1
+    assert variant_repo.updated["selected_csq"]["Feature"] == "ENST2"
+    assert variant_repo.updated["selected_csq"]["SIFT"] == "deleterious"
+    assert variant_repo.updated["alternate_csq"] == [{"Feature": "ENST1", "SIFT": "tolerated"}]
+    assert variant_repo.updated["criteria"] == "manual_override"
 
 
 def test_load_cnvs_for_sample_uses_collection_shaped_docs(monkeypatch):

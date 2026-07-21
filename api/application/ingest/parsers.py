@@ -11,7 +11,11 @@ from pysam import VariantFile
 
 from api.contracts.schemas.samples import DNA_SAMPLE_FILE_KEYS, RNA_SAMPLE_FILE_KEYS
 from api.domain.common.parsers import cmdvcf
-from api.domain.core.dna.variant_identity import ensure_variant_identity_fields
+from api.domain.core.dna.variant_identity import (
+    build_simple_id_hash_from_simple_id,
+    ensure_variant_identity_fields,
+    normalize_simple_id,
+)
 
 
 def _exists(path: str | None) -> bool:
@@ -431,6 +435,37 @@ def _parse_transcripts(csq: list[dict[str, Any]]) -> tuple[Any, ...]:
     )
 
 
+def _build_anno_vep_docs(variants: list[dict[str, Any]], vep_version: Any) -> list[dict[str, Any]]:
+    """Build immutable transcript-vault documents from normalized variant rows."""
+    version = str(vep_version or "").strip().lstrip("vV")
+    if not version:
+        return []
+    docs: list[dict[str, Any]] = []
+    for variant in variants:
+        simple_id = normalize_simple_id(variant.get("simple_id"))
+        if not simple_id:
+            continue
+        info = variant.get("INFO") or {}
+        selected = info.get("selected_CSQ")
+        transcripts = [dict(csq) for csq in info.get("CSQ") or [] if isinstance(csq, dict)]
+        if isinstance(selected, dict):
+            selected_feature = str(selected.get("Feature") or "").strip()
+            if selected_feature and not any(
+                str(csq.get("Feature") or "").strip() == selected_feature for csq in transcripts
+            ):
+                transcripts.insert(0, dict(selected))
+        docs.append(
+            {
+                "simple_id": simple_id,
+                "simple_id_hash": build_simple_id_hash_from_simple_id(simple_id),
+                "vep_version": version,
+                "variant_class": variant.get("variant_class"),
+                "CSQ": transcripts,
+            }
+        )
+    return docs
+
+
 def _selected_transcript_removal(
     csq_arr: list[dict[str, Any]], selected: str
 ) -> list[dict[str, Any]]:
@@ -767,7 +802,14 @@ class DnaIngestParser:
         vcf = runtime_file_path(args, "vcf_files")
         if vcf:
             require_exists("VCF", vcf)
-            preload["snvs"] = self._parse_snvs_only(vcf)
+            snvs = self._parse_snvs_only(vcf)
+            preload["snvs"] = snvs
+            anno_vep = _build_anno_vep_docs(
+                snvs,
+                (args.get("database_versions") or {}).get("vep") or args.get("vep_version"),
+            )
+            if anno_vep:
+                preload["anno_vep"] = anno_vep
 
         if "cnv" in args:
             cnv_path = runtime_file_path(args, "cnv")

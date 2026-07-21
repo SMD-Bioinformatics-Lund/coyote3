@@ -19,6 +19,17 @@ This is the canonical collection-key reference used by ingestion validation.
 - `omics_layer=RNA` allows only RNA file keys: `fusion_files`, `expression_path`, `classification_path`, `qc`.
 - Mixed DNA+RNA file-key payloads are rejected by model validation.
 
+## `anno_vep`
+
+Required keys:
+- `simple_id` (str)
+- `simple_id_hash` (str)
+- `vep_version` (str)
+
+Optional keys:
+- `variant_class` (str | None)
+- `CSQ` (list[dict[str, Any]])
+
 ## `annotation`
 
 Required keys:

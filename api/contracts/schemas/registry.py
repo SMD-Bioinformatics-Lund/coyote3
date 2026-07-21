@@ -26,6 +26,7 @@ from api.contracts.schemas.dna import (
 from api.contracts.schemas.governance import PermissionsDoc, RolesDoc, UsersDoc
 from api.contracts.schemas.reference import (
     AnnotationDoc,
+    AnnoVepDoc,
     BrcaExchangeDoc,
     CivicGenesDoc,
     CivicVariantsDoc,
@@ -52,6 +53,7 @@ COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "sample_comments": TypeAdapter(SampleCommentRecordDoc),
     "reports": TypeAdapter(SampleReportRecordDoc),
     "variants": TypeAdapter(VariantsDoc),
+    "anno_vep": TypeAdapter(AnnoVepDoc),
     "cnvs": TypeAdapter(CnvsDoc),
     "translocations": TypeAdapter(TranslocationsDoc),
     "biomarkers": TypeAdapter(BiomarkersDoc),

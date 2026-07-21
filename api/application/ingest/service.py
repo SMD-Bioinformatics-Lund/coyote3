@@ -82,6 +82,7 @@ class InternalIngestService:
         """Build the service from the runtime store."""
         return cls(
             collection_gateway=IngestCollectionGateway.from_store(store),
+            anno_vep_repository=store.anno_vep_repository,
             invalidate_variant_cache=store.variant_repository.invalidate_dashboard_metrics_cache,
             invalidate_summary_cache=lambda: dashboard_summary_cache_invalidator(store),
             oncokb_public_cache_repository=getattr(store, "oncokb_public_cache_repository", None),
@@ -99,6 +100,7 @@ class InternalIngestService:
         self,
         *,
         collection_gateway: IngestCollectionGateway,
+        anno_vep_repository: Any,
         invalidate_variant_cache,
         invalidate_summary_cache,
         oncokb_public_cache_repository: Any | None = None,
@@ -108,6 +110,7 @@ class InternalIngestService:
     ) -> None:
         """Create the service with an explicit collection gateway."""
         self.collection_gateway = collection_gateway
+        self.anno_vep_repository = anno_vep_repository
         self.invalidate_variant_cache = invalidate_variant_cache
         self.invalidate_summary_cache = invalidate_summary_cache
         self.oncokb_public_cache_repository = oncokb_public_cache_repository
@@ -421,11 +424,17 @@ class InternalIngestService:
         """
         sid = str(sample_id)
         written: dict[str, int] = {}
+        anno_vep_docs = preload.get("anno_vep")
+        if anno_vep_docs:
+            self.anno_vep_repository.upsert_many(list(anno_vep_docs), session=session)
+        dependent_preload = {
+            key: value for key, value in preload.items() if key in INGEST_DEPENDENT_COLLECTIONS
+        }
         for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
-            if key not in preload:
+            if key not in dependent_preload:
                 continue
 
-            payload = preload[key]
+            payload = dependent_preload[key]
             if key in INGEST_SINGLE_DOCUMENT_KEYS:
                 if not isinstance(payload, dict):
                     raise TypeError(f"{key} expected dict, got {type(payload).__name__}")

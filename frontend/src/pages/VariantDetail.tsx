@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
@@ -232,10 +232,12 @@ export function VariantDetail() {
   const { id, varId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const queryClient = useQueryClient()
   const [commentDraft, setCommentDraft] = useState("")
+  const variantQueryKey = ['variant', id, varId]
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['variant', id, varId],
+    queryKey: variantQueryKey,
     queryFn: () => api.get(`/samples/${id}/small-variants/${varId}`).then(res => res.data)
   })
   const { data: filterFlagMetadata } = useQuery({
@@ -250,6 +252,15 @@ export function VariantDetail() {
   const clinpgxPublic = useMutation({
     mutationFn: () => api.get(`/samples/${id}/small-variants/${varId}/clinpgx-public`).then(res => res.data),
     onError: (err) => notifyActionError("Unable to load public ClinPGx gene context", err, "ClinPGx API"),
+  })
+  const transcriptSelection = useMutation({
+    mutationFn: (featureId: string) =>
+      api.patch(`/samples/${id}/small-variants/${varId}/selected-transcript`, { feature_id: featureId }).then(res => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: variantQueryKey })
+      refetch()
+    },
+    onError: (err) => notifyActionError("Unable to select transcript", err, "Transcript selection"),
   })
   const routeSample = data?.sample
   useEffect(() => {
@@ -284,7 +295,12 @@ export function VariantDetail() {
   const csq = variant?.INFO?.selected_CSQ || {}
   const displayGene = csq.VEP_SYMBOL || csq.display_symbol || csq.SYMBOL
   const resolvedGene = csq.SYMBOL
-  const transcripts = Array.isArray(variant?.INFO?.CSQ) ? variant.INFO.CSQ : []
+  const alternateTranscripts = Array.isArray(variant?.INFO?.CSQ) ? variant.INFO.CSQ : []
+  const selectedFeature = String(csq?.Feature || "").trim()
+  const transcripts = [
+    ...(csq && Object.keys(csq).length ? [csq] : []),
+    ...alternateTranscripts.filter((row: any) => String(row?.Feature || "").trim() !== selectedFeature),
+  ]
   const callers = variant?.INFO?.variant_callers || variant?.callers || []
 
   const titleVariantId = csq.HGVSp && csq.HGVSp !== "-" ? csq.HGVSp : (csq.HGVSc || variant?.ALT?.[0] || "")
@@ -489,6 +505,25 @@ export function VariantDetail() {
                   { key: "consequence", header: "Consequence", render: (row: any) => <ConsequenceBadges value={row.Consequence} translations={data.vep_conseq_translations} /> },
                   { key: "exon", header: "Exon/Intron", render: (row: any) => row.EXON || row.INTRON || "-" },
                   { key: "impact", header: "Impact", render: (row: any) => <ImpactBadge value={row.IMPACT} /> },
+                  {
+                    key: "actions",
+                    header: "Actions",
+                    render: (row: any) => (
+                      row.Feature === csq.Feature ? (
+                        <EvidenceBadge tone="success">Primary</EvidenceBadge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          disabled={!row.Feature || transcriptSelection.isPending}
+                          onClick={() => transcriptSelection.mutate(String(row.Feature))}
+                        >
+                          Use transcript
+                        </Button>
+                      )
+                    ),
+                  },
                 ]}
               />
             </DetailCard>

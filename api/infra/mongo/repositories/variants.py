@@ -214,6 +214,33 @@ class VariantsRepository(BaseRepository):
         """
         return self.get_collection().find_one({"_id": ObjectId(id)})
 
+    def update_selected_transcript(
+        self,
+        *,
+        var_id: str,
+        selected_csq: dict[str, Any],
+        alternate_csq: list[dict[str, Any]],
+        selected_feature: str,
+        criteria: str,
+    ) -> OperationResult:
+        """Replace the UI-selected transcript fields for one variant."""
+        operation = OperationResult.from_update(
+            self.get_collection().update_one(
+                {"_id": ObjectId(var_id)},
+                {
+                    "$set": {
+                        "INFO.selected_CSQ": dict(selected_csq),
+                        "INFO.selected_CSQ_criteria": criteria,
+                        "INFO.CSQ": list(alternate_csq),
+                        "selected_csq_feature": selected_feature,
+                    }
+                },
+            )
+        )
+        if operation.matched_count:
+            self.invalidate_dashboard_metrics_cache()
+        return operation
+
     def get_variant_in_other_samples(self, variant: dict) -> list:
         """
         Retrieve the same variant from other samples using a fast 2-query method.

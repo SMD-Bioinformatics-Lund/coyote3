@@ -28,6 +28,7 @@ from api.contracts.dna import (
     DnaCsvExportContextPayload,
     DnaOncoKbPublicPayload,
     DnaPlotContextPayload,
+    DnaTranscriptSelectionRequest,
     DnaVariantContextPayload,
     DnaVariantsListPayload,
 )
@@ -256,6 +257,7 @@ def show_dna_variant_public_clinpgx(
         base_url=runtime_app.config.get("CLINPGX_BASE_URL", "https://api.clinpgx.org/v1"),
         timeout=float(runtime_app.config.get("CLINPGX_REQUEST_TIMEOUT_SECONDS", 3.0)),
     )
+
     query = {"clinpgx_id": clinpgx_id, "symbol": symbol}
     try:
         response = client.get_gene_knowledge(clinpgx_id=clinpgx_id or None, symbol=symbol or None)
@@ -280,6 +282,38 @@ def show_dna_variant_public_clinpgx(
             "local_record": local_record,
             "response": response,
         }
+    )
+
+
+@router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/selected-transcript",
+    response_model=SampleChangePayload,
+    summary="Select displayed transcript for a small variant",
+)
+def select_dna_variant_transcript(
+    sample_id: str,
+    var_id: str,
+    payload: DnaTranscriptSelectionRequest,
+    user: ApiUser = Depends(require_access(permission="snv:manage")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Select the transcript used as the primary UI/reporting anchor for a small variant."""
+    sample, _variant = _require_variant_for_sample(sample_id, var_id, user, service)
+    operation = service.select_variant_transcript(
+        sample=sample,
+        var_id=var_id,
+        feature_id=payload.feature_id,
+    )
+    if not operation.ok:
+        raise _api_error(422, operation.error or "Transcript selection failed")
+    return util.common.convert_to_serializable(
+        change_payload(
+            sample_id=sample_id,
+            resource="variant",
+            resource_id=var_id,
+            action="select_transcript",
+            operation=operation,
+        )
     )
 
 

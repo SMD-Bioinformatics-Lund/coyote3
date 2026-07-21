@@ -62,6 +62,7 @@ class DnaService:
             assay_panel_repository=store.assay_panel_repository,
             gene_list_repository=store.gene_list_repository,
             variant_repository=store.variant_repository,
+            anno_vep_repository=store.anno_vep_repository,
             blacklist_repository=store.blacklist_repository,
             copy_number_variant_repository=store.copy_number_variant_repository,
             oncokb_repository=store.oncokb_repository,
@@ -86,6 +87,7 @@ class DnaService:
         assay_panel_repository: Any,
         gene_list_repository: Any,
         variant_repository: Any,
+        anno_vep_repository: Any,
         blacklist_repository: Any,
         copy_number_variant_repository: Any,
         oncokb_repository: Any,
@@ -107,6 +109,7 @@ class DnaService:
         self.assay_panel_repository = assay_panel_repository
         self.gene_list_repository = gene_list_repository
         self.variant_repository = variant_repository
+        self.anno_vep_repository = anno_vep_repository
         self.blacklist_repository = blacklist_repository
         self.copy_number_variant_repository = copy_number_variant_repository
         self.oncokb_repository = oncokb_repository
@@ -197,6 +200,54 @@ class DnaService:
     def set_variant_flag(self, *, var_id: str, apply: bool, flag: str) -> None:
         """Apply or remove a boolean flag on a single variant."""
         _set_variant_flag(self, var_id=var_id, apply=apply, flag=flag)
+
+    def select_variant_transcript(
+        self,
+        *,
+        sample: dict[str, Any],
+        var_id: str,
+        feature_id: str,
+    ) -> OperationResult:
+        """Set the displayed transcript for a small variant from the VEP vault."""
+        variant = self.require_variant_for_sample(sample=sample, var_id=var_id)
+        feature = str(feature_id or "").strip()
+        if not feature:
+            return OperationResult.failed("feature_id is required")
+        database_versions = sample.get("database_versions") or {}
+        vep_version = str(database_versions.get("vep") or sample.get("vep_version") or "").strip()
+        if not vep_version:
+            return OperationResult.failed("sample has no VEP version metadata")
+        vault = self.anno_vep_repository.get_for_variant(
+            simple_id_hash=variant.get("simple_id_hash"),
+            vep_version=vep_version,
+        )
+        if not vault:
+            return OperationResult.failed(
+                "no transcript vault entry exists for this variant/version"
+            )
+        selected = next(
+            (
+                dict(csq)
+                for csq in vault.get("CSQ") or []
+                if str(csq.get("Feature") or "").strip() == feature
+            ),
+            None,
+        )
+        if not selected:
+            return OperationResult.failed("requested transcript is not available for this variant")
+        alternate = [
+            dict(csq)
+            for csq in vault.get("CSQ") or []
+            if str(csq.get("Feature") or "").strip() != feature
+        ]
+        operation = self.variant_repository.update_selected_transcript(
+            var_id=var_id,
+            selected_csq=selected,
+            alternate_csq=alternate,
+            selected_feature=feature,
+            criteria="manual_override",
+        )
+        return operation
 
     def blacklist_variant(self, *, variant: dict[str, Any], assay_group: str) -> OperationResult:
         """Create a blacklist entry for a variant in an assay group."""

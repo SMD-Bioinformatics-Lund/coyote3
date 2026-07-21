@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
-from typing import Dict, Literal
+from typing import Any, Dict, Literal
 
 from pydantic import Field, field_validator, model_validator
 
@@ -31,6 +31,22 @@ class AnnotationDoc(_DocBase):
         ):
             raise ValueError("Exactly one of 'class' or 'text' must be provided")
         return self
+
+
+class AnnoVepDoc(_DocBase):
+    """Immutable transcript consequence vault keyed by variant identity and VEP version."""
+
+    simple_id: str
+    simple_id_hash: str
+    vep_version: str
+    variant_class: str | None = None
+    CSQ: list[dict[str, Any]] = Field(default_factory=list)
+
+    @field_validator("vep_version", mode="before")
+    @classmethod
+    def normalize_vep_version(cls, value: Any) -> str:
+        """Store VEP versions as plain version numbers."""
+        return str(value or "").strip().lstrip("vV")
 
 
 class BrcaExchangeDoc(_DocBase):
