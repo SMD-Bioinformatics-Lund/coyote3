@@ -629,6 +629,26 @@ Audit metadata must be bounded and redacted. Do not store secrets, full tokens, 
 
     Audit events should explain what happened, who did it, which resource was affected, and whether it succeeded. They should not become raw request dumps.
 
+Durable audit events are reserved for clinically or operationally significant
+activity:
+
+- authentication successes and failures
+- authorization denials
+- sample ingest success and failure
+- sample creation, update, and deletion
+- variant curation actions, including tier/classification changes, false
+  positive, blacklist, ignore, interesting, and report flags
+- report preview failures, report creation, report file generation, and report
+  download failures
+- admin resource changes, including users, roles, permissions, ASP, ASPC, ISGL,
+  application controls, and retention settings
+- maintenance outcomes and unexpected API exceptions
+
+Successful read-only API requests and successful access checks are operational
+logs/metrics, not durable audit records. This keeps `audit_events` useful for
+review, investigation, and reconstruction instead of filling it with normal page
+load traffic.
+
 ## 23. Operations
 
 Production operation depends on healthy API, frontend, worker, beat, Redis, and Mongo services; current seed/configuration data; valid mounted ingest directories; working audit indexes and TTL indexes; log rotation and retention; backup and restore procedures; and deployment-specific secrets outside source control.

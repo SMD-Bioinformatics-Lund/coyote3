@@ -72,6 +72,8 @@ def emit_access_event(
     normalized_status = (
         "failed" if status == "denied" else ("success" if status in {"allowed", "ok"} else status)
     )
+    if normalized_status != "failed":
+        return
     event = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "reason": reason,
@@ -94,13 +96,11 @@ def emit_access_event(
     audit = get_audit_service()
     if audit is not None:
         audit.record(
-            "security.access.denied"
-            if normalized_status == "failed"
-            else "security.access.allowed",
+            "security.access.denied",
             reason,
-            severity="warning" if normalized_status == "failed" else "info",
+            severity="warning",
             category="security",
-            outcome="denied" if normalized_status == "failed" else "success",
+            outcome="denied",
             actor=username or "anonymous",
             resource_type="sample" if sample_id else None,
             resource_id=str(sample_id) if sample_id is not None else None,

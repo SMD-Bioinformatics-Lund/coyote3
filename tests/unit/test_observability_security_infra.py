@@ -7,7 +7,6 @@ import logging
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
-from api.infra.security.sessions import MongoApiSessionRepository
 from api.application.audit.service import AuditService
 from api.infra.observability.logging import (
     JsonFormatter,
@@ -15,6 +14,8 @@ from api.infra.observability.logging import (
     bind_request_context,
     reset_request_context,
 )
+from api.infra.security.sessions import MongoApiSessionRepository
+from api.security import audit_events
 from api.security.tokens import token_hash
 
 
@@ -92,6 +93,29 @@ def test_audit_service_redacts_sensitive_metadata_and_sets_expiry():
     assert stored["expires_at"] > datetime.now(timezone.utc) + timedelta(days=89)
 
 
+def test_access_audit_records_denials_only(monkeypatch):
+    calls = []
+
+    monkeypatch.setattr(
+        "api.app.deps.services.get_audit_service",
+        lambda: SimpleNamespace(record=lambda *args, **kwargs: calls.append((args, kwargs))),
+    )
+
+    audit_events.emit_access_event(status="allowed", reason="OK", username="alice")
+    assert calls == []
+
+    audit_events.emit_access_event(
+        status="denied",
+        reason="Missing permission",
+        username="alice",
+        permission="sample:delete",
+    )
+
+    assert len(calls) == 1
+    assert calls[0][0][0] == "security.access.denied"
+    assert calls[0][1]["outcome"] == "denied"
+
+
 def test_json_formatter_includes_bound_request_context():
     formatter = JsonFormatter()
     token = bind_request_context(
@@ -120,4 +144,3 @@ def test_json_formatter_includes_bound_request_context():
     assert payload["client_ip"] == "127.0.0.1"
     assert payload["method"] == "POST"
     assert payload["path"] == "/api/v1/samples"
-

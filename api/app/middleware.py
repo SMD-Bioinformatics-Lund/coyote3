@@ -148,12 +148,13 @@ def build_authentication_middleware(
                     status_code=response.status_code,
                     duration_ms=duration_ms,
                 )
-                emit_request_event(
-                    request=request,
-                    username=username,
-                    status_code=response.status_code,
-                    duration_ms=duration_ms,
-                )
+                if int(response.status_code) >= 400:
+                    emit_request_event(
+                        request=request,
+                        username=username,
+                        status_code=response.status_code,
+                        duration_ms=duration_ms,
+                    )
             if (
                 path.startswith("/api/v1/")
                 and request.method.upper() in {"POST", "PUT", "PATCH", "DELETE"}

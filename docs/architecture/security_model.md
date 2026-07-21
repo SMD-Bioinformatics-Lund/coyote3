@@ -126,6 +126,21 @@ def mark_false_variant(
 
 - `superuser` is the only unrestricted runtime role and bypasses permission and assay-scope checks.
 - `admin` is not unrestricted; it remains subject to assigned permissions and normal scope handling.
+- Denied access checks are written to durable audit events. Successful access
+  checks are not persisted as audit rows; they remain observable through request
+  logs and metrics.
+
+## Durable audit scope
+
+The `audit_events` collection is for significant security, clinical, and
+administrative events. It stores authentication outcomes, authorization
+denials, sample ingest outcomes, mutating API actions, report creation, variant
+curation/classification changes, admin resource changes, application-control
+changes, maintenance outcomes, and unexpected API failures.
+
+Routine successful read-only requests are not inserted into `audit_events`.
+This keeps the audit log reviewable and prevents normal browsing from drowning
+out actions that matter for clinical reconstruction or operations.
 
 ## Bootstrap superuser rule
 
