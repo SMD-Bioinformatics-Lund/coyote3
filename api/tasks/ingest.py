@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from celery.utils.log import get_task_logger
+from filelock import FileLock, Timeout
 
 from api.app.container import util
 from api.app.deps.services import get_audit_service, get_internal_ingest_service
@@ -18,6 +19,10 @@ from api.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
 from api.tasks.controls import disabled_result, task_family_enabled
 
 logger = get_task_logger(__name__)
+CONTAINER_DATA_ROOT = Path("/data")
+WATCH_INGEST_LOCK_PATH = Path(
+    os.getenv("COYOTE3_INGEST_WATCH_LOCK_PATH", "/tmp/coyote3_ingest_watch.lock")
+)
 
 
 def _ensure_worker_runtime() -> None:
@@ -58,31 +63,58 @@ def _unique_marker_path(manifest_path: Path, suffix: str, task_id: str | None) -
     return manifest_path.with_name(f"{manifest_path.name}{suffix}.{task_token}")
 
 
+def _container_visible_path(path_value: str | os.PathLike[str]) -> Path:
+    """Map center host data paths to the fixed container data mount."""
+    path_obj = Path(path_value).expanduser()
+    host_root = str(os.getenv("COYOTE3_DATA_HOST_ROOT", "")).strip()
+    if not host_root or not path_obj.is_absolute():
+        return path_obj
+    host_root_path = Path(host_root).expanduser()
+    try:
+        relative = path_obj.relative_to(host_root_path)
+    except ValueError:
+        return path_obj
+    return CONTAINER_DATA_ROOT / relative
+
+
+def _translate_payload_source_path(value: Any, manifest_path: Path) -> Any:
+    """Resolve relative paths and map configured host-root paths to /data."""
+    if isinstance(value, dict):
+        translated = dict(value)
+        if translated.get("path"):
+            translated["path"] = str(
+                _translate_payload_source_path(translated["path"], manifest_path)
+            )
+        return translated
+    path_value = Path(str(value))
+    if not path_value.is_absolute():
+        path_value = (manifest_path.parent / path_value).resolve()
+    return str(_container_visible_path(path_value))
+
+
 def _resolve_relative_sample_paths(payload: dict[str, Any], manifest_path: Path) -> dict[str, Any]:
-    """Resolve relative file paths in coyote3.yaml from the manifest directory."""
+    """Resolve manifest file paths to paths visible from API/worker containers."""
     resolved = dict(payload)
-    manifest_dir = manifest_path.parent
     for key in SAMPLE_SOURCE_PATH_KEYS:
-        value = resolved.get(key)
-        if not value:
-            continue
-        path_value = Path(str(value))
-        if not path_value.is_absolute():
-            resolved[key] = str((manifest_dir / path_value).resolve())
+        if resolved.get(key):
+            resolved[key] = _translate_payload_source_path(resolved[key], manifest_path)
+    files = resolved.get("files")
+    if isinstance(files, dict):
+        resolved["files"] = {
+            key: _translate_payload_source_path(value, manifest_path)
+            if key in SAMPLE_SOURCE_PATH_KEYS and value
+            else value
+            for key, value in files.items()
+        }
     return resolved
 
 
-@celery_app.task(name="api.tasks.ingest.ingest_watch_directory_once", bind=True)
-def ingest_watch_directory_once(self) -> dict[str, Any]:
-    """Scan the configured ingest folder for coyote3.yaml and ingest each bundle once."""
-    _ensure_worker_runtime()
-    if not task_family_enabled("ingest_watch"):
-        return disabled_result("ingest_watch")
+def _run_watch_directory_once(self) -> dict[str, Any]:
     raw_watch_dir = str(os.getenv("COYOTE3_INGEST_WATCH_DIR", "")).strip()
     if not raw_watch_dir:
         return {"status": "disabled", "reason": "COYOTE3_INGEST_WATCH_DIR is not configured"}
 
-    watch_dir = Path(raw_watch_dir).expanduser()
+    watch_dir = _container_visible_path(raw_watch_dir)
     if not watch_dir.exists():
         return {"status": "not_found", "watch_dir": str(watch_dir), "scanned": 0}
     if not watch_dir.is_dir():
@@ -171,6 +203,21 @@ def ingest_watch_directory_once(self) -> dict[str, Any]:
             "failed": failed,
         }
     )
+
+
+@celery_app.task(name="api.tasks.ingest.ingest_watch_directory_once", bind=True)
+def ingest_watch_directory_once(self) -> dict[str, Any]:
+    """Scan the configured ingest folder for coyote3.yaml and ingest each bundle once."""
+    _ensure_worker_runtime()
+    if not task_family_enabled("ingest_watch"):
+        return disabled_result("ingest_watch")
+    lock = FileLock(WATCH_INGEST_LOCK_PATH)
+    try:
+        with lock.acquire(timeout=0):
+            return _run_watch_directory_once(self)
+    except Timeout:
+        logger.info("celery_ingest_watch_skipped reason=already_running")
+        return {"status": "skipped", "reason": "already_running"}
 
 
 @celery_app.task(name="api.tasks.ingest.ingest_sample_bundle", bind=True)

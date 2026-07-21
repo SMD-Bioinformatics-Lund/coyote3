@@ -137,10 +137,20 @@ Watcher settings:
 - `COYOTE3_INGEST_DONE_SUFFIX`: success marker suffix. Defaults to `.done`.
 - `COYOTE3_INGEST_FAILED_SUFFIX`: failure marker suffix. Defaults to `.failed`.
 
+The Compose deployment mounts `COYOTE3_DATA_HOST_ROOT` at `/data`. If the watch
+directory or manifest file paths are written as absolute host paths under that
+root, the worker translates them to the container-visible `/data/...` path before
+reading the YAML, VCF, CNV, coverage, biomarker, and image files.
+
 Relative file paths inside each manifest are resolved from that manifest's
 directory. After successful ingest, the watcher renames the manifest to
 `coyote3.yaml.done`; failed manifests are renamed to `coyote3.yaml.failed` so
 they do not loop continuously.
+
+The watcher is protected by a non-overlap lock. If a previous scan is still
+parsing or writing a sample bundle when the next beat tick fires, the newer task
+returns `skipped` with `reason=already_running` and does not touch any manifest
+files.
 
 ## Compose Mongo profile
 
@@ -243,6 +253,12 @@ Every transcript summary in `anno_vep.CSQ` is validated by the
 - `canonical_source`: the source that made the transcript canonical for the
   current review row.
 - `is_canonical`: a normalized boolean for table rendering.
+
+SIFT, PolyPhen, CADD, and related prediction values are transcript-level VEP
+outputs, so they are versioned with the transcript consequence row in
+`anno_vep.CSQ[]` rather than duplicated into a separate collection. The sample
+document stores the source-version snapshot under `samples.database_versions`
+for `sift`, `polyphen`, `vep`, and the other configured reference databases.
 
 Manual transcript selection is exposed through:
 

@@ -552,6 +552,12 @@ The UI renders these fields as tooltip badges in the transcript consequence
 table. This lets reviewers distinguish center canonical, RefSeq MANE, Ensembl
 MANE, and VEP-provided transcript evidence without opening raw annotation data.
 
+SIFT, PolyPhen, CADD, and similar predictor values are stored on the same
+versioned transcript rows in `anno_vep.CSQ[]`. They are not maintained as an
+independent collection because the values are produced by VEP for a specific
+transcript annotation context. The source-version snapshot is retained on the
+sample document in `database_versions`.
+
 ## 19. Access Control
 
 Coyote3 uses role-driven access control with scoped checks. Users can have multiple roles. The UI may show the highest role in compact places, but profile and user-management screens should show all assigned roles.

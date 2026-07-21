@@ -86,6 +86,14 @@ If sample manifests contain absolute file paths, mount the host directory so the
 same path is readable inside API and worker containers, or update manifests to
 use the container-visible `/data/...` paths.
 
+!!! info "Host paths in watched manifests"
+
+    The Compose deployment mounts `COYOTE3_DATA_HOST_ROOT` at the fixed
+    container path `/data`. The watch-folder ingest task translates manifest
+    paths under `COYOTE3_DATA_HOST_ROOT` to `/data/...` before parsing sample
+    files. This lets centers keep host-owned manifest paths while the API and
+    worker read the files through the same container mount.
+
 ## Environment Variable Reference
 
 The canonical template is `deploy/env/example.env`.

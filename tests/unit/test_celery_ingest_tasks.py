@@ -1,6 +1,31 @@
 from api.tasks import ingest
 
 
+def test_resolve_sample_paths_maps_host_data_root_to_container_mount(tmp_path, monkeypatch):
+    host_root = tmp_path / "host-data"
+    manifest = host_root / "incoming" / "sample" / "coyote3.yaml"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text("name: SAMPLE_1\n", encoding="utf-8")
+
+    monkeypatch.setenv("COYOTE3_DATA_HOST_ROOT", str(host_root))
+
+    payload = ingest._resolve_relative_sample_paths(
+        {
+            "name": "SAMPLE_1",
+            "vcf_files": str(host_root / "vcf" / "sample.vcf"),
+            "files": {
+                "cnv": {"path": str(host_root / "cnv" / "sample.cnv.json")},
+                "cov": "relative/sample.cov.json",
+            },
+        },
+        manifest,
+    )
+
+    assert payload["vcf_files"] == "/data/vcf/sample.vcf"
+    assert payload["files"]["cnv"]["path"] == "/data/cnv/sample.cnv.json"
+    assert payload["files"]["cov"] == "/data/incoming/sample/relative/sample.cov.json"
+
+
 def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch):
     watch_dir = tmp_path / "incoming"
     sample_dir = watch_dir / "sample_1"
@@ -47,3 +72,21 @@ def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch
             "increment": False,
         }
     ]
+
+
+def test_ingest_watch_directory_once_skips_when_another_scan_is_active(tmp_path, monkeypatch):
+    lock_path = tmp_path / "ingest.lock"
+    lock = ingest.FileLock(lock_path)
+
+    monkeypatch.setattr(ingest, "WATCH_INGEST_LOCK_PATH", lock_path)
+    monkeypatch.setattr(ingest, "_ensure_worker_runtime", lambda: None)
+    monkeypatch.setattr(
+        ingest,
+        "_run_watch_directory_once",
+        lambda self: {"status": "unexpected"},
+    )
+
+    with lock.acquire(timeout=0):
+        result = ingest.ingest_watch_directory_once.run()
+
+    assert result == {"status": "skipped", "reason": "already_running"}
