@@ -106,6 +106,9 @@ class VariantCsqDoc(_DocBase):
     Feature: str | None = None
     HGNC_ID: str | None = None
     SYMBOL: str | None = None
+    VEP_SYMBOL: str | None = None
+    HGNC_MATCHED: bool | None = None
+    HGNC_MATCH_SOURCE: str | None = None
     PolyPhen: str | None = None
     SIFT: str | None = None
     Consequence: list[str] = Field(default_factory=list)
@@ -122,6 +125,9 @@ class VariantCsqDoc(_DocBase):
     VARIANT_CLASS: str | None = None
     HGVSc: str | None = None
     HGVSp: str | None = None
+    transcript_tags: list[str] = Field(default_factory=list)
+    canonical_source: str | None = None
+    is_canonical: bool = False
 
 
 class VariantInfoDoc(_DocBase):

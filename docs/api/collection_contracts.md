@@ -28,7 +28,7 @@ Required keys:
 
 Optional keys:
 - `variant_class` (str | None)
-- `CSQ` (list[dict[str, Any]])
+- `CSQ` (list[api.contracts.schemas.reference.VepAnnoTranscriptDoc])
 
 ## `annotation`
 

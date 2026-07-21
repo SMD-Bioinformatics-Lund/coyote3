@@ -539,6 +539,19 @@ variant detail page and are not stored as a separate MongoDB collection.
     `anno_vep` document for that exact VEP version and updates
     `INFO.selected_CSQ`, `INFO.CSQ`, and `INFO.selected_CSQ_criteria`.
 
+Each stored transcript summary carries transcript provenance fields used by the
+detail page:
+
+| Field | Purpose |
+| --- | --- |
+| `transcript_tags` | Compact HGNC/VEP markers such as `ncbi_mane_plus_clinical`, `ncbi_mane_select`, `ensembl_mane_select`, `vep_mane_select`, `db_canonical`, and `vep_canonical`. |
+| `canonical_source` | Canonical authority for the row, for example `refseq_canonical` or `vep_canonical`. |
+| `is_canonical` | Boolean display helper for the transcript table. |
+
+The UI renders these fields as tooltip badges in the transcript consequence
+table. This lets reviewers distinguish center canonical, RefSeq MANE, Ensembl
+MANE, and VEP-provided transcript evidence without opening raw annotation data.
+
 ## 19. Access Control
 
 Coyote3 uses role-driven access control with scoped checks. Users can have multiple roles. The UI may show the highest role in compact places, but profile and user-management screens should show all assigned roles.

@@ -114,6 +114,13 @@ Parser behavior:
   transcript changes read from this vault, so SIFT, PolyPhen, CADD, HGVS, exon,
   intron, and consequence values remain tied to the exact VEP version used when
   the sample was ingested.
+- Transcript summaries include provenance fields:
+  - `transcript_tags`: HGNC/VEP markers such as `ncbi_mane_plus_clinical`,
+    `ncbi_mane_select`, `ensembl_mane_select`, `vep_mane_select`,
+    `db_canonical`, and `vep_canonical`.
+  - `canonical_source`: the authority that made the row canonical, such as
+    `refseq_canonical` or `vep_canonical`.
+  - `is_canonical`: boolean helper used by the detail-page transcript table.
 - The parser adds:
   - `genes`
   - `transcripts`

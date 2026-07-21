@@ -33,6 +33,54 @@ class AnnotationDoc(_DocBase):
         return self
 
 
+class VepAnnoTranscriptDoc(_DocBase):
+    """Parsed VEP transcript consequence used by the versioned annotation vault."""
+
+    Feature: str | None = None
+    HGNC_ID: str | None = None
+    SYMBOL: str | None = None
+    VEP_SYMBOL: str | None = None
+    HGNC_MATCHED: bool | None = None
+    HGNC_MATCH_SOURCE: str | None = None
+    HGVSc: str | None = None
+    HGVSp: str | None = None
+    Consequence: list[str] = Field(default_factory=list)
+    IMPACT: str | None = None
+    EXON: str | None = None
+    INTRON: str | None = None
+    BIOTYPE: str | None = None
+    ENSP: str | None = None
+    CANONICAL: str | None = None
+    MANE: str | None = None
+    MANE_PLUS_CLINICAL: str | None = None
+    SIFT: str | None = None
+    PolyPhen: str | None = None
+    CADD_PHRED: str | float | int | None = None
+    CLIN_SIG: str | None = None
+    VARIANT_CLASS: str | None = None
+    transcript_tags: list[str] = Field(default_factory=list)
+    canonical_source: str | None = None
+    is_canonical: bool = False
+
+    @field_validator("Consequence", mode="before")
+    @classmethod
+    def normalize_consequence(cls, value: Any) -> list[str]:
+        if value in (None, ""):
+            return []
+        if isinstance(value, str):
+            return [term for term in value.split("&") if term]
+        return value
+
+    @field_validator("transcript_tags", mode="before")
+    @classmethod
+    def normalize_transcript_tags(cls, value: Any) -> list[str]:
+        if value in (None, ""):
+            return []
+        if isinstance(value, str):
+            return [value]
+        return list(value)
+
+
 class AnnoVepDoc(_DocBase):
     """Immutable transcript consequence vault keyed by variant identity and VEP version."""
 
@@ -40,7 +88,7 @@ class AnnoVepDoc(_DocBase):
     simple_id_hash: str
     vep_version: str
     variant_class: str | None = None
-    CSQ: list[dict[str, Any]] = Field(default_factory=list)
+    CSQ: list[VepAnnoTranscriptDoc] = Field(default_factory=list)
 
     @field_validator("vep_version", mode="before")
     @classmethod

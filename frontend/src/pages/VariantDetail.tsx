@@ -6,7 +6,7 @@ import { ExpandableText } from "@/components/detail/ExpandableText"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { ClassificationsCard } from "@/components/detail/FindingDetailCards"
 import { CommentsPanel } from "@/components/comments/CommentsPanel"
-import { CallerBadges, ConsequenceBadges, FilterFlagBadges, ImpactBadge, PredictionBadge } from "@/lib/variant-ui"
+import { CallerBadges, ConsequenceBadges, FilterFlagBadges, ImpactBadge, InfoTooltipBadge, PredictionBadge } from "@/lib/variant-ui"
 import {
   DetailDataTable,
   DetailMetricTable,
@@ -62,6 +62,95 @@ function compactObjectSummary(value: any) {
     return `${Object.keys(value).length} field(s)`
   }
   return displayValue(value)
+}
+
+const transcriptTagMeta: Record<string, { label: string; short: string; description: string; severity: string }> = {
+  ncbi_mane_plus_clinical: {
+    label: "NCBI MANE Plus Clinical",
+    short: "NCBI MANE+",
+    description: "HGNC marks this RefSeq transcript as MANE Plus Clinical for clinically relevant reporting contexts.",
+    severity: "success",
+  },
+  vep_mane_plus_clinical: {
+    label: "VEP MANE Plus Clinical",
+    short: "VEP MANE+",
+    description: "The VEP annotation itself marks this transcript as MANE Plus Clinical.",
+    severity: "success",
+  },
+  ncbi_mane_select: {
+    label: "NCBI MANE Select",
+    short: "NCBI MANE",
+    description: "HGNC maps this transcript to the RefSeq MANE Select transcript for the gene.",
+    severity: "info",
+  },
+  ensembl_mane_select: {
+    label: "Ensembl MANE Select",
+    short: "ENS MANE",
+    description: "HGNC maps this transcript to the Ensembl MANE Select transcript for the gene.",
+    severity: "info",
+  },
+  vep_mane_select: {
+    label: "VEP MANE Select",
+    short: "VEP MANE",
+    description: "The VEP annotation marks this transcript as MANE Select.",
+    severity: "info",
+  },
+  db_canonical: {
+    label: "Center canonical transcript",
+    short: "Canonical",
+    description: "This transcript matches the center canonical transcript map after HGNC gene normalization.",
+    severity: "neutral",
+  },
+  vep_canonical: {
+    label: "VEP canonical transcript",
+    short: "VEP canonical",
+    description: "VEP marks this transcript as canonical for the gene.",
+    severity: "neutral",
+  },
+}
+
+function transcriptTags(row: any) {
+  return Array.isArray(row?.transcript_tags) ? row.transcript_tags.map(String).filter(Boolean) : []
+}
+
+function TranscriptTagBadges({ row }: { row: any }) {
+  const tags = transcriptTags(row)
+  if (!tags.length) return null
+  return (
+    <span className="mt-1 flex flex-wrap items-center gap-1">
+      {tags.map((tag) => {
+        const meta = transcriptTagMeta[tag] || {
+          label: tag.replaceAll("_", " "),
+          short: tag.replaceAll("_", " "),
+          description: "Transcript provenance marker carried from VEP or reference-gene metadata.",
+          severity: "neutral",
+        }
+        return (
+          <InfoTooltipBadge key={tag} label={meta.label} description={meta.description} severity={meta.severity}>
+            {meta.short}
+          </InfoTooltipBadge>
+        )
+      })}
+    </span>
+  )
+}
+
+function CanonicalTranscriptBadge({ row }: { row: any }) {
+  const source = row?.canonical_source
+  const isCanonical = Boolean(row?.is_canonical || source || row?.CANONICAL === "YES")
+  if (!isCanonical) return <span className="text-muted-foreground">-</span>
+  const label = source === "refseq_canonical" ? "Center canonical" : source === "vep_canonical" ? "VEP canonical" : "Canonical"
+  const description =
+    source === "refseq_canonical"
+      ? "The transcript matches the center canonical RefSeq map after HGNC normalization."
+      : source === "vep_canonical"
+        ? "The transcript is marked canonical by VEP for this gene."
+        : "The transcript is marked canonical in the stored annotation."
+  return (
+    <InfoTooltipBadge label={label} description={description} severity="neutral">
+      {label}
+    </InfoTooltipBadge>
+  )
 }
 
 function oncokbApiSummary(payload: any) {
@@ -499,7 +588,13 @@ export function VariantDetail() {
                       {row.Feature === csq.Feature ? <EvidenceBadge tone="success">Selected</EvidenceBadge> : null}
                     </span>
                   ) },
-                  { key: "feature", header: "Transcript", render: (row: any) => <span className="font-mono">{row.Feature || "-"}</span> },
+                  { key: "feature", header: "Transcript", render: (row: any) => (
+                    <span className="block min-w-44">
+                      <span className="font-mono">{row.Feature || "-"}</span>
+                      <TranscriptTagBadges row={row} />
+                    </span>
+                  ) },
+                  { key: "canonical", header: "Canonical", render: (row: any) => <CanonicalTranscriptBadge row={row} /> },
                   { key: "hgvsc", header: "cDNA", render: (row: any) => <ExpandableText text={row.HGVSc || "-"} maxLength={28} className="font-mono" /> },
                   { key: "hgvsp", header: "Protein", render: (row: any) => <ExpandableText text={row.HGVSp || "-"} maxLength={28} className="font-mono" /> },
                   { key: "consequence", header: "Consequence", render: (row: any) => <ConsequenceBadges value={row.Consequence} translations={data.vep_conseq_translations} /> },

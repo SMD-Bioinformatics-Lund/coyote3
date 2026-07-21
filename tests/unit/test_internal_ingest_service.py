@@ -292,6 +292,66 @@ def test_select_csq_prefers_hgnc_mane_plus_and_current_symbol():
     assert selected["HGNC_MATCH_SOURCE"] == "previous_or_alias_symbol"
 
 
+def test_annotate_transcript_provenance_from_hgnc_and_vep_metadata():
+    hgnc_doc = {
+        "hgnc_id": "HGNC:1",
+        "hgnc_symbol": "NEW1",
+        "prev_symbol": ["OLD1"],
+        "alias_symbol": [],
+        "refseq_mane_select": "NM_000002.1",
+        "ensembl_mane_select": "ENST000002.3",
+        "refseq_mane_plus_clinical": ["NM_000001.1"],
+    }
+    rows = [
+        {
+            "Feature": "NM_000001.1",
+            "HGNC_ID": "HGNC:1",
+            "SYMBOL": "OLD1",
+            "MANE_PLUS_CLINICAL": "NM_000001.1",
+            "MANE": "",
+            "CANONICAL": "",
+        },
+        {
+            "Feature": "NM_000002.1",
+            "HGNC_ID": "HGNC:1",
+            "SYMBOL": "OLD1",
+            "MANE_PLUS_CLINICAL": "",
+            "MANE": "NM_000002.1",
+            "CANONICAL": "YES",
+        },
+        {
+            "Feature": "ENST000002.3",
+            "HGNC_ID": "HGNC:1",
+            "SYMBOL": "OLD1",
+            "MANE_PLUS_CLINICAL": "",
+            "MANE": "",
+            "CANONICAL": "",
+        },
+    ]
+
+    annotated = ingest_parsers._annotate_transcript_provenance(
+        rows,
+        {"NEW1": "NM_000002"},
+        hgnc_by_id={"HGNC:1": hgnc_doc},
+        hgnc_by_symbol={"OLD1": hgnc_doc, "NEW1": hgnc_doc},
+    )
+
+    assert annotated[0]["transcript_tags"] == [
+        "ncbi_mane_plus_clinical",
+        "vep_mane_plus_clinical",
+    ]
+    assert annotated[0]["canonical_source"] is None
+    assert annotated[1]["transcript_tags"] == [
+        "ncbi_mane_select",
+        "vep_mane_select",
+        "db_canonical",
+        "vep_canonical",
+    ]
+    assert annotated[1]["canonical_source"] == "refseq_canonical"
+    assert annotated[1]["is_canonical"] is True
+    assert annotated[2]["transcript_tags"] == ["ensembl_mane_select"]
+
+
 def test_select_csq_uses_approved_hgnc_symbol_for_db_canonical():
     hgnc_doc = {
         "hgnc_id": "HGNC:2",

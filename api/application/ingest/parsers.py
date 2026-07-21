@@ -560,6 +560,45 @@ def _hgnc_mane_select_values(doc: dict[str, Any] | None) -> set[str]:
     return {value for value in values if value}
 
 
+def _annotate_transcript_provenance(
+    csq_arr: list[dict[str, Any]],
+    canonical: dict[str, str],
+    hgnc_by_id: dict[str, dict[str, Any]] | None = None,
+    hgnc_by_symbol: dict[str, dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Add HGNC and VEP transcript provenance tags to slim CSQ rows."""
+    for csq in csq_arr:
+        doc = _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol)
+        feature = _feature_no_version(csq.get("Feature"))
+        tags: list[str] = []
+        if feature and feature in _hgnc_refseq_values(doc, "refseq_mane_plus_clinical"):
+            tags.append("ncbi_mane_plus_clinical")
+        if str(csq.get("MANE_PLUS_CLINICAL") or "").strip():
+            tags.append("vep_mane_plus_clinical")
+        if feature and feature == _feature_no_version((doc or {}).get("refseq_mane_select")):
+            tags.append("ncbi_mane_select")
+        if feature and feature == _feature_no_version((doc or {}).get("ensembl_mane_select")):
+            tags.append("ensembl_mane_select")
+        if str(csq.get("MANE") or "").strip():
+            tags.append("vep_mane_select")
+
+        canonical_source = None
+        approved_symbol = _approved_hgnc_symbol_for_csq(csq, hgnc_by_id, hgnc_by_symbol)
+        if approved_symbol in canonical and canonical[approved_symbol] == _refseq_no_version(
+            csq.get("Feature", "")
+        ):
+            tags.append("db_canonical")
+            canonical_source = "refseq_canonical"
+        if csq.get("CANONICAL") == "YES":
+            tags.append("vep_canonical")
+            canonical_source = canonical_source or "vep_canonical"
+
+        csq["transcript_tags"] = list(dict.fromkeys(tags))
+        csq["canonical_source"] = canonical_source
+        csq["is_canonical"] = bool(canonical_source)
+    return csq_arr
+
+
 def _normalize_selected_csq_symbol(
     csq: dict[str, Any],
     hgnc_by_id: dict[str, dict[str, Any]] | None,
@@ -920,6 +959,12 @@ class DnaIngestParser:
                 genes_list,
                 hotspots,
             ) = _parse_transcripts(var_csq)
+            slim_csq = _annotate_transcript_provenance(
+                slim_csq,
+                self.canonical,
+                hgnc_by_id=self.hgnc_by_id,
+                hgnc_by_symbol=self.hgnc_by_symbol,
+            )
 
             selected_csq, selected_source = _select_csq(
                 slim_csq,
@@ -937,7 +982,6 @@ class DnaIngestParser:
             var_dict["HGVSc"] = cdna_list
             var_dict["genes"] = genes_list
             var_dict["transcripts"] = transcripts_list
-            var_dict["INFO"]["CSQ"] = slim_csq
             var_dict["cosmic_ids"] = cosmic_list
             var_dict["dbsnp_id"] = dbsnp
             var_dict["pubmed_ids"] = pubmed_list

@@ -232,6 +232,18 @@ DNA ingest writes two coordinated records for each small variant:
     sample-local display anchor. This keeps transcript switching deterministic
     across VEP releases while keeping the variant table compact.
 
+Every transcript summary in `anno_vep.CSQ` is validated by the
+`VepAnnoTranscriptDoc` contract. Besides the VEP fields used for review
+(`Feature`, `HGVSc`, `HGVSp`, `Consequence`, `IMPACT`, `EXON`, `INTRON`,
+`SIFT`, `PolyPhen`, and `CADD_PHRED`), Coyote3 enriches each row with:
+
+- `transcript_tags`: compact source markers for HGNC MANE Plus Clinical, HGNC
+  MANE Select, Ensembl MANE Select, VEP MANE, center canonical, and VEP
+  canonical evidence.
+- `canonical_source`: the source that made the transcript canonical for the
+  current review row.
+- `is_canonical`: a normalized boolean for table rendering.
+
 Manual transcript selection is exposed through:
 
 ```http

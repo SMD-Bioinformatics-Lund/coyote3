@@ -291,7 +291,7 @@ Detail pages put the review decision, comments, and evidence around the finding.
 | Global annotations | Reusable annotations for the same biological finding across samples. Clicking an existing annotation can load it as a draft. |
 | Identity | Gene, transcript, HGVS, chromosome coordinate, variant class, and normalized HGNC context. |
 | Genotype/evidence | Case/control VAF, depth, read support, callers, and quality evidence. |
-| Transcript consequences | Selected and alternative transcripts, cDNA/protein notation, consequence, exon/intron, and impact. Alternate rows can be promoted to the primary display transcript when the selected transcript better represents the clinical review. |
+| Transcript consequences | Selected and alternative transcripts, transcript provenance badges, canonical-source status, cDNA/protein notation, consequence, exon/intron, and impact. Alternate rows can be promoted to the primary display transcript when the selected transcript better represents the clinical review. |
 | Prediction cards | SIFT, PolyPhen, and other configured prediction signals. |
 | PON evidence | Separate rows by PON tool/source. |
 | Knowledgebase | One consolidated card with collapsible sections for CIViC, BRCA Exchange, TP53/IARC, local OncoKB cancer gene/actionable evidence, public OncoKB lookup, and ClinPGx local/API context. ClinPGx local context stays compact; fetched API context can include VIP summary, guideline annotations, labels, top connected drugs, pathways, and variant annotation examples. |
@@ -300,6 +300,24 @@ Detail pages put the review decision, comments, and evidence around the finding.
 !!! info "Transcript selection"
 
     Small variant display uses MANE Clinical Plus first when available, then MANE Select, then configured fallback transcript rules. HGNC normalization uses HGNC ID when possible and only falls back to previous symbols or aliases when the direct symbol is not resolved. Manual transcript changes use the versioned `anno_vep` vault for the sample's VEP version and refresh the selected transcript in place.
+
+The transcript table can show the following compact badges in the **Transcript**
+column:
+
+| Badge | Meaning |
+| --- | --- |
+| NCBI MANE+ | HGNC marks the RefSeq transcript as MANE Plus Clinical. |
+| VEP MANE+ | The VEP transcript annotation contains MANE Plus Clinical. |
+| NCBI MANE | HGNC maps the transcript to RefSeq MANE Select. |
+| ENS MANE | HGNC maps the transcript to Ensembl MANE Select. |
+| VEP MANE | The VEP transcript annotation contains MANE Select. |
+| Canonical | The transcript matches the center canonical RefSeq map. |
+| VEP canonical | VEP marks the transcript as canonical. |
+
+The **Canonical** column shows the canonical source used for the row. Center
+canonical evidence comes from the configured `refseq_canonical` collection after
+HGNC normalization; VEP canonical evidence comes directly from the VEP CSQ
+payload.
 
 ## Tiered Variant Search
 

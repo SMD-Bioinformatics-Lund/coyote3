@@ -243,6 +243,39 @@ export function StatusBadges({
   )
 }
 
+export function InfoTooltipBadge({
+  children,
+  label,
+  description,
+  severity = "info",
+  href,
+  ariaLabel,
+  className,
+}: {
+  children: ReactNode
+  label: string
+  description: string
+  severity?: string
+  href?: string
+  ariaLabel?: string
+  className?: string
+}) {
+  return (
+    <StatusTooltipBadge
+      label={label}
+      description={description}
+      severity={severity}
+      href={href}
+      ariaLabel={ariaLabel || label}
+      textBadge
+      contextLabel="Transcript marker"
+      className={className}
+    >
+      {children}
+    </StatusTooltipBadge>
+  )
+}
+
 function StatusTooltipBadge({
   children,
   label,
@@ -252,6 +285,7 @@ function StatusTooltipBadge({
   ariaLabel,
   textBadge = false,
   className,
+  contextLabel = "Finding marker",
 }: {
   children: ReactNode
   label: string
@@ -261,6 +295,7 @@ function StatusTooltipBadge({
   ariaLabel: string
   textBadge?: boolean
   className?: string
+  contextLabel?: string
 }) {
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
   const badgeClass = cn(
@@ -307,7 +342,7 @@ function StatusTooltipBadge({
           )}
           style={{ left: position.left, top: position.top }}
         >
-          <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">Finding marker</span>
+          <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">{contextLabel}</span>
           <span className="block font-bold text-foreground">{label}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{description}</span>
         </span>,
@@ -330,6 +365,9 @@ function severityClass(severity: string) {
   if (severity === "info") {
     return "border-tier3/35 bg-tier3/12 text-tier3"
   }
+  if (severity === "success") {
+    return "border-pass/35 bg-pass/12 text-pass"
+  }
   if (severity === "pgx") {
     return "border-fuchsia-300/70 bg-fuchsia-50 text-fuchsia-800 hover:bg-fuchsia-50 hover:text-fuchsia-800 dark:border-fuchsia-300/35 dark:bg-fuchsia-400/12 dark:text-fuchsia-200 dark:hover:bg-fuchsia-400/12 dark:hover:text-fuchsia-200"
   }
@@ -351,6 +389,9 @@ function tooltipSeverityClass(severity: string) {
   }
   if (severity === "info") {
     return "border-tier3/45 bg-popover text-tier3"
+  }
+  if (severity === "success") {
+    return "border-pass/45 bg-popover text-pass"
   }
   if (severity === "pgx") {
     return "border-fuchsia-300/70 bg-fuchsia-50 text-fuchsia-800 dark:border-fuchsia-300/35 dark:bg-fuchsia-950/90 dark:text-fuchsia-200"
