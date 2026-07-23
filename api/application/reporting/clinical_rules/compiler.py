@@ -50,21 +50,19 @@ class ClinicalRuleCompiler:
         if len(relative.parts) != 2:
             raise ValueError(
                 "Clinical rule sources must use clinical_reporting_rules/"
-                "<assay_id>/<subpanel_id>.<lifecycle>.yaml"
+                "<assay_id>/<subpanel_id>.yaml"
             )
         assay_id = relative.parts[0]
         subpanel_id = relative.name.split(".", 1)[0]
-        scope = source.rule_set.scope
-        if (scope.assay_id, scope.subpanel_id) != (assay_id, subpanel_id):
+        rule_set = source.rule_set
+        if (rule_set.assay_id, rule_set.subpanel_id) != (assay_id, subpanel_id):
             raise ValueError(
                 "Clinical rule source path does not match its assay/subpanel scope: "
-                f"{assay_id}/{subpanel_id} != {scope.assay_id}/{scope.subpanel_id}"
+                f"{assay_id}/{subpanel_id} != {rule_set.assay_id}/{rule_set.subpanel_id}"
             )
 
     def validate(self, source: ClinicalRuleSetSource) -> None:
         """Validate facts and restricted template variables."""
-        for fact in source.rule_set.required_facts:
-            validate_fact_path(fact)
         for rule in source.rules:
             for condition in rule.when:
                 validate_fact_path(condition.fact)

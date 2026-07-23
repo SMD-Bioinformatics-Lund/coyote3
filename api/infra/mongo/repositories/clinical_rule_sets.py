@@ -35,8 +35,8 @@ class ClinicalRuleSetRepository(BaseRepository):
         )
         collection.create_index(
             [
-                ("source.rule_set.scope.assay_id", 1),
-                ("source.rule_set.scope.subpanel_id", 1),
+                ("source.rule_set.assay_id", 1),
+                ("source.rule_set.subpanel_id", 1),
                 ("status", 1),
             ],
             name="scope_assay_subpanel_status",
@@ -75,7 +75,7 @@ class ClinicalRuleSetRepository(BaseRepository):
             "rule_set_id": source.rule_set.rule_set_id,
             "version": source.rule_set.version,
             "status": "active",
-            "schema_version": source.schema_version,
+            "schema_version": 1,
             "content_hash": content_hash,
             "source_path": source_path,
             "source": source.model_dump(mode="python", exclude_none=True),

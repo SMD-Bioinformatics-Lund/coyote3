@@ -1,0 +1,20 @@
+rule_set:
+  analyte: rna
+  assay_id: solidRNA_GMSv5
+  subpanel_id: base
+  version: "1"
+rules:
+  - rule_id: solidRNA_GMSv5_report_summary
+    family: result_text
+    section: Report summary
+    priority: 100
+    when:
+      - fact: sample.assay
+        operator: eq
+        value: solidRNA_GMSv5
+    template: |-
+      RNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar kända fusionsgener vid solid tumörsjukdom, se Analysbeskrivning nedan.
+
+      För ytterligare information om utförd analys och beskrivning av eventuellt funna fusionsgener, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen.
+    heading: false
+    stop: true

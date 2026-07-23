@@ -1,41 +1,13 @@
-schema_version: 3
 rule_set:
-  rule_set_id: hema_GMSv1__base
-  version: "0.1.0-draft"
-  title: GMS-HEM v1 base clinical reporting rules
-  status: draft
-  language: sv
-  scope:
-    analyte: dna
-    assay_id: hema_GMSv1
-    subpanel_id: base
-  provenance:
-    authority: coyote_master
-    reference: coyote/blueprints/common/util.py
-    revision: ab9a6f3c54f3b2b9018568b8290996f82ce539be
-    content_sha256: f1b98c9bf2c65496befbde07e68c4d8b2bbbe7b12603ac1153d999dfd2caacfc
-    text_policy: verbatim
-  validation:
-    approval_status: pending
-    approval_reference:
-    golden_case_ids:
-      - hema-GMSv1-base-no-snv
-      - hema-GMSv1-base-unaccredited-conclusion
-  required_facts:
-    - aggregates.has_tiered_snvs
-    - asp.accredited
-  notes: >-
-    Verbatim clauses for the GMS-HEM v1 assay. The source remains draft until
-    the positive tier-group composition, CNV, structural
-    variant, biomarker, and introductory flows have typed facts and complete
-    byte-for-byte golden coverage.
+  analyte: dna
+  assay_id: hema_GMSv1
+  subpanel_id: base
+  version: "1"
 rules:
   - rule_id: hema_GMSv1_tiered_snv_summary
     family: result_text
     section: Kliniskt relevanta SNVs och små INDELs
     priority: 90
-    description: Established tier-ordered SNV composition with grouped genes and VAF values.
-    source_locator: coyote/blueprints/common/util.py:629-688
     when:
       - fact: aggregates.has_tiered_snvs
         operator: eq
@@ -73,8 +45,6 @@ rules:
     family: result_text
     section: Kliniskt relevanta SNVs och små INDELs
     priority: 100
-    description: Established negative-result sentence when no reportable SNV remains.
-    source_locator: coyote/blueprints/common/util.py:212
     when:
       - fact: aggregates.has_tiered_snvs
         operator: eq
@@ -88,8 +58,6 @@ rules:
     family: summary_text
     section: Report conclusion
     priority: 100
-    description: Established DNA report conclusion for a non-accredited assay.
-    source_locator: coyote/blueprints/common/util.py:234-244
     when:
       - fact: asp.accredited
         operator: eq
@@ -103,8 +71,6 @@ rules:
     family: summary_text
     section: Report conclusion
     priority: 200
-    description: Established DNA report conclusion for an accredited assay.
-    source_locator: coyote/blueprints/common/util.py:234-244
     when:
       - fact: asp.accredited
         operator: eq

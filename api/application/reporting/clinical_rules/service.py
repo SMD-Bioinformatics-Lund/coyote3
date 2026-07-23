@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from api.application.reporting.clinical_rules.facts import PreparedReportContext
-from api.application.reporting.clinical_rules.registry import validate_fact_path
 from api.contracts.schemas.clinical_rules import ClinicalRuleEvaluation
 
 
@@ -22,30 +19,19 @@ class ClinicalRuleService:
         return cls(store.clinical_rule_set_repository)
 
     @staticmethod
-    def _scope_matches(context: PreparedReportContext, scope) -> bool:
+    def _scope_matches(context: PreparedReportContext, rule_set) -> bool:
         sample = context.sample
         aspc = context.aspc
         return (
-            scope.analyte == sample.omics_layer
-            and scope.assay_id == sample.assay
-            and scope.subpanel_id == aspc.subpanel_id
+            rule_set.analyte == sample.omics_layer
+            and rule_set.assay_id == sample.assay
+            and rule_set.subpanel_id == aspc.subpanel_id
         )
-
-    @staticmethod
-    def _fact_exists(context: PreparedReportContext, path: str) -> bool:
-        validate_fact_path(path)
-        value: Any = context.evaluation_scope()
-        for part in path.split("."):
-            if isinstance(value, dict) and part in value:
-                value = value[part]
-                continue
-            return False
-        return value is not None
 
     def evaluate_bound_release(
         self,
         *,
-        aspc: dict[str, Any],
+        aspc: dict,
         context: PreparedReportContext,
     ) -> ClinicalRuleEvaluation | None:
         """Evaluate the exact immutable release referenced by the ASPC."""
@@ -58,18 +44,8 @@ class ClinicalRuleService:
             raise ValueError("The ASPC references a clinical rule release that does not exist")
         if release.status != "active":
             raise ValueError("The ASPC references a clinical rule release that is not active")
-        if not self._scope_matches(context, release.source.rule_set.scope):
+        if not self._scope_matches(context, release.source.rule_set):
             raise ValueError("The clinical rule release scope does not match the report context")
-        missing = [
-            fact
-            for fact in release.source.rule_set.required_facts
-            if not self._fact_exists(context, fact)
-        ]
-        if missing:
-            raise ValueError(
-                "The prepared report context is missing required clinical facts: "
-                + ", ".join(sorted(missing))
-            )
         return self.evaluator.evaluate(context, release)
 
 

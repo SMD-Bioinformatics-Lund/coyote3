@@ -89,11 +89,9 @@ def test_aspc_rule_binding_uses_verified_release_and_rotation(monkeypatch) -> No
         status="active",
         source=SimpleNamespace(
             rule_set=SimpleNamespace(
-                scope=SimpleNamespace(
-                    analyte="dna",
-                    assay_id="seed_assay",
-                    subpanel_id="base",
-                )
+                analyte="dna",
+                assay_id="seed_assay",
+                subpanel_id="base",
             )
         ),
     )

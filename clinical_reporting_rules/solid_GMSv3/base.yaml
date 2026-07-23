@@ -1,39 +1,13 @@
-schema_version: 3
 rule_set:
-  rule_set_id: myeloid_GMSv1__base
-  version: "0.1.0-draft"
-  title: GMS-Myeloid v1 base clinical reporting rules
-  status: draft
-  language: sv
-  scope:
-    analyte: dna
-    assay_id: myeloid_GMSv1
-    subpanel_id: base
-  provenance:
-    authority: old_coyote
-    reference: .design/old_coyote.py
-    revision: archived-reference
-    content_sha256: 4cfa49e808974c3965fc74ff987a875c3d2e5fd165c654727e341d9dcf3b4c53
-    text_policy: verbatim
-  validation:
-    approval_status: pending
-    approval_reference:
-    golden_case_ids:
-      - myeloid-GMSv1-no-snv
-      - myeloid-GMSv1-unaccredited-conclusion
-  required_facts:
-    - aggregates.has_tiered_snvs
-    - asp.accredited
-  notes: >-
-    Verbatim GMS-Myeloid clauses. The introduction remains deferred until
-    selected-gene-list composition is represented as a complete typed fact.
+  analyte: dna
+  assay_id: solid_GMSv3
+  subpanel_id: base
+  version: "1"
 rules:
-  - rule_id: myeloid_GMSv1_tiered_snv_summary
+  - rule_id: solid_GMSv3_tiered_snv_summary
     family: result_text
     section: Kliniskt relevanta SNVs och små INDELs
     priority: 90
-    description: Tier-ordered SNV composition with grouped genes and VAF values.
-    source_locator: .design/old_coyote.py:2468-2573
     when:
       - fact: aggregates.has_tiered_snvs
         operator: eq
@@ -67,12 +41,10 @@ rules:
     heading: true
     stop: false
 
-  - rule_id: myeloid_GMSv1_no_somatic_snv
+  - rule_id: solid_GMSv3_no_somatic_snv
     family: result_text
     section: Kliniskt relevanta SNVs och små INDELs
     priority: 100
-    description: Negative-result sentence when no reportable SNV remains.
-    source_locator: .design/old_coyote.py:2576
     when:
       - fact: aggregates.has_tiered_snvs
         operator: eq
@@ -82,12 +54,10 @@ rules:
     heading: true
     stop: false
 
-  - rule_id: myeloid_GMSv1_unaccredited_conclusion
+  - rule_id: solid_GMSv3_unaccredited_conclusion
     family: summary_text
     section: Report conclusion
     priority: 100
-    description: Report conclusion for a non-accredited assay.
-    source_locator: .design/old_coyote.py:2585
     when:
       - fact: asp.accredited
         operator: eq
@@ -97,12 +67,10 @@ rules:
     heading: false
     stop: true
 
-  - rule_id: myeloid_GMSv1_accredited_conclusion
+  - rule_id: solid_GMSv3_accredited_conclusion
     family: summary_text
     section: Report conclusion
     priority: 200
-    description: Report conclusion for an accredited assay.
-    source_locator: .design/old_coyote.py:2585
     when:
       - fact: asp.accredited
         operator: eq
@@ -111,13 +79,9 @@ rules:
     heading: false
     stop: true
 deferred_rules:
-  - rule_id: myeloid_GMSv1_introduction
-    description: Introduction with selected-list and panel composition.
-    source_locator: .design/old_coyote.py:2445-2462
+  - rule_id: solid_GMSv3_introduction
     template: |-
-      DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar exoner i 191 gener som inkluderas i GMS-myeloid v1.0 sekvenseringspanel. Analysen avser somatiska varianter (hudbiopsi har använts som kontrollmaterial). För CEBPA undersöks även konstitutionella varianter.
+      DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar exoner i 560 gener som inkluderas i {{ panel_name }} sekvenseringspanel. Analysen avser somatiska varianter (blodprov har använts som kontrollmaterial). För BRCA1 och BRCA2 undersöks även konstitutionella varianter.
     required_fact_contract:
-      - selected gene-list labels in report order
-      - selected genes in report order
-      - explicit no-selected-list state
-    activation_note: Add the selected-list composition fact before activation.
+      - authoritative panel display name
+      - absence of selected gene lists

@@ -1,35 +1,13 @@
-schema_version: 3
 rule_set:
-  rule_set_id: tumwgs_hema__base
-  version: "0.1.0-draft"
-  title: TumWGS hematology base clinical reporting rules
-  status: draft
-  language: sv
-  scope:
-    analyte: dna
-    assay_id: tumwgs_hema
-    subpanel_id: base
-  provenance:
-    authority: old_coyote
-    reference: .design/old_coyote.py
-    revision: archived-reference
-    content_sha256: 4cfa49e808974c3965fc74ff987a875c3d2e5fd165c654727e341d9dcf3b4c53
-    text_policy: verbatim
-  validation:
-    approval_status: pending
-    approval_reference:
-    golden_case_ids:
-      - tumwgs-hema-base-summary
-  required_facts:
-    - sample.assay
-  notes: Verbatim TumWGS summary bound to the hematology ASP.
+  analyte: dna
+  assay_id: tumwgs_hema
+  subpanel_id: base
+  version: "1"
 rules:
   - rule_id: tumwgs_hema_report_summary
     family: result_text
     section: Report summary
     priority: 100
-    description: Complete TumWGS report summary.
-    source_locator: .design/old_coyote.py:2409
     when:
       - fact: sample.assay
         operator: eq

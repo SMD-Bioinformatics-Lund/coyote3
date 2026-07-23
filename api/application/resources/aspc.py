@@ -61,11 +61,11 @@ class AspcService:
     @staticmethod
     def _release_scope_matches_aspc(release: Any, aspc: dict[str, Any]) -> bool:
         """Return whether a published release may be bound to this ASPC."""
-        scope = release.source.rule_set.scope
+        rule_set = release.source.rule_set
         return (
-            scope.analyte == aspc.get("asp_category")
-            and scope.assay_id == aspc.get("asp_id")
-            and scope.subpanel_id == aspc.get("subpanel_id")
+            rule_set.analyte == aspc.get("asp_category")
+            and rule_set.assay_id == aspc.get("asp_id")
+            and rule_set.subpanel_id == aspc.get("subpanel_id")
         )
 
     @staticmethod

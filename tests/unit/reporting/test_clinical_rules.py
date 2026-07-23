@@ -125,7 +125,7 @@ def _rna_context() -> PreparedReportContext:
 
 def test_hema_base_rules_compile_deterministically():
     compiler = ClinicalRuleCompiler()
-    source_path = RULES_ROOT / "hema_GMSv1" / "base.draft.yaml"
+    source_path = RULES_ROOT / "hema_GMSv1" / "base.yaml"
     source = compiler.load(source_path)
 
     first = compiler.content_hash(source)
@@ -157,28 +157,37 @@ def test_repository_path_must_match_assay_and_subpanel_scope(tmp_path):
     rules_root = tmp_path / "clinical_reporting_rules"
     wrong_assay_dir = rules_root / "another_assay"
     wrong_assay_dir.mkdir(parents=True)
-    source = (RULES_ROOT / "hema_GMSv1" / "base.draft.yaml").read_text(encoding="utf-8")
-    path = wrong_assay_dir / "base.draft.yaml"
+    source = (RULES_ROOT / "hema_GMSv1" / "base.yaml").read_text(encoding="utf-8")
+    path = wrong_assay_dir / "base.yaml"
     path.write_text(source, encoding="utf-8")
 
     with pytest.raises(ValueError, match="does not match its assay/subpanel scope"):
         ClinicalRuleCompiler().load(path)
 
 
-def test_draft_rules_validate_but_cannot_publish():
-    source_path = RULES_ROOT / "solid_GMSv3" / "endometrie.draft.yaml"
+def test_rule_source_publishes_as_an_immutable_release():
+    source_path = RULES_ROOT / "solid_GMSv3" / "endometrie.yaml"
     compiler = ClinicalRuleCompiler()
     compiler.load(source_path)
+    published = []
 
-    with pytest.raises(ValueError, match="only active sources"):
-        ClinicalRulePublisher(repository=object(), compiler=compiler).publish(
-            source_path,
-            published_by="tester",
-        )
+    class _Repository:
+        @staticmethod
+        def publish(**kwargs):
+            published.append(kwargs)
+            return kwargs
+
+    result = ClinicalRulePublisher(repository=_Repository(), compiler=compiler).publish(
+        source_path,
+        published_by="tester",
+    )
+
+    assert result["source"].rule_set.rule_set_id == "solid_GMSv3__endometrie"
+    assert published[0]["source_path"].endswith("solid_GMSv3/endometrie.yaml")
 
 
 def test_unknown_fact_is_rejected(tmp_path):
-    source = (RULES_ROOT / "solid_GMSv3" / "endometrie.draft.yaml").read_text(encoding="utf-8")
+    source = (RULES_ROOT / "solid_GMSv3" / "endometrie.yaml").read_text(encoding="utf-8")
     source = source.replace("finding.kind", "finding.unregistered_fact", 1)
     path = tmp_path / "invalid.yaml"
     path.write_text(source, encoding="utf-8")
@@ -188,7 +197,7 @@ def test_unknown_fact_is_rejected(tmp_path):
 
 
 def test_collection_operator_requires_list_value(tmp_path):
-    source = (RULES_ROOT / "solid_GMSv3" / "endometrie.draft.yaml").read_text(encoding="utf-8")
+    source = (RULES_ROOT / "solid_GMSv3" / "endometrie.yaml").read_text(encoding="utf-8")
     source = source.replace(
         "operator: eq\n        value: snv", "operator: in\n        value: snv", 1
     )
@@ -200,7 +209,7 @@ def test_collection_operator_requires_list_value(tmp_path):
 
 
 def test_template_cannot_use_unapproved_jinja_global(tmp_path):
-    source = (RULES_ROOT / "solid_GMSv3" / "endometrie.draft.yaml").read_text(encoding="utf-8")
+    source = (RULES_ROOT / "solid_GMSv3" / "endometrie.yaml").read_text(encoding="utf-8")
     source = source.replace(
         "{{ finding.gene }}",
         "{{ range(10) }}",
@@ -290,7 +299,7 @@ def test_hema_GMSv1_tier_composition_is_verbatim():
             ]
         },
     )
-    release = _release(RULES_ROOT / "hema_GMSv1" / "base.draft.yaml")
+    release = _release(RULES_ROOT / "hema_GMSv1" / "base.yaml")
 
     result = ClinicalRuleEvaluator().evaluate(context, release)
 
@@ -303,7 +312,7 @@ def test_hema_GMSv1_tier_composition_is_verbatim():
 
 
 def test_hema_GMSv1_negative_result_and_conclusion_are_verbatim():
-    release = _release(RULES_ROOT / "hema_GMSv1" / "base.draft.yaml")
+    release = _release(RULES_ROOT / "hema_GMSv1" / "base.yaml")
     context_payload = _context(tier=1).model_dump(mode="python")
     context_payload["findings"] = []
     context_payload["asp"]["accredited"] = False
@@ -380,7 +389,7 @@ def test_solid_GMSv3_tier_two_multi_gene_edge_case_is_verbatim():
             ]
         },
     )
-    release = _release(RULES_ROOT / "solid_GMSv3" / "base.draft.yaml")
+    release = _release(RULES_ROOT / "solid_GMSv3" / "base.yaml")
 
     result = ClinicalRuleEvaluator().evaluate(context, release)
 
@@ -391,7 +400,7 @@ def test_solid_GMSv3_tier_two_multi_gene_edge_case_is_verbatim():
 
 
 def test_fusion_report_text_is_verbatim():
-    release = _release(RULES_ROOT / "fusion" / "base.draft.yaml")
+    release = _release(RULES_ROOT / "fusion" / "base.yaml")
     result = ClinicalRuleEvaluator().evaluate(_rna_context(), release)
 
     assert result.sections["Report summary"] == [
@@ -430,7 +439,7 @@ def test_fusion_report_text_is_verbatim():
     ],
 )
 def test_targeted_rna_report_text_is_verbatim(assay_id, expected):
-    release = _release(RULES_ROOT / assay_id / "base.draft.yaml")
+    release = _release(RULES_ROOT / assay_id / "base.yaml")
     context_payload = _rna_context().model_dump(mode="python")
     context_payload["sample"]["assay"] = assay_id
     result = ClinicalRuleEvaluator().evaluate(
@@ -443,7 +452,7 @@ def test_targeted_rna_report_text_is_verbatim(assay_id, expected):
 
 @pytest.mark.parametrize("assay_id", ["tumwgs_hema", "tumwgs_solid"])
 def test_tumwgs_report_text_is_verbatim(assay_id):
-    release = _release(RULES_ROOT / assay_id / "base.draft.yaml")
+    release = _release(RULES_ROOT / assay_id / "base.yaml")
     context_payload = _context().model_dump(mode="python")
     context_payload["sample"]["assay"] = assay_id
     result = ClinicalRuleEvaluator().evaluate(
@@ -465,7 +474,7 @@ def test_tumwgs_report_text_is_verbatim(assay_id):
 
 
 def test_endometrial_workbook_wording_is_verbatim():
-    release = _release(RULES_ROOT / "solid_GMSv3" / "endometrie.draft.yaml")
+    release = _release(RULES_ROOT / "solid_GMSv3" / "endometrie.yaml")
     result = ClinicalRuleEvaluator().evaluate(_context(tier=1), release)
 
     assert result.sections["Molecular classification"] == [
@@ -493,7 +502,7 @@ def test_service_returns_none_without_aspc_release_reference():
 
 
 def test_service_rejects_release_scope_mismatch():
-    release = _release(RULES_ROOT / "hema_GMSv1" / "base.draft.yaml")
+    release = _release(RULES_ROOT / "hema_GMSv1" / "base.yaml")
 
     class _Repository:
         @staticmethod

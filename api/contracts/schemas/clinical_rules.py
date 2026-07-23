@@ -35,24 +35,6 @@ class ClinicalRuleOperator(str, Enum):
     LTE = "lte"
 
 
-class ClinicalRuleScope(BaseModel):
-    """Exact assay/subpanel identity for a clinical rule set."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    analyte: Literal["dna", "rna"]
-    assay_id: str
-    subpanel_id: str = "base"
-
-    @field_validator("assay_id", "subpanel_id", mode="before")
-    @classmethod
-    def _normalize_identifier(cls, value: Any) -> str:
-        normalized = str(value or "").strip()
-        if not normalized:
-            raise ValueError("clinical rule assay and subpanel identifiers cannot be empty")
-        return normalized
-
-
 class ClinicalRuleCondition(BaseModel):
     """One typed predicate evaluated against prepared report facts."""
 
@@ -94,14 +76,12 @@ class ClinicalReportingRule(BaseModel):
     family: ClinicalRuleFamily
     section: str
     priority: int = Field(ge=1, le=100_000)
-    description: str
-    source_locator: str
     when: list[ClinicalRuleCondition] = Field(default_factory=list)
     template: str
     heading: bool = True
     stop: bool = True
 
-    @field_validator("rule_id", "section", "description", "source_locator")
+    @field_validator("rule_id", "section")
     @classmethod
     def _validate_text(cls, value: str) -> str:
         value = value.strip()
@@ -118,23 +98,15 @@ class ClinicalReportingRule(BaseModel):
 
 
 class DeferredClinicalReportingRule(BaseModel):
-    """Verbatim source rule blocked until its fact contract exists."""
+    """Rule text held until its required facts become available."""
 
     model_config = ConfigDict(extra="forbid")
 
     rule_id: str
-    description: str
-    source_locator: str
     template: str
     required_fact_contract: list[str]
-    activation_note: str
 
-    @field_validator(
-        "rule_id",
-        "description",
-        "source_locator",
-        "activation_note",
-    )
+    @field_validator("rule_id")
     @classmethod
     def _validate_text(cls, value: str) -> str:
         value = value.strip()
@@ -159,75 +131,17 @@ class DeferredClinicalReportingRule(BaseModel):
         return normalized
 
 
-class ClinicalRuleSourceProvenance(BaseModel):
-    """Immutable identity of the authority from which wording was transcribed."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    authority: Literal["coyote_master", "old_coyote", "clinical_workbook"]
-    reference: str
-    revision: str
-    content_sha256: str
-    text_policy: Literal["verbatim"] = "verbatim"
-
-    @field_validator("reference", "revision")
-    @classmethod
-    def _validate_reference(cls, value: str) -> str:
-        value = value.strip()
-        if not value:
-            raise ValueError("clinical rule source references cannot be empty")
-        return value
-
-    @field_validator("content_sha256")
-    @classmethod
-    def _validate_checksum(cls, value: str) -> str:
-        value = value.strip().lower()
-        if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
-            raise ValueError("content_sha256 must be a lowercase SHA-256 digest")
-        return value
-
-
-class ClinicalRuleValidation(BaseModel):
-    """Governance evidence required before a rule set can be published."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    approval_status: Literal["pending", "inherited", "approved"] = "pending"
-    approval_reference: str | None = None
-    golden_case_ids: list[str] = Field(default_factory=list)
-
-    @field_validator("approval_reference")
-    @classmethod
-    def _normalize_approval_reference(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        value = value.strip()
-        return value or None
-
-    @field_validator("golden_case_ids", mode="before")
-    @classmethod
-    def _normalize_golden_cases(cls, value: Any) -> list[str]:
-        values = value if isinstance(value, list) else ([value] if value else [])
-        return list(dict.fromkeys(str(item).strip() for item in values if str(item).strip()))
-
-
 class ClinicalRuleSetMetadata(BaseModel):
-    """Authored rule-set identity and lifecycle."""
+    """Minimal authored identity for one assay and subpanel."""
 
     model_config = ConfigDict(extra="forbid")
 
-    rule_set_id: str
+    analyte: Literal["dna", "rna"]
+    assay_id: str
+    subpanel_id: str = "base"
     version: str
-    title: str
-    status: Literal["draft", "active", "retired"] = "draft"
-    language: str = "sv"
-    scope: ClinicalRuleScope
-    provenance: ClinicalRuleSourceProvenance
-    validation: ClinicalRuleValidation = Field(default_factory=ClinicalRuleValidation)
-    required_facts: list[str] = Field(default_factory=list)
-    notes: str | None = None
 
-    @field_validator("rule_set_id", "version", "title", "language")
+    @field_validator("assay_id", "subpanel_id", "version", mode="before")
     @classmethod
     def _validate_identity(cls, value: str) -> str:
         value = value.strip()
@@ -235,32 +149,10 @@ class ClinicalRuleSetMetadata(BaseModel):
             raise ValueError("rule-set identity fields cannot be empty")
         return value
 
-    @field_validator("required_facts", mode="before")
-    @classmethod
-    def _normalize_required_facts(cls, value: Any) -> list[str]:
-        values = value if isinstance(value, list) else ([value] if value else [])
-        return list(dict.fromkeys(str(item).strip() for item in values if str(item).strip()))
-
-    @model_validator(mode="after")
-    def _validate_scope_identity(self) -> "ClinicalRuleSetMetadata":
-        expected = f"{self.scope.assay_id}__{self.scope.subpanel_id}"
-        if self.rule_set_id != expected:
-            raise ValueError(
-                f"rule_set_id must identify the exact assay/subpanel scope: expected '{expected}'"
-            )
-        return self
-
-    @model_validator(mode="after")
-    def _validate_activation_evidence(self) -> "ClinicalRuleSetMetadata":
-        if self.status != "active":
-            return self
-        if self.validation.approval_status not in {"inherited", "approved"}:
-            raise ValueError("active clinical rule sets require inherited or explicit approval")
-        if not self.validation.approval_reference:
-            raise ValueError("active clinical rule sets require an approval_reference")
-        if not self.validation.golden_case_ids:
-            raise ValueError("active clinical rule sets require at least one golden_case_id")
-        return self
+    @property
+    def rule_set_id(self) -> str:
+        """Return the deterministic runtime identity for this rule set."""
+        return f"{self.assay_id}__{self.subpanel_id}"
 
 
 class ClinicalRuleSetSource(BaseModel):
@@ -268,7 +160,6 @@ class ClinicalRuleSetSource(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    schema_version: Literal[3] = 3
     rule_set: ClinicalRuleSetMetadata
     rules: list[ClinicalReportingRule]
     deferred_rules: list[DeferredClinicalReportingRule] = Field(default_factory=list)
@@ -311,7 +202,7 @@ class ClinicalRuleReleaseDoc(_StrictDocBase):
     rule_set_id: str
     version: str
     status: Literal["active", "retired"]
-    schema_version: int = 3
+    schema_version: int = 1
     content_hash: str
     source_path: str
     source: ClinicalRuleSetSource

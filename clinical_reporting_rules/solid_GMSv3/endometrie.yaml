@@ -1,42 +1,13 @@
-schema_version: 3
 rule_set:
-  rule_set_id: solid_GMSv3__endometrie
-  version: "0.2.0-draft"
-  title: Endometrial cancer DNA reporting wording
-  status: draft
-  language: sv
-  scope:
-    analyte: dna
-    assay_id: solid_GMSv3
-    subpanel_id: endometrie
-  provenance:
-    authority: clinical_workbook
-    reference: .design/endometrierapport to Ram.xlsx
-    revision: workbook-2026-07-23
-    content_sha256: 99f71497bb4554e92e06d86c484db0d247ac540d459b86c846cd0f309725953b
-    text_policy: verbatim
-  validation:
-    approval_status: pending
-    approval_reference:
-    golden_case_ids:
-      - endometrial-pole-domain
-      - endometrial-pole-outside-domain
-      - endometrial-tp53
-      - endometrial-supporting-gene
-  required_facts:
-    - sample.subpanel_id
-  notes: >-
-    Exact workbook wording only. The workbook's human labels are not treated
-    as database fields. MSI, tumor-cell fraction, and interpreted CNV-profile
-    clauses remain non-executable until those concepts have typed, authoritative
-    facts and approved units or enumerations.
+  analyte: dna
+  assay_id: solid_GMSv3
+  subpanel_id: endometrie
+  version: "1"
 rules:
   - rule_id: endometrial_pole_exonuclease_domain
     family: finding_text
     section: Molecular classification
     priority: 10
-    description: Workbook statement for a POLE finding in exons 9 through 14.
-    source_locator: Endometrierapport 17apr; POLE exonukleasdomän text
     when:
       - fact: finding.kind
         operator: eq
@@ -56,8 +27,6 @@ rules:
     family: finding_text
     section: Molecular classification
     priority: 20
-    description: Workbook statement for a POLE finding outside exons 9 through 14.
-    source_locator: Endometrierapport 17apr; POLE utanför exonukleasdomänen text
     when:
       - fact: finding.kind
         operator: eq
@@ -77,8 +46,6 @@ rules:
     family: finding_text
     section: Molecular classification
     priority: 30
-    description: Workbook statement for a TP53 finding.
-    source_locator: Endometrierapport 17apr; TP53 text
     when:
       - fact: finding.kind
         operator: eq
@@ -95,8 +62,6 @@ rules:
     family: finding_text
     section: Supporting findings
     priority: 40
-    description: Workbook statement for an MMR-gene finding.
-    source_locator: Endometrierapport 17apr; MLH1/MSH2/MSH6/PMS2 text
     when:
       - fact: finding.kind
         operator: eq
@@ -113,8 +78,6 @@ rules:
     family: finding_text
     section: Supporting findings
     priority: 50
-    description: Workbook statement for recurrent supporting endometrial genes.
-    source_locator: Endometrierapport 17apr; supporting-gene text
     when:
       - fact: finding.kind
         operator: eq
@@ -131,8 +94,6 @@ rules:
     family: summary_text
     section: Report conclusion
     priority: 100
-    description: Workbook report conclusion.
-    source_locator: Endometrierapport 17apr; report conclusion
     when: []
     template: |-
       För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade varianter, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen.
@@ -140,83 +101,59 @@ rules:
     stop: true
 deferred_rules:
   - rule_id: endometrial_introduction
-    description: Workbook introduction for the ENDOMETRIE gene panel.
-    source_locator: Endometrierapport 17apr; introduction
     template: |-
       DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar generna i genpanelen ENDOMETRIE vilka inkluderas i GMS-solid v3.0 sekvenseringspanel.
     required_fact_contract:
       - approved current ASP identifier for GMS-solid v3.0
       - approved current ISGL identifier for ENDOMETRIE
-    activation_note: Confirm the source identifiers before activation.
 
   - rule_id: endometrial_msi_high
-    description: Workbook statement for an interpreted MSI-H result.
-    source_locator: Endometrierapport 17apr; MSI-H text
     template: |-
       Vid analysen finner man en MSI-H. MSI-H är klassificerande samt riskstratifierande vid endometriecancer (WHO 5th ed./NVP 2026). Det bör noteras att svaret är preliminärt. Valideringen pågår, kompletteras med IHC av MMR-proteiner.
     required_fact_contract:
       - interpreted MSI state enum containing MSI-H
       - authoritative biomarker method and validation state
-    activation_note: A numeric MSI value must not be translated into MSI-H without an approved interpretation contract.
 
   - rule_id: endometrial_msi_low
-    description: Workbook statement for an interpreted MSI-L result.
-    source_locator: Endometrierapport 17apr; MSI-L text
     template: |-
       Vid analysen finner man en MSI-L. MSI-L kan vara klassificerande samt riskstratifierande vid endometriecancer (WHO 5th ed./NVP 2026). Det bör noteras att svaret är preliminärt. Valideringen pågår, kompletteras med IHC av MMR-proteiner.
     required_fact_contract:
       - interpreted MSI state enum containing MSI-L
       - authoritative biomarker method and validation state
-    activation_note: Define and approve the MSI-L interpretation source before activation.
 
   - rule_id: endometrial_msi_unresolved
-    description: Workbook statement when MSI status cannot be established.
-    source_locator: Endometrierapport 17apr; unresolved MSI text
     template: |-
       Vid analysen kan inte MSI-status klarläggas. Om indikation fortfarande föreligger vänligen undersök MSI-status med annan analys/inkom med nytt prov. Det bör noteras att svaret är preliminärt. Valideringen pågår, kompletteras med IHC av MMR-proteiner.
     required_fact_contract:
       - interpreted MSI state enum containing unresolved
       - machine-readable reason for unresolved status
-    activation_note: Distinguish unresolved analysis from missing biomarker data.
 
   - rule_id: endometrial_msi_low_tumor_fraction
-    description: Workbook statement when tumor-cell fraction is too low for MSI analysis.
-    source_locator: Endometrierapport 17apr; low tumor-cell fraction MSI text
     template: |-
       Observera att tumörcellshalten är för låg för analys av MSI-status. Det bör noteras att MSI-analysen är under validering, MSI/MMR-status avgörs av resultat från MMR-immunhistokemi.
     required_fact_contract:
       - authoritative tumor-cell fraction value and unit
       - approved low-fraction threshold
       - interpreted MSI non-assessable reason enum
-    activation_note: Do not infer tumor-cell fraction from VAF.
 
   - rule_id: endometrial_abnormal_cnv_profile
-    description: Workbook statement for an interpreted abnormal CNV profile.
-    source_locator: Endometrierapport 17apr; abnormal CNV-profile text
     template: |-
       Som bifynd noteras en avvikande kopietalsprofil vilket är vanligt förekommande vid TP53-muterad endometriecancer (WHO 5th ed./NVP 2026).
     required_fact_contract:
       - interpreted CNV-profile state enum containing abnormal
       - authoritative profile interpretation actor or pipeline
-    activation_note: The presence of a CNV-profile image is not an interpreted state.
 
   - rule_id: endometrial_complex_cnv_profile
-    description: Workbook statement for an interpreted complex abnormal CNV profile.
-    source_locator: Endometrierapport 17apr; complex CNV-profile text
     template: |-
       Som bifynd noteras en komplext avvikande kopietalsprofil vilket är vanligt förekommande vid TP53-muterad endometriecancer (WHO 5th ed./NVP 2026).
     required_fact_contract:
       - interpreted CNV-profile state enum containing complex-abnormal
       - authoritative profile interpretation actor or pipeline
-    activation_note: Define the distinction between abnormal and complex-abnormal before activation.
 
   - rule_id: endometrial_cnv_profile_low_tumor_fraction
-    description: Workbook statement when tumor-cell fraction is too low for CNV analysis.
-    source_locator: Endometrierapport 17apr; low tumor-cell fraction CNV text
     template: |-
       Observera att tumörcellshalten är för låg för analys av kopietalsförändringar.
     required_fact_contract:
       - authoritative tumor-cell fraction value and unit
       - approved CNV low-fraction threshold
       - interpreted CNV-profile non-assessable reason enum
-    activation_note: Keep this independent from the MSI low-fraction decision.
