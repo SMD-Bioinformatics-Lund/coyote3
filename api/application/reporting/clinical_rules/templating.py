@@ -7,9 +7,42 @@ from jinja2.sandbox import SandboxedEnvironment
 
 from api.domain.common.reporting import nl_join, nl_num
 
+_STANDARD_TIER_SUMMARY_PHRASES = {
+    "first_prefix": "Vid analysen finner man ",
+    "next_prefix": "Vidare ses ",
+    "final_prefix": "Slutligen ses ",
+    "number_gender": "n",
+    "finding_singular": "variant",
+    "finding_plural_suffix": "er",
+    "tier_labels": {
+        "1": " av stark klinisk signifikans (Tier I)",
+        "2": " av potentiell klinisk signifikans (Tier II)",
+        "3": " av oklar klinisk signifikans (Tier III)",
+    },
+    "single_gene_prefix": " i ",
+    "multiple_gene_prefix": ": ",
+    "gene_count_joiner": " i ",
+    "value_open": " (",
+    "value_close": ")",
+    "read_context_prefix": "i ",
+    "read_context_suffix": " av läsningarna",
+    "multiple_gene_read_prefix_tiers": [1],
+    "respectively": "respektive",
+    "gene_joiner": "och",
+    "sentence_suffix": ". ",
+    "single_gene_always_read_context": False,
+}
 
-def _tier_summary(groups: list[dict], phrases: dict) -> str:
-    """Compose tier groups using wording supplied entirely by the rule source."""
+_HEMA_TIER_SUMMARY_PHRASES = {
+    **_STANDARD_TIER_SUMMARY_PHRASES,
+    "finding_singular": "mutation",
+    "multiple_gene_read_prefix_tiers": [1, 2, 3],
+    "single_gene_always_read_context": True,
+}
+
+
+def _render_tier_summary(groups: list[dict], phrases: dict) -> str:
+    """Compose prepared tier groups using one approved Swedish wording style."""
     text = ""
     first_gene_context = True
     for index, group in enumerate(groups):
@@ -65,6 +98,16 @@ def _tier_summary(groups: list[dict], phrases: dict) -> str:
     return text
 
 
+def _tier_summary(groups: list[dict]) -> str:
+    """Render the standard Swedish tier-summary wording."""
+    return _render_tier_summary(groups, _STANDARD_TIER_SUMMARY_PHRASES)
+
+
+def _hema_tier_summary(groups: list[dict]) -> str:
+    """Render the established GMS-HEM tier-summary wording."""
+    return _render_tier_summary(groups, _HEMA_TIER_SUMMARY_PHRASES)
+
+
 def clinical_template_environment() -> SandboxedEnvironment:
     """Return the shared, deliberately small clinical template environment."""
     environment = SandboxedEnvironment(
@@ -79,4 +122,5 @@ def clinical_template_environment() -> SandboxedEnvironment:
         for name in ("default", "join", "length", "lower", "round", "upper")
     }
     environment.filters["tier_summary"] = _tier_summary
+    environment.filters["hema_tier_summary"] = _hema_tier_summary
     return environment

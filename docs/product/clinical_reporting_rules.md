@@ -92,6 +92,14 @@ deferred_rules: []
 | `heading` | Controls whether the section heading is written. |
 | `stop` | Stops lower-priority rules for the same candidate after a match. |
 
+The shared Swedish Tier-summary grammar is implemented once in the reporting
+formatter. Rules use `{{ aggregates.tier_summaries | tier_summary }}` for the
+standard wording. GMS-HEM uses
+`{{ aggregates.tier_summaries | hema_tier_summary }}` because its established
+wording uses `mutation` and has different read-context grammar. Neither
+formatter changes reportable findings or classification; both only render the
+prepared Tier summary.
+
 The runtime rule-set identity is derived internally as
 `<assay_id>__<subpanel_id>`. It is not authored in YAML. Release hash,
 publication time, publisher, database identifier, and lifecycle state are also
