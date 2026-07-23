@@ -38,6 +38,7 @@ nav:
       - Action Effects: product/ui_action_effects_reference.md
       - Query Strategy: product/aspc_driven_query_strategy.md
       - Reporting Workflow And Snapshots: product/reporting_workflow_and_variant_snapshots.md
+      - Clinical Reporting Rules: product/clinical_reporting_rules.md
       - OncoKB Integration: product/oncokb_integration.md
       - ClinPGx Integration: product/clinpgx_integration.md
   - Getting Started:

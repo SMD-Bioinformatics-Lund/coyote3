@@ -24,7 +24,7 @@ Reporting is divided into four stages:
 |---|---|---|
 | Configuration | ASP, ASPC, and ISGL administration | Defines assay scope, enabled analyses, defaults, report sections, and gene lists |
 | Data preparation | Ingest and reporting application services | Validates source files, stores normalized findings, applies filters, resolves annotations, and builds reportable data |
-| Text generation | Current report composer; future rules evaluator | Produces clinical text from the prepared report context |
+| Text generation | Published clinical rules and report composer | Produces clinical text from the prepared report context |
 | Persistence | Report service | Renders preview, writes HTML/PDF, stores report metadata and finding snapshots, and emits audit events |
 
 The stages have strict boundaries. Text generation does not decide which raw
@@ -80,6 +80,7 @@ configuration.
 | `reporting.report_method` | Method description |
 | `reporting.report_description` | Assay description |
 | `reporting.general_report_summary` | Configured introductory text |
+| `reporting.clinical_rule_release` | Verified immutable clinical rule release used for text generation |
 | `reporting.plots_path` | Approved source directory for report plots |
 | `reporting.report_folder` | Approved report output directory |
 
@@ -109,12 +110,16 @@ The prepared report context records:
 
 - selected list identifiers;
 - list versions;
-- analysis domain;
+- analysis domain in `selected_for`;
 - ad-hoc genes;
 - effective covered and uncovered genes.
 
 This allows a reviewer to distinguish the requested clinical scope from the
 physical assay scope.
+
+DNA rule preparation carries selected SNV and CNV ISGLs. RNA rule preparation
+carries selected fusion ISGLs. These are the lists used for that report
+preparation, not every list configured for the assay.
 
 ## 3. Sample Ingest And Readiness
 
@@ -491,9 +496,9 @@ These values must not be collapsed into an empty string.
 
 ## 8. Clinical Text Generation Boundary
 
-Current reporting composes report text from the prepared context and ASPC
-reporting fields. A future YAML-driven rules evaluator may replace hardcoded
-conditional wording, but it will use the same boundary.
+Reporting composes report text from the prepared context, ASPC reporting
+fields, and the immutable clinical-rule release explicitly bound to the ASPC.
+YAML is the editable source; the database release is compiled runtime content.
 
 The evaluator may:
 
@@ -565,8 +570,8 @@ A saved report preserves:
 - selected annotation references;
 - data-version context available at creation time.
 
-When configurable rule releases are implemented, the report must also preserve
-the rule-set ID, version, content hash, and matched rule IDs.
+When an ASPC binds a clinical-rule release, the report also preserves the
+release ObjectId, rule-set ID, version, content hash, and matched rule IDs.
 
 ## 10. Collection Relationships
 
@@ -576,6 +581,7 @@ assay_specific_panels (ASP)
     +-- asp_configs (ASPC)
     |       |
     |       +-- samples.current_aspc_id/version
+    |       +-- clinical_rule_sets (immutable release reference)
     |
     +-- insilico_genelists (ISGL)
 
