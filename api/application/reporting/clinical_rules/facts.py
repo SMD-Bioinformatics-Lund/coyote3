@@ -32,6 +32,7 @@ class PreparedAspFacts(_FactModel):
     asp_group: str | None = None
     asp_category: str | None = None
     accredited: bool = False
+    germline_genes: list[str] = Field(default_factory=list)
 
 
 class PreparedAspcReportingFacts(_FactModel):
@@ -39,6 +40,7 @@ class PreparedAspcReportingFacts(_FactModel):
 
     analysis: list[str] = Field(default_factory=list)
     report_sections: list[str] = Field(default_factory=list)
+    general_report_summary: str = ""
 
 
 class PreparedAspcFacts(_FactModel):

@@ -201,6 +201,7 @@ def prepare_report_context(
             "asp_group": asp.get("asp_group"),
             "asp_category": asp.get("asp_category"),
             "accredited": bool(asp.get("accredited")),
+            "germline_genes": list(asp.get("germline_genes") or []),
         },
         aspc={
             "aspc_id": str(aspc.get("aspc_id") or ""),
@@ -212,6 +213,9 @@ def prepare_report_context(
             "reporting": {
                 "analysis": list((aspc.get("reporting") or {}).get("analysis") or []),
                 "report_sections": list((aspc.get("reporting") or {}).get("report_sections") or []),
+                "general_report_summary": str(
+                    (aspc.get("reporting") or {}).get("general_report_summary") or ""
+                ),
             },
         },
         applied_gene_lists=[_gene_list_fact(item) for item in applied_gene_lists],

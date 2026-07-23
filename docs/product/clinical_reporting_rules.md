@@ -138,8 +138,8 @@ templates:
 | Root | Contents |
 |---|---|
 | `sample` | Sample identity, assay, subpanel, profile, and report context. |
-| `asp` | Assay definition and assay-level metadata. |
-| `aspc` | The active assay configuration used for this report. |
+| `asp` | Assay definition and assay-level metadata, including configured germline genes. |
+| `aspc` | The active assay configuration used for this report, including its approved base report introduction. |
 | `applied_gene_lists` | Exact selected ISGLs and their analysis-domain use. |
 | `finding` | One normalized reportable SNV, CNV, fusion, or translocation. |
 | `biomarkers` | Prepared biomarker result records. |
@@ -151,6 +151,13 @@ Relevant finding fields include `kind`, `gene`, `genes`, `tier`, `hgvsc`,
 partners. Transcript selection and HGNC normalization are complete before a
 finding reaches this engine; YAML rules do not select transcripts or rename
 genes.
+
+The shared `dna_report_intro` formatter renders
+`aspc.reporting.general_report_summary`, the paired-control statement, selected
+SNV ISGL identifiers, effective SNV gene count, and germline statement from
+prepared facts. For example, a selected `hematology_myeloid` list is rendered
+as `HEMATOLOGY_MYELOID`; the formatter does not infer a list from assay or
+subpanel identity.
 
 Templates run in a restricted Jinja environment. They can only read the roots
 listed above. They cannot execute Python, access MongoDB, call external

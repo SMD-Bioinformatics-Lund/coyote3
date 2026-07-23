@@ -96,6 +96,56 @@ def _tier_summary(groups: list[dict]) -> str:
     return _render_tier_summary(groups, _STANDARD_TIER_SUMMARY_PHRASES)
 
 
+def _dna_report_intro(
+    base_text: str,
+    sample: dict,
+    asp: dict,
+    applied_gene_lists: list[dict],
+) -> str:
+    """Render a DNA introduction from the actual selected SNV gene-list scope."""
+    text = str(base_text or "")
+    if sample.get("paired"):
+        text += "Analysen avser somatiska mutationer (hudbiopsi har använts som kontrollmaterial). "
+
+    selected_lists = [
+        gene_list
+        for gene_list in applied_gene_lists
+        if "snv" in (gene_list.get("selected_for") or [])
+    ]
+    if not selected_lists:
+        return text
+
+    selected_genes = list(
+        dict.fromkeys(
+            str(gene).strip()
+            for gene_list in selected_lists
+            for gene in (gene_list.get("genes") or [])
+            if str(gene).strip()
+        )
+    )
+    selected_list_names = [
+        str(gene_list.get("isgl_id") or "").upper() for gene_list in selected_lists
+    ]
+    selected_list_names = [name for name in selected_list_names if name]
+    if not selected_list_names:
+        return text
+
+    list_suffix = "an" if len(selected_list_names) == 1 else "orna"
+    if len(selected_genes) <= 20:
+        gene_label = "genen" if len(selected_genes) == 1 else "generna"
+        gene_detail = f" som innefattar {gene_label}: {nl_join(selected_genes, 'samt')}"
+    else:
+        gene_detail = f" som innefattar {len(selected_genes)} gener"
+    text += f"Analysen omfattar genlist{list_suffix}: {nl_join(selected_list_names, 'samt')}{gene_detail}. "
+
+    if sample.get("paired"):
+        germline_genes = {str(gene).strip() for gene in asp.get("germline_genes") or []}
+        selected_germline = [gene for gene in selected_genes if gene in germline_genes]
+        if selected_germline:
+            text += f"För {nl_join(selected_germline, 'samt')} undersöks även konstitutionella mutationer."
+    return text
+
+
 def clinical_template_environment() -> SandboxedEnvironment:
     """Return the shared, deliberately small clinical template environment."""
     environment = SandboxedEnvironment(
@@ -109,5 +159,6 @@ def clinical_template_environment() -> SandboxedEnvironment:
         name: environment.filters[name]
         for name in ("default", "join", "length", "lower", "round", "upper")
     }
+    environment.filters["dna_report_intro"] = _dna_report_intro
     environment.filters["tier_summary"] = _tier_summary
     return environment

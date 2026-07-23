@@ -266,6 +266,58 @@ def test_preparation_exposes_case_and_control_vaf_percentages():
     assert finding.control_vaf_percent == 0.7
 
 
+def test_hema_introduction_uses_the_applied_snv_gene_list():
+    context = prepare_report_context(
+        sample={
+            "name": "seed_sample",
+            "assay": "hema_GMSv1",
+            "subpanel_id": "base",
+            "profile": "production",
+            "paired": True,
+        },
+        asp={
+            "asp_id": "hema_GMSv1",
+            "germline_genes": ["CEBPA"],
+        },
+        aspc={
+            "aspc_id": "hema_GMSv1_base_production",
+            "asp_id": "hema_GMSv1",
+            "subpanel_id": "base",
+            "environment": "production",
+            "reporting": {
+                "general_report_summary": (
+                    "DNA har extraherats från insänt prov och analyserats med massivt "
+                    "parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen "
+                    "omfattar exoner i 385 gener som inkluderas i GMS-HEM v1.1 "
+                    "sekvenseringspanel. "
+                )
+            },
+        },
+        analyte="dna",
+        applied_gene_lists=[
+            {
+                "isgl_id": "hematology_myeloid",
+                "selected_for": ["snv"],
+                "genes": [f"GENE{index}" for index in range(196)] + ["CEBPA"],
+                "germline_genes": ["CEBPA"],
+            }
+        ],
+        report_sections_data={},
+    )
+    release = _release(RULES_ROOT / "hema_GMSv1" / "base.yaml")
+
+    result = ClinicalRuleEvaluator().evaluate(context, release)
+
+    assert result.sections["Report introduction"] == [
+        "DNA har extraherats från insänt prov och analyserats med massivt parallell "
+        "sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar exoner i 385 "
+        "gener som inkluderas i GMS-HEM v1.1 sekvenseringspanel. Analysen avser "
+        "somatiska mutationer (hudbiopsi har använts som kontrollmaterial). Analysen "
+        "omfattar genlistan: HEMATOLOGY_MYELOID som innefattar 197 gener. För CEBPA "
+        "undersöks även konstitutionella mutationer."
+    ]
+
+
 def test_hema_GMSv1_tier_composition_is_verbatim():
     def variant(gene: str, tier: int, vaf: float) -> dict:
         return {
