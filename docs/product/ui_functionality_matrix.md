@@ -25,7 +25,7 @@ The following features apply across the platform:
 - **Operational Scoping**: Filtering by production status, assay technology, and organizational assay groups.
 - **View Isolation**: Independent tracking and navigation for "Live" versus "Reported" sample states.
 - **Sample List Metadata**: The sample catalog shows sample identity, case/control identifiers, clarity identifiers, profile, assay, subpanel, analysis ingest state, report state, loaded data counts, and load date.
-- **Analysis Status Visibility**: Sample overview separates bundle ingest status from analysis availability. Each configured analysis domain is reported as ready, missing, count-bearing, or file-present so users can see whether SNV, CNV, fusion, translocation, coverage, and biomarker data are available for review.
+- **Analysis Status Visibility**: Sample overview separates bundle ingest status from analysis availability. Each configured analysis domain is reported as ready, missing, count-bearing, or file-present so users can see whether SNV, CNV, fusion, translocation, and biomarker data are available for review. DNA coverage is shown as sample quality context when `cov` data is available.
 
 ## Diagnostics and Configuration Workflow
 

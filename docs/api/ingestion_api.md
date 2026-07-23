@@ -23,7 +23,7 @@ the ingest flow follows this order:
 1. Validate the top-level sample payload.
 2. Parse referenced data files into preload payloads.
 3. Insert the sample anchor with `ingest_status="loading"`.
-4. Write dependent analysis collections (`variants`, `cnvs`, `fusions`, coverage, and related evidence).
+4. Write dependent finding and quality collections (`variants`, `cnvs`, `fusions`, `panel_coverage`, and related evidence).
 5. Mark the sample as `ingest_status="ready"` only after all dependent writes succeed.
 
 Failure behavior:
@@ -247,9 +247,9 @@ Every transcript summary in `anno_vep.CSQ` is validated by the
 (`Feature`, `HGVSc`, `HGVSp`, `Consequence`, `IMPACT`, `EXON`, `INTRON`,
 `SIFT`, `PolyPhen`, and `CADD_PHRED`), Coyote3 enriches each row with:
 
-- `transcript_tags`: compact source markers for HGNC MANE Plus Clinical, HGNC
-  MANE Select, Ensembl MANE Select, VEP MANE, center canonical, and VEP
-  canonical evidence.
+- `transcript_tags`: compact source markers for NCBI MANE Plus Clinical,
+  Ensembl MANE Plus Clinical, NCBI MANE Select, Ensembl MANE Select, center
+  canonical, and VEP canonical evidence.
 - `canonical_source`: the source that made the transcript canonical for the
   current review row.
 - `is_canonical`: a normalized boolean for table rendering.
@@ -261,6 +261,21 @@ document stores the source-version snapshot under `samples.database_versions`
 for `sift`, `polyphen`, `vep`, and the other configured reference databases.
 
 Manual transcript selection is exposed through:
+
+Automatic selected-transcript priority is deterministic:
+
+1. NCBI/RefSeq MANE Plus Clinical
+2. Ensembl MANE Plus Clinical
+3. NCBI/RefSeq MANE Select
+4. Ensembl MANE Select
+5. center RefSeq canonical transcript
+6. VEP canonical transcript
+7. first protein-coding transcript
+8. first available transcript
+
+Within each priority, consequences are considered in `HIGH`, `MODERATE`, `LOW`,
+then `MODIFIER` impact order. HGNC ID is the primary gene identity; approved,
+previous, and alias symbols are lookup paths to the same HGNC record.
 
 ```http
 PATCH /api/v1/samples/{sample_id}/small-variants/{var_id}/selected-transcript
@@ -488,7 +503,8 @@ curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/sample-bundle/upload" \
 
 Rules:
 
-- Keep file path values in YAML (`vcf_files`, `cnv`, `cov`, `fusion_files`, etc.) as source paths.
+- Keep file path values in YAML (`files.vcf_files.path`, `files.cnv.path`,
+  `files.cov.path`, `files.fusion_files.path`, etc.) as source paths.
 - Upload matching files in the same request using `data_files`.
 - Matching is done by exact filename value from YAML or by basename.
 - Backend stages uploaded files temporarily, parses them, ingests to DB, and removes staged files after request completion.
@@ -650,7 +666,7 @@ Use this as the minimum deployment contract:
 | `permissions` | `permission_id` | RBAC policy definitions |
 | `roles` | `role_id`, `level`, `permissions[]` | RBAC role resolution |
 | `users` | `username`, `email`, `roles[]`, `environments[]` | Login + authorization subject (first superuser should be created by `bootstrap_local_admin.py`) |
-| `asp_configs` | `aspc_id`, `assay_name`, `environment`, `asp_group`, `asp_category`, `analysis_types[]`, `display_name`, `filters{...}`, `reporting{...}`, `is_active` | Assay+environment runtime config |
+| `asp_configs` | `aspc_id`, `asp_id`, `subpanel_id`, `environment`, `asp_group`, `asp_category`, `analysis_types[]`, `display_name`, `filters{...}`, `reporting{...}`, `is_active`, `version` | Assay+subpanel+environment runtime config |
 | `assay_specific_panels` | `asp_id`, `assay_name`, `asp_group`, `is_active` | Assay metadata/UI wiring |
 | `insilico_genelists` | `isgl_id`, `diagnosis`, `assays[]`, `assay_groups[]`, `genes[]`, `is_active` | Panel/list filtering logic |
 | `refseq_canonical` | `gene`, `canonical` | DNA transcript canonicalization |

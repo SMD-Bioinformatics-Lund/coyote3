@@ -104,6 +104,7 @@ The canonical template is `deploy/env/example.env`.
 | `COYOTE3_DB` | Yes | MongoDB database name | Primary application database. |
 | `BAM_DB` | Yes | MongoDB database name | BAM-service database used for sample BAM lookups. |
 | `ORGANIZATION_NAME` | Yes | Center/service display name | Used on login, public, contact, and support pages. |
+| `LOCAL_TIME_ZONE` | Yes | IANA timezone such as `Europe/Stockholm` | Local display timezone for browser-rendered dates and container-local schedules. Database timestamps remain UTC. |
 | `SECRET_KEY` | Yes | High-entropy secret | Signs application security state. |
 | `INTERNAL_API_TOKEN` | Yes | High-entropy token | Authenticates trusted service-to-service internal API calls. |
 | `API_SESSION_SALT` | Yes | High-entropy salt | Derives stored browser API session hashes. |
@@ -214,6 +215,21 @@ The following values are intentionally derived or internal:
 | API session and audit collection names | Fixed internal collections `api_sessions` and `audit_events`. |
 | Container data root | Fixed container path `/data`; only the host root is configurable. |
 | MANE source | Database-backed HGNC/MANE annotation metadata, not a runtime file path. |
+
+## Timestamp Display
+
+All persisted timestamps are stored as UTC values in MongoDB and audit records.
+The React UI converts those timestamps to the configured `LOCAL_TIME_ZONE`
+before showing absolute dates, detailed audit timestamps, comment timestamps,
+report dates, and admin table dates. Relative labels such as `7 d ago` are
+calculated from the same UTC instant.
+
+!!! info "Timezone value"
+
+    Use an IANA timezone name, for example `Europe/Stockholm`. Do not store
+    local wall-clock timestamps in MongoDB. If an ingest source emits an ISO
+    timestamp without a timezone suffix, Coyote3 treats it as UTC and converts it
+    for display.
 
 ## Center Contact Configuration
 

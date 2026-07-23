@@ -16,6 +16,12 @@ Durable audit events are append-only MongoDB documents in the fixed
 - request source metadata
 - bounded, redacted metadata
 
+For sample resources, user-facing audit views use the clinical sample name as
+`resource.name`. The MongoDB ObjectId remains available as `resource.id` and as
+`metadata.sample_oid` in the expanded details. This keeps logs readable during
+operations while preserving the stable database identifier needed for forensic
+follow-up.
+
 Metadata keys resembling passwords, secrets, tokens, cookies, authorization headers, sequences,
 report bodies, or file contents are redacted before storage.
 

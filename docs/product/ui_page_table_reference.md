@@ -152,7 +152,7 @@ The Samples page lists loaded samples visible to the user. It starts in producti
 
 Route: `/samples/:id`
 
-The sample detail page is the main review workspace. Tabs are shown from the ASPC analysis configuration for the sample, so a sample only shows analysis areas that are enabled for that assay/subpanel/environment.
+The sample detail page is the main review workspace. Tabs are shown from the ASPC analysis configuration for the sample, so a sample only shows analysis areas that are enabled for that assay/subpanel/environment. The selected tab is represented by the `tab` URL parameter; refresh, browser history, and return navigation therefore restore the same review area. Tab availability is validated only after the sample context has loaded.
 
 ### Sample Header
 
@@ -198,6 +198,14 @@ Route: `/samples/:id` with Small Variants tab
 
 Bulk actions include assigning or removing tiers, marking/unmarking false positive, marking/unmarking irrelevant, marking/unmarking interesting, adding blacklist entries, overriding blacklist, and clearing blacklist overrides. Bulk actions require confirmation and update the table in place after success.
 
+!!! warning "Tier annotation text"
+
+    Bulk Tier 3 assignment creates the approved automatic Tier III annotation
+    text for each selected small variant. Tier 1, Tier 2, and Tier 4 assignments
+    do not create automatic text. Templates for those tiers must not be added
+    until their wording has been reviewed and approved by the responsible
+    genetics team.
+
 Small-variant sorting is performed after all active filters and search terms have
 been applied and before the page slice is returned. Frequency columns, including
 case VAF, control VAF, and population frequency, are sorted numerically across
@@ -216,7 +224,18 @@ The CNV tab lists copy-number events and opens CNV detail pages.
 | Type/effect | Gain, loss, amplification, deletion, or configured CNV effect. |
 | Size/copy number | Event size, copy number, log ratio, and supporting metrics when available. |
 | Tier | CNV classification tier. |
-| Actions | Detail page link and available finding actions. |
+| Actions | False-positive, report inclusion/exclusion, noteworthy, and detail-page actions. The labeled **Report** control persists report inclusion immediately and changes to **Exclude** for included CNVs. |
+
+The CNV bulk-action menu is limited to CNV review operations: mark or unmark
+false positive, include or exclude from the report, and mark or unmark
+noteworthy. Small-variant tier, relevance, and blacklist operations are not
+shown in this menu.
+
+#### CNV Profile Review
+
+When a DNA sample includes an ingested CNV profile image, the CNV tab presents the calls table and profile in one review workspace. On desktop displays, drag the divider to allocate more width to either the table or image; the selected split is retained in the browser for later reviews. The divider also supports the arrow, Home, and End keys. On narrower displays the panes stack vertically.
+
+The rotate control switches the profile between its original `0°` orientation and a clockwise `90°` orientation. The image scales with the available pane width as the divider moves, and the profile card expands to the complete rotated image height. Selecting the image opens the original profile in a separate browser tab.
 
 ### Fusions Tab
 
@@ -229,7 +248,10 @@ The fusions tab lists RNA or DNA fusion calls.
 | Breakpoints | Coordinates and transcript context when available. |
 | Support | Spanning pairs, unique reads, anchor support, and caller information. |
 | Tier | Fusion classification tier. |
-| Actions | Detail page link and available finding actions. |
+| Actions | False-positive and detail-page actions. Fusion rows do not expose a report-inclusion control because fusion reporting is governed by the fusion review/filter workflow rather than an `interesting` finding flag. |
+
+The fusion bulk-action menu contains only fusion review operations: mark or
+unmark false positive and mark or unmark irrelevant.
 
 ### Translocations Tab
 
@@ -244,11 +266,16 @@ The translocations tab lists structural rearrangements.
 | HGVS | Structural HGVS or notation when available. |
 | Panel | Matching panel/gene-list context. |
 | Tier | Structural variant tier. |
-| Actions | Detail page link and available finding actions. |
+| Actions | False-positive, report inclusion/exclusion, and detail-page actions. The labeled **Report** control changes to **Exclude** after the translocation is included. |
+
+The translocation bulk-action menu contains only structural-event review
+operations: mark or unmark false positive and include or exclude from the
+report. Small-variant tier, relevance, noteworthy, and blacklist operations are
+not shown in this menu.
 
 ### Coverage Tab
 
-The coverage tab shows sample coverage and gene-level coverage context.
+The coverage tab shows DNA sample quality coverage and gene-level coverage context. It appears when the active ASPC enables `COVERAGE` and the DNA sample has a successfully ingested `cov` resource. Coverage is independent of both CNV calls and the CNV profile image.
 
 | Area | Information shown |
 | --- | --- |
@@ -299,7 +326,7 @@ Detail pages put the review decision, comments, and evidence around the finding.
 
 !!! info "Transcript selection"
 
-    Small variant display uses MANE Clinical Plus first when available, then MANE Select, then configured fallback transcript rules. HGNC normalization uses HGNC ID when possible and only falls back to previous symbols or aliases when the direct symbol is not resolved. Manual transcript changes use the versioned `anno_vep` vault for the sample's VEP version and refresh the selected transcript in place.
+    Small variant display selects NCBI MANE Plus Clinical first, followed by Ensembl MANE Plus Clinical, NCBI MANE Select, and Ensembl MANE Select. Center and VEP canonical transcripts are subsequent fallbacks. HGNC normalization uses HGNC ID when possible and resolves previous symbols or aliases to the same approved HGNC record. Manual transcript changes use the versioned `anno_vep` vault for the sample's VEP version and refresh the selected transcript in place.
 
 The transcript table can show the following compact badges in the **Transcript**
 column:
@@ -307,10 +334,9 @@ column:
 | Badge | Meaning |
 | --- | --- |
 | NCBI MANE+ | HGNC marks the RefSeq transcript as MANE Plus Clinical. |
-| VEP MANE+ | The VEP transcript annotation contains MANE Plus Clinical. |
+| ENS MANE+ | HGNC/VEP identifies the Ensembl transcript as MANE Plus Clinical. |
 | NCBI MANE | HGNC maps the transcript to RefSeq MANE Select. |
 | ENS MANE | HGNC maps the transcript to Ensembl MANE Select. |
-| VEP MANE | The VEP transcript annotation contains MANE Select. |
 | Canonical | The transcript matches the center canonical RefSeq map. |
 | VEP canonical | VEP marks the transcript as canonical. |
 

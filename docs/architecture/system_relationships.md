@@ -22,9 +22,9 @@ This page documents the main runtime relationships in Coyote3, grounded in the c
   owns: assay metadata, covered_genes, germline_genes, file policy
       |
       +--> [ASPC: asp_configs]
-      |      key: aspc_id = "<assay>:<environment>"
-      |      maps to: sample.assay + sample.profile
-      |      owns: default filters, reporting, analysis_types
+      |      logical scope: asp_id + subpanel_id + environment
+      |      maps to: sample.assay + sample.subpanel_id + sample.profile
+      |      owns: default filters, reporting, analysis_types, catalog metadata
       |
       -?> [ISGL: insilico_genelists]
              key: isgl_id
@@ -35,7 +35,8 @@ This page documents the main runtime relationships in Coyote3, grounded in the c
 What this means in practice:
 
 - ASP is the physical assay anchor.
-- ASPC is a required assay-plus-environment runtime configuration when the sample is loaded for analysis.
+- ASPC is a required assay-plus-subpanel-plus-environment configuration. The
+  `base` subpanel is used when no specific subpanel configuration exists.
 - ISGL is optional. It is assay-scoped and becomes active only when selected into sample filter state.
 
 ### 1.2 Cardinality view
@@ -43,7 +44,7 @@ What this means in practice:
 ```text
 One ASP
   -> zero or many ASPCs
-     one per environment/profile in practice
+     one active release per subpanel/environment tuple
 
 One ASP
   -?> zero or many ISGLs
@@ -58,17 +59,17 @@ One ASPC
 
 ```text
 [sample]
-  assay   -------> [ASP.asp_id]
-  profile -------> (environment)
-                      |
-                      v
-                  [ASPC.aspc_id = "<assay>:<profile>"]
+  assay                -------> [ASP.asp_id]
+  assay + subpanel_id
+        + profile      -------> [ASPC scope]
+  current_aspc_id      -------> [ASPC recorded on sample]
+  current_aspc_version -------> [recorded ASPC version]
 
 [sample.filters]
-  snvlists      -?> [ISGL.isgl_id]
-  cnvlists      -?> [ISGL.isgl_id]
-  fusionlists   -?> [ISGL.isgl_id]
-  adhoc_genes   -?> runtime-only target-specific overlay
+  snv.snvlists         -?> [ISGL.isgl_id]
+  cnv.cnvlists         -?> [ISGL.isgl_id]
+  fusion.fusionlists   -?> [ISGL.isgl_id]
+  <domain>.adhoc_genes -?> sample-specific target overlay
 ```
 
 ## 2. Ingest Relationships
@@ -85,18 +86,26 @@ Incoming sample payload
   |       +--> expected_files / required_files policy
   |       +--> ASP category influences allowed ingest keys
   |
+  +--> resolve ASPC by assay + subpanel + profile
+  |       |
+  |       +--> fall back to subpanel_id="base" when permitted
+  |       +--> persist current_aspc_id/key/version
+  |
   +--> if sample.filters is missing
   |       |
-  |       +--> resolve ASPC by assay_name + environment(profile)
   |       +--> seed default sample.filters from ASPC.filters
   |
-  +--> parse dependent analysis files
+  +--> validate every required and declared file
+  |
+  +--> parse all declared dependent analysis files
   |
   +--> create [sample] with ingest_status="loading"
   |
   +--> write dependent collections with SAMPLE_ID back-links
   |
-  +--> mark [sample] ingest_status="ready"
+  +--> mark [sample] ingest_status="ready" only after all writes succeed
+  |
+  +--> on failure remove the incomplete sample/dependents and audit the error
 ```
 
 ### 2.2 Sample anchor and dependent collections
@@ -140,7 +149,7 @@ Existing [sample] by name
 ```text
 [sample]
   |
-  +--> resolve ASPC using sample.assay + sample.profile
+  +--> resolve active ASPC using assay + subpanel + profile
   |
   +--> resolve ASP using sample.assay
   |
@@ -148,7 +157,8 @@ Existing [sample] by name
   |
   v
 (effective runtime context)
-  = ASPC filters/reporting
+  = resolved active ASPC analyses/reporting
+  + sample filters or ASPC defaults
   + ASP covered genes / germline genes
   + optional ISGL genes
   + optional ad hoc genes
@@ -158,13 +168,13 @@ Existing [sample] by name
 
 ```text
 If sample.filters is missing
-  -> use ASPC.filters defaults
+  -> normalize resolved ASPC.filters into domain namespaces
 
 If sample.filters exists
   -> sample.filters is authoritative
 
 Reset sample filters
-  -> write ASPC.filters back onto the sample
+  -> write resolved active ASPC defaults back onto the sample
 ```
 
 ## 4. Effective Gene Scope Relationships
@@ -173,20 +183,20 @@ Reset sample filters
 
 ```text
 SNV target
-  sample.filters.snvlists
-  + sample.filters.adhoc_genes["snv"]
+  sample.filters.snv.snvlists
+  + sample.filters.snv.adhoc_genes
   -?> selected ISGL genes
   -> if nothing selected: no SNV gene restriction
 
 CNV target
-  sample.filters.cnvlists
-  + sample.filters.adhoc_genes["cnv"]
+  sample.filters.cnv.cnvlists
+  + sample.filters.cnv.adhoc_genes
   -?> selected ISGL genes
   -> if nothing selected: fall back to ASP.covered_genes
 
 Fusion target
-  sample.filters.fusionlists
-  + sample.filters.adhoc_genes["fusion"]
+  sample.filters.fusion.fusionlists
+  + sample.filters.fusion.adhoc_genes
   -?> selected ISGL genes
 ```
 
@@ -218,7 +228,9 @@ interpretation / reporting workflows
       |
       +--> filtered evidence selection
       +--> classification/comment state
-      +--> immutable report snapshots
+      +--> prepared report context
+      +--> report composition and preview
+      +--> immutable report metadata and finding snapshots on save
 ```
 
 ## 6. Admin Resource Dependencies
@@ -237,7 +249,7 @@ Create ASP
 Create ASPC
   -> requires selected ASP to exist
   -> copies ASP-derived asp_group / asp_category / platform
-  -> derives aspc_id from assay_name + environment
+  -> validates one active ASP + subpanel + environment tuple
 ```
 
 ### 6.3 ISGL creation and update
@@ -256,7 +268,7 @@ ASP
   -> required assay anchor
 
 ASPC
-  -> required runtime config for assay + environment resolution
+  -> required runtime config for assay + subpanel + environment resolution
 
 ISGL
   -> optional scoped gene list
@@ -270,5 +282,6 @@ SAMPLE_ID-linked findings
 
 ## 8. Companion References
 
+- [Clinical Data Preparation And Reporting Flow](clinical_data_and_reporting_flow.md)
 - [Clinical Data Architecture and Workflow Integration](../product/workflow_dna_rna.md)
 - [Assay Configuration and Dynamic Query Orchestration](../product/aspc_driven_query_strategy.md)

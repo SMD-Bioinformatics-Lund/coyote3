@@ -102,12 +102,18 @@ Minimum DNA manifest fields:
 4. Default filter sections are copied from ASPC into the sample document:
    `filters.snv`, `filters.cnv`, `filters.cov`, and other enabled analysis
    sections.
-5. The sample document is written with file references under `files`, the active
+5. Required files from the ASP contract must be present and readable. Optional
+   expected files may be absent, but every declared optional file must parse and
+   write successfully.
+6. The sample document is staged with file references under `files`, the active
    `aspc_id`, ingest status, current data counts, and VCF-derived metadata such
    as VEP and database versions when available.
-6. Analysis-specific records are written to their own collections.
-7. Optional knowledgebase enrichment runs for configured public/local sources.
-8. On success, the manifest is renamed with the configured done suffix. On
+7. Analysis-specific records are written to their own collections.
+8. The sample is marked `ready` only after declared database-backed resources
+   are persisted. CNV profile images remain file resources and are displayed in
+   the CNV tab without creating database rows.
+9. Optional knowledgebase enrichment runs for configured public/local sources.
+10. On success, the manifest is renamed with the configured done suffix. On
    failure, it is renamed with the configured failed suffix and an audit event is
    emitted.
 

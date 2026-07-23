@@ -4,6 +4,10 @@ This document describes the Coyote3 sample-to-report workflow, the rules used
 when building a report, what is persisted in MongoDB, and how persisted report
 snapshots support later search, mapping, dashboards, and cross-sample review.
 
+For the field-level preparation protocol, annotation matching order, filter
+authority, and the report-text boundary, see
+[Clinical data preparation and reporting flow](../architecture/clinical_data_and_reporting_flow.md).
+
 The core rule is:
 
 > A report preview is temporary and filter-derived. A saved report is immutable
@@ -18,15 +22,17 @@ The core rule is:
    translocations, coverage, and comments.
 3. The user changes filters when needed. The sample filter blob is updated.
 4. The Reports tab asks the backend for a report preview.
-5. The backend resolves the sample and ASPC, reruns the report query workflow
-   from the current filters, builds a temporary report context, and renders
-   clinical report HTML.
-6. The UI shows the report preview and snapshot rows. Nothing is persisted yet.
-7. The user confirms Save.
-8. The backend reruns the same report workflow in save mode, renders HTML,
+5. The backend resolves the sample, ASP, and active ASPC; applies the current
+   filters and gene scope; enriches and selects reportable findings; and builds
+   a temporary prepared report context.
+6. The report composer generates text and sections from that prepared context
+   and renders clinical report HTML.
+7. The UI shows the report preview and snapshot rows. Nothing is persisted yet.
+8. The user confirms Save.
+9. The backend reruns the same report workflow in save mode, renders HTML,
    renders PDF from the same HTML, saves report metadata, marks the sample as
    reported, and persists per-variant snapshot rows in `reported_variants`.
-9. Future searches, variant detail pages, dashboards, and audit workflows read
+10. Future searches, variant detail pages, dashboards, and audit workflows read
    the immutable report metadata and reported-variant snapshots.
 
 ## Ingested Sample State
@@ -69,6 +75,35 @@ When a sample is loaded, the current filters should come from the matching ASPC:
 
 When the user applies filters, the active filter blob changes. Report preview
 and save must use that active sample filter state.
+
+## Prepared Report Context
+
+The reporting application completes clinical data selection before report text
+is generated. It provides a versioned, read-only context containing:
+
+- sample, ASP, and resolved ASPC identity/version;
+- analyses and report sections enabled by ASPC;
+- selected ISGL identifiers, versions, ad-hoc genes, and effective gene scope;
+- already filtered and annotation-enriched small variants;
+- already selected CNVs, fusions, and translocations;
+- structured biomarkers and coverage data;
+- CNV profile availability;
+- filter snapshot, source counts, data versions, and preparation time.
+
+The report composer receives this prepared set. It does not load raw findings
+or independently decide which findings are reportable.
+
+!!! info
+    The prepared context is a handoff contract. Upstream services own data
+    retrieval, transcript selection, HGNC normalization, analytical filters,
+    gene-list scope, annotation matching, blacklist/false-positive/irrelevant
+    exclusion, and tier reportability.
+
+!!! warning
+    A future configurable text rules engine may select and render clinical
+    wording from this context. It must not query MongoDB, apply filters, assign
+    tiers, choose transcripts, call external knowledgebases, or mutate clinical
+    data.
 
 ## Report Preview
 
@@ -171,6 +206,7 @@ sections include:
 - `SNV`
 - `CNV`
 - `CNV_PROFILE`
+- `COVERAGE`
 - `TRANSLOCATION`
 - `FUSION`
 - `BIOMARKER`
@@ -231,11 +267,11 @@ Rules:
 
 ### CNV Profile Logic
 
-CNV profile image is included only when `CNV_PROFILE` is in report sections.
+CNV profile is separate from CNV calls and coverage. It is an image artifact stored on the sample as `files.cnvprofile`. The review UI displays it beside the CNV table so copy-number calls and the profile can be assessed together. It is included in report output only when `CNV_PROFILE` is selected in report sections.
 
 Rules:
 
-- resolve the configured CNV profile plot path
+- resolve the sample CNV profile image path
 - base64 encode the plot if available
 - embed it in report HTML
 - PDF generation reads it from the same HTML
@@ -570,3 +606,6 @@ This design gives Coyote3:
   rendering mechanism is not part of the product contract; the artifact format
   is.
 - Preview PDF is for review. Saved PDF is created only during report save.
+- Conditional clinical text is currently composed by the reporting
+  application. A YAML-driven text rules engine is a planned extension and must
+  consume only the prepared report context described above.

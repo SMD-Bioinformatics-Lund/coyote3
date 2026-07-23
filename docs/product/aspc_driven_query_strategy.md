@@ -6,17 +6,24 @@ The platform's analytic engine is driven by the Assay-Specific Panel Configurati
 
 The resolution of analytic strategies follows a deterministic inheritance model to ensure consistency across varying center requirements:
 
-1. **ASPC Resolution**: The system derives the primary configuration identity (`aspc_id`) from the sample-level `assay` and `profile` (environment) attributes.
+1. **ASPC Resolution**: The system resolves an active configuration from
+   `assay`, `subpanel_id`, and `profile` (environment). A specific subpanel is
+   preferred; `base` is the controlled fallback. The resolved ObjectId,
+   business ID, and version are persisted on the sample.
 2. **Initial Filter Seeding**: If a sample has no `filters` document, the resolved ASPC provides the initial threshold and reporting defaults.
 3. **Sample-Level Truth**: Once persisted, `samples.filters` is the filter state used for findings and reports until explicitly reset.
-4. **Query Execution**: The finalized sample filter set is merged with domain-specific MongoDB query JSON to orchestrate precise retrieval for SNVs, CNVs, Fusions, and Translocations.
+4. **Query Execution**: Domain services convert the finalized typed filter set
+   into repository queries for SNVs, CNVs, fusions, translocations, and quality
+   data.
 
 ## Configuration Domain Interplay
 
 Analytic execution relies on the synchronization of three core architectural pillars:
 
 - **Assay-Specific Panels (ASP)**: Defines assay metadata and the physical set of covered genes or regions.
-- **Assay-Specific Panel Configuration (ASPC)**: The environment-specific operational strategy governing filtered evidence and reporting constraints.
+- **Assay-Specific Panel Configuration (ASPC)**: The
+  assay/subpanel/environment-specific operational strategy governing filtered
+  evidence and reporting constraints.
 - **In-Silico Gene Lists (ISGL)**: Managed gene cohorts that dynamically restrict the interpretation scope during clinical review.
 
 The **Effective Gene Scope** is target-specific:
@@ -59,6 +66,11 @@ The administrative interface controls query behavior through validated managed f
 - **Typed Filter Sections**: SNV, CNV, fusion, coverage, and reporting behavior are expressed as typed ASPC fields instead of arbitrary MongoDB query JSON.
 - **Versioned Clinical Configuration**: Changes to ASPC behavior are represented as versioned center configuration, making count changes and report behavior auditable.
 - **Gene List Defaults**: ASPC may seed initial defaults when a sample is created or reset, but active sample-level list selection is stored on `samples.filters`.
+
+The report query workflow produces a prepared report context containing only
+already filtered and annotation-enriched findings. Report-text composition
+consumes that context and does not reapply analytical filters. See
+[Clinical data preparation and reporting flow](../architecture/clinical_data_and_reporting_flow.md).
 
 ## Analytic Threshold Specifications
 

@@ -2,11 +2,14 @@
 
 ## API contracts
 
-Request/response contracts live in `api/contracts/*.py` and should be treated as API boundary schema.
+Request/response contracts live in `api/contracts/*.py` and are the API
+boundary schema. Routers accept and return these models rather than exposing
+raw MongoDB documents.
 
 ## DB contracts
 
-`api/contracts/schemas/` defines model validation for Mongo collection documents, grouped by domain:
+`api/contracts/schemas/` defines model validation for Mongo collection
+documents, grouped by domain:
 
 - `samples.py`
 - `dna.py`
@@ -28,10 +31,14 @@ runtime schema switching.
 
 Design principles:
 
-- collection document shapes are defined in Pydantic contracts
-- write paths validate and normalize against those contracts before any DB write
-- nested structures are modeled explicitly (`INFO.CSQ`, `filters`, coverage gene trees, etc.)
-- seed fixtures in `tests/fixtures/db_dummy/all_collections_dummy` use plain JSON contract shape (no Mongo Extended JSON wrappers)
+- collection document shapes are defined in Pydantic contracts;
+- write paths validate and normalize before any database write;
+- API responses use Pydantic response contracts and JSON-safe serialization;
+- nested structures are modeled explicitly (`INFO.CSQ`, `filters`, coverage
+  gene trees, and file metadata);
+- ObjectIds and UTC datetimes are converted at the API boundary;
+- missing, false, zero, and not-applicable values remain distinguishable;
+- fixtures use plain JSON contract shape without Mongo Extended JSON wrappers.
 
 Sample ingestion contract ownership:
 
@@ -39,6 +46,77 @@ Sample ingestion contract ownership:
 - `api/application/ingest/service.py` is the public ingest service and consumes those schema-defined constants directly, with helper modules in the same package handling parsing, dependent writes, and updates
 - sample documents persist canonical file path fields from the ingest payload
 - dependent writes use registry-owned mappings in `api/contracts/schemas/registry.py`
+
+## Contract Layers
+
+| Layer | Contract responsibility | May contain |
+|---|---|---|
+| Source manifest | External ingest declaration | Sample identity, assay scope, and source file paths |
+| Collection document | Persisted domain state | Normalized sample, finding, result, configuration, and audit fields |
+| API request/response | Stable HTTP boundary | JSON-safe, permission-scoped fields |
+| Prepared report context | Read-only reporting handoff | Already filtered findings, results, configuration, gene scope, and provenance |
+| Saved report snapshot | Immutable clinical history | Report metadata and selected finding identity at sign-out |
+
+Each layer has a different purpose. A source manifest is not stored as an
+unvalidated sample document. A raw variant document is not returned as a
+report snapshot. A report-text evaluator does not receive repository objects.
+
+## Canonical Sample Contract
+
+`SamplesDoc` enforces:
+
+- a required case and an optional control;
+- `sample_no=1` and `paired=false` for tumor-only samples;
+- `sample_no=2` and `paired=true` for paired case/control samples;
+- different allowed file-key groups for DNA and RNA;
+- canonical nested `files` metadata;
+- canonical domain filter namespaces;
+- normalized environment, sequencing scope, platform, VEP version, and
+  database-version keys;
+- current ASPC identity/version and report-state pointers.
+
+DNA and RNA file keys cannot be mixed in one sample. At least one file from
+the selected omics layer must be present.
+
+!!! info
+    ASP file policy adds stricter runtime requirements. A file can be valid for
+    the DNA contract but still be required or disallowed by the selected ASP.
+
+## Configuration Contracts
+
+`AssaySpecificPanelsDoc` defines the physical assay. `AspConfigDoc` defines one
+analytical configuration for an ASP, subpanel, and environment.
+
+The ASPC contract validates:
+
+- DNA ASPCs use DNA filters and DNA analysis options;
+- RNA ASPCs use RNA filters and RNA analysis options;
+- report analyses and report sections are valid for the analyte;
+- report paths and required report text are non-empty;
+- identifiers and controlled values are normalized.
+
+Configuration rotation preserves historical versions. Samples and reports
+retain the exact configuration references needed for reproducibility.
+
+## Prepared Report Context Contract
+
+The reporting application must eventually expose one explicit Pydantic model
+for the read-only handoff to report composition. The model includes:
+
+- sample, ASP, and resolved ASPC identity/version;
+- enabled analyses and report sections;
+- selected and effective gene scope;
+- filtered, annotation-enriched reportable findings;
+- structured biomarkers, coverage, and available plot artifacts;
+- filter snapshot, source counts, and data versions.
+
+This contract is deliberately downstream of query and interpretation services.
+A clinical text evaluator consumes it but cannot query collections, choose
+transcripts, apply filters, assign tiers, or mutate records.
+
+See
+[Clinical data preparation and reporting flow](clinical_data_and_reporting_flow.md)
+for the complete producer/consumer protocol.
 
 ## Validation flow
 
@@ -50,17 +128,31 @@ Sample ingestion contract ownership:
 
 ## Adding a new collection model
 
-1. Create Pydantic model class
-2. Register in `api/contracts/schemas/registry.py::COLLECTION_MODEL_ADAPTERS`
-3. Add tests for valid/invalid payloads
-4. If ingestion uses it, validate before insert
+1. Define the source of truth and ownership boundary.
+2. Create the Pydantic model.
+3. Register it in
+   `api/contracts/schemas/registry.py::COLLECTION_MODEL_ADAPTERS`.
+4. Define indexes and uniqueness constraints.
+5. Add positive, negative, boundary, and missing-value tests.
+6. Add a plain JSON fixture.
+7. Validate every ingest/admin write before persistence.
+8. Add an API response model when the collection is externally readable.
+9. Document relationships, units, provenance, and lifecycle.
 
 ## Versioning guidance
 
-- Persist `version` and `version_history` on managed resources.
-- Increment `version` on update.
-- Append `version_history` entries on create/update.
-- Evolve contracts intentionally and keep DB writes contract-valid at all times.
+- Rotate clinically immutable assay configuration rather than rewriting a
+  historical release.
+- Keep users, roles, and permissions current in place while recording audit
+  events and incrementing their version.
+- Version reference metadata that changes interpretation, such as VEP
+  consequence mappings.
+- Evolve contracts intentionally and keep all writes contract-valid.
+
+!!! caution
+    A schema version does not by itself make historical output reproducible.
+    Saved reports must retain the exact configuration, filters, and finding
+    snapshots used at creation time.
 
 ## Fixture-driven validation
 

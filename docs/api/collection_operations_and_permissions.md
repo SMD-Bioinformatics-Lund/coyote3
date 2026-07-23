@@ -20,7 +20,8 @@ For admin-managed collections, use stable business IDs as primary document keys:
 - `roles.role_id`
 - `permissions.permission_id`
 - `assay_specific_panels.asp_id`
-- `asp_configs.aspc_id` (`<assay>:<environment>`)
+- `asp_configs.aspc_id` (stable identifier for one
+  `asp_id + subpanel_id + environment` configuration)
 - `insilico_genelists.isgl_id`
 
 Expected behavior:

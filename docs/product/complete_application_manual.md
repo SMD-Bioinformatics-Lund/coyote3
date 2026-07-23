@@ -25,6 +25,11 @@ The system is designed around four guarantees:
 
     Start with the end-to-end workflow if you are learning the application. Use the later sections as reference for a specific domain such as ingest, reporting, access control, or operations.
 
+For the exact collection relationships, annotation matching order, transcript
+policy, filter authority, prepared report context, and preview/save protocol,
+use
+[Clinical data preparation and reporting flow](../architecture/clinical_data_and_reporting_flow.md).
+
 ## 2. End-To-End Workflow
 
 The normal workflow is:
@@ -396,7 +401,24 @@ Comment behavior:
 
 ## 16. Reporting
 
-Report preview is temporary until saved. The preview is generated from current sample state, ASPC report configuration, enabled analysis types, and effective filters.
+Report preview is temporary until saved. The reporting application resolves the
+sample, ASP, active ASPC, and applied gene lists; applies the current filter
+state; resolves selected transcripts and current annotations; and prepares
+reportable SNVs, CNVs, fusions, translocations, biomarkers, coverage, and plot
+artifacts.
+
+This produces a read-only prepared report context. Report text and layout are
+generated from that context. Text composition does not query raw findings,
+reapply analytical filters, select a different transcript, assign a tier, or
+change false-positive/irrelevant/blacklist state.
+
+!!! info "Prepared report context"
+
+    The handoff contains sample, ASP, resolved ASPC, applied ISGL and effective
+    gene scope, already filtered findings, structured results, filter snapshot,
+    source counts, database versions, and preparation time. This separation
+    ensures that report wording describes the clinical data set without
+    changing it.
 
 Saving a report persists:
 
@@ -414,6 +436,13 @@ After saving, later searches can answer which samples reported a gene, which var
 !!! warning "Report reconstruction"
 
     A saved report should remain understandable even if ASPC defaults, ISGL contents, annotation text, or sample filters change later.
+
+!!! caution "Configurable report text"
+
+    A future YAML-driven clinical text evaluator must consume only the prepared
+    report context. It may select approved wording, group prepared findings,
+    render variables, and return a rule trace. It must not have repository,
+    database-write, or external-knowledgebase access.
 
 ## 17. Assay Catalog And Matrix
 
@@ -544,7 +573,7 @@ detail page:
 
 | Field | Purpose |
 | --- | --- |
-| `transcript_tags` | Compact HGNC/VEP markers such as `ncbi_mane_plus_clinical`, `ncbi_mane_select`, `ensembl_mane_select`, `vep_mane_select`, `db_canonical`, and `vep_canonical`. |
+| `transcript_tags` | Compact provenance markers such as `ncbi_mane_plus_clinical`, `ensembl_mane_plus_clinical`, `ncbi_mane_select`, `ensembl_mane_select`, `db_canonical`, and `vep_canonical`. |
 | `canonical_source` | Canonical authority for the row, for example `refseq_canonical` or `vep_canonical`. |
 | `is_canonical` | Boolean display helper for the transcript table. |
 
@@ -710,7 +739,7 @@ the default quality model for clinical and administrative workflows.
 | Clinical UI | Clinical and administrative pages present interpreted fields, forms, and action states rather than raw backend payloads. Diagnostic payload inspection belongs in explicit debug or operational tooling. | Reviewers see concise clinical context without needing to understand MongoDB document shape. |
 | Data contracts | Writes pass through Pydantic contracts and service-layer validation before reaching repositories. | Stored documents remain predictable, typed, and compatible with reporting and audit reconstruction. |
 | Collection access | Domain services use configured collection mappings and repository boundaries. | Collection renames and center-specific deployments can be managed through configuration rather than code edits across the domain layer. |
-| Analysis semantics | SNV, CNV, fusion, expression, PGX, and coverage data keep separate filters, gene-list semantics, and reporting rules. | A configuration change in one analysis domain cannot silently alter another domain's interpretation behavior. |
+| Analysis semantics | SNV, CNV, fusion, expression, and PGX data keep separate filters, gene-list semantics, and reporting rules. DNA coverage remains sample quality context with its own thresholds. | A configuration change in one analysis domain cannot silently alter another domain's interpretation behavior. |
 | Reporting | Saved reports preserve the filter snapshot, ASPC context, report template context, selected findings, and rendered output required for later reconstruction. | A finalized report can be explained and reproduced from persisted application state. |
 | Permissions | Administrative mutation routes are protected by explicit authorization checks and audited outcomes. | Configuration, identity, and role changes are traceable and limited to authorized users. |
 | Secrets and retention | Credentials, tokens, LDAP bind secrets, and private keys remain outside app controls, audit events, and documentation. | Operational records stay useful without becoming a secret-storage risk. |

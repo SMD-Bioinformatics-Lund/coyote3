@@ -47,6 +47,7 @@ nav:
   - Software Engineering:
       - Current Application Context: architecture/current_application_context.md
       - System Relationships: architecture/system_relationships.md
+      - Clinical Data And Reporting Flow: architecture/clinical_data_and_reporting_flow.md
       - Schema & Versioning: developer/schema_contracts_and_versioning.md
       - Permission Naming: developer/permissions_naming.md
       - Data Contracts: architecture/data_contracts.md

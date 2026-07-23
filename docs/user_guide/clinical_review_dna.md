@@ -75,6 +75,20 @@ Bulk actions operate on selected rows and are sent as one request.
 
 Successful actions update the table in place and create audit/notification context. Failure notifications should explain the clinical resource and action that failed.
 
+!!! warning "Automatic classification text is limited to Tier 3"
+
+    Bulk assignment of Tier 3 to a small variant creates both the classification
+    record and the approved automatic Tier III annotation text. Tier 1, Tier 2,
+    and Tier 4 assignments create classification records only. They do not
+    generate narrative text because no center-approved templates have been
+    defined for those tiers. Reviewers must add any required narrative manually.
+    Additional automatic templates require clinical review and approval by the
+    responsible genetics team before implementation.
+
+Every bulk action opens a confirmation dialog that identifies the selected
+operation and the number of affected findings. The mutation is sent only after
+explicit confirmation.
+
 ## Variant Detail
 
 The variant detail page arranges decision-making cards around the finding.

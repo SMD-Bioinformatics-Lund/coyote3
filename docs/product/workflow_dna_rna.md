@@ -52,9 +52,9 @@ Interpretation notes:
                   [ASPC.asp_id + ASPC.subpanel_id + ASPC.environment]
 
 [sample.filters]
-  snvlists      -?> [ISGL.isgl_id]
-  cnvlists      -?> [ISGL.isgl_id]
-  fusionlists   -?> TODO: pending fusion-list schema
+  snv.snvlists         -?> [ISGL.isgl_id]
+  cnv.cnvlists         -?> [ISGL.isgl_id]
+  fusion.fusionlists   -?> [ISGL.isgl_id]
 ```
 
 ### Sample Persistence Flow
@@ -65,7 +65,7 @@ During ingest, the system creates a sample anchor and then links finding collect
 |---|---|---|
 | **Bundle Ingest** | Creation of parent `samples` document | Primary system anchor |
 | **Finding Persistence** | Writing to `variants`, `cnvs`, `fusions`, etc. | Keyed by `SAMPLE_ID` |
-| **Logic Resolution** | Resolve ASPC, ASP, and ISGL metadata | Resolved by `assay` + `profile` |
+| **Logic Resolution** | Resolve ASPC, ASP, and ISGL metadata | Exact ASPC from stored identity/version; initial resolution by assay + subpanel + profile |
 
 ### Parent-child persistence model
 
@@ -93,10 +93,12 @@ During ingest, the system creates a sample anchor and then links finding collect
 For DNA and RNA workflows, the platform dynamically computes **effective gene scope** per data type:
 
 1. **SNV**:
-   - Active `sample.filters.snvlists` and SNV ad-hoc genes define the SNV gene restriction.
+   - Active `sample.filters.snv.snvlists` and
+     `sample.filters.snv.adhoc_genes` define the SNV gene restriction.
    - If no SNV genelist is selected, SNV findings are not gene-restricted.
 2. **CNV**:
-   - Active `sample.filters.cnvlists` and CNV ad-hoc genes define the CNV gene restriction.
+   - Active `sample.filters.cnv.cnvlists` and
+     `sample.filters.cnv.adhoc_genes` define the CNV gene restriction.
    - If no CNV genelist is selected, CNV workflows fall back to ASP `covered_genes`.
 3. **RNA Fusion**:
    - Active fusion lists and ad-hoc fusion genes define fusion scope.
@@ -141,6 +143,8 @@ Ingest
   payload
     -> validate sample contract
     -> resolve ASP for file policy
+    -> resolve ASPC by assay + subpanel + profile
+    -> persist current ASPC identity/version
     -> seed sample.filters from ASPC if missing
     -> create sample with ingest_status="loading"
     -> write dependent findings with SAMPLE_ID
@@ -148,7 +152,7 @@ Ingest
 
 Read / clinical review
   sample
-    -> resolve ASPC by assay + profile
+    -> resolve active ASPC by assay + subpanel + profile
     -> resolve ASP by assay
     -> resolve selected ISGLs from sample.filters
     -> compute effective genes per target
@@ -160,7 +164,7 @@ Read / clinical review
 
 | Collection | Operational Responsibility | Primary Relational Mapping |
 |---|---|---|
-| **asp_configs** | Environment-specific assay configuration | `sample.assay` + `sample.profile` |
+| **asp_configs** | Assay/subpanel/environment configuration | `sample.current_aspc_id` and version |
 | **assay_specific_panels** | Panel-level gene universe definition | `sample.assay` (ASP ID) |
 | **insilico_genelists** | Curated gene lists | `isgl_id` via `sample.filters` |
 | **samples** | Parent clinical entity and user filter state | Core system root for all case findings |
@@ -188,6 +192,10 @@ Complete DNA ingest artifacts typically include:
 RNA ingest artifacts typically include:
 - Transcription-level Fusion findings
 - Gene Expression datasets
+
+The complete report-facing preparation and annotation protocol is documented
+in
+[Clinical Data Preparation And Reporting Flow](../architecture/clinical_data_and_reporting_flow.md).
 - Functional RNA Classifications
 - Quality Control (QC) metrics
 

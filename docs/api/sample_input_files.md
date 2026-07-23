@@ -49,14 +49,22 @@ It is responsible for:
 - assay and environment identity such as `assay` and `profile`
 - omics-layer selection through `omics_layer`
 - pipeline metadata such as `pipeline`, `pipeline_version`, `vep_version`
-- file references such as `vcf_files`, `cnv`, `cov`, `fusion_files`
+- file references under `files`, such as `files.vcf_files.path`, `files.cnv.path`,
+  `files.cov.path`, and `files.fusion_files.path`
 
 Important behavior:
 
 - The manifest is validated first through `SamplesDoc`.
 - `omics_layer` controls which file keys are legal.
-- ASP file policy may ignore manifest file keys that are not listed in `assay_specific_panels.expected_files`.
+- ASP file policy rejects manifest file keys that are not listed in `assay_specific_panels.expected_files`; declared resources are never silently discarded.
+- Required ASP files must be present and readable before parsing starts.
+- Optional expected files may be omitted. If an optional expected file path is present, Coyote3 treats it as declared data and the sample will not be marked ready unless that file is parsed and written successfully.
 - If `filters` is missing, ingest may seed `samples.filters` from ASPC defaults.
+
+New manifests should use the nested `files` object documented in
+[API / Sample YAML Guide](sample_yaml.md#file-declaration-format). Each entry is
+stored under `samples.files.<key>` with `path`, optional checksum metadata, and
+optional file-size metadata.
 
 See [API / Sample YAML Guide](sample_yaml.md) for the full manifest contract.
 
@@ -66,9 +74,14 @@ The DNA parser reads file paths from these manifest keys:
 
 - `vcf_files`
 - `cnv`
+- `cnvprofile`
 - `cov`
 - `biomarkers`
 - `transloc`
+
+`cnvprofile` is a sample image resource. It is retained under `samples.files.cnvprofile`
+and shown in the CNV review tab, but it does not create a dependent database
+document.
 
 ### SNV / Indel VCF
 
@@ -103,12 +116,14 @@ Parser behavior:
   - `INFO.selected_CSQ_criteria`
   - remaining transcript summaries in `INFO.CSQ`
 - Canonical transcript selection prefers:
-  1. HGNC MANE Plus Clinical transcript
-  2. HGNC MANE Select transcript
-  3. internal canonical RefSeq mapping after HGNC normalization
-  4. VEP `CANONICAL == YES`
-  5. first protein-coding transcript
-  6. first transcript fallback
+  1. NCBI/RefSeq MANE Plus Clinical transcript
+  2. Ensembl MANE Plus Clinical transcript
+  3. NCBI/RefSeq MANE Select transcript
+  4. Ensembl MANE Select transcript
+  5. internal canonical RefSeq mapping after HGNC normalization
+  6. VEP `CANONICAL == YES`
+  7. first protein-coding transcript
+  8. first transcript fallback
 - Every parsed transcript consequence is also written to the immutable
   `anno_vep` vault under `simple_id_hash` and the sample VEP version. Manual
   transcript changes read from this vault, so SIFT, PolyPhen, CADD, HGVS, exon,
@@ -116,7 +131,7 @@ Parser behavior:
   the sample was ingested.
 - Transcript summaries include provenance fields:
   - `transcript_tags`: HGNC/VEP markers such as `ncbi_mane_plus_clinical`,
-    `ncbi_mane_select`, `ensembl_mane_select`, `vep_mane_select`,
+    `ensembl_mane_plus_clinical`, `ncbi_mane_select`, `ensembl_mane_select`,
     `db_canonical`, and `vep_canonical`.
   - `canonical_source`: the authority that made the row canonical, such as
     `refseq_canonical` or `vep_canonical`.
@@ -268,6 +283,12 @@ Parser behavior:
 - ALT values containing symbolic `<...>` alleles are skipped
 - only gene-fusion style records are retained
 - `MANE_ANN` is added when the MANE summary file can resolve the selected annotation
+
+Stored translocation documents use one object-shaped `INFO` field. `INFO.ANN`
+contains all retained fusion annotations and `INFO.MANE_ANN` contains the selected
+annotation when one is available. Gene names, consequence/type, HGVS values, panel
+membership, and structural-event metadata shown in the UI are read from this
+object. This is also the contract used by report rendering and CSV export.
 
 ## RNA Raw Input Files
 
