@@ -28,7 +28,7 @@ services:
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
       - CACHE_REDIS_URL=redis://coyote3_redis_test:6379/0
-      - TZ=Europe/Stockholm
+      - TZ=${LOCAL_TIME_ZONE:-UTC}
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
     command: "python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --workers ${API_WORKERS:-2}"
@@ -68,7 +68,7 @@ services:
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
       - CACHE_REDIS_URL=redis://coyote3_redis_test:6379/0
-      - TZ=Europe/Stockholm
+      - TZ=${LOCAL_TIME_ZONE:-UTC}
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
       - CELERY_BROKER_URL=redis://coyote3_redis_test:6379/0
@@ -105,7 +105,7 @@ services:
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
       - CACHE_REDIS_URL=redis://coyote3_redis_test:6379/0
-      - TZ=Europe/Stockholm
+      - TZ=${LOCAL_TIME_ZONE:-UTC}
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
       - CELERY_BROKER_URL=redis://coyote3_redis_test:6379/0
@@ -131,7 +131,7 @@ services:
     env_file:
       - ../../.coyote3_test_env
     environment:
-      - TZ=Europe/Stockholm
+      - TZ=${LOCAL_TIME_ZONE:-UTC}
     command: sh -c "npm ci && npm run build && npm run preview -- --host 0.0.0.0 --port 3000"
     networks:
       - coyote3-test-net
@@ -175,7 +175,7 @@ services:
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
-      - TZ=Europe/Stockholm
+      - TZ=${LOCAL_TIME_ZONE:-UTC}
     command: "bash -lc 'PYTHONPATH=. pytest -q'"
     networks:
       - coyote3-test-net

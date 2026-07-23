@@ -72,7 +72,7 @@ services:
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
       - CACHE_REDIS_URL=redis://coyote3_redis_dev:6379/0
-      - TZ=Europe/Stockholm
+      - TZ=${LOCAL_TIME_ZONE:-UTC}
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
     restart: on-failure:5
@@ -121,7 +121,7 @@ services:
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
       - CACHE_REDIS_URL=redis://coyote3_redis_dev:6379/0
-      - TZ=Europe/Stockholm
+      - TZ=${LOCAL_TIME_ZONE:-UTC}
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
       - CELERY_BROKER_URL=redis://coyote3_redis_dev:6379/0
@@ -167,7 +167,7 @@ services:
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
       - CACHE_REDIS_URL=redis://coyote3_redis_dev:6379/0
-      - TZ=Europe/Stockholm
+      - TZ=${LOCAL_TIME_ZONE:-UTC}
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
       - CELERY_BROKER_URL=redis://coyote3_redis_dev:6379/0

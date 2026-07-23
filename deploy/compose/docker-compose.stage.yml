@@ -17,7 +17,7 @@ services:
     env_file:
       - ../../.coyote3_stage_env
     environment:
-      - TZ=Europe/Stockholm
+      - TZ=${LOCAL_TIME_ZONE:-UTC}
     restart: on-failure:5
     dns:
       - ${APP_DNS:-1.1.1.1}
@@ -65,7 +65,7 @@ services:
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
       - CACHE_REDIS_URL=redis://coyote3_redis_stage:6379/0
-      - TZ=Europe/Stockholm
+      - TZ=${LOCAL_TIME_ZONE:-UTC}
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
     restart: on-failure:5
@@ -104,7 +104,7 @@ services:
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
       - CACHE_REDIS_URL=redis://coyote3_redis_stage:6379/0
-      - TZ=Europe/Stockholm
+      - TZ=${LOCAL_TIME_ZONE:-UTC}
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
       - CELERY_BROKER_URL=redis://coyote3_redis_stage:6379/0
@@ -140,7 +140,7 @@ services:
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
       - CACHE_REDIS_URL=redis://coyote3_redis_stage:6379/0
-      - TZ=Europe/Stockholm
+      - TZ=${LOCAL_TIME_ZONE:-UTC}
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
       - CELERY_BROKER_URL=redis://coyote3_redis_stage:6379/0
