@@ -91,6 +91,19 @@ questions:
 - **Reportable domain:** may this analysis contribute to a report?
 - **Rendered section:** should the report contain this section?
 
+The release contains the complete validated YAML source, including authority,
+source artifact checksum, exact source locator for each executable clause,
+approval evidence, golden case IDs, and deferred clauses waiting for typed
+facts. This makes the provenance chain:
+
+```text
+authoritative source artifact
+  -> verbatim repository YAML
+  -> content-hashed immutable release
+  -> versioned ASPC binding
+  -> saved report provenance
+```
+
 !!! warning
     Current operational reads resolve the active ASPC by assay, subpanel, and
     environment, with a controlled `base` fallback. A saved report must

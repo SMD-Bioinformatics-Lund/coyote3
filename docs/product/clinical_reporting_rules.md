@@ -70,10 +70,28 @@ Clinical rules are authored under:
 
 ```text
 clinical_reporting_rules/
+  master_dna.draft.yaml
+  old_coyote_dna.draft.yaml
+  old_coyote_rna.draft.yaml
+  endometrial_dna.draft.yaml
 ```
 
 The YAML file is reviewed through normal source control. Its rule IDs, criteria,
 wording, examples, and version are part of the clinical change.
+
+The source files have distinct authorities:
+
+| Source | Authority | Intended scope |
+|---|---|---|
+| `master_dna.draft.yaml` | Current Coyote `master` implementation | Hematology/current DNA behavior |
+| `old_coyote_dna.draft.yaml` | Archived pre-migration Python implementation | Established DNA assays not represented by current hematology logic |
+| `old_coyote_rna.draft.yaml` | Archived pre-migration Python implementation | Established RNA assay summaries |
+| `endometrial_dna.draft.yaml` | Endometrial clinical workbook | New endometrial conditions and wording |
+
+All four files are drafts. This is intentional: exact source clauses are
+present, but a rule set is not clinically complete until every report section
+has typed facts and byte-for-byte golden cases. No draft is selected at
+runtime by filename.
 
 ### 2.2 Published release
 
@@ -123,7 +141,7 @@ An ASPC reporting block can bind one release:
 reporting:
   clinical_rule_release:
     release_id: "<MongoDB ObjectId>"
-    rule_set_id: generic_dna_reporting
+    rule_set_id: master_dna_reporting
     version: 1.0.0
     content_hash: 64-character-sha256
 ```
@@ -152,7 +170,7 @@ latest database version.
 Every source has three top-level keys in this order:
 
 ```yaml
-schema_version: 1
+schema_version: 2
 rule_set: {}
 rules: []
 ```
@@ -161,10 +179,10 @@ rules: []
 
 ```yaml
 rule_set:
-  rule_set_id: generic_dna_reporting
-  version: "1.0.0"
-  title: Generic DNA clinical reporting text
-  status: active
+  rule_set_id: master_dna_reporting
+  version: "0.1.0-draft"
+  title: Current Coyote DNA reporting wording
+  status: draft
   language: sv
   scope:
     analyte: dna
@@ -172,9 +190,19 @@ rule_set:
     assay_groups: []
     subpanel_ids: []
     environments: []
+  provenance:
+    authority: coyote_master
+    reference: coyote/blueprints/common/util.py
+    revision: <full-git-commit>
+    content_sha256: <sha256-of-authoritative-source>
+    text_policy: verbatim
+  validation:
+    approval_status: pending
+    approval_reference:
+    golden_case_ids:
+      - master-dna-no-snv
   required_facts:
-    - sample.assay
-    - aggregates.finding_count
+    - aggregates.snv_count
   notes: Optional author guidance.
 ```
 
@@ -186,10 +214,22 @@ rule_set:
 | `language` | Language of rendered clinical text |
 | `scope.analyte` | Required; `dna` or `rna` |
 | Scope lists | Empty means unrestricted for that dimension |
+| `provenance.authority` | `coyote_master`, `old_coyote`, or `clinical_workbook` |
+| `provenance.reference` | Exact source file or workbook used for transcription |
+| `provenance.revision` | Immutable Git revision or controlled source revision |
+| `provenance.content_sha256` | SHA-256 of the authoritative source artifact |
+| `provenance.text_policy` | Must be `verbatim`; clinical prose is not paraphrased |
+| `validation.approval_status` | `pending`, `inherited`, or `approved` |
+| `validation.approval_reference` | Review record or inherited validated-system reference |
+| `validation.golden_case_ids` | Exact-output cases required before publication |
 | `required_facts` | Missing values block evaluation before any rule runs |
 
 Scope is validated against the prepared sample and ASPC. A release for another
 analyte, assay, group, subpanel, or environment cannot run accidentally.
+
+An `active` source is rejected by the Pydantic contract unless it has
+`inherited` or `approved` status, a non-empty approval reference, and at least
+one golden case. The publisher repeats these checks at its trust boundary.
 
 ### 4.2 Rules
 
@@ -199,6 +239,7 @@ analyte, assay, group, subpanel, or environment cannot run accidentally.
   section: Kliniskt relevanta fynd
   priority: 100
   description: Summarize one reportable Tier I small variant.
+  source_locator: coyote/blueprints/common/util.py:646-688
   when:
     - fact: finding.kind
       operator: eq
@@ -206,8 +247,9 @@ analyte, assay, group, subpanel, or environment cannot run accidentally.
     - fact: finding.tier
       operator: eq
       value: 1
-  template: >
-    {{ finding.gene }} {{ finding.hgvsp or finding.hgvsc }} påvisades.
+  template: |-
+    <verbatim source wording>
+  heading: true
   stop: true
 ```
 
@@ -218,12 +260,55 @@ analyte, assay, group, subpanel, or environment cannot run accidentally.
 | `section` | Rendered report section |
 | `priority` | Lower values evaluate first within a family |
 | `description` | Clinical intent in author-readable language |
+| `source_locator` | Function/line, workbook sheet/cell, or controlled source section |
 | `when` | AND-combined typed conditions |
-| `template` | Sandboxed Jinja text |
+| `template` | Verbatim clinical text with only variable placeholders substituted |
+| `heading` | Whether the report composer emits `## <section>` before this section |
 | `stop` | Stop lower-priority rules for the current evaluation candidate |
 
 Rule IDs cannot repeat. Priorities cannot repeat within one family. These
 constraints make ordering visible and deterministic.
+
+Use YAML literal blocks (`|-`) for clinical prose. Folded blocks (`>`) alter
+newlines and are unsuitable for byte-for-byte output verification. If an
+authoritative string deliberately ends in whitespace, use an explicit YAML
+escape such as `\x20`; repository whitespace hooks must not silently alter the
+rendered clinical output.
+
+### 4.3 Deferred rules
+
+A source may contain `deferred_rules` after `rules`. A deferred rule preserves
+verbatim source wording whose machine condition cannot yet be represented
+safely:
+
+```yaml
+deferred_rules:
+  - rule_id: endometrial_msi_high
+    description: Workbook statement for an interpreted MSI-H result.
+    source_locator: Endometrierapport 17apr; MSI-H text
+    template: |-
+      <verbatim source wording>
+    required_fact_contract:
+      - interpreted MSI state enum containing MSI-H
+      - authoritative biomarker method and validation state
+    activation_note: >-
+      A numeric MSI value must not be translated into MSI-H without an
+      approved interpretation contract.
+```
+
+Deferred rules are validated and included in the immutable content hash, but
+the evaluator never runs them. They are a controlled migration inventory, not
+silent fallback behavior.
+
+To activate one:
+
+1. Define the authoritative typed fact and its units or enum.
+2. Populate it before report-rule evaluation.
+3. Register and test the fact path.
+4. Move the rule from `deferred_rules` to `rules`.
+5. Replace the prose fact requirement with exact `when` predicates.
+6. Add boundary and verbatim golden cases.
+7. Obtain clinical approval and increment the rule-set version.
 
 ## 5. Rule Families And Order
 
@@ -353,7 +438,16 @@ Available aggregates include:
 - total finding count;
 - SNV, CNV, fusion, translocation, and biomarker counts;
 - Tier I, II, and III counts;
+- `tier_summaries`, containing ordered Tier I-III SNVs grouped by gene with
+  rounded case-VAF labels;
+- `has_tiered_snvs`, which reflects the reportable tier composition rather
+  than the raw number of queried SNVs;
 - `has_reportable_findings`.
+
+The `tier_summary` template filter applies generic list composition to
+`tier_summaries`. Every clinical word and connector passed to that filter,
+including finding nouns, tier labels, sentence prefixes, and VAF phrases,
+comes from YAML. Python owns grouping mechanics only.
 
 ## 8. Templates
 
@@ -385,9 +479,13 @@ Validate and publish an active source explicitly:
 
 ```bash
 python3 scripts/publish_clinical_rules.py \
-  clinical_reporting_rules/generic_dna.yaml \
+  clinical_reporting_rules/master_dna.yaml \
   --published-by <username>
 ```
+
+The command above assumes the clinically approved source has been promoted
+from `master_dna.draft.yaml` to the versioned active filename
+`master_dna.yaml`. A draft filename and `status: draft` are never publishable.
 
 The command reads `MONGO_URI` and `COYOTE3_DB`, validates the configured
 collection name, compiles canonical content, inserts the release, and prints
@@ -399,8 +497,9 @@ therefore prohibited.
 
 !!! warning
     Draft files validate structurally but cannot publish. Changing `status` to
-    `active` is not sufficient clinical approval; the source review and golden
-    test evidence are part of the release process.
+    `active` without approval evidence and golden case IDs fails contract
+    validation. Clinical approval and exact-output evidence are executable
+    release prerequisites, not review comments.
 
 ### 9.1 Bind the published release
 
@@ -509,12 +608,16 @@ Do not translate an informal label into a guessed database path.
 `clinical_reporting_rules/endometrial_dna.draft.yaml` records only workbook
 conditions that can currently map to typed facts:
 
-- POLE selected-transcript exons 9 through 14 with tier context;
-- TP53 with tier context.
+- POLE selected-transcript exons 9 through 14;
+- POLE selected-transcript exons outside 9 through 14;
+- TP53;
+- the MMR genes `MLH1`, `MSH2`, `MSH6`, and `PMS2`;
+- recurrent supporting genes explicitly listed in the workbook.
 
 It is intentionally non-publishable. The final release still requires
-confirmation of the real ASP/subpanel identifiers, exact wording, transcript
-exon behavior, and clinical approval.
+confirmation of the real ASP/subpanel identifiers, selected-transcript exon
+behavior, complete golden cases, and clinical approval. The executable text is
+transcribed verbatim, including the source's punctuation and spacing.
 
 The following workbook concepts are blocked:
 
@@ -524,8 +627,9 @@ The following workbook concepts are blocked:
 | Low tumor-cell fraction decision | Required purity source and threshold are not approved |
 | Normal/abnormal/complex CNV profile | Only an image exists; no typed interpreted status exists |
 
-The application must add these as explicit clinical facts before corresponding
-rules can be activated.
+Their exact source text and explicit fact requirements are retained under
+`deferred_rules`. The application must add these as explicit clinical facts
+before the corresponding rules can be activated.
 
 The workbook, the current implementation, and the archived Coyote reporting
 code are migration references. They provide approved or previously used

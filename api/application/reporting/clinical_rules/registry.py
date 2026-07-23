@@ -51,6 +51,8 @@ ALLOWED_FACT_PATHS: frozenset[str] = frozenset(
         "aggregates.tier_1_count",
         "aggregates.tier_2_count",
         "aggregates.tier_3_count",
+        "aggregates.tier_summaries",
+        "aggregates.has_tiered_snvs",
         "aggregates.has_reportable_findings",
     }
 )

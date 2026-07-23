@@ -118,6 +118,42 @@ def _gene_list_fact(gene_list: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _tier_summaries(snvs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Group reportable SNVs exactly as the established summary composer does."""
+    grouped: dict[int, dict[str, list[str]]] = {}
+    counts: dict[int, int] = {}
+    ordered = sorted(
+        snvs,
+        key=lambda variant: _genotype_vaf(variant, "case") or 0.0,
+        reverse=True,
+    )
+    for variant in ordered:
+        if variant.get("irrelevant") is True:
+            continue
+        tier = (variant.get("classification") or {}).get("class")
+        if tier not in {1, 2, 3}:
+            continue
+        gene = _selected_csq(variant).get("SYMBOL")
+        if not gene:
+            continue
+        case_vaf = _genotype_vaf(variant, "case")
+        percentage = f"{int(round(100 * case_vaf, 0))}%" if case_vaf is not None else ""
+        grouped.setdefault(tier, {}).setdefault(str(gene), []).append(percentage)
+        counts[tier] = counts.get(tier, 0) + 1
+    return [
+        {
+            "tier": tier,
+            "finding_count": counts[tier],
+            "genes": [
+                {"gene": gene, "vaf_percentages": percentages}
+                for gene, percentages in grouped[tier].items()
+            ],
+        }
+        for tier in (1, 2, 3)
+        if tier in grouped
+    ]
+
+
 def prepare_report_context(
     *,
     sample: dict[str, Any],
@@ -138,8 +174,17 @@ def prepare_report_context(
     findings.extend(_cnv_fact(item) for item in cnvs)
     findings.extend(_structural_fact(item, "fusion") for item in fusions)
     findings.extend(_structural_fact(item, "translocation") for item in translocations)
+    tier_summaries = _tier_summaries(snvs)
     tier_counts = {
-        tier: sum(1 for finding in findings if finding.get("tier") == tier) for tier in (1, 2, 3)
+        tier: next(
+            (
+                int(summary["finding_count"])
+                for summary in tier_summaries
+                if summary["tier"] == tier
+            ),
+            0,
+        )
+        for tier in (1, 2, 3)
     }
     return PreparedReportContext(
         sample={
@@ -182,6 +227,8 @@ def prepare_report_context(
             "tier_1_count": tier_counts[1],
             "tier_2_count": tier_counts[2],
             "tier_3_count": tier_counts[3],
+            "tier_summaries": tier_summaries,
+            "has_tiered_snvs": bool(tier_summaries),
             "has_reportable_findings": bool(findings or biomarkers),
         },
     )

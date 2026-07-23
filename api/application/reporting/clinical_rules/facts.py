@@ -87,6 +87,21 @@ class PreparedFindingFacts(_FactModel):
     fusion_gene_2: str | None = None
 
 
+class PreparedTierGeneFacts(_FactModel):
+    """One gene and its ordered case-VAF labels within a tier."""
+
+    gene: str
+    vaf_percentages: list[str] = Field(default_factory=list)
+
+
+class PreparedTierSummaryFacts(_FactModel):
+    """Ordered reportable SNVs grouped by clinical tier and gene."""
+
+    tier: int
+    finding_count: int
+    genes: list[PreparedTierGeneFacts] = Field(default_factory=list)
+
+
 class PreparedAggregateFacts(_FactModel):
     """Deterministic counts derived from the prepared findings."""
 
@@ -99,6 +114,8 @@ class PreparedAggregateFacts(_FactModel):
     tier_1_count: int = 0
     tier_2_count: int = 0
     tier_3_count: int = 0
+    tier_summaries: list[PreparedTierSummaryFacts] = Field(default_factory=list)
+    has_tiered_snvs: bool = False
     has_reportable_findings: bool = False
 
 

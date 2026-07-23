@@ -1,0 +1,116 @@
+schema_version: 2
+rule_set:
+  rule_set_id: master_dna_reporting
+  version: "0.1.0-draft"
+  title: Current Coyote DNA reporting wording
+  status: draft
+  language: sv
+  scope:
+    analyte: dna
+    assay_ids: []
+    assay_groups: []
+    subpanel_ids: []
+    environments: []
+  provenance:
+    authority: coyote_master
+    reference: coyote/blueprints/common/util.py
+    revision: ab9a6f3c54f3b2b9018568b8290996f82ce539be
+    content_sha256: f1b98c9bf2c65496befbde07e68c4d8b2bbbe7b12603ac1153d999dfd2caacfc
+    text_policy: verbatim
+  validation:
+    approval_status: pending
+    approval_reference:
+    golden_case_ids:
+      - master-dna-no-snv
+      - master-dna-unaccredited-conclusion
+  required_facts:
+    - aggregates.has_tiered_snvs
+    - asp.accredited
+  notes: >-
+    Verbatim clauses from the current Coyote master implementation. The source
+    remains draft until the positive tier-group composition, CNV, structural
+    variant, biomarker, and introductory flows have typed facts and complete
+    byte-for-byte golden coverage.
+rules:
+  - rule_id: master_dna_tiered_snv_summary
+    family: result_text
+    section: Kliniskt relevanta SNVs och små INDELs
+    priority: 90
+    description: Established tier-ordered SNV composition with grouped genes and VAF values.
+    source_locator: coyote/blueprints/common/util.py:629-688
+    when:
+      - fact: aggregates.has_tiered_snvs
+        operator: eq
+        value: true
+    template: |-
+      {{ aggregates.tier_summaries | tier_summary({
+        "first_prefix": "Vid analysen finner man ",
+        "next_prefix": "Vidare ses ",
+        "final_prefix": "Slutligen ses ",
+        "number_gender": "n",
+        "finding_singular": "mutation",
+        "finding_plural_suffix": "er",
+        "tier_labels": {
+          "1": " av stark klinisk signifikans (Tier I)",
+          "2": " av potentiell klinisk signifikans (Tier II)",
+          "3": " av oklar klinisk signifikans (Tier III)"
+        },
+        "single_gene_prefix": " i ",
+        "multiple_gene_prefix": ": ",
+        "gene_count_joiner": " i ",
+        "value_open": " (",
+        "value_close": ")",
+        "read_context_prefix": "i ",
+        "read_context_suffix": " av läsningarna",
+        "multiple_gene_read_prefix_tiers": [1, 2, 3],
+        "respectively": "respektive",
+        "gene_joiner": "och",
+        "sentence_suffix": ". ",
+        "single_gene_always_read_context": true
+      }) }}
+    heading: true
+    stop: false
+
+  - rule_id: master_dna_no_somatic_snv
+    family: result_text
+    section: Kliniskt relevanta SNVs och små INDELs
+    priority: 100
+    description: Established negative-result sentence when no reportable SNV remains.
+    source_locator: coyote/blueprints/common/util.py:212
+    when:
+      - fact: aggregates.has_tiered_snvs
+        operator: eq
+        value: false
+    template: |-
+      Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats.
+    heading: true
+    stop: false
+
+  - rule_id: master_dna_unaccredited_conclusion
+    family: summary_text
+    section: Report conclusion
+    priority: 100
+    description: Established DNA report conclusion for a non-accredited assay.
+    source_locator: coyote/blueprints/common/util.py:234-244
+    when:
+      - fact: asp.accredited
+        operator: eq
+        value: false
+    template: |-
+      För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen.
+    heading: false
+    stop: true
+
+  - rule_id: master_dna_accredited_conclusion
+    family: summary_text
+    section: Report conclusion
+    priority: 200
+    description: Established DNA report conclusion for an accredited assay.
+    source_locator: coyote/blueprints/common/util.py:234-244
+    when:
+      - fact: asp.accredited
+        operator: eq
+        value: true
+    template: "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport.\x20"
+    heading: false
+    stop: true

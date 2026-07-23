@@ -84,7 +84,7 @@ def _rna_context() -> PreparedReportContext:
     return PreparedReportContext(
         sample={
             "name": "seed_rna_sample",
-            "assay": "seed_rna_assay",
+            "assay": "fusion",
             "subpanel_id": "base",
             "profile": "production",
             "omics_layer": "rna",
@@ -123,12 +123,12 @@ def _rna_context() -> PreparedReportContext:
     )
 
 
-def test_generic_rules_compile_deterministically():
+def test_master_rules_compile_deterministically():
     compiler = ClinicalRuleCompiler()
-    source = compiler.load(RULES_ROOT / "generic_dna.yaml")
+    source = compiler.load(RULES_ROOT / "master_dna.draft.yaml")
 
     first = compiler.content_hash(source)
-    second = compiler.content_hash(compiler.load(RULES_ROOT / "generic_dna.yaml"))
+    second = compiler.content_hash(compiler.load(RULES_ROOT / "master_dna.draft.yaml"))
 
     assert first == second
     assert len(first) == 64
@@ -141,8 +141,9 @@ def test_all_repository_rule_sources_compile():
 
     assert {source.rule_set.rule_set_id for source in sources} == {
         "endometrial_dna_reporting",
-        "generic_dna_reporting",
-        "generic_rna_reporting",
+        "master_dna_reporting",
+        "old_coyote_dna_reporting",
+        "old_coyote_rna_reporting",
     }
 
 
@@ -159,7 +160,7 @@ def test_draft_rules_validate_but_cannot_publish():
 
 
 def test_unknown_fact_is_rejected(tmp_path):
-    source = (RULES_ROOT / "generic_dna.yaml").read_text(encoding="utf-8")
+    source = (RULES_ROOT / "endometrial_dna.draft.yaml").read_text(encoding="utf-8")
     source = source.replace("finding.kind", "finding.unregistered_fact", 1)
     path = tmp_path / "invalid.yaml"
     path.write_text(source, encoding="utf-8")
@@ -169,7 +170,7 @@ def test_unknown_fact_is_rejected(tmp_path):
 
 
 def test_collection_operator_requires_list_value(tmp_path):
-    source = (RULES_ROOT / "generic_dna.yaml").read_text(encoding="utf-8")
+    source = (RULES_ROOT / "endometrial_dna.draft.yaml").read_text(encoding="utf-8")
     source = source.replace(
         "operator: eq\n        value: snv", "operator: in\n        value: snv", 1
     )
@@ -181,9 +182,9 @@ def test_collection_operator_requires_list_value(tmp_path):
 
 
 def test_template_cannot_use_unapproved_jinja_global(tmp_path):
-    source = (RULES_ROOT / "generic_dna.yaml").read_text(encoding="utf-8")
+    source = (RULES_ROOT / "endometrial_dna.draft.yaml").read_text(encoding="utf-8")
     source = source.replace(
-        "{{ finding.gene }} {{ finding.hgvsp or finding.hgvsc }}",
+        "{{ finding.gene }}",
         "{{ range(10) }}",
         1,
     )
@@ -238,28 +239,166 @@ def test_preparation_exposes_case_and_control_vaf_percentages():
     assert finding.control_vaf_percent == 0.7
 
 
-def test_evaluator_applies_first_matching_finding_rule_and_records_trace():
-    release = _release(RULES_ROOT / "generic_dna.yaml")
-    result = ClinicalRuleEvaluator().evaluate(_context(tier=1), release)
+def test_tier_composition_matches_master_wording_byte_for_byte():
+    def variant(gene: str, tier: int, vaf: float) -> dict:
+        return {
+            "INFO": {"selected_CSQ": {"SYMBOL": gene}},
+            "GT": [{"type": "case", "AF": vaf}],
+            "classification": {"class": tier},
+        }
 
-    rendered = result.sections["Kliniskt relevanta fynd"]
-    assert len(rendered) == 1
-    assert "TP53" in rendered[0]
-    assert "25.0 %" in rendered[0]
-    assert "Tier I" in rendered[0]
-    assert any(entry.rule_id == "dna_tier_1_finding" and entry.matched for entry in result.trace)
-    assert not any(
-        entry.rule_id == "dna_tier_2_finding" and entry.matched for entry in result.trace
+    context = prepare_report_context(
+        sample={
+            "name": "seed_sample",
+            "assay": "seed_assay",
+            "subpanel_id": "base",
+            "profile": "production",
+        },
+        asp={"asp_id": "seed_assay", "accredited": False},
+        aspc={
+            "aspc_id": "seed_assay_base_production",
+            "asp_id": "seed_assay",
+            "subpanel_id": "base",
+            "environment": "production",
+        },
+        analyte="dna",
+        applied_gene_lists=[],
+        report_sections_data={
+            "snvs": [
+                variant("TP53", 1, 0.90),
+                variant("PTEN", 2, 0.87),
+                variant("PIK3CA", 2, 0.67),
+                variant("PIK3CA", 2, 0.66),
+            ]
+        },
     )
+    release = _release(RULES_ROOT / "master_dna.draft.yaml")
+
+    result = ClinicalRuleEvaluator().evaluate(context, release)
+
+    assert result.sections["Kliniskt relevanta SNVs och små INDELs"] == [
+        "Vid analysen finner man en mutation av stark klinisk signifikans (Tier I) "
+        "i TP53 (i 90% av läsningarna). Vidare ses tre mutationer av potentiell "
+        "klinisk signifikans (Tier II): en i PTEN (87%) och två i PIK3CA "
+        "(67% respektive 66%). "
+    ]
 
 
-def test_rna_rules_render_prepared_fusion():
-    release = _release(RULES_ROOT / "generic_rna.yaml")
+def test_master_negative_result_and_conclusion_are_verbatim():
+    release = _release(RULES_ROOT / "master_dna.draft.yaml")
+    context_payload = _context(tier=1).model_dump(mode="python")
+    context_payload["findings"] = []
+    context_payload["asp"]["accredited"] = False
+    context_payload["aggregates"] = {
+        "finding_count": 0,
+        "snv_count": 0,
+        "cnv_count": 0,
+        "fusion_count": 0,
+        "translocation_count": 0,
+        "biomarker_count": 0,
+        "tier_1_count": 0,
+        "tier_2_count": 0,
+        "tier_3_count": 0,
+        "tier_summaries": [],
+        "has_tiered_snvs": False,
+        "has_reportable_findings": False,
+    }
+    context = PreparedReportContext.model_validate(context_payload)
+    result = ClinicalRuleEvaluator().evaluate(context, release)
 
+    assert result.sections["Kliniskt relevanta SNVs och små INDELs"] == [
+        "Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats."
+    ]
+    assert result.sections["Report conclusion"] == [
+        "För ytterligare information om utförd analys och beskrivning av somatiskt "
+        "förvärvade mutationer, var god se bifogad rapport. Analysen omfattas inte "
+        "av ackrediteringen."
+    ]
+    assert result.section_headings == {
+        "Kliniskt relevanta SNVs och små INDELs": True,
+        "Report conclusion": False,
+    }
+
+    accredited_payload = context.model_dump(mode="python")
+    accredited_payload["asp"]["accredited"] = True
+    accredited_result = ClinicalRuleEvaluator().evaluate(
+        PreparedReportContext.model_validate(accredited_payload),
+        release,
+    )
+    assert accredited_result.sections["Report conclusion"] == [
+        "För ytterligare information om utförd analys och beskrivning av somatiskt "
+        "förvärvade mutationer, var god se bifogad rapport. "
+    ]
+
+
+def test_old_coyote_tier_two_multi_gene_edge_case_is_verbatim():
+    def variant(gene: str, vaf: float) -> dict:
+        return {
+            "INFO": {"selected_CSQ": {"SYMBOL": gene}},
+            "GT": [{"type": "case", "AF": vaf}],
+            "classification": {"class": 2},
+        }
+
+    context = prepare_report_context(
+        sample={
+            "name": "seed_sample",
+            "assay": "seed_assay",
+            "subpanel_id": "base",
+            "profile": "production",
+        },
+        asp={"asp_id": "seed_assay", "accredited": False},
+        aspc={
+            "aspc_id": "seed_assay_base_production",
+            "asp_id": "seed_assay",
+            "subpanel_id": "base",
+            "environment": "production",
+        },
+        analyte="dna",
+        applied_gene_lists=[],
+        report_sections_data={
+            "snvs": [
+                variant("TP53", 0.90),
+                variant("PTEN", 0.80),
+            ]
+        },
+    )
+    release = _release(RULES_ROOT / "old_coyote_dna.draft.yaml")
+
+    result = ClinicalRuleEvaluator().evaluate(context, release)
+
+    assert result.sections["Kliniskt relevanta SNVs och små INDELs"] == [
+        "Vid analysen finner man två varianter av potentiell klinisk signifikans "
+        "(Tier II): en i TP53 (90% av läsningarna) och en i PTEN (80%). "
+    ]
+
+
+def test_old_coyote_rna_text_is_verbatim():
+    release = _release(RULES_ROOT / "old_coyote_rna.draft.yaml")
     result = ClinicalRuleEvaluator().evaluate(_rna_context(), release)
 
-    assert result.sections["Kliniskt relevanta fynd"] == [
-        "En fusion mellan KMT2A och AFF1 påvisades och är klassificerad som Tier 1."
+    assert result.sections["Report summary"] == [
+        "RNA har extraherats från insänt prov och analyserats med massivt parallell "
+        "sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar hela mRNA "
+        "transkriptomet och avser detektion av fusionsgener.\n\nFör ytterligare "
+        "information om utförd analys och beskrivning av eventuellt funna fusionsgener, "
+        "var god se bifogad rapport. RNA-seq-analys har gjorts som led i ett "
+        "utvecklingsarbete och har ej debiterats. Analysen omfattas inte av "
+        "ackrediteringen."
+    ]
+
+
+def test_endometrial_workbook_wording_is_verbatim():
+    release = _release(RULES_ROOT / "endometrial_dna.draft.yaml")
+    result = ClinicalRuleEvaluator().evaluate(_context(tier=1), release)
+
+    assert result.sections["Molecular classification"] == [
+        "Varianter i TP53 är klassificerande samt riskstratifierande vid "
+        "endometriecancer (WHO 5th ed./NVP 2026)."
+    ]
+    assert result.sections["Report conclusion"] == [
+        "För ytterligare information om utförd analys och beskrivning av somatiskt "
+        "förvärvade varianter, var god se bifogad rapport. Analysen omfattas inte av "
+        "ackrediteringen."
     ]
 
 
@@ -277,7 +416,7 @@ def test_service_returns_none_without_aspc_release_reference():
 
 
 def test_service_rejects_release_scope_mismatch():
-    release = _release(RULES_ROOT / "generic_dna.yaml")
+    release = _release(RULES_ROOT / "master_dna.draft.yaml")
 
     class _Repository:
         @staticmethod

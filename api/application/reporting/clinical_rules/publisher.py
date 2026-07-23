@@ -24,6 +24,13 @@ class ClinicalRulePublisher:
                 f"Rule set '{source.rule_set.rule_set_id}' has status "
                 f"'{source.rule_set.status}'; only active sources can be published."
             )
+        validation = source.rule_set.validation
+        if validation.approval_status not in {"inherited", "approved"}:
+            raise ValueError("Clinical rule publication requires inherited or explicit approval.")
+        if not validation.approval_reference or not validation.golden_case_ids:
+            raise ValueError(
+                "Clinical rule publication requires an approval reference and golden cases."
+            )
         return self.repository.publish(
             source=source,
             content_hash=self.compiler.content_hash(source),

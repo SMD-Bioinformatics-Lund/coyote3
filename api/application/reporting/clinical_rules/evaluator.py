@@ -90,6 +90,7 @@ class ClinicalRuleEvaluator:
             content_hash=release.content_hash,
         )
         sections: dict[str, list[str]] = {}
+        section_headings: dict[str, bool] = {}
         trace: list[ClinicalRuleTraceEntry] = []
         rules = sorted(
             release.source.rules,
@@ -113,10 +114,14 @@ class ClinicalRuleEvaluator:
                             matched = False
                     rendered_text = None
                     if matched:
-                        rendered_text = (
-                            self.environment.from_string(rule.template).render(**scope).strip()
-                        )
-                        if rendered_text:
+                        rendered_text = self.environment.from_string(rule.template).render(**scope)
+                        if rendered_text.strip():
+                            existing_heading = section_headings.get(rule.section)
+                            if existing_heading is not None and existing_heading != rule.heading:
+                                raise ValueError(
+                                    f"Clinical rule section '{rule.section}' mixes heading modes"
+                                )
+                            section_headings[rule.section] = rule.heading
                             sections.setdefault(rule.section, []).append(rendered_text)
                     trace.append(
                         ClinicalRuleTraceEntry(
@@ -134,4 +139,9 @@ class ClinicalRuleEvaluator:
                     if matched and rule.stop:
                         break
 
-        return ClinicalRuleEvaluation(release=release_ref, sections=sections, trace=trace)
+        return ClinicalRuleEvaluation(
+            release=release_ref,
+            sections=sections,
+            section_headings=section_headings,
+            trace=trace,
+        )

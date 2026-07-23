@@ -83,7 +83,7 @@ def test_aspc_rule_binding_uses_verified_release_and_rotation(monkeypatch) -> No
     release_id = ObjectId()
     release = SimpleNamespace(
         id_=release_id,
-        rule_set_id="generic_dna_reporting",
+        rule_set_id="master_dna_reporting",
         version="1.0.0",
         content_hash="a" * 64,
         status="active",

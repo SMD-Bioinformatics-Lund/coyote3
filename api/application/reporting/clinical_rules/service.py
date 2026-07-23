@@ -90,6 +90,7 @@ def rendered_summary(evaluation: ClinicalRuleEvaluation | None) -> str:
     for section, texts in evaluation.sections.items():
         if not texts:
             continue
-        paragraphs.append(f"## {section}")
+        if evaluation.section_headings.get(section, True):
+            paragraphs.append(f"## {section}")
         paragraphs.extend(texts)
     return "\n\n".join(paragraphs)

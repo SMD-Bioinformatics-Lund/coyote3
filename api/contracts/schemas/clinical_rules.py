@@ -95,17 +95,120 @@ class ClinicalReportingRule(BaseModel):
     section: str
     priority: int = Field(ge=1, le=100_000)
     description: str
+    source_locator: str
     when: list[ClinicalRuleCondition] = Field(default_factory=list)
     template: str
+    heading: bool = True
     stop: bool = True
 
-    @field_validator("rule_id", "section", "description", "template")
+    @field_validator("rule_id", "section", "description", "source_locator")
     @classmethod
     def _validate_text(cls, value: str) -> str:
         value = value.strip()
         if not value:
             raise ValueError("rule text fields cannot be empty")
         return value
+
+    @field_validator("template")
+    @classmethod
+    def _validate_template(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("rule template cannot be empty")
+        return value
+
+
+class DeferredClinicalReportingRule(BaseModel):
+    """Verbatim source rule blocked until its fact contract exists."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rule_id: str
+    description: str
+    source_locator: str
+    template: str
+    required_fact_contract: list[str]
+    activation_note: str
+
+    @field_validator(
+        "rule_id",
+        "description",
+        "source_locator",
+        "activation_note",
+    )
+    @classmethod
+    def _validate_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("deferred clinical rule text fields cannot be empty")
+        return value
+
+    @field_validator("template")
+    @classmethod
+    def _validate_template(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("deferred clinical rule template cannot be empty")
+        return value
+
+    @field_validator("required_fact_contract", mode="before")
+    @classmethod
+    def _normalize_fact_contract(cls, value: Any) -> list[str]:
+        values = value if isinstance(value, list) else ([value] if value else [])
+        normalized = list(dict.fromkeys(str(item).strip() for item in values if str(item).strip()))
+        if not normalized:
+            raise ValueError("deferred clinical rules require a fact contract")
+        return normalized
+
+
+class ClinicalRuleSourceProvenance(BaseModel):
+    """Immutable identity of the authority from which wording was transcribed."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    authority: Literal["coyote_master", "old_coyote", "clinical_workbook"]
+    reference: str
+    revision: str
+    content_sha256: str
+    text_policy: Literal["verbatim"] = "verbatim"
+
+    @field_validator("reference", "revision")
+    @classmethod
+    def _validate_reference(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("clinical rule source references cannot be empty")
+        return value
+
+    @field_validator("content_sha256")
+    @classmethod
+    def _validate_checksum(cls, value: str) -> str:
+        value = value.strip().lower()
+        if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+            raise ValueError("content_sha256 must be a lowercase SHA-256 digest")
+        return value
+
+
+class ClinicalRuleValidation(BaseModel):
+    """Governance evidence required before a rule set can be published."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    approval_status: Literal["pending", "inherited", "approved"] = "pending"
+    approval_reference: str | None = None
+    golden_case_ids: list[str] = Field(default_factory=list)
+
+    @field_validator("approval_reference")
+    @classmethod
+    def _normalize_approval_reference(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
+    @field_validator("golden_case_ids", mode="before")
+    @classmethod
+    def _normalize_golden_cases(cls, value: Any) -> list[str]:
+        values = value if isinstance(value, list) else ([value] if value else [])
+        return list(dict.fromkeys(str(item).strip() for item in values if str(item).strip()))
 
 
 class ClinicalRuleSetMetadata(BaseModel):
@@ -119,6 +222,8 @@ class ClinicalRuleSetMetadata(BaseModel):
     status: Literal["draft", "active", "retired"] = "draft"
     language: str = "sv"
     scope: ClinicalRuleScope
+    provenance: ClinicalRuleSourceProvenance
+    validation: ClinicalRuleValidation = Field(default_factory=ClinicalRuleValidation)
     required_facts: list[str] = Field(default_factory=list)
     notes: str | None = None
 
@@ -136,15 +241,28 @@ class ClinicalRuleSetMetadata(BaseModel):
         values = value if isinstance(value, list) else ([value] if value else [])
         return list(dict.fromkeys(str(item).strip() for item in values if str(item).strip()))
 
+    @model_validator(mode="after")
+    def _validate_activation_evidence(self) -> "ClinicalRuleSetMetadata":
+        if self.status != "active":
+            return self
+        if self.validation.approval_status not in {"inherited", "approved"}:
+            raise ValueError("active clinical rule sets require inherited or explicit approval")
+        if not self.validation.approval_reference:
+            raise ValueError("active clinical rule sets require an approval_reference")
+        if not self.validation.golden_case_ids:
+            raise ValueError("active clinical rule sets require at least one golden_case_id")
+        return self
+
 
 class ClinicalRuleSetSource(BaseModel):
     """Repository-authored clinical rule bundle."""
 
     model_config = ConfigDict(extra="forbid")
 
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     rule_set: ClinicalRuleSetMetadata
     rules: list[ClinicalReportingRule]
+    deferred_rules: list[DeferredClinicalReportingRule] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _validate_rules(self) -> "ClinicalRuleSetSource":
@@ -154,6 +272,15 @@ class ClinicalRuleSetSource(BaseModel):
         duplicates = sorted({rule_id for rule_id in rule_ids if rule_ids.count(rule_id) > 1})
         if duplicates:
             raise ValueError(f"duplicate rule_id values: {duplicates}")
+        deferred_ids = [rule.rule_id for rule in self.deferred_rules]
+        deferred_duplicates = sorted(
+            {rule_id for rule_id in deferred_ids if deferred_ids.count(rule_id) > 1}
+        )
+        if deferred_duplicates:
+            raise ValueError(f"duplicate deferred rule_id values: {deferred_duplicates}")
+        overlap = sorted(set(rule_ids) & set(deferred_ids))
+        if overlap:
+            raise ValueError(f"rule_id cannot be both executable and deferred: {overlap}")
         priorities = [(rule.family, rule.priority) for rule in self.rules]
         duplicate_priorities = sorted(
             {
@@ -175,7 +302,7 @@ class ClinicalRuleReleaseDoc(_StrictDocBase):
     rule_set_id: str
     version: str
     status: Literal["active", "retired"]
-    schema_version: int = 1
+    schema_version: int = 2
     content_hash: str
     source_path: str
     source: ClinicalRuleSetSource
@@ -231,4 +358,5 @@ class ClinicalRuleEvaluation(BaseModel):
 
     release: ClinicalRuleReleaseRef
     sections: dict[str, list[str]] = Field(default_factory=dict)
+    section_headings: dict[str, bool] = Field(default_factory=dict)
     trace: list[ClinicalRuleTraceEntry] = Field(default_factory=list)
