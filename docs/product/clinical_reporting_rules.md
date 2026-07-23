@@ -107,6 +107,121 @@ managed by the application rather than copied into every rule file.
     change. Increment `version`, add exact-output tests, review the generated
     report, then publish a new release.
 
+## YAML Field Reference
+
+This section is the normative authoring reference. Every executable rule must
+use the keys below. No unlisted top-level keys, rule keys, condition keys, or
+deferred-rule keys are accepted by the schema.
+
+### File-Level Keys
+
+| Key | Required | Format and allowed values | How Coyote3 uses it | Authoring guidance |
+| --- | --- | --- | --- | --- |
+| `rule_set` | Yes | Mapping containing `analyte`, `assay_id`, `subpanel_id`, and `version`. | Declares exactly which ASPC scope may bind this release. | Use the business identifiers from ASP and ASPC, never a display name from a worksheet. |
+| `rule_set.analyte` | Yes | `dna` or `rna`. | Must equal the sample omics layer and the selected ASPC category. | Choose `dna` for DNA assay configurations and `rna` for RNA configurations. |
+| `rule_set.assay_id` | Yes | Existing ASP `asp_id`, as an exact string. | Forms the immutable rule-set scope and runtime identity. | Copy the exact ASP ID shown in the ASP administration view. |
+| `rule_set.subpanel_id` | Yes | Existing ASPC `subpanel_id`; use `base` when there is no subpanel-specific configuration. | Limits the release to the matching ASPC subpanel. | A subpanel file is complete on its own; it does not inherit rules from `base.yaml`. |
+| `rule_set.version` | Yes | Non-empty string, normally an incrementing value such as `"1"`, `"2"`, or `"2026.1"`. | Becomes part of the immutable release reference saved in the ASPC and report. | Increment whenever approved text, conditions, priorities, or executable rule structure changes. |
+| `rules` | Yes | Non-empty YAML list of executable rule mappings. | Evaluated to render report content. | Use `deferred_rules` rather than creating a rule for unavailable or untyped data. |
+| `deferred_rules` | No | YAML list; use `[]` when none are required. | Retains approved future wording without evaluating it. | A deferred rule is documentation of a pending data contract, not a fallback path. |
+
+### Executable Rule Keys
+
+| Key | Required | Format and allowed values | Runtime behavior |
+| --- | --- | --- | --- |
+| `rule_id` | Yes | Non-empty stable identifier. The recommended format is `<assay>_<purpose>`, using lowercase letters, digits, and underscores. | Appears in publication metadata, evaluation traces, tests, and audit investigation. It must be unique across both `rules` and `deferred_rules` in one file. |
+| `family` | Yes | One of `finding_text`, `result_text`, or `summary_text`. | Determines when and how often the rule is evaluated; see the family table below. |
+| `section` | Yes | Non-empty human-readable report section title, for example `Kliniskt relevanta SNVs och små INDELs` or `Report conclusion`. | Matching content is appended to this section in rule order. Rules using the same section must use the same `heading` value. |
+| `priority` | Yes | Integer from `1` through `100000`; lower values run first. | Ordering is unique within a family. A duplicate family/priority pair is rejected at publication. |
+| `when` | No | YAML list of zero or more condition mappings; defaults to `[]`. | All conditions are AND-combined. `when: []` always matches. |
+| `template` | Yes | Non-empty text or a YAML block scalar (`|-`) containing approved report wording and optional restricted Jinja expressions. | Rendered only after all `when` conditions match. A blank rendered result adds no content. |
+| `heading` | No | Boolean; defaults to `true`. | `true` writes the section title once as a report heading. `false` appends text without a heading, for example introductory prose or a conclusion. |
+| `stop` | No | Boolean; defaults to `true`. | `true` stops evaluation of lower-priority rules in the same family for the same candidate after a match. `false` allows later rules to add further text. |
+
+### Rule Family Options
+
+| `family` value | Candidate evaluated | Typical use | Example |
+| --- | --- | --- | --- |
+| `finding_text` | Each prepared reportable finding independently. | Gene-, tier-, exon-, CNV-effect-, fusion-, or translocation-specific wording. | A POLE exon 9-14 finding adds endometrial classification text. |
+| `result_text` | Once for the complete prepared report result. | Report introduction, aggregate Tier summaries, or a no-findings statement. | `aggregates.has_tiered_snvs` selects either the Tier summary or the no-somatic-mutations text. |
+| `summary_text` | Once after `result_text`. | Conclusion, accreditation statement, limitations, or final report wording. | `asp.accredited` selects the accredited or non-accredited conclusion. |
+
+### `when` Condition Keys
+
+Each item under `when` has exactly three keys:
+
+| Key | Required | Format | Meaning |
+| --- | --- | --- | --- |
+| `fact` | Yes | One of the registered fact paths in the fact catalogue below. | Reads one prepared, typed value. It cannot read raw MongoDB fields or arbitrary YAML/database paths. |
+| `operator` | No | One of the operator values below; defaults to `eq`. | Defines how the fact is compared to `value`. |
+| `value` | Yes | Scalar, list, or boolean according to the chosen operator. | The expected value for comparison. It must use the same semantic type as the prepared fact. |
+
+### Operator Options And `value` Format
+
+| Operator | Expected `value` | Match rule | Example |
+| --- | --- | --- | --- |
+| `eq` | Scalar: string, number, or boolean. | Fact equals `value`. | `fact: asp.accredited`, `value: true`. |
+| `ne` | Scalar. | Fact does not equal `value`. | `fact: sample.profile`, `value: research`. |
+| `in` | YAML list. | The scalar fact occurs in `value`. | `fact: finding.gene`, `value: [MLH1, MSH2, MSH6, PMS2]`. |
+| `not_in` | YAML list. | The scalar fact does not occur in `value`. | `fact: finding.kind`, `value: [fusion, translocation]`. |
+| `contains` | Scalar. | The string or collection fact contains `value`. | `fact: finding.consequence`, `value: missense_variant`. |
+| `overlaps` | YAML list. | The collection fact and `value` share at least one item. | `fact: finding.exon`, `value: ["9", "10", "11", "12", "13", "14"]`. |
+| `exists` | Boolean only: `true` or `false`. | `true` checks that the fact path exists; `false` checks that it is absent. It does not test whether a present value is truthy. | `fact: finding.hgvsp`, `operator: exists`, `value: true`. |
+| `gt` | Number or a value compatible with the fact type. | Fact is greater than `value`. | `fact: finding.case_vaf_percent`, `value: 10`. |
+| `gte` | Number or compatible value. | Fact is greater than or equal to `value`. | `fact: aggregates.tier_1_count`, `value: 1`. |
+| `lt` | Number or compatible value. | Fact is less than `value`. | `fact: finding.control_vaf_percent`, `value: 1`. |
+| `lte` | Number or compatible value. | Fact is less than or equal to `value`. | `fact: aggregates.finding_count`, `value: 5`. |
+
+!!! warning "Choose the operator from the fact shape"
+
+    Use `in` when the **fact is one scalar** and the YAML value is a list.
+    Use `overlaps` when **both the fact and the YAML value are lists**. For
+    example, `finding.gene` uses `in`; `finding.exon` uses `overlaps`.
+    Incorrect types do not match and are visible in the evaluation trace.
+
+### Example Explained Line by Line
+
+The following rule produces the accredited conclusion only when the configured
+ASP has `accredited: true`.
+
+```yaml
+- rule_id: hema_GMSv1_accredited_conclusion
+  family: summary_text
+  section: Report conclusion
+  priority: 200
+  when:
+    - fact: asp.accredited
+      operator: eq
+      value: true
+  template: "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport.\\x20"
+  heading: false
+  stop: true
+```
+
+| YAML line | Interpretation |
+| --- | --- |
+| `rule_id` | Stable trace and test identity. It does not appear in the clinical report. |
+| `family: summary_text` | Runs once after result text; it is not run once per variant, CNV, or fusion. |
+| `section: Report conclusion` | Appends the wording to the report conclusion section. |
+| `priority: 200` | Is evaluated after lower-numbered summary rules. The non-accredited conclusion at priority `100` does not match when `asp.accredited` is true. |
+| `fact: asp.accredited` | Reads the boolean accreditation status from the ASP definition. |
+| `operator: eq`, `value: true` | Requires the status to be exactly boolean `true`. |
+| `template` | Is the exact approved Swedish conclusion text. `\\x20` is a literal trailing space escape retained in the existing approved source; normal new wording should use a block scalar where practical. |
+| `heading: false` | Does not generate a Markdown/HTML heading for this conclusion text. |
+| `stop: true` | Once matched, stops other later summary rules for this report candidate. |
+
+### `deferred_rules` Keys
+
+| Key | Required | Format and behavior |
+| --- | --- | --- |
+| `rule_id` | Yes | Stable identifier, unique across the entire YAML file. |
+| `template` | Yes | Exact approved text that must not run yet. |
+| `required_fact_contract` | Yes | Non-empty list describing the typed facts, source, units/enumerations, and validation state needed before the rule can become executable. |
+
+Deferred rules do not have `family`, `section`, `priority`, `when`, `heading`, or
+`stop` because they are not part of runtime evaluation. When the prerequisite
+data contract exists, move the text into `rules` and add all executable keys.
+
 ## Conditions And Report Facts
 
 Every condition is an explicit predicate over a registered prepared fact:
@@ -132,25 +247,71 @@ All entries in `when` must match. Supported operators are:
 | `exists` | A fact is present (`true`) or absent (`false`). |
 | `gt`, `gte`, `lt`, `lte` | Numeric or ordered comparisons. |
 
-The report-preparation service provides these fact roots to conditions and
-templates:
+The report-preparation service provides only the allowlisted fact paths below.
+They are available to conditions and templates. A path not listed here is
+rejected during publication; rule authors must not reference raw collection
+keys or infer values from an assay name.
 
-| Root | Contents |
-|---|---|
-| `sample` | Sample identity, assay, subpanel, profile, and report context. |
-| `asp` | Assay definition and assay-level metadata, including configured germline genes. |
-| `aspc` | The active assay configuration used for this report, including its approved base report introduction. |
-| `applied_gene_lists` | Exact selected ISGLs and their analysis-domain use. |
-| `finding` | One normalized reportable SNV, CNV, fusion, or translocation. |
-| `biomarkers` | Prepared biomarker result records. |
-| `aggregates` | Counts, tier summaries, and report-level booleans. |
+### Registered Fact Catalogue
 
-Relevant finding fields include `kind`, `gene`, `genes`, `tier`, `hgvsc`,
-`hgvsp`, `consequence`, `exon`, `intron`, `case_vaf`, `case_vaf_percent`,
-`control_vaf`, `control_vaf_percent`, `variant_type`, `cnv_effect`, and fusion
-partners. Transcript selection and HGNC normalization are complete before a
-finding reaches this engine; YAML rules do not select transcripts or rename
-genes.
+| Fact path | Value type | Available in | Meaning and valid values |
+| --- | --- | --- | --- |
+| `sample.name` | String | All rule families | Human-readable sample name. |
+| `sample.assay` | String | All | Sample ASP ID. |
+| `sample.subpanel_id` | String | All | Effective sample subpanel, normally an ASPC `subpanel_id` or `base`. |
+| `sample.profile` | String | All | Sample environment/profile. |
+| `sample.omics_layer` | `dna` or `rna` | All | Sample molecular layer. |
+| `sample.paired` | Boolean | All | Whether a paired control is available. |
+| `sample.genome_build` | Integer, string, or null | All | Genome build recorded for the sample. |
+| `asp.asp_id` | String | All | Stable ASP identifier. |
+| `asp.asp_group` | String or null | All | Configured assay group. |
+| `asp.asp_category` | `dna`, `rna`, or null | All | Configured assay category. |
+| `asp.accredited` | Boolean | All | ASP accreditation status. Use this for approved accreditation wording. |
+| `asp.germline_genes` | List of gene symbols | All | Assay-level genes for which germline evaluation is configured. |
+| `aspc.aspc_id` | String | All | Effective ASPC business identifier. |
+| `aspc.asp_id` | String | All | ASP ID in the effective ASPC. |
+| `aspc.asp_group` | String or null | All | ASP group in the effective ASPC. |
+| `aspc.asp_category` | `dna`, `rna`, or null | All | ASP category in the effective ASPC. |
+| `aspc.subpanel_id` | String | All | Effective ASPC subpanel. |
+| `aspc.environment` | String | All | Effective ASPC environment. |
+| `aspc.reporting.analysis` | List of analysis types | All | Enabled reporting analyses. Options are controlled by the ASPC category. |
+| `aspc.reporting.report_sections` | List of analysis types | All | Configured report sections, each enabled in reporting analysis. |
+| `aspc.reporting.general_report_summary` | String | All | Approved report introduction text from ASPC. |
+| `applied_gene_lists` | List of selected ISGL objects | All | Exact selected ISGL scope. Each item includes `isgl_id`, `version`, `list_type`, `selected_for`, `genes`, `germline_genes`, and `adhoc`. |
+| `finding.kind` | `snv`, `cnv`, `fusion`, or `translocation` | `finding_text` | The reportable finding domain. |
+| `finding.gene` | Gene symbol or null | `finding_text` | Primary displayed HGNC-normalized gene symbol. |
+| `finding.genes` | List of gene symbols | `finding_text` | All genes associated with the finding. |
+| `finding.tier` | Integer `1`-`4` or null | `finding_text` | Persisted clinical tier. |
+| `finding.exon` | List of exon strings | `finding_text` | Selected transcript exon value(s); use `overlaps` for exon-domain conditions. |
+| `finding.intron` | List of intron strings | `finding_text` | Selected transcript intron value(s). |
+| `finding.case_vaf` | Decimal fraction or null | `finding_text` | Case VAF in the `0`-`1` range. |
+| `finding.case_vaf_percent` | Percentage number or null | `finding_text` | Case VAF represented as `0`-`100`. |
+| `finding.control_vaf` | Decimal fraction or null | `finding_text` | Control VAF in the `0`-`1` range. |
+| `finding.control_vaf_percent` | Percentage number or null | `finding_text` | Control VAF represented as `0`-`100`. |
+| `finding.consequence` | List of VEP consequence terms | `finding_text` | Consequence terms retained after transcript selection. |
+| `finding.hgvsc` | String or null | `finding_text` | Selected transcript HGVS coding notation. |
+| `finding.hgvsp` | String or null | `finding_text` | Selected transcript HGVS protein notation. |
+| `finding.variant_type` | String or null | `finding_text` | Variant type prepared from the source result. |
+| `finding.cnv_effect` | String or null | `finding_text` | CNV effect, for example `gain` or `loss`, when available. |
+| `finding.fusion_gene_1` | String or null | `finding_text` | First fusion partner, when available. |
+| `finding.fusion_gene_2` | String or null | `finding_text` | Second fusion partner, when available. |
+| `biomarkers` | List of prepared biomarker records | `result_text`, `summary_text` | Prepared biomarker data. No stable sub-fields are currently registered for condition matching; introduce a typed biomarker fact before creating a biomarker-specific executable rule. |
+| `aggregates.finding_count` | Integer | `result_text`, `summary_text` | Total prepared reportable findings. |
+| `aggregates.snv_count` | Integer | `result_text`, `summary_text` | Prepared SNV/small-indel finding count. |
+| `aggregates.cnv_count` | Integer | `result_text`, `summary_text` | Prepared CNV finding count. |
+| `aggregates.fusion_count` | Integer | `result_text`, `summary_text` | Prepared fusion finding count. |
+| `aggregates.translocation_count` | Integer | `result_text`, `summary_text` | Prepared translocation finding count. |
+| `aggregates.biomarker_count` | Integer | `result_text`, `summary_text` | Prepared biomarker record count. |
+| `aggregates.tier_1_count` | Integer | `result_text`, `summary_text` | Prepared Tier I finding count. |
+| `aggregates.tier_2_count` | Integer | `result_text`, `summary_text` | Prepared Tier II finding count. |
+| `aggregates.tier_3_count` | Integer | `result_text`, `summary_text` | Prepared Tier III finding count. |
+| `aggregates.tier_summaries` | Ordered Tier-summary list | `result_text`, `summary_text` | Prepared grouped Tier summary. Use with the `tier_summary` template filter. |
+| `aggregates.has_tiered_snvs` | Boolean | `result_text`, `summary_text` | `true` when prepared SNV/small-indel findings have a clinical tier. |
+| `aggregates.has_reportable_findings` | Boolean | `result_text`, `summary_text` | `true` when one or more reportable findings exist in any supported domain. |
+
+Transcript selection and HGNC normalization are complete before a finding
+reaches this engine. YAML rules do not select transcripts, rename genes, query
+MongoDB, or call a knowledgebase.
 
 The shared `dna_report_intro` formatter renders
 `aspc.reporting.general_report_summary`, the paired-control statement, selected
@@ -162,6 +323,19 @@ subpanel identity.
 Templates run in a restricted Jinja environment. They can only read the roots
 listed above. They cannot execute Python, access MongoDB, call external
 services, or change report data.
+
+### Template Expressions And Filters
+
+| Capability | Available options | Purpose |
+| --- | --- | --- |
+| Fact roots | `sample`, `asp`, `aspc`, `applied_gene_lists`, `finding`, `biomarkers`, `aggregates` | Read the prepared values described in the fact catalogue. |
+| Standard Jinja filters | `default`, `join`, `length`, `lower`, `round`, `upper` | Simple presentation-only operations. |
+| `tier_summary` | `{{ aggregates.tier_summaries \| tier_summary }}` | Renders the shared approved Swedish Tier grammar using `mutation`/`mutationer`. No wording configuration is duplicated in YAML. |
+| `dna_report_intro` | `{{ aspc.reporting.general_report_summary \| dna_report_intro(sample, asp, applied_gene_lists) }}` | Renders the approved DNA introduction together with paired-control, selected SNV ISGL, effective gene count, and configured germline information. |
+
+`StrictUndefined` is enabled. A template that refers to a missing fact fails
+validation or rendering rather than silently inserting an empty value. Use a
+deferred rule when a required clinical fact does not yet have a typed contract.
 
 ## Evaluation Protocol
 
