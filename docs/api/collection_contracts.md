@@ -6,8 +6,8 @@ This is the canonical collection-key reference used by ingestion validation.
 
 ## Cross-collection relations
 
-- `samples.assay` must match `asp_configs.assay_name` and `assay_specific_panels.asp_id`.
-- `samples.profile` maps to ASPC lookup as `aspc_id = <assay>:<profile>`.
+- `samples.assay` must match `asp_configs.asp_id` and `assay_specific_panels.asp_id`.
+- Initial ASPC resolution uses `samples.assay`, `samples.subpanel_id`, and `samples.profile`; the resolved ObjectId/key/version are persisted on the sample.
 - `insilico_genelists.assays[]` and `assay_groups[]` must map to ASP/ASPC assay setup.
 - `roles.permissions[]` must reference `permissions.permission_id`.
 - `users.roles[]` must reference `roles.role_id`.
@@ -34,14 +34,16 @@ Optional keys:
 
 Required keys:
 - `variant` (str)
-- `gene` (str)
 - `assay` (str)
 - `subpanel` (str)
 - `author` (str)
-- `nomenclature` (Literal['p', 'g', 'c', 'f'])
-- `transcript` (str)
+- `nomenclature` (Literal['p', 'g', 'c', 'f', 'cn', 't'])
 
 Optional keys:
+- `gene` (str | None)
+- `gene1` (str | None)
+- `gene2` (str | None)
+- `transcript` (str | None)
 - `time_created` (datetime)
 - `class_` (int | None)
 - `text` (str | None)
@@ -340,6 +342,7 @@ Optional keys:
 - `imgt` (str | None)
 - `lncrnadb` (str | None)
 - `lncipedia` (str | None)
+- `ensembl_mane_plus_clinical` (list[str])
 - `other_chromosome` (str | None)
 - `gene_type` (list[str])
 - `refseq_mane_plus_clinical` (list[str])
@@ -715,7 +718,7 @@ Required keys:
 - `ALT` (str)
 - `ID` (str)
 - `GT` (list[api.contracts.schemas.dna.TranslocationGtDoc])
-- `INFO` (list[api.contracts.schemas.dna.TranslocationInfoDoc])
+- `INFO` (TranslocationInfoDoc)
 
 Optional keys:
 - `FILTER` (list[str])

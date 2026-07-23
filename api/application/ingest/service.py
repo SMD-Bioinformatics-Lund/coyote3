@@ -26,14 +26,25 @@ from api.application.ingest.helpers import (
     normalize_sample_version_metadata,
 )
 from api.application.ingest.oncokb_public import enrich_public_oncokb_cache
-from api.application.ingest.parsers import DnaIngestParser, RnaIngestParser, infer_omics_layer
+from api.application.ingest.parsers import (
+    DnaIngestParser,
+    RnaIngestParser,
+    infer_omics_layer,
+    runtime_file_path,
+)
 from api.application.ingest.sample_updates import catch_left_right
 from api.application.ingest.sample_updates import next_unique_name as _next_unique_name
 from api.application.ingest.sample_updates import (
     prepare_update_payload as _prepare_update_payload,
 )
 from api.application.ingest.sample_updates import update_meta_fields as _update_meta_fields
-from api.config.constants import SAMPLE_FILE_KEYS, expected_file_keys
+from api.config.constants import (
+    ANALYSIS_FILE_KEYS_BY_OMICS,
+    SAMPLE_FILE_KEYS,
+    SUBPANEL_BASE_ID,
+    expected_file_keys,
+    normalize_environment,
+)
 from api.contracts.schemas.registry import (
     INGEST_DEPENDENT_COLLECTIONS,
     INGEST_SINGLE_DOCUMENT_KEYS,
@@ -57,6 +68,20 @@ from api.infra.mongo.persistence import (
 logger = logging.getLogger(__name__)
 
 _catch_left_right = catch_left_right
+
+_FILE_KEY_TO_PRELOAD_KEY: dict[str, str] = {
+    "vcf_files": "snvs",
+    "cnv": "cnvs",
+    "cov": "cov",
+    "transloc": "transloc",
+    "biomarkers": "biomarkers",
+    "fusion_files": "fusions",
+    "expression_path": "rna_expr",
+    "classification_path": "rna_class",
+    "qc": "rna_qc",
+}
+
+_NON_DATABASE_FILE_KEYS: frozenset[str] = frozenset({"cnvprofile"})
 
 
 def _provider_sample_id(sample_id: str) -> Any:
@@ -251,6 +276,7 @@ class InternalIngestService:
             "refseq_mane_select": 1,
             "ensembl_mane_select": 1,
             "refseq_mane_plus_clinical": 1,
+            "ensembl_mane_plus_clinical": 1,
         }
         try:
             hgnc_collection = self._collection("hgnc_genes")
@@ -341,48 +367,115 @@ class InternalIngestService:
             )
         return expected & allowed, required & allowed
 
-    def _sanitize_payload_file_keys(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """Strip unexpected file keys and drop unreadable optional file paths."""
-        sanitized = dict(payload)
+    def _validate_payload_file_keys(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Reject declared file resources outside the active ASP contract."""
+        validated = dict(payload)
         omics_layer = (
-            str(sanitized.get("omics_layer") or infer_omics_layer(sanitized) or "").strip().lower()
+            str(validated.get("omics_layer") or infer_omics_layer(validated) or "").strip().lower()
         )
-        expected_keys, required_keys = self._assay_file_policy(
-            assay_name=sanitized.get("assay"),
+        expected_keys, _required_keys = self._assay_file_policy(
+            assay_name=validated.get("assay"),
             omics_layer=omics_layer,
         )
-        files = sanitized.get("files")
+        files = validated.get("files")
         files_dict = files if isinstance(files, dict) else {}
-        runtime_files = sanitized.get("_runtime_files")
-        runtime_dict = runtime_files if isinstance(runtime_files, dict) else None
-        for key in SAMPLE_SOURCE_PATH_KEYS:
-            if key not in expected_keys:
-                sanitized.pop(key, None)
-                files_dict.pop(key, None)
-                if runtime_dict is not None:
-                    runtime_dict.pop(key, None)
-                continue
-            resolved_path = None
-            if runtime_dict is not None and runtime_dict.get(key):
-                resolved_path = str(runtime_dict.get(key))
-            elif isinstance(files_dict.get(key), dict) and files_dict[key].get("path"):
-                resolved_path = str(files_dict[key].get("path"))
-            elif isinstance(files_dict.get(key), str) and files_dict.get(key):
-                resolved_path = str(files_dict.get(key))
-            elif sanitized.get(key):
-                resolved_path = str(sanitized.get(key))
-            if key in required_keys or not resolved_path:
-                continue
-            if not os.path.exists(resolved_path):
-                sanitized.pop(key, None)
-                files_dict.pop(key, None)
-                if runtime_dict is not None:
-                    runtime_dict.pop(key, None)
-        if files_dict:
-            sanitized["files"] = files_dict
-        else:
-            sanitized.pop("files", None)
-        return sanitized
+        runtime_files = validated.get("_runtime_files")
+        runtime_dict = runtime_files if isinstance(runtime_files, dict) else {}
+        declared_keys = {
+            key
+            for key in SAMPLE_SOURCE_PATH_KEYS
+            if validated.get(key) or files_dict.get(key) or runtime_dict.get(key)
+        }
+        unexpected = sorted(declared_keys - expected_keys)
+        if unexpected:
+            raise ValueError(
+                f"ASP '{validated.get('assay')}' does not accept declared ingest file(s): "
+                + ", ".join(unexpected)
+            )
+        return validated
+
+    def _validate_declared_file_resources(self, payload: dict[str, Any]) -> set[str]:
+        """Validate assay file policy and declared file paths before parsing.
+
+        Required ASP files must be present and readable. Optional missing files
+        are allowed, but optional files declared in the manifest are treated as
+        part of the ingest contract: if they are present, they must be readable
+        and successfully parsed/written before the sample becomes ready.
+        """
+        omics_layer = str(payload.get("omics_layer") or infer_omics_layer(payload) or "").lower()
+        expected_keys, required_keys = self._assay_file_policy(
+            assay_name=payload.get("assay"),
+            omics_layer=omics_layer,
+        )
+        aspc_collection = self._collection("asp_configs")
+        assay_name = str(payload.get("assay") or "").strip()
+        profile = normalize_environment(payload.get("profile") or "production")
+        subpanel = str(payload.get("subpanel_id") or payload.get("subpanel") or "").strip()
+        subpanel = subpanel or SUBPANEL_BASE_ID
+        query = {
+            "asp_id": assay_name,
+            "environment": profile,
+            "is_active": True,
+        }
+        aspc = aspc_collection.find_one({**query, "subpanel_id": subpanel})
+        if not isinstance(aspc, dict) and subpanel != SUBPANEL_BASE_ID:
+            aspc = aspc_collection.find_one({**query, "subpanel_id": SUBPANEL_BASE_ID})
+        if not isinstance(aspc, dict):
+            raise ValueError(
+                "No active ASPC is configured for "
+                f"assay='{assay_name}', subpanel='{subpanel}', environment='{profile}'"
+            )
+
+        analysis_map = ANALYSIS_FILE_KEYS_BY_OMICS.get(omics_layer, {})
+        configured_analyses = [
+            str(value or "").strip().upper()
+            for value in (aspc.get("analysis_types") or [])
+            if str(value or "").strip()
+        ]
+        configured_file_keys = {
+            file_key
+            for analysis in configured_analyses
+            for file_key in analysis_map.get(analysis, ())
+        }
+        invalid_configuration = sorted(configured_file_keys - expected_keys)
+        if invalid_configuration:
+            raise ValueError(
+                f"ASPC '{aspc.get('aspc_id') or aspc.get('_id')}' enables analyses whose "
+                "file resources are not declared by the ASP: " + ", ".join(invalid_configuration)
+            )
+        required_keys = required_keys | configured_file_keys
+        declared_keys = {key for key in expected_keys if runtime_file_path(payload, key)}
+        missing_required = sorted(key for key in required_keys if key not in declared_keys)
+        if missing_required:
+            raise ValueError(
+                "Missing required ingest file(s) for assay "
+                f"'{payload.get('assay')}': {', '.join(missing_required)}"
+            )
+        unreadable = sorted(
+            key
+            for key in declared_keys
+            if not os.path.exists(str(runtime_file_path(payload, key) or ""))
+        )
+        if unreadable:
+            details = ", ".join(f"{key}={runtime_file_path(payload, key)}" for key in unreadable)
+            raise FileNotFoundError(f"Declared ingest file(s) are not readable: {details}")
+        return declared_keys
+
+    @staticmethod
+    def _validate_preload_matches_declared_files(
+        *, declared_file_keys: set[str], preload: dict[str, Any]
+    ) -> None:
+        """Ensure each declared database-backed file produced a parsed preload section."""
+        missing_sections: list[str] = []
+        for file_key in sorted(declared_file_keys - _NON_DATABASE_FILE_KEYS):
+            preload_key = _FILE_KEY_TO_PRELOAD_KEY.get(file_key)
+            if preload_key and preload_key not in preload:
+                missing_sections.append(f"{file_key}->{preload_key}")
+        if missing_sections:
+            raise ValueError(
+                "Declared ingest file(s) did not produce database payloads: "
+                + ", ".join(missing_sections)
+            )
 
     def _normalize_collection_docs(
         self, collection: str, docs: list[dict[str, Any]]
@@ -665,8 +758,9 @@ class InternalIngestService:
             sample_doc=current_doc,
             payload=dict(payload),
         )
-        parsed_payload = self._sanitize_payload_file_keys(parsed_payload)
+        parsed_payload = self._validate_payload_file_keys(parsed_payload)
         parsed_payload = normalize_sample_version_metadata(parsed_payload)
+        declared_file_keys = self._validate_declared_file_resources(parsed_payload)
         parsed_payload.pop("_id", None)
         parsed_payload.pop("data_counts", None)
         parsed_payload.pop("time_added", None)
@@ -700,9 +794,18 @@ class InternalIngestService:
                 preload_payload[key] = parsed_payload[key]
 
         preload = self._parse_preload(preload_payload)
+        self._validate_preload_matches_declared_files(
+            declared_file_keys=declared_file_keys,
+            preload=preload,
+        )
         counts = dict(current_doc.get("data_counts") or {})
         counts.update(self._data_counts(preload))
 
+        written = self._replace_dependents(
+            preload=preload,
+            sample_id=sample_id,
+            sample_name=str(current_doc["name"]),
+        )
         self._update_meta_fields(
             sample_id=sample_id,
             payload_meta=build_sample_meta_dict(validated_merged.model_dump(exclude_none=True)),
@@ -712,12 +815,6 @@ class InternalIngestService:
             {"_id": self._provider_sample_id(sample_id)},
             {"$set": {"ingest_status": "ready", "data_counts": counts}},
             upsert=False,
-        )
-
-        written = self._replace_dependents(
-            preload=preload,
-            sample_id=sample_id,
-            sample_name=str(current_doc["name"]),
         )
         oncokb_public = self._enrich_public_oncokb_cache(
             sample_id=sample_id,
@@ -777,8 +874,9 @@ class InternalIngestService:
         if allow_update:
             return self._ingest_update(parsed_payload)
 
-        parsed_payload = self._sanitize_payload_file_keys(parsed_payload)
+        parsed_payload = self._validate_payload_file_keys(parsed_payload)
         parsed_payload = normalize_sample_version_metadata(parsed_payload)
+        declared_file_keys = self._validate_declared_file_resources(parsed_payload)
 
         validated_sample = SamplesDoc.model_validate(parsed_payload)
         validated_payload = validated_sample.model_dump(exclude_none=True)
@@ -795,6 +893,10 @@ class InternalIngestService:
                 validated_payload["current_aspc_key"] = aspc.get("aspc_id")
                 validated_payload["current_aspc_version"] = aspc.get("version")
         preload = self._parse_preload(validated_payload)
+        self._validate_preload_matches_declared_files(
+            declared_file_keys=declared_file_keys,
+            preload=preload,
+        )
         sample_name = self._next_unique_name(str(validated_payload["name"]), bool(increment))
         sample_id = self._new_sample_id()
         counts = self._data_counts(preload)

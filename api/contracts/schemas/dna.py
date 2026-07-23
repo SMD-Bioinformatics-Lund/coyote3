@@ -360,6 +360,7 @@ class TranslocationInfoDoc(_DocBase):
     MATE_BND_DEPTH: int | None = None  # 46
     PANEL: list[str] = Field(default_factory=list)  # fusion|somatic|one
     ANN: list[TranslocationInfoAnnDoc] = Field(default_factory=list)
+    MANE_ANN: TranslocationInfoAnnDoc | None = None
 
 
 class TranslocationGtDoc(_DocBase):
@@ -380,7 +381,7 @@ class TranslocationsDoc(_DocBase):
     ID: str
     QUAL: Optional[float] = None
     GT: list[TranslocationGtDoc]
-    INFO: list[TranslocationInfoDoc]
+    INFO: TranslocationInfoDoc
 
 
 class BiomarkersMsiDoc(_DocBase):

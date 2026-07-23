@@ -549,15 +549,9 @@ def _hgnc_refseq_values(doc: dict[str, Any] | None, key: str) -> set[str]:
     return {_feature_no_version(item) for item in values if str(item or "").strip()}
 
 
-def _hgnc_mane_select_values(doc: dict[str, Any] | None) -> set[str]:
-    """Return normalized MANE Select transcript identifiers from HGNC metadata."""
-    if not doc:
-        return set()
-    values = {
-        _feature_no_version(doc.get("refseq_mane_select")),
-        _feature_no_version(doc.get("ensembl_mane_select")),
-    }
-    return {value for value in values if value}
+def _is_ensembl_transcript(value: Any) -> bool:
+    """Return whether a transcript accession is from the Ensembl namespace."""
+    return _feature_no_version(value).startswith("ENST")
 
 
 def _annotate_transcript_provenance(
@@ -573,14 +567,24 @@ def _annotate_transcript_provenance(
         tags: list[str] = []
         if feature and feature in _hgnc_refseq_values(doc, "refseq_mane_plus_clinical"):
             tags.append("ncbi_mane_plus_clinical")
-        if str(csq.get("MANE_PLUS_CLINICAL") or "").strip():
-            tags.append("vep_mane_plus_clinical")
+        if feature and (
+            feature in _hgnc_refseq_values(doc, "ensembl_mane_plus_clinical")
+            or (
+                _is_ensembl_transcript(feature)
+                and bool(str(csq.get("MANE_PLUS_CLINICAL") or "").strip())
+            )
+        ):
+            tags.append("ensembl_mane_plus_clinical")
         if feature and feature == _feature_no_version((doc or {}).get("refseq_mane_select")):
             tags.append("ncbi_mane_select")
         if feature and feature == _feature_no_version((doc or {}).get("ensembl_mane_select")):
             tags.append("ensembl_mane_select")
-        if str(csq.get("MANE") or "").strip():
-            tags.append("vep_mane_select")
+        if (
+            _is_ensembl_transcript(feature)
+            and str(csq.get("MANE") or "").strip()
+            and "ensembl_mane_select" not in tags
+        ):
+            tags.append("ensembl_mane_select")
 
         canonical_source = None
         approved_symbol = _approved_hgnc_symbol_for_csq(csq, hgnc_by_id, hgnc_by_symbol)
@@ -648,12 +652,14 @@ def _select_csq(
     """Select the canonical transcript from a slim CSQ array using a priority hierarchy.
 
     Priority order:
-    1. HGNC MANE Plus Clinical transcript.
-    2. HGNC MANE Select transcript.
-    3. DB canonical (gene in canonical map and RefSeq matches).
-    4. VEP canonical (``CANONICAL == "YES"``).
-    5. First protein-coding transcript.
-    6. First transcript unconditionally.
+    1. NCBI MANE Plus Clinical transcript.
+    2. Ensembl MANE Plus Clinical transcript.
+    3. NCBI MANE Select transcript.
+    4. Ensembl MANE Select transcript.
+    5. DB canonical (gene in canonical map and RefSeq matches).
+    6. VEP canonical (``CANONICAL == "YES"``).
+    7. First protein-coding transcript.
+    8. First transcript unconditionally.
 
     Selection iterates IMPACT order (HIGH → MODERATE → LOW → MODIFIER) before
     descending to lower-priority tiers.
@@ -666,7 +672,7 @@ def _select_csq(
         A tuple of (selected_csq_dict, selection_source_label) where label is one of
         ``"db"``, ``"vep"``, or ``"random"``.
     """
-    hgnc_mane_plus = _first_csq_by_impact(
+    ncbi_mane_plus = _first_csq_by_impact(
         csq_arr,
         lambda csq: (
             _feature_no_version(csq.get("Feature"))
@@ -674,26 +680,67 @@ def _select_csq(
                 _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol),
                 "refseq_mane_plus_clinical",
             )
-            or bool(str(csq.get("MANE_PLUS_CLINICAL") or "").strip())
         ),
     )
-    if hgnc_mane_plus >= 0:
+    if ncbi_mane_plus >= 0:
         return (
-            _normalize_selected_csq_symbol(csq_arr[hgnc_mane_plus], hgnc_by_id, hgnc_by_symbol),
-            "hgnc_mane_plus_clinical",
+            _normalize_selected_csq_symbol(csq_arr[ncbi_mane_plus], hgnc_by_id, hgnc_by_symbol),
+            "ncbi_mane_plus_clinical",
         )
-    hgnc_mane_select = _first_csq_by_impact(
+    ensembl_mane_plus = _first_csq_by_impact(
         csq_arr,
         lambda csq: (
             _feature_no_version(csq.get("Feature"))
-            in _hgnc_mane_select_values(_hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol))
-            or bool(str(csq.get("MANE") or "").strip())
+            in _hgnc_refseq_values(
+                _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol),
+                "ensembl_mane_plus_clinical",
+            )
+            or (
+                _is_ensembl_transcript(csq.get("Feature"))
+                and bool(str(csq.get("MANE_PLUS_CLINICAL") or "").strip())
+            )
         ),
     )
-    if hgnc_mane_select >= 0:
+    if ensembl_mane_plus >= 0:
         return (
-            _normalize_selected_csq_symbol(csq_arr[hgnc_mane_select], hgnc_by_id, hgnc_by_symbol),
-            "hgnc_mane_select",
+            _normalize_selected_csq_symbol(csq_arr[ensembl_mane_plus], hgnc_by_id, hgnc_by_symbol),
+            "ensembl_mane_plus_clinical",
+        )
+    ncbi_mane_select = _first_csq_by_impact(
+        csq_arr,
+        lambda csq: (
+            _feature_no_version(csq.get("Feature"))
+            == _feature_no_version(
+                (_hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol) or {}).get("refseq_mane_select")
+            )
+        ),
+    )
+    if ncbi_mane_select >= 0:
+        return (
+            _normalize_selected_csq_symbol(csq_arr[ncbi_mane_select], hgnc_by_id, hgnc_by_symbol),
+            "ncbi_mane_select",
+        )
+    ensembl_mane_select = _first_csq_by_impact(
+        csq_arr,
+        lambda csq: (
+            _feature_no_version(csq.get("Feature"))
+            == _feature_no_version(
+                (_hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol) or {}).get(
+                    "ensembl_mane_select"
+                )
+            )
+            or (
+                _is_ensembl_transcript(csq.get("Feature"))
+                and bool(str(csq.get("MANE") or "").strip())
+            )
+        ),
+    )
+    if ensembl_mane_select >= 0:
+        return (
+            _normalize_selected_csq_symbol(
+                csq_arr[ensembl_mane_select], hgnc_by_id, hgnc_by_symbol
+            ),
+            "ensembl_mane_select",
         )
     db_canonical = _first_csq_by_impact(
         csq_arr,
@@ -772,6 +819,8 @@ def _normalize_transloc_doc(doc: dict[str, Any]) -> dict[str, Any]:
     normalized["GT"] = normalized_gt
 
     info = normalized.get("INFO")
+    if isinstance(info, list):
+        info = next((item for item in info if isinstance(item, dict)), {})
     if isinstance(info, dict):
         info_doc = dict(info)
         info_doc["SOMATIC"] = bool(info_doc.get("SOMATIC", False))
@@ -791,11 +840,23 @@ def _normalize_transloc_doc(doc: dict[str, Any]) -> dict[str, Any]:
                 ann_doc["Annotation"] = _split_string_list(annotation, "&")
             normalized_ann.append(ann_doc)
         info_doc["ANN"] = normalized_ann
-        normalized["INFO"] = [info_doc]
-    elif isinstance(info, list):
-        normalized["INFO"] = info
+        mane_ann = info_doc.get("MANE_ANN")
+        if isinstance(mane_ann, list):
+            mane_ann = next((item for item in mane_ann if isinstance(item, dict)), None)
+        if isinstance(mane_ann, dict):
+            mane_doc = {
+                key.replace(".", "").replace("ERRORS / WARNINGS / INFO", "INFO"): value
+                for key, value in mane_ann.items()
+            }
+            annotation = mane_doc.get("Annotation")
+            if isinstance(annotation, str):
+                mane_doc["Annotation"] = _split_string_list(annotation, "&")
+            info_doc["MANE_ANN"] = mane_doc
+        else:
+            info_doc.pop("MANE_ANN", None)
+        normalized["INFO"] = info_doc
     else:
-        normalized["INFO"] = []
+        normalized["INFO"] = {}
     return normalized
 
 
@@ -850,26 +911,26 @@ class DnaIngestParser:
             if anno_vep:
                 preload["anno_vep"] = anno_vep
 
-        if "cnv" in args:
-            cnv_path = runtime_file_path(args, "cnv")
+        cnv_path = runtime_file_path(args, "cnv")
+        if cnv_path:
             require_exists("CNV JSON", cnv_path)
             with open(cnv_path, "r", encoding="utf-8") as handle:
                 cnv_doc = json.load(handle)
             preload["cnvs"] = self._parse_cnvs_only(cnv_doc)
 
-        if "biomarkers" in args:
-            biomarkers_path = runtime_file_path(args, "biomarkers")
+        biomarkers_path = runtime_file_path(args, "biomarkers")
+        if biomarkers_path:
             require_exists("Biomarkers JSON", biomarkers_path)
             with open(biomarkers_path, "r", encoding="utf-8") as handle:
                 preload["biomarkers"] = _normalize_biomarkers_doc(json.load(handle))
 
-        if "transloc" in args:
-            transloc_path = runtime_file_path(args, "transloc")
+        transloc_path = runtime_file_path(args, "transloc")
+        if transloc_path:
             require_exists("DNA translocations VCF", transloc_path)
             preload["transloc"] = self._parse_transloc_only(transloc_path)
 
-        if "cov" in args:
-            cov_path = runtime_file_path(args, "cov")
+        cov_path = runtime_file_path(args, "cov")
+        if cov_path:
             require_exists("Coverage JSON", cov_path)
             with open(cov_path, "r", encoding="utf-8") as handle:
                 preload["cov"] = json.load(handle)
@@ -1091,18 +1152,18 @@ class RnaIngestParser:
             with open(fusions, "r", encoding="utf-8") as handle:
                 preload["fusions"] = json.load(handle)
 
-        if "expression_path" in args:
-            expr_path = runtime_file_path(args, "expression_path")
+        expr_path = runtime_file_path(args, "expression_path")
+        if expr_path:
             require_exists("Expression JSON", expr_path)
             with open(expr_path, "r", encoding="utf-8") as handle:
                 preload["rna_expr"] = json.load(handle)
-        if "classification_path" in args:
-            class_path = runtime_file_path(args, "classification_path")
+        class_path = runtime_file_path(args, "classification_path")
+        if class_path:
             require_exists("Classification JSON", class_path)
             with open(class_path, "r", encoding="utf-8") as handle:
                 preload["rna_class"] = json.load(handle)
-        if "qc" in args:
-            qc_path = runtime_file_path(args, "qc")
+        qc_path = runtime_file_path(args, "qc")
+        if qc_path:
             require_exists("QC JSON", qc_path)
             with open(qc_path, "r", encoding="utf-8") as handle:
                 preload["rna_qc"] = json.load(handle)

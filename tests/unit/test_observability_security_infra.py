@@ -116,6 +116,45 @@ def test_access_audit_records_denials_only(monkeypatch):
     assert calls[0][1]["outcome"] == "denied"
 
 
+def test_mutation_audit_uses_route_resource_metadata(monkeypatch):
+    calls = []
+    request = SimpleNamespace(
+        method="DELETE",
+        headers={},
+        client=SimpleNamespace(host="127.0.0.1"),
+        url=SimpleNamespace(path="/api/v1/resources/samples/507f1f77bcf86cd799439011"),
+        state=SimpleNamespace(
+            audit_resource={
+                "type": "sample",
+                "id": "507f1f77bcf86cd799439011",
+                "name": "CASE_DEMO",
+                "message": "Deleted sample CASE_DEMO",
+                "metadata": {"sample_oid": "507f1f77bcf86cd799439011"},
+            }
+        ),
+    )
+
+    monkeypatch.setattr(
+        "api.app.deps.services.get_audit_service",
+        lambda: SimpleNamespace(record=lambda *args, **kwargs: calls.append((args, kwargs))),
+    )
+
+    audit_events.emit_mutation_event(
+        request=request,
+        username="admin",
+        status_code=200,
+        action="DELETE",
+        target="/api/v1/resources/samples/507f1f77bcf86cd799439011",
+    )
+
+    assert calls[0][0][0] == "api.mutation.succeeded"
+    assert calls[0][0][1] == "Deleted sample CASE_DEMO"
+    assert calls[0][1]["resource_type"] == "sample"
+    assert calls[0][1]["resource_id"] == "507f1f77bcf86cd799439011"
+    assert calls[0][1]["resource_name"] == "CASE_DEMO"
+    assert calls[0][1]["metadata"]["sample_oid"] == "507f1f77bcf86cd799439011"
+
+
 def test_json_formatter_includes_bound_request_context():
     formatter = JsonFormatter()
     token = bind_request_context(

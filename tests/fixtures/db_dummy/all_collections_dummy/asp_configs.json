@@ -12,7 +12,8 @@
     "is_active": true,
     "analysis_types": [
       "SNV",
-      "CNV"
+      "CNV",
+      "COVERAGE"
     ],
     "filters": {
       "max_freq": 1.0,
@@ -72,7 +73,8 @@
     "is_active": true,
     "analysis_types": [
       "SNV",
-      "CNV"
+      "CNV",
+      "COVERAGE"
     ],
     "filters": {
       "max_freq": 1.0,

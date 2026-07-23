@@ -104,7 +104,11 @@ class ResourceSampleService:
         updated_sample = self.records_util.restore_object_ids(deepcopy(updated_sample))
         updated_sample["_id"] = sample_obj
         self.sample_repository.update_sample(sample_obj, updated_sample)
-        return change_payload(resource="sample", resource_id=str(sample_obj), action="update")
+        sample_name = str(updated_sample.get("name") or sample_doc.get("name") or sample_obj)
+        payload = change_payload(resource="sample", resource_id=str(sample_obj), action="update")
+        payload["meta"]["sample_name"] = sample_name
+        payload["meta"]["sample_oid"] = str(sample_obj)
+        return payload
 
     def delete(self, *, sample_id: str) -> dict[str, Any]:
         """Delete a sample and return a change-status payload."""
@@ -123,5 +127,6 @@ class ResourceSampleService:
         )
         payload = change_payload(resource="sample", resource_id=sample_id, action="delete")
         payload["meta"]["sample_name"] = deletion_summary.get("sample_name") or sample_name
+        payload["meta"]["sample_oid"] = sample_id
         payload["meta"]["results"] = deletion_summary.get("results", [])
         return payload

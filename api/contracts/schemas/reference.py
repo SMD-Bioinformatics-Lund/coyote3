@@ -13,12 +13,14 @@ from api.contracts.schemas.base import _DocBase
 
 class AnnotationDoc(_DocBase):
     variant: str
-    gene: str
+    gene: str | None = None
+    gene1: str | None = None
+    gene2: str | None = None
     assay: str
     subpanel: str
     author: str
-    nomenclature: Literal["p", "g", "c", "f"]
-    transcript: str
+    nomenclature: Literal["p", "g", "c", "f", "cn", "t"]
+    transcript: str | None = None
     time_created: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class_: int | None = Field(default=None, alias="class")
@@ -312,6 +314,7 @@ class HgncGenesDoc(_DocBase):
 
     ensembl_mane_select: str
     refseq_mane_select: str
+    ensembl_mane_plus_clinical: list[str] = Field(default_factory=list)
 
     chromosome: str
     other_chromosome: str | None = None

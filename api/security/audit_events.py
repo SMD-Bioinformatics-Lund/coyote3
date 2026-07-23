@@ -140,9 +140,14 @@ def emit_mutation_event(
 
     audit = get_audit_service()
     if audit is not None:
+        audit_resource = getattr(request.state, "audit_resource", {}) or {}
+        resource_type = audit_resource.get("type") or "api_route"
+        resource_id = audit_resource.get("id") or target
+        resource_name = audit_resource.get("name")
+        resource_metadata = audit_resource.get("metadata") or {}
         audit.record(
             "api.mutation.succeeded" if derived_status == "success" else "api.mutation.failed",
-            f"{action} {target}",
+            str(audit_resource.get("message") or f"{action} {target}"),
             severity=(
                 "error"
                 if derived_status == "error"
@@ -151,8 +156,9 @@ def emit_mutation_event(
             category="activity",
             outcome="success" if derived_status == "success" else "failure",
             actor=username or "anonymous",
-            resource_type="api_route",
-            resource_id=target,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            resource_name=resource_name,
             tags=["api", "mutation", action.lower()],
             metadata={
                 "status_code": int(status_code),
@@ -160,6 +166,7 @@ def emit_mutation_event(
                 "path": str(request.url.path),
                 "ip": request_ip(request),
                 "request_id": request_id(request),
+                **resource_metadata,
                 **(extra or {}),
             },
         )

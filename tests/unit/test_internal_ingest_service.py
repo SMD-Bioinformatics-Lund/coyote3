@@ -38,6 +38,11 @@ class _Col:
         return list(self.docs)
 
     def find_one(self, query):
+        if "asp_id" in query:
+            for doc in self.docs:
+                if all(doc.get(key) == value for key, value in query.items()):
+                    return doc
+            return None
         for doc in self.find(query):
             return doc
         return None
@@ -99,7 +104,30 @@ def _store_stub(sample_docs=None):
         "rna_expression": _Col(),
         "rna_classification": _Col(),
         "rna_qc": _Col(),
-        "asp_configs": _Col(),
+        "asp_configs": _Col(
+            [
+                {
+                    "_id": "aspc-1",
+                    "aspc_id": "assay_1:production:base",
+                    "asp_id": "assay_1",
+                    "subpanel_id": "base",
+                    "environment": "production",
+                    "is_active": True,
+                    "analysis_types": [],
+                    "filters": {},
+                },
+                {
+                    "_id": "aspc-a",
+                    "aspc_id": "A:production:base",
+                    "asp_id": "A",
+                    "subpanel_id": "base",
+                    "environment": "production",
+                    "is_active": True,
+                    "analysis_types": [],
+                    "filters": {},
+                },
+            ]
+        ),
         "assay_specific_panels": _Col(
             [
                 {
@@ -244,6 +272,56 @@ def test_small_helpers_and_build_meta(tmp_path):
     assert meta["control"]["reads"] == 20
 
 
+def test_dna_parser_loads_nested_sample_file_docs(tmp_path, monkeypatch):
+    cnv_path = tmp_path / "sample.cnv.json"
+    biomarker_path = tmp_path / "sample.bio.json"
+    transloc_path = tmp_path / "sample.transloc.vcf"
+    cov_path = tmp_path / "sample.cov.json"
+    cnv_path.write_text(
+        json.dumps(
+            {
+                "cnv-1": {
+                    "chr": "1",
+                    "start": 10,
+                    "end": 20,
+                    "size": 10,
+                    "ratio": 0.5,
+                    "genes": [{"gene": "TP53", "class": 1}],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    biomarker_path.write_text(json.dumps({"name": "S1"}), encoding="utf-8")
+    transloc_path.write_text("##fileformat=VCFv4.2\n", encoding="utf-8")
+    cov_path.write_text(json.dumps({"genes": {}}), encoding="utf-8")
+
+    monkeypatch.setattr(
+        ingest_parsers.DnaIngestParser,
+        "_parse_transloc_only",
+        staticmethod(lambda _path: [{"CHROM": "1", "POS": 1}]),
+    )
+
+    parser = ingest_parsers.DnaIngestParser({})
+    preload = parser.parse(
+        {
+            "omics_layer": "dna",
+            "files": {
+                "cnv": {"path": str(cnv_path)},
+                "biomarkers": {"path": str(biomarker_path)},
+                "transloc": {"path": str(transloc_path)},
+                "cov": {"path": str(cov_path)},
+            },
+        }
+    )
+
+    assert set(preload) == {"cnvs", "biomarkers", "transloc", "cov"}
+    assert preload["cnvs"][0]["chr"] == "1"
+    assert preload["biomarkers"]["name"] == "S1"
+    assert preload["transloc"] == [{"CHROM": "1", "POS": 1}]
+    assert preload["cov"] == {"genes": {}}
+
+
 def test_select_csq_prefers_hgnc_mane_plus_and_current_symbol():
     csq_arr = [
         {
@@ -284,12 +362,50 @@ def test_select_csq_prefers_hgnc_mane_plus_and_current_symbol():
         hgnc_by_symbol={"OLD1": hgnc_doc, "NEW1": hgnc_doc},
     )
 
-    assert source == "hgnc_mane_plus_clinical"
+    assert source == "ncbi_mane_plus_clinical"
     assert selected["Feature"] == "NM_000001.1"
     assert selected["SYMBOL"] == "NEW1"
     assert selected["VEP_SYMBOL"] == "OLD1"
     assert selected["HGNC_ID"] == "HGNC:1"
     assert selected["HGNC_MATCH_SOURCE"] == "previous_or_alias_symbol"
+
+
+def test_select_csq_uses_explicit_ncbi_then_ensembl_mane_priority():
+    hgnc_doc = {
+        "hgnc_id": "HGNC:1",
+        "hgnc_symbol": "GENE1",
+        "refseq_mane_plus_clinical": ["NM_PLUS.1"],
+        "ensembl_mane_plus_clinical": ["ENST_PLUS.1"],
+        "refseq_mane_select": "NM_SELECT.1",
+        "ensembl_mane_select": "ENST_SELECT.1",
+    }
+    by_id = {"HGNC:1": hgnc_doc}
+    rows = [
+        {"Feature": "ENST_SELECT.1", "HGNC_ID": "HGNC:1", "IMPACT": "HIGH"},
+        {"Feature": "NM_SELECT.1", "HGNC_ID": "HGNC:1", "IMPACT": "HIGH"},
+        {
+            "Feature": "ENST_PLUS.1",
+            "HGNC_ID": "HGNC:1",
+            "IMPACT": "LOW",
+            "MANE_PLUS_CLINICAL": "NM_PLUS.1",
+        },
+        {"Feature": "NM_PLUS.1", "HGNC_ID": "HGNC:1", "IMPACT": "LOW"},
+    ]
+
+    selected, source = ingest_parsers._select_csq(rows, {}, hgnc_by_id=by_id)
+    assert (selected["Feature"], source) == ("NM_PLUS.1", "ncbi_mane_plus_clinical")
+
+    selected, source = ingest_parsers._select_csq(rows[:-1], {}, hgnc_by_id=by_id)
+    assert (selected["Feature"], source) == (
+        "ENST_PLUS.1",
+        "ensembl_mane_plus_clinical",
+    )
+
+    selected, source = ingest_parsers._select_csq(rows[:2], {}, hgnc_by_id=by_id)
+    assert (selected["Feature"], source) == ("NM_SELECT.1", "ncbi_mane_select")
+
+    selected, source = ingest_parsers._select_csq(rows[:1], {}, hgnc_by_id=by_id)
+    assert (selected["Feature"], source) == ("ENST_SELECT.1", "ensembl_mane_select")
 
 
 def test_annotate_transcript_provenance_from_hgnc_and_vep_metadata():
@@ -336,14 +452,10 @@ def test_annotate_transcript_provenance_from_hgnc_and_vep_metadata():
         hgnc_by_symbol={"OLD1": hgnc_doc, "NEW1": hgnc_doc},
     )
 
-    assert annotated[0]["transcript_tags"] == [
-        "ncbi_mane_plus_clinical",
-        "vep_mane_plus_clinical",
-    ]
+    assert annotated[0]["transcript_tags"] == ["ncbi_mane_plus_clinical"]
     assert annotated[0]["canonical_source"] is None
     assert annotated[1]["transcript_tags"] == [
         "ncbi_mane_select",
-        "vep_mane_select",
         "db_canonical",
         "vep_canonical",
     ]
@@ -517,7 +629,7 @@ def test_type_and_string_helpers(monkeypatch):
     assert hot == {"a": ["1"]}
 
 
-def test_ingest_sanitizes_file_keys_using_asp_expected_files(monkeypatch, tmp_path):
+def test_ingest_rejects_file_keys_outside_asp_expected_files(monkeypatch, tmp_path):
     store_stub = _store_stub()
     store_stub.coyote_db["assay_specific_panels"].docs = [
         {
@@ -558,19 +670,11 @@ def test_ingest_sanitizes_file_keys_using_asp_expected_files(monkeypatch, tmp_pa
         },
     }
 
-    sanitized = service._sanitize_payload_file_keys(payload)
-
-    assert sanitized["vcf_files"] == str(vcf_path)
-    assert sanitized["cov"] == str(cov_path)
-    assert "cnv" not in sanitized
-    assert "biomarkers" not in sanitized
-    assert sanitized["_runtime_files"] == {
-        "vcf_files": str(runtime_vcf_path),
-        "cov": str(runtime_cov_path),
-    }
+    with pytest.raises(ValueError, match="biomarkers, cnv"):
+        service._validate_payload_file_keys(payload)
 
 
-def test_ingest_drops_unreadable_optional_file_keys(monkeypatch, tmp_path):
+def test_ingest_rejects_declared_unreadable_optional_file_keys(monkeypatch, tmp_path):
     store_stub = _store_stub()
     store_stub.coyote_db["assay_specific_panels"].docs = [
         {
@@ -601,10 +705,42 @@ def test_ingest_drops_unreadable_optional_file_keys(monkeypatch, tmp_path):
         "transloc": str(tmp_path / "missing.annotated.vcf"),
     }
 
-    sanitized = service._sanitize_payload_file_keys(payload)
+    validated = service._validate_payload_file_keys(payload)
 
-    assert sanitized["vcf_files"] == str(vcf_path)
-    assert "transloc" not in sanitized
+    assert validated["vcf_files"] == str(vcf_path)
+    assert validated["transloc"] == str(tmp_path / "missing.annotated.vcf")
+    with pytest.raises(FileNotFoundError, match="transloc="):
+        service._validate_declared_file_resources(validated)
+
+
+def test_aspc_enabled_analysis_requires_its_file_resource(tmp_path, monkeypatch):
+    store_stub = _store_stub()
+    store_stub.coyote_db["asp_configs"].docs = [
+        {
+            "_id": "aspc-1",
+            "aspc_id": "assay_1:production:base",
+            "asp_id": "assay_1",
+            "subpanel_id": "base",
+            "environment": "production",
+            "is_active": True,
+            "analysis_types": ["SNV", "CNV", "CNV_PROFILE", "COVERAGE"],
+        }
+    ]
+    service = _use_store(monkeypatch, store_stub)
+    vcf_path = tmp_path / "sample.vcf"
+    vcf_path.write_text("##fileformat=VCFv4.2\n", encoding="utf-8")
+    payload = service._validate_payload_file_keys(
+        {
+            "name": "S1",
+            "assay": "assay_1",
+            "profile": "production",
+            "omics_layer": "dna",
+            "vcf_files": str(vcf_path),
+        }
+    )
+
+    with pytest.raises(ValueError, match="cnv, cnvprofile, cov"):
+        service._validate_declared_file_resources(payload)
 
 
 def test_float_and_af_helpers():
@@ -765,8 +901,8 @@ def test_normalize_historical_transloc_doc():
     assert out["FILTER"] == ["PASS"]
     assert out["FORMAT"] == ["UR"]
     assert out["GT"] == [{"UR": 2.0, "sample": "S1", "PR": "", "SR": ""}]
-    assert out["INFO"][0]["SOMATIC"] is False
-    assert out["INFO"][0]["PANEL"] == ["genefuse"]
+    assert out["INFO"]["SOMATIC"] is False
+    assert out["INFO"]["PANEL"] == ["genefuse"]
 
 
 def test_parse_yaml_payload():
@@ -1073,6 +1209,7 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
             "vcf_files": "x",
         },
     )
+    monkeypatch.setattr(service, "_validate_declared_file_resources", lambda _payload: set())
     monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": [{"a": 1}]})
     monkeypatch.setattr(service, "_replace_dependents", lambda **_: {"snvs": 1})
     monkeypatch.setattr(ingest, "build_sample_meta_dict", lambda _: {"name": "S1"})
@@ -1109,6 +1246,7 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     stub = _store_stub()
     stub.sample_repository = _Handler(sample_col)
     service = _use_store(monkeypatch, stub, new_sample_id="507f1f77bcf86cd799439017")
+    monkeypatch.setattr(service, "_validate_declared_file_resources", lambda _payload: set())
     monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": []})
     monkeypatch.setattr(service, "_next_unique_name", lambda *_: "S1")
     monkeypatch.setattr(service, "_write_dependents", lambda **_: {"snvs": 0})
@@ -1158,6 +1296,7 @@ def test_ingest_sample_bundle_stages_loading_then_marks_ready(monkeypatch):
     stub = _store_stub()
     stub.sample_repository = _Handler(sample_col)
     service = _use_store(monkeypatch, stub, new_sample_id="507f1f77bcf86cd799439019")
+    monkeypatch.setattr(service, "_validate_declared_file_resources", lambda _payload: set())
     monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": []})
     monkeypatch.setattr(service, "_next_unique_name", lambda *_: "S3")
     monkeypatch.setattr(service, "_write_dependents", lambda **_: {"snvs": 0})
@@ -1202,6 +1341,7 @@ def test_ingest_sample_bundle_initializes_sample_filters_from_aspc(monkeypatch):
             "asp_id": "assay_1",
             "subpanel_id": "base",
             "environment": "production",
+            "is_active": True,
             "asp_category": "dna",
             "filters": {
                 "max_freq": 1,
@@ -1219,6 +1359,7 @@ def test_ingest_sample_bundle_initializes_sample_filters_from_aspc(monkeypatch):
         }
     ]
     service = _use_store(monkeypatch, stub, new_sample_id="507f1f77bcf86cd799439018")
+    monkeypatch.setattr(service, "_validate_declared_file_resources", lambda _payload: set())
     monkeypatch.setattr(service, "_parse_preload", lambda payload: {"snvs": [], "_seen": payload})
     monkeypatch.setattr(service, "_next_unique_name", lambda *_: "S1")
     monkeypatch.setattr(service, "_write_dependents", lambda **_: {"snvs": 0})

@@ -134,6 +134,7 @@ DNA_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = (
     "TRANSLOCATION",
     "BIOMARKER",
     "CNV_PROFILE",
+    "COVERAGE",
     "FUSION",
     "TMB",
     "PGX",
@@ -150,6 +151,27 @@ RNA_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = (
 ALL_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = tuple(
     dict.fromkeys(DNA_ANALYSIS_TYPE_OPTIONS + RNA_ANALYSIS_TYPE_OPTIONS)
 )
+
+ANALYSIS_FILE_KEYS_BY_OMICS: dict[str, dict[str, tuple[str, ...]]] = {
+    "dna": {
+        "SNV": ("vcf_files",),
+        "CNV": ("cnv",),
+        "TRANSLOCATION": ("transloc",),
+        "BIOMARKER": ("biomarkers",),
+        "CNV_PROFILE": ("cnvprofile",),
+        "COVERAGE": ("cov",),
+        "FUSION": ("transloc",),
+        "TMB": ("biomarkers",),
+        "PGX": ("biomarkers",),
+    },
+    "rna": {
+        "FUSION": ("fusion_files",),
+        "EXPRESSION": ("expression_path",),
+        "CLASSIFICATION": ("classification_path",),
+        "QC": ("qc",),
+        "PGX": ("classification_path",),
+    },
+}
 
 GENELIST_STANDARD_TYPE_OPTIONS: tuple[str, ...] = (
     "snv",
@@ -339,6 +361,7 @@ def normalize_analysis_type(value: object) -> str:
         "BIOMARKERS": "BIOMARKER",
         "CNVPROFILE": "CNV_PROFILE",
         "CNV__PROFILE": "CNV_PROFILE",
+        "COV": "COVERAGE",
     }
     normalized = aliases.get(raw, raw)
     return _ensure_in_options(

@@ -294,6 +294,17 @@ def sample_plot_read(
     """Serve a configured sample plot image."""
     _ = rotated
     sample = _get_sample_for_api(sample_id, user)
+    sample_files = sample.get("files") if isinstance(sample.get("files"), dict) else {}
+    cnv_profile = sample_files.get("cnvprofile")
+    if isinstance(cnv_profile, dict) and cnv_profile.get("path"):
+        cnv_profile_path = Path(str(cnv_profile["path"])).expanduser().resolve()
+        if cnv_profile_path.name == Path(filename).name:
+            if not cnv_profile_path.exists() or not cnv_profile_path.is_file():
+                raise api_error(404, "CNV profile image file is not available")
+            media_type = (
+                mimetypes.guess_type(cnv_profile_path.name)[0] or "application/octet-stream"
+            )
+            return FileResponse(cnv_profile_path, media_type=media_type)
     assay_config = get_formatted_assay_config(sample)
     reporting = assay_config.get("reporting") or assay_config.get("REPORT") or {}
     plot_path = reporting.get("plots_path") or reporting.get("plot_path")

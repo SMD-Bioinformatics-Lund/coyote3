@@ -7,7 +7,6 @@ clarity_case_pool_id: 'seed_pool'
 clarity_control_pool_id: 'seed_pool'
 genome_build: 38
 vep_version: '103'
-vcf_files: tests/data/ingest_demo/generic_case_control.final.filtered.vcf
 sample_no: 2
 case_id: 'seed_case'
 control_id: 'seed_control'
@@ -27,6 +26,12 @@ control_sequencing_run: 'seed_run'
 control_reads: 45889968
 control_purity: null
 paired: true
-cnv: tests/data/ingest_demo/generic_case_control.cnvs.merged.json
-cnvprofile: tests/data/ingest_demo/generic_case_control.modeled.png
-cov: tests/data/ingest_demo/generic_case_control.cov.json
+files:
+  vcf_files:
+    path: tests/data/ingest_demo/generic_case_control.final.filtered.vcf
+  cnv:
+    path: tests/data/ingest_demo/generic_case_control.cnvs.merged.json
+  cnvprofile:
+    path: tests/data/ingest_demo/generic_case_control.modeled.png
+  cov:
+    path: tests/data/ingest_demo/generic_case_control.cov.json

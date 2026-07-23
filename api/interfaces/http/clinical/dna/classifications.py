@@ -32,8 +32,6 @@ def set_resource_tier_bulk(
     sample = _get_sample_for_api(sample_id, user)
     resource_type = str(payload.get("resource_type", "small_variant"))
     resource_ids = payload.get("resource_ids", payload.get("variant_ids", [])) or []
-    assay_group = payload.get("assay_group")
-    subpanel = payload.get("subpanel")
     apply = payload.get("apply", True)
     tier_raw = payload.get("tier", 3)
     try:
@@ -47,8 +45,6 @@ def set_resource_tier_bulk(
             sample=sample,
             resource_type=resource_type,
             resource_ids=resource_ids,
-            assay_group=assay_group,
-            subpanel=subpanel,
             apply=bool(apply),
             class_num=class_num,
             create_annotation_text_fn=create_annotation_text_from_gene,
@@ -78,10 +74,10 @@ def classify_resource_change(
     service: ResourceClassificationService = Depends(get_classification_service),
 ):
     """Create a classification for a resource."""
-    _get_sample_for_api(sample_id, user)
+    sample = _get_sample_for_api(sample_id, user)
     resource_type = str(payload.get("resource_type", "small_variant"))
     target_id = str(payload.get("id", "unknown"))
-    form_data = payload.get("form_data", {})
+    form_data = {**(payload.get("form_data", {}) or {}), **service.classification_context(sample)}
     service.classify_resource(
         resource_type=resource_type,
         form_data=form_data,
@@ -110,10 +106,10 @@ def remove_classified_resource_change(
     service: ResourceClassificationService = Depends(get_classification_service),
 ):
     """Remove a classification from a resource."""
-    _get_sample_for_api(sample_id, user)
+    sample = _get_sample_for_api(sample_id, user)
     resource_type = str(payload.get("resource_type", "small_variant"))
     target_id = str(payload.get("id", "unknown"))
-    form_data = payload.get("form_data", {})
+    form_data = {**(payload.get("form_data", {}) or {}), **service.classification_context(sample)}
     service.remove_resource(
         resource_type=resource_type,
         form_data=form_data,

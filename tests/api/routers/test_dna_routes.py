@@ -57,6 +57,18 @@ def _biomarker_service() -> biomarker_router.BiomarkerService:
 
 def _classification_service() -> classification_router.ResourceClassificationService:
     """Build a classification service for route tests."""
+    assay_configuration_repository = SimpleNamespace(
+        get_aspc_no_meta=lambda assay, profile, subpanel: {
+            **fx.assay_config_doc(),
+            "_id": "aspc-1",
+            "aspc_id": f"{assay}:{profile}:{subpanel}",
+            "asp_id": assay,
+            "asp_group": "dna",
+            "subpanel_id": subpanel,
+            "environment": profile,
+            "version": 1,
+        }
+    )
     return classification_router.ResourceClassificationService(
         annotation_repository=store.annotation_repository,
         variant_repository=store.variant_repository,
@@ -64,6 +76,7 @@ def _classification_service() -> classification_router.ResourceClassificationSer
         fusion_repository=store.fusion_repository,
         copy_number_variant_repository=store.copy_number_variant_repository,
         translocation_repository=store.translocation_repository,
+        assay_configuration_repository=assay_configuration_repository,
     )
 
 
@@ -591,14 +604,17 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
     monkeypatch.setattr(
         classification_router.util.common,
         "create_classified_variant_doc",
-        lambda variant, nomenclature, class_num, variant_data, **kwargs: {
-            "variant": variant,
-            "nomenclature": nomenclature,
-            "class": class_num if "text" not in kwargs else None,
-            "text": kwargs.get("text"),
-            "source": kwargs.get("source"),
-            "variant_data": variant_data,
-        },
+        lambda variant, nomenclature, class_num, variant_data, **kwargs: (
+            pytest.fail("Classification annotations must not store a source field")
+            if "source" in kwargs
+            else {
+                "variant": variant,
+                "nomenclature": nomenclature,
+                "class": class_num if "text" not in kwargs else None,
+                "text": kwargs.get("text"),
+                "variant_data": variant_data,
+            }
+        ),
     )
     monkeypatch.setattr(
         store.annotation_repository,
@@ -628,6 +644,12 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
     assert len(captured["docs"]) == 2
     assert any(doc.get("class") == 3 for doc in captured["docs"])
     assert any(doc.get("text") == "AUTO_TEXT" for doc in captured["docs"])
+    assert set(captured["docs"][0]["variant_data"]) == {
+        "assay_group",
+        "subpanel",
+        "gene",
+        "transcript",
+    }
 
 
 def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatch):

@@ -580,9 +580,6 @@ class AnnotationsRepository(BaseRepository):
         else:
             document["class"] = class_num
 
-        if "source" in kwargs:
-            document["source"] = kwargs["source"]
-
         if nomenclature != "f":
             document["gene"] = variant_data.get("gene", None)
             document["transcript"] = variant_data.get("transcript", None)
@@ -638,7 +635,6 @@ class AnnotationsRepository(BaseRepository):
         delete_clause: list[dict] = [class_filter]
         if annotation_text:
             delete_clause.append({"text": annotation_text})
-            delete_clause.append({"source": "bulk_tier_default_text"})
 
         scoped_query = {**query, "$or": delete_clause}
         classified_docs = list(self.get_collection().find(scoped_query))

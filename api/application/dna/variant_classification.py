@@ -21,6 +21,7 @@ def set_variant_tier_bulk(
 ) -> None:
     """Apply or remove variant classifications in bulk."""
     bulk_docs: list[dict[str, object]] = []
+    create_automatic_text = class_num == 3
     for variant_id in resource_ids:
         var = service.variant_repository.get_variant(str(variant_id))
         if not var:
@@ -36,7 +37,11 @@ def set_variant_tier_bulk(
         hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
         consequence = consequence_list(selected_csq.get("Consequence"))
         gene_oncokb = service.oncokb_repository.get_oncokb_gene(gene)
-        text = create_annotation_text_fn(gene, consequence, assay_group, gene_oncokb=gene_oncokb)
+        text = None
+        if create_automatic_text:
+            text = create_annotation_text_fn(
+                gene, consequence, assay_group, gene_oncokb=gene_oncokb
+            )
 
         nomenclature = "p"
         if hgvs_p not in {"", None}:
@@ -61,7 +66,7 @@ def set_variant_tier_bulk(
                 nomenclature=nomenclature,
                 variant_data=variant_data,
                 class_num=class_num,
-                annotation_text=text,
+                annotation_text=text if create_automatic_text else None,
             )
             continue
 
@@ -75,18 +80,18 @@ def set_variant_tier_bulk(
                 )
             )
         )
-        bulk_docs.append(
-            deepcopy(
-                create_classified_variant_doc_fn(
-                    variant=variant,
-                    nomenclature=nomenclature,
-                    class_num=class_num,
-                    variant_data=variant_data,
-                    text=text,
-                    source="bulk_tier_default_text",
+        if create_automatic_text:
+            bulk_docs.append(
+                deepcopy(
+                    create_classified_variant_doc_fn(
+                        variant=variant,
+                        nomenclature=nomenclature,
+                        class_num=class_num,
+                        variant_data=variant_data,
+                        text=text,
+                    )
                 )
             )
-        )
 
     if bulk_docs:
         service.annotation_repository.insert_annotation_bulk(bulk_docs)

@@ -17,7 +17,12 @@ case_ffpe: false
 case_sequencing_run: 'RUN_RNA_DEMO_001'
 case_reads: 1000000
 paired: false
-fusion_files: tests/fixtures/db_dummy/all_collections_dummy/fusions.json
-expression_path: tests/fixtures/db_dummy/all_collections_dummy/rna_expression.json
-classification_path: tests/fixtures/db_dummy/all_collections_dummy/rna_classification.json
-qc: tests/fixtures/db_dummy/all_collections_dummy/rna_qc.json
+files:
+  fusion_files:
+    path: tests/fixtures/db_dummy/all_collections_dummy/fusions.json
+  expression_path:
+    path: tests/fixtures/db_dummy/all_collections_dummy/rna_expression.json
+  classification_path:
+    path: tests/fixtures/db_dummy/all_collections_dummy/rna_classification.json
+  qc:
+    path: tests/fixtures/db_dummy/all_collections_dummy/rna_qc.json

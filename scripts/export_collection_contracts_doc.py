@@ -40,9 +40,12 @@ def main() -> int:
     lines.append("## Cross-collection relations")
     lines.append("")
     lines.append(
-        "- `samples.assay` must match `asp_configs.assay_name` and `assay_specific_panels.asp_id`."
+        "- `samples.assay` must match `asp_configs.asp_id` and `assay_specific_panels.asp_id`."
     )
-    lines.append("- `samples.profile` maps to ASPC lookup as `aspc_id = <assay>:<profile>`.")
+    lines.append(
+        "- Initial ASPC resolution uses `samples.assay`, `samples.subpanel_id`, and "
+        "`samples.profile`; the resolved ObjectId/key/version are persisted on the sample."
+    )
     lines.append(
         "- `insilico_genelists.assays[]` and `assay_groups[]` must map to ASP/ASPC assay setup."
     )

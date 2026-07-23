@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query, Request
 
 from api.app.container import util
 from api.app.deps.services import get_admin_sample_service
@@ -74,6 +74,7 @@ def admin_sample_context_read(
     summary="Update admin sample",
 )
 def update_sample_change(
+    request: Request,
     sample_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="sample:edit:own")),
@@ -90,9 +91,17 @@ def update_sample_change(
     Returns:
         dict: Mutation response payload.
     """
-    return util.common.convert_to_serializable(
-        service.update(sample_id=sample_id, payload=payload, actor_username=user.username)
-    )
+    result = service.update(sample_id=sample_id, payload=payload, actor_username=user.username)
+    request.state.audit_resource = {
+        "type": "sample",
+        "id": result.get("meta", {}).get("sample_oid") or result.get("resource_id"),
+        "name": result.get("meta", {}).get("sample_name"),
+        "message": f"Updated sample {result.get('meta', {}).get('sample_name') or sample_id}",
+        "metadata": {
+            "sample_oid": result.get("meta", {}).get("sample_oid") or sample_id,
+        },
+    }
+    return util.common.convert_to_serializable(result)
 
 
 @router.delete(
@@ -101,6 +110,7 @@ def update_sample_change(
     summary="Delete admin sample",
 )
 def delete_sample_change(
+    request: Request,
     sample_id: str,
     user: ApiUser = Depends(require_access(permission="sample:delete:global")),
     service: ResourceSampleService = Depends(get_admin_sample_service),
@@ -116,4 +126,15 @@ def delete_sample_change(
         dict: Mutation response payload.
     """
     _ = user
-    return util.common.convert_to_serializable(service.delete(sample_id=sample_id))
+    result = service.delete(sample_id=sample_id)
+    request.state.audit_resource = {
+        "type": "sample",
+        "id": result.get("meta", {}).get("sample_oid") or sample_id,
+        "name": result.get("meta", {}).get("sample_name"),
+        "message": f"Deleted sample {result.get('meta', {}).get('sample_name') or sample_id}",
+        "metadata": {
+            "sample_oid": result.get("meta", {}).get("sample_oid") or sample_id,
+            "deletion_results": result.get("meta", {}).get("results", []),
+        },
+    }
+    return util.common.convert_to_serializable(result)

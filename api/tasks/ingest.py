@@ -247,7 +247,10 @@ def ingest_sample_bundle_task(
             resource_type="sample",
             resource_id=str(result.get("sample_id", "")),
             resource_name=str(result.get("sample_name", "")),
-            metadata={"task_id": self.request.id, "counts": result.get("counts")},
+            metadata={
+                "task_id": self.request.id,
+                "counts": result.get("counts") or result.get("data_counts"),
+            },
         )
         return _serializable(result)
     except Exception as exc:

@@ -273,6 +273,7 @@ class DnaStructuralService:
                 "name": sample.get("name"),
                 "assay": sample.get("assay"),
                 "profile": sample.get("profile"),
+                "files": deepcopy(sample.get("files") or {}),
             },
             "meta": {
                 "request_path": request.url.path,

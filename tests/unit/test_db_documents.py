@@ -415,7 +415,7 @@ def test_collection_validator_normalizes_aspc_analysis_aliases():
             "environment": "development",
             "asp_group": "hematology",
             "asp_category": "dna",
-            "analysis_types": ["snv", "tmb", "pgx", "cnv profile"],
+            "analysis_types": ["snv", "tmb", "pgx", "cnv profile", "coverage"],
             "display_name": "Assay 1 Dev",
             "filters": {"vep_consequences": ["missense"], "cnveffects": ["gain", "loss"]},
             "reporting": {
@@ -430,7 +430,7 @@ def test_collection_validator_normalizes_aspc_analysis_aliases():
         },
     )
 
-    assert payload["analysis_types"] == ["SNV", "TMB", "PGX", "CNV_PROFILE"]
+    assert payload["analysis_types"] == ["SNV", "TMB", "PGX", "CNV_PROFILE", "COVERAGE"]
     assert payload["reporting"]["report_sections"] == ["TMB", "CNV_PROFILE"]
 
 

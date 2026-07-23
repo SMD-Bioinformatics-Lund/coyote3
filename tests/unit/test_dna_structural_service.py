@@ -52,9 +52,15 @@ class _RepoStub:
         self.copy_number_variant_repository = _CnvHandlerStub()
         self.translocation_repository = _TranslocHandlerStub()
         self.assay_panel_repository = SimpleNamespace(get_asp=lambda asp_name: {"_id": asp_name})
-        self.gene_list_repository = SimpleNamespace(get_isgl_by_ids=lambda ids: {i: [] for i in ids})
-        self.bam_record_repository = SimpleNamespace(get_bams=lambda sample_ids: {"ids": sample_ids})
-        self.vep_metadata_repository = SimpleNamespace(get_conseq_translations=lambda _vep: {"A": "B"})
+        self.gene_list_repository = SimpleNamespace(
+            get_isgl_by_ids=lambda ids: {i: [] for i in ids}
+        )
+        self.bam_record_repository = SimpleNamespace(
+            get_bams=lambda sample_ids: {"ids": sample_ids}
+        )
+        self.vep_metadata_repository = SimpleNamespace(
+            get_conseq_translations=lambda _vep: {"A": "B"}
+        )
 
 
 class _UtilModule:
@@ -69,7 +75,19 @@ class _UtilModule:
 
 
 def _sample() -> dict:
-    return {"_id": "S1", "name": "sample1", "assay": "WGS", "profile": "production", "filters": {}}
+    return {
+        "_id": "S1",
+        "name": "sample1",
+        "assay": "WGS",
+        "profile": "production",
+        "filters": {},
+        "files": {
+            "cnvprofile": {
+                "path": "/data/sample1.cnv.png",
+                "size_bytes": 1024,
+            }
+        },
+    }
 
 
 def _request(path: str):
@@ -185,6 +203,7 @@ def test_list_cnvs_payload_returns_count(monkeypatch):
 
     assert payload["meta"]["count"] == 2
     assert payload["sample"]["id"] == "S1"
+    assert payload["sample"]["files"]["cnvprofile"]["path"] == "/data/sample1.cnv.png"
 
 
 def test_show_cnv_payload_rejects_cross_sample(monkeypatch):

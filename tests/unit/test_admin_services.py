@@ -897,7 +897,8 @@ def _asp_service(repo: _AdminRepoStub) -> AspService:
 def _isgl_service(repo: _AdminRepoStub) -> IsglService:
     store = _build_store(repo)
     return IsglService(
-        gene_list_repository=store.gene_list_repository, assay_panel_repository=store.assay_panel_repository
+        gene_list_repository=store.gene_list_repository,
+        assay_panel_repository=store.assay_panel_repository,
     )
 
 
@@ -952,7 +953,9 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
     _patch_admin_stores(monkeypatch, repo)
     service = _user_service(repo)
     monkeypatch.setattr("api.application.accounts.users.current_actor", lambda username: username)
-    monkeypatch.setattr("api.application.accounts.users.utc_now", lambda: datetime.now(timezone.utc))
+    monkeypatch.setattr(
+        "api.application.accounts.users.utc_now", lambda: datetime.now(timezone.utc)
+    )
     monkeypatch.setattr(
         shared_util,
         "records",
@@ -987,12 +990,12 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
 
     payload = service.create_user(
         payload={
-                "form_data": {
-                    "username": "NewTester",
-                        "email": "NewTester@Example.com",
-                        "password": "secret",
-                        "roles": ["admin"],
-                    }
+            "form_data": {
+                "username": "NewTester",
+                "email": "NewTester@Example.com",
+                "password": "secret",
+                "roles": ["admin"],
+            }
         },
         actor_username="actor@example.com",
     )
@@ -1240,12 +1243,19 @@ def test_admin_sample_service_update_restores_ids(monkeypatch):
     _patch_admin_stores(monkeypatch, repo)
     service = _resource_sample_service(repo)
     monkeypatch.setattr("api.application.resources.sample.current_actor", lambda username: username)
-    monkeypatch.setattr("api.application.resources.sample.utc_now", lambda: datetime.now(timezone.utc))
+    monkeypatch.setattr(
+        "api.application.resources.sample.utc_now", lambda: datetime.now(timezone.utc)
+    )
     service.records_util = SimpleNamespace(restore_object_ids=lambda payload: payload)
 
     payload = service.update(
-        sample_id="S1", payload={"sample": {"field": "value"}}, actor_username="actor@example.com"
+        sample_id="S1",
+        payload={"sample": {"name": "CASE_1", "field": "value"}},
+        actor_username="actor@example.com",
     )
 
     assert payload["resource"] == "sample"
+    assert payload["resource_id"] == "S1"
+    assert payload["meta"]["sample_name"] == "CASE_1"
+    assert payload["meta"]["sample_oid"] == "S1"
     assert repo.updated_sample_doc[0] == "S1"

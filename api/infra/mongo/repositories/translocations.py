@@ -59,6 +59,22 @@ class TranslocsRepository(BaseRepository):
             background=True,
         )
 
+    @staticmethod
+    def _normalize_info_shape(document: dict | None) -> dict | None:
+        """Expose the canonical object-shaped INFO contract at the repository boundary."""
+        if not isinstance(document, dict):
+            return document
+        normalized = dict(document)
+        info = normalized.get("INFO")
+        if isinstance(info, list):
+            normalized["INFO"] = next(
+                (item for item in info if isinstance(item, dict)),
+                {},
+            )
+        elif not isinstance(info, dict):
+            normalized["INFO"] = {}
+        return normalized
+
     def get_sample_translocations(self, sample_id: str | dict) -> list:
         """
         Retrieve all translocations for a given sample.
@@ -70,8 +86,10 @@ class TranslocsRepository(BaseRepository):
             list: A list of translocations matching the sample ID.
         """
         if isinstance(sample_id, dict):
-            return list(self.get_collection().find(sample_id))
-        return list(self.get_collection().find({"SAMPLE_ID": sample_id}))
+            rows = list(self.get_collection().find(sample_id))
+        else:
+            rows = list(self.get_collection().find({"SAMPLE_ID": sample_id}))
+        return [self._normalize_info_shape(row) for row in rows]
 
     def get_interesting_sample_translocations(
         self, sample_id: str, interesting: bool = True
@@ -86,9 +104,10 @@ class TranslocsRepository(BaseRepository):
         Returns:
             list: A list of translocations matching the sample ID and interesting flag.
         """
-        return list(
+        rows = list(
             self.get_collection().find({"SAMPLE_ID": sample_id, "interesting": interesting})
         )
+        return [self._normalize_info_shape(row) for row in rows]
 
     def get_transloc(self, transloc_id: str) -> dict:
         """
@@ -103,7 +122,9 @@ class TranslocsRepository(BaseRepository):
         Raises:
             bson.errors.InvalidId: If the provided `transloc_id` is not a valid ObjectId.
         """
-        return self.get_collection().find_one({"_id": ObjectId(transloc_id)})
+        return self._normalize_info_shape(
+            self.get_collection().find_one({"_id": ObjectId(transloc_id)})
+        )
 
     def get_transloc_annotations(self, tl: dict) -> list:
         """
