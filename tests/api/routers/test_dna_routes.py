@@ -260,6 +260,38 @@ def test_list_dna_variants_missing_asp_raises_specific_422(monkeypatch):
     assert exc.value.detail["error"] == "ASP not registered for assay 'unknown_assay'"
 
 
+def test_dna_sample_comment_suggestion_uses_filtered_summary(monkeypatch):
+    """The sample-comment suggestion exposes the existing filtered DNA summary."""
+    sample = {**fx.sample_doc(), "_id": "sample-1", "name": "S1"}
+    captured = {}
+    service = SimpleNamespace(
+        list_variants_payload=lambda **kwargs: (
+            captured.update(kwargs) or {"ai_text": "Filtered clinical summary"}
+        )
+    )
+    request = SimpleNamespace(
+        url=SimpleNamespace(path="/api/v1/samples/S1/small-variants/comment-suggestion"),
+        query_params={},
+    )
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = dna.dna_sample_comment_suggestion(
+        request=request,
+        sample_id="S1",
+        user=fx.api_user(),
+        service=service,
+    )
+
+    assert captured["paginate"] is False
+    assert payload == {
+        "sample_id": "sample-1",
+        "sample_name": "S1",
+        "analysis": "dna",
+        "suggested_text": "Filtered clinical summary",
+    }
+
+
 def test_list_dna_variants_missing_aspc_raises_specific_422(monkeypatch):
     """Missing ASPC should include the assay and environment in the error."""
     sample = fx.sample_doc()
@@ -738,6 +770,7 @@ def test_bulk_flag_routes_use_non_colliding_paths():
     assert "/api/v1/samples/{sample_id}/classifications" in paths
     assert "/api/v1/samples/{sample_id}/annotations" in paths
     assert "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/false-positive" in paths
+    assert "/api/v1/samples/{sample_id}/small-variants/comment-suggestion" in paths
     assert "/api/v1/samples/{sample_id}/small-variants/exports/snvs/context" in paths
     assert "/api/v1/samples/{sample_id}/cnvs/exports/context" in paths
     assert "/api/v1/samples/{sample_id}/translocations/exports/context" in paths

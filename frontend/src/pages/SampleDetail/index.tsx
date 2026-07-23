@@ -77,6 +77,17 @@ export function SampleDetail() {
   const sampleRouteKey = sampleUrlKey(sample, id)
   const tabs = useMemo(() => visibleTabs(data?.sample || {}, data), [data])
   const activeTab = tabs.some((tab) => tab.id === requestedTab) ? requestedTab : "overview"
+  const showComments = ["snvs", "cnvs", "fusions", "translocations"].includes(activeTab)
+  const showFilters = ["snvs", "cnvs", "fusions", "translocations"].includes(activeTab)
+  const suggestionPath = String(sample?.omics_layer || "").toLowerCase() === "rna"
+    ? `/samples/${sampleRouteKey}/fusions/comment-suggestion`
+    : `/samples/${sampleRouteKey}/small-variants/comment-suggestion`
+  const { data: commentSuggestion } = useQuery({
+    queryKey: ["sample-comment-suggestion", sampleRouteKey, sample?.omics_layer],
+    queryFn: () => api.get(suggestionPath).then((res) => res.data),
+    enabled: Boolean(data) && showComments && Boolean(sampleRouteKey),
+    staleTime: 60_000,
+  })
   useEffect(() => {
     if (sample?.name && id && id !== sample.name) {
       const query = searchParams.toString()
@@ -113,9 +124,6 @@ export function SampleDetail() {
       </div>
     )
   }
-
-  const showComments = ["snvs", "cnvs", "fusions", "translocations"].includes(activeTab)
-  const showFilters = ["snvs", "cnvs", "fusions", "translocations"].includes(activeTab)
 
   return (
     <div className="flex h-full flex-col bg-muted/20">
@@ -193,7 +201,7 @@ export function SampleDetail() {
                   comments={data?.comments || sample?.comments || []}
                   queryKeys={[["sample", id]]}
                   allowGlobal={false}
-                  suggestedText={data?.ai_text || data?.suggested_summary || ""}
+                  suggestedText={commentSuggestion?.suggested_text || ""}
                 />
               </div>
             )}

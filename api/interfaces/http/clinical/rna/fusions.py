@@ -13,7 +13,7 @@ from api.contracts.rna import (
     RnaFusionContextPayload,
     RnaFusionListPayload,
 )
-from api.contracts.samples import SampleChangePayload
+from api.contracts.samples import SampleChangePayload, SampleCommentSuggestionPayload
 from api.interfaces.http.clinical.common.change_helpers import comment_change, resource_change
 from api.interfaces.http.tags import TAG_RNA_FUSIONS
 from api.security.access import ApiUser, _get_sample_for_api, require_access
@@ -32,6 +32,35 @@ def list_rna_fusions(
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.list_fusions_payload(request=request, sample=sample, util_module=util)
+    )
+
+
+@router.get(
+    "/api/v1/samples/{sample_id}/fusions/comment-suggestion",
+    response_model=SampleCommentSuggestionPayload,
+    summary="Generate a filtered RNA sample-comment suggestion",
+)
+def rna_sample_comment_suggestion(
+    request: Request,
+    sample_id: str,
+    user: ApiUser = Depends(require_access()),
+    service: RnaService = Depends(get_rna_service),
+):
+    """Return the established RNA summary text for the current sample filters."""
+    sample = _get_sample_for_api(sample_id, user)
+    payload = service.list_fusions_payload(
+        request=request,
+        sample=sample,
+        util_module=util,
+        paginate=False,
+    )
+    return util.common.convert_to_serializable(
+        {
+            "sample_id": str(sample.get("_id")),
+            "sample_name": str(sample.get("name") or sample_id),
+            "analysis": "rna",
+            "suggested_text": str(payload.get("ai_text") or ""),
+        }
     )
 
 

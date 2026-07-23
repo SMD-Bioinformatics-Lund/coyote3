@@ -32,7 +32,7 @@ from api.contracts.dna import (
     DnaVariantContextPayload,
     DnaVariantsListPayload,
 )
-from api.contracts.samples import SampleChangePayload
+from api.contracts.samples import SampleChangePayload, SampleCommentSuggestionPayload
 from api.domain.core.dna.dna_filters import (
     get_filter_conseq_terms as _shared_get_filter_conseq_terms,
 )
@@ -117,6 +117,42 @@ def list_dna_variants(
             ),
             assay_config_getter=_get_formatted_assay_config,
         )
+    )
+
+
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants/comment-suggestion",
+    response_model=SampleCommentSuggestionPayload,
+    summary="Generate a filtered DNA sample-comment suggestion",
+)
+def dna_sample_comment_suggestion(
+    request: Request,
+    sample_id: str,
+    user: ApiUser = Depends(require_access()),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Return the established DNA summary text for the current sample filters."""
+    sample = _get_sample_for_api(sample_id, user)
+    payload = service.list_variants_payload(
+        request=request,
+        sample=sample,
+        util_module=util,
+        add_global_annotations_fn=add_global_annotations,
+        generate_summary_text_fn=generate_summary_text,
+        build_query_fn=build_query,
+        get_filter_conseq_terms_fn=lambda values: get_filter_conseq_terms(
+            values, sample.get("vep_version")
+        ),
+        assay_config_getter=_get_formatted_assay_config,
+        paginate=False,
+    )
+    return util.common.convert_to_serializable(
+        {
+            "sample_id": str(sample.get("_id")),
+            "sample_name": str(sample.get("name") or sample_id),
+            "analysis": "dna",
+            "suggested_text": str(payload.get("ai_text") or ""),
+        }
     )
 
 

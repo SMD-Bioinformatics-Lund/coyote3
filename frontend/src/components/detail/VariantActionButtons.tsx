@@ -53,6 +53,7 @@ export function VariantActionButtons({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["variant", sampleId, String(variant._id)] })
       queryClient.invalidateQueries({ queryKey: ["sample-variants", sampleId] })
+      queryClient.invalidateQueries({ queryKey: ["sample-comment-suggestion", sampleId] })
       notifySuccess("Blacklist entry added", "The variant was added to the center blacklist.", "Variant actions")
       setConfirmBlacklist(false)
       onUpdate?.()

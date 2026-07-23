@@ -18,6 +18,7 @@ export function useBulkFindingAction(sampleId: string, resourceType: FindingReso
       findingQueryKeys(sampleId, resourceType).forEach((queryKey) => {
         queryClient.invalidateQueries({ queryKey })
       })
+      queryClient.invalidateQueries({ queryKey: ["sample-comment-suggestion", sampleId] })
       notifySuccess(
         "Finding action applied",
         `${variables.action} was applied to ${variables.resourceIds.length} selected item(s).`,
@@ -47,6 +48,7 @@ export function useSingleFindingFlag(sampleId: string, resourceType: FindingReso
       findingQueryKeys(sampleId, resourceType).forEach((queryKey) => {
         queryClient.invalidateQueries({ queryKey })
       })
+      queryClient.invalidateQueries({ queryKey: ["sample-comment-suggestion", sampleId] })
       notifySuccess(
         variables.apply ? "Flag applied" : "Flag removed",
         `${variables.flag} was ${variables.apply ? "applied" : "removed"}.`,

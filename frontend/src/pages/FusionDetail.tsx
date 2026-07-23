@@ -60,6 +60,7 @@ export function FusionDetail() {
     mutationFn: (index: number) => api.patch(`/samples/${id}/fusions/${varId}/selection/${index + 1}/${callsLength}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fusion", id, varId] })
+      queryClient.invalidateQueries({ queryKey: ["sample-comment-suggestion", id] })
       notifySuccess("Fusion call selected", "The selected fusion call was updated.", "fusion")
       refetch()
     },

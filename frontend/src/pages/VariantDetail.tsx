@@ -341,6 +341,7 @@ export function VariantDetail() {
       api.patch(`/samples/${id}/small-variants/${varId}/selected-transcript`, { feature_id: featureId }).then(res => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: variantQueryKey })
+      queryClient.invalidateQueries({ queryKey: ["sample-comment-suggestion", id] })
       refetch()
     },
     onError: (err) => notifyActionError("Unable to select transcript", err, "Transcript selection"),

@@ -93,6 +93,9 @@ export function ClassificationsCard({
         findingQueryKeys(sampleId, resourceType).forEach((queryKey) => {
           queryClient.invalidateQueries({ queryKey })
         })
+        queryClient.invalidateQueries({
+          queryKey: ["sample-comment-suggestion", sampleId],
+        })
       }
       onUpdate?.()
       setPendingTierAction(null)

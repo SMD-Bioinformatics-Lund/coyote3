@@ -79,6 +79,7 @@ function invalidateSampleQueries(queryClient: QueryClient, sampleId: string) {
     "sample-coverage",
     "sample-genelists",
     "sample-effective-genes",
+    "sample-comment-suggestion",
     "report-preview",
   ]) {
     queryClient.invalidateQueries({ queryKey: [key, sampleId] })

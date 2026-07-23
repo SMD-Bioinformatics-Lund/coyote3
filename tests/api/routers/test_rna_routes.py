@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from api.app.container import store
@@ -127,6 +129,34 @@ def test_list_rna_fusions_success(monkeypatch):
     assert payload["ai_text"] == "summary"
 
 
+def test_rna_sample_comment_suggestion_uses_filtered_summary(monkeypatch):
+    """The sample-comment suggestion exposes the existing filtered RNA summary."""
+    sample = {**fx.sample_doc(), "_id": "sample-1", "name": "S1"}
+    captured = {}
+    service = SimpleNamespace(
+        list_fusions_payload=lambda **kwargs: (
+            captured.update(kwargs) or {"ai_text": "Filtered fusion summary"}
+        )
+    )
+    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(rna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = rna.rna_sample_comment_suggestion(
+        request=_Req(),
+        sample_id="S1",
+        user=fx.api_user(),
+        service=service,
+    )
+
+    assert captured["paginate"] is False
+    assert payload == {
+        "sample_id": "sample-1",
+        "sample_name": "S1",
+        "analysis": "rna",
+        "suggested_text": "Filtered fusion summary",
+    }
+
+
 def test_show_rna_fusion_not_found_raises_404(monkeypatch):
     """Test show rna fusion not found raises 404.
 
@@ -161,3 +191,4 @@ def test_restful_rna_mutation_routes_are_registered():
     assert "/api/v1/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/hidden" in paths
     assert "/api/v1/samples/{sample_id}/fusions/flags/false-positive" in paths
     assert "/api/v1/samples/{sample_id}/fusions/flags/irrelevant" in paths
+    assert "/api/v1/samples/{sample_id}/fusions/comment-suggestion" in paths
