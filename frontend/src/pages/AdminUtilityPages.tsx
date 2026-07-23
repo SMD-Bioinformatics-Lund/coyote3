@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DataTable } from "@/components/data-table/DataTable"
+import { fullDateTime, humanRelativeDate, localDate } from "@/lib/detail-formatters"
 
 type Severity = "info" | "warning" | "error" | "critical"
 type TimeWindow = "24h" | "7d" | "30d" | "all"
@@ -261,7 +262,7 @@ export function AdminControlsPage() {
             </div>
             <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
               Last updated by <span className="font-semibold text-foreground">{controls.updated_by || "system defaults"}</span>
-              {controls.updated_on ? ` on ${new Date(controls.updated_on).toLocaleString()}` : ""}.
+              {controls.updated_on ? ` on ${fullDateTime(controls.updated_on)}` : ""}.
             </div>
           </section>
         </div>
@@ -393,7 +394,7 @@ export function AdminAuditPage() {
         <span className="whitespace-nowrap">
           <span className="block text-sm font-semibold">{relativeTime(row.original.occurred_at) || "-"}</span>
           <span className="block text-xs text-muted-foreground">
-            {row.original.occurred_at ? new Date(row.original.occurred_at).toLocaleString() : "-"}
+            {fullDateTime(row.original.occurred_at)}
           </span>
         </span>
       ),
@@ -506,8 +507,10 @@ export function AdminAuditPage() {
           <div className="mt-2 w-80 space-y-1 rounded-lg bg-muted/60 p-2 text-[11px]">
             <Detail label="Request ID" value={row.original.source?.request_id} />
             <Detail label="Request" value={row.original.source?.method && row.original.source?.path ? `${row.original.source.method} ${row.original.source.path}` : null} />
+            <Detail label="Resource name" value={row.original.resource?.name} />
+            <Detail label="Resource ID" value={row.original.resource?.id} />
             <Detail label="Provider" value={row.original.actor?.provider} />
-            <Detail label="Expires" value={row.original.expires_at ? new Date(row.original.expires_at).toLocaleDateString() : null} />
+            <Detail label="Expires" value={row.original.expires_at ? localDate(row.original.expires_at) : null} />
             {row.original.metadata && Object.keys(row.original.metadata).length > 0 && (
               <pre className="mt-2 max-h-36 overflow-auto whitespace-pre-wrap break-all rounded bg-background p-2">{JSON.stringify(row.original.metadata, null, 2)}</pre>
             )}
@@ -678,16 +681,7 @@ function severityRank(value: Severity) {
 }
 
 function relativeTime(value: unknown) {
-  if (!value) return ""
-  const elapsed = Date.now() - new Date(String(value)).getTime()
-  if (!Number.isFinite(elapsed)) return ""
-  const minutes = Math.round(Math.abs(elapsed) / 60_000)
-  if (minutes < 1) return "just now"
-  if (minutes < 60) return `${minutes} min ago`
-  const hours = Math.round(minutes / 60)
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`
-  const days = Math.round(hours / 24)
-  return `${days} day${days === 1 ? "" : "s"} ago`
+  return humanRelativeDate(value, "")
 }
 
 function Detail({ label, value }: { label: string; value: string | null | undefined }) {

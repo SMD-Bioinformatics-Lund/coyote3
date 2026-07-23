@@ -32,18 +32,10 @@ import {
 } from "@/hooks/useClinicalTableState"
 
 const translocationBulkActions: BulkActionOption[] = [
-  { value: "tier_1", label: "Classify as Tier 1" },
-  { value: "tier_2", label: "Classify as Tier 2" },
-  { value: "tier_3", label: "Classify as Tier 3" },
-  { value: "tier_4", label: "Classify as Tier 4" },
-  { value: "remove_tier_1", label: "Remove Tier 1" },
-  { value: "remove_tier_2", label: "Remove Tier 2" },
-  { value: "remove_tier_3", label: "Remove Tier 3" },
-  { value: "remove_tier_4", label: "Remove Tier 4" },
   { value: "fp", label: "Mark False Positive" },
   { value: "unfp", label: "Unmark False Positive" },
-  { value: "interesting", label: "Mark Interesting" },
-  { value: "uninteresting", label: "Unmark Interesting" },
+  { value: "interesting", label: "Include in report" },
+  { value: "uninteresting", label: "Exclude from report" },
 ]
 
 export function TranslocationsTab({ sampleId }: { sampleId: string }) {
@@ -179,7 +171,13 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
       cell: ({ row }) => {
         return (
           <div className="flex items-center gap-1">
-            <VariantActionButtons sampleId={sampleId} resourceType="translocation" variant={row.original} compact />
+            <VariantActionButtons
+              sampleId={sampleId}
+              resourceType="translocation"
+              variant={row.original}
+              compact
+              showReportLabel
+            />
             <Link
               to={`/samples/${sampleId}/translocation/${row.original._id}`}
               state={{ from: `${location.pathname}${location.search}` }}

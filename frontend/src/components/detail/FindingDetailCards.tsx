@@ -1,14 +1,15 @@
+import { useState } from "react"
 import { MessageSquare, Tags } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { TierBadge } from "@/lib/variant-ui"
 import { FindingResourceType, findingQueryKeys } from "@/lib/finding-actions"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
+import { fullDateTime } from "@/lib/detail-formatters"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 
 function timeLabel(value: unknown) {
-  if (!value) return ""
-  const date = new Date(String(value))
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString()
+  return fullDateTime(value, "")
 }
 
 const tierButtonClasses: Record<number, string> = {
@@ -78,6 +79,7 @@ export function ClassificationsCard({
   onUpdate?: () => void
 }) {
   const queryClient = useQueryClient()
+  const [pendingTierAction, setPendingTierAction] = useState<{ tier: number; apply: boolean } | null>(null)
   const tierMutation = useMutation({
     mutationFn: ({ tier, apply }: { tier: number; apply: boolean }) =>
       api.patch(`/samples/${sampleId}/classifications/tier`, {
@@ -93,6 +95,7 @@ export function ClassificationsCard({
         })
       }
       onUpdate?.()
+      setPendingTierAction(null)
       notifySuccess(
         variables.apply ? "Classification updated" : "Classification removed",
         variables.apply ? `Finding classified as Tier ${variables.tier}.` : `Tier ${variables.tier} classification removed.`,
@@ -102,6 +105,11 @@ export function ClassificationsCard({
     onError: (error) => notifyActionError("Unable to update classification", error, "Classification"),
   })
   const canMutate = Boolean(sampleId && resourceType && resourceId)
+  const automaticTextWillBeGenerated = Boolean(
+    pendingTierAction?.apply
+      && pendingTierAction.tier === 3
+      && resourceType === "small_variant",
+  )
 
   return (
     <DetailCard title="Classifications" icon={Tags} tone="border-t-tier1">
@@ -114,7 +122,7 @@ export function ClassificationsCard({
                 <button
                   key={tier}
                   type="button"
-                  onClick={() => tierMutation.mutate({ tier, apply: true })}
+                  onClick={() => setPendingTierAction({ tier, apply: true })}
                   disabled={tierMutation.isPending}
                   className={`rounded-lg px-2.5 py-1.5 text-xs font-black text-white shadow-sm disabled:opacity-50 ${tierButtonClasses[tier]}`}
                 >
@@ -124,7 +132,10 @@ export function ClassificationsCard({
               {[1, 2, 3, 4].includes(Number(latest?.class || latest?.tier)) && (
                 <button
                   type="button"
-                  onClick={() => tierMutation.mutate({ tier: Number(latest?.class || latest?.tier), apply: false })}
+                  onClick={() => setPendingTierAction({
+                    tier: Number(latest?.class || latest?.tier),
+                    apply: false,
+                  })}
                   disabled={tierMutation.isPending}
                   className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-black text-muted-foreground hover:bg-muted disabled:opacity-50"
                 >
@@ -156,6 +167,19 @@ export function ClassificationsCard({
           </div>
         )}
       </div>
+      <ConfirmationDialog
+        open={Boolean(pendingTierAction)}
+        title={pendingTierAction?.apply ? `Classify finding as Tier ${pendingTierAction.tier}?` : `Remove Tier ${pendingTierAction?.tier} classification?`}
+        description={pendingTierAction?.apply
+          ? `This will persist a Tier ${pendingTierAction.tier} classification for the finding.${automaticTextWillBeGenerated ? " The approved Tier III annotation text will also be generated." : " No automatic annotation text is defined for this action."}`
+          : "This removes the selected classification from the current assay and subpanel context."}
+        confirmLabel={pendingTierAction?.apply ? "Set classification" : "Remove classification"}
+        isPending={tierMutation.isPending}
+        onConfirm={() => {
+          if (pendingTierAction) tierMutation.mutate(pendingTierAction)
+        }}
+        onCancel={() => setPendingTierAction(null)}
+      />
     </DetailCard>
   )
 }

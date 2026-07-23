@@ -1,7 +1,8 @@
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link, useLocation } from "react-router-dom"
 import { api } from "@/lib/api"
-import { AlertTriangle, ExternalLink, Image as ImageIcon } from "lucide-react"
+import { AlertTriangle, ExternalLink, Image as ImageIcon, RotateCw } from "lucide-react"
 import { DataTable } from "@/components/data-table/DataTable"
 import { BulkActionDropdown, BulkActionOption } from "@/components/data-table/BulkActionDropdown"
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
@@ -12,6 +13,9 @@ import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { sampleFileName, hasSampleFile } from "@/lib/sample-shape"
 import { apiPath } from "@/lib/runtime-paths"
+import { ResizableSplitPane } from "@/components/layout/ResizableSplitPane"
+import { Button } from "@/components/ui/button"
+import { RotatableImage } from "@/components/detail/RotatableImage"
 import {
   CLINICAL_TABLE_CACHE_MS,
   CLINICAL_TABLE_STALE_MS,
@@ -19,18 +23,10 @@ import {
 } from "@/hooks/useClinicalTableState"
 
 const cnvBulkActions: BulkActionOption[] = [
-  { value: "tier_1", label: "Classify as Tier 1" },
-  { value: "tier_2", label: "Classify as Tier 2" },
-  { value: "tier_3", label: "Classify as Tier 3" },
-  { value: "tier_4", label: "Classify as Tier 4" },
-  { value: "remove_tier_1", label: "Remove Tier 1" },
-  { value: "remove_tier_2", label: "Remove Tier 2" },
-  { value: "remove_tier_3", label: "Remove Tier 3" },
-  { value: "remove_tier_4", label: "Remove Tier 4" },
   { value: "fp", label: "Mark False Positive" },
   { value: "unfp", label: "Unmark False Positive" },
-  { value: "interesting", label: "Mark Interesting" },
-  { value: "uninteresting", label: "Unmark Interesting" },
+  { value: "interesting", label: "Include in report" },
+  { value: "uninteresting", label: "Exclude from report" },
   { value: "noteworthy", label: "Mark Noteworthy" },
   { value: "unnoteworthy", label: "Unmark Noteworthy" },
 ]
@@ -38,6 +34,7 @@ const cnvBulkActions: BulkActionOption[] = [
 export function CNVTab({ sampleId }: { sampleId: string }) {
   const bulkAction = useBulkFindingAction(sampleId, "cnv")
   const location = useLocation()
+  const [profileRotation, setProfileRotation] = useState(0)
   const {
     page,
     perPage,
@@ -219,7 +216,13 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
       cell: ({ row }) => {
         return (
           <div className="flex items-center gap-1">
-            <VariantActionButtons sampleId={sampleId} resourceType="cnv" variant={row.original} compact />
+            <VariantActionButtons
+              sampleId={sampleId}
+              resourceType="cnv"
+              variant={row.original}
+              compact
+              showReportLabel
+            />
             <Link
               to={`/samples/${sampleId}/cnv/${row.original._id}`}
               state={{ from: `${location.pathname}${location.search}` }}
@@ -233,33 +236,8 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
     }
   ]
 
-  return (
-    <div className="space-y-4 flex flex-col">
-      <div className="flex flex-col xl:flex-row gap-4 pb-4">
-        {hasCnvImage && (
-          <div className="glass-card w-full xl:w-2/5 flex flex-col overflow-hidden h-[600px]">
-            <div className="bg-muted/50 p-3 border-b border-border/50 flex justify-between items-center">
-              <h4 className="font-semibold text-sm flex items-center gap-2">
-                <ImageIcon className="w-4 h-4" /> CNV Profile
-              </h4>
-            </div>
-            <div className="p-4 flex flex-col items-center justify-center bg-muted/10 flex-1 overflow-auto">
-              <img
-                src={apiPath(`/samples/${sampleId}/plots/${cnvProfileName}?rotated=true`)}
-                alt="CNV Profile"
-                className="max-w-full rounded shadow-sm border border-border"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-              <div className="mt-4 flex gap-2">
-                <a href={`http://gens.coyote.local/${sample.name}`} target="_blank" rel="noreferrer" className="rounded bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/20">
-                  Open in Gens
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className={`glass-card w-full ${hasCnvImage ? 'xl:w-3/5' : 'w-full'} flex flex-col overflow-hidden p-2`}>
+  const tablePane = (
+    <div className="glass-card flex w-full min-w-0 flex-col overflow-hidden p-2">
           <DataTable
             columns={columns}
             data={cnvs}
@@ -273,28 +251,79 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
             filename={`cnvs_${sampleId}.csv`}
             getRowClassName={findingRowClass}
             renderToolbar={(table) => (
-              <>
-                <BulkActionDropdown
-                  selectedCount={Object.keys(table.getState().rowSelection).length}
-                  actions={cnvBulkActions}
-                  isPending={bulkAction.isPending}
-                  onAction={(action) => bulkAction.mutateAsync({
-                    action,
-                    resourceIds: table.getSelectedRowModel().rows.map((row: any) => String(row.original._id)),
-                  })}
-                />
-              </>
+              <BulkActionDropdown
+                selectedCount={Object.keys(table.getState().rowSelection).length}
+                actions={cnvBulkActions}
+                isPending={bulkAction.isPending}
+                onAction={(action) => bulkAction.mutateAsync({
+                  action,
+                  resourceIds: table.getSelectedRowModel().rows.map((row: any) => String(row.original._id)),
+                })}
+              />
             )}
             renderExportButton={() => (
-                <ServerCsvButton
-                  endpoint={`/samples/${sampleId}/cnvs/exports/context`}
-                  fallbackFilename={`${sampleId}.filtered.cnvs.csv`}
-                  label="Export to CSV"
-                />
+              <ServerCsvButton
+                endpoint={`/samples/${sampleId}/cnvs/exports/context`}
+                fallbackFilename={`${sampleId}.filtered.cnvs.csv`}
+                label="Export to CSV"
+              />
             )}
           />
+    </div>
+  )
+
+  const profilePane = hasCnvImage ? (
+    <div className="glass-card flex w-full min-w-0 flex-col overflow-hidden">
+      <div className="flex items-center justify-between border-b border-border/50 bg-muted/50 p-3">
+        <h4 className="flex items-center gap-2 text-sm font-semibold">
+          <ImageIcon className="size-4" /> CNV Profile
+        </h4>
+        <div className="flex items-center gap-2">
+          <span className="text-xs tabular-nums text-muted-foreground">{profileRotation}°</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            title={profileRotation === 0 ? "Rotate profile 90 degrees" : "Restore original orientation"}
+            aria-label={profileRotation === 0 ? "Rotate CNV profile 90 degrees" : "Restore CNV profile orientation"}
+            onClick={() => setProfileRotation((rotation) => rotation === 0 ? 90 : 0)}
+          >
+            <RotateCw aria-hidden="true" />
+          </Button>
         </div>
       </div>
+      <div className="flex min-h-72 flex-col bg-muted/10 p-3">
+        <RotatableImage
+          key={cnvProfileName}
+          src={apiPath(`/samples/${sampleId}/plots/${cnvProfileName}`)}
+          href={apiPath(`/samples/${sampleId}/plots/${cnvProfileName}`)}
+          alt={`CNV profile for ${sample.name || sampleId}`}
+          rotation={profileRotation}
+          fit="width"
+          className="p-2"
+        />
+        <div className="mt-3 flex justify-center">
+          <a href={`http://gens.coyote.local/${sample.name}`} target="_blank" rel="noreferrer" className="rounded bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/20">
+            Open in Gens
+          </a>
+        </div>
+      </div>
+    </div>
+  ) : null
+
+  return (
+    <div className="flex flex-col space-y-4 pb-4">
+      {profilePane ? (
+        <ResizableSplitPane
+          primary={tablePane}
+          secondary={profilePane}
+          storageKey="coyote3:cnv-profile-split"
+          initialPrimarySize={65}
+          minPrimarySize={35}
+          maxPrimarySize={80}
+          separatorLabel="Resize CNV table and profile panes"
+        />
+      ) : tablePane}
     </div>
   )
 }

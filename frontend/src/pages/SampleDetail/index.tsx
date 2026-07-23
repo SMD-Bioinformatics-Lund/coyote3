@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo } from "react"
 import { useNavigate, useParams, Link, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
@@ -30,9 +30,34 @@ const TABS = [
 function visibleTabs(sample: any, context: any) {
   const configured = new Set((context?.analysis_sections || []).map((item: string) => String(item).toUpperCase()))
   const hasConfiguredSections = configured.size > 0
+  const hasCount = (key: string) => {
+    const value = sample?.data_counts?.[key]
+    return value === true || Number(value || 0) > 0
+  }
+  const hasAnalysis = (...keys: string[]) => keys.some((key) => configured.has(key))
   return TABS.filter((tab) => {
+    if (tab.id === "coverage") {
+      const isDna = String(sample?.omics_layer || "").toLowerCase() === "dna"
+      const hasResource = hasSampleFile(sample, "cov") || hasCount("cov")
+      return isDna && hasResource && (!hasConfiguredSections || hasAnalysis("COVERAGE"))
+    }
     if (!("analysis" in tab)) return true
-    if (tab.id === "coverage") return hasSampleFile(sample, "cov") && (!hasConfiguredSections || configured.has("COVERAGE") || configured.has("COV"))
+    if (tab.id === "snvs") {
+      const hasResource = hasSampleFile(sample, "vcf_files") || hasCount("snvs")
+      return hasResource && (!hasConfiguredSections || hasAnalysis("SNV", "SMALL_VARIANT"))
+    }
+    if (tab.id === "cnvs") {
+      const hasResource = hasSampleFile(sample, "cnv") || hasCount("cnvs")
+      return hasResource && (!hasConfiguredSections || hasAnalysis("CNV"))
+    }
+    if (tab.id === "translocations") {
+      const hasResource = hasSampleFile(sample, "transloc") || hasCount("transloc")
+      return hasResource && (!hasConfiguredSections || hasAnalysis("TRANSLOCATION", "TRANSLOC"))
+    }
+    if (tab.id === "fusions") {
+      const hasResource = hasSampleFile(sample, "fusion_files") || hasCount("fusions")
+      return hasResource && (!hasConfiguredSections || hasAnalysis("FUSION"))
+    }
     if (!hasConfiguredSections) return true
     return configured.has(String(tab.analysis).toUpperCase())
   })
@@ -42,8 +67,7 @@ export function SampleDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const initialTab = searchParams.get("tab") || "overview"
-  const [activeTab, setActiveTab] = useState(initialTab)
+  const requestedTab = searchParams.get("tab") || "overview"
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['sample', id],
@@ -52,6 +76,7 @@ export function SampleDetail() {
   const sample = data?.sample || {}
   const sampleRouteKey = sampleUrlKey(sample, id)
   const tabs = useMemo(() => visibleTabs(data?.sample || {}, data), [data])
+  const activeTab = tabs.some((tab) => tab.id === requestedTab) ? requestedTab : "overview"
   useEffect(() => {
     if (sample?.name && id && id !== sample.name) {
       const query = searchParams.toString()
@@ -59,20 +84,15 @@ export function SampleDetail() {
     }
   }, [id, navigate, sample?.name, searchParams])
   useEffect(() => {
-    const tab = searchParams.get("tab") || "overview"
-    if (tab !== activeTab) {
-      setActiveTab(tab)
-    }
-  }, [activeTab, searchParams])
-  useEffect(() => {
-    if (!tabs.some((tab) => tab.id === activeTab)) {
-      setActiveTab("overview")
-      setSearchParams({}, { replace: true })
-    }
-  }, [activeTab, setSearchParams, tabs])
+    if (!data || tabs.some((tab) => tab.id === requestedTab)) return
+    setSearchParams((current) => {
+      const params = new URLSearchParams(current)
+      params.delete("tab")
+      return params
+    }, { replace: true })
+  }, [data, requestedTab, setSearchParams, tabs])
 
   const selectTab = (tabId: string) => {
-    setActiveTab(tabId)
     setSearchParams((current) => {
       const params = new URLSearchParams(current)
       if (tabId === "overview") params.delete("tab")

@@ -1,10 +1,21 @@
 import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { AlertCircle, Ban, Bookmark, ShieldCheck, XCircle, XSquare } from "lucide-react"
+import { AlertCircle, Ban, Bookmark, FileCheck2, ShieldCheck, XCircle, XSquare } from "lucide-react"
 import { api } from "@/lib/api"
 import { FindingResourceType } from "@/lib/finding-actions"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { useSingleFindingFlag } from "@/hooks/useFindingActions"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+
+type FindingFlag = "false-positive" | "irrelevant" | "interesting" | "noteworthy" | "override-blacklist"
+
+type PendingFlagAction = {
+  title: string
+  description: string
+  confirmLabel: string
+  flag: FindingFlag
+  apply: boolean
+}
 
 export function VariantActionButtons({
   sampleId,
@@ -12,14 +23,17 @@ export function VariantActionButtons({
   variant,
   onUpdate,
   compact = false,
+  showReportLabel = false,
 }: {
   sampleId: string
   resourceType?: FindingResourceType
   variant: any
   onUpdate?: () => void
   compact?: boolean
+  showReportLabel?: boolean
 }) {
   const [confirmBlacklist, setConfirmBlacklist] = useState(false)
+  const [pendingFlagAction, setPendingFlagAction] = useState<PendingFlagAction | null>(null)
   const flagMutation = useSingleFindingFlag(sampleId, resourceType)
   const queryClient = useQueryClient()
   const isFp = variant.fp
@@ -47,21 +61,43 @@ export function VariantActionButtons({
   })
 
   const toggleStatus = async (
-    flag: "false-positive" | "irrelevant" | "interesting" | "noteworthy" | "override-blacklist",
+    flag: FindingFlag,
     apply: boolean,
   ) => {
     await flagMutation.mutateAsync({ resourceId: String(variant._id), flag, apply })
     if (onUpdate) onUpdate()
   }
 
+  const confirmFlagAction = async () => {
+    if (!pendingFlagAction) return
+    try {
+      await toggleStatus(pendingFlagAction.flag, pendingFlagAction.apply)
+      setPendingFlagAction(null)
+    } catch {
+      // The mutation hook emits the user-facing error notification.
+    }
+  }
+
   const buttonBase = compact
     ? "inline-flex h-7 w-7 items-center justify-center rounded-md border text-xs font-bold shadow-sm transition-colors duration-100 disabled:opacity-50"
     : "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold shadow-sm transition-colors duration-100 disabled:opacity-50"
+  const labeledCompactReport = compact && showReportLabel && resourceType !== "small_variant"
+  const reportButtonBase = labeledCompactReport
+    ? "inline-flex h-7 items-center justify-center gap-1 rounded-md border px-2 text-xs font-bold shadow-sm transition-colors duration-100 disabled:opacity-50"
+    : buttonBase
 
   return (
     <div className={compact ? "flex items-center gap-1" : "flex flex-wrap items-center gap-1.5"}>
-      <button 
-        onClick={() => toggleStatus("false-positive", !isFp)}
+      <button
+        onClick={() => setPendingFlagAction({
+          title: isFp ? "Remove false-positive flag?" : "Mark finding as false positive?",
+          description: isFp
+            ? "The finding will return to the active review set."
+            : "The finding will be de-emphasized and excluded where false-positive findings are filtered.",
+          confirmLabel: isFp ? "Remove FP flag" : "Mark false positive",
+          flag: "false-positive",
+          apply: !isFp,
+        })}
         disabled={flagMutation.isPending}
         className={`${buttonBase} ${isFp ? 'border-fail/40 bg-fail/15 text-fail' : 'border-border bg-background hover:bg-fail/10 hover:text-fail'}`}
         title="Toggle False Positive"
@@ -84,7 +120,15 @@ export function VariantActionButtons({
           )}
           {variant.blacklist && (
             <button
-              onClick={() => toggleStatus("override-blacklist", isBlacklist)}
+              onClick={() => setPendingFlagAction({
+                title: isBlacklist ? "Override blacklist match?" : "Remove blacklist override?",
+                description: isBlacklist
+                  ? "This finding will remain available for review in this sample despite the center blacklist match."
+                  : "The center blacklist match will apply to this finding again.",
+                confirmLabel: isBlacklist ? "Override blacklist" : "Remove override",
+                flag: "override-blacklist",
+                apply: isBlacklist,
+              })}
               disabled={flagMutation.isPending}
               className={`${buttonBase} ${isBlacklist ? 'border-validation/40 bg-validation/15 text-validation' : 'border-rna/35 bg-rna/10 text-rna hover:bg-rna/15'}`}
               title={isBlacklist ? "Override blacklist for this sample" : "Remove blacklist override"}
@@ -97,7 +141,15 @@ export function VariantActionButtons({
       )}
       {supportsIrrelevant && (
         <button
-          onClick={() => toggleStatus("irrelevant", !isIrrelevant)}
+          onClick={() => setPendingFlagAction({
+            title: isIrrelevant ? "Restore finding to review?" : "Mark finding as irrelevant?",
+            description: isIrrelevant
+              ? "The finding will return to the active review set."
+              : "The finding will be de-emphasized as irrelevant for the current review.",
+            confirmLabel: isIrrelevant ? "Restore finding" : "Mark irrelevant",
+            flag: "irrelevant",
+            apply: !isIrrelevant,
+          })}
           disabled={flagMutation.isPending}
           className={`${buttonBase} ${isIrrelevant ? 'border-warn/40 bg-warn/15 text-warn' : 'border-border bg-background hover:bg-warn/10 hover:text-warn'}`}
         title="Toggle Irrelevant"
@@ -108,18 +160,40 @@ export function VariantActionButtons({
       )}
       {supportsInteresting && (
         <button
-          onClick={() => toggleStatus("interesting", !isInteresting)}
+          onClick={() => setPendingFlagAction({
+            title: resourceType === "small_variant"
+              ? (isInteresting ? "Remove interesting flag?" : "Mark finding as interesting?")
+              : (isInteresting ? "Exclude finding from report?" : "Include finding in report?"),
+            description: resourceType === "small_variant"
+              ? "This changes the finding's clinical review state."
+              : `This will ${isInteresting ? "remove the finding from" : "add the finding to"} the reportable set.`,
+            confirmLabel: resourceType === "small_variant"
+              ? (isInteresting ? "Remove flag" : "Mark interesting")
+              : (isInteresting ? "Exclude from report" : "Include in report"),
+            flag: "interesting",
+            apply: !isInteresting,
+          })}
           disabled={flagMutation.isPending}
-          className={`${buttonBase} ${isInteresting ? 'border-pass/40 bg-pass/15 text-pass' : 'border-border bg-background hover:bg-pass/10 hover:text-pass'}`}
-          title={resourceType === "small_variant" ? "Toggle interesting" : "Toggle report inclusion"}
-      >
-          <AlertCircle className="h-3.5 w-3.5" />
-          {!compact && (resourceType === "small_variant" ? "Interesting" : isInteresting ? "Exclude" : "Report")}
+          className={`${reportButtonBase} ${isInteresting ? 'border-pass/40 bg-pass/15 text-pass' : 'border-border bg-background hover:bg-pass/10 hover:text-pass'}`}
+          title={resourceType === "small_variant" ? "Toggle interesting" : isInteresting ? "Exclude from report" : "Include in report"}
+        >
+          {resourceType === "small_variant" ? (
+            <AlertCircle className="h-3.5 w-3.5" />
+          ) : (
+            <FileCheck2 className="h-3.5 w-3.5" />
+          )}
+          {(!compact || labeledCompactReport) && (resourceType === "small_variant" ? "Interesting" : isInteresting ? "Exclude" : "Report")}
         </button>
       )}
       {supportsNoteworthy && (
         <button
-          onClick={() => toggleStatus("noteworthy", !isNoteworthy)}
+          onClick={() => setPendingFlagAction({
+            title: isNoteworthy ? "Remove noteworthy flag?" : "Mark finding as noteworthy?",
+            description: "This changes the finding's CNV review state.",
+            confirmLabel: isNoteworthy ? "Remove flag" : "Mark noteworthy",
+            flag: "noteworthy",
+            apply: !isNoteworthy,
+          })}
           disabled={flagMutation.isPending}
           className={`${buttonBase} ${isNoteworthy ? 'border-tier2/40 bg-tier2/15 text-tier2' : 'border-border bg-background hover:bg-tier2/10 hover:text-tier2'}`}
           title="Toggle Noteworthy"
@@ -134,33 +208,24 @@ export function VariantActionButtons({
           {!compact && "Override"}
         </span>
       )}
-      {confirmBlacklist && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-background/70 p-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-4 shadow-lg">
-            <h3 className="text-sm font-black text-foreground">Add variant to blacklist?</h3>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              This creates a center blacklist entry for this variant. Use override only when a blacklisted variant should remain visible for a specific sample.
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmBlacklist(false)}
-                className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-muted"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => blacklistMutation.mutate()}
-                disabled={blacklistMutation.isPending}
-                className="rounded-lg bg-fail px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
-              >
-                Add blacklist
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationDialog
+        open={Boolean(pendingFlagAction)}
+        title={pendingFlagAction?.title || "Confirm finding action"}
+        description={pendingFlagAction?.description || "Confirm this clinical review change."}
+        confirmLabel={pendingFlagAction?.confirmLabel || "Apply action"}
+        isPending={flagMutation.isPending}
+        onConfirm={confirmFlagAction}
+        onCancel={() => setPendingFlagAction(null)}
+      />
+      <ConfirmationDialog
+        open={confirmBlacklist}
+        title="Add variant to center blacklist?"
+        description="This creates a center-wide blacklist entry for the variant. Use a sample override only when a blacklisted finding must remain visible for a specific review."
+        confirmLabel="Add to blacklist"
+        isPending={blacklistMutation.isPending}
+        onConfirm={() => blacklistMutation.mutateAsync().catch(() => undefined)}
+        onCancel={() => setConfirmBlacklist(false)}
+      />
     </div>
   )
 }

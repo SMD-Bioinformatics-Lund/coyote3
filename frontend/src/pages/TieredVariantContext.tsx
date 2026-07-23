@@ -7,7 +7,7 @@ import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { TierBadge } from "@/lib/variant-ui"
-import { displayValue } from "@/lib/detail-formatters"
+import { displayValue, fullDateTime } from "@/lib/detail-formatters"
 import { sampleDetailPath } from "@/lib/sample-routing"
 
 function selectedCsq(variant: any) {
@@ -15,9 +15,7 @@ function selectedCsq(variant: any) {
 }
 
 function humanDate(value: unknown) {
-  if (!value) return "-"
-  const date = new Date(String(value))
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString()
+  return fullDateTime(value)
 }
 
 function sampleName(row: any) {

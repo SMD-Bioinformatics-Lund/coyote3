@@ -78,13 +78,20 @@ export function fusionCallers(fusion: any) {
 }
 
 export function selectedTranslocationAnnotation(translocation: any) {
-  const mane = translocation?.INFO?.MANE_ANN ?? translocation?.MANE_ANN
+  const info = translocationInfo(translocation)
+  const mane = info?.MANE_ANN ?? translocation?.MANE_ANN
   if (Array.isArray(mane)) return mane[0] ?? {}
   if (mane && typeof mane === "object") return mane
-  const annotations = translocation?.INFO?.ANN ?? translocation?.ANN
+  const annotations = info?.ANN ?? translocation?.ANN
   if (Array.isArray(annotations)) return annotations[0] ?? {}
   if (annotations && typeof annotations === "object") return annotations
   return {}
+}
+
+export function translocationInfo(translocation: any) {
+  const info = translocation?.INFO
+  if (Array.isArray(info)) return info.find((item: any) => item && typeof item === "object") ?? {}
+  return info && typeof info === "object" ? info : {}
 }
 
 export function translocationGenes(translocation: any) {
@@ -95,13 +102,14 @@ export function translocationGenes(translocation: any) {
     return translocation.genes.split(/[&^,;/]+/).map((gene: string) => gene.trim()).filter(Boolean)
   }
   const annotation = selectedTranslocationAnnotation(translocation)
+  const info = translocationInfo(translocation)
   const geneText =
     annotation?.Gene_Name ??
     annotation?.Gene ??
     annotation?.SYMBOL ??
     annotation?.gene ??
-    translocation?.INFO?.Gene_Name ??
-    translocation?.INFO?.GENE ??
+    info?.Gene_Name ??
+    info?.GENE ??
     translocation?.gene
   if (typeof geneText === "string" && geneText.trim()) {
     return geneText.split(/[&^,;/]+/).map((gene: string) => gene.trim()).filter(Boolean)
@@ -119,7 +127,7 @@ export function translocationHgvs(annotation: any) {
 }
 
 export function translocationType(translocation: any) {
-  const raw = translocation?.INFO?.SVTYPE ?? translocation?.SVTYPE ?? translocation?.svtype ?? translocation?.type
+  const raw = translocationInfo(translocation)?.SVTYPE ?? translocation?.SVTYPE ?? translocation?.svtype ?? translocation?.type
   const annotation = selectedTranslocationAnnotation(translocation)
   const terms = annotation?.Annotation ?? annotation?.Consequence
   if (Array.isArray(terms) && terms.length > 0) return terms.join(", ")
@@ -128,7 +136,8 @@ export function translocationType(translocation: any) {
 }
 
 export function translocationPanelStatus(translocation: any) {
-  const raw = translocation?.INFO?.PANEL ?? translocation?.INFO?.panel ?? translocation?.panel
+  const info = translocationInfo(translocation)
+  const raw = info?.PANEL ?? info?.panel ?? translocation?.panel
   if (raw === true) return "Yes"
   if (raw === false) return "No"
   const text = String(raw ?? "").trim()
@@ -139,18 +148,19 @@ export function translocationPanelStatus(translocation: any) {
 }
 
 export function translocationPositionLabel(translocation: any) {
-  const chrom = translocation?.CHROM ?? translocation?.chrom ?? translocation?.INFO?.CHROM
+  const info = translocationInfo(translocation)
+  const chrom = translocation?.CHROM ?? translocation?.chrom ?? info?.CHROM
   const pos = translocation?.POS ?? translocation?.pos
   const left = chrom && pos ? `${chrom}:${pos}` : String(pos || "-")
   const alt = translocationAlt(translocation)
   if (alt) return `${left} ${alt}`
-  const chrom2 = translocation?.INFO?.CHR2 ?? translocation?.chrom2
-  const end = translocation?.INFO?.END ?? translocation?.end
+  const chrom2 = info?.CHR2 ?? translocation?.chrom2
+  const end = info?.END ?? translocation?.end
   if (chrom2 || end) return `${left} ${chrom2 || "-"}:${end || "-"}`
   return left
 }
 
 export function translocationAlt(translocation: any) {
-  const alt = translocation?.ALT ?? translocation?.INFO?.ALT
+  const alt = translocation?.ALT ?? translocationInfo(translocation)?.ALT
   return Array.isArray(alt) ? alt[0] : alt
 }

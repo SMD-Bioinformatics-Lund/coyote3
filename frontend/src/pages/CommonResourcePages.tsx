@@ -9,6 +9,7 @@ import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { clinGenGeneUrl, ensemblGeneSummaryUrl, geneCardsUrl, hgncReportUrl, ncbiGeneUrl } from "@/lib/external-links"
+import { localDate } from "@/lib/detail-formatters"
 
 function columnsFor(rows: any[], preferred: string[] = []): ColumnDef<any, any>[] {
   const keys = [...preferred, ...rows.flatMap((row) => Object.keys(row || {}))]
@@ -62,9 +63,7 @@ function display(value: unknown) {
 }
 
 function formatDate(value: unknown) {
-  if (!value) return "-"
-  const date = new Date(String(value))
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString()
+  return localDate(value)
 }
 
 function formatCoordinate(value: unknown) {

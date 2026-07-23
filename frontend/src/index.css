@@ -850,6 +850,19 @@
 }
 
 @layer components {
+  .resizable-split-pane {
+    @apply flex w-full flex-col gap-3;
+  }
+
+  .resizable-split-primary,
+  .resizable-split-secondary {
+    @apply w-full;
+  }
+
+  .resizable-split-handle {
+    @apply hidden;
+  }
+
   .markdown-body h1 {
     @apply mb-2 mt-3 text-xl font-black;
   }
@@ -900,6 +913,49 @@
   }
   .markdown-body a {
     @apply text-primary underline underline-offset-2;
+  }
+}
+
+@media (min-width: 1280px) {
+  .resizable-split-pane {
+    @apply flex-row items-stretch gap-0;
+  }
+
+  .resizable-split-primary {
+    flex: 0 0 var(--split-primary-size);
+  }
+
+  .resizable-split-secondary {
+    @apply flex-1;
+  }
+
+  .resizable-split-handle {
+    @apply relative flex w-3 shrink-0 touch-none cursor-col-resize items-center justify-center outline-none;
+  }
+
+  .resizable-split-handle::before {
+    content: "";
+    @apply absolute inset-y-2 left-1/2 w-px -translate-x-1/2 bg-border transition-colors duration-100;
+  }
+
+  .resizable-split-handle > span {
+    @apply relative z-10 flex h-10 w-5 items-center justify-center rounded-md border border-border bg-background text-muted-foreground shadow-sm transition-colors duration-100;
+  }
+
+  .resizable-split-handle:hover::before,
+  .resizable-split-handle:focus-visible::before,
+  .resizable-split-handle.is-dragging::before {
+    @apply w-0.5 bg-primary;
+  }
+
+  .resizable-split-handle:hover > span,
+  .resizable-split-handle:focus-visible > span,
+  .resizable-split-handle.is-dragging > span {
+    @apply border-primary bg-primary/10 text-primary ring-2 ring-primary/20;
+  }
+
+  .resizable-split-handle svg {
+    @apply size-4;
   }
 }
 

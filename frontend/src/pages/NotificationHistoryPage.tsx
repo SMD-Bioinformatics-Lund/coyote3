@@ -3,6 +3,7 @@ import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
 import { useNotifications } from "@/components/notifications/use-notifications"
 import { cn } from "@/lib/utils"
+import { fullDateTime } from "@/lib/detail-formatters"
 
 const toneClass = {
   success: "border-pass bg-pass/10 text-pass",
@@ -70,7 +71,7 @@ export function NotificationHistoryPage() {
                       <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{notification.message}</p>
                     )}
                     <p className="mt-2 text-[11px] font-medium text-muted-foreground">
-                      {new Date(notification.createdAt).toLocaleString()}
+                      {fullDateTime(notification.createdAt)}
                     </p>
                   </div>
                   <Button variant="ghost" size="icon-sm" onClick={() => remove(notification.id)} title="Remove notification">

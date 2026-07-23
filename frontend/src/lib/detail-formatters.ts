@@ -35,16 +35,57 @@ export function shortCount(value: unknown, fallback = "0") {
   return `${sign}${compact}${suffix}`
 }
 
+const configuredLocalTimeZone = String(import.meta.env.VITE_LOCAL_TIME_ZONE || "").trim()
+
+export function localTimeZone() {
+  if (!configuredLocalTimeZone) {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+  }
+  try {
+    new Intl.DateTimeFormat(undefined, { timeZone: configuredLocalTimeZone }).format(new Date())
+    return configuredLocalTimeZone
+  } catch {
+    return "UTC"
+  }
+}
+
+export function utcDate(value: unknown) {
+  if (!value) return null
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
+  if (typeof value === "number") {
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+
+  const raw = String(value).trim()
+  if (!raw) return null
+  const normalized = /^\d{4}-\d{2}-\d{2}[T ][\d:.]+$/.test(raw) ? `${raw.replace(" ", "T")}Z` : raw
+  const date = new Date(normalized)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 export function fullDateTime(value: unknown, fallback = "-") {
-  if (!value) return fallback
-  const date = new Date(String(value))
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString()
+  const date = utcDate(value)
+  if (!date) return value ? String(value) : fallback
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: localTimeZone(),
+  }).format(date)
+}
+
+export function localDate(value: unknown, fallback = "-") {
+  const date = utcDate(value)
+  if (!date) return value ? String(value) : fallback
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeZone: localTimeZone(),
+  }).format(date)
 }
 
 export function humanRelativeDate(value: unknown, fallback = "-") {
-  if (!value) return fallback
-  const date = new Date(String(value))
-  if (Number.isNaN(date.getTime())) return String(value)
+  const date = utcDate(value)
+  if (!date) return value ? String(value) : fallback
 
   const diffMs = Date.now() - date.getTime()
   const absMs = Math.abs(diffMs)

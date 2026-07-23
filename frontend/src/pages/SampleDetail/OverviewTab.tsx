@@ -5,7 +5,7 @@ import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Activity, Save, Trash2, ChevronDown, ChevronUp, Search, X } from "lucide-react"
 import { api } from "@/lib/api"
-import { shortCount } from "@/lib/detail-formatters"
+import { fullDateTime, shortCount } from "@/lib/detail-formatters"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { sampleFilterSection, sampleReported } from "@/lib/sample-shape"
 import { apiPath } from "@/lib/runtime-paths"
@@ -21,9 +21,7 @@ function geneInputCount(value: string) {
 }
 
 function formatDate(value: unknown) {
-  if (!value) return "-"
-  const date = new Date(String(value))
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString()
+  return fullDateTime(value)
 }
 
 function formatFileSize(value: unknown) {

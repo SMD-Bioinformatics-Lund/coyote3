@@ -10,6 +10,7 @@ import { ColumnDef } from "@tanstack/react-table"
 import { cn } from "@/lib/utils"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { accentColor, valueBadgeClass } from "@/lib/badge-colors"
+import { fullDateTime, humanRelativeDate } from "@/lib/detail-formatters"
 import {
   actionLabels,
   specs,
@@ -28,27 +29,6 @@ function valueLabel(value: unknown) {
 
 function titleize(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase())
-}
-
-function formatHumanDate(value: unknown) {
-  if (!value) return "-"
-  const date = new Date(String(value))
-  if (Number.isNaN(date.getTime())) return String(value)
-  const now = Date.now()
-  const diffMs = now - date.getTime()
-  const absMs = Math.abs(diffMs)
-  const minute = 60 * 1000
-  const hour = 60 * minute
-  const day = 24 * hour
-  const month = 30 * day
-  const year = 365 * day
-  const suffix = diffMs >= 0 ? "ago" : "from now"
-  if (absMs < minute) return "just now"
-  if (absMs < hour) return `${Math.round(absMs / minute)} min ${suffix}`
-  if (absMs < day) return `${Math.round(absMs / hour)} h ${suffix}`
-  if (absMs < month) return `${Math.round(absMs / day)} d ${suffix}`
-  if (absMs < year) return `${Math.round(absMs / month)} mo ${suffix}`
-  return `${Math.round(absMs / year)} yr ${suffix}`
 }
 
 function compactList(value: unknown, max = 3) {
@@ -137,6 +117,35 @@ function rowId(row: any, spec: AdminResourceSpec) {
     if (row?.[key]) return String(row[key])
   }
   return String(row?._id ?? "")
+}
+
+function rowDisplayName(row: any, spec: AdminResourceSpec) {
+  const displayKeys = [
+    "name",
+    "username",
+    "email",
+    "label",
+    "display_name",
+    "role_id",
+    "permission_id",
+    "asp_id",
+    "aspc_id",
+    "isgl_id",
+  ]
+  for (const key of displayKeys) {
+    if (row?.[key]) return String(row[key])
+  }
+  return rowId(row, spec) || spec.title
+}
+
+function mutationDisplayName(result: any, fallback: string) {
+  const data = result?.data || result || {}
+  return String(data?.meta?.sample_name || data?.meta?.resource_name || data?.resource_name || fallback)
+}
+
+function mutationResourceId(result: any, fallback: string) {
+  const data = result?.data || result || {}
+  return String(data?.meta?.sample_oid || data?.resource_id || fallback)
 }
 
 function resourceDocFromContext(context: any, spec: AdminResourceSpec) {
@@ -269,8 +278,8 @@ function adminCell(field: string, row: any, context?: { roleColors?: Record<stri
   const value = row?.[field]
   if (["created_on", "updated_on", "last_login", "time_added", "created_at", "updated_at"].includes(field)) {
     return (
-      <span className="text-sm font-medium" title={value ? new Date(String(value)).toLocaleString() : ""}>
-        {formatHumanDate(value)}
+      <span className="text-sm font-medium" title={fullDateTime(value, "")}>
+        {humanRelativeDate(value)}
       </span>
     )
   }
@@ -313,7 +322,7 @@ function adminCell(field: string, row: any, context?: { roleColors?: Record<stri
 
 function adminExportValue(field: string, row: any) {
   const value = row?.[field]
-  if (["created_on", "updated_on", "last_login", "time_added", "created_at", "updated_at"].includes(field)) return formatHumanDate(value)
+  if (["created_on", "updated_on", "last_login", "time_added", "created_at", "updated_at"].includes(field)) return fullDateTime(value)
   if (field === "is_active") return activeLabel(value)
   if (Array.isArray(value)) return value.join("; ")
   if (value && typeof value === "object") return JSON.stringify(value)
@@ -859,7 +868,7 @@ export function AdminResourcePage() {
   const spec = specs[resource] ?? specs.users
   const queryClient = useQueryClient()
   const [q, setQ] = useState("")
-  const [pendingAction, setPendingAction] = useState<{ action: "toggle" | "delete" | "invite"; id: string } | null>(null)
+  const [pendingAction, setPendingAction] = useState<{ action: "toggle" | "delete" | "invite"; id: string; name: string } | null>(null)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-resource", spec.key, q],
@@ -872,19 +881,26 @@ export function AdminResourcePage() {
   })
 
   const mutate = useMutation({
-    mutationFn: ({ action, id }: { action: "toggle" | "delete" | "invite"; id: string }) => {
+    mutationFn: ({ action, id }: { action: "toggle" | "delete" | "invite"; id: string; name: string }) => {
       if (action === "invite") return api.post(`${spec.endpoint}/${id}/invite`, {})
       if (action === "toggle") return api.patch(`${spec.endpoint}/${id}/status`, {})
       return api.delete(`${spec.endpoint}/${id}`)
     },
-    onSuccess: (_result, variables) => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin-resource", spec.key] })
       setPendingAction(null)
+      const displayName = mutationDisplayName(result, variables.name)
+      const resourceId = mutationResourceId(result, variables.id)
       notifySuccess(
         `${spec.title} ${actionLabels[variables.action]}`,
-        `${variables.id} was ${actionLabels[variables.action]}.`,
+        `${displayName} was ${actionLabels[variables.action]}.`,
         `Admin ${spec.key}`,
-        { type: spec.key, id: variables.id, name: variables.id }
+        {
+          type: spec.key,
+          id: resourceId,
+          name: displayName,
+          sampleName: spec.key === "samples" ? displayName : undefined,
+        }
       )
     },
     onError: (error, variables) => {
@@ -892,7 +908,12 @@ export function AdminResourcePage() {
         `Unable to ${variables.action} ${spec.title.toLowerCase()}`,
         error,
         `Admin ${spec.key}`,
-        { type: spec.key, id: variables.id, name: variables.id }
+        {
+          type: spec.key,
+          id: variables.id,
+          name: variables.name,
+          sampleName: spec.key === "samples" ? variables.name : undefined,
+        }
       )
     },
   })
@@ -934,7 +955,9 @@ export function AdminResourcePage() {
             </Link>
             {spec.canToggle && (
               <button
-                onClick={() => setPendingAction({ action: "toggle", id })}
+                onClick={() =>
+                  setPendingAction({ action: "toggle", id, name: rowDisplayName(row.original, spec) })
+                }
                 disabled={mutate.isPending}
                 className="rounded-md p-1.5 text-validation hover:bg-validation/10"
                 title="Toggle active"
@@ -944,7 +967,7 @@ export function AdminResourcePage() {
             )}
             {spec.key === "users" && (
               <button
-                onClick={() => setPendingAction({ action: "invite", id })}
+                onClick={() => setPendingAction({ action: "invite", id, name: rowDisplayName(row.original, spec) })}
                 disabled={mutate.isPending}
                 className="rounded-md p-1.5 text-rna hover:bg-rna/10"
                 title="Invite user"
@@ -954,7 +977,7 @@ export function AdminResourcePage() {
             )}
             {spec.canDelete && (
               <button
-                onClick={() => setPendingAction({ action: "delete", id })}
+                onClick={() => setPendingAction({ action: "delete", id, name: rowDisplayName(row.original, spec) })}
                 disabled={mutate.isPending}
                 className="rounded-md p-1.5 text-destructive hover:bg-destructive/10"
                 title="Delete"
@@ -1031,8 +1054,8 @@ export function AdminResourcePage() {
                 <h2 className="text-base font-black">Confirm {pendingAction.action}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {pendingAction.action === "delete"
-                    ? `Delete ${spec.title.toLowerCase()} ${pendingAction.id}? This removes the active resource from the admin workflow.`
-                    : `Apply ${pendingAction.action} to ${spec.title.toLowerCase()} ${pendingAction.id}?`}
+                    ? `Delete ${spec.title.toLowerCase()} ${pendingAction.name}? This removes the active resource from the admin workflow.`
+                    : `Apply ${pendingAction.action} to ${spec.title.toLowerCase()} ${pendingAction.name}?`}
                 </p>
                 <div className="mt-4 flex justify-end gap-2">
                   <button

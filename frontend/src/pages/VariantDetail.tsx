@@ -71,10 +71,10 @@ const transcriptTagMeta: Record<string, { label: string; short: string; descript
     description: "HGNC marks this RefSeq transcript as MANE Plus Clinical for clinically relevant reporting contexts.",
     severity: "success",
   },
-  vep_mane_plus_clinical: {
-    label: "VEP MANE Plus Clinical",
-    short: "VEP MANE+",
-    description: "The VEP annotation itself marks this transcript as MANE Plus Clinical.",
+  ensembl_mane_plus_clinical: {
+    label: "Ensembl MANE Plus Clinical",
+    short: "ENS MANE+",
+    description: "HGNC and VEP identify this Ensembl transcript as MANE Plus Clinical.",
     severity: "success",
   },
   ncbi_mane_select: {
@@ -87,12 +87,6 @@ const transcriptTagMeta: Record<string, { label: string; short: string; descript
     label: "Ensembl MANE Select",
     short: "ENS MANE",
     description: "HGNC maps this transcript to the Ensembl MANE Select transcript for the gene.",
-    severity: "info",
-  },
-  vep_mane_select: {
-    label: "VEP MANE Select",
-    short: "VEP MANE",
-    description: "The VEP annotation marks this transcript as MANE Select.",
     severity: "info",
   },
   db_canonical: {
@@ -109,7 +103,7 @@ const transcriptTagMeta: Record<string, { label: string; short: string; descript
   },
 }
 
-function transcriptTags(row: any) {
+function transcriptTags(row: any): string[] {
   return Array.isArray(row?.transcript_tags) ? row.transcript_tags.map(String).filter(Boolean) : []
 }
 

@@ -5,7 +5,7 @@ import { api } from "@/lib/api"
 import { Activity, AlertTriangle, ArrowRight, CheckCircle2, Clock, Users } from "lucide-react"
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
 import { AppLoader } from "@/components/layout/AppLoader"
-import { shortCount } from "@/lib/detail-formatters"
+import { humanRelativeDate, localDate, shortCount } from "@/lib/detail-formatters"
 import { sampleDetailPath } from "@/lib/sample-routing"
 
 const chartColors = ["var(--color-tier1)", "var(--color-tier2)", "var(--color-tier3)", "var(--color-tier4)", "var(--color-dna)", "var(--color-rna)", "var(--color-panel)"]
@@ -32,18 +32,9 @@ function miniBarWidth(value: number, values: number[]) {
 }
 
 function humanDate(value: unknown) {
-  if (!value) return "-"
-  const date = new Date(String(value))
-  if (Number.isNaN(date.getTime())) return String(value)
-  const diff = Date.now() - date.getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return "just now"
-  if (minutes < 60) return `${minutes} min ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} h ago`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days} d ago`
-  return date.toLocaleDateString()
+  const relative = humanRelativeDate(value, "")
+  if (relative && !relative.includes("mo ") && !relative.includes("yr ")) return relative
+  return localDate(value)
 }
 
 function ChartFallback() {
