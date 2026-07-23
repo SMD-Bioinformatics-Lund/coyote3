@@ -38,6 +38,7 @@ class AspcService:
             assay_configuration_repository=store.assay_configuration_repository,
             assay_panel_repository=store.assay_panel_repository,
             vep_metadata_repository=store.vep_metadata_repository,
+            clinical_rule_set_repository=store.clinical_rule_set_repository,
             common_util=common_util,
         )
 
@@ -47,13 +48,34 @@ class AspcService:
         assay_configuration_repository: Any,
         assay_panel_repository: Any,
         vep_metadata_repository: Any,
+        clinical_rule_set_repository: Any,
         common_util: Any,
     ) -> None:
         """Create the service for assay-configuration resource workflows."""
         self.assay_configuration_repository = assay_configuration_repository
         self.assay_panel_repository = assay_panel_repository
         self.vep_metadata_repository = vep_metadata_repository
+        self.clinical_rule_set_repository = clinical_rule_set_repository
         self.common_util = common_util
+
+    @staticmethod
+    def _release_scope_matches_aspc(release: Any, aspc: dict[str, Any]) -> bool:
+        """Return whether a published release may be bound to this ASPC."""
+        scope = release.source.rule_set.scope
+        checks = (
+            (scope.analyte, aspc.get("asp_category")),
+            (scope.assay_ids, aspc.get("asp_id")),
+            (scope.assay_groups, aspc.get("asp_group")),
+            (scope.subpanel_ids, aspc.get("subpanel_id")),
+            (scope.environments, aspc.get("environment")),
+        )
+        for expected, actual in checks:
+            if isinstance(expected, list):
+                if expected and actual not in expected:
+                    return False
+            elif expected != actual:
+                return False
+        return True
 
     @staticmethod
     def _set_group_field_options(
@@ -292,6 +314,45 @@ class AspcService:
             },
         )
         return change_payload(resource="aspc", resource_id=assay_id, action="rotate")
+
+    def bind_clinical_rule_release(
+        self,
+        *,
+        assay_id: str,
+        release_id: str,
+        actor_username: str = "admin-ui",
+    ) -> dict[str, Any]:
+        """Rotate an ASPC so it references one verified immutable rule release."""
+        assay_config = self.assay_configuration_repository.get_aspc_with_id(assay_id)
+        if not assay_config:
+            raise api_error(404, "Assay config not found")
+        release = self.clinical_rule_set_repository.get_release(release_id)
+        if release is None:
+            raise api_error(404, "Clinical rule release not found")
+        if release.status != "active":
+            raise api_error(409, "Only an active clinical rule release can be bound")
+        if not self._release_scope_matches_aspc(release, assay_config):
+            raise api_error(409, "Clinical rule release scope does not match the assay config")
+
+        reporting = deepcopy(assay_config.get("reporting") or {})
+        reporting["clinical_rule_release"] = {
+            "release_id": release.id_,
+            "rule_set_id": release.rule_set_id,
+            "version": release.version,
+            "content_hash": release.content_hash,
+        }
+        result = self.update(
+            assay_id=assay_id,
+            payload={"config": {"reporting": reporting}},
+            actor_username=actor_username,
+        )
+        result["meta"]["clinical_rule_release"] = {
+            "release_id": str(release.id_),
+            "rule_set_id": release.rule_set_id,
+            "version": release.version,
+            "content_hash": release.content_hash,
+        }
+        return result
 
     def toggle(self, *, assay_id: str) -> dict[str, Any]:
         """Toggle whether an assay configuration is active.

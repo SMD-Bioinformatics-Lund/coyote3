@@ -597,6 +597,7 @@ Optional keys:
 - `time_created` (datetime.datetime | None)
 - `filters_snapshot` (dict[str, Any])
 - `aspc` (dict[str, Any] | None)
+- `clinical_rule_release` (dict[str, Any] | None)
 
 ## `rna_classification`
 

@@ -799,6 +799,7 @@ class SampleRepository(BaseRepository):
         report_id: str,
         filepath: str,
         pdf_filepath: str | None = None,
+        rule_provenance: dict | None = None,
     ) -> bool | None:
         """
         Save a report to a sample document in the database.
@@ -821,6 +822,7 @@ class SampleRepository(BaseRepository):
             report_id=report_id,
             filepath=filepath,
             pdf_filepath=pdf_filepath,
+            rule_provenance=rule_provenance,
         )
 
     def get_report(self, sample_id: str, report_id: str) -> dict | None:

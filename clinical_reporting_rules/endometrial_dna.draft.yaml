@@ -1,0 +1,67 @@
+schema_version: 1
+rule_set:
+  rule_set_id: endometrial_dna_reporting
+  version: "0.1.0-draft"
+  title: Endometrial cancer DNA reporting text
+  status: draft
+  language: sv
+  scope:
+    analyte: dna
+    assay_ids: []
+    assay_groups:
+      - solid
+    subpanel_ids:
+      - endometrial
+    environments: []
+  required_facts:
+    - sample.assay
+    - sample.subpanel_id
+  notes: >
+    Draft translation of conditions illustrated in the endometrial reporting
+    workbook. It cannot be published until assay/subpanel identifiers, wording,
+    selected-transcript exon behavior, and clinical sign-off are confirmed.
+    MSI and CNV-profile interpretation rules are intentionally absent because
+    their typed statuses and validated thresholds are not available.
+rules:
+  - rule_id: endometrial_pole_exonuclease_tier_1
+    family: finding_text
+    section: Molekylär klassificering
+    priority: 10
+    description: Tier I POLE finding in selected-transcript exons 9 through 14.
+    when:
+      - fact: finding.kind
+        operator: eq
+        value: snv
+      - fact: finding.gene
+        operator: eq
+        value: POLE
+      - fact: finding.tier
+        operator: eq
+        value: 1
+      - fact: finding.exon
+        operator: overlaps
+        value: ["9", "10", "11", "12", "13", "14"]
+    template: >
+      En kliniskt relevant variant i POLE:s exonukleasdomän har påvisats:
+      {{ finding.hgvsp or finding.hgvsc }}.
+    stop: true
+
+  - rule_id: endometrial_tp53_tier_1
+    family: finding_text
+    section: Molekylär klassificering
+    priority: 20
+    description: Tier I TP53 finding.
+    when:
+      - fact: finding.kind
+        operator: eq
+        value: snv
+      - fact: finding.gene
+        operator: eq
+        value: TP53
+      - fact: finding.tier
+        operator: eq
+        value: 1
+    template: >
+      En kliniskt relevant TP53-variant har påvisats:
+      {{ finding.hgvsp or finding.hgvsc }}.
+    stop: true

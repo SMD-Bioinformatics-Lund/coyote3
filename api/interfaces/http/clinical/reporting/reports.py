@@ -86,6 +86,7 @@ def _build_preview_report(
         )
     return get_rna_workflow_service().build_report_payload(
         sample=sample,
+        assay_config=assay_config,
         save=1 if save else 0,
         include_snapshot=include_snapshot,
     )
@@ -155,6 +156,7 @@ def _persist_report(
     html: str,
     snapshot_rows: list,
     created_by: str,
+    rule_provenance: dict | None = None,
 ) -> tuple[str, str]:
     """Persist a rendered report through the workflow layer.
 
@@ -182,6 +184,7 @@ def _persist_report(
             html=html,
             snapshot_rows=snapshot_rows,
             created_by=created_by,
+            rule_provenance=rule_provenance,
         )
     return get_rna_workflow_service().persist_report(
         sample_id=sample_id,
@@ -192,7 +195,26 @@ def _persist_report(
         html=html,
         snapshot_rows=snapshot_rows,
         created_by=created_by,
+        rule_provenance=rule_provenance,
     )
+
+
+def _clinical_rule_provenance(template_context: dict) -> dict | None:
+    """Extract immutable release identity and matched rule ids for persistence."""
+    evaluation = template_context.get("clinical_rule_evaluation")
+    if not isinstance(evaluation, dict) or not isinstance(evaluation.get("release"), dict):
+        return None
+    matched_rule_ids = list(
+        dict.fromkeys(
+            str(entry.get("rule_id"))
+            for entry in (evaluation.get("trace") or [])
+            if isinstance(entry, dict) and entry.get("matched") and entry.get("rule_id")
+        )
+    )
+    return {
+        "release": evaluation["release"],
+        "matched_rule_ids": matched_rule_ids,
+    }
 
 
 @router.get(
@@ -322,6 +344,7 @@ def save_report(
         html=html,
         snapshot_rows=snapshot_rows,
         created_by=current_username(),
+        rule_provenance=_clinical_rule_provenance(template_context),
     )
 
     payload = report_service.save_payload(

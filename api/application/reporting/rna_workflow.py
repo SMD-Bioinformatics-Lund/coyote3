@@ -6,6 +6,8 @@ from types import SimpleNamespace
 from typing import Any
 
 from api.application.interpretation.annotation_enrichment import add_alt_class
+from api.application.reporting.clinical_rules.preparation import prepare_report_context
+from api.application.reporting.clinical_rules.service import ClinicalRuleService, rendered_summary
 from api.application.reporting.persistence import (
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
 )
@@ -61,6 +63,7 @@ class RNAWorkflowService:
             assay_panel_repository=store.assay_panel_repository,
             reported_variant_repository=store.reported_variant_repository,
             report_repository=store.report_repository,
+            clinical_rule_service=ClinicalRuleService.from_store(store),
             report_config=report_config,
         )
 
@@ -77,6 +80,7 @@ class RNAWorkflowService:
         assay_panel_repository,
         reported_variant_repository,
         report_repository,
+        clinical_rule_service=None,
         report_config: dict | None = None,
     ) -> None:
         """Create the workflow service with explicit injected repositories."""
@@ -90,6 +94,7 @@ class RNAWorkflowService:
         self.assay_panel_repository = assay_panel_repository
         self.reported_variant_repository = reported_variant_repository
         self.report_repository = report_repository
+        self.clinical_rule_service = clinical_rule_service
         self.report_config = report_config or {}
 
     def next_report_num(self, sample_id: str) -> int:
@@ -278,6 +283,7 @@ class RNAWorkflowService:
         html: str,
         snapshot_rows: list | None,
         created_by: str,
+        rule_provenance: dict | None = None,
     ) -> tuple[str, str]:
         """
         Persist RNA report artifacts via common reporting pipeline.
@@ -291,6 +297,7 @@ class RNAWorkflowService:
             html=html,
             snapshot_rows=snapshot_rows,
             created_by=created_by,
+            rule_provenance=rule_provenance,
             sample_repository=self.sample_repository,
             reported_variant_repository=self.reported_variant_repository,
         )
@@ -345,6 +352,7 @@ class RNAWorkflowService:
     def build_report_payload(
         self,
         sample: dict,
+        assay_config: dict,
         save: int,
         include_snapshot: bool,
     ):
@@ -382,6 +390,36 @@ class RNAWorkflowService:
         except TypeError:
             report_header = util.common.get_report_header(assay, sample)
         report_date = datetime.now().date()
+        reportable_fusions = [
+            fusion
+            for fusion in fusions
+            if not fusion.get("blacklist")
+            and (fusion.get("classification") or {}).get("class") not in (None, 4, 999)
+        ]
+        fusion_filters = sample_filter_section(sample.get("filters"), "fusion", omics_layer="rna")
+        selected_list_ids = list(fusion_filters.get("fusionlists", []) or [])
+        selected_list_docs = self.gene_list_repository.get_isgl_by_ids(selected_list_ids)
+        applied_gene_lists = [
+            {**document, "isgl_id": isgl_id, "selected_for": ["fusion"]}
+            for isgl_id, document in selected_list_docs.items()
+        ]
+        assay_panel = self.assay_panel_repository.get_asp(str(sample.get("assay") or "")) or {}
+        prepared_rule_context = prepare_report_context(
+            sample=sample,
+            asp=assay_panel,
+            aspc=assay_config,
+            analyte="rna",
+            applied_gene_lists=applied_gene_lists,
+            report_sections_data={"fusions": reportable_fusions},
+        )
+        clinical_rule_evaluation = (
+            self.clinical_rule_service.evaluate_bound_release(
+                aspc=assay_config,
+                context=prepared_rule_context,
+            )
+            if self.clinical_rule_service is not None
+            else None
+        )
 
         template_context = {
             "assay": assay,
@@ -394,6 +432,12 @@ class RNAWorkflowService:
             "class_desc_short": class_desc_short,
             "report_date": report_date,
             "save": save,
+            "clinical_summary_text": rendered_summary(clinical_rule_evaluation),
+            "clinical_rule_evaluation": (
+                clinical_rule_evaluation.model_dump(mode="json")
+                if clinical_rule_evaluation
+                else None
+            ),
         }
 
         if not include_snapshot:
@@ -401,5 +445,5 @@ class RNAWorkflowService:
         return (
             "report_fusion.html",
             template_context,
-            RNAWorkflowService._build_snapshot_rows(fusions),
+            RNAWorkflowService._build_snapshot_rows(reportable_fusions),
         )

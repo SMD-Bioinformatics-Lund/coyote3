@@ -14,6 +14,7 @@ from api.contracts.admin import (
     AdminChangePayload,
     AdminExistsPayload,
 )
+from api.contracts.schemas.clinical_rules import ClinicalRuleReleaseBindRequest
 from api.interfaces.http.tags import TAG_ADMIN_ASSAYS
 from api.security.access import ApiUser, require_access
 
@@ -134,6 +135,27 @@ def update_aspc_change(
     """
     return util.common.convert_to_serializable(
         service.update(assay_id=assay_id, payload=payload, actor_username=user.username)
+    )
+
+
+@router.put(
+    "/api/v1/resources/aspc/{assay_id}/clinical-rule-release",
+    response_model=AdminChangePayload,
+    summary="Bind a clinical rule release and rotate assay config",
+)
+def bind_aspc_clinical_rule_release(
+    assay_id: str,
+    payload: ClinicalRuleReleaseBindRequest,
+    user: ApiUser = Depends(require_access(permission="assay.config:edit")),
+    service: AspcService = Depends(get_admin_aspc_service),
+):
+    """Bind an immutable published rule release through normal ASPC rotation."""
+    return util.common.convert_to_serializable(
+        service.bind_clinical_rule_release(
+            assay_id=assay_id,
+            release_id=payload.release_id,
+            actor_username=user.username,
+        )
     )
 
 

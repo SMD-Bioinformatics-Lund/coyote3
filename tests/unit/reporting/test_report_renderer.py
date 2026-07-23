@@ -74,3 +74,30 @@ def test_dna_report_renderer_uses_master_style_template():
     assert "Detekterade mutationer" in html
     assert "Analysbeskrivning" in html
     assert "table.report_general" in html
+
+
+def test_rna_report_renderer_uses_generated_summary_without_reviewed_comment():
+    html = render_report_html(
+        template_name="report_fusion.html",
+        template_context={
+            "assay": "fusion",
+            "fusions": [],
+            "report_header": "RNA report",
+            "analysis_method": "RNA fusion analysis",
+            "analysis_desc": "Fusion analysis",
+            "sample": {
+                "name": "seed_rna_case",
+                "comments": [],
+            },
+            "class_desc": [],
+            "class_desc_short": [],
+            "report_date": date(2026, 7, 15),
+            "clinical_summary_text": "Inga rapporterbara fusioner påvisades.",
+        },
+        snapshot_rows=[],
+        analyte="rna",
+        preview=True,
+    )
+
+    assert "Inga rapporterbara fusioner påvisades." in html
+    assert "Slutsats saknas!" not in html

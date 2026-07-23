@@ -22,6 +22,7 @@ def _dna_workflow() -> dna_workflow.DNAWorkflowService:
         annotation_repository=stub,
         reported_variant_repository=stub,
         report_repository=stub,
+        clinical_rule_service=None,
     )
 
 
@@ -50,6 +51,7 @@ def _rna_workflow(
         assay_panel_repository=assay_panel_repository or stub,
         reported_variant_repository=reported_variant_repository or stub,
         report_repository=report_repository or stub,
+        clinical_rule_service=None,
     )
 
 
@@ -391,6 +393,8 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
 
     workflow = _rna_workflow(
         fusion_repository=fusion_repository,
+        gene_list_repository=SimpleNamespace(get_isgl_by_ids=lambda _ids: {}),
+        assay_panel_repository=SimpleNamespace(get_asp=lambda _asp: {}),
         sample_repository=SimpleNamespace(),
         reported_variant_repository=SimpleNamespace(),
     )
@@ -399,7 +403,11 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
     assert rows[0]["created_on"] == "NOW"
 
     template, context, snapshot_rows = workflow.build_report_payload(
-        {"_id": "S1", "name": "S1"},
+        {"_id": "S1", "name": "S1", "assay": "fusion", "omics_layer": "rna"},
+        assay_config={
+            "asp_group": "hema",
+            "reporting": {},
+        },
         save=1,
         include_snapshot=True,
     )

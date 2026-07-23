@@ -28,6 +28,7 @@ from api.config.constants import (
     validate_identifier,
 )
 from api.contracts.schemas.base import VersionHistoryEntryDoc, _DocBase, _StrictDocBase
+from api.contracts.schemas.clinical_rules import ClinicalRuleReleaseRef
 from api.contracts.schemas.dna import DnaFiltersDoc
 from api.contracts.schemas.rna import RnaFiltersDoc
 
@@ -53,6 +54,7 @@ class AspcReportingDoc(_StrictDocBase):
     general_report_summary: str
     plots_path: str
     report_folder: str
+    clinical_rule_release: ClinicalRuleReleaseRef | None = None
 
     @model_validator(mode="after")
     def _validate_paths(self) -> AspcReportingDoc:

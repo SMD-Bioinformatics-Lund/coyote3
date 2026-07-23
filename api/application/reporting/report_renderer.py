@@ -406,6 +406,8 @@ DNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
       {% for comment in sample.comments if comment.hidden != 1 %}
         {% if loop.last %}{{ comment.text|format_comment|safe }}{% endif %}
       {% endfor %}
+    {% elif clinical_summary_text %}
+      {{ clinical_summary_text|format_comment|safe }}
     {% else %}
       Slutsats saknas!
     {% endif %}
@@ -568,6 +570,8 @@ RNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
       {% for comment in sample.comments if comment.hidden != 1 %}
         {% if loop.last %}{{ comment.text|format_comment|safe }}{% endif %}
       {% endfor %}
+    {% elif clinical_summary_text %}
+      {{ clinical_summary_text|format_comment|safe }}
     {% else %}
       Slutsats saknas!
     {% endif %}

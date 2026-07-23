@@ -736,7 +736,16 @@ class ISGLRepository(BaseRepository):
             return {}
 
         # Define the fields to include in the query result
-        projection = {"isgl_id": 1, "is_active": 1, "displayname": 1, "genes": 1, "adhoc": 1}
+        projection = {
+            "isgl_id": 1,
+            "is_active": 1,
+            "displayname": 1,
+            "version": 1,
+            "list_type": 1,
+            "genes": 1,
+            "germline_genes": 1,
+            "adhoc": 1,
+        }
 
         # Query the database for documents with matching IDs
         cursor = self.get_collection().find(

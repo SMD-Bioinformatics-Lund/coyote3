@@ -1,0 +1,49 @@
+schema_version: 1
+rule_set:
+  rule_set_id: generic_rna_reporting
+  version: "1.0.0"
+  title: Generic RNA clinical reporting text
+  status: active
+  language: sv
+  scope:
+    analyte: rna
+    assay_ids: []
+    assay_groups: []
+    subpanel_ids: []
+    environments: []
+  required_facts:
+    - sample.name
+    - sample.assay
+    - aggregates.fusion_count
+  notes: >
+    Baseline wording for an RNA report after the report workflow has selected
+    the reportable fusion findings.
+rules:
+  - rule_id: rna_reportable_fusion
+    family: finding_text
+    section: Kliniskt relevanta fynd
+    priority: 100
+    description: Summarize one reportable classified fusion.
+    when:
+      - fact: finding.kind
+        operator: eq
+        value: fusion
+    template: >
+      En fusion mellan {{ finding.fusion_gene_1 }} och
+      {{ finding.fusion_gene_2 }} påvisades och är klassificerad som Tier
+      {{ finding.tier }}.
+    stop: true
+
+  - rule_id: rna_no_reportable_fusions
+    family: result_text
+    section: Analysresultat
+    priority: 100
+    description: State that no reportable fusion remains after filtering.
+    when:
+      - fact: aggregates.fusion_count
+        operator: eq
+        value: 0
+    template: >
+      Inga rapporterbara fusioner påvisades inom den undersökta
+      analysomfattningen.
+    stop: true

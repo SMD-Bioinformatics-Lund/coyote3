@@ -48,6 +48,7 @@ def persist_report_and_snapshot(
     created_by: str,
     sample_repository,
     reported_variant_repository,
+    rule_provenance: dict | None = None,
 ) -> tuple[str, str]:
     """
     Persist report HTML + report metadata + reported-variants snapshot rows.
@@ -77,6 +78,7 @@ def persist_report_and_snapshot(
         report_id=report_id,
         filepath=report_file,
         pdf_filepath=pdf_file,
+        rule_provenance=rule_provenance,
     )
 
     reported_variant_repository.bulk_upsert_from_snapshot_rows(

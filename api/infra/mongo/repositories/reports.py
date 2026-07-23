@@ -63,6 +63,7 @@ class ReportRepository(BaseRepository):
         pdf_filepath: str | None = None,
         filters_snapshot: dict | None = None,
         aspc_snapshot: dict | None = None,
+        rule_provenance: dict | None = None,
     ) -> ObjectId:
         report_oid = ObjectId()
         now = utc_now()
@@ -89,6 +90,7 @@ class ReportRepository(BaseRepository):
                 "aspc_id": sample.get("current_aspc_key"),
                 "version": sample.get("current_aspc_version"),
             },
+            "clinical_rule_release": rule_provenance,
         }
         self.get_collection().insert_one(doc)
         self.adapter.samples_collection.update_one(

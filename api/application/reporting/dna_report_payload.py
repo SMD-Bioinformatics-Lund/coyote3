@@ -11,7 +11,8 @@ from typing import Any, Dict, List, Tuple
 from api.application.interpretation.annotation_enrichment import (
     add_global_annotations as shared_add_global_annotations,
 )
-from api.config.constants import DEFAULT_VEP_VERSION
+from api.application.reporting.clinical_rules.preparation import prepare_report_context
+from api.application.reporting.clinical_rules.service import rendered_summary
 from api.domain.common.assay_filters import (
     get_assay_genelist_names,
     get_sample_effective_genes,
@@ -252,7 +253,9 @@ def _ensure_sample_filters(sample: dict, assay_config: dict) -> tuple[dict, dict
 def _resolve_sample_vep_version(sample: dict) -> str:
     """Return the sample VEP version used for report consequence mapping."""
     normalized = str(sample.get("vep_version") or "").strip()
-    return normalized or DEFAULT_VEP_VERSION
+    if not normalized:
+        raise ValueError("sample.vep_version is required for DNA report generation")
+    return normalized
 
 
 def _normalize_dna_report_sections(sections: list[str] | None) -> list[str]:
@@ -429,6 +432,7 @@ def build_dna_report_payload(
     translocation_repository,
     vep_metadata_repository,
     annotation_repository,
+    clinical_rule_service=None,
 ) -> Tuple[str, Dict[str, Any], List[Dict[str, Any]]]:
     """
     Build DNA report template context and optional reported-variant snapshot rows.
@@ -461,6 +465,7 @@ def build_dna_report_payload(
     sample_vep_version = _resolve_sample_vep_version(sample)
     conseq_terms_mapper = vep_metadata_repository.get_consequence_group_map(sample_vep_version)
     snv_filters = merged_dna_variant_filters(sample_filters)
+    cnv_filters = merged_dna_cnv_filters(sample_filters)
     filter_conseq = shared_get_filter_conseq_terms(
         snv_filters.get("vep_consequences", []),
         conseq_terms_mapper,
@@ -500,6 +505,7 @@ def build_dna_report_payload(
 
     variants_simple = get_simple_variants_for_report(variants, assay_config)
     report_sections_data["snvs"] = sort_by_class_and_af(variants_simple)
+    rule_sections_data: Dict[str, Any] = {"snvs": variants}
 
     if "CNV" in report_sections:
         cnv_filter_genes = _resolve_cnv_filter_genes(
@@ -517,6 +523,7 @@ def build_dna_report_payload(
             sample_filters=sample_filters,
             filter_genes=cnv_filter_genes,
         )
+        rule_sections_data["cnvs"] = report_sections_data["cnvs"]
 
     if "CNV_PROFILE" in report_sections:
         report_sections_data["cnv_profile_base64"] = get_plot(
@@ -527,6 +534,7 @@ def build_dna_report_payload(
         report_sections_data["biomarkers"] = list(
             biomarker_repository.get_sample_biomarkers(sample_id=str(sample["_id"])) or []
         )
+        rule_sections_data["biomarkers"] = report_sections_data["biomarkers"]
 
     if "TRANSLOCATION" in report_sections:
         report_sections_data["translocs"] = list(
@@ -535,9 +543,11 @@ def build_dna_report_payload(
             )
             or []
         )
+        rule_sections_data["translocs"] = report_sections_data["translocs"]
 
     if "FUSION" in report_sections:
         report_sections_data["fusions"] = []
+        rule_sections_data["fusions"] = report_sections_data["fusions"]
 
     assay_config["reporting"]["report_header"] = get_report_header(
         assay_group,
@@ -547,6 +557,46 @@ def build_dna_report_payload(
 
     vep_variant_class_meta = vep_metadata_repository.get_variant_class_translations(
         sample_vep_version
+    )
+    selected_list_ids = list(
+        dict.fromkeys(
+            [
+                *snv_filters.get("snvlists", []),
+                *cnv_filters.get("cnvlists", []),
+            ]
+        )
+    )
+    selected_list_docs = gene_list_repository.get_isgl_by_ids(selected_list_ids)
+    applied_gene_lists = [
+        {
+            **document,
+            "isgl_id": isgl_id,
+            "selected_for": [
+                domain
+                for domain, selected_ids in (
+                    ("snv", snv_filters.get("snvlists", [])),
+                    ("cnv", cnv_filters.get("cnvlists", [])),
+                )
+                if isgl_id in selected_ids
+            ],
+        }
+        for isgl_id, document in selected_list_docs.items()
+    ]
+    prepared_rule_context = prepare_report_context(
+        sample=sample,
+        asp=assay_panel_doc or {},
+        aspc=assay_config,
+        analyte="dna",
+        applied_gene_lists=applied_gene_lists,
+        report_sections_data=rule_sections_data,
+    )
+    clinical_rule_evaluation = (
+        clinical_rule_service.evaluate_bound_release(
+            aspc=assay_config,
+            context=prepared_rule_context,
+        )
+        if clinical_rule_service is not None
+        else None
     )
 
     report_date = datetime.now().date()
@@ -569,5 +619,9 @@ def build_dna_report_payload(
         "panel_doc": json.dumps(assay_panel_doc, default=str),
         "report_snvlists": json.dumps(genes_covered_in_panel, default=str),
         "report_sample_filters": json.dumps(sample_filters, default=str),
+        "clinical_summary_text": rendered_summary(clinical_rule_evaluation),
+        "clinical_rule_evaluation": (
+            clinical_rule_evaluation.model_dump(mode="json") if clinical_rule_evaluation else None
+        ),
     }
     return "dna_report.html", template_context, snapshot_rows

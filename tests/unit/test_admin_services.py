@@ -908,6 +908,7 @@ def _aspc_service(repo: _AdminRepoStub) -> AspcService:
         assay_configuration_repository=store.assay_configuration_repository,
         assay_panel_repository=store.assay_panel_repository,
         vep_metadata_repository=store.vep_metadata_repository,
+        clinical_rule_set_repository=SimpleNamespace(),
         common_util=shared_util.common,
     )
 

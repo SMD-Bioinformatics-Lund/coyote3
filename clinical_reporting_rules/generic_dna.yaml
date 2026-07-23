@@ -1,0 +1,97 @@
+schema_version: 1
+rule_set:
+  rule_set_id: generic_dna_reporting
+  version: "1.0.0"
+  title: Generic DNA clinical reporting text
+  status: active
+  language: sv
+  scope:
+    analyte: dna
+    assay_ids: []
+    assay_groups: []
+    subpanel_ids: []
+    environments: []
+  required_facts:
+    - sample.name
+    - sample.assay
+    - aggregates.finding_count
+  notes: >
+    Baseline wording derived from the established Coyote DNA reporting
+    workflow. Assay-specific releases should take precedence through explicit
+    ASPC binding.
+rules:
+  - rule_id: dna_tier_1_finding
+    family: finding_text
+    section: Kliniskt relevanta fynd
+    priority: 100
+    description: Summarize one reportable Tier I small variant.
+    when:
+      - fact: finding.kind
+        operator: eq
+        value: snv
+      - fact: finding.tier
+        operator: eq
+        value: 1
+    template: >
+      {{ finding.gene }} {{ finding.hgvsp or finding.hgvsc }} påvisades med
+      variantfrekvens {{ finding.case_vaf_percent }} % och är klassificerad som Tier I.
+    stop: true
+
+  - rule_id: dna_tier_2_finding
+    family: finding_text
+    section: Kliniskt relevanta fynd
+    priority: 200
+    description: Summarize one reportable Tier II small variant.
+    when:
+      - fact: finding.kind
+        operator: eq
+        value: snv
+      - fact: finding.tier
+        operator: eq
+        value: 2
+    template: >
+      {{ finding.gene }} {{ finding.hgvsp or finding.hgvsc }} påvisades med
+      variantfrekvens {{ finding.case_vaf_percent }} % och är klassificerad som Tier II.
+    stop: true
+
+  - rule_id: dna_tier_3_finding
+    family: finding_text
+    section: Kliniskt relevanta fynd
+    priority: 300
+    description: Summarize one reportable Tier III small variant.
+    when:
+      - fact: finding.kind
+        operator: eq
+        value: snv
+      - fact: finding.tier
+        operator: eq
+        value: 3
+    template: >
+      {{ finding.gene }} {{ finding.hgvsp or finding.hgvsc }} påvisades med
+      variantfrekvens {{ finding.case_vaf_percent }} % och är klassificerad som Tier III.
+    stop: true
+
+  - rule_id: dna_no_reportable_findings
+    family: result_text
+    section: Analysresultat
+    priority: 100
+    description: State that the filtered report input contains no reportable findings.
+    when:
+      - fact: aggregates.has_reportable_findings
+        operator: eq
+        value: false
+    template: >
+      Vid analysen har inga rapporterbara fynd påvisats inom den undersökta
+      analysomfattningen.
+    stop: true
+
+  - rule_id: dna_report_conclusion
+    family: summary_text
+    section: Slutsats
+    priority: 100
+    description: Append the standard report information statement.
+    when: []
+    template: >
+      För ytterligare information om utförd analys och beskrivning av
+      rapporterade fynd, se bifogad rapport.
+    stop: true

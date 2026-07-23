@@ -1,5 +1,6 @@
 """Common DNA workflow orchestration for reporting routes."""
 
+from api.application.reporting.clinical_rules.service import ClinicalRuleService
 from api.application.reporting.dna_report_payload import build_dna_report_payload
 from api.application.reporting.persistence import (
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
@@ -30,6 +31,7 @@ class DNAWorkflowService:
             annotation_repository=store.annotation_repository,
             reported_variant_repository=store.reported_variant_repository,
             report_repository=store.report_repository,
+            clinical_rule_service=ClinicalRuleService.from_store(store),
         )
 
     def __init__(
@@ -47,6 +49,7 @@ class DNAWorkflowService:
         annotation_repository,
         reported_variant_repository,
         report_repository,
+        clinical_rule_service=None,
     ) -> None:
         """Create the workflow service with explicit injected repositories."""
         self.assay_panel_repository = assay_panel_repository
@@ -61,6 +64,7 @@ class DNAWorkflowService:
         self.annotation_repository = annotation_repository
         self.reported_variant_repository = reported_variant_repository
         self.report_repository = report_repository
+        self.clinical_rule_service = clinical_rule_service
 
     def next_report_num(self, sample_id: str) -> int:
         """Return the next sequential report number for a sample."""
@@ -103,6 +107,7 @@ class DNAWorkflowService:
             translocation_repository=self.translocation_repository,
             vep_metadata_repository=self.vep_metadata_repository,
             annotation_repository=self.annotation_repository,
+            clinical_rule_service=self.clinical_rule_service,
         )
 
     @staticmethod
@@ -121,6 +126,7 @@ class DNAWorkflowService:
         html: str,
         snapshot_rows: list | None,
         created_by: str,
+        rule_provenance: dict | None = None,
     ) -> tuple[str, str]:
         """Persist DNA report artifacts through the common reporting pipeline."""
         return persist_shared_report_and_snapshot(
@@ -132,6 +138,7 @@ class DNAWorkflowService:
             html=html,
             snapshot_rows=snapshot_rows,
             created_by=created_by,
+            rule_provenance=rule_provenance,
             sample_repository=self.sample_repository,
             reported_variant_repository=self.reported_variant_repository,
         )
