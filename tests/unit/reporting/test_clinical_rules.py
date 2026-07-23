@@ -394,7 +394,7 @@ def test_solid_GMSv3_tier_two_multi_gene_edge_case_is_verbatim():
     result = ClinicalRuleEvaluator().evaluate(context, release)
 
     assert result.sections["Kliniskt relevanta SNVs och små INDELs"] == [
-        "Vid analysen finner man två varianter av potentiell klinisk signifikans "
+        "Vid analysen finner man två mutationer av potentiell klinisk signifikans "
         "(Tier II): en i TP53 (90% av läsningarna) och en i PTEN (80%). "
     ]
 

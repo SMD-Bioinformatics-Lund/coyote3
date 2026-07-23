@@ -12,7 +12,7 @@ rules:
       - fact: aggregates.has_tiered_snvs
         operator: eq
         value: true
-    template: "{{ aggregates.tier_summaries | hema_tier_summary }}"
+    template: "{{ aggregates.tier_summaries | tier_summary }}"
     heading: true
     stop: false
 
