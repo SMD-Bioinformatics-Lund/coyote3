@@ -360,6 +360,8 @@ Purpose:
 - artifact paths
 - filter snapshot
 - ASPC snapshot/reference
+- immutable clinical-rule release reference: release ID, rule-set ID, version,
+  and content hash
 - author and creation time
 - sample linkage
 

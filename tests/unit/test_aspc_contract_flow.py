@@ -140,3 +140,35 @@ def test_aspc_rule_binding_uses_verified_release_and_rotation(monkeypatch) -> No
     assert reference["content_hash"] == "a" * 64
     assert updates[0]["actor_username"] == "clinical.admin"
     assert result["action"] == "rotate"
+
+
+def test_aspc_lists_only_active_rules_for_selected_scope() -> None:
+    """The admin selector must receive immutable releases scoped to its ASPC."""
+    from api.application.resources.aspc import AspcService
+
+    release = SimpleNamespace(
+        id_=ObjectId(),
+        rule_set_id="hema_GMSv1__base",
+        version="2",
+        content_hash="b" * 64,
+        published_by="clinical.admin",
+        published_on=SimpleNamespace(isoformat=lambda: "2026-07-23T10:00:00+00:00"),
+    )
+    service = AspcService(
+        assay_configuration_repository=SimpleNamespace(),
+        assay_panel_repository=SimpleNamespace(),
+        vep_metadata_repository=SimpleNamespace(),
+        clinical_rule_set_repository=SimpleNamespace(
+            list_active_for_scope=lambda **kwargs: [release]
+        ),
+        common_util=SimpleNamespace(),
+    )
+
+    payload = service.clinical_rule_release_options(
+        asp_id="hema_GMSv1",
+        subpanel_id="base",
+        category="DNA",
+    )
+
+    assert payload["releases"][0]["reference"]["rule_set_id"] == "hema_GMSv1__base"
+    assert payload["releases"][0]["reference"]["release_id"] == str(release.id_)

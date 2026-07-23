@@ -114,14 +114,22 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "display_type": "checkbox-group",
             "options": list(ALL_SAMPLE_FILE_KEYS),
             "category_options": {key: list(values) for key, values in SAMPLE_FILE_KEYS.items()},
+            "help": "Files the assay is able to ingest. A declared file must be successfully loaded before the sample becomes ready.",
         },
         "required_files": {
             "display_type": "checkbox-group",
             "options": list(ALL_SAMPLE_FILE_KEYS),
             "category_options": {key: list(values) for key, values in SAMPLE_FILE_KEYS.items()},
+            "help": "Minimum files required for this assay. A manifest missing one of these files fails ingest.",
         },
-        "covered_genes": {"display_type": "jsoneditor-or-upload"},
-        "germline_genes": {"display_type": "jsoneditor-or-upload"},
+        "covered_genes": {
+            "display_type": "jsoneditor-or-upload",
+            "help": "Assay-level targeted genes. Use canonical HGNC symbols and one symbol per entry.",
+        },
+        "germline_genes": {
+            "display_type": "jsoneditor-or-upload",
+            "help": "Genes for which the assay applies its configured germline review statement.",
+        },
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
         "created_on": {"readonly": True},
@@ -377,6 +385,21 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                     ],
                 },
                 {
+                    "title": "Clinical Rule Release",
+                    "fields": [
+                        {
+                            "key": "clinical_rule_release",
+                            "label": "Published Clinical Rule Release",
+                            "type": "clinical-rule-release",
+                            "required": True,
+                            "help": (
+                                "Select the published YAML release that matches this ASP and subpanel. "
+                                "The selected release is stored as an immutable reporting reference."
+                            ),
+                        },
+                    ],
+                },
+                {
                     "title": "Report Paths",
                     "fields": [
                         {
@@ -585,6 +608,21 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                     ],
                 },
                 {
+                    "title": "Clinical Rule Release",
+                    "fields": [
+                        {
+                            "key": "clinical_rule_release",
+                            "label": "Published Clinical Rule Release",
+                            "type": "clinical-rule-release",
+                            "required": True,
+                            "help": (
+                                "Select the published YAML release that matches this ASP and subpanel. "
+                                "The selected release is stored as an immutable reporting reference."
+                            ),
+                        },
+                    ],
+                },
+                {
                     "title": "Report Paths",
                     "fields": [
                         {
@@ -619,6 +657,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                 "truthy": list(GENELIST_ADHOC_TYPE_OPTIONS),
                 "falsy": list(GENELIST_STANDARD_TYPE_OPTIONS),
             },
+            "help": "Choose the clinical analysis domain. Ad-hoc lists expose only ad-hoc list types; curated lists expose only standard list types.",
         },
         "subpanel_id": {
             "display_type": "input",
@@ -631,8 +670,14 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "display_type": "checkbox-group",
             "dynamic_options": {"resource": "asp", "value": "asp_id", "label": "display_name"},
         },
-        "genes": {"display_type": "jsoneditor-or-upload"},
-        "germline_genes": {"display_type": "jsoneditor-or-upload"},
+        "genes": {
+            "display_type": "jsoneditor-or-upload",
+            "help": "Curated gene symbols for the selected clinical list type, one per entry.",
+        },
+        "germline_genes": {
+            "display_type": "jsoneditor-or-upload",
+            "help": "Optional germline subset associated with this curated list.",
+        },
         "adhoc": {"display_type": "checkbox"},
         "is_public": {"display_type": "checkbox"},
         "is_active": {"display_type": "checkbox", "default": True},
@@ -685,7 +730,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
 RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
     "asp": [
         (
-            "identity",
+            "assay identity",
             [
                 "assay_name",
                 "display_name",
@@ -695,36 +740,50 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
                 "platform",
                 "read_mode",
                 "description",
+            ],
+        ),
+        (
+            "ingest contract",
+            [
                 "expected_files",
                 "required_files",
             ],
         ),
-        ("gene_content", ["covered_genes", "germline_genes"]),
-        ("status", ["is_active"]),
-        ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
+        ("clinical gene scope", ["covered_genes", "germline_genes"]),
+        ("lifecycle", ["is_active"]),
+        ("record history", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "aspc_dna": [
-        ("identity", ["asp_id", "subpanel_id", "environment", "asp_group", "asp_category"]),
-        ("analysis", ["analysis_types"]),
-        ("filters", ["filters"]),
-        ("reporting", ["catalog", "reporting", "verification_samples"]),
-        ("status", ["is_active"]),
-        ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
+        (
+            "configuration scope",
+            ["asp_id", "subpanel_id", "environment", "asp_group", "asp_category"],
+        ),
+        ("enabled analysis", ["analysis_types"]),
+        ("analytical filters", ["filters"]),
+        ("clinical reporting", ["reporting"]),
+        ("public catalog", ["catalog"]),
+        ("verification", ["verification_samples"]),
+        ("lifecycle", ["is_active"]),
+        ("record history", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "aspc_rna": [
-        ("identity", ["asp_id", "subpanel_id", "environment", "asp_group", "asp_category"]),
-        ("analysis", ["analysis_types"]),
-        ("filters", ["filters"]),
-        ("reporting", ["catalog", "reporting"]),
-        ("status", ["is_active"]),
-        ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
+        (
+            "configuration scope",
+            ["asp_id", "subpanel_id", "environment", "asp_group", "asp_category"],
+        ),
+        ("enabled analysis", ["analysis_types"]),
+        ("analytical filters", ["filters"]),
+        ("clinical reporting", ["reporting"]),
+        ("public catalog", ["catalog"]),
+        ("lifecycle", ["is_active"]),
+        ("record history", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "isgl": [
-        ("identity", ["name", "displayname", "subpanel_id", "list_type", "diagnosis"]),
-        ("assignment", ["assay_groups", "assays"]),
-        ("gene_content", ["genes", "germline_genes"]),
-        ("status", ["adhoc", "is_public", "is_active"]),
-        ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
+        ("list identity", ["name", "displayname", "list_type", "diagnosis"]),
+        ("clinical scope", ["subpanel_id", "assay_groups", "assays"]),
+        ("curated gene content", ["genes", "germline_genes"]),
+        ("availability", ["adhoc", "is_public", "is_active"]),
+        ("record history", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "user": [
         ("identity", ["firstname", "lastname", "fullname", "username", "email", "job_title"]),

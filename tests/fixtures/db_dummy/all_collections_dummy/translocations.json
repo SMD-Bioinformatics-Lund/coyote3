@@ -23,22 +23,20 @@
         "SR": "6,9"
       }
     ],
-    "INFO": [
-      {
-        "SOMATIC": true,
-        "ANN": [
-          {
-            "Allele": "N",
-            "Annotation": [
-              "gene_fusion"
-            ],
-            "Gene_Name": "BCR&ABL1",
-            "Gene_ID": "ENSG00000186716&ENSG00000097007",
-            "Feature_Type": "CUSTOM",
-            "Feature_ID": "BCR_ENSG00000186716&ABL1_ENSG00000097007"
-          }
-        ]
-      }
-    ]
+    "INFO": {
+      "SOMATIC": true,
+      "ANN": [
+        {
+          "Allele": "N",
+          "Annotation": [
+            "gene_fusion"
+          ],
+          "Gene_Name": "BCR&ABL1",
+          "Gene_ID": "ENSG00000186716&ENSG00000097007",
+          "Feature_Type": "CUSTOM",
+          "Feature_ID": "BCR_ENSG00000186716&ABL1_ENSG00000097007"
+        }
+      ]
+    }
   }
 ]

@@ -1205,6 +1205,9 @@ def test_admin_aspc_create_context_uses_analysis_sections_not_genelist_fields(mo
     reporting_groups = form["fields"]["reporting"]["groups"]
     filter_keys = {field["key"] for group in filter_groups for field in group.get("fields", [])}
     report_section_options = reporting_groups[0]["fields"][0]["options"]
+    reporting_field_keys = {
+        field["key"] for group in reporting_groups for field in group.get("fields", [])
+    }
 
     assert "TMB" in analysis_options
     assert "PGX" in analysis_options
@@ -1213,6 +1216,7 @@ def test_admin_aspc_create_context_uses_analysis_sections_not_genelist_fields(mo
     assert "fusionlists" not in filter_keys
     assert "TMB" in report_section_options
     assert "PGX" in report_section_options
+    assert "clinical_rule_release" in reporting_field_keys
 
 
 def test_admin_aspc_service_create_rejects_duplicate(monkeypatch):

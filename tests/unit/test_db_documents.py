@@ -419,6 +419,7 @@ def test_collection_validator_normalizes_aspc_analysis_aliases():
             "display_name": "Assay 1 Dev",
             "filters": {"vep_consequences": ["missense"], "cnveffects": ["gain", "loss"]},
             "reporting": {
+                "analysis": ["snv", "tmb", "pgx", "cnv profile", "coverage"],
                 "report_sections": ["tmb", "cnv-profile"],
                 "report_header": "Header",
                 "report_method": "Method",
@@ -426,11 +427,18 @@ def test_collection_validator_normalizes_aspc_analysis_aliases():
                 "general_report_summary": "Summary",
                 "plots_path": "/tmp",
                 "report_folder": "reports",
+                "clinical_rule_release": {
+                    "release_id": "0123456789abcdef01234567",
+                    "rule_set_id": "assay_1__base",
+                    "version": "1",
+                    "content_hash": "a" * 64,
+                },
             },
         },
     )
 
     assert payload["analysis_types"] == ["SNV", "TMB", "PGX", "CNV_PROFILE", "COVERAGE"]
+    assert payload["reporting"]["analysis"] == ["SNV", "TMB", "PGX", "CNV_PROFILE", "COVERAGE"]
     assert payload["reporting"]["report_sections"] == ["TMB", "CNV_PROFILE"]
 
 

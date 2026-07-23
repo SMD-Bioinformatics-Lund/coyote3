@@ -9,6 +9,7 @@ from pydantic import Field, computed_field, field_validator, model_validator
 
 from api.config.constants import (
     ALL_SAMPLE_FILE_KEYS,
+    ASPC_REQUIRED_REPORTING_FIELDS,
     DNA_ANALYSIS_TYPE_OPTIONS,
     GENELIST_ADHOC_TYPE_OPTIONS,
     GENELIST_STANDARD_TYPE_OPTIONS,
@@ -226,6 +227,30 @@ class AspConfigDoc(_StrictDocBase):
             raise ValueError(
                 f"reporting.analysis contains invalid values: {invalid_reporting_analysis}. "
                 f"Allowed values are: {sorted(allowed_analysis)}"
+            )
+        if not self.analysis_types:
+            raise ValueError("analysis_types must include at least one enabled analysis")
+        if not self.reporting.analysis:
+            raise ValueError("reporting.analysis must include at least one enabled analysis")
+        if not self.reporting.report_sections:
+            raise ValueError("reporting.report_sections must include at least one report section")
+        if set(self.reporting.analysis) != set(self.analysis_types):
+            raise ValueError("reporting.analysis must match analysis_types")
+        unavailable_sections = [
+            value
+            for value in self.reporting.report_sections
+            if value not in self.reporting.analysis
+        ]
+        if unavailable_sections:
+            raise ValueError(
+                "reporting.report_sections must be enabled in reporting.analysis: "
+                f"{unavailable_sections}"
+            )
+        if self.is_active and self.reporting.clinical_rule_release is None:
+            fields = ", ".join(ASPC_REQUIRED_REPORTING_FIELDS)
+            raise ValueError(
+                "active ASPCs require a bound clinical_rule_release before they can generate "
+                f"clinical reports. Required reporting fields: {fields}"
             )
         return self
 

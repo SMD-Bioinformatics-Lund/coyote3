@@ -101,6 +101,23 @@ class ClinicalRuleSetRepository(BaseRepository):
         document = self.get_collection().find_one({"_id": object_id})
         return ClinicalRuleReleaseDoc.model_validate(document) if document else None
 
+    def list_active_for_scope(
+        self,
+        *,
+        analyte: str,
+        assay_id: str,
+        subpanel_id: str,
+    ) -> list[ClinicalRuleReleaseDoc]:
+        """Return active immutable releases eligible for one ASPC scope."""
+        query = {
+            "status": "active",
+            "source.rule_set.analyte": str(analyte),
+            "source.rule_set.assay_id": str(assay_id),
+            "source.rule_set.subpanel_id": str(subpanel_id),
+        }
+        documents = self.get_collection().find(query).sort("published_on", -1)
+        return [ClinicalRuleReleaseDoc.model_validate(document) for document in documents]
+
     def get_referenced_release(self, reference: dict[str, Any]) -> ClinicalRuleReleaseDoc | None:
         """Resolve and verify the exact release bound to an ASPC."""
         release = self.get_release(reference.get("release_id"))

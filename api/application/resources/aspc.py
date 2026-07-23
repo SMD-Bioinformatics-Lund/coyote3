@@ -191,6 +191,49 @@ class AspcService:
             "form": form,
         }
 
+    def clinical_rule_release_options(
+        self,
+        *,
+        asp_id: str,
+        subpanel_id: str,
+        category: str,
+    ) -> dict[str, Any]:
+        """Return published rule releases eligible for the selected ASPC scope."""
+        normalized_category = _normalize_asp_category(category)
+        releases = self.clinical_rule_set_repository.list_active_for_scope(
+            analyte=normalized_category,
+            assay_id=str(asp_id or "").strip(),
+            subpanel_id=str(subpanel_id or SUBPANEL_BASE_ID).strip() or SUBPANEL_BASE_ID,
+        )
+        return {
+            "releases": [
+                {
+                    "reference": {
+                        "release_id": str(release.id_),
+                        "rule_set_id": release.rule_set_id,
+                        "version": release.version,
+                        "content_hash": release.content_hash,
+                    },
+                    "label": f"{release.rule_set_id} v{release.version}",
+                    "description": (
+                        f"Published {release.published_on.isoformat()} by {release.published_by}"
+                    ),
+                }
+                for release in releases
+            ]
+        }
+
+    def _validate_rule_release_reference(self, config: dict[str, Any]) -> None:
+        """Verify that an ASPC reporting reference is intact and scope-compatible."""
+        reference = (config.get("reporting") or {}).get("clinical_rule_release")
+        if not reference:
+            return
+        release = self.clinical_rule_set_repository.get_referenced_release(reference)
+        if release is None:
+            raise api_error(409, "Clinical rule release reference no longer resolves")
+        if not self._release_scope_matches_aspc(release, config):
+            raise api_error(409, "Clinical rule release scope does not match the assay config")
+
     def create(
         self, *, payload: dict[str, Any], actor_username: str = "admin-ui"
     ) -> dict[str, Any]:
@@ -242,6 +285,7 @@ class AspcService:
             new_config=config,
             is_new=True,
         )
+        self._validate_rule_release_reference(config)
         config = _validated_doc(spec.collection, config)
         self.assay_configuration_repository.create_assay_config(config)
         return change_payload(
@@ -292,6 +336,7 @@ class AspcService:
             old_config=assay_config,
             is_new=False,
         )
+        self._validate_rule_release_reference(updated_doc)
         updated_doc = _validated_doc(spec.collection, updated_doc)
         self.assay_configuration_repository.rotate_aspc(
             assay_id,

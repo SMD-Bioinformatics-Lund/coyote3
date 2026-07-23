@@ -91,14 +91,12 @@ questions:
 - **Reportable domain:** may this analysis contribute to a report?
 - **Rendered section:** should the report contain this section?
 
-The release contains the complete validated YAML source, including authority,
-source artifact checksum, exact source locator for each executable clause,
-approval evidence, golden case IDs, and deferred clauses waiting for typed
-facts. This makes the provenance chain:
+The release contains the complete validated YAML source, its deterministic
+content hash, publication identity, and any deferred rules waiting for a typed
+fact contract. This makes the runtime lineage:
 
 ```text
-authoritative source artifact
-  -> verbatim repository YAML
+reviewed repository YAML
   -> content-hashed immutable release
   -> versioned ASPC binding
   -> saved report provenance

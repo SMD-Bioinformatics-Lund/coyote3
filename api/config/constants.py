@@ -194,6 +194,18 @@ GENELIST_TYPE_OPTIONS: tuple[str, ...] = (
     *GENELIST_ADHOC_TYPE_OPTIONS,
 )
 
+# ASPC reporting is a clinical contract. These fields are the minimum authored
+# configuration required before an active configuration may generate a report.
+ASPC_REQUIRED_REPORTING_FIELDS: tuple[str, ...] = (
+    "report_header",
+    "report_method",
+    "report_description",
+    "general_report_summary",
+    "plots_path",
+    "report_folder",
+    "clinical_rule_release",
+)
+
 SUBPANEL_BASE_ID = "base"
 
 PERMISSION_CATEGORY_OPTIONS: tuple[str, ...] = (

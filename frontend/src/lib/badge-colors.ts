@@ -1,3 +1,5 @@
+import { GENELIST_TYPE_METADATA, configuredValueDescription } from "@/lib/configured-values"
+
 export const configuredValueClasses: Record<string, string> = {
   local: "border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-500/50 dark:bg-amber-500/15 dark:text-amber-200",
   ldap: "border-sky-300 bg-sky-100 text-sky-800 dark:border-sky-500/50 dark:bg-sky-500/15 dark:text-sky-200",
@@ -21,15 +23,7 @@ export const configuredValueClasses: Record<string, string> = {
   pacbio: "border-lime-300 bg-lime-100 text-lime-800 dark:border-lime-500/50 dark:bg-lime-500/15 dark:text-lime-200",
   nanopore: "border-neutral-300 bg-neutral-100 text-neutral-800 dark:border-neutral-500/50 dark:bg-neutral-500/15 dark:text-neutral-200",
   iontorrent: "border-yellow-300 bg-yellow-100 text-yellow-800 dark:border-yellow-500/50 dark:bg-yellow-500/15 dark:text-yellow-200",
-  snv: "border-indigo-300 bg-indigo-100 text-indigo-800 dark:border-indigo-500/50 dark:bg-indigo-500/15 dark:text-indigo-200",
-  cnv: "border-orange-300 bg-orange-100 text-orange-800 dark:border-orange-500/50 dark:bg-orange-500/15 dark:text-orange-200",
-  fusion: "border-rose-300 bg-rose-100 text-rose-800 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-200",
-  expression: "border-pink-300 bg-pink-100 text-pink-800 dark:border-pink-500/50 dark:bg-pink-500/15 dark:text-pink-200",
-  adhoc_snv: "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-500/50 dark:bg-indigo-500/10 dark:text-indigo-200",
-  adhoc_cnv: "border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-500/50 dark:bg-orange-500/10 dark:text-orange-200",
-  adhoc_fusion: "border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-500/50 dark:bg-rose-500/10 dark:text-rose-200",
-  adhoc_expression: "border-pink-300 bg-pink-50 text-pink-700 dark:border-pink-500/50 dark:bg-pink-500/10 dark:text-pink-200",
-  adhoc_pgx: "border-fuchsia-300 bg-fuchsia-50 text-fuchsia-700 dark:border-fuchsia-500/50 dark:bg-fuchsia-500/10 dark:text-fuchsia-200",
+  ...Object.fromEntries(Object.entries(GENELIST_TYPE_METADATA).map(([value, metadata]) => [value, metadata.className])),
   SNV: "border-indigo-300 bg-indigo-100 text-indigo-800 dark:border-indigo-500/50 dark:bg-indigo-500/15 dark:text-indigo-200",
   CNV: "border-orange-300 bg-orange-100 text-orange-800 dark:border-orange-500/50 dark:bg-orange-500/15 dark:text-orange-200",
   TRANSLOCATION: "border-cyan-300 bg-cyan-100 text-cyan-800 dark:border-cyan-500/50 dark:bg-cyan-500/15 dark:text-cyan-200",
@@ -75,3 +69,5 @@ export function valueBadgeClass(value: string, kind?: string) {
   if (kind === "role") return roleFallbackClasses[value.toLowerCase()] || "border-primary/20 bg-primary/10 text-primary"
   return "border-border bg-muted/70 text-foreground"
 }
+
+export { configuredValueDescription }

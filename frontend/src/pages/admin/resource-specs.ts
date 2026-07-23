@@ -20,6 +20,7 @@ export type FormField = {
   readonly?: boolean
   readonly_mode?: string[]
   placeholder?: string
+  help?: string
   options?: any[]
   conditional_options?: {
     field: string

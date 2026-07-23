@@ -191,6 +191,12 @@ class AdminAspcContextPayload(BaseModel):
     form_payload: dict[str, Any] = Field(alias="form")
 
 
+class AdminClinicalRuleReleaseOptionsPayload(BaseModel):
+    """Represent eligible immutable clinical-rule releases for one ASPC scope."""
+
+    releases: list[dict[str, Any]]
+
+
 class AdminExistsPayload(BaseModel):
     """Represent the admin exists payload."""
 

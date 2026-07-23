@@ -239,6 +239,14 @@ An ASPC describes the digital rulebook for an assay context:
 
 When a sample is opened or reset, the default filters come from the matching ASPC.
 
+An active ASPC is also the report-readiness contract. It must contain at least
+one enabled analysis, an equal reporting-analysis set, non-empty report
+sections drawn from that set, approved report identity text, report output
+locations, and a reference to a published immutable clinical rule release. The
+ASPC stores the release identity and integrity hash, rather than embedding a
+copy of the rule file. This preserves a precise connection between the report
+and the approved wording used at the time.
+
 !!! info "ASPC resolution"
 
     The effective ASPC is selected by assay, profile, and subpanel. If a subpanel-specific configuration is not present, the base configuration is used when clinically valid.
@@ -437,12 +445,14 @@ After saving, later searches can answer which samples reported a gene, which var
 
     A saved report should remain understandable even if ASPC defaults, ISGL contents, annotation text, or sample filters change later.
 
-!!! caution "Configurable report text"
+!!! info "Clinical text rules"
 
-    A future YAML-driven clinical text evaluator must consume only the prepared
-    report context. It may select approved wording, group prepared findings,
-    render variables, and return a rule trace. It must not have repository,
-    database-write, or external-knowledgebase access.
+    Report wording is selected by the YAML-driven clinical reporting rules
+    engine after report preparation completes. The evaluator consumes only the
+    prepared report context and the immutable release referenced by the ASPC;
+    it has no repository, database-write, or external-knowledgebase access.
+    The complete authoring, publication, binding, and validation protocol is
+    documented in [Clinical reporting rules](clinical_reporting_rules.md).
 
 ## 17. Assay Catalog And Matrix
 
