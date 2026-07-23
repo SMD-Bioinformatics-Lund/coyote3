@@ -34,8 +34,12 @@ class ClinicalRuleSetRepository(BaseRepository):
             background=True,
         )
         collection.create_index(
-            [("source.rule_set.scope.assay_ids", 1), ("status", 1)],
-            name="scope_assay_status",
+            [
+                ("source.rule_set.scope.assay_id", 1),
+                ("source.rule_set.scope.subpanel_id", 1),
+                ("status", 1),
+            ],
+            name="scope_assay_subpanel_status",
             background=True,
         )
 

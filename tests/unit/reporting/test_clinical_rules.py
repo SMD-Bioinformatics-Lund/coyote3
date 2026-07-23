@@ -123,12 +123,13 @@ def _rna_context() -> PreparedReportContext:
     )
 
 
-def test_master_rules_compile_deterministically():
+def test_hema_base_rules_compile_deterministically():
     compiler = ClinicalRuleCompiler()
-    source = compiler.load(RULES_ROOT / "master_dna.draft.yaml")
+    source_path = RULES_ROOT / "hema_GMSv1" / "base.draft.yaml"
+    source = compiler.load(source_path)
 
     first = compiler.content_hash(source)
-    second = compiler.content_hash(compiler.load(RULES_ROOT / "master_dna.draft.yaml"))
+    second = compiler.content_hash(compiler.load(source_path))
 
     assert first == second
     assert len(first) == 64
@@ -137,18 +138,35 @@ def test_master_rules_compile_deterministically():
 def test_all_repository_rule_sources_compile():
     compiler = ClinicalRuleCompiler()
 
-    sources = [compiler.load(path) for path in sorted(RULES_ROOT.glob("*.yaml"))]
+    sources = [compiler.load(path) for path in compiler.discover(RULES_ROOT)]
 
     assert {source.rule_set.rule_set_id for source in sources} == {
-        "endometrial_dna_reporting",
-        "master_dna_reporting",
-        "old_coyote_dna_reporting",
-        "old_coyote_rna_reporting",
+        "RNA_fusion__base",
+        "fusion__base",
+        "hema_GMSv1__base",
+        "myeloid_GMSv1__base",
+        "solidRNA_GMSv5__base",
+        "solid_GMSv3__base",
+        "solid_GMSv3__endometrie",
+        "tumwgs_hema__base",
+        "tumwgs_solid__base",
     }
 
 
+def test_repository_path_must_match_assay_and_subpanel_scope(tmp_path):
+    rules_root = tmp_path / "clinical_reporting_rules"
+    wrong_assay_dir = rules_root / "another_assay"
+    wrong_assay_dir.mkdir(parents=True)
+    source = (RULES_ROOT / "hema_GMSv1" / "base.draft.yaml").read_text(encoding="utf-8")
+    path = wrong_assay_dir / "base.draft.yaml"
+    path.write_text(source, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="does not match its assay/subpanel scope"):
+        ClinicalRuleCompiler().load(path)
+
+
 def test_draft_rules_validate_but_cannot_publish():
-    source_path = RULES_ROOT / "endometrial_dna.draft.yaml"
+    source_path = RULES_ROOT / "solid_GMSv3" / "endometrie.draft.yaml"
     compiler = ClinicalRuleCompiler()
     compiler.load(source_path)
 
@@ -160,7 +178,7 @@ def test_draft_rules_validate_but_cannot_publish():
 
 
 def test_unknown_fact_is_rejected(tmp_path):
-    source = (RULES_ROOT / "endometrial_dna.draft.yaml").read_text(encoding="utf-8")
+    source = (RULES_ROOT / "solid_GMSv3" / "endometrie.draft.yaml").read_text(encoding="utf-8")
     source = source.replace("finding.kind", "finding.unregistered_fact", 1)
     path = tmp_path / "invalid.yaml"
     path.write_text(source, encoding="utf-8")
@@ -170,7 +188,7 @@ def test_unknown_fact_is_rejected(tmp_path):
 
 
 def test_collection_operator_requires_list_value(tmp_path):
-    source = (RULES_ROOT / "endometrial_dna.draft.yaml").read_text(encoding="utf-8")
+    source = (RULES_ROOT / "solid_GMSv3" / "endometrie.draft.yaml").read_text(encoding="utf-8")
     source = source.replace(
         "operator: eq\n        value: snv", "operator: in\n        value: snv", 1
     )
@@ -182,7 +200,7 @@ def test_collection_operator_requires_list_value(tmp_path):
 
 
 def test_template_cannot_use_unapproved_jinja_global(tmp_path):
-    source = (RULES_ROOT / "endometrial_dna.draft.yaml").read_text(encoding="utf-8")
+    source = (RULES_ROOT / "solid_GMSv3" / "endometrie.draft.yaml").read_text(encoding="utf-8")
     source = source.replace(
         "{{ finding.gene }}",
         "{{ range(10) }}",
@@ -239,7 +257,7 @@ def test_preparation_exposes_case_and_control_vaf_percentages():
     assert finding.control_vaf_percent == 0.7
 
 
-def test_tier_composition_matches_master_wording_byte_for_byte():
+def test_hema_GMSv1_tier_composition_is_verbatim():
     def variant(gene: str, tier: int, vaf: float) -> dict:
         return {
             "INFO": {"selected_CSQ": {"SYMBOL": gene}},
@@ -272,7 +290,7 @@ def test_tier_composition_matches_master_wording_byte_for_byte():
             ]
         },
     )
-    release = _release(RULES_ROOT / "master_dna.draft.yaml")
+    release = _release(RULES_ROOT / "hema_GMSv1" / "base.draft.yaml")
 
     result = ClinicalRuleEvaluator().evaluate(context, release)
 
@@ -284,8 +302,8 @@ def test_tier_composition_matches_master_wording_byte_for_byte():
     ]
 
 
-def test_master_negative_result_and_conclusion_are_verbatim():
-    release = _release(RULES_ROOT / "master_dna.draft.yaml")
+def test_hema_GMSv1_negative_result_and_conclusion_are_verbatim():
+    release = _release(RULES_ROOT / "hema_GMSv1" / "base.draft.yaml")
     context_payload = _context(tier=1).model_dump(mode="python")
     context_payload["findings"] = []
     context_payload["asp"]["accredited"] = False
@@ -331,7 +349,7 @@ def test_master_negative_result_and_conclusion_are_verbatim():
     ]
 
 
-def test_old_coyote_tier_two_multi_gene_edge_case_is_verbatim():
+def test_solid_GMSv3_tier_two_multi_gene_edge_case_is_verbatim():
     def variant(gene: str, vaf: float) -> dict:
         return {
             "INFO": {"selected_CSQ": {"SYMBOL": gene}},
@@ -362,7 +380,7 @@ def test_old_coyote_tier_two_multi_gene_edge_case_is_verbatim():
             ]
         },
     )
-    release = _release(RULES_ROOT / "old_coyote_dna.draft.yaml")
+    release = _release(RULES_ROOT / "solid_GMSv3" / "base.draft.yaml")
 
     result = ClinicalRuleEvaluator().evaluate(context, release)
 
@@ -372,8 +390,8 @@ def test_old_coyote_tier_two_multi_gene_edge_case_is_verbatim():
     ]
 
 
-def test_old_coyote_rna_text_is_verbatim():
-    release = _release(RULES_ROOT / "old_coyote_rna.draft.yaml")
+def test_fusion_report_text_is_verbatim():
+    release = _release(RULES_ROOT / "fusion" / "base.draft.yaml")
     result = ClinicalRuleEvaluator().evaluate(_rna_context(), release)
 
     assert result.sections["Report summary"] == [
@@ -387,8 +405,67 @@ def test_old_coyote_rna_text_is_verbatim():
     ]
 
 
+@pytest.mark.parametrize(
+    ("assay_id", "expected"),
+    [
+        (
+            "RNA_fusion",
+            "RNA har extraherats från insänt prov och analyserats med massivt "
+            "parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar "
+            "160 kända fusionsgener vid solid tumörsjukdom som inkluderas i RNA "
+            "fusionspanel (Twist Alliance CeGaT RNA Fusion Panel).\n\nFör ytterligare "
+            "information om utförd analys och beskrivning av eventuellt funna "
+            "fusionsgener, var god se bifogad rapport. Analysen omfattas inte av "
+            "ackrediteringen.",
+        ),
+        (
+            "solidRNA_GMSv5",
+            "RNA har extraherats från insänt prov och analyserats med massivt "
+            "parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar "
+            "kända fusionsgener vid solid tumörsjukdom, se Analysbeskrivning nedan."
+            "\n\nFör ytterligare information om utförd analys och beskrivning av "
+            "eventuellt funna fusionsgener, var god se bifogad rapport. Analysen "
+            "omfattas inte av ackrediteringen.",
+        ),
+    ],
+)
+def test_targeted_rna_report_text_is_verbatim(assay_id, expected):
+    release = _release(RULES_ROOT / assay_id / "base.draft.yaml")
+    context_payload = _rna_context().model_dump(mode="python")
+    context_payload["sample"]["assay"] = assay_id
+    result = ClinicalRuleEvaluator().evaluate(
+        PreparedReportContext.model_validate(context_payload),
+        release,
+    )
+
+    assert result.sections["Report summary"] == [expected]
+
+
+@pytest.mark.parametrize("assay_id", ["tumwgs_hema", "tumwgs_solid"])
+def test_tumwgs_report_text_is_verbatim(assay_id):
+    release = _release(RULES_ROOT / assay_id / "base.draft.yaml")
+    context_payload = _context().model_dump(mode="python")
+    context_payload["sample"]["assay"] = assay_id
+    result = ClinicalRuleEvaluator().evaluate(
+        PreparedReportContext.model_validate(context_payload),
+        release,
+    )
+
+    assert result.sections["Report summary"] == [
+        "DNA har extraherats från insänt prov och analyserats med massivt parallell "
+        "sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar hela genomet "
+        "(WGS; whole genome sequencing) med indikationsspecifik analys av somatiska "
+        "varianter (SNVs, indels, amplifieringar, homozygota deletioner samt större "
+        "alleliska obalanser (förlust och överskott av genetiskt material). "
+        "Korresponderande normalprov har använts som kontrollmaterial.\n\nFör "
+        "ytterligare information om utförd analys och beskrivning av somatiskt "
+        "förvärvade varianter, var god se bifogad rapport. Analysen omfattas inte av "
+        "ackrediteringen."
+    ]
+
+
 def test_endometrial_workbook_wording_is_verbatim():
-    release = _release(RULES_ROOT / "endometrial_dna.draft.yaml")
+    release = _release(RULES_ROOT / "solid_GMSv3" / "endometrie.draft.yaml")
     result = ClinicalRuleEvaluator().evaluate(_context(tier=1), release)
 
     assert result.sections["Molecular classification"] == [
@@ -416,7 +493,7 @@ def test_service_returns_none_without_aspc_release_reference():
 
 
 def test_service_rejects_release_scope_mismatch():
-    release = _release(RULES_ROOT / "master_dna.draft.yaml")
+    release = _release(RULES_ROOT / "hema_GMSv1" / "base.draft.yaml")
 
     class _Repository:
         @staticmethod

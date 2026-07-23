@@ -1,16 +1,14 @@
-schema_version: 2
+schema_version: 3
 rule_set:
-  rule_set_id: master_dna_reporting
+  rule_set_id: hema_GMSv1__base
   version: "0.1.0-draft"
-  title: Current Coyote DNA reporting wording
+  title: GMS-HEM v1 base clinical reporting rules
   status: draft
   language: sv
   scope:
     analyte: dna
-    assay_ids: []
-    assay_groups: []
-    subpanel_ids: []
-    environments: []
+    assay_id: hema_GMSv1
+    subpanel_id: base
   provenance:
     authority: coyote_master
     reference: coyote/blueprints/common/util.py
@@ -21,18 +19,18 @@ rule_set:
     approval_status: pending
     approval_reference:
     golden_case_ids:
-      - master-dna-no-snv
-      - master-dna-unaccredited-conclusion
+      - hema-GMSv1-base-no-snv
+      - hema-GMSv1-base-unaccredited-conclusion
   required_facts:
     - aggregates.has_tiered_snvs
     - asp.accredited
   notes: >-
-    Verbatim clauses from the current Coyote master implementation. The source
-    remains draft until the positive tier-group composition, CNV, structural
+    Verbatim clauses for the GMS-HEM v1 assay. The source remains draft until
+    the positive tier-group composition, CNV, structural
     variant, biomarker, and introductory flows have typed facts and complete
     byte-for-byte golden coverage.
 rules:
-  - rule_id: master_dna_tiered_snv_summary
+  - rule_id: hema_GMSv1_tiered_snv_summary
     family: result_text
     section: Kliniskt relevanta SNVs och små INDELs
     priority: 90
@@ -71,7 +69,7 @@ rules:
     heading: true
     stop: false
 
-  - rule_id: master_dna_no_somatic_snv
+  - rule_id: hema_GMSv1_no_somatic_snv
     family: result_text
     section: Kliniskt relevanta SNVs och små INDELs
     priority: 100
@@ -86,7 +84,7 @@ rules:
     heading: true
     stop: false
 
-  - rule_id: master_dna_unaccredited_conclusion
+  - rule_id: hema_GMSv1_unaccredited_conclusion
     family: summary_text
     section: Report conclusion
     priority: 100
@@ -101,7 +99,7 @@ rules:
     heading: false
     stop: true
 
-  - rule_id: master_dna_accredited_conclusion
+  - rule_id: hema_GMSv1_accredited_conclusion
     family: summary_text
     section: Report conclusion
     priority: 200

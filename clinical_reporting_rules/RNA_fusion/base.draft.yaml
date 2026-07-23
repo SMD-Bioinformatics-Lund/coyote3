@@ -1,0 +1,42 @@
+schema_version: 3
+rule_set:
+  rule_set_id: RNA_fusion__base
+  version: "0.1.0-draft"
+  title: RNA fusion 160 base clinical reporting rules
+  status: draft
+  language: sv
+  scope:
+    analyte: rna
+    assay_id: RNA_fusion
+    subpanel_id: base
+  provenance:
+    authority: old_coyote
+    reference: .design/old_coyote.py
+    revision: archived-reference
+    content_sha256: 4cfa49e808974c3965fc74ff987a875c3d2e5fd165c654727e341d9dcf3b4c53
+    text_policy: verbatim
+  validation:
+    approval_status: pending
+    approval_reference:
+    golden_case_ids:
+      - RNA-fusion-base-summary
+  required_facts:
+    - sample.assay
+  notes: Verbatim summary for the 160-gene RNA fusion assay.
+rules:
+  - rule_id: RNA_fusion_report_summary
+    family: result_text
+    section: Report summary
+    priority: 100
+    description: Complete 160-gene RNA fusion-panel summary.
+    source_locator: .design/old_coyote.py:2406
+    when:
+      - fact: sample.assay
+        operator: eq
+        value: RNA_fusion
+    template: |-
+      RNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar 160 kända fusionsgener vid solid tumörsjukdom som inkluderas i RNA fusionspanel (Twist Alliance CeGaT RNA Fusion Panel).
+
+      För ytterligare information om utförd analys och beskrivning av eventuellt funna fusionsgener, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen.
+    heading: false
+    stop: true

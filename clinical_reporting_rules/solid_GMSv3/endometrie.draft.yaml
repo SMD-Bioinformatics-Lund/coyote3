@@ -1,18 +1,14 @@
-schema_version: 2
+schema_version: 3
 rule_set:
-  rule_set_id: endometrial_dna_reporting
+  rule_set_id: solid_GMSv3__endometrie
   version: "0.2.0-draft"
   title: Endometrial cancer DNA reporting wording
   status: draft
   language: sv
   scope:
     analyte: dna
-    assay_ids: []
-    assay_groups:
-      - solid
-    subpanel_ids:
-      - endometrial
-    environments: []
+    assay_id: solid_GMSv3
+    subpanel_id: endometrie
   provenance:
     authority: clinical_workbook
     reference: .design/endometrierapport to Ram.xlsx

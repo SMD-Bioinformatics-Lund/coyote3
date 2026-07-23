@@ -36,21 +36,21 @@ class ClinicalRuleOperator(str, Enum):
 
 
 class ClinicalRuleScope(BaseModel):
-    """Deployment scope for a rule set."""
+    """Exact assay/subpanel identity for a clinical rule set."""
 
     model_config = ConfigDict(extra="forbid")
 
     analyte: Literal["dna", "rna"]
-    assay_ids: list[str] = Field(default_factory=list)
-    assay_groups: list[str] = Field(default_factory=list)
-    subpanel_ids: list[str] = Field(default_factory=list)
-    environments: list[str] = Field(default_factory=list)
+    assay_id: str
+    subpanel_id: str = "base"
 
-    @field_validator("assay_ids", "assay_groups", "subpanel_ids", "environments", mode="before")
+    @field_validator("assay_id", "subpanel_id", mode="before")
     @classmethod
-    def _normalize_values(cls, value: Any) -> list[str]:
-        values = value if isinstance(value, list) else ([value] if value else [])
-        return list(dict.fromkeys(str(item).strip() for item in values if str(item).strip()))
+    def _normalize_identifier(cls, value: Any) -> str:
+        normalized = str(value or "").strip()
+        if not normalized:
+            raise ValueError("clinical rule assay and subpanel identifiers cannot be empty")
+        return normalized
 
 
 class ClinicalRuleCondition(BaseModel):
@@ -242,6 +242,15 @@ class ClinicalRuleSetMetadata(BaseModel):
         return list(dict.fromkeys(str(item).strip() for item in values if str(item).strip()))
 
     @model_validator(mode="after")
+    def _validate_scope_identity(self) -> "ClinicalRuleSetMetadata":
+        expected = f"{self.scope.assay_id}__{self.scope.subpanel_id}"
+        if self.rule_set_id != expected:
+            raise ValueError(
+                f"rule_set_id must identify the exact assay/subpanel scope: expected '{expected}'"
+            )
+        return self
+
+    @model_validator(mode="after")
     def _validate_activation_evidence(self) -> "ClinicalRuleSetMetadata":
         if self.status != "active":
             return self
@@ -259,7 +268,7 @@ class ClinicalRuleSetSource(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    schema_version: Literal[2] = 2
+    schema_version: Literal[3] = 3
     rule_set: ClinicalRuleSetMetadata
     rules: list[ClinicalReportingRule]
     deferred_rules: list[DeferredClinicalReportingRule] = Field(default_factory=list)
@@ -302,7 +311,7 @@ class ClinicalRuleReleaseDoc(_StrictDocBase):
     rule_set_id: str
     version: str
     status: Literal["active", "retired"]
-    schema_version: int = 2
+    schema_version: int = 3
     content_hash: str
     source_path: str
     source: ClinicalRuleSetSource

@@ -25,20 +25,11 @@ class ClinicalRuleService:
     def _scope_matches(context: PreparedReportContext, scope) -> bool:
         sample = context.sample
         aspc = context.aspc
-        checks = (
-            (scope.analyte, sample.omics_layer),
-            (scope.assay_ids, sample.assay),
-            (scope.assay_groups, aspc.asp_group),
-            (scope.subpanel_ids, sample.subpanel_id or aspc.subpanel_id),
-            (scope.environments, sample.profile or aspc.environment),
+        return (
+            scope.analyte == sample.omics_layer
+            and scope.assay_id == sample.assay
+            and scope.subpanel_id == aspc.subpanel_id
         )
-        for expected, actual in checks:
-            if isinstance(expected, list):
-                if expected and actual not in expected:
-                    return False
-            elif expected != actual:
-                return False
-        return True
 
     @staticmethod
     def _fact_exists(context: PreparedReportContext, path: str) -> bool:

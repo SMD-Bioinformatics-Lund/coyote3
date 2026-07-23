@@ -62,20 +62,11 @@ class AspcService:
     def _release_scope_matches_aspc(release: Any, aspc: dict[str, Any]) -> bool:
         """Return whether a published release may be bound to this ASPC."""
         scope = release.source.rule_set.scope
-        checks = (
-            (scope.analyte, aspc.get("asp_category")),
-            (scope.assay_ids, aspc.get("asp_id")),
-            (scope.assay_groups, aspc.get("asp_group")),
-            (scope.subpanel_ids, aspc.get("subpanel_id")),
-            (scope.environments, aspc.get("environment")),
+        return (
+            scope.analyte == aspc.get("asp_category")
+            and scope.assay_id == aspc.get("asp_id")
+            and scope.subpanel_id == aspc.get("subpanel_id")
         )
-        for expected, actual in checks:
-            if isinstance(expected, list):
-                if expected and actual not in expected:
-                    return False
-            elif expected != actual:
-                return False
-        return True
 
     @staticmethod
     def _set_group_field_options(

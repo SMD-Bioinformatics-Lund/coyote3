@@ -32,8 +32,34 @@ class ClinicalRuleCompiler:
         if not isinstance(payload, dict):
             raise ValueError(f"Clinical rule source must be a mapping: {path}")
         source = ClinicalRuleSetSource.model_validate(payload)
+        self._validate_repository_path(path, source)
         self.validate(source)
         return source
+
+    def discover(self, rules_root: str | Path) -> list[Path]:
+        """Return all assay/subpanel rule sources in deterministic order."""
+        return sorted(Path(rules_root).glob("*/*.yaml"))
+
+    @staticmethod
+    def _validate_repository_path(path: Path, source: ClinicalRuleSetSource) -> None:
+        """Require repository paths to mirror the exact rule scope."""
+        roots = [parent for parent in path.parents if parent.name == "clinical_reporting_rules"]
+        if not roots:
+            return
+        relative = path.relative_to(roots[0])
+        if len(relative.parts) != 2:
+            raise ValueError(
+                "Clinical rule sources must use clinical_reporting_rules/"
+                "<assay_id>/<subpanel_id>.<lifecycle>.yaml"
+            )
+        assay_id = relative.parts[0]
+        subpanel_id = relative.name.split(".", 1)[0]
+        scope = source.rule_set.scope
+        if (scope.assay_id, scope.subpanel_id) != (assay_id, subpanel_id):
+            raise ValueError(
+                "Clinical rule source path does not match its assay/subpanel scope: "
+                f"{assay_id}/{subpanel_id} != {scope.assay_id}/{scope.subpanel_id}"
+            )
 
     def validate(self, source: ClinicalRuleSetSource) -> None:
         """Validate facts and restricted template variables."""
