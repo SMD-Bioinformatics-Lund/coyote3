@@ -10,9 +10,9 @@ function normalizeScriptName(value?: string) {
   return `/${raw.replace(/^\/+|\/+$/g, '')}`
 }
 
-const scriptName = normalizeScriptName(process.env.SCRIPT_NAME || process.env.VITE_SCRIPT_NAME)
-const apiTarget = process.env.VITE_API_URL || 'http://coyote3_dev_api:8001'
-const organizationName = process.env.ORGANIZATION_NAME || process.env.VITE_ORGANIZATION_NAME || 'Coyote3'
+const scriptName = normalizeScriptName(process.env.SCRIPT_NAME)
+const apiTarget = process.env.COYOTE3_API_INTERNAL_URL || 'http://coyote3_dev_api:8001'
+const organizationName = process.env.ORGANIZATION_NAME || 'Coyote3'
 const localTimeZone = process.env.LOCAL_TIME_ZONE || process.env.TZ || 'UTC'
 const stripScriptName = (requestPath: string) =>
   scriptName ? requestPath.replace(new RegExp(`^${scriptName}(?=/)`), '') : requestPath
@@ -27,17 +27,21 @@ function readAppVersion() {
   }
 }
 
-const appVersion = process.env.VITE_APP_VERSION || readAppVersion()
+const appVersion = readAppVersion()
 
 // https://vite.dev/config/
 export default defineConfig({
   base: scriptName ? `${scriptName}/` : '/',
   plugins: [react(), tailwindcss()],
   define: {
-    'import.meta.env.VITE_SCRIPT_NAME': JSON.stringify(scriptName),
-    'import.meta.env.VITE_ORGANIZATION_NAME': JSON.stringify(organizationName),
-    'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
-    'import.meta.env.VITE_LOCAL_TIME_ZONE': JSON.stringify(localTimeZone),
+    __COYOTE3_RUNTIME__: JSON.stringify({
+      appVersion,
+      gensUri: String(process.env.GENS_URI || '').trim().replace(/\/+$/, ''),
+      igvUri: String(process.env.IGV_URI || '').trim().replace(/\/+$/, ''),
+      localTimeZone,
+      organizationName,
+      scriptName,
+    }),
   },
   resolve: {
     alias: {

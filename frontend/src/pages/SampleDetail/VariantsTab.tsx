@@ -283,11 +283,15 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
       cell: ({ row }) => {
         const v = row.original
         const loc = `${v.CHROM}:${v.POS}`
-        // Simulate IGV link
+        const igvUrl = igvLoadUrl(sampleId, loc)
         return (
-          <a href={igvLoadUrl(sampleId, loc)} target="_blank" rel="noreferrer" className="inline-block rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground shadow-sm transition-colors hover:bg-muted/80 hover:text-foreground dark:bg-muted/60">
-            {loc}
-          </a>
+          igvUrl ? (
+            <a href={igvUrl} target="_blank" rel="noreferrer" className="inline-block rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground shadow-sm transition-colors hover:bg-muted/80 hover:text-foreground dark:bg-muted/60">
+              {loc}
+            </a>
+          ) : (
+            <span className="inline-block rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{loc}</span>
+          )
         )
       }
     },

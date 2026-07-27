@@ -5,6 +5,7 @@ import { PageShell } from "@/components/layout/PageShell"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { api } from "@/lib/api"
 import { appPath } from "@/lib/runtime-paths"
+import { runtimeConfig } from "@/lib/runtime-config"
 
 export function ContactPage() {
   const { data, isLoading } = useQuery({
@@ -18,7 +19,7 @@ export function ContactPage() {
   const hours = data?.hours || []
   const links = data?.links || []
   const support = data?.support || {}
-  const orgName = organization.name || import.meta.env.VITE_ORGANIZATION_NAME || "Coyote3"
+  const orgName = organization.name || runtimeConfig.organizationName
 
   return (
     <PageShell
@@ -59,8 +60,8 @@ export function ContactPage() {
               <h3 className="text-sm font-black uppercase tracking-wide text-muted-foreground">Support Channels</h3>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {contacts.length ? contacts.map((contact) => (
-                <ContactCard key={contact.label} contact={contact} />
+              {contacts.length ? contacts.map((contact, index) => (
+                <ContactCard key={`${contact.label}-${index}`} contact={contact} />
               )) : (
                 <p className="text-sm text-muted-foreground">No contact channels are configured yet.</p>
               )}
@@ -95,7 +96,7 @@ export function AboutPage() {
   const software = data?.software || {}
   const references = data?.references || {}
   const databases = data?.databases || {}
-  const orgName = organization.name || import.meta.env.VITE_ORGANIZATION_NAME || "Coyote3"
+  const orgName = organization.name || runtimeConfig.organizationName
   const pipelines = software.pipelines || {}
   const sampleReferenceVersions = references.sample_database_versions || {}
   const aboutLinks = buildAboutLinks(links, codebase)

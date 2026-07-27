@@ -1,5 +1,6 @@
+import { runtimeConfig } from "@/lib/runtime-config"
+
 export const EXTERNAL_LINK_BASES = {
-  igvLocal: "http://localhost:60151/load",
   dbsnp: "https://www.ncbi.nlm.nih.gov/snp",
   ncbiGene: "https://www.ncbi.nlm.nih.gov/gene",
   cosmicSearch: "https://cancer.sanger.ac.uk/cosmic/search",
@@ -17,7 +18,17 @@ export const EXTERNAL_LINK_BASES = {
 } as const
 
 export function igvLoadUrl(file: unknown, locus: unknown) {
-  return `${EXTERNAL_LINK_BASES.igvLocal}?file=${encodeURIComponent(String(file))}&locus=${encodeURIComponent(String(locus))}`
+  if (!runtimeConfig.igvUri || !file || !locus) return null
+  return `${runtimeConfig.igvUri}/load?file=${encodeURIComponent(String(file))}&locus=${encodeURIComponent(String(locus))}`
+}
+
+export function gensSampleUrl(sampleName: unknown) {
+  if (!runtimeConfig.gensUri || !sampleName) return null
+  return `${runtimeConfig.gensUri}/${encodeURIComponent(String(sampleName))}`
+}
+
+export function omimEntryUrl(id: unknown) {
+  return `https://www.omim.org/entry/${encodeURIComponent(String(id))}`
 }
 
 export function dbsnpUrl(id: unknown) {

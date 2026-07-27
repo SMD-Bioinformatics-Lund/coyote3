@@ -4,7 +4,7 @@ function normalizePrefix(value?: string) {
   return `/${raw.replace(/^\/+|\/+$/g, "")}`
 }
 
-const envPrefix = normalizePrefix(import.meta.env.VITE_SCRIPT_NAME)
+const envPrefix = normalizePrefix(runtimeConfig.scriptName)
 
 export const APP_BASENAME = envPrefix
 
@@ -19,3 +19,4 @@ export function apiPath(path: string) {
   const normalized = path.startsWith("/") ? path : `/${path}`
   return `${APP_BASENAME}/api/v1${normalized}`
 }
+import { runtimeConfig } from "@/lib/runtime-config"

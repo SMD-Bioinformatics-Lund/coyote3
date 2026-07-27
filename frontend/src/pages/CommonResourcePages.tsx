@@ -7,6 +7,7 @@ import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
+import { omimEntryUrl } from "@/lib/external-links"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { clinGenGeneUrl, ensemblGeneSummaryUrl, geneCardsUrl, hgncReportUrl, ncbiGeneUrl } from "@/lib/external-links"
 import { localDate } from "@/lib/detail-formatters"
@@ -291,7 +292,7 @@ export function GeneInfoPage() {
                 <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">OMIM</p>
                 <div className="flex flex-wrap gap-1.5">
                   {omimIds.length ? omimIds.map((id) => (
-                    <a key={id} href={`https://www.omim.org/entry/${id}`} target="_blank" rel="noreferrer" className="rounded-md border border-border bg-muted px-2 py-1 text-xs font-semibold hover:bg-primary hover:text-primary-foreground">
+                    <a key={id} href={omimEntryUrl(id)} target="_blank" rel="noreferrer" className="rounded-md border border-border bg-muted px-2 py-1 text-xs font-semibold hover:bg-primary hover:text-primary-foreground">
                       {id}
                     </a>
                   )) : <span className="text-sm text-muted-foreground">No OMIM identifiers recorded</span>}

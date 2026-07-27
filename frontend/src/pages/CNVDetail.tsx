@@ -228,8 +228,8 @@ export function CNVDetail() {
 
             <ExternalLinksCard
               links={[
-                data.bam_id && region !== "-"
-                  ? { label: "Open CNV in IGV", value: region, href: igvLoadUrl(data.bam_id, region) }
+                data.bam_id && region !== "-" && igvLoadUrl(data.bam_id, region)
+                  ? { label: "Open CNV in IGV", value: region, href: igvLoadUrl(data.bam_id, region)! }
                   : null,
                 primaryGenes[0]
                   ? { label: `cBioPortal ${primaryGenes[0]}`, value: primaryGenes[0], href: cbioportalOncoprintUrl(primaryGenes[0]) }

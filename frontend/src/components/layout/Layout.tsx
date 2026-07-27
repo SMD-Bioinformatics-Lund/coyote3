@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { apiPath, appPath } from "@/lib/runtime-paths"
+import { runtimeConfig } from "@/lib/runtime-config"
 import { useNotifications } from "@/components/notifications/use-notifications"
 import { GlobalLoadingIndicator } from "@/components/layout/AppLoader"
 
@@ -30,7 +31,7 @@ export function Layout() {
   const [activeAssayCategory, setActiveAssayCategory] = useState<string | null>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const assayMenuRef = useRef<HTMLDivElement>(null)
-  const appVersion = import.meta.env.VITE_APP_VERSION || "v4.0.0-dev"
+  const { appVersion } = runtimeConfig
   const { unreadCount } = useNotifications()
   const backgroundFetches = useIsFetching({
     predicate: (query) => query.state.data !== undefined,
@@ -138,22 +139,21 @@ export function Layout() {
   }, [catalogData])
 
   const issueMenuLinks = useMemo(() => {
-    const configuredLinks = contactData?.links || []
     const codebase = contactData?.codebase || {}
     return [
       {
         label: "Report a Bug",
-        url: findConfiguredLink(configuredLinks, "Report a Bug") || codebase.bug_report_url,
+        url: codebase.bug_report_url,
         icon: Bug,
       },
       {
         label: "Request a Feature",
-        url: findConfiguredLink(configuredLinks, "Request a Feature") || codebase.feature_request_url,
+        url: codebase.feature_request_url,
         icon: Lightbulb,
       },
       {
         label: "Support",
-        url: findConfiguredLink(configuredLinks, "Support") || codebase.support_request_url,
+        url: codebase.support_request_url,
         icon: LifeBuoy,
       },
     ].filter((link) => Boolean(link.url))
@@ -465,11 +465,6 @@ export function Layout() {
       </div>
     </div>
   )
-}
-
-function findConfiguredLink(links: Array<Record<string, string>>, label: string) {
-  const match = links.find((link) => link.label?.toLowerCase() === label.toLowerCase())
-  return match?.url || ""
 }
 
 function publicHref(url?: string) {

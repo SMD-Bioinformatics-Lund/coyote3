@@ -35,7 +35,7 @@ export function shortCount(value: unknown, fallback = "0") {
   return `${sign}${compact}${suffix}`
 }
 
-const configuredLocalTimeZone = String(import.meta.env.VITE_LOCAL_TIME_ZONE || "").trim()
+const configuredLocalTimeZone = String(runtimeConfig.localTimeZone || "").trim()
 
 export function localTimeZone() {
   if (!configuredLocalTimeZone) {
@@ -102,3 +102,4 @@ export function humanRelativeDate(value: unknown, fallback = "-") {
   const [size, label] = unit
   return `${Math.round(absMs / size)} ${label} ${suffix}`
 }
+import { runtimeConfig } from "@/lib/runtime-config"

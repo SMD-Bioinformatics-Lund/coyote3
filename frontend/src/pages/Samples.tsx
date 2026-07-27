@@ -15,6 +15,7 @@ import { sampleReported, sampleSubpanel } from "@/lib/sample-shape"
 import { DataTable } from "@/components/data-table/DataTable"
 import { valueBadgeClass } from "@/lib/badge-colors"
 import { useUrlTableState } from "@/hooks/useUrlTableState"
+import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
 
 type SampleTab = "live" | "reported"
 
@@ -47,7 +48,7 @@ export function Samples() {
   const assay = searchParams.get("assay")
   const panelTech = searchParams.get("panel_tech")
   const group = searchParams.get("assay_group") || searchParams.get("group")
-  const profileScope = searchParams.get("profile_scope") === "all" ? "all" : "production"
+  const profileScope = searchParams.get("profile_scope") === "all" ? "all" : DEFAULT_ENVIRONMENT
   const activeTab: SampleTab = searchParams.get("sample_tab") === "reported" ? "reported" : "live"
   const searchStr = searchParams.get("search_str") || ""
   const {
@@ -74,7 +75,7 @@ export function Samples() {
   })
 
   const showAllProfiles = profileScope === "all"
-  const setProfileScope = (nextScope: "production" | "all") => {
+  const setProfileScope = (nextScope: typeof DEFAULT_ENVIRONMENT | "all") => {
     const newParams = new URLSearchParams(searchParams)
     if (nextScope === "all") newParams.set("profile_scope", "all")
     else newParams.delete("profile_scope")
@@ -277,7 +278,7 @@ export function Samples() {
             <div className="inline-flex rounded-xl border border-border bg-card/70 p-1 shadow-sm">
               <button
                 type="button"
-                onClick={() => setProfileScope("production")}
+                onClick={() => setProfileScope(DEFAULT_ENVIRONMENT)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-black uppercase tracking-wider transition-colors ${!showAllProfiles ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
               >
                 Production
@@ -320,7 +321,7 @@ export function Samples() {
         {(category || assay || group || searchStr || showAllProfiles) && (
           <div className="glass-card flex items-center gap-2 text-sm text-muted-foreground px-5 py-3">
             <span className="font-bold uppercase tracking-wider text-xs mr-2">Active Filters</span>
-            <Badge variant="secondary" className="uppercase bg-primary/10 text-primary hover:bg-primary/20 rounded-md">{showAllProfiles ? "all profiles" : "production"}</Badge>
+            <Badge variant="secondary" className="uppercase bg-primary/10 text-primary hover:bg-primary/20 rounded-md">{showAllProfiles ? "all profiles" : DEFAULT_ENVIRONMENT}</Badge>
             {searchStr && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 rounded-md">Search: {searchStr}</Badge>}
             {category && <Badge variant="secondary" className="uppercase bg-primary/20 text-primary hover:bg-primary/30 rounded-md">{category}</Badge>}
             {panelTech && <Badge variant="secondary" className="uppercase bg-primary/20 text-primary hover:bg-primary/30 rounded-md">{panelTech}</Badge>}

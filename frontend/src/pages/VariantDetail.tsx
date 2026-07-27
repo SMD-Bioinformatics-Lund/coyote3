@@ -298,9 +298,10 @@ function externalLinks(variant: any, csq: any, data: any) {
   const pubmed = Array.isArray(variant?.pubmed_ids) ? variant.pubmed_ids[0] : undefined
   const clinvar = variant?.INFO?.CLNACC
   const position = variant?.CHROM && variant?.POS ? `${variant.CHROM}:${variant.POS}` : ""
+  const igvUrl = data?.bam_id && position ? igvLoadUrl(data.bam_id, position) : null
 
   return [
-    data?.bam_id && position ? { label: "Open region in IGV", value: position, href: igvLoadUrl(data.bam_id, position) } : null,
+    igvUrl ? { label: "Open region in IGV", value: position, href: igvUrl } : null,
     dbsnp ? { label: `dbSNP ${dbsnp}`, value: dbsnp, href: dbsnpUrl(dbsnp) } : null,
     cosmic ? { label: `COSMIC ${cosmic}`, value: cosmic, href: cosmicSearchUrl(cosmic) } : null,
     clinvar ? { label: `ClinVar ${clinvar}`, value: clinvar, href: clinvarSearchUrl(clinvar) } : null,

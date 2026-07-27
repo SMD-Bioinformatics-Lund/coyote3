@@ -13,6 +13,7 @@ import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { sampleFileName, hasSampleFile } from "@/lib/sample-shape"
 import { apiPath } from "@/lib/runtime-paths"
+import { gensSampleUrl } from "@/lib/external-links"
 import { ResizableSplitPane } from "@/components/layout/ResizableSplitPane"
 import { Button } from "@/components/ui/button"
 import { RotatableImage } from "@/components/detail/RotatableImage"
@@ -68,6 +69,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
   const sample = data?.sample || {}
   const cnvProfileName = sampleFileName(sample, "cnvprofile")
   const hasCnvImage = hasSampleFile(sample, "cnvprofile") && cnvProfileName
+  const gensUrl = gensSampleUrl(sample.name)
 
   const columns: ColumnDef<any, any>[] = [
     {
@@ -302,11 +304,13 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
           fit="width"
           className="p-2"
         />
-        <div className="mt-3 flex justify-center">
-          <a href={`http://gens.coyote.local/${sample.name}`} target="_blank" rel="noreferrer" className="rounded bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/20">
-            Open in Gens
-          </a>
-        </div>
+        {gensUrl ? (
+          <div className="mt-3 flex justify-center">
+            <a href={gensUrl} target="_blank" rel="noreferrer" className="rounded bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/20">
+              Open in GENS
+            </a>
+          </div>
+        ) : null}
       </div>
     </div>
   ) : null

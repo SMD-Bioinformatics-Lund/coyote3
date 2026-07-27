@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -7,10 +7,12 @@ import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { Eye, EyeOff, Loader2, Cloud } from "lucide-react"
 import { useTheme } from "next-themes"
 import { apiPath, appPath } from "@/lib/runtime-paths"
+import { runtimeConfig } from "@/lib/runtime-config"
 
 export function Login() {
   const navigate = useNavigate()
-  const [provider, setProvider] = useState<"local" | "ldap">("local")
+  const [providers, setProviders] = useState<string[]>([])
+  const [provider, setProvider] = useState("")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -18,8 +20,26 @@ export function Login() {
   const [error, setError] = useState("")
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === "dark"
-  const organizationName = import.meta.env.VITE_ORGANIZATION_NAME || "Coyote3"
-  const appVersion = import.meta.env.VITE_APP_VERSION || "v4.0.0-dev"
+  const { appVersion, organizationName } = runtimeConfig
+
+  useEffect(() => {
+    let active = true
+    fetch(apiPath("/auth/providers"))
+      .then(async response => {
+        if (!response.ok) throw new Error("Login providers are unavailable")
+        return response.json() as Promise<{ providers?: string[] }>
+      })
+      .then(data => {
+        const enabled = (data.providers || []).filter(value => value === "local" || value === "ldap")
+        if (!active) return
+        setProviders(enabled)
+        setProvider(enabled[0] || "")
+      })
+      .catch(error => {
+        if (active) setError(error instanceof Error ? error.message : "Login providers are unavailable")
+      })
+    return () => { active = false }
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,7 +50,7 @@ export function Login() {
       const res = await fetch(apiPath("/auth/sessions"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password, provider })
       })
 
       if (!res.ok) {
@@ -134,30 +154,24 @@ export function Login() {
             Sign in to continue.
           </p>
 
-          <div className="grid grid-cols-2 p-1 bg-muted rounded-lg mb-6 border border-border">
-            <button
-              type="button"
-              onClick={() => setProvider("local")}
-              className={`py-1.5 text-sm font-medium rounded-md transition-colors duration-100 ${
-                provider === "local"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Local Account
-            </button>
-            <button
-              type="button"
-              onClick={() => setProvider("ldap")}
-              className={`py-1.5 text-sm font-medium rounded-md transition-colors duration-100 ${
-                provider === "ldap"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              LDAP Login
-            </button>
-          </div>
+          {providers.length > 1 ? (
+            <div className="grid grid-cols-2 p-1 bg-muted rounded-lg mb-6 border border-border">
+              {providers.map(enabledProvider => (
+                <button
+                  key={enabledProvider}
+                  type="button"
+                  onClick={() => setProvider(enabledProvider)}
+                  className={`py-1.5 text-sm font-medium rounded-md transition-colors duration-100 ${
+                    provider === enabledProvider
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {enabledProvider === "ldap" ? "LDAP Login" : "Local Account"}
+                </button>
+              ))}
+            </div>
+          ) : <div className="mb-6" />}
 
           {error && (
             <div className="p-3 text-sm rounded-md bg-destructive/15 text-destructive border border-destructive/20 mb-4">
@@ -212,7 +226,7 @@ export function Login() {
             <Button
               type="submit"
               className="w-full h-11 text-base mt-2"
-              disabled={loading || !username || !password}
+              disabled={loading || !provider || !username || !password}
             >
               {loading ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
