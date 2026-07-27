@@ -32,18 +32,8 @@ def _norm(value: Any) -> str:
 
 
 def _norm_env(value: Any) -> str:
-    normalized = _norm(value)
-    aliases = {
-        "prod": "production",
-        "production": "production",
-        "dev": "development",
-        "development": "development",
-        "test": "testing",
-        "testing": "testing",
-        "stage": "staging",
-        "staging": "staging",
-    }
-    return aliases.get(normalized, normalized)
+    """Normalize an already-canonical environment scope value."""
+    return _norm(value)
 
 
 def _unique(values: list[Any] | tuple[Any, ...] | set[Any] | None) -> list[str]:

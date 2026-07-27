@@ -20,6 +20,7 @@ from api.app.deps.repositories import get_gene_list_repository, get_roles_reposi
 from api.app.deps.services import get_internal_ingest_service
 from api.application.ingest.service import InternalIngestService
 from api.celery_app import celery_app
+from api.config.runtime_settings import DefaultConfig
 from api.contracts.internal import (
     InternalCollectionBulkInsertRequest,
     InternalCollectionInsertPayload,
@@ -226,7 +227,7 @@ def enqueue_ingest_dependents_internal(
 ):
     """Enqueue dependent-document ingestion on the Celery ingest queue."""
     _enforce_sample_ingest_permission(user)
-    queue = os.getenv("CELERY_INGEST_QUEUE", "ingest")
+    queue = DefaultConfig.CELERY_INGEST_QUEUE
     task = ingest_dependents_task.apply_async(
         kwargs={
             "sample_id": str(payload.sample_id),
@@ -469,7 +470,7 @@ def enqueue_ingest_sample_bundle_internal(
     except (ValueError, FileNotFoundError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
-    queue = os.getenv("CELERY_INGEST_QUEUE", "ingest")
+    queue = DefaultConfig.CELERY_INGEST_QUEUE
     task = ingest_sample_bundle_task.apply_async(
         kwargs={
             "source_payload": source_payload,
@@ -503,7 +504,7 @@ async def enqueue_ingest_sample_bundle_upload_internal(
             detail="yaml_file must include a filename",
         )
 
-    staging_root = Path(os.getenv("CELERY_INGEST_STAGING_DIR", "/tmp/coyote3_ingest_jobs"))
+    staging_root = Path(DefaultConfig.CELERY_INGEST_STAGING_DIR)
     staging_root.mkdir(parents=True, exist_ok=True)
     staging_dir = Path(tempfile.mkdtemp(prefix="sample_bundle_", dir=str(staging_root)))
     uploads_by_exact: dict[str, str] = {}
@@ -605,7 +606,7 @@ async def enqueue_ingest_sample_bundle_upload_internal(
             if checksums:
                 source_payload["_uploaded_file_checksums"] = checksums
 
-        queue = os.getenv("CELERY_INGEST_QUEUE", "ingest")
+        queue = DefaultConfig.CELERY_INGEST_QUEUE
         task = ingest_sample_bundle_task.apply_async(
             kwargs={
                 "source_payload": source_payload,
@@ -666,7 +667,7 @@ def enqueue_ingest_collection_document_internal(
 ):
     """Enqueue insertion of one validated collection document."""
     _enforce_collection_permission(user=user, collection=payload.collection, action="create")
-    queue = os.getenv("CELERY_INGEST_QUEUE", "ingest")
+    queue = DefaultConfig.CELERY_INGEST_QUEUE
     task = insert_collection_document_task.apply_async(
         kwargs={
             "collection": payload.collection,
@@ -713,7 +714,7 @@ def enqueue_ingest_collection_documents_internal(
 ):
     """Enqueue insertion of many validated collection documents."""
     _enforce_collection_permission(user=user, collection=payload.collection, action="create")
-    queue = os.getenv("CELERY_INGEST_QUEUE", "ingest")
+    queue = DefaultConfig.CELERY_INGEST_QUEUE
     task = insert_collection_documents_task.apply_async(
         kwargs={
             "collection": payload.collection,
@@ -761,7 +762,7 @@ def enqueue_upsert_collection_document_internal(
 ):
     """Enqueue replacement/update of one validated collection document."""
     _enforce_collection_permission(user=user, collection=payload.collection, action="update")
-    queue = os.getenv("CELERY_INGEST_QUEUE", "ingest")
+    queue = DefaultConfig.CELERY_INGEST_QUEUE
     task = upsert_collection_document_task.apply_async(
         kwargs={
             "collection": payload.collection,

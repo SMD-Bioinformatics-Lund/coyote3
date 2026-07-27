@@ -15,6 +15,7 @@ from api.application.common.table_state import (
     sort_spec_to_query_value,
     sortable_text,
 )
+from api.config.database_versions import require_sample_vep_version
 from api.domain.common.errors import api_error, setup_error
 from api.domain.common.sample_filters import merged_dna_cnv_filters
 from api.domain.core.dna.cnvqueries import build_cnv_query
@@ -468,7 +469,7 @@ class DnaStructuralService:
             "sample_ids": sample_ids,
             "bam_id": self.bam_record_repository.get_bams(sample_ids),
             "vep_conseq_translations": self.vep_metadata_repository.get_conseq_translations(
-                sample.get("vep_version", "103")
+                require_sample_vep_version(sample)
             ),
             "has_hidden_comments": self.translocation_repository.hidden_transloc_comments(
                 transloc_id

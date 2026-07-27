@@ -121,18 +121,17 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
         json.dumps(
             [
                 {
-                    "aspc_id": "Assay_1:testing",
-                    "assay_name": "Assay_1",
-                    "environment": "test",
-                    "subpanel": "Base",
+                    "aspc_id": "assay_1_base_testing",
+                    "asp_id": "assay_1",
+                    "environment": "testing",
+                    "subpanel_id": "base",
                     "asp_group": "Hematology",
                     "filters": {
-                        "genelists": ["seed_snv_list"],
-                        "cnv_genelists": ["seed_cnv_list"],
+                        "snvlists": ["seed_snv_list"],
+                        "cnvlists": ["seed_cnv_list"],
                     },
                     "analysis_types": ["SNV", "CNV"],
-                    "reporting": {"report_sections": ["SNV"]},
-                    "query": {"legacy": True},
+                    "reporting": {"analysis": ["SNV", "CNV"], "report_sections": ["SNV"]},
                 }
             ]
         ),
@@ -144,20 +143,17 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
                 {
                     "name": "Seed Sample",
                     "assay": "Assay_1",
-                    "subpanel": "Base",
-                    "profile": "test",
-                    "omics_layer": "DNA",
-                    "sequencing_technology": "Illumina",
-                    "vcf_files": "/data/seed/sample.vcf",
+                    "subpanel_id": "base",
+                    "profile": "testing",
+                    "omics_layer": "dna",
+                    "sequencing_technology": "illumina",
+                    "files": {"vcf_files": {"path": "/data/seed/sample.vcf"}},
                     "filters": {
                         "min_depth": 100,
-                        "genelists": ["seed_snv_list"],
-                        "cnv_genelists": ["seed_cnv_list"],
-                        "warn_cov": 500,
+                        "snv": {"min_depth": 100, "snvlists": ["seed_snv_list"]},
+                        "cnv": {"cnvlists": ["seed_cnv_list"]},
+                        "coverage": {"warn_cov": 500},
                     },
-                    "comments": [{"text": "legacy"}],
-                    "reports": [{"report_id": "legacy"}],
-                    "groups": ["legacy"],
                 }
             ]
         ),
@@ -206,8 +202,6 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
     assert aspc["reporting"]["analysis"] == ["SNV", "CNV"]
     assert "assay_name" not in aspc
     assert "query" not in aspc
-    assert "genelists" not in aspc["filters"]
-    assert "cnv_genelists" not in aspc["filters"]
 
     sample = json.loads((dest_dir / "samples.json").read_text())[0]
     assert sample["subpanel_id"] == "base"

@@ -9,12 +9,12 @@ from pydantic import Field, field_validator, model_validator
 
 from api.config.constants import (
     ALL_SAMPLE_FILE_KEYS,
-    SAMPLE_DATABASE_VERSION_KEY_ALIASES,
     SAMPLE_FILE_KEYS,
     normalize_environment,
     normalize_platform,
     normalize_sequencing_scope,
 )
+from api.config.database_versions import normalize_database_versions
 from api.contracts.schemas.base import _DocBase, _StrictDocBase
 from api.domain.common.sample_filters import normalize_sample_filters
 
@@ -146,7 +146,6 @@ class SamplesDoc(_DocBase):
     current_aspc_key: str | None = None
     current_aspc_version: int | None = None
     genome_build: int | None = None
-    vep_version: str | None = None
     database_versions: dict[str, str] = Field(default_factory=dict)
     case_id: str
     control_id: str | None = None
@@ -165,6 +164,22 @@ class SamplesDoc(_DocBase):
     latest_report_id: Any | None = None
     latest_report_on: datetime | None = None
     time_added: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_retired_version_fields(cls, value: Any) -> Any:
+        """Keep all sample database-version metadata in one nested object."""
+        if not isinstance(value, dict):
+            return value
+        retired_keys = {"vep_version", "db_versions", "reference_versions", "annotation_versions"}
+        present = sorted(retired_keys.intersection(value))
+        if present:
+            raise ValueError(
+                "Retired sample version fields are not accepted: "
+                + ", ".join(present)
+                + ". Use database_versions with canonical keys instead."
+            )
+        return value
 
     @field_validator("sequencing_scope", "omics_layer", mode="before")
     @classmethod
@@ -197,36 +212,10 @@ class SamplesDoc(_DocBase):
     def _normalize_sequencing_technology(cls, value: Any) -> str | None:
         return normalize_platform(value)
 
-    @field_validator("vep_version", mode="before")
-    @classmethod
-    def _normalize_vep_version(cls, value: Any) -> Any:
-        if value is None:
-            return None
-        if isinstance(value, (int, float)):
-            return str(int(value))
-        if isinstance(value, str):
-            value = value.strip()
-            return value or None
-        return str(value).strip() or None
-
     @field_validator("database_versions", mode="before")
     @classmethod
     def _normalize_database_versions(cls, value: Any) -> dict[str, str]:
-        if not isinstance(value, dict):
-            return {}
-        normalized: dict[str, str] = {}
-        for key, raw_value in value.items():
-            lookup_key = str(key or "").strip().lower().replace("-", "_").replace(" ", "_")
-            lookup_key = lookup_key.replace(".", "_")
-            clean_key = SAMPLE_DATABASE_VERSION_KEY_ALIASES.get(lookup_key)
-            if not clean_key or raw_value is None:
-                continue
-            clean_value = str(raw_value).strip()
-            if clean_key == "vep":
-                clean_value = clean_value.lstrip("vV")
-            if clean_value:
-                normalized[clean_key] = clean_value
-        return normalized
+        return normalize_database_versions(value)
 
     @field_validator(
         "case_id", "control_id", "name", "assay", "pipeline", "pipeline_version", mode="before"

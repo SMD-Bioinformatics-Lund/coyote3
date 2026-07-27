@@ -6,6 +6,8 @@ import os
 from collections.abc import Mapping
 from typing import Any
 
+from api.config.constants import DEFAULT_ENVIRONMENT
+
 _PROD_BLOCKED_VALUES: dict[str, set[str]] = {
     "SECRET_KEY": {"ci-test-secret-key", "coyote3-api-dev-only"},
     "INTERNAL_API_TOKEN": {"ci-test-internal-token"},
@@ -51,10 +53,12 @@ def _is_non_production(config: Mapping[str, Any] | None = None) -> bool:
             The  is non production result.
     """
     if config is None:
-        env_name = str(os.getenv("ENV_NAME") or "production").strip().lower()
+        env_name = str(os.getenv("ENV_NAME") or DEFAULT_ENVIRONMENT).strip().lower()
     else:
         env_name = (
-            str(config.get("ENV_NAME") or os.getenv("ENV_NAME") or "production").strip().lower()
+            str(config.get("ENV_NAME") or os.getenv("ENV_NAME") or DEFAULT_ENVIRONMENT)
+            .strip()
+            .lower()
         )
     return env_name in {"dev", "development", "test", "testing", "stage", "staging"}
 
@@ -101,7 +105,7 @@ def get_runtime_mode_flags() -> dict[str, bool]:
         A mapping containing the normalized ``testing`` and ``development``
         runtime flags.
     """
-    env_name = str(os.getenv("ENV_NAME") or "production").strip().lower()
+    env_name = str(os.getenv("ENV_NAME") or DEFAULT_ENVIRONMENT).strip().lower()
     return {
         "testing": env_name in {"test", "testing"},
         "development": env_name in {"dev", "development"},

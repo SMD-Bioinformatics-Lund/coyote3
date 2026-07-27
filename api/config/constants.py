@@ -5,47 +5,17 @@ from __future__ import annotations
 import re
 from typing import Iterable
 
-ASP_GROUP_OPTIONS: tuple[str, ...] = (
-    "hematology",
-    "solid",
-    "pgx",
-    "tumwgs",
-    "wts",
-    "myeloid",
-    "lymphoid",
-)
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 
-ASP_CATEGORY_OPTIONS: tuple[str, ...] = ("dna", "rna")
-
-ASP_FAMILY_OPTIONS: tuple[str, ...] = (
-    "panel-dna",
-    "panel-rna",
-    "wgs",
-    "wts",
-)
-
-# Sequencing scope is derived from family: "panel-dna"/"panel-rna" → "panel", others as-is.
+ASP_GROUP_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.assay_groups
+ASP_CATEGORY_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.assay_categories
+ASP_FAMILY_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.assay_families
 SEQUENCING_SCOPE_OPTIONS: tuple[str, ...] = tuple(
-    dict.fromkeys("panel" if f.startswith("panel-") else f for f in ASP_FAMILY_OPTIONS)
+    dict.fromkeys(CLINICAL_VOCABULARY.assay_family_scopes.values())
 )
 
 # Expected sample file keys per ASP category.
-SAMPLE_FILE_KEYS: dict[str, tuple[str, ...]] = {
-    "dna": (
-        "vcf_files",
-        "cnv",
-        "cnvprofile",
-        "cov",
-        "transloc",
-        "biomarkers",
-    ),
-    "rna": (
-        "fusion_files",
-        "expression_path",
-        "classification_path",
-        "qc",
-    ),
-}
+SAMPLE_FILE_KEYS: dict[str, tuple[str, ...]] = CLINICAL_VOCABULARY.sample_file_keys
 ALL_SAMPLE_FILE_KEYS: tuple[str, ...] = tuple(
     dict.fromkeys(k for keys in SAMPLE_FILE_KEYS.values() for k in keys)
 )
@@ -53,141 +23,58 @@ ALL_SAMPLE_FILE_KEYS: tuple[str, ...] = tuple(
 # Required sample file keys default by assay family.
 # Centers can narrow/extend this per ASP via `assay_specific_panels.required_files`,
 # but these defaults keep the primary assay artefact mandatory out of the box.
-REQUIRED_SAMPLE_FILE_KEYS_BY_FAMILY: dict[str, tuple[str, ...]] = {
-    "panel-dna": ("vcf_files",),
-    "wgs": ("vcf_files",),
-    "panel-rna": ("fusion_files",),
-    "wts": ("fusion_files",),
-}
-
-ENVIRONMENT_OPTIONS: tuple[str, ...] = (
-    "production",
-    "development",
-    "testing",
-    "validation",
+REQUIRED_SAMPLE_FILE_KEYS_BY_FAMILY: dict[str, tuple[str, ...]] = (
+    CLINICAL_VOCABULARY.required_file_keys_by_family
 )
+
+ENVIRONMENT_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.environment_options
+DEFAULT_ENVIRONMENT = CLINICAL_VOCABULARY.default_environment
 
 AUTH_PROVIDER_LOCAL = "local"
 AUTH_PROVIDER_LDAP = "ldap"
-AUTH_TYPE_OPTIONS: tuple[str, ...] = (AUTH_PROVIDER_LOCAL, AUTH_PROVIDER_LDAP)
-LOCAL_AUTH_USERNAMES: tuple[str, ...] = ("coyote3.admin",)
-LOCAL_AUTH_USERNAME_PREFIXES: tuple[str, ...] = ("coyote3.",)
-
-PLATFORM_OPTIONS: tuple[str, ...] = (
-    "illumina",
-    "pacbio",
-    "nanopore",
-    "iontorrent",
+AUTH_TYPE_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.auth_type_options
+DEFAULT_AUTH_PROVIDER = (
+    AUTH_PROVIDER_LDAP if AUTH_PROVIDER_LDAP in AUTH_TYPE_OPTIONS else AUTH_TYPE_OPTIONS[0]
 )
 
-READ_MODE_OPTIONS: tuple[str, ...] = ("SE", "PE")
+PLATFORM_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.platforms
 
-DEFAULT_VEP_VERSION = "103"
+READ_MODE_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.read_modes
 
-# Sample-level reference/software versions captured from VCF metadata.
-# Ingest stores only these keys under samples.database_versions so the sample
-# document remains clinically meaningful and does not accumulate arbitrary VCF
-# header fields such as cache paths, run timestamps, or transient plugin data.
-SAMPLE_DATABASE_VERSION_LABELS: dict[str, str] = {
-    "assembly": "Assembly",
-    "clinvar": "ClinVar",
-    "cosmic": "COSMIC",
-    "dbsnp": "dbSNP",
-    "ensembl": "Ensembl",
-    "gencode": "GENCODE",
-    "genebuild": "Genebuild",
-    "gnomad": "gnomAD",
-    "hgmd_public": "HGMD Public",
-    "polyphen": "PolyPhen",
-    "sift": "SIFT",
-    "vep": "VEP",
-}
-
-SAMPLE_DATABASE_VERSION_KEY_ALIASES: dict[str, str] = {
-    "assembly": "assembly",
-    "genome_assembly": "assembly",
-    "reference_assembly": "assembly",
-    "grch": "assembly",
-    "clinvar": "clinvar",
-    "cosmic": "cosmic",
-    "dbsnp": "dbsnp",
-    "db_snp": "dbsnp",
-    "ensembl": "ensembl",
-    "gencode": "gencode",
-    "genebuild": "genebuild",
-    "gene_build": "genebuild",
-    "gnomad": "gnomad",
-    "gnomad_exomes": "gnomad",
-    "hgmd_public": "hgmd_public",
-    "hgmdpublic": "hgmd_public",
-    "polyphen": "polyphen",
-    "polyphen2": "polyphen",
-    "sift": "sift",
-    "vep": "vep",
-}
-
-SAMPLE_DATABASE_VERSION_KEYS: tuple[str, ...] = tuple(SAMPLE_DATABASE_VERSION_LABELS)
-
-DNA_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = (
-    "SNV",
-    "CNV",
-    "TRANSLOCATION",
-    "BIOMARKER",
-    "CNV_PROFILE",
-    "COVERAGE",
-    "FUSION",
-    "TMB",
-    "PGX",
+DNA_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = tuple(
+    CLINICAL_VOCABULARY.analysis_file_keys_by_omics["dna"]
 )
 
-RNA_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = (
-    "FUSION",
-    "EXPRESSION",
-    "CLASSIFICATION",
-    "QC",
-    "PGX",
+RNA_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = tuple(
+    CLINICAL_VOCABULARY.analysis_file_keys_by_omics["rna"]
 )
 
 ALL_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = tuple(
     dict.fromkeys(DNA_ANALYSIS_TYPE_OPTIONS + RNA_ANALYSIS_TYPE_OPTIONS)
 )
 
-ANALYSIS_FILE_KEYS_BY_OMICS: dict[str, dict[str, tuple[str, ...]]] = {
-    "dna": {
-        "SNV": ("vcf_files",),
-        "CNV": ("cnv",),
-        "TRANSLOCATION": ("transloc",),
-        "BIOMARKER": ("biomarkers",),
-        "CNV_PROFILE": ("cnvprofile",),
-        "COVERAGE": ("cov",),
-        "FUSION": ("transloc",),
-        "TMB": ("biomarkers",),
-        "PGX": ("biomarkers",),
-    },
-    "rna": {
-        "FUSION": ("fusion_files",),
-        "EXPRESSION": ("expression_path",),
-        "CLASSIFICATION": ("classification_path",),
-        "QC": ("qc",),
-        "PGX": ("classification_path",),
-    },
-}
-
-GENELIST_STANDARD_TYPE_OPTIONS: tuple[str, ...] = (
-    "snv",
-    "cnv",
-    "fusion",
-    "expression",
-    "pgx",
+ANALYSIS_FILE_KEYS_BY_OMICS: dict[str, dict[str, tuple[str, ...]]] = (
+    CLINICAL_VOCABULARY.analysis_file_keys_by_omics
 )
 
-GENELIST_ADHOC_TYPE_OPTIONS: tuple[str, ...] = (
-    "adhoc_snv",
-    "adhoc_cnv",
-    "adhoc_fusion",
-    "adhoc_expression",
-    "adhoc_pgx",
-)
+
+def analysis_file_keys(omics_layer: object, analysis_type: object) -> tuple[str, ...]:
+    """Return the configured manifest file keys for an implemented analysis."""
+    category = normalize_asp_category(omics_layer)
+    analysis = str(analysis_type or "").strip().upper()
+    try:
+        return ANALYSIS_FILE_KEYS_BY_OMICS[category][analysis]
+    except KeyError as error:
+        raise ValueError(f"analysis '{analysis}' is not configured for {category}") from error
+
+
+def primary_analysis_file_key(omics_layer: object, analysis_type: object) -> str:
+    """Return the primary configured manifest file key for an analysis."""
+    return analysis_file_keys(omics_layer, analysis_type)[0]
+
+
+GENELIST_STANDARD_TYPE_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.genelist_standard_types
+GENELIST_ADHOC_TYPE_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.genelist_adhoc_types
 
 GENELIST_TYPE_OPTIONS: tuple[str, ...] = (
     *GENELIST_STANDARD_TYPE_OPTIONS,
@@ -196,34 +83,9 @@ GENELIST_TYPE_OPTIONS: tuple[str, ...] = (
 
 # ASPC reporting is a clinical contract. These fields are the minimum authored
 # configuration required before an active configuration may generate a report.
-ASPC_REQUIRED_REPORTING_FIELDS: tuple[str, ...] = (
-    "report_header",
-    "report_method",
-    "report_description",
-    "general_report_summary",
-    "plots_path",
-    "report_folder",
-    "clinical_rule_release",
-)
-
-SUBPANEL_BASE_ID = "base"
-
-PERMISSION_CATEGORY_OPTIONS: tuple[str, ...] = (
-    "Analysis Actions",
-    "Assay Configuration Management",
-    "Assay Panel Management",
-    "Audit & Monitoring",
-    "Data Downloads",
-    "Gene List Management",
-    "Permission Policy Management",
-    "Reports",
-    "Role Management",
-    "Sample Management",
-    "Schema Management",
-    "User Management",
-    "Variant Curation",
-    "Visualization",
-)
+ASPC_REQUIRED_REPORTING_FIELDS: tuple[str, ...] = CLINICAL_VOCABULARY.required_aspc_reporting_fields
+SUBPANEL_BASE_ID = CLINICAL_VOCABULARY.base_subpanel_id
+PERMISSION_CATEGORY_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.permission_categories
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
@@ -268,50 +130,23 @@ def normalize_asp_family(value: object) -> str:
 
 def normalize_asp_category(value: object) -> str:
     """Normalize and validate an ASP category identifier."""
-    aliases = {"somatic": "dna", "dna": "dna", "rna": "rna"}
-    normalized = aliases.get(str(value or "").strip().lower(), str(value or "").strip().lower())
-    return _ensure_in_options(normalized, options=ASP_CATEGORY_OPTIONS, label="asp_category")
+    return _ensure_in_options(value, options=ASP_CATEGORY_OPTIONS, label="asp_category")
 
 
 def normalize_environment(value: object, *, label: str = "environment") -> str:
     """Normalize and validate environment/profile values."""
-    aliases = {
-        "prod": "production",
-        "p": "production",
-        "production": "production",
-        "dev": "development",
-        "d": "development",
-        "development": "development",
-        "test": "testing",
-        "t": "testing",
-        "testing": "testing",
-        "validation": "validation",
-        "stage": "validation",
-        "staging": "validation",
-        "v": "validation",
-    }
-    normalized = aliases.get(str(value or "").strip().lower())
-    if normalized is None:
-        raise ValueError(f"{label} must be one of: {', '.join(ENVIRONMENT_OPTIONS)}")
-    return normalized
+    return _ensure_in_options(value, options=ENVIRONMENT_OPTIONS, label=label)
 
 
 def normalize_auth_type(value: object) -> str:
     """Normalize and validate an auth type."""
-    aliases = {
-        "coyote3": AUTH_PROVIDER_LOCAL,
-        "local": AUTH_PROVIDER_LOCAL,
-        "internal": AUTH_PROVIDER_LOCAL,
-        "ldap": AUTH_PROVIDER_LDAP,
-    }
-    normalized = aliases.get(str(value or "").strip().lower(), str(value or "").strip().lower())
-    return _ensure_in_options(normalized, options=AUTH_TYPE_OPTIONS, label="auth_type")
+    return _ensure_in_options(value, options=AUTH_TYPE_OPTIONS, label="auth_type")
 
 
 def normalize_auth_types(value: object) -> list[str]:
     """Normalize and validate a user auth-provider list."""
     if value is None:
-        return [AUTH_PROVIDER_LDAP]
+        return [DEFAULT_AUTH_PROVIDER]
     if isinstance(value, (str, bytes)):
         raw_values = [value]
     else:
@@ -326,23 +161,7 @@ def normalize_auth_types(value: object) -> list[str]:
         if provider not in seen:
             normalized.append(provider)
             seen.add(provider)
-    return normalized or [AUTH_PROVIDER_LDAP]
-
-
-def default_auth_types_for_username(username: object) -> list[str]:
-    """Return the default auth providers for a username."""
-    normalized = str(username or "").strip().lower()
-    if normalized in LOCAL_AUTH_USERNAMES:
-        return [AUTH_PROVIDER_LOCAL]
-    if any(normalized.startswith(prefix) for prefix in LOCAL_AUTH_USERNAME_PREFIXES):
-        return [AUTH_PROVIDER_LOCAL]
-    return [AUTH_PROVIDER_LDAP]
-
-
-def local_auth_allowed_for_username(username: object) -> bool:
-    """Return whether a username may use local password authentication."""
-    _ = username
-    return True
+    return normalized or [DEFAULT_AUTH_PROVIDER]
 
 
 def normalize_platform(value: object) -> str | None:
@@ -367,15 +186,8 @@ def normalize_read_mode(value: object) -> str | None:
 
 
 def normalize_analysis_type(value: object) -> str:
-    """Normalize analysis type aliases to the canonical reporting/filter keys."""
-    raw = str(value or "").strip().upper().replace("-", "_").replace(" ", "_")
-    aliases = {
-        "BIOMARKERS": "BIOMARKER",
-        "CNVPROFILE": "CNV_PROFILE",
-        "CNV__PROFILE": "CNV_PROFILE",
-        "COV": "COVERAGE",
-    }
-    normalized = aliases.get(raw, raw)
+    """Validate a canonical analysis type."""
+    normalized = str(value or "").strip().upper()
     return _ensure_in_options(
         normalized,
         options=ALL_ANALYSIS_TYPE_OPTIONS,
@@ -411,10 +223,8 @@ def normalize_sequencing_scope(value: object) -> str:
 
 def scope_from_family(asp_family: str) -> str:
     """Derive the sequencing scope from an ASP family value."""
-    normalized = str(asp_family or "").strip().lower()
-    if normalized.startswith("panel-"):
-        return "panel"
-    return normalize_sequencing_scope(normalized)
+    normalized = normalize_asp_family(asp_family)
+    return CLINICAL_VOCABULARY.assay_family_scopes[normalized]
 
 
 def expected_file_keys(asp_category: str) -> tuple[str, ...]:
@@ -430,7 +240,8 @@ def required_file_keys(
     family = str(asp_family or "").strip().lower()
     if family in REQUIRED_SAMPLE_FILE_KEYS_BY_FAMILY:
         return REQUIRED_SAMPLE_FILE_KEYS_BY_FAMILY[family]
-    category = normalize_asp_category(asp_category or "dna")
-    if category == "rna":
-        return ("fusion_files",)
-    return ("vcf_files",)
+    category = normalize_asp_category(asp_category or ASP_CATEGORY_OPTIONS[0])
+    configured_analyses = tuple(ANALYSIS_FILE_KEYS_BY_OMICS.get(category, {}))
+    if not configured_analyses:
+        return ()
+    return (primary_analysis_file_key(category, configured_analyses[0]),)

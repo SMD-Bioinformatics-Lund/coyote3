@@ -5,7 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 
 from api.app.container import store
-from api.config.constants import SUBPANEL_BASE_ID
+from api.config.constants import DEFAULT_ENVIRONMENT, SUBPANEL_BASE_ID, primary_analysis_file_key
 from api.contracts.http import ApiListPayload, ApiMutationPayload, ApiPageMeta, ApiSuccessPayload
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
@@ -76,10 +76,14 @@ def get_formatted_assay_config(sample: dict):
     """
     assay_name = str(sample.get("assay") or "").strip()
     sample_name = str(sample.get("name") or sample.get("_id") or "unknown_sample").strip()
-    environment = str(sample.get("profile", "production") or "production").strip() or "production"
-    subpanel_id = str(
-        sample.get("subpanel_id") or sample.get("subpanel") or SUBPANEL_BASE_ID
-    ).strip() or SUBPANEL_BASE_ID
+    environment = (
+        str(sample.get("profile", DEFAULT_ENVIRONMENT) or DEFAULT_ENVIRONMENT).strip()
+        or DEFAULT_ENVIRONMENT
+    )
+    subpanel_id = (
+        str(sample.get("subpanel_id") or sample.get("subpanel") or SUBPANEL_BASE_ID).strip()
+        or SUBPANEL_BASE_ID
+    )
 
     if not assay_name:
         raise validation_error(
@@ -119,7 +123,7 @@ def get_formatted_assay_config(sample: dict):
         )
     omics = str(sample.get("omics_layer") or "").upper()
     if not omics:
-        omics = "RNA" if sample.get("fusion_files") else "DNA"
+        omics = "RNA" if sample.get(primary_analysis_file_key("rna", "FUSION")) else "DNA"
     assay_config_schema = build_form_spec(aspc_spec_for_category(omics))
     return format_assay_config(deepcopy(assay_config), assay_config_schema)
 

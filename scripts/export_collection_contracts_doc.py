@@ -56,10 +56,10 @@ def main() -> int:
     lines.append("## DNA vs RNA sample rules")
     lines.append("")
     lines.append(
-        "- `omics_layer=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cov`, `biomarkers`, `transloc`."
+        "- `omics_layer=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cnvprofile`, `cov`, `biomarkers`, `transloc`, `pgx`."
     )
     lines.append(
-        "- `omics_layer=RNA` allows only RNA file keys: `fusion_files`, `expression_path`, `classification_path`, `qc`."
+        "- `omics_layer=RNA` allows only RNA file keys: `fusion_files`, `expression_path`, `classification_path`, `qc`, `pgx`."
     )
     lines.append("- Mixed DNA+RNA file-key payloads are rejected by model validation.")
     lines.append("")

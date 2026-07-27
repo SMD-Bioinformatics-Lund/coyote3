@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 
+from api.config.application_metadata import oncokb_gene_url
 from api.domain.common.reporting import nl_join, nl_num, utc_now
 from api.infra.mongo.persistence import new_object_id
 from api.infra.request_context import current_username
@@ -61,7 +62,7 @@ def create_annotation_text_from_gene(gene: str, csq: list, assay_group: str, **k
     text = f"Analysen påvisar en {consequence}. Mutationen är klassad som Tier III då mutationer i {gene} är sällsynta men förekommer i {tumor_type} maligniteter."
     gene_oncokb = kwargs.get("gene_oncokb", None)
     if gene_oncokb:
-        text += f" För ytterligare information om {gene} se https://www.oncokb.org/gene/{gene}."
+        text += f" För ytterligare information om {gene} se {oncokb_gene_url(gene)}."
     else:
         text += f" {gene} finns ej beskriven i https://www.oncokb.org."
     logger.debug(text)

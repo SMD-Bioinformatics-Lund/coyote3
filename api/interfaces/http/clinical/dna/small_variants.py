@@ -23,6 +23,7 @@ from api.application.interpretation.report_summary import (
     create_comment_doc,
     generate_summary_text,
 )
+from api.config.database_versions import require_sample_vep_version
 from api.contracts.dna import (
     DnaClinPgxPublicPayload,
     DnaCsvExportContextPayload,
@@ -113,7 +114,7 @@ def list_dna_variants(
             generate_summary_text_fn=generate_summary_text,
             build_query_fn=build_query,
             get_filter_conseq_terms_fn=lambda values: get_filter_conseq_terms(
-                values, sample.get("vep_version")
+                values, require_sample_vep_version(sample)
             ),
             assay_config_getter=_get_formatted_assay_config,
         )
@@ -141,7 +142,7 @@ def dna_sample_comment_suggestion(
         generate_summary_text_fn=generate_summary_text,
         build_query_fn=build_query,
         get_filter_conseq_terms_fn=lambda values: get_filter_conseq_terms(
-            values, sample.get("vep_version")
+            values, require_sample_vep_version(sample)
         ),
         assay_config_getter=_get_formatted_assay_config,
         paginate=False,
@@ -374,7 +375,7 @@ def export_snv_csv_context(
         generate_summary_text_fn=generate_summary_text,
         build_query_fn=build_query,
         get_filter_conseq_terms_fn=lambda values: get_filter_conseq_terms(
-            values, sample.get("vep_version")
+            values, require_sample_vep_version(sample)
         ),
         assay_config_getter=_get_formatted_assay_config,
         paginate=False,

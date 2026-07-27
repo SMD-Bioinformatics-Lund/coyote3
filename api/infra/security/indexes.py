@@ -8,7 +8,7 @@ from typing import Any
 from pymongo import ASCENDING, DESCENDING
 from pymongo.errors import PyMongoError
 
-from api.settings import (
+from api.config.security import (
     get_api_sessions_collection_name,
     get_audit_events_collection_name,
 )

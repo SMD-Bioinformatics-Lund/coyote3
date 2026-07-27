@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from api.config.constants import AUTH_PROVIDER_LDAP
+from api.config.constants import DEFAULT_AUTH_PROVIDER
 from api.security.tokens import issue_opaque_token, token_hash
 
 
@@ -28,7 +28,7 @@ class MongoApiSessionRepository:
         self.user_loader = user_loader
         self.ttl_seconds = int(ttl_seconds)
 
-    def create(self, user: Any, *, provider: str = AUTH_PROVIDER_LDAP) -> ApiSession:
+    def create(self, user: Any, *, provider: str = DEFAULT_AUTH_PROVIDER) -> ApiSession:
         token = issue_opaque_token(48)
         csrf_token = issue_opaque_token(32)
         now = datetime.now(timezone.utc)
@@ -61,7 +61,7 @@ class MongoApiSessionRepository:
             token=token,
             csrf_token=str(document.get("csrf_token") or ""),
             user=user,
-            provider=str(document.get("provider") or AUTH_PROVIDER_LDAP),
+            provider=str(document.get("provider") or DEFAULT_AUTH_PROVIDER),
         )
 
     def delete(self, token: str) -> None:

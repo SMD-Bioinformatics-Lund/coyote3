@@ -11,9 +11,9 @@ from typing import Any
 
 from pymongo import ReturnDocument
 
+from api.config.security import get_audit_events_collection_name, get_audit_retention_days, to_bool
 from api.contracts.schemas.app_controls import AppControlsDoc
 from api.infra.request_context import current_username
-from api.settings import get_audit_events_collection_name, get_audit_retention_days, to_bool
 
 APP_CONTROLS_COLLECTION = "app_controls"
 APP_CONTROLS_ID = "default"

@@ -17,6 +17,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from api.application.reporting.clinical_rules.publisher import ClinicalRulePublisher  # noqa: E402
+from api.config.paths import COLLECTIONS_CONFIG_PATH  # noqa: E402
 from api.infra.mongo.repositories.clinical_rule_sets import (  # noqa: E402
     ClinicalRuleSetRepository,
 )
@@ -30,8 +31,7 @@ class _Adapter:
 
 
 def _collection_name(db_name: str) -> str:
-    config_path = REPO_ROOT / "api/config/coyote3_collections.toml"
-    with config_path.open("rb") as handle:
+    with COLLECTIONS_CONFIG_PATH.open("rb") as handle:
         config = tomllib.load(handle)
     try:
         return str(config[db_name]["clinical_rule_sets_collection"])

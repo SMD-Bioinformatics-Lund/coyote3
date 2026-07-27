@@ -46,10 +46,12 @@ def test_auth_login_rejects_invalid_credentials(monkeypatch):
     Returns:
         The function result.
     """
-    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p: None)
+    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p, **_kwargs: None)
 
     with pytest.raises(HTTPException) as exc:
-        auth_router.create_auth_session(auth_router.ApiAuthLoginRequest(username="u", password="p"))
+        auth_router.create_auth_session(
+            auth_router.ApiAuthLoginRequest(username="u", password="p", provider="local")
+        )
 
     assert exc.value.status_code == 401
     assert exc.value.detail["error"] == "Invalid credentials"
@@ -67,7 +69,7 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
     user_doc = fx.user_doc()
     calls = {}
 
-    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p: user_doc)
+    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p, **_kwargs: user_doc)
     monkeypatch.setattr(
         auth_router,
         "update_user_last_login",
@@ -90,7 +92,7 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
 
     response = auth_router.create_auth_session(
-        auth_router.ApiAuthLoginRequest(username=" tester ", password="p")
+        auth_router.ApiAuthLoginRequest(username=" tester ", password="p", provider="local")
     )
 
     assert response.status_code == 201
@@ -113,7 +115,7 @@ def test_create_auth_session_returns_201(monkeypatch):
     """
     user_doc = fx.user_doc()
 
-    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p: user_doc)
+    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p, **_kwargs: user_doc)
     monkeypatch.setattr(auth_router, "update_user_last_login", lambda user_id: None)
     monkeypatch.setattr(
         auth_router, "create_api_session_token", lambda user_id, **_kwargs: f"session-{user_id}"
@@ -132,7 +134,7 @@ def test_create_auth_session_returns_201(monkeypatch):
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
 
     response = auth_router.create_auth_session(
-        auth_router.ApiAuthLoginRequest(username=" tester ", password="p")
+        auth_router.ApiAuthLoginRequest(username=" tester ", password="p", provider="local")
     )
 
     assert response.status_code == 201
@@ -151,7 +153,7 @@ def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
     user_doc["user_id"] = "coyote3.admin"
     calls = {}
 
-    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p: user_doc)
+    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p, **_kwargs: user_doc)
     monkeypatch.setattr(
         auth_router,
         "update_user_last_login",
@@ -174,7 +176,7 @@ def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
 
     response = auth_router.create_auth_session(
-        auth_router.ApiAuthLoginRequest(username="tester", password="p")
+        auth_router.ApiAuthLoginRequest(username="tester", password="p", provider="local")
     )
 
     assert response.status_code == 201

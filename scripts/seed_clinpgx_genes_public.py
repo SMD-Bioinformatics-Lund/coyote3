@@ -10,6 +10,7 @@ from pathlib import Path
 
 from pymongo import MongoClient
 
+from api.config.paths import COLLECTIONS_CONFIG_PATH
 from api.infra.knowledgebase.clinpgx_public import ClinPgxPublicRepository
 
 
@@ -41,8 +42,7 @@ def main() -> int:
     if not zip_path.exists():
         raise FileNotFoundError(f"ClinPGx gene zip not found: {zip_path}")
 
-    config_path = Path("api/config/coyote3_collections.toml")
-    with config_path.open("rb") as handle:
+    with COLLECTIONS_CONFIG_PATH.open("rb") as handle:
         config = tomllib.load(handle)
     client = MongoClient(args.mongo_uri)
     database = client[args.db]

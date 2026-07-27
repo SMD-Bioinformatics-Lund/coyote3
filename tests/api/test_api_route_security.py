@@ -11,6 +11,7 @@ DEF_RE = re.compile(r"^\s*def\s+")
 # Public and auth-bootstrap endpoints intentionally do not require user RBAC.
 ALLOW_UNGUARDED_EXACT = {
     "/api/v1/health",
+    "/api/v1/auth/providers",
     "/api/v1/auth/sessions",
     "/api/v1/auth/sessions/current",
     "/api/v1/auth/password/reset/request",

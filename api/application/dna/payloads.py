@@ -13,6 +13,7 @@ from api.application.common.table_state import (
 )
 from api.application.dna.export import consequence_terms
 from api.application.reporting.dna_report_payload import hotspot_variant
+from api.config.database_versions import require_sample_vep_version
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.domain.common.errors import api_error, setup_error
@@ -428,12 +429,11 @@ def list_variants_payload(
 
     sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
     bam_id = service.bam_record_repository.get_bams(sample_ids)
+    vep_version = require_sample_vep_version(sample)
     vep_variant_class_meta = service.vep_metadata_repository.get_variant_class_translations(
-        sample.get("vep_version", "103")
+        vep_version
     )
-    vep_conseq_meta = service.vep_metadata_repository.get_conseq_translations(
-        sample.get("vep_version", "103")
-    )
+    vep_conseq_meta = service.vep_metadata_repository.get_conseq_translations(vep_version)
     has_hidden_comments = service.sample_repository.hidden_sample_comments(sample.get("_id"))
     insilico_panel_genelists = service.gene_list_repository.get_isgl_by_asp(
         sample.get("assay"), is_active=True
@@ -477,9 +477,6 @@ def list_variants_payload(
         page, per_page = request_pagination(request)
         variants_page, pagination_meta = paginate_items(variants, page=page, per_page=per_page)
         display_sections_data["snvs"] = variants_page
-
-    if "cnv" in sample and str(sample["cnv"]).lower().endswith((".png", ".jpg", ".jpeg")):
-        sample["cnvprofile"] = sample["cnv"]
 
     ai_text = generate_summary_text_fn(
         sample_ids,
@@ -684,10 +681,10 @@ def variant_context_payload(
         "sample_ids": sample_ids,
         "bam_id": service.bam_record_repository.get_bams(sample_ids),
         "vep_var_class_translations": service.vep_metadata_repository.get_variant_class_translations(
-            sample.get("vep_version", "103")
+            require_sample_vep_version(sample)
         ),
         "vep_conseq_translations": service.vep_metadata_repository.get_conseq_translations(
-            sample.get("vep_version", "103")
+            require_sample_vep_version(sample)
         ),
         "assay_group_mappings": service.assay_panel_repository.get_asp_group_mappings(),
     }

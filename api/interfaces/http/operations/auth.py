@@ -13,9 +13,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from api.app.container import util
-from api.config.constants import AUTH_PROVIDER_LDAP, AUTH_PROVIDER_LOCAL
+from api.config.constants import AUTH_PROVIDER_LDAP, AUTH_PROVIDER_LOCAL, AUTH_TYPE_OPTIONS
 from api.contracts.auth import (
     ApiAuthLoginRequest,
+    ApiAuthProvidersResponse,
     ApiPasswordChangeRequest,
     ApiPasswordChangeResponse,
     ApiPasswordResetConfirmRequest,
@@ -98,8 +99,12 @@ def _login_response(payload: ApiAuthLoginRequest):
     """
     username = payload.username.strip()
     password = payload.password
-    provider = _provider_from_login_identifier(username)
-    user_doc = authenticate_credentials(username, password)
+    provider = str(payload.provider or "").strip().lower()
+    if provider not in AUTH_TYPE_OPTIONS:
+        raise HTTPException(
+            status_code=400, detail={"status": 400, "error": "Unsupported login provider"}
+        )
+    user_doc = authenticate_credentials(username, password, provider=provider)
     if not user_doc:
         from api.app.deps.services import get_audit_service
 
@@ -156,6 +161,12 @@ def _login_response(payload: ApiAuthLoginRequest):
         path="/",
     )
     return response
+
+
+@router.get("/api/v1/auth/providers", response_model=ApiAuthProvidersResponse)
+def auth_providers_read():
+    """Return the center-enabled login mechanisms for the public login screen."""
+    return {"providers": list(AUTH_TYPE_OPTIONS)}
 
 
 def _validate_new_password(new_password: str) -> None:

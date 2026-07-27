@@ -16,6 +16,7 @@ from typing import Any
 
 from bson.objectid import ObjectId
 
+from api.config.constants import DEFAULT_ENVIRONMENT
 from api.contracts.operations import OperationResult
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
@@ -672,7 +673,7 @@ class SampleRepository(BaseRepository):
         }
 
     def get_assay_specific_sample_stats(
-        self, assays: list = None, profile: str = "production"
+        self, assays: list = None, profile: str = DEFAULT_ENVIRONMENT
     ) -> dict:
         """
         Retrieve assay-specific statistics.
@@ -854,6 +855,52 @@ class SampleRepository(BaseRepository):
         ]
         result = list(self.get_collection().aggregate(pipeline))
         return {item["profile"]: item["count"] for item in result}
+
+    def get_observed_software_versions(self, *, limit: int = 1000) -> dict[str, object]:
+        """Return bounded, de-duplicated pipeline and VEP versions for public metadata."""
+        pipelines: dict[str, set[str]] = {}
+        vep_versions: set[str] = set()
+        cursor = (
+            self.get_collection()
+            .find(
+                {},
+                {"pipeline": 1, "pipeline_version": 1, "database_versions.vep": 1},
+            )
+            .limit(limit)
+        )
+        for sample in cursor:
+            pipeline = str(sample.get("pipeline") or "").strip()
+            pipeline_version = str(sample.get("pipeline_version") or "").strip()
+            if pipeline:
+                pipelines.setdefault(pipeline, set())
+                if pipeline_version:
+                    pipelines[pipeline].add(pipeline_version)
+            vep_version = str((sample.get("database_versions") or {}).get("vep") or "").strip()
+            if vep_version:
+                vep_versions.add(vep_version)
+        return {
+            "pipelines": {key: sorted(values) for key, values in sorted(pipelines.items())},
+            "vep": sorted(vep_versions),
+        }
+
+    def get_observed_database_versions(self, *, limit: int = 1000) -> dict[str, list[str]]:
+        """Return bounded, de-duplicated sample database versions for public metadata."""
+        database_versions: dict[str, set[str]] = {}
+        cursor = (
+            self.get_collection()
+            .find(
+                {"database_versions": {"$type": "object"}},
+                {"database_versions": 1},
+            )
+            .limit(limit)
+        )
+        for sample in cursor:
+            for name, version in dict(sample.get("database_versions") or {}).items():
+                key = str(name).strip()
+                value = str(version).strip()
+                if key and value:
+                    database_versions.setdefault(key, set()).add(value)
+        return {key: sorted(values) for key, values in sorted(database_versions.items())}
 
     def get_omics_counts(self) -> dict:
         """

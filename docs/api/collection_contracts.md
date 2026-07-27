@@ -15,8 +15,8 @@ This is the canonical collection-key reference used by ingestion validation.
 
 ## DNA vs RNA sample rules
 
-- `omics_layer=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cov`, `biomarkers`, `transloc`.
-- `omics_layer=RNA` allows only RNA file keys: `fusion_files`, `expression_path`, `classification_path`, `qc`.
+- `omics_layer=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cnvprofile`, `cov`, `biomarkers`, `transloc`, `pgx`.
+- `omics_layer=RNA` allows only RNA file keys: `fusion_files`, `expression_path`, `classification_path`, `qc`, `pgx`.
 - Mixed DNA+RNA file-key payloads are rejected by model validation.
 
 ## `anno_vep`
@@ -695,7 +695,6 @@ Optional keys:
 - `current_aspc_key` (str | None)
 - `current_aspc_version` (int | None)
 - `genome_build` (int | None)
-- `vep_version` (str | None)
 - `database_versions` (dict[str, str])
 - `control_id` (str | None)
 - `paired` (bool | None)

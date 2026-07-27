@@ -80,6 +80,7 @@ def _sample() -> dict:
         "name": "sample1",
         "assay": "WGS",
         "profile": "production",
+        "database_versions": {"vep": "103"},
         "filters": {},
         "files": {
             "cnvprofile": {

@@ -2,62 +2,53 @@
 
 from __future__ import annotations
 
-import os
-
 from celery import Celery
 from celery.schedules import crontab
 
-from api.config import configure_process_env
-
-
-def _truthy(value: str | None) -> bool:
-    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+from api.config.runtime_settings import DefaultConfig
 
 
 def _redis_url() -> str:
     """Return the Celery broker/backend URL.
 
-    Celery uses a dedicated env var when provided, otherwise it reuses the
-    configured Redis cache URL used by the API stack.
+    Celery uses a dedicated runtime value when provided, otherwise it reuses
+    the configured Redis cache URL used by the API stack.
     """
-    configure_process_env()
-    return (
-        os.getenv("CELERY_BROKER_URL") or os.getenv("CACHE_REDIS_URL") or "redis://localhost:6379/0"
-    )
+    return str(DefaultConfig.CELERY_BROKER_URL or DefaultConfig.CACHE_REDIS_URL or "")
 
 
 celery_app = Celery(
     "coyote3",
     broker=_redis_url(),
-    backend=os.getenv("CELERY_RESULT_BACKEND") or _redis_url(),
+    backend=DefaultConfig.CELERY_RESULT_BACKEND or _redis_url(),
     include=("api.tasks.ingest", "api.tasks.maintenance"),
 )
 
 celery_app.conf.update(
-    task_default_queue=os.getenv("CELERY_DEFAULT_QUEUE", "default"),
+    task_default_queue=DefaultConfig.CELERY_DEFAULT_QUEUE,
     task_track_started=True,
-    task_time_limit=int(os.getenv("CELERY_TASK_TIME_LIMIT", "7200")),
-    task_soft_time_limit=int(os.getenv("CELERY_TASK_SOFT_TIME_LIMIT", "6900")),
-    result_expires=int(os.getenv("CELERY_RESULT_EXPIRES", "86400")),
-    worker_prefetch_multiplier=int(os.getenv("CELERY_WORKER_PREFETCH_MULTIPLIER", "1")),
+    task_time_limit=DefaultConfig.CELERY_TASK_TIME_LIMIT,
+    task_soft_time_limit=DefaultConfig.CELERY_TASK_SOFT_TIME_LIMIT,
+    result_expires=DefaultConfig.CELERY_RESULT_EXPIRES,
+    worker_prefetch_multiplier=DefaultConfig.CELERY_WORKER_PREFETCH_MULTIPLIER,
     task_routes={
-        "api.tasks.ingest.*": {"queue": os.getenv("CELERY_INGEST_QUEUE", "ingest")},
+        "api.tasks.ingest.*": {"queue": DefaultConfig.CELERY_INGEST_QUEUE},
     },
 )
 
 celery_app.conf.beat_schedule = {
     "coyote3-retention-maintenance": {
         "task": "api.tasks.maintenance.run_retention_maintenance",
-        "schedule": crontab(hour=int(os.getenv("COYOTE3_MAINTENANCE_HOUR", "2")), minute=0),
+        "schedule": crontab(hour=DefaultConfig.COYOTE3_MAINTENANCE_HOUR, minute=0),
     },
 }
 
-if _truthy(os.getenv("COYOTE3_INGEST_WATCH_ENABLED")):
+if DefaultConfig.COYOTE3_INGEST_WATCH_ENABLED:
     celery_app.conf.beat_schedule.update(
         {
-        "coyote3-ingest-watch-directory": {
-            "task": "api.tasks.ingest.ingest_watch_directory_once",
-            "schedule": int(os.getenv("COYOTE3_INGEST_WATCH_INTERVAL_SECONDS", "30")),
-        },
+            "coyote3-ingest-watch-directory": {
+                "task": "api.tasks.ingest.ingest_watch_directory_once",
+                "schedule": DefaultConfig.COYOTE3_INGEST_WATCH_INTERVAL_SECONDS,
+            },
         }
     )

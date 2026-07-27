@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from api.config.database_versions import normalize_database_versions, require_sample_vep_version
 from api.contracts.managed_resources import managed_resource_spec
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.contracts.schemas.app_controls import AppControlsDoc
@@ -221,6 +222,37 @@ def test_samples_doc_keeps_filters_unset_until_initialized():
     assert isinstance(rna_doc.case, SampleCaseControlDoc)
 
 
+def test_sample_database_versions_use_only_canonical_nested_keys():
+    """Sample VEP metadata belongs only in database_versions.vep."""
+    assert normalize_database_versions({"vep": "v103", "clinvar": 202008, "cosmic": "null"}) == {
+        "vep": "103",
+        "clinvar": "202008",
+    }
+
+    with pytest.raises(ValueError, match="database_versions keys"):
+        normalize_database_versions({"VEP": "103"})
+
+    with pytest.raises(ValueError, match="database_versions.vep"):
+        require_sample_vep_version({"database_versions": {}})
+
+    payload = {
+        "name": "S1",
+        "assay": "assay_1",
+        "subpanel": "hem",
+        "profile": "production",
+        "case_id": "seed_case",
+        "sample_no": 1,
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
+        "pipeline": "SomaticPanelPipeline",
+        "pipeline_version": "1.0.0",
+        "vcf_files": "x",
+        "vep_version": "103",
+    }
+    with pytest.raises(ValueError, match="Retired sample version fields"):
+        SamplesDoc.model_validate(payload)
+
+
 def test_collection_validator_rejects_dna_sample_with_rna_keys():
     """DNA sample payload must not include RNA-only file keys."""
     with pytest.raises(ValueError):
@@ -404,8 +436,8 @@ def test_collection_validator_rejects_unknown_platform():
         )
 
 
-def test_collection_validator_normalizes_aspc_analysis_aliases():
-    """asp_configs should normalize biomarker-related and CNV-profile aliases."""
+def test_collection_validator_requires_canonical_aspc_analysis_types():
+    """asp_configs should accept canonical analysis-type values."""
     payload = normalize_collection_document(
         "asp_configs",
         {
@@ -415,12 +447,12 @@ def test_collection_validator_normalizes_aspc_analysis_aliases():
             "environment": "development",
             "asp_group": "hematology",
             "asp_category": "dna",
-            "analysis_types": ["snv", "tmb", "pgx", "cnv profile", "coverage"],
+            "analysis_types": ["SNV", "TMB", "PGX", "CNV_PROFILE", "COVERAGE"],
             "display_name": "Assay 1 Dev",
             "filters": {"vep_consequences": ["missense"], "cnveffects": ["gain", "loss"]},
             "reporting": {
-                "analysis": ["snv", "tmb", "pgx", "cnv profile", "coverage"],
-                "report_sections": ["tmb", "cnv-profile"],
+                "analysis": ["SNV", "TMB", "PGX", "CNV_PROFILE", "COVERAGE"],
+                "report_sections": ["TMB", "CNV_PROFILE"],
                 "report_header": "Header",
                 "report_method": "Method",
                 "report_description": "Description",
@@ -454,7 +486,7 @@ def test_collection_validator_normalizes_user_assay_groups_to_known_values():
             "fullname": "Admin Center",
             "job_title": "Administrator",
             "roles": ["admin"],
-            "environments": ["prod"],
+            "environments": ["production"],
             "assay_groups": [" Hematology ", "solid"],
         },
     )
@@ -496,6 +528,7 @@ def test_collection_validator_applies_default_expected_files_for_dna_asp():
         "cov",
         "transloc",
         "biomarkers",
+        "pgx",
     ]
     assert payload["required_files"] == []
 

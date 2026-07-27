@@ -37,8 +37,6 @@ def _populate_seed_dir(seed_path: Path) -> None:
         "refseq_canonical.seed.ndjson": "refseq_canonical.json",
         "roles.seed.ndjson": "roles.json",
         "vep_metadata.seed.ndjson": "vep_metadata.json",
-        "asp_configs.seed.ndjson.gz": "asp_configs.json",
-        "assay_specific_panels.seed.ndjson.gz": "assay_specific_panels.json",
     }
     for source_name, target_name in reference_map.items():
         source = reference_src / source_name

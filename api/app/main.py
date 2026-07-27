@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -14,6 +12,7 @@ from api.app.middleware import build_authentication_middleware
 from api.app.openapi import apply_openapi_security_schema
 from api.app.runtime_state import app as runtime_app
 from api.config import configure_process_env, get_runtime_mode_flags
+from api.config.runtime_settings import DefaultConfig
 from api.contracts.http import ApiValidationIssue
 from api.domain.core.exceptions import AppError
 from api.interfaces.http.registry import ROUTERS, auth_http_exception_handler
@@ -32,10 +31,7 @@ def _get_formatted_assay_config(sample: dict):
 
 def _script_name() -> str:
     """Return the externally mounted application prefix."""
-    raw = os.getenv("SCRIPT_NAME", "").strip()
-    if not raw or raw == "/":
-        return ""
-    return "/" + raw.strip("/")
+    return str(DefaultConfig.SCRIPT_NAME)
 
 
 async def unhandled_exception_handler(request: Request, exc: Exception):
@@ -165,6 +161,3 @@ def create_api_app() -> FastAPI:
 
 
 app = create_api_app()
-
-# Export a stable runtime string for external launchers and docs.
-APP_IMPORT_PATH = os.getenv("COYOTE3_API_APP", "api.app.main:app")

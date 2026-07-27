@@ -40,10 +40,12 @@ from api.application.ingest.sample_updates import (
 from api.application.ingest.sample_updates import update_meta_fields as _update_meta_fields
 from api.config.constants import (
     ANALYSIS_FILE_KEYS_BY_OMICS,
+    DEFAULT_ENVIRONMENT,
     SAMPLE_FILE_KEYS,
     SUBPANEL_BASE_ID,
     expected_file_keys,
     normalize_environment,
+    primary_analysis_file_key,
 )
 from api.contracts.schemas.registry import (
     INGEST_DEPENDENT_COLLECTIONS,
@@ -70,18 +72,25 @@ logger = logging.getLogger(__name__)
 _catch_left_right = catch_left_right
 
 _FILE_KEY_TO_PRELOAD_KEY: dict[str, str] = {
-    "vcf_files": "snvs",
-    "cnv": "cnvs",
-    "cov": "cov",
-    "transloc": "transloc",
-    "biomarkers": "biomarkers",
-    "fusion_files": "fusions",
-    "expression_path": "rna_expr",
-    "classification_path": "rna_class",
-    "qc": "rna_qc",
+    primary_analysis_file_key("dna", "SNV"): "snvs",
+    primary_analysis_file_key("dna", "CNV"): "cnvs",
+    primary_analysis_file_key("dna", "COVERAGE"): "cov",
+    primary_analysis_file_key("dna", "TRANSLOCATION"): "transloc",
+    primary_analysis_file_key("dna", "BIOMARKER"): "biomarkers",
+    primary_analysis_file_key("dna", "PGX"): "pgx",
+    primary_analysis_file_key("rna", "FUSION"): "fusions",
+    primary_analysis_file_key("rna", "EXPRESSION"): "rna_expr",
+    primary_analysis_file_key("rna", "CLASSIFICATION"): "rna_class",
+    primary_analysis_file_key("rna", "QC"): "rna_qc",
 }
 
-_NON_DATABASE_FILE_KEYS: frozenset[str] = frozenset({"cnvprofile"})
+_NON_DATABASE_FILE_KEYS: frozenset[str] = frozenset(
+    {
+        primary_analysis_file_key("dna", "CNV_PROFILE"),
+        primary_analysis_file_key("dna", "PGX"),
+        primary_analysis_file_key("rna", "PGX"),
+    }
+)
 
 
 def _provider_sample_id(sample_id: str) -> Any:
@@ -409,7 +418,7 @@ class InternalIngestService:
         )
         aspc_collection = self._collection("asp_configs")
         assay_name = str(payload.get("assay") or "").strip()
-        profile = normalize_environment(payload.get("profile") or "production")
+        profile = normalize_environment(payload.get("profile") or DEFAULT_ENVIRONMENT)
         subpanel = str(payload.get("subpanel_id") or payload.get("subpanel") or "").strip()
         subpanel = subpanel or SUBPANEL_BASE_ID
         query = {

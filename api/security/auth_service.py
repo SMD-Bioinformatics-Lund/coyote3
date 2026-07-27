@@ -9,7 +9,12 @@ from api.app.deps.repositories import (
     get_user_repository,
 )
 from api.app.runtime_state import app
-from api.config.constants import AUTH_PROVIDER_LDAP, AUTH_PROVIDER_LOCAL, normalize_auth_types
+from api.config.constants import (
+    AUTH_PROVIDER_LDAP,
+    AUTH_PROVIDER_LOCAL,
+    DEFAULT_AUTH_PROVIDER,
+    normalize_auth_types,
+)
 from api.domain.core.models.user import UserModel
 from api.infra.observability.auth_metrics import emit_auth_metric
 
@@ -98,7 +103,12 @@ def resolve_user_identity(user_doc: dict) -> str:
     return str(user_doc.get("username") or "").strip()
 
 
-def authenticate_credentials(username: str, password: str) -> dict | None:
+def authenticate_credentials(
+    username: str,
+    password: str,
+    *,
+    provider: str | None = None,
+) -> dict | None:
     """Authenticate a username/password pair against local or LDAP auth.
 
     Args:
@@ -108,7 +118,7 @@ def authenticate_credentials(username: str, password: str) -> dict | None:
     Returns:
         The authenticated user document, or ``None`` when authentication fails.
     """
-    selected_provider = _login_provider(username)
+    selected_provider = provider or _login_provider(username)
     user_doc = _lookup_user_doc(username, provider=selected_provider)
     if not user_doc:
         emit_auth_metric("login_attempt", outcome="failed", reason="user_not_found")
@@ -117,7 +127,7 @@ def authenticate_credentials(username: str, password: str) -> dict | None:
         emit_auth_metric("login_attempt", outcome="failed", reason="inactive_user")
         return None
 
-    auth_types = normalize_auth_types(user_doc.get("auth_type") or [AUTH_PROVIDER_LDAP])
+    auth_types = normalize_auth_types(user_doc.get("auth_type") or [DEFAULT_AUTH_PROVIDER])
     if selected_provider not in auth_types:
         emit_auth_metric(
             "login_attempt",

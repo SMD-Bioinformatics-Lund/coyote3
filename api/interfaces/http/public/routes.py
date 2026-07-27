@@ -6,17 +6,18 @@ import csv
 import datetime
 import io
 from copy import deepcopy
-from pathlib import Path
 
 import yaml
 from fastapi import APIRouter, Query
 
-from api.app.container import store, util
+from api.app.container import util
 from api.app.deps.services import get_public_catalog_service
 from api.app.http import api_error as _api_error
 from api.app.runtime_state import app as runtime_app
 from api.application.public.catalog import PublicCatalogService
-from api.config.app_config import REPO_ROOT
+from api.config.application_metadata import APPLICATION_DESCRIPTION
+from api.config.constants import DEFAULT_ENVIRONMENT
+from api.config.paths import FILTER_FLAG_METADATA_PATH
 from api.contracts.public import (
     PublicAboutPayload,
     PublicAspGenesPayload,
@@ -35,7 +36,7 @@ __all__ = ["router", "PublicCatalogService"]
 
 
 def _load_filter_flag_metadata() -> dict:
-    metadata_path = Path(REPO_ROOT) / "api" / "config" / "filter_flag_metadata.yaml"
+    metadata_path = FILTER_FLAG_METADATA_PATH
     if not metadata_path.exists():
         return {"exact": {}, "prefixes": {}, "terms": {}}
     with metadata_path.open("r", encoding="utf-8") as handle:
@@ -64,10 +65,7 @@ def public_about_read():
                 "version": runtime_app.config.get("APP_VERSION"),
                 "environment": runtime_app.config.get("ENV_NAME"),
                 "script_name": runtime_app.config.get("SCRIPT_NAME"),
-                "description": (
-                    "Clinical genomics interpretation, sample review, "
-                    "classification, and traceable reporting workspace."
-                ),
+                "description": APPLICATION_DESCRIPTION,
             },
             "software": _public_software_versions(),
             "references": _public_reference_versions(),
@@ -103,66 +101,20 @@ def _public_contact_payload() -> dict:
 
 def _public_software_versions() -> dict:
     """Return software versions observed in stored sample metadata."""
-    pipelines: dict[str, set[str]] = {}
-    vep_versions: set[str] = set()
     try:
-        collection = store.sample_repository.get_collection()
-        cursor = collection.find(
-            {},
-            {"pipeline": 1, "pipeline_version": 1, "vep_version": 1},
-        ).limit(1000)
-        for sample in cursor:
-            pipeline = str(sample.get("pipeline") or "").strip()
-            pipeline_version = str(sample.get("pipeline_version") or "").strip()
-            if pipeline:
-                pipelines.setdefault(pipeline, set())
-                if pipeline_version:
-                    pipelines[pipeline].add(pipeline_version)
-            vep_version = str(sample.get("vep_version") or "").strip()
-            if vep_version:
-                vep_versions.add(vep_version)
+        return get_public_catalog_service().observed_software_versions()
     except Exception as exc:  # pragma: no cover - defensive public metadata path
         runtime_app.logger.warning("Could not build public software versions: %s", exc)
-    return {
-        "pipelines": {key: sorted(values) for key, values in sorted(pipelines.items())},
-        "vep": sorted(vep_versions),
-    }
+        return {"pipelines": {}, "vep": []}
 
 
 def _public_reference_versions() -> dict:
     """Return reference database versions observed in samples and VEP metadata."""
-    database_versions: dict[str, set[str]] = {}
-    vep_metadata_versions: set[str] = set()
     try:
-        cursor = (
-            store.sample_repository.get_collection()
-            .find(
-                {"database_versions": {"$type": "object"}},
-                {"database_versions": 1},
-            )
-            .limit(1000)
-        )
-        for sample in cursor:
-            for name, version in dict(sample.get("database_versions") or {}).items():
-                key = str(name).strip()
-                value = str(version).strip()
-                if key and value:
-                    database_versions.setdefault(key, set()).add(value)
+        return get_public_catalog_service().observed_reference_versions()
     except Exception as exc:  # pragma: no cover - defensive public metadata path
-        runtime_app.logger.warning("Could not build public sample reference versions: %s", exc)
-    try:
-        for value in store.vep_metadata_repository.get_collection().distinct("vep_id"):
-            normalized = str(value).strip()
-            if normalized:
-                vep_metadata_versions.add(normalized)
-    except Exception as exc:  # pragma: no cover - defensive public metadata path
-        runtime_app.logger.warning("Could not build public VEP metadata versions: %s", exc)
-    return {
-        "sample_database_versions": {
-            key: sorted(values) for key, values in sorted(database_versions.items())
-        },
-        "vep_metadata": sorted(vep_metadata_versions),
-    }
+        runtime_app.logger.warning("Could not build public reference versions: %s", exc)
+        return {"sample_database_versions": {}, "vep_metadata": []}
 
 
 @router.get("/api/v1/public/filter-flags/metadata", response_model=PublicFilterFlagMetadataPayload)
@@ -289,10 +241,12 @@ def public_assay_catalog_context_read(
     else:
         if selected_isgl:
             hydrated_cat = service.hydrate_category(
-                selected_mod, selected_cat, selected_isgl, env="production"
+                selected_mod, selected_cat, selected_isgl, env=DEFAULT_ENVIRONMENT
             )
         else:
-            hydrated_cat = service.hydrate_category(selected_mod, selected_cat, env="production")
+            hydrated_cat = service.hydrate_category(
+                selected_mod, selected_cat, env=DEFAULT_ENVIRONMENT
+            )
         if not hydrated_cat:
             raise _api_error(404, "Category not found")
         right = {
@@ -363,7 +317,7 @@ def public_assay_catalog_genes_csv_context_read(
         right = service.hydrate_modality(selected_mod)
         asp_id = right.get("asp_id")
     else:
-        hydrated_cat = service.hydrate_category(selected_mod, cat, env="production")
+        hydrated_cat = service.hydrate_category(selected_mod, cat, env=DEFAULT_ENVIRONMENT)
         if not hydrated_cat:
             raise _api_error(404, "Category not found")
         asp_id = hydrated_cat.get("asp_id")

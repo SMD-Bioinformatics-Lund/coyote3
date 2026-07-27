@@ -5,6 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from api.config.constants import DEFAULT_ENVIRONMENT
 from api.domain.common.errors import api_error
 
 
@@ -47,7 +48,7 @@ class ResourceClassificationService:
     def classification_context(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Resolve immutable assay context for a finding classification."""
         assay = str(sample.get("assay") or "").strip()
-        profile = str(sample.get("profile") or "production").strip()
+        profile = str(sample.get("profile") or DEFAULT_ENVIRONMENT).strip()
         subpanel = str(sample.get("subpanel_id") or sample.get("subpanel") or "base").strip()
         aspc = self.assay_configuration_repository.get_aspc_no_meta(assay, profile, subpanel)
         if not isinstance(aspc, dict):

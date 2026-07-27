@@ -9,6 +9,7 @@ from typing import Any
 
 from pysam import VariantFile
 
+from api.config.constants import primary_analysis_file_key
 from api.contracts.schemas.samples import DNA_SAMPLE_FILE_KEYS, RNA_SAMPLE_FILE_KEYS
 from api.domain.common.parsers import cmdvcf
 from api.domain.core.dna.variant_identity import (
@@ -899,41 +900,47 @@ class DnaIngestParser:
             ``transloc``, and/or ``cov`` as present in the payload.
         """
         preload: dict[str, Any] = {}
-        vcf = runtime_file_path(args, "vcf_files")
+        vcf = runtime_file_path(args, primary_analysis_file_key("dna", "SNV"))
         if vcf:
             require_exists("VCF", vcf)
             snvs = self._parse_snvs_only(vcf)
             preload["snvs"] = snvs
             anno_vep = _build_anno_vep_docs(
                 snvs,
-                (args.get("database_versions") or {}).get("vep") or args.get("vep_version"),
+                (args.get("database_versions") or {}).get("vep"),
             )
             if anno_vep:
                 preload["anno_vep"] = anno_vep
 
-        cnv_path = runtime_file_path(args, "cnv")
+        cnv_path = runtime_file_path(args, primary_analysis_file_key("dna", "CNV"))
         if cnv_path:
             require_exists("CNV JSON", cnv_path)
             with open(cnv_path, "r", encoding="utf-8") as handle:
                 cnv_doc = json.load(handle)
             preload["cnvs"] = self._parse_cnvs_only(cnv_doc)
 
-        biomarkers_path = runtime_file_path(args, "biomarkers")
+        biomarkers_path = runtime_file_path(args, primary_analysis_file_key("dna", "BIOMARKER"))
         if biomarkers_path:
             require_exists("Biomarkers JSON", biomarkers_path)
             with open(biomarkers_path, "r", encoding="utf-8") as handle:
                 preload["biomarkers"] = _normalize_biomarkers_doc(json.load(handle))
 
-        transloc_path = runtime_file_path(args, "transloc")
+        transloc_path = runtime_file_path(args, primary_analysis_file_key("dna", "TRANSLOCATION"))
         if transloc_path:
             require_exists("DNA translocations VCF", transloc_path)
             preload["transloc"] = self._parse_transloc_only(transloc_path)
 
-        cov_path = runtime_file_path(args, "cov")
+        cov_path = runtime_file_path(args, primary_analysis_file_key("dna", "COVERAGE"))
         if cov_path:
             require_exists("Coverage JSON", cov_path)
             with open(cov_path, "r", encoding="utf-8") as handle:
                 preload["cov"] = json.load(handle)
+
+        pgx_path = runtime_file_path(args, primary_analysis_file_key("dna", "PGX"))
+        if pgx_path:
+            require_exists("PGX data", pgx_path)
+            with open(pgx_path, "r", encoding="utf-8") as handle:
+                preload["pgx"] = json.load(handle)
 
         return preload
 
@@ -1146,26 +1153,32 @@ class RnaIngestParser:
             and/or ``rna_qc`` as present in the payload.
         """
         preload: dict[str, Any] = {}
-        fusions = runtime_file_path(args, "fusion_files")
+        fusions = runtime_file_path(args, primary_analysis_file_key("rna", "FUSION"))
         if fusions:
             require_exists("Fusions JSON", fusions)
             with open(fusions, "r", encoding="utf-8") as handle:
                 preload["fusions"] = json.load(handle)
 
-        expr_path = runtime_file_path(args, "expression_path")
+        expr_path = runtime_file_path(args, primary_analysis_file_key("rna", "EXPRESSION"))
         if expr_path:
             require_exists("Expression JSON", expr_path)
             with open(expr_path, "r", encoding="utf-8") as handle:
                 preload["rna_expr"] = json.load(handle)
-        class_path = runtime_file_path(args, "classification_path")
+        class_path = runtime_file_path(args, primary_analysis_file_key("rna", "CLASSIFICATION"))
         if class_path:
             require_exists("Classification JSON", class_path)
             with open(class_path, "r", encoding="utf-8") as handle:
                 preload["rna_class"] = json.load(handle)
-        qc_path = runtime_file_path(args, "qc")
+        qc_path = runtime_file_path(args, primary_analysis_file_key("rna", "QC"))
         if qc_path:
             require_exists("QC JSON", qc_path)
             with open(qc_path, "r", encoding="utf-8") as handle:
                 preload["rna_qc"] = json.load(handle)
+
+        pgx_path = runtime_file_path(args, primary_analysis_file_key("rna", "PGX"))
+        if pgx_path:
+            require_exists("PGX data", pgx_path)
+            with open(pgx_path, "r", encoding="utf-8") as handle:
+                preload["pgx"] = json.load(handle)
 
         return preload

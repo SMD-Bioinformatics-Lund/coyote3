@@ -9,6 +9,7 @@ from typing import Any
 
 from api.app.container import ldap_manager, store, util
 from api.config import app_config
+from api.config.constants import AUTH_PROVIDER_LDAP, AUTH_TYPE_OPTIONS
 from api.infra.cache import create_cache_backend
 from api.infra.observability.logging import configure_json_logging
 from api.infra.security.indexes import ensure_security_indexes
@@ -51,7 +52,8 @@ def create_runtime_context(testing: bool = False, development: bool = False) -> 
 
     _init_cache(runtime)
     _init_store(runtime)
-    ldap_manager.init_from_config(runtime.config)
+    if AUTH_PROVIDER_LDAP in AUTH_TYPE_OPTIONS:
+        ldap_manager.init_from_config(runtime.config)
     util.init_util()
 
     return runtime

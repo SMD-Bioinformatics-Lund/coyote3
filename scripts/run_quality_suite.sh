@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+PYTHON_BIN="${PYTHON_BIN:-${VIRTUAL_ENV:+$VIRTUAL_ENV/bin/python}}"
+if [[ -z "${PYTHON_BIN:-}" || ! -x "$PYTHON_BIN" ]]; then
+  PYTHON_BIN="$(command -v python3 || command -v python)"
+fi
+
+if [[ -z "${PYTHON_BIN:-}" ]]; then
+  echo "ERROR: Python interpreter not found. Set PYTHON_BIN." >&2
+  exit 2
+fi
+
+echo "[quality] Backend tests"
+PYTHONPATH=. "$PYTHON_BIN" -m pytest -q tests/unit tests/api tests/integration
+
+echo "[quality] Contract and repository checks"
+PYTHON_BIN="$PYTHON_BIN" bash scripts/check_contract_integrity.sh
+
+echo "[quality] Frontend lint and build"
+npm --prefix frontend run lint
+npm --prefix frontend run build
+
+echo "[quality] Strict documentation build"
+"$PYTHON_BIN" -m mkdocs build --strict --site-dir /tmp/coyote3-docs-quality-build
+
+if [[ -n "${COMPOSE_FILE:-}" ]]; then
+  echo "[quality] Compose configuration: ${COMPOSE_FILE}"
+  docker compose -f "$COMPOSE_FILE" config --quiet
+fi
+
+echo "[quality] All checks passed"

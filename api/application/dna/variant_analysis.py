@@ -47,6 +47,7 @@ from api.application.dna.variant_state import set_variant_flag as _set_variant_f
 from api.application.dna.variant_state import (
     set_variant_override_blacklist as _set_variant_override_blacklist,
 )
+from api.config.database_versions import sample_vep_version
 from api.contracts.operations import OperationResult
 from api.domain.core.dna.cnvqueries import build_cnv_query
 from api.domain.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
@@ -213,8 +214,7 @@ class DnaService:
         feature = str(feature_id or "").strip()
         if not feature:
             return OperationResult.failed("feature_id is required")
-        database_versions = sample.get("database_versions") or {}
-        vep_version = str(database_versions.get("vep") or sample.get("vep_version") or "").strip()
+        vep_version = sample_vep_version(sample)
         if not vep_version:
             return OperationResult.failed("sample has no VEP version metadata")
         vault = self.anno_vep_repository.get_for_variant(

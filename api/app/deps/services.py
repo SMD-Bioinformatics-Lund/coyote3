@@ -31,14 +31,14 @@ from api.application.rna.expression_analysis import RnaService
 from api.application.sample.catalog import SampleCatalogService
 from api.application.sample.coverage import CoverageService
 from api.application.sample.sample_lookup import SampleService
-from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
-from api.infra.security.sessions import MongoApiSessionRepository
-from api.settings import (
+from api.config.security import (
     get_api_session_ttl_seconds,
     get_api_sessions_collection_name,
     get_audit_events_collection_name,
     get_runtime_environment,
 )
+from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
+from api.infra.security.sessions import MongoApiSessionRepository
 
 
 @lru_cache

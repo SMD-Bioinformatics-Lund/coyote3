@@ -6,6 +6,7 @@ from copy import deepcopy
 from typing import Any
 
 from api.application.interpretation.report_summary import enrich_reported_variant_docs
+from api.config.application_metadata import oncokb_gene_url
 from api.domain.common.errors import api_error
 from api.domain.core.dna.variant_identity import (
     build_simple_id_hash_from_simple_id,
@@ -113,7 +114,7 @@ class CommonQueryService:
             "query": query,
             "knowledgebase": {
                 "oncokb": oncokb_gene,
-                "oncokb_url": f"https://www.oncokb.org/gene/{symbol}" if oncokb_gene else None,
+                "oncokb_url": oncokb_gene_url(symbol) if oncokb_gene else None,
             },
         }
 

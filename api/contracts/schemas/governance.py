@@ -9,6 +9,7 @@ from typing import Any
 from pydantic import Field, field_validator
 
 from api.config.constants import (
+    DEFAULT_AUTH_PROVIDER,
     normalize_asp_group,
     normalize_auth_types,
     normalize_environment,
@@ -24,7 +25,7 @@ class UsersDoc(_StrictDocBase):
     lastname: str
     fullname: str
     job_title: str
-    auth_type: list[str] = Field(default_factory=lambda: ["ldap"])
+    auth_type: list[str] = Field(default_factory=lambda: [DEFAULT_AUTH_PROVIDER])
     password: str | None = None
     last_login: datetime | None = None
     must_change_password: bool = False

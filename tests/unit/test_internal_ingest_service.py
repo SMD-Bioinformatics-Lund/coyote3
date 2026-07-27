@@ -253,12 +253,10 @@ def test_small_helpers_and_build_meta(tmp_path):
             "name": "S1",
             "case_id": "C1",
             "control_id": "N1",
-            "vep_version": "110",
             "database_versions": {
-                "ClinVar": "202402",
-                "dbSNP": 154,
-                "VEP": "v110",
-                "random_plugin": "ignored",
+                "clinvar": "202402",
+                "dbsnp": 154,
+                "vep": "v110",
             },
             "case_reads": 10,
             "control_reads": 20,
@@ -266,7 +264,6 @@ def test_small_helpers_and_build_meta(tmp_path):
         }
     )
     assert "increment" not in meta
-    assert meta["vep_version"] == "110"
     assert meta["database_versions"] == {"clinvar": "202402", "dbsnp": "154", "vep": "110"}
     assert meta["case"]["reads"] == 10
     assert meta["control"]["reads"] == 20
@@ -564,7 +561,6 @@ def test_sample_meta_extracts_vep_database_versions_from_vcf_header(tmp_path):
             "vcf_files": str(vcf),
         }
     )
-    assert meta["vep_version"] == "103"
     assert meta["database_versions"] == {
         "assembly": "GRCh38.p13",
         "clinvar": "202008",
@@ -603,7 +599,6 @@ def test_sample_meta_extracts_versions_from_runtime_vcf_path(tmp_path):
             "files": {"vcf_files": {"path": "/staged/original-name.vcf"}},
         }
     )
-    assert meta["vep_version"] == "112"
     assert meta["database_versions"]["vep"] == "112"
     assert meta["database_versions"]["cosmic"] == "99"
     assert meta["database_versions"]["clinvar"] == "202406"
@@ -914,14 +909,9 @@ def test_parse_yaml_payload():
         invalidate_variant_cache=lambda: None,
         invalidate_summary_cache=lambda: None,
     )
-    parsed = service.parse_yaml_payload("name: S1\nassay: A\nvep_version: 110\n")
+    parsed = service.parse_yaml_payload("name: S1\nassay: A\ndatabase_versions:\n  vep: '110'\n")
     assert parsed["name"] == "S1"
-    assert parsed["vep_version"] == 110
-    parsed = service.parse_yaml_payload(
-        "name: S1\nassay: A\ndb_versions:\n  clinvar: 202402\n  cosmic: '99'\n"
-    )
-    assert parsed["db_versions"]["clinvar"] == 202402
-    assert parsed["db_versions"]["cosmic"] == "99"
+    assert parsed["database_versions"]["vep"] == "110"
     parsed = service.parse_yaml_payload(
         "name: S1\nassay: A\ncontrol_id: 'null'\ncontrol_reads: n/a\ncase_purity: NONE\n"
     )

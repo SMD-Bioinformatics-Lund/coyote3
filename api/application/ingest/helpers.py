@@ -7,9 +7,14 @@ from copy import deepcopy
 from typing import Any
 
 from api.config.constants import (
-    SAMPLE_DATABASE_VERSION_KEY_ALIASES,
+    DEFAULT_ENVIRONMENT,
     SUBPANEL_BASE_ID,
     normalize_environment,
+    primary_analysis_file_key,
+)
+from api.config.database_versions import (
+    canonical_vcf_header_database_version_key,
+    normalize_database_versions,
 )
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
@@ -54,52 +59,14 @@ def normalize_null_placeholders(value: Any) -> Any:
     return value
 
 
-def normalize_database_versions(value: Any) -> dict[str, str]:
-    """Normalize allowed reference/database version metadata to a string mapping."""
-    if not isinstance(value, dict):
-        return {}
-    normalized: dict[str, str] = {}
-    for key, raw_value in value.items():
-        clean_key = _canonical_database_version_key(key)
-        if not clean_key:
-            continue
-        clean_value = normalize_null_placeholders(raw_value)
-        if clean_value is None:
-            continue
-        normalized[clean_key] = _normalize_database_version_value(clean_key, clean_value)
-    return normalized
-
-
-def _canonical_database_version_key(key: Any) -> str | None:
-    clean_key = str(key or "").strip().lower().replace("-", "_").replace(" ", "_")
-    clean_key = clean_key.replace(".", "_")
-    return SAMPLE_DATABASE_VERSION_KEY_ALIASES.get(clean_key)
-
-
-def _normalize_database_version_value(key: str, value: Any) -> str:
-    clean_value = str(value).strip()
-    if key == "vep":
-        return clean_value.lstrip("vV")
-    return clean_value
-
-
 def normalize_sample_version_metadata(payload: dict[str, Any]) -> dict[str, Any]:
-    """Fold version aliases and VCF header metadata into canonical sample keys."""
+    """Merge VCF-header metadata into canonical sample version metadata."""
     normalized = dict(payload)
-    for alias in ("db_versions", "reference_versions", "annotation_versions"):
-        if alias not in normalized:
-            continue
-        merged_versions = normalize_database_versions(normalized.pop(alias))
-        merged_versions.update(normalize_database_versions(normalized.get("database_versions")))
-        normalized["database_versions"] = merged_versions
-
     header_versions = extract_vcf_database_versions(normalized)
     if header_versions:
-        merged_versions = header_versions["database_versions"]
+        merged_versions = header_versions
         merged_versions.update(normalize_database_versions(normalized.get("database_versions")))
         normalized["database_versions"] = merged_versions
-        if not normalized.get("vep_version") and header_versions.get("vep_version"):
-            normalized["vep_version"] = header_versions["vep_version"]
     elif "database_versions" in normalized:
         normalized["database_versions"] = normalize_database_versions(
             normalized.get("database_versions")
@@ -109,7 +76,7 @@ def normalize_sample_version_metadata(payload: dict[str, Any]) -> dict[str, Any]
 
 def extract_vcf_database_versions(payload: dict[str, Any]) -> dict[str, Any]:
     """Extract VEP and annotation database versions from the first VCF header."""
-    vcf_path = _sample_path_value(payload, "vcf_files")
+    vcf_path = _sample_path_value(payload, primary_analysis_file_key("dna", "SNV"))
     if not vcf_path:
         return {}
     try:
@@ -136,16 +103,12 @@ def _parse_vep_header_line(line: str) -> dict[str, Any]:
         if "=" not in part:
             continue
         key, value = part.split("=", 1)
-        clean_key = _canonical_database_version_key(key)
+        clean_key = canonical_vcf_header_database_version_key(key)
         clean_value = value.strip().strip('"')
         if not clean_key or not clean_value:
             continue
-        versions[clean_key] = _normalize_database_version_value(clean_key, clean_value)
-    vep_raw = versions.get("vep")
-    vep_version = vep_raw.lstrip("vV") if vep_raw else None
-    if vep_version:
-        versions["vep"] = vep_version
-    return {"vep_version": vep_version, "database_versions": versions}
+        versions[clean_key] = clean_value.lstrip("vV") if clean_key == "vep" else clean_value
+    return versions
 
 
 def _sample_path_value(payload: dict[str, Any], key: str) -> str | None:
@@ -167,7 +130,10 @@ def _sample_path_value(payload: dict[str, Any], key: str) -> str | None:
 def _validate_yaml_manifest_minimum_fields(payload: dict[str, Any]) -> None:
     """Validate the minimum fields required for an ingest YAML manifest."""
     if (
-        ("vcf_files" not in payload or "fusion_files" not in payload)
+        (
+            primary_analysis_file_key("dna", "SNV") not in payload
+            or primary_analysis_file_key("rna", "FUSION") not in payload
+        )
         and "groups" not in payload
         and "name" not in payload
         and "genome_build" not in payload
@@ -268,7 +234,7 @@ def assay_default_filters_from_aspc_collection(
     assay_name = str(sample_doc.get("assay") or "").strip()
     subpanel_id = str(sample_doc.get("subpanel_id") or sample_doc.get("subpanel") or "").strip()
     subpanel_id = subpanel_id or SUBPANEL_BASE_ID
-    profile = normalize_environment(sample_doc.get("profile") or "production")
+    profile = normalize_environment(sample_doc.get("profile") or DEFAULT_ENVIRONMENT)
     query_base = {
         "asp_id": assay_name,
         "environment": profile,
@@ -281,7 +247,7 @@ def assay_default_filters_from_aspc_collection(
         return None
     omics = str(sample_doc.get("omics_layer") or "").strip().upper()
     if not omics:
-        omics = "RNA" if sample_doc.get("fusion_files") else "DNA"
+        omics = "RNA" if sample_doc.get(primary_analysis_file_key("rna", "FUSION")) else "DNA"
     schema = build_form_spec(aspc_spec_for_category(omics))
     formatted = format_assay_config(deepcopy(raw_config), schema)
     filters = formatted.get("filters")

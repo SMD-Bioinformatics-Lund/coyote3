@@ -15,6 +15,7 @@ from api.application.common.change_payload import change_payload
 from api.application.common.query_service import CommonQueryService
 from api.application.interpretation.report_summary import create_comment_doc
 from api.application.sample.catalog import SampleCatalogService
+from api.config.constants import DEFAULT_ENVIRONMENT, primary_analysis_file_key
 from api.contracts.home import (
     HomeChangeStatusPayload,
     HomeEditContextPayload,
@@ -72,7 +73,7 @@ def list_samples_read(
     done_page: int = Query(default=1, ge=1),
     live_per_page: int | None = Query(default=None, ge=1, le=200),
     done_per_page: int | None = Query(default=None, ge=1, le=200),
-    profile_scope: str = Query(default="production"),
+    profile_scope: str = Query(default=DEFAULT_ENVIRONMENT),
     panel_type: str | None = None,
     panel_tech: str | None = None,
     assay_group: str | None = None,
@@ -295,7 +296,7 @@ def sample_plot_read(
     _ = rotated
     sample = _get_sample_for_api(sample_id, user)
     sample_files = sample.get("files") if isinstance(sample.get("files"), dict) else {}
-    cnv_profile = sample_files.get("cnvprofile")
+    cnv_profile = sample_files.get(primary_analysis_file_key("dna", "CNV_PROFILE"))
     if isinstance(cnv_profile, dict) and cnv_profile.get("path"):
         cnv_profile_path = Path(str(cnv_profile["path"])).expanduser().resolve()
         if cnv_profile_path.name == Path(filename).name:

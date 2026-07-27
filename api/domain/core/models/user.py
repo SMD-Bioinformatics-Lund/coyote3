@@ -6,7 +6,7 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from werkzeug.security import check_password_hash
 
-from api.config.constants import normalize_auth_types
+from api.config.constants import DEFAULT_AUTH_PROVIDER, DEFAULT_ENVIRONMENT, normalize_auth_types
 
 
 def _unique_permission_ids(permission_ids: list[str] | None) -> list[str]:
@@ -59,7 +59,7 @@ class UserModel(BaseModel):
     access_level: int = 0
     job_title: Optional[str] = None
     is_active: bool = True
-    auth_type: List[str] = Field(default_factory=lambda: ["ldap"])
+    auth_type: List[str] = Field(default_factory=lambda: [DEFAULT_AUTH_PROVIDER])
     must_change_password: bool = False
 
     @field_validator("id", mode="before")
@@ -263,12 +263,12 @@ class UserModel(BaseModel):
     def envs(self) -> List[str]:
         """
         Returns the list of environments the user has access to.
-        If no environments are specified, defaults to ["production"].
+        If no environments are specified, defaults to the application default environment.
 
         Returns:
             List[str]: List of environment names.
         """
-        return self.environments if self.environments else ["production"]
+        return self.environments if self.environments else [DEFAULT_ENVIRONMENT]
 
     def can_access_group(self, group: str) -> bool:
         """

@@ -40,8 +40,11 @@ class LdapManager:
         self._config = config
         ssl_defaults = ssl.get_default_verify_paths()
 
-        # Preserve the historical LDAP environment variable names used by deployments.
-        host = str(config.get("LDAP_HOST") or config.get("LDAP_SERVER") or "localhost")
+        host = str(config.get("LDAP_HOST") or "").strip()
+        if not host:
+            raise RuntimeError(
+                "LDAP_HOST must be configured before LDAP authentication is initialized"
+            )
         if host.startswith("ldap://"):
             host = host[len("ldap://") :]
         elif host.startswith("ldaps://"):
@@ -52,7 +55,8 @@ class LdapManager:
             host, _, host_port = host.partition(":")
             if host_port.isdigit() and not config.get("LDAP_PORT"):
                 config["LDAP_PORT"] = int(host_port)
-        host = host or "localhost"
+        if not host:
+            raise RuntimeError("LDAP_HOST must include a valid LDAP server host")
 
         tls = Tls(
             local_private_key_file=config.get("LDAP_CLIENT_PRIVATE_KEY"),

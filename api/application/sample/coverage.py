@@ -7,6 +7,7 @@ from copy import deepcopy
 from typing import Any
 
 from api.application.coverage.processing import CoverageProcessingService
+from api.config.constants import DEFAULT_ENVIRONMENT
 from api.domain.common.errors import forbidden_error, setup_error
 from api.domain.common.sample_filters import sample_filter_section
 
@@ -55,7 +56,7 @@ class CoverageService:
             dict[str, Any]: Coverage payload for charts and tables.
         """
         sample_assay = sample.get("assay", "unknown")
-        sample_profile = sample.get("profile", "production")
+        sample_profile = sample.get("profile", DEFAULT_ENVIRONMENT)
         assay_config = self.assay_configuration_repository.get_aspc_no_meta(
             sample_assay, sample_profile
         )

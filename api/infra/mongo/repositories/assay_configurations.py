@@ -15,7 +15,12 @@ import re
 
 from pymongo import cursor
 
-from api.config.constants import SUBPANEL_BASE_ID, normalize_environment, validate_identifier
+from api.config.constants import (
+    DEFAULT_ENVIRONMENT,
+    SUBPANEL_BASE_ID,
+    normalize_environment,
+    validate_identifier,
+)
 from api.contracts.operations import OperationResult
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
@@ -179,7 +184,7 @@ class ASPConfigRepository(BaseRepository):
         return docs, total
 
     def get_aspc(
-        self, assay: str, profile: str = "production", subpanel_id: str | None = None
+        self, assay: str, profile: str = DEFAULT_ENVIRONMENT, subpanel_id: str | None = None
     ) -> dict | None:
         """
         Retrieves a specific assay configuration document by its ID.
@@ -209,7 +214,7 @@ class ASPConfigRepository(BaseRepository):
         )
 
     def get_aspc_no_meta(
-        self, assay_id: str, profile: str = "production", subpanel_id: str | None = None
+        self, assay_id: str, profile: str = DEFAULT_ENVIRONMENT, subpanel_id: str | None = None
     ) -> dict | None:
         """
         Retrieves a specific assay configuration document by its ID, ensuring it is active.
@@ -246,7 +251,9 @@ class ASPConfigRepository(BaseRepository):
                 return doc
         return None
 
-    def get_active_aspcs_for_asp(self, asp_id: str, environment: str = "production") -> list[dict]:
+    def get_active_aspcs_for_asp(
+        self, asp_id: str, environment: str = DEFAULT_ENVIRONMENT
+    ) -> list[dict]:
         """Return active assay configurations for one ASP and environment."""
         assay_id = str(asp_id or "").strip()
         env = normalize_environment(environment)

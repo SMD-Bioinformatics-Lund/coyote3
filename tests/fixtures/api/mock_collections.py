@@ -171,7 +171,7 @@ def sample_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
         "case_id": "CASE001",
         "control_id": "CTRL001",
         "subpanel": "myeloid",
-        "vep_version": "110",
+        "database_versions": {"vep": "110"},
         "report_num": 2,
         "reports": [{"_id": "r1", "report_id": "RID1", "report_num": 1, "time_created": 1}],
         "case": {"clarity_id": "CLARITY_CASE_001"},

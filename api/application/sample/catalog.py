@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from api.application.common.assay_config import get_formatted_assay_config
+from api.config.constants import DEFAULT_ENVIRONMENT, primary_analysis_file_key
 from api.domain.common.assay_filters import get_sample_effective_genes
 from api.domain.common.errors import api_error
 from api.domain.common.sample_filters import (
@@ -20,52 +21,52 @@ from api.domain.common.sample_filters import (
 runtime_app = SimpleNamespace(config={})
 
 FILE_DISPLAY_METADATA: dict[str, dict[str, str]] = {
-    "vcf_files": {
+    primary_analysis_file_key("dna", "SNV"): {
         "label": "VCF",
         "icon": "document-text",
         "missing_msg": "No VCF file available",
     },
-    "cnv": {
+    primary_analysis_file_key("dna", "CNV"): {
         "label": "CNV JSON",
         "icon": "clipboard-document-list",
         "missing_msg": "No CNV JSON available",
     },
-    "transloc": {
+    primary_analysis_file_key("dna", "TRANSLOCATION"): {
         "label": "Transloc VCF",
         "icon": "link",
         "missing_msg": "No Transloc VCF available",
     },
-    "cov": {
+    primary_analysis_file_key("dna", "COVERAGE"): {
         "label": "Coverage JSON",
         "icon": "chart-bar",
         "missing_msg": "No coverage file available",
     },
-    "biomarkers": {
+    primary_analysis_file_key("dna", "BIOMARKER"): {
         "label": "Biomarkers JSON",
         "icon": "finger-print",
         "missing_msg": "No biomarkers file available",
     },
-    "cnvprofile": {
+    primary_analysis_file_key("dna", "CNV_PROFILE"): {
         "label": "CNV Profile (image)",
         "icon": "photo",
         "missing_msg": "No CNV profile available",
     },
-    "fusion_files": {
+    primary_analysis_file_key("rna", "FUSION"): {
         "label": "Fusion Calls",
         "icon": "link",
         "missing_msg": "No fusion file available",
     },
-    "expression_path": {
+    primary_analysis_file_key("rna", "EXPRESSION"): {
         "label": "Expression",
         "icon": "clipboard-document-list",
         "missing_msg": "No Expression file available",
     },
-    "classification_path": {
+    primary_analysis_file_key("rna", "CLASSIFICATION"): {
         "label": "Classification",
         "icon": "document-text",
         "missing_msg": "No Classification file available",
     },
-    "qc": {
+    primary_analysis_file_key("rna", "QC"): {
         "label": "QC",
         "icon": "chart-bar",
         "missing_msg": "No QC file available",
@@ -73,13 +74,13 @@ FILE_DISPLAY_METADATA: dict[str, dict[str, str]] = {
 }
 
 FILE_COUNT_BADGE_METADATA: dict[str, tuple[str, str]] = {
-    "vcf_files": ("snvs", "SNVs"),
-    "cnv": ("cnvs", "CNVs"),
-    "transloc": ("transloc", "Translocs"),
-    "fusion_files": ("fusions", "Fusions"),
-    "expression_path": ("rna_expr", "Expr"),
-    "classification_path": ("rna_class", "classes"),
-    "qc": ("qc", "data"),
+    primary_analysis_file_key("dna", "SNV"): ("snvs", "SNVs"),
+    primary_analysis_file_key("dna", "CNV"): ("cnvs", "CNVs"),
+    primary_analysis_file_key("dna", "TRANSLOCATION"): ("transloc", "Translocs"),
+    primary_analysis_file_key("rna", "FUSION"): ("fusions", "Fusions"),
+    primary_analysis_file_key("rna", "EXPRESSION"): ("rna_expr", "Expr"),
+    primary_analysis_file_key("rna", "CLASSIFICATION"): ("rna_class", "classes"),
+    primary_analysis_file_key("rna", "QC"): ("rna_qc", "data"),
 }
 
 
@@ -212,7 +213,11 @@ class SampleCatalogService:
             count_badge = None
             if count_key and data_counts.get(count_key):
                 count_badge = f"{data_counts[count_key]} {count_suffix}"
-            elif key in {"cov", "biomarkers"} and data_counts.get(key):
+            elif key == primary_analysis_file_key("dna", "COVERAGE") and data_counts.get("cov"):
+                count_badge = "Loaded"
+            elif key == primary_analysis_file_key("dna", "BIOMARKER") and data_counts.get(
+                "biomarkers"
+            ):
                 count_badge = "Loaded"
             if path and path_exists:
                 status_label = "Uploaded"
@@ -703,9 +708,11 @@ class SampleCatalogService:
         use_all_profiles = normalized_scope == "all"
         query_envs = None if user.is_superuser and use_all_profiles else list(user.envs)
         if not user.is_superuser and not use_all_profiles:
-            query_envs = ["production"] if "production" in user.envs else list(user.envs)
+            query_envs = (
+                [DEFAULT_ENVIRONMENT] if DEFAULT_ENVIRONMENT in user.envs else list(user.envs)
+            )
         elif user.is_superuser and not use_all_profiles:
-            query_envs = ["production"]
+            query_envs = [DEFAULT_ENVIRONMENT]
 
         live_offset = max(0, (live_page - 1) * per_live_page)
         done_offset = max(0, (done_page - 1) * per_done_page)
@@ -765,7 +772,7 @@ class SampleCatalogService:
             "status": status,
             "search_mode": search_mode,
             "sample_view": "all",
-            "profile_scope": "all" if use_all_profiles else "production",
+            "profile_scope": "all" if use_all_profiles else DEFAULT_ENVIRONMENT,
             "page": page,
             "per_page": per_page,
             "live_page": live_page,

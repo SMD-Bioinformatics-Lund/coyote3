@@ -115,7 +115,7 @@ def test_dna_workflow_forwards_build_and_persist_calls(monkeypatch):
     assert calls["persist"]["sample_id"] == "S1"
 
 
-def test_dna_report_payload_requires_sample_vep_version():
+def test_dna_report_payload_requires_sample_database_vep_version():
     try:
         dna_workflow.build_dna_report_payload(
             sample={
@@ -170,9 +170,11 @@ def test_dna_report_payload_requires_sample_vep_version():
             annotation_repository=SimpleNamespace(),
         )
     except ValueError as exc:
-        assert str(exc) == "sample.vep_version is required for DNA report generation"
+        assert str(exc) == "sample.database_versions.vep is required for DNA report generation"
     else:
-        raise AssertionError("Expected DNA report payload generation to require sample.vep_version")
+        raise AssertionError(
+            "Expected DNA report payload generation to require database_versions.vep"
+        )
 
 
 def test_dna_report_payload_filters_reported_cnvs_by_selected_cnv_list():
@@ -182,7 +184,7 @@ def test_dna_report_payload_filters_reported_cnvs_by_selected_cnv_list():
             "name": "S1",
             "assay": "assay_1",
             "subpanel": "hema",
-            "vep_version": "110",
+            "database_versions": {"vep": "110"},
             "filters": {
                 "snvlists": [],
                 "vep_consequences": ["missense"],

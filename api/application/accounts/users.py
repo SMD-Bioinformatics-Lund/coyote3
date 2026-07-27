@@ -17,10 +17,8 @@ from api.application.accounts.common import (
     utc_now,
 )
 from api.config.constants import (
-    AUTH_PROVIDER_LDAP,
     AUTH_PROVIDER_LOCAL,
-    default_auth_types_for_username,
-    local_auth_allowed_for_username,
+    DEFAULT_AUTH_PROVIDER,
     normalize_auth_types,
 )
 from api.contracts.managed_resources import managed_resource_spec
@@ -50,14 +48,9 @@ def _normalize_role_ids(role_ids: Any) -> list[str]:
     return normalized
 
 
-def _normalize_allowed_auth_types(value: Any, *, username: Any) -> list[str]:
-    """Normalize providers and remove local auth when username policy disallows it."""
-    requested = normalize_auth_types(value)
-    if not local_auth_allowed_for_username(username):
-        return [provider for provider in requested if provider != AUTH_PROVIDER_LOCAL] or [
-            AUTH_PROVIDER_LDAP
-        ]
-    return requested
+def _normalize_allowed_auth_types(value: Any) -> list[str]:
+    """Validate the explicitly selected authentication providers."""
+    return normalize_auth_types(value)
 
 
 def _sanitize_username(value: Any) -> str:
@@ -217,10 +210,7 @@ class UserManagementService:
         user_data.setdefault("is_active", True)
         user_data["email"] = email
         user_data["username"] = username
-        user_data["auth_type"] = _normalize_allowed_auth_types(
-            user_data.get("auth_type") or default_auth_types_for_username(username),
-            username=username,
-        )
+        user_data["auth_type"] = _normalize_allowed_auth_types(user_data.get("auth_type"))
         if AUTH_PROVIDER_LOCAL in user_data["auth_type"] and user_data.get("password"):
             user_data["password"] = self.common_util.hash_password(user_data["password"])
             user_data["must_change_password"] = bool(form_data.get("must_change_password", True))
@@ -279,10 +269,7 @@ class UserManagementService:
         updated_user["updated_on"] = utc_now()
         updated_user["updated_by"] = actor
         updated_user["auth_type"] = _normalize_allowed_auth_types(
-            updated_user.get("auth_type")
-            or user_doc.get("auth_type")
-            or default_auth_types_for_username(user_doc.get("username")),
-            username=user_doc.get("username"),
+            updated_user.get("auth_type") or user_doc.get("auth_type")
         )
         if AUTH_PROVIDER_LOCAL in updated_user["auth_type"] and updated_user.get("password"):
             updated_user["password"] = self.common_util.hash_password(updated_user["password"])
@@ -319,7 +306,9 @@ class UserManagementService:
         user_doc = self.user_repository.user_with_id(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
-        if AUTH_PROVIDER_LOCAL not in normalize_auth_types(user_doc.get("auth_type") or ["ldap"]):
+        if AUTH_PROVIDER_LOCAL not in normalize_auth_types(
+            user_doc.get("auth_type") or [DEFAULT_AUTH_PROVIDER]
+        ):
             raise api_error(400, "Invite is only available for local users")
 
         invite = issue_password_token_for_user(

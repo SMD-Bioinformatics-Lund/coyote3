@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
+from api.config.constants import DEFAULT_ENVIRONMENT, primary_analysis_file_key
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.domain.common.assay_filters import format_assay_config
@@ -19,7 +20,10 @@ def get_formatted_assay_config(
     """Resolve and format the assay configuration for a sample document."""
     assay_name = str(sample.get("assay") or "").strip()
     sample_name = str(sample.get("name") or sample.get("_id") or "unknown_sample").strip()
-    environment = str(sample.get("profile", "production") or "production").strip() or "production"
+    environment = (
+        str(sample.get("profile", DEFAULT_ENVIRONMENT) or DEFAULT_ENVIRONMENT).strip()
+        or DEFAULT_ENVIRONMENT
+    )
     subpanel_id = str(sample.get("subpanel_id") or "").strip() or None
 
     if not assay_name:
@@ -56,6 +60,6 @@ def get_formatted_assay_config(
         )
     omics = str(sample.get("omics_layer") or "").upper()
     if not omics:
-        omics = "RNA" if sample.get("fusion_files") else "DNA"
+        omics = "RNA" if sample.get(primary_analysis_file_key("rna", "FUSION")) else "DNA"
     assay_config_schema = build_form_spec(aspc_spec_for_category(omics))
     return format_assay_config(deepcopy(assay_config), assay_config_schema)

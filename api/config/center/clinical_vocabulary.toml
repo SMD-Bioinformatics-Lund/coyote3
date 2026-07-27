@@ -1,0 +1,99 @@
+# Center-owned selectable vocabulary. Keep identifiers stable after clinical use.
+
+[assay]
+categories = ["dna", "rna"]
+families = ["panel-dna", "panel-rna", "wgs", "wts"]
+groups = ["hematology", "solid", "pgx", "tumwgs", "wts", "myeloid", "lymphoid"]
+base_subpanel_id = "base"
+
+[assay.family_categories]
+panel-dna = "dna"
+wgs = "dna"
+panel-rna = "rna"
+wts = "rna"
+
+[assay.family_scopes]
+panel-dna = "panel"
+wgs = "wgs"
+panel-rna = "panel"
+wts = "wts"
+
+[environment]
+options = ["production", "development", "testing", "validation"]
+default = "production"
+
+[sequencing]
+platforms = ["illumina", "pacbio", "nanopore", "iontorrent"]
+read_modes = ["SE", "PE"]
+
+[authentication]
+providers = ["local", "ldap"]
+
+[genelist]
+standard_types = ["snv", "cnv", "fusion", "expression", "pgx"]
+adhoc_types = ["adhoc_snv", "adhoc_cnv", "adhoc_fusion", "adhoc_expression", "adhoc_pgx"]
+
+[reporting]
+required_aspc_fields = [
+  "report_header",
+  "report_method",
+  "report_description",
+  "general_report_summary",
+  "plots_path",
+  "report_folder",
+  "clinical_rule_release",
+]
+
+[permissions]
+categories = [
+  "Analysis Actions",
+  "Assay Configuration Management",
+  "Assay Panel Management",
+  "Audit & Monitoring",
+  "Data Downloads",
+  "Gene List Management",
+  "Permission Policy Management",
+  "Reports",
+  "Role Management",
+  "Sample Management",
+  "Schema Management",
+  "User Management",
+  "Variant Curation",
+  "Visualization",
+]
+
+[files.dna]
+keys = ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "biomarkers", "pgx"]
+
+[files.rna]
+keys = ["fusion_files", "expression_path", "classification_path", "qc", "pgx"]
+
+[files.required_by_family]
+panel-dna = ["vcf_files"]
+wgs = ["vcf_files"]
+panel-rna = ["fusion_files"]
+wts = ["fusion_files"]
+
+[analysis.dna]
+types = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "BIOMARKER", "COVERAGE", "FUSION", "TMB", "PGX"]
+
+[analysis.dna.file_keys]
+SNV = ["vcf_files"]
+CNV = ["cnv"]
+TRANSLOCATION = ["transloc"]
+BIOMARKER = ["biomarkers"]
+CNV_PROFILE = ["cnvprofile"]
+COVERAGE = ["cov"]
+FUSION = ["transloc"]
+TMB = ["biomarkers"]
+PGX = ["pgx"]
+
+[analysis.rna]
+types = ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"]
+
+[analysis.rna.file_keys]
+FUSION = ["fusion_files"]
+EXPRESSION = ["expression_path"]
+CLASSIFICATION = ["classification_path"]
+QC = ["qc"]
+PGX = ["pgx"]

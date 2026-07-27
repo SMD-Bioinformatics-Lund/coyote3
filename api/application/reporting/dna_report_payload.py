@@ -13,6 +13,8 @@ from api.application.interpretation.annotation_enrichment import (
 )
 from api.application.reporting.clinical_rules.preparation import prepare_report_context
 from api.application.reporting.clinical_rules.service import rendered_summary
+from api.config.constants import primary_analysis_file_key
+from api.config.database_versions import sample_vep_version
 from api.domain.common.assay_filters import (
     get_assay_genelist_names,
     get_sample_effective_genes,
@@ -252,9 +254,9 @@ def _ensure_sample_filters(sample: dict, assay_config: dict) -> tuple[dict, dict
 
 def _resolve_sample_vep_version(sample: dict) -> str:
     """Return the sample VEP version used for report consequence mapping."""
-    normalized = str(sample.get("vep_version") or "").strip()
+    normalized = sample_vep_version(sample)
     if not normalized:
-        raise ValueError("sample.vep_version is required for DNA report generation")
+        raise ValueError("sample.database_versions.vep is required for DNA report generation")
     return normalized
 
 
@@ -527,7 +529,10 @@ def build_dna_report_payload(
 
     if "CNV_PROFILE" in report_sections:
         report_sections_data["cnv_profile_base64"] = get_plot(
-            os.path.basename(_sample_file_path(sample, "cnvprofile")), assay_config
+            os.path.basename(
+                _sample_file_path(sample, primary_analysis_file_key("dna", "CNV_PROFILE"))
+            ),
+            assay_config,
         )
 
     if "BIOMARKER" in report_sections:

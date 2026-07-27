@@ -4,30 +4,19 @@ from __future__ import annotations
 
 from typing import Any
 
+from api.config.constants import normalize_asp_category
 from api.contracts.schemas import normalize_collection_document
 from api.domain.common.errors import api_error
 
 
 def _normalize_asp_category(value: Any) -> str:
     """Normalize ASP category labels to managed DNA/RNA categories."""
-    raw = str(value or "").strip().lower()
-    mapping = {
-        "dna": "DNA",
-        "somatic": "DNA",
-        "rna": "RNA",
-    }
-    return mapping.get(raw, str(value or "").strip().upper() or "DNA")
+    return normalize_asp_category(value or "dna").upper()
 
 
 def _normalize_asp_category_doc(value: Any) -> str:
     """Normalize ASP category labels for persisted document payloads."""
-    raw = str(value or "").strip().lower()
-    mapping = {
-        "dna": "dna",
-        "somatic": "dna",
-        "rna": "rna",
-    }
-    return mapping.get(raw, raw or "dna")
+    return normalize_asp_category(value or "dna")
 
 
 def _validated_doc(collection: str, payload: dict[str, Any]) -> dict[str, Any]:

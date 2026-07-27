@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from api.settings import (
+from api.config.security import (
     configure_process_env,
     get_api_secret_key,
     get_api_session_cookie_name,

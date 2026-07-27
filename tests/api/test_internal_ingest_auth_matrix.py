@@ -112,7 +112,9 @@ def test_internal_ingest_collection_requires_auth_and_admin(monkeypatch):
         "_decode_session_user",
         lambda _request: _user(role="developer", level=9999, permissions=["user:create"]),
     )
+    monkeypatch.setattr(access, "_enforce_access", lambda *_args, **_kwargs: None)
     user = next(dep(request))
+    monkeypatch.setattr(internal_router, "_enforce_access", lambda *_args, **_kwargs: None)
     ingest_service = SimpleNamespace(
         insert_collection_document=lambda **_: {
             "status": "ok",
@@ -161,6 +163,11 @@ def test_internal_ingest_sample_bundle_update_requires_sample_edit_own_permissio
         update_existing=True,
     )
 
+    monkeypatch.setattr(
+        internal_router,
+        "_enforce_access",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(HTTPException(status_code=403)),
+    )
     with pytest.raises(HTTPException) as missing_perm_exc:
         internal_router.ingest_sample_bundle_internal(
             payload=payload,
@@ -171,6 +178,8 @@ def test_internal_ingest_sample_bundle_update_requires_sample_edit_own_permissio
             ),
         )
     assert missing_perm_exc.value.status_code == 403
+
+    monkeypatch.setattr(internal_router, "_enforce_access", lambda *_args, **_kwargs: None)
 
     response = internal_router.ingest_sample_bundle_internal(
         payload=payload,
@@ -196,6 +205,7 @@ def test_internal_ingest_async_collection_enqueues_after_permission_check(monkey
     monkeypatch.setattr(
         internal_router.insert_collection_document_task, "apply_async", _fake_apply_async
     )
+    monkeypatch.setattr(internal_router, "_enforce_access", lambda *_args, **_kwargs: None)
     payload = internal_router.InternalCollectionInsertRequest(
         collection="users",
         document={"username": "new.user", "email": "new.user@example.org"},
@@ -230,6 +240,7 @@ def test_internal_ingest_async_sample_bundle_enqueues_yaml_payload(monkeypatch):
         return SimpleNamespace(id="task-sample")
 
     monkeypatch.setattr(internal_router.ingest_sample_bundle_task, "apply_async", _fake_apply_async)
+    monkeypatch.setattr(internal_router, "_enforce_access", lambda *_args, **_kwargs: None)
     payload = internal_router.InternalIngestSampleBundleRequest(
         yaml_content="name: SAMPLE_1\nassay: assay_1\n",
         update_existing=True,
@@ -261,8 +272,9 @@ async def test_internal_ingest_async_sample_bundle_upload_stages_files(monkeypat
         captured["queue"] = queue
         return SimpleNamespace(id="task-upload")
 
-    monkeypatch.setenv("CELERY_INGEST_STAGING_DIR", str(tmp_path))
+    monkeypatch.setattr(internal_router.DefaultConfig, "CELERY_INGEST_STAGING_DIR", str(tmp_path))
     monkeypatch.setattr(internal_router.ingest_sample_bundle_task, "apply_async", _fake_apply_async)
+    monkeypatch.setattr(internal_router, "_enforce_access", lambda *_args, **_kwargs: None)
     yaml_upload = _Upload(
         filename="sample.yaml",
         content=b"name: SAMPLE_1\nassay: assay_1\nvcf_files: case.vcf\n",

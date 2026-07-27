@@ -122,6 +122,16 @@ class VEPMetaRepository(BaseRepository):
         """Return available grouped consequence filter keys."""
         return list(self.get_consequence_group_map(vep_version).keys())
 
+    def list_versions(self) -> list[str]:
+        """Return configured VEP metadata versions for public application metadata."""
+        return sorted(
+            {
+                normalized
+                for value in self.get_collection().distinct("vep_id")
+                if (normalized := str(value or "").strip())
+            }
+        )
+
     def get_db_info(self, vep_version: str, genome_build: str = "GRCh38") -> dict:
         """
         Retrieve the database information for a specific VEP version and genome build.

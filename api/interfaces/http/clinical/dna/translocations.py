@@ -13,6 +13,7 @@ from api.application.interpretation.annotation_enrichment import (
     add_global_annotations as _shared_add_global_annotations,
 )
 from api.application.interpretation.report_summary import generate_summary_text
+from api.config.database_versions import require_sample_vep_version
 from api.contracts.dna import (
     DnaCsvExportContextPayload,
     DnaTranslocationContextPayload,
@@ -89,7 +90,7 @@ def export_transloc_csv_context(
         generate_summary_text_fn=generate_summary_text,
         build_query_fn=build_query,
         get_filter_conseq_terms_fn=lambda values: _get_filter_conseq_terms(
-            values, sample.get("vep_version")
+            values, require_sample_vep_version(sample)
         ),
         assay_config_getter=_get_formatted_assay_config,
         paginate=False,

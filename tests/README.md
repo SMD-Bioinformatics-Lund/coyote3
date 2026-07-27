@@ -25,6 +25,10 @@ Rule of thumb:
 - Add pure core and service behavior tests under `tests/unit`.
 - Add API request/response behavior under `tests/api`.
 - Add frontend behavior checks under `frontend` as React component or browser tests are introduced.
+- `tests/api/test_ui_route_api_contracts.py` verifies that literal API contracts
+  declared in `frontend/src/lib/routes/ui-route-registry.ts` resolve to real
+  FastAPI routes. Keep the registry current when a page gains or loses an API
+  dependency.
 - Avoid meta tests that only enforce directory shape, import patterns, or placeholder wrappers.
 - Keep tests fast and deterministic; avoid external network/services.
 - Run coverage regularly and add tests around real business logic or user-facing behavior:
@@ -57,4 +61,10 @@ Run by directory:
 PYTHONPATH=. ${PYTEST_BIN:-pytest} -q tests/unit
 PYTHONPATH=. ${PYTEST_BIN:-pytest} -q tests/api
 PYTHONPATH=. ${PYTEST_BIN:-pytest} -q tests/fixtures
+```
+
+Run the full source/build quality gate:
+
+```bash
+PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
 ```

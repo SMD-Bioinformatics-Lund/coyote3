@@ -7,7 +7,7 @@ def test_resolve_sample_paths_maps_host_data_root_to_container_mount(tmp_path, m
     manifest.parent.mkdir(parents=True)
     manifest.write_text("name: SAMPLE_1\n", encoding="utf-8")
 
-    monkeypatch.setenv("COYOTE3_DATA_HOST_ROOT", str(host_root))
+    monkeypatch.setattr(ingest.DefaultConfig, "COYOTE3_DATA_HOST_ROOT", str(host_root))
 
     payload = ingest._resolve_relative_sample_paths(
         {
@@ -50,10 +50,11 @@ def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch
             )
             return {"sample_id": "sample-id", "sample_name": "SAMPLE_1"}
 
-    monkeypatch.setenv("COYOTE3_INGEST_WATCH_DIR", str(watch_dir))
-    monkeypatch.setenv("COYOTE3_INGEST_WATCH_UPDATE_EXISTING", "1")
-    monkeypatch.setenv("COYOTE3_INGEST_WATCH_INCREMENT", "0")
+    monkeypatch.setattr(ingest.DefaultConfig, "COYOTE3_INGEST_WATCH_DIR", str(watch_dir))
+    monkeypatch.setattr(ingest.DefaultConfig, "COYOTE3_INGEST_WATCH_UPDATE_EXISTING", True)
+    monkeypatch.setattr(ingest.DefaultConfig, "COYOTE3_INGEST_WATCH_INCREMENT", False)
     monkeypatch.setattr(ingest, "_ensure_worker_runtime", lambda: None)
+    monkeypatch.setattr(ingest, "task_family_enabled", lambda _family: True)
     monkeypatch.setattr(ingest, "get_internal_ingest_service", lambda: _Service())
     result = ingest.ingest_watch_directory_once.run()
 

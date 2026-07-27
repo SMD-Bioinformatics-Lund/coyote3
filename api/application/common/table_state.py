@@ -30,9 +30,7 @@ def sortable_text(value: Any) -> str | None:
 def parse_sort_specs(query_params: Mapping[str, Any]) -> list[SortSpec]:
     """Parse multi-column table sorting from query parameters.
 
-    Preferred format is ``sort=field:asc,other:desc``. The older
-    ``sort_by``/``sort_dir`` pair is also accepted so route clients can migrate
-    without changing endpoint contracts.
+    The canonical format is ``sort=field:asc,other:desc``.
     """
     raw_sort = str(query_params.get("sort", "") or "").strip()
     specs: list[SortSpec] = []
@@ -44,10 +42,6 @@ def parse_sort_specs(query_params: Mapping[str, Any]) -> list[SortSpec]:
             if not field:
                 continue
             specs.append((field, "desc" if direction == "desc" else "asc"))
-    legacy_field = str(query_params.get("sort_by", "") or "").strip()
-    if legacy_field and not specs:
-        legacy_direction = str(query_params.get("sort_dir", "asc") or "asc").strip().lower()
-        specs.append((legacy_field, "desc" if legacy_direction == "desc" else "asc"))
     return specs
 
 

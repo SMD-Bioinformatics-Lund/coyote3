@@ -16,28 +16,30 @@ from api.app.deps.repositories import (
 from api.app.deps.services import get_api_session_repository
 from api.app.runtime_state import app as runtime_app
 from api.app.runtime_state import reset_current_user, set_current_user
+from api.config.constants import DEFAULT_AUTH_PROVIDER
+from api.config.security import (
+    get_api_session_cookie_name as settings_session_cookie_name,
+)
+from api.config.security import (
+    get_api_session_cookie_samesite as settings_session_cookie_samesite,
+)
+from api.config.security import (
+    get_api_session_cookie_secure as settings_session_cookie_secure,
+)
+from api.config.security import (
+    get_api_session_ttl_seconds as settings_session_ttl_seconds,
+)
+from api.config.security import (
+    get_internal_api_token,
+)
 from api.domain.core.models.user import UserModel
 from api.security.audit_events import emit_access_event
 from api.security.auth_service import _load_user_access_context
 from api.security.policy import build_access_policy
-from api.settings import (
-    get_api_session_cookie_name as settings_session_cookie_name,
-)
-from api.settings import (
-    get_api_session_cookie_samesite as settings_session_cookie_samesite,
-)
-from api.settings import (
-    get_api_session_cookie_secure as settings_session_cookie_secure,
-)
-from api.settings import (
-    get_api_session_ttl_seconds as settings_session_ttl_seconds,
-)
-from api.settings import (
-    get_internal_api_token,
-)
 
 PUBLIC_API_EXACT_PATHS = {
     "/api/v1/health",
+    "/api/v1/auth/providers",
     "/api/v1/auth/sessions",
     "/api/v1/auth/sessions/current",
     "/api/v1/auth/password/reset/request",
@@ -254,7 +256,9 @@ def api_user_from_user_doc(user_doc: dict) -> ApiUser:
         assay_groups=list(user_model.assay_groups),
         envs=list(user_model.envs),
         asp_map=dict(user_model.asp_map),
-        auth_type=list(getattr(user_model, "auth_type", ["ldap"]) or ["ldap"]),
+        auth_type=list(
+            getattr(user_model, "auth_type", [DEFAULT_AUTH_PROVIDER]) or [DEFAULT_AUTH_PROVIDER]
+        ),
         must_change_password=bool(getattr(user_model, "must_change_password", False)),
     )
 

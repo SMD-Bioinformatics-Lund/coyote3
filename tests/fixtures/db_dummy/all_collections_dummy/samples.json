@@ -8,7 +8,6 @@
     "current_aspc_key": "assay_1:base:testing",
     "current_aspc_version": 1,
     "genome_build": 38,
-    "vep_version": "103",
     "database_versions": {
       "vep": "103",
       "gnomad": "placeholder"

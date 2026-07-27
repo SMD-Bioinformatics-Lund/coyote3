@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-from api.config.app_config import REPO_ROOT
-from api.config.constants import ASP_CATEGORY_OPTIONS, SUBPANEL_BASE_ID
+from api.config.constants import ASP_CATEGORY_OPTIONS, DEFAULT_ENVIRONMENT, SUBPANEL_BASE_ID
+from api.config.paths import ASSAY_CATALOG_PATH
 
 
 class PublicCatalogService:
     """Provide public catalog workflows."""
 
-    DEFAULT_ENV = "production"
+    DEFAULT_ENV = DEFAULT_ENVIRONMENT
 
     @classmethod
     def from_store(cls, store: Any) -> "PublicCatalogService":
@@ -26,6 +25,8 @@ class PublicCatalogService:
             assay_panel_repository=store.assay_panel_repository,
             hgnc_repository=store.hgnc_repository,
             gene_list_repository=store.gene_list_repository,
+            sample_repository=store.sample_repository,
+            vep_metadata_repository=store.vep_metadata_repository,
         )
 
     def __init__(
@@ -35,19 +36,31 @@ class PublicCatalogService:
         assay_panel_repository: Any,
         hgnc_repository: Any,
         gene_list_repository: Any,
+        sample_repository: Any,
+        vep_metadata_repository: Any,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.assay_configuration_repository = assay_configuration_repository
         self.assay_panel_repository = assay_panel_repository
         self.hgnc_repository = hgnc_repository
         self.gene_list_repository = gene_list_repository
+        self.sample_repository = sample_repository
+        self.vep_metadata_repository = vep_metadata_repository
+
+    def observed_software_versions(self) -> dict[str, object]:
+        """Return bounded software versions observed across ready samples."""
+        return self.sample_repository.get_observed_software_versions()
+
+    def observed_reference_versions(self) -> dict[str, object]:
+        """Return observed sample and configured VEP metadata versions."""
+        return {
+            "sample_database_versions": self.sample_repository.get_observed_database_versions(),
+            "vep_metadata": self.vep_metadata_repository.list_versions(),
+        }
 
     @staticmethod
     def _catalog_overlay_path() -> Path:
-        configured = os.getenv("COYOTE3_ASSAY_CATALOG_YAML", "").strip()
-        if configured:
-            return Path(configured)
-        return Path(REPO_ROOT) / "api" / "config" / "assay_catalog.yaml"
+        return ASSAY_CATALOG_PATH
 
     @classmethod
     def _load_catalog_overlay(cls) -> dict[str, Any]:

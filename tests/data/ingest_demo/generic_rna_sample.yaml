@@ -3,7 +3,8 @@ name: 'RNA_DEMO'
 clarity_case_id: 'seed_rna_case_clarity'
 clarity_case_pool_id: 'POOL_RNA_DEMO_001'
 genome_build: 38
-vep_version: '110'
+database_versions:
+  vep: '110'
 sample_no: 1
 case_id: 'RNA_DEMO'
 profile: 'production'

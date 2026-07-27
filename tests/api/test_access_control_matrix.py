@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.security.access import ApiUser, _enforce_access, _get_sample_for_api
+from api.security.access import ApiUser, _enforce_access, _get_sample_for_api, is_public_api_path
 
 
 @pytest.fixture(autouse=True)
@@ -78,6 +78,11 @@ def test_enforce_access_allows_matching_permission():
     _enforce_access(_u(permissions=["report:preview"]), permission="report:preview")
 
 
+def test_login_provider_discovery_is_a_public_bootstrap_endpoint():
+    """The login page must discover enabled providers before a session exists."""
+    assert is_public_api_path("/api/v1/auth/providers") is True
+
+
 def test_enforce_access_allows_permission_inside_resource_scope():
     """Permission grants should be constrained by assigned resource attributes."""
     user = _u(permissions=["sample:view:own"])
@@ -90,10 +95,31 @@ def test_enforce_access_allows_permission_inside_resource_scope():
         permission="sample:view:own",
         context={
             "assay": "HEMA_GMSV1",
-            "profile": "prod",
+            "profile": "production",
             "assay_group": "hematology",
         },
     )
+
+
+def test_enforce_access_does_not_expand_environment_aliases():
+    """Access scopes use the stored environment vocabulary verbatim."""
+    user = _u(permissions=["sample:view:own"])
+    user.assays = ["hema_gmsv1"]
+    user.envs = ["production"]
+    user.assay_groups = ["hematology"]
+
+    with pytest.raises(HTTPException) as exc:
+        _enforce_access(
+            user,
+            permission="sample:view:own",
+            context={
+                "assay": "HEMA_GMSV1",
+                "profile": "prod",
+                "assay_group": "hematology",
+            },
+        )
+
+    assert exc.value.status_code == 403
 
 
 def test_enforce_access_denies_permission_outside_resource_scope():

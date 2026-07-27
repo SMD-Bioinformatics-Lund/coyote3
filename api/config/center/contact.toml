@@ -1,0 +1,38 @@
+[organization]
+name = "Coyote3"
+department = "Section For Molecular Diagnostics (SMD)"
+
+[support]
+primary_email = ""
+urgent_phone = ""
+web_app_base_url = ""
+help_center_url = ""
+
+[[hours]]
+label = "Service desk"
+value = "Monday to Friday, 08:00-16:30"
+
+[[hours]]
+label = "Out of hours"
+value = "Use the center's established urgent clinical escalation pathway."
+
+[[contacts]]
+label = "Clinical support"
+role = "Interpretation and report questions"
+email = "Christina.Orsmark-Pietras@skane.se"
+phone = ""
+description = "Use this channel for questions about variant interpretation, report content, or clinical review workflow."
+
+[[contacts]]
+label = "Sample and sequencing support"
+role = "Sample intake, sequencing, and run-level questions"
+email = "ram.nanduri@skane, viktor.henmyr@skane.se, Sailendra.Pradhananga@skane.se"
+phone = ""
+description = "Use this channel for questions about submitted samples, sequencing runs, or file availability."
+
+[[contacts]]
+label = "Platform support"
+role = "Application access, configuration, and operational issues"
+email = "ram.nanduri@skane, viktor.henmyr@skane.se, Sailendra.Pradhananga@skane.se"
+phone = ""
+description = "Use this channel for login, permission, ingest, or system availability issues."

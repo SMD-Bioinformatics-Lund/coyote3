@@ -12,10 +12,10 @@ from api.app.runtime_state import app as runtime_app
 from api.app.runtime_state import current_username
 from api.application.reporting.report_builder import ReportAnalyte, ReportService
 from api.application.reporting.report_renderer import render_pdf_bytes, render_report_html
+from api.config.security import to_bool
 from api.contracts.reports import ReportPreviewPayload, ReportSavePayload
 from api.interfaces.http.tags import TAG_REPORTING
 from api.security.access import ApiUser, _get_sample_for_api, require_access
-from api.settings import to_bool
 
 router = APIRouter(tags=[TAG_REPORTING])
 

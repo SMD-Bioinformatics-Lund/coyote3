@@ -12,11 +12,11 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from api.app.container import util
 from api.app.deps.repositories import get_user_repository
 from api.app.runtime_state import app as runtime_app
-from api.config.constants import AUTH_PROVIDER_LOCAL, normalize_auth_types
+from api.config.constants import AUTH_PROVIDER_LOCAL, DEFAULT_AUTH_PROVIDER, normalize_auth_types
+from api.config.security import get_api_secret_key
 from api.infra.notifications.email import send_email, smtp_configured
 from api.infra.observability.auth_metrics import emit_auth_metric
 from api.security.auth_service import _lookup_user_doc, resolve_user_identity
-from api.settings import get_api_secret_key
 
 _TOKEN_PURPOSE_INVITE = "invite"
 _TOKEN_PURPOSE_RESET = "reset"
@@ -42,7 +42,9 @@ def _token_hash(token: str) -> str:
 
 
 def _is_local_user(user_doc: dict[str, Any]) -> bool:
-    return AUTH_PROVIDER_LOCAL in normalize_auth_types(user_doc.get("auth_type") or ["ldap"])
+    return AUTH_PROVIDER_LOCAL in normalize_auth_types(
+        user_doc.get("auth_type") or [DEFAULT_AUTH_PROVIDER]
+    )
 
 
 def notify_user_change(

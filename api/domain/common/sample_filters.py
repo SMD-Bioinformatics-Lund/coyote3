@@ -106,7 +106,7 @@ def merge_filter_defaults(
 
 
 def merged_dna_variant_filters(filters: dict[str, Any] | None) -> dict[str, Any]:
-    """Return flat SNV+coverage settings for legacy query builders."""
+    """Return the SNV and coverage values required by the DNA query builder."""
     normalized = normalize_sample_filters(filters, omics_layer="dna")
     merged = {}
     merged.update(normalized.get("snv") or {})

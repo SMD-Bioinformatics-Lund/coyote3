@@ -10,6 +10,13 @@ class ApiAuthLoginRequest(BaseModel):
 
     username: str
     password: str
+    provider: str
+
+
+class ApiAuthProvidersResponse(BaseModel):
+    """Represent enabled authentication providers for the login client."""
+
+    providers: list[str]
 
 
 class ApiAvailabilityResponse(BaseModel):

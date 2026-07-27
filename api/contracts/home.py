@@ -6,6 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from api.config.constants import DEFAULT_ENVIRONMENT
+
 
 class HomeSamplesPayload(BaseModel):
     """Represent the home samples payload."""
@@ -15,7 +17,7 @@ class HomeSamplesPayload(BaseModel):
     status: str
     search_mode: str
     sample_view: str = "all"
-    profile_scope: str = "production"
+    profile_scope: str = DEFAULT_ENVIRONMENT
     page: int = 1
     per_page: int = 30
     live_page: int = 1
