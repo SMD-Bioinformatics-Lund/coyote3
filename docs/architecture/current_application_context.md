@@ -70,11 +70,13 @@ API configuration is centralized under `api/config/`:
 
 - `api/config/app_config.py`: runtime configuration classes and environment loading
 - `api/config/constants.py`: fixed product vocabularies such as assay categories, list types, auth providers, ASP groups, file keys, and analysis types
+- `api/config/database_versions.py`: canonical `samples.database_versions` keys and the VCF-header-only normalizer
 - `api/config/runtime.py`: public helper facade used by the rest of the API
-- `api/config/coyote3_collections.toml`: MongoDB collection-name mapping
-- `api/config/contact.toml`: center-owned public contact and support content
+- `api/config/center/collections.toml`: MongoDB collection-name mapping
+- `api/config/application_metadata.py`: repository-owned product description and codebase links
+- `api/config/center/contact.toml`: center-owned organization, support, hours, and contact content
 
-Collection names must come from `api/config/coyote3_collections.toml`. The API loads this file relative to the `api/config` package, so startup does not depend on the process working directory.
+Collection names must come from `api/config/center/collections.toml`. The API loads this file relative to the `api/config` package, so startup does not depend on the process working directory.
 
 Environment variables remain the right place for deployment-specific or sensitive values:
 
@@ -89,15 +91,29 @@ Environment variables remain the right place for deployment-specific or sensitiv
 
 Admin-controlled runtime settings are stored in MongoDB `app_controls`. Those controls are for behavior switches and retention policies, not infrastructure secrets.
 
+### Database-version metadata
+
+Sample reference and annotation versions are stored only in the nested
+`database_versions` object. The canonical keys are `assembly`, `clinvar`,
+`cosmic`, `dbsnp`, `ensembl`, `gencode`, `genebuild`, `gnomad`,
+`hgmd_public`, `polyphen`, `sift`, and `vep`. `database_versions.vep` is the
+authoritative VEP metadata version for DNA filtering, transcript display, and
+report generation. Flat fields such as `vep_version` are rejected by the sample
+contract.
+
+Manifest and API clients must submit the keys exactly as listed. VCF headers are
+an external input format, so punctuation and case in a recognized header label
+are normalized during ingest before being saved under the canonical key.
+
 !!! warning "Configuration boundary"
 
     Keep secrets, infrastructure endpoints, and mount paths in environment configuration. Use Admin application controls only for runtime behavior switches and retention policy.
 
-Public content is controlled through explicit files instead of scattered UI
-copy. `CONTACT_CONFIG_PATH` drives the Contact page and `COYOTE3_ASSAY_CATALOG_YAML`
-drives the public assay catalog narrative. This allows each center or section to
-deploy the same application image with local service names, support contacts,
-sample-type descriptions, and TAT values.
+Public content is controlled through explicit files under
+`api/config/center/` instead of scattered UI copy. `contact.toml` drives the
+Contact page and `assay_catalog.yaml` drives the public assay catalog narrative.
+This allows each center or section to deploy the same application image with
+local service names, support contacts, sample-type descriptions, and TAT values.
 
 ## Collection Mapping
 
@@ -106,7 +122,7 @@ The Mongo adapter reads `DB_COLLECTIONS_CONFIG` from the active config object. E
 Example flow:
 
 ```text
-api/config/coyote3_collections.toml
+api/config/center/collections.toml
   -> DefaultConfig.DB_COLLECTIONS_CONFIG
   -> MongoAdapter.setup()
   -> adapter.samples_collection, adapter.variants_collection, ...
@@ -119,7 +135,7 @@ The application should not hardcode clinical collection names in services or rou
 
 !!! tip "Adding collections"
 
-    Add collection names through `api/config/coyote3_collections.toml`, then bind them through repositories and typed contracts. Avoid hardcoded collection names in routes or domain services.
+    Add collection names through `api/config/center/collections.toml`, then bind them through repositories and typed contracts. Avoid hardcoded collection names in routes or domain services.
 
 ## Document Contracts
 
@@ -221,7 +237,7 @@ Small variants, CNVs, fusions, and translocations have list pages and detail pag
 - knowledgebase and population/quality evidence
 - panel-of-normal and caller evidence where available
 
-Flags are displayed as individual badges. Flag behavior and descriptions are metadata-driven through `api/config/filter_flag_metadata.yaml`. Badges should use consistent severity coloring:
+Flags are displayed as individual badges. Flag behavior and descriptions are metadata-driven through `api/config/center/filter_flag_metadata.yaml`. Badges should use consistent severity coloring:
 
 - pass-like values: green
 - warning-like values: yellow/amber
@@ -356,7 +372,7 @@ When adding or changing functionality:
 
 1. Define or update the Pydantic contract first.
 2. Register collection models in the schema registry if the document is persisted.
-3. Keep collection names in `api/config/coyote3_collections.toml`.
+3. Keep collection names in `api/config/center/collections.toml`.
 4. Add repository/service logic behind a domain boundary.
 5. Expose API routes with response models.
 6. Emit audit events for mutations and important operational actions.

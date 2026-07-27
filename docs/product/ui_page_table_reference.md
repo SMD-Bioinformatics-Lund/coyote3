@@ -74,7 +74,7 @@ Clicking a tier badge in a finding table opens the reported-variant context page
 
 ### Filter Flag Badges
 
-Filter badges are compact labels derived from the VCF `FILTER` field and center-configured metadata in `api/config/filter_flag_metadata.yaml`.
+Filter badges are compact labels derived from the VCF `FILTER` field and center-configured metadata in `api/config/center/filter_flag_metadata.yaml`.
 
 | Badge family | Meaning |
 | --- | --- |

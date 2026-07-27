@@ -57,3 +57,21 @@ Submissions to the fixture repository must adhere to the following engineering c
 2. **Clinical Anonymization**: Absolute removal of all clinical identifiers is non-negotiable.
 3. **Structural Fidelity**: Preserve realistic data shapes, specifically within complex nested fields, to ensure valid contract testing.
 4. **Contract Verification**: All fixture updates must pass the full `check_contract_integrity.sh` protocol before being merged into the default integration branch.
+
+## Browser Validation Fixtures
+
+Maintain a small, approved fixture set that supports browser release checks
+without external network dependencies or patient data:
+
+| Fixture capability | Required for validating |
+| --- | --- |
+| Paired DNA sample with SNVs and indels | filtering, sorting, tiers, comments, reporting, and exports |
+| CNV sample with profile image | CNV table, resizable image pane, rotation, and reporting actions |
+| Coverage data with probes/exons | gene click-through, low coverage, and blacklist workflow |
+| Fusion/translocation sample | structural tables, detail context, and table-specific bulk actions |
+| Biomarker input | overview/header biomarker presentation and reporting sections |
+| Report template | preview, save, HTML, PDF, artifact metadata, and immutable snapshots |
+| Restricted/admin accounts | denied actions, role visibility, audit events, and application controls |
+
+The browser protocol and expected checks are defined in
+[Browser And Release Validation](browser_and_release_validation.md).

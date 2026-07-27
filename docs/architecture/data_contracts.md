@@ -78,6 +78,16 @@ report snapshot. A report-text evaluator does not receive repository objects.
 DNA and RNA file keys cannot be mixed in one sample. At least one file from
 the selected omics layer must be present.
 
+`database_versions.vep` is the sole sample-level VEP version location. The
+sample contract rejects flat `vep_version` and other retired version namespaces,
+and database-version input accepts only the documented canonical keys. This
+makes later consequence resolution deterministic: every reader uses the same
+sample VEP key rather than resolving competing fields.
+
+Sample-bound DNA operations reject a missing VEP version instead of selecting
+the newest `vep_metadata` release. Repository methods that intentionally expose
+generic metadata without a sample may still request the latest release.
+
 !!! info
     ASP file policy adds stricter runtime requirements. A file can be valid for
     the DNA contract but still be required or disallowed by the selected ASP.

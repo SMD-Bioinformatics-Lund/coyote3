@@ -14,9 +14,9 @@ The sample YAML is the top-level ingest manifest. It tells Coyote3:
 - which assay/profile the sample belongs to
 - whether the bundle is DNA or RNA
 - which data files belong to the sample
-- which VEP metadata version should be used for consequence translation and filtering
+- which curated database versions should be used for consequence translation and filtering
 
-The YAML is parsed first, validated through the backend sample contract, and then written into the stored sample document. In other words, fields such as `vep_version` travel from the YAML into `samples` and are then used by downstream DNA/reporting code.
+The YAML is parsed first, validated through the backend sample contract, and then written into the stored sample document. The VEP version is always supplied as `database_versions.vep` and is used by downstream DNA/reporting code.
 
 ## Sample filter initialization
 
@@ -35,7 +35,7 @@ The YAML is parsed first, validated through the backend sample contract, and the
 - `RNA` samples must only use RNA file keys.
 - File paths must be readable from the API runtime environment.
 - `profile` must be one of `production`, `development`, `testing`, or `validation`.
-- `vep_version` should match a `vep_metadata.vep_id` document already seeded in Mongo.
+- `database_versions.vep` should match a `vep_metadata.vep_id` document already seeded in Mongo when the sample has DNA small variants.
 - ASP controls which sample file keys are expected through `assay_specific_panels.expected_files`.
 - File keys not listed in the assay's `expected_files` are rejected before parsing. Coyote3 does not silently remove declared resources.
 - Required files listed in `assay_specific_panels.required_files` must be present and readable.
@@ -57,7 +57,7 @@ These keys are common to DNA and RNA sample bundles.
 | `sample_no` | Yes | DNA, RNA | `1` for single-sample ingest, `2` for paired case/control ingest. |
 | `paired` | Yes | DNA, RNA | `true` when `control_id` is present, otherwise `false`. |
 | `genome_build` | Recommended | DNA, RNA | Reference genome build, normally `38`. |
-| `vep_version` | DNA required for reporting | DNA, RNA | VEP metadata version used to resolve consequence groups, display labels, and report text. |
+| `database_versions.vep` | DNA required for reporting | DNA, RNA | VEP metadata version used to resolve consequence groups, display labels, and report text. |
 | `sequencing_scope` | Yes | DNA, RNA | Sequencing scope. Valid values are `panel`, `wgs`, or `wts`. |
 | `omics_layer` | Yes | DNA, RNA | `DNA` or `RNA`. This controls which file keys are legal. |
 | `sequencing_technology` | Recommended | DNA, RNA | Sequencing platform label, for example `Illumina`, `Nanopore`, or `PacBio`. |
@@ -85,6 +85,12 @@ Optional case/control metadata fields:
 | `control_purity` | Paired DNA | Optional control purity estimate, normally empty. |
 
 ## File declaration format
+
+The concrete keys below are the current center profile from
+`api/config/center/clinical_vocabulary.toml`. A deployment may use different names;
+the authoritative configured DNA/RNA keys, family requirements, and
+analysis-to-file bindings are documented in
+[Center Vocabulary Configuration](../operations/clinical_vocabulary.md).
 
 Use the canonical nested `files` object for all new manifests:
 
@@ -121,6 +127,7 @@ DNA bundles may include these file keys:
 - `cov`
 - `biomarkers`
 - `transloc`
+- `pgx`
 
 The assay narrows that list through `assay_specific_panels.expected_files`. For example, if an ASP expects `vcf_files`, `cov`, and `cnv`, those are the only DNA files accepted for that assay. If `cnv` is also listed in `required_files`, missing or unreadable CNV JSON fails the ingest before the sample is published as ready.
 
@@ -131,7 +138,8 @@ The assay narrows that list through `assay_specific_panels.expected_files`. For 
 | `cnvprofile` | Required when ASPC enables `CNV_PROFILE`, otherwise optional unless required by ASP | Image | CNV tab | Visual CNV profile displayed beside the CNV table. It is stored as sample file metadata and does not create CNV collection rows. |
 | `cov` | Required when ASPC enables `COVERAGE`, otherwise optional unless required by ASP | JSON | Coverage tab, overview QC | Gene/exon/probe coverage metrics. Coverage and `CNV_PROFILE` are independent resources. |
 | `transloc` | Required when ASPC enables `TRANSLOCATION` or DNA `FUSION`, otherwise optional unless required by ASP | VCF or parser-supported translocation file | Translocations tab, reports | Structural/translocation calls. |
-| `biomarkers` | Required when ASPC enables `BIOMARKER`, `TMB`, or DNA `PGX`, otherwise optional unless required by ASP | JSON | Header biomarkers, overview, reports | Sample-level biomarkers such as MSI, HRD, TMB, or assay-specific markers. |
+| `biomarkers` | Required when ASPC enables `BIOMARKER` or `TMB`, otherwise optional unless required by ASP | JSON | Header biomarkers, overview, reports | Sample-level biomarkers such as MSI, HRD, TMB, or assay-specific markers. |
+| `pgx` | Required when ASPC enables `PGX`, otherwise optional unless required by ASP | Parser-supported PGX data | PGX workflows and reports | Pharmacogenomic calls or annotations. |
 
 Ingest publication is atomic from the user's perspective:
 
@@ -152,7 +160,8 @@ clarity_control_id: "seed_control_clarity"
 clarity_case_pool_id: "seed_pool"
 clarity_control_pool_id: "seed_pool"
 genome_build: 38
-vep_version: "103"
+database_versions:
+  vep: "103"
 sample_no: 2
 case_id: "seed_case"
 control_id: "seed_control"
@@ -187,9 +196,9 @@ Notes:
 - `cov` is used for coverage/gene coverage views.
 - `cnv` and `cnvprofile` are optional but common for panel DNA workflows.
 - `cnvprofile` is an image resource attached to the sample. It is served in the CNV tab beside the CNV table, but it does not create dependent database rows.
-- `transloc` and `biomarkers` are optional expected DNA resources. If declared, they must load successfully so the translocation and biomarker views reflect the manifest.
-- `vep_version` should match the annotation version used to produce the VCF.
-- The raw file expectations for `vcf_files`, `cnv`, `cov`, `biomarkers`, and `transloc` are documented in [API / Sample Input Files](sample_input_files.md#dna-raw-input-files).
+- `transloc`, `biomarkers`, and `pgx` are optional expected DNA resources. If declared, they must load successfully so the corresponding clinical view reflects the manifest.
+- `database_versions.vep` should match the annotation version used to produce the VCF.
+- The raw file expectations for `vcf_files`, `cnv`, `cov`, `biomarkers`, `transloc`, and `pgx` are documented in [API / Sample Input Files](sample_input_files.md#dna-raw-input-files).
 
 ## RNA sample YAML
 
@@ -199,6 +208,7 @@ RNA bundles may include these file keys:
 - `expression_path`
 - `classification_path`
 - `qc`
+- `pgx`
 
 As with DNA, the assay panel can narrow these through `assay_specific_panels.expected_files`, and only the configured RNA file keys are used by ingest and shown in the sample edit page.
 
@@ -208,6 +218,7 @@ As with DNA, the assay panel can narrow these through `assay_specific_panels.exp
 | `expression_path` | Optional unless ASP marks it required | JSON | Expression/review workflows | Expression measurements or expression-derived features. |
 | `classification_path` | Optional unless ASP marks it required | JSON | RNA classification workflows | Classifier output for RNA workflows. |
 | `qc` | Optional unless ASP marks it required | JSON | RNA QC/overview | RNA quality-control metrics. |
+| `pgx` | Required when ASPC enables `PGX`, otherwise optional unless required by ASP | Parser-supported PGX data | PGX workflows and reports | Pharmacogenomic calls or annotations. |
 
 Example:
 
@@ -217,7 +228,8 @@ case_id: "RNA_DEMO"
 sample_no: 1
 paired: false
 genome_build: 38
-vep_version: "110"
+database_versions:
+  vep: "110"
 profile: "production"
 assay: "assay_rna_1"
 sequencing_scope: "wts"
@@ -243,13 +255,13 @@ Notes:
 
 - `fusion_files` is the main RNA variant-like input.
 - `expression_path`, `classification_path`, and `qc` are optional but recommended for richer RNA workflows.
-- RNA samples still carry `vep_version` so the sample document stays consistent across omics layers and future downstream consumers.
+- RNA samples may carry `database_versions.vep` when their pipeline emits VEP-compatible annotation metadata.
 - A repo-local example is available at `tests/data/ingest_demo/generic_rna_sample.yaml`.
 - The raw JSON file expectations for `fusion_files`, `expression_path`, `classification_path`, and `qc` are documented in [API / Sample Input Files](sample_input_files.md#rna-raw-input-files).
 
 ## VEP version behavior
 
-`vep_version` is stored on the sample document and used at runtime to:
+`database_versions.vep` is stored on the sample document and used at runtime to:
 
 - resolve consequence-group mappings from `vep_metadata`
 - load VEP consequence translations
@@ -257,7 +269,9 @@ Notes:
 
 This means the sample keeps an explicit record of which VEP metadata version should be used when reopening or reporting the sample later.
 
-DNA report generation reads `sample.vep_version` directly during consequence resolution.
+DNA report generation and all sample-bound DNA table/filter operations read
+`sample.database_versions.vep` during consequence resolution. They do not fall
+back to the newest `vep_metadata` document when the sample value is missing.
 
 ## Database version metadata
 
@@ -281,9 +295,8 @@ cache paths, run timestamps, and plugin-specific values are ignored.
 | `sift` | SIFT | `sift5.2.2` |
 | `vep` | VEP | `103` |
 
-The same allowlist is applied when version metadata is supplied explicitly in
-YAML under `database_versions`, `db_versions`, `reference_versions`, or
-`annotation_versions`.
+YAML and API input must use `database_versions` with these canonical keys exactly.
+Only external VCF header labels are normalised before they are persisted.
 
 ## Validation reminders
 
@@ -292,6 +305,6 @@ YAML under `database_versions`, `db_versions`, `reference_versions`, or
 - `case_id` is always required.
 - `control_id` must be omitted for single-sample ingest.
 - `sample_no` must match the pairing mode.
-- `vep_version` should be seeded in `vep_metadata` before ingest.
+- `database_versions.vep` should be seeded in `vep_metadata` before DNA ingest.
 - If `filters` is omitted entirely during ingest, ASPC defaults are initialized onto the sample.
 - Once stored, `samples.filters` is used as-is until reset or explicit update.

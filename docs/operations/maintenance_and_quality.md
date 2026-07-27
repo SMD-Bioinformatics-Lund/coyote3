@@ -11,6 +11,16 @@ Run the contract and logic checks before pushing changes.
 PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
 ```
 
+For the complete cross-layer source/build gate, use:
+
+```bash
+PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
+```
+
+The full gate is deliberately read-only with respect to MongoDB. Run the
+[Browser And Release Validation](../testing/browser_and_release_validation.md)
+procedure separately with controlled fixtures before promoting a release.
+
 Checks covered:
 - import integrity
 - removal of stray `print()` calls in runtime code
@@ -61,10 +71,26 @@ Documents created through administrative or clinical actions must keep an audit 
 - `created_by` / `updated_by`: Explicit identity of the originating user.
 - `created_on` / `updated_on`: Standardized UTC (ISO-8601) timestamps.
 
+### Runtime and Retention Verification
+
+Application Controls exposes both configured controls and observed Celery state.
+For a maintenance validation run:
+
+1. Record the pre-run audit-event and log-file state.
+2. Queue maintenance from **Admin > Application Controls**.
+3. Keep the returned task id and check its state through the internal task
+   status endpoint as an authorized operator.
+4. Confirm the task outcome in worker logs and inspect configured retention
+   effects in the test environment.
+5. Preserve the corresponding audit-event identifiers in release evidence.
+
+Do not test destructive retention cleanup against production evidence stores.
+
 ## Integrated Operational Assets
 
 Use these related documents for detailed procedures:
 - [Initial Deployment Checklist](initial_deployment_checklist.md)
 - [Center Deployment Guide](center_deployment_guide.md)
 - [Quality Engineering and Validation Standards](../testing/testing_and_quality.md)
+- [Browser And Release Validation](../testing/browser_and_release_validation.md)
 - [Collection Contract Reference](../api/collection_contracts.md)

@@ -29,14 +29,26 @@ different names through `API_SESSION_COOKIE_NAME`.
 Create a session by calling the login endpoint through the same public mount
 prefix used by the application.
 
+Set the mounted public origin, then read the enabled providers. The response
+contains one or both of `local` and `ldap`, as configured in
+`api/config/center/clinical_vocabulary.toml`.
+
 ```bash
 BASE_URL="https://localhost/coyote3_dev"
+curl -sS "${BASE_URL}/api/v1/auth/providers"
+```
 
+Use `local` with a local username and password. Use `ldap` with the user's
+email address and directory password. The provider is explicit so an API client
+does not rely on UI behavior or heuristic identifier detection.
+
+```bash
 curl -i -sS -X POST "${BASE_URL}/api/v1/auth/sessions" \
   -H "Content-Type: application/json" \
   --data '{
     "username": "admin.coyote3",
-    "password": "REPLACE_WITH_PASSWORD"
+    "password": "REPLACE_WITH_PASSWORD",
+    "provider": "local"
   }'
 ```
 
@@ -48,7 +60,8 @@ Set-Cookie: coyote3_dev_api_session=<opaque-session-token>; HttpOnly; SameSite=l
 ```
 
 For LDAP users, submit the email address in the `username` field. For local
-users, submit the local username.
+users, submit the local username. The `provider` value must be enabled by the
+center's vocabulary configuration.
 
 !!! warning "Handle session tokens as secrets"
 
@@ -69,7 +82,8 @@ curl -sS -c "${COOKIE_JAR}" -X POST "${BASE_URL}/api/v1/auth/sessions" \
   -H "Content-Type: application/json" \
   --data '{
     "username": "admin.coyote3",
-    "password": "REPLACE_WITH_PASSWORD"
+    "password": "REPLACE_WITH_PASSWORD",
+    "provider": "local"
   }'
 
 curl -sS -b "${COOKIE_JAR}" "${BASE_URL}/api/v1/auth/whoami"
@@ -96,7 +110,8 @@ SESSION_TOKEN="$(
     -H "Content-Type: application/json" \
     --data '{
       "username": "admin.coyote3",
-      "password": "REPLACE_WITH_PASSWORD"
+      "password": "REPLACE_WITH_PASSWORD",
+      "provider": "local"
     }' |
   awk -v cookie="${COOKIE_NAME}" '
     BEGIN { IGNORECASE = 1 }
@@ -151,6 +166,7 @@ Use these endpoints to validate or remove the active session:
 
 | Endpoint | Method | Purpose |
 | --- | --- | --- |
+| `/api/v1/auth/providers` | `GET` | Returns the center-enabled login providers for public clients. |
 | `/api/v1/auth/whoami` | `GET` | Returns username, roles, active role, access level, and effective permissions. |
 | `/api/v1/auth/session` | `GET` | Returns the complete serialized session user payload used by the UI. |
 | `/api/v1/auth/sessions/current` | `DELETE` | Deletes the current bearer or cookie-backed API session. |

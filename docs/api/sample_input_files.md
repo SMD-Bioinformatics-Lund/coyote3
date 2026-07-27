@@ -48,7 +48,7 @@ It is responsible for:
 - sample identity such as `name`, `case_id`, `control_id`
 - assay and environment identity such as `assay` and `profile`
 - omics-layer selection through `omics_layer`
-- pipeline metadata such as `pipeline`, `pipeline_version`, `vep_version`
+- pipeline metadata such as `pipeline`, `pipeline_version`, `database_versions.vep`
 - file references under `files`, such as `files.vcf_files.path`, `files.cnv.path`,
   `files.cov.path`, and `files.fusion_files.path`
 

@@ -133,7 +133,7 @@ The usual flow from ingest to reporting is:
 3. **Data Assembly**: on read, the API combines sample evidence with the matching environment configuration.
 4. **Interpretation**: classifications, comments, and actions are written to the live annotation stores.
 5. **Report Finalization**: The system reads the joined interpretation context and persists an immutable report snapshot in `reported_variants`.
-   - DNA SNV report inclusion follows reportable-variant filtering after consequence resolution using `sample.vep_version`.
+   - DNA SNV report inclusion follows reportable-variant filtering after consequence resolution using `sample.database_versions.vep`.
    - DNA CNV report inclusion requires both report-level inclusion (`interesting`) and the active CNV sample filters. A CNV outside the selected CNV genelist is not included in the report.
 
 ### Ingest and read sequence diagram
@@ -178,8 +178,8 @@ The following rules matter for correct behavior:
 - **Identifier Synchronization**: keep `samples.assay`, `asp.asp_id`, and `aspc.asp_id` aligned; ASPC uniqueness is `asp_id + subpanel_id + environment`.
 - **Environment Integrity**: Every sample `profile` must map to a valid `production`, `development`, or `validation` environment within the configuration tier.
 - **Relational Atomic Behavior**: Treat `samples` as the parent record for all findings; orphaned finding documents without a valid `SAMPLE_ID` are not allowed.
-- **Metadata Alignment**: `vep_version` in the sample must match the relevant `vep_metadata` entry.
-- **Reporting Alignment**: `sample.vep_version` is mandatory for DNA report generation because consequence-group resolution and variant-class translations are version-specific.
+- **Metadata Alignment**: `database_versions.vep` in the sample must match the relevant `vep_metadata` entry.
+- **Reporting Alignment**: `sample.database_versions.vep` is mandatory for DNA report generation because consequence-group resolution and variant-class translations are version-specific.
 
 ## Diagnostic Input Specifications
 

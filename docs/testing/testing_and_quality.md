@@ -45,6 +45,33 @@ PYTHONPATH=. python -m ruff check api tests scripts
 .venv/bin/python -m mkdocs build --strict
 ```
 
+## Unified Quality Gate
+
+Use the repository quality command for a release candidate or a substantial
+cross-layer change:
+
+```bash
+PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
+```
+
+This runs the backend unit/API/integration suites, contract integrity checks,
+frontend linting and production build, and the strict documentation build. It
+does not start services, contact external knowledgebases, or write to MongoDB.
+
+To validate rendered Docker Compose configuration as part of the same gate:
+
+```bash
+PYTHON_BIN=.venv/bin/python \
+COMPOSE_FILE=deploy/compose/docker-compose.dev.yml \
+bash scripts/run_quality_suite.sh
+```
+
+!!! tip "Browser validation"
+
+    This command verifies source and build behavior. Before promotion, follow
+    the separate [Browser And Release Validation](browser_and_release_validation.md)
+    procedure against a deployed environment and approved synthetic fixtures.
+
 ## Coverage Verification and Quality Gates
 
 Coverage checks enforce minimum thresholds for key logic families.
@@ -65,6 +92,9 @@ CI should run these checks:
 3. **Boundary Verification**: Contract and schema consistency evaluation.
 4. **Documentation Accuracy**: Strict-mode build verification of operational manuals.
 5. **Compose Validation**: verification of Docker Compose configuration where relevant.
+6. **UI/API Contract Registry**: every literal API operation declared by the
+   React route registry must resolve to a FastAPI route. This detects stale
+   page contracts before manual browser validation.
 
 ## Standards for New Feature Development
 
@@ -86,3 +116,4 @@ Use dedicated profiling or staged environment testing when you need performance 
 See also:
 
 - [System Relationships](../architecture/system_relationships.md)
+- [Browser And Release Validation](browser_and_release_validation.md)

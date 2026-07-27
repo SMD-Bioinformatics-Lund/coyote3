@@ -226,7 +226,7 @@ ${PYTHON_BIN:-python} scripts/validate_assay_consistency.py \
   --yaml tests/data/ingest_demo/generic_case_control.yaml
 ```
 
-The demo YAML includes `vep_version`. It is stored on the sample and later used to resolve the correct `vep_metadata` translations and consequence-group mappings during DNA findings and reporting. DNA VCF ingest also captures a curated `database_versions` snapshot from the VEP header. The stored keys are limited to `assembly`, `clinvar`, `cosmic`, `dbsnp`, `ensembl`, `gencode`, `genebuild`, `gnomad`, `hgmd_public`, `polyphen`, `sift`, and `vep`.
+The demo YAML includes `database_versions.vep`. It is stored on the sample and later used to resolve the correct `vep_metadata` translations and consequence-group mappings during DNA findings and reporting. DNA VCF ingest also captures a curated `database_versions` snapshot from the VEP header. The stored keys are limited to `assembly`, `clinvar`, `cosmic`, `dbsnp`, `ensembl`, `gencode`, `genebuild`, `gnomad`, `hgmd_public`, `polyphen`, `sift`, and `vep`.
 
 DNA ingest writes two coordinated records for each small variant:
 

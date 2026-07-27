@@ -109,7 +109,7 @@
 - Sample landing (settings/edit) page will now show the list of files associated with the sample and if they exist on the drive.
 - Added support for AdHoc Gene lists
 - Added a key 'adhoc and is_public' to indicate if the gene list is adhoc and public in the isgl schema.
-- Added a public facing assay catalog page to view assay related meta data, genelists, configs, etc. This is controlled by assay_catalog.yaml file along with APC and ASPC.
+- Added a public facing assay catalog page to view assay related metadata, gene lists, and configurations. Catalog presentation is controlled by center configuration together with ASP and ASPC records.
 - Updated dashboard stats to have total counts of variants instead of unique counts to reduce the loading time.
 - Report name format uses `Sample.name` instead of `Sample.case_id`, causing reports to be created with the same `case_id` but different `sample.name`.
 - Public “Assay Coverage Matrix” page with full modality → category → genelist grouping, ASP-aware gene override, and placeholder column support for empty services.
@@ -127,7 +127,7 @@
 - Fixed carry-over of protein changes between variants.
   The protein_changes list is now reinitialized inside the variant processing loop, ensuring each variant has its own independent protein change data.
   Previously, variants without explicit protein changes could inherit those from prior variants, causing incorrect annotations.
-- Added Config/coyote3_collections.toml file to repository for easier configuration management.
+- Added a repository collection-mapping configuration for easier deployment management.
 
 ## v3.0.8
 ### HotFix #117

@@ -8,10 +8,12 @@ reporting.
 !!! info "Configuration ownership"
 
     Runtime endpoints and secrets are environment configuration. Collection
-    names are API configuration in `api/config/coyote3_collections.toml`.
-    Public contact text is center content in `api/config/contact.toml`.
+    names are API configuration in `api/config/center/collections.toml`.
+    Public organization, service-hour, and contact-card text is center content
+    in `api/config/center/contact.toml`. Repository links and the product description
+    are application metadata in `api/config/application_metadata.py`.
     Public assay-catalog narrative text is center content in
-    `api/config/assay_catalog.yaml`.
+    `api/config/center/assay_catalog.yaml`.
 
 ## Minimum Collections
 
@@ -36,7 +38,7 @@ review, and reporting.
 !!! tip "Collection names"
 
     The names above are defaults. The application does not hardcode them in
-    domain services; it resolves them from `api/config/coyote3_collections.toml`
+    domain services; it resolves them from `api/config/center/collections.toml`
     for the active database.
 
 ## Optional Enhancement Collections
@@ -142,17 +144,18 @@ This separation lets Coyote3 answer clinical questions after a report is saved:
 
 ## Public And Center-Owned Content
 
-The public assay catalog and matrix use `api/config/assay_catalog.yaml` for
+The public assay catalog and matrix use `api/config/center/assay_catalog.yaml` for
 descriptions, sample types, TAT, and navigation labels. The database still
 provides the operational truth for ASP, ASPC, and ISGL objects.
 
-The public contact page uses `CONTACT_CONFIG_PATH`. A center can keep one
-contact TOML file per deployment section and point each env file at the correct
-one.
+The public contact page uses `api/config/center/contact.toml`. A center can
+maintain a dedicated deployment revision of the `center/` directory for each
+laboratory section.
 
 !!! tip "Multi-section deployment"
 
     For multiple laboratory sections, build one image and run separate env files,
-    databases, data roots, `SCRIPT_NAME` values, contact TOML files, and assay
-    catalog YAML files. This keeps the code identical while allowing each center
-    or section to own its local routing, contacts, assays, and retention policy.
+    databases, data roots, `SCRIPT_NAME` values, and reviewed `center/`
+    configuration directories. This keeps the code identical while allowing each
+    center or section to own its local routing, contacts, assays, and retention
+    policy.

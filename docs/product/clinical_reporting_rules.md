@@ -360,6 +360,132 @@ The same prepared context is used by preview and save. Saving a report stores
 the filter snapshot, ASPC snapshot, reportable finding snapshots, and exact
 rule release reference. Later changes to YAML do not alter an existing report.
 
+## Worked Examples: YAML To Clinical Text
+
+The following examples show the complete chain: prepared facts, the matching
+YAML, the generic runtime behavior, and the final text. They use the
+Hematology GMSv1 base rule file because it contains the approved wording used
+by the current clinical workflow. Names and values below are explanatory; the
+same process applies to every assay and subpanel rule file.
+
+### Example 1: DNA Introduction With the Applied Gene List
+
+The Hematology GMSv1 rule is deliberately short:
+
+```yaml
+- rule_id: hema_GMSv1_report_introduction
+  family: result_text
+  section: Report introduction
+  priority: 10
+  when: []
+  template: "{{ aspc.reporting.general_report_summary | dna_report_intro(sample, asp, applied_gene_lists) }}"
+  heading: false
+  stop: false
+```
+
+An empty `when` list means this rule always matches once the selected ASPC is
+confirmed to be `hema_GMSv1/base`. The text is not assembled by assay-specific
+`if`/`else` code. The generic `dna_report_intro` template filter receives only
+these prepared facts:
+
+| Prepared fact | Example value | Contribution to text |
+| --- | --- | --- |
+| `aspc.reporting.general_report_summary` | `DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar exoner i 385 gener som inkluderas i GMS-HEM v1.1 sekvenseringspanel. ` | Approved assay-method introduction authored in the ASPC. |
+| `sample.paired` | `true` | Adds the paired-control sentence. |
+| `applied_gene_lists[].isgl_id` | `HEMATOLOGY_MYELOID` | Names the selected SNV list. |
+| `applied_gene_lists[].selected_for` | `['snv']` | Limits this introduction to SNV-selected lists; CNV-only or fusion-only lists are not named here. |
+| `applied_gene_lists[].genes` | 197 genes | Adds the selected-gene count. |
+| `asp.germline_genes` | includes `CEBPA` | Adds the constitutional-testing sentence only when that gene is also selected. |
+
+The runtime flow is:
+
+1. `DNAWorkflowService.build_report_payload()` prepares the report context.
+2. `ClinicalRuleService` resolves the immutable release bound to the ASPC.
+3. `ClinicalRuleEvaluator` evaluates this `result_text` rule.
+4. The sandboxed template invokes the generic `dna_report_intro` filter.
+5. The rendered value is appended to **Report introduction** without a heading.
+
+For the facts above, the final report text is:
+
+> DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar exoner i 385 gener som inkluderas i GMS-HEM v1.1 sekvenseringspanel. Analysen avser somatiska mutationer (hudbiopsi har använts som kontrollmaterial). Analysen omfattar genlistan: HEMATOLOGY_MYELOID som innefattar 197 gener. För CEBPA undersöks även konstitutionella mutationer.
+
+This is why applying an SNV ISGL changes the introduction immediately. The
+rule does not contain a hardcoded list name or gene count; it renders the
+selected ISGL facts prepared for that report.
+
+### Example 2: No Reportable Somatic Small Mutations
+
+The same rule set chooses the negative-result wording only when report
+preparation has already established that no tiered SNV/indel is reportable:
+
+```yaml
+- rule_id: hema_GMSv1_no_somatic_snv
+  family: result_text
+  section: Kliniskt relevanta SNVs och små INDELs
+  priority: 100
+  when:
+    - fact: aggregates.has_tiered_snvs
+      operator: eq
+      value: false
+  template: |-
+    Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats.
+  heading: true
+  stop: false
+```
+
+| Evaluation input | Value | Result |
+| --- | --- | --- |
+| `aggregates.has_tiered_snvs` | `false` | The `eq false` predicate matches. |
+| `aggregates.tier_summaries` | `[]` | The Tier-summary rule at priority 90 does not match because it requires `has_tiered_snvs: true`. |
+| `section` | `Kliniskt relevanta SNVs och små INDELs` | The renderer creates this section and writes its heading. |
+| `template` | Exact YAML text | Final clinical wording is `Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats.` |
+
+The evaluation trace records both decisions: the Tier-summary rule as
+`matched: false` and `hema_GMSv1_no_somatic_snv` as `matched: true` with the
+rendered text. The trace is part of report-preview/save provenance, so a user
+can explain why this wording appeared without re-running filtering.
+
+### Example 3: Accredited And Non-Accredited Conclusions
+
+Two summary rules express mutually exclusive conclusions using the same ASP
+fact. The lower priority value is checked first; `stop: true` prevents a
+second conclusion once one matches.
+
+```yaml
+- rule_id: hema_GMSv1_unaccredited_conclusion
+  family: summary_text
+  section: Report conclusion
+  priority: 100
+  when:
+    - fact: asp.accredited
+      operator: eq
+      value: false
+  template: |-
+    För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen.
+  heading: false
+  stop: true
+
+- rule_id: hema_GMSv1_accredited_conclusion
+  family: summary_text
+  section: Report conclusion
+  priority: 200
+  when:
+    - fact: asp.accredited
+      operator: eq
+      value: true
+  template: "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport.\\x20"
+  heading: false
+  stop: true
+```
+
+| `asp.accredited` | Matched rule | Final conclusion |
+| --- | --- | --- |
+| `false` | `hema_GMSv1_unaccredited_conclusion` | `För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen.` |
+| `true` | `hema_GMSv1_accredited_conclusion` | `För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport.` |
+
+No later summary rule can render for the same candidate after either match.
+This makes the conclusion deterministic and prevents contradictory wording.
+
 ## Deferred Clinical Text
 
 `deferred_rules` is used only when exact wording is known but the application

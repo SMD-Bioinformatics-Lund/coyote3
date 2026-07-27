@@ -114,7 +114,7 @@ Localized interpretation tables utilize in-page pagination to allow for rapid so
 
 ### VCF Filter Flag Metadata
 
-VCF caller/filter badges are described in `api/config/filter_flag_metadata.yaml`.
+VCF caller/filter badges are described in `api/config/center/filter_flag_metadata.yaml`.
 The UI reads this metadata through:
 
 `GET /api/v1/public/filter-flags/metadata`

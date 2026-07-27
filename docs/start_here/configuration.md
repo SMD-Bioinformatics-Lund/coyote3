@@ -19,6 +19,26 @@ cp deploy/env/example.env .coyote3_env
 Then update the copied file. Local `.coyote3_*_env` files are ignored by git and
 must not be committed.
 
+## Center-Owned Configuration Files
+
+Environment variables carry deployment wiring and secrets. Center policy is
+kept in versioned configuration files under `api/config/center/` so it can be reviewed
+as a clinical/configuration change rather than hidden in application code.
+
+| File | Format | Detailed field reference | Purpose |
+| --- | --- | --- | --- |
+| `center/contact.toml` | TOML | [Contact table](../operations/center_configuration_files.md#contacttoml) | Center-owned organization, support, service-hour, and repeatable contact-card content. |
+| `center/clinical_vocabulary.toml` | TOML | [Vocabulary table](../operations/center_configuration_files.md#clinical_vocabularytoml) | Center-owned assay groups, sequencing platforms, enabled authentication providers, sample-manifest file keys, required family inputs, and analysis-to-file bindings. |
+| `center/collections.toml` | TOML | [Collection table](../operations/center_configuration_files.md#collectionstoml) | Database and collection names used by the persistence adapter. |
+| `center/assay_catalog.yaml` | YAML | [Catalog table](../operations/center_configuration_files.md#assay_catalogyaml) | Public assay-catalog narrative fields that do not belong in clinical records. |
+| `center/filter_flag_metadata.yaml` | YAML | [Flag table](../operations/center_configuration_files.md#filter_flag_metadatayaml) | Human-facing variant flag labels, severity, and tooltip descriptions. |
+
+See [Center Configuration Reference](../operations/center_configuration_files.md)
+for every center-owned TOML/YAML file, its fields, allowed values, owning
+workflow, and change protocol. See
+[Clinical Vocabulary Configuration](../operations/clinical_vocabulary.md) for
+the detailed manifest-key and analysis-binding contract.
+
 !!! info "One environment selector"
 
     `ENV_NAME` is the environment selector. Use values such as `development`,
@@ -96,7 +116,15 @@ use the container-visible `/data/...` paths.
 
 ## Environment Variable Reference
 
-The canonical template is `deploy/env/example.env`.
+Every entry in the following table is an environment variable from the
+canonical `deploy/env/example.env` template. TOML and YAML keys are **not**
+environment variables and are documented in the linked center-configuration
+tables above.
+
+Some environment variables select configuration rather than duplicate it:
+`COYOTE3_DB` selects the matching application-database table in
+`center/collections.toml`, and `BAM_DB` selects the BAM-service table. The
+physical collection names themselves remain TOML values.
 
 | Variable | Required | Expected Value | Purpose |
 | --- | --- | --- | --- |
@@ -160,7 +188,7 @@ The canonical template is `deploy/env/example.env`.
 | `COYOTE3_INGEST_WATCH_INTERVAL_SECONDS` | No | Seconds | Beat interval for watch-folder scanning. |
 | `COYOTE3_INGEST_WATCH_UPDATE_EXISTING` | No | `1` or `0` | Allows watch ingest to replace an existing sample. |
 | `COYOTE3_INGEST_WATCH_INCREMENT` | No | `1` or `0` | Enables incremental naming behavior where supported. |
-| `LDAP_HOST` | LDAP deployments | Hostname or URI | LDAP server host. |
+| `LDAP_HOST` | When `authentication.providers` includes `ldap` | Hostname or URI | LDAP server host. LDAP is not initialized for a local-only centre. |
 | `LDAP_BASE_DN` | LDAP deployments | Distinguished name | LDAP search base. |
 | `LDAP_USER_LOGIN_ATTR` | LDAP deployments | Attribute name, usually `mail` | LDAP login lookup attribute. |
 | `LDAP_BINDDN` | LDAP deployments | Distinguished name | LDAP bind identity. |
@@ -169,8 +197,6 @@ The canonical template is `deploy/env/example.env`.
 | `GENS_URI` | No | URL | Optional Gens integration. |
 | `IGV_URI` | No | URL | Optional IGV integration. |
 | `KNOWLEDGEBASE_PLUGINS` | No | Comma-separated list | Optional Mongo-backed knowledgebase handlers. Supported values: `all`, `civic`, `iarc_tp53`, `brca`, `oncokb`, `cosmic`, `hgnc`. |
-| `COYOTE3_ASSAY_CATALOG_YAML` | No | File path | Center-owned assay catalog narrative and matrix metadata. |
-| `CONTACT_CONFIG_PATH` | No | File path | Center-owned public contact TOML file. |
 | `ONCOKB_BASE_URL` | No | URL | Public OncoKB API base URL. |
 | `ONCOKB_PUBLIC_LOOKUPS_ENABLED` | No | `1` or `0` | Enables public OncoKB lookup buttons and enrichment jobs. |
 | `ONCOKB_REQUEST_TIMEOUT_SECONDS` | No | Seconds | Public OncoKB request timeout. |
@@ -211,10 +237,10 @@ The following values are intentionally derived or internal:
 | Redis URLs and Celery broker/result URLs | Compose service names such as `redis://coyote3_redis_dev:6379/0`. |
 | API health path | Fixed endpoint `/api/v1/health`. |
 | Documentation/help URL | Derived as `${PUBLIC_BASE_URL}${SCRIPT_NAME}/docs-site/`. |
-| Repository and issue links | `api/config/contact.toml` `[codebase]` and `[[links]]` entries. |
+| Repository and issue links | `api/config/application_metadata.py`; these are repository-owned product links. |
 | API session and audit collection names | Fixed internal collections `api_sessions` and `audit_events`. |
 | Container data root | Fixed container path `/data`; only the host root is configurable. |
-| MANE source | Database-backed HGNC/MANE annotation metadata, not a runtime file path. |
+| MANE transcript reference data | The `hgnc_collection` in the configured application database. It supplies MANE and clinical transcript metadata used by transcript selection; no environment variable or filesystem path is required. |
 
 ## Timestamp Display
 
@@ -233,16 +259,18 @@ calculated from the same UTC instant.
 
 ## Center Contact Configuration
 
-`CONTACT_CONFIG_PATH` points to a TOML file that drives the public Contact page.
-The committed default is `api/config/contact.toml`. Centers may copy that file
-to a site-controlled path, edit the content, and set `CONTACT_CONFIG_PATH` to
-that path in the environment file.
+Each `[[contacts]]` entry is rendered as one responsive support card in the
+Contact page. A center may provide any number of entries; no application code
+or layout setting needs to change when a contact channel is added or removed.
+
+`api/config/center/contact.toml` drives the public Contact page. Edit the
+center-owned file in place and deploy it with the application; configuration
+paths are intentionally not environment variables.
 
 ```toml
 [organization]
 name = "Coyote3"
 department = "Clinical Genomics"
-description = "Clinical genomics interpretation, review, and reporting service."
 
 [[contacts]]
 label = "Clinical support"
@@ -251,11 +279,6 @@ email = "clinical-support@example.org"
 phone = "+46 ..."
 description = "Questions about interpretation, report content, or clinical review workflow."
 
-[codebase]
-repository_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
-bug_report_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues/new?template=bug_report.md"
-feature_request_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues/new?template=feature_request.md"
-support_request_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues/new?template=support_request.md"
 ```
 
 !!! info "Organization identity"
@@ -263,11 +286,12 @@ support_request_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues
     `ORGANIZATION_NAME` is authoritative for the organization display name.
     The contact TOML stores richer public contact details.
 
-!!! tip "Issue links"
+!!! info "Product links"
 
     Bug reports, feature requests, and support requests are product/repository
-    links, not deployment secrets. Configure them in `contact.toml` so the
-    About page, Contact page, and user dropdown all show the same links.
+    links, not deployment secrets or center settings. They are defined once in
+    `api/config/application_metadata.py`; the About page, Contact page, and
+    user dropdown receive the same generated links.
 
 ## Configuration Boundaries
 
@@ -276,8 +300,9 @@ API-owned configuration lives under `api/config/`:
 - `app_config.py` selects runtime settings.
 - `constants.py` defines product vocabularies.
 - `runtime.py` exposes backend helper functions.
-- `coyote3_collections.toml` maps repository collection names.
-- `contact.toml` stores center-owned public contact content.
+- `center/collections.toml` maps repository collection names.
+- `application_metadata.py` stores repository-owned description and codebase links.
+- `center/contact.toml` stores center-owned organization, support, hours, and repeatable contact cards.
 
 UI-owned configuration stays under `frontend/`:
 

@@ -114,7 +114,7 @@ Sample manifest reference:
 
 - Use [API / Sample YAML Guide](../api/sample_yaml.md) for the required DNA/RNA YAML shape.
 - Use [API / Sample Input Files](../api/sample_input_files.md) for the raw VCF and JSON payload formats consumed by the ingest parsers.
-- Ensure the YAML `vep_version` matches a seeded `vep_metadata.vep_id` value before first sample ingest.
+- Ensure YAML `database_versions.vep` matches a seeded `vep_metadata.vep_id` value before first DNA sample ingest.
 
 ASPC contract rule for first-load data:
 

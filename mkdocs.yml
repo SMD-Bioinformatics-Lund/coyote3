@@ -72,6 +72,8 @@ nav:
       - RBAC Mapping: api/collection_operations_and_permissions.md
   - Operations:
       - Center Deployment Guide: operations/center_deployment_guide.md
+      - Center Configuration Files: operations/center_configuration_files.md
+      - Clinical Vocabulary Configuration: operations/clinical_vocabulary.md
       - Deployment Manual: operations/deployment_guide.md
       - Deployment Data Requirements: operations/deployment_data_requirements.md
       - Environments & Secrets: operations/environments_and_secrets.md
@@ -84,6 +86,7 @@ nav:
       - Troubleshooting: operations/troubleshooting.md
   - Testing:
       - Quality Standards: testing/testing_and_quality.md
+      - Browser And Release Validation: testing/browser_and_release_validation.md
       - Test Data And Fixtures: testing/test_data_and_fixtures.md
   - Project Info:
       - Governance: project/governance.md

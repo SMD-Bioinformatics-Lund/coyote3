@@ -174,8 +174,8 @@ Key fields include:
 | `omics_layer` | DNA or RNA |
 | `paired` | Whether case/control data are present |
 | `genome_build` | Reference genome build |
-| `vep_version` | VEP version used for annotation |
-| `database_versions` | Curated source-version metadata |
+| `database_versions.vep` | VEP version used for annotation |
+| `database_versions` | Curated source-version metadata, including the canonical `vep` key |
 | `files` | Canonical file metadata by file type |
 | `filters` | Current per-domain filter state |
 | `case` / `control` | Sample identifiers and laboratory metadata |
@@ -271,7 +271,7 @@ The DNA reporting application builds the SNV query from:
 - false-positive and irrelevant exclusions.
 
 VEP groups are resolved using the metadata document for
-`sample.vep_version`. A UI group such as `splicing` is expanded to concrete VEP
+`sample.database_versions.vep`. A UI group such as `splicing` is expanded to concrete VEP
 terms before the query is executed.
 
 ### 5.2 Transcript selection
@@ -431,7 +431,8 @@ sample:
   omics_layer: dna
   paired: true
   genome_build: 38
-  vep_version: "103"
+  database_versions:
+    vep: "103"
   case: {}
   control: {}
 

@@ -88,8 +88,9 @@ API-owned configuration lives under `api/config/`.
 | `api/config/app_config.py` | Runtime configuration objects and environment binding |
 | `api/config/constants.py` | Product vocabularies and stable option lists |
 | `api/config/runtime.py` | Public runtime helper facade |
-| `api/config/coyote3_collections.toml` | MongoDB collection-name mapping |
-| `api/config/contact.toml` | Center-owned public contact, support, hours, and useful-link content |
+| `api/config/center/collections.toml` | MongoDB collection-name mapping |
+| `api/config/application_metadata.py` | Repository-owned product description and codebase links |
+| `api/config/center/contact.toml` | Center-owned organization, support, hours, and contact cards |
 
 Deployment-specific secrets and endpoints remain in environment files or secret stores:
 
@@ -104,9 +105,8 @@ Deployment-specific secrets and endpoints remain in environment files or secret 
 - public contact configuration path
 
 Public center content is separated from secrets and infrastructure endpoints.
-The contact page is generated from the TOML file configured by
-`CONTACT_CONFIG_PATH`, while the assay catalog and gene matrix use the YAML file
-configured by `COYOTE3_ASSAY_CATALOG_YAML`.
+The contact page is generated from `api/config/center/contact.toml`, while the
+assay catalog and gene matrix use `api/config/center/assay_catalog.yaml`.
 
 `SCRIPT_NAME` controls the browser-facing mount point when Coyote3 is served
 below a domain path, for example `https://example.org/coyote3`. The value is
@@ -170,12 +170,12 @@ Admin-controlled runtime behavior lives in the `app_controls` collection. These 
 
 ## 5. Collection Mapping
 
-Collection names are loaded from `api/config/coyote3_collections.toml`. Application code should refer to repository attributes and configured collection handles, not hardcoded collection names.
+Collection names are loaded from `api/config/center/collections.toml`. Application code should refer to repository attributes and configured collection handles, not hardcoded collection names.
 
 The mapping path is:
 
 ```text
-api/config/coyote3_collections.toml
+api/config/center/collections.toml
   -> runtime config
   -> Mongo adapter
   -> repositories
@@ -328,7 +328,7 @@ Action buttons should be context-specific. For example, small variants support F
 
 ## 11. Badges, Flags, Consequences, And Tiers
 
-Flags are shown as individual badges. Metadata comes from `api/config/filter_flag_metadata.yaml`, which lets centers configure labels and explanations without changing React code.
+Flags are shown as individual badges. Metadata comes from `api/config/center/filter_flag_metadata.yaml`, which lets centers configure labels and explanations without changing React code.
 
 Recommended severity behavior:
 
