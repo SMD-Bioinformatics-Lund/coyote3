@@ -110,7 +110,7 @@ def _store_stub(sample_docs=None):
                     "_id": "aspc-1",
                     "aspc_id": "assay_1:production:base",
                     "asp_id": "assay_1",
-                    "subpanel_id": "base",
+                    "subpanel_id": "Hem",
                     "environment": "production",
                     "is_active": True,
                     "analysis_types": [],
@@ -646,8 +646,8 @@ def test_ingest_rejects_file_keys_outside_asp_expected_files(monkeypatch, tmp_pa
         path.write_text("{}", encoding="utf-8")
     payload = {
         "name": "S1",
-        "assay": "assay_1",
-        "profile": "production",
+        "asp_id": "assay_1",
+        "environment": "production",
         "case_id": "CASE1",
         "sample_no": 1,
         "sequencing_scope": "panel",
@@ -671,6 +671,17 @@ def test_ingest_rejects_file_keys_outside_asp_expected_files(monkeypatch, tmp_pa
 
 def test_ingest_rejects_declared_unreadable_optional_file_keys(monkeypatch, tmp_path):
     store_stub = _store_stub()
+    store_stub.coyote_db["asp_configs"].docs = [
+        {
+            "_id": "aspc-1",
+            "aspc_id": "assay_1_base_production",
+            "asp_id": "assay_1",
+            "subpanel_id": "base",
+            "environment": "production",
+            "is_active": True,
+            "analysis_types": ["SNV", "TRANSLOCATION"],
+        }
+    ]
     store_stub.coyote_db["assay_specific_panels"].docs = [
         {
             "asp_id": "assay_1",
@@ -688,8 +699,8 @@ def test_ingest_rejects_declared_unreadable_optional_file_keys(monkeypatch, tmp_
     vcf_path.write_text("##fileformat=VCFv4.2\n", encoding="utf-8")
     payload = {
         "name": "S1",
-        "assay": "assay_1",
-        "profile": "production",
+        "asp_id": "assay_1",
+        "environment": "production",
         "case_id": "CASE1",
         "sample_no": 1,
         "sequencing_scope": "panel",
@@ -713,7 +724,7 @@ def test_aspc_enabled_analysis_requires_its_file_resource(tmp_path, monkeypatch)
     store_stub.coyote_db["asp_configs"].docs = [
         {
             "_id": "aspc-1",
-            "aspc_id": "assay_1:production:base",
+            "aspc_id": "assay_1_base_production",
             "asp_id": "assay_1",
             "subpanel_id": "base",
             "environment": "production",
@@ -727,8 +738,8 @@ def test_aspc_enabled_analysis_requires_its_file_resource(tmp_path, monkeypatch)
     payload = service._validate_payload_file_keys(
         {
             "name": "S1",
-            "assay": "assay_1",
-            "profile": "production",
+            "asp_id": "assay_1",
+            "environment": "production",
             "omics_layer": "dna",
             "vcf_files": str(vcf_path),
         }
@@ -909,11 +920,11 @@ def test_parse_yaml_payload():
         invalidate_variant_cache=lambda: None,
         invalidate_summary_cache=lambda: None,
     )
-    parsed = service.parse_yaml_payload("name: S1\nassay: A\ndatabase_versions:\n  vep: '110'\n")
+    parsed = service.parse_yaml_payload("name: S1\nasp_id: A\ndatabase_versions:\n  vep: '110'\n")
     assert parsed["name"] == "S1"
     assert parsed["database_versions"]["vep"] == "110"
     parsed = service.parse_yaml_payload(
-        "name: S1\nassay: A\ncontrol_id: 'null'\ncontrol_reads: n/a\ncase_purity: NONE\n"
+        "name: S1\nasp_id: A\ncontrol_id: 'null'\ncontrol_reads: n/a\ncase_purity: NONE\n"
     )
     assert parsed["control_id"] is None
     assert parsed["control_reads"] is None
@@ -1138,7 +1149,7 @@ def test_update_payload_guard_and_meta_update(monkeypatch):
             payload={"name": "S1", "vcf_files": "/tmp/a.vcf"},
         )
 
-    sample_col = _Col([{"_id": "id1", "name": "S1", "assay": "A", "x": 1}])
+    sample_col = _Col([{"_id": "id1", "name": "S1", "asp_id": "A", "x": 1}])
     stub = _store_stub()
     stub.sample_repository = _Handler(sample_col)
     service = _use_store(monkeypatch, stub)
@@ -1146,15 +1157,15 @@ def test_update_payload_guard_and_meta_update(monkeypatch):
     service._update_meta_fields(
         sample_id="id1",
         payload_meta={"name": "S1", "x": 2, "new_key": 3},
-        block_fields={"assay"},
+        block_fields={"asp_id"},
     )
     assert sample_col.updated
 
     with pytest.raises(ValueError):
         service._update_meta_fields(
             sample_id="id1",
-            payload_meta={"assay": "B"},
-            block_fields={"assay"},
+            payload_meta={"asp_id": "B"},
+            block_fields={"asp_id"},
         )
 
 
@@ -1165,9 +1176,9 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
             {
                 "_id": sample_id,
                 "name": "S1",
-                "assay": "assay_1",
-                "subpanel": "Hem",
-                "profile": "production",
+                "asp_id": "assay_1",
+                "subpanel_id": "Hem",
+                "environment": "production",
                 "case_id": "seed_case",
                 "sample_no": 1,
                 "sequencing_scope": "panel",
@@ -1186,9 +1197,9 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
         "_prepare_update_payload",
         lambda sample_doc, payload: {
             "name": payload["name"],
-            "assay": "assay_1",
-            "subpanel": "Hem",
-            "profile": "production",
+            "asp_id": "assay_1",
+            "subpanel_id": "Hem",
+            "environment": "production",
             "case_id": "seed_case",
             "sample_no": 1,
             "sequencing_scope": "panel",
@@ -1217,9 +1228,9 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
     monkeypatch.setattr(service, "_ingest_update", lambda _: {"status": "ok"})
     update_payload = {
         "name": "S1",
-        "assay": "assay_1",
-        "subpanel": "Hem",
-        "profile": "production",
+        "asp_id": "assay_1",
+        "subpanel_id": "Hem",
+        "environment": "production",
         "case_id": "seed_case",
         "sample_no": 1,
         "sequencing_scope": "panel",
@@ -1237,6 +1248,7 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     stub.sample_repository = _Handler(sample_col)
     service = _use_store(monkeypatch, stub, new_sample_id="507f1f77bcf86cd799439017")
     monkeypatch.setattr(service, "_validate_declared_file_resources", lambda _payload: set())
+    monkeypatch.setattr(service, "_apply_resolved_aspc_snapshot", lambda payload: payload)
     monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": []})
     monkeypatch.setattr(service, "_next_unique_name", lambda *_: "S1")
     monkeypatch.setattr(service, "_write_dependents", lambda **_: {"snvs": 0})
@@ -1244,15 +1256,15 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     class _Valid:
         def model_dump(self, *args, **kwargs):
             _ = args, kwargs
-            return {"name": "S1", "assay": "A", "case_id": "C", "sample_no": 1}
+            return {"name": "S1", "asp_id": "A", "case_id": "C", "sample_no": 1}
 
     monkeypatch.setattr(ingest.SamplesDoc, "model_validate", lambda _: _Valid())
     monkeypatch.setattr(
-        ingest, "build_sample_meta_dict", lambda _: {"assay": "A", "case_id": "C", "sample_no": 1}
+        ingest, "build_sample_meta_dict", lambda _: {"asp_id": "A", "case_id": "C", "sample_no": 1}
     )
 
     out = service.ingest_sample_bundle(
-        {"name": "S1", "assay": "A", "omics_layer": "dna"}, allow_update=False
+        {"name": "S1", "asp_id": "A", "omics_layer": "dna"}, allow_update=False
     )
     assert out["status"] == "ok"
 
@@ -1263,7 +1275,7 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     monkeypatch.setattr(service, "_cleanup", lambda _sid: cleaned.update(called=True))
     with pytest.raises(RuntimeError):
         service.ingest_sample_bundle(
-            {"name": "S2", "assay": "A", "omics_layer": "dna"}, allow_update=False
+            {"name": "S2", "asp_id": "A", "omics_layer": "dna"}, allow_update=False
         )
     assert cleaned["called"]
 
@@ -1287,6 +1299,7 @@ def test_ingest_sample_bundle_stages_loading_then_marks_ready(monkeypatch):
     stub.sample_repository = _Handler(sample_col)
     service = _use_store(monkeypatch, stub, new_sample_id="507f1f77bcf86cd799439019")
     monkeypatch.setattr(service, "_validate_declared_file_resources", lambda _payload: set())
+    monkeypatch.setattr(service, "_apply_resolved_aspc_snapshot", lambda payload: payload)
     monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": []})
     monkeypatch.setattr(service, "_next_unique_name", lambda *_: "S3")
     monkeypatch.setattr(service, "_write_dependents", lambda **_: {"snvs": 0})
@@ -1304,14 +1317,14 @@ def test_ingest_sample_bundle_stages_loading_then_marks_ready(monkeypatch):
         ingest,
         "build_sample_meta_dict",
         lambda payload: {
-            "assay": payload.get("assay", "A"),
+            "asp_id": payload.get("asp_id", "A"),
             "case_id": payload.get("case_id", "C"),
             "sample_no": payload.get("sample_no", 1),
         },
     )
 
     out = service.ingest_sample_bundle(
-        {"name": "S3", "assay": "A", "case_id": "C", "sample_no": 1},
+        {"name": "S3", "asp_id": "A", "case_id": "C", "sample_no": 1},
         allow_update=False,
     )
 
@@ -1329,21 +1342,25 @@ def test_ingest_sample_bundle_initializes_sample_filters_from_aspc(monkeypatch):
     stub.coyote_db["asp_configs"].docs = [
         {
             "asp_id": "assay_1",
-            "subpanel_id": "base",
+            "subpanel_id": "hem",
             "environment": "production",
             "is_active": True,
             "asp_category": "dna",
+            "analysis_intents": ["somatic"],
             "filters": {
-                "max_freq": 1,
-                "min_freq": 0,
-                "max_control_freq": 0.05,
-                "max_popfreq": 0.05,
-                "min_depth": 100,
-                "min_alt_reads": 5,
-                "snvlists": ["hematology_myeloid"],
-                "vep_consequences": ["missense"],
-                "cnveffects": ["gain", "loss"],
-                "cnvlists": [],
+                "somatic": {
+                    "snv": {
+                        "max_freq": 1,
+                        "min_freq": 0,
+                        "max_control_freq": 0.05,
+                        "max_popfreq": 0.05,
+                        "min_depth": 100,
+                        "min_alt_reads": 5,
+                        "snvlists": ["hematology_myeloid"],
+                        "vep_consequences": ["missense"],
+                    },
+                    "cnv": {"cnveffects": ["gain", "loss"], "cnvlists": []},
+                }
             },
             "reporting": {"report_sections": ["SNV"]},
         }
@@ -1357,9 +1374,9 @@ def test_ingest_sample_bundle_initializes_sample_filters_from_aspc(monkeypatch):
     out = service.ingest_sample_bundle(
         {
             "name": "S1",
-            "assay": "assay_1",
-            "subpanel": "Hem",
-            "profile": "production",
+            "asp_id": "assay_1",
+            "subpanel_id": "hem",
+            "environment": "production",
             "case_id": "seed_case",
             "sample_no": 1,
             "sequencing_scope": "panel",
@@ -1374,6 +1391,6 @@ def test_ingest_sample_bundle_initializes_sample_filters_from_aspc(monkeypatch):
 
     assert out["status"] == "ok"
     inserted = sample_col.inserted_one[-1]
-    assert inserted["filters"]["snv"]["snvlists"] == ["hematology_myeloid"]
-    assert inserted["filters"]["snv"]["vep_consequences"] == ["missense"]
-    assert inserted["filters"]["cnv"]["cnveffects"] == ["gain", "loss"]
+    assert inserted["filters"]["somatic"]["snv"]["snvlists"] == ["hematology_myeloid"]
+    assert inserted["filters"]["somatic"]["snv"]["vep_consequences"] == ["missense"]
+    assert inserted["filters"]["somatic"]["cnv"]["cnveffects"] == ["gain", "loss"]

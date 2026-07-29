@@ -21,15 +21,15 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
     monkeypatch.setattr(
         service.sample_repository,
         "get_dashboard_sample_rollup",
-        lambda assays: (
-            captured_calls.append(assays)
+        lambda asp_ids: (
+            captured_calls.append(asp_ids)
             or {
-                "total_samples": 10 if assays is None else 3,
-                "analysed_samples": 8 if assays is None else 2,
-                "pending_samples": 2 if assays is None else 1,
+                "total_samples": 10 if asp_ids is None else 3,
+                "analysed_samples": 8 if asp_ids is None else 2,
+                "pending_samples": 2 if asp_ids is None else 1,
                 "user_samples_stats": {
                     "WGS": {
-                        "total": 999 if assays is None else len(assays),
+                        "total": 999 if asp_ids is None else len(asp_ids),
                         "analysed": 1,
                         "pending": 0,
                     }
@@ -145,13 +145,13 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
     monkeypatch.setattr(
         service.sample_repository,
         "get_dashboard_sample_rollup",
-        lambda assays: (
-            captured["calls"].append(assays)
+        lambda asp_ids: (
+            captured["calls"].append(asp_ids)
             or {
-                "total_samples": 10 if assays is None else 1,
-                "analysed_samples": 9 if assays is None else 1,
-                "pending_samples": 1 if assays is None else 0,
-                "user_samples_stats": {"rna-fusion": {"total": 1, "analysed": 1, "pending": 0}},
+                "total_samples": 10 if asp_ids is None else 1,
+                "analysed_samples": 9 if asp_ids is None else 1,
+                "pending_samples": 1 if asp_ids is None else 0,
+                "user_samples_stats": {"rna_panel": {"total": 1, "analysed": 1, "pending": 0}},
                 "sample_stats": {"profiles": {"production": 10}},
             }
         ),
@@ -159,7 +159,7 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
     monkeypatch.setattr(
         service.assay_panel_repository,
         "resolve_active_asp_ids_for_scope",
-        lambda assays, groups: ["myeloid_gmsv1"] if "myeloid" in groups else [],
+        lambda asp_ids, groups: ["myeloid_gmsv1"] if "myeloid" in groups else [],
     )
     monkeypatch.setattr(
         service.variant_repository,
@@ -214,23 +214,23 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
     user = fx.api_user()
     user.role = "user"
     user.roles = ["user"]
-    user.assays = ["rna-fusion"]
-    user.assay_groups = ["myeloid"]
+    user.asp_ids = ["rna_panel"]
+    user.asp_groups = ["myeloid"]
     monkeypatch.setattr(
         service.user_repository,
         "user_with_id",
         lambda _id: {
             "role": "user",
             "roles": ["user"],
-            "assays": ["rna-fusion"],
-            "assay_groups": ["myeloid"],
+            "asp_ids": ["rna_panel"],
+            "asp_groups": ["myeloid"],
         },
     )
     payload = dashboard.dashboard_summary(user=user, service=service)
 
     scoped_assays = captured["calls"][1]
     assert captured["calls"][0] is None
-    assert "rna-fusion" in scoped_assays
+    assert "rna_panel" in scoped_assays
     assert "myeloid_gmsv1" in scoped_assays
     assert payload["dashboard_meta"]["scope_assays"] == scoped_assays
     assert payload["total_samples"] == 10
@@ -254,8 +254,8 @@ def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
     monkeypatch.setattr(
         service.sample_repository,
         "get_dashboard_sample_rollup",
-        lambda assays: (
-            captured["calls"].append(assays)
+        lambda asp_ids: (
+            captured["calls"].append(asp_ids)
             or {
                 "total_samples": 2,
                 "analysed_samples": 1,
@@ -317,8 +317,8 @@ def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
 
     user = fx.api_user()
     user.role = "admin"
-    user.assays = ["solid_gmsv3"]
-    user.assay_groups = ["solid"]
+    user.asp_ids = ["solid_gmsv3"]
+    user.asp_groups = ["solid"]
     monkeypatch.setattr(
         service.user_repository,
         "user_with_id",

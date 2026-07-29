@@ -21,10 +21,6 @@ wts = "wts"
 options = ["production", "development", "testing", "validation"]
 default = "production"
 
-[sequencing]
-platforms = ["illumina", "pacbio", "nanopore", "iontorrent"]
-read_modes = ["SE", "PE"]
-
 [authentication]
 providers = ["local", "ldap"]
 
@@ -40,24 +36,6 @@ required_aspc_fields = [
   "general_report_summary",
   "plots_path",
   "report_folder",
-]
-
-[permissions]
-categories = [
-  "Analysis Actions",
-  "Assay Configuration Management",
-  "Assay Panel Management",
-  "Audit & Monitoring",
-  "Data Downloads",
-  "Gene List Management",
-  "Permission Policy Management",
-  "Reports",
-  "Role Management",
-  "Sample Management",
-  "Schema Management",
-  "User Management",
-  "Variant Curation",
-  "Visualization",
 ]
 
 [files.dna]

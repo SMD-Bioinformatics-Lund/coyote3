@@ -151,12 +151,16 @@ def ingest_update(service: Any, payload: dict[str, Any]) -> dict[str, Any]:
         )
         if default_context is not None:
             merged_doc["filters"] = sample_filters_from_aspc_filters(
-                default_context["filters"], merged_doc.get("omics_layer", "dna")
+                default_context["filters"],
+                merged_doc.get("omics_layer", "dna"),
+                analysis_intents=(default_context.get("aspc") or {}).get("analysis_intents"),
             )
             aspc = default_context.get("aspc") or {}
+            merged_doc["analysis_intents"] = aspc.get("analysis_intents") or ["somatic"]
             merged_doc["current_aspc_id"] = aspc.get("_id")
             merged_doc["current_aspc_key"] = aspc.get("aspc_id")
             merged_doc["current_aspc_version"] = aspc.get("version")
+            merged_doc["aspc_resolution"] = default_context.get("aspc_resolution")
     if uploaded_checksums:
         existing_checksums = _normalize_uploaded_checksums(
             current_doc.get("uploaded_file_checksums", {})
@@ -184,7 +188,7 @@ def ingest_update(service: Any, payload: dict[str, Any]) -> dict[str, Any]:
         service,
         sample_id=sample_id,
         payload_meta=build_sample_meta_dict(validated_merged.model_dump(exclude_none=True)),
-        block_fields={"assay"},
+        block_fields={"asp_id"},
     )
 
     service._sample_collection().update_one(

@@ -18,9 +18,18 @@ def merge_sample_settings_with_assay_config(sample_doc: dict, assay_config_doc: 
     sample_filters = sample_doc.get("filters", {})
     omics_layer = str(sample_doc.get("omics_layer") or "dna")
     sample_doc["filters"] = (
-        normalize_sample_filters(deepcopy(sample_filters), omics_layer=omics_layer)
+        normalize_sample_filters(
+            deepcopy(sample_filters),
+            omics_layer=omics_layer,
+            analysis_intents=sample_doc.get("analysis_intents"),
+            canonical=True,
+        )
         if sample_filters
-        else sample_filters_from_aspc_filters(filters_config, omics_layer)
+        else sample_filters_from_aspc_filters(
+            filters_config,
+            omics_layer,
+            analysis_intents=sample_doc.get("analysis_intents"),
+        )
     )
     sample_doc.pop("use_diagnosis_genelist", None)
     return sample_doc
@@ -111,6 +120,14 @@ def format_assay_config(config: dict | None, schema: dict | None) -> dict:
         existing_filters = {}
     if not isinstance(existing_report, dict):
         existing_report = {}
+
+    # Intent-aware profiles are already canonical. Form schemas may describe
+    # individual fields for presentation, but must never flatten or discard
+    # the persisted somatic/germline grouping.
+    if any(intent in existing_filters for intent in ("somatic", "germline")):
+        config["filters"] = existing_filters
+        config["reporting"] = existing_report
+        return config
 
     config_filters = {}
     config_report = {}
@@ -215,7 +232,7 @@ def create_assay_group_map(assay_groups_panels: list) -> dict:
             assay_group_map[group] = []
         assay_group_map[group].append(
             {
-                "assay_name": assay.get("assay_name"),
+                "asp_id": assay.get("asp_id"),
                 "display_name": assay.get("display_name"),
                 "asp_category": assay.get("asp_category"),
             }
@@ -224,12 +241,18 @@ def create_assay_group_map(assay_groups_panels: list) -> dict:
 
 
 def get_sample_effective_genes(
-    sample: dict, asp_doc: dict, checked_gl_dict: dict, target: str = "snv"
+    sample: dict,
+    asp_doc: dict,
+    checked_gl_dict: dict,
+    target: str = "snv",
+    intent: str = "somatic",
 ) -> tuple:
     """Return covered genelist details and effective filter genes for a sample target."""
     sample_filters = normalize_sample_filters(
         sample.get("filters"),
         omics_layer=str(sample.get("omics_layer") or "dna"),
+        analysis_intents=sample.get("analysis_intents"),
+        intent=intent,
     )
     section = "fusion" if target == "fusion" else target
     target_filters = sample_filters.get(section) or {}

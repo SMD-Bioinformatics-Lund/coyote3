@@ -34,7 +34,7 @@ def test_variant_search_includes_hgvsp_hgvsc_and_genomic_aliases():
         search_str="p.Arg248Gln",
         search_mode="variant",
         include_annotation_text=False,
-        assays=["hema_GMSv1"],
+        asp_ids=["hema_gmsv1"],
     )
 
     assert query is not None
@@ -49,7 +49,7 @@ def test_variant_search_includes_hgvsp_hgvsc_and_genomic_aliases():
     assert {"$or": [{"text": {"$exists": False}}, {"text": None}, {"text": ""}]} in _and_parts(
         query
     )
-    assert {"assay": {"$in": ["hema_GMSv1"]}} in _and_parts(query)
+    assert {"assay": {"$in": ["hema_gmsv1"]}} in _and_parts(query)
 
 
 def test_annotation_text_mode_does_not_exclude_text_documents():
@@ -89,7 +89,7 @@ def test_variant_search_uses_entered_regex_pattern_and_ignores_empty_assays():
         search_str="p\\.",
         search_mode="variant",
         include_annotation_text=False,
-        assays=[],
+        asp_ids=[],
     )
 
     assert query is not None
@@ -125,14 +125,14 @@ def test_reported_variant_search_includes_report_snapshot_identity_fields():
     query = _reported_variant_search_query(
         search_str="DNMT3A",
         search_mode="variant",
-        assays=["hema_GMSv1"],
+        asp_ids=["hema_gmsv1"],
     )
 
     assert query is not None
     fields = _or_fields(query)
     assert {"variant", "hgvsp", "hgvsc", "simple_id"}.issubset(fields)
     assert {
-        "$or": [{"assay": {"$in": ["hema_GMSv1"]}}, {"assay_group": {"$in": ["hema_GMSv1"]}}]
+        "$or": [{"assay": {"$in": ["hema_gmsv1"]}}, {"assay_group": {"$in": ["hema_gmsv1"]}}]
     } in _and_parts(query)
 
 
@@ -140,7 +140,7 @@ def test_reported_variant_gene_search_includes_snapshot_gene_aliases():
     query = _reported_variant_search_query(
         search_str="TP53",
         search_mode="gene",
-        assays=["hema_GMSv1"],
+        asp_ids=["hema_gmsv1"],
     )
 
     assert query is not None
@@ -156,7 +156,7 @@ def test_reported_variant_gene_search_includes_snapshot_gene_aliases():
         "variant_data.INFO.selected_CSQ.SYMBOL",
     }.issubset(fields)
     assert {
-        "$or": [{"assay": {"$in": ["hema_GMSv1"]}}, {"assay_group": {"$in": ["hema_GMSv1"]}}]
+        "$or": [{"assay": {"$in": ["hema_gmsv1"]}}, {"assay_group": {"$in": ["hema_gmsv1"]}}]
     } in _and_parts(query)
 
 

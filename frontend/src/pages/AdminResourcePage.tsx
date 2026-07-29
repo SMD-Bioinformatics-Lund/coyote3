@@ -250,7 +250,7 @@ function defaultAdminFields(resourceKey: string) {
     permissions: ["permission_id", "label", "category", "description", "tags", "is_active", "version", "updated_on"],
     asp: ["asp_id", "display_name", "asp_category", "asp_group", "asp_family", "platform", "is_active", "version", "updated_on"],
     aspc: ["aspc_id", "asp_id", "subpanel_id", "environment", "asp_category", "analysis_types", "is_active", "version", "updated_on"],
-    genelists: ["isgl_id", "name", "list_type", "diagnosis", "assays", "assay_groups", "is_public", "is_active", "version", "updated_on"],
+    genelists: ["isgl_id", "name", "list_type", "diagnosis", "asp_ids", "asp_groups", "is_public", "is_active", "version", "updated_on"],
     samples: ["name", "case_id", "control_id", "assay", "subpanel", "profile", "ingest_status", "time_added"],
     generic: ["name", "username", "email", "role_id", "permission_id", "asp_id", "aspc_id", "is_active", "updated_on"],
   }
@@ -311,8 +311,8 @@ function adminCell(field: string, row: any, context?: { roleColors?: Record<stri
     const label = String(value || "")
     return label ? <ValueBadge value={label} /> : <span className="text-muted-foreground">-</span>
   }
-  if (["permissions", "tags", "assays", "assay_groups", "analysis_types"].includes(field)) {
-    const kind = field === "assay_groups" ? "assay_group" : field === "analysis_types" ? "analysis" : undefined
+  if (["permissions", "tags", "asp_ids", "asp_groups", "analysis_types"].includes(field)) {
+    const kind = field === "asp_groups" ? "assay_group" : field === "analysis_types" ? "analysis" : undefined
     return <MiniBadges values={value} max={field === "permissions" ? 5 : 4} kind={kind} />
   }
   if (typeof value === "boolean") return <StatusBadge value={value} />
@@ -535,13 +535,36 @@ function StructuredObjectField({
   formValues?: Record<string, any>
 }) {
   const objectValue = value && typeof value === "object" && !Array.isArray(value) ? value : {}
+  const valueAtPath = (source: Record<string, any>, path: string) => path.split(".").reduce<any>((current, key) => (
+    current && typeof current === "object" ? current[key] : undefined
+  ), source)
+  const setAtPath = (source: Record<string, any>, path: string, nextValue: any) => {
+    const keys = path.split(".")
+    const next = structuredClone(source)
+    let target: Record<string, any> = next
+    keys.slice(0, -1).forEach((key) => {
+      const current = target[key]
+      target[key] = current && typeof current === "object" && !Array.isArray(current) ? { ...current } : {}
+      target = target[key]
+    })
+    target[keys[keys.length - 1]] = nextValue
+    return next
+  }
+  const selectedAnalyses = new Set(normalizeList(formValues?.analysis_types).map((item) => item.toUpperCase()))
+  const selectedIntents = new Set(normalizeList(formValues?.analysis_intents || ["somatic"]).map((item) => item.toLowerCase()))
   return (
     <div className="space-y-3 rounded-lg border border-border bg-background/60 p-3">
-      {(field.groups || []).map((group) => (
+      {(field.groups || []).filter((group: any) => (
+        (!group.requires_analysis || normalizeList(group.requires_analysis).some((item) => selectedAnalyses.has(item.toUpperCase())))
+        && (!group.requires_intent || normalizeList(group.requires_intent).some((item) => selectedIntents.has(item.toLowerCase())))
+      )).map((group) => (
         <div key={group.title} className="space-y-2">
           <h4 className="text-xs font-bold uppercase text-muted-foreground">{group.title}</h4>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {group.fields.map((nested) => {
+            {group.fields.filter((nested: any) => (
+              (!nested.requires_analysis || normalizeList(nested.requires_analysis).some((item) => selectedAnalyses.has(item.toUpperCase())))
+              && (!nested.requires_intent || normalizeList(nested.requires_intent).some((item) => selectedIntents.has(item.toLowerCase())))
+            )).map((nested) => {
               const nestedField: FormField = {
                 ...nested,
                 display_type:
@@ -568,9 +591,9 @@ function StructuredObjectField({
                   key={nested.key}
                   name={nested.key}
                   field={nestedField}
-                  value={objectValue[nested.key] ?? nested.default ?? defaultForField(nestedField)}
+                  value={valueAtPath(objectValue, nested.key) ?? nested.default ?? defaultForField(nestedField)}
                   mode="edit"
-                  onChange={(nextValue) => onChange({ ...objectValue, [nested.key]: nextValue })}
+                  onChange={(nextValue) => onChange(setAtPath(objectValue, nested.key, nextValue))}
                   disabled={disabled}
                   compact
                   formValues={formValues}
@@ -617,10 +640,14 @@ function FormControl({
       </label>
     )
   } else if (field.display_type === "select") {
+    const dependentOptions = field.options_by_field
+      ? field.options_by_field.values[String(formValues?.[field.options_by_field.field] || "").toLowerCase()] || []
+      : null
+    const options = dependentOptions ?? field.options ?? []
     control = (
-      <select value={String(value ?? "")} disabled={readOnly} onChange={(event) => onChange(event.target.value)} className={commonClass}>
-        <option value="">Select...</option>
-        {(field.options || []).map((option) => {
+      <select value={String(value ?? "")} disabled={readOnly || (field.options_by_field !== undefined && !options.length)} onChange={(event) => onChange(event.target.value)} className={commonClass}>
+        <option value="">{field.options_by_field && !options.length ? "Not applicable" : "Select..."}</option>
+        {options.map((option) => {
           const value = optionValue(option)
           return <option key={value} value={value}>{optionLabel(option) || value}</option>
         })}

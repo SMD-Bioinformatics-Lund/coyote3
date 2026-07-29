@@ -237,18 +237,17 @@ def _known_assays(seed: dict[str, Any]) -> set[str]:
     assays: set[str] = set()
     for doc in seed.get("asp_configs", []):
         if isinstance(doc, dict):
-            name = _norm(doc.get("asp_id") or doc.get("assay_name") or "")
+            name = _norm(doc.get("asp_id") or "")
             if name:
                 assays.add(name)
     for doc in seed.get("assay_specific_panels", []):
         if isinstance(doc, dict):
-            for key in ("asp_id", "assay_name"):
-                value = _norm(doc.get(key, ""))
-                if value:
-                    assays.add(value)
+            value = _norm(doc.get("asp_id", ""))
+            if value:
+                assays.add(value)
     for doc in seed.get("insilico_genelists", []):
         if isinstance(doc, dict):
-            for assay in doc.get("assays", []) or []:
+            for assay in doc.get("asp_ids", []) or []:
                 value = _norm(assay)
                 if value:
                     assays.add(value)
@@ -265,7 +264,7 @@ def _known_assay_groups(seed: dict[str, Any]) -> set[str]:
                     groups.add(value)
     for doc in seed.get("insilico_genelists", []):
         if isinstance(doc, dict):
-            for group in doc.get("assay_groups", []) or []:
+            for group in doc.get("asp_groups", []) or []:
                 value = _norm(group)
                 if value:
                     groups.add(value)
@@ -278,24 +277,18 @@ def _collect_references(seed: dict[str, Any]) -> tuple[set[str], set[str]]:
 
     for doc in seed.get("samples", []):
         if isinstance(doc, dict):
-            value = _norm(doc.get("assay", ""))
-            if value:
-                assays.add(value)
-
-    for doc in seed.get("blacklist", []):
-        if isinstance(doc, dict):
-            value = _norm(doc.get("assay", ""))
+            value = _norm(doc.get("asp_id", ""))
             if value:
                 assays.add(value)
 
     for doc in seed.get("insilico_genelists", []):
         if not isinstance(doc, dict):
             continue
-        for assay in doc.get("assays", []) or []:
+        for assay in doc.get("asp_ids", []) or []:
             value = _norm(assay)
             if value:
                 assays.add(value)
-        for group in doc.get("assay_groups", []) or []:
+        for group in doc.get("asp_groups", []) or []:
             value = _norm(group)
             if value:
                 groups.add(value)
@@ -313,12 +306,12 @@ def _validate_lowercase_business_ids(seed: dict[str, Any]) -> list[str]:
     field_rules: dict[str, tuple[str, ...]] = {
         "permissions": ("permission_id",),
         "roles": ("role_id",),
-        "users": ("username", "email", "roles", "assay_groups", "assays"),
+        "users": ("username", "email", "roles", "asp_groups", "asp_ids"),
         "asp_configs": ("aspc_id", "asp_id", "subpanel_id", "asp_group"),
-        "assay_specific_panels": ("asp_id", "assay_name", "asp_group"),
-        "insilico_genelists": ("isgl_id", "diagnosis", "assay_groups", "assays"),
+        "assay_specific_panels": ("asp_id", "asp_group"),
+        "insilico_genelists": ("isgl_id", "diagnosis", "asp_groups", "asp_ids"),
         "blacklist": ("assay_group", "assay"),
-        "samples": ("assay", "subpanel_id"),
+        "samples": ("asp_id", "subpanel_id"),
     }
 
     def _append_error(collection: str, idx: int, field: str, value: str) -> None:
@@ -350,7 +343,7 @@ def _collect_assay_group_map(seed: dict[str, Any]) -> dict[str, set[str]]:
         for doc in seed.get(collection, []):
             if not isinstance(doc, dict):
                 continue
-            assay = _norm(doc.get("assay_name") or doc.get("asp_id") or "")
+            assay = _norm(doc.get("asp_id") or "")
             group = _norm(doc.get("asp_group", ""))
             if assay and group:
                 mapping.setdefault(assay, set()).add(group)
@@ -427,15 +420,15 @@ def _validate_isgl(
         if not isinstance(doc, dict):
             errors.append(f"insilico_genelists[{idx}] must be an object")
             continue
-        assays = [_norm(a) for a in (doc.get("assays", []) or []) if _norm(a)]
-        groups = [_norm(g) for g in (doc.get("assay_groups", []) or []) if _norm(g)]
+        assays = [_norm(a) for a in (doc.get("asp_ids", []) or []) if _norm(a)]
+        groups = [_norm(g) for g in (doc.get("asp_groups", []) or []) if _norm(g)]
         if "is_active" not in doc or not isinstance(doc.get("is_active"), bool):
             errors.append(f"insilico_genelists[{idx}] must include boolean is_active")
 
         if not assays:
-            errors.append(f"insilico_genelists[{idx}] has empty assays list")
+            errors.append(f"insilico_genelists[{idx}] has empty asp_ids list")
         if not groups:
-            errors.append(f"insilico_genelists[{idx}] has empty assay_groups list")
+            errors.append(f"insilico_genelists[{idx}] has empty asp_groups list")
 
         for assay in assays:
             if assay not in known_assays:
@@ -503,10 +496,10 @@ def _validate_bootstrap_dependencies(seed: dict[str, Any]) -> list[str]:
             normalized_role = _norm(role)
             if normalized_role and normalized_role not in role_ids:
                 errors.append(f"users[{idx}] references unknown role '{normalized_role}'")
-        for group in user_doc.get("assay_groups", []) or []:
+        for group in user_doc.get("asp_groups", []) or []:
             if _norm(group) and _norm(group) not in assay_groups:
                 errors.append(f"users[{idx}] references unknown assay_group '{_norm(group)}'")
-        for assay in user_doc.get("assays", []) or []:
+        for assay in user_doc.get("asp_ids", []) or []:
             if _norm(assay) and _norm(assay) not in assays:
                 errors.append(f"users[{idx}] references unknown assay '{_norm(assay)}'")
 

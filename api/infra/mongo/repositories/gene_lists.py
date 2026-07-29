@@ -13,6 +13,7 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 import re
 
+from api.config.constants import normalize_clinical_identifier
 from api.contracts.operations import OperationResult
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
@@ -28,7 +29,7 @@ class ISGLRepository(BaseRepository):
     This class provides a comprehensive interface for managing gene panel data in the database.
     It supports operations such as retrieving, inserting, updating, and deleting gene panel records.
     Additionally, it includes methods for performing advanced queries, filtering, and calculations
-    related to gene asp, assays, diagnoses, and associated metadata.
+    related to gene asp, asp_ids, diagnoses, and associated metadata.
     """
 
     def __init__(self, adapter):
@@ -63,8 +64,10 @@ class ISGLRepository(BaseRepository):
             name="active_public_adhoc_created_on",
             background=True,
         )
-        col.create_index([("assays", 1)], name="assays_1", background=True)
-        col.create_index([("assay_groups", 1)], name="assay_groups_1", background=True)
+        if "assays_1" in existing:
+            col.drop_index("assays_1")
+        col.create_index([("asp_ids", 1)], name="asp_ids_1", background=True)
+        col.create_index([("asp_groups", 1)], name="asp_groups_1", background=True)
         col.create_index([("diagnosis", 1)], name="diagnosis_1", background=True)
         col.create_index([("list_type", 1)], name="list_type_1", background=True)
 
@@ -80,8 +83,7 @@ class ISGLRepository(BaseRepository):
         """
         if isgl_id is None:
             return None
-        normalized = str(isgl_id).strip()
-        return normalized or None
+        return normalize_clinical_identifier(isgl_id, label="isgl_id")
 
     def _isgl_lookup_query(self, isgl_id: str) -> dict:
         """Isgl lookup query.
@@ -190,8 +192,8 @@ class ISGLRepository(BaseRepository):
                 {"description": {"$regex": pattern, "$options": "i"}},
                 {"list_type": {"$regex": pattern, "$options": "i"}},
                 {"diagnosis": {"$regex": pattern, "$options": "i"}},
-                {"assays": {"$regex": pattern, "$options": "i"}},
-                {"assay_groups": {"$regex": pattern, "$options": "i"}},
+                {"asp_ids": {"$regex": pattern, "$options": "i"}},
+                {"asp_groups": {"$regex": pattern, "$options": "i"}},
             ]
         page = max(1, int(page or 1))
         per_page = max(1, min(int(per_page or 30), 200))
@@ -339,12 +341,12 @@ class ISGLRepository(BaseRepository):
         Aggregate ISGL association counts by ASP id for dashboard charts.
         """
         pipeline = [
-            {"$match": {"assays": {"$exists": True, "$type": "array", "$ne": []}}},
-            {"$unwind": "$assays"},
-            {"$match": {"assays": {"$type": "string", "$ne": ""}}},
+            {"$match": {"asp_ids": {"$exists": True, "$type": "array", "$ne": []}}},
+            {"$unwind": "$asp_ids"},
+            {"$match": {"asp_ids": {"$type": "string", "$ne": ""}}},
             {
                 "$group": {
-                    "_id": "$assays",
+                    "_id": "$asp_ids",
                     "isgl_total": {"$sum": 1},
                     "public_count": {"$sum": {"$cond": [{"$eq": ["$is_public", True]}, 1, 0]}},
                     "private_count": {
@@ -368,13 +370,13 @@ class ISGLRepository(BaseRepository):
         asp_map = {
             str(doc.get("asp_id")): {
                 "display_name": str(
-                    doc.get("display_name") or doc.get("assay_name") or doc.get("asp_id") or ""
+                    doc.get("display_name") or doc.get("asp_id") or doc.get("asp_id") or ""
                 ),
                 "asp_group": str(doc.get("asp_group") or ""),
             }
             for doc in self.adapter.asp_collection.find(
                 {"asp_id": {"$in": assay_ids}},
-                {"_id": 0, "asp_id": 1, "display_name": 1, "assay_name": 1, "asp_group": 1},
+                {"_id": 0, "asp_id": 1, "display_name": 1, "asp_group": 1},
             )
         }
         assay_rows = []
@@ -436,29 +438,6 @@ class ISGLRepository(BaseRepository):
         invalidate_dashboard_summary_cache(self.adapter)
         return operation
 
-    def rotate_isgl(
-        self, isgl_id: str, replacement: dict, retire_fields: dict | None = None
-    ) -> OperationResult:
-        """Retire the active ISGL document and insert a new active version."""
-        replacement_doc = self.ensure_isgl_id(dict(replacement))
-        replacement_doc.pop("_id", None)
-        replacement_doc["is_active"] = True
-        retire_payload = {"is_active": False, **(retire_fields or {})}
-        query = {**self._isgl_lookup_query(isgl_id), "is_active": True}
-        update_result = self.get_collection().update_one(query, {"$set": retire_payload})
-        if update_result.matched_count == 0:
-            return OperationResult.from_update(update_result)
-        try:
-            insert_result = self.get_collection().insert_one(replacement_doc)
-        except Exception:
-            self.get_collection().update_one(
-                {**self._isgl_lookup_query(isgl_id), "is_active": False},
-                {"$set": {"is_active": True}},
-            )
-            raise
-        invalidate_dashboard_summary_cache(self.adapter)
-        return OperationResult.from_insert_one(insert_result)
-
     def toggle_isgl_active(self, isgl_id: str, active_status: bool) -> OperationResult:
         """
         Toggle the `is_active` field for a gene list.
@@ -509,7 +488,7 @@ class ISGLRepository(BaseRepository):
         Retrieve unique diagnosis terms associated with a list of assay IDs.
 
         This method filters gene lists where any of the provided `asp_names` are included
-        in the `assays` field (a list in the database) and collects all unique diagnosis terms.
+        in the `asp_ids` field (a list in the database) and collects all unique diagnosis terms.
 
         Args:
             asp_names (list[str]): A list of assay IDs to filter gene lists by.
@@ -519,7 +498,7 @@ class ISGLRepository(BaseRepository):
         Returns:
             list[str]: A sorted list of unique diagnosis terms associated with the assay IDs.
         """
-        query = {"assays": {"$in": asp_names}}
+        query = {"asp_ids": {"$in": asp_names}}
         if is_public is not None:
             query["is_public"] = is_public
         if adhoc is not None:
@@ -535,7 +514,7 @@ class ISGLRepository(BaseRepository):
         """
         Retrieve gene symbols for a specific subpanel (diagnosis) within an assay.
 
-        Queries the database for a document where the given `asp_name` is present in the `assays` field
+        Queries the database for a document where the given `asp_name` is present in the `asp_ids` field
         and the `diagnosis` field matches the provided `subpanel`. Returns the list of gene symbols
         associated with that subpanel.
 
@@ -546,7 +525,12 @@ class ISGLRepository(BaseRepository):
         Returns:
             list[str]: List of gene symbols for the specified subpanel, or an empty list if not found.
         """
-        doc = self.get_collection().find_one({"assays": asp_name, "diagnosis": subpanel})
+        doc = self.get_collection().find_one(
+            {
+                "asp_ids": normalize_clinical_identifier(asp_name, label="asp_id"),
+                "diagnosis": subpanel,
+            }
+        )
         return doc.get("genes", []) if doc else []
 
     def get_all_subpanels(self) -> list[str]:
@@ -593,7 +577,7 @@ class ISGLRepository(BaseRepository):
 
         This method queries the database collection to determine if a gene list
         document with the specified attributes exists. The query can include
-        optional filters such as `diagnosis`, `list_type`, `assays`, and `group`.
+        optional filters such as `diagnosis`, `list_type`, `asp_ids`, and `group`.
 
         Args:
             isgl_id (str): The unique identifier of the gene list to check.
@@ -631,7 +615,7 @@ class ISGLRepository(BaseRepository):
             list[dict]: A list of dictionaries representing the gene lists that match
             the query, with selected fields excluded.
         """
-        query = {"assays": asp_name}
+        query = {"asp_ids": normalize_clinical_identifier(asp_name, label="asp_id")}
         if is_active is not None:
             query["is_active"] = is_active
         if adhoc is not None:
@@ -660,9 +644,9 @@ class ISGLRepository(BaseRepository):
         """Return active ISGLs matching either assay id or assay group."""
         scope_query = []
         if asp_name:
-            scope_query.append({"assays": asp_name})
+            scope_query.append({"asp_ids": normalize_clinical_identifier(asp_name, label="asp_id")})
         if assay_group:
-            scope_query.append({"assay_groups": assay_group})
+            scope_query.append({"asp_groups": assay_group})
         query: dict = {"$or": scope_query} if scope_query else {}
         if is_active is not None:
             query["is_active"] = is_active
@@ -706,7 +690,7 @@ class ISGLRepository(BaseRepository):
             gene lists.
         """
         query = {
-            "assays": asp_name,
+            "asp_ids": asp_name,
             "diagnosis": subpanel,
             "list_type": list_type,
         }

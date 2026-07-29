@@ -55,7 +55,7 @@ function compactVariantClass(value: unknown) {
   return variantClassShort[key] || key.toUpperCase() || "-"
 }
 
-export function VariantsTab({ sampleId }: { sampleId: string }) {
+export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "somatic" | "germline" }) {
   const bulkAction = useBulkFindingAction(sampleId, "small_variant")
   const location = useLocation()
   const {
@@ -64,7 +64,7 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
     sortParam,
     debouncedSearchText,
     tableProps,
-  } = useClinicalTableState({ prefix: "snv", tab: "snvs" })
+  } = useClinicalTableState({ prefix: `snv-${intent}`, tab: `${intent}-snvs` })
   const { data, isLoading, error } = useQuery({
     queryKey: [
       "sample-variants",
@@ -73,6 +73,7 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
       perPage,
       debouncedSearchText,
       sortParam,
+      intent,
     ],
     queryFn: () => {
       const params = new URLSearchParams({
@@ -81,6 +82,7 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
       })
       if (debouncedSearchText) params.set("q", debouncedSearchText)
       if (sortParam) params.set("sort", sortParam)
+      params.set("intent", intent)
       return api.get(`/samples/${sampleId}/small-variants?${params.toString()}`).then(res => res.data)
     },
     placeholderData: (previousData) => previousData,
@@ -377,7 +379,7 @@ export function VariantsTab({ sampleId }: { sampleId: string }) {
   ]
 
   return (
-    <div className="p-2">
+    <div className="space-y-2 p-2">
       <DataTable
         columns={columns}
         data={variants || []}

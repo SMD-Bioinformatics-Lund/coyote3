@@ -76,13 +76,13 @@ export function TieredVariantContext() {
     {
       id: "assay",
       header: "Assay",
-      accessorFn: (row) => row?.annotation?.assay || row?.assay || row?.sample?.assay || "-",
+      accessorFn: (row) => row?.annotation?.assay || row?.assay || row?.sample?.asp_id || "-",
       cell: ({ row }) => <span className="text-xs font-semibold uppercase">{String(row.getValue("assay"))}</span>,
     },
     {
       id: "subpanel",
       header: "Subpanel",
-      accessorFn: (row) => row?.annotation?.subpanel || row?.subpanel || row?.sample?.subpanel || "-",
+      accessorFn: (row) => row?.annotation?.subpanel || row?.subpanel || row?.sample?.subpanel_id || "-",
     },
     {
       id: "report",

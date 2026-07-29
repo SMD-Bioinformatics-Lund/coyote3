@@ -292,7 +292,7 @@ def create_assay_group_map(assay_groups_panels: list) -> dict:
             assay_group_map[group] = []
         assay_group_map[group].append(
             {
-                "assay_name": assay.get("assay_name"),
+                "asp_id": assay.get("asp_id"),
                 "display_name": assay.get("display_name"),
                 "asp_category": assay.get("asp_category"),
             }

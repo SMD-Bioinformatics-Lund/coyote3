@@ -204,6 +204,15 @@ class RnaService:
         Returns:
             dict[str, Any]: Fusion list payload with filters and summary data.
         """
+        if str(sample.get("omics_layer") or "").lower() != "rna":
+            raise setup_error(
+                "RNA fusion analysis is unavailable for this sample",
+                (
+                    f"Sample '{sample.get('name') or sample.get('_id')}' has omics layer "
+                    f"'{sample.get('omics_layer') or 'unknown'}'. RNA fusion analysis requires an RNA sample."
+                ),
+            )
+
         assay_config = self._get_formatted_assay_config(sample)
         if not assay_config:
             raise setup_error(
@@ -220,9 +229,9 @@ class RnaService:
         assay_group = assay_config.get("asp_group", "unknown")
         subpanel = sample.get("subpanel_id")
         assay_config_schema = build_form_spec(aspc_spec_for_category("RNA"))
-        assay_panel_doc = self.assay_panel_repository.get_asp(asp_name=sample.get("assay"))
+        assay_panel_doc = self.assay_panel_repository.get_asp(asp_name=sample.get("asp_id"))
         fusionlist_options = self.gene_list_repository.get_isgl_by_asp(
-            sample.get("assay"), is_active=True, adhoc=False, list_type="fusion"
+            sample.get("asp_id"), is_active=True, adhoc=False, list_type="fusion"
         )
         sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
         has_hidden_comments = self.sample_repository.hidden_sample_comments(sample.get("_id"))
@@ -337,7 +346,7 @@ class RnaService:
             "sample_summary": {
                 "id": str(sample.get("_id")),
                 "name": sample.get("name"),
-                "assay": sample.get("assay"),
+                "assay": sample.get("asp_id"),
                 "assay_group": assay_group,
                 "subpanel": subpanel,
             },

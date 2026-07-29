@@ -7,11 +7,11 @@ database_versions:
   vep: '110'
 sample_no: 1
 case_id: 'RNA_DEMO'
-profile: 'production'
-assay: 'assay_rna_1'
+environment: 'production'
+asp_id: 'assay_rna_1'
 sequencing_scope: 'wts'
 omics_layer: 'RNA'
-sequencing_technology: 'Illumina'
+platform: 'Illumina'
 pipeline: 'RnaFusionPipeline'
 pipeline_version: '1.0.0'
 case_ffpe: false

@@ -116,10 +116,10 @@ def user_doc() -> dict:
         "roles": ["admin", "superuser"],
         "role": "admin",
         "access_level": 99999,
-        "assays": ["WGS", "RNA_PANEL"],
-        "assay_groups": ["dna", "rna"],
+        "asp_ids": ["wgs", "rna_panel"],
+        "asp_groups": ["dna", "rna"],
         "envs": ["production"],
-        "asp_map": {"DNA": {"PANEL": {"dna": ["WGS"]}}},
+        "asp_map": {"DNA": {"PANEL": {"dna": ["wgs"]}}},
     }
     # users are sourced through roles/users collections; keep stable defaults.
     return _with_defaults(None, defaults)
@@ -144,8 +144,8 @@ def api_user() -> ApiUser:
             doc.get("permissions")
             or ["report:preview", "report:create", "role:view", "sample:edit:own"]
         ),
-        assays=list(doc.get("assays") or []),
-        assay_groups=list(doc.get("assay_groups") or []),
+        asp_ids=list(doc.get("asp_ids") or []),
+        asp_groups=list(doc.get("asp_groups") or []),
         envs=list(doc.get("envs") or []),
         asp_map=deepcopy(doc.get("asp_map") or {}),
         auth_type=list(doc.get("auth_type") or ["local"]),
@@ -164,30 +164,34 @@ def sample_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
     defaults = {
         "_id": "s1",
         "name": "SAMPLE_001",
-        "assay": "WGS",
-        "profile": "production",
+        "asp_id": "wgs",
+        "environment": "production",
         "sequencing_scope": "panel",
         "omics_layer": "dna",
         "case_id": "CASE001",
         "control_id": "CTRL001",
-        "subpanel": "myeloid",
+        "subpanel_id": "myeloid",
         "database_versions": {"vep": "110"},
         "report_num": 2,
         "reports": [{"_id": "r1", "report_id": "RID1", "report_num": 1, "time_created": 1}],
         "case": {"clarity_id": "CLARITY_CASE_001"},
         "control": {"clarity_id": "CLARITY_CTRL_001"},
+        "analysis_intents": ["somatic"],
         "filters": {
-            "max_freq": 1.0,
-            "min_freq": 0.05,
-            "max_control_freq": 0.2,
-            "min_depth": 100,
-            "min_alt_reads": 5,
-            "max_popfreq": 0.01,
-            "vep_consequences": ["missense_variant"],
-            "snvlists": ["gl1"],
-            "cnvlists": ["gl1"],
-            "fusionlists": ["gl1"],
-            "adhoc_genes": {"snv": {"label": "focus", "genes": ["TP53", "NPM1"]}},
+            "somatic": {
+                "snv": {
+                    "max_freq": 1.0,
+                    "min_freq": 0.05,
+                    "max_control_freq": 0.2,
+                    "min_depth": 100,
+                    "min_alt_reads": 5,
+                    "max_popfreq": 0.01,
+                    "vep_consequences": ["missense_variant"],
+                    "snvlists": ["gl1"],
+                    "adhoc_genes": {"label": "focus", "genes": ["TP53", "NPM1"]},
+                },
+                "cnv": {"cnvlists": ["gl1"]},
+            }
         },
     }
     doc = _latest_doc("samples_collection", prefer_dev_rna_wgs=prefer_dev_rna_wgs)

@@ -237,6 +237,11 @@ class _RepoStub:
                 )
             },
         )()
+        self.assay_panel_repository = type(
+            "_Asp",
+            (),
+            {"get_asp": staticmethod(lambda asp_id: {"asp_id": asp_id, "asp_group": "dna"})},
+        )()
 
 
 def _nomenclature(form_data: dict) -> tuple[str, str]:
@@ -304,6 +309,7 @@ def _classification_service(repo: _RepoStub) -> ResourceClassificationService:
         fusion_repository=repo.fusion_repository,
         copy_number_variant_repository=repo.copy_number_variant_repository,
         translocation_repository=repo.translocation_repository,
+        assay_panel_repository=repo.assay_panel_repository,
         assay_configuration_repository=repo.assay_configuration_repository,
     )
 
@@ -378,7 +384,7 @@ def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatc
     service = _classification_service(repo)
 
     service.set_tier_bulk(
-        sample={"_id": "S1", "assay": "assay", "profile": "production"},
+        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
         resource_type="fusion",
         resource_ids=["fus-1"],
         apply=True,
@@ -405,7 +411,7 @@ def test_resource_classification_service_generates_text_only_for_tier_three_snvs
     service = _classification_service(repo)
 
     service.set_tier_bulk(
-        sample={"_id": "S1", "assay": "assay", "profile": "production"},
+        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
         resource_type="small_variant",
         resource_ids=["var-1"],
         apply=True,
@@ -433,7 +439,7 @@ def test_resource_classification_service_does_not_generate_text_for_other_snv_ti
         raise AssertionError("Non-Tier 3 classification must not generate narrative text")
 
     service.set_tier_bulk(
-        sample={"_id": "S1", "assay": "assay", "profile": "production"},
+        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
         resource_type="small_variant",
         resource_ids=["var-1"],
         apply=True,
@@ -458,7 +464,7 @@ def test_non_tier_three_removal_does_not_delete_tier_three_narrative():
         raise AssertionError("Non-Tier 3 removal must not generate narrative text")
 
     service.set_tier_bulk(
-        sample={"_id": "S1", "assay": "assay", "profile": "production"},
+        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
         resource_type="small_variant",
         resource_ids=["var-1"],
         apply=False,
@@ -482,7 +488,12 @@ def test_resource_classification_service_supports_translocation_bulk_removal(mon
     service = _classification_service(repo)
 
     service.set_tier_bulk(
-        sample={"_id": "S1", "assay": "assay", "profile": "production", "subpanel_id": "solid"},
+        sample={
+            "_id": "S1",
+            "asp_id": "assay",
+            "environment": "production",
+            "subpanel_id": "solid",
+        },
         resource_type="translocation",
         resource_ids=["tl-1"],
         apply=False,

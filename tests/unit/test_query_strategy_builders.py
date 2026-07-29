@@ -65,3 +65,58 @@ def test_build_fusion_query_applies_base_filters() -> None:
     )
     assert "calls" in query
     assert "$or" in query
+
+
+def test_build_fusion_query_applies_thresholds_without_selected_callers() -> None:
+    """Thresholds apply directly to every call when callers are not restricted."""
+    query = build_fusion_query(
+        "wts",
+        {
+            "id": "SAMPLE_1",
+            "min_spanning_reads": "7",
+            "min_spanning_pairs": "3",
+            "fusion_effects": [],
+            "fusion_callers": [],
+            "checked_fusionlists": [],
+            "filter_genes": [],
+        },
+    )
+
+    assert query == {
+        "SAMPLE_ID": "SAMPLE_1",
+        "calls": {"$elemMatch": {"spanreads": {"$gte": 7}, "spanpairs": {"$gte": 3}}},
+    }
+
+
+def test_build_fusion_query_applies_known_list_and_arriba_pair_rule() -> None:
+    """Arriba has no spanning-pair predicate; other callers retain it."""
+    query = build_fusion_query(
+        "fusionrna",
+        {
+            "id": "SAMPLE_1",
+            "min_spanning_reads": 5,
+            "min_spanning_pairs": 2,
+            "fusion_effects": ["in-frame"],
+            "fusion_callers": ["arriba", "starfusion"],
+            "checked_fusionlists": ["FCknown", "mitelman"],
+            "filter_genes": ["KMT2A"],
+        },
+    )
+
+    call_match = query["calls"]["$elemMatch"]
+    assert call_match["effect"] == {"$in": ["in-frame"]}
+    assert call_match["desc"] == {"$regex": "known|mitelman", "$options": "i"}
+    assert call_match["$or"] == [
+        {"caller": "arriba", "spanreads": {"$gte": 5}},
+        {
+            "caller": "starfusion",
+            "spanreads": {"$gte": 5},
+            "spanpairs": {"$gte": 2},
+        },
+    ]
+    assert query["$or"] == [{"gene1": {"$in": ["KMT2A"]}}, {"gene2": {"$in": ["KMT2A"]}}]
+
+
+def test_build_fusion_query_keeps_unconfigured_groups_sample_scoped() -> None:
+    """An unsupported group never inherits fusion thresholds accidentally."""
+    assert build_fusion_query("solid", {"id": "SAMPLE_1"}) == {"SAMPLE_ID": "SAMPLE_1"}

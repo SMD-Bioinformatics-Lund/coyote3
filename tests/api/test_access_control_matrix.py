@@ -61,8 +61,8 @@ def _u(
         role=role,
         access_level=level,
         permissions=permissions or [],
-        assays=[],
-        assay_groups=[],
+        asp_ids=[],
+        asp_groups=[],
         envs=[],
         asp_map={},
         auth_type=["local"],
@@ -86,17 +86,17 @@ def test_login_provider_discovery_is_a_public_bootstrap_endpoint():
 def test_enforce_access_allows_permission_inside_resource_scope():
     """Permission grants should be constrained by assigned resource attributes."""
     user = _u(permissions=["sample:view:own"])
-    user.assays = ["hema_gmsv1"]
+    user.asp_ids = ["hema_gmsv1"]
     user.envs = ["production"]
-    user.assay_groups = ["hematology"]
+    user.asp_groups = ["hematology"]
 
     _enforce_access(
         user,
         permission="sample:view:own",
         context={
-            "assay": "HEMA_GMSV1",
-            "profile": "production",
-            "assay_group": "hematology",
+            "asp_id": "HEMA_GMSV1",
+            "environment": "production",
+            "asp_group": "hematology",
         },
     )
 
@@ -104,18 +104,18 @@ def test_enforce_access_allows_permission_inside_resource_scope():
 def test_enforce_access_does_not_expand_environment_aliases():
     """Access scopes use the stored environment vocabulary verbatim."""
     user = _u(permissions=["sample:view:own"])
-    user.assays = ["hema_gmsv1"]
+    user.asp_ids = ["hema_gmsv1"]
     user.envs = ["production"]
-    user.assay_groups = ["hematology"]
+    user.asp_groups = ["hematology"]
 
     with pytest.raises(HTTPException) as exc:
         _enforce_access(
             user,
             permission="sample:view:own",
             context={
-                "assay": "HEMA_GMSV1",
-                "profile": "prod",
-                "assay_group": "hematology",
+                "asp_id": "HEMA_GMSV1",
+                "environment": "prod",
+                "asp_group": "hematology",
             },
         )
 
@@ -125,18 +125,18 @@ def test_enforce_access_does_not_expand_environment_aliases():
 def test_enforce_access_denies_permission_outside_resource_scope():
     """Permission grants should not bypass assay, profile, or assay-group scope."""
     user = _u(permissions=["sample:view:own"])
-    user.assays = ["hema_gmsv1"]
+    user.asp_ids = ["hema_gmsv1"]
     user.envs = ["production"]
-    user.assay_groups = ["hematology"]
+    user.asp_groups = ["hematology"]
 
     with pytest.raises(HTTPException) as exc:
         _enforce_access(
             user,
             permission="sample:view:own",
             context={
-                "assay": "solid_panel",
-                "profile": "production",
-                "assay_group": "solid",
+                "asp_id": "solid_panel",
+                "environment": "production",
+                "asp_group": "solid",
             },
         )
 
@@ -166,8 +166,8 @@ def test_enforce_access_superuser_bypasses_all_checks():
 def test_get_sample_for_api_returns_specific_scope_error(monkeypatch):
     """Sample lookup should explain assay-scope denials clearly."""
     user = _u(role="user", level=9, permissions=["sample:view:own"])
-    user.assays = ["WGS"]
-    sample = {"_id": "s1", "name": "S1", "assay": "hema_GMSv1"}
+    user.asp_ids = ["wgs"]
+    sample = {"_id": "s1", "name": "S1", "asp_id": "hema_gmsv1"}
 
     monkeypatch.setattr(
         "api.security.access.get_sample_repository",

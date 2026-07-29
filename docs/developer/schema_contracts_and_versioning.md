@@ -81,43 +81,27 @@ Operational flow:
 2. API builds schema from managed contracts.
 3. UI renders fields from returned `sections` + `fields`.
 4. UI submits form payload only.
-5. API services stamp `version` and `version_history`.
+5. API services stamp mutation metadata and write the corresponding audit event.
 6. API validates payload with collection contract and writes to Mongo.
 
 This keeps UI schema behavior and DB-write validation in one backend source of truth.
 
 ## Admin Resource Versioning Model
 
-Coyote3 uses two versioning patterns because clinical configuration and access
-governance have different operational requirements.
+Clinical configuration uses one active document per business key. ASP, ASPC,
+and ISGL documents are updated in place, remain at baseline `version: 1`, and
+do not retain `version_history` or retired duplicates. MongoDB uniqueness is
+enforced for each active `asp_id`, `aspc_id`, and `isgl_id`.
 
-### Clinical configuration: active-version rotation
-
-Clinical configuration resources are append-only at the active document level.
-Editing one of these resources creates a new active document and retires the
-previous active document:
-
-- ASP (`assay_specific_panels`)
-- ASPC (`asp_configs`)
-- ISGL (`insilico_genelists`)
-
-The user-facing business key stays stable (`asp_id`, `aspc_id`, or `isgl_id`).
-The MongoDB `_id` changes because the edited resource is a new versioned
-document. The retired document keeps its previous content and receives:
-
-- `is_active: false`
-- `retired_by`
-- `retired_on`
-- `retired_reason`
-- updated metadata for audit traceability
-
-Runtime reads resolve active documents by default. MongoDB enforces one active
-document per business key with partial unique indexes on `(business_key,
-is_active)` where `is_active` is `true`.
-
-This model is required for clinical reproducibility. A sample or report can be
-linked to the exact ASPC/ISGL/ASP version that was active when the analysis or
-report snapshot was produced.
+Clinical reproducibility is preserved at the report boundary: a report stores
+the resolved ASPC identity, applied filter snapshot, report rows, and static
+rule-source provenance. Audit events record who changed operational
+configuration and when. Each future ASP, ASPC, and ISGL create, update, status
+change, or deletion is recorded with its domain resource type, business key,
+actor, timestamp, route, request identifier, and outcome. This operational
+audit trail is retained independently of the one-time migration that removed
+superseded configuration documents; it is not a second copy of the full
+configuration document.
 
 ### Identity and access governance: in-place version increments
 
@@ -163,8 +147,8 @@ permission, audit, and versioning flow used by all admin writes.
 
 ## Versioning and stability
 
-- Keep `version` increments on updates.
-- Keep `version_history` entries on create/update mutations.
+- Keep clinical configuration identities stable and canonical.
+- Record administrative mutations in audit events.
 - Apply explicit contract changes and maintain strict write-path validation.
 - Use strict contracts where key-level lock is required (`_StrictDocBase`).
 

@@ -22,13 +22,27 @@ export type FormField = {
   placeholder?: string
   help?: string
   options?: any[]
+  options_by_field?: {
+    field: string
+    values: Record<string, any[]>
+  }
   conditional_options?: {
     field: string
     truthy?: any[]
     falsy?: any[]
   }
   default?: any
-  groups?: Array<{ title: string; fields: Array<FormField & { key: string; type?: string }> }>
+  groups?: Array<{
+    title: string
+    requires_analysis?: string[]
+    requires_intent?: string[]
+    fields: Array<FormField & {
+      key: string
+      type?: string
+      requires_analysis?: string[]
+      requires_intent?: string[]
+    }>
+  }>
 }
 
 export type FormSpec = {

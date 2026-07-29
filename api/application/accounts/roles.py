@@ -16,7 +16,7 @@ from api.application.accounts.common import (
     utc_now,
 )
 from api.contracts.managed_resources import managed_resource_spec
-from api.contracts.schemas import normalize_collection_document
+from api.contracts.schemas.registry import normalize_collection_document
 from api.domain.common.errors import api_error
 
 

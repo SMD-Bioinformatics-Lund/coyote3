@@ -26,9 +26,42 @@ This document defines the test and validation expectations for Coyote3.
 The test suite is grouped by runtime boundary:
 
 - **Unit Logic (`tests/unit`)**: pure functions, domain logic, contracts, and services.
-- **REST Interface (`tests/api/interfaces/http`)**: HTTP boundary behavior and typed payload handling.
+- **REST Interface (`tests/api/routers`)**: HTTP boundary behavior and typed payload handling.
 - **Integration Layer (`tests/integration`)**: cross-component checks that are still worth keeping.
 - **Frontend (`frontend`)**: React build, linting, and component-level checks as they are added.
+
+### API coverage organisation
+
+API tests are grouped by the behavior they protect rather than by temporary
+implementation or migration work:
+
+| Location | Scope |
+| --- | --- |
+| `tests/unit` | Query construction, filter normalisation, schema contracts, reporting, ingest, and service behavior. |
+| `tests/api/routers` | Route payloads, validation, permissions, and domain-specific endpoint behavior. |
+| `tests/api` | Cross-router authentication, authorization matrices, OpenAPI taxonomy, route contracts, audit behavior, and rate limits. |
+| `tests/integration` | Architecture boundaries and selected multi-component seams. |
+
+The backend architecture guardrail is intentionally named for the boundary it
+protects. It prevents new direct persistence coupling in HTTP and domain-core
+layers; it is not a migration test and does not preserve retired migration
+behavior.
+
+### UI coverage organisation
+
+Browser tests live in `frontend/tests/e2e`. They use deterministic intercepted
+API responses, so they test route rendering and request dispatch without
+depending on a live clinical database or external services.
+
+| Browser contract | Protected behavior |
+| --- | --- |
+| Authentication routes | Provider display, failed sign-in, and password-reset feedback. |
+| Sample analysis tabs | ASPC analysis selection, sample modality, intent visibility, and deferred endpoint requests. |
+| Route registry contracts | Every declared UI route identifies its backend dependencies and empty/error behavior. |
+
+New clinical pages must add a browser contract for their primary successful,
+empty, and failed states. New analysis views must verify that unavailable
+analysis endpoints are not requested.
 
 ## Primary Execution Commands
 
@@ -54,9 +87,11 @@ cross-layer change:
 PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
 ```
 
-This runs the backend unit/API/integration suites, contract integrity checks,
-frontend linting and production build, and the strict documentation build. It
-does not start services, contact external knowledgebases, or write to MongoDB.
+This runs the backend unit/API/integration suites, scoped family coverage gates,
+contract integrity checks, frontend linting, production build, browser tests,
+and the strict documentation build. Browser tests start a local Vite server
+with intercepted deterministic API responses. The quality suite does not
+contact external knowledgebases or write to MongoDB.
 
 To validate rendered Docker Compose configuration as part of the same gate:
 
@@ -81,7 +116,24 @@ Coverage checks enforce minimum thresholds for key logic families.
 PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_gates.sh
 ```
 
-The system applies distinct minimum coverage requirements for `api/domain/core`, `api/application`, and `api/interfaces/http`.
+The system applies a **75% minimum** to `api/domain/core`, with separate
+thresholds for `api/application` and `api/interfaces/http`. It also enforces a
+**75% minimum** over the clinical query-policy modules: DNA SNV, CNV, and
+translocation query builders and the RNA fusion query builder. This is a
+combined branch-aware gate, not a line-count exclusion. It protects the code
+that decides which findings enter clinical review.
+
+The gate first collects coverage for the `api` package, then evaluates each
+family by its filesystem scope. This prevents a stale or renamed Python module
+path from silently turning a family gate into a repository-wide total.
+
+!!! note "Why the repository-wide percentage is not the clinical gate"
+
+    A repository-wide percentage mixes clinical decisions with generated
+    adapters, deployment helpers, administrative forms, and rarely used error
+    paths. The quality gate therefore measures the clinical query policy as its
+    own accountable unit. Broader family gates remain in place for application
+    and HTTP code.
 
 ## Continuous Integration
 
@@ -110,11 +162,26 @@ The OncoKB and ClinPGx client tests use fixture responses for successful payload
 unexpected payload shapes, and HTTP failures. Public knowledgebase responses are
 never silently promoted to clinical evidence after a failed or malformed request.
 
+### Required focused commands
+
+```bash
+# API, unit, and architecture-boundary tests
+PYTHONPATH=. .venv/bin/pytest tests/unit tests/api tests/integration -q
+
+# Full browser route suite with deterministic API fixtures
+cd frontend && npm run test:e2e
+
+# One focused sample analysis availability contract
+cd frontend && npm run test:e2e -- sample-analysis-tabs.spec.ts
+```
+
 ## Standards for New Feature Development
 
 - **Logic Separation**: Pure algorithmic logic within `api/domain/core` must maintain 100% test coverage through isolated unit tests.
 - **Boundary Mocking**: API and integration tests should isolate external network dependencies with focused fixtures.
-- **Payload Alignment**: All validation datasets must strictly align with the persistent collection snapshots maintained in `tests/fixtures/api/db_snapshots/`.
+- **Payload Alignment**: Validation fixtures must reflect the current Pydantic
+  contracts and use deterministic, de-identified payloads. They must not rely
+  on live database snapshots.
 
 ## Authorization and Permission Validation
 

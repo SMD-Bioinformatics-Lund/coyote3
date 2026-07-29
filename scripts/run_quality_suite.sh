@@ -17,12 +17,18 @@ fi
 echo "[quality] Backend tests"
 PYTHONPATH=. "$PYTHON_BIN" -m pytest -q tests/unit tests/api tests/integration
 
+echo "[quality] Backend coverage gates"
+PYTHON_BIN="$PYTHON_BIN" PYTHONPATH=. bash scripts/run_family_coverage_gates.sh
+
 echo "[quality] Contract and repository checks"
 PYTHON_BIN="$PYTHON_BIN" bash scripts/check_contract_integrity.sh
 
 echo "[quality] Frontend lint and build"
 npm --prefix frontend run lint
 npm --prefix frontend run build
+
+echo "[quality] Frontend browser tests"
+npm --prefix frontend run test:e2e
 
 echo "[quality] Strict documentation build"
 "$PYTHON_BIN" -m mkdocs build --strict --site-dir /tmp/coyote3-docs-quality-build

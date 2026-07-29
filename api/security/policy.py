@@ -59,18 +59,18 @@ def _principal_role(role_id: str) -> str:
 class AccessContext:
     """Resource attributes used for scoped ABAC decisions."""
 
-    assay: str = ""
+    asp_id: str = ""
     environment: str = ""
-    assay_group: str = ""
+    asp_group: str = ""
 
     @classmethod
     def from_mapping(cls, context: dict[str, Any] | None = None) -> "AccessContext":
         """Build a normalized access context from route or resource metadata."""
         context = context or {}
         return cls(
-            assay=_norm(context.get("assay")),
-            environment=_norm_env(context.get("environment") or context.get("profile")),
-            assay_group=_norm(context.get("assay_group")),
+            asp_id=_norm(context.get("asp_id")),
+            environment=_norm_env(context.get("environment")),
+            asp_group=_norm(context.get("asp_group")),
         )
 
 
@@ -78,19 +78,19 @@ class AccessContext:
 class PrincipalScope:
     """ABAC scope attributes attached to an authenticated user."""
 
-    assays: frozenset[str]
+    asp_ids: frozenset[str]
     environments: frozenset[str]
-    assay_groups: frozenset[str]
+    asp_groups: frozenset[str]
 
     @classmethod
     def from_user(cls, user: Any) -> "PrincipalScope":
         """Build normalized scope attributes from the current user document."""
         return cls(
-            assays=frozenset(_unique(getattr(user, "assays", []) or [])),
+            asp_ids=frozenset(_unique(getattr(user, "asp_ids", []) or [])),
             environments=frozenset(
                 _norm_env(value) for value in _unique(getattr(user, "envs", []) or [])
             ),
-            assay_groups=frozenset(_unique(getattr(user, "assay_groups", []) or [])),
+            asp_groups=frozenset(_unique(getattr(user, "asp_groups", []) or [])),
         )
 
 
@@ -165,9 +165,9 @@ class AccessPolicy:
                 _principal_user(user.username),
                 normalized,
                 POLICY_ACTION,
-                access_context.assay,
+                access_context.asp_id,
                 access_context.environment,
-                access_context.assay_group,
+                access_context.asp_group,
             )
         )
 
@@ -176,9 +176,9 @@ class AccessPolicy:
         access_context = AccessContext.from_mapping(context)
         scope = self.principal_scope
         return (
-            _scope_contains(scope.assays, access_context.assay)
+            _scope_contains(scope.asp_ids, access_context.asp_id)
             and _scope_contains(scope.environments, access_context.environment)
-            and _scope_contains(scope.assay_groups, access_context.assay_group)
+            and _scope_contains(scope.asp_groups, access_context.asp_group)
         )
 
 
@@ -199,9 +199,9 @@ def build_access_policy(
 
     def _has_scope(_principal: str, assay: str, environment: str, assay_group: str) -> bool:
         return (
-            _scope_contains(principal_scope.assays, _norm(assay))
+            _scope_contains(principal_scope.asp_ids, _norm(assay))
             and _scope_contains(principal_scope.environments, _norm_env(environment))
-            and _scope_contains(principal_scope.assay_groups, _norm(assay_group))
+            and _scope_contains(principal_scope.asp_groups, _norm(assay_group))
         )
 
     enforcer.add_function("has_scope", _has_scope)

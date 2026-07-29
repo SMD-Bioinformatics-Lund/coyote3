@@ -5,10 +5,11 @@ from __future__ import annotations
 ALLOWED_FACT_PATHS: frozenset[str] = frozenset(
     {
         "sample.name",
-        "sample.assay",
+        "sample.asp_id",
         "sample.subpanel_id",
-        "sample.profile",
+        "sample.environment",
         "sample.omics_layer",
+        "sample.analysis_intent",
         "sample.paired",
         "sample.genome_build",
         "asp.asp_id",

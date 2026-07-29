@@ -87,6 +87,7 @@ services:
     volumes:
       - "../../.git:/app/.git"
       - "../../api:/app/api"
+      - "../../clinical_reporting_rules:/app/clinical_reporting_rules:ro"
       - "/data/coyote3/logs:/app/logs"
       - "../../docs:/app/docs"
       - "../../asgi.py:/app/asgi.py"
@@ -139,6 +140,7 @@ services:
     volumes:
       - "../../.git:/app/.git"
       - "../../api:/app/api"
+      - "../../clinical_reporting_rules:/app/clinical_reporting_rules:ro"
       - "/data/coyote3/logs:/app/logs"
       - "../../docs:/app/docs"
       - "../../asgi.py:/app/asgi.py"
@@ -185,6 +187,7 @@ services:
     volumes:
       - "../../.git:/app/.git"
       - "../../api:/app/api"
+      - "../../clinical_reporting_rules:/app/clinical_reporting_rules:ro"
       - "/data/coyote3/logs:/app/logs"
       - "../../docs:/app/docs"
       - "../../asgi.py:/app/asgi.py"

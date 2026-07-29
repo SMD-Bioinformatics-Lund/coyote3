@@ -30,6 +30,7 @@ FROM coyote3_runtime_base AS coyote3_api
 EXPOSE 8001
 
 COPY api/ ./api/
+COPY clinical_reporting_rules/ ./clinical_reporting_rules/
 COPY scripts/ ./scripts/
 COPY asgi.py run_api.py CHANGELOG.md README.md LICENSE.txt ./
 

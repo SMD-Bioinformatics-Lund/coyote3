@@ -9,7 +9,6 @@ from api.application.accounts.common import (
     build_managed_form,
     change_payload,
     current_actor,
-    inject_version_history,
     utc_now,
 )
 from api.application.resources.helpers import _validated_doc
@@ -77,8 +76,8 @@ class IsglService:
         if not genelist:
             raise api_error(404, "Genelist not found")
         form = build_managed_form(self._spec)
-        form["fields"]["assay_groups"]["default"] = genelist.get("assay_groups", [])
-        form["fields"]["assays"]["default"] = genelist.get("assays", [])
+        form["fields"]["asp_groups"]["default"] = genelist.get("asp_groups", [])
+        form["fields"]["asp_ids"]["default"] = genelist.get("asp_ids", [])
         return {
             "genelist": genelist,
             "form": form,
@@ -99,10 +98,10 @@ class IsglService:
         if not genelist:
             raise api_error(404, "Genelist not found")
         all_genes = genelist.get("genes", [])
-        assays = genelist.get("assays", [])
+        asp_ids = genelist.get("asp_ids", [])
         filtered_genes = all_genes
         panel_germline_genes: list[str] = []
-        if assay and assay in assays:
+        if assay and assay in asp_ids:
             panel = self.assay_panel_repository.get_asp(assay)
             panel_genes = panel.get("covered_genes", []) if panel else []
             panel_germline_genes = panel.get("germline_genes", []) if panel else []
@@ -143,11 +142,8 @@ class IsglService:
         config.setdefault("created_on", now)
         config["updated_by"] = actor
         config["updated_on"] = now
-        config = inject_version_history(
-            actor_username=actor,
-            new_config=config,
-            is_new=True,
-        )
+        config["version"] = 1
+        config.pop("version_history", None)
         config = _validated_doc(self._spec.collection, config)
         self.gene_list_repository.create_genelist(config)
         return change_payload(
@@ -177,37 +173,25 @@ class IsglService:
         updated_doc.pop("_id", None)
         updated_doc.pop("gene_count", None)
         # Required contract fields should not be unintentionally blanked by partial form submits.
-        if not updated_doc.get("assays"):
-            updated_doc["assays"] = list(genelist.get("assays", []))
-        if not updated_doc.get("assay_groups"):
-            updated_doc["assay_groups"] = list(genelist.get("assay_groups", []))
+        if not updated_doc.get("asp_ids"):
+            updated_doc["asp_ids"] = list(genelist.get("asp_ids", []))
+        if not updated_doc.get("asp_groups"):
+            updated_doc["asp_groups"] = list(genelist.get("asp_groups", []))
         actor = current_actor(actor_username)
         now = utc_now()
-        updated_doc["created_by"] = actor
-        updated_doc["created_on"] = now
+        updated_doc["created_by"] = genelist.get("created_by") or actor
+        updated_doc["created_on"] = genelist.get("created_on") or now
         updated_doc["updated_by"] = actor
         updated_doc["updated_on"] = now
         updated_doc["is_active"] = True
-        updated_doc["version"] = int(genelist.get("version", 1) or 1) + 1
-        updated_doc = inject_version_history(
-            actor_username=actor,
-            new_config=updated_doc,
-            old_config=genelist,
-            is_new=False,
-        )
+        updated_doc["version"] = 1
+        updated_doc.pop("version_history", None)
+        updated_doc.pop("retired_by", None)
+        updated_doc.pop("retired_on", None)
+        updated_doc.pop("retired_reason", None)
         updated_doc = _validated_doc(self._spec.collection, updated_doc)
-        self.gene_list_repository.rotate_isgl(
-            genelist_id,
-            updated_doc,
-            retire_fields={
-                "retired_by": actor,
-                "retired_on": now,
-                "retired_reason": "superseded_by_edit",
-                "updated_by": actor,
-                "updated_on": now,
-            },
-        )
-        return change_payload(resource="genelist", resource_id=genelist_id, action="rotate")
+        self.gene_list_repository.update_isgl(genelist_id, updated_doc)
+        return change_payload(resource="genelist", resource_id=genelist_id, action="update")
 
     def toggle(self, *, genelist_id: str) -> dict[str, Any]:
         """Toggle whether a genelist is active.

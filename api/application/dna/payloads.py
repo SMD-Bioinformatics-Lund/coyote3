@@ -362,6 +362,20 @@ def list_variants_payload(
             ),
         )
 
+    query_params = getattr(request, "query_params", {}) or {}
+    intent = str(query_params.get("intent") or "somatic").strip().lower()
+    analysis_intents = [
+        str(value).lower() for value in sample.get("analysis_intents") or ["somatic"]
+    ]
+    if intent not in analysis_intents:
+        raise setup_error(
+            "Small-variant analysis intent is unavailable for this sample",
+            (
+                f"Sample '{sample.get('name', sample.get('_id'))}' does not enable the "
+                f"'{intent}' small-variant profile."
+            ),
+        )
+
     raw_sample_filters = sample.get("filters")
     sample_filters = deepcopy(
         assay_config.get("filters", {}) if raw_sample_filters is None else raw_sample_filters
@@ -370,18 +384,27 @@ def list_variants_payload(
         sample_filters,
         assay_config.get("filters"),
         omics_layer=str(sample.get("omics_layer") or "dna"),
+        analysis_intents=analysis_intents,
     )
-    snv_filters = merged_dna_variant_filters(sample_filters)
+    snv_filters = merged_dna_variant_filters(
+        sample_filters,
+        intent=intent,
+        analysis_intents=analysis_intents,
+    )
     cnv_filters = merged_dna_cnv_filters(sample_filters)
     assay_group = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel_id")
     analysis_sections = _normalize_dna_analysis_sections(assay_config.get("analysis_types", []))
 
-    assay_panel_doc = service.assay_panel_repository.get_asp(asp_name=sample.get("assay"))
+    assay_panel_doc = service.assay_panel_repository.get_asp(asp_name=sample.get("asp_id"))
     checked_snvlists = snv_filters.get("snvlists", [])
     checked_snvlists_genes_dict = service.gene_list_repository.get_isgl_by_ids(checked_snvlists)
     genes_covered_in_panel, filter_genes = util_module.common.get_sample_effective_genes(
-        sample, assay_panel_doc, checked_snvlists_genes_dict, target="snv"
+        sample,
+        assay_panel_doc,
+        checked_snvlists_genes_dict,
+        target="snv",
+        intent=intent,
     )
     checked_cnvlists = cnv_filters.get("cnvlists", [])
     checked_cnvlists_genes_dict = service.gene_list_repository.get_isgl_by_ids(checked_cnvlists)
@@ -405,7 +428,7 @@ def list_variants_payload(
             "id": str(sample["_id"]),
             "max_freq": snv_filters["max_freq"],
             "min_freq": snv_filters["min_freq"],
-            "max_control_freq": snv_filters["max_control_freq"],
+            "max_control_freq": snv_filters.get("max_control_freq", 1.0),
             "min_depth": snv_filters["min_depth"],
             "min_alt_reads": snv_filters["min_alt_reads"],
             "max_popfreq": snv_filters["max_popfreq"],
@@ -413,6 +436,7 @@ def list_variants_payload(
             "filter_genes": filter_genes,
             "disp_pos": disp_pos,
         },
+        intent=intent,
     )
 
     variants = list(service.variant_repository.get_case_variants(query))
@@ -420,7 +444,6 @@ def list_variants_payload(
     variants, tiered_variants = add_global_annotations_fn(variants, assay_group, subpanel)
     variants = hotspot_variant(variants)
     variants = sorted(variants, key=_variant_case_af_value, reverse=True)
-    query_params = getattr(request, "query_params", {}) or {}
     search_query = str(query_params.get("q", "")).strip()
     if search_query:
         variants = _search_variants(variants, search_query)
@@ -436,7 +459,7 @@ def list_variants_payload(
     vep_conseq_meta = service.vep_metadata_repository.get_conseq_translations(vep_version)
     has_hidden_comments = service.sample_repository.hidden_sample_comments(sample.get("_id"))
     insilico_panel_genelists = service.gene_list_repository.get_isgl_by_asp(
-        sample.get("assay"), is_active=True
+        sample.get("asp_id"), is_active=True
     )
     all_panel_genelist_names = util_module.common.get_assay_genelist_names(insilico_panel_genelists)
     assay_config_schema = build_form_spec(aspc_spec_for_category("DNA"))
@@ -495,6 +518,7 @@ def list_variants_payload(
             "tiered": tiered_variants,
             "search": search_query,
             "sort": sort_spec_to_query_value(sort_specs),
+            "intent": intent,
         },
         "filters": sample_filters,
         "assay_group": assay_group,
@@ -653,7 +677,7 @@ def variant_context_payload(
         "sample_summary": {
             "id": str(sample.get("_id")),
             "name": sample.get("name"),
-            "assay": sample.get("assay"),
+            "assay": sample.get("asp_id"),
             "assay_group": assay_group,
             "subpanel": subpanel,
         },

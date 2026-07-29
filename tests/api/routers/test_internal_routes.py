@@ -136,9 +136,9 @@ def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
     payload = internal.InternalIngestSampleBundleRequest(
         sample={
             "name": "S1",
-            "assay": "assay_1",
-            "subpanel": None,
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "subpanel_id": None,
+            "environment": "testing",
             "genome_build": 38,
             "case_id": "CASE_1",
             "sample_no": 1,
@@ -213,9 +213,9 @@ def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
     dual_payload = internal.InternalIngestSampleBundleRequest(
         sample={
             "name": "X",
-            "assay": "assay_1",
-            "subpanel": None,
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "subpanel_id": None,
+            "environment": "testing",
             "case_id": "CASE_X",
             "sample_no": 1,
             "paired": False,
@@ -266,9 +266,9 @@ def test_ingest_sample_bundle_internal_requires_sample_edit_own_permission_for_u
     payload = internal.InternalIngestSampleBundleRequest(
         sample={
             "name": "S3",
-            "assay": "assay_1",
-            "subpanel": None,
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "subpanel_id": None,
+            "environment": "testing",
             "case_id": "CASE_3",
             "sample_no": 1,
             "paired": False,
@@ -419,8 +419,8 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
         "parse_yaml_payload",
         lambda _text: {
             "name": "UPLOAD_SAMPLE",
-            "assay": "assay_1",
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "environment": "testing",
             "genome_build": 38,
             "case_id": "CASE_UPLOAD",
             "sample_no": 1,
@@ -449,8 +449,8 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
     ingest_service = _ingest_service_stub(
         parse_yaml_payload=lambda _text: {
             "name": "UPLOAD_SAMPLE",
-            "assay": "assay_1",
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "environment": "testing",
             "genome_build": 38,
             "case_id": "CASE_UPLOAD",
             "sample_no": 1,
@@ -508,8 +508,8 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
     ingest_service = _ingest_service_stub(
         parse_yaml_payload=lambda _text: {
             "name": "UPLOAD_SAMPLE",
-            "assay": "assay_1",
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "environment": "testing",
             "genome_build": 38,
             "case_id": "CASE_UPLOAD",
             "sample_no": 1,
@@ -565,8 +565,8 @@ def test_ingest_sample_bundle_upload_internal_ignores_missing_optional_file(monk
     ingest_service = _ingest_service_stub(
         parse_yaml_payload=lambda _text: {
             "name": "UPLOAD_SAMPLE",
-            "assay": "assay_1",
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "environment": "testing",
             "genome_build": 38,
             "case_id": "CASE_UPLOAD",
             "sample_no": 1,

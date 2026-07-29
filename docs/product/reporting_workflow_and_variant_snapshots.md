@@ -40,8 +40,8 @@ The core rule is:
 The sample document is the operational anchor for the report workflow. The
 reporting layer expects the sample to contain enough metadata to resolve:
 
-- the assay: `sample.assay`
-- the environment/profile: `sample.profile`
+- the assay: `sample.asp_id`
+- the environment/profile: `sample.environment`
 - the subpanel if applicable: `sample.subpanel_id`
 - the current ASPC reference: `current_aspc_id`,
   `current_aspc_key`, `current_aspc_version`
@@ -372,8 +372,8 @@ Important fields:
   "_id": "ObjectId",
   "sample_oid": "ObjectId",
   "sample_name": "seed_case",
-  "assay": "hema_GMSv1",
-  "subpanel_id": "Hem-Snabb",
+  "asp_id": "hema_gmsv1",
+  "subpanel_id": "hem-snabb",
   "environment": "production",
   "report_num": 1,
   "report_id": "report_id_placeholder",
@@ -387,7 +387,7 @@ Important fields:
   "filters_snapshot": {},
   "aspc": {
     "_id": "ObjectId",
-    "aspc_id": "hema_GMSv1_base_production",
+    "aspc_id": "hema_gmsv1_base_production",
     "version": 1
   }
 }

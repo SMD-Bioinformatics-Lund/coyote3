@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from api.application.dna import payloads
+from api.domain.core.exceptions import AppError
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -41,7 +44,7 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
     util_module = SimpleNamespace(
         common=SimpleNamespace(
             merge_sample_settings_with_assay_config=lambda s, a: s,
-            get_sample_effective_genes=lambda s, a, g, target="snv": ({}, []),
+            get_sample_effective_genes=lambda s, a, g, target="snv", intent="somatic": ({}, []),
             get_case_and_control_sample_ids=lambda s: {"case": "C1"},
             get_assay_genelist_names=lambda docs: [],
         )
@@ -54,7 +57,11 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
         util_module=util_module,
         add_global_annotations_fn=lambda rows, assay_group, subpanel: (rows, []),
         generate_summary_text_fn=lambda *args, **kwargs: "",
-        build_query_fn=lambda assay_group, params: {"assay_group": assay_group, **params},
+        build_query_fn=lambda assay_group, params, intent="somatic": {
+            "assay_group": assay_group,
+            "intent": intent,
+            **params,
+        },
         get_filter_conseq_terms_fn=lambda values: [],
         assay_config_getter=lambda _sample: assay_config,
     )
@@ -100,7 +107,7 @@ def test_list_variants_payload_maps_tmb_and_pgx_to_biomarker_section() -> None:
     util_module = SimpleNamespace(
         common=SimpleNamespace(
             merge_sample_settings_with_assay_config=lambda s, a: s,
-            get_sample_effective_genes=lambda s, a, g, target="snv": ({}, []),
+            get_sample_effective_genes=lambda s, a, g, target="snv", intent="somatic": ({}, []),
             get_case_and_control_sample_ids=lambda s: {"case": "C1"},
             get_assay_genelist_names=lambda docs: [],
         )
@@ -113,10 +120,39 @@ def test_list_variants_payload_maps_tmb_and_pgx_to_biomarker_section() -> None:
         util_module=util_module,
         add_global_annotations_fn=lambda rows, assay_group, subpanel: (rows, []),
         generate_summary_text_fn=lambda *args, **kwargs: "",
-        build_query_fn=lambda assay_group, params: {"assay_group": assay_group, **params},
+        build_query_fn=lambda assay_group, params, intent="somatic": {
+            "assay_group": assay_group,
+            "intent": intent,
+            **params,
+        },
         get_filter_conseq_terms_fn=lambda values: [],
         assay_config_getter=lambda _sample: assay_config,
     )
 
     assert payload["analysis_sections"] == ["SNV", "BIOMARKER"]
     assert payload["display_sections_data"]["biomarkers"][0]["name"] == "TMB"
+
+
+def test_list_variants_payload_rejects_unconfigured_analysis_intent() -> None:
+    """A direct germline request must be a typed setup error, never a 500."""
+    sample = fx.sample_doc()
+    sample["analysis_intents"] = ["somatic"]
+
+    with pytest.raises(AppError) as exc:
+        payloads.list_variants_payload(
+            service=SimpleNamespace(),
+            request=SimpleNamespace(
+                query_params={"intent": "germline"},
+                url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"),
+            ),
+            sample=sample,
+            util_module=SimpleNamespace(),
+            add_global_annotations_fn=lambda *args: ([], []),
+            generate_summary_text_fn=lambda *args: "",
+            build_query_fn=lambda *args, **kwargs: {},
+            get_filter_conseq_terms_fn=lambda *args: [],
+            assay_config_getter=lambda _sample: {"analysis_types": ["SNV"]},
+        )
+
+    assert exc.value.status_code == 422
+    assert exc.value.message == "Small-variant analysis intent is unavailable for this sample"

@@ -41,8 +41,8 @@ def validate_report_inputs(
     assay_config = assay_config or {}
     sample_name = str(sample.get("name", "unknown_sample"))
 
-    if not sample.get("assay"):
-        _raise_contract_error(logger, "report", sample_name, "Missing sample.assay")
+    if not sample.get("asp_id"):
+        _raise_contract_error(logger, "report", sample_name, "Missing sample.asp_id")
     if not sample.get("case_id"):
         _raise_contract_error(logger, "report", sample_name, "Missing sample.case_id")
     if not sample.get("case", {}).get("clarity_id"):

@@ -1,10 +1,10 @@
 rule_set:
   analyte: dna
-  asp_id: myeloid_GMSv1
+  asp_id: hema_gmsv1
   subpanel_id: base
 
 document_rules:
-  - rule_id: myeloid_GMSv1_report_introduction
+  - rule_id: hema_GMSv1_report_introduction
     family: result_text
     section: Report introduction
     priority: 10
@@ -12,7 +12,7 @@ document_rules:
     template: "{{ aspc.reporting.general_report_summary | dna_report_intro(sample, asp, applied_gene_lists) }}"
     heading: false
     stop: false
-  - rule_id: myeloid_GMSv1_unaccredited_conclusion
+  - rule_id: hema_GMSv1_unaccredited_conclusion
     family: summary_text
     section: Report conclusion
     priority: 100
@@ -23,7 +23,7 @@ document_rules:
     template: "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen."
     heading: false
     stop: true
-  - rule_id: myeloid_GMSv1_accredited_conclusion
+  - rule_id: hema_GMSv1_accredited_conclusion
     family: summary_text
     section: Report conclusion
     priority: 200
@@ -39,7 +39,7 @@ analyses:
   SNV:
     enabled: true
     rules:
-      - rule_id: myeloid_GMSv1_tiered_snv_summary
+      - rule_id: hema_GMSv1_tiered_snv_summary
         family: result_text
         section: Kliniskt relevanta SNVs och små INDELs
         priority: 90
@@ -50,7 +50,7 @@ analyses:
         template: "{{ aggregates.tier_summaries | tier_summary }}"
         heading: true
         stop: false
-      - rule_id: myeloid_GMSv1_no_somatic_snv
+      - rule_id: hema_GMSv1_no_somatic_snv
         family: result_text
         section: Kliniskt relevanta SNVs och små INDELs
         priority: 100

@@ -29,6 +29,14 @@ server {
     port_in_redirect off;
     server_name_in_redirect off;
 
+    # Resolve Docker service names at request time so a deliberate upstream
+    # recreate cannot leave Nginx pinned to an obsolete container IP address.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    resolver_timeout 5s;
+    set \$frontend_target "${frontend_upstream}";
+    set \$api_target "${api_upstream}";
+    set \$docs_target "${docs_upstream}";
+
     client_max_body_size 200m;
 
     proxy_set_header Host \$host;
@@ -47,7 +55,7 @@ if [ -n "$script_name" ] && [ "$script_name" != "/" ]; then
             return 404;
         }
         proxy_set_header X-Forwarded-Prefix ${script_name};
-        proxy_pass ${api_upstream}/api/;
+        proxy_pass \$api_target;
     }
 
     location /docs-site/ {
@@ -55,33 +63,34 @@ if [ -n "$script_name" ] && [ "$script_name" != "/" ]; then
             return 404;
         }
         proxy_set_header X-Forwarded-Prefix ${script_name};
-        proxy_pass ${docs_upstream}/;
+        rewrite ^/docs-site/?(.*)\$ /\$1 break;
+        proxy_pass \$docs_target;
     }
 
     location = ${script_name} {
         proxy_set_header X-Forwarded-Prefix ${script_name};
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass ${frontend_upstream}${script_name}/;
+        proxy_pass \$frontend_target${script_name}/;
     }
 
     location ${script_name}/api/ {
         proxy_set_header X-Forwarded-Prefix ${script_name};
         rewrite ^${script_name}(/api/.*)\$ \$1 break;
-        proxy_pass ${api_upstream};
+        proxy_pass \$api_target;
     }
 
     location ${script_name}/docs-site/ {
         proxy_set_header X-Forwarded-Prefix ${script_name};
         rewrite ^${script_name}/docs-site/?(.*)\$ /\$1 break;
-        proxy_pass ${docs_upstream};
+        proxy_pass \$docs_target;
     }
 
     location ${script_name}/ {
         proxy_set_header X-Forwarded-Prefix ${script_name};
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass ${frontend_upstream};
+        proxy_pass \$frontend_target;
     }
 
     location / {
@@ -93,24 +102,25 @@ if [ -n "$script_name" ] && [ "$script_name" != "/" ]; then
         proxy_set_header Connection "upgrade";
         rewrite ^/\$ ${script_name}/ break;
         rewrite ^(.+)\$ ${script_name}\$1 break;
-        proxy_pass ${frontend_upstream};
+        proxy_pass \$frontend_target;
     }
 EOF
 else
   cat >>"$output_path" <<EOF
 
     location /api/ {
-        proxy_pass ${api_upstream}/api/;
+        proxy_pass \$api_target;
     }
 
     location /docs-site/ {
-        proxy_pass ${docs_upstream}/;
+        rewrite ^/docs-site/?(.*)\$ /\$1 break;
+        proxy_pass \$docs_target;
     }
 
     location / {
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass ${frontend_upstream}/;
+        proxy_pass \$frontend_target/;
     }
 EOF
 fi

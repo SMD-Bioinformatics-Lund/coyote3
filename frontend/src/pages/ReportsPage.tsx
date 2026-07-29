@@ -147,7 +147,7 @@ export function ReportsPage() {
                     <span className="min-w-0">
                       <span className="block truncate font-bold text-foreground">{sample.name || sample.case_id || sample._id}</span>
                       <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                        {sample.assay || "-"} / {sampleSubpanel(sample) || "-"} / {sample.profile || "-"}
+                        {sample.asp_id || "-"} / {sampleSubpanel(sample) || "-"} / {sample.environment || "-"}
                       </span>
                     </span>
                     <span className="shrink-0 text-xs font-semibold text-muted-foreground">

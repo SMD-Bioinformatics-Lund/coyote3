@@ -325,7 +325,7 @@ async def ingest_sample_bundle_upload_internal(
         yaml_content = yaml_bytes.decode("utf-8")
         source_payload = ingest_service.parse_yaml_payload(yaml_content)
         expected_keys, required_keys = ingest_service._assay_file_policy(
-            assay_name=source_payload.get("assay"),
+            assay_name=source_payload.get("asp_id"),
             omics_layer=source_payload.get("omics_layer"),
         )
 
@@ -518,7 +518,7 @@ async def enqueue_ingest_sample_bundle_upload_internal(
         yaml_content = yaml_bytes.decode("utf-8")
         source_payload = ingest_service.parse_yaml_payload(yaml_content)
         expected_keys, required_keys = ingest_service._assay_file_policy(
-            assay_name=source_payload.get("assay"),
+            assay_name=source_payload.get("asp_id"),
             omics_layer=source_payload.get("omics_layer"),
         )
 

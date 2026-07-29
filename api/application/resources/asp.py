@@ -9,7 +9,6 @@ from api.application.accounts.common import (
     build_managed_form,
     change_payload,
     current_actor,
-    inject_version_history,
     utc_now,
 )
 from api.application.resources.helpers import _validated_doc
@@ -87,7 +86,7 @@ class AspService:
         if not config:
             raise api_error(400, "Missing panel config payload")
         config.setdefault("is_active", True)
-        config["asp_id"] = config.get("asp_id") or config.get("assay_name")
+        config["asp_id"] = config.get("asp_id")
         if not config.get("asp_id"):
             raise api_error(400, "Missing asp_id")
         existing_panel = self.assay_panel_repository.get_asp(str(config["asp_id"]))
@@ -102,11 +101,8 @@ class AspService:
         config["updated_by"] = actor
         config["updated_on"] = now
         config.pop("gene_count", None)
-        config = inject_version_history(
-            actor_username=actor,
-            new_config=config,
-            is_new=True,
-        )
+        config["version"] = 1
+        config.pop("version_history", None)
         config = _validated_doc(self._spec.collection, config)
         self.assay_panel_repository.create_panel(config)
         return change_payload(
@@ -136,31 +132,19 @@ class AspService:
         updated_doc.pop("_id", None)
         actor = current_actor(actor_username)
         now = utc_now()
-        updated_doc["created_by"] = actor
-        updated_doc["created_on"] = now
+        updated_doc["created_by"] = panel.get("created_by") or actor
+        updated_doc["created_on"] = panel.get("created_on") or now
         updated_doc["updated_by"] = actor
         updated_doc["updated_on"] = now
         updated_doc["is_active"] = True
-        updated_doc["version"] = int(panel.get("version", 1) or 1) + 1
-        updated_doc = inject_version_history(
-            actor_username=actor,
-            new_config=updated_doc,
-            old_config=panel,
-            is_new=False,
-        )
+        updated_doc["version"] = 1
+        updated_doc.pop("version_history", None)
+        updated_doc.pop("retired_by", None)
+        updated_doc.pop("retired_on", None)
+        updated_doc.pop("retired_reason", None)
         updated_doc = _validated_doc(self._spec.collection, updated_doc)
-        self.assay_panel_repository.rotate_asp(
-            panel_id,
-            updated_doc,
-            retire_fields={
-                "retired_by": actor,
-                "retired_on": now,
-                "retired_reason": "superseded_by_edit",
-                "updated_by": actor,
-                "updated_on": now,
-            },
-        )
-        return change_payload(resource="asp", resource_id=panel_id, action="rotate")
+        self.assay_panel_repository.update_asp(panel_id, updated_doc)
+        return change_payload(resource="asp", resource_id=panel_id, action="update")
 
     def toggle(self, *, panel_id: str) -> dict[str, Any]:
         """Toggle whether an assay panel is active.

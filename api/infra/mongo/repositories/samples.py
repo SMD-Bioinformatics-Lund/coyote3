@@ -48,7 +48,7 @@ class SampleRepository(BaseRepository):
         Create indexes used by dashboard and sample list/read paths.
         """
         col = self.get_collection()
-        col.create_index([("assay", 1)], name="assay_1", background=True)
+        col.create_index([("asp_id", 1)], name="asp_id_1", background=True)
         col.create_index(
             [("name", 1)],
             name="name_1",
@@ -56,18 +56,18 @@ class SampleRepository(BaseRepository):
             background=True,
             partialFilterExpression={"name": {"$exists": True, "$type": "string"}},
         )
-        col.create_index([("profile", 1)], name="profile_1", background=True)
+        col.create_index([("environment", 1)], name="environment_1", background=True)
         col.create_index([("reported", 1)], name="reported_1", background=True)
         col.create_index([("time_added", -1)], name="time_added_-1", background=True)
         col.create_index([("paired", 1)], name="paired_1", background=True)
         col.create_index(
-            [("assay", 1), ("profile", 1), ("reported", 1)],
-            name="assay_1_profile_1_reported_1",
+            [("asp_id", 1), ("environment", 1), ("reported", 1)],
+            name="asp_id_1_environment_1_reported_1",
             background=True,
         )
         col.create_index(
-            [("assay", 1), ("profile", 1), ("time_added", -1)],
-            name="assay_1_profile_1_time_added_-1",
+            [("asp_id", 1), ("environment", 1), ("time_added", -1)],
+            name="asp_id_1_environment_1_time_added_-1",
             background=True,
         )
 
@@ -98,9 +98,9 @@ class SampleRepository(BaseRepository):
         """
         query: dict[str, Any] = {"ingest_status": "ready"}
         if user_assays is not None:
-            query["assay"] = {"$in": user_assays}
+            query["asp_id"] = {"$in": user_assays}
         if user_envs is not None:
-            query["profile"] = {"$in": user_envs}
+            query["environment"] = {"$in": user_envs}
 
         if report:
             query["reported"] = True
@@ -315,9 +315,9 @@ class SampleRepository(BaseRepository):
             {"_id": {"$in": sample_oids}},
             {
                 "name": 1,
-                "assay": 1,
+                "asp_id": 1,
                 "subpanel_id": 1,
-                "profile": 1,
+                "environment": 1,
                 "case_id": 1,
                 "control_id": 1,
             },
@@ -512,24 +512,24 @@ class SampleRepository(BaseRepository):
             dict: A dictionary where each key is an assay group and the value is the count of samples in that group.
         """
         pipeline = [
-            {"$match": {"assay": {"$in": assays}}} if assays else {},
-            {"$group": {"_id": "$assay", "count": {"$sum": 1}}},
-            {"$project": {"_id": 0, "assay": "$_id", "count": 1}},
+            {"$match": {"asp_id": {"$in": assays}}} if assays else {},
+            {"$group": {"_id": "$asp_id", "count": {"$sum": 1}}},
+            {"$project": {"_id": 0, "asp_id": "$_id", "count": 1}},
         ]
         if assays is None:
             pipeline = [
-                {"$group": {"_id": "$assay", "count": {"$sum": 1}}},
-                {"$project": {"_id": 0, "assay": "$_id", "count": 1}},
+                {"$group": {"_id": "$asp_id", "count": {"$sum": 1}}},
+                {"$project": {"_id": 0, "asp_id": "$_id", "count": 1}},
             ]
         result = list(self.get_collection().aggregate(pipeline))
-        return {item["assay"]: item["count"] for item in result}
+        return {item["asp_id"]: item["count"] for item in result}
 
-    def get_dashboard_sample_rollup(self, assays: list[str] | None = None) -> dict:
+    def get_dashboard_sample_rollup(self, asp_ids: list[str] | None = None) -> dict:
         """
         Aggregate all dashboard sample counters in a single query.
         """
-        # assays=None => unscoped (admin/all), assays=[] => explicit no access (match nothing)
-        base_match = {"assay": {"$in": assays}} if assays is not None else {}
+        # asp_ids=None => unscoped (admin/all), asp_ids=[] => explicit no access (match nothing)
+        base_match = {"asp_id": {"$in": asp_ids}} if asp_ids is not None else {}
         collection = self.get_collection()
 
         pipeline: list[dict] = []
@@ -551,7 +551,7 @@ class SampleRepository(BaseRepository):
                     "by_assay": [
                         {
                             "$group": {
-                                "_id": "$assay",
+                                "_id": "$asp_id",
                                 "total": {"$sum": 1},
                                 "analysed": {"$sum": {"$cond": ["$reported", 1, 0]}},
                             }
@@ -559,7 +559,7 @@ class SampleRepository(BaseRepository):
                         {
                             "$project": {
                                 "_id": 0,
-                                "assay": "$_id",
+                                "asp_id": "$_id",
                                 "total": 1,
                                 "analysed": 1,
                                 "pending": {"$subtract": ["$total", "$analysed"]},
@@ -567,7 +567,7 @@ class SampleRepository(BaseRepository):
                         },
                     ],
                     "profiles": [
-                        {"$group": {"_id": "$profile", "count": {"$sum": 1}}},
+                        {"$group": {"_id": "$environment", "count": {"$sum": 1}}},
                         {"$project": {"_id": 0, "key": "$_id", "count": 1}},
                     ],
                     "omics_layers": [
@@ -594,10 +594,9 @@ class SampleRepository(BaseRepository):
                                 "_id": 0,
                                 "id": {"$toString": "$_id"},
                                 "name": 1,
-                                "assay": 1,
+                                "asp_id": 1,
                                 "subpanel_id": 1,
-                                "subpanel": 1,
-                                "profile": 1,
+                                "environment": 1,
                                 "reported": 1,
                                 "ingest_status": 1,
                                 "omics_layer": 1,
@@ -618,12 +617,12 @@ class SampleRepository(BaseRepository):
 
         user_samples_stats: dict[str, dict[str, int]] = {}
         for row in facet_doc.get("by_assay", []) or []:
-            assay = row.get("assay")
-            if not assay:
+            asp_id = row.get("asp_id")
+            if not asp_id:
                 continue
             assay_total = int(row.get("total", 0) or 0)
             assay_analysed = int(row.get("analysed", 0) or 0)
-            user_samples_stats[str(assay)] = {
+            user_samples_stats[str(asp_id)] = {
                 "total": assay_total,
                 "analysed": assay_analysed,
                 "pending": max(int(row.get("pending", 0) or 0), 0),
@@ -673,7 +672,7 @@ class SampleRepository(BaseRepository):
         }
 
     def get_assay_specific_sample_stats(
-        self, assays: list = None, profile: str = DEFAULT_ENVIRONMENT
+        self, assays: list = None, environment: str = DEFAULT_ENVIRONMENT
     ) -> dict:
         """
         Retrieve assay-specific statistics.
@@ -692,12 +691,12 @@ class SampleRepository(BaseRepository):
         pipeline = []
 
         if assays:
-            pipeline.append({"$match": {"assay": {"$in": assays}, "profile": profile}})
+            pipeline.append({"$match": {"asp_id": {"$in": assays}, "environment": environment}})
 
         pipeline.append(
             {
                 "$group": {
-                    "_id": {"assay": "$assay"},
+                    "_id": {"asp_id": "$asp_id"},
                     "total": {"$sum": 1},
                     "analysed": {"$sum": {"$cond": ["$reported", 1, 0]}},
                     "pending": {"$sum": {"$cond": ["$reported", 0, 1]}},
@@ -709,8 +708,8 @@ class SampleRepository(BaseRepository):
 
         assay_group_stats = {}
         for doc in result:
-            assay = doc["_id"]["assay"]
-            assay_group_stats[assay] = {
+            asp_id = doc["_id"]["asp_id"]
+            assay_group_stats[asp_id] = {
                 "total": doc.get("total", 0),
                 "analysed": doc.get("analysed", 0),
                 "pending": doc.get("pending", 0),
@@ -736,7 +735,7 @@ class SampleRepository(BaseRepository):
         query = {}
 
         if assays:
-            query = {"assay": {"$in": assays}}
+            query = {"asp_id": {"$in": assays}}
 
         if len(search_str) > 0:
             query["name"] = {"$regex": search_str}
@@ -751,7 +750,7 @@ class SampleRepository(BaseRepository):
     def search_samples_for_admin(
         self,
         *,
-        assays: list[str] | None = None,
+        asp_ids: list[str] | None = None,
         search_str: str = "",
         page: int = 1,
         per_page: int = 30,
@@ -759,15 +758,15 @@ class SampleRepository(BaseRepository):
     ) -> tuple[list[dict], int]:
         """Search samples in MongoDB for admin listings with pagination."""
         query: dict[str, Any] = {"ingest_status": "ready"} if ready_only else {}
-        if assays:
-            query["assay"] = {"$in": assays}
+        if asp_ids:
+            query["asp_id"] = {"$in": asp_ids}
         normalized_q = str(search_str or "").strip()
         if normalized_q:
             pattern = re.escape(normalized_q)
             query["$or"] = [
                 {"name": {"$regex": pattern, "$options": "i"}},
-                {"assay": {"$regex": pattern, "$options": "i"}},
-                {"profile": {"$regex": pattern, "$options": "i"}},
+                {"asp_id": {"$regex": pattern, "$options": "i"}},
+                {"environment": {"$regex": pattern, "$options": "i"}},
             ]
         page = max(1, int(page or 1))
         per_page = max(1, min(int(per_page or 30), 200))
@@ -850,11 +849,11 @@ class SampleRepository(BaseRepository):
             dict: A dictionary where each key is a profile and the value is the count of samples in that profile.
         """
         pipeline = [
-            {"$group": {"_id": "$profile", "count": {"$sum": 1}}},
-            {"$project": {"_id": 0, "profile": "$_id", "count": 1}},
+            {"$group": {"_id": "$environment", "count": {"$sum": 1}}},
+            {"$project": {"_id": 0, "environment": "$_id", "count": 1}},
         ]
         result = list(self.get_collection().aggregate(pipeline))
-        return {item["profile"]: item["count"] for item in result}
+        return {item["environment"]: item["count"] for item in result}
 
     def get_observed_software_versions(self, *, limit: int = 1000) -> dict[str, object]:
         """Return bounded, de-duplicated pipeline and VEP versions for public metadata."""

@@ -12,6 +12,7 @@ interface FiltersSidebarProps {
   sample: any
   context?: any
   activeTab?: string
+  intent?: "somatic" | "germline"
 }
 
 const consequences = [
@@ -175,16 +176,16 @@ function CheckboxList({
   )
 }
 
-export function FiltersSidebar({ sampleId, sample, context, activeTab = "overview" }: FiltersSidebarProps) {
+export function FiltersSidebar({ sampleId, sample, context, activeTab = "overview", intent = "somatic" }: FiltersSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(true)
   const activeSection = activeFilterSectionForTab(activeTab)
   const sampleName = String(sample?.name || sample?.case_id || sampleId)
-  const [filters, setFilters] = useState(activeSection ? sampleFilterSection(sample, activeSection) : {})
+  const [filters, setFilters] = useState(activeSection ? sampleFilterSection(sample, activeSection, intent) : {})
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    setFilters(activeSection ? sampleFilterSection(sample, activeSection) : {})
-  }, [activeSection, sample])
+    setFilters(activeSection ? sampleFilterSection(sample, activeSection, intent) : {})
+  }, [activeSection, sample, intent])
 
   const listOptions = useMemo(() => {
     const all = [
@@ -202,7 +203,7 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
 
   const updateFilters = useMutation({
     mutationFn: (newFilters: any) => {
-      const payload = activeSection ? mergeSampleFilterSection(sample, activeSection, newFilters) : newFilters
+      const payload = activeSection ? mergeSampleFilterSection(sample, activeSection, newFilters, intent) : newFilters
       return api.put(`/samples/${sampleId}/filters`, { filters: payload }).then((res) => res.data)
     },
     onSuccess: async () => {
@@ -258,7 +259,7 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
           <ChevronLeft className="h-4 w-4" />
         </button>
         <span className="mt-8 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
-          {activeTab} filters
+          {intent} {activeTab} filters
         </span>
       </aside>
     )
@@ -269,7 +270,7 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
       <div className="flex items-center justify-between border-b border-primary/10 bg-gradient-to-r from-dna/10 via-card/80 to-rna/10 px-3 py-2">
         <div>
           <h3 className="text-sm font-black">Filters</h3>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{activeTab}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{intent} {activeTab}</p>
         </div>
         <button onClick={() => setIsCollapsed(true)} className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground" title="Collapse filters">
           <ChevronRight className="h-4 w-4" />
@@ -284,7 +285,7 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
               <FilterInput label="Min alt reads" value={filters.min_alt_reads} onChange={(value) => setValue("min_alt_reads", value)} />
               <FilterInput label="Min VAF" step="0.001" value={filters.min_freq} onChange={(value) => setValue("min_freq", value)} />
               <FilterInput label="Max VAF" step="0.001" value={filters.max_freq} onChange={(value) => setValue("max_freq", value)} />
-              <FilterInput label="Max normal VAF" step="0.001" value={filters.max_control_freq} onChange={(value) => setValue("max_control_freq", value)} />
+              {intent === "somatic" && <FilterInput label="Max normal VAF" step="0.001" value={filters.max_control_freq} onChange={(value) => setValue("max_control_freq", value)} />}
               <FilterInput label="Max population freq" step="0.001" value={filters.max_popfreq} onChange={(value) => setValue("max_popfreq", value)} />
             </Section>
             <Section title="Consequences">

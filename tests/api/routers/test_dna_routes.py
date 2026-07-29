@@ -69,6 +69,9 @@ def _classification_service() -> classification_router.ResourceClassificationSer
             "version": 1,
         }
     )
+    assay_panel_repository = SimpleNamespace(
+        get_asp=lambda asp_id: {"asp_id": asp_id, "asp_group": "dna"}
+    )
     return classification_router.ResourceClassificationService(
         annotation_repository=store.annotation_repository,
         variant_repository=store.variant_repository,
@@ -76,6 +79,7 @@ def _classification_service() -> classification_router.ResourceClassificationSer
         fusion_repository=store.fusion_repository,
         copy_number_variant_repository=store.copy_number_variant_repository,
         translocation_repository=store.translocation_repository,
+        assay_panel_repository=assay_panel_repository,
         assay_configuration_repository=assay_configuration_repository,
     )
 
@@ -243,7 +247,7 @@ def test_list_dna_variants_missing_asp_raises_specific_422(monkeypatch):
     """Missing ASP should raise a specific setup error for the sample assay."""
     sample = fx.sample_doc()
     sample["name"] = "S1"
-    sample["assay"] = "unknown_assay"
+    sample["asp_id"] = "unknown_assay"
     service = _dna_service()
     request = SimpleNamespace(
         url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"),
@@ -296,8 +300,8 @@ def test_list_dna_variants_missing_aspc_raises_specific_422(monkeypatch):
     """Missing ASPC should include the assay and environment in the error."""
     sample = fx.sample_doc()
     sample["name"] = "S1"
-    sample["assay"] = "hema_GMSv1"
-    sample["profile"] = "production"
+    sample["asp_id"] = "hema_gmsv1"
+    sample["environment"] = "production"
     service = _dna_service()
     request = SimpleNamespace(
         url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"),
@@ -322,7 +326,7 @@ def test_list_dna_variants_missing_aspc_raises_specific_422(monkeypatch):
     assert exc.value.status_code == 422
     assert (
         exc.value.detail["error"]
-        == "ASPC not registered for assay 'hema_GMSv1', subpanel 'myeloid', environment 'production'"
+        == "ASPC not registered for assay 'hema_gmsv1', subpanel 'myeloid', environment 'production'"
     )
 
 
@@ -406,15 +410,19 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
         The function result.
     """
     sample = fx.sample_doc()
-    sample.setdefault("filters", {}).setdefault("max_freq", 1.0)
-    sample["filters"].setdefault("min_freq", 0.0)
-    sample["filters"].setdefault("max_control_freq", 1.0)
-    sample["filters"].setdefault("min_depth", 0)
-    sample["filters"].setdefault("min_alt_reads", 0)
-    sample["filters"].setdefault("max_popfreq", 1.0)
-    sample["filters"].setdefault("vep_consequences", [])
-    sample["filters"].setdefault("snvlists", [])
-    sample.setdefault("subpanel", "")
+    snv_filters = sample.setdefault("filters", {}).setdefault("somatic", {}).setdefault("snv", {})
+    snv_filters.update(
+        {
+            "max_freq": 1.0,
+            "min_freq": 0.0,
+            "max_control_freq": 0.5,
+            "min_depth": 0,
+            "min_alt_reads": 0,
+            "max_popfreq": 0.5,
+            "vep_consequences": [],
+            "snvlists": [],
+        }
+    )
 
     assay_config = {
         "asp_group": "tumwgs",
@@ -433,7 +441,9 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
     monkeypatch.setattr(dna.util.common, "get_sample_effective_genes", lambda *a, **kw: ([], []))
     monkeypatch.setattr(dna, "get_filter_conseq_terms", lambda values, vep_version=None: [])
     monkeypatch.setattr(
-        dna, "build_query", lambda assay_group, params: {"assay_group": assay_group, **params}
+        dna,
+        "build_query",
+        lambda assay_group, params, **kwargs: {"assay_group": assay_group, **params, **kwargs},
     )
     monkeypatch.setattr(store.variant_repository, "get_case_variants", lambda query: [])
     monkeypatch.setattr(
@@ -793,8 +803,8 @@ def _route_test_user() -> ApiUser:
         roles=["user"],
         access_level=9,
         permissions=["snv:manage"],
-        assays=["WGS"],
-        assay_groups=["dna"],
+        asp_ids=["wgs"],
+        asp_groups=["dna"],
         envs=["production"],
         asp_map={},
         auth_type=["local"],
@@ -876,8 +886,8 @@ def _download_test_user() -> ApiUser:
         roles=["user"],
         access_level=9,
         permissions=["snv:download", "cnv:download", "translocation:download"],
-        assays=["WGS"],
-        assay_groups=["dna"],
+        asp_ids=["wgs"],
+        asp_groups=["dna"],
         envs=["production"],
         asp_map={},
         auth_type=["local"],

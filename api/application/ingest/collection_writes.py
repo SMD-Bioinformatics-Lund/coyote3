@@ -30,6 +30,13 @@ def parse_yaml_payload(yaml_content: str) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         raise ValueError("YAML body must decode to an object")
     parsed = normalize_null_placeholders(parsed)
+    retired = {"assay", "profile", "subpanel"}.intersection(parsed)
+    if retired:
+        raise ValueError(
+            "YAML uses retired clinical identity key(s): "
+            + ", ".join(sorted(retired))
+            + ". Use asp_id, environment, and subpanel_id."
+        )
     _validate_yaml_manifest_minimum_fields(parsed)
     return parsed
 

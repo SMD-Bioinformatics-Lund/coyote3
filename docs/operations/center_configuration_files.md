@@ -18,7 +18,7 @@ details, and presentation metadata without changing Python or React code.
 | --- | --- | --- | --- |
 | `api/config/center/` | Deploying center | Clinical vocabulary, input field names, collection names, public contact content, catalog copy, and flag wording. | Yes, through reviewed configuration changes. |
 | `api/config/application_metadata.py` | Coyote3 software | Product description, repository, licence, issue, and support-request URLs. | No. This identifies the Coyote3 codebase. |
-| `api/config/constants.py` | Coyote3 software | Supported workflow semantics, data-model values, validators, and permission categories. | No. Extend the software when a new semantic capability is needed. |
+| `api/config/constants.py` | Coyote3 software | Supported workflow semantics, data-model values, validators, permission categories, and sequencing-platform capabilities. | No. Extend the software when a new semantic capability is needed. |
 | `api/config/runtime_settings.py` | Coyote3 software | Environment-derived runtime, security, cache, mail, and service settings. | No. Supply the documented environment values instead. |
 
 ## Directory Layout
@@ -100,9 +100,10 @@ It is validated during API and worker startup. The full schema, supported
 workflow options, validation rules, and change procedure are documented in
 [Clinical Vocabulary Configuration](clinical_vocabulary.md).
 
-Use it when a center needs to change an enabled platform,
-local authentication-provider availability, a sample YAML file key, baseline
-file requirement, or the file bound to an implemented analysis type.
+Use it when a center needs to change local authentication-provider
+availability, a sample YAML file key, baseline file requirement, or the file
+bound to an implemented analysis type. Sequencing platforms and their read
+capabilities are software-owned and cannot be changed in this file.
 
 > [!IMPORTANT]
 > Assay groups are not center configuration. They are a software-owned clinical
@@ -123,13 +124,11 @@ file requirement, or the file bound to an implemented analysis type.
 | `assay.family_scopes.<family>` | Yes, once per family | One non-empty identifier | Sets the sequencing scope written for samples of that family. |
 | `environment.options` | Yes | Unique lowercase identifiers | Environment/profile options selectable in ASPC and sample workflows. |
 | `environment.default` | Yes | One item in `environment.options` | Default environment used when none is specified. |
-| `sequencing.platforms` | Yes | Non-empty, unique text values; normalized to lowercase | Valid ASP platform values, for example `illumina`, `nanopore`, `pacbio`, and `iontorrent`. |
-| `sequencing.read_modes` | Yes | Non-empty, unique uppercase identifiers | Valid ASP read-mode values, for example `SE` and `PE`. |
+| Software platform registry | Not a TOML value | `illumina`, `iontorrent`, `pacbio`, `nanopore` | Validates ASP/sample platform. It derives read technology and constrains the read-mode field: Illumina permits `SE` or `PE`; the other current platforms have no selectable read mode. Add a platform only through a software release with its capability definition. |
 | `authentication.providers` | Yes | One or both of `local`, `ldap` | Default values allowed in a user's `auth_type` list. `local` uses username and a local password; `ldap` uses email and the configured directory service. A deployment can override this default with `AUTHENTICATION_PROVIDERS`. No other provider is implemented. |
 | `genelist.standard_types` | Yes | Non-empty, unique identifiers | ISGL types offered when the ad-hoc switch is off. |
 | `genelist.adhoc_types` | Yes | Non-empty, unique identifiers with no overlap with standard types | ISGL types offered when the ad-hoc switch is on. |
 | `reporting.required_aspc_fields` | Yes | Non-empty, unique ASPC reporting field identifiers | Lists the report metadata expected for active report-capable ASPCs. |
-| `permissions.categories` | Yes | Non-empty, unique display labels | Groups permission definitions in administration views; does not change effective access. |
 | `files.dna.keys` | Yes | Non-empty, unique identifiers using letters, numbers, `_`, or `-`; normalized to lowercase | All permitted file keys under `files` in a DNA sample manifest. |
 | `files.rna.keys` | Yes | Same identifier rule as DNA | All permitted file keys under `files` in an RNA sample manifest. |
 | `files.required_by_family.panel-dna` | Yes | One or more keys from `files.dna.keys` | Baseline mandatory declared files for every panel DNA sample. |

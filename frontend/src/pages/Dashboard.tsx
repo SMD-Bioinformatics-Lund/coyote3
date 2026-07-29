@@ -176,7 +176,7 @@ export function Dashboard() {
                     <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">{sample.ingest_status || "unknown"}</span>
                   </div>
                   <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                    {sample.assay || "-"} {sample.subpanel_id || sample.subpanel ? `• ${sample.subpanel_id || sample.subpanel}` : ""} • {humanDate(sample.time_added)}
+                    {sample.asp_id || "-"} {sample.subpanel_id ? `• ${sample.subpanel_id}` : ""} • {humanDate(sample.time_added)}
                   </p>
                 </div>
                 <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />

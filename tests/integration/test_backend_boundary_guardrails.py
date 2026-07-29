@@ -1,4 +1,4 @@
-"""Contract guardrails for backend database-boundary migration."""
+"""Contract guardrails for backend architecture boundaries."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import re
 from collections import Counter
 from pathlib import Path
 
-BASELINE_PATH = Path("tests/fixtures/backend_db_boundary_baseline.json")
+BASELINE_PATH = Path("tests/fixtures/backend_architecture_baseline.json")
 
 STORE_TARGET_DIRS = (Path("api/interfaces/http"), Path("api/domain/core"))
 MONGO_LEAK_TARGET_DIRS = (Path("api/interfaces/http"), Path("api/domain/core"), Path("api/domain"))
@@ -102,8 +102,8 @@ def _assert_not_above_baseline(
             )
 
     assert not offenders, (
-        f"{category} exceeded migration baseline. "
-        "No new direct coupling is allowed until debt is burned down.\n" + "\n".join(offenders)
+        f"{category} exceeded the approved architecture baseline. "
+        "No new direct persistence coupling is allowed.\n" + "\n".join(offenders)
     )
 
 
@@ -115,7 +115,9 @@ def test_store_usage_in_routes_core_does_not_increase():
     """
     baseline = _load_baseline()["store_usage_by_file"]
     current = _count_store_usage_by_file()
-    _assert_not_above_baseline("store.* usage in api/interfaces/http+api/domain/core", current, baseline)
+    _assert_not_above_baseline(
+        "store.* usage in api/interfaces/http+api/domain/core", current, baseline
+    )
 
 
 def test_mongo_specific_leaks_do_not_increase():

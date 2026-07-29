@@ -20,12 +20,12 @@ Configuration resources are linked by assay identifiers and runtime filter state
 ```text
 [ASP: assay_specific_panels]
   key: asp_id
-  maps to: sample.assay
+  maps to: sample.asp_id
       defines: assay metadata, covered_genes, germline_genes, expected_files
       |
       +--> [ASPC: asp_configs]
       |      key: aspc_id generated from asp_id + subpanel_id + environment
-      |      maps to: sample.assay + sample.profile + selected/base subpanel
+      |      maps to: sample.asp_id + sample.environment + selected/base subpanel
       |      defines: default filters, analysis types, reporting settings
       |
       -?> [ISGL: insilico_genelists]
@@ -165,7 +165,7 @@ Read / clinical review
 | Collection | Operational Responsibility | Primary Relational Mapping |
 |---|---|---|
 | **asp_configs** | Assay/subpanel/environment configuration | `sample.current_aspc_id` and version |
-| **assay_specific_panels** | Panel-level gene universe definition | `sample.assay` (ASP ID) |
+| **assay_specific_panels** | Panel-level gene universe definition | `sample.asp_id` (ASP ID) |
 | **insilico_genelists** | Curated gene lists | `isgl_id` via `sample.filters` |
 | **samples** | Parent clinical entity and user filter state | Core system root for all case findings |
 | **findings** | Genomic evidence (Variants/CNV/Fusions) | Linked strictly by `SAMPLE_ID` |

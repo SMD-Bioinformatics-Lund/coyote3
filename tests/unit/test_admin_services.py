@@ -135,8 +135,8 @@ class _AdminRepoStub:
             "roles": ["admin"],
             "password": "hashed",
             "version": 3,
-            "assay_groups": [],
-            "assays": [],
+            "asp_groups": [],
+            "asp_ids": [],
             "auth_type": ["ldap"],
         }
 
@@ -473,7 +473,7 @@ class _AdminRepoStub:
                 "_id": "GL1",
                 "isgl_id": "GL1",
                 "genes": ["TP53"],
-                "assays": ["WGS"],
+                "asp_ids": ["WGS"],
             }
         ]
 
@@ -492,8 +492,8 @@ class _AdminRepoStub:
             "_id": genelist_id,
             "isgl_id": genelist_id,
             "genes": ["TP53", "EGFR"],
-            "assays": ["WGS"],
-            "assay_groups": ["dna"],
+            "asp_ids": ["WGS"],
+            "asp_groups": ["dna"],
             "is_active": True,
         }
 
@@ -1210,9 +1210,9 @@ def test_admin_aspc_create_context_uses_analysis_sections_not_genelist_fields(mo
 
     assert "TMB" in analysis_options
     assert "PGX" in analysis_options
-    assert "snvlists" in filter_keys
-    assert "cnvlists" in filter_keys
-    assert "fusionlists" not in filter_keys
+    assert "somatic.snv.snvlists" in filter_keys
+    assert "somatic.cnv.cnvlists" in filter_keys
+    assert "somatic.fusion.fusionlists" not in filter_keys
     assert "TMB" in report_section_options
     assert "PGX" in report_section_options
     assert "general_report_summary" in reporting_field_keys

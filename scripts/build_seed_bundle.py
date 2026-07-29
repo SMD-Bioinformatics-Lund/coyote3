@@ -144,14 +144,14 @@ def lower_business_keys(seed: dict[str, list[dict]]) -> None:
             "username",
             "email",
             "roles",
-            "assay_groups",
-            "assays",
+            "asp_groups",
+            "asp_ids",
         ),
         "asp_configs": ("aspc_id", "asp_id", "subpanel_id", "asp_group"),
         "assay_specific_panels": ("asp_id", "assay_name", "asp_group"),
-        "insilico_genelists": ("isgl_id", "diagnosis", "assay_groups", "assays"),
+        "insilico_genelists": ("isgl_id", "diagnosis", "asp_groups", "asp_ids"),
         "blacklist": ("assay_group", "assay"),
-        "samples": ("assay", "subpanel_id"),
+        "samples": ("asp_id", "subpanel_id", "environment", "platform"),
     }
 
     def normalize_item(value):
@@ -200,15 +200,8 @@ def canonicalize_assay_config_fields(seed: dict[str, list[dict]]) -> None:
         if not isinstance(doc, dict):
             continue
 
-        raw_aspc_id = str(doc.get("aspc_id") or "").strip()
-        assay_from_old_id = raw_aspc_id.split(":", 1)[0] if ":" in raw_aspc_id else ""
-        asp_id = _clean_identifier(
-            doc.get("asp_id") or doc.get("assay_name") or assay_from_old_id,
-            default="assay",
-        )
-        subpanel_id = _clean_identifier(
-            doc.get("subpanel_id") or doc.get("subpanel") or SUBPANEL_BASE_ID
-        )
+        asp_id = _clean_identifier(doc.get("asp_id"), default="assay")
+        subpanel_id = _clean_identifier(doc.get("subpanel_id") or SUBPANEL_BASE_ID)
         environment = normalize_environment(doc.get("environment") or "production")
 
         doc["asp_id"] = asp_id
@@ -218,62 +211,26 @@ def canonicalize_assay_config_fields(seed: dict[str, list[dict]]) -> None:
             f"{asp_id}_{subpanel_id}_{environment}", default=f"assay_{environment}"
         )
 
-        doc.pop("assay_name", None)
-        doc.pop("query", None)
-        doc.pop("subpanel", None)
-
-        filters = doc.get("filters")
-        if isinstance(filters, dict):
-            if "genelists" in filters and "snvlists" not in filters:
-                filters["snvlists"] = filters.get("genelists") or []
-            if "cnv_genelists" in filters and "cnvlists" not in filters:
-                filters["cnvlists"] = filters.get("cnv_genelists") or []
-            filters.pop("genelists", None)
-            filters.pop("cnv_genelists", None)
-
-        reporting = doc.setdefault("reporting", {})
-        if isinstance(reporting, dict) and "analysis" not in reporting:
-            reporting["analysis"] = (
-                doc.get("analysis_types") or reporting.get("report_sections") or []
-            )
+        retired = {"assay_name", "query", "subpanel", "genelists", "cnv_genelists"}
+        present = sorted(retired.intersection(doc))
+        if present:
+            raise ValueError(f"asp_configs seed uses retired fields: {', '.join(present)}")
 
 
 def canonicalize_sample_fields(seed: dict[str, list[dict]]) -> None:
-    snv_filter_keys = {
-        "max_freq",
-        "min_freq",
-        "max_control_freq",
-        "max_popfreq",
-        "min_depth",
-        "min_alt_reads",
-        "vep_consequences",
-        "snvlists",
-        "adhoc_genes",
-    }
-    cnv_filter_keys = {
-        "min_cnv_size",
-        "max_cnv_size",
-        "cnv_loss_cutoff",
-        "cnv_gain_cutoff",
-        "cnveffects",
-        "cnvlists",
-        "adhoc_genes",
-    }
-    coverage_filter_keys = {"warn_cov", "error_cov"}
-
     for doc in seed.get("samples", []) or []:
         if not isinstance(doc, dict):
             continue
-
-        if "subpanel_id" not in doc and "subpanel" in doc:
-            doc["subpanel_id"] = doc.get("subpanel")
-        doc.pop("subpanel", None)
-        if "profile" in doc:
-            doc["profile"] = normalize_environment(doc.get("profile"))
+        retired = {"assay", "profile", "subpanel", "sequencing_technology"}
+        present = sorted(retired.intersection(doc))
+        if present:
+            raise ValueError(f"samples seed uses retired fields: {', '.join(present)}")
+        if "environment" in doc:
+            doc["environment"] = normalize_environment(doc.get("environment"))
         if "omics_layer" in doc and isinstance(doc.get("omics_layer"), str):
             doc["omics_layer"] = doc["omics_layer"].strip().lower()
-        if "sequencing_technology" in doc and isinstance(doc.get("sequencing_technology"), str):
-            doc["sequencing_technology"] = doc["sequencing_technology"].strip().lower()
+        if "platform" in doc and isinstance(doc.get("platform"), str):
+            doc["platform"] = doc["platform"].strip().lower()
 
         files = doc.get("files") if isinstance(doc.get("files"), dict) else {}
         for file_key in ALL_SAMPLE_FILE_KEYS:
@@ -284,20 +241,6 @@ def canonicalize_sample_fields(seed: dict[str, list[dict]]) -> None:
                 continue
             files[file_key] = raw_file if isinstance(raw_file, dict) else {"path": raw_file}
         doc["files"] = files
-
-        filters = doc.get("filters")
-        if isinstance(filters, dict) and not any(
-            key in filters for key in ("snv", "cnv", "coverage", "fusion")
-        ):
-            if "genelists" in filters and "snvlists" not in filters:
-                filters["snvlists"] = filters.get("genelists") or []
-            if "cnv_genelists" in filters and "cnvlists" not in filters:
-                filters["cnvlists"] = filters.get("cnv_genelists") or []
-            doc["filters"] = {
-                "snv": {k: filters[k] for k in snv_filter_keys if k in filters},
-                "cnv": {k: filters[k] for k in cnv_filter_keys if k in filters},
-                "coverage": {k: filters[k] for k in coverage_filter_keys if k in filters},
-            }
 
         for legacy_key in (
             "comments",

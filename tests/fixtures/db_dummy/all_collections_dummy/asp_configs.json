@@ -16,33 +16,42 @@
       "COVERAGE"
     ],
     "filters": {
-      "max_freq": 1.0,
-      "min_freq": 0.03,
-      "max_control_freq": 0.05,
-      "max_popfreq": 0.01,
-      "min_depth": 100,
-      "min_alt_reads": 5,
-      "min_cnv_size": 100,
-      "max_cnv_size": 1000000,
-      "cnv_loss_cutoff": -0.3,
-      "cnv_gain_cutoff": 0.3,
-      "warn_cov": 500,
-      "error_cov": 100,
-      "vep_consequences": [
-        "splicing",
-        "stop_gained",
-        "stop_lost",
-        "start_lost",
-        "frameshift",
-        "inframe_indel",
-        "missense",
-        "other_coding"
-      ],
-      "cnveffects": [
-        "gain",
-        "loss"
-      ],
-      "snvlists": []
+      "somatic": {
+        "snv": {
+          "max_freq": 1,
+          "min_freq": 0.03,
+          "max_control_freq": 0.05,
+          "max_popfreq": 0.01,
+          "min_depth": 100,
+          "min_alt_reads": 5,
+          "vep_consequences": [
+            "splicing",
+            "stop_gained",
+            "stop_lost",
+            "start_lost",
+            "frameshift",
+            "inframe_indel",
+            "missense",
+            "other_coding"
+          ],
+          "snvlists": []
+        },
+        "cnv": {
+          "min_cnv_size": 100,
+          "max_cnv_size": 1000000,
+          "cnv_loss_cutoff": -0.3,
+          "cnv_gain_cutoff": 0.3,
+          "cnveffects": [
+            "gain",
+            "loss"
+          ],
+          "cnvlists": []
+        },
+        "coverage": {
+          "warn_cov": 500,
+          "error_cov": 100
+        }
+      }
     },
     "reporting": {
       "analysis": [
@@ -63,7 +72,10 @@
     },
     "verification_samples": {},
     "asp_id": "assay_1",
-    "subpanel_id": "base"
+    "subpanel_id": "base",
+    "analysis_intents": [
+      "somatic"
+    ]
   },
   {
     "aspc_id": "assay_1_base_testing",
@@ -82,33 +94,42 @@
       "COVERAGE"
     ],
     "filters": {
-      "max_freq": 1.0,
-      "min_freq": 0.03,
-      "max_control_freq": 0.05,
-      "max_popfreq": 0.01,
-      "min_depth": 100,
-      "min_alt_reads": 5,
-      "min_cnv_size": 100,
-      "max_cnv_size": 1000000,
-      "cnv_loss_cutoff": -0.3,
-      "cnv_gain_cutoff": 0.3,
-      "warn_cov": 500,
-      "error_cov": 100,
-      "vep_consequences": [
-        "splicing",
-        "stop_gained",
-        "stop_lost",
-        "start_lost",
-        "frameshift",
-        "inframe_indel",
-        "missense",
-        "other_coding"
-      ],
-      "cnveffects": [
-        "gain",
-        "loss"
-      ],
-      "snvlists": []
+      "somatic": {
+        "snv": {
+          "max_freq": 1,
+          "min_freq": 0.03,
+          "max_control_freq": 0.05,
+          "max_popfreq": 0.01,
+          "min_depth": 100,
+          "min_alt_reads": 5,
+          "vep_consequences": [
+            "splicing",
+            "stop_gained",
+            "stop_lost",
+            "start_lost",
+            "frameshift",
+            "inframe_indel",
+            "missense",
+            "other_coding"
+          ],
+          "snvlists": []
+        },
+        "cnv": {
+          "min_cnv_size": 100,
+          "max_cnv_size": 1000000,
+          "cnv_loss_cutoff": -0.3,
+          "cnv_gain_cutoff": 0.3,
+          "cnveffects": [
+            "gain",
+            "loss"
+          ],
+          "cnvlists": []
+        },
+        "coverage": {
+          "warn_cov": 500,
+          "error_cov": 100
+        }
+      }
     },
     "reporting": {
       "analysis": [
@@ -129,6 +150,9 @@
     },
     "verification_samples": {},
     "asp_id": "assay_1",
-    "subpanel_id": "base"
+    "subpanel_id": "base",
+    "analysis_intents": [
+      "somatic"
+    ]
   }
 ]

@@ -286,10 +286,12 @@ class SampleCatalogService:
 
     @classmethod
     def _sample_filters(cls, sample: dict[str, Any]) -> dict[str, Any]:
-        """Return canonical sectioned sample filters."""
+        """Return the complete persisted filter profile map."""
         return normalize_sample_filters(
             sample.get("filters"),
             omics_layer=str(sample.get("omics_layer") or "dna"),
+            analysis_intents=sample.get("analysis_intents"),
+            canonical=True,
         )
 
     @classmethod
@@ -297,7 +299,7 @@ class SampleCatalogService:
         """Return the mutable filter section for a target."""
         filters = cls._sample_filters(sample)
         section = cls._filter_section_for_target(target)
-        section_filters = filters.get(section)
+        section_filters = (filters.get("somatic") or {}).get(section)
         return deepcopy(section_filters) if isinstance(section_filters, dict) else {}
 
     @classmethod
@@ -306,7 +308,9 @@ class SampleCatalogService:
     ) -> dict[str, Any]:
         """Return full sample filters with one target section replaced."""
         filters = cls._sample_filters(sample)
-        filters[cls._filter_section_for_target(target)] = deepcopy(target_filters)
+        filters.setdefault("somatic", {})[cls._filter_section_for_target(target)] = deepcopy(
+            target_filters
+        )
         return filters
 
     @staticmethod
@@ -367,8 +371,8 @@ class SampleCatalogService:
             "gene_count": int(gl.get("gene_count") or len(gl.get("genes") or []) or 0),
             "list_types": sorted(cls._normalized_gl_list_types(gl)),
             "list_type": list_type,
-            "assays": list(gl.get("assays") or []),
-            "assay_groups": list(gl.get("assay_groups") or []),
+            "asp_ids": list(gl.get("asp_ids") or []),
+            "asp_groups": list(gl.get("asp_groups") or []),
             "subpanel_id": gl.get("subpanel_id"),
             "diagnosis": gl.get("diagnosis"),
         }
@@ -379,7 +383,7 @@ class SampleCatalogService:
         """Return selectable ISGL options scoped by assay or assay group."""
         list_type = self._isgl_list_type_for_target(target)
         isgls = self.gene_list_repository.get_isgl_for_scope(
-            asp_name=sample.get("assay"),
+            asp_name=sample.get("asp_id"),
             assay_group=asp.get("asp_group"),
             is_active=True,
             adhoc=False,
@@ -569,9 +573,9 @@ class SampleCatalogService:
         """Resolve effective genes for a target scope plus panel metadata."""
         filters = self._sample_filters(sample)
         target_filters = self._target_filters(sample, target)
-        assay = sample.get("assay")
+        assay = sample.get("asp_id")
         if not assay:
-            raise api_error(400, "Sample is missing the 'assay' field")
+            raise api_error(400, "Sample is missing the 'asp_id' field")
         asp_group = str(asp.get("asp_group") or "")
         asp_covered_genes, _asp_germline_genes = self.assay_panel_repository.get_asp_genes(assay)
 
@@ -697,12 +701,12 @@ class SampleCatalogService:
         if panel_type and panel_tech and assay_group:
             assay_list = user.asp_map.get(panel_type, {}).get(panel_tech, {}).get(assay_group, [])
             accessible_assays = (
-                assay_list if user.is_superuser else [a for a in assay_list if a in user.assays]
+                assay_list if user.is_superuser else [a for a in assay_list if a in user.asp_ids]
             )
         elif user.is_superuser:
             accessible_assays = None
         else:
-            accessible_assays = user.assays
+            accessible_assays = user.asp_ids
 
         normalized_scope = (profile_scope or "").strip().lower()
         use_all_profiles = normalized_scope == "all"
@@ -796,7 +800,7 @@ class SampleCatalogService:
             dict[str, Any]: Genelist item payload for the UI.
         """
         target = self._normalize_list_target(sample, target)
-        asp = self.assay_panel_repository.get_asp(sample.get("assay"))
+        asp = self.assay_panel_repository.get_asp(sample.get("asp_id"))
         if target == "all":
             items = []
             for scoped_target in ("snv", "cnv", "fusion"):
@@ -818,9 +822,9 @@ class SampleCatalogService:
             dict[str, Any]: Effective genes and panel coverage counts.
         """
         target = self._normalize_list_target(sample, target)
-        assay = sample.get("assay")
+        assay = sample.get("asp_id")
         if not assay:
-            raise api_error(400, "Sample is missing the 'assay' field")
+            raise api_error(400, "Sample is missing the 'asp_id' field")
         asp = self.assay_panel_repository.get_asp(assay)
         items, asp_covered_genes, _asp_group = self._effective_genes_for_target(
             sample=sample, asp=asp, target=target
@@ -840,9 +844,9 @@ class SampleCatalogService:
         Returns:
             dict[str, Any]: Sample, panel, and variant-stat context.
         """
-        assay = sample.get("assay")
+        assay = sample.get("asp_id")
         if not assay:
-            raise api_error(400, "Sample is missing the 'assay' field")
+            raise api_error(400, "Sample is missing the 'asp_id' field")
         asp = self.assay_panel_repository.get_asp(assay)
 
         if sample.get("filters") is None:
@@ -1065,20 +1069,26 @@ class SampleCatalogService:
     def replace_sample_filters(self, *, sample: dict, filters: dict[str, Any]) -> None:
         """Replace the stored filters for a sample."""
         normalized = normalize_sample_filters(
-            filters, omics_layer=str(sample.get("omics_layer") or "dna")
+            filters,
+            omics_layer=str(sample.get("omics_layer") or "dna"),
+            analysis_intents=sample.get("analysis_intents"),
+            canonical=True,
         )
         assay_config = self._get_formatted_assay_config(sample)
         normalized = merge_filter_defaults(
             normalized,
             assay_config.get("filters"),
             omics_layer=str(sample.get("omics_layer") or "dna"),
+            analysis_intents=sample.get("analysis_intents"),
         )
         self.sample_repository.update_sample_filters(sample.get("_id"), normalized)
 
     def reset_sample_filters(self, *, sample: dict, assay_config: dict) -> None:
         """Reset a sample's filters from assay defaults."""
         default_filters = sample_filters_from_aspc_filters(
-            assay_config.get("filters"), str(sample.get("omics_layer") or "dna")
+            assay_config.get("filters"),
+            str(sample.get("omics_layer") or "dna"),
+            analysis_intents=sample.get("analysis_intents"),
         )
         self.sample_repository.reset_sample_settings(
             sample.get("_id"),

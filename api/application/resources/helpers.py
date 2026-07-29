@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from api.config.constants import normalize_asp_category
-from api.contracts.schemas import normalize_collection_document
+from api.contracts.schemas.registry import normalize_collection_document
 from api.domain.common.errors import api_error
 
 

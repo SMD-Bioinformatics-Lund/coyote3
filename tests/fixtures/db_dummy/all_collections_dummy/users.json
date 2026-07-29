@@ -20,12 +20,12 @@
       "testing",
       "validation"
     ],
-    "assays": [
+    "version": 1,
+    "asp_ids": [
       "assay_1"
     ],
-    "assay_groups": [
+    "asp_groups": [
       "hematology"
-    ],
-    "version": 1
+    ]
   }
 ]

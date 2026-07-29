@@ -10,7 +10,6 @@ from api.application.accounts.common import (
     build_managed_form,
     change_payload,
     current_actor,
-    inject_version_history,
     utc_now,
 )
 from api.application.reporting.clinical_rules.service import ClinicalRuleService
@@ -22,6 +21,8 @@ from api.application.resources.helpers import (
 from api.config.constants import SUBPANEL_BASE_ID, normalize_analysis_type
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.domain.common.errors import api_error
+from api.domain.common.sample_filters import normalize_sample_filters
+from api.domain.core.filter_capabilities import filter_section_for_analysis, select_filter_values
 
 
 class AspcService:
@@ -63,9 +64,8 @@ class AspcService:
         top = schema.get("fields", {}).get(top_field, {})
         for group in top.get("groups", []) or []:
             for subfield in group.get("fields", []) or []:
-                if subfield.get("key") == subfield_key:
+                if str(subfield.get("key") or "").rsplit(".", 1)[-1] == subfield_key:
                     subfield["options"] = list(dict.fromkeys([str(o) for o in options if str(o)]))
-                    return
 
     def _decorate_form_options(
         self, *, form: dict[str, Any], form_category: str, assay_name: str | None
@@ -76,6 +76,47 @@ class AspcService:
             self._set_group_field_options(
                 form, top_field="filters", subfield_key="vep_consequences", options=conseq_options
             )
+
+    @staticmethod
+    def _build_filter_profiles(config: dict[str, Any], *, category: str) -> None:
+        """Build the only accepted persisted filter shape from the ASPC form.
+
+        The managed form chooses analysis types first. Its fields are then
+        placed in the corresponding frozen intent/analysis group; no submitted
+        field is allowed to select its own storage path.
+        """
+        intents = config.get("analysis_intents") or ["somatic"]
+        raw = config.get("filters") or {}
+        if any(key in raw for key in ("somatic", "germline")):
+            config["filters"] = normalize_sample_filters(
+                raw,
+                omics_layer=category.lower(),
+                analysis_intents=intents,
+                canonical=True,
+            )
+            return
+        layer = category.lower()
+        selected = {normalize_analysis_type(value) for value in config.get("analysis_types") or []}
+        somatic: dict[str, Any] = {}
+        for analysis_type in selected:
+            section = filter_section_for_analysis(omics_layer=layer, analysis_type=analysis_type)
+            if section:
+                somatic[section] = select_filter_values(
+                    raw, omics_layer=layer, intent="somatic", section=section
+                )
+        profiles: dict[str, Any] = {"somatic": somatic}
+        if "germline" in intents:
+            profiles["germline"] = {
+                "snv": select_filter_values(
+                    raw, omics_layer="dna", intent="germline", section="snv"
+                )
+            }
+        config["filters"] = normalize_sample_filters(
+            profiles,
+            omics_layer=category.lower(),
+            analysis_intents=intents,
+            canonical=True,
+        )
 
     def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """Return the admin list payload for assay configurations.
@@ -119,9 +160,7 @@ class AspcService:
         for panel in assay_panels:
             panel_category = _normalize_asp_category(panel.get("asp_category"))
             if panel_category == form_category:
-                assay_id = str(
-                    panel.get("asp_id") or panel.get("assay_name") or panel.get("_id") or ""
-                )
+                assay_id = str(panel.get("asp_id") or panel.get("_id") or "")
                 if not assay_id:
                     continue
                 envs = list(
@@ -199,7 +238,7 @@ class AspcService:
                     "Sample",
                     (),
                     {
-                        "assay": config.get("asp_id"),
+                        "asp_id": config.get("asp_id"),
                         "omics_layer": str(config.get("asp_category") or "").lower(),
                     },
                 )(),
@@ -243,6 +282,7 @@ class AspcService:
         config["asp_group"] = panel.get("asp_group")
         config["asp_category"] = _normalize_asp_category_doc(panel.get("asp_category"))
         config["platform"] = panel.get("platform")
+        self._build_filter_profiles(config, category=category)
         config["aspc_id"] = config.get(
             "aspc_id"
         ) or self.assay_configuration_repository.build_aspc_id(
@@ -264,11 +304,8 @@ class AspcService:
         config.setdefault("created_on", now)
         config["updated_by"] = actor
         config["updated_on"] = now
-        config = inject_version_history(
-            actor_username=actor,
-            new_config=config,
-            is_new=True,
-        )
+        config["version"] = 1
+        config.pop("version_history", None)
         self._validate_static_rule_source(config)
         config = _validated_doc(spec.collection, config)
         self.assay_configuration_repository.create_assay_config(config)
@@ -300,12 +337,12 @@ class AspcService:
         updated_doc["subpanel_id"] = str(updated_doc.get("subpanel_id") or SUBPANEL_BASE_ID).strip()
         actor = current_actor(actor_username)
         now = utc_now()
-        updated_doc["created_by"] = actor
-        updated_doc["created_on"] = now
+        updated_doc["created_by"] = assay_config.get("created_by") or actor
+        updated_doc["created_on"] = assay_config.get("created_on") or now
         updated_doc["updated_by"] = actor
         updated_doc["updated_on"] = now
         updated_doc["is_active"] = True
-        updated_doc["version"] = int(assay_config.get("version", 1) or 1) + 1
+        updated_doc["version"] = 1
         panel = self.assay_panel_repository.get_asp(str(updated_doc.get("asp_id", "")))
         if not panel:
             raise api_error(400, "Selected ASP does not exist")
@@ -313,27 +350,16 @@ class AspcService:
         updated_doc["asp_group"] = panel.get("asp_group")
         updated_doc["asp_category"] = _normalize_asp_category_doc(panel.get("asp_category"))
         updated_doc["platform"] = panel.get("platform")
+        self._build_filter_profiles(updated_doc, category=category)
         spec = aspc_spec_for_category(category)
-        updated_doc = inject_version_history(
-            actor_username=actor,
-            new_config=updated_doc,
-            old_config=assay_config,
-            is_new=False,
-        )
+        updated_doc.pop("version_history", None)
+        updated_doc.pop("retired_by", None)
+        updated_doc.pop("retired_on", None)
+        updated_doc.pop("retired_reason", None)
         self._validate_static_rule_source(updated_doc)
         updated_doc = _validated_doc(spec.collection, updated_doc)
-        self.assay_configuration_repository.rotate_aspc(
-            assay_id,
-            updated_doc,
-            retire_fields={
-                "retired_by": actor,
-                "retired_on": now,
-                "retired_reason": "superseded_by_edit",
-                "updated_by": actor,
-                "updated_on": now,
-            },
-        )
-        return change_payload(resource="aspc", resource_id=assay_id, action="rotate")
+        self.assay_configuration_repository.update_aspc(assay_id, updated_doc)
+        return change_payload(resource="aspc", resource_id=assay_id, action="update")
 
     def toggle(self, *, assay_id: str) -> dict[str, Any]:
         """Toggle whether an assay configuration is active.

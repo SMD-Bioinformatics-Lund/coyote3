@@ -255,8 +255,7 @@ def test_authenticate_credentials_mixed_provider_routes_by_identifier(monkeypatc
     monkeypatch.setattr(
         auth_service,
         "_ldap_authenticate",
-        lambda username, password: username == "tester@example.com"
-        and password == "ldap-secret",
+        lambda username, password: username == "tester@example.com" and password == "ldap-secret",
     )
 
     assert auth_service.authenticate_credentials("tester", "local-secret") == user_doc

@@ -18,12 +18,12 @@ This page documents the main runtime relationships in Coyote3, grounded in the c
 ```text
 [ASP: assay_specific_panels]
   key: asp_id
-  maps to: sample.assay
+  maps to: sample.asp_id
   owns: assay metadata, covered_genes, germline_genes, file policy
       |
       +--> [ASPC: asp_configs]
       |      logical scope: asp_id + subpanel_id + environment
-      |      maps to: sample.assay + sample.subpanel_id + sample.profile
+      |      maps to: sample.asp_id + sample.subpanel_id + sample.environment
       |      owns: default filters, reporting, analysis_types, catalog metadata
       |
       -?> [ISGL: insilico_genelists]
@@ -81,7 +81,7 @@ Incoming sample payload
   |
   +--> validate sample contract
   |
-  +--> resolve ASP by sample.assay
+  +--> resolve ASP by sample.asp_id
   |       |
   |       +--> expected_files / required_files policy
   |       +--> ASP category influences allowed ingest keys
@@ -151,7 +151,7 @@ Existing [sample] by name
   |
   +--> resolve active ASPC using assay + subpanel + profile
   |
-  +--> resolve ASP using sample.assay
+  +--> resolve ASP using sample.asp_id
   |
   +--> resolve selected ISGLs using sample.filters
   |

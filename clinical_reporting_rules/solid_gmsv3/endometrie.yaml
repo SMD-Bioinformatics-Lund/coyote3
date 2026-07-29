@@ -1,6 +1,6 @@
 rule_set:
   analyte: dna
-  asp_id: solid_GMSv3
+  asp_id: solid_gmsv3
   subpanel_id: endometrie
 
 document_rules:

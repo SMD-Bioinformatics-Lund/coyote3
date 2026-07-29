@@ -22,7 +22,7 @@ modalities:
         # WGS heme is an assay *family*; leave ASP links empty or point to the family anchor if you have one.
         asp_id: "tumwgs_hema"                 # (ASP) if a specific WGS-HEMA ASP exists, set it here.
         aspc_ids:
-          production: "tumwgs_hema:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
+          production: "tumwgs_hema_base_production"            # (ASPC) logical scope ID.
         input_material: ["DNA", "Fresh", "Fresh Frozen", 'Blood', 'Bone marrow', "Other Neoplastic Tissue"]
         tat: "21 days"
         sample_modes: ["Tumor-normal"]
@@ -32,7 +32,7 @@ modalities:
         gene_lists:
           - key: ""
             label: ""
-          - key: "hema_GMSv1"    # ISGL _id # (ISGL) fetch by _id
+          - key: "hema_gmsv1"    # ISGL _id # (ISGL) fetch by _id
             label: "GMS-HEM"
             description:  |
               A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
@@ -55,7 +55,7 @@ modalities:
         label: "Solid tumors"
         asp_id: "tumwgs_solid"                 # (ASP) if a specific WGS-SOLID ASP exists, set it here.
         aspc_ids:
-          production: "tumwgs_solid:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
+          production: "tumwgs_solid_base_production"            # (ASPC) logical scope ID.
         input_material: ["DNA", "Fresh", "Fresh Frozen", "Neoplastic Tissue"]
         tat: "14-21 days"
         sample_modes: ["Tumor-normal"]
@@ -65,7 +65,7 @@ modalities:
         gene_lists:
           - key: "" # Empty intentionally
             label: ""
-          - key: "GMS_BarnCancer_V1.0" # ISGL _id
+          - key: "gms_barncancer_v1_0" # ISGL _id
             label: "GMS Barn Cancer"
 
       drug_addon:
@@ -73,7 +73,7 @@ modalities:
         label: "Actionable Add-on"
         asp_id: "drug_addon"                 # (ASP) if a specific WGS-Drug-Add-on ASP exists, set it here.
         aspc_ids:
-          production: "drug_addon:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
+          production: "drug_addon_base_production"            # (ASPC) logical scope ID.
         input_material: ["NA"]
         tat: "NA"
         sample_modes: ["NA"]
@@ -96,7 +96,7 @@ modalities:
         label: "Hematology & solid tumors"
         asp_id: "fusion"
         aspc_ids:
-          production: "fusion:production"
+          production: "fusion_base_production"
         input_material: ["RNA", "Fresh", "Fresh Frozen", "Blood", "Bone marrow", "Other Neoplastic Tissue"]
         tat: "7-14 days"
         sample_modes: ["Tumor-only"]
@@ -114,19 +114,19 @@ modalities:
 
     categories:
       hematology:
-        catalog_id: "hema_GMSv1"
+        catalog_id: "hema_gmsv1"
         label: "GMS-HEM"
         # Link to the real assay + configs you showed in ASP/ASPC examples:
-        asp_id: "hema_GMSv1"                   # (ASP)
+        asp_id: "hema_gmsv1"                   # (ASP)
         aspc_ids:                                  # (ASPC) env -> _id
-          production: "hema_GMSv1:production"
+          production: "hema_gmsv1_base_production"
         input_material: ["DNA", "Fresh", "Fresh Frozen", "Blood", "Bone marrow", "Other Neoplastic Tissue"]
         tat: "21 days"
         sample_modes: ["Tumor-only", "Tumor-normal"]
         description: "Targeted gene panel analysis for hematological malignancies."
         subheading: ""
         gene_lists:
-          - key: "hema_GMSv1"               # (ISGL) Key must match ISGL _id
+          - key: "hema_gmsv1"               # (ISGL) Key must match ISGL _id
             label: "GMS-HEM"
             description: "Gene panel for hematological malignancies"
             analysis: ["SNV"]  # Optional: list available analysis types for this gene list
@@ -179,11 +179,11 @@ modalities:
             sample_modes: ["Tumor-only"]
 
       solid_tumors:
-        catalog_id: "solid_GMSv3"
+        catalog_id: "solid_gmsv3"
         label: "GMS-ST"
-        asp_id: "solid_GMSv3"                      # (ASP) if this is your panel's ASP _id
+        asp_id: "solid_gmsv3"                      # (ASP) if this is your panel's ASP _id
         aspc_ids:
-          production: "solid_GMSv3:production"     # (ASPC)
+          production: "solid_gmsv3_base_production" # (ASPC) logical scope ID.
         input_material: ["DNA", "FFPE", "Neoplastic Tissue"]
         tat: "14-21 days"
         sample_modes: ["Tumor-only", "Tumor-normal"]
@@ -191,7 +191,7 @@ modalities:
         subheading: ""
         analysis: ["SNV"]  # Optional: list available analysis types for this assay
         gene_lists:
-          - key: "solid_GMSv3"               # (ISGL) Key must match ISGL _id
+          - key: "solid_gmsv3"               # (ISGL) Key must match ISGL _id
             label: "GMS-ST"
             description: "Gene panel for solid tumors including potential actionable genes (please see https://www.oncokb.org/actionable-genes#sections=Tx for further information about actionable genes.)"
             sample_modes: ["Tumor-normal"]  # Optional: override sample modes if needed
@@ -226,9 +226,9 @@ modalities:
       rna_fusion:
         catalog_id: "rna_fusion"
         label: "RNA Fusion Panel"
-        asp_id: "RNA_fusion"                       # (ASP) if you keep a generic fusion panel
+        asp_id: "rna_fusion"                       # (ASP) if you keep a generic fusion panel
         aspc_ids:
-          production: "RNA_fusion:production"
+          production: "rna_fusion_base_production"
         input_material: ["RNA", "FFPE", "Neoplastic Tissue"]
         tat: "14-21 days"
         sample_modes: ["Tumor-only"]
@@ -236,6 +236,6 @@ modalities:
         subheading: ""
         analysis: ["Fusion Genes"]  # Optional: list available analysis types for this assay
         gene_lists:
-          - key: "RNA_fusion"               # (ISGL) Key must match ISGL _id
+          - key: "rna_fusion"               # (ISGL) Key must match ISGL _id
             label: "RNA Fusion Panel"
             description: "Gene fusion panel for solid tumors"

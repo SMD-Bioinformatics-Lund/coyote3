@@ -36,10 +36,6 @@ wts = "wts"
 options = ["production", "development", "testing", "validation"]
 default = "production"
 
-[sequencing]
-platforms = ["illumina", "nanopore"]
-read_modes = ["SE", "PE"]
-
 [authentication]
 providers = ["local", "ldap"]
 
@@ -49,9 +45,6 @@ adhoc_types = ["adhoc_snv", "adhoc_cnv", "adhoc_fusion", "adhoc_expression", "ad
 
 [reporting]
 required_aspc_fields = ["report_header", "report_method", "general_report_summary"]
-
-[permissions]
-categories = ["Sample Management", "Reports", "Variant Curation"]
 
 [files.dna]
 keys = ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "biomarkers", "pgx"]
@@ -100,17 +93,28 @@ PGX = ["pgx"]
 | `[assay.family_categories]` | one value per family | A configured assay category | Maps every family to the omics category that owns its file-key vocabulary. |
 | `[assay.family_scopes]` | one value per family | One non-empty identifier | Maps every family to the sequencing scope stored with samples. |
 | `[environment]` | `options`, `default` | Unique identifiers; default must be one listed option | Defines selectable ASPC/sample environments and the initial environment used where none is provided. |
-| `[sequencing]` | `platforms` | Non-empty unique lowercase identifiers | Validates the sequencing platforms selectable for an ASP. |
-| `[sequencing]` | `read_modes` | Non-empty unique uppercase identifiers | Validates read-mode values such as `SE` and `PE`. |
 | `[authentication]` | `providers` | One or both of `local`, `ldap` | Defines the enabled values permitted in a user's `auth_type` list. `local` uses username and local password; `ldap` uses email and directory credentials. |
 | `[genelist]` | `standard_types`, `adhoc_types` | Non-empty unique identifiers with no overlap | Defines selectable ISGL list types and determines which options appear when the ISGL ad-hoc switch is enabled. |
 | `[reporting]` | `required_aspc_fields` | Non-empty unique ASPC reporting field identifiers | Names the reporting values administrators must supply for an active report-capable ASPC. |
-| `[permissions]` | `categories` | Non-empty unique display labels | Organizes the permission administration UI. Categories do not grant access; permission IDs assigned to roles do. |
 | `[files.dna]` | `keys` | Non-empty unique manifest-key identifiers | Declares the accepted file keys for DNA sample YAML `files`. |
 | `[files.rna]` | `keys` | Non-empty unique manifest-key identifiers | Declares the accepted file keys for RNA sample YAML `files`. |
 | `[files.required_by_family]` | family arrays | Keys declared for that family's omics category | Establishes the baseline required input files for `panel-dna`, `wgs`, `panel-rna`, and `wts`. ASP-specific requirements can make additional configured keys mandatory. |
 | `[analysis.dna]` / `[analysis.rna]` | `types` | Supported application analysis types | Enables the analysis types that the center intends to use for that omics category. |
 | `[analysis.<omics>.file_keys]` | one array per enabled type | One or more configured keys for that omics category | Binds each analysis workflow to the manifest field(s) it reads. The first key is the primary path used by single-file consumers such as report images. |
+
+## Software-Owned Sequencing Capability
+
+Platform semantics are a software contract, rather than center TOML. The
+application supports `illumina`, `iontorrent`, `pacbio`, and `nanopore`.
+`read_technology` is derived automatically: Illumina and Ion Torrent are
+`short_read`; PacBio and Nanopore are `long_read`. Only Illumina currently
+offers selectable `read_mode` values (`SE` and `PE`). The ASP form filters the
+read-mode choices after a platform is selected; incompatible combinations are
+also rejected by the API contract.
+
+Permission categories are likewise software-owned presentation semantics.
+Centers assign permissions to roles and roles to users, but do not redefine
+the application's permission categories through deployment configuration.
 
 ## Analysis Labels and Workflow Support
 

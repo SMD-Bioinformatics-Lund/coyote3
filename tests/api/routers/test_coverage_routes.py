@@ -34,21 +34,26 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
         The function result.
     """
     sample = fx.sample_doc()
-    sample["filters"] = {"snvlists": ["GL1"]}
-    sample["assay"] = "WGS"
-    sample["profile"] = "production"
+    sample["filters"] = {"somatic": {"snv": {"snvlists": ["GL1"]}}}
+    sample["asp_id"] = "wgs"
+    sample["subpanel_id"] = "myeloid"
+    sample["environment"] = "production"
     service = _coverage_service()
+    requested_subpanels: list[str] = []
 
     monkeypatch.setattr(coverage, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(
         service.assay_configuration_repository,
         "get_aspc_no_meta",
-        lambda assay, profile: {"assay_group": "dna"},
+        lambda assay, profile, subpanel: (
+            requested_subpanels.append(subpanel)
+            or ({"asp_group": "dna", "subpanel_id": "base"} if subpanel == "base" else None)
+        ),
     )
     monkeypatch.setattr(
         service.assay_panel_repository,
         "get_asp",
-        lambda asp_name: {"asp_id": "WGS", "covered_genes": ["TP53", "NPM1"]},
+        lambda asp_name=None, **_kwargs: {"asp_id": "wgs", "covered_genes": ["TP53", "NPM1"]},
     )
     monkeypatch.setattr(
         coverage.util.common,
@@ -71,11 +76,9 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
         "find_low_covered_genes",
-        lambda filtered_dict,
-        cutoff,
-        assay_group,
-        *,
-        grouped_coverage_repository=None: filtered_dict,
+        lambda filtered_dict, cutoff, assay_group, *, grouped_coverage_repository=None: (
+            filtered_dict
+        ),
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
@@ -97,6 +100,7 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
     assert payload["smp_grp"] == "dna"
     assert payload["snvlists"] == ["GL1"]
     assert payload["cov_table"]["TP53"]["1"]["cov"] == 700
+    assert requested_subpanels == ["myeloid", "base"]
 
 
 def test_coverage_blacklisted_read_denies_non_member_group():
@@ -106,7 +110,7 @@ def test_coverage_blacklisted_read_denies_non_member_group():
         The function result.
     """
     user = _route_test_user()
-    user.assay_groups = ["rna"]
+    user.asp_groups = ["rna"]
 
     with pytest.raises(AppError) as exc:
         coverage.coverage_blacklisted_read("dna", user=user, service=_coverage_service())
@@ -130,8 +134,8 @@ def _route_test_user() -> ApiUser:
         roles=["user"],
         access_level=9,
         permissions=[],
-        assays=["WGS"],
-        assay_groups=["dna"],
+        asp_ids=["wgs"],
+        asp_groups=["dna"],
         envs=["production"],
         asp_map={},
         auth_type=["local"],
@@ -148,9 +152,10 @@ def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
         The function result.
     """
     sample = fx.sample_doc()
-    sample["filters"] = {"snvlists": ["GL1"]}
-    sample["assay"] = "WGS"
-    sample["profile"] = "production"
+    sample["filters"] = {"somatic": {"snv": {"snvlists": ["GL1"]}}}
+    sample["asp_id"] = "wgs"
+    sample["subpanel_id"] = "base"
+    sample["environment"] = "production"
     sample["_id"] = "S1"
 
     service = _coverage_service()
@@ -158,12 +163,12 @@ def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
     monkeypatch.setattr(
         service.assay_configuration_repository,
         "get_aspc_no_meta",
-        lambda assay, profile: {"assay_group": "dna"},
+        lambda assay, profile, subpanel: {"asp_group": "dna", "subpanel_id": subpanel},
     )
     monkeypatch.setattr(
         service.assay_panel_repository,
         "get_asp",
-        lambda asp_name: {"asp_id": "WGS", "covered_genes": ["TP53", "NPM1"]},
+        lambda asp_name=None, **_kwargs: {"asp_id": "wgs", "covered_genes": ["TP53", "NPM1"]},
     )
     monkeypatch.setattr(
         coverage.util.common,
@@ -186,11 +191,9 @@ def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
         "find_low_covered_genes",
-        lambda filtered_dict,
-        cutoff,
-        assay_group,
-        *,
-        grouped_coverage_repository=None: filtered_dict,
+        lambda filtered_dict, cutoff, assay_group, *, grouped_coverage_repository=None: (
+            filtered_dict
+        ),
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,

@@ -37,8 +37,8 @@ class UsersDoc(_StrictDocBase):
     password_action_issued_by: str | None = None
     roles: list[str] = Field(default_factory=list)
     environments: list[str] = Field(default_factory=list)
-    assays: list[str] = Field(default_factory=list)
-    assay_groups: list[str] = Field(default_factory=list)
+    asp_ids: list[str] = Field(default_factory=list)
+    asp_groups: list[str] = Field(default_factory=list)
     is_active: bool = True
     version: int = 1
     created_by: str | None = None
@@ -98,9 +98,9 @@ class UsersDoc(_StrictDocBase):
             normalized.append(normalize_environment(item, label="environments"))
         return normalized
 
-    @field_validator("assay_groups", mode="before")
+    @field_validator("asp_groups", mode="before")
     @classmethod
-    def _normalize_assay_groups(cls, value: Any) -> list[str]:
+    def _normalize_asp_groups(cls, value: Any) -> list[str]:
         if value is None:
             return []
         if isinstance(value, (str, bytes)):

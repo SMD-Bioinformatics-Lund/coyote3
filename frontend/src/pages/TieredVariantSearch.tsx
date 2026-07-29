@@ -160,7 +160,7 @@ export function TieredVariantSearch() {
                   <Link
                     to={sampleDetailPath(sample, sampleId)}
                     className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary hover:bg-primary/15 hover:underline"
-                    title={[sampleLabel, sample.assay, sample.subpanel, sample.profile].filter(Boolean).join(" / ")}
+                    title={[sampleLabel, sample.asp_id, sample.subpanel_id, sample.environment].filter(Boolean).join(" / ")}
                   >
                     {sampleLabel}
                   </Link>

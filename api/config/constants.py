@@ -8,6 +8,24 @@ from typing import Iterable
 
 from api.config.assay_groups import ASP_GROUP_OPTIONS
 from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
+from api.config.sequencing import PLATFORM_OPTIONS, READ_MODE_OPTIONS
+
+PERMISSION_CATEGORY_OPTIONS: tuple[str, ...] = (
+    "Analysis Actions",
+    "Assay Configuration Management",
+    "Assay Panel Management",
+    "Audit & Monitoring",
+    "Data Downloads",
+    "Gene List Management",
+    "Permission Policy Management",
+    "Reports",
+    "Role Management",
+    "Sample Management",
+    "Schema Management",
+    "User Management",
+    "Variant Curation",
+    "Visualization",
+)
 
 ASP_CATEGORY_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.assay_categories
 ASP_FAMILY_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.assay_families
@@ -66,10 +84,6 @@ DEFAULT_AUTH_PROVIDER = (
     AUTH_PROVIDER_LDAP if AUTH_PROVIDER_LDAP in AUTH_TYPE_OPTIONS else AUTH_TYPE_OPTIONS[0]
 )
 
-PLATFORM_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.platforms
-
-READ_MODE_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.read_modes
-
 DNA_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = tuple(
     CLINICAL_VOCABULARY.analysis_file_keys_by_omics["dna"]
 )
@@ -114,7 +128,6 @@ GENELIST_TYPE_OPTIONS: tuple[str, ...] = (
 # configuration required before an active configuration may generate a report.
 ASPC_REQUIRED_REPORTING_FIELDS: tuple[str, ...] = CLINICAL_VOCABULARY.required_aspc_reporting_fields
 SUBPANEL_BASE_ID = CLINICAL_VOCABULARY.base_subpanel_id
-PERMISSION_CATEGORY_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.permission_categories
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
@@ -130,6 +143,20 @@ def validate_identifier(value: object, *, label: str = "identifier") -> str:
             f"(got {normalized!r})"
         )
     return normalized
+
+
+def normalize_clinical_identifier(value: object, *, label: str = "identifier") -> str:
+    """Return the canonical lower-case form of a clinical identifier.
+
+    ASP, ASPC, ISGL, and subpanel identifiers are join keys across MongoDB,
+    static reporting rules, manifests, and access scope. They are therefore
+    case-insensitive identifiers, unlike human-facing display labels. Hyphens
+    and underscores are meaningful accepted separators and are preserved;
+    whitespace, dots, and every other unsupported character are rejected at
+    the boundary rather than silently rewritten.
+    """
+    normalized = str(value or "").strip().lower()
+    return validate_identifier(normalized, label=label)
 
 
 def _ensure_in_options(

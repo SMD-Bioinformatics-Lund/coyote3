@@ -133,20 +133,20 @@ export function Samples() {
       cell: ({ row }) => <span className="text-muted-foreground">{row.original.control?.clarity_id || "-"}</span>,
     },
     {
-      id: "profile",
-      header: "Profile",
-      accessorFn: (sample) => sample.profile || "",
+      id: "environment",
+      header: "Environment",
+      accessorFn: (sample) => sample.environment || "",
       cell: ({ row }) => (
-        <Badge variant="outline" className={`${valueBadgeClass(row.original.profile || "")} font-bold uppercase`}>
-          {row.original.profile || "-"}
+        <Badge variant="outline" className={`${valueBadgeClass(row.original.environment || "")} font-bold uppercase`}>
+          {row.original.environment || "-"}
         </Badge>
       ),
     },
     {
-      id: "assay",
-      header: "Assay",
-      accessorFn: (sample) => sample.assay || "",
-      cell: ({ row }) => <span className="font-semibold">{row.original.assay || "-"}</span>,
+      id: "asp_id",
+      header: "ASP",
+      accessorFn: (sample) => sample.asp_id || "",
+      cell: ({ row }) => <span className="font-semibold">{row.original.asp_id || "-"}</span>,
     },
     {
       id: "subpanel",

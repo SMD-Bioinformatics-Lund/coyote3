@@ -570,10 +570,10 @@ def enrich_reported_variant_docs(
             "sample_name": sample.get("name"),
             "case_id": sample.get("case_id"),
             "control_id": sample.get("control_id"),
-            "profile": sample.get("profile"),
+            "environment": sample.get("environment"),
             "paired": sample.get("paired"),
-            "assay": sample.get("assay"),
-            "subpanel": sample.get("subpanel_id"),
+            "asp_id": sample.get("asp_id"),
+            "subpanel_id": sample.get("subpanel_id"),
         }
 
         annotation_oid = doc.get("annotation_oid")

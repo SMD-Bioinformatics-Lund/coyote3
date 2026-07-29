@@ -33,6 +33,18 @@ interpretation from a saved artifact.
 
 ## 2. Configuration Sources
 
+### 2.0 Canonical clinical scope identifiers
+
+`asp_id`, `aspc_id`, `subpanel_id`, and `isgl_id` are persisted join keys. They
+use lower-case letters, digits, underscores, and hyphens. The service lowers
+case only: accepted separators retain their meaning, so the display label
+`Hem-Snabb` has the stored identifier `hem-snabb`. Whitespace, dots, and all
+other special characters are rejected rather than silently rewritten.
+
+This convention applies consistently to ASP, ASPC, ISGL, samples, user scope,
+static rule directories, and YAML manifests. It prevents a casing or separator
+variant from making an otherwise valid ASPC or gene list unreachable.
+
 ### 2.1 ASP: physical assay definition
 
 An Assay Specific Panel (ASP) describes the physical test.
@@ -49,13 +61,17 @@ An Assay Specific Panel (ASP) describes the physical test.
 | `germline_genes` | Germline-capable genes | Supports germline-aware review and reporting |
 | `accredited` | Accreditation status | Supports report metadata and conclusion wording |
 
-ASP data is versioned configuration. It does not contain sample-specific
-results or report text selected for one case.
+ASP data is active configuration. It is updated in place and kept as the
+single current first-version document for its `asp_id`; it does not contain
+sample-specific results or report text selected for one case. Operational
+change history belongs to the audit-event stream.
 
 ### 2.2 ASPC: analytical and reporting configuration
 
 An Assay Specific Panel Configuration (ASPC) binds an ASP to one subpanel and
-environment.
+environment. One ASPC carries every enabled analytical intent for that scope;
+it is not duplicated solely because the same physical assay supports both
+somatic and germline review.
 
 The logical identity is:
 
@@ -73,6 +89,7 @@ configuration.
 | `subpanel_id` | Specific subpanel or `base` |
 | `environment` | Production, validation, testing, or development |
 | `analysis_types` | Analyses available for sample review |
+| `analysis_intents` | `somatic` and, for DNA SNV where configured, `germline`. The value controls the available filter profiles, review tables, and reporting contexts. |
 | `reporting.analysis` | Analyses eligible for report preparation |
 | `reporting.report_sections` | Sections rendered in a report |
 | `filters` | Default analytical filters |
@@ -91,22 +108,23 @@ questions:
 - **Reportable domain:** may this analysis contribute to a report?
 - **Rendered section:** should the report contain this section?
 
-The release contains the complete validated YAML source, its deterministic
-content hash, publication identity, and any deferred rules waiting for a typed
-fact contract. This makes the runtime lineage:
+The saved report records the validated YAML source identity and deterministic
+content hash together with the resolved ASPC and filter snapshot. This makes
+the runtime lineage:
 
 ```text
 reviewed repository YAML
-  -> content-hashed immutable release
-  -> versioned ASPC binding
-  -> saved report provenance
+  -> resolved active ASPC
+  -> saved report context and provenance
 ```
 
 !!! warning
-    Current operational reads resolve the active ASPC by assay, subpanel, and
-    environment, with a controlled `base` fallback. A saved report must
-    preserve the resolved ASPC identity/version and filter snapshot so later
-    configuration rotation does not rewrite report history.
+    Current operational reads resolve the exact active ASPC by ASP, subpanel,
+    and environment. When a legacy sample has no subpanel-specific ASPC, the
+    active `base` ASPC is attached and `samples.aspc_resolution` records the
+    requested and resolved subpanel IDs plus an explicit warning. The analysis
+    and overview pages display that warning. A saved report preserves the
+    resolved ASPC identity and filter snapshot.
 
 ### 2.3 ISGL: in-silico gene lists
 
@@ -136,7 +154,7 @@ preparation, not every list configured for the assay.
 
 ### 3.1 Manifest and file policy
 
-The sample YAML identifies the sample, assay, subpanel, environment, pipeline,
+The sample YAML identifies the sample, `asp_id`, `subpanel_id`, `environment`, pipeline,
 case/control relationship, and declared files.
 
 Ingest resolves the active ASP and ASPC before writing the sample. File policy
@@ -165,13 +183,17 @@ Key fields include:
 | Field | Purpose |
 |---|---|
 | `name` | Human-facing sample identifier and route key |
-| `assay` | ASP identifier |
+| `asp_id` | ASP identifier |
 | `subpanel_id` | Selected subpanel |
-| `profile` | Environment |
+| `environment` | Environment |
 | `current_aspc_id` | ASPC ObjectId resolved when sample state was established |
 | `current_aspc_key` | ASPC logical identifier recorded on the sample |
 | `current_aspc_version` | ASPC version recorded on the sample |
+| `aspc_resolution` | Requested and resolved configuration scope. A base fallback sets `used_base_configuration=true` and carries the visible warning text. |
 | `omics_layer` | DNA or RNA |
+| `platform` | Sequencing platform inherited from the resolved ASP, such as `illumina` or `pacbio` |
+| `read_mode` | Platform-supported read mode. It is currently applicable only to Illumina (`SE` or `PE`). |
+| `read_technology` | Immutable derived value: `short_read` for Illumina/Ion Torrent and `long_read` for PacBio/Nanopore. It is never entered independently. |
 | `paired` | Whether case/control data are present |
 | `genome_build` | Reference genome build |
 | `database_versions.vep` | VEP version used for annotation |
@@ -210,34 +232,59 @@ mounted path at use time.
 
 ### 4.1 Default state
 
-When no sample-specific filters exist, the application converts ASPC defaults
-to the canonical sample shape:
+When no sample-specific filters exist, the application copies the complete
+ASPC profile map to the sample. DNA uses the following canonical shape:
 
 ```yaml
 filters:
-  snv: {}
-  cnv: {}
-  coverage: {}
+  somatic:
+    snv: {}
+    cnv: {}
+    coverage: {}
+  germline:
+    snv: {}
 ```
 
 RNA uses:
 
 ```yaml
 filters:
-  fusion: {}
+  somatic:
+    fusion: {}
 ```
+
+Only enabled profiles are stored. `germline` is currently available only for
+DNA `SNV`; CNV, coverage, fusion, biomarkers, and RNA remain somatic-only.
+The profile keys are a software contract: ASPC and sample documents may set
+values, but they cannot add arbitrary filter fields.
+
+### 4.2 Intent-specific review and reporting
+
+The DNA review workspace presents separate tables for each enabled profile:
+Somatic SNV and Germline SNV. A filter change updates only the selected
+`filters.<intent>.snv` section. It does not overwrite the other intent.
+
+Reporting prepares separate filtered finding sets for somatic and germline
+SNVs. Each saved reported-finding snapshot records `analysis_intent`. Static
+clinical YAML must contain an explicit `when` condition for
+`sample.analysis_intent: germline` before it can produce germline wording.
+This prevents a somatic sentence from being applied to germline findings. If
+an ASPC enables germline review but the selected rule set provides no germline
+text, the preview renders a visible red configuration warning rather than
+silently omitting the result.
 
 ### 4.2 DNA filter namespaces
 
 | Namespace | Supported settings |
 |---|---|
-| `filters.snv` | Depth, alternate reads, case VAF, control VAF, population frequency, VEP groups, SNV lists, ad-hoc genes |
-| `filters.cnv` | Size bounds, gain/loss cutoffs, effects, CNV lists, ad-hoc genes |
-| `filters.coverage` | Warning and error coverage thresholds |
+| `filters.somatic.snv` | Depth, alternate reads, case VAF, control VAF, population frequency, VEP groups, SNV lists, ad-hoc genes |
+| `filters.germline.snv` | Depth, alternate reads, case VAF, population frequency, VEP groups, SNV lists, ad-hoc genes |
+| `filters.somatic.cnv` | Size bounds, gain/loss cutoffs, effects, CNV lists, ad-hoc genes |
+| `filters.somatic.coverage` | Warning and error coverage thresholds |
 
 ### 4.3 RNA filter namespace
 
-`filters.fusion` contains caller, effect, gene-list, spanning-pair,
+`filters.somatic.fusion` contains caller, effect, gene-list, spanning-pair,
 spanning-read, and ad-hoc-gene settings.
 
 ### 4.4 Update and reset behavior
@@ -425,9 +472,9 @@ context_version: 1
 sample:
   oid: "<ObjectId>"
   name: "<sample name>"
-  assay: "<ASP ID>"
+  asp_id: "<ASP ID>"
   subpanel_id: "<subpanel or base>"
-  environment: "<profile>"
+  environment: "<environment>"
   omics_layer: dna
   paired: true
   genome_build: 38
@@ -542,7 +589,7 @@ is supposed to describe.
 
 Preview:
 
-1. resolves the active sample configuration by assay, subpanel, and
+1. resolves the active sample configuration by `asp_id`, `subpanel_id`, and
    environment;
 2. builds the prepared report context from current filters;
 3. composes report text and sections;

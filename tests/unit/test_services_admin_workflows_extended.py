@@ -241,7 +241,7 @@ def test_create_user_sanitizes_username_and_defaults_user_role(monkeypatch):
     assert payload["form"]["fields"]["roles"]["default"] == ["user"]
     assert payload["form"]["fields"]["auth_type"]["options"] == list(AUTH_TYPE_OPTIONS)
     assert payload["form"]["fields"]["environments"]["options"] == list(ENVIRONMENT_OPTIONS)
-    assert payload["form"]["fields"]["assay_groups"]["options"] == list(ASP_GROUP_OPTIONS)
+    assert payload["form"]["fields"]["asp_groups"]["options"] == list(ASP_GROUP_OPTIONS)
 
     service.create_user(
         payload={
@@ -278,8 +278,8 @@ def test_update_user_keeps_existing_username(monkeypatch):
                 "job_title": "Analyst",
                 "auth_type": ["ldap"],
                 "roles": ["admin"],
-                "assay_groups": [],
-                "assays": [],
+                "asp_groups": [],
+                "asp_ids": [],
                 "is_active": "true",
             }
         },

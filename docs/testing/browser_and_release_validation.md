@@ -122,7 +122,7 @@ For one DNA sample with SNV, CNV, coverage, biomarker, and structural inputs:
 
 ### 4. Admin And Operations
 
-1. Create, view, edit/rotate, retire, and list one non-production test record
+1. Create, view, edit, and list one non-production test record
    for each managed resource type.
 2. Verify each mutation creates an audit event with actor, resource name, id,
    outcome, and local-time display in the UI.

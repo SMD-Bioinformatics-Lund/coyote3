@@ -30,8 +30,6 @@ class ClinicalVocabulary:
     base_subpanel_id: str
     environment_options: tuple[str, ...]
     default_environment: str
-    platforms: tuple[str, ...]
-    read_modes: tuple[str, ...]
     sample_file_keys: dict[str, tuple[str, ...]]
     required_file_keys_by_family: dict[str, tuple[str, ...]]
     analysis_file_keys_by_omics: dict[str, dict[str, tuple[str, ...]]]
@@ -39,7 +37,6 @@ class ClinicalVocabulary:
     genelist_standard_types: tuple[str, ...]
     genelist_adhoc_types: tuple[str, ...]
     required_aspc_reporting_fields: tuple[str, ...]
-    permission_categories: tuple[str, ...]
 
 
 def _string_tuple(
@@ -91,30 +88,26 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
 
     assay = raw.get("assay")
     environment = raw.get("environment")
-    sequencing = raw.get("sequencing")
     files = raw.get("files")
     analysis = raw.get("analysis")
     authentication = raw.get("authentication")
     genelist = raw.get("genelist")
     reporting = raw.get("reporting")
-    permissions = raw.get("permissions")
     if not all(
         isinstance(section, dict)
         for section in (
             assay,
             environment,
-            sequencing,
             files,
             analysis,
             authentication,
             genelist,
             reporting,
-            permissions,
         )
     ):
         raise RuntimeError(
-            "clinical vocabulary requires assay, environment, sequencing, files, analysis, "
-            "authentication, genelist, reporting, and permissions tables"
+            "clinical vocabulary requires assay, environment, files, analysis, "
+            "authentication, genelist, and reporting tables"
         )
 
     assay_categories = _identifier_tuple(assay.get("categories"), key="assay.categories")
@@ -153,11 +146,6 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
     default_environment = _identifier_value(environment.get("default"), key="environment.default")
     if default_environment not in environment_options:
         raise RuntimeError("environment.default must be one of environment.options")
-
-    platforms = _string_tuple(sequencing.get("platforms"), key="sequencing.platforms")
-    read_modes = _string_tuple(
-        sequencing.get("read_modes"), key="sequencing.read_modes", uppercase=True
-    )
 
     sample_file_keys: dict[str, tuple[str, ...]] = {}
     for category in assay_categories:
@@ -239,10 +227,6 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
     required_aspc_reporting_fields = _identifier_tuple(
         reporting.get("required_aspc_fields"), key="reporting.required_aspc_fields"
     )
-    permission_categories = _string_tuple(
-        permissions.get("categories"), key="permissions.categories", lowercase=False
-    )
-
     return ClinicalVocabulary(
         assay_categories=assay_categories,
         assay_families=assay_families,
@@ -251,8 +235,6 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         base_subpanel_id=base_subpanel_id,
         environment_options=environment_options,
         default_environment=default_environment,
-        platforms=platforms,
-        read_modes=read_modes,
         sample_file_keys=sample_file_keys,
         required_file_keys_by_family=required_file_keys_by_family,
         analysis_file_keys_by_omics=analysis_file_keys_by_omics,
@@ -260,7 +242,6 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         genelist_standard_types=genelist_standard_types,
         genelist_adhoc_types=genelist_adhoc_types,
         required_aspc_reporting_fields=required_aspc_reporting_fields,
-        permission_categories=permission_categories,
     )
 
 

@@ -38,7 +38,7 @@ def list_admin_samples_read(
     """
     return util.common.convert_to_serializable(
         service.list_payload(
-            assays=None if user.is_superuser else user.assays,
+            asp_ids=None if user.is_superuser else user.asp_ids,
             search=search,
             page=page,
             per_page=per_page,

@@ -290,9 +290,9 @@ class CommonQueryService:
             "sample_id": sample_id,
             "sample_name": resolved_name,
             "name": resolved_name,
-            "assay": (sample_doc or {}).get("assay"),
-            "subpanel": (sample_doc or {}).get("subpanel") or (sample_doc or {}).get("subpanel_id"),
-            "profile": (sample_doc or {}).get("profile"),
+            "asp_id": (sample_doc or {}).get("asp_id"),
+            "subpanel_id": (sample_doc or {}).get("subpanel_id"),
+            "environment": (sample_doc or {}).get("environment"),
             "report_oids": {},
         }
 
@@ -313,7 +313,7 @@ class CommonQueryService:
                 search_str=search_str,
                 search_mode=search_mode,
                 include_annotation_text=include_annotation_text,
-                assays=effective_assays,
+                asp_ids=effective_assays,
                 limit=limit_entries,
             )
             or []
@@ -322,7 +322,7 @@ class CommonQueryService:
             self.reported_variant_repository.find_reported_variants_by_search_string(
                 search_str=search_str or "",
                 search_mode=search_mode,
-                assays=effective_assays,
+                asp_ids=effective_assays,
                 limit=limit_entries,
             )
             or []
@@ -334,7 +334,7 @@ class CommonQueryService:
                 search_str=search_str,
                 search_mode=search_mode,
                 include_annotation_text=include_annotation_text,
-                assays=effective_assays,
+                asp_ids=effective_assays,
             )
 
         sample_tagged_docs = []

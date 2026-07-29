@@ -121,30 +121,38 @@ def test_dna_report_payload_requires_sample_database_vep_version():
             sample={
                 "_id": "s1",
                 "name": "S1",
-                "assay": "assay_1",
-                "subpanel": "hema",
+                "asp_id": "assay_1",
+                "subpanel_id": "hema",
                 "filters": {
-                    "snvlists": [],
-                    "vep_consequences": ["missense"],
-                    "max_freq": 1,
-                    "min_freq": 0,
-                    "max_control_freq": 0.05,
-                    "min_depth": 10,
-                    "min_alt_reads": 3,
-                    "max_popfreq": 0.05,
+                    "somatic": {
+                        "snv": {
+                            "snvlists": [],
+                            "vep_consequences": ["missense"],
+                            "max_freq": 1,
+                            "min_freq": 0,
+                            "max_control_freq": 0.05,
+                            "min_depth": 10,
+                            "min_alt_reads": 3,
+                            "max_popfreq": 0.05,
+                        }
+                    },
                 },
             },
             assay_config={
                 "asp_group": "hematology",
                 "filters": {
-                    "snvlists": [],
-                    "vep_consequences": ["missense"],
-                    "max_freq": 1,
-                    "min_freq": 0,
-                    "max_control_freq": 0.05,
-                    "min_depth": 10,
-                    "min_alt_reads": 3,
-                    "max_popfreq": 0.05,
+                    "somatic": {
+                        "snv": {
+                            "snvlists": [],
+                            "vep_consequences": ["missense"],
+                            "max_freq": 1,
+                            "min_freq": 0,
+                            "max_control_freq": 0.05,
+                            "min_depth": 10,
+                            "min_alt_reads": 3,
+                            "max_popfreq": 0.05,
+                        }
+                    },
                 },
                 "reporting": {"report_sections": ["SNV"], "report_header": "Demo"},
             },
@@ -182,35 +190,41 @@ def test_dna_report_payload_filters_reported_cnvs_by_selected_cnv_list():
         sample={
             "_id": "s1",
             "name": "S1",
-            "assay": "assay_1",
-            "subpanel": "hema",
+            "asp_id": "assay_1",
+            "subpanel_id": "hema",
             "database_versions": {"vep": "110"},
             "filters": {
-                "snvlists": [],
-                "vep_consequences": ["missense"],
-                "cnvlists": ["CNV_GL"],
-                "cnveffects": ["gain", "loss"],
-                "max_freq": 1,
-                "min_freq": 0,
-                "max_control_freq": 0.05,
-                "min_depth": 10,
-                "min_alt_reads": 3,
-                "max_popfreq": 0.05,
+                "somatic": {
+                    "snv": {
+                        "snvlists": [],
+                        "vep_consequences": ["missense"],
+                        "max_freq": 1,
+                        "min_freq": 0,
+                        "max_control_freq": 0.05,
+                        "min_depth": 10,
+                        "min_alt_reads": 3,
+                        "max_popfreq": 0.05,
+                    },
+                    "cnv": {"cnvlists": ["CNV_GL"], "cnveffects": ["gain", "loss"]},
+                },
             },
         },
         assay_config={
             "asp_group": "hematology",
             "filters": {
-                "snvlists": [],
-                "vep_consequences": ["missense"],
-                "cnvlists": [],
-                "cnveffects": ["gain", "loss"],
-                "max_freq": 1,
-                "min_freq": 0,
-                "max_control_freq": 0.05,
-                "min_depth": 10,
-                "min_alt_reads": 3,
-                "max_popfreq": 0.05,
+                "somatic": {
+                    "snv": {
+                        "snvlists": [],
+                        "vep_consequences": ["missense"],
+                        "max_freq": 1,
+                        "min_freq": 0,
+                        "max_control_freq": 0.05,
+                        "min_depth": 10,
+                        "min_alt_reads": 3,
+                        "max_popfreq": 0.05,
+                    },
+                    "cnv": {"cnvlists": [], "cnveffects": ["gain", "loss"]},
+                },
             },
             "reporting": {"report_sections": ["SNV", "CNV"], "report_header": "Demo"},
         },
@@ -253,7 +267,9 @@ def test_rna_workflow_merge_and_persist_filters(monkeypatch):
     calls = {}
     sample_repository = SimpleNamespace(
         update_sample_filters=lambda _id, filters: None,
-        get_sample=lambda _id: {"filters": {"min_spanning_reads": 2, "min_spanning_pairs": 3}},
+        get_sample=lambda _id: {
+            "filters": {"somatic": {"fusion": {"min_spanning_reads": 2, "min_spanning_pairs": 3}}}
+        },
     )
 
     monkeypatch.setattr(
@@ -300,7 +316,7 @@ def test_rna_workflow_merge_and_persist_filters(monkeypatch):
         assay_config_schema={},
         request_form=req,
     )
-    assert updated_sample["filters"]["min_spanning_reads"] == 2
+    assert updated_sample["filters"]["somatic"]["fusion"]["min_spanning_reads"] == 2
     assert updated_filters["min_spanning_pairs"] == 3
 
 

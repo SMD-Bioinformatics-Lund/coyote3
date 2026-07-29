@@ -38,16 +38,13 @@ def test_build_query_has_expected_base_shape() -> None:
 def test_build_query_uses_assay_specific_base_logic() -> None:
     query = build_query("myeloid", _settings())
     solid_query = build_query("solid", _settings())
-    outer_or = next(
-        item["$or"] for item in query["$and"] if isinstance(item, dict) and "$or" in item
+    assert query != solid_query
+    assert not _contains_mapping(query, {"INFO.MYELOID_GERMLINE": 1})
+    assert not _contains_mapping(solid_query, {"FILTER": {"$in": ["GERMLINE"]}})
+    assert _contains_mapping(
+        solid_query,
+        {"INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": ["missense_variant"]}}}},
     )
-    solid_outer_or = next(
-        item["$or"] for item in solid_query["$and"] if isinstance(item, dict) and "$or" in item
-    )
-    assert outer_or != solid_outer_or
-    assert _contains_mapping(outer_or, {"INFO.MYELOID_GERMLINE": 1})
-    assert _contains_mapping(solid_outer_or, {"FILTER": {"$in": ["GERMLINE"]}})
-    assert _contains_mapping(solid_outer_or, {"INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": ["missense_variant"]}}}})
 
 
 def test_build_query_supports_generic_somatic_and_germline_groups() -> None:
@@ -74,11 +71,26 @@ def test_build_query_keeps_master_assay_group_aliases() -> None:
     swea_query = build_query("swea", _settings())
     gmsonco_query = build_query("gmsonco", _settings())
 
-    assert _contains_mapping(fusion_query, {"INFO.MYELOID_GERMLINE": 1})
-    assert _contains_mapping(fusion_query, {"INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": ["missense_variant"]}}}})
-    assert _contains_mapping(swea_query, {"INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": ["missense_variant"]}}}})
-    assert _contains_mapping(gmsonco_query, {"INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": ["missense_variant"]}}}})
+    assert not _contains_mapping(fusion_query, {"INFO.MYELOID_GERMLINE": 1})
+    assert _contains_mapping(
+        fusion_query, {"INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": ["missense_variant"]}}}}
+    )
+    assert _contains_mapping(
+        swea_query, {"INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": ["missense_variant"]}}}}
+    )
+    assert _contains_mapping(
+        gmsonco_query, {"INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": ["missense_variant"]}}}}
+    )
     assert not _contains_mapping(swea_query, {"gnomad_frequency": {"$exists": False}})
+
+
+def test_build_query_keeps_germline_and_somatic_populations_separate() -> None:
+    somatic_query = build_query("hematology", _settings(), intent="somatic")
+    germline_query = build_query("hematology", _settings(), intent="germline")
+
+    assert not _contains_mapping(somatic_query, {"INFO.MYELOID_GERMLINE": 1})
+    assert _contains_mapping(germline_query, {"INFO.MYELOID_GERMLINE": 1})
+    assert _contains_mapping(germline_query, {"FILTER": {"$in": ["GERMLINE"]}})
 
 
 def test_clinical_consequence_groups_resolve_from_metadata_groups() -> None:

@@ -396,15 +396,15 @@ class FusionsRepository(BaseRepository):
         # Collect only the sample ObjectIds we need
         sample_ids = {ObjectId(f["SAMPLE_ID"]) for f in fusions}
 
-        # Step 3: Map sample_id -> {name, assay}
+        # Step 3: Map sample_id -> canonical sample identity.
         sample_map = {
             str(s["_id"]): {
                 "sample_name": s.get("name", "unknown"),
-                "assay": s.get("assay", "unknown"),
+                "asp_id": s.get("asp_id", "unknown"),
             }
             for s in self.adapter.samples_collection.find(
                 {"_id": {"$in": list(sample_ids)}},
-                {"_id": 1, "name": 1, "assay": 1},
+                {"_id": 1, "name": 1, "asp_id": 1},
             )
         }
 
@@ -412,7 +412,7 @@ class FusionsRepository(BaseRepository):
         results = []
         for f in fusions:
             sid = f["SAMPLE_ID"]
-            info = sample_map.get(sid, {"sample_name": "unknown", "assay": "unknown"})
+            info = sample_map.get(sid, {"sample_name": "unknown", "asp_id": "unknown"})
             info["fp"] = f.get("fp", False)  # Add fp status if available
             info["interesting"] = f.get("interesting", False)  # Add interesting status if available
             info["irrelevant"] = f.get("irrelevant", False)  # Add irrelevant status if available

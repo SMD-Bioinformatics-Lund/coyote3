@@ -18,7 +18,6 @@ from api.config.database_versions import sample_vep_version
 from api.domain.common.assay_filters import (
     get_assay_genelist_names,
     get_sample_effective_genes,
-    merge_sample_settings_with_assay_config,
 )
 from api.domain.common.reporting import (
     TIER_DESC,
@@ -27,7 +26,11 @@ from api.domain.common.reporting import (
     get_plot,
     get_report_header,
 )
-from api.domain.common.sample_filters import merged_dna_cnv_filters, merged_dna_variant_filters
+from api.domain.common.sample_filters import (
+    merge_filter_defaults,
+    merged_dna_cnv_filters,
+    merged_dna_variant_filters,
+)
 from api.domain.core.dna.dna_filters import (
     cnv_organizegenes,
     cnvtype_variant,
@@ -242,13 +245,15 @@ def get_simple_variants_for_report(variants: list, assay_config: dict) -> list:
 
 
 def _ensure_sample_filters(sample: dict, assay_config: dict) -> tuple[dict, dict]:
-    """Return sample with populated filters and a defensive filters copy."""
-    if sample.get("filters") is None:
-        sample = merge_sample_settings_with_assay_config(deepcopy(sample), assay_config)
-    raw_sample_filters = sample.get("filters")
-    sample_filters = deepcopy(
-        assay_config.get("filters", {}) if raw_sample_filters is None else raw_sample_filters
+    """Return sample filters completed from its resolved ASPC defaults."""
+    sample = deepcopy(sample)
+    sample_filters = merge_filter_defaults(
+        sample.get("filters"),
+        assay_config.get("filters"),
+        omics_layer=str(sample.get("omics_layer") or "dna"),
+        analysis_intents=sample.get("analysis_intents"),
     )
+    sample["filters"] = sample_filters
     return sample, sample_filters
 
 
@@ -352,16 +357,17 @@ def _build_variant_query(
     filter_conseq: list,
     filter_genes: list,
     disp_pos: list,
+    intent: str = "somatic",
 ) -> dict:
     """Build variant lookup query payload for report preparation."""
-    snv_filters = merged_dna_variant_filters(sample_filters)
+    snv_filters = merged_dna_variant_filters(sample_filters, intent=intent)
     return build_query(
         assay_group,
         {
             "id": str(sample["_id"]),
             "max_freq": snv_filters["max_freq"],
             "min_freq": snv_filters["min_freq"],
-            "max_control_freq": snv_filters["max_control_freq"],
+            "max_control_freq": snv_filters.get("max_control_freq", 1.0),
             "min_depth": snv_filters["min_depth"],
             "min_alt_reads": snv_filters["min_alt_reads"],
             "max_popfreq": snv_filters["max_popfreq"],
@@ -371,6 +377,7 @@ def _build_variant_query(
             "fp": {"$ne": True},
             "irrelevant": {"$ne": True},
         },
+        intent=intent,
     )
 
 
@@ -379,6 +386,7 @@ def _build_snapshot_rows(
     assay_group: str,
     subpanel: str | None,
     latest_sample_comment: dict | None,
+    intent: str = "somatic",
 ) -> list[dict[str, Any]]:
     """Build snapshot rows for reported-variant persistence."""
     now_utc = datetime.now(timezone.utc)
@@ -404,6 +412,7 @@ def _build_snapshot_rows(
                     latest_sample_comment.get("_id") if latest_sample_comment else None
                 ),
                 "var_type": v.get("variant_class"),
+                "analysis_intent": intent,
                 "simple_id": simple_id,
                 "simple_id_hash": simple_id_hash,
                 "tier": v.get("classification", {}).get("class"),
@@ -439,7 +448,7 @@ def build_dna_report_payload(
     """
     Build DNA report template context and optional reported-variant snapshot rows.
     """
-    sample_assay = sample.get("assay")
+    sample_assay = sample.get("asp_id")
     assay_group: str = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel_id")
     report_sections = _normalize_dna_report_sections(
@@ -508,6 +517,44 @@ def build_dna_report_payload(
     variants_simple = get_simple_variants_for_report(variants, assay_config)
     report_sections_data["snvs"] = sort_by_class_and_af(variants_simple)
     rule_sections_data: Dict[str, Any] = {"snvs": variants}
+
+    germline_variants: list[dict[str, Any]] = []
+    if "germline" in set(sample.get("analysis_intents") or []):
+        germline_filters = merged_dna_variant_filters(sample_filters, intent="germline")
+        germline_consequences = shared_get_filter_conseq_terms(
+            germline_filters.get("vep_consequences", []), conseq_terms_mapper
+        )
+        germline_query = _build_variant_query(
+            assay_group=assay_group,
+            sample=sample,
+            sample_filters=sample_filters,
+            filter_conseq=germline_consequences,
+            filter_genes=filter_genes,
+            disp_pos=disp_pos,
+            intent="germline",
+        )
+        germline_variants = list(variant_repository.get_case_variants(germline_query) or [])
+        germline_variants = blacklist_repository.add_blacklist_data(
+            germline_variants, assay=assay_group
+        )
+        germline_variants, _ = shared_add_global_annotations(
+            germline_variants, assay_group, subpanel, annotation_repository=annotation_repository
+        )
+        germline_variants = hotspot_variant(germline_variants)
+        germline_variants = filter_variants_for_report(germline_variants, filter_genes, assay_group)
+        if include_snapshot:
+            snapshot_rows.extend(
+                _build_snapshot_rows(
+                    variants=germline_variants,
+                    assay_group=assay_group,
+                    subpanel=subpanel,
+                    latest_sample_comment=latest_sample_comment,
+                    intent="germline",
+                )
+            )
+        report_sections_data["germline_snvs"] = sort_by_class_and_af(
+            get_simple_variants_for_report(germline_variants, assay_config)
+        )
 
     if "CNV" in report_sections:
         cnv_filter_genes = _resolve_cnv_filter_genes(
@@ -603,9 +650,34 @@ def build_dna_report_payload(
         if clinical_rule_service is not None
         else None
     )
+    germline_rule_evaluation = None
+    if (
+        "germline" in set(sample.get("analysis_intents") or [])
+        and clinical_rule_service is not None
+    ):
+        germline_rule_context = prepare_report_context(
+            sample=sample,
+            asp=assay_panel_doc or {},
+            aspc=assay_config,
+            analyte="dna",
+            applied_gene_lists=applied_gene_lists,
+            report_sections_data={"snvs": germline_variants},
+            intent="germline",
+        )
+        germline_rule_evaluation = clinical_rule_service.evaluate(
+            aspc=assay_config,
+            context=germline_rule_context,
+        )
 
     report_date = datetime.now().date()
     report_timestamp: str = shared_get_report_timestamp()
+    somatic_summary = rendered_summary(clinical_rule_evaluation)
+    germline_summary = rendered_summary(germline_rule_evaluation)
+    if "germline" in set(sample.get("analysis_intents") or []) and not germline_summary:
+        germline_summary = (
+            '<strong style="color:#b42318">Germline SNV report text has not been '
+            "configured for this ASP and subpanel.</strong>"
+        )
     template_context: Dict[str, Any] = {
         "assay_config": assay_config,
         "report_sections": report_sections,
@@ -624,7 +696,10 @@ def build_dna_report_payload(
         "panel_doc": json.dumps(assay_panel_doc, default=str),
         "report_snvlists": json.dumps(genes_covered_in_panel, default=str),
         "report_sample_filters": json.dumps(sample_filters, default=str),
-        "clinical_summary_text": rendered_summary(clinical_rule_evaluation),
+        "clinical_summary_text": "\n\n".join(
+            text for text in (somatic_summary, germline_summary) if text
+        ),
+        "clinical_germline_summary_text": germline_summary,
         "clinical_rule_evaluation": (
             clinical_rule_evaluation.model_dump(mode="json") if clinical_rule_evaluation else None
         ),

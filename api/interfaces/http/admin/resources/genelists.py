@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query, Request
 
 from api.app.container import util
 from api.app.deps.services import get_admin_genelist_service
@@ -15,6 +15,7 @@ from api.contracts.admin import (
     AdminGenelistsListPayload,
     AdminGenelistViewContextPayload,
 )
+from api.interfaces.http.admin.resources.audit import set_managed_resource_audit_context
 from api.interfaces.http.tags import TAG_ADMIN_ASSAYS
 from api.security.access import ApiUser, require_access
 
@@ -28,6 +29,7 @@ router = APIRouter(tags=[TAG_ADMIN_ASSAYS])
     summary="Create genelist",
 )
 def create_genelist_change(
+    request: Request,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="gene_list.insilico:create")),
     service: IsglService = Depends(get_admin_genelist_service),
@@ -42,9 +44,11 @@ def create_genelist_change(
     Returns:
         dict: Mutation response payload.
     """
-    return util.common.convert_to_serializable(
-        service.create(payload=payload, actor_username=user.username)
+    result = service.create(payload=payload, actor_username=user.username)
+    set_managed_resource_audit_context(
+        request, resource_type="genelist", action="created", result=result
     )
+    return util.common.convert_to_serializable(result)
 
 
 @router.get("/api/v1/resources/genelists", response_model=AdminGenelistsListPayload)
@@ -146,6 +150,7 @@ def genelist_view_context_read(
     summary="Update genelist",
 )
 def update_genelist_change(
+    request: Request,
     genelist_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="gene_list.insilico:edit")),
@@ -162,13 +167,15 @@ def update_genelist_change(
     Returns:
         dict: Mutation response payload.
     """
-    return util.common.convert_to_serializable(
-        service.update(
-            genelist_id=genelist_id,
-            payload=payload,
-            actor_username=user.username,
-        )
+    result = service.update(
+        genelist_id=genelist_id,
+        payload=payload,
+        actor_username=user.username,
     )
+    set_managed_resource_audit_context(
+        request, resource_type="genelist", action="updated", result=result
+    )
+    return util.common.convert_to_serializable(result)
 
 
 @router.patch(
@@ -177,6 +184,7 @@ def update_genelist_change(
     summary="Toggle genelist status",
 )
 def toggle_genelist_change(
+    request: Request,
     genelist_id: str,
     user: ApiUser = Depends(require_access(permission="gene_list.insilico:edit")),
     service: IsglService = Depends(get_admin_genelist_service),
@@ -192,7 +200,11 @@ def toggle_genelist_change(
         dict: Mutation response payload.
     """
     _ = user
-    return util.common.convert_to_serializable(service.toggle(genelist_id=genelist_id))
+    result = service.toggle(genelist_id=genelist_id)
+    set_managed_resource_audit_context(
+        request, resource_type="genelist", action="updated", result=result
+    )
+    return util.common.convert_to_serializable(result)
 
 
 @router.delete(
@@ -201,6 +213,7 @@ def toggle_genelist_change(
     summary="Delete genelist",
 )
 def delete_genelist_change(
+    request: Request,
     genelist_id: str,
     user: ApiUser = Depends(require_access(permission="gene_list.insilico:delete")),
     service: IsglService = Depends(get_admin_genelist_service),
@@ -216,7 +229,11 @@ def delete_genelist_change(
         dict: Mutation response payload.
     """
     _ = user
-    return util.common.convert_to_serializable(service.delete(genelist_id=genelist_id))
+    result = service.delete(genelist_id=genelist_id)
+    set_managed_resource_audit_context(
+        request, resource_type="genelist", action="deleted", result=result
+    )
+    return util.common.convert_to_serializable(result)
 
 
 @router.post("/api/v1/resources/genelists/validate_isgl_id", response_model=AdminExistsPayload)

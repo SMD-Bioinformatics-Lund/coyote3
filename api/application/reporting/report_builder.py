@@ -25,8 +25,8 @@ class ReportService:
         return {
             "id": str(sample.get("_id")),
             "name": sample.get("name"),
-            "assay": sample.get("assay"),
-            "profile": sample.get("profile"),
+            "asp_id": sample.get("asp_id"),
+            "environment": sample.get("environment"),
         }
 
     @staticmethod

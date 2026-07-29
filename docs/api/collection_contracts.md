@@ -6,9 +6,9 @@ This is the canonical collection-key reference used by ingestion validation.
 
 ## Cross-collection relations
 
-- `samples.assay` must match `asp_configs.asp_id` and `assay_specific_panels.asp_id`.
-- Initial ASPC resolution uses `samples.assay`, `samples.subpanel_id`, and `samples.profile`; the resolved ObjectId/key/version are persisted on the sample.
-- `insilico_genelists.assays[]` and `assay_groups[]` must map to ASP/ASPC assay setup.
+- `samples.asp_id` must match `asp_configs.asp_id` and `assay_specific_panels.asp_id`.
+- Initial ASPC resolution uses `samples.asp_id`, `samples.subpanel_id`, and `samples.environment`; the resolved ObjectId/key and `aspc_resolution` are persisted on the sample.
+- `insilico_genelists.asp_ids[]` and `asp_groups[]` must map to ASP/ASPC assay setup.
 - `roles.permissions[]` must reference `permissions.permission_id`.
 - `users.roles[]` must reference `roles.role_id`.
 - `refseq_canonical.gene` should exist in `hgnc_genes.hgnc_symbol`.
@@ -72,13 +72,14 @@ Required keys:
 - `asp_group` (str)
 - `asp_category` (str)
 - `display_name` (str)
-- `filters` (api.contracts.schemas.dna.DnaFiltersDoc | api.contracts.schemas.rna.RnaFiltersDoc)
+- `filters` (api.contracts.schemas.filter_profiles.DnaFilterProfilesDoc | api.contracts.schemas.filter_profiles.RnaFilterProfilesDoc)
 - `reporting` (AspcReportingDoc)
 
 Optional keys:
 - `id_` (Any | None)
 - `subpanel_id` (str)
 - `analysis_types` (list[str])
+- `analysis_intents` (list[str])
 - `is_active` (bool)
 - `description` (str | None)
 - `reference_genome` (str | None)
@@ -91,7 +92,6 @@ Optional keys:
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
-- `version_history` (list[api.contracts.schemas.base.VersionHistoryEntryDoc])
 
 ## `asp_to_groups`
 
@@ -106,7 +106,6 @@ Optional keys:
 
 Required keys:
 - `asp_id` (str)
-- `assay_name` (str)
 - `asp_group` (str)
 - `asp_family` (str)
 - `asp_category` (str)
@@ -125,6 +124,7 @@ Optional keys:
 - `kit_version` (str | None)
 - `platform` (str | None)
 - `read_mode` (str | None)
+- `read_technology` (str | None)
 - `read_length` (int | None)
 - `capture_method` (str | None)
 - `target_region_size` (int | None)
@@ -134,7 +134,6 @@ Optional keys:
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
-- `version_history` (list[api.contracts.schemas.base.VersionHistoryEntryDoc])
 
 ## `biomarkers`
 
@@ -391,16 +390,15 @@ Optional keys:
 - `adhoc` (bool)
 - `is_public` (bool)
 - `is_active` (bool)
-- `assay_groups` (list[str])
+- `asp_groups` (list[str])
 - `genes` (list[str])
 - `germline_genes` (list[str])
-- `assays` (list[str])
+- `asp_ids` (list[str])
 - `version` (int)
 - `created_by` (str | None)
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
-- `version_history` (list[api.contracts.schemas.base.VersionHistoryEntryDoc])
 
 ## `mane_select`
 
@@ -589,7 +587,7 @@ Required keys:
 
 Optional keys:
 - `sample_name` (str | None)
-- `assay` (str | None)
+- `asp_id` (str | None)
 - `subpanel_id` (str | None)
 - `environment` (str | None)
 - `report_type` (str)
@@ -680,8 +678,8 @@ Optional keys:
 
 Required keys:
 - `name` (str)
-- `assay` (str)
-- `profile` (str)
+- `asp_id` (str)
+- `environment` (str)
 - `case_id` (str)
 - `sample_no` (int)
 - `sequencing_scope` (str)
@@ -694,13 +692,17 @@ Optional keys:
 - `current_aspc_id` (Any | None)
 - `current_aspc_key` (str | None)
 - `current_aspc_version` (int | None)
+- `aspc_resolution` (api.contracts.schemas.samples.SampleAspcResolutionDoc | None)
 - `genome_build` (int | None)
 - `database_versions` (dict[str, str])
 - `control_id` (str | None)
 - `paired` (bool | None)
-- `sequencing_technology` (str | None)
+- `platform` (str | None)
+- `read_mode` (str | None)
+- `read_technology` (str | None)
 - `files` (dict[str, api.contracts.schemas.samples.SampleFileDoc])
-- `filters` (api.contracts.schemas.samples.SampleDnaFiltersDoc | api.contracts.schemas.samples.SampleRnaFiltersDoc | None)
+- `analysis_intents` (list[str])
+- `filters` (api.contracts.schemas.filter_profiles.DnaFilterProfilesDoc | api.contracts.schemas.filter_profiles.RnaFilterProfilesDoc | None)
 - `case` (SampleCaseControlDoc)
 - `control` (api.contracts.schemas.samples.SampleCaseControlDoc | None)
 - `reported` (bool)
@@ -749,8 +751,8 @@ Optional keys:
 - `password_action_issued_by` (str | None)
 - `roles` (list[str])
 - `environments` (list[str])
-- `assays` (list[str])
-- `assay_groups` (list[str])
+- `asp_ids` (list[str])
+- `asp_groups` (list[str])
 - `is_active` (bool)
 - `version` (int)
 - `created_by` (str | None)

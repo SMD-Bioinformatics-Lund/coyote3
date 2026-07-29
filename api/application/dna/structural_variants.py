@@ -17,7 +17,7 @@ from api.application.common.table_state import (
 )
 from api.config.database_versions import require_sample_vep_version
 from api.domain.common.errors import api_error, setup_error
-from api.domain.common.sample_filters import merged_dna_cnv_filters
+from api.domain.common.sample_filters import merge_filter_defaults, merged_dna_cnv_filters
 from api.domain.core.dna.cnvqueries import build_cnv_query
 from api.domain.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
 from api.domain.core.dna.translocqueries import build_transloc_query
@@ -228,17 +228,15 @@ class DnaStructuralService:
                 ),
             )
 
-        if sample.get("filters") is None:
-            sample = util_module.common.merge_sample_settings_with_assay_config(
-                sample, assay_config
-            )
-        sample_filters = deepcopy(
-            assay_config.get("filters", {})
-            if sample.get("filters") is None
-            else sample.get("filters", {})
+        sample_filters = merge_filter_defaults(
+            sample.get("filters"),
+            assay_config.get("filters"),
+            omics_layer=str(sample.get("omics_layer") or "dna"),
+            analysis_intents=sample.get("analysis_intents"),
         )
         cnv_filters = merged_dna_cnv_filters(sample_filters)
-        assay_panel_doc = self.assay_panel_repository.get_asp(asp_name=sample.get("assay"))
+        sample = {**sample, "filters": sample_filters}
+        assay_panel_doc = self.assay_panel_repository.get_asp(asp_name=sample.get("asp_id"))
         checked_cnvlists = cnv_filters.get("cnvlists", [])
         checked_cnvlists_genes_dict = self.gene_list_repository.get_isgl_by_ids(checked_cnvlists)
         _genes_covered_in_panel, filter_genes = util_module.common.get_sample_effective_genes(
@@ -272,8 +270,8 @@ class DnaStructuralService:
             "sample": {
                 "id": str(sample.get("_id")),
                 "name": sample.get("name"),
-                "assay": sample.get("assay"),
-                "profile": sample.get("profile"),
+                "asp_id": sample.get("asp_id"),
+                "environment": sample.get("environment"),
                 "files": deepcopy(sample.get("files") or {}),
             },
             "meta": {
@@ -321,7 +319,7 @@ class DnaStructuralService:
             "sample_summary": {
                 "id": str(sample.get("_id")),
                 "name": sample.get("name"),
-                "assay": sample.get("assay"),
+                "asp_id": sample.get("asp_id"),
                 "assay_group": assay_group,
             },
             "cnv": cnv,
@@ -412,8 +410,8 @@ class DnaStructuralService:
             "sample": {
                 "id": str(sample.get("_id")),
                 "name": sample.get("name"),
-                "assay": sample.get("assay"),
-                "profile": sample.get("profile"),
+                "asp_id": sample.get("asp_id"),
+                "environment": sample.get("environment"),
             },
             "meta": {
                 "request_path": request.url.path,
@@ -461,7 +459,7 @@ class DnaStructuralService:
             "sample_summary": {
                 "id": str(sample.get("_id")),
                 "name": sample.get("name"),
-                "assay": sample.get("assay"),
+                "asp_id": sample.get("asp_id"),
                 "assay_group": assay_group,
             },
             "translocation": transloc,

@@ -118,7 +118,7 @@ Each YAML file follows this exact schema.
 ```yaml
 rule_set:
   analyte: dna
-  asp_id: hema_GMSv1
+  asp_id: hema_gmsv1
   subpanel_id: base
 
 document_rules:
@@ -209,7 +209,7 @@ sentence construction. Assay-specific wording remains in YAML.
 
 | Context | Allowed paths |
 | --- | --- |
-| Sample | `sample.name`, `sample.assay`, `sample.subpanel_id`, `sample.profile`, `sample.omics_layer`, `sample.paired`, `sample.genome_build` |
+| Sample | `sample.name`, `sample.asp_id`, `sample.subpanel_id`, `sample.environment`, `sample.omics_layer`, `sample.paired`, `sample.genome_build`, `sample.analysis_intent` |
 | ASP | `asp.asp_id`, `asp.asp_group`, `asp.asp_category`, `asp.accredited`, `asp.germline_genes` |
 | ASPC | `aspc.aspc_id`, `aspc.asp_id`, `aspc.asp_group`, `aspc.asp_category`, `aspc.subpanel_id`, `aspc.environment`, `aspc.reporting.analysis`, `aspc.reporting.report_sections`, `aspc.reporting.general_report_summary` |
 | Applied lists | `applied_gene_lists` |
@@ -234,7 +234,7 @@ services, access the filesystem, or use arbitrary Jinja globals.
 
 | Root | Available fields | Typical use |
 | --- | --- | --- |
-| `sample` | `name`, `assay`, `subpanel_id`, `profile`, `omics_layer`, `paired`, `genome_build` | Sample-level wording and paired-control context. |
+| `sample` | `name`, `asp_id`, `subpanel_id`, `environment`, `omics_layer`, `paired`, `genome_build`, `analysis_intent` | Sample-level wording and paired-control context. `analysis_intent` is `somatic` or `germline`. |
 | `asp` | `asp_id`, `asp_group`, `asp_category`, `accredited`, `germline_genes` | Assay identity, accreditation, and germline scope. |
 | `aspc` | `aspc_id`, `asp_id`, `asp_group`, `asp_category`, `subpanel_id`, `environment`, `reporting` | Effective assay-configuration wording context. |
 | `aspc.reporting` | `analysis`, `report_sections`, `general_report_summary` | Report domains and the approved DNA introduction baseline. |
@@ -256,7 +256,7 @@ condition.
 | <code>{{ value &#124; default('not available') }}</code> | Provides a fallback for an undefined or empty value. | <code>{{ finding.hgvsp &#124; default('-') }}</code> |
 | <code>{{ values &#124; join(', ') }}</code> | Joins a list into text. | <code>{{ finding.consequence &#124; join(', ') }}</code> |
 | <code>{{ values &#124; length }}</code> | Returns a collection length. | <code>{{ applied_gene_lists &#124; length }}</code> |
-| <code>{{ value &#124; lower }}</code> | Lowercases text. | <code>{{ sample.profile &#124; lower }}</code> |
+| <code>{{ value &#124; lower }}</code> | Lowercases text. | <code>{{ sample.environment &#124; lower }}</code> |
 | <code>{{ value &#124; upper }}</code> | Uppercases text. | <code>{{ finding.gene &#124; upper }}</code> |
 | <code>{{ value &#124; round(1) }}</code> | Rounds a numeric value. | <code>{{ finding.case_vaf_percent &#124; round(1) }}</code> |
 | <code>{{ aspc.reporting.general_report_summary &#124; dna_report_intro(sample, asp, applied_gene_lists) }}</code> | Builds the standard DNA introduction from the configured baseline, paired status, applied SNV ISGLs, and germline scope. | Used in DNA <code>document_rules</code>. |
@@ -289,6 +289,22 @@ template: "{{ aggregates.tier_summaries | tier_summary }}"
 The helper consumes only the prepared `aggregates.tier_summaries` structure and
 renders the approved Swedish mutation wording for Tiers I, II, and III. It does
 not query variants and it does not choose which variants are tiered.
+
+**Germline-only wording**
+
+```yaml
+when:
+  - fact: sample.analysis_intent
+    operator: eq
+    value: germline
+template: "Germline-specific approved text goes here."
+```
+
+Germline report preparation never falls through to a somatic rule. Every
+germline sentence must include the explicit intent predicate shown above. If
+the ASPC enables germline SNV review and the selected static rule source has
+no matching germline text, Coyote3 emits a visible report-preview warning so
+the configuration gap is reviewed before sign-out.
 
 **Specific finding statement**
 

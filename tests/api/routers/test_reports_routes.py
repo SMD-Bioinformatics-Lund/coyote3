@@ -26,8 +26,8 @@ def _user(username: str = "tester", role: str = "admin") -> ApiUser:
         roles=[role],
         access_level=99,
         permissions=["report:preview", "report:create"],
-        assays=["WGS"],
-        assay_groups=["dna", "rna"],
+        asp_ids=["WGS"],
+        asp_groups=["dna", "rna"],
         envs=["dev"],
         asp_map={},
         auth_type=["local"],
@@ -47,7 +47,7 @@ def test_preview_report_success_includes_snapshot_when_requested(monkeypatch):
         reports,
         "_load_report_context",
         lambda sample_id, user: (
-            {"_id": "s1", "name": "S1", "assay": "WGS", "profile": "prod"},
+            {"_id": "s1", "name": "S1", "asp_id": "WGS", "environment": "prod"},
             {"x": 1},
         ),
     )
@@ -94,7 +94,7 @@ def test_preview_report_hides_snapshot_when_not_requested(monkeypatch):
         reports,
         "_load_report_context",
         lambda sample_id, user: (
-            {"_id": "s1", "name": "S1", "assay": "WGS", "profile": "prod"},
+            {"_id": "s1", "name": "S1", "asp_id": "WGS", "environment": "prod"},
             {"x": 1},
         ),
     )
@@ -138,7 +138,7 @@ def test_save_report_success(monkeypatch):
         reports,
         "_load_report_context",
         lambda sample_id, user: (
-            {"_id": "s1", "name": "S1", "assay": "WGS", "profile": "prod", "report_num": 2},
+            {"_id": "s1", "name": "S1", "asp_id": "WGS", "environment": "prod", "report_num": 2},
             {"x": 1},
         ),
     )
@@ -197,7 +197,7 @@ def test_save_report_calls_rna_persist_path(monkeypatch):
         reports,
         "_load_report_context",
         lambda sample_id, user: (
-            {"_id": "s1", "name": "S1", "assay": "RNA", "profile": "prod", "report_num": 5},
+            {"_id": "s1", "name": "S1", "asp_id": "RNA", "environment": "prod", "report_num": 5},
             {"x": 1},
         ),
     )

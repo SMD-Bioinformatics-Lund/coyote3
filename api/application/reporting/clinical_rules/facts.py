@@ -17,12 +17,13 @@ class PreparedSampleFacts(_FactModel):
     """Stable sample facts available to reporting rules."""
 
     name: str
-    assay: str
+    asp_id: str
     subpanel_id: str
-    profile: str
+    environment: str
     omics_layer: Literal["dna", "rna"]
     paired: bool = False
     genome_build: int | str | None = None
+    analysis_intent: Literal["somatic", "germline"] = "somatic"
 
 
 class PreparedAspFacts(_FactModel):

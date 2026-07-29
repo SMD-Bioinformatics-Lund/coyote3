@@ -107,6 +107,29 @@ class ClinicalRuleEvaluator:
             for finding_index, finding in enumerate(candidates):
                 for rule in family_rules:
                     scope = context.evaluation_scope(finding)
+                    # A germline report can use only rules deliberately authored
+                    # for germline facts. Existing somatic rule sets therefore
+                    # cannot silently generate inappropriate clinical text.
+                    if context.sample.analysis_intent == "germline" and not any(
+                        condition.fact == "sample.analysis_intent"
+                        and condition.operator == ClinicalRuleOperator.EQ
+                        and condition.value == "germline"
+                        for condition in rule.when
+                    ):
+                        trace.append(
+                            ClinicalRuleTraceEntry(
+                                rule_id=rule.rule_id,
+                                family=rule.family,
+                                section=rule.section,
+                                matched=False,
+                                finding_index=(
+                                    finding_index
+                                    if family == ClinicalRuleFamily.FINDING_TEXT
+                                    else None
+                                ),
+                            )
+                        )
+                        continue
                     missing_facts: list[str] = []
                     matched = True
                     for condition in rule.when:

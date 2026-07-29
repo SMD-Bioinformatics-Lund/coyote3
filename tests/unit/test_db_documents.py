@@ -187,9 +187,9 @@ def test_samples_doc_keeps_filters_unset_until_initialized():
     dna_doc = SamplesDoc.model_validate(
         {
             "name": "S1",
-            "assay": "assay_1",
-            "subpanel": "hem",
-            "profile": "production",
+            "asp_id": "assay_1",
+            "subpanel_id": "hem",
+            "environment": "production",
             "case_id": "seed_case",
             "sample_no": 1,
             "sequencing_scope": "panel",
@@ -206,9 +206,9 @@ def test_samples_doc_keeps_filters_unset_until_initialized():
     rna_doc = SamplesDoc.model_validate(
         {
             "name": "S2",
-            "assay": "fusion_assay",
-            "subpanel": "rna",
-            "profile": "production",
+            "asp_id": "fusion_assay",
+            "subpanel_id": "rna",
+            "environment": "production",
             "case_id": "CASE_RNA",
             "sample_no": 1,
             "sequencing_scope": "wts",
@@ -249,7 +249,32 @@ def test_sample_database_versions_use_only_canonical_nested_keys():
         "vcf_files": "x",
         "vep_version": "103",
     }
-    with pytest.raises(ValueError, match="Retired sample version fields"):
+    with pytest.raises(ValueError, match="Retired sample fields"):
+        SamplesDoc.model_validate(payload)
+
+
+def test_platform_derives_read_technology_and_rejects_invalid_read_mode():
+    """Platform capability is software-owned and cannot be contradicted in a sample."""
+    payload = {
+        "name": "S1",
+        "asp_id": "assay_1",
+        "subpanel_id": "base",
+        "environment": "production",
+        "case_id": "seed_case",
+        "sample_no": 1,
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
+        "platform": "illumina",
+        "read_mode": "PE",
+        "pipeline": "SomaticPanelPipeline",
+        "pipeline_version": "1.0.0",
+        "files": {"vcf_files": {"path": "x"}},
+    }
+    sample = SamplesDoc.model_validate(payload)
+    assert sample.read_technology == "short_read"
+
+    payload["platform"] = "iontorrent"
+    with pytest.raises(ValueError, match="read_mode 'PE' is not supported"):
         SamplesDoc.model_validate(payload)
 
 
@@ -449,7 +474,14 @@ def test_collection_validator_requires_canonical_aspc_analysis_types():
             "asp_category": "dna",
             "analysis_types": ["SNV", "TMB", "PGX", "CNV_PROFILE", "COVERAGE"],
             "display_name": "Assay 1 Dev",
-            "filters": {"vep_consequences": ["missense"], "cnveffects": ["gain", "loss"]},
+            "analysis_intents": ["somatic"],
+            "filters": {
+                "somatic": {
+                    "snv": {"vep_consequences": ["missense"]},
+                    "cnv": {"cnveffects": ["gain", "loss"]},
+                    "coverage": {"warn_cov": 500, "error_cov": 100},
+                }
+            },
             "reporting": {
                 "analysis": ["SNV", "TMB", "PGX", "CNV_PROFILE", "COVERAGE"],
                 "report_sections": ["TMB", "CNV_PROFILE"],
@@ -468,8 +500,8 @@ def test_collection_validator_requires_canonical_aspc_analysis_types():
     assert payload["reporting"]["report_sections"] == ["TMB", "CNV_PROFILE"]
 
 
-def test_collection_validator_normalizes_user_assay_groups_to_known_values():
-    """User assay-group scope should use the fixed assay-group vocabulary."""
+def test_collection_validator_normalizes_user_asp_groups_to_known_values():
+    """User ASP-group scope should use the fixed assay-group vocabulary."""
     payload = normalize_collection_document(
         "users",
         {
@@ -481,11 +513,11 @@ def test_collection_validator_normalizes_user_assay_groups_to_known_values():
             "job_title": "Administrator",
             "roles": ["admin"],
             "environments": ["production"],
-            "assay_groups": [" Hematology ", "solid"],
+            "asp_groups": [" Hematology ", "solid"],
         },
     )
 
-    assert payload["assay_groups"] == ["hematology", "solid"]
+    assert payload["asp_groups"] == ["hematology", "solid"]
 
 
 def test_collection_validator_rejects_unknown_permission_category():
@@ -508,7 +540,6 @@ def test_collection_validator_applies_default_expected_files_for_dna_asp():
         "assay_specific_panels",
         {
             "asp_id": "assay_1",
-            "assay_name": "assay_1",
             "asp_group": "hematology",
             "asp_family": "panel-dna",
             "asp_category": "dna",

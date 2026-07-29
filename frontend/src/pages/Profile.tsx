@@ -42,8 +42,8 @@ export function Profile() {
   const canChangePassword = authTypes.includes("local")
   const permissions = Array.isArray(user.permissions) ? user.permissions : []
   const environments = Array.isArray(user.environments) ? user.environments : []
-  const assays = Array.isArray(user.assays) ? user.assays : []
-  const assayGroups = Array.isArray(user.assay_groups) ? user.assay_groups : []
+  const assays = Array.isArray(user.asp_ids) ? user.asp_ids : []
+  const assayGroups = Array.isArray(user.asp_groups) ? user.asp_groups : []
 
   return (
     <PageShell

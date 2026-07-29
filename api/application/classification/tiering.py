@@ -5,7 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-from api.config.constants import DEFAULT_ENVIRONMENT
+from api.application.common.assay_config import get_formatted_assay_config
 from api.domain.common.errors import api_error
 
 
@@ -22,6 +22,7 @@ class ResourceClassificationService:
             fusion_repository=store.fusion_repository,
             copy_number_variant_repository=store.copy_number_variant_repository,
             translocation_repository=store.translocation_repository,
+            assay_panel_repository=store.assay_panel_repository,
             assay_configuration_repository=store.assay_configuration_repository,
         )
 
@@ -34,6 +35,7 @@ class ResourceClassificationService:
         fusion_repository: Any,
         copy_number_variant_repository: Any,
         translocation_repository: Any,
+        assay_panel_repository: Any,
         assay_configuration_repository: Any,
     ) -> None:
         """Build the classification service with explicit persistence dependencies."""
@@ -43,14 +45,16 @@ class ResourceClassificationService:
         self.fusion_repository = fusion_repository
         self.copy_number_variant_repository = copy_number_variant_repository
         self.translocation_repository = translocation_repository
+        self.assay_panel_repository = assay_panel_repository
         self.assay_configuration_repository = assay_configuration_repository
 
     def classification_context(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Resolve immutable assay context for a finding classification."""
-        assay = str(sample.get("assay") or "").strip()
-        profile = str(sample.get("profile") or DEFAULT_ENVIRONMENT).strip()
-        subpanel = str(sample.get("subpanel_id") or sample.get("subpanel") or "base").strip()
-        aspc = self.assay_configuration_repository.get_aspc_no_meta(assay, profile, subpanel)
+        aspc = get_formatted_assay_config(
+            sample,
+            assay_panel_repository=self.assay_panel_repository,
+            assay_configuration_repository=self.assay_configuration_repository,
+        )
         if not isinstance(aspc, dict):
             raise api_error(
                 422,
@@ -58,7 +62,7 @@ class ResourceClassificationService:
             )
         return {
             "assay_group": str(aspc.get("asp_group") or "").strip(),
-            "subpanel": str(aspc.get("subpanel_id") or subpanel).strip(),
+            "subpanel": str(aspc.get("subpanel_id") or "base").strip(),
         }
 
     @staticmethod

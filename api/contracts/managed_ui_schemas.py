@@ -22,13 +22,13 @@ from api.config.constants import (
     GENELIST_TYPE_OPTIONS,
     PERMISSION_CATEGORY_OPTIONS,
     PLATFORM_OPTIONS,
-    READ_MODE_OPTIONS,
     RNA_ANALYSIS_TYPE_OPTIONS,
     SAMPLE_FILE_KEYS,
     SUBPANEL_BASE_ID,
 )
+from api.config.sequencing import PLATFORM_CAPABILITIES
 from api.contracts.managed_resources import ManagedResourceSpec
-from api.contracts.schemas import COLLECTION_MODEL_ADAPTERS
+from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 
 
 def _unwrap_optional(annotation: Any) -> Any:
@@ -99,7 +99,6 @@ RESOURCE_EXTRA_FIELDS: dict[str, dict[str, dict[str, Any]]] = {
 
 RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     "asp": {
-        "assay_name": {"display_type": "input"},
         "asp_group": {"display_type": "select", "options": list(ASP_GROUP_OPTIONS)},
         "asp_family": {
             "display_type": "select",
@@ -107,7 +106,17 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         },
         "asp_category": {"display_type": "select", "options": list(ASP_CATEGORY_OPTIONS)},
         "platform": {"display_type": "select", "options": list(PLATFORM_OPTIONS)},
-        "read_mode": {"display_type": "select", "options": list(READ_MODE_OPTIONS)},
+        "read_mode": {
+            "display_type": "select",
+            "options_by_field": {
+                "field": "platform",
+                "values": {
+                    platform: list(capability["read_modes"])
+                    for platform, capability in PLATFORM_CAPABILITIES.items()
+                },
+            },
+            "help": "Read mode is limited to modes supported by the selected platform. It is not applicable to platforms without a selectable mode.",
+        },
         "display_name": {"display_type": "input"},
         "description": {"display_type": "textarea"},
         "expected_files": {
@@ -174,6 +183,12 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "options": list(DNA_ANALYSIS_TYPE_OPTIONS),
             "default": ["SNV", "CNV"],
         },
+        "analysis_intents": {
+            "display_type": "checkbox-group",
+            "options": ["somatic", "germline"],
+            "default": ["somatic"],
+            "help": "Germline review is currently supported for SNV only. Select both to maintain separate somatic and germline SNV thresholds.",
+        },
         "catalog": {
             "data_type": "json",
             "label": "Public Catalog Metadata",
@@ -217,30 +232,47 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         },
         "filters": {
             "data_type": "json",
-            "label": "Filters (SNV and CNV strategy)",
+            "label": "Clinical Filter Profiles",
             "display_type": "filters-structured",
-            "placeholder": "Configure threshold keys for SNV/CNV filtering",
+            "placeholder": "Configure only the enabled intent and analysis profiles",
             "groups": [
                 {
-                    "title": "SNV Thresholds",
+                    "title": "Somatic SNV Thresholds",
+                    "requires_analysis": ["SNV"],
+                    "requires_intent": ["somatic"],
                     "fields": [
                         {
-                            "key": "min_alt_reads",
+                            "key": "somatic.snv.min_alt_reads",
                             "label": "Min Alt Reads",
                             "type": "int",
                             "default": 5,
                         },
-                        {"key": "min_depth", "label": "Min Depth", "type": "int", "default": 100},
-                        {"key": "min_freq", "label": "Min AF", "type": "float", "default": 0.03},
-                        {"key": "max_freq", "label": "Max AF", "type": "float", "default": 1.0},
                         {
-                            "key": "max_control_freq",
+                            "key": "somatic.snv.min_depth",
+                            "label": "Min Depth",
+                            "type": "int",
+                            "default": 100,
+                        },
+                        {
+                            "key": "somatic.snv.min_freq",
+                            "label": "Min AF",
+                            "type": "float",
+                            "default": 0.03,
+                        },
+                        {
+                            "key": "somatic.snv.max_freq",
+                            "label": "Max AF",
+                            "type": "float",
+                            "default": 1.0,
+                        },
+                        {
+                            "key": "somatic.snv.max_control_freq",
                             "label": "Max Control AF",
                             "type": "float",
                             "default": 0.05,
                         },
                         {
-                            "key": "max_popfreq",
+                            "key": "somatic.snv.max_popfreq",
                             "label": "Max Population AF",
                             "type": "float",
                             "default": 0.01,
@@ -248,58 +280,87 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                     ],
                 },
                 {
-                    "title": "CNV Thresholds",
+                    "title": "Germline SNV Thresholds",
+                    "requires_analysis": ["SNV"],
+                    "requires_intent": ["germline"],
                     "fields": [
                         {
-                            "key": "min_cnv_size",
+                            "key": "germline.snv.min_alt_reads",
+                            "label": "Min Alt Reads",
+                            "type": "int",
+                            "default": 5,
+                        },
+                        {
+                            "key": "germline.snv.min_depth",
+                            "label": "Min Depth",
+                            "type": "int",
+                            "default": 100,
+                        },
+                        {
+                            "key": "germline.snv.min_freq",
+                            "label": "Min AF",
+                            "type": "float",
+                            "default": 0.03,
+                        },
+                        {
+                            "key": "germline.snv.max_freq",
+                            "label": "Max AF",
+                            "type": "float",
+                            "default": 1.0,
+                        },
+                        {
+                            "key": "germline.snv.max_popfreq",
+                            "label": "Max Population AF",
+                            "type": "float",
+                            "default": 0.01,
+                        },
+                    ],
+                },
+                {
+                    "title": "Somatic CNV Thresholds",
+                    "requires_analysis": ["CNV"],
+                    "requires_intent": ["somatic"],
+                    "fields": [
+                        {
+                            "key": "somatic.cnv.min_cnv_size",
                             "label": "Min CNV Size",
                             "type": "int",
                             "default": 100,
                         },
                         {
-                            "key": "max_cnv_size",
+                            "key": "somatic.cnv.max_cnv_size",
                             "label": "Max CNV Size",
                             "type": "int",
                             "default": 1000000,
                         },
                         {
-                            "key": "cnv_loss_cutoff",
+                            "key": "somatic.cnv.cnv_loss_cutoff",
                             "label": "CNV Loss Cutoff",
                             "type": "float",
                             "default": -0.3,
                         },
                         {
-                            "key": "cnv_gain_cutoff",
+                            "key": "somatic.cnv.cnv_gain_cutoff",
                             "label": "CNV Gain Cutoff",
                             "type": "float",
                             "default": 0.3,
                         },
-                        {
-                            "key": "warn_cov",
-                            "label": "Warn Coverage",
-                            "type": "int",
-                            "default": 500,
-                        },
-                        {
-                            "key": "error_cov",
-                            "label": "Error Coverage",
-                            "type": "int",
-                            "default": 100,
-                        },
                     ],
                 },
                 {
-                    "title": "Gene Scope And Consequences",
+                    "title": "Somatic SNV Scope And Consequences",
+                    "requires_analysis": ["SNV"],
+                    "requires_intent": ["somatic"],
                     "fields": [
                         {
-                            "key": "vep_consequences",
+                            "key": "somatic.snv.vep_consequences",
                             "label": "VEP Consequences",
                             "type": "checkbox-group",
                             "options": [],
                             "dynamic_options": {"resource": "vep_consequence_groups"},
                         },
                         {
-                            "key": "snvlists",
+                            "key": "somatic.snv.snvlists",
                             "label": "SNV Gene Lists",
                             "type": "checkbox-group",
                             "options": [],
@@ -310,8 +371,41 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                                 "label": "displayname",
                             },
                         },
+                    ],
+                },
+                {
+                    "title": "Germline SNV Scope And Consequences",
+                    "requires_analysis": ["SNV"],
+                    "requires_intent": ["germline"],
+                    "fields": [
                         {
-                            "key": "cnvlists",
+                            "key": "germline.snv.vep_consequences",
+                            "label": "VEP Consequences",
+                            "type": "checkbox-group",
+                            "options": [],
+                            "dynamic_options": {"resource": "vep_consequence_groups"},
+                        },
+                        {
+                            "key": "germline.snv.snvlists",
+                            "label": "SNV Gene Lists",
+                            "type": "checkbox-group",
+                            "options": [],
+                            "dynamic_options": {
+                                "resource": "isgl",
+                                "filter": {"list_type": "snv", "adhoc": False},
+                                "value": "isgl_id",
+                                "label": "displayname",
+                            },
+                        },
+                    ],
+                },
+                {
+                    "title": "Somatic CNV Scope",
+                    "requires_analysis": ["CNV"],
+                    "requires_intent": ["somatic"],
+                    "fields": [
+                        {
+                            "key": "somatic.cnv.cnvlists",
                             "label": "CNV Gene Lists",
                             "type": "checkbox-group",
                             "options": [],
@@ -323,11 +417,30 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             },
                         },
                         {
-                            "key": "cnveffects",
+                            "key": "somatic.cnv.cnveffects",
                             "label": "CNV Effects (gain/loss)",
                             "type": "checkbox-group",
                             "options": ["gain", "loss"],
                             "default": ["gain", "loss"],
+                        },
+                    ],
+                },
+                {
+                    "title": "Somatic Coverage Thresholds",
+                    "requires_analysis": ["COVERAGE"],
+                    "requires_intent": ["somatic"],
+                    "fields": [
+                        {
+                            "key": "somatic.coverage.warn_cov",
+                            "label": "Warn Coverage",
+                            "type": "int",
+                            "default": 500,
+                        },
+                        {
+                            "key": "somatic.coverage.error_cov",
+                            "label": "Error Coverage",
+                            "type": "int",
+                            "default": 100,
                         },
                     ],
                 },
@@ -491,21 +604,22 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         },
         "filters": {
             "data_type": "json",
-            "label": "Filters (Fusion strategy)",
+            "label": "Clinical Filter Profiles",
             "display_type": "filters-structured",
             "placeholder": "Configure RNA thresholds and fusion_* strategy keys",
             "groups": [
                 {
-                    "title": "Fusion Thresholds",
+                    "title": "Somatic Fusion Thresholds",
+                    "requires_analysis": ["FUSION"],
                     "fields": [
                         {
-                            "key": "min_spanning_reads",
+                            "key": "somatic.fusion.min_spanning_reads",
                             "label": "Min Spanning Reads",
                             "type": "int",
                             "default": 5,
                         },
                         {
-                            "key": "min_spanning_pairs",
+                            "key": "somatic.fusion.min_spanning_pairs",
                             "label": "Min Spanning Pairs",
                             "type": "int",
                             "default": 5,
@@ -513,24 +627,25 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                     ],
                 },
                 {
-                    "title": "Fusion Lists",
+                    "title": "Somatic Fusion Scope",
+                    "requires_analysis": ["FUSION"],
                     "fields": [
                         {
-                            "key": "fusion_callers",
+                            "key": "somatic.fusion.fusion_callers",
                             "label": "Fusion Callers",
                             "type": "checkbox-group",
                             "options": ["arriba", "starfusion", "fusioncatcher"],
                             "default": ["arriba", "starfusion"],
                         },
                         {
-                            "key": "fusion_effects",
+                            "key": "somatic.fusion.fusion_effects",
                             "label": "Fusion Effects",
                             "type": "checkbox-group",
                             "options": ["in-frame", "out-of-frame"],
                             "default": ["in-frame", "out-of-frame"],
                         },
                         {
-                            "key": "fusionlists",
+                            "key": "somatic.fusion.fusionlists",
                             "label": "Fusion Gene Lists",
                             "type": "checkbox-group",
                             "options": [],
@@ -635,8 +750,8 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "help": "Use 'base' for global assay lists, or a clinical subpanel identifier such as myeloid.",
         },
         "diagnosis": {"display_type": "textarea"},
-        "assay_groups": {"display_type": "checkbox-group", "options": list(ASP_GROUP_OPTIONS)},
-        "assays": {
+        "asp_groups": {"display_type": "checkbox-group", "options": list(ASP_GROUP_OPTIONS)},
+        "asp_ids": {
             "display_type": "checkbox-group",
             "dynamic_options": {"resource": "asp", "value": "asp_id", "label": "display_name"},
         },
@@ -675,8 +790,8 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "display_type": "checkbox-group",
             "options": list(ENVIRONMENT_OPTIONS),
         },
-        "assay_groups": {"display_type": "checkbox-group", "options": list(ASP_GROUP_OPTIONS)},
-        "assays": {"display_type": "checkbox-group"},
+        "asp_groups": {"display_type": "checkbox-group", "options": list(ASP_GROUP_OPTIONS)},
+        "asp_ids": {"display_type": "checkbox-group"},
         "must_change_password": {"display_type": "checkbox"},
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
@@ -702,7 +817,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
         (
             "assay identity",
             [
-                "assay_name",
+                "asp_id",
                 "display_name",
                 "asp_group",
                 "asp_family",
@@ -750,7 +865,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
     ],
     "isgl": [
         ("list identity", ["name", "displayname", "list_type", "diagnosis"]),
-        ("clinical scope", ["subpanel_id", "assay_groups", "assays"]),
+        ("clinical scope", ["subpanel_id", "asp_groups", "asp_ids"]),
         ("curated gene content", ["genes", "germline_genes"]),
         ("availability", ["adhoc", "is_public", "is_active"]),
         ("record history", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
@@ -759,7 +874,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
         ("identity", ["firstname", "lastname", "fullname", "username", "email", "job_title"]),
         ("auth", ["auth_type", "password", "must_change_password"]),
         ("role_access", ["roles"]),
-        ("scope", ["environments", "assay_groups", "assays"]),
+        ("scope", ["environments", "asp_groups", "asp_ids"]),
         ("status", ["is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],

@@ -1,6 +1,5 @@
 """Common RNA workflow orchestration for reporting and fusion routes."""
 
-from copy import deepcopy
 from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
@@ -108,7 +107,14 @@ class RNAWorkflowService:
         """Merge assay defaults into the sample and normalize RNA filters."""
         if sample.get("filters") is None:
             sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
-        sample_filters = normalize_rna_filter_keys(deepcopy(sample.get("filters", {})))
+        sample_filters = normalize_rna_filter_keys(
+            sample_filter_section(
+                sample.get("filters"),
+                "fusion",
+                omics_layer="rna",
+                analysis_intents=sample.get("analysis_intents"),
+            )
+        )
         validate_rna_filter_inputs(logger, sample.get("name", sample_id), sample_filters)
         return sample, sample_filters
 
@@ -134,7 +140,9 @@ class RNAWorkflowService:
         )
         if existing_fusion_filters.get("adhoc_genes"):
             filters_from_form["adhoc_genes"] = existing_fusion_filters.get("adhoc_genes")
-        self.sample_repository.update_sample_filters(_id, {"fusion": filters_from_form})
+        self.sample_repository.update_sample_filters(
+            _id, {"somatic": {"fusion": filters_from_form}}
+        )
 
         updated_sample = self.sample_repository.get_sample(_id)
         updated_filters = normalize_rna_filter_keys(
@@ -363,7 +371,7 @@ class RNAWorkflowService:
         assay = (
             get_assay_from_sample(sample)
             if callable(get_assay_from_sample)
-            else str(sample.get("assay") or sample.get("assay_group") or "").strip()
+            else str(sample.get("asp_id") or "").strip()
         )
         fusion_query = {"SAMPLE_ID": str(sample["_id"])}
         fusions = list(self.fusion_repository.get_sample_fusions(fusion_query) or [])
@@ -403,7 +411,7 @@ class RNAWorkflowService:
             {**document, "isgl_id": isgl_id, "selected_for": ["fusion"]}
             for isgl_id, document in selected_list_docs.items()
         ]
-        assay_panel = self.assay_panel_repository.get_asp(str(sample.get("assay") or "")) or {}
+        assay_panel = self.assay_panel_repository.get_asp(str(sample.get("asp_id") or "")) or {}
         prepared_rule_context = prepare_report_context(
             sample=sample,
             asp=assay_panel,
@@ -422,7 +430,7 @@ class RNAWorkflowService:
         )
 
         template_context = {
-            "assay": assay,
+            "asp_id": assay,
             "fusions": fusions,
             "report_header": report_header,
             "analysis_method": analysis_method,

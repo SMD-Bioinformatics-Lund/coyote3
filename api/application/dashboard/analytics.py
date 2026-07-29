@@ -278,14 +278,14 @@ class DashboardService:
             return None
 
         scoped_assays = (
-            fresh_user_doc.get("assays")
-            if isinstance(fresh_user_doc.get("assays"), list)
-            else user.assays
+            fresh_user_doc.get("asp_ids")
+            if isinstance(fresh_user_doc.get("asp_ids"), list)
+            else user.asp_ids
         )
         scoped_groups = (
-            fresh_user_doc.get("assay_groups")
-            if isinstance(fresh_user_doc.get("assay_groups"), list)
-            else user.assay_groups
+            fresh_user_doc.get("asp_groups")
+            if isinstance(fresh_user_doc.get("asp_groups"), list)
+            else user.asp_groups
         )
 
         user_assays = {str(item).strip() for item in (scoped_assays or []) if str(item).strip()}
@@ -296,7 +296,7 @@ class DashboardService:
         effective_assays = set(user_assays)
         for asp_id in (
             self.assay_panel_repository.resolve_active_asp_ids_for_scope(
-                assays=sorted(user_assays),
+                asp_ids=sorted(user_assays),
                 groups=sorted(user_groups),
             )
             or []
@@ -316,7 +316,7 @@ class DashboardService:
         """
         scope_assays = self.resolve_scope_assays(user=user)
         scope_key = self._summary_scope_key(user=user, scope_assays=scope_assays)
-        cache_key = f"dashboard:summary:v3:{self._cache_version_token()}:{scope_key}"
+        cache_key = f"dashboard:summary:v4:{self._cache_version_token()}:{scope_key}"
         cache_ttl = self._cache_ttl_seconds()
         snapshot_max_age = self._snapshot_max_age_seconds()
 
@@ -334,9 +334,9 @@ class DashboardService:
                 cache.set(cache_key, snapshot_payload, timeout=cache_ttl)
             return self._set_cache_meta(dict(snapshot_payload), source="mongo_snapshot", hit=False)
 
-        sample_rollup_global = self.sample_repository.get_dashboard_sample_rollup(assays=None)
+        sample_rollup_global = self.sample_repository.get_dashboard_sample_rollup(asp_ids=None)
         sample_rollup_scoped = self.sample_repository.get_dashboard_sample_rollup(
-            assays=scope_assays
+            asp_ids=scope_assays
         )
         variant_rollup = self.variant_repository.get_dashboard_variant_counts()
         unique_quality_counts = self.variant_repository.get_unique_variant_quality_counts() or {}

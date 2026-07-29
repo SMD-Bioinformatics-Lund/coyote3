@@ -154,7 +154,7 @@ def test_home_samples_read_superuser_is_unscoped(monkeypatch):
     """Superusers should fetch all samples without assay or environment restrictions."""
     user = fx.api_user()
     user.roles = ["superuser"]
-    user.assays = ["WGS"]
+    user.asp_ids = ["WGS"]
     user.envs = ["production"]
     calls = []
     service = _sample_catalog_service()
@@ -252,8 +252,12 @@ def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
     assert payload["action"] == "save_adhoc_genes"
     assert payload["gene_count"] == 3
     assert payload["list_type"] == "cnv"
-    assert calls["filters"]["cnv"]["adhoc_genes"]["genes"] == ["IDH1", "NPM1", "TP53"]
-    assert calls["filters"]["cnv"]["adhoc_genes"]["label"] == "focus"
+    assert calls["filters"]["somatic"]["cnv"]["adhoc_genes"]["genes"] == [
+        "IDH1",
+        "NPM1",
+        "TP53",
+    ]
+    assert calls["filters"]["somatic"]["cnv"]["adhoc_genes"]["label"] == "focus"
 
 
 def test_edit_context_payload_includes_analysis_counts(monkeypatch):
@@ -261,9 +265,9 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
     sample = fx.sample_doc()
     sample["_id"] = "s1"
     sample["omics_layer"] = "dna"
-    sample["filters"]["snvlists"] = ["gl1"]
-    sample["filters"]["cnvlists"] = ["gl1"]
-    sample["filters"]["adhoc_genes"] = {}
+    sample["filters"]["somatic"]["snv"]["snvlists"] = ["gl1"]
+    sample["filters"]["somatic"]["cnv"]["cnvlists"] = ["gl1"]
+    sample["filters"]["somatic"]["snv"]["adhoc_genes"] = {}
     service = _sample_catalog_service()
 
     monkeypatch.setattr(
@@ -353,7 +357,7 @@ def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
     monkeypatch.setattr(
         sample_catalog_service_module,
         "get_formatted_assay_config",
-        lambda sample_doc: {"filters": {"snvlists": ["gl1"]}},
+        lambda sample_doc: {"filters": {"somatic": {"snv": {"snvlists": ["gl1"]}}}},
     )
     monkeypatch.setattr(
         service.assay_panel_repository,
@@ -376,7 +380,7 @@ def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
         get_sample=lambda sample_id: {
             **sample,
             "_id": sample_id,
-            "filters": {"snv": {"snvlists": ["gl1"]}},
+            "filters": {"somatic": {"snv": {"snvlists": ["gl1"]}}},
         },
     )
     monkeypatch.setattr(
@@ -398,5 +402,5 @@ def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
 
     payload = service.edit_context_payload(sample=sample)
 
-    assert payload["sample"]["filters"]["snv"]["snvlists"] == ["gl1"]
+    assert payload["sample"]["filters"]["somatic"]["snv"]["snvlists"] == ["gl1"]
     assert payload["analysis_counts_filtered"]["snv"] == 2

@@ -12,13 +12,11 @@ def test_current_clinical_vocabulary_loads_center_owned_options():
     """The committed center policy supplies the runtime vocabulary."""
     vocabulary = load_clinical_vocabulary()
 
-    assert "illumina" in vocabulary.platforms
     assert vocabulary.sample_file_keys["dna"][0] == "vcf_files"
     assert vocabulary.analysis_file_keys_by_omics["dna"]["SNV"] == ("vcf_files",)
     assert vocabulary.auth_type_options == ("local", "ldap")
     assert vocabulary.assay_families == ("panel-dna", "panel-rna", "wgs", "wts")
     assert vocabulary.default_environment == "production"
-    assert vocabulary.permission_categories
 
 
 def test_assay_groups_are_software_owned_not_center_vocabulary():
@@ -28,14 +26,13 @@ def test_assay_groups_are_software_owned_not_center_vocabulary():
     assert not hasattr(vocabulary, "assay_groups")
     assert ASP_GROUP_OPTIONS == (
         "hematology",
+        "myeloid",
+        "lymphoid",
         "solid",
         "pgx",
         "tumwgs",
         "wts",
-        "myeloid",
-        "lymphoid",
         "fusion",
-        "fusionrna",
     )
 
 
@@ -51,7 +48,7 @@ def test_clinical_vocabulary_rejects_missing_center_section(tmp_path):
 
     with pytest.raises(
         RuntimeError,
-        match="requires assay, environment, sequencing, files, analysis, authentication, genelist, reporting, and permissions",
+        match="requires assay, environment, files, analysis, authentication, genelist, and reporting tables",
     ):
         load_clinical_vocabulary(config)
 
@@ -75,10 +72,6 @@ panel-rna = "panel"
 [environment]
 options = ["production"]
 default = "production"
-
-[sequencing]
-platforms = ["illumina"]
-read_modes = ["PE"]
 
 [authentication]
 providers = ["local", "ldap"]
@@ -110,8 +103,6 @@ adhoc_types = ["adhoc_snv"]
 [reporting]
 required_aspc_fields = ["report_header"]
 
-[permissions]
-categories = ["Sample Management"]
 """,
         encoding="utf-8",
     )

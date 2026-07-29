@@ -6,8 +6,8 @@ from collections import defaultdict
 from copy import deepcopy
 from typing import Any
 
+from api.application.common.assay_config import get_formatted_assay_config
 from api.application.coverage.processing import CoverageProcessingService
-from api.config.constants import DEFAULT_ENVIRONMENT
 from api.domain.common.errors import forbidden_error, setup_error
 from api.domain.common.sample_filters import sample_filter_section
 
@@ -55,22 +55,23 @@ class CoverageService:
         Returns:
             dict[str, Any]: Coverage payload for charts and tables.
         """
-        sample_assay = sample.get("assay", "unknown")
-        sample_profile = sample.get("profile", DEFAULT_ENVIRONMENT)
-        assay_config = self.assay_configuration_repository.get_aspc_no_meta(
-            sample_assay, sample_profile
+        sample_assay = sample.get("asp_id", "unknown")
+        assay_config = get_formatted_assay_config(
+            sample,
+            assay_panel_repository=self.assay_panel_repository,
+            assay_configuration_repository=self.assay_configuration_repository,
         )
         if not assay_config:
             raise setup_error(
-                f"ASPC not registered for assay '{sample_assay}' in environment '{sample_profile}'",
+                f"ASPC not registered for assay '{sample_assay}'",
                 (
                     f"Sample '{sample.get('name', sample.get('_id'))}' requires coverage context for "
-                    f"assay '{sample_assay}' in environment '{sample_profile}', but no ASPC exists."
+                    f"assay '{sample_assay}', but no active configuration can be resolved."
                 ),
-                hint="Create and activate the ASPC before opening coverage pages for this sample.",
+                hint="Create and activate the matching ASPC or its base configuration before opening coverage pages.",
             )
 
-        assay_group = assay_config.get("assay_group", "unknown")
+        assay_group = assay_config.get("asp_group", "unknown")
         assay_panel_doc = self.assay_panel_repository.get_asp(asp_name=sample_assay)
         sample_filters = sample_filter_section(
             sample.get("filters"),
@@ -140,7 +141,7 @@ class CoverageService:
         Returns:
             dict[str, Any]: Grouped blacklist payload.
         """
-        if not user.is_superuser and group not in set(user.assay_groups or []):
+        if not user.is_superuser and group not in set(user.asp_groups or []):
             raise forbidden_error(
                 f"Assay group '{group}' is outside your scope",
                 f"User '{user.username}' is not assigned to assay group '{group}'.",

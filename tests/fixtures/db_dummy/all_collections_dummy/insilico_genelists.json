@@ -14,7 +14,7 @@
     "adhoc": false,
     "is_public": true,
     "is_active": true,
-    "assay_groups": [
+    "asp_groups": [
       "hematology"
     ],
     "genes": [
@@ -29,7 +29,7 @@
       "GNB1",
       "TP53"
     ],
-    "assays": [
+    "asp_ids": [
       "assay_1"
     ]
   }

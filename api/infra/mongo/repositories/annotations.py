@@ -51,7 +51,7 @@ def _annotation_search_query(
     search_str: str,
     search_mode: str,
     include_annotation_text: bool,
-    assays: list | None = None,
+    asp_ids: list | None = None,
 ) -> dict[str, Any] | None:
     """Build the annotation search query used by tiered-variant search."""
     if not search_str:
@@ -157,8 +157,8 @@ def _annotation_search_query(
     if not include_annotation_text and mode != "annotation":
         query_parts.append({"$or": [{"text": {"$exists": False}}, {"text": None}, {"text": ""}]})
 
-    if assays:
-        query_parts.append({"assay": {"$in": assays}})
+    if asp_ids:
+        query_parts.append({"assay": {"$in": asp_ids}})
 
     if len(query_parts) == 1:
         return query_parts[0]
@@ -786,7 +786,7 @@ class AnnotationsRepository(BaseRepository):
         search_str: str,
         search_mode: str,
         include_annotation_text: bool,
-        assays: list | None = None,
+        asp_ids: list | None = None,
         limit: int | None = None,
     ) -> list:
         """
@@ -801,7 +801,7 @@ class AnnotationsRepository(BaseRepository):
             limit (int | None): Optional limit on the number of results to return.
             search_mode (str): The mode of search, can be 'gene', 'transcript', 'variant', 'author', or 'subpanel'.
             include_annotation_text (bool): Whether to include annotations with text.
-            assays (list | None): Optional list of assays to filter the results.
+            asp_ids (list | None): Optional ASP identifiers to filter the results.
 
         Returns:
             list: A list of variant documents that match the search criteria.
@@ -810,7 +810,7 @@ class AnnotationsRepository(BaseRepository):
             search_str=search_str,
             search_mode=search_mode,
             include_annotation_text=include_annotation_text,
-            assays=assays,
+            asp_ids=asp_ids,
         )
         if query is None:
             return []
@@ -826,7 +826,7 @@ class AnnotationsRepository(BaseRepository):
         search_str: str,
         search_mode: str,
         include_annotation_text: bool,
-        assays: Optional[List[str]] = None,
+        asp_ids: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Return tier stats for the given search filter.
@@ -854,7 +854,7 @@ class AnnotationsRepository(BaseRepository):
             search_str=search_str,
             search_mode=search_mode,
             include_annotation_text=include_annotation_text,
-            assays=assays,
+            asp_ids=asp_ids,
         )
         if query is None:
             return {"total": {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0}, "by_assay": {}}

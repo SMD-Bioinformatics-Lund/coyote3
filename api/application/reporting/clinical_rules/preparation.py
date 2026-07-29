@@ -162,6 +162,7 @@ def prepare_report_context(
     analyte: Literal["dna", "rna"],
     applied_gene_lists: list[dict[str, Any]],
     report_sections_data: dict[str, Any],
+    intent: Literal["somatic", "germline"] = "somatic",
 ) -> PreparedReportContext:
     """Build facts from the exact filtered data used by report rendering."""
     findings: list[dict[str, Any]] = []
@@ -189,15 +190,16 @@ def prepare_report_context(
     return PreparedReportContext(
         sample={
             "name": str(sample.get("name") or ""),
-            "assay": str(sample.get("assay") or ""),
+            "asp_id": str(sample.get("asp_id") or ""),
             "subpanel_id": str(sample.get("subpanel_id") or aspc.get("subpanel_id") or "base"),
-            "profile": str(sample.get("profile") or aspc.get("environment") or ""),
+            "environment": str(sample.get("environment") or aspc.get("environment") or ""),
             "omics_layer": analyte,
             "paired": bool(sample.get("paired")),
             "genome_build": sample.get("genome_build"),
+            "analysis_intent": intent,
         },
         asp={
-            "asp_id": str(asp.get("asp_id") or sample.get("assay") or ""),
+            "asp_id": str(asp.get("asp_id") or sample.get("asp_id") or ""),
             "asp_group": asp.get("asp_group"),
             "asp_category": asp.get("asp_category"),
             "accredited": bool(asp.get("accredited")),
@@ -205,11 +207,11 @@ def prepare_report_context(
         },
         aspc={
             "aspc_id": str(aspc.get("aspc_id") or ""),
-            "asp_id": str(aspc.get("asp_id") or sample.get("assay") or ""),
+            "asp_id": str(aspc.get("asp_id") or sample.get("asp_id") or ""),
             "asp_group": aspc.get("asp_group"),
             "asp_category": aspc.get("asp_category"),
             "subpanel_id": str(aspc.get("subpanel_id") or sample.get("subpanel_id") or "base"),
-            "environment": str(aspc.get("environment") or sample.get("profile") or ""),
+            "environment": str(aspc.get("environment") or sample.get("environment") or ""),
             "reporting": {
                 "analysis": list((aspc.get("reporting") or {}).get("analysis") or []),
                 "report_sections": list((aspc.get("reporting") or {}).get("report_sections") or []),

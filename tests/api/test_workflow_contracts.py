@@ -34,7 +34,7 @@ def test_validate_report_inputs_accepts_valid_payload():
         logger,
         sample={
             "name": "S1",
-            "assay": "WGS",
+            "asp_id": "WGS",
             "case_id": "C1",
             "case": {"clarity_id": "CL1"},
         },
@@ -58,7 +58,7 @@ def test_validate_report_inputs_raises_on_missing_report_folder():
             logger,
             sample={
                 "name": "S1",
-                "assay": "WGS",
+                "asp_id": "WGS",
                 "case_id": "C1",
                 "case": {"clarity_id": "CL1"},
             },
@@ -87,7 +87,7 @@ def test_validate_report_inputs_raises_on_missing_assay():
             analyte="dna",
         )
     assert exc.value.status_code == 400
-    assert exc.value.detail["error"] == "Missing sample.assay"
+    assert exc.value.detail["error"] == "Missing sample.asp_id"
 
 
 def test_validate_rna_filter_inputs_raises_on_non_list_field():

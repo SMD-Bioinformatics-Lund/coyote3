@@ -113,8 +113,7 @@ class PublicCatalogService:
         for item in cls._overlay_categories(overlay):
             item_asp = str(item.get("asp_id") or "").strip()
             item_subpanel = (
-                str(item.get("subpanel_id") or item.get("subpanel") or SUBPANEL_BASE_ID).strip()
-                or SUBPANEL_BASE_ID
+                str(item.get("subpanel_id") or SUBPANEL_BASE_ID).strip() or SUBPANEL_BASE_ID
             )
             item_aspc = str(item.get("aspc_id") or "").strip()
             item_catalog = str(item.get("catalog_id") or item.get("category_key") or "").strip()
@@ -235,14 +234,14 @@ class PublicCatalogService:
                         "family": family,
                         "assay_group": assay_group,
                         "label": f"{self._title(family)} {self._title(assay_group)}",
-                        "assays": [],
+                        "asp_ids": [],
                         "sample_query": {
                             "panel_type": category,
                             "panel_tech": family,
                             "assay_group": assay_group,
                         },
                     },
-                )["assays"].append(asp_id)
+                )["asp_ids"].append(asp_id)
 
             modalities[category] = {
                 "label": (overlay.get("modalities") or {}).get(category, {}).get("label")
@@ -254,7 +253,7 @@ class PublicCatalogService:
                 "description": (
                     (overlay.get("modalities") or {}).get(category, {}).get("description")
                     if isinstance((overlay.get("modalities") or {}).get(category), dict)
-                    else f"{category.upper()} assays grouped by assay family and assay group."
+                    else f"{category.upper()} asp_ids grouped by assay family and assay group."
                 ),
                 "categories": categories,
                 "sample_groups": sorted(
@@ -300,14 +299,14 @@ class PublicCatalogService:
                     "family": family,
                     "assay_group": assay_group,
                     "label": f"{self._title(family)} {self._title(assay_group)}",
-                    "assays": [],
+                    "asp_ids": [],
                     "sample_query": {
                         "panel_type": category,
                         "panel_tech": family,
                         "assay_group": assay_group,
                     },
                 },
-            )["assays"].append(asp_id)
+            )["asp_ids"].append(asp_id)
         return sorted(
             grouped.values(),
             key=lambda item: (item["category"], item["family"], item["assay_group"]),
@@ -371,11 +370,7 @@ class PublicCatalogService:
         asp = asp_by_id.get(asp_id, {})
         aspc = self._overlay_aspc(category_overlay, asp_id)
         subpanel_id = (
-            str(
-                category_overlay.get("subpanel_id")
-                or category_overlay.get("subpanel")
-                or self._aspc_subpanel_id(aspc)
-            ).strip()
+            str(category_overlay.get("subpanel_id") or self._aspc_subpanel_id(aspc)).strip()
             or SUBPANEL_BASE_ID
         )
         gene_lists = [
@@ -689,7 +684,7 @@ class PublicCatalogService:
             or catalog.get("title")
             or aspc_display_name
             or asp.get("display_name")
-            or asp.get("assay_name")
+            or asp.get("asp_id")
             or asp_id
         )
         if subpanel_id != SUBPANEL_BASE_ID and catalog.get("title") is None:
@@ -780,7 +775,7 @@ class PublicCatalogService:
             subpanel_id = (
                 str(isgl.get("subpanel_id") or SUBPANEL_BASE_ID).strip() or SUBPANEL_BASE_ID
             )
-            for asp_id in isgl.get("assays") or []:
+            for asp_id in isgl.get("asp_ids") or []:
                 key = str(asp_id or "").strip()
                 if key:
                     grouped.setdefault(key, {}).setdefault(subpanel_id, []).append(dict(isgl))
@@ -1136,11 +1131,11 @@ class PublicCatalogService:
 
         selected_assay = assay
         all_genes = genelist.get("genes", [])
-        assays = genelist.get("assays", [])
+        asp_ids = genelist.get("asp_ids", [])
 
         filtered_genes = all_genes
         germline_genes: list[str] = []
-        if selected_assay and selected_assay in assays:
+        if selected_assay and selected_assay in asp_ids:
             panel = self.assay_panel_repository.get_asp(selected_assay)
             panel_genes = panel.get("covered_genes", []) if panel else []
             germline_genes = panel.get("germline_genes", []) if panel else []

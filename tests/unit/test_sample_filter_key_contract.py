@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from api.domain.common.sample_filters import normalize_sample_filters
+from api.domain.common.sample_filters import merge_filter_defaults, normalize_sample_filters
 
 RETIRED_SAMPLE_FILTER_DOT_PATHS = (
     "filters.genelists",
@@ -26,16 +26,18 @@ def test_sectioned_sample_filter_payload_stays_in_canonical_contract():
     """Runtime sample filters must stay in the current sectioned shape."""
     normalized = normalize_sample_filters(
         {
-            "snv": {
-                "min_depth": 100,
-                "min_alt_reads": 5,
-                "snvlists": ["myeloid"],
+            "somatic": {
+                "snv": {
+                    "min_depth": 100,
+                    "min_alt_reads": 5,
+                    "snvlists": ["myeloid"],
+                },
+                "cnv": {
+                    "cnvlists": ["cnv-myeloid"],
+                    "cnv_loss_cutoff": -0.1,
+                },
+                "coverage": {"warn_cov": 500},
             },
-            "cnv": {
-                "cnvlists": ["cnv-myeloid"],
-                "cnv_loss_cutoff": -0.1,
-            },
-            "coverage": {"warn_cov": 500},
         },
         omics_layer="dna",
     )
@@ -61,3 +63,23 @@ def test_backend_services_do_not_query_retired_flat_sample_filter_paths():
                     offenders.append(f"{path}: {dot_path}")
 
     assert not offenders, "Retired flat sample filter paths found:\n" + "\n".join(offenders)
+
+
+def test_filter_defaults_complete_an_existing_empty_intent_profile():
+    """A partial persisted snapshot receives missing values from its resolved ASPC."""
+    merged = merge_filter_defaults(
+        {"somatic": {}},
+        {
+            "somatic": {
+                "snv": {"min_depth": 120, "snvlists": ["myeloid"]},
+                "cnv": {"cnv_loss_cutoff": -0.2, "cnv_gain_cutoff": 0.2},
+            }
+        },
+        omics_layer="dna",
+        analysis_intents=["somatic"],
+    )
+
+    assert merged["somatic"]["snv"]["min_depth"] == 120
+    assert merged["somatic"]["snv"]["snvlists"] == ["myeloid"]
+    assert merged["somatic"]["cnv"]["cnv_loss_cutoff"] == -0.2
+    assert merged["somatic"]["cnv"]["cnv_gain_cutoff"] == 0.2

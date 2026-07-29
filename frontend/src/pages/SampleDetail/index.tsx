@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react"
 import { useNavigate, useParams, Link, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
-import { ArrowLeft } from "lucide-react"
+import { AlertTriangle, ArrowLeft } from "lucide-react"
 
 import { BiomarkerRow, OverviewTab, PanelSummary } from "./OverviewTab"
 import { VariantsTab } from "./VariantsTab"
@@ -19,7 +19,8 @@ import { sampleUrlKey } from "@/lib/sample-routing"
 
 const TABS = [
   { id: "overview", label: "Overview" },
-  { id: "snvs", label: "Small Variants", analysis: "SNV" },
+  { id: "snvs", label: "Somatic SNVs", analysis: "SNV", intent: "somatic" },
+  { id: "germline-snvs", label: "Germline SNVs", analysis: "SNV", intent: "germline" },
   { id: "cnvs", label: "CNVs", analysis: "CNV" },
   { id: "fusions", label: "Fusions", analysis: "FUSION" },
   { id: "translocations", label: "Translocations", analysis: "TRANSLOCATION" },
@@ -29,36 +30,43 @@ const TABS = [
 
 function visibleTabs(sample: any, context: any) {
   const configured = new Set((context?.analysis_sections || []).map((item: string) => String(item).toUpperCase()))
-  const hasConfiguredSections = configured.size > 0
   const hasCount = (key: string) => {
     const value = sample?.data_counts?.[key]
     return value === true || Number(value || 0) > 0
   }
   const hasAnalysis = (...keys: string[]) => keys.some((key) => configured.has(key))
+  const omicsLayer = String(sample?.omics_layer || "").toLowerCase()
+  const analysisIntents = new Set(
+    (Array.isArray(sample?.analysis_intents) ? sample.analysis_intents : ["somatic"])
+      .map((intent: unknown) => String(intent).toLowerCase()),
+  )
   return TABS.filter((tab) => {
     if (tab.id === "coverage") {
       const isDna = String(sample?.omics_layer || "").toLowerCase() === "dna"
       const hasResource = hasSampleFile(sample, "cov") || hasCount("cov")
-      return isDna && hasResource && (!hasConfiguredSections || hasAnalysis("COVERAGE"))
+      return isDna && hasResource && hasAnalysis("COVERAGE")
     }
     if (!("analysis" in tab)) return true
-    if (tab.id === "snvs") {
+    if (tab.id === "snvs" || tab.id === "germline-snvs") {
       const hasResource = hasSampleFile(sample, "vcf_files") || hasCount("snvs")
-      return hasResource && (!hasConfiguredSections || hasAnalysis("SNV", "SMALL_VARIANT"))
+      return (
+        hasResource &&
+        analysisIntents.has(tab.intent || "somatic") &&
+        hasAnalysis("SNV", "SMALL_VARIANT")
+      )
     }
     if (tab.id === "cnvs") {
       const hasResource = hasSampleFile(sample, "cnv") || hasCount("cnvs")
-      return hasResource && (!hasConfiguredSections || hasAnalysis("CNV"))
+      return hasResource && hasAnalysis("CNV")
     }
     if (tab.id === "translocations") {
       const hasResource = hasSampleFile(sample, "transloc") || hasCount("transloc")
-      return hasResource && (!hasConfiguredSections || hasAnalysis("TRANSLOCATION", "TRANSLOC"))
+      return hasResource && hasAnalysis("TRANSLOCATION", "TRANSLOC")
     }
     if (tab.id === "fusions") {
       const hasResource = hasSampleFile(sample, "fusion_files") || hasCount("fusions")
-      return hasResource && (!hasConfiguredSections || hasAnalysis("FUSION"))
+      return omicsLayer === "rna" && hasResource && hasAnalysis("FUSION")
     }
-    if (!hasConfiguredSections) return true
     return configured.has(String(tab.analysis).toUpperCase())
   })
 }
@@ -68,6 +76,7 @@ export function SampleDetail() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedTab = searchParams.get("tab") || "overview"
+  const requestedIntent = searchParams.get("intent") === "germline" ? "germline" : "somatic"
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['sample', id],
@@ -76,15 +85,19 @@ export function SampleDetail() {
   const sample = data?.sample || {}
   const sampleRouteKey = sampleUrlKey(sample, id)
   const tabs = useMemo(() => visibleTabs(data?.sample || {}, data), [data])
-  const activeTab = tabs.some((tab) => tab.id === requestedTab) ? requestedTab : "overview"
-  const showComments = ["snvs", "cnvs", "fusions", "translocations"].includes(activeTab)
-  const showFilters = ["snvs", "cnvs", "fusions", "translocations"].includes(activeTab)
+  const canonicalRequestedTab = requestedTab === "snvs" && requestedIntent === "germline"
+    ? "germline-snvs"
+    : requestedTab
+  const activeTab = tabs.some((tab) => tab.id === canonicalRequestedTab) ? canonicalRequestedTab : "overview"
+  const activeIntent = activeTab === "germline-snvs" ? "germline" : "somatic"
+  const showComments = ["snvs", "germline-snvs", "cnvs", "fusions", "translocations"].includes(activeTab)
+  const showFilters = ["snvs", "germline-snvs", "cnvs", "fusions", "translocations"].includes(activeTab)
   const suggestionPath = String(sample?.omics_layer || "").toLowerCase() === "rna"
     ? `/samples/${sampleRouteKey}/fusions/comment-suggestion`
     : `/samples/${sampleRouteKey}/small-variants/comment-suggestion`
   const { data: commentSuggestion } = useQuery({
-    queryKey: ["sample-comment-suggestion", sampleRouteKey, sample?.omics_layer],
-    queryFn: () => api.get(suggestionPath).then((res) => res.data),
+    queryKey: ["sample-comment-suggestion", sampleRouteKey, sample?.omics_layer, activeIntent],
+    queryFn: () => api.get(`${suggestionPath}?intent=${activeIntent}`).then((res) => res.data),
     enabled: Boolean(data) && showComments && Boolean(sampleRouteKey),
     staleTime: 60_000,
   })
@@ -95,19 +108,21 @@ export function SampleDetail() {
     }
   }, [id, navigate, sample?.name, searchParams])
   useEffect(() => {
-    if (!data || tabs.some((tab) => tab.id === requestedTab)) return
+    if (!data || tabs.some((tab) => tab.id === canonicalRequestedTab)) return
     setSearchParams((current) => {
       const params = new URLSearchParams(current)
       params.delete("tab")
       return params
     }, { replace: true })
-  }, [data, requestedTab, setSearchParams, tabs])
+  }, [canonicalRequestedTab, data, setSearchParams, tabs])
 
   const selectTab = (tabId: string) => {
     setSearchParams((current) => {
       const params = new URLSearchParams(current)
       if (tabId === "overview") params.delete("tab")
       else params.set("tab", tabId)
+      if (tabId === "germline-snvs") params.set("intent", "germline")
+      else params.delete("intent")
       return params
     }, { replace: true })
   }
@@ -138,12 +153,22 @@ export function SampleDetail() {
               {sample.name || sample.case_id || id}
             </h2>
             <p className="text-muted-foreground font-medium uppercase tracking-widest text-xs mt-1">
-              {sample.assay} • {sample.profile} • {sample.ingest_status}
+              {sample.asp_id} • {sample.environment} • {sample.ingest_status}
             </p>
             <BiomarkerRow context={data} />
           </div>
           </div>
         </div>
+
+        {sample?.aspc_resolution?.used_base_configuration && (
+          <div className="flex items-start gap-2 rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              {sample.aspc_resolution.warning || "Base ASPC configuration is in use."}
+              {" "}Requested subpanel: <strong>{sample.aspc_resolution.requested_subpanel_id}</strong>.
+            </span>
+          </div>
+        )}
 
         <div className="mt-3 flex gap-3">
           {/* Main Content Area */}
@@ -170,27 +195,18 @@ export function SampleDetail() {
               <div className="space-y-3">
                 {activeTab !== "overview" && <PanelSummary sample={sample} context={data} />}
 
-                <div className={activeTab === "overview" ? "block" : "hidden"}>
+                {activeTab === "overview" && (
                   <OverviewTab sampleId={sampleRouteKey} sample={sample} context={data} />
-                </div>
-                <div className={activeTab === "snvs" ? "block" : "hidden"}>
-                  <VariantsTab sampleId={sampleRouteKey} />
-                </div>
-                <div className={activeTab === "cnvs" ? "block" : "hidden"}>
-                  <CNVTab sampleId={sampleRouteKey} />
-                </div>
-                <div className={activeTab === "fusions" ? "block" : "hidden"}>
-                  <FusionsTab sampleId={sampleRouteKey} />
-                </div>
-                <div className={activeTab === "translocations" ? "block" : "hidden"}>
-                  <TranslocationsTab sampleId={sampleRouteKey} />
-                </div>
-                <div className={activeTab === "coverage" ? "block" : "hidden"}>
-                  <CoverageTab sampleId={sampleRouteKey} />
-                </div>
-                <div className={activeTab === "reports" ? "block" : "hidden"}>
-                  <ReportsTab sampleId={sampleRouteKey} />
-                </div>
+                )}
+                {activeTab === "snvs" && <VariantsTab sampleId={sampleRouteKey} intent="somatic" />}
+                {activeTab === "germline-snvs" && (
+                  <VariantsTab sampleId={sampleRouteKey} intent="germline" />
+                )}
+                {activeTab === "cnvs" && <CNVTab sampleId={sampleRouteKey} />}
+                {activeTab === "fusions" && <FusionsTab sampleId={sampleRouteKey} />}
+                {activeTab === "translocations" && <TranslocationsTab sampleId={sampleRouteKey} />}
+                {activeTab === "coverage" && <CoverageTab sampleId={sampleRouteKey} />}
+                {activeTab === "reports" && <ReportsTab sampleId={sampleRouteKey} />}
               </div>
             </div>
             {showComments && (
@@ -208,7 +224,7 @@ export function SampleDetail() {
           </div>
 
           {showFilters && (
-            <FiltersSidebar sampleId={sampleRouteKey} sample={sample} context={data} activeTab={activeTab} />
+            <FiltersSidebar sampleId={sampleRouteKey} sample={sample} context={data} activeTab={activeTab} intent={activeIntent} />
           )}
         </div>
       </div>

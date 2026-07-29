@@ -51,8 +51,8 @@ class UserModel(BaseModel):
     fullname: str
     roles: List[str] = Field(default_factory=list)
     role: str = ""
-    assay_groups: List[str] = Field(default_factory=list)
-    assays: List[str] = Field(default_factory=list)
+    asp_groups: List[str] = Field(default_factory=list)
+    asp_ids: List[str] = Field(default_factory=list)
     asp_map: dict = Field(default_factory=dict)
     environments: List[str] = Field(default_factory=list)
     permissions: List[str] = Field(default_factory=list)
@@ -131,7 +131,7 @@ class UserModel(BaseModel):
             asp_group = asp.get("asp_group", "unassigned")
             asp_name = asp.get("asp_id")
 
-            if asp_name not in user_doc.get("assays", []):
+            if asp_name not in user_doc.get("asp_ids", []):
                 continue
 
             asp_family = str(asp.get("asp_family") or "NA").strip().lower()
@@ -280,7 +280,7 @@ class UserModel(BaseModel):
         Returns:
             bool: True if the user is a superuser or the group is in the user's assay groups, False otherwise.
         """
-        return self.is_superuser or group in self.assay_groups
+        return self.is_superuser or group in self.asp_groups
 
     def can_access_assay(self, assay: str) -> bool:
         """
@@ -292,7 +292,7 @@ class UserModel(BaseModel):
         Returns:
             bool: True if the user is a superuser or the assay is in the user's assays, False otherwise.
         """
-        return self.is_superuser or assay in self.assays
+        return self.is_superuser or assay in self.asp_ids
 
     def get_accessible_groups(self) -> List[str]:
         """
@@ -304,4 +304,4 @@ class UserModel(BaseModel):
         Returns:
             List[str]: Accessible assay groups for the user.
         """
-        return ["ALL"] if self.is_superuser else self.assay_groups
+        return ["ALL"] if self.is_superuser else self.asp_groups

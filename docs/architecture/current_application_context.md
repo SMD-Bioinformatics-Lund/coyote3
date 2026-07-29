@@ -160,7 +160,11 @@ ASP documents describe the physical assay: assay ID, family, category, platform,
 
 ### ASPC
 
-ASPC documents describe the active rulebook for a specific assay context: assay, environment/profile, optional subpanel, analysis types, filters, reporting settings, and report sections. Sample filters are seeded from ASPC when the sample enters the UI. Resetting filters should restore the current ASPC defaults.
+ASPC documents describe the active rulebook for the unique
+`asp_id`/`subpanel_id`/`environment` scope. They contain enabled analysis
+types, `analysis_intents`, frozen nested filter profiles, reporting settings,
+and report sections. Sample filters are seeded from ASPC during ingest.
+Resetting filters restores the sample's recorded ASPC defaults.
 
 ### ISGL
 

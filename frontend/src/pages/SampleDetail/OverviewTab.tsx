@@ -239,21 +239,20 @@ function selectedPanelEntriesFromContext(context: any) {
 }
 
 function selectedPanelEntriesFromFilters(context: any, sample: any) {
-  const filters = sample?.filters || context?.sample?.filters || {}
   const sections = [
     {
       target: "SNV",
-      ids: filters?.snv?.snvlists,
+      ids: sampleFilterSection(sample || context?.sample, "snv", "somatic")?.snvlists,
       options: context?.snv_genelist_options,
     },
     {
       target: "CNV",
-      ids: filters?.cnv?.cnvlists,
+      ids: sampleFilterSection(sample || context?.sample, "cnv", "somatic")?.cnvlists,
       options: context?.cnvlist_options,
     },
     {
       target: "FUSION",
-      ids: filters?.fusion?.fusionlists,
+      ids: sampleFilterSection(sample || context?.sample, "fusion", "somatic")?.fusionlists,
       options: context?.fusionlist_options,
     },
   ]
@@ -876,6 +875,14 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
       <SettingsHero sample={sample} />
       <AnalysisStatusStrip sample={sample} context={context} />
 
+      {sample?.aspc_resolution?.used_base_configuration && (
+        <section className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn">
+          <strong>Base configuration in use.</strong>{" "}
+          {sample.aspc_resolution.warning || "No subpanel-specific ASPC is active."}{" "}
+          Requested subpanel: <strong>{sample.aspc_resolution.requested_subpanel_id}</strong>.
+        </section>
+      )}
+
       {["pending", "failed"].includes(String(sample?.ingest_status || "").toLowerCase()) && (
         <section className="rounded-2xl border border-yellow-400 bg-yellow-50 p-4 text-sm font-semibold text-yellow-900 shadow-sm dark:bg-yellow-950/30 dark:text-yellow-200">
           Some expected analysis files are missing or unreadable. Verify inputs before reporting.
@@ -886,11 +893,12 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
         <SettingsCard title="Sample Meta" tone="border-t-yellow-400" className="xl:col-span-1">
           <div className="flex flex-wrap gap-2">
             {sample?.omics_layer && <StatusPill tone="blue">{String(sample.omics_layer).toUpperCase()}</StatusPill>}
-            {sample?.sequencing_technology && <StatusPill tone="green">{sample.sequencing_technology}</StatusPill>}
+            {sample?.platform && <StatusPill tone="green">{sample.platform}</StatusPill>}
+            {sample?.read_mode && <StatusPill tone="green">{sample.read_mode}</StatusPill>}
             {sample?.sequencing_scope && <StatusPill tone="indigo">{sample.sequencing_scope}</StatusPill>}
             {sample?.genome_build && <StatusPill>{`GRCh${sample.genome_build}`}</StatusPill>}
-            {sample?.profile && <StatusPill tone="yellow">{sample.profile}</StatusPill>}
-            {sample?.assay && <StatusPill tone="blue">Assay: {sample.assay}</StatusPill>}
+            {sample?.environment && <StatusPill tone="yellow">{sample.environment}</StatusPill>}
+            {sample?.asp_id && <StatusPill tone="blue">ASP: {sample.asp_id}</StatusPill>}
             {sample?.pipeline && <StatusPill tone="indigo">{sample.pipeline}{sample.pipeline_version ? ` v${sample.pipeline_version}` : ""}</StatusPill>}
             {sampleReported(sample) && <StatusPill tone="indigo">Reported</StatusPill>}
           </div>

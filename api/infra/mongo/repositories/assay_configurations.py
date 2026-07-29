@@ -18,6 +18,7 @@ from pymongo import cursor
 from api.config.constants import (
     DEFAULT_ENVIRONMENT,
     SUBPANEL_BASE_ID,
+    normalize_clinical_identifier,
     normalize_environment,
     validate_identifier,
 )
@@ -88,7 +89,7 @@ class ASPConfigRepository(BaseRepository):
         asp = validate_identifier(asp_id, label="asp_id")
         subpanel = validate_identifier(subpanel_id or SUBPANEL_BASE_ID, label="subpanel_id")
         env = normalize_environment(environment)
-        return f"{asp}_{subpanel}_{env}"
+        return normalize_clinical_identifier(f"{asp}_{subpanel}_{env}", label="aspc_id")
 
     @staticmethod
     def _normalize_aspc_id(aspc_id: str | None) -> str | None:
@@ -102,8 +103,7 @@ class ASPConfigRepository(BaseRepository):
         """
         if aspc_id is None:
             return None
-        normalized = str(aspc_id).strip()
-        return normalized or None
+        return normalize_clinical_identifier(aspc_id, label="aspc_id")
 
     def _aspc_lookup_query(self, aspc_id: str) -> dict:
         """Aspc lookup query.
@@ -130,7 +130,11 @@ class ASPConfigRepository(BaseRepository):
             )
         if normalized:
             data["aspc_id"] = normalized
-            data["subpanel_id"] = str(data.get("subpanel_id") or SUBPANEL_BASE_ID).strip()
+            data["asp_id"] = normalize_clinical_identifier(data.get("asp_id"), label="asp_id")
+            data["subpanel_id"] = normalize_clinical_identifier(
+                data.get("subpanel_id") or SUBPANEL_BASE_ID,
+                label="subpanel_id",
+            )
             return data
         raise ValueError("asp_configs.aspc_id is required in strict business-key mode")
 
@@ -237,25 +241,21 @@ class ASPConfigRepository(BaseRepository):
             "created_on": 0,
             "created_by": 0,
         }
-        normalized_subpanel = str(subpanel_id or SUBPANEL_BASE_ID).strip() or SUBPANEL_BASE_ID
-        lookup_subpanels = [normalized_subpanel]
-        if normalized_subpanel != SUBPANEL_BASE_ID:
-            lookup_subpanels.append(SUBPANEL_BASE_ID)
-        for lookup_subpanel in lookup_subpanels:
-            aspc_id = self.build_aspc_id(assay_id, profile, lookup_subpanel)
-            doc = self.get_collection().find_one(
-                {"$and": [self._aspc_lookup_query(aspc_id), {"is_active": True}]},
-                projection,
-            )
-            if doc:
-                return doc
-        return None
+        normalized_subpanel = normalize_clinical_identifier(
+            subpanel_id or SUBPANEL_BASE_ID,
+            label="subpanel_id",
+        )
+        aspc_id = self.build_aspc_id(assay_id, profile, normalized_subpanel)
+        return self.get_collection().find_one(
+            {"$and": [self._aspc_lookup_query(aspc_id), {"is_active": True}]},
+            projection,
+        )
 
     def get_active_aspcs_for_asp(
         self, asp_id: str, environment: str = DEFAULT_ENVIRONMENT
     ) -> list[dict]:
         """Return active assay configurations for one ASP and environment."""
-        assay_id = str(asp_id or "").strip()
+        assay_id = normalize_clinical_identifier(asp_id, label="asp_id") if asp_id else ""
         env = normalize_environment(environment)
         if not assay_id:
             return []
@@ -283,29 +283,6 @@ class ASPConfigRepository(BaseRepository):
         operation = OperationResult.from_update(result)
         invalidate_dashboard_summary_cache(self.adapter)
         return operation
-
-    def rotate_aspc(
-        self, aspc_id: str, replacement: dict, retire_fields: dict | None = None
-    ) -> OperationResult:
-        """Retire the active ASPC document and insert a new active version."""
-        replacement_doc = self.ensure_aspc_id(dict(replacement))
-        replacement_doc.pop("_id", None)
-        replacement_doc["is_active"] = True
-        retire_payload = {"is_active": False, **(retire_fields or {})}
-        query = {**self._aspc_lookup_query(aspc_id), "is_active": True}
-        update_result = self.get_collection().update_one(query, {"$set": retire_payload})
-        if update_result.matched_count == 0:
-            return OperationResult.from_update(update_result)
-        try:
-            insert_result = self.get_collection().insert_one(replacement_doc)
-        except Exception:
-            self.get_collection().update_one(
-                {**self._aspc_lookup_query(aspc_id), "is_active": False},
-                {"$set": {"is_active": True}},
-            )
-            raise
-        invalidate_dashboard_summary_cache(self.adapter)
-        return OperationResult.from_insert_one(insert_result)
 
     def create_assay_config(self, data: dict) -> OperationResult:
         """

@@ -68,9 +68,6 @@ from api.app.utilities.assay_filters import (
     get_group_parameters as _get_group_parameters,
 )
 from api.app.utilities.assay_filters import (
-    get_sample_effective_genes as _get_sample_effective_genes,
-)
-from api.app.utilities.assay_filters import (
     get_sample_subtypes as _get_sample_subtypes,
 )
 from api.app.utilities.assay_filters import (
@@ -99,6 +96,9 @@ from api.app.utilities.serialization import (
 )
 from api.app.utilities.serialization import (
     tuple_to_dict as _tuple_to_dict,
+)
+from api.domain.common.assay_filters import (
+    get_sample_effective_genes as _get_sample_effective_genes,
 )
 from api.domain.core.dna.variant_identity import (
     build_simple_id,
@@ -350,7 +350,7 @@ class CommonUtility:
         """
         Get the report header string based on the assay type and sample data.
 
-        If the assay is "myeloid" and the sample's "subpanel" is "Hem-Snabb", the header is modified:
+        If the assay is "myeloid" and the sample's ``subpanel_id`` is ``hem-snabb``, the header is modified:
         - If "sample_no" is 2, appends ": fullständig parad analys" (full paired analysis).
         - Otherwise, appends ": preliminär oparad analys" (preliminary unpaired analysis).
 
@@ -362,7 +362,7 @@ class CommonUtility:
         Returns:
             str: The formatted report header.
         """
-        if assay == "myeloid" and sample.get("subpanel") == "Hem-Snabb":
+        if assay == "myeloid" and sample.get("subpanel_id") == "hem-snabb":
             if sample.get("sample_no") == 2:
                 header += ": fullständig parad analys"
             else:
@@ -578,9 +578,19 @@ class CommonUtility:
 
     @staticmethod
     def get_sample_effective_genes(
-        sample: dict, asp_doc: dict, checked_gl_dict: dict, target: str = "snv"
+        sample: dict,
+        asp_doc: dict,
+        checked_gl_dict: dict,
+        target: str = "snv",
+        intent: str = "somatic",
     ) -> tuple:
-        return _get_sample_effective_genes(sample, asp_doc, checked_gl_dict, target=target)
+        return _get_sample_effective_genes(
+            sample,
+            asp_doc,
+            checked_gl_dict,
+            target=target,
+            intent=intent,
+        )
 
 
 # ---------------------------------------------------------------------------

@@ -7,6 +7,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from api.config.constants import normalize_clinical_identifier
+
 
 class ClinicalRuleFamily(str, Enum):
     """Supported evaluation phases."""
@@ -121,10 +123,7 @@ class ClinicalRuleSetMetadata(BaseModel):
     @field_validator("asp_id", "subpanel_id", mode="before")
     @classmethod
     def _validate_identity(cls, value: str) -> str:
-        value = str(value or "").strip()
-        if not value:
-            raise ValueError("rule-set identity fields cannot be empty")
-        return value
+        return normalize_clinical_identifier(value, label="rule-set identity")
 
     @property
     def rule_set_id(self) -> str:

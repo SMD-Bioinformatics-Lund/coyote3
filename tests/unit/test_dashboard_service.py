@@ -58,18 +58,18 @@ class _DashboardBackendStub:
     def get_user_by_id(self, _id):  # noqa: ARG002
         return self.user_doc
 
-    def resolve_active_asp_ids_for_scope(self, assays, groups):  # noqa: ARG002
+    def resolve_active_asp_ids_for_scope(self, asp_ids, groups):  # noqa: ARG002
         return ["A2"]
 
-    def get_dashboard_sample_rollup(self, assays=None):
-        if assays is None:
+    def get_dashboard_sample_rollup(self, asp_ids=None):
+        if asp_ids is None:
             return {
                 "total_samples": 100,
                 "analysed_samples": 75,
                 "pending_samples": 25,
                 "sample_stats": {"all": 100},
             }
-        return {"user_samples_stats": {"scoped": len(assays)}}
+        return {"user_samples_stats": {"scoped": len(asp_ids)}}
 
     def get_dashboard_variant_counts(self):
         return {
@@ -127,8 +127,8 @@ def _noop_handler(**methods):
         "get_dashboard_user_rollup": lambda: {},
         "get_dashboard_visibility_rollup": lambda: {},
         "user_with_id": lambda _id: {},
-        "resolve_active_asp_ids_for_scope": lambda assays=None, groups=None: [],
-        "get_dashboard_sample_rollup": lambda assays=None: {},
+        "resolve_active_asp_ids_for_scope": lambda asp_ids=None, groups=None: [],
+        "get_dashboard_sample_rollup": lambda asp_ids=None: {},
         "get_dashboard_variant_counts": lambda: {},
         "get_unique_variant_quality_counts": lambda: {},
         "get_total_cnv_count": lambda: 0,
@@ -213,7 +213,7 @@ def test_resolve_scope_assays_admin_returns_none():
     backend = _DashboardBackendStub()
     backend.user_doc = {"role": "admin", "roles": ["superuser"], "assays": [], "assay_groups": []}
     service = _dashboard_service(backend=backend)
-    user = SimpleNamespace(id="u1", role="admin", roles=["admin"], assays=[], assay_groups=[])
+    user = SimpleNamespace(id="u1", role="admin", roles=["admin"], asp_ids=[], asp_groups=[])
 
     assert service.resolve_scope_assays(user=user) is None
 
@@ -221,7 +221,7 @@ def test_resolve_scope_assays_admin_returns_none():
 def test_resolve_scope_assays_returns_combined_assays():
     service = _dashboard_service(backend=_DashboardBackendStub())
     user = SimpleNamespace(
-        id="u1", role="analyst", roles=["analyst"], assays=["A1"], assay_groups=["G1"]
+        id="u1", role="analyst", roles=["analyst"], asp_ids=["A1"], asp_groups=["G1"]
     )
 
     payload = service.resolve_scope_assays(user=user)
@@ -232,7 +232,7 @@ def test_resolve_scope_assays_returns_combined_assays():
 def test_summary_payload_calculates_quality_rates(monkeypatch):
     service = _dashboard_service(backend=_DashboardBackendStub())
     user = SimpleNamespace(
-        id="u1", role="admin", roles=["superuser"], assays=["A1"], assay_groups=["G1"]
+        id="u1", role="admin", roles=["superuser"], asp_ids=["A1"], asp_groups=["G1"]
     )
     monkeypatch.setattr(service, "build_admin_insights", lambda: {"counts": {"users_total": 12}})
     monkeypatch.setattr(

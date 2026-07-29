@@ -25,8 +25,8 @@ def _user(*, role: str, level: int, permissions: list[str] | None = None) -> Api
         roles=[role],
         access_level=level,
         permissions=list(permissions or []),
-        assays=["assay_1"],
-        assay_groups=["hematology"],
+        asp_ids=["assay_1"],
+        asp_groups=["hematology"],
         envs=["production"],
         asp_map={},
         auth_type=["local"],
@@ -148,9 +148,9 @@ def test_internal_ingest_sample_bundle_update_requires_sample_edit_own_permissio
     payload = internal_router.InternalIngestSampleBundleRequest(
         sample={
             "name": "seed_sample",
-            "assay": "assay_1",
-            "subpanel": None,
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "subpanel_id": None,
+            "environment": "testing",
             "case_id": "CASE_001",
             "sample_no": 1,
             "paired": False,
@@ -283,7 +283,7 @@ async def test_internal_ingest_async_sample_bundle_upload_stages_files(monkeypat
     service = SimpleNamespace(
         parse_yaml_payload=lambda _raw: {
             "name": "SAMPLE_1",
-            "assay": "assay_1",
+            "asp_id": "assay_1",
             "omics_layer": "dna",
             "vcf_files": "case.vcf",
         },

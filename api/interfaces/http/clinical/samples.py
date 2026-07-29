@@ -31,16 +31,7 @@ from api.contracts.samples import (
     SampleCommentCreateRequest,
     SampleFiltersUpdateRequest,
 )
-from api.domain.common.sample_filters import (
-    canonical_dna_filter_section,
-    normalize_sample_filters,
-    sample_filter_section,
-)
-from api.domain.core.rna.helpers import create_fusioncallers, create_fusioneffectlist
-from api.domain.core.workflows.filter_normalization import (
-    normalize_dna_filter_keys,
-    normalize_rna_filter_keys,
-)
+from api.domain.common.sample_filters import normalize_sample_filters
 from api.interfaces.http.tags import TAG_CLINICAL_SAMPLES
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 
@@ -51,7 +42,7 @@ def _ensure_coverage_group_access(smp_grp: str, user: ApiUser) -> None:
     """Require the user to be scoped to the coverage assay group."""
     if user.is_superuser:
         return
-    if smp_grp not in set(user.assay_groups or []):
+    if smp_grp not in set(user.asp_groups or []):
         raise api_error(
             403,
             f"Assay group '{smp_grp}' is outside your scope",
@@ -484,66 +475,33 @@ def _update_sample_filters(
     sample = _get_sample_for_api(sample_id, user)
     filters = payload.filters
     incoming_filters = dict(filters or {})
-    existing_filters = normalize_sample_filters(
-        sample.get("filters"), omics_layer=str(sample.get("omics_layer") or "dna")
+    analysis_intents = sample.get("analysis_intents") or ["somatic"]
+    existing_profiles = normalize_sample_filters(
+        sample.get("filters"),
+        omics_layer=str(sample.get("omics_layer") or "dna"),
+        analysis_intents=analysis_intents,
+        canonical=True,
     )
+    if not any(key in incoming_filters for key in ("somatic", "germline")):
+        raise api_error(
+            422,
+            "Filters must use the canonical intent profile structure",
+            "Submit filters.somatic.<analysis> and, where enabled, filters.germline.snv.",
+            category="validation",
+        )
 
-    if str(sample.get("omics_layer", "")).lower() == "rna":
-        if isinstance(incoming_filters.get("fusion"), dict):
-            normalized_filters = normalize_rna_filter_keys(incoming_filters.get("fusion"))
-        else:
-            normalized_filters = normalize_rna_filter_keys(incoming_filters)
-        existing_fusion_filters = sample_filter_section(
-            existing_filters, "fusion", omics_layer="rna"
-        )
-        if "adhoc_genes" not in normalized_filters and "adhoc_genes" in existing_fusion_filters:
-            normalized_filters["adhoc_genes"] = existing_fusion_filters.get("adhoc_genes")
-        normalized_filters["fusion_callers"] = create_fusioncallers(
-            normalized_filters.get("fusion_callers", [])
-        )
-        normalized_filters["fusion_effects"] = create_fusioneffectlist(
-            normalized_filters.get("fusion_effects", [])
-        )
-        fusionlists = normalized_filters.get("fusionlists")
-        if fusionlists is None:
-            normalized_filters["fusionlists"] = []
-        elif isinstance(fusionlists, str):
-            normalized_filters["fusionlists"] = [fusionlists] if fusionlists else []
-        elif isinstance(fusionlists, tuple):
-            normalized_filters["fusionlists"] = list(fusionlists)
-        normalized_filters["fusionlists"] = list(
-            dict.fromkeys(normalized_filters.get("fusionlists", []))
-        )
-        normalized_filters = {"fusion": normalized_filters}
-    else:
-        if any(
-            isinstance(incoming_filters.get(section), dict)
-            for section in ("snv", "cnv", "coverage")
-        ):
-            normalized_filters = {
-                "snv": canonical_dna_filter_section(
-                    normalize_dna_filter_keys(incoming_filters.get("snv") or {}), "snv"
-                ),
-                "cnv": canonical_dna_filter_section(
-                    normalize_dna_filter_keys(incoming_filters.get("cnv") or {}), "cnv"
-                ),
-                "coverage": canonical_dna_filter_section(
-                    dict(incoming_filters.get("coverage") or {}), "coverage"
-                ),
-            }
-        else:
-            normalized_filters = normalize_dna_filter_keys(incoming_filters)
-            normalized_filters = normalize_sample_filters(
-                normalized_filters, omics_layer=str(sample.get("omics_layer") or "dna")
-            )
-        for section in ("snv", "cnv"):
-            existing_section = sample_filter_section(existing_filters, section, omics_layer="dna")
-            if existing_section.get("adhoc_genes"):
-                normalized_filters.setdefault(section, {}).setdefault(
-                    "adhoc_genes", existing_section.get("adhoc_genes")
-                )
-
-    service.replace_sample_filters(sample=sample, filters=normalized_filters)
+    merged_profiles = dict(existing_profiles)
+    for intent, profile in incoming_filters.items():
+        if intent not in {"somatic", "germline"} or not isinstance(profile, dict):
+            continue
+        merged_profiles[intent] = {**dict(existing_profiles.get(intent) or {}), **profile}
+    normalized_profiles = normalize_sample_filters(
+        merged_profiles,
+        omics_layer=str(sample.get("omics_layer") or "dna"),
+        analysis_intents=analysis_intents,
+        canonical=True,
+    )
+    service.replace_sample_filters(sample=sample, filters=normalized_profiles)
     result = change_payload(
         sample_id=sample_id,
         resource="sample_filters",

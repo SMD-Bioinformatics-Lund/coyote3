@@ -66,8 +66,8 @@ class ApiUser:
     role: str
     access_level: int
     permissions: list[str]
-    assays: list[str]
-    assay_groups: list[str]
+    asp_ids: list[str]
+    asp_groups: list[str]
     envs: list[str]
     asp_map: dict
     auth_type: list[str]
@@ -252,8 +252,8 @@ def api_user_from_user_doc(user_doc: dict) -> ApiUser:
         role=user_model.role,
         access_level=user_model.access_level,
         permissions=list(user_model.permissions),
-        assays=list(user_model.assays),
-        assay_groups=list(user_model.assay_groups),
+        asp_ids=list(user_model.asp_ids),
+        asp_groups=list(user_model.asp_groups),
         envs=list(user_model.envs),
         asp_map=dict(user_model.asp_map),
         auth_type=list(
@@ -281,8 +281,8 @@ def serialize_api_user(user: ApiUser) -> dict:
         "role": user.role,
         "access_level": user.access_level,
         "permissions": sorted(user.permissions),
-        "assays": sorted(user.assays),
-        "assay_groups": sorted(user.assay_groups),
+        "asp_ids": sorted(user.asp_ids),
+        "asp_groups": sorted(user.asp_groups),
         "envs": sorted(user.envs),
         "asp_map": user.asp_map,
         "auth_type": user.auth_type,
@@ -456,7 +456,7 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
         )
         raise _api_error(404, "Sample not found", category="not_found")
 
-    sample_assay = sample.get("assay", "")
+    sample_assay = sample.get("asp_id", "")
     if not user.is_superuser:
         policy = build_access_policy(
             user=user,
@@ -464,15 +464,15 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
             permissions_repository=get_permissions_repository(),
         )
         sample_scope = {
-            "assay": sample_assay,
-            "profile": sample.get("profile") or sample.get("environment"),
-            "assay_group": sample.get("assay_group"),
+            "asp_id": sample_assay,
+            "environment": sample.get("environment"),
+            "asp_group": sample.get("asp_group"),
         }
         scope_allowed = policy.scope_allowed(user, sample_scope)
     else:
         scope_allowed = True
 
-    if not scope_allowed and sample_assay not in set(user.assays or []):
+    if not scope_allowed and sample_assay not in set(user.asp_ids or []):
         _audit_access_event(
             status="denied",
             reason="Forbidden",
@@ -500,7 +500,7 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
             sample_id=sample_id,
             extra={
                 "sample_assay": sample_assay,
-                "sample_profile": sample.get("profile") or sample.get("environment"),
+                "sample_profile": sample.get("environment") or sample.get("environment"),
                 "sample_assay_group": sample.get("assay_group"),
             },
         )

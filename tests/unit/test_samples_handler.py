@@ -23,22 +23,22 @@ def test_get_samples_returns_only_ready_docs() -> None:
     handler = _handler_with_docs(
         {
             "name": "ready-live",
-            "assay": "ASP1",
-            "profile": "production",
+            "asp_id": "ASP1",
+            "environment": "production",
             "ingest_status": "ready",
             "report_num": 0,
         },
         {
             "name": "loading-live",
-            "assay": "ASP1",
-            "profile": "production",
+            "asp_id": "ASP1",
+            "environment": "production",
             "ingest_status": "loading",
             "report_num": 0,
         },
         {
             "name": "failed-live",
-            "assay": "ASP1",
-            "profile": "production",
+            "asp_id": "ASP1",
+            "environment": "production",
             "ingest_status": "failed",
             "report_num": 0,
         },
@@ -58,22 +58,22 @@ def test_search_samples_for_admin_returns_only_ready_docs_by_default() -> None:
     handler = _handler_with_docs(
         {
             "name": "ready-report",
-            "assay": "ASP1",
-            "profile": "production",
+            "asp_id": "ASP1",
+            "environment": "production",
             "ingest_status": "ready",
             "report_num": 1,
         },
         {
             "name": "loading-report",
-            "assay": "ASP1",
-            "profile": "production",
+            "asp_id": "ASP1",
+            "environment": "production",
             "ingest_status": "loading",
             "report_num": 1,
         },
     )
 
     rows, total = handler.search_samples_for_admin(
-        assays=["ASP1"], search_str="", page=1, per_page=30
+        asp_ids=["ASP1"], search_str="", page=1, per_page=30
     )
 
     assert total == 1
@@ -84,22 +84,22 @@ def test_search_samples_for_admin_can_include_non_ready_docs() -> None:
     handler = _handler_with_docs(
         {
             "name": "ready-report",
-            "assay": "ASP1",
-            "profile": "production",
+            "asp_id": "ASP1",
+            "environment": "production",
             "ingest_status": "ready",
             "report_num": 1,
         },
         {
             "name": "loading-report",
-            "assay": "ASP1",
-            "profile": "production",
+            "asp_id": "ASP1",
+            "environment": "production",
             "ingest_status": "loading",
             "report_num": 1,
         },
     )
 
     rows, total = handler.search_samples_for_admin(
-        assays=["ASP1"],
+        asp_ids=["ASP1"],
         search_str="",
         page=1,
         per_page=30,

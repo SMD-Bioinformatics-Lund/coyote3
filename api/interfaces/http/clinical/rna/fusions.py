@@ -14,11 +14,24 @@ from api.contracts.rna import (
     RnaFusionListPayload,
 )
 from api.contracts.samples import SampleChangePayload, SampleCommentSuggestionPayload
+from api.domain.common.errors import setup_error
 from api.interfaces.http.clinical.common.change_helpers import comment_change, resource_change
 from api.interfaces.http.tags import TAG_RNA_FUSIONS
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 
 router = APIRouter(tags=[TAG_RNA_FUSIONS])
+
+
+def _require_rna_sample(sample: dict, sample_id: str) -> None:
+    """Reject RNA fusion requests for samples that do not have RNA analysis data."""
+    if str(sample.get("omics_layer") or "").lower() != "rna":
+        raise setup_error(
+            "RNA fusion analysis is unavailable for this sample",
+            (
+                f"Sample '{sample.get('name') or sample_id}' has omics layer "
+                f"'{sample.get('omics_layer') or 'unknown'}'. RNA fusion endpoints require an RNA sample."
+            ),
+        )
 
 
 @router.get("/api/v1/samples/{sample_id}/fusions", response_model=RnaFusionListPayload)
@@ -30,6 +43,7 @@ def list_rna_fusions(
 ):
     """Return fusions for a sample."""
     sample = _get_sample_for_api(sample_id, user)
+    _require_rna_sample(sample, sample_id)
     return util.common.convert_to_serializable(
         service.list_fusions_payload(request=request, sample=sample, util_module=util)
     )
@@ -48,6 +62,7 @@ def rna_sample_comment_suggestion(
 ):
     """Return the established RNA summary text for the current sample filters."""
     sample = _get_sample_for_api(sample_id, user)
+    _require_rna_sample(sample, sample_id)
     payload = service.list_fusions_payload(
         request=request,
         sample=sample,
@@ -76,6 +91,7 @@ def export_rna_fusions_context(
 ):
     """Return backend-generated CSV content for the current filtered fusion set."""
     sample = _get_sample_for_api(sample_id, user)
+    _require_rna_sample(sample, sample_id)
     payload = service.list_fusions_payload(
         request=request, sample=sample, util_module=util, paginate=False
     )

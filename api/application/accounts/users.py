@@ -22,7 +22,7 @@ from api.config.constants import (
     normalize_auth_types,
 )
 from api.contracts.managed_resources import managed_resource_spec
-from api.contracts.schemas import normalize_collection_document
+from api.contracts.schemas.registry import normalize_collection_document
 from api.domain.common.errors import api_error
 from api.security.password_flows import issue_password_token_for_user, notify_user_change
 
@@ -160,8 +160,8 @@ class UserManagementService:
         role_options = list(self.roles_repository.get_all_role_names() or [])
         form["fields"]["roles"]["options"] = role_options
         form["fields"]["roles"]["default"] = _normalize_role_ids(user_doc.get("roles"))
-        form["fields"]["assay_groups"]["default"] = user_doc.get("assay_groups", [])
-        form["fields"]["assays"]["default"] = user_doc.get("assays", [])
+        form["fields"]["asp_groups"]["default"] = user_doc.get("asp_groups", [])
+        form["fields"]["asp_ids"]["default"] = user_doc.get("asp_ids", [])
 
         return {
             "user_doc": user_doc,
@@ -178,8 +178,8 @@ class UserManagementService:
             "email",
             "roles",
             "is_active",
-            "assay_groups",
-            "assays",
+            "asp_groups",
+            "asp_ids",
             "auth_type",
             "must_change_password",
         ]
@@ -294,7 +294,7 @@ class UserManagementService:
             user_doc=updated_user,
             event="profile_updated",
             actor_username=actor,
-            changed_fields=changed_fields or ["profile"],
+            changed_fields=changed_fields or ["user"],
         )
         payload["meta"]["change_email_sent"] = bool(notification.get("email_sent", False))
         if notification.get("warning"):

@@ -47,6 +47,45 @@ This section is personalized to your assigned assays. It shows a breakdown of pr
 
 For administrators and senior lead clinicians, additional resource panels show the growth of the system knowledgebase, including the number of active assay panels (ASP), configurations (ASPC), and gene lists (ISGL) currently powering review logic.
 
+## Data Calculation And Freshness
+
+The dashboard reads compact aggregates rather than transferring complete sample
+or finding collections to the browser. It presents operational counts and does
+not replace the detailed sample, variant, CNV, fusion, or report views.
+
+| Dashboard value | Source collection or aggregate | Meaning |
+|---|---|---|
+| Sample workload | `samples` | Ready, analysed, pending, and profile-level sample counts visible within the user's assay scope |
+| Small variants | `variants` | Persisted small-variant document count and variant-class composition |
+| CNVs | `cnvs` | Persisted copy-number finding count |
+| Translocations | `translocations` | Persisted structural translocation count |
+| Fusions | `fusions` | Persisted RNA fusion finding count |
+| Tier distribution | `reported_variants` | Findings saved into clinical reports, grouped by tier |
+| False-positive rate | `variants` | Unique variant identities that have a false-positive curation flag |
+| Blacklist rate | `blacklist` | Unique technical-artifact identities recorded in the active blacklist |
+| Assay gene coverage | ASP and ISGL configuration | Physically covered and germline gene counts by assay |
+
+### Derived metric lifecycle
+
+Coyote3 maintains short-lived Redis entries and persisted MongoDB metric
+snapshots for expensive aggregate calculations. These are derived operational
+data, never clinical source records. Cache identities are versioned with the
+dashboard aggregate contract. When an aggregate contract changes, the next
+request uses a new identity and recomputes the metric from the current clinical
+collections; older derived snapshots are not reused.
+
+Sample ingest, finding mutation, blacklist changes, and other dashboard-relevant
+writes invalidate the affected metric families and the dashboard summary. This
+keeps normal page navigation fast while ensuring that a new filter state,
+curation action, or newly ingested sample is reflected after the corresponding
+write has completed.
+
+!!! note
+    A zero is a real count only when the underlying persisted collection is
+    empty for that analysis domain. An unavailable chart or failed aggregate is
+    displayed as an explanatory state rather than being silently presented as a
+    clinical zero.
+
 ## Visual Design
 
 Dashboard panels use the standard Coyote3 glass-card surface:

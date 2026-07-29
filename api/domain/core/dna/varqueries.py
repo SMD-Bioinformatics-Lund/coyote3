@@ -163,15 +163,18 @@ def _case_only_clause(settings: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_query(assay_group: str, settings: dict) -> dict:
-    """Construct an SNV query from assay-group defaults and ASPC overlay."""
+def build_query(assay_group: str, settings: dict, *, intent: str = "somatic") -> dict:
+    """Construct an intent-specific SNV query from assay-group rules and filters."""
     large_ins_regex = re.compile(r"\w{10,200}", re.IGNORECASE)
     gene_pos_filter = build_pos_genes_filter(settings)
     normalized_group = str(assay_group or "").strip().lower()
+    normalized_intent = str(intent or "somatic").strip().lower()
+    if normalized_intent not in {"somatic", "germline"}:
+        raise ValueError("intent must be somatic or germline")
 
     query: dict[str, Any] = {"SAMPLE_ID": settings["id"]}
 
-    if normalized_group in GENERIC_GERMLINE_GROUPS:
+    if normalized_intent == "germline" or normalized_group in GENERIC_GERMLINE_GROUPS:
         query = {
             "SAMPLE_ID": settings["id"],
             "$and": [
@@ -194,12 +197,7 @@ def build_query(assay_group: str, settings: dict) -> dict:
             "SAMPLE_ID": settings["id"],
             "$and": [
                 gene_pos_filter,
-                {
-                    "$or": [
-                        _generic_germline_clause(settings),
-                        _generic_somatic_clause(settings, large_ins_regex),
-                    ],
-                },
+                _generic_somatic_clause(settings, large_ins_regex),
             ],
         }
 
@@ -218,42 +216,37 @@ def build_query(assay_group: str, settings: dict) -> dict:
             "$and": [
                 gene_pos_filter,
                 {
-                    "$or": [
-                        {"FILTER": {"$in": ["GERMLINE"]}},
+                    "$and": [
+                        _case_clause(settings),
+                        _control_clause(settings),
+                        _popfreq_clause(settings),
                         {
-                            "$and": [
-                                _case_clause(settings),
-                                _control_clause(settings),
-                                _popfreq_clause(settings),
+                            "$or": [
+                                _consequence_clause(settings),
                                 {
-                                    "$or": [
-                                        _consequence_clause(settings),
+                                    "$and": [
+                                        {"genes": {"$in": ["TERT", "NFKBIE"]}},
                                         {
-                                            "$and": [
-                                                {"$or": [{"genes": {"$in": ["TERT", "NFKBIE"]}}]},
+                                            "$or": [
                                                 {
-                                                    "$or": [
-                                                        {
-                                                            "INFO.selected_CSQ.Consequence": {
+                                                    "INFO.selected_CSQ.Consequence": {
+                                                        "$in": [
+                                                            "regulatory_region_variant",
+                                                            "TF_binding_site_variant",
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "INFO.CSQ": {
+                                                        "$elemMatch": {
+                                                            "Consequence": {
                                                                 "$in": [
                                                                     "regulatory_region_variant",
                                                                     "TF_binding_site_variant",
                                                                 ]
                                                             }
-                                                        },
-                                                        {
-                                                            "INFO.CSQ": {
-                                                                "$elemMatch": {
-                                                                    "Consequence": {
-                                                                        "$in": [
-                                                                            "regulatory_region_variant",
-                                                                            "TF_binding_site_variant",
-                                                                        ]
-                                                                    }
-                                                                }
-                                                            }
-                                                        },
-                                                    ]
+                                                        }
+                                                    }
                                                 },
                                             ]
                                         },
@@ -261,7 +254,7 @@ def build_query(assay_group: str, settings: dict) -> dict:
                                 },
                             ]
                         },
-                    ],
+                    ]
                 },
             ],
         }

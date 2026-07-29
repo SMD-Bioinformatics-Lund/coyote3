@@ -38,7 +38,7 @@ def _reported_variant_search_query(
     *,
     search_str: str,
     search_mode: str,
-    assays: list | None = None,
+    asp_ids: list | None = None,
 ) -> dict[str, Any] | None:
     """Build the reported-variant snapshot search query."""
     if not search_str:
@@ -139,11 +139,16 @@ def _reported_variant_search_query(
     else:
         return None
 
-    if assays:
+    if asp_ids:
         return {
             "$and": [
                 query,
-                {"$or": [{"assay": {"$in": assays}}, {"assay_group": {"$in": assays}}]},
+                {
+                    "$or": [
+                        {"assay": {"$in": asp_ids}},
+                        {"assay_group": {"$in": asp_ids}},
+                    ]
+                },
             ]
         }
     return query
@@ -266,14 +271,14 @@ class ReportedVariantsRepository(BaseRepository):
         *,
         search_str: str,
         search_mode: str,
-        assays: list | None = None,
+        asp_ids: list | None = None,
         limit: int | None = None,
     ) -> list:
         """Search reported variant snapshots by normalized report-time fields."""
         query = _reported_variant_search_query(
             search_str=search_str,
             search_mode=search_mode,
-            assays=assays,
+            asp_ids=asp_ids,
         )
         if query is None:
             return []

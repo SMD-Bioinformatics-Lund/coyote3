@@ -14,7 +14,7 @@ from api.infra.mongo.repositories.base import BaseRepository
 class DashboardMetricsRepository(BaseRepository):
     """Manage persisted dashboard metric snapshots."""
 
-    SUMMARY_SNAPSHOT_VERSION = "v3"
+    SUMMARY_SNAPSHOT_VERSION = "v4"
 
     def __init__(self, adapter):
         super().__init__(adapter)

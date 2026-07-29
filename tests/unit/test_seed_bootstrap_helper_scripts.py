@@ -142,17 +142,18 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
             [
                 {
                     "name": "Seed Sample",
-                    "assay": "Assay_1",
+                    "asp_id": "Assay_1",
                     "subpanel_id": "base",
-                    "profile": "testing",
+                    "environment": "testing",
                     "omics_layer": "dna",
-                    "sequencing_technology": "illumina",
+                    "platform": "illumina",
                     "files": {"vcf_files": {"path": "/data/seed/sample.vcf"}},
                     "filters": {
-                        "min_depth": 100,
-                        "snv": {"min_depth": 100, "snvlists": ["seed_snv_list"]},
-                        "cnv": {"cnvlists": ["seed_cnv_list"]},
-                        "coverage": {"warn_cov": 500},
+                        "somatic": {
+                            "snv": {"min_depth": 100, "snvlists": ["seed_snv_list"]},
+                            "cnv": {"cnvlists": ["seed_cnv_list"]},
+                            "coverage": {"warn_cov": 500},
+                        },
                     },
                 }
             ]
@@ -205,13 +206,13 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
 
     sample = json.loads((dest_dir / "samples.json").read_text())[0]
     assert sample["subpanel_id"] == "base"
-    assert sample["profile"] == "testing"
+    assert sample["environment"] == "testing"
     assert sample["omics_layer"] == "dna"
-    assert sample["sequencing_technology"] == "illumina"
+    assert sample["platform"] == "illumina"
     assert sample["files"]["vcf_files"]["path"] == "/data/seed/sample.vcf"
-    assert sample["filters"]["snv"]["snvlists"] == ["seed_snv_list"]
-    assert sample["filters"]["cnv"]["cnvlists"] == ["seed_cnv_list"]
-    assert sample["filters"]["coverage"]["warn_cov"] == 500
+    assert sample["filters"]["somatic"]["snv"]["snvlists"] == ["seed_snv_list"]
+    assert sample["filters"]["somatic"]["cnv"]["cnvlists"] == ["seed_cnv_list"]
+    assert sample["filters"]["somatic"]["coverage"]["warn_cov"] == 500
     assert "vcf_files" not in sample
     assert "comments" not in sample
     assert "reports" not in sample

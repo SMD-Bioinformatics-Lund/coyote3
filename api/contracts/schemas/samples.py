@@ -10,12 +10,23 @@ from pydantic import Field, field_validator, model_validator
 from api.config.constants import (
     ALL_SAMPLE_FILE_KEYS,
     SAMPLE_FILE_KEYS,
+    normalize_clinical_identifier,
     normalize_environment,
     normalize_platform,
+    normalize_read_mode,
     normalize_sequencing_scope,
 )
 from api.config.database_versions import normalize_database_versions
+from api.config.sequencing import derived_read_technology, validate_platform_read_mode
 from api.contracts.schemas.base import _DocBase, _StrictDocBase
+from api.contracts.schemas.filter_profiles import (
+    CnvFiltersDoc,
+    CoverageFiltersDoc,
+    DnaFilterProfilesDoc,
+    FusionFiltersDoc,
+    RnaFilterProfilesDoc,
+    SnvFiltersDoc,
+)
 from api.domain.common.sample_filters import normalize_sample_filters
 
 DNA_SAMPLE_FILE_KEYS: tuple[str, ...] = SAMPLE_FILE_KEYS["dna"]
@@ -62,7 +73,7 @@ class SampleCommentRecordDoc(_DocBase):
 class SampleReportRecordDoc(_DocBase):
     sample_oid: Any
     sample_name: str | None = None
-    assay: str | None = None
+    asp_id: str | None = None
     subpanel_id: str | None = None
     environment: str | None = None
     report_num: int
@@ -77,74 +88,38 @@ class SampleReportRecordDoc(_DocBase):
     clinical_rule_source: dict[str, Any] | None = None
 
 
-class SampleDnaSnvFiltersDoc(_StrictDocBase):
-    max_freq: float = Field(default=1.00, ge=0.0, le=1.0)
-    min_freq: float = Field(default=0.0, ge=0.0, le=1.0)
-    max_control_freq: float = Field(default=0.05, ge=0.0, le=0.5)
-    max_popfreq: float = Field(default=0.05, ge=0.0, le=0.5)
-    min_depth: int = Field(default=100, ge=0)
-    min_alt_reads: int = Field(default=5, ge=0)
-    vep_consequences: list[str] = Field(default_factory=list)
-    snvlists: list[str] = Field(default_factory=list)
-    adhoc_genes: dict[str, Any] = Field(default_factory=dict)
+class SampleAspcResolutionDoc(_StrictDocBase):
+    """Persisted resolution between a sample scope and its active ASPC."""
+
+    requested_subpanel_id: str
+    resolved_subpanel_id: str
+    used_base_configuration: bool = False
+    warning: str | None = None
+
+    @field_validator("requested_subpanel_id", "resolved_subpanel_id", mode="before")
+    @classmethod
+    def _normalize_scope_identifier(cls, value: Any) -> str:
+        return normalize_clinical_identifier(value, label="subpanel_id")
 
 
-class SampleDnaCnvFiltersDoc(_StrictDocBase):
-    min_cnv_size: int = Field(default=100, ge=0)
-    max_cnv_size: int = Field(default=50_000_000, ge=0)
-    cnv_loss_cutoff: float = Field(default=-0.3)
-    cnv_gain_cutoff: float = Field(default=0.3)
-    cnveffects: list[str] = Field(default_factory=lambda: ["gain", "loss"])
-    cnvlists: list[str] = Field(default_factory=list)
-    adhoc_genes: dict[str, Any] = Field(default_factory=dict)
-
-    @model_validator(mode="after")
-    def _validate_consistency(self) -> "SampleDnaCnvFiltersDoc":
-        if self.min_cnv_size > self.max_cnv_size:
-            raise ValueError("min_cnv_size must be less than or equal to max_cnv_size")
-        if self.cnv_loss_cutoff >= self.cnv_gain_cutoff:
-            raise ValueError("cnv_loss_cutoff must be less than cnv_gain_cutoff")
-        return self
-
-
-class SampleCoverageFiltersDoc(_StrictDocBase):
-    warn_cov: int = Field(default=100, ge=0)
-    error_cov: int = Field(default=10, ge=0)
-
-    @model_validator(mode="after")
-    def _validate_consistency(self) -> "SampleCoverageFiltersDoc":
-        if self.error_cov > self.warn_cov:
-            raise ValueError("error_cov must be less than or equal to warn_cov")
-        return self
-
-
-class SampleDnaFiltersDoc(_StrictDocBase):
-    snv: SampleDnaSnvFiltersDoc = Field(default_factory=SampleDnaSnvFiltersDoc)
-    cnv: SampleDnaCnvFiltersDoc = Field(default_factory=SampleDnaCnvFiltersDoc)
-    coverage: SampleCoverageFiltersDoc = Field(default_factory=SampleCoverageFiltersDoc)
-
-
-class SampleRnaFusionFiltersDoc(_StrictDocBase):
-    fusion_callers: list[str] = Field(default_factory=list)
-    fusion_effects: list[str] = Field(default_factory=list)
-    fusionlists: list[str] = Field(default_factory=list)
-    min_spanning_pairs: int = 0
-    min_spanning_reads: int = 0
-    adhoc_genes: dict[str, Any] = Field(default_factory=dict)
-
-
-class SampleRnaFiltersDoc(_StrictDocBase):
-    fusion: SampleRnaFusionFiltersDoc = Field(default_factory=SampleRnaFusionFiltersDoc)
+# Public aliases retain the useful domain names for consumers of this contract.
+SampleDnaSnvFiltersDoc = SnvFiltersDoc
+SampleDnaCnvFiltersDoc = CnvFiltersDoc
+SampleCoverageFiltersDoc = CoverageFiltersDoc
+SampleRnaFusionFiltersDoc = FusionFiltersDoc
+SampleDnaFiltersDoc = DnaFilterProfilesDoc
+SampleRnaFiltersDoc = RnaFilterProfilesDoc
 
 
 class SamplesDoc(_DocBase):
     name: str
-    assay: str
+    asp_id: str
     subpanel_id: str | None = None
-    profile: str
+    environment: str
     current_aspc_id: Any | None = None
     current_aspc_key: str | None = None
     current_aspc_version: int | None = None
+    aspc_resolution: SampleAspcResolutionDoc | None = None
     genome_build: int | None = None
     database_versions: dict[str, str] = Field(default_factory=dict)
     case_id: str
@@ -153,10 +128,13 @@ class SamplesDoc(_DocBase):
     paired: bool | None = False
     sequencing_scope: str
     omics_layer: Literal["dna", "rna"]
-    sequencing_technology: str | None = None
+    platform: str | None = None
+    read_mode: str | None = None
+    read_technology: str | None = None
     pipeline: str
     pipeline_version: str
     files: dict[str, SampleFileDoc] = Field(default_factory=dict)
+    analysis_intents: list[str] = Field(default_factory=lambda: ["somatic"])
     filters: SampleDnaFiltersDoc | SampleRnaFiltersDoc | None = None
     case: SampleCaseControlDoc = Field(default_factory=SampleCaseControlDoc)
     control: SampleCaseControlDoc | None = None
@@ -168,16 +146,25 @@ class SamplesDoc(_DocBase):
     @model_validator(mode="before")
     @classmethod
     def _reject_retired_version_fields(cls, value: Any) -> Any:
-        """Keep all sample database-version metadata in one nested object."""
+        """Reject retired sample fields rather than silently accepting two shapes."""
         if not isinstance(value, dict):
             return value
-        retired_keys = {"vep_version", "db_versions", "reference_versions", "annotation_versions"}
+        retired_keys = {
+            "assay",
+            "profile",
+            "subpanel",
+            "sequencing_technology",
+            "vep_version",
+            "db_versions",
+            "reference_versions",
+            "annotation_versions",
+        }
         present = sorted(retired_keys.intersection(value))
         if present:
             raise ValueError(
-                "Retired sample version fields are not accepted: "
+                "Retired sample fields are not accepted: "
                 + ", ".join(present)
-                + ". Use database_versions with canonical keys instead."
+                + ". Use asp_id, subpanel_id, environment, platform, and database_versions."
             )
         return value
 
@@ -188,37 +175,58 @@ class SamplesDoc(_DocBase):
             return value.strip().lower()
         return value
 
-    @field_validator("assay", "subpanel_id", mode="before")
+    @field_validator("asp_id", "subpanel_id", mode="before")
     @classmethod
     def _normalize_assay_identifiers(cls, value: Any) -> Any:
-        if isinstance(value, str):
-            return value.strip()
-        return value
+        if value is None:
+            return None
+        return normalize_clinical_identifier(value, label="clinical scope identifier")
 
-    @field_validator("profile", mode="before")
+    @field_validator("environment", mode="before")
     @classmethod
     def _normalize_profile(cls, value: Any) -> Any:
         if value is None:
             return None
-        return normalize_environment(value, label="profile")
+        return normalize_environment(value, label="environment")
 
     @field_validator("sequencing_scope", mode="before")
     @classmethod
     def _normalize_sequencing_scope(cls, value: Any) -> str:
         return normalize_sequencing_scope(value)
 
-    @field_validator("sequencing_technology", mode="before")
+    @field_validator("platform", mode="before")
     @classmethod
-    def _normalize_sequencing_technology(cls, value: Any) -> str | None:
+    def _normalize_platform(cls, value: Any) -> str | None:
         return normalize_platform(value)
+
+    @field_validator("read_mode", mode="before")
+    @classmethod
+    def _normalize_read_mode(cls, value: Any) -> str | None:
+        return normalize_read_mode(value)
 
     @field_validator("database_versions", mode="before")
     @classmethod
     def _normalize_database_versions(cls, value: Any) -> dict[str, str]:
         return normalize_database_versions(value)
 
+    @field_validator("analysis_intents", mode="before")
+    @classmethod
+    def _normalize_analysis_intents(cls, value: Any) -> list[str]:
+        values = value if isinstance(value, list) else [value]
+        normalized = list(
+            dict.fromkeys(
+                str(item or "").strip().lower() for item in values if str(item or "").strip()
+            )
+        )
+        if not normalized:
+            return ["somatic"]
+        invalid = [item for item in normalized if item not in {"somatic", "germline"}]
+        if invalid:
+            raise ValueError("analysis_intents may contain only somatic and germline")
+        return normalized
+
     @field_validator(
-        "case_id", "control_id", "name", "assay", "pipeline", "pipeline_version", mode="before"
+        "case_id", "control_id", "name", "asp_id", "pipeline", "pipeline_version", mode="before"
     )
     @classmethod
     def _strip_strings(cls, value: Any) -> Any:
@@ -258,6 +266,17 @@ class SamplesDoc(_DocBase):
         return self
 
     @model_validator(mode="after")
+    def _derive_platform_capabilities(self) -> "SamplesDoc":
+        validate_platform_read_mode(self.platform, self.read_mode)
+        derived = derived_read_technology(self.platform)
+        if self.read_technology and self.read_technology != derived:
+            raise ValueError(
+                "read_technology is derived from platform and cannot be set independently"
+            )
+        self.read_technology = derived
+        return self
+
+    @model_validator(mode="after")
     def _validate_omics_payload_consistency(self) -> "SamplesDoc":
         present_keys = set(self.files)
         has_dna = any(key in present_keys for key in DNA_SAMPLE_FILE_KEYS)
@@ -287,9 +306,6 @@ class SamplesDoc(_DocBase):
         if not isinstance(data, dict):
             return data
         normalized = dict(data)
-        if "subpanel_id" not in normalized and "subpanel" in normalized:
-            normalized["subpanel_id"] = normalized.pop("subpanel")
-
         files = dict(normalized.get("files") or {})
         for key in SAMPLE_SOURCE_PATH_KEYS:
             value = normalized.pop(key, None)
@@ -313,5 +329,22 @@ class SamplesDoc(_DocBase):
             normalized["filters"] = normalize_sample_filters(
                 normalized.get("filters"),
                 omics_layer=str(normalized.get("omics_layer") or "dna"),
+                analysis_intents=normalized.get("analysis_intents"),
+                canonical=True,
             )
         return normalized
+
+    @model_validator(mode="after")
+    def _validate_intent_filter_capabilities(self) -> "SamplesDoc":
+        if self.omics_layer == "rna" and "germline" in self.analysis_intents:
+            raise ValueError("germline analysis is currently supported only for DNA SNV")
+        if self.filters is None:
+            return self
+        dumped = self.filters.model_dump(exclude_none=True)
+        if "germline" in self.analysis_intents:
+            germline = dumped.get("germline") or {}
+            if not germline.get("snv"):
+                raise ValueError("germline analysis requires filters.germline.snv")
+        elif dumped.get("germline"):
+            raise ValueError("filters.germline requires germline in analysis_intents")
+        return self

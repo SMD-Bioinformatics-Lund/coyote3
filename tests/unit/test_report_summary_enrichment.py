@@ -34,9 +34,9 @@ def test_enrich_reported_variant_docs_batches_samples_and_annotations(monkeypatc
         {
             "_id": sample_oid,
             "name": "seed_sample",
-            "profile": "production",
-            "assay": "hematology",
-            "subpanel": "Hem",
+            "environment": "production",
+            "asp_id": "hematology",
+            "subpanel_id": "Hem",
             "case_id": "case",
             "control_id": "control",
             "paired": True,
@@ -52,5 +52,5 @@ def test_enrich_reported_variant_docs_batches_samples_and_annotations(monkeypatc
     assert len(enriched) == 2
     assert enriched[0]["sample"]["sample_name"] == "seed_sample"
     assert enriched[0]["annotation"]["assay"] == "hematology"
-    assert enriched[1]["sample"]["assay"] == "hematology"
+    assert enriched[1]["sample"]["asp_id"] == "hematology"
     assert enriched[1]["annotation"]["subpanel"] == "Hem"

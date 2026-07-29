@@ -78,10 +78,11 @@ def _sample() -> dict:
     return {
         "_id": "S1",
         "name": "sample1",
-        "assay": "WGS",
-        "profile": "production",
+        "asp_id": "WGS",
+        "environment": "production",
         "database_versions": {"vep": "103"},
-        "filters": {},
+        "analysis_intents": ["somatic"],
+        "filters": {"somatic": {}},
         "files": {
             "cnvprofile": {
                 "path": "/data/sample1.cnv.png",
@@ -153,7 +154,7 @@ def test_list_cnvs_payload_uses_selected_cnvlists_for_effective_genes(monkeypatc
         vep_metadata_repository=repo.vep_metadata_repository,
     )
     sample = _sample()
-    sample["filters"] = {"cnvlists": ["GL1"], "cnveffects": ["gain"]}
+    sample["filters"] = {"somatic": {"cnv": {"cnvlists": ["GL1"], "cnveffects": ["gain"]}}}
 
     monkeypatch.setattr(
         service_module, "get_formatted_assay_config", lambda _sample: {"asp_group": "dna"}

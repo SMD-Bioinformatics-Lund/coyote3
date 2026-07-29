@@ -7,7 +7,11 @@ from pathlib import Path
 from api.application.reporting.clinical_rules.compiler import ClinicalRuleCompiler
 from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from api.application.reporting.clinical_rules.facts import PreparedReportContext
-from api.config.constants import SUBPANEL_BASE_ID, normalize_analysis_type
+from api.config.constants import (
+    SUBPANEL_BASE_ID,
+    normalize_analysis_type,
+    normalize_clinical_identifier,
+)
 from api.config.paths import CLINICAL_REPORTING_RULES_DIR
 from api.contracts.schemas.clinical_rules import ClinicalRuleEvaluation, ClinicalRuleSetSource
 
@@ -32,8 +36,11 @@ class ClinicalRuleService:
         return cls()
 
     def _source_paths(self, *, asp_id: str, subpanel_id: str) -> list[Path]:
-        directory = self.rules_root / asp_id
-        requested = str(subpanel_id or SUBPANEL_BASE_ID).strip() or SUBPANEL_BASE_ID
+        directory = self.rules_root / normalize_clinical_identifier(asp_id, label="asp_id")
+        requested = normalize_clinical_identifier(
+            subpanel_id or SUBPANEL_BASE_ID,
+            label="subpanel_id",
+        )
         paths = [directory / f"{requested}.yaml"]
         if requested != SUBPANEL_BASE_ID:
             paths.append(directory / f"{SUBPANEL_BASE_ID}.yaml")
@@ -41,8 +48,14 @@ class ClinicalRuleService:
 
     def resolve(self, *, context: PreparedReportContext) -> tuple[ClinicalRuleSetSource, Path]:
         """Load the exact subpanel file or that ASP's complete ``base.yaml`` fallback."""
-        asp_id = str(context.asp.asp_id or context.sample.assay).strip()
-        subpanel_id = str(context.aspc.subpanel_id or SUBPANEL_BASE_ID).strip()
+        asp_id = normalize_clinical_identifier(
+            context.asp.asp_id or context.sample.asp_id,
+            label="asp_id",
+        )
+        subpanel_id = normalize_clinical_identifier(
+            context.aspc.subpanel_id or SUBPANEL_BASE_ID,
+            label="subpanel_id",
+        )
         for source_path in self._source_paths(asp_id=asp_id, subpanel_id=subpanel_id):
             if not source_path.is_file():
                 continue

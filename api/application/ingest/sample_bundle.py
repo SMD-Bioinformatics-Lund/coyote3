@@ -56,12 +56,16 @@ def ingest_sample_bundle(
         )
         if default_context is not None:
             validated_payload["filters"] = sample_filters_from_aspc_filters(
-                default_context["filters"], validated_payload.get("omics_layer", "dna")
+                default_context["filters"],
+                validated_payload.get("omics_layer", "dna"),
+                analysis_intents=(default_context.get("aspc") or {}).get("analysis_intents"),
             )
             aspc = default_context.get("aspc") or {}
+            validated_payload["analysis_intents"] = aspc.get("analysis_intents") or ["somatic"]
             validated_payload["current_aspc_id"] = aspc.get("_id")
             validated_payload["current_aspc_key"] = aspc.get("aspc_id")
             validated_payload["current_aspc_version"] = aspc.get("version")
+            validated_payload["aspc_resolution"] = default_context.get("aspc_resolution")
 
     preload = service._parse_preload(validated_payload)
     sample_name = next_unique_name(service, str(validated_payload["name"]), bool(increment))

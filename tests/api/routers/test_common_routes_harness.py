@@ -22,8 +22,8 @@ def test_common_gene_info_read_numeric_path_with_fake_store(monkeypatch):
     fake_store = build_fake_store()
     service = CommonQueryService(
         hgnc_repository=SimpleNamespace(
-            get_metadata_by_hgnc_id=lambda hgnc_id: fake_store.hgnc_repository.get_metadata_by_hgnc_id(
-                hgnc_id=hgnc_id
+            get_metadata_by_hgnc_id=lambda hgnc_id: (
+                fake_store.hgnc_repository.get_metadata_by_hgnc_id(hgnc_id=hgnc_id)
             )
         ),
         oncokb_repository=SimpleNamespace(get_oncokb_gene=lambda gene: None),

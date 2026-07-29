@@ -1,5 +1,5 @@
 ---
-subpanel: 'hematology_myeloid'
+subpanel_id: 'hematology_myeloid'
 name: 'seed_case'
 clarity_case_id: 'seed_case_clarity'
 clarity_control_id: 'seed_control_clarity'
@@ -11,11 +11,11 @@ database_versions:
 sample_no: 2
 case_id: 'seed_case'
 control_id: 'seed_control'
-profile: 'production'
-assay: 'hema_gmsv1'
+environment: 'production'
+asp_id: 'hema_gmsv1'
 sequencing_scope: 'panel'
 omics_layer: 'DNA'
-sequencing_technology: 'Illumina'
+platform: 'Illumina'
 pipeline: 'SomaticPanelPipeline'
 pipeline_version: 3.1.14
 case_ffpe: false

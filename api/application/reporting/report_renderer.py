@@ -356,6 +356,23 @@ DNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
       <tr><td>Inga detekterade mutationer</td></tr>
     {% endfor %}
   </table>
+  {% if report_sections_data.get('germline_snvs') is not none %}
+    {% set germline_variants = report_sections_data.germline_snvs %}
+    <span class="report_header">Kliniskt relevanta germline-SNVs och små INDELs</span>
+    <table class="variant_table">
+      <tr><th>Gen</th><th>Mutation</th><th>Variantfrekvens</th><th>Klassificering</th></tr>
+      {% for var in germline_variants %}
+        <tr>
+          <td>{{ var.symbol }}</td>
+          <td>{% if var.indel_size > 20 %}{{ var.cdna }}{% else %}{{ var.variant|unesc }}{% endif %}</td>
+          <td>{{ var.af|perc_no_dec }}</td>
+          <td>{{ var.class_short_desc }}</td>
+        </tr>
+      {% else %}
+        <tr><td>Inga detekterade germline-mutationer</td></tr>
+      {% endfor %}
+    </table>
+  {% endif %}
 {% endif %}
 
 <p>Note: p = protein, c = cDNA, g = genomic</p>
@@ -489,7 +506,7 @@ DNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
   {% set ns = namespace(table_no=1) %}
   <div>
     {% for genelist_name, genelist_values in genes_covered_in_panel.items() %}
-      {% if genelist_name != sample.assay %}
+      {% if genelist_name != sample.asp_id %}
         <p><b>Tabell {{ ns.table_no }}: Gener inkluderade i <i>{{ genelist_name }}</i> insilico-panel</b></p>
         <div>
           <table class="genetable" id="snvs-table">

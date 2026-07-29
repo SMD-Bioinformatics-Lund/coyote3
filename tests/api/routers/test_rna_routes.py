@@ -63,7 +63,7 @@ def test_list_rna_fusions_success(monkeypatch):
     Returns:
         The function result.
     """
-    sample = fx.sample_doc()
+    sample = {**fx.sample_doc(), "omics_layer": "rna"}
     assay_config = {**fx.assay_config_doc(), "asp_group": "rna", "analysis_types": ["FUSION"]}
     merged_sample = {**sample, "filters": {"min_spanning_reads": 3, "min_spanning_pairs": 2}}
     filter_context = {
@@ -129,9 +129,21 @@ def test_list_rna_fusions_success(monkeypatch):
     assert payload["ai_text"] == "summary"
 
 
+def test_list_rna_fusions_rejects_dna_samples(monkeypatch):
+    """RNA fusion endpoints return a clear client error for DNA samples."""
+    service = _rna_service()
+    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+
+    with pytest.raises(AppError) as exc:
+        rna.list_rna_fusions(_Req(), "S1", user=fx.api_user(), service=service)
+
+    assert exc.value.status_code == 422
+    assert exc.value.detail["error"] == "RNA fusion analysis is unavailable for this sample"
+
+
 def test_rna_sample_comment_suggestion_uses_filtered_summary(monkeypatch):
     """The sample-comment suggestion exposes the existing filtered RNA summary."""
-    sample = {**fx.sample_doc(), "_id": "sample-1", "name": "S1"}
+    sample = {**fx.sample_doc(), "_id": "sample-1", "name": "S1", "omics_layer": "rna"}
     captured = {}
     service = SimpleNamespace(
         list_fusions_payload=lambda **kwargs: (

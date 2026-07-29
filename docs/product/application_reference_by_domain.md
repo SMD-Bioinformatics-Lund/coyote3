@@ -23,7 +23,7 @@ Administrative resources use stable business IDs for routing and lookup.
 | **User** | `username` | Lowercase alphanumeric login identifier. | Global Uniqueness |
 | **Role** | `role_id` | Lowercase functional slug (e.g., `viewer`, `admin`). | Global Uniqueness |
 | **Permission** | `permission_id` | Standardized `resource:action[:scope]` key (for example, `samples:edit`). | Global Uniqueness |
-| **ASP** | `asp_id` | Assay identifier mapped to `sample.assay`. | Global Uniqueness |
+| **ASP** | `asp_id` | Assay identifier mapped to `sample.asp_id`. | Global Uniqueness |
 | **ASPC** | `aspc_id` | Stable identifier for one ASP, subpanel, and environment configuration. | Global Uniqueness |
 | **ISGL** | `isgl_id` | Organizational genelist identifier. | Global Uniqueness |
 

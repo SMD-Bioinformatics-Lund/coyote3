@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query, Request
 
 from api.app.container import util
 from api.app.deps.services import get_admin_aspc_service
@@ -14,6 +14,7 @@ from api.contracts.admin import (
     AdminChangePayload,
     AdminExistsPayload,
 )
+from api.interfaces.http.admin.resources.audit import set_managed_resource_audit_context
 from api.interfaces.http.tags import TAG_ADMIN_ASSAYS
 from api.security.access import ApiUser, require_access
 
@@ -91,6 +92,7 @@ def aspc_context_read(
     summary="Create assay config",
 )
 def create_aspc_change(
+    request: Request,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="assay.config:create")),
     service: AspcService = Depends(get_admin_aspc_service),
@@ -105,9 +107,11 @@ def create_aspc_change(
     Returns:
         dict: Mutation response payload.
     """
-    return util.common.convert_to_serializable(
-        service.create(payload=payload, actor_username=user.username)
+    result = service.create(payload=payload, actor_username=user.username)
+    set_managed_resource_audit_context(
+        request, resource_type="aspc", action="created", result=result
     )
+    return util.common.convert_to_serializable(result)
 
 
 @router.put(
@@ -116,6 +120,7 @@ def create_aspc_change(
     summary="Update assay config",
 )
 def update_aspc_change(
+    request: Request,
     assay_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="assay.config:edit")),
@@ -132,9 +137,11 @@ def update_aspc_change(
     Returns:
         dict: Mutation response payload.
     """
-    return util.common.convert_to_serializable(
-        service.update(assay_id=assay_id, payload=payload, actor_username=user.username)
+    result = service.update(assay_id=assay_id, payload=payload, actor_username=user.username)
+    set_managed_resource_audit_context(
+        request, resource_type="aspc", action="updated", result=result
     )
+    return util.common.convert_to_serializable(result)
 
 
 @router.patch(
@@ -143,6 +150,7 @@ def update_aspc_change(
     summary="Toggle assay config status",
 )
 def toggle_aspc_change(
+    request: Request,
     assay_id: str,
     user: ApiUser = Depends(require_access(permission="assay.config:edit")),
     service: AspcService = Depends(get_admin_aspc_service),
@@ -158,7 +166,11 @@ def toggle_aspc_change(
         dict: Mutation response payload.
     """
     _ = user
-    return util.common.convert_to_serializable(service.toggle(assay_id=assay_id))
+    result = service.toggle(assay_id=assay_id)
+    set_managed_resource_audit_context(
+        request, resource_type="aspc", action="updated", result=result
+    )
+    return util.common.convert_to_serializable(result)
 
 
 @router.delete(
@@ -167,6 +179,7 @@ def toggle_aspc_change(
     summary="Delete assay config",
 )
 def delete_aspc_change(
+    request: Request,
     assay_id: str,
     user: ApiUser = Depends(require_access(permission="assay.config:delete")),
     service: AspcService = Depends(get_admin_aspc_service),
@@ -182,7 +195,11 @@ def delete_aspc_change(
         dict: Mutation response payload.
     """
     _ = user
-    return util.common.convert_to_serializable(service.delete(assay_id=assay_id))
+    result = service.delete(assay_id=assay_id)
+    set_managed_resource_audit_context(
+        request, resource_type="aspc", action="deleted", result=result
+    )
+    return util.common.convert_to_serializable(result)
 
 
 @router.post("/api/v1/resources/aspc/validate_aspc_id", response_model=AdminExistsPayload)

@@ -89,7 +89,7 @@ def nl_join(arr: list, joiner: str) -> str:
 
 def get_report_header(assay: str, sample: dict, header: str) -> str:
     """Apply assay/sample-specific report header wording."""
-    if assay == "myeloid" and sample.get("subpanel") == "Hem-Snabb":
+    if assay == "myeloid" and sample.get("subpanel_id") == "hem-snabb":
         if sample.get("sample_no") == 2:
             header += ": fullständig parad analys"
         else:

@@ -14,6 +14,7 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 import re
 
+from api.config.constants import normalize_clinical_identifier
 from api.contracts.operations import OperationResult
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
@@ -70,8 +71,8 @@ class ASPRepository(BaseRepository):
             background=True,
         )
         col.create_index(
-            [("is_active", 1), ("assay_name", 1)],
-            name="is_active_assay_name",
+            [("is_active", 1), ("asp_id", 1)],
+            name="is_active_asp_id",
             background=True,
         )
         col.create_index(
@@ -92,8 +93,7 @@ class ASPRepository(BaseRepository):
         """
         if asp_id is None:
             return None
-        normalized = str(asp_id).strip()
-        return normalized or None
+        return normalize_clinical_identifier(asp_id, label="asp_id")
 
     def _asp_lookup_query(self, asp_id: str) -> dict:
         """Asp lookup query.
@@ -140,13 +140,19 @@ class ASPRepository(BaseRepository):
             dict: A dictionary representing the panel document, or None if no
             document is found.
         """
-        return self.get_collection().find_one({"asp_id": asp_name, "is_active": True})
+        return self.get_collection().find_one(
+            {**self._asp_lookup_query(asp_name), "is_active": True}
+        )
 
-    def resolve_active_asp_ids_for_scope(self, assays: list[str], groups: list[str]) -> list[str]:
+    def resolve_active_asp_ids_for_scope(self, asp_ids: list[str], groups: list[str]) -> list[str]:
         """
         Resolve active ASP ids that match assay/group scope values.
         """
-        assay_values = [str(value).strip() for value in (assays or []) if str(value).strip()]
+        assay_values = [
+            normalize_clinical_identifier(value, label="asp_id")
+            for value in (asp_ids or [])
+            if str(value).strip()
+        ]
         group_values = [str(value).strip() for value in (groups or []) if str(value).strip()]
         if not assay_values and not group_values:
             return []
@@ -154,10 +160,7 @@ class ASPRepository(BaseRepository):
         matchers: list[dict] = []
         if group_values:
             matchers.append({"asp_group": {"$in": group_values}})
-            matchers.append({"assay_name": {"$in": group_values}})
         if assay_values:
-            matchers.append({"asp_group": {"$in": assay_values}})
-            matchers.append({"assay_name": {"$in": assay_values}})
             matchers.append({"asp_id": {"$in": assay_values}})
 
         query: dict = {"is_active": True}
@@ -213,7 +216,6 @@ class ASPRepository(BaseRepository):
             pattern = re.escape(normalized_q)
             query["$or"] = [
                 {"asp_id": {"$regex": pattern, "$options": "i"}},
-                {"assay_name": {"$regex": pattern, "$options": "i"}},
                 {"display_name": {"$regex": pattern, "$options": "i"}},
                 {"asp_group": {"$regex": pattern, "$options": "i"}},
                 {"asp_family": {"$regex": pattern, "$options": "i"}},
@@ -264,29 +266,6 @@ class ASPRepository(BaseRepository):
         )
         invalidate_dashboard_summary_cache(self.adapter)
         return operation
-
-    def rotate_asp(
-        self, asp_id: str, replacement: dict, retire_fields: dict | None = None
-    ) -> OperationResult:
-        """Retire the active ASP document and insert a new active version."""
-        replacement_doc = self.ensure_asp_id(dict(replacement))
-        replacement_doc.pop("_id", None)
-        replacement_doc["is_active"] = True
-        retire_payload = {"is_active": False, **(retire_fields or {})}
-        query = {**self._asp_lookup_query(asp_id), "is_active": True}
-        update_result = self.get_collection().update_one(query, {"$set": retire_payload})
-        if update_result.matched_count == 0:
-            return OperationResult.from_update(update_result)
-        try:
-            insert_result = self.get_collection().insert_one(replacement_doc)
-        except Exception:
-            self.get_collection().update_one(
-                {**self._asp_lookup_query(asp_id), "is_active": False},
-                {"$set": {"is_active": True}},
-            )
-            raise
-        invalidate_dashboard_summary_cache(self.adapter)
-        return OperationResult.from_insert_one(insert_result)
 
     def toggle_asp_active(self, asp_id: str, active_status: bool) -> OperationResult:
         """
@@ -375,7 +354,6 @@ class ASPRepository(BaseRepository):
                         "$project": {
                             "_id": 0,
                             "asp_id": 1,
-                            "assay_name": 1,
                             "display_name": 1,
                             "asp_group": 1,
                             "asp_category": 1,
@@ -401,7 +379,7 @@ class ASPRepository(BaseRepository):
                             },
                         }
                     },
-                    {"$sort": {"asp_group": 1, "display_name": 1, "assay_name": 1}},
+                    {"$sort": {"asp_group": 1, "display_name": 1, "asp_id": 1}},
                 ],
                 allowDiskUse=True,
             )
@@ -424,12 +402,12 @@ class ASPRepository(BaseRepository):
         Fetch distinct assay names across all assay specific asp.
 
         Returns:
-            list: A list of unique assay names (`assay_name`) from the database.
+            list: A list of unique assay names (`asp_id`) from the database.
         """
         if is_active is None:
-            return self.get_collection().distinct("assay_name")
+            return self.get_collection().distinct("asp_id")
         else:
-            return self.get_collection().find({"is_active": is_active}).distinct("assay_name")
+            return self.get_collection().find({"is_active": is_active}).distinct("asp_id")
 
     def get_asp_genes(self, asp_id: str) -> tuple:
         """

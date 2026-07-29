@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import shlex
-from copy import deepcopy
 from typing import Any
 
 from api.config.constants import (
     DEFAULT_ENVIRONMENT,
     SUBPANEL_BASE_ID,
+    normalize_clinical_identifier,
     normalize_environment,
     primary_analysis_file_key,
 )
@@ -16,9 +16,7 @@ from api.config.database_versions import (
     canonical_vcf_header_database_version_key,
     normalize_database_versions,
 )
-from api.contracts.managed_resources import aspc_spec_for_category
-from api.contracts.managed_ui_schemas import build_form_spec
-from api.domain.common.assay_filters import format_assay_config
+from api.domain.common.sample_filters import sample_filters_from_aspc_filters
 
 _CASE_CONTROL_KEYS = [
     "case_id",
@@ -231,33 +229,52 @@ def assay_default_filters_from_aspc_collection(
     """Resolve formatted ASPC default filters and metadata for a sample payload."""
     if aspc_collection is None or not hasattr(aspc_collection, "find_one"):
         return None
-    assay_name = str(sample_doc.get("assay") or "").strip()
-    subpanel_id = str(sample_doc.get("subpanel_id") or sample_doc.get("subpanel") or "").strip()
-    subpanel_id = subpanel_id or SUBPANEL_BASE_ID
-    profile = normalize_environment(sample_doc.get("profile") or DEFAULT_ENVIRONMENT)
+    assay_name = normalize_clinical_identifier(sample_doc.get("asp_id"), label="asp_id")
+    requested_subpanel_id = normalize_clinical_identifier(
+        sample_doc.get("subpanel_id") or SUBPANEL_BASE_ID,
+        label="subpanel_id",
+    )
+    profile = normalize_environment(sample_doc.get("environment") or DEFAULT_ENVIRONMENT)
     query_base = {
         "asp_id": assay_name,
         "environment": profile,
         "is_active": True,
     }
-    raw_config = aspc_collection.find_one({**query_base, "subpanel_id": subpanel_id})
-    if not isinstance(raw_config, dict) and subpanel_id != SUBPANEL_BASE_ID:
+    raw_config = aspc_collection.find_one({**query_base, "subpanel_id": requested_subpanel_id})
+    used_base_configuration = False
+    if not isinstance(raw_config, dict) and requested_subpanel_id != SUBPANEL_BASE_ID:
         raw_config = aspc_collection.find_one({**query_base, "subpanel_id": SUBPANEL_BASE_ID})
+        used_base_configuration = isinstance(raw_config, dict)
     if not isinstance(raw_config, dict):
         return None
     omics = str(sample_doc.get("omics_layer") or "").strip().upper()
     if not omics:
         omics = "RNA" if sample_doc.get(primary_analysis_file_key("rna", "FUSION")) else "DNA"
-    schema = build_form_spec(aspc_spec_for_category(omics))
-    formatted = format_assay_config(deepcopy(raw_config), schema)
-    filters = formatted.get("filters")
+    filters = raw_config.get("filters")
     if not isinstance(filters, dict):
         return None
+    profiles = sample_filters_from_aspc_filters(
+        filters,
+        omics.lower(),
+        analysis_intents=raw_config.get("analysis_intents"),
+    )
     return {
-        "filters": deepcopy(filters),
+        "filters": profiles,
         "aspc": {
             "_id": raw_config.get("_id"),
             "aspc_id": raw_config.get("aspc_id"),
             "version": raw_config.get("version"),
+            "subpanel_id": raw_config.get("subpanel_id"),
+            "analysis_intents": raw_config.get("analysis_intents") or ["somatic"],
+        },
+        "aspc_resolution": {
+            "requested_subpanel_id": requested_subpanel_id,
+            "resolved_subpanel_id": raw_config.get("subpanel_id") or SUBPANEL_BASE_ID,
+            "used_base_configuration": used_base_configuration,
+            "warning": (
+                "No subpanel-specific ASPC is active; base configuration is in use."
+                if used_base_configuration
+                else None
+            ),
         },
     }

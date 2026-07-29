@@ -9,11 +9,11 @@ from __future__ import annotations
 
 ASP_GROUP_OPTIONS: tuple[str, ...] = (
     "hematology",
+    "myeloid",
+    "lymphoid",
     "solid",
     "pgx",
     "tumwgs",
     "wts",
-    "myeloid",
-    "lymphoid",
     "fusion",
 )

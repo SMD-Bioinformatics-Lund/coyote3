@@ -44,6 +44,7 @@ from api.config.constants import (
     SAMPLE_FILE_KEYS,
     SUBPANEL_BASE_ID,
     expected_file_keys,
+    normalize_clinical_identifier,
     normalize_environment,
     primary_analysis_file_key,
 )
@@ -383,7 +384,7 @@ class InternalIngestService:
             str(validated.get("omics_layer") or infer_omics_layer(validated) or "").strip().lower()
         )
         expected_keys, _required_keys = self._assay_file_policy(
-            assay_name=validated.get("assay"),
+            assay_name=validated.get("asp_id"),
             omics_layer=omics_layer,
         )
         files = validated.get("files")
@@ -398,7 +399,7 @@ class InternalIngestService:
         unexpected = sorted(declared_keys - expected_keys)
         if unexpected:
             raise ValueError(
-                f"ASP '{validated.get('assay')}' does not accept declared ingest file(s): "
+                f"ASP '{validated.get('asp_id')}' does not accept declared ingest file(s): "
                 + ", ".join(unexpected)
             )
         return validated
@@ -413,14 +414,16 @@ class InternalIngestService:
         """
         omics_layer = str(payload.get("omics_layer") or infer_omics_layer(payload) or "").lower()
         expected_keys, required_keys = self._assay_file_policy(
-            assay_name=payload.get("assay"),
+            assay_name=payload.get("asp_id"),
             omics_layer=omics_layer,
         )
         aspc_collection = self._collection("asp_configs")
-        assay_name = str(payload.get("assay") or "").strip()
-        profile = normalize_environment(payload.get("profile") or DEFAULT_ENVIRONMENT)
-        subpanel = str(payload.get("subpanel_id") or payload.get("subpanel") or "").strip()
-        subpanel = subpanel or SUBPANEL_BASE_ID
+        assay_name = normalize_clinical_identifier(payload.get("asp_id"), label="asp_id")
+        profile = normalize_environment(payload.get("environment") or DEFAULT_ENVIRONMENT)
+        subpanel = normalize_clinical_identifier(
+            payload.get("subpanel_id") or SUBPANEL_BASE_ID,
+            label="subpanel_id",
+        )
         query = {
             "asp_id": assay_name,
             "environment": profile,
@@ -458,7 +461,7 @@ class InternalIngestService:
         if missing_required:
             raise ValueError(
                 "Missing required ingest file(s) for assay "
-                f"'{payload.get('assay')}': {', '.join(missing_required)}"
+                f"'{payload.get('asp_id')}': {', '.join(missing_required)}"
             )
         unreadable = sorted(
             key
@@ -469,6 +472,34 @@ class InternalIngestService:
             details = ", ".join(f"{key}={runtime_file_path(payload, key)}" for key in unreadable)
             raise FileNotFoundError(f"Declared ingest file(s) are not readable: {details}")
         return declared_keys
+
+    def _apply_resolved_aspc_snapshot(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Attach the exact active ASPC policy snapshot required for a new sample.
+
+        Ingested samples never accept a filter profile authored in the manifest.
+        Their initial intent profiles and ASPC lineage come from the resolved
+        ASPC for the exact ASP, subpanel, and environment scope.
+        """
+        resolved = assay_default_filters_from_aspc_collection(
+            self._collection("asp_configs"), payload
+        )
+        if resolved is None:
+            raise ValueError(
+                "No active ASPC is configured for the sample ASP, subpanel, and environment"
+            )
+        aspc = dict(resolved.get("aspc") or {})
+        normalized = dict(payload)
+        normalized["filters"] = sample_filters_from_aspc_filters(
+            resolved.get("filters"),
+            normalized.get("omics_layer", "dna"),
+            analysis_intents=aspc.get("analysis_intents"),
+        )
+        normalized["analysis_intents"] = aspc.get("analysis_intents") or ["somatic"]
+        normalized["current_aspc_id"] = aspc.get("_id")
+        normalized["current_aspc_key"] = aspc.get("aspc_id")
+        normalized["current_aspc_version"] = aspc.get("version")
+        normalized["aspc_resolution"] = resolved.get("aspc_resolution")
+        return normalized
 
     @staticmethod
     def _validate_preload_matches_declared_files(
@@ -818,7 +849,7 @@ class InternalIngestService:
         self._update_meta_fields(
             sample_id=sample_id,
             payload_meta=build_sample_meta_dict(validated_merged.model_dump(exclude_none=True)),
-            block_fields={"assay"},
+            block_fields={"asp_id"},
         )
         self._sample_collection().update_one(
             {"_id": self._provider_sample_id(sample_id)},
@@ -886,21 +917,10 @@ class InternalIngestService:
         parsed_payload = self._validate_payload_file_keys(parsed_payload)
         parsed_payload = normalize_sample_version_metadata(parsed_payload)
         declared_file_keys = self._validate_declared_file_resources(parsed_payload)
+        parsed_payload = self._apply_resolved_aspc_snapshot(parsed_payload)
 
         validated_sample = SamplesDoc.model_validate(parsed_payload)
         validated_payload = validated_sample.model_dump(exclude_none=True)
-        if "filters" not in validated_payload:
-            default_context = assay_default_filters_from_aspc_collection(
-                self._collection("asp_configs"), validated_payload
-            )
-            if default_context is not None:
-                validated_payload["filters"] = sample_filters_from_aspc_filters(
-                    default_context["filters"], validated_payload.get("omics_layer", "dna")
-                )
-                aspc = default_context.get("aspc") or {}
-                validated_payload["current_aspc_id"] = aspc.get("_id")
-                validated_payload["current_aspc_key"] = aspc.get("aspc_id")
-                validated_payload["current_aspc_version"] = aspc.get("version")
         preload = self._parse_preload(validated_payload)
         self._validate_preload_matches_declared_files(
             declared_file_keys=declared_file_keys,

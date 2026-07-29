@@ -84,12 +84,11 @@ of authorization. It is rendered as a visual accent only; readable foreground
 text is controlled by the UI theme so role badges stay accessible in both light
 and dark mode.
 
-Clinical configuration resources use a different model: ASP, ASPC, and ISGL
-edits rotate active versions so report and interpretation snapshots can be
-reconstructed against the exact clinical configuration in force at the time.
-That append-only model is intentionally not used for roles and permissions,
-because access governance must remain simple to migrate, hydrate into policy,
-and query deterministically.
+Clinical configuration resources use the same in-place model: ASP, ASPC, and
+ISGL retain one active first-version document per business key. Their mutation
+events are captured in the audit stream. Report reproducibility comes from the
+saved report's resolved ASPC reference and filter snapshot, not from inactive
+duplicate configuration documents.
 
 ### Canonical role levels
 
