@@ -596,7 +596,7 @@ def build_dna_report_payload(
         report_sections_data=rule_sections_data,
     )
     clinical_rule_evaluation = (
-        clinical_rule_service.evaluate_bound_release(
+        clinical_rule_service.evaluate(
             aspc=assay_config,
             context=prepared_rule_context,
         )

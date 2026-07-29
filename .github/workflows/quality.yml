@@ -40,3 +40,19 @@ jobs:
 
       - name: Full test suite
         run: PYTHONPATH=. pytest -q
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend quality and browser route checks
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+          npx playwright install --with-deps chromium
+          npm run test:e2e

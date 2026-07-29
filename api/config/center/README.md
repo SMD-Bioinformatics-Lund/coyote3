@@ -18,7 +18,8 @@ runtime code do not belong here. See the complete field-level protocol in
 and the vocabulary contract in
 [`docs/operations/clinical_vocabulary.md`](../../../docs/operations/clinical_vocabulary.md).
 
-When `clinical_vocabulary.toml` enables `ldap` under
-`[authentication].providers`, the deployment environment must supply a valid
-`LDAP_HOST`. A local-only centre should remove `ldap` from that list; the API
-will then not initialize an LDAP client.
+`[authentication].providers` defines the center default. The optional
+`AUTHENTICATION_PROVIDERS` environment variable overrides that default for one
+deployment. LDAP configuration is checked when an LDAP login is attempted, not
+during API startup; an enabled but unconfigured LDAP provider returns a clear
+service-configuration error.

@@ -413,7 +413,7 @@ class RNAWorkflowService:
             report_sections_data={"fusions": reportable_fusions},
         )
         clinical_rule_evaluation = (
-            self.clinical_rule_service.evaluate_bound_release(
+            self.clinical_rule_service.evaluate(
                 aspc=assay_config,
                 context=prepared_rule_context,
             )

@@ -24,6 +24,28 @@ export function routeErrorState(route: UiRouteAudit): string {
 
 export const uiRouteRegistry: UiRouteAudit[] = [
   {
+    path: "/login",
+    page: "Login",
+    area: "account",
+    api: ["GET /auth/providers", "POST /auth/sessions"],
+    dataUsed: ["enabled authentication providers", "session result"],
+    emptyState: "Explains when no login providers are available.",
+  },
+  {
+    path: "/forgot-password",
+    page: "ForgotPassword",
+    area: "account",
+    api: ["POST /auth/password/reset/request"],
+    dataUsed: ["password reset request result"],
+  },
+  {
+    path: "/reset-password",
+    page: "ResetPassword",
+    area: "account",
+    api: ["POST /auth/password/reset/confirm"],
+    dataUsed: ["password reset confirmation result"],
+  },
+  {
     path: "/",
     page: "Dashboard",
     area: "clinical",
@@ -94,6 +116,20 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     area: "clinical",
     api: ["GET /common/search/tiered_variants"],
     dataUsed: ["tiered variant rows", "sample and variant references"],
+  },
+  {
+    path: "/variants",
+    page: "TieredVariantSearch",
+    area: "clinical",
+    api: ["GET /common/search/tiered_variants"],
+    dataUsed: ["tiered variant rows", "assay counts", "search parameters"],
+  },
+  {
+    path: "/variants/reported/:variantId/:tier",
+    page: "TieredVariantContext",
+    area: "clinical",
+    api: ["GET /common/reported_variants/variant/:variantId/:tier"],
+    dataUsed: ["reported variant identity", "matching reports", "matching samples"],
   },
   {
     path: "/reports",
@@ -208,6 +244,34 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     dataUsed: ["collection schema specs"],
   },
   {
+    path: "/admin/controls",
+    page: "AdminControlsPage",
+    area: "admin",
+    api: ["GET /admin/controls", "PUT /admin/controls"],
+    dataUsed: ["application controls", "task state", "retention settings"],
+  },
+  {
+    path: "/admin/ingest",
+    page: "AdminIngestPage",
+    area: "admin",
+    api: ["POST /internal/ingest/sample-bundle/upload/async", "GET /internal/tasks/:taskId"],
+    dataUsed: ["ingest workspace state", "ingest task result"],
+  },
+  {
+    path: "/admin/ui-routes",
+    page: "UiRouteAuditPage",
+    area: "admin",
+    api: [],
+    dataUsed: ["compiled UI route registry"],
+  },
+  {
+    path: "/admin/:resource/:id/view",
+    page: "AdminResourceEditorPage",
+    area: "admin",
+    api: ["GET /:resource/:id/context"],
+    dataUsed: ["read-only form schema", "record values", "JSON export"],
+  },
+  {
     path: "/notifications",
     page: "NotificationHistoryPage",
     area: "account",
@@ -220,5 +284,13 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     area: "account",
     api: ["GET /auth/session", "POST /auth/password/change"],
     dataUsed: ["session payload", "password change status"],
+  },
+  {
+    path: "*",
+    page: "NotFoundPage",
+    area: "system",
+    api: [],
+    dataUsed: ["navigation fallback"],
+    emptyState: "Shows a not-found page with a route back into the application.",
   },
 ]

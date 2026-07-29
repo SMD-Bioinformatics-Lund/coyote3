@@ -2,36 +2,33 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
-from bson import ObjectId
 
 from api.application.reporting.clinical_rules.compiler import ClinicalRuleCompiler
 from api.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from api.application.reporting.clinical_rules.facts import PreparedReportContext
 from api.application.reporting.clinical_rules.preparation import prepare_report_context
-from api.application.reporting.clinical_rules.publisher import ClinicalRulePublisher
 from api.application.reporting.clinical_rules.service import ClinicalRuleService
-from api.contracts.schemas.clinical_rules import ClinicalRuleReleaseDoc
 
 RULES_ROOT = Path(__file__).resolve().parents[3] / "clinical_reporting_rules"
 
 
-def _release(source_path: Path) -> ClinicalRuleReleaseDoc:
+def _evaluate(
+    context: PreparedReportContext,
+    source_path: Path,
+    *,
+    reporting_analyses: set[str] | None = None,
+):
     compiler = ClinicalRuleCompiler()
     source = compiler.load(source_path)
-    return ClinicalRuleReleaseDoc(
-        _id=ObjectId(),
-        rule_set_id=source.rule_set.rule_set_id,
-        version=source.rule_set.version,
-        status="active",
+    return ClinicalRuleEvaluator().evaluate(
+        context,
+        source,
+        source_path=source_path,
         content_hash=compiler.content_hash(source),
-        source_path=source_path.as_posix(),
-        source=source,
-        published_by="tester",
-        published_on=datetime.now(timezone.utc),
+        reporting_analyses=reporting_analyses or set(source.analyses),
     )
 
 
@@ -165,25 +162,13 @@ def test_repository_path_must_match_assay_and_subpanel_scope(tmp_path):
         ClinicalRuleCompiler().load(path)
 
 
-def test_rule_source_publishes_as_an_immutable_release():
+def test_rule_source_has_a_stable_static_scope():
     source_path = RULES_ROOT / "solid_GMSv3" / "endometrie.yaml"
     compiler = ClinicalRuleCompiler()
-    compiler.load(source_path)
-    published = []
+    source = compiler.load(source_path)
 
-    class _Repository:
-        @staticmethod
-        def publish(**kwargs):
-            published.append(kwargs)
-            return kwargs
-
-    result = ClinicalRulePublisher(repository=_Repository(), compiler=compiler).publish(
-        source_path,
-        published_by="tester",
-    )
-
-    assert result["source"].rule_set.rule_set_id == "solid_GMSv3__endometrie"
-    assert published[0]["source_path"].endswith("solid_GMSv3/endometrie.yaml")
+    assert source.rule_set.rule_set_id == "solid_GMSv3__endometrie"
+    assert source.analyses["BIOMARKER"].enabled is False
 
 
 def test_unknown_fact_is_rejected(tmp_path):
@@ -199,7 +184,9 @@ def test_unknown_fact_is_rejected(tmp_path):
 def test_collection_operator_requires_list_value(tmp_path):
     source = (RULES_ROOT / "solid_GMSv3" / "endometrie.yaml").read_text(encoding="utf-8")
     source = source.replace(
-        "operator: eq\n        value: snv", "operator: in\n        value: snv", 1
+        "operator: in\n            value: [MLH1, MSH2, MSH6, PMS2]",
+        "operator: in\n            value: MLH1",
+        1,
     )
     path = tmp_path / "invalid-operator-value.yaml"
     path.write_text(source, encoding="utf-8")
@@ -304,9 +291,7 @@ def test_hema_introduction_uses_the_applied_snv_gene_list():
         ],
         report_sections_data={},
     )
-    release = _release(RULES_ROOT / "hema_GMSv1" / "base.yaml")
-
-    result = ClinicalRuleEvaluator().evaluate(context, release)
+    result = _evaluate(context, RULES_ROOT / "hema_GMSv1" / "base.yaml", reporting_analyses={"SNV"})
 
     assert result.sections["Report introduction"] == [
         "DNA har extraherats från insänt prov och analyserats med massivt parallell "
@@ -351,9 +336,7 @@ def test_hema_GMSv1_tier_composition_is_verbatim():
             ]
         },
     )
-    release = _release(RULES_ROOT / "hema_GMSv1" / "base.yaml")
-
-    result = ClinicalRuleEvaluator().evaluate(context, release)
+    result = _evaluate(context, RULES_ROOT / "hema_GMSv1" / "base.yaml", reporting_analyses={"SNV"})
 
     assert result.sections["Kliniskt relevanta SNVs och små INDELs"] == [
         "Vid analysen finner man en mutation av stark klinisk signifikans (Tier I) "
@@ -364,7 +347,6 @@ def test_hema_GMSv1_tier_composition_is_verbatim():
 
 
 def test_hema_GMSv1_negative_result_and_conclusion_are_verbatim():
-    release = _release(RULES_ROOT / "hema_GMSv1" / "base.yaml")
     context_payload = _context(tier=1).model_dump(mode="python")
     context_payload["findings"] = []
     context_payload["asp"]["accredited"] = False
@@ -383,7 +365,7 @@ def test_hema_GMSv1_negative_result_and_conclusion_are_verbatim():
         "has_reportable_findings": False,
     }
     context = PreparedReportContext.model_validate(context_payload)
-    result = ClinicalRuleEvaluator().evaluate(context, release)
+    result = _evaluate(context, RULES_ROOT / "hema_GMSv1" / "base.yaml", reporting_analyses={"SNV"})
 
     assert result.sections["Kliniskt relevanta SNVs och små INDELs"] == [
         "Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats."
@@ -400,9 +382,10 @@ def test_hema_GMSv1_negative_result_and_conclusion_are_verbatim():
 
     accredited_payload = context.model_dump(mode="python")
     accredited_payload["asp"]["accredited"] = True
-    accredited_result = ClinicalRuleEvaluator().evaluate(
+    accredited_result = _evaluate(
         PreparedReportContext.model_validate(accredited_payload),
-        release,
+        RULES_ROOT / "hema_GMSv1" / "base.yaml",
+        reporting_analyses={"SNV"},
     )
     assert accredited_result.sections["Report conclusion"] == [
         "För ytterligare information om utförd analys och beskrivning av somatiskt "
@@ -441,9 +424,9 @@ def test_solid_GMSv3_tier_two_multi_gene_edge_case_is_verbatim():
             ]
         },
     )
-    release = _release(RULES_ROOT / "solid_GMSv3" / "base.yaml")
-
-    result = ClinicalRuleEvaluator().evaluate(context, release)
+    result = _evaluate(
+        context, RULES_ROOT / "solid_GMSv3" / "base.yaml", reporting_analyses={"SNV"}
+    )
 
     assert result.sections["Kliniskt relevanta SNVs och små INDELs"] == [
         "Vid analysen finner man två mutationer av potentiell klinisk signifikans "
@@ -452,8 +435,9 @@ def test_solid_GMSv3_tier_two_multi_gene_edge_case_is_verbatim():
 
 
 def test_fusion_report_text_is_verbatim():
-    release = _release(RULES_ROOT / "fusion" / "base.yaml")
-    result = ClinicalRuleEvaluator().evaluate(_rna_context(), release)
+    result = _evaluate(
+        _rna_context(), RULES_ROOT / "fusion" / "base.yaml", reporting_analyses={"FUSION"}
+    )
 
     assert result.sections["Report summary"] == [
         "RNA har extraherats från insänt prov och analyserats med massivt parallell "
@@ -491,12 +475,12 @@ def test_fusion_report_text_is_verbatim():
     ],
 )
 def test_targeted_rna_report_text_is_verbatim(assay_id, expected):
-    release = _release(RULES_ROOT / assay_id / "base.yaml")
     context_payload = _rna_context().model_dump(mode="python")
     context_payload["sample"]["assay"] = assay_id
-    result = ClinicalRuleEvaluator().evaluate(
+    result = _evaluate(
         PreparedReportContext.model_validate(context_payload),
-        release,
+        RULES_ROOT / assay_id / "base.yaml",
+        reporting_analyses={"FUSION"},
     )
 
     assert result.sections["Report summary"] == [expected]
@@ -504,30 +488,31 @@ def test_targeted_rna_report_text_is_verbatim(assay_id, expected):
 
 @pytest.mark.parametrize("assay_id", ["tumwgs_hema", "tumwgs_solid"])
 def test_tumwgs_report_text_is_verbatim(assay_id):
-    release = _release(RULES_ROOT / assay_id / "base.yaml")
     context_payload = _context().model_dump(mode="python")
     context_payload["sample"]["assay"] = assay_id
-    result = ClinicalRuleEvaluator().evaluate(
+    result = _evaluate(
         PreparedReportContext.model_validate(context_payload),
-        release,
+        RULES_ROOT / assay_id / "base.yaml",
+        reporting_analyses={"SNV"},
     )
 
     assert result.sections["Report summary"] == [
         "DNA har extraherats från insänt prov och analyserats med massivt parallell "
         "sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar hela genomet "
         "(WGS; whole genome sequencing) med indikationsspecifik analys av somatiska "
-        "varianter (SNVs, indels, amplifieringar, homozygota deletioner samt större "
+        "mutationer (SNVs, indels, amplifieringar, homozygota deletioner samt större "
         "alleliska obalanser (förlust och överskott av genetiskt material). "
         "Korresponderande normalprov har använts som kontrollmaterial.\n\nFör "
         "ytterligare information om utförd analys och beskrivning av somatiskt "
-        "förvärvade varianter, var god se bifogad rapport. Analysen omfattas inte av "
+        "förvärvade mutationer, var god se bifogad rapport. Analysen omfattas inte av "
         "ackrediteringen."
     ]
 
 
 def test_endometrial_workbook_wording_is_verbatim():
-    release = _release(RULES_ROOT / "solid_GMSv3" / "endometrie.yaml")
-    result = ClinicalRuleEvaluator().evaluate(_context(tier=1), release)
+    result = _evaluate(
+        _context(tier=1), RULES_ROOT / "solid_GMSv3" / "endometrie.yaml", reporting_analyses={"SNV"}
+    )
 
     assert result.sections["Molecular classification"] == [
         "Varianter i TP53 är klassificerande samt riskstratifierande vid "
@@ -535,47 +520,29 @@ def test_endometrial_workbook_wording_is_verbatim():
     ]
     assert result.sections["Report conclusion"] == [
         "För ytterligare information om utförd analys och beskrivning av somatiskt "
-        "förvärvade varianter, var god se bifogad rapport. Analysen omfattas inte av "
+        "förvärvade mutationer, var god se bifogad rapport. Analysen omfattas inte av "
         "ackrediteringen."
     ]
 
 
-def test_service_returns_none_without_aspc_release_reference():
-    context = _context()
-    service = ClinicalRuleService(repository=object())
+def test_service_uses_base_yaml_when_the_selected_subpanel_has_no_file():
+    context_payload = _context().model_dump(mode="python")
+    context_payload["sample"]["assay"] = "hema_GMSv1"
+    context_payload["asp"]["asp_id"] = "hema_GMSv1"
+    context_payload["aspc"]["asp_id"] = "hema_GMSv1"
+    context_payload["aspc"]["subpanel_id"] = "Hem-Snabb"
+    context_payload["aspc"]["reporting"] = {"analysis": ["SNV"]}
+    context = PreparedReportContext.model_validate(context_payload)
 
-    assert (
-        service.evaluate_bound_release(
-            aspc=context.aspc.model_dump(mode="python"),
-            context=context,
-        )
-        is None
+    result = ClinicalRuleService().evaluate(
+        aspc=context.aspc.model_dump(mode="python"), context=context
     )
 
+    assert result.source.rule_set_id == "hema_GMSv1__base"
 
-def test_service_rejects_release_scope_mismatch():
-    release = _release(RULES_ROOT / "hema_GMSv1" / "base.yaml")
 
-    class _Repository:
-        @staticmethod
-        def get_referenced_release(_reference):
-            return release
+def test_disabled_yaml_analysis_does_not_emit_text_even_when_the_aspc_allows_it():
+    source_path = RULES_ROOT / "hema_GMSv1" / "base.yaml"
+    result = _evaluate(_context(), source_path, reporting_analyses={"SNV", "CNV"})
 
-    context = _context().model_copy(
-        update={
-            "sample": _context().sample.model_copy(update={"omics_layer": "rna"}),
-        }
-    )
-    bound_aspc = context.aspc.model_dump(mode="python")
-    bound_aspc["reporting"]["clinical_rule_release"] = {
-        "release_id": release.id_,
-        "rule_set_id": release.rule_set_id,
-        "version": release.version,
-        "content_hash": release.content_hash,
-    }
-
-    with pytest.raises(ValueError, match="scope does not match"):
-        ClinicalRuleService(_Repository()).evaluate_bound_release(
-            aspc=bound_aspc,
-            context=context,
-        )
+    assert "CNV" not in "\n".join(result.sections)

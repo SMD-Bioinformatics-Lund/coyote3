@@ -59,13 +59,7 @@
       "report_description": "DNA panel summary report for assay_1",
       "general_report_summary": "Automated summary generated from curated panel filters.",
       "plots_path": "/tmp",
-      "report_folder": "demo",
-      "clinical_rule_release": {
-        "release_id": "assay_1_base_clinical_rules_v1",
-        "rule_set_id": "assay_1__base",
-        "version": "1",
-        "content_hash": "demo-assay-1-base-rules-v1"
-      }
+      "report_folder": "demo"
     },
     "verification_samples": {},
     "asp_id": "assay_1",
@@ -131,13 +125,7 @@
       "report_description": "DNA panel summary report for assay_1",
       "general_report_summary": "Automated summary generated from curated panel filters.",
       "plots_path": "/tmp",
-      "report_folder": "demo",
-      "clinical_rule_release": {
-        "release_id": "assay_1_base_clinical_rules_v1",
-        "rule_set_id": "assay_1__base",
-        "version": "1",
-        "content_hash": "demo-assay-1-base-rules-v1"
-      }
+      "report_folder": "demo"
     },
     "verification_samples": {},
     "asp_id": "assay_1",

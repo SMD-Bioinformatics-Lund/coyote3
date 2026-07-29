@@ -200,9 +200,9 @@ def _persist_report(
 
 
 def _clinical_rule_provenance(template_context: dict) -> dict | None:
-    """Extract immutable release identity and matched rule ids for persistence."""
+    """Extract static rule-source identity and matched rule ids for persistence."""
     evaluation = template_context.get("clinical_rule_evaluation")
-    if not isinstance(evaluation, dict) or not isinstance(evaluation.get("release"), dict):
+    if not isinstance(evaluation, dict) or not isinstance(evaluation.get("source"), dict):
         return None
     matched_rule_ids = list(
         dict.fromkeys(
@@ -212,7 +212,7 @@ def _clinical_rule_provenance(template_context: dict) -> dict | None:
         )
     )
     return {
-        "release": evaluation["release"],
+        "source": evaluation["source"],
         "matched_rule_ids": matched_rule_ids,
     }
 

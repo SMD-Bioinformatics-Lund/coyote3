@@ -9,7 +9,6 @@ from pydantic import Field, computed_field, field_validator, model_validator
 
 from api.config.constants import (
     ALL_SAMPLE_FILE_KEYS,
-    ASPC_REQUIRED_REPORTING_FIELDS,
     DNA_ANALYSIS_TYPE_OPTIONS,
     GENELIST_ADHOC_TYPE_OPTIONS,
     GENELIST_STANDARD_TYPE_OPTIONS,
@@ -29,7 +28,6 @@ from api.config.constants import (
     validate_identifier,
 )
 from api.contracts.schemas.base import VersionHistoryEntryDoc, _DocBase, _StrictDocBase
-from api.contracts.schemas.clinical_rules import ClinicalRuleReleaseRef
 from api.contracts.schemas.dna import DnaFiltersDoc
 from api.contracts.schemas.rna import RnaFiltersDoc
 
@@ -55,7 +53,6 @@ class AspcReportingDoc(_StrictDocBase):
     general_report_summary: str
     plots_path: str
     report_folder: str
-    clinical_rule_release: ClinicalRuleReleaseRef | None = None
 
     @model_validator(mode="after")
     def _validate_paths(self) -> AspcReportingDoc:
@@ -245,12 +242,6 @@ class AspConfigDoc(_StrictDocBase):
             raise ValueError(
                 "reporting.report_sections must be enabled in reporting.analysis: "
                 f"{unavailable_sections}"
-            )
-        if self.is_active and self.reporting.clinical_rule_release is None:
-            fields = ", ".join(ASPC_REQUIRED_REPORTING_FIELDS)
-            raise ValueError(
-                "active ASPCs require a bound clinical_rule_release before they can generate "
-                f"clinical reports. Required reporting fields: {fields}"
             )
         return self
 

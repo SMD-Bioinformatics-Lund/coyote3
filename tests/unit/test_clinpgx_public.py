@@ -1,4 +1,8 @@
+import httpx
+import pytest
+
 from api.infra.knowledgebase.clinpgx_public import (
+    ClinPgxPublicClient,
     build_clinpgx_knowledge_summary,
     normalize_clinpgx_gene_row,
 )
@@ -112,3 +116,45 @@ def test_build_clinpgx_knowledge_summary_keeps_useful_api_evidence():
     assert summary["counts"]["variant_annotations"] == 1
     assert summary["top_chemicals"][0]["name"] == "clopidogrel"
     assert summary["pathways"][0]["name"] == "Clopidogrel Pathway, Pharmacokinetics"
+
+
+def test_clinpgx_client_uses_gene_then_evidence_endpoints(monkeypatch):
+    """Keep public endpoint names and query keys stable for detailed PGx evidence."""
+    calls = []
+
+    def fake_get(url, *, params, timeout):
+        calls.append((url, params, timeout))
+        path = url.removeprefix("https://api.clinpgx.org")
+        payloads = {
+            "/data/gene/PA124": {"data": {"id": "PA124", "symbol": "CYP2C19", "name": "CYP2C19"}},
+            "/data/guidelineAnnotation": {"data": []},
+            "/data/label": {"data": []},
+            "/data/variantAnnotation": {"data": []},
+            "/report/connectedObjects/PA124/Chemical": {"data": []},
+            "/report/connectedObjects/PA124/Pathway": {"data": []},
+        }
+        return httpx.Response(200, request=httpx.Request("GET", url), json=payloads[path])
+
+    monkeypatch.setattr("api.infra.knowledgebase.clinpgx_public.httpx.get", fake_get)
+    result = ClinPgxPublicClient(base_url="https://api.clinpgx.org", timeout=4).get_gene_knowledge(
+        clinpgx_id="PA124"
+    )
+
+    assert result["symbol"] == "CYP2C19"
+    assert calls[0][0].endswith("/data/gene/PA124")
+    assert calls[0][1] == {"view": "max"}
+    assert any(url.endswith("/data/variantAnnotation") for url, _, _ in calls)
+
+
+def test_clinpgx_client_propagates_http_contract_failures(monkeypatch):
+    def fake_get(url, *, params, timeout):
+        request = httpx.Request("GET", url)
+        return httpx.Response(503, request=request, json={"message": "unavailable"})
+
+    monkeypatch.setattr("api.infra.knowledgebase.clinpgx_public.httpx.get", fake_get)
+    client = ClinPgxPublicClient(base_url="https://api.clinpgx.org")
+
+    with pytest.raises(httpx.HTTPStatusError) as error:
+        client.get_gene(clinpgx_id="PA124")
+
+    assert error.value.response.status_code == 503

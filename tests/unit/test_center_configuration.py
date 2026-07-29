@@ -1,5 +1,7 @@
 """Regression coverage for the center configuration directory contract."""
 
+import yaml
+
 from api.config.loaders.collections import load_collection_mapping
 from api.config.loaders.contact import load_contact_config
 from api.config.paths import (
@@ -40,3 +42,21 @@ def test_center_contact_and_collection_configuration_loads():
     assert contact["organization"]["name"] == "Test center"
     assert contact["contacts"]
     assert collections["coyote3_dev"]["samples_collection"] == "samples"
+
+
+def test_assay_catalog_machine_identifiers_use_underscores():
+    """Catalog ids are safe to bind directly to ASP, ASPC, and rule-release scopes."""
+    payload = yaml.safe_load(ASSAY_CATALOG_PATH.read_text(encoding="utf-8")) or {}
+
+    def strings(value):
+        if isinstance(value, dict):
+            for key, nested in value.items():
+                if key in {"catalog_id", "asp_id", "key"} and isinstance(nested, str):
+                    yield nested
+                yield from strings(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                yield from strings(nested)
+
+    invalid = sorted(value for value in strings(payload) if "-" in value)
+    assert not invalid, f"Catalog machine identifiers must use underscores: {invalid}"

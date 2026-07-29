@@ -96,6 +96,20 @@ CI should run these checks:
    React route registry must resolve to a FastAPI route. This detects stale
    page contracts before manual browser validation.
 
+## Browser And External API Contracts
+
+The quality suite combines three distinct validation layers:
+
+| Layer | Command or workflow | Responsibility |
+| --- | --- | --- |
+| Python contracts | `PYTHONPATH=. pytest -q` | Pydantic contracts, API routes, rule evaluation, authorization, persistence adapters, external-client payload handling, and UI route metadata. |
+| Browser routes | `cd frontend && npm run test:e2e` | React routing, rendered form behavior, and user-facing success/error states using deterministic API fixtures. |
+| Composed workflow | `bootstrap-and-ingest-check` workflow | Docker networking, authentication, MongoDB, Celery ingestion, and ready-sample projection through the running API. |
+
+The OncoKB and ClinPGx client tests use fixture responses for successful payloads,
+unexpected payload shapes, and HTTP failures. Public knowledgebase responses are
+never silently promoted to clinical evidence after a failed or malformed request.
+
 ## Standards for New Feature Development
 
 - **Logic Separation**: Pure algorithmic logic within `api/domain/core` must maintain 100% test coverage through isolated unit tests.

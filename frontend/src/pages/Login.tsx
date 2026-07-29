@@ -54,8 +54,12 @@ export function Login() {
       })
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        setError(data.error || data.detail || "Sign in failed")
+        const data = await res.json().catch(() => ({})) as {
+          error?: string
+          detail?: string | { error?: string }
+        }
+        const detail = typeof data.detail === "string" ? data.detail : data.detail?.error
+        setError(data.error || detail || "Sign in failed")
         return
       }
 

@@ -90,7 +90,7 @@ class ReportRepository(BaseRepository):
                 "aspc_id": sample.get("current_aspc_key"),
                 "version": sample.get("current_aspc_version"),
             },
-            "clinical_rule_release": rule_provenance,
+            "clinical_rule_source": rule_provenance,
         }
         self.get_collection().insert_one(doc)
         self.adapter.samples_collection.update_one(

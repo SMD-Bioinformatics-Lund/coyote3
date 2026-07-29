@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from api.config.assay_groups import ASP_GROUP_OPTIONS
 from api.config.clinical_vocabulary import load_clinical_vocabulary
 
 
@@ -11,7 +12,6 @@ def test_current_clinical_vocabulary_loads_center_owned_options():
     """The committed center policy supplies the runtime vocabulary."""
     vocabulary = load_clinical_vocabulary()
 
-    assert "hematology" in vocabulary.assay_groups
     assert "illumina" in vocabulary.platforms
     assert vocabulary.sample_file_keys["dna"][0] == "vcf_files"
     assert vocabulary.analysis_file_keys_by_omics["dna"]["SNV"] == ("vcf_files",)
@@ -21,13 +21,30 @@ def test_current_clinical_vocabulary_loads_center_owned_options():
     assert vocabulary.permission_categories
 
 
+def test_assay_groups_are_software_owned_not_center_vocabulary():
+    """Persistent clinical scope identifiers stay outside center TOML."""
+    vocabulary = load_clinical_vocabulary()
+
+    assert not hasattr(vocabulary, "assay_groups")
+    assert ASP_GROUP_OPTIONS == (
+        "hematology",
+        "solid",
+        "pgx",
+        "tumwgs",
+        "wts",
+        "myeloid",
+        "lymphoid",
+        "fusion",
+        "fusionrna",
+    )
+
+
 def test_clinical_vocabulary_rejects_missing_center_section(tmp_path):
     """Center configuration must define each supported center-owned section."""
     config = tmp_path / "clinical_vocabulary.toml"
     config.write_text(
         """
 [assay]
-groups = ["hematology"]
 """,
         encoding="utf-8",
     )
@@ -47,7 +64,6 @@ def test_clinical_vocabulary_accepts_center_defined_analysis_file_binding(tmp_pa
 [assay]
 categories = ["dna", "rna"]
 families = ["panel-dna", "panel-rna"]
-groups = ["hematology"]
 base_subpanel_id = "base"
 [assay.family_categories]
 panel-dna = "dna"

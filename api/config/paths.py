@@ -7,6 +7,7 @@ from pathlib import Path
 API_CONFIG_DIR = Path(__file__).resolve().parent
 REPO_ROOT = API_CONFIG_DIR.parents[1]
 CENTER_CONFIG_DIR = API_CONFIG_DIR / "center"
+CLINICAL_REPORTING_RULES_DIR = REPO_ROOT / "clinical_reporting_rules"
 
 CONTACT_CONFIG_PATH = CENTER_CONFIG_DIR / "contact.toml"
 CLINICAL_VOCABULARY_PATH = CENTER_CONFIG_DIR / "clinical_vocabulary.toml"

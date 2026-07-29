@@ -100,9 +100,17 @@ It is validated during API and worker startup. The full schema, supported
 workflow options, validation rules, and change procedure are documented in
 [Clinical Vocabulary Configuration](clinical_vocabulary.md).
 
-Use it when a center needs to change an assay group label, enabled platform,
+Use it when a center needs to change an enabled platform,
 local authentication-provider availability, a sample YAML file key, baseline
 file requirement, or the file bound to an implemented analysis type.
+
+> [!IMPORTANT]
+> Assay groups are not center configuration. They are a software-owned clinical
+> taxonomy because they define persisted access, annotation, query, ASP, ASPC,
+> and ISGL scope. The supported identifiers are `hematology`, `solid`,
+> `pgx`, `tumwgs`, `wts`, `myeloid`, `lymphoid`, `fusion`, and `fusionrna`.
+> Assay family (`panel-dna`, `wgs`, `panel-rna`, `wts`) and subpanel (for
+> example `endometrie` or `breast`) are separate concepts.
 
 ### Field-Level Contract
 
@@ -110,7 +118,6 @@ file requirement, or the file bound to an implemented analysis type.
 | --- | --- | --- | --- |
 | `assay.categories` | Yes | Non-empty, unique lowercase identifiers | Omics categories that own `files.<category>` and `analysis.<category>` configuration. |
 | `assay.families` | Yes | Non-empty, unique lowercase identifiers | ASP family choices. Every family must appear in `assay.family_categories`, `assay.family_scopes`, and `files.required_by_family`. |
-| `assay.groups` | Yes | Non-empty, unique text values; normalized to lowercase | Validates ASP and ASPC assay groups, catalog grouping, administration forms, and user assay scope. Use stable values such as `hematology` or `solid`. |
 | `assay.base_subpanel_id` | Yes | One lowercase identifier | Base ASPC subpanel identifier used when an assay has no selected named subpanel. |
 | `assay.family_categories.<family>` | Yes, once per family | One configured category | Associates each assay family with its file and analysis vocabulary. |
 | `assay.family_scopes.<family>` | Yes, once per family | One non-empty identifier | Sets the sequencing scope written for samples of that family. |
@@ -118,7 +125,7 @@ file requirement, or the file bound to an implemented analysis type.
 | `environment.default` | Yes | One item in `environment.options` | Default environment used when none is specified. |
 | `sequencing.platforms` | Yes | Non-empty, unique text values; normalized to lowercase | Valid ASP platform values, for example `illumina`, `nanopore`, `pacbio`, and `iontorrent`. |
 | `sequencing.read_modes` | Yes | Non-empty, unique uppercase identifiers | Valid ASP read-mode values, for example `SE` and `PE`. |
-| `authentication.providers` | Yes | One or both of `local`, `ldap` | Values allowed in a user's `auth_type` list. `local` uses username and a local password; `ldap` uses email and the configured directory service. No other provider is implemented. |
+| `authentication.providers` | Yes | One or both of `local`, `ldap` | Default values allowed in a user's `auth_type` list. `local` uses username and a local password; `ldap` uses email and the configured directory service. A deployment can override this default with `AUTHENTICATION_PROVIDERS`. No other provider is implemented. |
 | `genelist.standard_types` | Yes | Non-empty, unique identifiers | ISGL types offered when the ad-hoc switch is off. |
 | `genelist.adhoc_types` | Yes | Non-empty, unique identifiers with no overlap with standard types | ISGL types offered when the ad-hoc switch is on. |
 | `reporting.required_aspc_fields` | Yes | Non-empty, unique ASPC reporting field identifiers | Lists the report metadata expected for active report-capable ASPCs. |
@@ -177,7 +184,7 @@ does not define a document schema and it does not move data.
 | Collection family | Logical configuration keys | Content stored in the mapped collection |
 | --- | --- | --- |
 | Users and governance | `users_collection`, `roles_collection`, `permissions_collection`, `groups_collection`, `schemas_collection` | User accounts, roles, permission definitions, optional groups, and administration schemas. |
-| Assay configuration | `asp_collection`, `aspc_collection`, `insilico_genelist_collection`, `clinical_rule_sets_collection` | Assay definitions, active/versioned assay configurations, curated gene lists, and report-rule releases. |
+| Assay configuration | `asp_collection`, `aspc_collection`, `insilico_genelist_collection` | Assay definitions, active/versioned assay configurations, and curated gene lists. Clinical report wording remains in repository-owned YAML sources. |
 | Sample and reporting workflow | `samples_collection`, `sample_comments_collection`, `reports_collection`, `reported_variants_collection`, `blacklist_collection` | Sample lifecycle records, sample-level comments, reports, report snapshots, and blacklist state. |
 | DNA findings | `variants_collection`, `annotations_collection`, `anno_vep_collection`, `cnvs_collection`, `fusions_collection`, `transloc_collection`, `biomarkers_collection` | Parsed small variants and their annotations, CNVs, fusions, translocations, and biomarkers. |
 | Coverage and RNA results | `coverage_collection`, `groupcov_collection`, `expression_collection`, `rna_expression_collection`, `rna_qc_collection`, `rna_classification_collection` | Coverage, grouped coverage, expression, RNA quality control, and RNA classification data. |

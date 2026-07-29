@@ -12,7 +12,7 @@ import re
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from api.app.container import util
+from api.app.container import ldap_manager, util
 from api.config.constants import AUTH_PROVIDER_LDAP, AUTH_PROVIDER_LOCAL, AUTH_TYPE_OPTIONS
 from api.contracts.auth import (
     ApiAuthLoginRequest,
@@ -54,6 +54,11 @@ router = APIRouter(tags=[TAG_AUTH])
 
 def _provider_from_login_identifier(login_identifier: str) -> str:
     return AUTH_PROVIDER_LDAP if "@" in str(login_identifier or "") else AUTH_PROVIDER_LOCAL
+
+
+def _available_auth_providers() -> list[str]:
+    """Return authentication providers enabled for this deployment."""
+    return list(AUTH_TYPE_OPTIONS)
 
 
 @router.get("/api/v1/auth/whoami", response_model=WhoamiPayload)
@@ -100,9 +105,18 @@ def _login_response(payload: ApiAuthLoginRequest):
     username = payload.username.strip()
     password = payload.password
     provider = str(payload.provider or "").strip().lower()
-    if provider not in AUTH_TYPE_OPTIONS:
+    if provider not in _available_auth_providers():
         raise HTTPException(
-            status_code=400, detail={"status": 400, "error": "Unsupported login provider"}
+            status_code=400,
+            detail={"status": 400, "error": "Selected login provider is unavailable"},
+        )
+    if provider == AUTH_PROVIDER_LDAP and not ldap_manager.is_configured:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": 503,
+                "error": "LDAP login is enabled but directory configuration is unavailable",
+            },
         )
     user_doc = authenticate_credentials(username, password, provider=provider)
     if not user_doc:
@@ -166,7 +180,7 @@ def _login_response(payload: ApiAuthLoginRequest):
 @router.get("/api/v1/auth/providers", response_model=ApiAuthProvidersResponse)
 def auth_providers_read():
     """Return the center-enabled login mechanisms for the public login screen."""
-    return {"providers": list(AUTH_TYPE_OPTIONS)}
+    return {"providers": _available_auth_providers()}
 
 
 def _validate_new_password(new_password: str) -> None:

@@ -18,7 +18,6 @@ run with an ambiguous contract.
 [assay]
 categories = ["dna", "rna"]
 families = ["panel-dna", "panel-rna", "wgs", "wts"]
-groups = ["hematology", "solid"]
 base_subpanel_id = "base"
 
 [assay.family_categories]
@@ -49,7 +48,7 @@ standard_types = ["snv", "cnv", "fusion", "expression", "pgx"]
 adhoc_types = ["adhoc_snv", "adhoc_cnv", "adhoc_fusion", "adhoc_expression", "adhoc_pgx"]
 
 [reporting]
-required_aspc_fields = ["report_header", "report_method", "clinical_rule_release"]
+required_aspc_fields = ["report_header", "report_method", "general_report_summary"]
 
 [permissions]
 categories = ["Sample Management", "Reports", "Variant Curation"]
@@ -97,7 +96,6 @@ PGX = ["pgx"]
 | --- | --- | --- | --- |
 | `[assay]` | `categories` | Non-empty unique lowercase identifiers | Defines the omics categories used by ASPs and the `files.<category>` and `analysis.<category>` tables. |
 | `[assay]` | `families` | Non-empty unique lowercase identifiers | Defines selectable ASP families and the required family mapping tables. |
-| `[assay]` | `groups` | Non-empty unique lowercase identifiers | Validates ASP/ASPC assay groups; powers catalog grouping, user scope, and administration forms. |
 | `[assay]` | `base_subpanel_id` | One lowercase identifier | The synthetic subpanel identifier used for an assay-wide ASPC when no named subpanel applies. |
 | `[assay.family_categories]` | one value per family | A configured assay category | Maps every family to the omics category that owns its file-key vocabulary. |
 | `[assay.family_scopes]` | one value per family | One non-empty identifier | Maps every family to the sequencing scope stored with samples. |
@@ -143,6 +141,41 @@ VCF. They remain distinct analysis sections downstream.
    category.
 8. Authentication providers are limited to the application's supported
    `local` and `ldap` mechanisms.
+
+## Fixed Assay-Group Taxonomy
+
+Assay groups are deliberately absent from this TOML file. They are not local
+labels: an assay group is a persistent clinical scope used by ASPs, ASPCs,
+ISGLs, annotations, user access assignments, dashboards, and future
+cross-assay queries. Changing one without a software release would create
+ambiguous historical data.
+
+| Identifier | Workflow scope | Use it for | Do not use it for |
+| --- | --- | --- | --- |
+| `tumwgs` | Tumour whole-genome workflow | WGS design panels and their annotations/query behaviour | The `wgs` family identifier. |
+| `wts` | Whole-transcriptome workflow | WTS design panels and their annotations/query behaviour | The `wts` family identifier. |
+| `hematology` | General haematology workflow | Broad haematology panels and their annotations/query behaviour | A physical design panel ID. |
+| `myeloid` | Myeloid haematology workflow | Myeloid-specific assay designs and clinical logic | A sequencing family. |
+| `lymphoid` | Lymphoid haematology workflow | Lymphoid-specific assay designs and clinical logic | A sequencing family. |
+| `solid` | Solid-tumour workflow | Solid tumour panel designs and their annotations/query behaviour | A subpanel such as endometrial or breast. |
+| `fusion` | Fusion workflow | RNA fusion assay designs | A particular RNA design panel. |
+| `fusionrna` | Fusion/exon-skipping workflow | RNA fusion plus exon-skipping designs | A particular RNA design panel. |
+| `pgx` | Pharmacogenomic workflow | PGX assay designs and their annotations/query behaviour | The `PGX` analysis type. |
+
+The related fields have different responsibilities:
+
+| Field | Examples | Meaning |
+| --- | --- | --- |
+| `asp_group` | `hematology`, `solid`, `tumwgs`, `myeloid` | Fixed assay/workflow scope used to link ASPs, ASPCs, ISGLs, annotations, user access, and query logic. |
+| `asp_family` | `panel-dna`, `wgs`, `panel-rna`, `wts` | Sequencing design family. It is not an assay group. |
+| `asp_category` | `dna`, `rna` | Omics category that selects the allowed manifest and analysis vocabulary. |
+| `subpanel_id` | `base`, `endometrie`, `breast`, `colon` | In-silico clinical target subset within a design panel. `base` means no named subpanel. |
+
+Administrators select an assay group from this fixed list in the ASP, ASPC,
+ISGL, and user-scope forms. A new group is introduced only through a reviewed
+software release with schema validation, query-policy review, tests, and a
+data migration for any affected documents.
+
 
 ## Runtime Resolution
 

@@ -8,7 +8,7 @@ def build_fusion_query(assay_group: str, settings: Dict[str, Any]) -> Dict[str, 
     Build a query to retrieve fusion data for a given sample.
     """
     if assay_group not in ["fusion", "fusionrna", "wts"]:
-        return {"SAMPLE_ID": settings["id"]}  # No filters for non-fusion assays
+        return {"SAMPLE_ID": settings["id"]}
 
     min_spanning_reads = coerce_nonnegative_int(settings.get("min_spanning_reads"), default=0)
     min_spanning_pairs = coerce_nonnegative_int(settings.get("min_spanning_pairs"), default=0)

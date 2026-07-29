@@ -17,12 +17,12 @@ modalities:
 
     categories:
       hematology:
-        catalog_id: "tumwgs-hema"
+        catalog_id: "tumwgs_hema"
         label: "Hematology"
         # WGS heme is an assay *family*; leave ASP links empty or point to the family anchor if you have one.
-        asp_id: "tumwgs-hema"                 # (ASP) if a specific WGS-HEMA ASP exists, set it here.
+        asp_id: "tumwgs_hema"                 # (ASP) if a specific WGS-HEMA ASP exists, set it here.
         aspc_ids:
-          production: "tumwgs-hema:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
+          production: "tumwgs_hema:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
         input_material: ["DNA", "Fresh", "Fresh Frozen", 'Blood', 'Bone marrow', "Other Neoplastic Tissue"]
         tat: "21 days"
         sample_modes: ["Tumor-normal"]
@@ -51,11 +51,11 @@ modalities:
             analysis: ""
 
       solid_tumors:
-        catalog_id: "tumwgs-solid"
+        catalog_id: "tumwgs_solid"
         label: "Solid tumors"
-        asp_id: "tumwgs-solid"                 # (ASP) if a specific WGS-SOLID ASP exists, set it here.
+        asp_id: "tumwgs_solid"                 # (ASP) if a specific WGS-SOLID ASP exists, set it here.
         aspc_ids:
-          production: "tumwgs-solid:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
+          production: "tumwgs_solid:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
         input_material: ["DNA", "Fresh", "Fresh Frozen", "Neoplastic Tissue"]
         tat: "14-21 days"
         sample_modes: ["Tumor-normal"]
@@ -69,11 +69,11 @@ modalities:
             label: "GMS Barn Cancer"
 
       drug_addon:
-        catalog_id: "drug-addon"
+        catalog_id: "drug_addon"
         label: "Actionable Add-on"
-        asp_id: "drug-addon"                 # (ASP) if a specific WGS-Drug-Add-on ASP exists, set it here.
+        asp_id: "drug_addon"                 # (ASP) if a specific WGS-Drug-Add-on ASP exists, set it here.
         aspc_ids:
-          production: "drug-addon:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
+          production: "drug_addon:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
         input_material: ["NA"]
         tat: "NA"
         sample_modes: ["NA"]
@@ -92,7 +92,7 @@ modalities:
 
     categories:
       combined:
-        catalog_id: "wts-combined"
+        catalog_id: "wts_combined"
         label: "Hematology & solid tumors"
         asp_id: "fusion"
         aspc_ids:
@@ -224,11 +224,11 @@ modalities:
             sample_modes: ["Tumor-only"]
 
       rna_fusion:
-        catalog_id: "rna-fusion"
+        catalog_id: "rna_fusion"
         label: "RNA Fusion Panel"
-        asp_id: "RNA-fusion"                       # (ASP) if you keep a generic fusion panel
+        asp_id: "RNA_fusion"                       # (ASP) if you keep a generic fusion panel
         aspc_ids:
-          production: "RNA-fusion:production"
+          production: "RNA_fusion:production"
         input_material: ["RNA", "FFPE", "Neoplastic Tissue"]
         tat: "14-21 days"
         sample_modes: ["Tumor-only"]
@@ -236,6 +236,6 @@ modalities:
         subheading: ""
         analysis: ["Fusion Genes"]  # Optional: list available analysis types for this assay
         gene_lists:
-          - key: "RNA-fusion"               # (ISGL) Key must match ISGL _id
+          - key: "RNA_fusion"               # (ISGL) Key must match ISGL _id
             label: "RNA Fusion Panel"
             description: "Gene fusion panel for solid tumors"

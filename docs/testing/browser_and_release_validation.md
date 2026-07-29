@@ -9,8 +9,11 @@ data.
 ## Validation Boundary
 
 Automated backend tests validate contracts, permissions, business logic, and
-route declarations. The frontend route registry is also checked against the
-FastAPI route table by `tests/api/test_ui_route_api_contracts.py`.
+route declarations. The frontend route registry is checked against the FastAPI
+route table and every React Router path is required to have a route contract.
+Playwright exercises browser-level login and account-route behavior with
+deterministic API fixtures. The composed-stack workflow then verifies the
+actual API, MongoDB, Celery ingestion path, and persisted ready-sample state.
 
 Browser validation remains necessary because it exercises the deployed bundle,
 reverse proxy, browser history, viewport behavior, tooltips, file rendering,
@@ -38,6 +41,30 @@ bash scripts/run_quality_suite.sh
 The command runs backend tests, repository/contract checks, frontend lint and
 production build, and a strict MkDocs build. It does not start services or
 modify MongoDB.
+
+### Browser Route Checks
+
+Install the browser once on a workstation, then run the front-end suite:
+
+```bash
+cd frontend
+npx playwright install chromium
+npm run test:e2e
+```
+
+The suite uses API fixtures for repeatable rendering and error-state tests. It
+does not replace deployment validation or clinical test data checks. GitHub
+Actions installs Chromium and runs the same command in the `quality` workflow.
+
+### Composed Stack Acceptance Check
+
+The `bootstrap-and-ingest-check` workflow starts the stage Compose profile,
+creates a disposable administrator, seeds the minimum test collections, uploads
+the approved synthetic DNA bundle, and calls
+`scripts/verify_composed_workflow.py`. The final check requires `/samples` to
+return an ingested sample in the `ready` state. This verifies the production
+boundaries that mocked browser tests cannot cover: authentication, request
+routing, persistence, ingest processing, and sample-list projection.
 
 ## Browser Validation Protocol
 

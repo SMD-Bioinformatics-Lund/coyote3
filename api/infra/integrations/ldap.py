@@ -35,16 +35,27 @@ class LdapManager:
         self._config: dict = {}
         self._server: Server | None = None
 
-    def init_from_config(self, config: dict) -> None:
-        """Initialize LDAP server settings from runtime config."""
-        self._config = config
+    @property
+    def is_configured(self) -> bool:
+        """Return whether this runtime has an initialized LDAP server."""
+        return self._server is not None
+
+    def init_from_config(self, config: dict) -> bool:
+        """Initialize LDAP settings when this deployment configures LDAP.
+
+        LDAP provider selection is controlled by deployment configuration. The
+        connection settings may be absent at process startup; in that case the
+        manager remains uninitialized and an LDAP login receives a clear
+        configuration error at the authentication boundary.
+        """
+        self._config = {}
+        self._server = None
         ssl_defaults = ssl.get_default_verify_paths()
 
         host = str(config.get("LDAP_HOST") or "").strip()
         if not host:
-            raise RuntimeError(
-                "LDAP_HOST must be configured before LDAP authentication is initialized"
-            )
+            LOG.info("LDAP connection settings are absent; LDAP manager remains uninitialized")
+            return False
         if host.startswith("ldap://"):
             host = host[len("ldap://") :]
         elif host.startswith("ldaps://"):
@@ -56,7 +67,10 @@ class LdapManager:
             if host_port.isdigit() and not config.get("LDAP_PORT"):
                 config["LDAP_PORT"] = int(host_port)
         if not host:
-            raise RuntimeError("LDAP_HOST must include a valid LDAP server host")
+            LOG.warning("LDAP authentication is disabled because LDAP_HOST is invalid")
+            return False
+
+        self._config = config
 
         tls = Tls(
             local_private_key_file=config.get("LDAP_CLIENT_PRIVATE_KEY"),
@@ -88,6 +102,7 @@ class LdapManager:
             config.get("LDAP_PORT", 389),
             config.get("LDAP_USE_SSL", False),
         )
+        return True
 
     def _auto_bind_mode(self) -> int:
         """Auto bind mode.

@@ -26,7 +26,6 @@ from api.infra.mongo.repositories.assay_panels import ASPRepository
 from api.infra.mongo.repositories.bam_records import BamServiceRepository
 from api.infra.mongo.repositories.biomarkers import BiomarkerRepository
 from api.infra.mongo.repositories.blacklist import BlacklistRepository
-from api.infra.mongo.repositories.clinical_rule_sets import ClinicalRuleSetRepository
 from api.infra.mongo.repositories.copy_number_variants import CNVsRepository
 from api.infra.mongo.repositories.coverage import CoverageRepository
 from api.infra.mongo.repositories.dashboard_metrics import DashboardMetricsRepository
@@ -75,7 +74,6 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("rna_quality_repository", RNAQCRepository, "rna_qc"),
     ("reported_variant_repository", ReportedVariantsRepository, "reported_variants"),
     ("report_repository", ReportRepository, "reports"),
-    ("clinical_rule_set_repository", ClinicalRuleSetRepository, "clinical_rule_sets"),
     ("dashboard_metrics_repository", DashboardMetricsRepository, "dashboard_metrics"),
     ("oncokb_public_cache_repository", OncoKbPublicCacheRepository, "oncokb_public_cache"),
     ("clinpgx_public_repository", ClinPgxPublicRepository, "clinpgx_public"),

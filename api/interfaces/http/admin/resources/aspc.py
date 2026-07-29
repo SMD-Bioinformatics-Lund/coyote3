@@ -12,10 +12,8 @@ from api.contracts.admin import (
     AdminAspcCreateContextPayload,
     AdminAspcListPayload,
     AdminChangePayload,
-    AdminClinicalRuleReleaseOptionsPayload,
     AdminExistsPayload,
 )
-from api.contracts.schemas.clinical_rules import ClinicalRuleReleaseBindRequest
 from api.interfaces.http.tags import TAG_ADMIN_ASSAYS
 from api.security.access import ApiUser, require_access
 
@@ -63,28 +61,6 @@ def create_aspc_context_read(
     """
     return util.common.convert_to_serializable(
         service.create_context_payload(category=category, actor_username=user.username)
-    )
-
-
-@router.get(
-    "/api/v1/resources/aspc/clinical-rule-releases",
-    response_model=AdminClinicalRuleReleaseOptionsPayload,
-)
-def clinical_rule_release_options_read(
-    asp_id: str = Query(..., min_length=1),
-    subpanel_id: str = Query(default="base"),
-    category: str = Query(..., min_length=1),
-    user: ApiUser = Depends(require_access(permission="assay.config:view")),
-    service: AspcService = Depends(get_admin_aspc_service),
-):
-    """Return active immutable rule releases compatible with an ASPC scope."""
-    _ = user
-    return util.common.convert_to_serializable(
-        service.clinical_rule_release_options(
-            asp_id=asp_id,
-            subpanel_id=subpanel_id,
-            category=category,
-        )
     )
 
 
@@ -158,27 +134,6 @@ def update_aspc_change(
     """
     return util.common.convert_to_serializable(
         service.update(assay_id=assay_id, payload=payload, actor_username=user.username)
-    )
-
-
-@router.put(
-    "/api/v1/resources/aspc/{assay_id}/clinical-rule-release",
-    response_model=AdminChangePayload,
-    summary="Bind a clinical rule release and rotate assay config",
-)
-def bind_aspc_clinical_rule_release(
-    assay_id: str,
-    payload: ClinicalRuleReleaseBindRequest,
-    user: ApiUser = Depends(require_access(permission="assay.config:edit")),
-    service: AspcService = Depends(get_admin_aspc_service),
-):
-    """Bind an immutable published rule release through normal ASPC rotation."""
-    return util.common.convert_to_serializable(
-        service.bind_clinical_rule_release(
-            assay_id=assay_id,
-            release_id=payload.release_id,
-            actor_username=user.username,
-        )
     )
 
 

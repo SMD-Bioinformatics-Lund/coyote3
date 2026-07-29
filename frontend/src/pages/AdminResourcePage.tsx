@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Activity, AlertTriangle, Edit, Eye, FileUp, MailPlus, Plus, Power, Save, Search, Settings2, ShieldCheck, Trash2, X } from "lucide-react"
+import { Activity, AlertTriangle, Download, Edit, Eye, FileUp, MailPlus, Plus, Power, Save, Search, Settings2, ShieldCheck, Trash2, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { accentColor, configuredValueDescription, valueBadgeClass } from "@/lib/badge-colors"
 import { fullDateTime, humanRelativeDate } from "@/lib/detail-formatters"
+import { downloadJson } from "@/lib/json-download"
 import {
   actionLabels,
   specs,
@@ -548,8 +549,6 @@ function StructuredObjectField({
                     ? "checkbox-group"
                     : nested.type === "checkbox"
                       ? "checkbox"
-                      : nested.type === "clinical-rule-release"
-                        ? "clinical-rule-release"
                       : nested.type === "textarea" || nested.type === "list"
                         ? "textarea"
                         : "input",
@@ -581,91 +580,6 @@ function StructuredObjectField({
           </div>
         </div>
       ))}
-    </div>
-  )
-}
-
-type ClinicalRuleReleaseOption = {
-  reference: {
-    release_id: string
-    rule_set_id: string
-    version: string
-    content_hash: string
-  }
-  label: string
-  description: string
-}
-
-function ClinicalRuleReleaseField({
-  value,
-  onChange,
-  disabled,
-  formValues,
-}: {
-  value: any
-  onChange: (next: ClinicalRuleReleaseOption["reference"] | undefined) => void
-  disabled?: boolean
-  formValues?: Record<string, any>
-}) {
-  const aspId = String(formValues?.asp_id || "").trim()
-  const subpanelId = String(formValues?.subpanel_id || "base").trim() || "base"
-  const category = String(formValues?.asp_category || "").trim().toLowerCase()
-  const enabled = Boolean(aspId && category)
-  const releasesQuery = useQuery({
-    queryKey: ["admin", "clinical-rule-releases", aspId, subpanelId, category],
-    enabled,
-    queryFn: () => api.get<{ releases: ClinicalRuleReleaseOption[] }>(
-      `/resources/aspc/clinical-rule-releases?asp_id=${encodeURIComponent(aspId)}&subpanel_id=${encodeURIComponent(subpanelId)}&category=${encodeURIComponent(category)}`,
-    ).then((response) => response.data),
-  })
-  const releases = releasesQuery.data?.releases || []
-  const currentId = String(value?.release_id || "")
-
-  if (disabled) {
-    return currentId ? (
-      <div className="rounded-lg border border-input bg-background px-2 py-1.5 text-sm">
-        <span className="font-semibold">{value.rule_set_id} v{value.version}</span>
-        <span className="ml-2 text-xs text-muted-foreground">Immutable published release</span>
-      </div>
-    ) : <span className="text-sm text-muted-foreground">No release bound.</span>
-  }
-
-  return (
-    <div className="space-y-1.5">
-      <select
-        value={currentId}
-        disabled={!enabled || releasesQuery.isLoading}
-        onChange={(event) => {
-          const next = releases.find((release) => release.reference.release_id === event.target.value)
-          onChange(next?.reference)
-        }}
-        className="w-full rounded-lg border border-input bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        <option value="">
-          {!enabled ? "Select ASP and subpanel first" : releasesQuery.isLoading ? "Loading published releases..." : "Select published release..."}
-        </option>
-        {currentId && !releases.some((release) => release.reference.release_id === currentId) && (
-          <option value={currentId}>{value.rule_set_id} v{value.version} (currently bound)</option>
-        )}
-        {releases.map((release) => (
-          <option key={release.reference.release_id} value={release.reference.release_id}>
-            {release.label}
-          </option>
-        ))}
-      </select>
-      {enabled && !releasesQuery.isLoading && !releases.length && (
-        <p className="text-xs text-amber-700 dark:text-amber-300">
-          No published rule release matches this ASP, subpanel, and analyte. Publish the YAML rule set before activating this ASPC.
-        </p>
-      )}
-      {releasesQuery.isError && (
-        <p className="text-xs text-destructive">Published rule releases could not be loaded.</p>
-      )}
-      {currentId && value?.content_hash && (
-        <p className="text-xs text-muted-foreground" title={value.content_hash}>
-          Release integrity hash: {String(value.content_hash).slice(0, 12)}...
-        </p>
-      )}
     </div>
   )
 }
@@ -714,8 +628,6 @@ function FormControl({
     )
   } else if (field.display_type === "checkbox-group" || field.display_type === "multi-select") {
     control = <CheckboxGroup field={field} value={value} onChange={onChange} disabled={readOnly} formValues={formValues} />
-  } else if (field.display_type === "clinical-rule-release") {
-    control = <ClinicalRuleReleaseField value={value} onChange={onChange} disabled={readOnly} formValues={formValues} />
   } else if (field.display_type === "filters-structured" || field.display_type === "reporting-structured" || field.display_type === "catalog-structured") {
     control = <StructuredObjectField field={field} value={value} onChange={onChange} disabled={readOnly} formValues={formValues} />
   } else if (field.display_type === "jsoneditor" || field.display_type === "jsoneditor-or-upload" || field.data_type === "json") {
@@ -1259,6 +1171,16 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
               <Edit className="h-4 w-4" />
               Edit
             </Link>
+          )}
+          {mode === "view" && doc && (
+            <button
+              type="button"
+              onClick={() => downloadJson(`${spec.key}_${String(id)}`, doc)}
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
+            >
+              <Download className="h-4 w-4" />
+              Download JSON
+            </button>
           )}
           <Link to={`/admin/${spec.key}`} className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
             Back to list

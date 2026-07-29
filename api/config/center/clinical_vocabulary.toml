@@ -3,7 +3,6 @@
 [assay]
 categories = ["dna", "rna"]
 families = ["panel-dna", "panel-rna", "wgs", "wts"]
-groups = ["hematology", "solid", "pgx", "tumwgs", "wts", "myeloid", "lymphoid"]
 base_subpanel_id = "base"
 
 [assay.family_categories]
@@ -41,7 +40,6 @@ required_aspc_fields = [
   "general_report_summary",
   "plots_path",
   "report_folder",
-  "clinical_rule_release",
 ]
 
 [permissions]

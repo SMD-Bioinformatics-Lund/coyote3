@@ -80,7 +80,7 @@ configuration.
 | `reporting.report_method` | Method description |
 | `reporting.report_description` | Assay description |
 | `reporting.general_report_summary` | Configured introductory text |
-| `reporting.clinical_rule_release` | Verified immutable clinical rule release used for text generation |
+| Static rule source | Repository-owned YAML selected by `asp_id` and `subpanel_id`; the rendered report records the source identity and content hash. |
 | `reporting.plots_path` | Approved source directory for report plots |
 | `reporting.report_folder` | Approved report output directory |
 
@@ -582,8 +582,9 @@ A saved report preserves:
 - selected annotation references;
 - data-version context available at creation time.
 
-When an ASPC binds a clinical-rule release, the report also preserves the
-release ObjectId, rule-set ID, version, content hash, and matched rule IDs.
+The report also preserves the static clinical-rule source identity, canonical
+content hash, and matched rule IDs. Static YAML is selected by the effective
+ASP and subpanel; it is not copied into an ASPC or stored as a MongoDB release.
 
 ## 10. Collection Relationships
 
@@ -593,7 +594,6 @@ assay_specific_panels (ASP)
     +-- asp_configs (ASPC)
     |       |
     |       +-- samples.current_aspc_id/version
-    |       +-- clinical_rule_sets (immutable release reference)
     |
     +-- insilico_genelists (ISGL)
 

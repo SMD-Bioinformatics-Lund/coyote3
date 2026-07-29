@@ -459,12 +459,6 @@ def test_collection_validator_requires_canonical_aspc_analysis_types():
                 "general_report_summary": "Summary",
                 "plots_path": "/tmp",
                 "report_folder": "reports",
-                "clinical_rule_release": {
-                    "release_id": "0123456789abcdef01234567",
-                    "rule_set_id": "assay_1__base",
-                    "version": "1",
-                    "content_hash": "a" * 64,
-                },
             },
         },
     )

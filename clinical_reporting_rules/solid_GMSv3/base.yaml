@@ -1,34 +1,17 @@
 rule_set:
   analyte: dna
-  assay_id: solid_GMSv3
+  asp_id: solid_GMSv3
   subpanel_id: base
-  version: "1"
-rules:
-  - rule_id: solid_GMSv3_tiered_snv_summary
-    family: result_text
-    section: Kliniskt relevanta SNVs och små INDELs
-    priority: 90
-    when:
-      - fact: aggregates.has_tiered_snvs
-        operator: eq
-        value: true
-    template: "{{ aggregates.tier_summaries | tier_summary }}"
-    heading: true
-    stop: false
 
-  - rule_id: solid_GMSv3_no_somatic_snv
+document_rules:
+  - rule_id: solid_GMSv3_report_introduction
     family: result_text
-    section: Kliniskt relevanta SNVs och små INDELs
-    priority: 100
-    when:
-      - fact: aggregates.has_tiered_snvs
-        operator: eq
-        value: false
-    template: |-
-      Vid analysen har inga somatiskt förvärvade varianter i undersökta gener påvisats.
-    heading: true
+    section: Report introduction
+    priority: 10
+    when: []
+    template: "{{ aspc.reporting.general_report_summary | dna_report_intro(sample, asp, applied_gene_lists) }}"
+    heading: false
     stop: false
-
   - rule_id: solid_GMSv3_unaccredited_conclusion
     family: summary_text
     section: Report conclusion
@@ -37,11 +20,9 @@ rules:
       - fact: asp.accredited
         operator: eq
         value: false
-    template: |-
-      För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade varianter, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen.
+    template: "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen."
     heading: false
     stop: true
-
   - rule_id: solid_GMSv3_accredited_conclusion
     family: summary_text
     section: Report conclusion
@@ -50,13 +31,41 @@ rules:
       - fact: asp.accredited
         operator: eq
         value: true
-    template: "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade varianter, var god se bifogad rapport.\x20"
+    template: "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport. "
     heading: false
     stop: true
-deferred_rules:
-  - rule_id: solid_GMSv3_introduction
-    template: |-
-      DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar exoner i 560 gener som inkluderas i {{ panel_name }} sekvenseringspanel. Analysen avser somatiska varianter (blodprov har använts som kontrollmaterial). För BRCA1 och BRCA2 undersöks även konstitutionella varianter.
-    required_fact_contract:
-      - authoritative panel display name
-      - absence of selected gene lists
+
+analyses:
+  SNV:
+    enabled: true
+    rules:
+      - rule_id: solid_GMSv3_tiered_snv_summary
+        family: result_text
+        section: Kliniskt relevanta SNVs och små INDELs
+        priority: 90
+        when:
+          - fact: aggregates.has_tiered_snvs
+            operator: eq
+            value: true
+        template: "{{ aggregates.tier_summaries | tier_summary }}"
+        heading: true
+        stop: false
+      - rule_id: solid_GMSv3_no_somatic_snv
+        family: result_text
+        section: Kliniskt relevanta SNVs och små INDELs
+        priority: 100
+        when:
+          - fact: aggregates.has_tiered_snvs
+            operator: eq
+            value: false
+        template: "Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats."
+        heading: true
+        stop: false
+  CNV: { enabled: false }
+  TRANSLOCATION: { enabled: false }
+  BIOMARKER: { enabled: false }
+  CNV_PROFILE: { enabled: false }
+  COVERAGE: { enabled: false }
+  FUSION: { enabled: false }
+  TMB: { enabled: false }
+  PGX: { enabled: false }

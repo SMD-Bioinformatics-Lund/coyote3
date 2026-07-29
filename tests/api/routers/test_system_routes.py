@@ -22,6 +22,33 @@ def test_health_returns_ok():
     assert health_router.health() == {"status": "ok"}
 
 
+def test_auth_providers_returns_deployment_configured_providers(monkeypatch):
+    """Provider discovery follows deployment configuration, not LDAP connection state."""
+    monkeypatch.setattr(auth_router, "AUTH_TYPE_OPTIONS", ("local", "ldap"))
+    monkeypatch.setattr(auth_router.ldap_manager, "_server", None)
+
+    assert auth_router.auth_providers_read() == {"providers": ["local", "ldap"]}
+
+
+def test_auth_login_reports_unconfigured_enabled_ldap(monkeypatch):
+    """An enabled LDAP provider fails at login rather than application startup."""
+    monkeypatch.setattr(auth_router, "AUTH_TYPE_OPTIONS", ("local", "ldap"))
+    monkeypatch.setattr(auth_router.ldap_manager, "_server", None)
+
+    with pytest.raises(HTTPException) as exc:
+        auth_router.create_auth_session(
+            auth_router.ApiAuthLoginRequest(
+                username="user@example.org", password="secret", provider="ldap"
+            )
+        )
+
+    assert exc.value.status_code == 503
+    assert (
+        exc.value.detail["error"]
+        == "LDAP login is enabled but directory configuration is unavailable"
+    )
+
+
 def test_whoami_sorts_permission_list():
     """Test whoami sorts permission lists.
 

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import httpx
+import pytest
+
 from api.application.ingest.oncokb_public import (
     enrich_public_oncokb_cache,
     seed_public_oncokb_curated_gene_cache,
@@ -201,6 +204,68 @@ def test_public_oncokb_client_falls_back_to_public_protein_change(monkeypatch):
     )
     assert captured["json"][0]["gene"]["hugoSymbol"] == "BRAF"
     assert captured["json"][0]["alteration"] == "V600E"
+
+
+def test_public_oncokb_client_rejects_http_failure_without_silently_caching_result(monkeypatch):
+    """Public API errors must remain explicit to the ingest/detail workflow."""
+
+    class _Response:
+        def raise_for_status(self):
+            request = httpx.Request(
+                "POST", "https://public.api.oncokb.org/api/v1/annotate/mutations/byHGVSg"
+            )
+            response = httpx.Response(429, request=request, json={"message": "rate limited"})
+            raise httpx.HTTPStatusError("rate limited", request=request, response=response)
+
+    class _Client:
+        def __init__(self, timeout):
+            self.timeout = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def post(self, url, json, headers):
+            return _Response()
+
+    monkeypatch.setattr("api.infra.knowledgebase.public_oncokb.httpx.Client", _Client)
+    client = PublicOncoKbClient(base_url="https://public.api.oncokb.org/api/v1")
+
+    with pytest.raises(httpx.HTTPStatusError) as error:
+        client.annotate_hgvsgs([{"hgvsg": "17:g.76736896T>C", "referenceGenome": "GRCh38"}])
+
+    assert error.value.response.status_code == 429
+
+
+def test_public_oncokb_client_discards_non_json_contract_payload(monkeypatch):
+    """Unexpected public payload shapes cannot be interpreted as an annotation."""
+
+    class _Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return "not-an-annotation"
+
+    class _Client:
+        def __init__(self, timeout):
+            self.timeout = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def post(self, url, json, headers):
+            return _Response()
+
+    monkeypatch.setattr("api.infra.knowledgebase.public_oncokb.httpx.Client", _Client)
+    client = PublicOncoKbClient(base_url="https://public.api.oncokb.org/api/v1")
+
+    assert client.annotate_hgvsgs([{"hgvsg": "17:g.76736896T>C"}]) == []
 
 
 def test_public_oncokb_client_fetches_cancer_gene_list(monkeypatch):

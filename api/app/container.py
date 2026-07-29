@@ -61,7 +61,6 @@ class MongoStore:
     blacklist_repository: Any
     brca_repository: Any
     clinpgx_public_repository: Any
-    clinical_rule_set_repository: Any
     civic_repository: Any
     copy_number_variant_repository: Any
     cosmic_repository: Any
@@ -96,7 +95,6 @@ class MongoStore:
         "blacklist_repository",
         "brca_repository",
         "clinpgx_public_repository",
-        "clinical_rule_set_repository",
         "civic_repository",
         "copy_number_variant_repository",
         "cosmic_repository",
@@ -140,7 +138,6 @@ class MongoStore:
         self.blacklist_repository = _LazyRepositoryProxy()
         self.brca_repository = _LazyRepositoryProxy()
         self.clinpgx_public_repository = _LazyRepositoryProxy()
-        self.clinical_rule_set_repository = _LazyRepositoryProxy()
         self.civic_repository = _LazyRepositoryProxy()
         self.copy_number_variant_repository = _LazyRepositoryProxy()
         self.cosmic_repository = _LazyRepositoryProxy()

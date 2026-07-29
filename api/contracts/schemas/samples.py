@@ -74,7 +74,7 @@ class SampleReportRecordDoc(_DocBase):
     time_created: datetime | None = None
     filters_snapshot: dict[str, Any] = Field(default_factory=dict)
     aspc: dict[str, Any] | None = None
-    clinical_rule_release: dict[str, Any] | None = None
+    clinical_rule_source: dict[str, Any] | None = None
 
 
 class SampleDnaSnvFiltersDoc(_StrictDocBase):

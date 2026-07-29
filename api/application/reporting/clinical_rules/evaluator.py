@@ -15,8 +15,8 @@ from api.contracts.schemas.clinical_rules import (
     ClinicalRuleEvaluation,
     ClinicalRuleFamily,
     ClinicalRuleOperator,
-    ClinicalRuleReleaseDoc,
-    ClinicalRuleReleaseRef,
+    ClinicalRuleSetSource,
+    ClinicalRuleSourceRef,
     ClinicalRuleTraceEntry,
 )
 
@@ -72,7 +72,7 @@ def _condition_matches(
 
 
 class ClinicalRuleEvaluator:
-    """Evaluate a published release against one prepared report context."""
+    """Evaluate one static rule source against one prepared report context."""
 
     def __init__(self) -> None:
         self.environment = clinical_template_environment()
@@ -80,20 +80,23 @@ class ClinicalRuleEvaluator:
     def evaluate(
         self,
         context: PreparedReportContext,
-        release: ClinicalRuleReleaseDoc,
+        source: ClinicalRuleSetSource,
+        *,
+        source_path,
+        content_hash: str,
+        reporting_analyses: set[str],
     ) -> ClinicalRuleEvaluation:
         """Evaluate ordered rules and return rendered sections plus trace."""
-        release_ref = ClinicalRuleReleaseRef(
-            release_id=release.id_,
-            rule_set_id=release.rule_set_id,
-            version=release.version,
-            content_hash=release.content_hash,
+        source_ref = ClinicalRuleSourceRef(
+            rule_set_id=source.rule_set.rule_set_id,
+            source_path=str(source_path),
+            content_hash=content_hash,
         )
         sections: dict[str, list[str]] = {}
         section_headings: dict[str, bool] = {}
         trace: list[ClinicalRuleTraceEntry] = []
         rules = sorted(
-            release.source.rules,
+            source.executable_rules(reporting_analyses),
             key=lambda rule: (list(ClinicalRuleFamily).index(rule.family), rule.priority),
         )
 
@@ -140,7 +143,7 @@ class ClinicalRuleEvaluator:
                         break
 
         return ClinicalRuleEvaluation(
-            release=release_ref,
+            source=source_ref,
             sections=sections,
             section_headings=section_headings,
             trace=trace,

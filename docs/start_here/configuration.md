@@ -28,7 +28,7 @@ as a clinical/configuration change rather than hidden in application code.
 | File | Format | Detailed field reference | Purpose |
 | --- | --- | --- | --- |
 | `center/contact.toml` | TOML | [Contact table](../operations/center_configuration_files.md#contacttoml) | Center-owned organization, support, service-hour, and repeatable contact-card content. |
-| `center/clinical_vocabulary.toml` | TOML | [Vocabulary table](../operations/center_configuration_files.md#clinical_vocabularytoml) | Center-owned assay groups, sequencing platforms, enabled authentication providers, sample-manifest file keys, required family inputs, and analysis-to-file bindings. |
+| `center/clinical_vocabulary.toml` | TOML | [Vocabulary table](../operations/center_configuration_files.md#clinical_vocabularytoml) | Center-owned sequencing platforms, enabled authentication providers, sample-manifest file keys, required family inputs, and analysis-to-file bindings. Assay groups are fixed software workflow identifiers. |
 | `center/collections.toml` | TOML | [Collection table](../operations/center_configuration_files.md#collectionstoml) | Database and collection names used by the persistence adapter. |
 | `center/assay_catalog.yaml` | YAML | [Catalog table](../operations/center_configuration_files.md#assay_catalogyaml) | Public assay-catalog narrative fields that do not belong in clinical records. |
 | `center/filter_flag_metadata.yaml` | YAML | [Flag table](../operations/center_configuration_files.md#filter_flag_metadatayaml) | Human-facing variant flag labels, severity, and tooltip descriptions. |
@@ -188,7 +188,8 @@ physical collection names themselves remain TOML values.
 | `COYOTE3_INGEST_WATCH_INTERVAL_SECONDS` | No | Seconds | Beat interval for watch-folder scanning. |
 | `COYOTE3_INGEST_WATCH_UPDATE_EXISTING` | No | `1` or `0` | Allows watch ingest to replace an existing sample. |
 | `COYOTE3_INGEST_WATCH_INCREMENT` | No | `1` or `0` | Enables incremental naming behavior where supported. |
-| `LDAP_HOST` | When `authentication.providers` includes `ldap` | Hostname or URI | LDAP server host. LDAP is not initialized for a local-only centre. |
+| `AUTHENTICATION_PROVIDERS` | No | Comma-separated list of implemented providers: `local`, `ldap`, for example `local` or `local,ldap` | Deployment override for login providers displayed by the UI. When omitted, the configured TOML list is used. |
+| `LDAP_HOST` | When LDAP is enabled for this deployment | Hostname or URI | LDAP server host. A missing value does not block API startup; an LDAP login returns a configuration error until it is supplied. |
 | `LDAP_BASE_DN` | LDAP deployments | Distinguished name | LDAP search base. |
 | `LDAP_USER_LOGIN_ATTR` | LDAP deployments | Attribute name, usually `mail` | LDAP login lookup attribute. |
 | `LDAP_BINDDN` | LDAP deployments | Distinguished name | LDAP bind identity. |

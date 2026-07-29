@@ -385,21 +385,6 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                     ],
                 },
                 {
-                    "title": "Clinical Rule Release",
-                    "fields": [
-                        {
-                            "key": "clinical_rule_release",
-                            "label": "Published Clinical Rule Release",
-                            "type": "clinical-rule-release",
-                            "required": True,
-                            "help": (
-                                "Select the published YAML release that matches this ASP and subpanel. "
-                                "The selected release is stored as an immutable reporting reference."
-                            ),
-                        },
-                    ],
-                },
-                {
                     "title": "Report Paths",
                     "fields": [
                         {
@@ -604,21 +589,6 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "label": "General Summary",
                             "type": "textarea",
                             "default": "Automated summary generated from configured assay filters.",
-                        },
-                    ],
-                },
-                {
-                    "title": "Clinical Rule Release",
-                    "fields": [
-                        {
-                            "key": "clinical_rule_release",
-                            "label": "Published Clinical Rule Release",
-                            "type": "clinical-rule-release",
-                            "required": True,
-                            "help": (
-                                "Select the published YAML release that matches this ASP and subpanel. "
-                                "The selected release is stored as an immutable reporting reference."
-                            ),
                         },
                     ],
                 },

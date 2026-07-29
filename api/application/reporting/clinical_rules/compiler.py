@@ -12,6 +12,7 @@ from jinja2 import meta
 
 from api.application.reporting.clinical_rules.registry import validate_fact_path
 from api.application.reporting.clinical_rules.templating import clinical_template_environment
+from api.config.constants import DNA_ANALYSIS_TYPE_OPTIONS, RNA_ANALYSIS_TYPE_OPTIONS
 from api.contracts.schemas.clinical_rules import ClinicalRuleSetSource
 
 TEMPLATE_ROOTS = frozenset(
@@ -20,7 +21,7 @@ TEMPLATE_ROOTS = frozenset(
 
 
 class ClinicalRuleCompiler:
-    """Compile repository-authored rule files into canonical release content."""
+    """Compile repository-authored rule files into canonical static content."""
 
     def __init__(self) -> None:
         self.environment = clinical_template_environment()
@@ -50,20 +51,34 @@ class ClinicalRuleCompiler:
         if len(relative.parts) != 2:
             raise ValueError(
                 "Clinical rule sources must use clinical_reporting_rules/"
-                "<assay_id>/<subpanel_id>.yaml"
+                "<asp_id>/<subpanel_id>.yaml"
             )
         assay_id = relative.parts[0]
         subpanel_id = relative.name.split(".", 1)[0]
         rule_set = source.rule_set
-        if (rule_set.assay_id, rule_set.subpanel_id) != (assay_id, subpanel_id):
+        if (rule_set.asp_id, rule_set.subpanel_id) != (assay_id, subpanel_id):
             raise ValueError(
                 "Clinical rule source path does not match its assay/subpanel scope: "
-                f"{assay_id}/{subpanel_id} != {rule_set.assay_id}/{rule_set.subpanel_id}"
+                f"{assay_id}/{subpanel_id} != {rule_set.asp_id}/{rule_set.subpanel_id}"
             )
 
     def validate(self, source: ClinicalRuleSetSource) -> None:
         """Validate facts and restricted template variables."""
-        for rule in source.rules:
+        allowed_analyses = (
+            set(DNA_ANALYSIS_TYPE_OPTIONS)
+            if source.rule_set.analyte == "dna"
+            else set(RNA_ANALYSIS_TYPE_OPTIONS)
+        )
+        invalid_analyses = sorted(set(source.analyses) - allowed_analyses)
+        if invalid_analyses:
+            raise ValueError(
+                f"Rule set uses analyses unavailable for {source.rule_set.analyte}: "
+                f"{invalid_analyses}"
+            )
+        rules = list(source.document_rules)
+        for block in source.analyses.values():
+            rules.extend(block.rules)
+        for rule in rules:
             for condition in rule.when:
                 validate_fact_path(condition.fact)
             ast = self.environment.parse(rule.template)

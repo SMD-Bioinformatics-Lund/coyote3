@@ -908,7 +908,6 @@ def _aspc_service(repo: _AdminRepoStub) -> AspcService:
         assay_configuration_repository=store.assay_configuration_repository,
         assay_panel_repository=store.assay_panel_repository,
         vep_metadata_repository=store.vep_metadata_repository,
-        clinical_rule_set_repository=SimpleNamespace(),
         common_util=shared_util.common,
     )
 
@@ -1216,7 +1215,7 @@ def test_admin_aspc_create_context_uses_analysis_sections_not_genelist_fields(mo
     assert "fusionlists" not in filter_keys
     assert "TMB" in report_section_options
     assert "PGX" in report_section_options
-    assert "clinical_rule_release" in reporting_field_keys
+    assert "general_report_summary" in reporting_field_keys
 
 
 def test_admin_aspc_service_create_rejects_duplicate(monkeypatch):

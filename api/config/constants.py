@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import os
 import re
 from typing import Iterable
 
+from api.config.assay_groups import ASP_GROUP_OPTIONS
 from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 
-ASP_GROUP_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.assay_groups
 ASP_CATEGORY_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.assay_categories
 ASP_FAMILY_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.assay_families
 SEQUENCING_SCOPE_OPTIONS: tuple[str, ...] = tuple(
@@ -32,7 +33,35 @@ DEFAULT_ENVIRONMENT = CLINICAL_VOCABULARY.default_environment
 
 AUTH_PROVIDER_LOCAL = "local"
 AUTH_PROVIDER_LDAP = "ldap"
-AUTH_TYPE_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.auth_type_options
+
+
+def _auth_provider_options(configured_options: tuple[str, ...]) -> tuple[str, ...]:
+    """Apply an optional deployment override to center auth-provider choices.
+
+    ``AUTHENTICATION_PROVIDERS`` is intentionally deployment-scoped: a center
+    can keep both providers in its shared vocabulary while enabling only the
+    appropriate providers in a particular environment. It accepts a
+    comma-separated list of the software-supported providers.
+    """
+    raw_override = os.getenv("AUTHENTICATION_PROVIDERS", "").strip()
+    if not raw_override:
+        return configured_options
+    providers = tuple(
+        dict.fromkeys(part.strip().lower() for part in raw_override.split(",") if part.strip())
+    )
+    if not providers:
+        raise RuntimeError("AUTHENTICATION_PROVIDERS must contain at least one provider")
+    allowed = {AUTH_PROVIDER_LOCAL, AUTH_PROVIDER_LDAP}
+    invalid = set(providers) - allowed
+    if invalid:
+        raise RuntimeError(
+            "AUTHENTICATION_PROVIDERS contains unsupported provider(s): "
+            + ", ".join(sorted(invalid))
+        )
+    return providers
+
+
+AUTH_TYPE_OPTIONS: tuple[str, ...] = _auth_provider_options(CLINICAL_VOCABULARY.auth_type_options)
 DEFAULT_AUTH_PROVIDER = (
     AUTH_PROVIDER_LDAP if AUTH_PROVIDER_LDAP in AUTH_TYPE_OPTIONS else AUTH_TYPE_OPTIONS[0]
 )

@@ -1,20 +1,24 @@
 rule_set:
   analyte: rna
-  assay_id: RNA_fusion
+  asp_id: RNA_fusion
   subpanel_id: base
-  version: "1"
-rules:
-  - rule_id: RNA_fusion_report_summary
-    family: result_text
-    section: Report summary
-    priority: 100
-    when:
-      - fact: sample.assay
-        operator: eq
-        value: RNA_fusion
-    template: |-
-      RNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar 160 kända fusionsgener vid solid tumörsjukdom som inkluderas i RNA fusionspanel (Twist Alliance CeGaT RNA Fusion Panel).
+document_rules: []
+analyses:
+  FUSION:
+    enabled: true
+    rules:
+      - rule_id: RNA_fusion_report_summary
+        family: result_text
+        section: Report summary
+        priority: 100
+        when: []
+        template: |-
+          RNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar 160 kända fusionsgener vid solid tumörsjukdom som inkluderas i RNA fusionspanel (Twist Alliance CeGaT RNA Fusion Panel).
 
-      För ytterligare information om utförd analys och beskrivning av eventuellt funna fusionsgener, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen.
-    heading: false
-    stop: true
+          För ytterligare information om utförd analys och beskrivning av eventuellt funna fusionsgener, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen.
+        heading: false
+        stop: true
+  EXPRESSION: { enabled: false }
+  CLASSIFICATION: { enabled: false }
+  QC: { enabled: false }
+  PGX: { enabled: false }

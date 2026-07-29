@@ -10,6 +10,7 @@ from fastapi.routing import APIRoute
 from api.app.main import app
 
 ROUTE_REGISTRY = Path("frontend/src/lib/routes/ui-route-registry.ts")
+APP_SOURCE = Path("frontend/src/App.tsx")
 
 
 def _registry_text() -> str:
@@ -53,6 +54,12 @@ def _api_route_shapes() -> set[tuple[str, str]]:
     return shapes
 
 
+def _app_route_paths() -> set[str]:
+    """Extract declared React Router paths without coupling to lazy component names."""
+    source = APP_SOURCE.read_text(encoding="utf-8")
+    return set(re.findall(r'<Route\s+path="([^"]+)"', source))
+
+
 def test_ui_route_registry_has_page_level_contract_metadata():
     """Every UI route should declare what it loads and how empty/error states behave."""
     blocks = _extract_route_blocks(_registry_text())
@@ -91,3 +98,12 @@ def test_ui_route_registry_api_dependencies_exist_in_fastapi():
                 missing.append(f"{page_path}: {method} {endpoint}")
 
     assert not missing, "UI registry references missing API routes:\n" + "\n".join(missing)
+
+
+def test_every_declared_react_route_has_registry_contract_metadata():
+    """Keep route-level API/empty/error expectations complete as pages are added."""
+    registry_paths = {
+        _extract_string_field(block, "path") for block in _extract_route_blocks(_registry_text())
+    }
+    missing = sorted(path for path in _app_route_paths() if path not in registry_paths)
+    assert not missing, "React routes missing UI contract metadata:\n" + "\n".join(missing)

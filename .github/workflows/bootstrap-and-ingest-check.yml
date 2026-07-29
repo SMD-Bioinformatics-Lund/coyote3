@@ -111,6 +111,20 @@ jobs:
             --password "${ADMIN_PASSWORD}" \
             --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 
+      - name: Verify composed sample workflow
+        run: |
+          AUTH_JSON="$(python scripts/api_login.py \
+            --base-url "http://localhost:${COYOTE3_STAGE_API_PORT}" \
+            --mode password \
+            --username "${ADMIN_EMAIL}" \
+            --password "${ADMIN_PASSWORD}" \
+            --print-token)"
+          BEARER_TOKEN="$(python -c 'import json, sys; print(json.loads(sys.argv[1])["session_token"])' "$AUTH_JSON")"
+          python scripts/verify_composed_workflow.py \
+            --api-base-url "http://localhost:${COYOTE3_STAGE_API_PORT}" \
+            --bearer-token "$BEARER_TOKEN" \
+            --sample-name "seed_case"
+
       - name: Stop stack
         if: always()
         run: |

@@ -13,12 +13,13 @@ from api.application.accounts.common import (
     inject_version_history,
     utc_now,
 )
+from api.application.reporting.clinical_rules.service import ClinicalRuleService
 from api.application.resources.helpers import (
     _normalize_asp_category,
     _normalize_asp_category_doc,
     _validated_doc,
 )
-from api.config.constants import SUBPANEL_BASE_ID
+from api.config.constants import SUBPANEL_BASE_ID, normalize_analysis_type
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.domain.common.errors import api_error
 
@@ -38,7 +39,6 @@ class AspcService:
             assay_configuration_repository=store.assay_configuration_repository,
             assay_panel_repository=store.assay_panel_repository,
             vep_metadata_repository=store.vep_metadata_repository,
-            clinical_rule_set_repository=store.clinical_rule_set_repository,
             common_util=common_util,
         )
 
@@ -48,25 +48,13 @@ class AspcService:
         assay_configuration_repository: Any,
         assay_panel_repository: Any,
         vep_metadata_repository: Any,
-        clinical_rule_set_repository: Any,
         common_util: Any,
     ) -> None:
         """Create the service for assay-configuration resource workflows."""
         self.assay_configuration_repository = assay_configuration_repository
         self.assay_panel_repository = assay_panel_repository
         self.vep_metadata_repository = vep_metadata_repository
-        self.clinical_rule_set_repository = clinical_rule_set_repository
         self.common_util = common_util
-
-    @staticmethod
-    def _release_scope_matches_aspc(release: Any, aspc: dict[str, Any]) -> bool:
-        """Return whether a published release may be bound to this ASPC."""
-        rule_set = release.source.rule_set
-        return (
-            rule_set.analyte == aspc.get("asp_category")
-            and rule_set.assay_id == aspc.get("asp_id")
-            and rule_set.subpanel_id == aspc.get("subpanel_id")
-        )
 
     @staticmethod
     def _set_group_field_options(
@@ -191,48 +179,44 @@ class AspcService:
             "form": form,
         }
 
-    def clinical_rule_release_options(
-        self,
-        *,
-        asp_id: str,
-        subpanel_id: str,
-        category: str,
-    ) -> dict[str, Any]:
-        """Return published rule releases eligible for the selected ASPC scope."""
-        normalized_category = _normalize_asp_category(category)
-        releases = self.clinical_rule_set_repository.list_active_for_scope(
-            analyte=normalized_category,
-            assay_id=str(asp_id or "").strip(),
-            subpanel_id=str(subpanel_id or SUBPANEL_BASE_ID).strip() or SUBPANEL_BASE_ID,
-        )
-        return {
-            "releases": [
-                {
-                    "reference": {
-                        "release_id": str(release.id_),
-                        "rule_set_id": release.rule_set_id,
-                        "version": release.version,
-                        "content_hash": release.content_hash,
-                    },
-                    "label": f"{release.rule_set_id} v{release.version}",
-                    "description": (
-                        f"Published {release.published_on.isoformat()} by {release.published_by}"
-                    ),
-                }
-                for release in releases
-            ]
+    @staticmethod
+    def _validate_static_rule_source(config: dict[str, Any]) -> None:
+        """Require each active reporting ASPC to resolve to a repository YAML file."""
+        reporting = config.get("reporting") or {}
+        reporting_analyses = {
+            normalize_analysis_type(value)
+            for value in reporting.get("analysis", [])
+            if str(value or "").strip()
         }
-
-    def _validate_rule_release_reference(self, config: dict[str, Any]) -> None:
-        """Verify that an ASPC reporting reference is intact and scope-compatible."""
-        reference = (config.get("reporting") or {}).get("clinical_rule_release")
-        if not reference:
+        if not config.get("is_active") or not reporting_analyses:
             return
-        release = self.clinical_rule_set_repository.get_referenced_release(reference)
-        if release is None:
-            raise api_error(409, "Clinical rule release reference no longer resolves")
-        if not self._release_scope_matches_aspc(release, config):
-            raise api_error(409, "Clinical rule release scope does not match the assay config")
+        context = type(
+            "RuleScope",
+            (),
+            {
+                "asp": type("Asp", (), {"asp_id": config.get("asp_id")})(),
+                "sample": type(
+                    "Sample",
+                    (),
+                    {
+                        "assay": config.get("asp_id"),
+                        "omics_layer": str(config.get("asp_category") or "").lower(),
+                    },
+                )(),
+                "aspc": type("Aspc", (), {"subpanel_id": config.get("subpanel_id")})(),
+            },
+        )()
+        try:
+            source, _source_path = ClinicalRuleService().resolve(context=context)
+        except ValueError as exc:
+            raise api_error(409, str(exc)) from exc
+        undeclared = sorted(reporting_analyses - set(source.analyses))
+        if undeclared:
+            raise api_error(
+                409,
+                "Clinical rule source does not declare every selected reporting analysis: "
+                + ", ".join(undeclared),
+            )
 
     def create(
         self, *, payload: dict[str, Any], actor_username: str = "admin-ui"
@@ -285,7 +269,7 @@ class AspcService:
             new_config=config,
             is_new=True,
         )
-        self._validate_rule_release_reference(config)
+        self._validate_static_rule_source(config)
         config = _validated_doc(spec.collection, config)
         self.assay_configuration_repository.create_assay_config(config)
         return change_payload(
@@ -336,7 +320,7 @@ class AspcService:
             old_config=assay_config,
             is_new=False,
         )
-        self._validate_rule_release_reference(updated_doc)
+        self._validate_static_rule_source(updated_doc)
         updated_doc = _validated_doc(spec.collection, updated_doc)
         self.assay_configuration_repository.rotate_aspc(
             assay_id,
@@ -350,45 +334,6 @@ class AspcService:
             },
         )
         return change_payload(resource="aspc", resource_id=assay_id, action="rotate")
-
-    def bind_clinical_rule_release(
-        self,
-        *,
-        assay_id: str,
-        release_id: str,
-        actor_username: str = "admin-ui",
-    ) -> dict[str, Any]:
-        """Rotate an ASPC so it references one verified immutable rule release."""
-        assay_config = self.assay_configuration_repository.get_aspc_with_id(assay_id)
-        if not assay_config:
-            raise api_error(404, "Assay config not found")
-        release = self.clinical_rule_set_repository.get_release(release_id)
-        if release is None:
-            raise api_error(404, "Clinical rule release not found")
-        if release.status != "active":
-            raise api_error(409, "Only an active clinical rule release can be bound")
-        if not self._release_scope_matches_aspc(release, assay_config):
-            raise api_error(409, "Clinical rule release scope does not match the assay config")
-
-        reporting = deepcopy(assay_config.get("reporting") or {})
-        reporting["clinical_rule_release"] = {
-            "release_id": release.id_,
-            "rule_set_id": release.rule_set_id,
-            "version": release.version,
-            "content_hash": release.content_hash,
-        }
-        result = self.update(
-            assay_id=assay_id,
-            payload={"config": {"reporting": reporting}},
-            actor_username=actor_username,
-        )
-        result["meta"]["clinical_rule_release"] = {
-            "release_id": str(release.id_),
-            "rule_set_id": release.rule_set_id,
-            "version": release.version,
-            "content_hash": release.content_hash,
-        }
-        return result
 
     def toggle(self, *, assay_id: str) -> dict[str, Any]:
         """Toggle whether an assay configuration is active.

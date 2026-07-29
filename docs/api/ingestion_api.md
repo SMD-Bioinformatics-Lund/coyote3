@@ -679,19 +679,18 @@ Managed-admin form source:
 
 Assay-group contract:
 
-- `asp_group` is a fixed platform vocabulary defined in `api/config/constants.py`.
-- Current allowed values are:
-  - `hematology`
-  - `solid`
-  - `pgx`
-  - `tumwgs`
-  - `wts`
-  - `myeloid`
-  - `lymphoid`
-  - `dna`
-  - `rna`
-- Centers may register any ASP they need, but each ASP and ASPC must link to one of those existing assay groups.
-- Adding a new assay group requires a product/code release, not only an admin-side data change.
+- `asp_group` is a fixed software taxonomy defined in
+  `api/config/assay_groups.py`.
+- Allowed values are `tumwgs`, `wts`, `hematology`, `myeloid`, `lymphoid`,
+  `solid`, `fusion`, `fusionrna`, and `pgx`.
+- `asp_family` is separate: use `panel-dna`, `panel-rna`, `wgs`, or `wts` for
+  sequencing-design classification. `asp_category` is separately `dna` or
+  `rna`, and `subpanel_id` identifies the in-silico target subset within the
+  selected design panel.
+- Centers may register any ASP they need, but each ASP and ASPC must use one
+  of the fixed assay groups.
+- Adding a group requires a reviewed product release and migration of affected
+  clinical records; it is not an admin-side data change.
 
 Other fixed admin/runtime vocabularies:
 

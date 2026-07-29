@@ -25,7 +25,6 @@ class ClinicalVocabulary:
 
     assay_categories: tuple[str, ...]
     assay_families: tuple[str, ...]
-    assay_groups: tuple[str, ...]
     assay_family_categories: dict[str, str]
     assay_family_scopes: dict[str, str]
     base_subpanel_id: str
@@ -120,7 +119,6 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
 
     assay_categories = _identifier_tuple(assay.get("categories"), key="assay.categories")
     assay_families = _identifier_tuple(assay.get("families"), key="assay.families")
-    assay_groups = _string_tuple(assay.get("groups"), key="assay.groups")
     base_subpanel_id = _identifier_value(
         assay.get("base_subpanel_id"), key="assay.base_subpanel_id"
     )
@@ -248,7 +246,6 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
     return ClinicalVocabulary(
         assay_categories=assay_categories,
         assay_families=assay_families,
-        assay_groups=assay_groups,
         assay_family_categories=assay_family_categories,
         assay_family_scopes=assay_family_scopes,
         base_subpanel_id=base_subpanel_id,

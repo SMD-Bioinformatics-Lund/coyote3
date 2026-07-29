@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from bson import ObjectId
-
 
 def test_business_identifiers_allow_clinical_subpanel_hyphens() -> None:
     """Clinical subpanel identifiers may contain hyphens, e.g. Hem-Snabb."""
@@ -38,7 +36,6 @@ def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch
             }
         ),
         vep_metadata_repository=SimpleNamespace(get_consequence_group_options=lambda *a, **k: []),
-        clinical_rule_set_repository=SimpleNamespace(),
         common_util=SimpleNamespace(),
     )
 
@@ -76,99 +73,33 @@ def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch
     assert created[0]["filters"] == {"min_alt_reads": 5}
 
 
-def test_aspc_rule_binding_uses_verified_release_and_rotation(monkeypatch) -> None:
-    """Binding a rule release delegates to the existing immutable ASPC rotation."""
+def test_aspc_service_uses_static_yaml_scope_validation(monkeypatch) -> None:
+    """ASPC validation resolves a matching static ASP/subpanel rule source."""
     from api.application.resources.aspc import AspcService
 
-    release_id = ObjectId()
-    release = SimpleNamespace(
-        id_=release_id,
-        rule_set_id="hema_GMSv1__base",
-        version="1.0.0",
-        content_hash="a" * 64,
-        status="active",
-        source=SimpleNamespace(
-            rule_set=SimpleNamespace(
-                analyte="dna",
-                assay_id="seed_assay",
-                subpanel_id="base",
-            )
-        ),
-    )
-    service = AspcService(
-        assay_configuration_repository=SimpleNamespace(
-            get_aspc_with_id=lambda _id: {
-                "aspc_id": "seed_assay_base_production",
-                "asp_id": "seed_assay",
-                "asp_group": "hematology",
-                "asp_category": "dna",
-                "subpanel_id": "base",
-                "environment": "production",
-                "reporting": {"report_header": "Seed"},
-            }
-        ),
-        assay_panel_repository=SimpleNamespace(),
-        vep_metadata_repository=SimpleNamespace(),
-        clinical_rule_set_repository=SimpleNamespace(
-            get_release=lambda requested_id: release if requested_id == str(release_id) else None
-        ),
-        common_util=SimpleNamespace(),
-    )
-    updates = []
-    monkeypatch.setattr(
-        service,
-        "update",
-        lambda **kwargs: updates.append(kwargs)
-        or {
-            "status": "ok",
-            "sample_id": "",
-            "resource": "aspc",
-            "resource_id": kwargs["assay_id"],
-            "action": "rotate",
-            "meta": {},
-        },
-    )
-
-    result = service.bind_clinical_rule_release(
-        assay_id="seed_assay_base_production",
-        release_id=str(release_id),
-        actor_username="clinical.admin",
-    )
-
-    reference = updates[0]["payload"]["config"]["reporting"]["clinical_rule_release"]
-    assert reference["release_id"] == release_id
-    assert reference["content_hash"] == "a" * 64
-    assert updates[0]["actor_username"] == "clinical.admin"
-    assert result["action"] == "rotate"
-
-
-def test_aspc_lists_only_active_rules_for_selected_scope() -> None:
-    """The admin selector must receive immutable releases scoped to its ASPC."""
-    from api.application.resources.aspc import AspcService
-
-    release = SimpleNamespace(
-        id_=ObjectId(),
-        rule_set_id="hema_GMSv1__base",
-        version="2",
-        content_hash="b" * 64,
-        published_by="clinical.admin",
-        published_on=SimpleNamespace(isoformat=lambda: "2026-07-23T10:00:00+00:00"),
-    )
     service = AspcService(
         assay_configuration_repository=SimpleNamespace(),
         assay_panel_repository=SimpleNamespace(),
         vep_metadata_repository=SimpleNamespace(),
-        clinical_rule_set_repository=SimpleNamespace(
-            list_active_for_scope=lambda **kwargs: [release]
-        ),
         common_util=SimpleNamespace(),
     )
 
-    payload = service.clinical_rule_release_options(
-        asp_id="hema_GMSv1",
-        subpanel_id="base",
-        category="DNA",
+    monkeypatch.setattr(
+        "api.application.resources.aspc.ClinicalRuleService.resolve",
+        lambda _self, *, context: (
+            SimpleNamespace(
+                rule_set=SimpleNamespace(rule_set_id="hema_GMSv1__base"),
+                analyses={"SNV": SimpleNamespace(enabled=True)},
+            ),
+            None,
+        ),
     )
-
-    assert payload["releases"][0]["reference"]["rule_set_id"] == "hema_GMSv1__base"
-    assert payload["releases"][0]["reference"]["release_id"] == str(release.id_)
+    service._validate_static_rule_source(
+        {
+            "active": True,
+            "asp_id": "hema_GMSv1",
+            "asp_category": "dna",
+            "subpanel_id": "base",
+            "reporting": {"analysis": ["SNV"]},
+        }
+    )

@@ -1,14 +1,11 @@
-"""Contracts for authored and published clinical reporting rules."""
+"""Strict contracts for repository-owned clinical reporting rules."""
 
 from __future__ import annotations
 
-from datetime import datetime
 from enum import Enum
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-
-from api.contracts.schemas.base import _StrictDocBase
 
 
 class ClinicalRuleFamily(str, Enum):
@@ -97,144 +94,99 @@ class ClinicalReportingRule(BaseModel):
         return value
 
 
-class DeferredClinicalReportingRule(BaseModel):
-    """Rule text held until its required facts become available."""
+class ClinicalRuleAnalysisBlock(BaseModel):
+    """One ASPC analysis type's explicit reporting decision and rules."""
 
     model_config = ConfigDict(extra="forbid")
 
-    rule_id: str
-    template: str
-    required_fact_contract: list[str]
+    enabled: bool
+    rules: list[ClinicalReportingRule] = Field(default_factory=list)
 
-    @field_validator("rule_id")
-    @classmethod
-    def _validate_text(cls, value: str) -> str:
-        value = value.strip()
-        if not value:
-            raise ValueError("deferred clinical rule text fields cannot be empty")
-        return value
-
-    @field_validator("template")
-    @classmethod
-    def _validate_template(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError("deferred clinical rule template cannot be empty")
-        return value
-
-    @field_validator("required_fact_contract", mode="before")
-    @classmethod
-    def _normalize_fact_contract(cls, value: Any) -> list[str]:
-        values = value if isinstance(value, list) else ([value] if value else [])
-        normalized = list(dict.fromkeys(str(item).strip() for item in values if str(item).strip()))
-        if not normalized:
-            raise ValueError("deferred clinical rules require a fact contract")
-        return normalized
+    @model_validator(mode="after")
+    def _validate_rules(self) -> "ClinicalRuleAnalysisBlock":
+        if not self.enabled and self.rules:
+            raise ValueError("disabled analysis blocks cannot contain executable rules")
+        return self
 
 
 class ClinicalRuleSetMetadata(BaseModel):
-    """Minimal authored identity for one assay and subpanel."""
+    """Stable static scope for one ASP and optional subpanel."""
 
     model_config = ConfigDict(extra="forbid")
 
     analyte: Literal["dna", "rna"]
-    assay_id: str
+    asp_id: str
     subpanel_id: str = "base"
-    version: str
 
-    @field_validator("assay_id", "subpanel_id", "version", mode="before")
+    @field_validator("asp_id", "subpanel_id", mode="before")
     @classmethod
     def _validate_identity(cls, value: str) -> str:
-        value = value.strip()
+        value = str(value or "").strip()
         if not value:
             raise ValueError("rule-set identity fields cannot be empty")
         return value
 
     @property
     def rule_set_id(self) -> str:
-        """Return the deterministic runtime identity for this rule set."""
-        return f"{self.assay_id}__{self.subpanel_id}"
+        """Return the deterministic source identity used in report provenance."""
+        return f"{self.asp_id}__{self.subpanel_id}"
 
 
 class ClinicalRuleSetSource(BaseModel):
-    """Repository-authored clinical rule bundle."""
+    """Repository-authored clinical rule bundle.
+
+    ``base.yaml`` is the complete no-subpanel rule set and the runtime fallback
+    when a matching subpanel file is intentionally absent.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     rule_set: ClinicalRuleSetMetadata
-    rules: list[ClinicalReportingRule]
-    deferred_rules: list[DeferredClinicalReportingRule] = Field(default_factory=list)
+    document_rules: list[ClinicalReportingRule] = Field(default_factory=list)
+    analyses: dict[str, ClinicalRuleAnalysisBlock] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def _validate_rules(self) -> "ClinicalRuleSetSource":
-        if not self.rules:
-            raise ValueError("a clinical rule set must contain at least one rule")
-        rule_ids = [rule.rule_id for rule in self.rules]
+        all_rules = list(self.document_rules)
+        for analysis in self.analyses.values():
+            all_rules.extend(analysis.rules)
+        if not all_rules:
+            raise ValueError("a clinical rule set must contain at least one executable rule")
+        rule_ids = [rule.rule_id for rule in all_rules]
         duplicates = sorted({rule_id for rule_id in rule_ids if rule_ids.count(rule_id) > 1})
         if duplicates:
             raise ValueError(f"duplicate rule_id values: {duplicates}")
-        deferred_ids = [rule.rule_id for rule in self.deferred_rules]
-        deferred_duplicates = sorted(
-            {rule_id for rule_id in deferred_ids if deferred_ids.count(rule_id) > 1}
-        )
-        if deferred_duplicates:
-            raise ValueError(f"duplicate deferred rule_id values: {deferred_duplicates}")
-        overlap = sorted(set(rule_ids) & set(deferred_ids))
-        if overlap:
-            raise ValueError(f"rule_id cannot be both executable and deferred: {overlap}")
-        priorities = [(rule.family, rule.priority) for rule in self.rules]
-        duplicate_priorities = sorted(
+        priorities = [(rule.family, rule.priority) for rule in all_rules]
+        duplicates = sorted(
             {
                 f"{family}:{priority}"
                 for family, priority in priorities
                 if priorities.count((family, priority)) > 1
             }
         )
-        if duplicate_priorities:
+        if duplicates:
             raise ValueError(
-                f"priorities must be unique within each rule family: {duplicate_priorities}"
+                "priorities must be unique within each rule family: " + ", ".join(duplicates)
             )
         return self
 
+    def executable_rules(self, reporting_analyses: set[str]) -> list[ClinicalReportingRule]:
+        """Return document rules plus enabled blocks allowed by the ASPC."""
+        rules = list(self.document_rules)
+        for analysis_name, block in self.analyses.items():
+            if analysis_name in reporting_analyses and block.enabled:
+                rules.extend(block.rules)
+        return rules
 
-class ClinicalRuleReleaseDoc(_StrictDocBase):
-    """Immutable compiled rule release stored for runtime and audit use."""
+
+class ClinicalRuleSourceRef(BaseModel):
+    """Static rule source recorded with a persisted report."""
+
+    model_config = ConfigDict(extra="forbid")
 
     rule_set_id: str
-    version: str
-    status: Literal["active", "retired"]
-    schema_version: int = 1
-    content_hash: str
     source_path: str
-    source: ClinicalRuleSetSource
-    published_by: str
-    published_on: datetime
-
-
-class ClinicalRuleReleaseRef(BaseModel):
-    """Reference embedded in an ASPC reporting configuration."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    release_id: Any
-    rule_set_id: str
-    version: str
     content_hash: str
-
-
-class ClinicalRuleReleaseBindRequest(BaseModel):
-    """Request to bind a published release by rotating an active ASPC."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    release_id: str
-
-    @field_validator("release_id")
-    @classmethod
-    def _validate_release_id(cls, value: str) -> str:
-        value = value.strip()
-        if not value:
-            raise ValueError("release_id cannot be empty")
-        return value
 
 
 class ClinicalRuleTraceEntry(BaseModel):
@@ -256,7 +208,7 @@ class ClinicalRuleEvaluation(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    release: ClinicalRuleReleaseRef
+    source: ClinicalRuleSourceRef
     sections: dict[str, list[str]] = Field(default_factory=dict)
     section_headings: dict[str, bool] = Field(default_factory=dict)
     trace: list[ClinicalRuleTraceEntry] = Field(default_factory=list)
