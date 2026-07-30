@@ -29,6 +29,7 @@ as a clinical/configuration change rather than hidden in application code.
 | --- | --- | --- | --- |
 | `center/contact.toml` | TOML | [Contact table](../operations/center_configuration_files.md#contacttoml) | Center-owned organization, support, service-hour, and repeatable contact-card content. |
 | `center/clinical_vocabulary.toml` | TOML | [Vocabulary table](../operations/center_configuration_files.md#clinical_vocabularytoml) | Center-owned authentication providers, sample-manifest file keys, required family inputs, and analysis-to-file bindings. Assay groups and sequencing-platform capabilities are fixed software workflow identifiers. |
+| `center/clinical_query_policy.toml` | TOML | [Query-policy table](../operations/center_configuration_files.md#clinical_query_policytoml) | Released SNV evidence models, population-frequency fields, and restricted clinical exception scopes. |
 | `center/collections.toml` | TOML | [Collection table](../operations/center_configuration_files.md#collectionstoml) | Database and collection names used by the persistence adapter. |
 | `center/assay_catalog.yaml` | YAML | [Catalog table](../operations/center_configuration_files.md#assay_catalogyaml) | Public assay-catalog narrative fields that do not belong in clinical records. |
 | `center/filter_flag_metadata.yaml` | YAML | [Flag table](../operations/center_configuration_files.md#filter_flag_metadatayaml) | Human-facing variant flag labels, severity, and tooltip descriptions. |
@@ -84,35 +85,36 @@ When a local nginx proxy is accessed directly, the same paths are available on
 
 ## Data Mounts
 
-The host data root is mounted into containers at `/data`.
+Compose mounts one center-owned host data root into API, worker, and beat
+containers twice: at the fixed runtime location `/data`, and again at its
+original host path. The fixed mount owns application workspaces; the identical
+host-path mount lets pipeline manifests retain their original file references.
 
 | Setting | Meaning |
 | --- | --- |
-| `COYOTE3_DATA_HOST_ROOT` | Host directory made visible to API and worker containers. |
-| `REPORTS_BASE_PATH` | Container path where report artifacts are written. |
-| `CELERY_INGEST_STAGING_DIR` | Container path used for staged async upload jobs. |
-| `COYOTE3_INGEST_WATCH_DIR` | Container path scanned by the watch-folder ingest task. |
+| `COYOTE3_DATA_HOST_ROOT` | Host directory mounted by Compose at `/data` and at the same absolute path inside each ingest-capable container. |
+| `/data/coyote3/reports` | Fixed container location for report artifacts. |
+| `/data/coyote3/ingest_staging` | Fixed container location for staged async upload jobs. |
+| `/data/coyote3/copied_sample_files/yaml` | Fixed container location scanned for ingest manifests. |
 
 Example:
 
 ```env
 COYOTE3_DATA_HOST_ROOT='/home/center/coyote3-data'
-REPORTS_BASE_PATH='/data/reports'
-CELERY_INGEST_STAGING_DIR='/data/ingest_staging'
-COYOTE3_INGEST_WATCH_DIR='/data/incoming'
 ```
 
-If sample manifests contain absolute file paths, mount the host directory so the
-same path is readable inside API and worker containers, or update manifests to
-use the container-visible `/data/...` paths.
+Pipeline manifests may use either paths relative to the manifest, absolute
+`/data/...` paths, or absolute paths below `COYOTE3_DATA_HOST_ROOT`. Host-root
+paths are retained in sample file records so persisted provenance matches the
+pipeline output.
 
-!!! info "Host paths in watched manifests"
+!!! info "Container path contract"
 
-    The Compose deployment mounts `COYOTE3_DATA_HOST_ROOT` at the fixed
-    container path `/data`. The watch-folder ingest task translates manifest
-    paths under `COYOTE3_DATA_HOST_ROOT` to `/data/...` before parsing sample
-    files. This lets centers keep host-owned manifest paths while the API and
-    worker read the files through the same container mount.
+    The Compose deployment mounts `COYOTE3_DATA_HOST_ROOT` at both `/data` and
+    its original absolute path. Report output, upload staging, and watched
+    manifests use fixed `/data/coyote3/...` locations. Pipeline-declared source
+    files retain their original host paths and are readable through the
+    identical-path mount.
 
 ## Environment Variable Reference
 
@@ -169,8 +171,6 @@ physical collection names themselves remain TOML values.
 | `LOG_LEVEL` | No | Python logging level | Minimum runtime log level. |
 | `NOTIFICATION_RETENTION_DAYS` | No | Days | Notification retention window. |
 | `COYOTE3_DATA_HOST_ROOT` | Yes | Host path | Host data root mounted into containers at `/data`. |
-| `REPORTS_BASE_PATH` | Yes | Container path | Report output directory. |
-| `CELERY_INGEST_STAGING_DIR` | Yes | Container path | Async ingest upload staging directory. |
 | `CELERY_DEFAULT_QUEUE` | No | Queue name | Default Celery queue. |
 | `CELERY_INGEST_QUEUE` | No | Queue name | Queue used for ingest tasks. |
 | `CELERY_LOG_LEVEL` | No | Logging level | Celery worker log level. |
@@ -181,7 +181,6 @@ physical collection names themselves remain TOML values.
 | `CELERY_WORKER_PREFETCH_MULTIPLIER` | No | Positive integer | Celery prefetch control. Use `1` for long ingest tasks. |
 | `COYOTE3_MAINTENANCE_HOUR` | No | `0` to `23` | Local hour for scheduled maintenance. |
 | `COYOTE3_INGEST_WATCH_ENABLED` | No | `1` or `0` | Enables scheduled watch-folder ingest. |
-| `COYOTE3_INGEST_WATCH_DIR` | Watcher enabled | Container path | Directory scanned for ingest manifests. |
 | `COYOTE3_INGEST_WATCH_FILENAME` | No | File name or glob | Manifest name pattern, for example `coyote3.yaml` or `*.yaml`. |
 | `COYOTE3_INGEST_DONE_SUFFIX` | No | File suffix | Suffix applied after successful watch-folder ingest. |
 | `COYOTE3_INGEST_FAILED_SUFFIX` | No | File suffix | Suffix applied after failed watch-folder ingest. |

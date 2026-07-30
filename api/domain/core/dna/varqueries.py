@@ -1,26 +1,20 @@
-"""Service-level DNA SNV query builders."""
+"""Typed MongoDB predicate construction for DNA small-variant review.
+
+The builder only evaluates the selected transcript stored on the variant. Full
+VEP transcript annotations are versioned separately in the VEP vault and are
+used for transcript detail and selection, not as a second query source.
+"""
 
 from __future__ import annotations
 
 import re
 from typing import Any
 
-HEMATOLOGY_LIKE_GROUPS: frozenset[str] = frozenset(
-    {
-        "myeloid",
-        "hematology",
-        "fusion",
-        "tumwgs",
-        "unknown",
-    }
-)
-SOLID_GROUPS: frozenset[str] = frozenset({"solid"})
-CASE_ONLY_GROUPS: frozenset[str] = frozenset({"swea", "gmsonco", "generic_case_only"})
-GENERIC_GERMLINE_GROUPS: frozenset[str] = frozenset({"generic_germline"})
-GENERIC_SOMATIC_GROUPS: frozenset[str] = frozenset({"generic_somatic"})
+from api.config.clinical_query_policy import SNV_QUERY_POLICY, SnvQueryException, SnvQueryPolicy
 
 
 def _case_clause(settings: dict[str, Any]) -> dict[str, Any]:
+    """Require configured evidence from the declared case genotype."""
     return {
         "GT": {
             "$elemMatch": {
@@ -37,26 +31,20 @@ def _case_clause(settings: dict[str, Any]) -> dict[str, Any]:
 
 
 def _case_or_untyped_clause(settings: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "$or": [
-            _case_clause(settings),
-            {
-                "GT": {
-                    "$elemMatch": {
-                        "AF": {
-                            "$gte": float(settings["min_freq"]),
-                            "$lte": float(settings["max_freq"]),
-                        },
-                        "DP": {"$gte": float(settings["min_depth"])},
-                        "VD": {"$gte": float(settings["min_alt_reads"])},
-                    }
-                }
-            },
-        ]
+    """Accept case evidence where upstream data does not label genotype role."""
+    evidence = {
+        "AF": {
+            "$gte": float(settings["min_freq"]),
+            "$lte": float(settings["max_freq"]),
+        },
+        "DP": {"$gte": float(settings["min_depth"])},
+        "VD": {"$gte": float(settings["min_alt_reads"])},
     }
+    return {"$or": [_case_clause(settings), {"GT": {"$elemMatch": evidence}}]}
 
 
 def _control_clause(settings: dict[str, Any]) -> dict[str, Any]:
+    """Require an eligible control when present; permit samples without one."""
     return {
         "$or": [
             {
@@ -73,215 +61,216 @@ def _control_clause(settings: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _popfreq_clause(settings: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "$or": [
-            {
-                "gnomad_frequency": {
-                    "$exists": True,
-                    "$type": "number",
-                    "$lte": float(settings["max_popfreq"]),
-                }
-            },
-            {"gnomad_frequency": {"$type": "string"}},
-            {"gnomad_frequency": None},
-            {"gnomad_frequency": {"$exists": False}},
-        ]
-    }
-
-
-def _consequence_clause(settings: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "$or": [
-            {"INFO.selected_CSQ.Consequence": {"$in": settings["filter_conseq"]}},
-            {"INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": settings["filter_conseq"]}}}},
-        ]
-    }
-
-
-def _csq_consequence_clause(settings: dict[str, Any]) -> dict[str, Any]:
-    return {"INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": settings["filter_conseq"]}}}}
-
-
-def _flt3_large_indel_escape(large_ins_regex: re.Pattern[str]) -> dict[str, Any]:
-    return {
-        "$and": [
-            {"genes": {"$in": ["FLT3"]}},
-            {
-                "$or": [
-                    {"INFO.SVTYPE": {"$exists": True}},
-                    {"ALT": large_ins_regex},
-                ]
-            },
-        ]
-    }
-
-
-def _generic_germline_clause(_settings: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "$or": [
-            {"INFO.MYELOID_GERMLINE": 1},
-            {
-                "FILTER": {"$in": ["GERMLINE"]},
-                "INFO.CSQ": {"$elemMatch": {"SYMBOL": "CEBPA"}},
-            },
-            {
-                "$and": [
-                    {"POS": {"$gt": 115256520}},
-                    {"POS": {"$lt": 115256538}},
-                    {"CHROM": 1},
-                ]
-            },
-        ]
-    }
-
-
-def _generic_somatic_clause(
-    settings: dict[str, Any], large_ins_regex: re.Pattern[str]
+def _population_frequency_clause(
+    settings: dict[str, Any], policy: SnvQueryPolicy
 ) -> dict[str, Any]:
-    return {
-        "$and": [
-            _case_clause(settings),
-            _control_clause(settings),
-            _popfreq_clause(settings),
-            {
-                "$or": [
-                    _consequence_clause(settings),
-                    _flt3_large_indel_escape(large_ins_regex),
-                ]
-            },
-        ]
-    }
+    """Require every available configured population frequency to be acceptable.
+
+    Missing, null, and non-numeric values are retained because they cannot be
+    safely compared with a numeric threshold. A finding is excluded when any
+    configured numeric population source exceeds ``max_popfreq``.
+    """
+    threshold = float(settings["max_popfreq"])
+    clauses = [
+        {
+            "$or": [
+                {field: {"$lte": threshold, "$type": "number"}},
+                {field: {"$exists": False}},
+                {field: None},
+                {field: {"$type": "string"}},
+            ]
+        }
+        for field in policy.population_frequency_fields
+    ]
+    return {"$and": clauses}
 
 
-def _case_only_clause(settings: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "$and": [
-            _case_or_untyped_clause(settings),
-            _csq_consequence_clause(settings),
-        ]
-    }
+def _selected_consequence_clause(terms: list[str]) -> dict[str, Any]:
+    """Match only the selected transcript consequence persisted on the variant."""
+    return {"INFO.selected_CSQ.Consequence": {"$in": terms}}
 
 
-def build_query(assay_group: str, settings: dict, *, intent: str = "somatic") -> dict:
-    """Construct an intent-specific SNV query from assay-group rules and filters."""
-    large_ins_regex = re.compile(r"\w{10,200}", re.IGNORECASE)
-    gene_pos_filter = build_pos_genes_filter(settings)
+def _exception_clause(exception: SnvQueryException) -> dict[str, Any]:
+    """Translate a validated exception into its restricted MongoDB predicate."""
+    clauses: list[dict[str, Any]] = []
+    if exception.genes:
+        clauses.append({"INFO.selected_CSQ.SYMBOL": {"$in": list(exception.genes)}})
+    if exception.selected_consequences:
+        clauses.append(
+            {"INFO.selected_CSQ.Consequence": {"$in": list(exception.selected_consequences)}}
+        )
+    if exception.filter_values:
+        clauses.append({"FILTER": {"$in": list(exception.filter_values)}})
+    if exception.chromosomes:
+        clauses.append({"CHROM": {"$in": list(exception.chromosomes)}})
+    if exception.position_min is not None or exception.position_max is not None:
+        bounds: dict[str, int] = {}
+        if exception.position_min is not None:
+            bounds["$gte"] = exception.position_min
+        if exception.position_max is not None:
+            bounds["$lte"] = exception.position_max
+        clauses.append({"POS": bounds})
+    if exception.simple_ids:
+        clauses.append({"simple_id": {"$in": list(exception.simple_ids)}})
+    for field in exception.info_fields_present:
+        clauses.append({f"INFO.{field}": {"$exists": True}})
+    for field, value in sorted(exception.info_equals.items()):
+        clauses.append({f"INFO.{field}": value})
+    if exception.alt_regex:
+        clauses.append({"ALT": re.compile(exception.alt_regex, re.IGNORECASE)})
+    return clauses[0] if len(clauses) == 1 else {"$and": clauses}
+
+
+def _consequence_admission_clause(
+    *,
+    policy: SnvQueryPolicy,
+    assay_group: str,
+    asp_id: str,
+    subpanel_id: str,
+    intent: str,
+    terms: list[str],
+) -> dict[str, Any]:
+    """Allow selected terms or a configured clinically validated extension."""
+    clauses = [_selected_consequence_clause(terms)]
+    clauses.extend(
+        _exception_clause(exception)
+        for exception in policy.exceptions_for(
+            assay_group=assay_group,
+            asp_id=asp_id,
+            subpanel_id=subpanel_id,
+            intent=intent,
+            mode="extend_consequence",
+        )
+    )
+    return clauses[0] if len(clauses) == 1 else {"$or": clauses}
+
+
+def _admission_clause(
+    *, policy: SnvQueryPolicy, assay_group: str, asp_id: str, subpanel_id: str, intent: str
+) -> dict[str, Any]:
+    """Return explicit admission paths, or a predicate that can never match."""
+    clauses = [
+        _exception_clause(exception)
+        for exception in policy.exceptions_for(
+            assay_group=assay_group,
+            asp_id=asp_id,
+            subpanel_id=subpanel_id,
+            intent=intent,
+            mode="admit",
+        )
+    ]
+    if not clauses:
+        return {"_id": {"$exists": False}}
+    return clauses[0] if len(clauses) == 1 else {"$or": clauses}
+
+
+def _exclusion_clause(
+    *, policy: SnvQueryPolicy, assay_group: str, asp_id: str, subpanel_id: str, intent: str
+) -> dict[str, Any]:
+    """Exclude typed clinical matches after the selected baseline is applied."""
+    clauses = [
+        _exception_clause(exception)
+        for exception in policy.exceptions_for(
+            assay_group=assay_group,
+            asp_id=asp_id,
+            subpanel_id=subpanel_id,
+            intent=intent,
+            mode="exclude",
+        )
+    ]
+    return {"$nor": clauses} if clauses else {}
+
+
+def build_query(
+    assay_group: str,
+    settings: dict[str, Any],
+    *,
+    intent: str = "somatic",
+    policy: SnvQueryPolicy = SNV_QUERY_POLICY,
+) -> dict[str, Any]:
+    """Build an intent-specific SNV query from filters and released policy.
+
+    ``settings`` carries sample identity plus resolved ``asp_id`` and
+    ``subpanel_id``. They select configured exception scopes; they are never
+    interpreted as data-store field paths or query operators.
+    """
     normalized_group = str(assay_group or "").strip().lower()
     normalized_intent = str(intent or "somatic").strip().lower()
     if normalized_intent not in {"somatic", "germline"}:
         raise ValueError("intent must be somatic or germline")
+    asp_id = str(settings.get("asp_id") or "").strip().lower()
+    subpanel_id = str(settings.get("subpanel_id") or "base").strip().lower()
+    baseline = policy.policy_for(assay_group=normalized_group, intent=normalized_intent)
+    gene_position_scope = build_pos_genes_filter(settings)
+    terms = list(settings.get("filter_conseq") or [])
 
-    query: dict[str, Any] = {"SAMPLE_ID": settings["id"]}
-
-    if normalized_intent == "germline" or normalized_group in GENERIC_GERMLINE_GROUPS:
-        query = {
-            "SAMPLE_ID": settings["id"],
-            "$and": [
-                gene_pos_filter,
-                _generic_germline_clause(settings),
-            ],
-        }
-
-    elif normalized_group in GENERIC_SOMATIC_GROUPS:
-        query = {
-            "SAMPLE_ID": settings["id"],
-            "$and": [
-                gene_pos_filter,
-                _generic_somatic_clause(settings, large_ins_regex),
-            ],
-        }
-
-    elif normalized_group in HEMATOLOGY_LIKE_GROUPS:
-        query = {
-            "SAMPLE_ID": settings["id"],
-            "$and": [
-                gene_pos_filter,
-                _generic_somatic_clause(settings, large_ins_regex),
-            ],
-        }
-
-    elif normalized_group in CASE_ONLY_GROUPS:
-        query = {
-            "SAMPLE_ID": settings["id"],
-            "$and": [
-                gene_pos_filter,
-                _case_only_clause(settings),
-            ],
-        }
-
-    elif normalized_group in SOLID_GROUPS:
-        query = {
-            "SAMPLE_ID": settings["id"],
-            "$and": [
-                gene_pos_filter,
-                {
-                    "$and": [
-                        _case_clause(settings),
-                        _control_clause(settings),
-                        _popfreq_clause(settings),
-                        {
-                            "$or": [
-                                _consequence_clause(settings),
-                                {
-                                    "$and": [
-                                        {"genes": {"$in": ["TERT", "NFKBIE"]}},
-                                        {
-                                            "$or": [
-                                                {
-                                                    "INFO.selected_CSQ.Consequence": {
-                                                        "$in": [
-                                                            "regulatory_region_variant",
-                                                            "TF_binding_site_variant",
-                                                        ]
-                                                    }
-                                                },
-                                                {
-                                                    "INFO.CSQ": {
-                                                        "$elemMatch": {
-                                                            "Consequence": {
-                                                                "$in": [
-                                                                    "regulatory_region_variant",
-                                                                    "TF_binding_site_variant",
-                                                                ]
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                            ]
-                                        },
-                                    ]
-                                },
-                            ]
-                        },
-                    ]
-                },
-            ],
-        }
-
-    return query
+    clauses: list[dict[str, Any]] = [gene_position_scope]
+    if baseline == "paired":
+        clauses.extend(
+            [
+                _case_clause(settings),
+                _control_clause(settings),
+                _population_frequency_clause(settings, policy),
+                _consequence_admission_clause(
+                    policy=policy,
+                    assay_group=normalized_group,
+                    asp_id=asp_id,
+                    subpanel_id=subpanel_id,
+                    intent=normalized_intent,
+                    terms=terms,
+                ),
+            ]
+        )
+    elif baseline == "case_only":
+        clauses.extend(
+            [
+                _case_or_untyped_clause(settings),
+                _population_frequency_clause(settings, policy),
+                _consequence_admission_clause(
+                    policy=policy,
+                    assay_group=normalized_group,
+                    asp_id=asp_id,
+                    subpanel_id=subpanel_id,
+                    intent=normalized_intent,
+                    terms=terms,
+                ),
+            ]
+        )
+    else:  # exception_only
+        clauses.append(
+            _admission_clause(
+                policy=policy,
+                assay_group=normalized_group,
+                asp_id=asp_id,
+                subpanel_id=subpanel_id,
+                intent=normalized_intent,
+            )
+        )
+    exclusion = _exclusion_clause(
+        policy=policy,
+        assay_group=normalized_group,
+        asp_id=asp_id,
+        subpanel_id=subpanel_id,
+        intent=normalized_intent,
+    )
+    if exclusion:
+        clauses.append(exclusion)
+    return {"SAMPLE_ID": settings["id"], "$and": [clause for clause in clauses if clause]}
 
 
-def build_pos_genes_filter(settings: dict) -> dict:
-    """Build optional POS/gene/fp/irrelevant partial filters."""
+def build_pos_genes_filter(settings: dict[str, Any]) -> dict[str, Any]:
+    """Build optional position, gene, false-positive, and irrelevant restrictions."""
     pos_list = settings.get("disp_pos", [])
     genes_list = settings.get("filter_genes", [])
     fp = settings.get("fp", "")
     irrelevant = settings.get("irrelevant", "")
-
-    partial_query = {}
-
+    partial_query: dict[str, Any] = {}
     if pos_list:
         partial_query["POS"] = {"$in": pos_list}
     elif genes_list:
         partial_query["genes"] = {"$in": genes_list}
-
     if fp:
         partial_query["fp"] = fp
-
     if irrelevant:
         partial_query["irrelevant"] = irrelevant
-
-    if partial_query:
-        return {"$and": [partial_query]}
-    return {}
+    return {"$and": [partial_query]} if partial_query else {}

@@ -26,7 +26,6 @@ def test_all_collections_dummy_fixture_validates():
         "mane_select",
         "oncokb_genes",
         "permissions",
-        "refseq_canonical",
         "roles",
         "samples",
     }

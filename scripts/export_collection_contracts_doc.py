@@ -51,7 +51,6 @@ def main() -> int:
     )
     lines.append("- `roles.permissions[]` must reference `permissions.permission_id`.")
     lines.append("- `users.roles[]` must reference `roles.role_id`.")
-    lines.append("- `refseq_canonical.gene` should exist in `hgnc_genes.hgnc_symbol`.")
     lines.append("")
     lines.append("## DNA vs RNA sample rules")
     lines.append("")

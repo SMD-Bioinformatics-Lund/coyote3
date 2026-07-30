@@ -73,18 +73,20 @@ richness of the UI.
 
 ## Ingest Manifest
 
-Coyote3 ingest starts from a YAML manifest. The manifest identifies the sample,
-assay, subpanel, environment/profile, case/control metadata, and file paths that
-the API and workers can read inside the container.
+Coyote3 ingest starts from a pipeline YAML manifest. The manifest identifies the
+sample, assay, subpanel, environment/profile, case/control metadata, and file
+paths. The ingest boundary maps pipeline identity fields to the canonical sample
+contract before validation and persistence.
 
 Minimum DNA manifest fields:
 
 | Field | Meaning |
 | --- | --- |
 | `name` | Stable sample display name. This is used in user-facing sample URLs. |
-| `assay` | ASP identifier. Must match an active ASP document. |
-| `subpanel` | Subpanel identifier. Use `base` when no subpanel applies. |
-| `profile` | Runtime environment/profile such as `production`, `development`, or validation profile. |
+| `assay` | Pipeline ASP identifier. Ingest maps this to `asp_id`, which must match an active ASP document. |
+| `subpanel` | Pipeline subpanel identifier. Ingest maps this to `subpanel_id`; use `base` when no subpanel applies. |
+| `profile` | Pipeline environment/profile. Ingest maps this to `environment`, such as `production`, `development`, or a validation environment. |
+| `sequencing_technology` | Pipeline platform name. Ingest maps this to the canonical `platform` field, for example `illumina`. |
 | `genome_build` | Reference genome build, normally `37` or `38`. |
 | `case` | Case sample metadata including id, clarity/pool fields when available, run, FFPE state, reads, and purity. |
 | `control` | Control sample metadata for paired samples. Omit only for unpaired samples. |
@@ -93,14 +95,17 @@ Minimum DNA manifest fields:
 !!! caution "Container-readable paths"
 
     File paths in manifests must be readable from the API and Celery worker
-    containers. Set `COYOTE3_DATA_HOST_ROOT` so host paths are mounted
-    consistently at the fixed container path `/data`.
+    containers. Compose mounts `COYOTE3_DATA_HOST_ROOT` both at `/data` and at
+    the same absolute host path inside API and Celery containers. Pipeline source
+    paths below that root remain valid and are persisted unchanged.
 
 ## Ingest Flow
 
 1. The watch-folder task or internal ingest API receives a YAML manifest.
 2. The ingest service validates the manifest against the active contracts.
-3. The service resolves ASP and ASPC by `assay`, `subpanel`, and `profile`.
+3. The ingest boundary maps pipeline `assay`, `subpanel`, and `profile` to
+   `asp_id`, `subpanel_id`, and `environment`; the service then resolves ASP and
+   ASPC from those canonical identifiers.
 4. Default filter sections are copied from ASPC into the sample document:
    `filters.snv`, `filters.cnv`, `filters.cov`, and other enabled analysis
    sections.

@@ -165,7 +165,6 @@ echo "[step] preparing seed bundle from ${SEED_FILE}"
 required_collections=(
   permissions
   roles
-  refseq_canonical
   hgnc_genes
   vep_metadata
   asp_configs

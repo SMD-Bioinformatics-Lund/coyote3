@@ -17,6 +17,17 @@ from api.config.paths import CLINICAL_VOCABULARY_PATH
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _SOFTWARE_AUTH_PROVIDERS = frozenset({"local", "ldap"})
+_TRANSCRIPT_SELECTION_SOURCES = frozenset(
+    {
+        "ncbi_mane_plus_clinical",
+        "ensembl_mane_plus_clinical",
+        "ncbi_mane_select",
+        "ensembl_mane_select",
+        "vep_canonical_protein_coding",
+        "first_protein_coding",
+        "first_available",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -37,6 +48,7 @@ class ClinicalVocabulary:
     genelist_standard_types: tuple[str, ...]
     genelist_adhoc_types: tuple[str, ...]
     required_aspc_reporting_fields: tuple[str, ...]
+    transcript_selection_order: tuple[str, ...]
 
 
 def _string_tuple(
@@ -227,6 +239,22 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
     required_aspc_reporting_fields = _identifier_tuple(
         reporting.get("required_aspc_fields"), key="reporting.required_aspc_fields"
     )
+    transcript_selection_order = _identifier_tuple(
+        reporting.get("transcript_selection_order"),
+        key="reporting.transcript_selection_order",
+    )
+    if set(transcript_selection_order) != _TRANSCRIPT_SELECTION_SOURCES:
+        missing = _TRANSCRIPT_SELECTION_SOURCES - set(transcript_selection_order)
+        unknown = set(transcript_selection_order) - _TRANSCRIPT_SELECTION_SOURCES
+        details = []
+        if missing:
+            details.append("missing: " + ", ".join(sorted(missing)))
+        if unknown:
+            details.append("unknown: " + ", ".join(sorted(unknown)))
+        raise RuntimeError(
+            "reporting.transcript_selection_order must contain each supported selector exactly once"
+            + (f" ({'; '.join(details)})" if details else "")
+        )
     return ClinicalVocabulary(
         assay_categories=assay_categories,
         assay_families=assay_families,
@@ -242,6 +270,7 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         genelist_standard_types=genelist_standard_types,
         genelist_adhoc_types=genelist_adhoc_types,
         required_aspc_reporting_fields=required_aspc_reporting_fields,
+        transcript_selection_order=transcript_selection_order,
     )
 
 

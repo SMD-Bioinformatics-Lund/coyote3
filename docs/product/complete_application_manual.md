@@ -561,9 +561,15 @@ variant detail page and are not stored as a separate MongoDB collection.
 !!! info "DNA transcript selection"
 
     DNA ingest selects `selected_CSQ` using clinical transcript priority:
-    HGNC MANE Plus Clinical first, then HGNC MANE Select, then the center
-    canonical map after HGNC-symbol normalization, VEP canonical,
+    NCBI/RefSeq MANE Plus Clinical, Ensembl MANE Plus Clinical, NCBI/RefSeq
+    MANE Select, Ensembl MANE Select, VEP canonical protein-coding,
     protein-coding transcript, and finally the first available transcript.
+
+    Each MANE selector matches the native VEP `Feature` namespace against the
+    corresponding HGNC value. NCBI selectors can select only `NM_...` or
+    `NR_...` rows; Ensembl selectors can select only `ENST...` rows. A linked
+    MANE accession is retained for review, but cannot cause an `ENST...` row to
+    outrank an available RefSeq row.
     HGNC resolution uses HGNC ID first, then approved symbol, previous symbol,
     and alias symbol. If VEP uses a previous or alias gene symbol, HGNC metadata
     normalizes the displayed symbol to the approved symbol and stores the raw VEP
@@ -573,23 +579,23 @@ variant detail page and are not stored as a separate MongoDB collection.
 
     DNA ingest stores all parsed transcript summaries in `anno_vep` using the
     variant `simple_id_hash` and the sample VEP version. Variant rows keep only
-    the selected transcript plus compact alternate summaries. When a reviewer
-    selects another transcript on the detail page, Coyote3 reads the matching
-    `anno_vep` document for that exact VEP version and updates
-    `INFO.selected_CSQ`, `INFO.CSQ`, and `INFO.selected_CSQ_criteria`.
+    the selected transcript. When a reviewer selects another transcript on the
+    detail page, Coyote3 reads the matching `anno_vep` document for that exact
+    VEP version and updates `INFO.selected_CSQ` and
+    `INFO.selected_CSQ_criteria`.
 
 Each stored transcript summary carries transcript provenance fields used by the
 detail page:
 
 | Field | Purpose |
 | --- | --- |
-| `transcript_tags` | Compact provenance markers such as `ncbi_mane_plus_clinical`, `ensembl_mane_plus_clinical`, `ncbi_mane_select`, `ensembl_mane_select`, `db_canonical`, and `vep_canonical`. |
-| `canonical_source` | Canonical authority for the row, for example `refseq_canonical` or `vep_canonical`. |
+| `transcript_tags` | Compact provenance markers such as `ncbi_mane_plus_clinical`, `ensembl_mane_plus_clinical`, `ncbi_mane_select`, `ensembl_mane_select`, and `vep_canonical`. |
+| `canonical_source` | Canonical authority for the row. The current workflow records `vep_canonical` only when VEP supplies that marker. |
 | `is_canonical` | Boolean display helper for the transcript table. |
 
 The UI renders these fields as tooltip badges in the transcript consequence
-table. This lets reviewers distinguish center canonical, RefSeq MANE, Ensembl
-MANE, and VEP-provided transcript evidence without opening raw annotation data.
+table. This lets reviewers distinguish RefSeq MANE, Ensembl MANE, and
+VEP-provided transcript evidence without opening raw annotation data.
 
 SIFT, PolyPhen, CADD, and similar predictor values are stored on the same
 versioned transcript rows in `anno_vep.CSQ[]`. They are not maintained as an

@@ -7,7 +7,8 @@ section. Deploy API, worker, and scheduler with the same directory revision.
 | File | Configure here |
 | --- | --- |
 | `contact.toml` | Center department, support channels, service hours, and any number of contact cards. |
-| `clinical_vocabulary.toml` | Local assay groups, sequencing platforms, enabled local/LDAP providers, manifest file keys, and analysis-to-file bindings. |
+| `clinical_vocabulary.toml` | Enabled local/LDAP providers, manifest file keys, analysis-to-file bindings, and the released DNA transcript-selection order. |
+| `clinical_query_policy.toml` | Released SNV baseline evidence models, population-frequency sources, and typed assay/ASP/subpanel clinical exceptions. |
 | `collections.toml` | MongoDB database and physical collection names. |
 | `assay_catalog.yaml` | Public assay catalog headings, narrative text, TAT, input material, and ISGL references. |
 | `filter_flag_metadata.yaml` | User-facing VCF filter labels, severity, and tooltips. |

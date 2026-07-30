@@ -31,7 +31,7 @@ Use the repository seed as the baseline:
 Seed source split:
 
 - `all_collections_dummy` provides demo/runtime collections (including `asp_configs`, `assay_specific_panels`, and demo data payload collections).
-- `seed_data` provides compressed baseline reference/RBAC collections (`permissions`, `roles`, `refseq_canonical`, `hgnc_genes`, `vep_metadata`).
+- `seed_data` provides compressed baseline reference/RBAC collections (`permissions`, `roles`, `hgnc_genes`, `vep_metadata`).
 
 ## 1. Preflight
 
@@ -151,11 +151,10 @@ Required order before first DNA/RNA sample ingest:
 
 1. `permissions`
 2. `roles`
-3. `refseq_canonical` (required for DNA canonical transcript selection)
-4. `hgnc_genes` (required for gene metadata endpoints/UI)
-5. `vep_metadata` (required reference metadata for variant interpretation)
-6. `asp_configs`
-7. `assay_specific_panels`
+3. `hgnc_genes` (required for MANE transcript selection and gene metadata endpoints/UI)
+4. `vep_metadata` (required reference metadata for variant interpretation)
+5. `asp_configs`
+6. `assay_specific_panels`
 
 Notes:
 
@@ -176,7 +175,7 @@ Notes:
 - Non-RBAC admin baseline collections (`asp_configs`, `assay_specific_panels`, `insilico_genelists`) remain demo-safe first-run data (`assay_1`, `hematology`) and should be replaced with center-specific values during deployment.
 - `asp_configs` and `assay_specific_panels` are demo/bootstrap collections
   sourced from `--seed-file`; compressed files in `tests/data/seed_data` are optional overrides.
-- `permissions`, `roles`, `refseq_canonical`, `hgnc_genes`, and `vep_metadata`
+- `permissions`, `roles`, `hgnc_genes`, and `vep_metadata`
   are sourced from `--reference-seed-data` when that argument is provided.
 
 Optional collections:

@@ -435,6 +435,8 @@ def list_variants_payload(
             "filter_conseq": filter_conseq,
             "filter_genes": filter_genes,
             "disp_pos": disp_pos,
+            "asp_id": sample.get("asp_id"),
+            "subpanel_id": sample.get("subpanel_id") or assay_config.get("subpanel_id"),
         },
         intent=intent,
     )
@@ -620,6 +622,15 @@ def variant_context_payload(
     expression = service.expression_repository.get_expression_data(
         list(variant.get("transcripts", []))
     )
+    vep_version = require_sample_vep_version(sample)
+    transcript_vault = (
+        service.anno_vep_repository.get_for_variant(
+            simple_id_hash=variant.get("simple_id_hash"),
+            vep_version=vep_version,
+        )
+        or {}
+    )
+    transcripts = [dict(csq) for csq in transcript_vault.get("CSQ") or [] if isinstance(csq, dict)]
     selected_csq = variant.get("INFO", {}).get("selected_CSQ", {})
     csq_terms = consequence_terms(selected_csq.get("Consequence"))
     variant_desc = "NOTHING_IN_HERE"
@@ -682,6 +693,7 @@ def variant_context_payload(
             "subpanel": subpanel,
         },
         "variant": variant,
+        "transcripts": transcripts,
         "annotations": annotations,
         "latest_classification": latest_classification,
         "other_classifications": other_classifications,
@@ -705,10 +717,10 @@ def variant_context_payload(
         "sample_ids": sample_ids,
         "bam_id": service.bam_record_repository.get_bams(sample_ids),
         "vep_var_class_translations": service.vep_metadata_repository.get_variant_class_translations(
-            require_sample_vep_version(sample)
+            vep_version
         ),
         "vep_conseq_translations": service.vep_metadata_repository.get_conseq_translations(
-            require_sample_vep_version(sample)
+            vep_version
         ),
         "assay_group_mappings": service.assay_panel_repository.get_asp_group_mappings(),
     }

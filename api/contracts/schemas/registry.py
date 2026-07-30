@@ -42,7 +42,6 @@ from api.contracts.schemas.reference import (
     OncoKbGenesDoc,
     OncoKbGenesPublicDoc,
     OncoKbPublicDoc,
-    RefSeqCanonicalDoc,
     VepMetadataDoc,
 )
 from api.contracts.schemas.rna import FusionsDoc, RnaClassificationDoc, RnaExpressionDoc, RnaQcDoc
@@ -87,7 +86,6 @@ COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "oncokb_genes_public": TypeAdapter(OncoKbGenesPublicDoc),
     "oncokb_cancer_genes_public": TypeAdapter(OncoKbCancerGenesPublicDoc),
     "clinpgx_genes_public": TypeAdapter(ClinPgxGenesPublicDoc),
-    "refseq_canonical": TypeAdapter(RefSeqCanonicalDoc),
     "vep_metadata": TypeAdapter(VepMetadataDoc),
     "asp_to_groups": TypeAdapter(AssayPanelToAssayGroupMappingDoc),
     "app_controls": TypeAdapter(AppControlsDoc),

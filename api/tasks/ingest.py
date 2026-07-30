@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import shutil
 from pathlib import Path
 from typing import Any
@@ -15,12 +14,13 @@ from api.app.deps.services import get_audit_service, get_internal_ingest_service
 from api.app.lifecycle import ensure_runtime_initialized
 from api.celery_app import celery_app
 from api.config import get_runtime_mode_flags
+from api.config.paths import INGEST_WATCH_DIR
 from api.config.runtime_settings import DefaultConfig
 from api.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
 from api.tasks.controls import disabled_result, task_family_enabled
 
 logger = get_task_logger(__name__)
-CONTAINER_DATA_ROOT = Path("/data")
+WATCH_INGEST_DIRECTORY = INGEST_WATCH_DIR
 WATCH_INGEST_LOCK_PATH = Path(DefaultConfig.COYOTE3_INGEST_WATCH_LOCK_PATH)
 
 
@@ -58,22 +58,8 @@ def _unique_marker_path(manifest_path: Path, suffix: str, task_id: str | None) -
     return manifest_path.with_name(f"{manifest_path.name}{suffix}.{task_token}")
 
 
-def _container_visible_path(path_value: str | os.PathLike[str]) -> Path:
-    """Map center host data paths to the fixed container data mount."""
-    path_obj = Path(path_value).expanduser()
-    host_root = str(DefaultConfig.COYOTE3_DATA_HOST_ROOT).strip()
-    if not host_root or not path_obj.is_absolute():
-        return path_obj
-    host_root_path = Path(host_root).expanduser()
-    try:
-        relative = path_obj.relative_to(host_root_path)
-    except ValueError:
-        return path_obj
-    return CONTAINER_DATA_ROOT / relative
-
-
 def _translate_payload_source_path(value: Any, manifest_path: Path) -> Any:
-    """Resolve relative paths and map configured host-root paths to /data."""
+    """Resolve a manifest-relative path to a container-visible filesystem path."""
     if isinstance(value, dict):
         translated = dict(value)
         if translated.get("path"):
@@ -84,7 +70,7 @@ def _translate_payload_source_path(value: Any, manifest_path: Path) -> Any:
     path_value = Path(str(value))
     if not path_value.is_absolute():
         path_value = (manifest_path.parent / path_value).resolve()
-    return str(_container_visible_path(path_value))
+    return str(path_value)
 
 
 def _resolve_relative_sample_paths(payload: dict[str, Any], manifest_path: Path) -> dict[str, Any]:
@@ -105,11 +91,7 @@ def _resolve_relative_sample_paths(payload: dict[str, Any], manifest_path: Path)
 
 
 def _run_watch_directory_once(self) -> dict[str, Any]:
-    raw_watch_dir = str(DefaultConfig.COYOTE3_INGEST_WATCH_DIR).strip()
-    if not raw_watch_dir:
-        return {"status": "disabled", "reason": "COYOTE3_INGEST_WATCH_DIR is not configured"}
-
-    watch_dir = _container_visible_path(raw_watch_dir)
+    watch_dir = WATCH_INGEST_DIRECTORY
     if not watch_dir.exists():
         return {"status": "not_found", "watch_dir": str(watch_dir), "scanned": 0}
     if not watch_dir.is_dir():

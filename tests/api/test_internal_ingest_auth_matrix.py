@@ -272,7 +272,7 @@ async def test_internal_ingest_async_sample_bundle_upload_stages_files(monkeypat
         captured["queue"] = queue
         return SimpleNamespace(id="task-upload")
 
-    monkeypatch.setattr(internal_router.DefaultConfig, "CELERY_INGEST_STAGING_DIR", str(tmp_path))
+    monkeypatch.setattr(internal_router, "INGEST_STAGING_DIR", tmp_path)
     monkeypatch.setattr(internal_router.ingest_sample_bundle_task, "apply_async", _fake_apply_async)
     monkeypatch.setattr(internal_router, "_enforce_access", lambda *_args, **_kwargs: None)
     yaml_upload = _Upload(

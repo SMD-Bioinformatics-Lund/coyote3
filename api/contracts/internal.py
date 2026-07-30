@@ -120,10 +120,9 @@ class InternalCollectionBulkInsertRequest(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "collection": "refseq_canonical",
+                "collection": "permissions",
                 "documents": [
-                    {"gene": "EGFR", "canonical": "NM_005228"},
-                    {"gene": "TP53", "canonical": "NM_000546"},
+                    {"permission_id": "samples:read", "label": "Read samples"},
                 ],
                 "ignore_duplicates": True,
             }

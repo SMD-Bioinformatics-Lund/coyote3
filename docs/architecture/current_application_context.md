@@ -101,9 +101,11 @@ authoritative VEP metadata version for DNA filtering, transcript display, and
 report generation. Flat fields such as `vep_version` are rejected by the sample
 contract.
 
-Manifest and API clients must submit the keys exactly as listed. VCF headers are
-an external input format, so punctuation and case in a recognized header label
-are normalized during ingest before being saved under the canonical key.
+When a manifest or API client supplies `database_versions`, it must submit the
+keys exactly as listed. DNA VCF headers are the normal source; punctuation and
+case in a recognized header label are normalized during ingest before being
+saved under the canonical key. Explicit manifest values take precedence for the
+same key.
 
 !!! warning "Configuration boundary"
 

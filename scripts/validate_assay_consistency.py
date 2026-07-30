@@ -39,7 +39,6 @@ ENV_ALIASES = {
 REQUIRED_BASELINE_COLLECTIONS = (
     "permissions",
     "roles",
-    "refseq_canonical",
     "hgnc_genes",
     "vep_metadata",
     "asp_configs",
@@ -96,7 +95,6 @@ def _load_reference_seed_pack(path: str) -> dict[str, Any]:
     required_pack = {
         "hgnc_genes": "hgnc_genes.seed.ndjson",
         "permissions": "permissions.seed.ndjson",
-        "refseq_canonical": "refseq_canonical.seed.ndjson",
         "roles": "roles.seed.ndjson",
         "vep_metadata": "vep_metadata.seed.ndjson",
     }

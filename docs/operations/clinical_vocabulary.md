@@ -45,6 +45,15 @@ adhoc_types = ["adhoc_snv", "adhoc_cnv", "adhoc_fusion", "adhoc_expression", "ad
 
 [reporting]
 required_aspc_fields = ["report_header", "report_method", "general_report_summary"]
+transcript_selection_order = [
+  "ncbi_mane_plus_clinical",
+  "ensembl_mane_plus_clinical",
+  "ncbi_mane_select",
+  "ensembl_mane_select",
+  "vep_canonical_protein_coding",
+  "first_protein_coding",
+  "first_available",
+]
 
 [files.dna]
 keys = ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "biomarkers", "pgx"]
@@ -96,11 +105,51 @@ PGX = ["pgx"]
 | `[authentication]` | `providers` | One or both of `local`, `ldap` | Defines the enabled values permitted in a user's `auth_type` list. `local` uses username and local password; `ldap` uses email and directory credentials. |
 | `[genelist]` | `standard_types`, `adhoc_types` | Non-empty unique identifiers with no overlap | Defines selectable ISGL list types and determines which options appear when the ISGL ad-hoc switch is enabled. |
 | `[reporting]` | `required_aspc_fields` | Non-empty unique ASPC reporting field identifiers | Names the reporting values administrators must supply for an active report-capable ASPC. |
+| `[reporting]` | `transcript_selection_order` | Ordered array containing every selector in the table below exactly once | Determines the clinical transcript selection order during DNA VCF ingest. The first selector with a matching CSQ row wins; within that selector, VEP impact is ordered HIGH, MODERATE, LOW, then MODIFIER. |
 | `[files.dna]` | `keys` | Non-empty unique manifest-key identifiers | Declares the accepted file keys for DNA sample YAML `files`. |
 | `[files.rna]` | `keys` | Non-empty unique manifest-key identifiers | Declares the accepted file keys for RNA sample YAML `files`. |
 | `[files.required_by_family]` | family arrays | Keys declared for that family's omics category | Establishes the baseline required input files for `panel-dna`, `wgs`, `panel-rna`, and `wts`. ASP-specific requirements can make additional configured keys mandatory. |
 | `[analysis.dna]` / `[analysis.rna]` | `types` | Supported application analysis types | Enables the analysis types that the center intends to use for that omics category. |
 | `[analysis.<omics>.file_keys]` | one array per enabled type | One or more configured keys for that omics category | Binds each analysis workflow to the manifest field(s) it reads. The first key is the primary path used by single-file consumers such as report images. |
+
+### Transcript Selection Selectors
+
+`reporting.transcript_selection_order` is ordered policy, not an arbitrary
+numeric priority. It must contain each selector below exactly once. The default
+puts RefSeq/NCBI sources before their Ensembl equivalents.
+
+| Selector | Stored source fields and collections | Candidate requirement | Default position | Notes |
+| --- | --- | --- | --- | --- |
+| `ncbi_mane_plus_clinical` | `hgnc_genes.refseq_mane_plus_clinical` | An `NM_...` or `NR_...` VEP `Feature` matching the HGNC RefSeq MANE Plus Clinical accession | 1 | Native RefSeq clinical transcript. |
+| `ensembl_mane_plus_clinical` | `hgnc_genes.ensembl_mane_plus_clinical` | An `ENST...` VEP `Feature` matching the HGNC Ensembl MANE Plus Clinical accession | 2 | Used only when no native NCBI clinical row is present. |
+| `ncbi_mane_select` | `hgnc_genes.refseq_mane_select` | An `NM_...` or `NR_...` VEP `Feature` matching the HGNC RefSeq MANE Select accession | 3 | Native RefSeq MANE Select fallback. |
+| `ensembl_mane_select` | `hgnc_genes.ensembl_mane_select` | An `ENST...` VEP `Feature` matching the HGNC Ensembl MANE Select accession | 4 | Used only when no native RefSeq MANE Select row is present. |
+| `vep_canonical_protein_coding` | VEP/`anno_vep.CSQ.CANONICAL`, `anno_vep.CSQ.BIOTYPE` | VEP `CANONICAL=YES` and `BIOTYPE=protein_coding` | 5 | Prevents a non-coding VEP canonical row from replacing a protein-coding fallback. |
+| `first_protein_coding` | VEP/`anno_vep.CSQ.BIOTYPE` | Any protein-coding VEP CSQ row | 6 | Deterministic biological fallback. |
+| `first_available` | VEP/`anno_vep.CSQ[]` | Any VEP CSQ row | 7 | Required terminal fallback. |
+
+### Selection Result Storage
+
+The configured selector is applied during ingest, before analytical filtering.
+The selected result is persisted in the following collection fields:
+
+| Collection | Field | Stored value | Relationship to the selector order |
+| --- | --- | --- | --- |
+| `variants` | `INFO.selected_CSQ` | The compact selected VEP transcript row: `Feature`, `MANE`, `MANE_PLUS_CLINICAL`, HGNC fields, HGVS, consequence, impact, and predictor values. | The row selected by the first matching selector. NCBI selector results use a native RefSeq `Feature`; Ensembl selector results use a native `ENST...` `Feature`. |
+| `variants` | `INFO.selected_CSQ_criteria` | One selector identifier from `reporting.transcript_selection_order`. | Records exactly which configured selector selected the row, for example `ncbi_mane_plus_clinical`. |
+| `anno_vep` | `CSQ[]` | Every parsed VEP transcript row for the sample VEP version. | Supplies alternate transcript review; it is not re-ranked by the SNV query. |
+| `anno_vep` | `CSQ[].transcript_tags` | All matching HGNC/VEP provenance markers for that row. | Allows the UI to display NCBI/Ensembl MANE and VEP canonical badges even when that row was not selected. |
+| `anno_vep` | `CSQ[].canonical_source` and `is_canonical` | VEP canonical display provenance. | Populated only from VEP `CANONICAL=YES`; no center canonical-transcript source exists. |
+
+Changing this order changes future-ingest selected transcript provenance and
+can alter filtering and report content. Review it as a clinical configuration
+change, restart API and workers together, and re-ingest representative
+non-production samples before release. Linked VEP MANE accessions remain stored
+for review, but they do not change the namespace of the selected `Feature`.
+
+There is no separate center canonical-transcript collection. HGNC/MANE is the
+only curated transcript authority; VEP supplies the two deterministic fallback
+selectors.
 
 ## Software-Owned Sequencing Capability
 
@@ -145,6 +194,8 @@ VCF. They remain distinct analysis sections downstream.
    category.
 8. Authentication providers are limited to the application's supported
    `local` and `ldap` mechanisms.
+9. `reporting.transcript_selection_order` contains every supported selector
+   exactly once, including `first_available` as its terminal fallback.
 
 ## Fixed Assay-Group Taxonomy
 

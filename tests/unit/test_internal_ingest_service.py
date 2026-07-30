@@ -91,9 +91,7 @@ class _AnnoVepRepo:
 
 def _store_stub(sample_docs=None):
     sample_col = _Col(sample_docs)
-    refs = _Col([{"gene": "EGFR", "canonical": "NM_005228"}, {"gene": "BAD"}])
     db = {
-        "refseq_canonical": refs,
         "variants": _Col(),
         "cnvs": _Col(),
         "biomarkers": _Col(),
@@ -205,7 +203,6 @@ def _use_store(monkeypatch, store_stub, *, new_sample_id="507f1f77bcf86cd7994390
                 "rna_qc": store_stub.rna_quality_repository.get_collection(),
                 "asp_configs": store_stub.coyote_db["asp_configs"],
                 "assay_specific_panels": store_stub.coyote_db["assay_specific_panels"],
-                "refseq_canonical": store_stub.coyote_db["refseq_canonical"],
                 "hgnc_genes": store_stub.coyote_db["hgnc_genes"],
                 "anno_vep": store_stub.coyote_db["anno_vep"],
             }
@@ -299,7 +296,7 @@ def test_dna_parser_loads_nested_sample_file_docs(tmp_path, monkeypatch):
         staticmethod(lambda _path: [{"CHROM": "1", "POS": 1}]),
     )
 
-    parser = ingest_parsers.DnaIngestParser({})
+    parser = ingest_parsers.DnaIngestParser()
     preload = parser.parse(
         {
             "omics_layer": "dna",
@@ -354,7 +351,6 @@ def test_select_csq_prefers_hgnc_mane_plus_and_current_symbol():
 
     selected, source = ingest_parsers._select_csq(
         csq_arr,
-        {},
         hgnc_by_id={"HGNC:1": hgnc_doc},
         hgnc_by_symbol={"OLD1": hgnc_doc, "NEW1": hgnc_doc},
     )
@@ -389,19 +385,19 @@ def test_select_csq_uses_explicit_ncbi_then_ensembl_mane_priority():
         {"Feature": "NM_PLUS.1", "HGNC_ID": "HGNC:1", "IMPACT": "LOW"},
     ]
 
-    selected, source = ingest_parsers._select_csq(rows, {}, hgnc_by_id=by_id)
+    selected, source = ingest_parsers._select_csq(rows, hgnc_by_id=by_id)
     assert (selected["Feature"], source) == ("NM_PLUS.1", "ncbi_mane_plus_clinical")
 
-    selected, source = ingest_parsers._select_csq(rows[:-1], {}, hgnc_by_id=by_id)
+    selected, source = ingest_parsers._select_csq(rows[:-1], hgnc_by_id=by_id)
     assert (selected["Feature"], source) == (
         "ENST_PLUS.1",
         "ensembl_mane_plus_clinical",
     )
 
-    selected, source = ingest_parsers._select_csq(rows[:2], {}, hgnc_by_id=by_id)
+    selected, source = ingest_parsers._select_csq(rows[:2], hgnc_by_id=by_id)
     assert (selected["Feature"], source) == ("NM_SELECT.1", "ncbi_mane_select")
 
-    selected, source = ingest_parsers._select_csq(rows[:1], {}, hgnc_by_id=by_id)
+    selected, source = ingest_parsers._select_csq(rows[:1], hgnc_by_id=by_id)
     assert (selected["Feature"], source) == ("ENST_SELECT.1", "ensembl_mane_select")
 
 
@@ -444,7 +440,6 @@ def test_annotate_transcript_provenance_from_hgnc_and_vep_metadata():
 
     annotated = ingest_parsers._annotate_transcript_provenance(
         rows,
-        {"NEW1": "NM_000002"},
         hgnc_by_id={"HGNC:1": hgnc_doc},
         hgnc_by_symbol={"OLD1": hgnc_doc, "NEW1": hgnc_doc},
     )
@@ -453,15 +448,47 @@ def test_annotate_transcript_provenance_from_hgnc_and_vep_metadata():
     assert annotated[0]["canonical_source"] is None
     assert annotated[1]["transcript_tags"] == [
         "ncbi_mane_select",
-        "db_canonical",
         "vep_canonical",
     ]
-    assert annotated[1]["canonical_source"] == "refseq_canonical"
+    assert annotated[1]["canonical_source"] == "vep_canonical"
     assert annotated[1]["is_canonical"] is True
     assert annotated[2]["transcript_tags"] == ["ensembl_mane_select"]
 
 
-def test_select_csq_uses_approved_hgnc_symbol_for_db_canonical():
+def test_select_csq_prefers_native_refseq_mane_over_linked_ensembl_row():
+    hgnc_doc = {
+        "hgnc_id": "HGNC:1",
+        "hgnc_symbol": "GENE1",
+        "refseq_mane_plus_clinical": ["NM_000001.1"],
+        "ensembl_mane_plus_clinical": [],
+        "refseq_mane_select": "NM_000002.1",
+        "ensembl_mane_select": "ENST000002.1",
+    }
+    selected, source = ingest_parsers._select_csq(
+        [
+            {
+                "Feature": "ENST000001.1",
+                "HGNC_ID": "HGNC:1",
+                "IMPACT": "MODERATE",
+                "BIOTYPE": "protein_coding",
+                "MANE_PLUS_CLINICAL": "NM_000001.1",
+            },
+            {
+                "Feature": "NM_000002.1",
+                "HGNC_ID": "HGNC:1",
+                "IMPACT": "HIGH",
+                "BIOTYPE": "protein_coding",
+                "MANE": "NM_000002.1",
+            },
+        ],
+        hgnc_by_id={"HGNC:1": hgnc_doc},
+    )
+
+    assert selected["Feature"] == "NM_000002.1"
+    assert source == "ncbi_mane_select"
+
+
+def test_select_csq_uses_vep_canonical_after_mane_candidates_are_exhausted():
     hgnc_doc = {
         "hgnc_id": "HGNC:2",
         "hgnc_symbol": "NEW2",
@@ -491,15 +518,11 @@ def test_select_csq_uses_approved_hgnc_symbol_for_db_canonical():
                 "BIOTYPE": "protein_coding",
             },
         ],
-        {"NEW2": "NM_000004"},
         hgnc_by_symbol={"OLD2": hgnc_doc, "NEW2": hgnc_doc, "ALIAS2": hgnc_doc},
     )
 
-    assert source == "db"
-    assert selected["Feature"] == "NM_000004.1"
-    assert selected["SYMBOL"] == "NEW2"
-    assert selected["VEP_SYMBOL"] == "OLD2"
-    assert selected["HGNC_MATCH_SOURCE"] == "previous_or_alias_symbol"
+    assert source == "vep_canonical_protein_coding"
+    assert selected["Feature"] == "NM_000099.1"
 
 
 def test_hgnc_metadata_maps_include_case_insensitive_aliases():
@@ -622,6 +645,27 @@ def test_type_and_string_helpers(monkeypatch):
     assert sorted(out) == ["rs1", "rs2"]
     hot = ingest_parsers._collect_hotspots({"a": [None, "1", "1"], "b": []})
     assert hot == {"a": ["1"]}
+
+
+def test_assay_file_policy_normalizes_pipeline_asp_identifier(monkeypatch):
+    store_stub = _store_stub()
+    store_stub.coyote_db["assay_specific_panels"].docs = [
+        {
+            "asp_id": "hema_gmsv1",
+            "asp_category": "dna",
+            "expected_files": ["vcf_files", "cnv"],
+            "required_files": ["vcf_files"],
+        }
+    ]
+    service = _use_store(monkeypatch, store_stub)
+
+    expected, required = service._assay_file_policy(
+        assay_name="hema_GMSv1",
+        omics_layer="DNA",
+    )
+
+    assert expected == {"vcf_files", "cnv"}
+    assert required == {"vcf_files"}
 
 
 def test_ingest_rejects_file_keys_outside_asp_expected_files(monkeypatch, tmp_path):
@@ -808,8 +852,6 @@ def test_transcript_helpers():
     assert parsed[3] == ["1", "2"]
     assert parsed[4] == ["ENST0001"]
 
-    arr = [{"Feature": "A"}, {"Feature": "B"}]
-    assert ingest_parsers._selected_transcript_removal(arr, "A") == [{"Feature": "B"}]
     assert ingest_parsers._refseq_no_version("NM_1.2") == "NM_1"
 
     chosen, src = ingest_parsers._select_csq(
@@ -829,9 +871,8 @@ def test_transcript_helpers():
                 "BIOTYPE": "protein_coding",
             },
         ],
-        {"EGFR": "NM_005228"},
     )
-    assert src == "db"
+    assert src == "first_protein_coding"
     assert chosen["SYMBOL"] == "EGFR"
 
 
@@ -914,7 +955,7 @@ def test_normalize_historical_transloc_doc():
 def test_parse_yaml_payload():
     service = ingest.InternalIngestService(
         collection_gateway=IngestCollectionGateway(
-            collections={"samples": _Col(), "refseq_canonical": _Col(), "anno_vep": _Col()}
+            collections={"samples": _Col(), "anno_vep": _Col()}
         ),
         anno_vep_repository=_AnnoVepRepo(),
         invalidate_variant_cache=lambda: None,
@@ -929,6 +970,43 @@ def test_parse_yaml_payload():
     assert parsed["control_id"] is None
     assert parsed["control_reads"] is None
     assert parsed["case_purity"] is None
+
+    parsed = service.parse_yaml_payload(
+        "name: S1\nassay: hema_GMSv1\nsubpanel: Hem\nprofile: production\n"
+        "sequencing_technology: Illumina\n"
+    )
+    assert parsed["asp_id"] == "hema_GMSv1"
+    assert parsed["subpanel_id"] == "Hem"
+    assert parsed["environment"] == "production"
+    assert parsed["platform"] == "Illumina"
+    assert "assay" not in parsed
+
+    parsed = service.parse_yaml_payload(
+        "subpanel: Hem\nname: SAMPLE_1\nclarity_case_id: CASE_CLARITY\n"
+        "clarity_control_id: CONTROL_CLARITY\ngenome_build: 38\n"
+        "vcf_files: /srv/coyote3-data/case.vcf\nsample_no: 2\n"
+        "case_id: CASE_1\ncontrol_id: CONTROL_1\nprofile: production\n"
+        "assay: hema_GMSv1\nsequencing_scope: panel\nomics_layer: DNA\n"
+        "sequencing_technology: Illumina\npipeline: SomaticPanelPipeline\n"
+        "pipeline_version: 3.2.0\ncase_purity: null\ncontrol_purity: 'null'\n"
+        "paired: true\ncnv: /srv/coyote3-data/case.cnvs.json\n"
+        "cnvprofile: /srv/coyote3-data/case.profile.png\n"
+        "cov: /srv/coyote3-data/case.coverage.json\n"
+    )
+    assert parsed["asp_id"] == "hema_GMSv1"
+    assert parsed["subpanel_id"] == "Hem"
+    assert parsed["environment"] == "production"
+    assert parsed["platform"] == "Illumina"
+    assert parsed["vcf_files"] == "/srv/coyote3-data/case.vcf"
+    assert parsed["cnv"] == "/srv/coyote3-data/case.cnvs.json"
+    assert parsed["cnvprofile"] == "/srv/coyote3-data/case.profile.png"
+    assert parsed["cov"] == "/srv/coyote3-data/case.coverage.json"
+    assert parsed["case_purity"] is None
+    assert parsed["control_purity"] is None
+
+    with pytest.raises(ValueError, match="conflicting values"):
+        service.parse_yaml_payload("name: S1\nassay: assay_a\nasp_id: assay_b\n")
+
     with pytest.raises(ValueError):
         service.parse_yaml_payload("- 1\n- 2\n")
 
@@ -954,7 +1032,7 @@ def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
     cls.write_text(json.dumps({"c": 1}), encoding="utf-8")
     qc.write_text(json.dumps({"q": 1}), encoding="utf-8")
 
-    parser = ingest.DnaIngestParser(canonical={})
+    parser = ingest.DnaIngestParser()
     monkeypatch.setattr(parser, "_parse_snvs_only", lambda _: [{"CHROM": "1"}])
     monkeypatch.setattr(parser, "_parse_transloc_only", lambda _: [{"CHROM": "2"}])
 
@@ -1009,7 +1087,7 @@ def test_dna_parser_normalizes_pipeline_cnv_shape(tmp_path):
         encoding="utf-8",
     )
 
-    parser = ingest.DnaIngestParser(canonical={})
+    parser = ingest.DnaIngestParser()
     out = parser.parse({"cnv": str(cnv), "name": "S1"})
 
     assert out["cnvs"][0]["callers"] == ["gatk"]
@@ -1031,10 +1109,9 @@ def test_service_resolution_and_validation(monkeypatch):
     assert out == [{"a": 1}, {"b": 2}]
 
 
-def test_service_canonical_and_parse_preload(monkeypatch):
+def test_service_parse_preload(monkeypatch):
     stub = _store_stub()
     service = _use_store(monkeypatch, stub)
-    assert service._canonical_map() == {"EGFR": "NM_005228"}
     assert "samples" in service.list_supported_collections()
 
     monkeypatch.setattr(ingest.DnaIngestParser, "parse", lambda self, args: {"snvs": [args]})
@@ -1131,7 +1208,7 @@ def test_replace_dependents_restores_on_failure(monkeypatch):
 def test_update_payload_guard_and_meta_update(monkeypatch):
     service = ingest.InternalIngestService(
         collection_gateway=IngestCollectionGateway(
-            collections={"samples": _Col(), "refseq_canonical": _Col(), "anno_vep": _Col()}
+            collections={"samples": _Col(), "anno_vep": _Col()}
         ),
         anno_vep_repository=_AnnoVepRepo(),
         invalidate_variant_cache=lambda: None,
@@ -1247,6 +1324,7 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     stub = _store_stub()
     stub.sample_repository = _Handler(sample_col)
     service = _use_store(monkeypatch, stub, new_sample_id="507f1f77bcf86cd799439017")
+    monkeypatch.setattr(service, "_validate_payload_file_keys", lambda payload: payload)
     monkeypatch.setattr(service, "_validate_declared_file_resources", lambda _payload: set())
     monkeypatch.setattr(service, "_apply_resolved_aspc_snapshot", lambda payload: payload)
     monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": []})
@@ -1298,6 +1376,7 @@ def test_ingest_sample_bundle_stages_loading_then_marks_ready(monkeypatch):
     stub = _store_stub()
     stub.sample_repository = _Handler(sample_col)
     service = _use_store(monkeypatch, stub, new_sample_id="507f1f77bcf86cd799439019")
+    monkeypatch.setattr(service, "_validate_payload_file_keys", lambda payload: payload)
     monkeypatch.setattr(service, "_validate_declared_file_resources", lambda _payload: set())
     monkeypatch.setattr(service, "_apply_resolved_aspc_snapshot", lambda payload: payload)
     monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": []})

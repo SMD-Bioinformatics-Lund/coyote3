@@ -259,20 +259,6 @@ class InternalIngestService:
         """
         return _parse_yaml_payload(yaml_content)
 
-    def _canonical_map(self) -> dict[str, str]:
-        """Build a gene-to-canonical-RefSeq mapping from reference data.
-
-        Returns:
-            A dict mapping gene symbol to canonical RefSeq accession (no version).
-        """
-        mapping: dict[str, str] = {}
-        for doc in self.collection_gateway.refseq_canonical_collection().find({}):
-            gene = doc.get("gene")
-            canonical = doc.get("canonical")
-            if gene and canonical:
-                mapping[gene] = canonical
-        return mapping
-
     def _hgnc_metadata_maps(self) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
         """Build HGNC metadata lookup maps by HGNC ID and symbol aliases."""
         by_id: dict[str, dict[str, Any]] = {}
@@ -332,7 +318,6 @@ class InternalIngestService:
         if omics_layer == "dna":
             hgnc_by_id, hgnc_by_symbol = self._hgnc_metadata_maps()
             return DnaIngestParser(
-                self._canonical_map(),
                 hgnc_by_id=hgnc_by_id,
                 hgnc_by_symbol=hgnc_by_symbol,
             ).parse(args)
@@ -351,12 +336,13 @@ class InternalIngestService:
         default_category = "rna" if normalized_omics == "rna" else "dna"
         if not assay_name:
             raise ValueError("assay is required for sample ingest")
+        asp_id = normalize_clinical_identifier(assay_name, label="asp_id")
         panel_collection = self._collection("assay_specific_panels")
         if not hasattr(panel_collection, "find_one"):
             raise ValueError("assay_specific_panels collection is not available for sample ingest")
-        panel = panel_collection.find_one({"asp_id": assay_name})
+        panel = panel_collection.find_one({"asp_id": asp_id})
         if not isinstance(panel, dict):
-            raise ValueError(f"ASP is not registered for assay '{assay_name}'")
+            raise ValueError(f"ASP is not registered for assay '{asp_id}'")
         asp_category = str(panel.get("asp_category") or default_category).strip().lower()
         allowed = set(SAMPLE_FILE_KEYS.get(asp_category, expected_file_keys(default_category)))
         raw_expected = panel.get("expected_files")

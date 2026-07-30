@@ -124,7 +124,6 @@ Multipart mode rules:
 | `oncokb_genes` | `developer/admin role-level gate` | `developer/admin role-level gate` |
 | `panel_coverage` | `edit_sample` | `edit_sample` |
 | `permissions` | `create_permission_policy` | `edit_permission_policy` |
-| `refseq_canonical` | `developer/admin role-level gate` | `developer/admin role-level gate` |
 | `reported_variants` | `edit_sample` | `edit_sample` |
 | `rna_classification` | `edit_sample` | `edit_sample` |
 | `rna_expression` | `edit_sample` | `edit_sample` |

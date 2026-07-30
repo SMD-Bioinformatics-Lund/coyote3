@@ -34,7 +34,6 @@ def _populate_seed_dir(seed_path: Path) -> None:
     reference_map = {
         "hgnc_genes.seed.ndjson": "hgnc_genes.json",
         "permissions.seed.ndjson": "permissions.json",
-        "refseq_canonical.seed.ndjson": "refseq_canonical.json",
         "roles.seed.ndjson": "roles.json",
         "vep_metadata.seed.ndjson": "vep_metadata.json",
     }

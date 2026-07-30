@@ -83,7 +83,8 @@ services:
     volumes:
       - "/access:/access"
       - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
+      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
+      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
       - "/fs1:/fs1"
     command: "python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --workers ${API_WORKERS:-4}"
     healthcheck:
@@ -124,7 +125,8 @@ services:
     volumes:
       - "/access:/access"
       - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
+      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
+      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
       - "/fs1:/fs1"
     command: "celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=${CELERY_INGEST_QUEUE:-ingest},default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}"
     depends_on:
@@ -159,7 +161,8 @@ services:
     volumes:
       - "/access:/access"
       - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
+      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
+      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
       - "/fs1:/fs1"
     command: "celery -A api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO}"
     depends_on:

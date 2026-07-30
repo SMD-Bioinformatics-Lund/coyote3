@@ -67,7 +67,7 @@ Runtime settings:
 
 - `CELERY_INGEST_QUEUE`: Queue used for ingest work. Defaults to `ingest`.
 - `CELERY_WORKER_CONCURRENCY`: Worker concurrency. Defaults to `2`.
-- `CELERY_INGEST_STAGING_DIR`: Durable server-side staging root for async upload files.
+- `/data/coyote3/ingest_staging`: Fixed durable server-side staging root for async upload files.
 
 Redis broker/result URLs are internal Compose wiring. They are not center-owned
 environment-file settings.
@@ -125,11 +125,11 @@ Compose also defines a Celery beat scheduler (`coyote3_beat`,
 `coyote3_dev_beat`, `coyote3_stage_beat`, and `coyote3_test_beat`). When
 `COYOTE3_INGEST_WATCH_ENABLED=1`, beat periodically enqueues
 `api.tasks.ingest.ingest_watch_directory_once`, which scans
-`COYOTE3_INGEST_WATCH_DIR` for `coyote3.yaml`.
+the fixed `/data/coyote3/copied_sample_files/yaml` directory for `coyote3.yaml`.
 
 Watcher settings:
 
-- `COYOTE3_INGEST_WATCH_DIR`: root folder to scan recursively.
+- `/data/coyote3/copied_sample_files/yaml`: fixed root folder scanned recursively.
 - `COYOTE3_INGEST_WATCH_FILENAME`: manifest filename. Defaults to `coyote3.yaml`.
 - `COYOTE3_INGEST_WATCH_INTERVAL_SECONDS`: beat interval. Defaults to `30`.
 - `COYOTE3_INGEST_WATCH_UPDATE_EXISTING`: pass `allow_update=true` to sample ingest.
@@ -137,10 +137,23 @@ Watcher settings:
 - `COYOTE3_INGEST_DONE_SUFFIX`: success marker suffix. Defaults to `.done`.
 - `COYOTE3_INGEST_FAILED_SUFFIX`: failure marker suffix. Defaults to `.failed`.
 
-The Compose deployment mounts `COYOTE3_DATA_HOST_ROOT` at `/data`. If the watch
-directory or manifest file paths are written as absolute host paths under that
-root, the worker translates them to the container-visible `/data/...` path before
-reading the YAML, VCF, CNV, coverage, biomarker, and image files.
+The Compose deployment mounts `COYOTE3_DATA_HOST_ROOT` at `/data` and at the
+same original absolute path in ingest-capable containers. Pipeline manifests may
+therefore retain absolute paths below that host root; those paths are persisted
+unchanged in `samples.files.<key>.path`. Relative manifest paths and absolute
+`/data/...` paths are also supported.
+
+Pipeline identity fields are normalized before any ASP/ASPC lookup:
+
+| Pipeline field | Internal field | Notes |
+| --- | --- | --- |
+| `assay` | `asp_id` | Normalized to the canonical lowercase ASP identifier. |
+| `subpanel` | `subpanel_id` | Normalized to the canonical lowercase subpanel identifier. |
+| `profile` | `environment` | Normalized as the environment identifier. |
+| `sequencing_technology` | `platform` | Normalized against configured platform values. |
+
+Supplying both names is allowed only when their values agree. All internal
+services use only the right-hand canonical field names after this boundary.
 
 Relative file paths inside each manifest are resolved from that manifest's
 directory. After successful ingest, the watcher renames the manifest to
@@ -204,7 +217,7 @@ Seed source policy for a new deployment:
 
 - Use the repository baseline seed: `tests/fixtures/db_dummy/all_collections_dummy`.
 - Use `--reference-seed-data tests/data/seed_data` to load compressed baseline packs for
-  `permissions`, `roles`, `refseq_canonical`, `hgnc_genes`, and `vep_metadata`.
+  `permissions`, `roles`, `hgnc_genes`, and `vep_metadata`.
 - Update assay/group identifiers (`assay_1`, `hematology`) to your center values before bootstrap.
 - Keep bootstrap deterministic by versioning those seed changes in git for your center deployment repo.
 - `asp_configs` and `assay_specific_panels` belong to the demo/bootstrap
@@ -226,12 +239,17 @@ ${PYTHON_BIN:-python} scripts/validate_assay_consistency.py \
   --yaml tests/data/ingest_demo/generic_case_control.yaml
 ```
 
-The demo YAML includes `database_versions.vep`. It is stored on the sample and later used to resolve the correct `vep_metadata` translations and consequence-group mappings during DNA findings and reporting. DNA VCF ingest also captures a curated `database_versions` snapshot from the VEP header. The stored keys are limited to `assembly`, `clinvar`, `cosmic`, `dbsnp`, `ensembl`, `gencode`, `genebuild`, `gnomad`, `hgmd_public`, `polyphen`, `sift`, and `vep`.
+The DNA demo YAML intentionally omits `database_versions`. DNA VCF ingest
+captures the curated `database_versions` snapshot from the `##VEP=` header.
+The manifest may provide `database_versions` only as an explicit override or
+supplement; a supplied value takes precedence for its matching key. The stored
+keys are limited to `assembly`, `clinvar`, `cosmic`, `dbsnp`, `ensembl`,
+`gencode`, `genebuild`, `gnomad`, `hgmd_public`, `polyphen`, `sift`, and `vep`.
 
 DNA ingest writes two coordinated records for each small variant:
 
-- The sample-local variant row stores the clinical display anchor in
-  `INFO.selected_CSQ`, plus alternate transcript summaries in `INFO.CSQ`.
+- The sample-local variant row stores only the clinical display anchor in
+  `INFO.selected_CSQ`.
 - The global `anno_vep` vault stores all parsed transcript summaries by
   `simple_id_hash` and `vep_version`.
 
@@ -248,8 +266,8 @@ Every transcript summary in `anno_vep.CSQ` is validated by the
 `SIFT`, `PolyPhen`, and `CADD_PHRED`), Coyote3 enriches each row with:
 
 - `transcript_tags`: compact source markers for NCBI MANE Plus Clinical,
-  Ensembl MANE Plus Clinical, NCBI MANE Select, Ensembl MANE Select, center
-  canonical, and VEP canonical evidence.
+  Ensembl MANE Plus Clinical, NCBI MANE Select, Ensembl MANE Select, and VEP
+  canonical evidence.
 - `canonical_source`: the source that made the transcript canonical for the
   current review row.
 - `is_canonical`: a normalized boolean for table rendering.
@@ -268,10 +286,9 @@ Automatic selected-transcript priority is deterministic:
 2. Ensembl MANE Plus Clinical
 3. NCBI/RefSeq MANE Select
 4. Ensembl MANE Select
-5. center RefSeq canonical transcript
-6. VEP canonical transcript
-7. first protein-coding transcript
-8. first available transcript
+5. VEP canonical protein-coding transcript
+6. first protein-coding transcript
+7. first available transcript
 
 Within each priority, consequences are considered in `HIGH`, `MODERATE`, `LOW`,
 then `MODIFIER` impact order. HGNC ID is the primary gene identity; approved,
@@ -302,7 +319,7 @@ This validator checks:
 - required baseline governance/config presence (`roles`, `permissions`)
 - `asp_configs` (`aspc_id` format, assay/environment consistency)
 - `insilico_genelists` (`assays` and `assay_groups` consistency)
-- bootstrap dependencies (`roles -> permissions`, `users -> roles`, `refseq_canonical -> hgnc_genes`)
+- bootstrap dependencies (`roles -> permissions`, `users -> roles`)
 
 Discover supported collection-ingest contracts:
 
@@ -372,10 +389,9 @@ curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection/bulk" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
 {
-  "collection": "refseq_canonical",
+  "collection": "permissions",
   "documents": [
-    {"gene": "EGFR", "canonical": "ENST00000275493"},
-    {"gene": "TP53", "canonical": "ENST00000269305"}
+    {"permission_id": "samples:read", "label": "Read samples"}
   ]
 }
 JSON
@@ -503,8 +519,8 @@ curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/sample-bundle/upload" \
 
 Rules:
 
-- Keep file path values in YAML (`files.vcf_files.path`, `files.cnv.path`,
-  `files.cov.path`, `files.fusion_files.path`, etc.) as source paths.
+- Keep flat file path values in YAML (`vcf_files`, `cnv`, `cov`,
+  `fusion_files`, etc.) as source paths.
 - Upload matching files in the same request using `data_files`.
 - Matching is done by exact filename value from YAML or by basename.
 - Backend stages uploaded files temporarily, parses them, ingests to DB, and removes staged files after request completion.
@@ -576,7 +592,7 @@ Collection action permissions (from seeded permission catalog):
 | `asp_configs` (`aspc`) | `assay.config:create` | `assay.config:edit` |
 | `insilico_genelists` (`isgl`) | `gene_list.insilico:create` | `gene_list.insilico:edit` |
 | Sample-linked data (`samples`, `variants`, `cnvs`, `translocations`, `biomarkers`, `panel_coverage`, `fusions`, `rna_expression`, `rna_classification`, `rna_qc`, `reported_variants`, `group_coverage`) | `sample:edit:own` | `sample:edit:own` |
-| Shared and annotation knowledgebase collections (`hgnc_genes`, `refseq_canonical`, `vep_metadata`, `civic_*`, `oncokb_*`, `cosmic`, `hpaexpr`, `iarc_tp53`, `annotation`, `blacklist`, `dashboard_metrics`, `brcaexchange`, `mane_select`, `asp_to_groups`) | developer/admin role-level gate | developer/admin role-level gate |
+| Shared and annotation knowledgebase collections (`hgnc_genes`, `vep_metadata`, `civic_*`, `oncokb_*`, `cosmic`, `hpaexpr`, `iarc_tp53`, `annotation`, `blacklist`, `dashboard_metrics`, `brcaexchange`, `mane_select`, `asp_to_groups`) | developer/admin role-level gate | developer/admin role-level gate |
 
 `admin` role-level users are always allowed for these operations.
 
@@ -591,7 +607,6 @@ Use this order for a clean deployment at a new center.
 2. Seed mandatory shared collections.
    - `hgnc_genes`
    - `permissions`
-   - `refseq_canonical`
    - `roles`
    - `vep_metadata`
 3. Bootstrap mandatory runtime collections.
@@ -606,21 +621,6 @@ Use this order for a clean deployment at a new center.
    - `POST /api/v1/internal/ingest/sample-bundle/upload` for fresh sample + uploaded data files
    - `POST /api/v1/internal/ingest/dependents` for dependent-data refresh on existing sample
 
-## Canonical transcript baseline (`refseq_canonical`)
-
-Minimum expected document shape:
-
-```json
-{"gene": "EGFR", "canonical": "NM_005228"}
-```
-
-Guidance:
-
-- `gene`: HGNC symbol used in variant `CSQ.SYMBOL`.
-- `canonical`: canonical transcript accession used by your center's reporting policy.
-- Keep this collection versioned externally (source/version/date) and update via bulk endpoint.
-- Re-validate assay and ingest flows after canonical map changes.
-
 ## Collection bootstrapping via API
 
 Use collection endpoints to seed reference/config data with schema validation.
@@ -632,30 +632,17 @@ Recommended ordered commands for a new deployment:
 
 1. `permissions` via `/collection` or `/collection/bulk`
 2. `roles` via `/collection` or `/collection/bulk`
-3. `refseq_canonical` via `/collection/bulk`
-4. `hgnc_genes` via `/collection/bulk`
-5. `vep_metadata` via `/collection/bulk`
-6. first superuser via `scripts/bootstrap_local_admin.py`
-7. `asp_configs` via `/collection` or `/collection/bulk`
-8. `assay_specific_panels` via `/collection` or `/collection/bulk`
-9. optional `insilico_genelists` and annotation knowledgebase collections
+3. `hgnc_genes` via `/collection/bulk`
+4. `vep_metadata` via `/collection/bulk`
+5. first superuser via `scripts/bootstrap_local_admin.py`
+6. `asp_configs` via `/collection` or `/collection/bulk`
+7. `assay_specific_panels` via `/collection` or `/collection/bulk`
+8. optional `insilico_genelists` and annotation knowledgebase collections
 
 Note:
 
 - `scripts/bootstrap_center_collections.sh` intentionally skips `users`.
 - If needed, seed additional `users` later via collection endpoints or admin user management UI/API.
-
-Example bulk seed for `refseq_canonical`:
-
-```json
-{
-  "collection": "refseq_canonical",
-  "documents": [
-    {"gene": "EGFR", "canonical": "ENST00000275493"},
-    {"gene": "TP53", "canonical": "ENST00000269305"}
-  ]
-}
-```
 
 ## Minimum required dataset (baseline)
 
@@ -669,7 +656,6 @@ Use this as the minimum deployment contract:
 | `asp_configs` | `aspc_id`, `asp_id`, `subpanel_id`, `environment`, `asp_group`, `asp_category`, `analysis_types[]`, `display_name`, `filters{...}`, `reporting{...}`, `is_active`, `version` | Assay+subpanel+environment runtime config |
 | `assay_specific_panels` | `asp_id`, `assay_name`, `asp_group`, `is_active` | Assay metadata/UI wiring |
 | `insilico_genelists` | `isgl_id`, `diagnosis`, `assays[]`, `assay_groups[]`, `genes[]`, `is_active` | Panel/list filtering logic |
-| `refseq_canonical` | `gene`, `canonical` | DNA transcript canonicalization |
 | `hgnc_genes` | `hgnc_id`, `hgnc_symbol` | Gene metadata and symbol mapping |
 
 Managed-admin form source:
@@ -803,7 +789,6 @@ Core collections typically seeded first:
 - `asp_configs`
 - `assay_specific_panels`
 - `insilico_genelists`
-- `refseq_canonical`
 - `hgnc_genes`
 
 ## Test fixtures for ingestion

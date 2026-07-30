@@ -160,7 +160,7 @@ def test_select_variant_transcript_uses_sample_vep_vault():
     assert operation.matched_count == 1
     assert variant_repo.updated["selected_csq"]["Feature"] == "ENST2"
     assert variant_repo.updated["selected_csq"]["SIFT"] == "deleterious"
-    assert variant_repo.updated["alternate_csq"] == [{"Feature": "ENST1", "SIFT": "tolerated"}]
+    assert "alternate_csq" not in variant_repo.updated
     assert variant_repo.updated["criteria"] == "manual_override"
 
 

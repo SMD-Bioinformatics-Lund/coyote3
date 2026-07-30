@@ -37,6 +37,15 @@ required_aspc_fields = [
   "plots_path",
   "report_folder",
 ]
+transcript_selection_order = [
+  "ncbi_mane_plus_clinical",
+  "ensembl_mane_plus_clinical",
+  "ncbi_mane_select",
+  "ensembl_mane_select",
+  "vep_canonical_protein_coding",
+  "first_protein_coding",
+  "first_available",
+]
 
 [files.dna]
 keys = ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "biomarkers", "pgx"]

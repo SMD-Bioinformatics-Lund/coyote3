@@ -51,7 +51,6 @@ class IngestCollectionGateway:
                     store.oncokb_public_cache_repository.cancer_gene_collection
                 ),
                 "clinpgx_genes_public": store.clinpgx_public_repository.get_collection(),
-                "refseq_canonical": store.coyote_db["refseq_canonical"],
                 "vep_metadata": store.vep_metadata_repository.get_collection(),
                 "asp_to_groups": store.coyote_db["asp_to_groups"],
             }
@@ -67,10 +66,6 @@ class IngestCollectionGateway:
     def sample_collection(self) -> Any:
         """Return the samples collection."""
         return self.collection("samples")
-
-    def refseq_canonical_collection(self) -> Any:
-        """Return the canonical transcript reference collection."""
-        return self.collection("refseq_canonical")
 
     def mongo_client(self) -> Any | None:
         """Return the underlying Mongo client when available."""

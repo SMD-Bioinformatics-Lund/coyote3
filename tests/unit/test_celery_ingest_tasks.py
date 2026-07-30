@@ -1,29 +1,26 @@
 from api.tasks import ingest
 
 
-def test_resolve_sample_paths_maps_host_data_root_to_container_mount(tmp_path, monkeypatch):
-    host_root = tmp_path / "host-data"
-    manifest = host_root / "incoming" / "sample" / "coyote3.yaml"
+def test_resolve_sample_paths_uses_container_visible_manifest_paths(tmp_path):
+    manifest = tmp_path / "incoming" / "sample" / "coyote3.yaml"
     manifest.parent.mkdir(parents=True)
     manifest.write_text("name: SAMPLE_1\n", encoding="utf-8")
-
-    monkeypatch.setattr(ingest.DefaultConfig, "COYOTE3_DATA_HOST_ROOT", str(host_root))
 
     payload = ingest._resolve_relative_sample_paths(
         {
             "name": "SAMPLE_1",
-            "vcf_files": str(host_root / "vcf" / "sample.vcf"),
+            "vcf_files": "/data/coyote3/vcf/sample.vcf",
             "files": {
-                "cnv": {"path": str(host_root / "cnv" / "sample.cnv.json")},
+                "cnv": {"path": "/data/coyote3/cnv/sample.cnv.json"},
                 "cov": "relative/sample.cov.json",
             },
         },
         manifest,
     )
 
-    assert payload["vcf_files"] == "/data/vcf/sample.vcf"
-    assert payload["files"]["cnv"]["path"] == "/data/cnv/sample.cnv.json"
-    assert payload["files"]["cov"] == "/data/incoming/sample/relative/sample.cov.json"
+    assert payload["vcf_files"] == "/data/coyote3/vcf/sample.vcf"
+    assert payload["files"]["cnv"]["path"] == "/data/coyote3/cnv/sample.cnv.json"
+    assert payload["files"]["cov"] == str((manifest.parent / "relative/sample.cov.json").resolve())
 
 
 def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch):
@@ -50,7 +47,7 @@ def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch
             )
             return {"sample_id": "sample-id", "sample_name": "SAMPLE_1"}
 
-    monkeypatch.setattr(ingest.DefaultConfig, "COYOTE3_INGEST_WATCH_DIR", str(watch_dir))
+    monkeypatch.setattr(ingest, "WATCH_INGEST_DIRECTORY", watch_dir)
     monkeypatch.setattr(ingest.DefaultConfig, "COYOTE3_INGEST_WATCH_UPDATE_EXISTING", True)
     monkeypatch.setattr(ingest.DefaultConfig, "COYOTE3_INGEST_WATCH_INCREMENT", False)
     monkeypatch.setattr(ingest, "_ensure_worker_runtime", lambda: None)

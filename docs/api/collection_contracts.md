@@ -11,7 +11,6 @@ This is the canonical collection-key reference used by ingestion validation.
 - `insilico_genelists.asp_ids[]` and `asp_groups[]` must map to ASP/ASPC assay setup.
 - `roles.permissions[]` must reference `permissions.permission_id`.
 - `users.roles[]` must reference `roles.role_id`.
-- `refseq_canonical.gene` should exist in `hgnc_genes.hgnc_symbol`.
 
 ## DNA vs RNA sample rules
 
@@ -540,15 +539,6 @@ Optional keys:
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
 - `version_history` (list[api.contracts.schemas.base.VersionHistoryEntryDoc])
-
-## `refseq_canonical`
-
-Required keys:
-- `gene` (str)
-- `canonical` (str)
-
-Optional keys:
-- None
 
 ## `reported_variants`
 

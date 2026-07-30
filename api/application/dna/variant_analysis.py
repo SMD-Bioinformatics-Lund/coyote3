@@ -235,15 +235,9 @@ class DnaService:
         )
         if not selected:
             return OperationResult.failed("requested transcript is not available for this variant")
-        alternate = [
-            dict(csq)
-            for csq in vault.get("CSQ") or []
-            if str(csq.get("Feature") or "").strip() != feature
-        ]
         operation = self.variant_repository.update_selected_transcript(
             var_id=var_id,
             selected_csq=selected,
-            alternate_csq=alternate,
             selected_feature=feature,
             criteria="manual_override",
         )

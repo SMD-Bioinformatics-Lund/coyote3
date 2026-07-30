@@ -127,6 +127,7 @@ GENELIST_TYPE_OPTIONS: tuple[str, ...] = (
 # ASPC reporting is a clinical contract. These fields are the minimum authored
 # configuration required before an active configuration may generate a report.
 ASPC_REQUIRED_REPORTING_FIELDS: tuple[str, ...] = CLINICAL_VOCABULARY.required_aspc_reporting_fields
+TRANSCRIPT_SELECTION_ORDER: tuple[str, ...] = CLINICAL_VOCABULARY.transcript_selection_order
 SUBPANEL_BASE_ID = CLINICAL_VOCABULARY.base_subpanel_id
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9_-]+$")

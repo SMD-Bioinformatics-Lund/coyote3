@@ -17,6 +17,10 @@ def test_current_clinical_vocabulary_loads_center_owned_options():
     assert vocabulary.auth_type_options == ("local", "ldap")
     assert vocabulary.assay_families == ("panel-dna", "panel-rna", "wgs", "wts")
     assert vocabulary.default_environment == "production"
+    assert vocabulary.transcript_selection_order[:2] == (
+        "ncbi_mane_plus_clinical",
+        "ensembl_mane_plus_clinical",
+    )
 
 
 def test_assay_groups_are_software_owned_not_center_vocabulary():
@@ -102,6 +106,15 @@ adhoc_types = ["adhoc_snv"]
 
 [reporting]
 required_aspc_fields = ["report_header"]
+transcript_selection_order = [
+  "ncbi_mane_plus_clinical",
+  "ensembl_mane_plus_clinical",
+  "ncbi_mane_select",
+  "ensembl_mane_select",
+  "vep_canonical_protein_coding",
+  "first_protein_coding",
+  "first_available",
+]
 
 """,
         encoding="utf-8",

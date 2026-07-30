@@ -50,7 +50,6 @@
 
     insilico_genelist_collection = "insilico_genelists"
     groups_collection = "groups"
-    canonical_collection = "refseq_canonical"
     annotations_collection = "annotation"
     blacklist_collection = "blacklist"
     samples_collection = "samples"
@@ -94,7 +93,6 @@
 
     insilico_genelist_collection = "insilico_genelists"
     groups_collection = "groups"
-    canonical_collection = "refseq_canonical"
     annotations_collection = "annotation"
     blacklist_collection = "blacklist"
     samples_collection = "samples"

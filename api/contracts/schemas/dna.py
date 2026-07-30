@@ -118,6 +118,7 @@ class VariantCsqDoc(_DocBase):
     EXON: str | None = None
     CANONICAL: str | None = None
     MANE: str | None = None
+    MANE_PLUS_CLINICAL: str | None = None
     STRAND: str | None = None
     IMPACT: str | None = None
     CADD_PHRED: str | None = None
@@ -151,7 +152,6 @@ class VariantInfoDoc(_DocBase):
     CLNREVSTAT: str | None = None
     CLNACC: str | None = None
     SCOUT_CUSTOM: str | None = None
-    CSQ: list[VariantCsqDoc] = Field(default_factory=list)
     selected_CSQ: VariantCsqDoc
     selected_CSQ_criteria: str
 
@@ -170,7 +170,6 @@ class VariantInfoDoc(_DocBase):
         exclude_keys = {
             "selected_CSQ",
             "selected_CSQ_criteria",
-            "CSQ",
             "variant_callers",
         }
 

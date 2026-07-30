@@ -525,11 +525,6 @@ class ClinPgxGenesPublicDoc(_DocBase):
     last_seen_at: datetime | None = None
 
 
-class RefSeqCanonicalDoc(_DocBase):
-    gene: str
-    canonical: str
-
-
 class VepDbInfoDoc(_DocBase):
     assembly_name: str
     assembly_accession: str

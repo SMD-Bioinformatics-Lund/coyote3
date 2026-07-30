@@ -170,7 +170,7 @@ annotation-derived summary fields for genes seen during ingest.
     transcript using HGNC metadata. Transcript records are resolved by HGNC ID
     first, then by approved symbol, previous symbol, or alias symbol. MANE Plus
     Clinical has highest priority, followed by MANE Select, then the center
-    canonical map after HGNC-symbol normalization, VEP canonical,
+    VEP canonical protein-coding,
     protein-coding transcript, and finally the first available transcript. The
     selected gene symbol is normalized to the approved HGNC symbol, and the raw
     VEP symbol is retained as `VEP_SYMBOL` only when it differs.

@@ -89,12 +89,6 @@ const transcriptTagMeta: Record<string, { label: string; short: string; descript
     description: "HGNC maps this transcript to the Ensembl MANE Select transcript for the gene.",
     severity: "info",
   },
-  db_canonical: {
-    label: "Center canonical transcript",
-    short: "Canonical",
-    description: "This transcript matches the center canonical transcript map after HGNC gene normalization.",
-    severity: "neutral",
-  },
   vep_canonical: {
     label: "VEP canonical transcript",
     short: "VEP canonical",
@@ -133,13 +127,11 @@ function CanonicalTranscriptBadge({ row }: { row: any }) {
   const source = row?.canonical_source
   const isCanonical = Boolean(row?.is_canonical || source || row?.CANONICAL === "YES")
   if (!isCanonical) return <span className="text-muted-foreground">-</span>
-  const label = source === "refseq_canonical" ? "Center canonical" : source === "vep_canonical" ? "VEP canonical" : "Canonical"
+  const label = source === "vep_canonical" ? "VEP canonical" : "Canonical"
   const description =
-    source === "refseq_canonical"
-      ? "The transcript matches the center canonical RefSeq map after HGNC normalization."
-      : source === "vep_canonical"
-        ? "The transcript is marked canonical by VEP for this gene."
-        : "The transcript is marked canonical in the stored annotation."
+    source === "vep_canonical"
+      ? "The transcript is marked canonical by VEP for this gene."
+      : "The transcript is marked canonical in the stored annotation."
   return (
     <InfoTooltipBadge label={label} description={description} severity="neutral">
       {label}
@@ -380,7 +372,7 @@ export function VariantDetail() {
   const csq = variant?.INFO?.selected_CSQ || {}
   const displayGene = csq.VEP_SYMBOL || csq.display_symbol || csq.SYMBOL
   const resolvedGene = csq.SYMBOL
-  const alternateTranscripts = Array.isArray(variant?.INFO?.CSQ) ? variant.INFO.CSQ : []
+  const alternateTranscripts = Array.isArray(data?.transcripts) ? data.transcripts : []
   const selectedFeature = String(csq?.Feature || "").trim()
   const transcripts = [
     ...(csq && Object.keys(csq).length ? [csq] : []),

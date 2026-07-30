@@ -326,7 +326,7 @@ Detail pages put the review decision, comments, and evidence around the finding.
 
 !!! info "Transcript selection"
 
-    Small variant display selects NCBI MANE Plus Clinical first, followed by Ensembl MANE Plus Clinical, NCBI MANE Select, and Ensembl MANE Select. Center and VEP canonical transcripts are subsequent fallbacks. HGNC normalization uses HGNC ID when possible and resolves previous symbols or aliases to the same approved HGNC record. Manual transcript changes use the versioned `anno_vep` vault for the sample's VEP version and refresh the selected transcript in place.
+    Small variant display selects NCBI MANE Plus Clinical first, followed by Ensembl MANE Plus Clinical, NCBI MANE Select, Ensembl MANE Select, VEP canonical protein-coding, the first protein-coding transcript, and finally the first available transcript. HGNC normalization uses HGNC ID when possible and resolves previous symbols or aliases to the same approved HGNC record. Manual transcript changes use the versioned `anno_vep` vault for the sample's VEP version and refresh the selected transcript in place.
 
 The transcript table can show the following compact badges in the **Transcript**
 column:
@@ -337,13 +337,10 @@ column:
 | ENS MANE+ | HGNC/VEP identifies the Ensembl transcript as MANE Plus Clinical. |
 | NCBI MANE | HGNC maps the transcript to RefSeq MANE Select. |
 | ENS MANE | HGNC maps the transcript to Ensembl MANE Select. |
-| Canonical | The transcript matches the center canonical RefSeq map. |
 | VEP canonical | VEP marks the transcript as canonical. |
 
-The **Canonical** column shows the canonical source used for the row. Center
-canonical evidence comes from the configured `refseq_canonical` collection after
-HGNC normalization; VEP canonical evidence comes directly from the VEP CSQ
-payload.
+The **Canonical** column shows VEP canonical evidence directly from the VEP
+CSQ payload.
 
 ## Tiered Variant Search
 

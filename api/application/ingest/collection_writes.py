@@ -18,6 +18,36 @@ from api.infra.mongo.persistence import (
     insert_one_document,
 )
 
+# Pipeline manifests are an external ingest contract. They are normalized once
+# at the boundary; all downstream code receives the canonical clinical shape.
+PIPELINE_MANIFEST_FIELD_MAP: dict[str, str] = {
+    "assay": "asp_id",
+    "subpanel": "subpanel_id",
+    "profile": "environment",
+    "sequencing_technology": "platform",
+}
+
+
+def _normalize_pipeline_manifest_fields(payload: dict[str, Any]) -> dict[str, Any]:
+    """Map supported pipeline field names to the canonical ingest contract."""
+    normalized = dict(payload)
+    for pipeline_key, canonical_key in PIPELINE_MANIFEST_FIELD_MAP.items():
+        if pipeline_key not in normalized:
+            continue
+        pipeline_value = normalized.pop(pipeline_key)
+        canonical_value = normalized.get(canonical_key)
+        if (
+            canonical_value is not None
+            and pipeline_value is not None
+            and str(canonical_value).strip() != str(pipeline_value).strip()
+        ):
+            raise ValueError(
+                f"YAML defines conflicting values for '{pipeline_key}' and '{canonical_key}'"
+            )
+        if canonical_value is None:
+            normalized[canonical_key] = pipeline_value
+    return normalized
+
 
 def list_supported_collections() -> list[str]:
     """List collection names that can be validated and inserted by ingest APIs."""
@@ -29,27 +59,9 @@ def parse_yaml_payload(yaml_content: str) -> dict[str, Any]:
     parsed = yaml.safe_load(yaml_content)
     if not isinstance(parsed, dict):
         raise ValueError("YAML body must decode to an object")
-    parsed = normalize_null_placeholders(parsed)
-    retired = {"assay", "profile", "subpanel"}.intersection(parsed)
-    if retired:
-        raise ValueError(
-            "YAML uses retired clinical identity key(s): "
-            + ", ".join(sorted(retired))
-            + ". Use asp_id, environment, and subpanel_id."
-        )
+    parsed = _normalize_pipeline_manifest_fields(normalize_null_placeholders(parsed))
     _validate_yaml_manifest_minimum_fields(parsed)
     return parsed
-
-
-def canonical_map(service: Any) -> dict[str, str]:
-    """Build a gene-to-canonical-RefSeq mapping from reference data."""
-    mapping: dict[str, str] = {}
-    for doc in service.collection_gateway.refseq_canonical_collection().find({}):
-        gene = doc.get("gene")
-        canonical = doc.get("canonical")
-        if gene and canonical:
-            mapping[gene] = canonical
-    return mapping
 
 
 def parse_preload(service: Any, args: dict[str, Any]) -> dict[str, Any]:
@@ -60,11 +72,7 @@ def parse_preload(service: Any, args: dict[str, Any]) -> dict[str, Any]:
     if omics_layer == "dna":
         hgnc_maps = getattr(service, "_hgnc_metadata_maps", None)
         hgnc_by_id, hgnc_by_symbol = hgnc_maps() if callable(hgnc_maps) else ({}, {})
-        return DnaIngestParser(
-            canonical_map(service),
-            hgnc_by_id=hgnc_by_id,
-            hgnc_by_symbol=hgnc_by_symbol,
-        ).parse(args)
+        return DnaIngestParser(hgnc_by_id=hgnc_by_id, hgnc_by_symbol=hgnc_by_symbol).parse(args)
     if omics_layer == "rna":
         return RnaIngestParser.parse(args)
     raise ValueError("Could not determine data type (DNA/RNA) from payload")

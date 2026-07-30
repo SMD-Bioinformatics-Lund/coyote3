@@ -33,11 +33,10 @@ Before first sample ingest, ensure these are seeded:
 
 1. `permissions`
 2. `roles`
-3. `refseq_canonical`
-4. `hgnc_genes`
-5. `vep_metadata`
-6. `asp_configs`
-7. `assay_specific_panels`
+3. `hgnc_genes`
+4. `vep_metadata`
+5. `asp_configs`
+6. `assay_specific_panels`
 
 `users` are intentionally not bulk-seeded by `bootstrap_center_collections.sh`; create the first superuser with `bootstrap_local_admin.py`.
 
@@ -46,7 +45,7 @@ Before first sample ingest, ensure these are seeded:
 - `--seed-file` is the primary source for demo/bootstrap runtime collections.
 - `--reference-seed-data` provides compressed baseline packs for core reference/RBAC data.
 - `asp_configs` and `assay_specific_panels` are seeded from bootstrap/demo input (default `--seed-file`).
-- `permissions`, `roles`, `refseq_canonical`, `hgnc_genes`, and `vep_metadata` are loaded from `--reference-seed-data` only when that argument is provided.
+- `permissions`, `roles`, `hgnc_genes`, and `vep_metadata` are loaded from `--reference-seed-data` only when that argument is provided.
 
 ## First-Run Method
 
@@ -114,7 +113,10 @@ Sample manifest reference:
 
 - Use [API / Sample YAML Guide](../api/sample_yaml.md) for the required DNA/RNA YAML shape.
 - Use [API / Sample Input Files](../api/sample_input_files.md) for the raw VCF and JSON payload formats consumed by the ingest parsers.
-- Ensure YAML `database_versions.vep` matches a seeded `vep_metadata.vep_id` value before first DNA sample ingest.
+- Ensure the DNA pipeline writes the VEP version into each VCF `##VEP=` header
+  and seed the matching `vep_metadata.vep_id` value before DNA interpretation
+  or reporting. A YAML `database_versions.vep` override is supported only for
+  an explicit correction or a pipeline that cannot emit the header value.
 
 ASPC contract rule for first-load data:
 

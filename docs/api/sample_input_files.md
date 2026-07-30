@@ -15,6 +15,7 @@ For final persisted collection shapes, see [API / Collection Contracts](collecti
 
 ```text
 sample YAML manifest
+  -> normalized from pipeline names to the canonical ingest contract
   -> validated as a SamplesDoc
   -> points to raw file paths
   -> resolves assay/profile/omics metadata
@@ -46,11 +47,12 @@ The sample YAML is the top-level ingest manifest.
 It is responsible for:
 
 - sample identity such as `name`, `case_id`, `control_id`
-- assay and environment identity such as `assay` and `profile`
+- pipeline assay and environment identity such as `assay` and `profile`, mapped
+  at ingest to canonical `asp_id` and `environment`
 - omics-layer selection through `omics_layer`
-- pipeline metadata such as `pipeline`, `pipeline_version`, `database_versions.vep`
-- file references under `files`, such as `files.vcf_files.path`, `files.cnv.path`,
-  `files.cov.path`, and `files.fusion_files.path`
+- pipeline metadata such as `pipeline` and `pipeline_version`; DNA annotation
+  database versions are normally read from the VCF `##VEP=` header
+- flat file references such as `vcf_files`, `cnv`, `cov`, and `fusion_files`
 
 Important behavior:
 
@@ -111,19 +113,21 @@ Parser behavior:
 
 - `INFO.variant_callers` is split from a pipe-delimited string into a list.
 - `FILTER` is split from semicolon text into a list.
-- `INFO.CSQ` is reduced into:
-  - `INFO.selected_CSQ`
-  - `INFO.selected_CSQ_criteria`
-  - remaining transcript summaries in `INFO.CSQ`
+- The VCF `CSQ` annotation is reduced into `INFO.selected_CSQ` and
+  `INFO.selected_CSQ_criteria` on the sample-local variant row. The complete
+  transcript set is stored once in the versioned `anno_vep` collection.
 - Canonical transcript selection prefers:
   1. NCBI/RefSeq MANE Plus Clinical transcript
   2. Ensembl MANE Plus Clinical transcript
   3. NCBI/RefSeq MANE Select transcript
   4. Ensembl MANE Select transcript
-  5. internal canonical RefSeq mapping after HGNC normalization
-  6. VEP `CANONICAL == YES`
-  7. first protein-coding transcript
-  8. first transcript fallback
+  5. VEP `CANONICAL == YES` on a protein-coding transcript
+  6. first protein-coding transcript
+  7. first transcript fallback
+- `Feature` identifies the precise VEP transcript row. NCBI selectors require a
+  native `NM_...` or `NR_...` feature, while Ensembl selectors require a native
+  `ENST...` feature. Linked VEP `MANE` values are retained for review but do
+  not make an Ensembl row eligible for an NCBI selector.
 - Every parsed transcript consequence is also written to the immutable
   `anno_vep` vault under `simple_id_hash` and the sample VEP version. Manual
   transcript changes read from this vault, so SIFT, PolyPhen, CADD, HGVS, exon,
@@ -132,9 +136,9 @@ Parser behavior:
 - Transcript summaries include provenance fields:
   - `transcript_tags`: HGNC/VEP markers such as `ncbi_mane_plus_clinical`,
     `ensembl_mane_plus_clinical`, `ncbi_mane_select`, `ensembl_mane_select`,
-    `db_canonical`, and `vep_canonical`.
-  - `canonical_source`: the authority that made the row canonical, such as
-    `refseq_canonical` or `vep_canonical`.
+    and `vep_canonical`.
+  - `canonical_source`: VEP canonical authority when the source record carries
+    `CANONICAL=YES`.
   - `is_canonical`: boolean helper used by the detail-page transcript table.
 - The parser adds:
   - `genes`

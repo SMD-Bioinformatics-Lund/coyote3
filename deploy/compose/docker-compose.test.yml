@@ -43,7 +43,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
+      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
+      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
     depends_on:
       coyote3_redis_test:
         condition: service_started
@@ -80,7 +81,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
+      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
+      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
     depends_on:
       coyote3_redis_test:
         condition: service_started
@@ -117,7 +119,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - "${COYOTE3_DATA_HOST_ROOT:-/data}:/data"
+      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
+      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
     depends_on:
       coyote3_redis_test:
         condition: service_started

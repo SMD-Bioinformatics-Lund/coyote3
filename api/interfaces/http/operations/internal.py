@@ -20,6 +20,7 @@ from api.app.deps.repositories import get_gene_list_repository, get_roles_reposi
 from api.app.deps.services import get_internal_ingest_service
 from api.application.ingest.service import InternalIngestService
 from api.celery_app import celery_app
+from api.config.paths import INGEST_STAGING_DIR
 from api.config.runtime_settings import DefaultConfig
 from api.contracts.internal import (
     InternalCollectionBulkInsertRequest,
@@ -504,7 +505,7 @@ async def enqueue_ingest_sample_bundle_upload_internal(
             detail="yaml_file must include a filename",
         )
 
-    staging_root = Path(DefaultConfig.CELERY_INGEST_STAGING_DIR)
+    staging_root = INGEST_STAGING_DIR
     staging_root.mkdir(parents=True, exist_ok=True)
     staging_dir = Path(tempfile.mkdtemp(prefix="sample_bundle_", dir=str(staging_root)))
     uploads_by_exact: dict[str, str] = {}

@@ -374,6 +374,8 @@ def _build_variant_query(
             "filter_conseq": filter_conseq,
             "filter_genes": filter_genes,
             "disp_pos": disp_pos,
+            "asp_id": sample.get("asp_id"),
+            "subpanel_id": sample.get("subpanel_id"),
             "fp": {"$ne": True},
             "irrelevant": {"$ne": True},
         },

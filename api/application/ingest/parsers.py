@@ -9,7 +9,7 @@ from typing import Any
 
 from pysam import VariantFile
 
-from api.config.constants import primary_analysis_file_key
+from api.config.constants import TRANSCRIPT_SELECTION_ORDER, primary_analysis_file_key
 from api.contracts.schemas.samples import DNA_SAMPLE_FILE_KEYS, RNA_SAMPLE_FILE_KEYS
 from api.domain.common.parsers import cmdvcf
 from api.domain.core.dna.variant_identity import (
@@ -467,25 +467,6 @@ def _build_anno_vep_docs(variants: list[dict[str, Any]], vep_version: Any) -> li
     return docs
 
 
-def _selected_transcript_removal(
-    csq_arr: list[dict[str, Any]], selected: str
-) -> list[dict[str, Any]]:
-    """Remove the selected transcript entry from csq_arr in-place by Feature value.
-
-    Args:
-        csq_arr: Mutable list of slim CSQ transcript dicts.
-        selected: The Feature identifier of the transcript to remove.
-
-    Returns:
-        The same list with the first matching entry removed (if found).
-    """
-    for index, csq in enumerate(csq_arr):
-        if csq.get("Feature") == selected:
-            del csq_arr[index]
-            break
-    return csq_arr
-
-
 def _refseq_no_version(accession: str) -> str:
     """Strip the version suffix from a RefSeq accession (e.g. ``NM_001234.5`` → ``NM_001234``).
 
@@ -555,48 +536,74 @@ def _is_ensembl_transcript(value: Any) -> bool:
     return _feature_no_version(value).startswith("ENST")
 
 
+def _is_refseq_transcript(value: Any) -> bool:
+    """Return whether a transcript accession is from the RefSeq namespace."""
+    return _feature_no_version(value).startswith(("NM_", "NR_"))
+
+
+def _matches_mane_source(
+    csq: dict[str, Any],
+    doc: dict[str, Any] | None,
+    *,
+    hgnc_key: str,
+    namespace: str,
+) -> bool:
+    """Match a VEP row to one native HGNC MANE transcript source.
+
+    RefSeq and Ensembl MANE values describe a paired transcript set, but the
+    selected row must remain in the source namespace being evaluated.  An
+    Ensembl row carrying a linked ``NM_`` accession must therefore not satisfy
+    an NCBI selector when the native RefSeq row is available in the VCF.
+    """
+    feature = _feature_no_version(csq.get("Feature"))
+    configured = _hgnc_refseq_values(doc, hgnc_key)
+    if namespace == "ncbi":
+        return _is_refseq_transcript(feature) and feature in configured
+    return _is_ensembl_transcript(feature) and feature in configured
+
+
 def _annotate_transcript_provenance(
     csq_arr: list[dict[str, Any]],
-    canonical: dict[str, str],
     hgnc_by_id: dict[str, dict[str, Any]] | None = None,
     hgnc_by_symbol: dict[str, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Add HGNC and VEP transcript provenance tags to slim CSQ rows."""
     for csq in csq_arr:
         doc = _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol)
-        feature = _feature_no_version(csq.get("Feature"))
         tags: list[str] = []
-        if feature and feature in _hgnc_refseq_values(doc, "refseq_mane_plus_clinical"):
+        if _matches_mane_source(
+            csq,
+            doc,
+            hgnc_key="refseq_mane_plus_clinical",
+            namespace="ncbi",
+        ):
             tags.append("ncbi_mane_plus_clinical")
-        if feature and (
-            feature in _hgnc_refseq_values(doc, "ensembl_mane_plus_clinical")
-            or (
-                _is_ensembl_transcript(feature)
-                and bool(str(csq.get("MANE_PLUS_CLINICAL") or "").strip())
-            )
+        if _matches_mane_source(
+            csq,
+            doc,
+            hgnc_key="ensembl_mane_plus_clinical",
+            namespace="ensembl",
         ):
             tags.append("ensembl_mane_plus_clinical")
-        if feature and feature == _feature_no_version((doc or {}).get("refseq_mane_select")):
+        if _matches_mane_source(
+            csq,
+            doc,
+            hgnc_key="refseq_mane_select",
+            namespace="ncbi",
+        ):
             tags.append("ncbi_mane_select")
-        if feature and feature == _feature_no_version((doc or {}).get("ensembl_mane_select")):
-            tags.append("ensembl_mane_select")
-        if (
-            _is_ensembl_transcript(feature)
-            and str(csq.get("MANE") or "").strip()
-            and "ensembl_mane_select" not in tags
+        if _matches_mane_source(
+            csq,
+            doc,
+            hgnc_key="ensembl_mane_select",
+            namespace="ensembl",
         ):
             tags.append("ensembl_mane_select")
 
         canonical_source = None
-        approved_symbol = _approved_hgnc_symbol_for_csq(csq, hgnc_by_id, hgnc_by_symbol)
-        if approved_symbol in canonical and canonical[approved_symbol] == _refseq_no_version(
-            csq.get("Feature", "")
-        ):
-            tags.append("db_canonical")
-            canonical_source = "refseq_canonical"
         if csq.get("CANONICAL") == "YES":
             tags.append("vep_canonical")
-            canonical_source = canonical_source or "vep_canonical"
+            canonical_source = "vep_canonical"
 
         csq["transcript_tags"] = list(dict.fromkeys(tags))
         csq["canonical_source"] = canonical_source
@@ -646,135 +653,60 @@ def _first_csq_by_impact(
 
 def _select_csq(
     csq_arr: list[dict[str, Any]],
-    canonical: dict[str, str],
     hgnc_by_id: dict[str, dict[str, Any]] | None = None,
     hgnc_by_symbol: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[dict[str, Any], str]:
     """Select the canonical transcript from a slim CSQ array using a priority hierarchy.
 
-    Priority order:
-    1. NCBI MANE Plus Clinical transcript.
-    2. Ensembl MANE Plus Clinical transcript.
-    3. NCBI MANE Select transcript.
-    4. Ensembl MANE Select transcript.
-    5. DB canonical (gene in canonical map and RefSeq matches).
-    6. VEP canonical (``CANONICAL == "YES"``).
-    7. First protein-coding transcript.
-    8. First transcript unconditionally.
-
-    Selection iterates IMPACT order (HIGH → MODERATE → LOW → MODIFIER) before
-    descending to lower-priority tiers.
+    The ordered selector names are loaded from the center-owned
+    ``reporting.transcript_selection_order`` configuration. Each selector is
+    evaluated in that declared order; within a selector, rows are evaluated by
+    impact (HIGH → MODERATE → LOW → MODIFIER).
 
     Args:
         csq_arr: List of slim CSQ transcript dicts (output of ``_parse_transcripts``).
-        canonical: Mapping of gene symbol to canonical RefSeq accession (no version).
-
     Returns:
-        A tuple of (selected_csq_dict, selection_source_label) where label is one of
-        ``"db"``, ``"vep"``, or ``"random"``.
+        A tuple of selected CSQ document and its configured selector name.
     """
-    ncbi_mane_plus = _first_csq_by_impact(
-        csq_arr,
-        lambda csq: (
-            _feature_no_version(csq.get("Feature"))
-            in _hgnc_refseq_values(
-                _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol),
-                "refseq_mane_plus_clinical",
-            )
+    selectors: dict[str, Callable[[dict[str, Any]], bool]] = {
+        "ncbi_mane_plus_clinical": lambda csq: _matches_mane_source(
+            csq,
+            _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol),
+            hgnc_key="refseq_mane_plus_clinical",
+            namespace="ncbi",
         ),
-    )
-    if ncbi_mane_plus >= 0:
-        return (
-            _normalize_selected_csq_symbol(csq_arr[ncbi_mane_plus], hgnc_by_id, hgnc_by_symbol),
-            "ncbi_mane_plus_clinical",
-        )
-    ensembl_mane_plus = _first_csq_by_impact(
-        csq_arr,
-        lambda csq: (
-            _feature_no_version(csq.get("Feature"))
-            in _hgnc_refseq_values(
-                _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol),
-                "ensembl_mane_plus_clinical",
-            )
-            or (
-                _is_ensembl_transcript(csq.get("Feature"))
-                and bool(str(csq.get("MANE_PLUS_CLINICAL") or "").strip())
-            )
+        "ensembl_mane_plus_clinical": lambda csq: _matches_mane_source(
+            csq,
+            _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol),
+            hgnc_key="ensembl_mane_plus_clinical",
+            namespace="ensembl",
         ),
-    )
-    if ensembl_mane_plus >= 0:
-        return (
-            _normalize_selected_csq_symbol(csq_arr[ensembl_mane_plus], hgnc_by_id, hgnc_by_symbol),
-            "ensembl_mane_plus_clinical",
-        )
-    ncbi_mane_select = _first_csq_by_impact(
-        csq_arr,
-        lambda csq: (
-            _feature_no_version(csq.get("Feature"))
-            == _feature_no_version(
-                (_hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol) or {}).get("refseq_mane_select")
-            )
+        "ncbi_mane_select": lambda csq: _matches_mane_source(
+            csq,
+            _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol),
+            hgnc_key="refseq_mane_select",
+            namespace="ncbi",
         ),
-    )
-    if ncbi_mane_select >= 0:
-        return (
-            _normalize_selected_csq_symbol(csq_arr[ncbi_mane_select], hgnc_by_id, hgnc_by_symbol),
-            "ncbi_mane_select",
-        )
-    ensembl_mane_select = _first_csq_by_impact(
-        csq_arr,
-        lambda csq: (
-            _feature_no_version(csq.get("Feature"))
-            == _feature_no_version(
-                (_hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol) or {}).get(
-                    "ensembl_mane_select"
-                )
-            )
-            or (
-                _is_ensembl_transcript(csq.get("Feature"))
-                and bool(str(csq.get("MANE") or "").strip())
-            )
+        "ensembl_mane_select": lambda csq: _matches_mane_source(
+            csq,
+            _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol),
+            hgnc_key="ensembl_mane_select",
+            namespace="ensembl",
         ),
-    )
-    if ensembl_mane_select >= 0:
-        return (
-            _normalize_selected_csq_symbol(
-                csq_arr[ensembl_mane_select], hgnc_by_id, hgnc_by_symbol
-            ),
-            "ensembl_mane_select",
-        )
-    db_canonical = _first_csq_by_impact(
-        csq_arr,
-        lambda csq: (
-            _approved_hgnc_symbol_for_csq(csq, hgnc_by_id, hgnc_by_symbol) in canonical
-            and canonical[_approved_hgnc_symbol_for_csq(csq, hgnc_by_id, hgnc_by_symbol)]
-            == _refseq_no_version(csq.get("Feature", ""))
+        "vep_canonical_protein_coding": lambda csq: (
+            csq.get("CANONICAL") == "YES" and csq.get("BIOTYPE") == "protein_coding"
         ),
-    )
-    if db_canonical >= 0:
-        return (
-            _normalize_selected_csq_symbol(csq_arr[db_canonical], hgnc_by_id, hgnc_by_symbol),
-            "db",
-        )
-    vep_canonical = _first_csq_by_impact(
-        csq_arr,
-        lambda csq: csq.get("CANONICAL") == "YES",
-    )
-    if vep_canonical >= 0:
-        return (
-            _normalize_selected_csq_symbol(csq_arr[vep_canonical], hgnc_by_id, hgnc_by_symbol),
-            "vep",
-        )
-    first_protein = _first_csq_by_impact(
-        csq_arr,
-        lambda csq: csq.get("BIOTYPE") == "protein_coding",
-    )
-    if first_protein >= 0:
-        return (
-            _normalize_selected_csq_symbol(csq_arr[first_protein], hgnc_by_id, hgnc_by_symbol),
-            "random",
-        )
-    return _normalize_selected_csq_symbol(csq_arr[0], hgnc_by_id, hgnc_by_symbol), "random"
+        "first_protein_coding": lambda csq: csq.get("BIOTYPE") == "protein_coding",
+        "first_available": lambda _csq: True,
+    }
+    for selector_name in TRANSCRIPT_SELECTION_ORDER:
+        selected_index = _first_csq_by_impact(csq_arr, selectors[selector_name])
+        if selected_index >= 0:
+            return (
+                _normalize_selected_csq_symbol(csq_arr[selected_index], hgnc_by_id, hgnc_by_symbol),
+                selector_name,
+            )
+    raise RuntimeError("transcript selection order did not contain a matching fallback")
 
 
 def _normalize_biomarkers_doc(doc: Any) -> Any:
@@ -862,15 +794,10 @@ def _normalize_transloc_doc(doc: dict[str, Any]) -> dict[str, Any]:
 
 
 class DnaIngestParser:
-    """Parse DNA ingest payloads by reading VCF, CNV, biomarker, and coverage files.
-
-    Attributes:
-        canonical: Gene-to-RefSeq canonical transcript mapping loaded from DB.
-    """
+    """Parse DNA ingest payloads by reading VCF, CNV, biomarker, and coverage files."""
 
     def __init__(
         self,
-        canonical: dict[str, str],
         *,
         hgnc_by_id: dict[str, dict[str, Any]] | None = None,
         hgnc_by_symbol: dict[str, dict[str, Any]] | None = None,
@@ -878,11 +805,9 @@ class DnaIngestParser:
         """Initialise the parser with transcript and HGNC reference metadata.
 
         Args:
-            canonical: Mapping of gene symbol to canonical RefSeq accession (no version).
             hgnc_by_id: HGNC metadata keyed by ``HGNC:<id>``.
             hgnc_by_symbol: HGNC metadata keyed by approved, previous, and alias symbols.
         """
-        self.canonical = canonical
         self.hgnc_by_id = hgnc_by_id or {}
         self.hgnc_by_symbol = hgnc_by_symbol or {}
 
@@ -911,6 +836,8 @@ class DnaIngestParser:
             )
             if anno_vep:
                 preload["anno_vep"] = anno_vep
+            for variant in snvs:
+                (variant.get("INFO") or {}).pop("CSQ", None)
 
         cnv_path = runtime_file_path(args, primary_analysis_file_key("dna", "CNV"))
         if cnv_path:
@@ -1029,20 +956,18 @@ class DnaIngestParser:
             ) = _parse_transcripts(var_csq)
             slim_csq = _annotate_transcript_provenance(
                 slim_csq,
-                self.canonical,
                 hgnc_by_id=self.hgnc_by_id,
                 hgnc_by_symbol=self.hgnc_by_symbol,
             )
 
             selected_csq, selected_source = _select_csq(
                 slim_csq,
-                self.canonical,
                 hgnc_by_id=self.hgnc_by_id,
                 hgnc_by_symbol=self.hgnc_by_symbol,
             )
-            var_dict["INFO"]["CSQ"] = _selected_transcript_removal(
-                slim_csq, selected_csq["Feature"]
-            )
+            # Build the immutable VEP vault from the complete transcript set.
+            # It is removed from the mutable variant document after staging.
+            var_dict["INFO"]["CSQ"] = slim_csq
             var_dict["INFO"]["selected_CSQ"] = selected_csq
             var_dict["INFO"]["selected_CSQ_criteria"] = selected_source
             var_dict["selected_csq_feature"] = selected_csq["Feature"]

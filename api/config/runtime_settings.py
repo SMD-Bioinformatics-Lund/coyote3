@@ -18,6 +18,7 @@ from api.config.loaders.contact import load_contact_config, normalize_url_prefix
 from api.config.paths import (
     COLLECTIONS_CONFIG_PATH,
     REPO_ROOT,
+    REPORTS_BASE_PATH,
 )
 from api.config.paths import (
     CONTACT_CONFIG_PATH as DEFAULT_CONTACT_CONFIG_PATH,
@@ -197,7 +198,7 @@ class DirectoryAndReportSettings:
 
     GENS_URI = os.getenv("GENS_URI", "")
     IGV_URI = os.getenv("IGV_URI", "")
-    REPORTS_BASE_PATH = os.getenv("REPORTS_BASE_PATH", "/data/coyote3/reports")
+    REPORTS_BASE_PATH = str(REPORTS_BASE_PATH)
 
 
 class CelerySettings:
@@ -217,10 +218,7 @@ class CelerySettings:
 class IngestSettings:
     """Ingest workspace and watched-manifest settings shared by API and workers."""
 
-    CELERY_INGEST_STAGING_DIR = os.getenv("CELERY_INGEST_STAGING_DIR", "/tmp/coyote3_ingest_jobs")
-    COYOTE3_DATA_HOST_ROOT = os.getenv("COYOTE3_DATA_HOST_ROOT", "")
     COYOTE3_INGEST_WATCH_ENABLED = _environment_bool("COYOTE3_INGEST_WATCH_ENABLED")
-    COYOTE3_INGEST_WATCH_DIR = os.getenv("COYOTE3_INGEST_WATCH_DIR", "")
     COYOTE3_INGEST_WATCH_FILENAME = os.getenv("COYOTE3_INGEST_WATCH_FILENAME", "coyote3.yaml")
     COYOTE3_INGEST_DONE_SUFFIX = os.getenv("COYOTE3_INGEST_DONE_SUFFIX", ".done")
     COYOTE3_INGEST_FAILED_SUFFIX = os.getenv("COYOTE3_INGEST_FAILED_SUFFIX", ".failed")

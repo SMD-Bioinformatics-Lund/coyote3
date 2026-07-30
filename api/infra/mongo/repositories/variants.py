@@ -216,7 +216,6 @@ class VariantsRepository(BaseRepository):
         *,
         var_id: str,
         selected_csq: dict[str, Any],
-        alternate_csq: list[dict[str, Any]],
         selected_feature: str,
         criteria: str,
     ) -> OperationResult:
@@ -228,9 +227,9 @@ class VariantsRepository(BaseRepository):
                     "$set": {
                         "INFO.selected_CSQ": dict(selected_csq),
                         "INFO.selected_CSQ_criteria": criteria,
-                        "INFO.CSQ": list(alternate_csq),
                         "selected_csq_feature": selected_feature,
-                    }
+                    },
+                    "$unset": {"INFO.CSQ": ""},
                 },
             )
         )

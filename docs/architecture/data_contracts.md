@@ -34,8 +34,9 @@ Design principles:
 - collection document shapes are defined in Pydantic contracts;
 - write paths validate and normalize before any database write;
 - API responses use Pydantic response contracts and JSON-safe serialization;
-- nested structures are modeled explicitly (`INFO.CSQ`, `filters`, coverage
-  gene trees, and file metadata);
+- nested structures are modeled explicitly (`INFO.selected_CSQ`, `filters`,
+  coverage gene trees, and file metadata); full versioned VEP transcripts live
+  in `anno_vep` rather than in mutable sample-local variant rows;
 - ObjectIds and UTC datetimes are converted at the API boundary;
 - missing, false, zero, and not-applicable values remain distinguishable;
 - fixtures use plain JSON contract shape without Mongo Extended JSON wrappers.

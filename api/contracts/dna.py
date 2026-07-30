@@ -64,6 +64,7 @@ class DnaVariantContextPayload(BaseModel):
     sample: dict[str, Any]
     sample_summary: dict[str, Any]
     variant: dict[str, Any]
+    transcripts: list[dict[str, Any]]
     annotations: list[dict[str, Any]]
     latest_classification: dict[str, Any] | None = None
     other_classifications: list[dict[str, Any]]

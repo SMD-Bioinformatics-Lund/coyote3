@@ -33,6 +33,7 @@ api/config/
   center/
     contact.toml                # public center identity and support contacts
     clinical_vocabulary.toml    # center vocabulary and sample-file bindings
+    clinical_query_policy.toml  # released SNV evidence and exception policy
     collections.toml            # Mongo database/collection mapping
     assay_catalog.yaml          # public assay-catalog narrative overlay
     filter_flag_metadata.yaml   # human-facing VCF filter badge metadata
@@ -101,9 +102,12 @@ workflow options, validation rules, and change procedure are documented in
 [Clinical Vocabulary Configuration](clinical_vocabulary.md).
 
 Use it when a center needs to change local authentication-provider
-availability, a sample YAML file key, baseline file requirement, or the file
-bound to an implemented analysis type. Sequencing platforms and their read
-capabilities are software-owned and cannot be changed in this file.
+availability, a sample YAML file key, baseline file requirement, the file
+bound to an implemented analysis type, or the approved transcript-selection
+order. Sequencing platforms and their read capabilities are software-owned and
+cannot be changed in this file. The transcript selector names are implemented
+software contracts, but their released order is center configuration and is
+validated strictly at startup.
 
 > [!IMPORTANT]
 > Assay groups are not center configuration. They are a software-owned clinical
@@ -112,6 +116,235 @@ capabilities are software-owned and cannot be changed in this file.
 > `pgx`, `tumwgs`, `wts`, `myeloid`, `lymphoid`, `fusion`, and `fusionrna`.
 > Assay family (`panel-dna`, `wgs`, `panel-rna`, `wts`) and subpanel (for
 > example `endometrie` or `breast`) are separate concepts.
+
+## `clinical_query_policy.toml`
+
+This file controls the released DNA SNV retrieval policy. It is constrained
+configuration, not a free-form MongoDB query file: the application validates
+all values at startup and converts only documented fields into predicates.
+Clinical owners can add a reviewed ASP-, subpanel-, gene-, coordinate-, or
+variant-specific exception without modifying query-builder code.
+
+### File Format
+
+The file has one `[snv]` table, an optional `[snv.assay_group_policies]`
+table, and zero or more `[[snv.exceptions]]` tables. Values listed in brackets
+are TOML arrays. A list is an **OR** within that one key; different populated
+keys on the same exception are **AND** conditions. Scope keys decide where the
+exception can apply. Match keys decide which findings it can admit.
+
+```toml
+[snv]
+default_somatic_policy = "paired"
+default_germline_policy = "exception_only"
+population_frequency_fields = ["gnomad_frequency", "gnomad_max"]
+
+[snv.assay_group_policies]
+generic_case_only = "case_only"
+
+[[snv.exceptions]]
+id = "endometrial_specific_variant"
+mode = "extend_consequence"
+intents = ["somatic"]
+asp_ids = ["solid_gmsv3"]
+subpanel_ids = ["endometrie"]
+simple_ids = ["17_7674220_C_T"]
+selected_consequences = ["missense_variant"]
+```
+
+### Baseline Keys
+
+| TOML path | Required | TOML format | Allowed values | Runtime behavior |
+| --- | --- | --- | --- | --- |
+| `[snv]` | Yes | Table | One table only | Owns all released SNV retrieval settings. |
+| `snv.default_somatic_policy` | Yes | String | `paired`, `case_only`, `exception_only` | Baseline policy for a somatic assay group that has no explicit override. Production default is `paired`. |
+| `snv.default_germline_policy` | Yes | String | `paired`, `case_only`, `exception_only` | Baseline germline policy. Production configuration uses `exception_only`, so only approved `admit` exceptions return germline findings. |
+| `snv.population_frequency_fields` | Yes | Array of unique strings | Stored scalar population-frequency field names, for example `gnomad_frequency` | Each numeric value must be at or below the sample `max_popfreq`; absent, null, and non-numeric values remain eligible. Use the exact stored field spelling. |
+| `[snv.assay_group_policies]` | No | Table | Zero or more software-owned assay-group identifiers | Overrides the somatic default for named assay groups. |
+| `snv.assay_group_policies.<assay_group>` | No, repeatable | String value within the table | `paired`, `case_only`, `exception_only` | Applies only to somatic retrieval in that exact normalized assay group. The key is a supported software-owned assay-group identifier, such as `solid` or `hematology`. |
+
+### Exception Keys
+
+Every `[[snv.exceptions]]` table requires `id`, `mode`, and at least one
+**match key**. Scope keys are optional; omitting a scope key means it matches
+every value of that scope. The application rejects unknown keys, duplicate
+identifiers, duplicate list values, empty list values, unsupported characters
+in identifiers, invalid mode/intent values, inverted position ranges, and raw
+MongoDB expressions.
+
+| TOML path | Required | TOML format | Allowed values / format | Meaning |
+| --- | --- | --- | --- | --- |
+| `snv.exceptions[].id` | Yes | String | Unique identifier using letters, numbers, `_`, or `-`; normalized to lowercase | Stable clinical exception name for review, tests, and release notes. Example: `endometrial_specific_variant`. |
+| `snv.exceptions[].mode` | Yes | String | `extend_consequence`, `admit`, or `exclude` | `extend_consequence` adds an approved selected-consequence route while retaining all baseline gates. `admit` is an alternative admission route used by `exception_only`. `exclude` removes matching findings after all baseline and admission rules are evaluated. |
+| `snv.exceptions[].intents` | No | Array of strings | `somatic`, `germline` | Scope key. Restricts the exception to one or both review intents. Omit for either intent. |
+| `snv.exceptions[].assay_groups` | No | Array of strings | Supported normalized assay-group identifiers | Scope key. Restricts to assay groups such as `solid` or `hematology`. |
+| `snv.exceptions[].asp_ids` | No | Array of strings | Existing normalized ASP identifiers | Scope key. Restricts to design panels, for example `solid_gmsv3`. |
+| `snv.exceptions[].subpanel_ids` | No | Array of strings | Existing normalized subpanel identifiers; use `base` only for the base scope | Scope key. Restricts to in-silico subpanels. |
+| `snv.exceptions[].genes` | No | Array of strings | HGNC symbols; values are normalized to uppercase | Match key. Requires `INFO.selected_CSQ.SYMBOL` to be one listed gene. |
+| `snv.exceptions[].selected_consequences` | No | Array of strings | Exact VEP consequence terms on the selected transcript | Match key. Requires `INFO.selected_CSQ.Consequence` to contain one listed term. It never examines `INFO.CSQ`. |
+| `snv.exceptions[].filter_values` | No | Array of strings | Exact VCF FILTER values; values are normalized to uppercase | Match key. Requires the stored `FILTER` array to contain one listed value. |
+| `snv.exceptions[].chromosomes` | No | Array of strings | Stored chromosome labels; values are normalized to uppercase | Match key. Requires `CHROM` to be one listed chromosome. |
+| `snv.exceptions[].position_min` | No | Integer | Non-negative genomic position | Match key. Inclusive lower bound for `POS`. Use with or without `position_max`. |
+| `snv.exceptions[].position_max` | No | Integer | Integer no smaller than `position_min` when both are present | Match key. Inclusive upper bound for `POS`. |
+| `snv.exceptions[].simple_ids` | No | Array of strings | Exact stored `CHROM_POS_REF_ALT` identity strings | Match key. Restricts to a known variant identity. Case is preserved. |
+| `snv.exceptions[].info_fields_present` | No | Array of strings | Stored VCF INFO identifiers using letters, numbers, `_`, or `-` | Match key. Requires each named `INFO.<field>` to exist. Field casing is preserved. |
+| `[snv.exceptions.info_equals]` | No | Nested TOML table belonging to the preceding exception | INFO identifier to scalar value mapping | Match key. Requires every listed `INFO.<field>` to equal the supplied TOML value exactly. |
+| `snv.exceptions[].alt_regex` | No | String | Valid Python regular expression | Match key. Requires ALT to match the released expression. Escape backslashes for TOML, for example `"\\w{10,200}"`. |
+
+There is deliberately no `priority` key for query exceptions. The resulting
+exception predicates are additive `$or` branches; their order cannot change
+the returned result set. TOML order is retained only for human readability and
+diagnostic output; it has no clinical or query meaning. Reporting-text rule
+priority is a separate YAML concept used for first-match template rendering.
+
+### Condition Examples
+
+The following examples are complete `[[snv.exceptions]]` blocks. They show
+every supported match-key form. They are patterns only: use clinically
+approved identifiers and add fixture-based evidence before release.
+
+#### Gene and Selected Consequence
+
+Include one or more selected-transcript consequences for one gene while still
+requiring the normal baseline evidence:
+
+```toml
+[[snv.exceptions]]
+id = "solid_tert_regulatory"
+mode = "extend_consequence"
+intents = ["somatic"]
+assay_groups = ["solid"]
+genes = ["TERT"]
+selected_consequences = ["regulatory_region_variant", "TF_binding_site_variant"]
+```
+
+#### Exact Variant Identity
+
+Include one exact normalized variant identity for a named ASP and subpanel.
+This is the narrowest rule form and is preferred when the clinical decision is
+about one known variant:
+
+```toml
+[[snv.exceptions]]
+id = "endometrial_known_variant"
+mode = "extend_consequence"
+intents = ["somatic"]
+asp_ids = ["solid_gmsv3"]
+subpanel_ids = ["endometrie"]
+simple_ids = ["17_7674220_C_T"]
+```
+
+#### VCF FILTER Value
+
+Include a finding only when its VCF `FILTER` array contains a declared value:
+
+```toml
+[[snv.exceptions]]
+id = "germline_cebpa_filter"
+mode = "admit"
+intents = ["germline"]
+genes = ["CEBPA"]
+filter_values = ["GERMLINE"]
+```
+
+#### Genomic Interval
+
+Include a bounded coordinate interval. The bounds are inclusive and can be
+used together or individually:
+
+```toml
+[[snv.exceptions]]
+id = "germline_chr1_interval"
+mode = "admit"
+intents = ["germline"]
+chromosomes = ["1"]
+position_min = 115256521
+position_max = 115256537
+```
+
+#### INFO Field Presence and Exact Value
+
+Match a declared VCF INFO field either by presence or exact value. The nested
+`[snv.exceptions.info_equals]` table belongs to the exception immediately
+above it:
+
+```toml
+[[snv.exceptions]]
+id = "flt3_structural_marker"
+mode = "extend_consequence"
+intents = ["somatic"]
+genes = ["FLT3"]
+info_fields_present = ["SVTYPE"]
+
+[[snv.exceptions]]
+id = "myeloid_germline_marker"
+mode = "admit"
+intents = ["germline"]
+
+[snv.exceptions.info_equals]
+MYELOID_GERMLINE = 1
+```
+
+#### ALT Pattern
+
+Include a finding whose ALT allele matches a released regular expression. TOML
+requires the backslash to be escaped:
+
+```toml
+[[snv.exceptions]]
+id = "flt3_large_insertion"
+mode = "extend_consequence"
+intents = ["somatic"]
+genes = ["FLT3"]
+alt_regex = "\\w{10,200}"
+```
+
+#### Exclude a Typed Subset
+
+Exclusion rules use exactly the same scope and match keys as inclusion rules,
+but remove matching findings after the baseline query and any admission rules
+have been built. This is appropriate for a reviewed technical or clinical
+exclusion, not for an informal reviewer preference:
+
+```toml
+[[snv.exceptions]]
+id = "solid_exclude_low_quality_tert"
+mode = "exclude"
+intents = ["somatic"]
+assay_groups = ["solid"]
+genes = ["TERT"]
+filter_values = ["LOWQUAL"]
+```
+
+In this example, only a TERT finding with the `LOWQUAL` filter is removed. A
+different gene, or a TERT finding without that filter, remains eligible.
+
+### Safe Authoring Protocol
+
+1. Start from the standard baseline policy. Use `extend_consequence` when the
+   normal case, control, depth, VAF, and population-frequency gates must remain
+   mandatory.
+2. Use the narrowest applicable scope: add `asp_ids` and `subpanel_ids` before
+   adding a broad `assay_groups` scope.
+3. Add the narrowest biological match key that captures the approved finding:
+   `simple_ids` for one identity, `genes` plus `selected_consequences` for a
+   gene-level rule, or chromosome/position bounds for a genomic interval.
+4. Use `admit` only with an `exception_only` policy and only after explicit
+   clinical approval. It does not inherit baseline evidence gates. Use
+   `exclude` only for a reviewed exclusion; it applies after the baseline and
+   every inclusion branch.
+5. Add a representative fixture and expected result count to the release
+   review. Restart API, worker, and beat together after deployment.
+
+At least one clinical match field is required for every exception. The policy
+cannot name an arbitrary MongoDB field, operator, aggregation expression, or
+JavaScript fragment.
+
+!!! warning "Release discipline"
+
+    Any change to this file can change finding visibility. Validate it with a
+    representative fixture and documented expected count before deploying it
+    with API, worker, and beat.
 
 ### Field-Level Contract
 
@@ -187,7 +420,7 @@ does not define a document schema and it does not move data.
 | Sample and reporting workflow | `samples_collection`, `sample_comments_collection`, `reports_collection`, `reported_variants_collection`, `blacklist_collection` | Sample lifecycle records, sample-level comments, reports, report snapshots, and blacklist state. |
 | DNA findings | `variants_collection`, `annotations_collection`, `anno_vep_collection`, `cnvs_collection`, `fusions_collection`, `transloc_collection`, `biomarkers_collection` | Parsed small variants and their annotations, CNVs, fusions, translocations, and biomarkers. |
 | Coverage and RNA results | `coverage_collection`, `groupcov_collection`, `expression_collection`, `rna_expression_collection`, `rna_qc_collection`, `rna_classification_collection` | Coverage, grouped coverage, expression, RNA quality control, and RNA classification data. |
-| Reference annotations | `hgnc_collection`, `vep_metadata_collection`, `canonical_collection`, `cosmic_collection` | HGNC identity/transcript data, VEP metadata, canonical-transcript reference, and COSMIC data. |
+| Reference annotations | `hgnc_collection`, `vep_metadata_collection`, `cosmic_collection` | HGNC identity/transcript data, VEP metadata, and COSMIC data. |
 | Knowledgebases | `civic_variants_collection`, `civic_gene_collection`, `oncokb_collection`, `oncokb_actionable_collection`, `oncokb_genes_collection`, `oncokb_public_collection`, `oncokb_genes_public_collection`, `oncokb_cancer_genes_public_collection`, `clinpgx_genes_public_collection`, `brcaexchange_collection`, `iarc_tp53_collection` | Local knowledgebase imports and public reference material used for clinical markers and detail views. |
 
 !!! caution "Changing names is not a migration"

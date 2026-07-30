@@ -330,11 +330,19 @@ Transcript selection follows the documented preference:
 2. Ensembl MANE Plus Clinical;
 3. NCBI MANE Select;
 4. Ensembl MANE Select;
-5. the deterministic configured fallback.
+5. VEP canonical protein-coding;
+6. first protein-coding transcript;
+7. first available transcript.
 
 HGNC normalization links current symbols, previous symbols, and aliases to the
 same HGNC identity. The original display symbol from the variant is retained;
 the UI may indicate that a newer approved symbol exists.
+
+Each selector requires a native VEP transcript row in its own namespace. NCBI
+stages select only `NM_...` or `NR_...` rows that match HGNC RefSeq MANE
+metadata; Ensembl stages select only matching `ENST...` rows. Linked VEP
+`MANE` and `MANE_PLUS_CLINICAL` accessions remain review metadata and never
+allow an Ensembl row to supersede an available RefSeq row.
 
 Report-text generation receives the selected consequence. It does not choose a
 different transcript.

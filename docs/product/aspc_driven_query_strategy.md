@@ -96,7 +96,7 @@ the fixed predicate shape and the limited set of validated clinical exceptions.
 | Review configuration | Active ASPC | enabled analysis types, somatic/germline filter defaults, reporting sections | arbitrary data-store predicates |
 | Per-sample review state | `samples.filters` | reviewer-selected ISGLs, ad-hoc genes, and permitted threshold changes | assay-group policy |
 | Versioned annotation metadata | VEP metadata referenced by `sample.database_versions.vep` | expansion of UI consequence groups to VEP terms | query threshold values |
-| Clinical query policy | domain-core Python | safe predicate structure and approved rescue branches | center-specific threshold values |
+| Clinical query policy | `api/config/center/clinical_query_policy.toml` plus domain-core Python | released baseline evidence models, population-frequency sources, and typed clinical exceptions | raw MongoDB fields, operators, or arbitrary query fragments |
 
 This design prevents an administrative form from broadening a clinical query by
 storing raw operators in MongoDB. A change to query semantics requires code
@@ -115,7 +115,7 @@ reviewer's saved filters. The resulting inputs are shown below.
 | `min_freq`, `max_freq` | `filters.<intent>.snv` | case allele-frequency bounds for somatic and case-only policies |
 | `min_depth`, `min_alt_reads` | `filters.<intent>.snv` | minimum evidence for accepted case genotypes |
 | `max_control_freq` | `filters.somatic.snv` | maximum paired-control allele frequency; absence of a control genotype is allowed |
-| `max_popfreq` | `filters.somatic.snv` | maximum numeric gnomAD frequency; string, null, and absent source values remain eligible because they are not safely comparable numeric values |
+| `max_popfreq` | `filters.somatic.snv` | maximum numeric value across each configured population-frequency source; string, null, and absent source values remain eligible because they are not safely comparable numeric values |
 | `vep_consequences` | selected profile plus versioned VEP metadata | UI groups are expanded to stored VEP consequence terms |
 | selected SNV ISGLs and ad-hoc genes | `filters.<intent>.snv` | optional gene or explicit-position scope |
 | `fp`, `irrelevant` | request-level review controls | further restrict results to the requested review status |
@@ -129,40 +129,90 @@ The somatic baseline requires all of the following:
    `min_alt_reads`.
 2. A paired control at or below `max_control_freq` with sufficient depth, or
    no control genotype in the document.
-3. A numeric population frequency at or below `max_popfreq`, or a source value
-   that is absent, null, or non-numeric.
-4. A selected consequence term on either the selected transcript or any
-   transcript in `INFO.CSQ`.
+3. Every configured numeric population-frequency source is at or below
+   `max_popfreq`. A source value that is absent, null, or non-numeric remains
+   eligible because it cannot be safely compared numerically.
+4. A selected consequence term on the selected transcript.
 5. Any selected gene, selected coordinate, false-positive, or irrelevant
    constraint requested by the reviewer.
 
-Consequence matching deliberately examines both
-`INFO.selected_CSQ.Consequence` and every `INFO.CSQ[].Consequence`. This keeps
-a finding when a clinically relevant alternate transcript has a selected
-consequence even if the transcript currently displayed in the table has a
-different consequence.
+The SNV query reads only `INFO.selected_CSQ.Consequence`. Alternate transcript
+annotations are held in the versioned VEP annotation collection and are used
+for transcript inspection and explicit transcript selection, not as a hidden
+second query source. This guarantees that a row is admitted for the same
+transcript and consequence that are displayed to the reviewer.
 
-### Approved Assay-Group Exceptions
+### Released SNV Policies And Exceptions
 
-An exception is an explicit, tested part of the released domain policy. It is
-not a free-form rule in an ASPC or a YAML file. The following table is the
-complete current SNV exception set.
+`clinical_query_policy.toml` is a released clinical configuration asset. It is
+reviewed and deployed with the application, but it is intentionally not stored
+in ASPC and cannot contain arbitrary MongoDB syntax. The application supports
+only the following baseline policies:
 
-| Scope | Baseline retained | Additional admission path | Clinical purpose |
+| Policy | Required evidence | Population frequencies | Control evidence | Intended use |
+| --- | --- | --- | --- | --- |
+| `paired` | labelled case genotype, configured VAF/depth/alternate-read thresholds, and selected-transcript consequence | every configured source must pass | required when a control exists; absent control is allowed | default somatic policy |
+| `case_only` | labelled or untyped case evidence and selected-transcript consequence | every configured source must pass | deliberately not evaluated | validated assays without a matched control |
+| `exception_only` | a released `admit` exception | not implied | not implied | current germline admission policy |
+
+| Rule ID | Scope | Mode | Admission condition |
 | --- | --- | --- | --- |
-| `hematology`, `myeloid`, `fusion`, `tumwgs`, `generic_somatic` | case, control, population-frequency, and selected-gene/position constraints remain required | A finding in `FLT3` with `INFO.SVTYPE`, or a large insertion ALT sequence, may satisfy the consequence branch even when it does not have a selected conventional consequence | preserves FLT3-ITD-like events that are otherwise represented atypically in VCF annotation |
-| `solid` | case, control, population-frequency, and selected-gene/position constraints remain required | `TERT` or `NFKBIE` with `regulatory_region_variant` or `TF_binding_site_variant` may satisfy the consequence branch | preserves clinically relevant regulatory events outside the standard selected consequence groups |
-| `generic_case_only`, `swea`, `gmsonco` | case or untyped genotype evidence and `INFO.CSQ` consequence are required | no control or population-frequency constraint is applied | supports assays whose validated evidence model is case-only |
-| any DNA assay with `intent=germline`, or `generic_germline` | selected-gene/position scope remains required | `INFO.MYELOID_GERMLINE=1`; CEBPA with `FILTER=GERMLINE`; or the approved chromosome-1 interval | provides the currently validated germline review admission policy |
+| `flt3_svtype` | somatic hematology or myeloid | `extend_consequence` | selected gene `FLT3` and `INFO.SVTYPE` exists |
+| `flt3_large_insertion` | somatic hematology or myeloid | `extend_consequence` | selected gene `FLT3` and ALT matches the released large-insertion pattern |
+| `solid_regulatory_tert_nfkbie` | somatic solid | `extend_consequence` | selected gene `TERT` or `NFKBIE` with selected regulatory/TF-binding consequence |
+| `germline_myeloid_marker` | germline DNA | `admit` | `INFO.MYELOID_GERMLINE = 1` |
+| `germline_cebpa_filter` | germline DNA | `admit` | selected gene `CEBPA` and `FILTER` contains `GERMLINE` |
+| `germline_chr1_interval` | germline DNA | `admit` | chromosome 1 with position in the released interval |
 
-!!! caution "Adding an exception"
+`extend_consequence` retains the complete baseline evidence model and adds a
+clinically approved alternative to the selected-consequence branch. `admit` is
+used only by an `exception_only` policy. `exclude` uses the same typed match
+conditions but removes the matching subset after baseline and admission rules
+are applied. A scope with no matching `admit` rule produces an intentionally
+empty result set; it never falls back to an unfiltered query.
 
-    A new assay-group, gene, coordinate, or consequence exception changes
-    clinical finding visibility. It must be proposed with a precise biological
-    condition, representative synthetic fixtures, before/after result counts,
-    expected report impact, a domain-query implementation, unit tests, and an
-    update to this table. Do not encode an arbitrary query fragment in ASPC,
-    ISGL, or the user interface.
+#### Adding A Scoped Exception
+
+An exception can be limited to one or more `assay_groups`, `asp_ids`, or
+`subpanel_ids`, and can target a gene, selected consequence, VCF filter value,
+chromosome/position interval, exact `simple_id`, declared `INFO` field, or ALT
+pattern. All supplied match fields are combined with AND. The configuration
+author selects `extend_consequence` only when the standard evidence gates must
+remain in force; use `admit` only for an explicitly approved alternative
+admission policy.
+
+```toml
+[[snv.exceptions]]
+id = "endometrial_specific_variant"
+mode = "extend_consequence"
+intents = ["somatic"]
+asp_ids = ["solid_gmsv3"]
+subpanel_ids = ["endometrie"]
+simple_ids = ["17_7674220_C_T"]
+selected_consequences = ["missense_variant"]
+```
+
+The example does not bypass VAF, depth, control, or population-frequency
+checks. It only adds the listed selected-consequence admission branch for the
+released ASP/subpanel scope.
+
+Exception entries are evaluated as additive query branches. Their order has no
+effect on the returned findings, so query-policy exceptions intentionally do
+not use a `priority` field. TOML order is only for human readability and
+diagnostic output, not clinical or query behavior. This differs from
+reporting-text rules, where priority determines which matching template is
+rendered first.
+
+The full field-by-field TOML authoring contract, allowed values, inclusion and
+exclusion examples, and safe change protocol are in
+[Center Configuration Reference](../operations/center_configuration_files.md#clinical_query_policytoml).
+
+!!! caution "Clinical review requirement"
+
+    An exception changes clinical finding visibility. Add a precise biological
+    rationale, representative fixtures, before/after result counts, expected
+    report impact, and unit tests. Do not encode query fragments in ASPC, ISGL,
+    or the user interface.
 
 ### CNV, Translocation, and Fusion Queries
 

@@ -1,0 +1,63 @@
+# Released SNV query policy. This file never contains MongoDB query syntax.
+# Add clinical exceptions only through the typed fields documented in
+# docs/product/aspc_driven_query_strategy.md.
+
+[snv]
+default_somatic_policy = "paired"
+default_germline_policy = "exception_only"
+population_frequency_fields = [
+  "gnomad_frequency",
+  "gnomad_max",
+  "exac_frequency",
+  "thousandG_frequency",
+]
+
+[snv.assay_group_policies]
+generic_case_only = "case_only"
+
+[[snv.exceptions]]
+id = "flt3_svtype"
+mode = "extend_consequence"
+intents = ["somatic"]
+assay_groups = ["hematology", "myeloid"]
+genes = ["FLT3"]
+info_fields_present = ["SVTYPE"]
+
+[[snv.exceptions]]
+id = "flt3_large_insertion"
+mode = "extend_consequence"
+intents = ["somatic"]
+assay_groups = ["hematology", "myeloid"]
+genes = ["FLT3"]
+alt_regex = "\\w{10,200}"
+
+[[snv.exceptions]]
+id = "solid_regulatory_tert_nfkbie"
+mode = "extend_consequence"
+intents = ["somatic"]
+assay_groups = ["solid"]
+genes = ["TERT", "NFKBIE"]
+selected_consequences = ["regulatory_region_variant", "TF_binding_site_variant"]
+
+[[snv.exceptions]]
+id = "germline_myeloid_marker"
+mode = "admit"
+intents = ["germline"]
+
+[snv.exceptions.info_equals]
+MYELOID_GERMLINE = 1
+
+[[snv.exceptions]]
+id = "germline_cebpa_filter"
+mode = "admit"
+intents = ["germline"]
+genes = ["CEBPA"]
+filter_values = ["GERMLINE"]
+
+[[snv.exceptions]]
+id = "germline_chr1_interval"
+mode = "admit"
+intents = ["germline"]
+chromosomes = ["1"]
+position_min = 115256521
+position_max = 115256537

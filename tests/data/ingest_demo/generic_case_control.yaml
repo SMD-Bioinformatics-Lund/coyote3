@@ -1,21 +1,19 @@
 ---
-subpanel_id: 'hematology_myeloid'
+subpanel: 'hematology-myeloid'
 name: 'seed_case'
 clarity_case_id: 'seed_case_clarity'
 clarity_control_id: 'seed_control_clarity'
 clarity_case_pool_id: 'seed_pool'
 clarity_control_pool_id: 'seed_pool'
 genome_build: 38
-database_versions:
-  vep: '103'
 sample_no: 2
 case_id: 'seed_case'
 control_id: 'seed_control'
-environment: 'production'
-asp_id: 'hema_gmsv1'
+profile: 'production'
+assay: 'hema_GMSv1'
 sequencing_scope: 'panel'
 omics_layer: 'DNA'
-platform: 'Illumina'
+sequencing_technology: 'Illumina'
 pipeline: 'SomaticPanelPipeline'
 pipeline_version: 3.1.14
 case_ffpe: false
@@ -27,12 +25,7 @@ control_sequencing_run: 'seed_run'
 control_reads: 45889968
 control_purity: null
 paired: true
-files:
-  vcf_files:
-    path: tests/data/ingest_demo/generic_case_control.final.filtered.vcf
-  cnv:
-    path: tests/data/ingest_demo/generic_case_control.cnvs.merged.json
-  cnvprofile:
-    path: tests/data/ingest_demo/generic_case_control.modeled.png
-  cov:
-    path: tests/data/ingest_demo/generic_case_control.cov.json
+vcf_files: tests/data/ingest_demo/generic_case_control.final.filtered.vcf
+cnv: tests/data/ingest_demo/generic_case_control.cnvs.merged.json
+cnvprofile: tests/data/ingest_demo/generic_case_control.modeled.png
+cov: tests/data/ingest_demo/generic_case_control.cov.json

@@ -46,7 +46,7 @@ def _load_reference_seed_list(filename: str) -> list[dict]:
 
 
 def test_variant_info_accepts_selected_csq_fields():
-    """INFO should parse nested CSQ docs and selected-CSQ fields."""
+    """Variant documents retain only the selected transcript summary."""
     payload = {
         "SAMPLE_ID": "S1",
         "CHROM": "1",
@@ -57,18 +57,16 @@ def test_variant_info_accepts_selected_csq_fields():
         "QUAL": 99.0,
         "INFO": {
             "variant_callers": ["tnscope"],
-            "CSQ": [{"Feature": "ENST1", "SYMBOL": "TP53"}],
             "selected_CSQ": {"Feature": "ENST1", "SYMBOL": "TP53"},
-            "selected_CSQ_criteria": "db",
+            "selected_CSQ_criteria": "ncbi_mane_plus_clinical",
         },
         "simple_id": "1_100_A_G",
         "simple_id_hash": hashlib.md5("1_100_A_G".encode("utf-8")).hexdigest(),
     }
     doc = VariantsDoc.model_validate(payload)
-    assert doc.INFO.CSQ[0].SYMBOL == "TP53"
     assert doc.INFO.selected_CSQ is not None
     assert doc.INFO.selected_CSQ.SYMBOL == "TP53"
-    assert doc.INFO.selected_CSQ_criteria == "db"
+    assert doc.INFO.selected_CSQ_criteria == "ncbi_mane_plus_clinical"
 
 
 def test_variant_info_normalizes_variant_callers_string():
@@ -83,16 +81,15 @@ def test_variant_info_normalizes_variant_callers_string():
         "QUAL": 99.0,
         "INFO": {
             "variant_callers": "tnscope|strelka",
-            "CSQ": [{"Feature": "ENST1", "SYMBOL": "TP53"}],
             "selected_CSQ": {"Feature": "ENST1", "SYMBOL": "TP53"},
-            "selected_CSQ_criteria": "db",
+            "selected_CSQ_criteria": "ncbi_mane_plus_clinical",
         },
         "simple_id": "1_100_A_G",
         "simple_id_hash": hashlib.md5("1_100_A_G".encode("utf-8")).hexdigest(),
     }
     doc = VariantsDoc.model_validate(payload)
     assert doc.INFO.variant_callers == ["tnscope", "strelka"]
-    assert len(doc.INFO.CSQ) == 1
+    assert doc.INFO.selected_CSQ.Feature == "ENST1"
 
 
 def test_collection_validator_accepts_hgnc_genes_shape():
@@ -407,7 +404,6 @@ def test_supported_collections_exposes_expected_core_names():
         "asp_configs",
         "assay_specific_panels",
         "insilico_genelists",
-        "refseq_canonical",
         "hgnc_genes",
     ):
         assert required in names
@@ -614,7 +610,6 @@ def test_collection_validator_accepts_strict_ready_fixture_subset():
     }
     payload["permissions"] = _load_reference_seed_list("permissions.seed.ndjson.gz")
     payload["roles"] = _load_reference_seed_list("roles.seed.ndjson.gz")
-    payload["refseq_canonical"] = _load_reference_seed_list("refseq_canonical.seed.ndjson.gz")
     payload["hgnc_genes"] = _load_reference_seed_list("hgnc_genes.seed.ndjson.gz")
     payload["vep_metadata"] = _load_reference_seed_list("vep_metadata.seed.ndjson.gz")
     strict_ready = {
@@ -622,7 +617,6 @@ def test_collection_validator_accepts_strict_ready_fixture_subset():
         "mane_select",
         "oncokb_genes",
         "permissions",
-        "refseq_canonical",
         "roles",
         "samples",
         "vep_metadata",

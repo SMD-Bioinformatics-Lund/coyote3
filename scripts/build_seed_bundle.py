@@ -87,7 +87,6 @@ def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
     required_pack = {
         "hgnc_genes": "hgnc_genes.seed.ndjson",
         "permissions": "permissions.seed.ndjson",
-        "refseq_canonical": "refseq_canonical.seed.ndjson",
         "roles": "roles.seed.ndjson",
         "vep_metadata": "vep_metadata.seed.ndjson",
     }
