@@ -50,7 +50,7 @@ def _normalize_role_ids(role_ids: Any) -> list[str]:
 
 def _normalize_allowed_auth_types(value: Any) -> list[str]:
     """Validate the explicitly selected authentication providers."""
-    return normalize_auth_types(value)
+    return [str(provider) for provider in normalize_auth_types(value)]
 
 
 def _sanitize_username(value: Any) -> str:
@@ -116,7 +116,7 @@ class UserManagementService:
         }
 
     @property
-    def common_util(self):
+    def common_util(self) -> Any:
         """Return the injected common util helper."""
         return self._common_util
 
@@ -230,7 +230,9 @@ class UserManagementService:
         except Exception as exc:
             raise api_error(400, f"Invalid user payload: {exc}") from exc
         self.user_repository.create_user(user_data)
-        response = change_payload(resource="user", resource_id=username, action="create")
+        response: dict[str, Any] = change_payload(
+            resource="user", resource_id=username, action="create"
+        )
         if AUTH_PROVIDER_LOCAL in user_data.get("auth_type", []):
             try:
                 invite = issue_password_token_for_user(
@@ -286,7 +288,9 @@ class UserManagementService:
         except Exception as exc:
             raise api_error(400, f"Invalid user payload: {exc}") from exc
         self.user_repository.update_user(user_id, updated_user)
-        payload = change_payload(resource="user", resource_id=user_id, action="update")
+        response: dict[str, Any] = change_payload(
+            resource="user", resource_id=user_id, action="update"
+        )
         changed_fields = self._changed_user_fields(user_doc, updated_user)
         if form_data.get("password"):
             changed_fields.append("password")
@@ -296,10 +300,10 @@ class UserManagementService:
             actor_username=actor,
             changed_fields=changed_fields or ["user"],
         )
-        payload["meta"]["change_email_sent"] = bool(notification.get("email_sent", False))
+        response["meta"]["change_email_sent"] = bool(notification.get("email_sent", False))
         if notification.get("warning"):
-            payload["meta"]["warning"] = str(notification["warning"])
-        return payload
+            response["meta"]["warning"] = str(notification["warning"])
+        return response
 
     def send_local_user_invite(self, *, user_id: str, actor_username: str) -> dict[str, Any]:
         """Issue and email a local-user set-password invite."""
@@ -316,7 +320,9 @@ class UserManagementService:
             purpose="invite",
             actor_username=current_actor(actor_username),
         )
-        payload = change_payload(resource="user", resource_id=user_id, action="invite")
+        payload: dict[str, Any] = change_payload(
+            resource="user", resource_id=user_id, action="invite"
+        )
         payload["meta"]["invite_email_sent"] = bool(invite.get("email_sent", False))
         payload["meta"]["mail_configured"] = bool(invite.get("mail_configured", False))
         if invite.get("setup_url"):
@@ -330,7 +336,10 @@ class UserManagementService:
         if not user_doc:
             raise api_error(404, "User not found")
         self.user_repository.delete_user(user_id)
-        return change_payload(resource="user", resource_id=user_id, action="delete")
+        payload: dict[str, Any] = change_payload(
+            resource="user", resource_id=user_id, action="delete"
+        )
+        return payload
 
     def toggle_user(self, *, user_id: str) -> dict[str, Any]:
         user_doc = self.user_repository.user_with_id(user_id)
@@ -338,7 +347,9 @@ class UserManagementService:
             raise api_error(404, "User not found")
         new_status = not bool(user_doc.get("is_active"))
         self.user_repository.toggle_user_active(user_id, new_status)
-        payload = change_payload(resource="user", resource_id=user_id, action="toggle")
+        payload: dict[str, Any] = change_payload(
+            resource="user", resource_id=user_id, action="toggle"
+        )
         payload["meta"]["is_active"] = new_status
         notification = notify_user_change(
             user_doc={**user_doc, "is_active": new_status},

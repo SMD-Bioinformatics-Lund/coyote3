@@ -6,6 +6,10 @@ Coyote3 is a secure, schema-driven clinical genomics platform for interpretation
 
 [![Quality Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml/badge.svg)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml)
 
+Every quality run publishes backend XML and frontend LCOV coverage reports as
+workflow artifacts. Clinical backend families also have enforced minimum
+coverage thresholds; see the [testing and quality guide](docs/testing/testing_and_quality.md).
+
 ## Platform
 
 ![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)

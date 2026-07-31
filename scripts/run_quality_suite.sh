@@ -15,16 +15,24 @@ if [[ -z "${PYTHON_BIN:-}" ]]; then
 fi
 
 echo "[quality] Backend tests"
-PYTHONPATH=. "$PYTHON_BIN" -m pytest -q tests/unit tests/api tests/integration
+PYTHONPATH=. "$PYTHON_BIN" -m pytest -q tests/unit tests/api tests/integration \
+  --cov=api \
+  --cov-config=.coveragerc \
+  --cov-report=term-missing \
+  --cov-report=xml:coverage.xml
 
 echo "[quality] Backend coverage gates"
 PYTHON_BIN="$PYTHON_BIN" PYTHONPATH=. bash scripts/run_family_coverage_gates.sh
+
+echo "[quality] Strict Python type boundary"
+PYTHONPATH=. "$PYTHON_BIN" -m mypy
 
 echo "[quality] Contract and repository checks"
 PYTHON_BIN="$PYTHON_BIN" bash scripts/check_contract_integrity.sh
 
 echo "[quality] Frontend lint and build"
 npm --prefix frontend run lint
+npm --prefix frontend run test:coverage
 npm --prefix frontend run build
 
 echo "[quality] Frontend browser tests"

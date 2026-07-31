@@ -171,6 +171,18 @@ skip-magic-trailing-comma = false
 line-length = 100
 target-version = ["py312"]
 
+[tool.mypy]
+python_version = "3.12"
+strict = true
+follow_imports = "skip"
+ignore_missing_imports = true
+files = [
+    "api/security/auth_service.py",
+    "api/security/password_flows.py",
+    "api/infra/notifications/email.py",
+    "api/application/accounts/users.py",
+]
+
 [tool.setuptools]
 include-package-data = true
 

@@ -16,16 +16,17 @@ PYTHONPATH=. pytest -q
 
 ## Static Type Verification
 
-For security-critical modules, the platform enforces explicit type checking to prevent boundary errors and privilege escalation:
+For security-critical modules, the platform enforces strict type checking to
+prevent boundary errors and privilege escalation. The module list is owned by
+`[tool.mypy]` in `pyproject.toml`:
 
 ```bash
-# Focused verification for identity and notification domains
-PYTHONPATH=. mypy --follow-imports=skip --ignore-missing-imports \
-  api/security/auth_service.py \
-  api/security/password_flows.py \
-  api/infra/notifications/email.py \
-  api/application/accounts/users.py
+PYTHONPATH=. mypy
 ```
+
+The strict boundary is intentionally expanded module by module. Do not add a
+module to the configured list until it passes strict mode, and do not relax a
+strict option to accommodate new untyped code.
 
 ## Architectural Orchestration (Docker Compose)
 

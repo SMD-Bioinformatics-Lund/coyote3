@@ -208,10 +208,11 @@ def issue_password_token_for_user(
 
 def _decode_password_token(token: str) -> dict[str, Any] | None:
     try:
-        return _password_token_serializer().loads(
+        payload = _password_token_serializer().loads(
             token,
             max_age=_password_token_ttl_seconds(),
         )
+        return dict(payload) if isinstance(payload, dict) else None
     except (BadSignature, SignatureExpired):
         return None
 

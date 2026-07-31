@@ -12,8 +12,11 @@ API router tests
 Integration tests
   -> selected multi-component seams
 
-Frontend checks
-  -> React build and lint validation
+Frontend unit tests
+  -> pure formatting, routing, and UI helper behavior with LCOV output
+
+Frontend browser tests
+  -> route rendering and API contracts in Chromium
 
 Docs build / lint / coverage gates
   -> repo-wide quality checks
@@ -28,7 +31,8 @@ The test suite is grouped by runtime boundary:
 - **Unit Logic (`tests/unit`)**: pure functions, domain logic, contracts, and services.
 - **REST Interface (`tests/api/routers`)**: HTTP boundary behavior and typed payload handling.
 - **Integration Layer (`tests/integration`)**: cross-component checks that are still worth keeping.
-- **Frontend (`frontend`)**: React build, linting, and component-level checks as they are added.
+- **Frontend (`frontend`)**: TypeScript build, linting, Vitest unit coverage,
+  and Playwright route/API contract checks.
 
 ### API coverage organisation
 
@@ -53,6 +57,12 @@ Browser tests live in `frontend/tests/e2e`. They use deterministic intercepted
 API responses, so they test route rendering and request dispatch without
 depending on a live clinical database or external services.
 
+Unit tests live beside the TypeScript modules they protect as
+`*.test.ts`. Vitest writes terminal, JSON summary, and LCOV reports to
+`frontend/coverage/`. The report includes frontend library modules even when a
+module currently has no tests, so the percentage remains an honest expansion
+metric rather than only measuring files that already have coverage.
+
 | Browser contract | Protected behavior |
 | --- | --- |
 | Authentication routes | Provider display, failed sign-in, and password-reset feedback. |
@@ -71,8 +81,19 @@ Run the validation suite in an isolated virtual environment:
 # Run the full test suite
 PYTHONPATH=. python -m pytest -q
 
+# Generate the unified backend coverage report
+PYTHONPATH=. python -m pytest -q \
+  --cov=api --cov-config=.coveragerc \
+  --cov-report=term-missing --cov-report=xml:coverage.xml
+
 # Execute static analysis and linting
 PYTHONPATH=. python -m ruff check api tests scripts
+
+# Check the strict typed security/account boundary
+PYTHONPATH=. python -m mypy
+
+# Generate frontend unit coverage and LCOV
+npm --prefix frontend run test:coverage
 
 # Execute strict documentation build verification
 .venv/bin/python -m mkdocs build --strict
@@ -127,6 +148,11 @@ The gate first collects coverage for the `api` package, then evaluates each
 family by its filesystem scope. This prevents a stale or renamed Python module
 path from silently turning a family gate into a repository-wide total.
 
+CI also publishes `coverage.xml` as the `backend-coverage` workflow artifact
+and `frontend/coverage/lcov.info` as part of the `frontend-coverage` artifact.
+The backend XML is the repository-wide observation report; family gates remain
+the release controls for clinically important boundaries.
+
 !!! note "Why the repository-wide percentage is not the clinical gate"
 
     A repository-wide percentage mixes clinical decisions with generated
@@ -147,6 +173,12 @@ CI should run these checks:
 6. **UI/API Contract Registry**: every literal API operation declared by the
    React route registry must resolve to a FastAPI route. This detects stale
    page contracts before manual browser validation.
+7. **Strict Type Boundary**: `mypy` strict mode covers authentication,
+   password, notification-email, and user-management modules. New modules are
+   added to the configured boundary only after they pass strict mode; the
+   boundary must not be weakened to admit a module.
+8. **Coverage Artifacts**: backend XML and frontend LCOV results are retained
+   with each workflow run for review and trend integration.
 
 ## Browser And External API Contracts
 
@@ -155,6 +187,7 @@ The quality suite combines three distinct validation layers:
 | Layer | Command or workflow | Responsibility |
 | --- | --- | --- |
 | Python contracts | `PYTHONPATH=. pytest -q` | Pydantic contracts, API routes, rule evaluation, authorization, persistence adapters, external-client payload handling, and UI route metadata. |
+| Frontend units | `cd frontend && npm run test:coverage` | Pure frontend helpers with JSON-summary and LCOV output. |
 | Browser routes | `cd frontend && npm run test:e2e` | React routing, rendered form behavior, and user-facing success/error states using deterministic API fixtures. |
 | Composed workflow | `bootstrap-and-ingest-check` workflow | Docker networking, authentication, MongoDB, Celery ingestion, and ready-sample projection through the running API. |
 

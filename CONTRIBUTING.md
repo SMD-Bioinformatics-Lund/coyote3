@@ -54,6 +54,8 @@ bash scripts/setup_git_hooks.sh
 ```
 
 After this, `git commit` is blocked unless pre-commit checks pass.
+Do not run `pre-commit install`: this repository uses the tracked
+`.githooks/pre-commit` wrapper so that every clone runs the same hook chain.
 
 ## Documentation requirements
 

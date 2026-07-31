@@ -41,8 +41,27 @@ jobs:
       - name: Ruff format check
         run: PYTHONPATH=. ruff format --check api tests scripts
 
-      - name: Full test suite
-        run: PYTHONPATH=. pytest -q
+      - name: Strict type check
+        run: PYTHONPATH=. mypy
+
+      - name: Full test suite and unified coverage report
+        run: >-
+          PYTHONPATH=. pytest -q
+          --cov=api
+          --cov-config=.coveragerc
+          --cov-report=term-missing
+          --cov-report=xml:coverage.xml
+
+      - name: Clinical family coverage gates
+        run: PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_gates.sh
+
+      - name: Upload backend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: coverage.xml
+          if-no-files-found: warn
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -51,11 +70,27 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Frontend quality and browser route checks
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend lint, unit coverage, and production build
         working-directory: frontend
         run: |
-          npm ci
           npm run lint
+          npm run test:coverage
           npm run build
+
+      - name: Upload frontend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          if-no-files-found: warn
+
+      - name: Frontend browser route checks
+        working-directory: frontend
+        run: |
           npx playwright install --with-deps chromium
           npm run test:e2e

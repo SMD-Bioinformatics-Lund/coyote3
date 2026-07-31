@@ -30,6 +30,10 @@ paths, and non-synthetic sample metadata in test data. It also reads compressed
 python3 scripts/check_staged_sensitive_data.py --all-files
 ```
 
+The guard is part of the tracked Git hook chain. Enable that chain once per
+clone with `bash scripts/setup_git_hooks.sh`; do not use `pre-commit install`,
+which would replace the repository wrapper.
+
 The guard is a prevention control, not proof of de-identification. Fixture
 owners must still document synthetic provenance and reviewers must reject
 clinical source data even when it does not match a detection pattern.
