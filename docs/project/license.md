@@ -4,8 +4,10 @@ Coyote3 is licensed under the Apache License 2.0.
 
 ## Canonical Files
 
-- [LICENSE.txt](../../LICENSE.txt) contains the complete Apache License 2.0 terms.
-- [NOTICE.txt](../../NOTICE.txt) records project attribution and the clinical-use notice.
+- [LICENSE.txt](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/master/LICENSE.txt)
+  contains the complete Apache License 2.0 terms.
+- [NOTICE.txt](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/master/NOTICE.txt)
+  records project attribution and the clinical-use notice.
 
 ## Deployment Responsibilities
 

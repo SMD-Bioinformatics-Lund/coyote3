@@ -25,8 +25,8 @@ export function markdownToHtml(markdown: string) {
     .split(/\n{2,}/)
     .map((block) => {
       const lines = block.split("\n")
-      if (lines.every((line) => /^>\s?/.test(line.trim()))) {
-        return `<blockquote>${lines.map((line) => line.replace(/^>\s?/, "")).join("<br>")}</blockquote>`
+      if (lines.every((line) => /^&gt;\s?/.test(line.trim()))) {
+        return `<blockquote>${lines.map((line) => line.replace(/^&gt;\s?/, "")).join("<br>")}</blockquote>`
       }
       if (lines.every((line) => /^[-*]\s+/.test(line.trim()))) {
         return `<ul>${lines.map((line) => `<li>${line.replace(/^[-*]\s+/, "")}</li>`).join("")}</ul>`
@@ -34,7 +34,11 @@ export function markdownToHtml(markdown: string) {
       if (lines.every((line) => /^\d+\.\s+/.test(line.trim()))) {
         return `<ol>${lines.map((line) => `<li>${line.replace(/^\d+\.\s+/, "")}</li>`).join("")}</ol>`
       }
-      if (lines.length >= 2 && lines[0].includes("|") && /^(\|\s*:?-+:?\s*)+\|?$/.test(lines[1].trim())) {
+      if (
+        lines.length >= 2
+        && lines[0].includes("|")
+        && /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(lines[1].trim())
+      ) {
         const cells = (line: string) => line.replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim())
         const header = cells(lines[0])
         const rows = lines.slice(2).filter(Boolean).map(cells)

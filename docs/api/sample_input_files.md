@@ -64,7 +64,7 @@ Important behavior:
 - If `filters` is missing, ingest may seed `samples.filters` from ASPC defaults.
 
 New manifests should use the nested `files` object documented in
-[API / Sample YAML Guide](sample_yaml.md#file-declaration-format). Each entry is
+[API / Sample YAML Guide](sample_yaml.md#pipeline-file-declaration-format). Each entry is
 stored under `samples.files.<key>` with `path`, optional checksum metadata, and
 optional file-size metadata.
 

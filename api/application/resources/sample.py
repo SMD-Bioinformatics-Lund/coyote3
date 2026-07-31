@@ -96,12 +96,12 @@ class ResourceSampleService:
         if not sample_doc:
             raise api_error(404, "Sample not found")
         sample_obj = sample_doc.get("_id")
-        updated_sample = payload.get("sample", {})
+        updated_sample = deepcopy(payload.get("sample", {}))
         if not updated_sample:
             raise api_error(400, "Missing sample payload")
         updated_sample["updated_on"] = utc_now()
         updated_sample["updated_by"] = current_actor(actor_username)
-        updated_sample = self.records_util.restore_object_ids(deepcopy(updated_sample))
+        updated_sample = self.records_util.restore_object_ids(updated_sample)
         updated_sample["_id"] = sample_obj
         self.sample_repository.update_sample(sample_obj, updated_sample)
         sample_name = str(updated_sample.get("name") or sample_doc.get("name") or sample_obj)

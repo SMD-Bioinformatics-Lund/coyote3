@@ -63,11 +63,29 @@ Unit tests live beside the TypeScript modules they protect as
 module currently has no tests, so the percentage remains an honest expansion
 metric rather than only measuring files that already have coverage.
 
+Vitest enforces a 40% global floor for statements, branches, functions, and
+lines over this declared module scope. This is a non-regression baseline, not a
+completion target. New modules included in the scope must bring tests with
+them, and the floor should rise as component-level browser DOM coverage is
+added.
+
 | Browser contract | Protected behavior |
 | --- | --- |
 | Authentication routes | Provider display, failed sign-in, and password-reset feedback. |
 | Sample analysis tabs | ASPC analysis selection, sample modality, intent visibility, and deferred endpoint requests. |
 | Route registry contracts | Every declared UI route identifies its backend dependencies and empty/error behavior. |
+
+Frontend unit ownership is divided by behavior so regressions are attributable
+to a clear boundary:
+
+| Unit-test area | Protected behavior |
+| --- | --- |
+| API client | Typed envelope unwrapping, JSON and form requests, structured validation errors, non-JSON gateway failures, and expired-session redirects. |
+| Finding actions | Single and bulk mutation endpoints, tier changes, per-finding CNV requests, cache keys, and empty-selection rejection. |
+| Sample and finding normalization | Current and legacy payload shapes, intent-specific filters, tab-to-analysis mapping, fusion/translocation fields, flags, tiers, and caller labels. |
+| Notifications | Persistence limits, malformed storage recovery, duplicate suppression, and subscriber updates. |
+| Clinical comment formatting | HTML escaping, safe links, headings, code, lists, quotes, tables, and horizontal rules. |
+| External links and configured values | URL encoding, disabled integrations, case-insensitive metadata lookup, and semantic badge classes. |
 
 New clinical pages must add a browser contract for their primary successful,
 empty, and failed states. New analysis views must verify that unavailable

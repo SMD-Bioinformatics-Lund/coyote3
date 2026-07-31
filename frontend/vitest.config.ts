@@ -27,8 +27,18 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json-summary", "lcov"],
       reportsDirectory: "coverage",
-      include: ["src/lib/**/*.{ts,tsx}"],
+      include: [
+        "src/lib/**/*.{ts,tsx}",
+        "src/components/comments/markdown-format.ts",
+        "src/components/notifications/notification-store.ts",
+      ],
       exclude: ["src/**/*.d.ts", "src/**/*.test.ts"],
+      thresholds: {
+        statements: 40,
+        branches: 40,
+        functions: 40,
+        lines: 40,
+      },
     },
   },
 })
