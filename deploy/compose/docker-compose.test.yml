@@ -128,18 +128,23 @@ services:
   coyote3_test_frontend:
     <<: *runtime-defaults
     container_name: coyote3_test_frontend_${COYOTE3_VERSION:-local}
-    image: node:20-alpine
+    image: coyote3-frontend:${COYOTE3_VERSION:-local}-test
     profiles: ["with-ui"]
-    working_dir: /app
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        SCRIPT_NAME: ${SCRIPT_NAME:-}
+        ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
+        LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
+        GENS_URI: ${GENS_URI:-}
+        IGV_URI: ${IGV_URI:-}
     env_file:
       - ../../.coyote3_test_env
     environment:
       - TZ=${LOCAL_TIME_ZONE:-UTC}
-    command: sh -c "npm ci && npm run build && npm run preview -- --host 0.0.0.0 --port 3000"
     networks:
       - coyote3-test-net
-    volumes:
-      - "../../frontend:/app"
     depends_on:
       coyote3_test_api:
         condition: service_healthy

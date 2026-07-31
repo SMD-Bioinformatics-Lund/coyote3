@@ -15,6 +15,26 @@ Compose variables for image names and build metadata. Do not store
 
 ## Deployment Commands
 
+## Frontend Asset Lifecycle
+
+The frontend uses Vite with the Tailwind Vite plugin. Tailwind classes and CSS
+are compiled as part of the Vite bundle; there is no separate Tailwind process.
+
+- **Development**: `npm run dev` starts Vite's file watcher. Saving a React,
+  CSS, or Tailwind theme file recompiles the affected assets in memory and
+  updates the browser through hot module replacement. The development
+  container remains running.
+- **Production, staging, and UI test deployments**: `docker compose build`
+  builds `coyote3-frontend` from `docker/Dockerfile.frontend`. That image
+  contains the immutable `frontend/dist` output and serves it through Nginx.
+  Starting or restarting the container never runs `npm install` or
+  `npm run build`.
+
+`SCRIPT_NAME`, `ORGANIZATION_NAME`, `LOCAL_TIME_ZONE`, `GENS_URI`, and
+`IGV_URI` are public Vite build inputs. Changing one requires a new frontend
+image because it changes the generated browser bundle. Do not place secrets in
+these values.
+
 ### Production Deployment
 Production deployments require the production environment file and explicit versioning.
 

@@ -13,9 +13,16 @@ services:
   coyote3_frontend:
     <<: *runtime-defaults
     container_name: coyote3_frontend_${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
-    image: node:20-alpine
-    working_dir: /app
-    command: sh -c "npm ci && npm run build && npm run preview -- --host 0.0.0.0 --port 3000"
+    image: coyote3-frontend:${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        SCRIPT_NAME: ${SCRIPT_NAME:-}
+        ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
+        LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
+        GENS_URI: ${GENS_URI:-}
+        IGV_URI: ${IGV_URI:-}
     env_file:
       - ../../.coyote3_env
     environment:
@@ -26,8 +33,6 @@ services:
       - 8.8.8.8
     networks:
       - coyote3-net
-    volumes:
-      - "../../frontend:/app"
     depends_on:
       coyote3_api:
         condition: service_healthy

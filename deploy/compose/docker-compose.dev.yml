@@ -9,7 +9,7 @@ x-runtime-defaults: &runtime-defaults
   cpus: ${COYOTE3_CONTAINER_CPU_LIMIT:-2.0}
 
 services:
-  # UI container: Next.js presentation layer. Calls coyote3_dev_api over HTTP.
+  # UI container: React/Vite development server with file watching and HMR.
   frontend:
     <<: *runtime-defaults
     container_name: coyote3_dev_frontend_${COYOTE3_VERSION:-local}
