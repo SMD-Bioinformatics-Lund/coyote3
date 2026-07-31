@@ -20,6 +20,20 @@ The `tests/data/ingest_demo` repository contains strictly sanitized genomic arti
 
 **Security Mandate**: All datasets maintained within the public repository must be purged of Protected Health Information (PHI) and clinical patient identifiers.
 
+The pre-commit `sensitive-data` guard scans staged content before every commit.
+It blocks common credential formats, private environment and key files, known
+clinical sample identifiers, Swedish personal identity numbers, local user
+paths, and non-synthetic sample metadata in test data. It also reads compressed
+`.gz` fixtures. Run a full tracked-file scan with:
+
+```bash
+python3 scripts/check_staged_sensitive_data.py --all-files
+```
+
+The guard is a prevention control, not proof of de-identification. Fixture
+owners must still document synthetic provenance and reviewers must reject
+clinical source data even when it does not match a detection pattern.
+
 ## Administrative Seeding Templates
 
 The `db_dummy` repository provides the main diagnostic seed for bootstrap and test flows:

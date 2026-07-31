@@ -98,6 +98,13 @@ Apply heightened review discipline for:
 
 - Never commit secrets, credentials, tokens, or private keys.
 - Never commit patient-identifiable data or sensitive production datasets.
+- The staged-content guard blocks common credentials, private environment files,
+  local paths, clinical sample identifiers, Swedish personal identity numbers,
+  and non-synthetic sample metadata under `tests/`. Run it against the current
+  tree with `python3 scripts/check_staged_sensitive_data.py --all-files`.
+- The guard cannot establish that a de-identified genomic fixture is synthetic.
+  Keep provenance evidence outside the repository and require reviewer approval
+  for every fixture change.
 - Use sanitized or synthetic data for examples and debugging artifacts.
 - Report security concerns through the process in `SECURITY.md`.
 

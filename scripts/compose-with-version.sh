@@ -22,11 +22,19 @@ is_deploy_action=0
 compose_file=""
 is_down_action=0
 has_remove_volumes=0
+compose_args=()
 for arg in "$@"; do
+  if [[ "$arg" == "--with-mongo" ]]; then
+    compose_args+=("--profile" "with-mongo")
+    continue
+  fi
+  compose_args+=("$arg")
   if [[ "$arg" == "-f" || "$arg" == "--file" ]]; then
     has_compose_file=1
   fi
 done
+
+set -- "${compose_args[@]}"
 
 for ((i=1; i<=$#; i++)); do
   current="${!i}"

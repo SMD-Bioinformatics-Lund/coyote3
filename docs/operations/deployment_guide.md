@@ -15,6 +15,12 @@ Compose variables for image names and build metadata. Do not store
 
 ## Deployment Commands
 
+These commands use the MongoDB instance specified by `MONGO_URI`. For a
+self-contained environment that should run the Compose-managed MongoDB service
+instead, add `--with-mongo` immediately after
+`./scripts/compose-with-version.sh`. Do not add it when `MONGO_URI` targets a
+local, managed, or other external MongoDB instance.
+
 ## Frontend Asset Lifecycle
 
 The frontend uses Vite with the Tailwind Vite plugin. Tailwind classes and CSS

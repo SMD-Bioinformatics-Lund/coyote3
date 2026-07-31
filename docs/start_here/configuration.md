@@ -100,7 +100,7 @@ host-path mount lets pipeline manifests retain their original file references.
 Example:
 
 ```env
-COYOTE3_DATA_HOST_ROOT='/home/center/coyote3-data'
+COYOTE3_DATA_HOST_ROOT='/srv/coyote3/data'
 ```
 
 Pipeline manifests may use either paths relative to the manifest, absolute

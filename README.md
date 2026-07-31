@@ -22,7 +22,7 @@ Coyote3 is a secure, schema-driven clinical genomics platform for interpretation
 ![RNA Support](https://img.shields.io/badge/RNA-Supported-20B2AA)
 ![RBAC](https://img.shields.io/badge/Security-RBAC-2E8B57)
 ![Audit Logging](https://img.shields.io/badge/Audit-Enabled-2E8B57)
-![License: Proprietary](https://img.shields.io/badge/License-Proprietary-8B0000)
+![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-2E7D32)
 
 ## What It Is
 
@@ -118,7 +118,10 @@ Compose definitions live in `deploy/compose/`, and the canonical environment tem
 
 Optional deployment profile:
 
-- `with-mongo` starts the bundled MongoDB service. Without it, the stack uses `MONGO_URI`.
+- `--with-mongo` is optional and starts the bundled MongoDB service for every Compose
+  environment. The wrapper translates it to Docker Compose's `--profile with-mongo`.
+  Omit it when `MONGO_URI` points to a local, managed, or other external MongoDB
+  instance.
 
 ## Data And Configuration Model
 
@@ -157,4 +160,5 @@ Optional deployment profile:
 
 ## License
 
-Proprietary. See [LICENSE.txt](LICENSE.txt).
+Licensed under the [Apache License 2.0](LICENSE.txt). See [NOTICE.txt](NOTICE.txt)
+for clinical-use and deployment responsibilities.

@@ -32,6 +32,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
+      - name: Sensitive data guard
+        run: python scripts/check_staged_sensitive_data.py --all-files
+
       - name: Ruff check
         run: PYTHONPATH=. ruff check api tests scripts
 
