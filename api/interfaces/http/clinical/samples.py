@@ -23,6 +23,7 @@ from api.contracts.home import (
     HomeItemsPayload,
     HomeReportContextPayload,
     HomeSamplesPayload,
+    SampleNavigationCountsPayload,
 )
 from api.contracts.samples import (
     CoverageBlacklistUpdateRequest,
@@ -94,6 +95,18 @@ def list_samples_read(
             assay_group=assay_group,
             limit_done_samples=limit_done_samples,
         )
+    )
+
+
+@router.get("/api/v1/samples/navigation-counts", response_model=SampleNavigationCountsPayload)
+def sample_navigation_counts_read(
+    profile_scope: str = Query(default=DEFAULT_ENVIRONMENT),
+    user: ApiUser = Depends(require_access()),
+    service: SampleCatalogService = Depends(get_sample_catalog_service),
+):
+    """Return live sample counts for the current user's assay navigation menu."""
+    return util.common.convert_to_serializable(
+        service.navigation_counts_payload(user=user, profile_scope=profile_scope)
     )
 
 

@@ -790,6 +790,47 @@ class SampleCatalogService:
             "assay_group": assay_group,
         }
 
+    def navigation_counts_payload(self, *, user, profile_scope: str) -> dict[str, Any]:
+        """Return current-user live sample counts for the assay navigation tree."""
+        normalized_scope = (profile_scope or "").strip().lower()
+        use_all_profiles = normalized_scope == "all"
+        if user.is_superuser:
+            accessible_assays = None
+        else:
+            accessible_assays = list(user.asp_ids)
+
+        if user.is_superuser and use_all_profiles:
+            query_envs = None
+        elif not user.is_superuser and not use_all_profiles:
+            query_envs = (
+                [DEFAULT_ENVIRONMENT] if DEFAULT_ENVIRONMENT in user.envs else list(user.envs)
+            )
+        elif user.is_superuser:
+            query_envs = [DEFAULT_ENVIRONMENT]
+        else:
+            query_envs = list(user.envs)
+
+        by_asp = self.sample_repository.count_live_samples_by_asp(
+            user_assays=accessible_assays,
+            user_envs=query_envs,
+        )
+        counts: dict[str, int] = {}
+        for asp in self.assay_panel_repository.get_all_asps() or []:
+            asp_id = str(asp.get("asp_id") or "").strip()
+            if not asp_id:
+                continue
+            category = str(asp.get("asp_category") or "assay").strip().lower()
+            raw_family = str(asp.get("asp_family") or "").strip().lower()
+            family = "panel" if raw_family.startswith("panel") else (raw_family or "assay")
+            group = str(asp.get("asp_group") or "unassigned").strip().lower()
+            key = f"{category}:{family}:{group}"
+            counts[key] = counts.get(key, 0) + by_asp.get(asp_id, 0)
+
+        return {
+            "counts": counts,
+            "profile_scope": "all" if use_all_profiles else DEFAULT_ENVIRONMENT,
+        }
+
     def genelist_items_payload(self, *, sample: dict, target: str | None = None) -> dict[str, Any]:
         """Return selectable genelist items for a sample.
 

@@ -225,6 +225,30 @@ class SampleRepository(BaseRepository):
 
         return samples
 
+    def count_live_samples_by_asp(
+        self,
+        *,
+        user_assays: list[str] | None,
+        user_envs: list[str] | None,
+    ) -> dict[str, int]:
+        """Return ready, unreported sample counts grouped by assay panel ID."""
+        query: dict[str, Any] = {
+            "ingest_status": "ready",
+            "$or": [{"reported": {"$exists": False}}, {"reported": False}],
+        }
+        if user_assays is not None:
+            query["asp_id"] = {"$in": user_assays}
+        if user_envs is not None:
+            query["environment"] = {"$in": user_envs}
+
+        rows = self.get_collection().aggregate(
+            [
+                {"$match": query},
+                {"$group": {"_id": "$asp_id", "count": {"$sum": 1}}},
+            ]
+        )
+        return {str(row.get("_id")): int(row.get("count") or 0) for row in rows if row.get("_id")}
+
     def get_sample(self, sample_key: str) -> dict:
         """
         Retrieve a sample document by its name or id.
