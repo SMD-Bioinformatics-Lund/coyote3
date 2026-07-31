@@ -86,7 +86,7 @@ export function ForgotPassword() {
           Request reset
         </Button>
       </form>
-      <Link to="/login" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+      <Link to="/login" className="link-text mt-5 inline-flex items-center gap-2 text-sm font-semibold">
         <ArrowLeft className="h-4 w-4" />
         Back to sign in
       </Link>
@@ -153,7 +153,7 @@ export function ResetPassword() {
           Save password
         </Button>
       </form>
-      <Link to="/login" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+      <Link to="/login" className="link-text mt-5 inline-flex items-center gap-2 text-sm font-semibold">
         <ArrowLeft className="h-4 w-4" />
         Back to sign in
       </Link>

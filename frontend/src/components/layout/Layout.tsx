@@ -54,6 +54,13 @@ export function Layout() {
     staleTime: 5 * 60 * 1000,
   })
 
+  const { data: navigationCounts } = useQuery({
+    queryKey: ['sample-navigation-counts'],
+    queryFn: () => api.get<{ counts: Record<string, number> }>('/samples/navigation-counts').then(res => res.data),
+    enabled: !isPublicRoute,
+    staleTime: 30 * 1000,
+  })
+
   const { data: contactData } = useQuery({
     queryKey: ["public-contact"],
     queryFn: () => api.get<PublicContactPayload>("/public/contact").then(res => res.data),
@@ -184,6 +191,13 @@ export function Layout() {
     ]
   }, [assayTree])
 
+  const navigationCount = (group: any) => {
+    const key = [group.category, group.family, group.assay_group]
+      .map((value) => String(value || "").trim().toLowerCase())
+      .join(":")
+    return navigationCounts?.counts?.[key] ?? 0
+  }
+
   const setSampleGroupFilter = (group: any) => {
     const newParams = new URLSearchParams(searchParams)
     const isActive =
@@ -204,13 +218,13 @@ export function Layout() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-background font-sans antialiased overflow-hidden">
+    <div className="relative isolate flex h-screen flex-col overflow-hidden bg-transparent font-sans antialiased">
       {backgroundFetches > 0 && <GlobalLoadingIndicator />}
-      <div className="app-chrome-bg absolute inset-0 -z-10" />
-      <header className="z-30 h-16 flex-shrink-0 border-b-2 border-primary/70 bg-card/95 shadow-sm">
+      <div className="app-chrome-bg pointer-events-none absolute inset-0 z-0" />
+      <header className="paper-surface z-30 h-16 flex-shrink-0 rounded-none border-x-0 border-t-0">
         <div className="flex h-full w-full items-center justify-between gap-4 px-4">
           <Link to="/" className="flex shrink-0 items-center gap-3">
-            <div className="rounded-lg bg-card/75 p-1 ">
+            <div className="paper-raised-control rounded-lg p-1">
               <img src={appPath("/logo.png")} alt="Coyote3" className="h-7 w-10 shrink-0 dark:invert" />
             </div>
             <div className="hidden sm:flex flex-col leading-tight">
@@ -228,8 +242,8 @@ export function Layout() {
                   className={cn(
                     "inline-flex items-center gap-1.5 rounded-lg px-4 py-1.5 uppercase tracking-wider transition-colors duration-100",
                     activeCategory === category || activeAssayCategory === category
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "hover:bg-muted/80"
+                      ? "border border-primary/75 bg-primary text-primary-foreground shadow-[1px_2px_0_color-mix(in_srgb,var(--primary)_68%,transparent),4px_5px_10px_color-mix(in_srgb,var(--primary)_24%,transparent)]"
+                      : "paper-raised-control hover:bg-muted/80"
                   )}
                 >
                   {category}
@@ -238,7 +252,7 @@ export function Layout() {
               ))}
             </div>
             {activeAssayCategory && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-[min(720px,calc(100vw-2rem))] rounded-xl border border-border bg-card p-3 shadow-lg">
+              <div className="paper-menu absolute left-0 top-full z-50 mt-2 w-[min(720px,calc(100vw-2rem))] rounded-lg p-3">
                 <div className="mb-3 flex items-center justify-between gap-3 border-b border-border pb-2">
                   <div>
                     <p className="text-[11px] font-black uppercase tracking-wider text-primary">{activeAssayCategory}</p>
@@ -247,14 +261,14 @@ export function Layout() {
                   <Link
                     to="/samples"
                     onClick={() => setActiveAssayCategory(null)}
-                    className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold hover:bg-muted"
+                    className="paper-raised-control rounded-lg px-2.5 py-1.5 text-xs font-bold"
                   >
                     All production
                   </Link>
                 </div>
                 <div className="grid gap-3 md:grid-cols-3">
                   {Object.entries(assayTree[activeAssayCategory] || {}).map(([family, groups]) => (
-                    <div key={family} className="rounded-lg border border-border bg-background/70 p-2">
+                    <div key={family} className="paper-inset rounded-lg p-2">
                       <h3 className="mb-2 rounded-md bg-muted/70 px-2 py-1 text-[11px] font-black uppercase tracking-wider text-foreground">
                         {family}
                       </h3>
@@ -277,7 +291,7 @@ export function Layout() {
                             >
                               <span className="truncate">{String(group.assay_group).replaceAll("_", " ")}</span>
                               <span className={cn("rounded-full px-1.5 py-0.5 text-[10px]", isActive ? "bg-primary-foreground/20" : "bg-muted")}>
-                                {(group.assays || []).length}
+                                {navigationCount(group)}
                               </span>
                             </button>
                           )
@@ -296,7 +310,7 @@ export function Layout() {
               <Link
                 to="/notifications"
                 className={cn(
-                  "relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background/70 text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground",
+                  "paper-raised-control relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground",
                   location.pathname.startsWith("/notifications") && "bg-primary/10 text-primary"
                 )}
                 title="Notifications"
@@ -313,7 +327,7 @@ export function Layout() {
             {publicOnlyMode ? (
               <Link
                 to="/login"
-                className="inline-flex h-10 items-center rounded-xl border border-border bg-background/70 px-3 text-sm font-bold text-primary shadow-sm transition-colors hover:bg-muted"
+                className="paper-raised-control inline-flex h-10 items-center rounded-lg px-3 text-sm font-bold text-primary"
               >
                 Sign in
               </Link>
@@ -321,7 +335,7 @@ export function Layout() {
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-2 rounded-xl border border-border bg-background/70 px-2 py-1.5 shadow-sm transition-colors hover:bg-muted"
+                className="paper-raised-control flex items-center gap-2 rounded-lg px-2 py-1.5"
               >
                 <div className="brand-gradient-fill flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold text-primary-foreground shadow-md">
                   {user?.username?.charAt(0).toUpperCase() || 'U'}
@@ -334,7 +348,7 @@ export function Layout() {
               </button>
 
               {isUserMenuOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-60 rounded-xl border border-border bg-card py-1 shadow-lg">
+                <div className="paper-menu absolute right-0 top-full z-50 mt-2 w-60 rounded-lg py-1">
               <Link to="/profile" className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
                     <User className="mr-3 h-4 w-4 text-primary" /> Profile
                   </Link>
@@ -382,7 +396,7 @@ export function Layout() {
       <div className="z-10 flex min-h-0 flex-1 overflow-hidden">
         <aside
           className={cn(
-            "hidden md:flex flex-col flex-shrink-0 transition-[width] duration-150 ease-out border-r border-sidebar-border bg-sidebar/95 shadow-sm",
+            "paper-surface hidden md:flex flex-col flex-shrink-0 rounded-none border-y-0 border-l-0 transition-[width] duration-150 ease-out",
             isCollapsed ? "w-[52px]" : "w-[180px]"
           )}
         >
@@ -411,7 +425,7 @@ export function Layout() {
                           "group flex items-center rounded-lg py-2.5 text-sm font-semibold transition-colors duration-100",
                           isCollapsed ? "justify-center px-0" : "px-3",
                           isActive
-                            ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                            ? "border border-primary/75 bg-primary text-primary-foreground shadow-[1px_2px_0_color-mix(in_srgb,var(--primary)_68%,transparent),3px_4px_8px_color-mix(in_srgb,var(--primary)_24%,transparent)]"
                             : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                         )}
                       >
@@ -447,7 +461,7 @@ export function Layout() {
                 {!isCollapsed && <span>Collapse</span>}
               </Button>
               {!isCollapsed && (
-                <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background/60 px-2 py-1">
+                <div className="paper-inset flex items-center justify-between gap-2 rounded-lg px-2 py-1">
                   <span className="text-xs font-semibold text-muted-foreground">Theme</span>
                   <ThemeToggle />
                 </div>

@@ -205,7 +205,7 @@ function CoverageGeneView({
   )
 
   return (
-    <section className="rounded-xl border border-cyan-200 border-t-4 border-t-cyan-500 bg-cyan-50/30 p-3 shadow-sm dark:bg-cyan-950/10">
+    <section className="glass-card p-3">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
         <div>
           <h3 className="text-sm font-black uppercase tracking-wide">Gene: {gene} @ {cutoff}X</h3>
@@ -259,11 +259,11 @@ function CoverageGeneView({
             const label = row.nbr || row.exon || index + 1
             return (
               <g key={`exon-${index}`}>
-                <rect x={rectX} y={134} width={rectWidth} height={20} fill="#d1d5db">
+                <rect x={rectX} y={134} width={rectWidth} height={20} fill="var(--coverage-exon)">
                   <title>{coord(row)} exon {label}, cov {Number(row.cov).toFixed(2)}X</title>
                 </rect>
                 {rectWidth > 18 && (
-                  <text x={rectX + rectWidth / 2} y={148} textAnchor="middle" className="fill-gray-900 text-[9px] font-bold">
+                  <text x={rectX + rectWidth / 2} y={148} textAnchor="middle" className="fill-foreground text-[9px] font-bold">
                     {label}
                   </text>
                 )}
@@ -272,7 +272,7 @@ function CoverageGeneView({
           })}
           {cds.map((row: any, index: number) => {
             const cov = coverageNumber(row)
-            const fill = Number.isNaN(cov) ? "#111827" : cov < cutoff ? "#fda4af" : "#86efac"
+            const fill = Number.isNaN(cov) ? "var(--coverage-unavailable)" : cov < cutoff ? "var(--coverage-low)" : "var(--coverage-cds)"
             const rectX = x(row.start)
             const rectWidth = Math.max(1, x(row.end) - x(row.start))
             const label = row.nbr || row.exon || index + 1
@@ -295,11 +295,11 @@ function CoverageGeneView({
             const rectWidth = Math.max(1, x(row.end) - x(row.start))
             return (
               <g key={`probe-${index}`}>
-                <rect x={rectX} y={95} width={rectWidth} height={18} fill={cov < cutoff ? "#fda4af" : "#93c5fd"}>
+                <rect x={rectX} y={95} width={rectWidth} height={18} fill={cov < cutoff ? "var(--coverage-low)" : "var(--coverage-probe)"}>
                   <title>{coord(row)}, cov {Number.isNaN(cov) ? "N/A" : cov.toFixed(2)}X</title>
                 </rect>
                 {rectWidth > 44 && (
-                  <text x={rectX + rectWidth / 2} y={90} textAnchor="middle" className={`${cov < cutoff ? "fill-fail" : "fill-blue-700"} text-[9px] font-bold`}>
+                  <text x={rectX + rectWidth / 2} y={90} textAnchor="middle" className={`${cov < cutoff ? "fill-fail" : "fill-tier3"} text-[9px] font-bold`}>
                     {Number.isNaN(cov) ? "N/A" : `${cov.toFixed(0)}X`}
                   </text>
                 )}
@@ -313,13 +313,13 @@ function CoverageGeneView({
       </div>
 
       <div className="mt-2 flex flex-wrap gap-3 rounded-lg border border-border bg-background/70 px-3 py-2 text-xs">
-        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-sm bg-[#fda4af]" /> Any coverage &lt; {cutoff}</span>
-        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-sm bg-[#93c5fd]" /> Probe coverage &gt;= {cutoff}</span>
-        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-sm bg-[#86efac]" /> CDS coverage &gt;= {cutoff}</span>
-        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-sm bg-[#111827]" /> Not covered by design</span>
+        <span className="inline-flex items-center gap-2"><span className="coverage-swatch-low h-3 w-3 rounded-sm" /> Any coverage &lt; {cutoff}</span>
+        <span className="inline-flex items-center gap-2"><span className="coverage-swatch-probe h-3 w-3 rounded-sm" /> Probe coverage &gt;= {cutoff}</span>
+        <span className="inline-flex items-center gap-2"><span className="coverage-swatch-cds h-3 w-3 rounded-sm" /> CDS coverage &gt;= {cutoff}</span>
+        <span className="inline-flex items-center gap-2"><span className="coverage-swatch-unavailable h-3 w-3 rounded-sm" /> Not covered by design</span>
       </div>
 
-      <div className="mt-3 rounded-xl border border-emerald-200 border-t-4 border-t-emerald-500 bg-emerald-50/30 p-3 dark:bg-emerald-950/10">
+      <div className="glass-card mt-3 p-3">
         <div className="mb-3 flex gap-2 border-b border-border pb-2">
           <button
             onClick={() => setActiveTab("exons")}
@@ -337,7 +337,7 @@ function CoverageGeneView({
         {activeTab === "exons" ? renderRows(lowExons, "CDS") : renderRows(lowProbes, "probe")}
       </div>
 
-      <div className="mt-3 rounded-xl border border-panel/20 border-t-4 border-t-panel bg-card/80 p-3 shadow-sm">
+      <div className="glass-card mt-3 border-panel/20 p-3">
         <div className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3">
           <div>
             <h4 className="text-sm font-black uppercase tracking-wide">Complete Gene Information</h4>

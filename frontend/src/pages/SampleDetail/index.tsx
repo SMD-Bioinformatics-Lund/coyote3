@@ -2,7 +2,8 @@ import { useEffect, useMemo } from "react"
 import { useNavigate, useParams, Link, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
-import { AlertTriangle, ArrowLeft } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 
 import { BiomarkerRow, OverviewTab, PanelSummary } from "./OverviewTab"
 import { VariantsTab } from "./VariantsTab"
@@ -160,36 +161,18 @@ export function SampleDetail() {
           </div>
         </div>
 
-        {sample?.aspc_resolution?.used_base_configuration && (
-          <div className="flex items-start gap-2 rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              {sample.aspc_resolution.warning || "Base ASPC configuration is in use."}
-              {" "}Requested subpanel: <strong>{sample.aspc_resolution.requested_subpanel_id}</strong>.
-            </span>
-          </div>
-        )}
-
         <div className="mt-3 flex gap-3">
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
             <div className="glass-panel rounded-xl overflow-hidden p-2 lg:p-3">
-              <div className="mb-3 flex items-center overflow-x-auto whitespace-nowrap scrollbar-none rounded-lg border border-border bg-background/70 px-1.5 py-1.5 shadow-sm">
-                <div className="flex gap-2">
-                  {tabs.map(tab => (
-                    <button
-                      key={tab.id}
-                      onClick={() => selectTab(tab.id)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors duration-100 ${
-                        activeTab === tab.id
-                        ? "bg-primary text-primary-foreground shadow-md scale-105"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
+              <div className="mb-3 overflow-x-auto whitespace-nowrap scrollbar-none pb-1">
+                <SegmentedControl
+                  ariaLabel="Sample analysis views"
+                  className="min-w-max"
+                  value={activeTab}
+                  onValueChange={selectTab}
+                  items={tabs.map((tab) => ({ value: tab.id, label: tab.label }))}
+                />
               </div>
 
               <div className="space-y-3">

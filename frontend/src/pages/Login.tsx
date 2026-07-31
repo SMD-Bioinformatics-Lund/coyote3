@@ -109,10 +109,10 @@ export function Login() {
           </div>
 
           {/* Clouds */}
-          <div className={`absolute top-24 left-[20%] opacity-30 ${isDark ? 'text-indigo-200' : 'text-sky-500'}`}>
+          <div className="login-cloud absolute top-24 left-[20%] opacity-30">
             <Cloud size={140} strokeWidth={0.5} />
           </div>
-          <div className={`absolute top-48 right-[35%] opacity-30 ${isDark ? 'text-indigo-200' : 'text-sky-400'}`}>
+          <div className="login-cloud absolute top-48 right-[35%] opacity-30">
             <Cloud size={100} strokeWidth={0.5} />
           </div>
         </div>
@@ -159,7 +159,7 @@ export function Login() {
           </p>
 
           {providers.length > 1 ? (
-            <div className="grid grid-cols-2 p-1 bg-muted rounded-lg mb-6 border border-border">
+            <div className="paper-inset mb-6 grid grid-cols-2 rounded-xl p-1">
               {providers.map(enabledProvider => (
                 <button
                   key={enabledProvider}
@@ -167,7 +167,7 @@ export function Login() {
                   onClick={() => setProvider(enabledProvider)}
                   className={`py-1.5 text-sm font-medium rounded-md transition-colors duration-100 ${
                     provider === enabledProvider
-                      ? "bg-background text-foreground shadow-sm"
+                      ? "paper-raised-control bg-background text-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -203,7 +203,7 @@ export function Login() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-2">
                 <Label htmlFor="password">Password</Label>
-                <Link to="/forgot-password" className="text-xs font-semibold text-primary hover:underline">
+                <Link to="/forgot-password" className="link-text text-xs font-semibold">
                   Forgot password?
                 </Link>
               </div>
@@ -244,14 +244,14 @@ export function Login() {
               ? `Use your organization credentials. Your access comes from your local user profile.`
               : `Use your existing local account.`}
           </p>
-          <div className="mt-2 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+          <div className="paper-inset mt-5 rounded-xl p-3.5 text-sm">
             <p className="font-semibold text-foreground">Public resources</p>
             <p className="mt-1 text-xs text-muted-foreground">
               Assay catalog, gene lists, and public reference views are available without signing in.
             </p>
             <Link
               to="/public"
-              className="mt-2 inline-flex items-center rounded-lg border border-border bg-background px-3 py-1 text-xs font-bold text-primary transition-colors hover:bg-muted"
+              className="paper-raised-control mt-2 inline-flex items-center rounded-lg px-3 py-1 text-xs font-bold text-primary"
             >
               Open public catalog
             </Link>

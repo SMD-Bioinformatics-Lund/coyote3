@@ -6,6 +6,7 @@ import { api } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { FileText, ArrowRight, Dna, Search as SearchIcon } from "lucide-react"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Input } from "@/components/ui/input"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -19,15 +20,29 @@ import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
 
 type SampleTab = "live" | "reported"
 
+const BOOLEAN_ANALYSIS_LABELS: Record<string, string> = {
+  cov: "Cov",
+  biomarkers: "Biomarkers",
+  qc: "QC",
+  classification: "Classification",
+}
+
 function countBadges(sample: any) {
   const counts = sample?.data_counts || {}
-  return [
+  const numericBadges = [
     counts.snvs !== undefined ? { label: "SNV", value: shortCount(counts.snvs), className: "border-primary/30 bg-primary/10 text-primary" } : null,
     counts.cnvs !== undefined ? { label: "CNV", value: shortCount(counts.cnvs), className: "border-tier3/30 bg-tier3/10 text-tier3" } : null,
     counts.fusions !== undefined ? { label: "Fusion", value: shortCount(counts.fusions), className: "border-rna/30 bg-rna/10 text-rna" } : null,
     counts.translocations !== undefined ? { label: "SV", value: shortCount(counts.translocations), className: "border-tier2/30 bg-tier2/10 text-tier2" } : null,
-    counts.cov ? { label: "Cov", value: "yes", className: "border-pass/30 bg-pass/10 text-pass" } : null,
   ].filter(Boolean)
+  const booleanBadges = Object.entries(counts)
+    .filter(([, value]) => value === true)
+    .map(([key]) => ({
+      label: BOOLEAN_ANALYSIS_LABELS[key] || key.replaceAll("_", " ").toUpperCase(),
+      className: "matte-badge-pass",
+    }))
+
+  return [...numericBadges, ...booleanBadges]
 }
 
 function sampleFindingTotal(sample: any) {
@@ -95,7 +110,7 @@ export function Samples() {
       cell: ({ row }) => {
         const sample = row.original
         return (
-          <Link to={sampleDetailPath(sample)} className="flex items-center gap-2 font-bold text-primary hover:underline">
+          <Link to={sampleDetailPath(sample)} className="link-text flex items-center gap-2 font-bold">
             <div className="rounded-lg bg-primary/10 p-1.5 text-primary shadow-sm transition-colors duration-100 group-hover:bg-primary/15">
               <FileText className="h-4 w-4" />
             </div>
@@ -196,7 +211,7 @@ export function Samples() {
           <div className="flex flex-wrap gap-1">
             {badges.length ? badges.map((item: any) => (
               <Badge key={item.label} variant="outline" className={`${item.className} font-bold`}>
-                {item.label} {item.value}
+                {item.value === undefined ? item.label : `${item.label} ${item.value}`}
               </Badge>
             )) : <span className="text-muted-foreground">-</span>}
           </div>
@@ -210,8 +225,9 @@ export function Samples() {
             counts.cnvs !== undefined ? `CNV ${counts.cnvs}` : "",
             counts.fusions !== undefined ? `Fusion ${counts.fusions}` : "",
             counts.translocations !== undefined ? `SV ${counts.translocations}` : "",
-            counts.cov ? "Coverage.yes" : "",
-            counts.biomarker ? "Biomarker.yes" : "",
+            ...Object.entries(counts)
+              .filter(([, value]) => value === true)
+              .map(([key]) => BOOLEAN_ANALYSIS_LABELS[key] || key.replaceAll("_", " ")),
           ].filter(Boolean).join("; ")
         },
         cellClassName: "min-w-[220px]",
@@ -275,22 +291,15 @@ export function Samples() {
         description="Manage and analyze loaded genomic cases."
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <div className="inline-flex rounded-xl border border-border bg-card/70 p-1 shadow-sm">
-              <button
-                type="button"
-                onClick={() => setProfileScope(DEFAULT_ENVIRONMENT)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-black uppercase tracking-wider transition-colors ${!showAllProfiles ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
-              >
-                Production
-              </button>
-              <button
-                type="button"
-                onClick={() => setProfileScope("all")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-black uppercase tracking-wider transition-colors ${showAllProfiles ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
-              >
-                All profiles
-              </button>
-            </div>
+            <SegmentedControl
+              ariaLabel="Sample profile scope"
+              value={showAllProfiles ? "all" : "production"}
+              onValueChange={(scope) => setProfileScope(scope === "all" ? "all" : DEFAULT_ENVIRONMENT)}
+              items={[
+                { value: "production", label: "Production" },
+                { value: "all", label: "All profiles" },
+              ]}
+            />
             <form
               onSubmit={(e) => {
                 e.preventDefault()
@@ -299,19 +308,19 @@ export function Samples() {
                 else newParams.delete("search_str")
                 setSearchParams(newParams)
               }}
-              className="flex items-center space-x-2 relative"
+              className="relative flex items-center gap-2"
             >
               <div className="relative">
-                <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <SearchIcon className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/75" />
                 <Input
                   type="text"
                   placeholder="Search by Case ID..."
-                  className="w-[250px] rounded-xl border-border bg-card pl-9 shadow-sm focus-visible:ring-primary lg:w-[350px]"
+                  className="w-[220px] rounded-xl pl-9 lg:w-[320px]"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                 />
               </div>
-              <Button type="submit" className="rounded-xl shadow-md">Search</Button>
+              <Button type="submit">Search</Button>
             </form>
           </div>
         }
@@ -331,38 +340,17 @@ export function Samples() {
           </div>
         )}
 
-        <div className="glass-card border-border/50 p-3">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
-            <div className="inline-flex rounded-xl border border-border bg-muted/45 p-1 shadow-sm">
-              <button
-                type="button"
-                onClick={() => setSampleTab("live")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-black uppercase tracking-wide transition-colors ${
-                  activeTab === "live"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-background/80 hover:text-foreground"
-                }`}
-              >
-                Live samples
-                <span className="ml-2 rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] text-foreground">
-                  {shortCount(liveSamples.length)}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSampleTab("reported")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-black uppercase tracking-wide transition-colors ${
-                  activeTab === "reported"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-background/80 hover:text-foreground"
-                }`}
-              >
-                Reported samples
-                <span className="ml-2 rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] text-foreground">
-                  {shortCount(reportedSamples.length)}
-                </span>
-              </button>
-            </div>
+        <div className="glass-card border-border/50 p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+            <SegmentedControl
+              ariaLabel="Sample state"
+              value={activeTab}
+              onValueChange={setSampleTab}
+              items={[
+                { value: "live", label: <>Live samples <span className="ml-1.5 rounded-full bg-background/75 px-1.5 py-0.5 text-[10px] text-foreground">{shortCount(liveSamples.length)}</span></> },
+                { value: "reported", label: <>Reported samples <span className="ml-1.5 rounded-full bg-background/75 px-1.5 py-0.5 text-[10px] text-foreground">{shortCount(reportedSamples.length)}</span></> },
+              ]}
+            />
             <p className="text-xs font-semibold text-muted-foreground">
               {activeTab === "reported"
                 ? "Samples with saved clinical reports."

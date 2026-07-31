@@ -25,7 +25,7 @@ export function ChartPanel({
   const safeName = filename.replace(/[^a-z0-9_.-]+/gi, "_").replace(/^_+|_+$/g, "")
 
   return (
-    <section className="rounded-lg border border-border bg-background/60 p-2.5">
+    <section className="chart-panel flex h-full min-h-0 flex-col overflow-hidden rounded-lg p-2.5">
       <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 className="text-[11px] font-black uppercase tracking-wide text-foreground">{title}</h3>
@@ -46,7 +46,7 @@ export function ChartPanel({
           </Button>
         </div>
       </div>
-      <div ref={chartRef} className="min-h-0">
+      <div ref={chartRef} className="min-h-0 flex-1">
         {children}
       </div>
     </section>

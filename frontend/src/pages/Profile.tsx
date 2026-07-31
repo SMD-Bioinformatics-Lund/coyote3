@@ -78,7 +78,7 @@ export function Profile() {
                 <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email</dt>
                 <dd className="mt-1 font-semibold">
                   {data?.user?.email ? (
-                    <a className="inline-flex items-center gap-1 text-primary hover:underline" href={`mailto:${data.user.email}`}>
+                    <a className="link-text inline-flex items-center gap-1" href={`mailto:${data.user.email}`}>
                       <Mail className="h-3.5 w-3.5" />
                       {data.user.email}
                     </a>

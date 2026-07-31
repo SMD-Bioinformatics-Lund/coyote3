@@ -354,25 +354,25 @@ function StatusTooltipBadge({
 
 function severityClass(severity: string) {
   if (severity === "pass") {
-    return "border-pass/35 bg-pass/12 text-pass"
+    return "matte-badge-pass"
   }
   if (severity === "fail") {
-    return "border-fail/35 bg-fail/12 text-fail"
+    return "matte-badge-fail"
   }
   if (severity === "warn") {
-    return "border-warn/45 bg-warn/14 text-warn"
+    return "matte-badge-warn"
   }
   if (severity === "info") {
-    return "border-tier3/35 bg-tier3/12 text-tier3"
+    return "matte-badge-info"
   }
   if (severity === "success") {
-    return "border-pass/35 bg-pass/12 text-pass"
+    return "matte-badge-pass"
   }
   if (severity === "pgx") {
-    return "border-fuchsia-300/70 bg-fuchsia-50 text-fuchsia-800 hover:bg-fuchsia-50 hover:text-fuchsia-800 dark:border-fuchsia-300/35 dark:bg-fuchsia-400/12 dark:text-fuchsia-200 dark:hover:bg-fuchsia-400/12 dark:hover:text-fuchsia-200"
+    return "badge-pgx"
   }
   if (severity === "neutral") {
-    return "border-muted-foreground/25 bg-muted text-muted-foreground"
+    return "matte-badge-neutral"
   }
   return "border-primary/30 bg-primary/10 text-primary"
 }
@@ -394,7 +394,7 @@ function tooltipSeverityClass(severity: string) {
     return "border-pass/45 bg-popover text-pass"
   }
   if (severity === "pgx") {
-    return "border-fuchsia-300/70 bg-fuchsia-50 text-fuchsia-800 dark:border-fuchsia-300/35 dark:bg-fuchsia-950/90 dark:text-fuchsia-200"
+    return "badge-pgx"
   }
   if (severity === "neutral") {
     return "border-muted-foreground/35 bg-popover text-muted-foreground"
@@ -578,10 +578,10 @@ export function FilterFlagBadges({ value, metadata }: { value: unknown; metadata
 
 function impactClass(value: unknown) {
   const impact = String(value || "").toUpperCase()
-  if (impact === "HIGH") return "border-fail/35 bg-fail/12 text-fail"
-  if (impact === "MODERATE") return "border-warn/45 bg-warn/14 text-warn"
-  if (impact === "LOW") return "border-pass/35 bg-pass/12 text-pass"
-  if (impact === "MODIFIER") return "border-muted-foreground/25 bg-muted text-muted-foreground"
+  if (impact === "HIGH") return "matte-badge-fail"
+  if (impact === "MODERATE") return "matte-badge-warn"
+  if (impact === "LOW") return "matte-badge-pass"
+  if (impact === "MODIFIER") return "matte-badge-neutral"
   return "border-muted bg-muted text-muted-foreground"
 }
 

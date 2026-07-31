@@ -3,7 +3,7 @@ import type { FocusEvent, MouseEvent, ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Activity, Save, Trash2, ChevronDown, ChevronUp, Search, X } from "lucide-react"
+import { Activity, AlertTriangle, Save, Trash2, ChevronDown, ChevronUp, Search, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { fullDateTime, shortCount } from "@/lib/detail-formatters"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
@@ -38,14 +38,13 @@ function formatFileSize(value: unknown) {
   return `${formatted} ${units[unitIndex]}`
 }
 
-function StatusPill({ children, tone = "muted" }: { children: ReactNode; tone?: "blue" | "green" | "yellow" | "red" | "indigo" | "muted" }) {
+function StatusPill({ children, tone = "muted" }: { children: ReactNode; tone?: "blue" | "green" | "yellow" | "red" | "muted" }) {
   const tones = {
-    blue: "bg-blue-100 text-blue-800 border-blue-200",
-    green: "bg-green-100 text-green-800 border-green-200",
-    yellow: "bg-yellow-100 text-yellow-900 border-yellow-200",
-    red: "bg-red-100 text-red-800 border-red-200",
-    indigo: "bg-indigo-100 text-indigo-800 border-indigo-200",
-    muted: "bg-muted text-muted-foreground border-border",
+    blue: "badge-info",
+    green: "badge-success",
+    yellow: "badge-warning",
+    red: "badge-danger",
+    muted: "badge-neutral",
   }
   return <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${tones[tone]}`}>{children}</span>
 }
@@ -157,25 +156,12 @@ function hrdBadge(marker: any): BiomarkerBadgeEntry | null {
   }
 }
 
-function SettingsCard({ title, tone, children, className = "" }: { title: string; tone: string; children: ReactNode; className?: string }) {
+function SettingsCard({ title, tone: _tone, children, className = "" }: { title: string; tone: string; children: ReactNode; className?: string }) {
   return (
-    <section className={`rounded-xl border border-border bg-card/90 p-3 shadow-sm border-t-4 ${tone} ${className}`}>
+    <section className={`glass-card p-3 ${className}`}>
       <h2 className="mb-2.5 text-xs font-black uppercase tracking-wide text-foreground">{title}</h2>
       {children}
     </section>
-  )
-}
-
-function FieldList({ rows }: { rows: Array<[string, unknown]> }) {
-  return (
-    <dl className="grid gap-1.5 text-xs">
-      {rows.map(([label, rowValue]) => (
-        <div key={label} className="grid grid-cols-[5.8rem_1fr] gap-2 rounded-md bg-background/60 px-2 py-1.5">
-          <dt className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</dt>
-          <dd className="min-w-0 break-words text-xs font-semibold">{displayValue(rowValue)}</dd>
-        </div>
-      ))}
-    </dl>
   )
 }
 
@@ -183,7 +169,7 @@ function SettingsHero({ sample }: { sample: any }) {
   const status = String(sample?.ingest_status || "").toLowerCase()
   const statusTone = status === "ready" ? "blue" : status === "failed" ? "red" : status === "pending" ? "muted" : "muted"
   return (
-    <section className="rounded-xl border border-border border-t-4 border-t-teal-800 bg-card/90 p-3 shadow-sm">
+    <section className="glass-card p-3">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Sample</div>
@@ -192,7 +178,7 @@ function SettingsHero({ sample }: { sample: any }) {
             <StatusPill tone={sample?.paired ? "green" : "yellow"}>{sample?.paired ? "Paired" : "Unpaired"}</StatusPill>
             {sample?.ingest_status && <StatusPill tone={statusTone}>{sample.ingest_status}</StatusPill>}
             {sample?.archived && <StatusPill tone="red">Archived</StatusPill>}
-            <StatusPill tone={sampleReported(sample) ? "indigo" : "yellow"}>{sampleReported(sample) ? "Reported" : "Unreported"}</StatusPill>
+            <StatusPill tone={sampleReported(sample) ? "blue" : "yellow"}>{sampleReported(sample) ? "Reported" : "Unreported"}</StatusPill>
           </h1>
           <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-muted-foreground">
             {sample?.case_id && <StatusPill>Case: {sample.case_id}</StatusPill>}
@@ -876,10 +862,15 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
       <AnalysisStatusStrip sample={sample} context={context} />
 
       {sample?.aspc_resolution?.used_base_configuration && (
-        <section className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn">
-          <strong>Base configuration in use.</strong>{" "}
-          {sample.aspc_resolution.warning || "No subpanel-specific ASPC is active."}{" "}
-          Requested subpanel: <strong>{sample.aspc_resolution.requested_subpanel_id}</strong>.
+        <section className="glass-card flex items-start gap-2 border-warn/35 bg-card/95 p-3 text-sm">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
+          <div className="min-w-0">
+            <strong className="text-warn">Base configuration in use.</strong>{" "}
+            <span className="text-muted-foreground">
+              {sample.aspc_resolution.warning || "No subpanel-specific ASPC is active."}{" "}
+              Requested subpanel: <strong className="text-foreground">{sample.aspc_resolution.requested_subpanel_id}</strong>.
+            </span>
+          </div>
         </section>
       )}
 
@@ -895,46 +886,44 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
             {sample?.omics_layer && <StatusPill tone="blue">{String(sample.omics_layer).toUpperCase()}</StatusPill>}
             {sample?.platform && <StatusPill tone="green">{sample.platform}</StatusPill>}
             {sample?.read_mode && <StatusPill tone="green">{sample.read_mode}</StatusPill>}
-            {sample?.sequencing_scope && <StatusPill tone="indigo">{sample.sequencing_scope}</StatusPill>}
+            {sample?.sequencing_scope && <StatusPill tone="blue">{sample.sequencing_scope}</StatusPill>}
             {sample?.genome_build && <StatusPill>{`GRCh${sample.genome_build}`}</StatusPill>}
             {sample?.environment && <StatusPill tone="yellow">{sample.environment}</StatusPill>}
             {sample?.asp_id && <StatusPill tone="blue">ASP: {sample.asp_id}</StatusPill>}
-            {sample?.pipeline && <StatusPill tone="indigo">{sample.pipeline}{sample.pipeline_version ? ` v${sample.pipeline_version}` : ""}</StatusPill>}
-            {sampleReported(sample) && <StatusPill tone="indigo">Reported</StatusPill>}
+            {sample?.pipeline && <StatusPill tone="blue">{sample.pipeline}{sample.pipeline_version ? ` v${sample.pipeline_version}` : ""}</StatusPill>}
+            {sampleReported(sample) && <StatusPill tone="blue">Reported</StatusPill>}
           </div>
           <BiomarkerRow context={context} />
         </SettingsCard>
 
-        <SettingsCard title="Overview" tone="border-t-orange-400" className="xl:col-span-2">
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-green-200 bg-green-50/80 p-2.5 dark:bg-green-950/20">
-              <h3 className="mb-2 text-xs font-black uppercase tracking-wide text-green-700 dark:text-green-300">Case</h3>
-              {sample?.case ? (
-                <FieldList rows={[
-                  ["ID", sample.case.id],
-                  ["Clarity ID", sample.case.clarity_id || "N/A"],
-                  ["Pool ID", sample.case.clarity_pool_id || "N/A"],
-                  ["Run", sample.case.sequencing_run || "N/A"],
-                  ["Reads", sample.case.reads || "N/A"],
-                  ["FFPE", sample.case.ffpe ? "Yes" : "No"],
-                  ["Purity", sample.case.purity ?? "N/A"],
-                ]} />
-              ) : <p className="text-sm text-muted-foreground">No Case Information</p>}
-            </div>
-            <div className="rounded-xl border border-blue-200 bg-blue-50/80 p-2.5 dark:bg-blue-950/20">
-              <h3 className="mb-2 text-xs font-black uppercase tracking-wide text-blue-600 dark:text-blue-300">Control</h3>
-              {sample?.paired && sample?.control ? (
-                <FieldList rows={[
-                  ["ID", sample.control.id],
-                  ["Clarity ID", sample.control.clarity_id || "N/A"],
-                  ["Pool ID", sample.control.clarity_pool_id || "N/A"],
-                  ["Run", sample.control.sequencing_run || "N/A"],
-                  ["Reads", sample.control.reads || "N/A"],
-                  ["FFPE", sample.control.ffpe ? "Yes" : "No"],
-                  ["Purity", sample.control.purity ?? "N/A"],
-                ]} />
-              ) : <p className="text-sm text-muted-foreground">Unpaired sample (no control)</p>}
-            </div>
+        <SettingsCard title="Case and Control" tone="border-t-orange-400" className="xl:col-span-2">
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full min-w-[38rem] border-separate border-spacing-0 text-xs">
+              <thead>
+                <tr className="bg-muted/65 text-left text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+                  <th className="w-28 px-3 py-2">Field</th>
+                  <th className="border-l border-pass/25 bg-pass/8 px-3 py-2 text-pass">Case</th>
+                  <th className="border-l border-tier3/25 bg-tier3/8 px-3 py-2 text-tier3">Control</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["ID", sample?.case?.id || sample?.case_id, sample?.control?.id || sample?.control_id],
+                  ["Clarity ID", sample?.case?.clarity_id, sample?.control?.clarity_id],
+                  ["Pool ID", sample?.case?.clarity_pool_id, sample?.control?.clarity_pool_id],
+                  ["Sequencing run", sample?.case?.sequencing_run, sample?.control?.sequencing_run],
+                  ["Reads", sample?.case?.reads, sample?.control?.reads],
+                  ["FFPE", sample?.case?.ffpe ? "Yes" : "No", sample?.control?.ffpe ? "Yes" : "No"],
+                  ["Purity", sample?.case?.purity, sample?.control?.purity],
+                ].map(([label, caseValue, controlValue]) => (
+                  <tr key={String(label)} className="border-t border-border/75">
+                    <th scope="row" className="border-t border-border/75 bg-muted/35 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</th>
+                    <td className="border-l border-t border-pass/20 bg-pass/5 px-3 py-2 font-semibold text-foreground">{displayValue(caseValue)}</td>
+                    <td className="border-l border-t border-tier3/20 bg-tier3/5 px-3 py-2 font-semibold text-foreground">{sample?.paired ? displayValue(controlValue) : "Not paired"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </SettingsCard>
 
@@ -951,7 +940,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
                     )}
                     {file.count_badge && <StatusPill tone="green">{file.count_badge}</StatusPill>}
                   </div>
-                  <p className={`mt-0.5 break-all text-[11px] ${file.path && file.exists === false ? "text-red-700 dark:text-red-300" : "text-muted-foreground"}`}>
+                  <p className={`mt-0.5 break-all text-[11px] ${file.path && file.exists === false ? "text-fail" : "text-muted-foreground"}`}>
                     {file.path || file.missing_msg || "No file available"}
                   </p>
                   {file.checksum && (
@@ -997,7 +986,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
       <div className="grid gap-3 xl:grid-cols-4">
         <SampleGeneSettings sampleId={sampleId} sample={sample} />
 
-        <SettingsCard title="Gene Filters" tone="border-t-purple-400" className="xl:col-span-2">
+        <SettingsCard title="Gene Filters" tone="border-t-slate-400" className="xl:col-span-2">
           <div className="space-y-4 text-sm">
             <div>
               <h3 className="text-xs font-black uppercase tracking-wider text-green-700 dark:text-green-300">Selected SNV ISGLs</h3>
@@ -1007,7 +996,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
             </div>
             {omics === "dna" && (
               <div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-orange-700 dark:text-orange-300">Selected CNV ISGLs</h3>
+                <h3 className="text-xs font-black uppercase tracking-wider text-warn">Selected CNV ISGLs</h3>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {(cnvFilters.cnvlists || []).length ? cnvFilters.cnvlists.map((name: string) => <StatusPill key={name} tone="yellow">{name}</StatusPill>) : <p className="text-muted-foreground">No CNV ISGLs selected for this sample.</p>}
                 </div>
@@ -1015,14 +1004,14 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
             )}
             {omics === "rna" && (
               <div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-300">Selected Fusion Lists</h3>
+                <h3 className="text-xs font-black uppercase tracking-wider text-tier4">Selected Fusion Lists</h3>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {(fusionFilters.fusionlists || []).length ? fusionFilters.fusionlists.map((name: string) => <StatusPill key={name} tone="green">{name}</StatusPill>) : <p className="text-muted-foreground">No fusion lists selected for this sample.</p>}
                 </div>
               </div>
             )}
             <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-blue-700 dark:text-blue-300">Sample Ad-Hoc Genes</h3>
+              <h3 className="text-xs font-black uppercase tracking-wider text-tier3">Sample Ad-Hoc Genes</h3>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 {Object.keys(adhoc).length ? Object.entries(adhoc).map(([scope, entry]: [string, any]) => (
                   <div key={scope} className="rounded-xl border border-border bg-background/70 p-2">
@@ -1049,7 +1038,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
       </div>
 
       {verificationSample && (
-        <section className="rounded-xl bg-blue-50 px-3 py-2 shadow-md dark:bg-blue-950/20">
+        <section className="paper-inset rounded-xl px-3 py-2">
           <h2 className="text-base font-semibold uppercase tracking-wide text-foreground">Verification Sample</h2>
           <p className="mt-2 text-sm font-semibold text-yellow-700 dark:text-yellow-300">
             Verification sample used: {verificationSample}

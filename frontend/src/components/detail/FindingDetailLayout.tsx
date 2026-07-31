@@ -21,7 +21,7 @@ export function FindingError({
     <div className="p-8 text-destructive">
       <h2 className="mb-4 text-2xl font-bold">{title}</h2>
       <p>{message}</p>
-      <Link to={backTo} className="mt-4 inline-flex items-center text-primary hover:underline">
+      <Link to={backTo} className="link-text mt-4 inline-flex items-center">
         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Sample
       </Link>
     </div>

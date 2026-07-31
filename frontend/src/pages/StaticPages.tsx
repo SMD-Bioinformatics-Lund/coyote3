@@ -27,12 +27,12 @@ export function ContactPage() {
       title="Contact and Support"
       description={`Support channels, service hours, and public resources for ${orgName}.`}
     >
-      <section className="surface-panel p-5">
+      <section className="space-y-4">
         {isLoading ? (
           <AppLoader label="Loading contact information" />
         ) : null}
 
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+        <section className="content-section mb-4 flex flex-wrap items-start justify-between gap-4 p-4">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-primary/10 p-2 text-primary"><LifeBuoy className="h-5 w-5" /></div>
             <div>
@@ -51,10 +51,10 @@ export function ContactPage() {
             <Building2 className="h-4 w-4" />
             About Coyote3
           </Link>
-        </div>
+        </section>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.45fr)]">
-          <section className="rounded-xl border border-border bg-background/70 p-4">
+        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.45fr)]">
+          <section className="content-section p-4">
             <div className="mb-3 flex items-center gap-2">
               <Mail className="h-4 w-4 text-primary" />
               <h3 className="text-sm font-black uppercase tracking-wide text-muted-foreground">Support Channels</h3>
@@ -107,8 +107,8 @@ export function AboutPage() {
       title="Coyote3"
       description={`Application, reference, version, and support information for ${orgName}.`}
     >
-      <section className="surface-panel p-5">
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+      <section className="space-y-4">
+        <section className="content-section mb-5 flex flex-wrap items-start justify-between gap-4 p-4">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-primary/10 p-2 text-primary"><Building2 className="h-5 w-5" /></div>
             <div>
@@ -144,7 +144,7 @@ export function AboutPage() {
               </a>
             ) : null}
           </div>
-        </div>
+        </section>
 
         {isLoading ? (
           <AppLoader label="Loading application information" />
@@ -159,7 +159,7 @@ export function AboutPage() {
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
           <div className="space-y-4">
-            <section className="rounded-xl border border-border bg-background/70 p-4">
+            <section className="content-section p-4">
               <div className="mb-3 flex items-center gap-2">
                 <Database className="h-4 w-4 text-primary" />
                 <h3 className="text-sm font-black uppercase tracking-wide text-muted-foreground">Reference and Software Versions</h3>
@@ -167,26 +167,30 @@ export function AboutPage() {
               <div className="grid gap-3 md:grid-cols-2">
                 <VersionBlock title="Analysis Pipelines" values={pipelines} empty="No pipeline versions observed in loaded samples." />
                 <VersionBlock title="Sample Reference Databases" values={sampleReferenceVersions} empty="No sample database versions recorded yet." />
-                <VersionBlock title="External Knowledgebases" values={databases.knowledgebases || {}} empty="No external knowledgebase endpoints configured." />
+                <div className="md:col-span-2">
+                  <VersionBlock title="External Knowledgebases" values={databases.knowledgebases || {}} empty="No external knowledgebase endpoints configured." />
+                </div>
               </div>
             </section>
 
-            <section className="rounded-xl border border-border bg-background/70 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <ExternalLink className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-black uppercase tracking-wide text-muted-foreground">Useful Links</h3>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                {aboutLinks.map((link) => (
-                  <ResourceLink key={`${link.label}-${link.url}`} link={link} />
-                ))}
-              </div>
-            </section>
           </div>
 
           <aside className="space-y-3">
             <SupportCard support={support} />
             <HoursCard hours={hours} />
+            {aboutLinks.length ? (
+              <section className="content-section p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-black uppercase tracking-wide text-muted-foreground">Useful Links</h3>
+                </div>
+                <div className="space-y-2">
+                  {aboutLinks.map((link) => (
+                    <ResourceLink key={`${link.label}-${link.url}`} link={link} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
             <AddressCard organization={organization} />
           </aside>
         </div>
@@ -215,19 +219,19 @@ type LinkLike = Record<string, string>
 
 function ContactCard({ contact }: { contact: Record<string, string> }) {
   return (
-    <article className="rounded-xl border border-border bg-background/70 p-4">
+    <article className="content-item p-4">
       <p className="text-sm font-bold text-foreground">{contact.label}</p>
       {contact.role ? <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{contact.role}</p> : null}
       {contact.description ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{contact.description}</p> : null}
       <div className="mt-4 space-y-2 text-sm">
         {contact.email ? (
-          <a className="flex items-center gap-2 font-semibold text-primary hover:underline" href={`mailto:${contact.email}`}>
+          <a className="link-text flex items-center gap-2 font-semibold" href={`mailto:${contact.email}`}>
             <Mail className="h-4 w-4" />
             {contact.email}
           </a>
         ) : null}
         {contact.phone ? (
-          <a className="flex items-center gap-2 font-semibold text-primary hover:underline" href={`tel:${contact.phone}`}>
+          <a className="link-text flex items-center gap-2 font-semibold" href={`tel:${contact.phone}`}>
             <Phone className="h-4 w-4" />
             {contact.phone}
           </a>
@@ -240,17 +244,17 @@ function ContactCard({ contact }: { contact: Record<string, string> }) {
 function SupportCard({ support }: { support: Record<string, string> }) {
   if (!support.primary_email && !support.urgent_phone) return null
   return (
-    <div className="rounded-xl border border-border bg-muted/30 p-4">
+    <div className="content-section p-4">
       <p className="text-sm font-bold">Primary Support</p>
       <div className="mt-3 space-y-2 text-sm">
         {support.primary_email ? (
-          <a className="flex items-center gap-2 font-semibold text-primary hover:underline" href={`mailto:${support.primary_email}`}>
+          <a className="link-text flex items-center gap-2 font-semibold" href={`mailto:${support.primary_email}`}>
             <Mail className="h-4 w-4" />
             {support.primary_email}
           </a>
         ) : null}
         {support.urgent_phone ? (
-          <a className="flex items-center gap-2 font-semibold text-primary hover:underline" href={`tel:${support.urgent_phone}`}>
+          <a className="link-text flex items-center gap-2 font-semibold" href={`tel:${support.urgent_phone}`}>
             <Phone className="h-4 w-4" />
             {support.urgent_phone}
           </a>
@@ -263,7 +267,7 @@ function SupportCard({ support }: { support: Record<string, string> }) {
 function HoursCard({ hours }: { hours: Array<Record<string, string>> }) {
   if (!hours.length) return null
   return (
-    <div className="rounded-xl border border-border bg-muted/30 p-4">
+    <div className="content-section p-4">
       <p className="text-sm font-bold">Service Hours</p>
       <dl className="mt-3 space-y-2 text-sm">
         {hours.map((item) => (
@@ -280,7 +284,7 @@ function HoursCard({ hours }: { hours: Array<Record<string, string>> }) {
 function AddressCard({ organization }: { organization: Record<string, string> }) {
   if (!organization.address) return null
   return (
-    <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm">
+    <div className="content-section p-4 text-sm">
       <p className="flex items-center gap-2 font-bold"><MapPin className="h-4 w-4 text-primary" /> Address</p>
       <p className="mt-2 whitespace-pre-line text-muted-foreground">{organization.address}</p>
     </div>
@@ -290,7 +294,7 @@ function AddressCard({ organization }: { organization: Record<string, string> })
 function UsefulLinksCard({ links }: { links: LinkLike[] }) {
   if (!links.length) return null
   return (
-    <div className="rounded-xl border border-border bg-muted/30 p-4">
+    <div className="content-section p-4">
       <p className="text-sm font-bold">Useful Links</p>
       <div className="mt-3 space-y-2">
         {links.map((link) => <ResourceLink key={`${link.label}-${link.url}`} link={link} />)}
@@ -311,7 +315,7 @@ function ResourceLink({ link }: { link: LinkLike }) {
       href={publicHref(link.url)}
       target={isExternalHref(link.url) ? "_blank" : undefined}
       rel={isExternalHref(link.url) ? "noreferrer" : undefined}
-      className="flex items-start gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold hover:bg-muted"
+      className="content-item flex items-start gap-2 px-3 py-2 text-sm font-semibold hover:bg-muted"
     >
       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
       <span>
@@ -324,7 +328,7 @@ function ResourceLink({ link }: { link: LinkLike }) {
 
 function InfoCard({ icon: Icon, label, value, hint }: { icon: any; label: string; value: string; hint?: string }) {
   return (
-    <article className="rounded-xl border border-border bg-background/70 p-4">
+    <article className="content-item p-4">
       <div className="mb-3 flex items-center gap-2">
         <div className="rounded-lg bg-primary/10 p-2 text-primary"><Icon className="h-4 w-4" /></div>
         <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">{label}</p>
@@ -341,7 +345,7 @@ function VersionBlock({ title, values, empty }: { title: string; values: any; em
     return value !== undefined && value !== null && String(value).trim() !== ""
   })
   return (
-    <div className="rounded-lg border border-border bg-muted/30 p-3">
+    <div className="content-item p-3">
       <p className="mb-2 text-xs font-black uppercase tracking-wide text-muted-foreground">{title}</p>
       {entries.length ? (
         <dl className="space-y-2 text-sm">
@@ -427,7 +431,7 @@ function isExternalHref(url?: string) {
 export function NotFoundPage() {
   return (
     <PageShell eyebrow="404" title="Page not found" description="The requested Coyote3 view does not exist in this UI.">
-      <section className="surface-panel border-t-4 border-t-warn p-5">
+      <section className="surface-panel p-5">
         <p className="text-sm text-muted-foreground">Check the URL or return to the sample dashboard.</p>
         <Link to="/" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground">
           <Home className="h-4 w-4" />

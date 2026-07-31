@@ -42,7 +42,7 @@ export function DetailMetricTable({
               <td className={cn("px-3 font-semibold text-foreground", dense ? "py-1.5" : "py-2", metric.monospace && "font-mono")}>
                 {metric.href ? (
                   <a
-                    className="inline-flex min-w-0 items-center gap-1 text-primary hover:underline"
+                    className="link-text inline-flex min-w-0 items-center gap-1"
                     href={metric.href}
                     target="_blank"
                     rel="noreferrer"
@@ -138,7 +138,7 @@ export function ExternalLinksCard({ links }: { links: DetailMetric[] }) {
             href={link.href}
             target="_blank"
             rel="noreferrer"
-            className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-border bg-background/60 px-3 py-2 text-sm font-bold text-primary transition-colors hover:bg-primary/10"
+            className="link-text flex min-w-0 items-center justify-between gap-2 rounded-lg border border-border bg-background/60 px-3 py-2 text-sm font-bold transition-colors hover:bg-primary/10"
           >
             <span className="truncate">{link.label}</span>
             <ExternalLink className="h-4 w-4 shrink-0" />

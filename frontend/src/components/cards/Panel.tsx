@@ -15,12 +15,14 @@ export function SurfacePanel({
   children: ReactNode
 }) {
   return (
-    <section className={cn("surface-panel p-3.5", className)}>
+    <section className={cn("surface-panel p-4 sm:p-5", className)}>
       {(title || description || actions) && (
-        <div className="mb-3 flex flex-wrap items-start justify-between gap-2 border-b border-border/70 pb-2">
+        <div className="surface-panel-heading flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            {title && <h2 className="text-xs font-black uppercase tracking-wide text-foreground">{title}</h2>}
-            {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
+            {title && (
+              <h2 className="text-sm font-semibold tracking-normal text-foreground">{title}</h2>
+            )}
+            {description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}
           </div>
           {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
         </div>
@@ -42,10 +44,10 @@ export function MetricCard({
   className?: string
 }) {
   return (
-    <div className={cn("metric-card p-2.5", className)}>
-      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{title}</p>
-      <p className="mt-0.5 text-base font-black leading-tight tracking-tight text-foreground">{value}</p>
-      {sub && <p className="mt-0.5 text-[11px] text-muted-foreground">{sub}</p>}
+    <div className={cn("metric-card p-4", className)}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{title}</p>
+      <p className="mt-1 text-xl font-semibold leading-tight tracking-normal text-foreground">{value}</p>
+      {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
     </div>
   )
 }

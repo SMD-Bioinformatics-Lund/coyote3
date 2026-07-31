@@ -119,7 +119,7 @@ export function ReportsPage() {
         </button>
       }
     >
-      <section className="surface-panel border-t-4 border-t-tier3 p-4">
+      <section className="surface-panel p-4">
         <form onSubmit={submit} className="grid gap-3 md:grid-cols-[minmax(20rem,1fr)_12rem_12rem_auto] md:items-end">
           <label className="relative space-y-1.5">
             <span className="text-xs font-bold uppercase text-muted-foreground">Sample ID</span>
@@ -199,7 +199,7 @@ export function ReportsPage() {
       )}
       {data && (
         <div className="grid gap-3 xl:grid-cols-[1fr_26rem]">
-          <section className="surface-panel border-t-4 border-t-tier2 p-4">
+          <section className="surface-panel p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 className="text-lg font-bold">{sampleId} {reportType.toUpperCase()} Preview</h2>
@@ -241,7 +241,7 @@ export function ReportsPage() {
             )}
           </section>
           <aside className="space-y-3">
-            <section className="surface-panel border-t-4 border-t-tier4 p-3">
+            <section className="surface-panel p-3">
               <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">Snapshot Rows</h2>
               <DataTable columns={snapshotColumns} data={snapshotRows} filename={`${sampleId}_${reportType}_snapshot.csv`} />
             </section>

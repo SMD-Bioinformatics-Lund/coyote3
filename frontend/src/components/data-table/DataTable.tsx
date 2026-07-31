@@ -182,14 +182,14 @@ export function DataTable<TData, TValue>({
   return (
     <div className="flex min-w-0 flex-col">
       {/* Table Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-0.5 pb-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1.5 pb-3 pt-1">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <div className="rounded-lg border border-border bg-muted/60 px-2.5 py-1.5 text-xs font-black text-foreground shadow-sm">
+          <div className="paper-inset rounded-lg px-2.5 py-1.5 text-xs font-black text-foreground">
             {shortCount(returnedCount)} {rowLabel}
           </div>
           {!hideSearch && (
-            <div className="relative w-56 sm:w-64">
-              <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+            <div className="search-field relative w-56 rounded-xl sm:w-64">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/75" />
               <input
                 placeholder={searchPlaceholder}
                 value={displayedSearchValue}
@@ -201,7 +201,7 @@ export function DataTable<TData, TValue>({
                   }
                   setGlobalFilter(value)
                 }}
-                className="w-full rounded-lg border border-input bg-background/80 py-1.5 pl-9 pr-3 text-xs shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:bg-background focus:ring-3 focus:ring-ring/30 dark:bg-input/30"
+                className="w-full rounded-xl border-0 bg-transparent py-1.5 pl-9 pr-3 text-xs outline-none transition-colors placeholder:text-muted-foreground focus:bg-transparent"
               />
             </div>
           )}
@@ -212,7 +212,7 @@ export function DataTable<TData, TValue>({
             {renderExportButton ? renderExportButton(table) : (
               <button
                 onClick={exportToCSV}
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-sm shadow-primary/20 transition-colors hover:bg-primary/90"
+                className="inline-flex items-center gap-2 rounded-lg border border-primary/75 bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-[0_2px_6px_color-mix(in_srgb,var(--primary)_24%,transparent)] transition-colors hover:bg-primary/90"
               >
                 <ArrowDownToLine className="h-4 w-4" />
                 Export to CSV
@@ -223,10 +223,10 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Table Area */}
-      <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm [contain:paint]">
+      <div className="paper-surface overflow-hidden rounded-lg [contain:paint]">
         <div className="overflow-x-auto">
-          <table className="w-full table-auto border-separate border-spacing-0 text-left text-sm tabular-nums">
-            <thead className="border-b-2 border-border bg-muted text-[11px] font-black uppercase tracking-wide text-foreground shadow-sm dark:bg-muted/70">
+          <table className="w-full table-auto border-separate border-spacing-0 text-left text-[0.84rem] tabular-nums">
+            <thead className="border-b-2 border-border bg-[var(--header-surface)] text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
@@ -243,7 +243,7 @@ export function DataTable<TData, TValue>({
                       <th
                         key={header.id}
                         className={cn(
-                            "whitespace-normal break-words border-b-2 border-r border-border px-1.5 py-1.5 align-bottom leading-tight last:border-r-0",
+                            "whitespace-normal break-words border-b-2 border-r border-border px-2 py-2 align-bottom leading-tight last:border-r-0",
                           align === "center" ? "text-center" : "text-left",
                           defaultColumnClass(header.column.id),
                           meta?.headerClassName,
@@ -284,7 +284,7 @@ export function DataTable<TData, TValue>({
                 visibleRows.map((row) => (
                   <tr
                     key={row.id}
-                    className={cn("transition-colors duration-75 odd:bg-background/35 even:bg-card/60 hover:bg-primary/10 dark:hover:bg-primary/20", getRowClassName?.(row.original) ?? "")}
+                    className={cn("bg-[var(--paper-raised)] transition-colors duration-75 hover:bg-primary/10", getRowClassName?.(row.original) ?? "")}
                   >
                     {row.getVisibleCells().map((cell) => {
                       const align = columnAlign(cell.column.id)
@@ -293,7 +293,7 @@ export function DataTable<TData, TValue>({
                         <td
                           key={cell.id}
                           className={cn(
-                            "border-b border-r border-border/65 px-1.5 py-1.5 align-middle last:border-r-0",
+                            "border-b border-r border-border/65 px-2 py-2 align-middle last:border-r-0",
                             align === "center" ? "text-center" : "text-left",
                             defaultColumnClass(cell.column.id),
                             meta?.cellClassName,
@@ -316,7 +316,7 @@ export function DataTable<TData, TValue>({
           </table>
         </div>
       </div>
-      <div className="flex items-center justify-end gap-2 px-1 py-2 text-xs font-medium text-muted-foreground">
+      <div className="mt-2 flex min-h-11 items-center justify-end gap-2 border-t border-border/60 px-2 py-2.5 text-xs font-medium text-muted-foreground">
         <span>
           {serverPaginated
             ? `Showing ${rangeStart}-${rangeEnd} of ${shortCount(returnedCount)} ${rowLabel}`
@@ -326,7 +326,7 @@ export function DataTable<TData, TValue>({
           <select
             value={perPage ?? 50}
             onChange={(event) => onPerPageChange(Number(event.target.value))}
-            className="rounded-lg border border-border bg-card px-2 py-1 text-xs font-bold text-foreground shadow-sm outline-none focus:ring-3 focus:ring-ring/30"
+            className="paper-inset rounded-lg px-2 py-1 text-xs font-bold text-foreground outline-none focus:ring-3 focus:ring-ring/30"
           >
             {[25, 50, 100, 200].map((value) => (
               <option key={value} value={value}>
@@ -341,7 +341,7 @@ export function DataTable<TData, TValue>({
               type="button"
               disabled={!hasPrevious}
               onClick={() => onPageChange?.(Math.max(1, page - 1))}
-              className="rounded-lg border border-border bg-card px-2.5 py-1 font-bold text-foreground shadow-sm transition-colors duration-100 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
+              className="paper-inset rounded-lg px-2.5 py-1 font-bold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
             >
               Previous
             </button>
@@ -350,7 +350,7 @@ export function DataTable<TData, TValue>({
               type="button"
               disabled={!hasNext}
               onClick={() => onPageChange?.(page + 1)}
-              className="rounded-lg border border-border bg-card px-2.5 py-1 font-bold text-foreground shadow-sm transition-colors duration-100 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
+              className="paper-inset rounded-lg px-2.5 py-1 font-bold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
             >
               Next
             </button>
@@ -360,7 +360,7 @@ export function DataTable<TData, TValue>({
           <button
             type="button"
             onClick={() => setRenderLimit((current) => current + RENDER_BATCH_SIZE)}
-            className="rounded-lg border border-border bg-card px-2.5 py-1 font-bold text-foreground shadow-sm transition-colors duration-100 hover:bg-muted"
+            className="paper-inset rounded-lg px-2.5 py-1 font-bold text-foreground hover:border-primary/30 hover:bg-muted"
           >
             Show more
           </button>

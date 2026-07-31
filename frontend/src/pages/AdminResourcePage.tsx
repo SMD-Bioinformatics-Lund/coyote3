@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ComponentType } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Activity, AlertTriangle, Download, Edit, Eye, FileUp, MailPlus, Plus, Power, Save, Search, Settings2, ShieldCheck, Trash2, X } from "lucide-react"
+import { Activity, AlertTriangle, Database, Dna, Download, Edit, Eye, FileUp, KeyRound, ListTree, MailPlus, Plus, Power, Save, Search, Settings2, Shield, ShieldCheck, SlidersHorizontal, Trash2, UsersRound, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -62,8 +62,8 @@ function ValueBadge({
         title={title || configuredValueDescription(value) || value}
         style={{
           borderColor: `color-mix(in srgb, ${displayColor} 45%, transparent)`,
-          backgroundColor: `color-mix(in srgb, ${displayColor} 14%, hsl(var(--background)))`,
-          color: "hsl(var(--foreground))",
+          backgroundColor: `color-mix(in srgb, ${displayColor} 14%, var(--background))`,
+          color: "var(--foreground)",
         }}
       >
         <span
@@ -289,7 +289,7 @@ function adminCell(field: string, row: any, context?: { roleColors?: Record<stri
     const email = String(value || "")
     if (!email) return <span className="text-muted-foreground">-</span>
     return (
-      <a className="text-sm font-semibold text-primary hover:underline" href={`mailto:${email}`} title={`Email ${email}`}>
+      <a className="link-text text-sm font-semibold" href={`mailto:${email}`} title={`Email ${email}`}>
         {email}
       </a>
     )
@@ -681,7 +681,7 @@ function FormControl({
     )
   } else {
     control = readOnly && name === "email" && value ? (
-      <a href={`mailto:${String(value)}`} className="block rounded-lg border border-input bg-background px-2 py-1.5 text-sm font-semibold text-primary hover:underline">
+      <a href={`mailto:${String(value)}`} className="link-text block rounded-lg border border-input bg-background px-2 py-1.5 text-sm font-semibold">
         {String(value)}
       </a>
     ) : (
@@ -836,6 +836,15 @@ function PermissionCategoryOverview({ rows }: { rows: any[] }) {
 }
 
 export function AdminHub() {
+  const resourceIcons: Record<string, ComponentType<{ className?: string }>> = {
+    users: UsersRound,
+    roles: Shield,
+    permissions: KeyRound,
+    asp: Dna,
+    aspc: SlidersHorizontal,
+    genelists: ListTree,
+    samples: Database,
+  }
   const utilityModules = [
     {
       title: "Application Controls",
@@ -870,16 +879,22 @@ export function AdminHub() {
       description="Govern identity, assays, configurations, ingestion, audit events, and platform contracts."
     >
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {Object.values(specs).map((spec) => (
-          <Link
-            key={spec.key}
-            to={`/admin/${spec.key}`}
-            className="glass-card p-4 transition-colors hover:bg-muted/40"
-          >
-            <h2 className="font-bold">{spec.title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{spec.description}</p>
-          </Link>
-        ))}
+        {Object.values(specs).map((spec) => {
+          const Icon = resourceIcons[spec.key] || Settings2
+          return (
+            <Link
+              key={spec.key}
+              to={`/admin/${spec.key}`}
+              className="glass-card p-4 transition-colors hover:bg-muted/40"
+            >
+              <div className="mb-2 inline-flex rounded-lg bg-primary/10 p-2 text-primary">
+                <Icon className="h-4 w-4" />
+              </div>
+              <h2 className="font-bold">{spec.title}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{spec.description}</p>
+            </Link>
+          )
+        })}
         {utilityModules.map((module) => (
           <Link
             key={module.href}

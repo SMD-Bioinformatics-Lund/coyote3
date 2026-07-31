@@ -22,7 +22,7 @@ const tierButtonClasses: Record<number, string> = {
 export function DetailCard({
   title,
   icon: Icon,
-  tone = "border-t-panel",
+  tone: _tone = "border-t-panel",
   children,
 }: {
   title: string
@@ -31,9 +31,9 @@ export function DetailCard({
   children: React.ReactNode
 }) {
   return (
-    <section className={`glass-card border-t-4 ${tone} p-4`}>
+    <section className="glass-card p-4">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-        <Icon className="h-4 w-4 text-primary" />
+        <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-3.5 w-3.5" /></span>
         {title}
       </h3>
       {children}

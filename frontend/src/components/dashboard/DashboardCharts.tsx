@@ -18,7 +18,7 @@ export function TierDistributionChart({
       filename="tier_distribution"
       data={data}
     >
-      <div className="h-44">
+      <div className="h-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie data={data} dataKey="value" nameKey="name" innerRadius={34} outerRadius={62} paddingAngle={3}>
@@ -44,13 +44,13 @@ export function GeneCoverageChart({
       filename="gene_coverage_per_assay"
       data={data}
     >
-      <div className="h-[320px]">
+      <div className="h-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 64 }}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.22} />
             <XAxis dataKey="name" angle={-30} textAnchor="end" height={72} tick={{ fontSize: 10 }} />
             <YAxis tick={{ fontSize: 10 }} />
-            <Tooltip cursor={{ fill: "rgba(79,70,229,0.08)" }} contentStyle={{ borderRadius: "10px", border: "1px solid var(--color-border)" }} />
+            <Tooltip cursor={{ fill: "var(--chart-tooltip-cursor)" }} contentStyle={{ borderRadius: "10px", border: "1px solid var(--border)" }} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Bar dataKey="Covered" fill="var(--color-panel)" radius={[4, 4, 0, 0]} />
             <Bar dataKey="Germline" fill="var(--color-germline)" radius={[4, 4, 0, 0]} />

@@ -80,6 +80,10 @@ export function PublicCatalog() {
     }))
   }, [data])
   const right = data?.right || {}
+  const selectedGeneList = useMemo(() => {
+    if (!selection.isgl_key) return null
+    return (right.gene_lists || []).find((geneList: any) => geneList?.key === selection.isgl_key) || null
+  }, [right.gene_lists, selection.isgl_key])
 
   return (
     <PageShell
@@ -242,34 +246,23 @@ export function PublicCatalog() {
 
               <AdditionalCatalogDetails value={right} />
 
-              {Array.isArray(right.gene_lists) && right.gene_lists.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="mb-2 text-xs font-black uppercase tracking-wide text-muted-foreground">Configured gene lists</h3>
-                  <div className="grid gap-2 lg:grid-cols-2">
-                    {right.gene_lists.filter((gl: any) => gl?.key || gl?.label).map((gl: any) => (
-                      <button
-                        key={gl.key || gl.label}
-                        type="button"
-                        onClick={() => gl.key && setSelection({ mod: selection.mod, cat: selection.cat, isgl_key: gl.key })}
-                        className={`rounded-lg border p-3 text-left transition-colors hover:bg-muted/60 ${
-                          selection.isgl_key === gl.key ? "border-primary bg-primary/5" : "border-border bg-background/60"
-                        }`}
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <span className="font-bold text-foreground">{gl.label || gl.key}</span>
-                          {gl.tat && <CatalogBadge label="TAT" value={gl.tat} />}
-                        </div>
-                        {gl.description && <HtmlText html={gl.description} className="mt-1 line-clamp-3 text-xs leading-relaxed text-muted-foreground" />}
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          <BadgeList values={gl.analysis} empty="" tone="primary" compact />
-                          <BadgeList values={gl.sample_modes} empty="" compact />
-                          <BadgeList values={gl.input_material} empty="" tone="secondary" compact />
-                          <BadgeList values={gl.list_type} empty="" tone="success" compact />
-                        </div>
-                      </button>
-                    ))}
+              {selectedGeneList && (
+                <section className="mt-4 border-t border-border pt-4">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">Selected gene list</p>
+                      <h3 className="mt-1 text-base font-bold text-foreground">{selectedGeneList.label || selectedGeneList.key}</h3>
+                    </div>
+                    {selectedGeneList.tat && <CatalogBadge label="TAT" value={selectedGeneList.tat} />}
                   </div>
-                </div>
+                  {selectedGeneList.description && <HtmlText html={selectedGeneList.description} className="max-w-5xl text-sm leading-relaxed text-muted-foreground" />}
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    <BadgeList values={selectedGeneList.analysis} empty="" tone="primary" compact />
+                    <BadgeList values={selectedGeneList.sample_modes} empty="" compact />
+                    <BadgeList values={selectedGeneList.input_material} empty="" tone="secondary" compact />
+                    <BadgeList values={selectedGeneList.list_type} empty="" tone="success" compact />
+                  </div>
+                </section>
               )}
             </section>
 
@@ -570,12 +563,12 @@ function matrixBoundaryClass(columns: any[], index: number) {
 function matrixBoundaryStyle(boundary: string) {
   if (boundary === "matrix-section") {
     return {
-      boxShadow: "inset 4px 0 0 color-mix(in srgb, var(--primary) 58%, var(--border))",
+      boxShadow: "inset 2px 0 0 var(--paper-edge)",
     }
   }
   if (boundary === "matrix-group") {
     return {
-      boxShadow: "inset 3px 0 0 color-mix(in srgb, var(--primary) 38%, var(--border))",
+      boxShadow: "inset 1px 0 0 var(--paper-edge)",
     }
   }
   return undefined
@@ -728,7 +721,7 @@ function AssayMatrixTable({
               <col key={col.key} className="w-32" />
             ))}
           </colgroup>
-          <thead className="sticky top-0 z-20 border-b-2 border-border bg-muted text-[11px] font-black uppercase tracking-wide text-foreground shadow-sm dark:bg-muted/70">
+          <thead className="sticky top-0 z-20 border-b-2 border-border text-[11px] font-black uppercase tracking-wide text-foreground shadow-sm">
             <tr>
               <th rowSpan={3} className="sticky left-0 z-30 border-b-2 border-r border-border matrix-head-list px-3 py-2 text-center align-middle text-xs font-black uppercase text-foreground">
                 Gene
@@ -778,11 +771,11 @@ function AssayMatrixTable({
           </thead>
           <tbody>
             {genes.map((gene) => (
-              <tr key={gene} className="transition-colors duration-75 odd:bg-background/35 even:bg-card/60 hover:bg-primary/10 dark:hover:bg-primary/20">
+              <tr key={gene} className="bg-[var(--paper-raised)] transition-colors duration-75 hover:bg-primary/10 dark:hover:bg-primary/20">
                 <th className="sticky left-0 z-10 border-b border-r border-border/65 bg-card px-3 py-1.5 text-sm font-black">
                   <Link
                     to={`/public/gene/${encodeURIComponent(gene)}/info`}
-                    className="text-primary transition-colors duration-100 hover:text-primary/80 hover:underline"
+                    className="link-text transition-colors duration-100"
                   >
                     {gene}
                   </Link>

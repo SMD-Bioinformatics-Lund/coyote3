@@ -251,7 +251,7 @@ export function CommentsPanel({
   }
 
   return (
-    <section className="glass-card border-t-4 border-t-tier2 p-2.5">
+    <section className="glass-card p-2.5">
       <div className="mb-2 flex items-center gap-2">
         <MessageSquare className="h-4 w-4 text-tier2" />
         <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{title}</h3>

@@ -80,11 +80,11 @@ export function VariantActionButtons({
   }
 
   const buttonBase = compact
-    ? "inline-flex h-7 w-7 items-center justify-center rounded-md border text-xs font-bold shadow-sm transition-colors duration-100 disabled:opacity-50"
-    : "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold shadow-sm transition-colors duration-100 disabled:opacity-50"
+    ? "paper-raised-control inline-flex h-7 w-7 items-center justify-center rounded-lg border text-xs font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-100 disabled:opacity-50"
+    : "paper-raised-control inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-100 disabled:opacity-50"
   const labeledCompactReport = compact && showReportLabel && resourceType !== "small_variant"
   const reportButtonBase = labeledCompactReport
-    ? "inline-flex h-7 items-center justify-center gap-1 rounded-md border px-2 text-xs font-bold shadow-sm transition-colors duration-100 disabled:opacity-50"
+    ? "paper-raised-control inline-flex h-7 items-center justify-center gap-1 rounded-lg border px-2 text-xs font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-100 disabled:opacity-50"
     : buttonBase
 
   return (

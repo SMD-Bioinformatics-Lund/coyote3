@@ -102,30 +102,55 @@ export function Dashboard() {
 
   return (
     <div className="max-w-[2600px] space-y-3">
-      <div className="surface-panel flex flex-col gap-3 p-3 lg:flex-row lg:items-end lg:justify-between">
+      <div className="dashboard-hero flex flex-col gap-3 p-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-primary">Operations</p>
           <h1 className="text-2xl font-black tracking-tight">Dashboard</h1>
           <p className="mt-1 text-xs text-muted-foreground">Throughput, quality, tiering, assay scope, and resource health.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to="/samples" className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-sm">Open samples</Link>
-          <Link to="/variants/search" className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-bold hover:bg-muted">Variant search</Link>
-          <Link to="/public/catalog" className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-bold hover:bg-muted">Catalog</Link>
+          <Link to="/samples" className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Open samples</Link>
+          <Link to="/variants/search" className="paper-raised-control rounded-lg px-3 py-2 text-xs font-bold">Variant search</Link>
+          <Link to="/public/catalog" className="paper-raised-control rounded-lg px-3 py-2 text-xs font-bold">Catalog</Link>
         </div>
       </div>
 
-      <SurfacePanel title="Operational Snapshot" description="Current sample throughput and total variant volume.">
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          <Metric title="My visible samples" value={userScope.total_samples ?? data?.total_samples} sub={`${percent(userScope.analysed_rate_percent ?? quality.analysed_rate_percent)} analysed`} />
-          <Metric title="My pending review" value={userScope.pending_samples ?? data?.pending_samples} sub="Visible from my roles and assays" />
-          <Metric title="All samples" value={data?.total_samples} sub={`${fmt(data?.analysed_samples)} analysed`} />
-          <Metric title="Findings" value={findingTotal} sub={`${fmt(vStats.unique_variants)} unique small variants`} />
+      <SurfacePanel className="dashboard-panel" title="Operational Snapshot" description="Current clinical workload, analysis progress, and finding volume.">
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[1.45fr_1fr_1fr]">
+          <div className="dashboard-snapshot-card p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Analysis progress</p>
+                <p className="mt-1 text-xl font-semibold leading-tight text-foreground">
+                  {fmt(data?.analysed_samples)} <span className="text-sm font-medium text-muted-foreground">of {fmt(data?.total_samples)} analysed</span>
+                </p>
+              </div>
+              <CheckCircle2 className="mt-0.5 h-5 w-5 text-pass" />
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-pass" style={{ width: `${Math.min(100, Number(data?.total_samples) > 0 ? (Number(data?.analysed_samples || 0) / Number(data?.total_samples)) * 100 : 0)}%` }} />
+            </div>
+            <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>{percent(userScope.analysed_rate_percent ?? quality.analysed_rate_percent)} complete in your visible scope</span>
+              <span className="font-semibold text-foreground">{fmt(userScope.pending_samples ?? data?.pending_samples)} awaiting review</span>
+            </div>
+          </div>
+          <div className="dashboard-snapshot-card p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">My visible samples</p>
+            <p className="mt-1 text-xl font-semibold leading-tight text-foreground">{fmt(userScope.total_samples ?? data?.total_samples)}</p>
+            <p className="mt-2 text-xs text-muted-foreground">Available through your roles, assays, and environments.</p>
+          </div>
+          <div className="dashboard-snapshot-card p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Finding inventory</p>
+            <p className="mt-1 text-xl font-semibold leading-tight text-foreground">{fmt(findingTotal)}</p>
+            <p className="mt-2 text-xs text-muted-foreground">{fmt(vStats.unique_variants)} unique small variants across visible samples.</p>
+          </div>
         </div>
       </SurfacePanel>
 
-      <div className="grid gap-3 xl:grid-cols-[1.05fr_0.95fr]">
-        <SurfacePanel title="Review Workload" description="Assay progress and profile distribution.">
+      <div className="grid items-stretch gap-3 xl:grid-cols-[1.05fr_0.95fr]">
+        <SurfacePanel className="dashboard-panel dashboard-panel--teal h-full" title="Review Workload" description="Assay progress and profile distribution.">
+          <div className="flex h-full flex-col gap-3">
           <div className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="grid gap-2 sm:grid-cols-2">
             {Object.keys(uStats).length === 0 ? (
@@ -134,13 +159,13 @@ export function Dashboard() {
               const stats = uStats[assay]
               const percent = stats.total > 0 ? (stats.analysed / stats.total) * 100 : 0
               return (
-                <div key={assay} className="rounded-lg border border-border bg-background/70 p-2.5">
+                <div key={assay} className="dashboard-subcard p-2.5">
                   <div className="mb-2 flex justify-between">
                     <h3 className="text-[11px] font-bold uppercase">{assay}</h3>
                     <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">{stats.analysed}/{stats.total}</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-gradient-to-r from-dna to-rna" style={{ width: `${percent}%` }} />
+                    <div className="h-full rounded-full bg-primary/80" style={{ width: `${percent}%` }} />
                   </div>
                   <p className="mt-2 text-right text-[11px] text-muted-foreground">Pending {stats.pending}</p>
                 </div>
@@ -151,7 +176,7 @@ export function Dashboard() {
             <div className="space-y-2">
               <h3 className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Sample Profiles</h3>
               {profileData.length ? profileData.map((item, index) => (
-                <div key={item.name} className="rounded-lg border border-border bg-background/60 p-2">
+                <div key={item.name} className="dashboard-subcard p-2">
                   <div className="flex justify-between text-[11px] font-bold uppercase">
                     <span>{item.name}</span>
                     <span>{fmt(item.value)}</span>
@@ -163,12 +188,18 @@ export function Dashboard() {
               )) : <p className="text-xs text-muted-foreground">No profile data.</p>}
             </div>
           </div>
+          <div className="dashboard-workload-summary mt-auto grid gap-2 sm:grid-cols-3">
+            <div><span>Visible</span><strong>{fmt(userScope.total_samples ?? data?.total_samples)}</strong></div>
+            <div><span>Pending review</span><strong>{fmt(userScope.pending_samples ?? data?.pending_samples)}</strong></div>
+            <div><span>Analysed</span><strong>{fmt(data?.analysed_samples)}</strong></div>
+          </div>
+          </div>
         </SurfacePanel>
 
-        <SurfacePanel title="My Recent Samples" description="Latest samples visible to your account.">
+        <SurfacePanel className="dashboard-panel dashboard-panel--rose h-full" title="My Recent Samples" description="Latest samples visible to your account.">
           <div className="space-y-2">
             {recentSamples.length ? recentSamples.map((sample: any) => (
-              <Link key={sample.id || sample.name} to={sampleDetailPath(sample, sample.id)} className="group flex items-center justify-between gap-3 rounded-lg border border-border bg-background/70 p-2.5 hover:border-primary/40 hover:bg-primary/5">
+              <Link key={sample.id || sample.name} to={sampleDetailPath(sample, sample.id)} className="dashboard-subcard group flex items-center justify-between gap-3 p-2.5 hover:border-primary/40 hover:bg-primary/5">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate text-sm font-black text-primary">{sample.name || sample.id}</p>
@@ -186,8 +217,8 @@ export function Dashboard() {
         </SurfacePanel>
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[0.8fr_1.2fr]">
-        <SurfacePanel title="Sample Composition" description="Profiles, status, modality, and sequencing scope.">
+      <div className="grid items-start gap-3 xl:grid-cols-[0.8fr_1.2fr]">
+        <SurfacePanel className="dashboard-panel dashboard-panel--amber" title="Sample Composition" description="Profiles, status, modality, and sequencing scope.">
           <div className="grid gap-3 md:grid-cols-2">
             {[
               ["Ingest status", statusData, CheckCircle2],
@@ -196,7 +227,7 @@ export function Dashboard() {
               ["My profile scope", Object.entries(scopeStats.profiles || {}).map(([name, value]) => ({ name, value: Number(value) })), Clock],
               ["Pairing", pairingData, Users],
             ].map(([title, rows, Icon]: any, panelIndex) => (
-              <div key={title} className="rounded-lg border border-border bg-background/70 p-2.5">
+              <div key={title} className="dashboard-subcard p-2.5">
                 <div className="mb-2 flex items-center gap-2">
                   <Icon className="h-4 w-4 text-primary" />
                   <h3 className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{title}</h3>
@@ -219,7 +250,7 @@ export function Dashboard() {
           </div>
         </SurfacePanel>
 
-        <SurfacePanel title="Variant Review" description="Finding counts and classification quality indicators.">
+        <SurfacePanel className="dashboard-panel dashboard-panel--blue" title="Variant Review" description="Finding counts and classification quality indicators.">
           <div className="grid gap-3 lg:grid-cols-[1fr_15rem_14rem]">
             <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
               <Metric title="Small variants" value={vStats.snv || vStats.small_variants} sub={`${fmt(vStats.snps)} SNV/SNP class`} />
@@ -233,7 +264,7 @@ export function Dashboard() {
               <Metric title="Reported findings" value={vStats.reported_findings} sub="Saved report snapshots" />
               <Metric title="Tier 4" value={vStats.tier4} sub="Usually not reportable" />
             </div>
-            <div className="min-h-48 rounded-lg border border-border bg-background/60 p-2">
+            <div className="dashboard-subcard min-h-48 p-2">
               <h3 className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Tier Distribution</h3>
               {tierChartData.length ? (
                 <div className="h-44">
@@ -243,7 +274,7 @@ export function Dashboard() {
                 </div>
               ) : <p className="text-xs text-muted-foreground">No tier data available.</p>}
             </div>
-            <div className="min-h-48 rounded-lg border border-border bg-background/60 p-2">
+            <div className="dashboard-subcard min-h-48 p-2">
               <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Small Variant Classes</h3>
               <div className="space-y-2">
                 {variantClassData.length ? variantClassData.slice(0, 6).map((item, index) => (
@@ -263,8 +294,8 @@ export function Dashboard() {
         </SurfacePanel>
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[1.35fr_0.65fr]">
-        <SurfacePanel title="Gene Coverage Per Assay" description="Covered and germline gene scope across assays.">
+      <div className="grid items-start gap-3 xl:grid-cols-[1.35fr_0.65fr]">
+        <SurfacePanel className="dashboard-panel dashboard-panel--teal" title="Gene Coverage Per Assay" description="Covered and germline gene scope across assays.">
           <div className="h-[320px]">
             {hasGeneChartData ? (
               <Suspense fallback={<ChartFallback />}>
@@ -281,10 +312,10 @@ export function Dashboard() {
           </div>
         </SurfacePanel>
 
-        <SurfacePanel title="Resource Capacity" description="Configured resources and reference inventory.">
+        <SurfacePanel className="dashboard-panel dashboard-panel--rose" title="Resource Capacity" description="Configured resources and reference inventory.">
           <div className="grid grid-cols-2 gap-2">
             {capacityEntries.length ? capacityEntries.map(([key, value], index) => (
-              <div key={key} className="rounded-lg border border-border bg-background/70 p-2.5">
+              <div key={key} className="dashboard-subcard p-2.5">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{key.replaceAll("_", " ")}</p>
                 <p className="mt-1 text-base font-black" style={{ color: chartColors[index % chartColors.length] }}>{fmt(value)}</p>
               </div>
@@ -293,7 +324,7 @@ export function Dashboard() {
         </SurfacePanel>
       </div>
 
-      <SurfacePanel title="Clinical Configuration" description="Gene-list visibility and assay coverage for interpretation workflows.">
+      <SurfacePanel className="dashboard-panel dashboard-panel--amber" title="Clinical Configuration" description="Gene-list visibility and assay coverage for interpretation workflows.">
         <div className="grid gap-3 lg:grid-cols-[0.8fr_1.2fr]">
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
             <Metric title="Unique active genes" value={data?.unique_gene_count_all_panels} sub="Across active ASPs" />
@@ -301,14 +332,14 @@ export function Dashboard() {
             <Metric title="Private ISGLs" value={isglVisibility.private_total} sub={`${fmt(isglVisibility.private_only)} private only`} />
             <Metric title="Ad-hoc lists" value={isglVisibility.adhoc_total} sub={`${fmt(isglVisibility.overlap_total)} overlapping`} />
           </div>
-          <div className="rounded-lg border border-border bg-background/70 p-2.5">
+          <div className="dashboard-subcard p-2.5">
             <div className="mb-2 flex items-center justify-between gap-3">
               <h3 className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Top Assay ISGL Associations</h3>
-              <Link to="/public/catalog" className="text-[11px] font-bold text-primary hover:underline">Open catalog</Link>
+              <Link to="/public/catalog" className="link-text text-[11px] font-bold">Open catalog</Link>
             </div>
             <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
               {isglAssociationRows.length ? isglAssociationRows.slice(0, 6).map((row: any) => (
-                <div key={row.assay_id || row.display_name} className="rounded-lg border border-border bg-muted/20 p-2">
+                <div key={row.assay_id || row.display_name} className="dashboard-subcard p-2">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-xs font-black text-foreground">{row.display_name || row.assay_id}</p>
@@ -317,9 +348,9 @@ export function Dashboard() {
                     <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-black text-primary">{fmt(row.isgl_total)}</span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="rounded-md bg-green-500/10 px-1.5 py-0.5 text-[10px] font-bold text-green-700 dark:text-green-300">{fmt(row.public_count)} public</span>
-                    <span className="rounded-md bg-indigo-500/10 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700 dark:text-indigo-300">{fmt(row.private_count)} private</span>
-                    <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">{fmt(row.adhoc_count)} ad-hoc</span>
+                    <span className="rounded-md bg-pass/10 px-1.5 py-0.5 text-[10px] font-bold text-pass">{fmt(row.public_count)} public</span>
+                    <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">{fmt(row.private_count)} private</span>
+                    <span className="rounded-md bg-warn/10 px-1.5 py-0.5 text-[10px] font-bold text-warn">{fmt(row.adhoc_count)} ad-hoc</span>
                   </div>
                 </div>
               )) : <p className="text-xs text-muted-foreground">No assay-to-ISGL associations configured.</p>}

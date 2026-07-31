@@ -71,7 +71,7 @@ export async function exportChartAsPng(container: HTMLElement | null, filename: 
     const context = canvas.getContext("2d")
     if (!context) return false
     context.scale(window.devicePixelRatio, window.devicePixelRatio)
-    context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--background") || "#ffffff"
+    context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--background").trim() || "transparent"
     context.fillRect(0, 0, width, height)
     context.drawImage(image, 0, 0, width, height)
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"))

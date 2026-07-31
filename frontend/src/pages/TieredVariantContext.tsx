@@ -69,7 +69,7 @@ export function TieredVariantContext() {
         return name === "-" ? (
           <span className="text-muted-foreground">-</span>
         ) : (
-          <Link to={sampleDetailPath(samplePayload(row.original), id)} className="font-bold text-primary hover:underline">{name}</Link>
+          <Link to={sampleDetailPath(samplePayload(row.original), id)} className="link-text font-bold">{name}</Link>
         )
       },
     },
