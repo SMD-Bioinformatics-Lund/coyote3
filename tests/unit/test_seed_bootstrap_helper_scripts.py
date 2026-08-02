@@ -5,6 +5,18 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from pathlib import Path
+
+import mongomock
+
+from scripts.bootstrap_local_admin import (
+    _deployment_is_initialized,
+    _load_bootstrap_rbac,
+    _superuser_exists,
+)
+from scripts.sync_rbac_catalog import synchronize_rbac_catalog
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
 def _run_script(args: list[str]) -> subprocess.CompletedProcess[str]:
@@ -14,6 +26,228 @@ def _run_script(args: list[str]) -> subprocess.CompletedProcess[str]:
         capture_output=True,
         check=False,
     )
+
+
+def test_sync_rbac_catalog_preserves_custom_policy_and_adds_missing_grants():
+    database = mongomock.MongoClient()["coyote3_test"]
+    database.permissions.insert_one(
+        {
+            "permission_id": "assay.config:view",
+            "label": "Center-custom label",
+            "is_active": False,
+        }
+    )
+    database.roles.insert_one(
+        {
+            "role_id": "manager",
+            "permissions": ["assay.config:view", "center.custom:run"],
+            "is_active": True,
+        }
+    )
+
+    result = synchronize_rbac_catalog(
+        database,
+        permissions_collection="permissions",
+        roles_collection="roles",
+        permission_docs=[
+            {
+                "permission_id": "assay.config:view",
+                "label": "Bundled label",
+                "category": "Assay Configuration Management",
+                "description": "View configuration",
+                "tags": [],
+                "is_active": True,
+                "version": 1,
+            },
+            {
+                "permission_id": "assay.config:edit",
+                "label": "Edit assay configurations",
+                "category": "Assay Configuration Management",
+                "description": "Edit configuration",
+                "tags": [],
+                "is_active": True,
+                "version": 1,
+            },
+        ],
+        role_docs=[
+            {
+                "role_id": "manager",
+                "permissions": ["assay.config:view", "assay.config:edit"],
+            }
+        ],
+    )
+
+    assert result == {
+        "inserted_permissions": 1,
+        "locked_permissions": 1,
+        "inserted_roles": 0,
+        "updated_roles": 1,
+    }
+    assert database.permissions.find_one({"permission_id": "assay.config:view"})["label"] == (
+        "Center-custom label"
+    )
+    assert (
+        database.permissions.find_one({"permission_id": "assay.config:view"})["system_managed"]
+        is True
+    )
+    assert (
+        database.permissions.find_one({"permission_id": "assay.config:view"})["is_active"] is True
+    )
+    assert (
+        database.permissions.find_one({"permission_id": "assay.config:edit"})["system_managed"]
+        is True
+    )
+    role = database.roles.find_one({"role_id": "manager"})
+    assert set(role["permissions"]) == {
+        "assay.config:view",
+        "assay.config:edit",
+        "center.custom:run",
+    }
+
+    repeated = synchronize_rbac_catalog(
+        database,
+        permissions_collection="permissions",
+        roles_collection="roles",
+        permission_docs=[
+            {
+                "permission_id": "assay.config:view",
+                "label": "Bundled label",
+                "category": "Assay Configuration Management",
+                "description": "View configuration",
+                "tags": [],
+                "is_active": True,
+                "version": 1,
+            },
+            {
+                "permission_id": "assay.config:edit",
+                "label": "Edit assay configurations",
+                "category": "Assay Configuration Management",
+                "description": "Edit configuration",
+                "tags": [],
+                "is_active": True,
+                "version": 1,
+            },
+        ],
+        role_docs=[
+            {
+                "role_id": "manager",
+                "permissions": ["assay.config:view", "assay.config:edit"],
+            }
+        ],
+    )
+    assert repeated == {
+        "inserted_permissions": 0,
+        "locked_permissions": 0,
+        "inserted_roles": 0,
+        "updated_roles": 0,
+    }
+
+
+def test_sync_rbac_catalog_inserts_missing_bundled_role_without_removing_custom_roles():
+    """Maintenance sync adds new application roles and preserves center roles."""
+    client = mongomock.MongoClient()
+    database = client.coyote3
+    database.roles.insert_one(
+        {
+            "role_id": "center_reviewer",
+            "name": "center_reviewer",
+            "permissions": ["center.custom:run"],
+            "is_active": True,
+            "version": 1,
+        }
+    )
+
+    result = synchronize_rbac_catalog(
+        database,
+        permissions_collection="permissions",
+        roles_collection="roles",
+        permission_docs=[
+            {
+                "permission_id": "app.controls:view",
+                "label": "View application controls",
+                "category": "Application Control Management",
+                "description": "View runtime controls.",
+                "tags": ["application", "controls", "view"],
+                "is_active": True,
+                "version": 1,
+            }
+        ],
+        role_docs=[
+            {
+                "role_id": "operations_viewer",
+                "name": "operations_viewer",
+                "label": "Operations Viewer",
+                "description": "Views operational state.",
+                "color": "slate",
+                "level": 180,
+                "is_active": True,
+                "permissions": ["app.controls:view"],
+                "version": 1,
+            }
+        ],
+    )
+
+    assert result == {
+        "inserted_permissions": 1,
+        "locked_permissions": 0,
+        "inserted_roles": 1,
+        "updated_roles": 0,
+    }
+    assert database.roles.find_one({"role_id": "operations_viewer"})["permissions"] == [
+        "app.controls:view"
+    ]
+    assert database.roles.find_one({"role_id": "center_reviewer"})["permissions"] == [
+        "center.custom:run"
+    ]
+
+
+def test_application_bootstrap_catalog_contains_canonical_permissions_and_roles():
+    """The repository ships the complete first-deployment governance catalog."""
+    permission_docs, role_docs = _load_bootstrap_rbac(
+        ROOT_DIR / "api" / "config" / "bootstrap" / "rbac"
+    )
+    permission_ids = {str(doc["permission_id"]) for doc in permission_docs}
+    roles = {str(doc["role_id"]): doc for doc in role_docs}
+
+    assert "notification.broadcast:create" in permission_ids
+    assert all(doc.get("system_managed") is True for doc in permission_docs)
+    assert {"user:list", "user:view", "user:create", "user:edit", "user:delete"} <= (permission_ids)
+    assert {"user:manage", "user:role:edit", "user:group:edit"} <= permission_ids
+    assert {
+        "superuser",
+        "asp_manager",
+        "aspc_manager",
+        "isgl_manager",
+        "operations_viewer",
+        "app_control_operator",
+        "user_account_manager",
+    } <= set(roles)
+    assert set(roles["superuser"]["permissions"]) == permission_ids
+    assert set(roles["user_account_manager"]["permissions"]) == {
+        "user:list",
+        "user:view",
+        "user:create",
+        "user:edit",
+        "user:delete",
+        "role:list",
+        "role:view",
+        "permission.policy:list",
+        "permission.policy:view",
+    }
+
+
+def test_first_deployment_bootstrap_detects_empty_partial_and_complete_state():
+    """First-run bootstrap runs only against empty governance collections."""
+    database = mongomock.MongoClient()["coyote3_test"]
+    assert _deployment_is_initialized(database) is False
+    assert _superuser_exists(database) is False
+
+    database.permissions.insert_one({"permission_id": "sample:view"})
+    assert _deployment_is_initialized(database) is True
+    assert _superuser_exists(database) is False
+
+    database.users.insert_one({"username": "root", "roles": ["superuser"]})
+    assert _superuser_exists(database) is True
 
 
 def test_seed_payload_utils_count_and_payload(tmp_path):
@@ -131,7 +365,7 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
                         "cnvlists": ["seed_cnv_list"],
                     },
                     "analysis_types": ["SNV", "CNV"],
-                    "reporting": {"analysis": ["SNV", "CNV"], "report_sections": ["SNV"]},
+                    "reporting": {"report_sections": ["SNV"]},
                 }
             ]
         ),
@@ -179,6 +413,7 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
     permission = json.loads((dest_dir / "permissions.json").read_text())[0]
     assert permission == {
         "permission_id": "samples:view",
+        "system_managed": True,
         "created_by": "admin@center.local",
         "updated_by": "admin@center.local",
         "created_on": "2026-03-30T00:00:00Z",
@@ -200,7 +435,9 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
     assert aspc["environment"] == "testing"
     assert aspc["filters"]["snvlists"] == ["seed_snv_list"]
     assert aspc["filters"]["cnvlists"] == ["seed_cnv_list"]
-    assert aspc["reporting"]["analysis"] == ["SNV", "CNV"]
+    assert aspc["analysis_types"] == ["SNV", "CNV"]
+    assert aspc["reporting"]["report_sections"] == ["SNV"]
+    assert "analysis" not in aspc["reporting"]
     assert "assay_name" not in aspc
     assert "query" not in aspc
 

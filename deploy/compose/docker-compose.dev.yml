@@ -88,10 +88,8 @@ services:
       - "../../.git:/app/.git"
       - "../../api:/app/api"
       - "../../clinical_reporting_rules:/app/clinical_reporting_rules:ro"
-      - "/data/coyote3/logs:/app/logs"
+      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
       - "../../docs:/app/docs"
-      - "../../asgi.py:/app/asgi.py"
-      - "../../deploy/gunicorn/gunicorn.conf.py:/app/gunicorn.conf.py"
       - "../../CHANGELOG.md:/app/CHANGELOG.md"
       - "../../README.md:/app/README.md"
       - "../../LICENSE.txt:/app/LICENSE.txt"
@@ -143,10 +141,8 @@ services:
       - "../../.git:/app/.git"
       - "../../api:/app/api"
       - "../../clinical_reporting_rules:/app/clinical_reporting_rules:ro"
-      - "/data/coyote3/logs:/app/logs"
+      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
       - "../../docs:/app/docs"
-      - "../../asgi.py:/app/asgi.py"
-      - "../../deploy/gunicorn/gunicorn.conf.py:/app/gunicorn.conf.py"
       - "../../CHANGELOG.md:/app/CHANGELOG.md"
       - "../../README.md:/app/README.md"
       - "../../LICENSE.txt:/app/LICENSE.txt"
@@ -192,10 +188,8 @@ services:
       - "../../.git:/app/.git"
       - "../../api:/app/api"
       - "../../clinical_reporting_rules:/app/clinical_reporting_rules:ro"
-      - "/data/coyote3/logs:/app/logs"
+      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
       - "../../docs:/app/docs"
-      - "../../asgi.py:/app/asgi.py"
-      - "../../deploy/gunicorn/gunicorn.conf.py:/app/gunicorn.conf.py"
       - "../../CHANGELOG.md:/app/CHANGELOG.md"
       - "../../README.md:/app/README.md"
       - "../../LICENSE.txt:/app/LICENSE.txt"
@@ -272,8 +266,8 @@ services:
       - MONGO_APP_USER=${MONGO_APP_USER:-coyote3_app}
       - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD:-CHANGE_ME_DEV_APP_PASSWORD}
     volumes:
-      - dev-mongodb:/data/db
-      - /data/coyote3/dev/backups/mongo:/backup
+      - "${COYOTE3_MONGO_DATA_HOST_ROOT:?COYOTE3_MONGO_DATA_HOST_ROOT must be set}:/data/db"
+      - "${COYOTE3_MONGO_BACKUP_HOST_ROOT:?COYOTE3_MONGO_BACKUP_HOST_ROOT must be set}:/backup"
       - ./mongo-init/create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
     healthcheck:
       test:
@@ -293,4 +287,3 @@ networks:
 volumes:
   frontend_node_modules:
     name: coyote3-frontend-node-modules
-  dev-mongodb:

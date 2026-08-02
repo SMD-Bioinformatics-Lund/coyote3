@@ -149,7 +149,7 @@ run_dev.py
 *.backup*
 *.backup_default
 app.log*
-test
+/test/
 logs/
 example_dev*
 /migration_scripts/*

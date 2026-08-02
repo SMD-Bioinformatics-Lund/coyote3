@@ -5,7 +5,11 @@
   "scripts": {
     "sync:version": "node ./scripts/sync-package-version.js",
     "postinstall": "npm run sync:version",
+    "docs:lint": "markdownlint-cli2 \"README.md\" \"docs/**/*.md\" \".github/**/*.md\"",
     "frontend:build": "npm --prefix frontend run build",
     "frontend:lint": "npm --prefix frontend run lint"
+  },
+  "devDependencies": {
+    "markdownlint-cli2": "^0.20.0"
   }
 }

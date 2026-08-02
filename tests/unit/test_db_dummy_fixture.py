@@ -18,7 +18,7 @@ def _load_fixture_bundle(source: Path) -> dict[str, list[dict]]:
 
 
 def test_all_collections_dummy_fixture_validates():
-    fixture_path = Path("tests/fixtures/db_dummy/all_collections_dummy")
+    fixture_path = Path("demo_data/collections/all_collections_dummy")
     payload = _load_fixture_bundle(fixture_path)
 
     strict_ready = {
@@ -40,7 +40,7 @@ def test_all_collections_dummy_fixture_validates():
 
 
 def test_assay_panel_fixture_includes_required_files() -> None:
-    fixture_path = Path("tests/fixtures/db_dummy/all_collections_dummy")
+    fixture_path = Path("demo_data/collections/all_collections_dummy")
     payload = _load_fixture_bundle(fixture_path)
     assay_panels = payload["assay_specific_panels"]
 

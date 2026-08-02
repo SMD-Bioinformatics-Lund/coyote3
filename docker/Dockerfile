@@ -32,6 +32,7 @@ EXPOSE 8001
 COPY api/ ./api/
 COPY clinical_reporting_rules/ ./clinical_reporting_rules/
 COPY scripts/ ./scripts/
-COPY asgi.py run_api.py CHANGELOG.md README.md LICENSE.txt NOTICE.txt ./
+COPY demo_data/ ./demo_data/
+COPY CHANGELOG.md README.md LICENSE.txt NOTICE.txt ./
 
 CMD python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --workers 4

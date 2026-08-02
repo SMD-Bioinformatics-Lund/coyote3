@@ -19,9 +19,17 @@ max_line_length = 100
 indent_style = space
 indent_size = 2
 
-[*.{yml,yaml,json,md}]
+[*.{yml,yaml,json,md,toml}]
+indent_style = space
+indent_size = 2
+
+[*.{ts,tsx,js,jsx}]
 indent_style = space
 indent_size = 2
 
 [Makefile]
 indent_style = tab
+
+[docker-compose.yml]
+indent_style = space
+indent_size = 2

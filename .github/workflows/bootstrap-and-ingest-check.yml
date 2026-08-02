@@ -99,7 +99,7 @@ jobs:
             --api-base-url "http://localhost:${COYOTE3_STAGE_API_PORT}" \
             --username "${ADMIN_EMAIL}" \
             --password "${ADMIN_PASSWORD}" \
-            --seed-file tests/fixtures/db_dummy/all_collections_dummy \
+            --seed-file api/config/bootstrap/demo_center \
             --with-optional \
             --skip-existing
 
@@ -109,7 +109,7 @@ jobs:
             --api-base-url "http://localhost:${COYOTE3_STAGE_API_PORT}" \
             --username "${ADMIN_EMAIL}" \
             --password "${ADMIN_PASSWORD}" \
-            --yaml-file tests/data/ingest_demo/generic_case_control.yaml
+            --yaml-file demo_data/ingest/generic_case_control.yaml
 
       - name: Verify composed sample workflow
         run: |

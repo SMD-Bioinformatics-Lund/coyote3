@@ -43,6 +43,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
+      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
       - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
       - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
     depends_on:
@@ -81,6 +82,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
+      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
       - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
       - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
     depends_on:
@@ -119,6 +121,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
+      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
       - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
       - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
     depends_on:
@@ -244,7 +247,8 @@ services:
       - MONGO_APP_USER=${MONGO_APP_USER:-coyote3_app}
       - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD:-CHANGE_ME_TEST_APP_PASSWORD}
     volumes:
-      - test-mongodb:/data/db
+      - "${COYOTE3_MONGO_DATA_HOST_ROOT:?COYOTE3_MONGO_DATA_HOST_ROOT must be set}:/data/db"
+      - "${COYOTE3_MONGO_BACKUP_HOST_ROOT:?COYOTE3_MONGO_BACKUP_HOST_ROOT must be set}:/backup"
       - ./mongo-init/create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
     healthcheck:
       test:
@@ -262,6 +266,3 @@ services:
 networks:
   coyote3-test-net:
     driver: bridge
-
-volumes:
-  test-mongodb:

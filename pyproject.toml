@@ -8,13 +8,18 @@ version = "4.0.0"
 requires-python = ">=3.12"
 readme = "README.md"
 license = {file = "LICENSE.txt"}
-description = "A Bioinformatics Interpretation and Analysis Tool built for Section for Molecular Diagnostics, Region Skåne, Lund, Sweden"
+description = "A Bioinformatics Interpretation and Analysis Tool built by bioinformaticians at the Section for Molecular Diagnostics, Region Skåne, Lund, Sweden"
 authors = [
     {name = "Coyote3 Authors"},
 ]
+maintainers = [
+    {name = "SMD Bioinformatics Lund"},
+]
 keywords = [
     "bioinformatics",
+    "clinical-interpretation",
     "clinical-genomics",
+    "genomic-variants",
     "molecular-diagnostics",
     "fastapi",
 ]
@@ -25,6 +30,9 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
+    "Operating System :: POSIX :: Linux",
+    "Natural Language :: English",
+    "Reporting Language :: English/Swedish",
     "Framework :: FastAPI",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
@@ -43,7 +51,6 @@ dependencies = [
     "filelock==3.25.2",
     "fonttools==4.62.1",
     "json5==0.14.0",
-    "gunicorn==25.3.0",
     "ldap3==2.9.1",
     "itsdangerous==2.2.0",
     "Jinja2==3.1.6",
@@ -83,6 +90,9 @@ Homepage = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
 Repository = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
 Documentation = "https://smd-bioinformatics-lund.github.io/coyote3"
 "Bug Tracker" = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues"
+Source = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
+Security = "https://github.com/SMD-Bioinformatics-Lund/coyote3/security"
+Releases = "https://github.com/SMD-Bioinformatics-Lund/coyote3/releases"
 
 [project.optional-dependencies]
 dev = [
@@ -188,3 +198,13 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 include = ["api*"]
+
+[tool.setuptools.package-data]
+api = [
+    "config/center/*.md",
+    "config/center/*.toml",
+    "config/center/*.yaml",
+    "config/bootstrap/demo_center/*.json",
+    "config/bootstrap/rbac/*.ndjson",
+    "config/bootstrap/reference/*.ndjson.gz",
+]

@@ -86,6 +86,7 @@ services:
     networks:
       - coyote3-net
     volumes:
+      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
       - "/access:/access"
       - "/media:/media"
       - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
@@ -128,6 +129,7 @@ services:
     networks:
       - coyote3-net
     volumes:
+      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
       - "/access:/access"
       - "/media:/media"
       - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
@@ -164,6 +166,7 @@ services:
     networks:
       - coyote3-net
     volumes:
+      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
       - "/access:/access"
       - "/media:/media"
       - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
@@ -190,9 +193,9 @@ services:
       - FIRST_RUN_API_BASE_URL=${FIRST_RUN_API_BASE_URL:-http://coyote3_api:8001}
       - FIRST_RUN_MONGO_URI=${FIRST_RUN_MONGO_URI:-}
       - FIRST_RUN_DB_NAME=${FIRST_RUN_DB_NAME:-}
-      - FIRST_RUN_SEED_FILE=${FIRST_RUN_SEED_FILE:-tests/fixtures/db_dummy/all_collections_dummy}
+      - FIRST_RUN_SEED_FILE=${FIRST_RUN_SEED_FILE:-api/config/bootstrap/demo_center}
       - FIRST_RUN_REFERENCE_SEED_DATA=${FIRST_RUN_REFERENCE_SEED_DATA:-}
-      - FIRST_RUN_YAML_FILE=${FIRST_RUN_YAML_FILE:-tests/data/ingest_demo/generic_case_control.yaml}
+      - FIRST_RUN_YAML_FILE=${FIRST_RUN_YAML_FILE:-demo_data/ingest/generic_case_control.yaml}
       - FIRST_RUN_ASSAY_GROUP=${FIRST_RUN_ASSAY_GROUP:-hematology}
       - FIRST_RUN_ASSAY=${FIRST_RUN_ASSAY:-assay_1}
       - FIRST_RUN_WITH_OPTIONAL=${FIRST_RUN_WITH_OPTIONAL:-0}
@@ -245,8 +248,8 @@ services:
       - MONGO_APP_USER=${MONGO_APP_USER:-coyote3_app}
       - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD:-CHANGE_ME_PROD_APP_PASSWORD}
     volumes:
-      - prod-mongodb:/data/db
-      - /data/coyote3/backups/mongo:/backup
+      - "${COYOTE3_MONGO_DATA_HOST_ROOT:?COYOTE3_MONGO_DATA_HOST_ROOT must be set}:/data/db"
+      - "${COYOTE3_MONGO_BACKUP_HOST_ROOT:?COYOTE3_MONGO_BACKUP_HOST_ROOT must be set}:/backup"
       - ./mongo-init/create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
 
   # Reverse proxy that exposes one external endpoint for web/api/docs.
@@ -279,6 +282,3 @@ services:
 networks:
   coyote3-net:
     driver: bridge
-
-volumes:
-  prod-mongodb:

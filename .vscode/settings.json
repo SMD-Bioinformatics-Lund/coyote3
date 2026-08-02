@@ -22,5 +22,9 @@
             "envManager": "ms-python.python:venv",
             "packageManager": "ms-python.python:pip"
         }
-    ]
+    ],
+
+    "vitest.rootConfig": "frontend/vitest.config.ts",
+
+    "playwright.reuseBrowser": true
 }
