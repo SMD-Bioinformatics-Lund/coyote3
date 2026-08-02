@@ -16,6 +16,7 @@ The RNA workspace follows the same basic layout as the DNA review:
 The Fusion Table lists transcribed rearrangements passing the laboratory's bioinformatic pipeline.
 
 ### Table Features:
+
 *   **Gene Pair (Gene 1 & Gene 2)**: The two partner genes involved in the fusion event.
 *   **Spanning Pairs & Unique Reads**: Quantitative evidence supporting the fusion. High read counts typically indicate a high-confidence finding.
 *   **Fusion Points**: Exact genomic coordinates for the fusion breakpoint.
@@ -23,6 +24,7 @@ The Fusion Table lists transcribed rearrangements passing the laboratory's bioin
 *   **Effect & Description**: Functional predictions (e.g., "In-frame", "Out-of-frame") and detailed annotations about the fusion's known clinical relevance.
 
 ### Filtering and Triage:
+
 Use the **Right Sidebar** to adjust fusion confidence thresholds. Variants flagged as Artifacts or False Positives will be visually dimmed to reduce noise during review.
 
 ---
@@ -50,6 +52,7 @@ For specific assays, Coyote3 runs machine-learning classifiers to predict clinic
 ## 4. Summary and RNA Reporting
 
 Like the DNA workflow, the Summary section allows you to compile your findings into a final diagnostic narrative.
+
 *   Select reportable fusions and expression markers.
 *   Preview the RNA diagnostic report.
 *   Finalize and snapshot the report for the clinical record.

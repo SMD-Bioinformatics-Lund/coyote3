@@ -240,8 +240,8 @@ An ASPC describes the digital rulebook for an assay context:
 When a sample is opened or reset, the default filters come from the matching ASPC.
 
 An active ASPC is also the report-readiness contract. It must contain at least
-one enabled analysis, an equal reporting-analysis set, non-empty report
-sections drawn from that set, approved report identity text, report output
+one enabled analysis, non-empty report sections drawn from the enabled analysis
+types, approved report identity text, report output
 locations, and a reference to a published immutable clinical rule release. The
 ASPC stores the release identity and integrity hash, rather than embedding a
 copy of the rule file. This preserves a precise connection between the report
@@ -406,6 +406,44 @@ Comment behavior:
 !!! caution "Global annotations"
 
     Global annotations apply beyond a single sample context. The UI must make this explicit before save so a reviewer does not accidentally publish a sample-specific note globally.
+
+### Annotation finding identity
+
+Each annotation has one primary display identity in `variant`. The
+`nomenclature` code states what that value represents. This pair remains the
+identity used when adding or removing a classification, while flat secondary
+identity fields make the same finding directly searchable and linkable without
+reading nested source payloads.
+
+| Nomenclature | Primary representation | Flat identity field |
+| --- | --- | --- |
+| `p` | Protein HGVS | `hgvsp` |
+| `c` | Coding-transcript HGVS | `hgvsc` |
+| `g` | Canonical genomic identity | `genomic` |
+| `cn` | Copy-number region/event | `cnv` |
+| `f` | Fusion breakpoints | `fusion` |
+| `t` | Translocation breakpoints | `translocation` |
+
+A small-variant annotation can contain `hgvsp`, `hgvsc`, and `genomic` at the
+same time even though only one is the primary `variant`. `genomic` uses the
+canonical `chrom_pos_ref_alt` form and `genomic_hash` stores its deterministic
+hash for indexed joins. Variant documents call the source fields `simple_id`
+and `simple_id_hash`; the annotation persistence boundary translates those
+names to `genomic` and `genomic_hash`. Annotation documents never duplicate
+the same identity under both names. Structural annotations use the applicable
+one of `cnv`, `fusion`, or `translocation`; unrelated identity fields are
+omitted rather than stored as empty values.
+
+Identity enrichment is applied at the annotation repository boundary for
+single writes, bulk tiering, and global comments. The finding loader supplies
+all known identities from the selected transcript and canonical genomic
+coordinates. Therefore choosing HGVSp as the displayed variant does not discard
+HGVSc or genomic linkage.
+
+Tiered variant search queries the flat identity fields first. Protein, coding,
+and genomic search modes can consequently find the same annotation through any
+known representation. Gene, transcript, assay group, and subpanel remain
+context fields and are not encoded into the variant identity itself.
 
 ## 16. Reporting
 
@@ -629,7 +667,7 @@ Clinical configuration resources should preserve reconstruction history. Governa
 
 ## 21. Application Controls
 
-Application controls are runtime switches and retention settings managed from Admin. They can include enabling/disabling task families, module visibility, audit retention days, notification retention days, disk log retention days, and gzip thresholds for old logs.
+Application controls are runtime switches and retention settings managed from Admin. Background work has a master gate and three purpose-specific families: complete sample ingestion, validated generic collection writes, and retention maintenance. Watch-folder discovery and manual bundle submission share the complete-ingestion gate and the same atomic persistence workflow.
 
 Disabling a Celery task family prevents future task executions from doing work or allows them to return early. It does not resize the worker process pool or release worker threads that are already allocated by the running worker container.
 
@@ -640,6 +678,17 @@ registered task names are visible, which queues are reported by workers, and
 whether MongoDB index conflicts were tolerated during startup. These values are
 read-only operational facts; they complement the editable switches but do not
 replace deployment-level monitoring.
+
+Application modules are independently available for DNA analysis, RNA
+analysis, clinical reporting, tiered variant search, knowledgebases, the ingest
+workspace, and the assay catalog. Disabling one hides its navigation and route
+content and causes its API routes to return a structured HTTP `503` response.
+The switch retains stored data and does not cancel an in-flight request.
+
+Audit is intentionally absent from the module switches. Audit access is an
+RBAC-controlled oversight capability and must remain reachable when another
+module is disabled. Authentication, health, samples, profiles, notifications,
+and application controls are also core surfaces rather than optional modules.
 
 !!! info "Configured state versus observed state"
 
@@ -669,6 +718,17 @@ Audit events are durable records. Notifications are user-facing messages. Logs a
 | Runtime logs | Debugging and operations | File/stdout retention policy |
 
 Audit metadata must be bounded and redacted. Do not store secrets, full tokens, or unnecessary patient-identifying payloads in audit metadata.
+
+Durable notifications are recipient scoped. Inbox routes derive the recipient
+from the active session, while read and dismissal state is maintained separately
+for each username. Administrators with `notification.broadcast:create` may send
+application, feature, maintenance, warning, or security messages to all active
+users, active users assigned selected roles, or selected individual users.
+Role targeting is materialized to concrete usernames when sent, preserving the
+original audience even if role assignments later change. Valid local
+password-reset requests create a
+security notification for active administrator and superuser accounts without
+changing the neutral public reset response.
 
 !!! warning "Audit payload hygiene"
 

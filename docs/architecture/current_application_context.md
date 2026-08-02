@@ -1,5 +1,7 @@
 # Current Application Context
 
+![Application request lifecycle](../assets/diagrams/request_lifecycle.svg)
+
 This document explains how the current Coyote3 application works as one connected system. It is written for developers, operators, and advanced users who need to understand the rules behind the UI, API, background workers, database collections, and clinical review workflows.
 
 ## System Purpose
@@ -65,6 +67,8 @@ column ranks all matching rows, not only the visible page.
     unchanged table states can still use short-lived cached results.
 
 ## Configuration Model
+
+![Configuration authority and sample resolution](../assets/diagrams/configuration_authority.svg)
 
 API configuration is centralized under `api/config/`:
 

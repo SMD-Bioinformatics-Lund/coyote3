@@ -1,5 +1,7 @@
 # System Relationships
 
+![Collection relationships](../assets/diagrams/collection_relationships.svg)
+
 This page documents the main runtime relationships in Coyote3, grounded in the current code paths for resource management, sample ingest, and sample loading.
 
 ## Relationship Legend

@@ -90,7 +90,6 @@ configuration.
 | `environment` | Production, validation, testing, or development |
 | `analysis_types` | Analyses available for sample review |
 | `analysis_intents` | `somatic` and, for DNA SNV where configured, `germline`. The value controls the available filter profiles, review tables, and reporting contexts. |
-| `reporting.analysis` | Analyses eligible for report preparation |
 | `reporting.report_sections` | Sections rendered in a report |
 | `filters` | Default analytical filters |
 | `reporting.report_header` | Report heading |
@@ -101,12 +100,10 @@ configuration.
 | `reporting.plots_path` | Approved source directory for report plots |
 | `reporting.report_folder` | Approved report output directory |
 
-`analysis_types`, `reporting.analysis`, and `report_sections` answer different
-questions:
+`analysis_types` and `reporting.report_sections` answer different questions:
 
 - **Available:** can the analysis be reviewed for this configuration?
-- **Reportable domain:** may this analysis contribute to a report?
-- **Rendered section:** should the report contain this section?
+- **Report section:** should this available analysis contribute content to the report?
 
 The saved report records the validated YAML source identity and deterministic
 content hash together with the resolved ASPC and filter snapshot. This makes
@@ -504,7 +501,6 @@ aspc:
   aspc_id: "<ASPC ID>"
   version: 3
   analysis_types: [SNV, CNV, BIOMARKER]
-  reporting_analysis: [SNV, CNV, BIOMARKER]
   report_sections: [SNV, CNV, BIOMARKER]
 
 applied_gene_scope:

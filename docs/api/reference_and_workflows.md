@@ -37,6 +37,7 @@ examples, bearer-token examples, and prefix-aware URLs.
 ### Read Flows
 
 A typical read flow looks like this:
+
 1. Resolve the sample through `samples.py`.
 2. Query the relevant finding collections such as variants, CNVs, or fusions.
 3. Build the response payload from those results and the matching configuration data.
@@ -44,6 +45,7 @@ A typical read flow looks like this:
 ### Write Flows
 
 For write operations:
+
 1. Systems transport targeted actions or classifications through structured Pydantic body definitions.
 2. Required authorization policies validate standard execution permissions automatically derived through token extraction.
 3. Successful validation leads to database updates and audit events.
@@ -51,6 +53,7 @@ For write operations:
 ## Engineering Standards
 
 When adding or changing routes:
+
 1. Pick a canonical OpenAPI tag from `api/interfaces/http/tags.py`.
 2. Implement or extend strictly typed input schemas within `api/contracts/`.
 3. Map endpoints natively through FastAPI router modules linking to authorization interceptors.

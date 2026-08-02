@@ -58,7 +58,7 @@ The three configuration records have distinct responsibilities.
 | Record | Information used for reporting | Purpose |
 | --- | --- | --- |
 | ASP | `asp_id`, analyte, assay name, accreditation, covered genes, germline genes | Identifies the clinical assay and provides assay-level wording context. |
-| ASPC | `asp_id`, `subpanel_id`, enabled analyses, `reporting.analysis`, report header, method, description, and general summary | Selects the rule scope and controls which analysis domains can contribute text. |
+| ASPC | `asp_id`, `subpanel_id`, `analysis_types`, `reporting.report_sections`, report header, method, description, and general summary | Selects the rule scope. `analysis_types` controls review availability; `report_sections` selects the subset that can contribute report text. |
 | ISGL | Selected list type, display name, genes, and germline genes | Supplies the applied clinical gene scope in the introduction and report context. |
 
 For a DNA introduction produced by `dna_report_intro`, the ASPC must provide
@@ -71,7 +71,7 @@ gene count from the effective configuration.
 ## Analysis Gates
 
 The YAML `analyses` mapping uses the same analysis identifiers as ASPC
-`reporting.analysis`. Every valid analysis is declared explicitly in a source
+`reporting.report_sections`. Every valid analysis is declared explicitly in a source
 file, even when no wording is currently required.
 
 ### DNA analysis identifiers
@@ -100,7 +100,7 @@ file, even when no wording is currently required.
 
 Both the ASPC and YAML must allow an analysis before its YAML rules can render.
 
-| ASPC `reporting.analysis` | YAML `enabled` | Result |
+| ASPC `reporting.report_sections` | YAML `enabled` | Result |
 | --- | --- | --- |
 | Not selected | `true` | No text is rendered. |
 | Not selected | `false` | No text is rendered. |
@@ -211,7 +211,7 @@ sentence construction. Assay-specific wording remains in YAML.
 | --- | --- |
 | Sample | `sample.name`, `sample.asp_id`, `sample.subpanel_id`, `sample.environment`, `sample.omics_layer`, `sample.paired`, `sample.genome_build`, `sample.analysis_intent` |
 | ASP | `asp.asp_id`, `asp.asp_group`, `asp.asp_category`, `asp.accredited`, `asp.germline_genes` |
-| ASPC | `aspc.aspc_id`, `aspc.asp_id`, `aspc.asp_group`, `aspc.asp_category`, `aspc.subpanel_id`, `aspc.environment`, `aspc.reporting.analysis`, `aspc.reporting.report_sections`, `aspc.reporting.general_report_summary` |
+| ASPC | `aspc.aspc_id`, `aspc.asp_id`, `aspc.asp_group`, `aspc.asp_category`, `aspc.subpanel_id`, `aspc.environment`, `aspc.reporting.report_sections`, `aspc.reporting.general_report_summary` |
 | Applied lists | `applied_gene_lists` |
 | Finding | `finding.kind`, `finding.gene`, `finding.genes`, `finding.tier`, `finding.exon`, `finding.intron`, `finding.case_vaf`, `finding.case_vaf_percent`, `finding.control_vaf`, `finding.control_vaf_percent`, `finding.consequence`, `finding.hgvsc`, `finding.hgvsp`, `finding.variant_type`, `finding.cnv_effect`, `finding.fusion_gene_1`, `finding.fusion_gene_2` |
 | Biomarkers | `biomarkers` |
@@ -237,7 +237,7 @@ services, access the filesystem, or use arbitrary Jinja globals.
 | `sample` | `name`, `asp_id`, `subpanel_id`, `environment`, `omics_layer`, `paired`, `genome_build`, `analysis_intent` | Sample-level wording and paired-control context. `analysis_intent` is `somatic` or `germline`. |
 | `asp` | `asp_id`, `asp_group`, `asp_category`, `accredited`, `germline_genes` | Assay identity, accreditation, and germline scope. |
 | `aspc` | `aspc_id`, `asp_id`, `asp_group`, `asp_category`, `subpanel_id`, `environment`, `reporting` | Effective assay-configuration wording context. |
-| `aspc.reporting` | `analysis`, `report_sections`, `general_report_summary` | Report domains and the approved DNA introduction baseline. |
+| `aspc.reporting` | `report_sections`, `general_report_summary` | Selected report domains and the approved DNA introduction baseline. |
 | `applied_gene_lists` | List entries with `isgl_id`, `version`, `list_type`, `selected_for`, `genes`, `germline_genes`, `adhoc` | Exact ISGL scope applied to this report. |
 | `finding` | `kind`, `gene`, `genes`, `tier`, `exon`, `intron`, `case_vaf`, `case_vaf_percent`, `control_vaf`, `control_vaf_percent`, `consequence`, `hgvsc`, `hgvsp`, `variant_type`, `cnv_effect`, `fusion_gene_1`, `fusion_gene_2` | One finding; populated only for `finding_text` rules. |
 | `biomarkers` | List of prepared biomarker result mappings | Biomarker text where a typed result is already prepared. Use only fields confirmed by a corresponding test. |

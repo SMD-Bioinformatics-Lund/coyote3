@@ -7,6 +7,7 @@ The Coverage Analytics suite allows clinicians to verify the diagnostic depth an
 The Per-Base view provides a high-resolution graph of sequencing depth across the targeted genomic regions.
 
 ### Key Features
+
 *   **Depth Thresholds**: Visual horizontal lines representing the minimum required depth (e.g., 50x, 100x, 500x).
 *   **Zoom and Pan**: Interactive charts allow you to zoom into specific exons or focus on broad genomic blocks.
 *   **Transcript Switcher**: Toggle between different genetic transcripts to ensure coverage on all relevant coding variants.
@@ -18,6 +19,7 @@ The Per-Base view provides a high-resolution graph of sequencing depth across th
 Coyote3 automatically identifies "Gaps" or "Hotspots" where the sequencing depth falls below the laboratory-defined threshold.
 
 ### Navigating Gaps
+
 *   **Gap Table**: A list of all regions that failed to meet the quality baseline, prioritized by gene importance and clinical tier.
 *   **Exon Breakdown**: Detailed percentage of each exon covered at specific depth tiers (e.g., "% at 100x").
 *   **Blacklist Management**: (Admins Only) Mark specific noisy or clinically irrelevant regions to be hidden from the default review view.

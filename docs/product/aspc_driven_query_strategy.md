@@ -276,14 +276,18 @@ consumes that context and does not reapply analytical filters. See
 ## Analytic Threshold Specifications
 
 ### Baseline DNA Thresholds
+
 The platform enforces strict numeric bounds for primary sequencing metrics including:
+
 - `min_freq` / `max_freq`: Allele frequency boundaries.
 - `min_depth` / `min_alt_reads`: Sequencing coverage and evidence reliability.
 - `max_popfreq`: Population frequency gate.
 - `min_cnv_size` / `cnv_cutoff`: Copy-number structural thresholds.
 
 ### RNA Fusion Thresholds
+
 RNA-specific analytics prioritize evidence-based detection parameters:
+
 - `min_spanning_reads` / `min_spanning_pairs`: Supporting evidence thresholds.
 - `fusion_callers` / `fusion_effects`: Tool-specific and biological impact filter sets.
 

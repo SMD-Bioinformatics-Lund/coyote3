@@ -59,6 +59,7 @@ Technical documentation resides within the standalone documentation container an
 ## Observability and System Telemetry
 
 The platform emits structured log telemetry utilizing standardized prefixes for centralized dashboard ingestion:
+
 - `auth_metric`: Operational outcomes for authentication and identity resolution.
 - `mail_metric`: Transactional outcomes for SMTP delivery and token issuance.
 
@@ -70,6 +71,7 @@ docker logs coyote3_api_local 2>&1 | rg "auth_metric|mail_metric"
 ## Standard Release Protocol
 
 Every platform release must satisfy the following criteria:
+
 1. **Validation**: Pass 100% of the functional and integration test suite.
 2. **Orchestration**: Confirm that all Docker Compose configuration schemas are valid.
 3. **Manual Alignment**: Verify that the technical manuals built in strict-mode without warnings.

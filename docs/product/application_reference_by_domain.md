@@ -84,6 +84,7 @@ Sample-level filters are persisted within the domain sections
 ### Query Operators
 
 The backend uses standard MongoDB operators to enforce analysis thresholds:
+
 - **Range Constraints**: `$gte` / `$lte` for numeric metric boundaries.
 - **Set Inclusion**: `$in` for list-based filtering (genes, callers, consequences).
 - **Complex Objects**: `$elemMatch` for traversing nested array structures (Genotypes, VEP consequences).
@@ -96,6 +97,7 @@ The platform uses two pagination patterns:
 ### Server-Side Pagination
 
 Primary sample listings utilize independent server-side pagination for "Live" versus "Finalized" cohorts.
+
 - **State Partitioning**: Navigating one dataset does not reset the cursor of the parallel list.
 - **Metadata**: Response payloads provide `has_next` flags to control interface control visibility.
 

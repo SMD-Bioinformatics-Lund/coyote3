@@ -119,7 +119,9 @@ The dashboard is the operational entry point. It summarizes work that a reviewer
 | Workflow queues | Ingest status, report readiness, and review state summaries. |
 | Sample profiles | Production and non-production profile distribution. |
 | Recent samples | Latest loaded samples with assay, subpanel, status, counts, and relative added time. |
-| Gene coverage per assay | Charted covered and germline gene scope by assay/catalog configuration. |
+| Panel gene coverage | Covered and germline gene assignments for active targeted DNA and RNA panels. WGS and WTS definitions are intentionally excluded. |
+| Panel portfolio | Active targeted-panel count, represented assay groups, accreditation count, and covered/germline gene assignments. |
+| Panel analysis capability | Active targeted-panel ASPCs grouped by analysis type, comparing configurations where the analysis is enabled with configurations where it is reportable. WGS and WTS are excluded. |
 | Resource health | Operational counts and configuration coverage that help identify stale or missing setup. |
 
 !!! info "Dashboard performance"
@@ -446,7 +448,7 @@ Admin pages use forms and explicit contracts rather than JSON editors for normal
 | View page | Same structure as edit page, but read-only. |
 | Create/edit page | Field-specific form controls, constants-backed select options, grouped permissions, and validation messages. |
 | Audit events | Actor, event type, resource, method/path, severity, outcome, created time, request ID, and details. |
-| Application controls | Runtime toggles for Celery task families, application modules, and retention policies. |
+| Application controls | Master background execution, complete sample-ingestion, generic collection-write, maintenance, application-module, and retention controls; observed worker/task/queue/schedule/module state. |
 | Ingest workspace | Watch-folder configuration, ingest task state, and manual ingest controls. |
 
 ### Admin Badge Families
@@ -464,19 +466,74 @@ Admin pages use forms and explicit contracts rather than JSON editors for normal
 
     Clinical configuration resources such as ASP, ASPC, and ISGL follow append-only/versioned governance rules. User, role, and permission records are edited through audited updates rather than raw document mutation.
 
+### Application control behavior
+
+The controls page separates configured permission from observed runtime fact.
+Task switches answer whether new work is allowed. Runtime cards show whether
+workers are online, what queues they consume, what is active or waiting, and
+which task families and modules are effectively enabled.
+
+Module switches govern DNA analysis, RNA analysis, reports, tiered variant
+search, knowledgebases, ingest workspace, and assay catalog. Disabled module
+navigation is omitted, direct UI routes show an unavailable panel, and direct
+API calls receive HTTP `503`. Audit remains visible according to
+`audit_log:view`; it is not a module switch.
+
 ## Notifications
 
 Route: `/notifications`
 
-Notifications show clinically or operationally relevant events only. Errors are translated into user-facing messages where possible instead of exposing raw stack traces or generic `500` text.
+The page combines two sources without crossing account boundaries:
+
+- durable notifications addressed to the authenticated username, including
+  application broadcasts and security notices
+- recent action feedback generated in the current browser, stored under a
+  username-specific browser key
+
+The API derives the durable inbox owner from the authenticated session. It does
+not accept a username query parameter. Signing in as another account in the same
+browser therefore loads a different local history and a different server inbox.
+Errors are translated into user-facing messages where possible instead of
+exposing raw stack traces or generic `500` text.
 
 | Field | Meaning |
 | --- | --- |
 | Severity | Info, success, warning, or error. |
+| Category | Application, feature, maintenance, security, or warning. |
 | Title | Human-readable action summary. |
 | Message | Useful next-step-oriented explanation. |
 | Context | Sample, variant, report, ASP, or admin resource when applicable. |
 | Time | Human relative timestamp with full date available. |
+
+Marking, dismissing, or clearing a durable notification changes state only for
+the current user. It does not remove a broadcast from another recipient's
+inbox. The notification retention policy sets the database expiry date.
+
+### Broadcast notifications
+
+Route: `/admin/notifications`
+
+Users with `notification.broadcast:create` can publish a message to every
+active account, all active accounts assigned one of the selected roles, or an
+explicit selection of active usernames. Role selections display active-recipient
+counts and are resolved to concrete usernames at send time. The form requires a
+category, severity, title, message, and recipient mode. A confirmation dialog
+shows the intended audience before publication. Broadcast creation is recorded
+in the audit log; reading and dismissing ordinary inbox items are personal UI
+state and are not clinical audit events.
+
+## Account profile and administration boundaries
+
+Route: `/profile` for self service; `/admin/users` for delegated administration.
+
+The profile page allows the current user to maintain first name, last name,
+full name, and job title. Identity, access, and authentication fields are shown
+read-only. Password changes use the dedicated password workflow.
+
+`user:edit` allows a delegated account manager to maintain non-password account
+fields. Password values are never accepted by the general user edit endpoint.
+Only a superuser may grant or remove the `superuser` role, disable a superuser,
+or delete a superuser account.
 
 ## Profile And Static Pages
 

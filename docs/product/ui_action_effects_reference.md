@@ -89,6 +89,7 @@ the edited resource key or business identifier.
 ## Local Interface Controls (Non-Persistent)
 
 The following controls manipulate the Browser Document Object Model (DOM) without triggering persistent backend state changes:
+
 - **Hide False Positives**: Localized visibility toggle for finding filters.
 - **Navigation Collapse**: Sidebar and menu layout changes.
 - **Pagination**: Local table paging within client-orchestrated datasets.
@@ -103,10 +104,10 @@ Tiered variant search is a submitted search workflow. The user enters a query, c
 
 Supported tiered-variant search modes:
 
-- **Variant**: searches the annotation variant identity across protein, cDNA, and genomic representations.
-- **HGVSp**: searches protein notation fields and protein-nomenclature annotation rows.
-- **HGVSc**: searches cDNA notation fields and cDNA-nomenclature annotation rows.
-- **Genomic**: searches genomic variant identifiers and genomic-nomenclature annotation rows.
+- **Variant**: searches all flat annotation identities, including HGVSp, HGVSc, genomic, CNV, fusion, and translocation identities.
+- **HGVSp**: searches the flat protein identity and protein-primary annotation rows.
+- **HGVSc**: searches the flat coding-transcript identity and coding-primary annotation rows.
+- **Genomic**: searches `genomic`, `genomic_hash`, and genomic-primary annotation rows.
 - **Gene symbol**: searches annotation gene symbols case-insensitively.
 - **Transcript ID**: searches transcript identifiers.
 - **Subpanel**: searches clinical subpanel labels.
@@ -117,6 +118,7 @@ Supported tiered-variant search modes:
 ## Quality Assurance Execution Protocol
 
 Analytical verification of UI actions must confirm:
+
 1. **Interactive Trigger**: Successful UI invocation of the targeted control.
 2. **Transactional Acknowledgement**: Verification of successful API response headers.
 3. **Persistence Verification**: Refresh-based confirmation of server-side state commitment.

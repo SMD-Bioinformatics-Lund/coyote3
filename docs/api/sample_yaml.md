@@ -345,7 +345,7 @@ Notes:
 - `fusion_files` is the main RNA variant-like input.
 - `expression_path`, `classification_path`, and `qc` are optional but recommended for richer RNA workflows.
 - RNA samples may carry `database_versions.vep` when their pipeline emits VEP-compatible annotation metadata.
-- A repo-local example is available at `tests/data/ingest_demo/generic_rna_sample.yaml`.
+- A repo-local example is available at `demo_data/ingest/generic_rna_sample.yaml`.
 - The raw JSON file expectations for `fusion_files`, `expression_path`, `classification_path`, and `qc` are documented in [API / Sample Input Files](sample_input_files.md#rna-raw-input-files).
 
 ## Database-version extraction and override behavior

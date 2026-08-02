@@ -5,6 +5,10 @@ Use the checklist for the full procedure.
 
 ## Deployment Flow
 
+![URL and reverse-proxy request flow](../assets/diagrams/url_request_flow.svg)
+
+![First-deployment bootstrap data flow](../assets/diagrams/bootstrap_data_flow.svg)
+
 1. Prepare environment and secrets.
 2. Start the stack.
 3. Bootstrap the first superuser.
@@ -20,6 +24,7 @@ Use the checklist as the source of truth for the exact commands and execution or
 - [Initial Deployment Checklist](initial_deployment_checklist.md)
 
 The checklist defines:
+
 - exact commands and command order
 - required collection order
 - seed-source policy
@@ -38,14 +43,17 @@ Before first sample ingest, ensure these are seeded:
 5. `asp_configs`
 6. `assay_specific_panels`
 
-`users` are intentionally not bulk-seeded by `bootstrap_center_collections.sh`; create the first superuser with `bootstrap_local_admin.py`.
+The first-run bootstrap installs the application-owned RBAC catalog and creates
+one local superuser. It runs only against empty governance collections.
 
 ## Seed Source Policy
 
-- `--seed-file` is the primary source for demo/bootstrap runtime collections.
-- `--reference-seed-data` provides compressed baseline packs for core reference/RBAC data.
-- `asp_configs` and `assay_specific_panels` are seeded from bootstrap/demo input (default `--seed-file`).
-- `permissions`, `roles`, `hgnc_genes`, and `vep_metadata` are loaded from `--reference-seed-data` only when that argument is provided.
+- `api/config/bootstrap/rbac` is the application-owned permission and role catalog.
+- Bundled permission documents are installed with `system_managed: true`; their
+  definitions are immutable at runtime but remain assignable through roles.
+- `api/config/bootstrap/demo_center` contains synthetic ASP, ASPC, and ISGL documents for installation checks.
+- Center-provided HGNC and VEP reference packs are loaded separately before clinical ingest.
+- Normal application startup does not seed or synchronize governance documents.
 
 ## First-Run Method
 
@@ -55,7 +63,9 @@ Before first sample ingest, ensure these are seeded:
   - `--admin-email`
   - `--admin-password`
 - `center_first_run.sh` bootstraps a `superuser`, not an `admin`.
-- The bootstrap script may create only the first superuser. Additional superusers must be created by an existing authenticated superuser.
+- A complete existing installation is left unchanged. Partial governance data
+  without a superuser is rejected for manual review.
+- Additional superusers must be created by an existing authenticated superuser.
 
 Standard command shape:
 
@@ -69,9 +79,9 @@ scripts/center_first_run.sh \
   --admin-username "admin.coyote3" \
   --admin-email "admin@your-center.org" \
   --admin-password "<ADMIN_PASSWORD>" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --seed-data-pack tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
+  --seed-file api/config/bootstrap/demo_center \
+  --seed-data-pack api/config/bootstrap/rbac \
+  --yaml-file demo_data/ingest/generic_case_control.yaml \
   --with-optional
 ```
 
@@ -80,6 +90,30 @@ If `MONGO_URI` points to `coyote3_mongo`, include:
 ```bash
 --with-mongo
 ```
+
+Before enabling that profile, set `COYOTE3_MONGO_DATA_HOST_ROOT` and
+`COYOTE3_MONGO_BACKUP_HOST_ROOT` to persistent host directories. Compose mounts
+them at `/data/db` and `/backup` respectively. External MongoDB deployments do
+not use those mounts. Set `COYOTE3_LOGS_HOST_ROOT` for every deployment; it is
+mounted at `/app/logs` in the API, worker, and beat containers.
+
+!!! warning "Existing named-volume installations"
+
+    A bind-mounted Mongo data directory does not automatically receive data
+    from a Docker named volume used by an older deployment. Back up and restore
+    that database, or copy it using an approved MongoDB maintenance procedure,
+    before removing the old named volume. Start the new Mongo container only
+    after the selected host data directory contains the intended database.
+
+## Packaged configuration location
+
+The API configuration package is `api/config` in the repository and
+`/app/api/config` in the API image. It must be present because it contains typed
+software settings, center configuration, and the first-deployment RBAC catalog.
+Current Dockerfiles do not copy or mount a separate `/app/config` directory. If
+that directory appears in a running container, the container was built from an
+older image or an external deployment mount; rebuild and recreate the container
+from the current Compose definition.
 
 Prod-like local Docker command:
 
@@ -91,10 +125,10 @@ scripts/center_first_run.sh \
   --api-base-url "http://localhost:5815" \
   --admin-username "admin.coyote3" \
   --admin-email "admin@coyote3.local" \
-  --admin-password "Coyote3.Admin" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --seed-data-pack tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
+  --admin-password "<ADMIN_PASSWORD>" \
+  --seed-file api/config/bootstrap/demo_center \
+  --seed-data-pack api/config/bootstrap/rbac \
+  --yaml-file demo_data/ingest/generic_case_control.yaml \
   --with-optional
 ```
 

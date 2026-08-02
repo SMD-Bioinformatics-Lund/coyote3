@@ -38,6 +38,7 @@ PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_
 ## Review Criteria for System Contributions
 
 All code reviews must evaluate the following professional metrics:
+
 - **System Integrity**: Assessment of regression risks and fundamental correctness.
 - **Access Governance**: Strict verification of permission models and security boundaries.
 - **Reliability and Observability**: Evaluation of logging quality, telemetry emission, and failure-mode handling.

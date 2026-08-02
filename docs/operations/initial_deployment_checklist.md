@@ -21,17 +21,21 @@ For a shorter command reference, see:
 - Environment file prepared from `deploy/env/example.env`
 - Real values set for all `CHANGE_ME_*` entries
 
-Use the repository seed as the baseline:
+Use the application-owned bootstrap catalogs as the baseline:
 
-- `tests/fixtures/db_dummy/all_collections_dummy`
-- `tests/data/seed_data` (when passed via `--reference-seed-data`)
-- Replace placeholders such as `assay_1` and `hematology` with center-specific values
-- Keep those edited seed values under version control in your deployment repository
+- `api/config/bootstrap/rbac` contains the canonical permission policies and
+  built-in roles.
+- `api/config/bootstrap/reference` contains compressed HGNC and VEP snapshots
+  used only when those destination collections are empty.
+- `api/config/bootstrap/demo_center` contains a synthetic ASP, ASPC, and ISGL
+  suitable for validating a new installation.
+- Replace the demo clinical configuration with approved center configuration
+  before clinical use. Keep center-owned values in the deployment repository,
+  not in the Coyote3 source checkout.
 
-Seed source split:
-
-- `all_collections_dummy` provides demo/runtime collections (including `asp_configs`, `assay_specific_panels`, and demo data payload collections).
-- `seed_data` provides compressed baseline reference/RBAC collections (`permissions`, `roles`, `hgnc_genes`, `vep_metadata`).
+The bootstrap catalogs intentionally do not contain a username, password,
+patient, or sample. The first local superuser credentials are supplied to the
+bootstrap command at deployment time.
 
 ## 1. Preflight
 
@@ -39,9 +43,10 @@ Seed source split:
 scripts/center_preflight.sh \
   --env-file .coyote3_stage_env \
   --compose-file deploy/compose/docker-compose.stage.yml \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --reference-seed-data tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml
+  --seed-file api/config/bootstrap/demo_center \
+  --reference-seed-data api/config/bootstrap/rbac \
+  --reference-seed-data api/config/bootstrap/reference \
+  --yaml-file demo_data/ingest/generic_case_control.yaml
 ```
 
 Expected: `[ok] preflight passed`.
@@ -137,24 +142,34 @@ ${PYTHON_BIN:-python} scripts/bootstrap_local_admin.py \
   --assay "assay_1"
 ```
 
-Guardrail:
+First-deployment behavior:
 
 - `bootstrap_local_admin.py` fails fast if any CLI value still contains `CHANGE_ME`.
 - This prevents accidental first-user creation with placeholder secrets.
-- `bootstrap_local_admin.py` may create only the first `superuser`.
-- If a `superuser` already exists, the bootstrap script refuses to create another one.
+- The command installs all bundled permission policies and roles before creating
+  the local superuser.
+- It runs only when `users`, `roles`, and `permissions` are all empty.
+- A database that already has a superuser is reported as initialized and is not
+  changed.
+- A partially initialized governance database without a superuser is rejected
+  for manual inspection; it is never overwritten automatically.
 - Additional superusers must be created by an authenticated existing superuser.
+
+The installed focused roles are `asp_manager`, `aspc_manager`, `isgl_manager`,
+`operations_viewer`, `app_control_operator`, and `user_account_manager`. The
+general `admin`, `developer`, `tester`, `manager`, `user`, `intern`, `viewer`,
+and `external` roles are installed as well.
 
 ## 5. Initialize baseline collections (strict order)
 
 Required order before first DNA/RNA sample ingest:
 
-1. `permissions`
-2. `roles`
-3. `hgnc_genes` (required for MANE transcript selection and gene metadata endpoints/UI)
-4. `vep_metadata` (required reference metadata for variant interpretation)
-5. `asp_configs`
-6. `assay_specific_panels`
+1. `permissions` and `roles` from `api/config/bootstrap/rbac`
+2. the first local `superuser`, supplied through the bootstrap CLI
+3. `assay_specific_panels`, `asp_configs`, and `insilico_genelists` from an
+   approved center seed or the synthetic demo catalog
+4. `hgnc_genes` (required for MANE transcript selection and gene metadata)
+5. `vep_metadata` (required reference metadata for variant interpretation)
 
 Notes:
 
@@ -171,12 +186,30 @@ Notes:
 - DNA CNV strategy is defined by `asp_configs.filters.cnv_*` fields.
 - RNA fusion strategy is defined by `asp_configs.filters.fusion_*` fields.
 - Managed admin forms (ASP/ASPC/ISGL/users/roles/permissions) are rendered from backend contracts, not DB `schemas` JSON.
-- Baseline seed includes a complete out-of-the-box RBAC baseline (`permissions` + `roles`) so user creation dropdowns and role policy mapping are immediately available on first bootstrap.
-- Non-RBAC admin baseline collections (`asp_configs`, `assay_specific_panels`, `insilico_genelists`) remain demo-safe first-run data (`assay_1`, `hematology`) and should be replaced with center-specific values during deployment.
-- `asp_configs` and `assay_specific_panels` are demo/bootstrap collections
-  sourced from `--seed-file`; compressed files in `tests/data/seed_data` are optional overrides.
-- `permissions`, `roles`, `hgnc_genes`, and `vep_metadata`
-  are sourced from `--reference-seed-data` when that argument is provided.
+- The application-owned RBAC catalog is the complete out-of-the-box baseline,
+  so user creation and role policy mapping are available immediately.
+- Confirm every bundled permission has `system_managed: true`. System policies
+  must expose View and role-assignment behavior, but not edit, status-toggle, or
+  delete actions.
+- Existing deployments should synchronize newly bundled permission policies and
+  built-in role grants after an application upgrade:
+
+  ```bash
+  python scripts/sync_rbac_catalog.py \
+    --mongo-uri "$MONGO_URI" \
+    --db "$COYOTE3_DB"
+  ```
+
+  The command inserts missing bundled policies and adds missing bundled grants
+  to matching built-in roles. It preserves existing policy documents, custom
+  roles, and center-added grants, and is safe to run repeatedly.
+- The bundled demo clinical resources use `assay_1`, `base`, `production`, and
+  `hematology`. They are synthetic smoke-test data, not a clinical definition.
+- `permissions` and `roles` come from `api/config/bootstrap/rbac`.
+- The release includes compact HGNC and VEP bootstrap snapshots. The bootstrap
+  command checks collection occupancy first and skips any nonempty destination.
+  Updating a populated reference collection is a separate, explicitly
+  validated reference-release operation.
 
 Optional collections:
 
@@ -201,8 +234,9 @@ scripts/bootstrap_center_collections.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-8804}" \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --reference-seed-data tests/data/seed_data \
+  --seed-file api/config/bootstrap/demo_center \
+  --reference-seed-data api/config/bootstrap/rbac \
+  --reference-seed-data api/config/bootstrap/reference \
   --with-optional
 ```
 
@@ -218,9 +252,9 @@ scripts/center_first_run.sh \
   --admin-username "admin.coyote3" \
   --admin-email "admin@your-center.org" \
   --admin-password "<ADMIN_PASSWORD>" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --seed-data-pack tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
+  --seed-file api/config/bootstrap/demo_center \
+  --seed-data-pack api/config/bootstrap/rbac \
+  --yaml-file demo_data/ingest/generic_case_control.yaml \
   --with-optional
 ```
 
@@ -234,10 +268,10 @@ scripts/center_first_run.sh \
   --api-base-url "http://localhost:5815" \
   --admin-username "admin.coyote3" \
   --admin-email "admin@coyote3.local" \
-  --admin-password "Coyote3.Admin" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --seed-data-pack tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
+  --admin-password "<ADMIN_PASSWORD>" \
+  --seed-file api/config/bootstrap/demo_center \
+  --seed-data-pack api/config/bootstrap/rbac \
+  --yaml-file demo_data/ingest/generic_case_control.yaml \
   --with-optional
 ```
 
@@ -256,15 +290,15 @@ Execution mode notes:
 - In `center_first_run.sh`, combine `--strict-no-retry` with `--skip-existing`
   because the first-user bootstrap creates RBAC documents before seeding.
 
-Before running, adapt `tests/fixtures/db_dummy/all_collections_dummy` to
-your local assay names/groups. The bootstrap flow validates schema, ASPC, ASP,
+Before clinical use, replace the synthetic demo ASP, ASPC, and ISGL with the
+center's reviewed definitions. The bootstrap flow validates schema, ASPC, ASP,
 and ISGL consistency before writing collections.
 
 ## 6. Validate and ingest demo sample
 
 ```bash
 ${PYTHON_BIN:-python} scripts/validate_ingest_spec.py \
-  --yaml tests/data/ingest_demo/generic_case_control.yaml \
+  --yaml demo_data/ingest/generic_case_control.yaml \
   --check-files
 ```
 
@@ -273,7 +307,7 @@ scripts/center_check.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-8804}" \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml
+  --yaml-file demo_data/ingest/generic_case_control.yaml
 ```
 
 Notes:
@@ -354,8 +388,9 @@ scripts/center_first_run.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-8804}" \
   --admin-email "admin@your-center.org" \
   --admin-password "CHANGE_ME" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
+  --seed-file api/config/bootstrap/demo_center \
+  --seed-data-pack api/config/bootstrap/rbac \
+  --yaml-file demo_data/ingest/generic_case_control.yaml \
   --with-optional \
   --skip-existing \
   --strict-no-retry

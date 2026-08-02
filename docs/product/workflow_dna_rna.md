@@ -184,18 +184,21 @@ The following rules matter for correct behavior:
 ## Diagnostic Input Specifications
 
 Complete DNA ingest artifacts typically include:
+
 - Normalized VCF (Variants)
 - Structural CNV definitions
 - Sequencing Coverage metrics
 - (Optional) Biomarkers and Structural Translocations
 
 RNA ingest artifacts typically include:
+
 - Transcription-level Fusion findings
 - Gene Expression datasets
 
 The complete report-facing preparation and annotation protocol is documented
 in
 [Clinical Data Preparation And Reporting Flow](../architecture/clinical_data_and_reporting_flow.md).
+
 - Functional RNA Classifications
 - Quality Control (QC) metrics
 

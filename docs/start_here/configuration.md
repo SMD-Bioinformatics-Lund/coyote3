@@ -150,6 +150,8 @@ physical collection names themselves remain TOML values.
 | `MONGO_APP_USER` | With compose Mongo | Username | Application Mongo user created by compose Mongo init. |
 | `MONGO_APP_PASSWORD` | With compose Mongo | Secret password | Application Mongo password. |
 | `MONGO_URI` | Yes | MongoDB URI | API and worker MongoDB connection string. |
+| `COYOTE3_MONGO_DATA_HOST_ROOT` | With compose Mongo | Absolute host path | Persistent host directory bind-mounted at `/data/db`. It is unused when MongoDB is external. |
+| `COYOTE3_MONGO_BACKUP_HOST_ROOT` | With compose Mongo | Absolute host path | Host backup directory bind-mounted at `/backup`. It is unused when MongoDB is external. |
 | `CACHE_ENABLED` | No | `1` or `0` | Enables Redis-backed application cache use. |
 | `CACHE_REQUIRED` | No | `1` or `0` | Makes cache connection failure fatal at startup when enabled. |
 | `CACHE_REDIS_CONNECT_TIMEOUT` | No | Seconds | Redis connection timeout. |
@@ -169,6 +171,7 @@ physical collection names themselves remain TOML values.
 | `LOG_RETENTION_DAYS` | No | Days | Disk log retention window. |
 | `LOG_GZIP_AFTER_DAYS` | No | Days | Age after which nightly maintenance gzips old logs. |
 | `LOG_LEVEL` | No | Python logging level | Minimum runtime log level. |
+| `COYOTE3_LOGS_HOST_ROOT` | Yes | Absolute host path | Shared host log directory bind-mounted at `/app/logs` in the API, worker, and beat containers. |
 | `NOTIFICATION_RETENTION_DAYS` | No | Days | Notification retention window. |
 | `COYOTE3_DATA_HOST_ROOT` | Yes | Host path | Host data root mounted into containers at `/data`. |
 | `CELERY_DEFAULT_QUEUE` | No | Queue name | Default Celery queue. |

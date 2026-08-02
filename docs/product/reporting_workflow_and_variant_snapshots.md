@@ -16,6 +16,8 @@ The core rule is:
 
 ## High-Level Flow
 
+![Clinical review and report persistence flow](../assets/diagrams/clinical_review_flow.svg)
+
 1. A sample is ingested into `samples` with assay, subpanel, environment,
    files, current filters, and current ASPC references.
 2. The user reviews sample data in the UI: SNVs, CNVs, fusions,

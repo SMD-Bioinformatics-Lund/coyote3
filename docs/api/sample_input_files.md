@@ -30,15 +30,15 @@ raw input files
 
 These repo fixtures are the best concrete reference for expected input shapes:
 
-- `tests/data/ingest_demo/generic_case_control.yaml`
-- `tests/data/ingest_demo/generic_case_control.final.filtered.vcf`
-- `tests/data/ingest_demo/generic_case_control.cnvs.merged.json`
-- `tests/data/ingest_demo/generic_case_control.cov.json`
-- `tests/data/ingest_demo/generic_rna_sample.yaml`
-- `tests/fixtures/db_dummy/all_collections_dummy/fusions.json`
-- `tests/fixtures/db_dummy/all_collections_dummy/rna_expression.json`
-- `tests/fixtures/db_dummy/all_collections_dummy/rna_classification.json`
-- `tests/fixtures/db_dummy/all_collections_dummy/rna_qc.json`
+- `demo_data/ingest/generic_case_control.yaml`
+- `demo_data/ingest/generic_case_control.final.filtered.vcf`
+- `demo_data/ingest/generic_case_control.cnvs.merged.json`
+- `demo_data/ingest/generic_case_control.cov.json`
+- `demo_data/ingest/generic_rna_sample.yaml`
+- `demo_data/collections/all_collections_dummy/fusions.json`
+- `demo_data/collections/all_collections_dummy/rna_expression.json`
+- `demo_data/collections/all_collections_dummy/rna_classification.json`
+- `demo_data/collections/all_collections_dummy/rna_qc.json`
 
 ## Manifest Layer
 
@@ -89,7 +89,7 @@ document.
 
 Primary demo file:
 
-- `tests/data/ingest_demo/generic_case_control.final.filtered.vcf`
+- `demo_data/ingest/generic_case_control.final.filtered.vcf`
 
 Expected characteristics:
 
@@ -172,7 +172,7 @@ Minimal practical requirements:
 
 Primary demo file:
 
-- `tests/data/ingest_demo/generic_case_control.cnvs.merged.json`
+- `demo_data/ingest/generic_case_control.cnvs.merged.json`
 
 Accepted raw shapes:
 
@@ -225,7 +225,7 @@ Recommended raw fields:
 
 Primary demo file:
 
-- `tests/data/ingest_demo/generic_case_control.cov.json`
+- `demo_data/ingest/generic_case_control.cov.json`
 
 Observed demo shape:
 
@@ -314,7 +314,7 @@ The RNA parser currently performs much less structural normalization than the DN
 
 Fixture used by the RNA demo manifest:
 
-- `tests/fixtures/db_dummy/all_collections_dummy/fusions.json`
+- `demo_data/collections/all_collections_dummy/fusions.json`
 
 Observed fixture shape:
 
@@ -359,7 +359,7 @@ Note:
 
 Fixture:
 
-- `tests/fixtures/db_dummy/all_collections_dummy/rna_expression.json`
+- `demo_data/collections/all_collections_dummy/rna_expression.json`
 
 Observed fixture shape:
 
@@ -386,7 +386,7 @@ Recommended raw structure:
 
 Fixture:
 
-- `tests/fixtures/db_dummy/all_collections_dummy/rna_classification.json`
+- `demo_data/collections/all_collections_dummy/rna_classification.json`
 
 Observed fixture shape:
 
@@ -413,7 +413,7 @@ Recommended raw structure:
 
 Fixture:
 
-- `tests/fixtures/db_dummy/all_collections_dummy/rna_qc.json`
+- `demo_data/collections/all_collections_dummy/rna_qc.json`
 
 Observed fixture shape:
 

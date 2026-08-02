@@ -6,13 +6,14 @@ This document defines how validation datasets and test fixtures are organized an
 
 Validation assets are organized into standardized repositories to support isolated testing requirements:
 
-- `tests/data/ingest_demo/`: Optimized clinical artifacts for end-to-end ingestion validation.
-- `tests/fixtures/db_dummy/`: Canonical document templates for all persistent collection contracts.
+- `demo_data/ingest/`: Optimized clinical artifacts for end-to-end ingestion validation.
+- `demo_data/collections/`: Canonical document templates for all persistent collection contracts.
 - `tests/fixtures/api/`: Programmatic fixture orchestrators and API payload snapshots.
 
 ## Canonical Ingestion Datasets
 
-The `tests/data/ingest_demo` repository contains strictly sanitized genomic artifacts used for validating analytic ingestion pipelines. These datasets consist of:
+The `demo_data/ingest` repository contains strictly sanitized genomic artifacts used for validating analytic ingestion pipelines. These datasets consist of:
+
 - Standardized VCF (Variant) structures.
 - Structural JSON definitions for CNV and Coverage segments.
 - Modeled visual assets (PNG) for reporting verification.
@@ -38,12 +39,20 @@ The guard is a prevention control, not proof of de-identification. Fixture
 owners must still document synthetic provenance and reviewers must reject
 clinical source data even when it does not match a detection pattern.
 
-## Administrative Seeding Templates
+## Application Bootstrap And Demo Collections
 
-The `db_dummy` repository provides the main diagnostic seed for bootstrap and test flows:
+Application bootstrap and test fixtures have separate ownership:
 
-- **Location**: `tests/fixtures/db_dummy/all_collections_dummy`
-- **Application**: Recommended as the initial configuration seed for external centers. It utilizes neutral assay nomenclature to prevent organizational configuration bias during the initial installation phase.
+| Location | Purpose | Production bootstrap |
+| --- | --- | --- |
+| `api/config/bootstrap/rbac` | Application permissions and built-in roles | Yes; installed for an empty deployment |
+| `api/config/bootstrap/reference` | Compressed HGNC and VEP reference snapshots | Yes; each collection is loaded only when empty |
+| `api/config/bootstrap/demo_center` | Synthetic ASP, ASPC, and ISGL definitions | Optional validation baseline only |
+| `demo_data/collections/all_collections_dummy` | Synthetic documents spanning collection contracts | No; tests and demonstrations only |
+| `demo_data/ingest` | Synthetic DNA/RNA manifests and artifacts | No; ingest validation only |
+
+The first-deployment flow and empty-collection protection are described in
+[Initial Deployment Checklist](../operations/initial_deployment_checklist.md).
 
 ### Validation Commands
 
@@ -63,6 +72,7 @@ PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
 ```
 
 This protocol programmatically verifies:
+
 - Synchronization between Pydantic models and seeded document structures.
 - Relational consistency across Assay, ASP, and configuration resource sets.
 - Automatic regeneration of the standard Collection Contract documentation from the active backend logic.

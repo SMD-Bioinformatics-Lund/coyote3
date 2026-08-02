@@ -41,6 +41,7 @@ cp deploy/env/example.env .coyote3_dev_env
 ## Step 3: Start The Stack
 
 Start the development stack. This brings up:
+
 - web
 - API
 - local MongoDB
@@ -67,13 +68,14 @@ scripts/center_first_run.sh \
   --admin-username "admin.coyote3" \
   --admin-email "admin@coyote3.local" \
   --admin-password "Coyote3.Admin" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --seed-data-pack tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
+  --seed-file api/config/bootstrap/demo_center \
+  --seed-data-pack api/config/bootstrap/rbac \
+  --yaml-file demo_data/ingest/generic_case_control.yaml \
   --with-optional
 ```
 
 This command:
+
 1. checks the environment and seed inputs
 2. starts the compose stack
 3. bootstraps the first superuser
@@ -97,10 +99,10 @@ Ingest references:
 | `--admin-password <password>` | Yes | Password for the first superuser account. |
 | `--with-mongo` | No | Enable the compose-managed MongoDB container (`with-mongo` profile). Use when `MONGO_URI` points to `coyote3_mongo`. |
 | `--compose-profile <name>` | No | Activate an arbitrary Docker Compose profile. Can be repeated. |
-| `--seed-file <path>` | No | Path to the baseline collection seed directory. Default: `tests/fixtures/db_dummy/all_collections_dummy`. |
-| `--seed-data-pack <path>` | No | Path to a reference seed data directory (ASP, ASPC, ISGL definitions). Auto-detected from `tests/data/seed_data` if present. |
-| `--use-default-seed-data-pack` | No | Shorthand for `--seed-data-pack tests/data/seed_data`. |
-| `--yaml-file <path>` | No | YAML manifest for the demo sample ingest check. Default: `tests/data/ingest_demo/generic_case_control.yaml`. |
+| `--seed-file <path>` | No | Path to the center collection seed directory. Default: `api/config/bootstrap/demo_center`, which contains synthetic ASP, ASPC, and ISGL examples. |
+| `--seed-data-pack <path>` | No | Path to the application RBAC catalog. Default: `api/config/bootstrap/rbac`. |
+| `--use-default-seed-data-pack` | No | Shorthand for `--seed-data-pack api/config/bootstrap/rbac`. |
+| `--yaml-file <path>` | No | YAML manifest for the demo sample ingest check. Default: `demo_data/ingest/generic_case_control.yaml`. |
 | `--mongo-uri <uri>` | No | Override the `MONGO_URI` from the env file for the bootstrap step. |
 | `--with-optional` | No | Include optional collections during seeding. |
 | `--skip-existing` | No | Tolerate duplicate documents during seeding (enabled by default). |
@@ -112,12 +114,14 @@ Ingest references:
 ## Step 5: Open The Application
 
 Open:
+
 - UI: [http://localhost:6801/coyote3_dev/](http://localhost:6801/coyote3_dev/)
 - API health: [http://localhost:6801/coyote3_dev/api/v1/health](http://localhost:6801/coyote3_dev/api/v1/health)
 - Swagger UI: [http://localhost:6801/coyote3_dev/api/v1/docs](http://localhost:6801/coyote3_dev/api/v1/docs)
 - Documentation site: [http://localhost:6801/coyote3_dev/docs-site/](http://localhost:6801/coyote3_dev/docs-site/)
 
 Login with:
+
 - username: `admin.coyote3`
 - email: `admin@coyote3.local`
 - password: `Coyote3.Admin`
@@ -145,9 +149,9 @@ scripts/center_first_run.sh \
   --admin-username "admin.coyote3" \
   --admin-email "admin@coyote3.local" \
   --admin-password "Coyote3.Admin" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --seed-data-pack tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
+  --seed-file api/config/bootstrap/demo_center \
+  --seed-data-pack api/config/bootstrap/rbac \
+  --yaml-file demo_data/ingest/generic_case_control.yaml \
   --with-optional
 ```
 
@@ -162,5 +166,6 @@ When you are done with your session, you can spin down the environment:
 ```
 
 ### Next Steps
+
 - Developers: [Local Development](local_development.md)
 - Operations: [Deployment Guide](../operations/deployment_guide.md)

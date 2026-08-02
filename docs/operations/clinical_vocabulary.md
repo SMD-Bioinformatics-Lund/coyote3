@@ -231,7 +231,6 @@ ISGL, and user-scope forms. A new group is introduced only through a reviewed
 software release with schema validation, query-policy review, tests, and a
 data migration for any affected documents.
 
-
 ## Runtime Resolution
 
 The application exposes `analysis_file_keys(omics, analysis)` and

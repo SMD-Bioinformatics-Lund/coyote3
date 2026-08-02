@@ -43,8 +43,6 @@ Scope note:
 - `POST /api/v1/internal/ingest/sample-bundle/async`
 - `POST /api/v1/internal/ingest/sample-bundle/upload`
 - `POST /api/v1/internal/ingest/sample-bundle/upload/async`
-- `POST /api/v1/internal/ingest/dependents`
-- `POST /api/v1/internal/ingest/dependents/async`
 - `POST /api/v1/internal/ingest/collection`
 - `POST /api/v1/internal/ingest/collection/async`
 - `POST /api/v1/internal/ingest/collection/bulk`
@@ -202,8 +200,9 @@ One-shot ordered seeding (required + optional baseline collections):
 scripts/bootstrap_center_collections.sh \
   --api-base-url "${BASE_URL}" \
   --bearer-token "${API_BEARER_TOKEN}" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --reference-seed-data tests/data/seed_data \
+  --seed-file api/config/bootstrap/demo_center \
+  --reference-seed-data api/config/bootstrap/rbac \
+  --reference-seed-data api/config/bootstrap/reference \
   --with-optional
 ```
 
@@ -215,15 +214,16 @@ Behavior:
 
 Seed source policy for a new deployment:
 
-- Use the repository baseline seed: `tests/fixtures/db_dummy/all_collections_dummy`.
-- Use `--reference-seed-data tests/data/seed_data` to load compressed baseline packs for
-  `permissions`, `roles`, `hgnc_genes`, and `vep_metadata`.
-- Update assay/group identifiers (`assay_1`, `hematology`) to your center values before bootstrap.
-- Keep bootstrap deterministic by versioning those seed changes in git for your center deployment repo.
-- `asp_configs` and `assay_specific_panels` belong to the demo/bootstrap
-  seed files (`--seed-file`, for example `tests/fixtures/db_dummy/all_collections_dummy`).
-  If matching compressed files exist in `--reference-seed-data`, bootstrap loads them,
-  but they are not required reference-pack files.
+- The application-owned RBAC catalog is `api/config/bootstrap/rbac`. It installs
+  every bundled permission policy and built-in role only during explicit
+  first-run bootstrap or explicit upgrade synchronization.
+- `api/config/bootstrap/demo_center` provides synthetic ASP, ASPC, and ISGL
+  records for installation verification. Replace these with reviewed center
+  definitions before clinical use.
+- HGNC, VEP metadata, and other reference collections are center-supplied data;
+  they are not copied from test fixtures during a production bootstrap.
+- Keep center seed changes deterministic and version-controlled in the center's
+  private deployment configuration.
 - `asp_configs` documents are contract-driven and must carry typed `filters`,
   `analysis_types`, and `reporting` objects. Query behavior is derived from those
   typed sections and the domain query builders; arbitrary top-level Mongo query
@@ -235,8 +235,8 @@ Validate assay consistency before ingesting sample bundles:
 
 ```bash
 ${PYTHON_BIN:-python} scripts/validate_assay_consistency.py \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --yaml tests/data/ingest_demo/generic_case_control.yaml
+  --seed-file api/config/bootstrap/demo_center \
+  --yaml demo_data/ingest/generic_case_control.yaml
 ```
 
 The DNA demo YAML intentionally omits `database_versions`. DNA VCF ingest
@@ -489,7 +489,7 @@ curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/sample-bundle" \
   "yaml_content": $(${PYTHON_BIN:-python} - <<'PY'
 import json
 from pathlib import Path
-print(json.dumps(Path("tests/data/ingest_demo/generic_case_control.yaml").read_text(encoding="utf-8")))
+print(json.dumps(Path("demo_data/ingest/generic_case_control.yaml").read_text(encoding="utf-8")))
 PY
   ),
   "update_existing": false
@@ -508,11 +508,11 @@ Command (multipart upload mode):
 ```bash
 curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/sample-bundle/upload" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
-  -F "yaml_file=@tests/data/ingest_demo/generic_case_control.yaml;type=text/yaml" \
-  -F "data_files=@tests/data/ingest_demo/generic_case_control.final.filtered.vcf" \
-  -F "data_files=@tests/data/ingest_demo/generic_case_control.cnvs.merged.json" \
-  -F "data_files=@tests/data/ingest_demo/generic_case_control.cov.json" \
-  -F "data_files=@tests/data/ingest_demo/generic_case_control.modeled.png" \
+  -F "yaml_file=@demo_data/ingest/generic_case_control.yaml;type=text/yaml" \
+  -F "data_files=@demo_data/ingest/generic_case_control.final.filtered.vcf" \
+  -F "data_files=@demo_data/ingest/generic_case_control.cnvs.merged.json" \
+  -F "data_files=@demo_data/ingest/generic_case_control.cov.json" \
+  -F "data_files=@demo_data/ingest/generic_case_control.modeled.png" \
   -F "increment=true" \
   -F "update_existing=false"
 ```
@@ -539,62 +539,34 @@ curl -sS "${BASE_URL}/api/v1/internal/metrics" \
   -H "X-Internal-Token: ${INTERNAL_API_TOKEN}"
 ```
 
-### 5) Replace dependent analysis payload for existing sample
+### Dependent analysis writes
 
-Route:
-
-- `POST /api/v1/internal/ingest/dependents`
-
-Command:
-
-```bash
-curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/dependents" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
-  --data @- <<'JSON'
-{
-  "sample_id": "sample_oid_seed",
-  "sample_name": "seed_sample",
-  "delete_existing": true,
-  "preload": {
-    "cnvs": [
-      {
-        "chr": "7",
-        "start": 55000000,
-        "end": 56000000,
-        "size": 1000000,
-        "ratio": 0.4,
-        "nprobes": 100,
-        "genes": ["EGFR"],
-        "callers": ["cnvkit"]
-      }
-    ]
-  }
-}
-JSON
-```
+Dependent SNV, CNV, fusion, translocation, coverage, biomarker, and profile
+writes are internal stages of complete sample-bundle ingestion. They are not a
+separate public ingest operation. Submit the full manifest through a sample
+bundle endpoint with `update_existing=true` when an existing sample must be
+reloaded. This preserves one validation, readiness, rollback, and audit
+boundary and prevents a caller from leaving a sample partially refreshed.
 
 ## Authentication and authorization
 
 - Ingest/collection internal endpoints require authenticated API user session and RBAC.
-- Internal ingest endpoints are restricted to `developer` and `admin` role levels.
+- Internal ingest endpoints require the `internal.ingest:manage` permission.
 - `update_existing=true` on sample-bundle requires authenticated user with `sample:edit:own` permission.
-- Admin UI ingestion workspace (`/admin/ingest`) is also restricted to `developer` and `admin`.
+- The Admin UI ingestion workspace (`/admin/ingest`) uses the same
+  `internal.ingest:manage` permission.
 
-Collection action permissions (from seeded permission catalog):
+The generic collection-ingest routes are intentionally more privileged than
+normal resource-management routes. Every collection operation through this
+interface requires `internal.ingest:manage`. User, role, permission-policy,
+ASP, ASPC, ISGL, and sample-linked collection operations additionally enforce
+the corresponding create/edit permission documented in
+[Collection Operations and Permissions](collection_operations_and_permissions.md).
 
-| Collection group | Create/Bulk permission | Update/Upsert permission |
-| --- | --- | --- |
-| `users` | `user:create` | `user:edit` |
-| `roles` | `role:create` | `role:edit` |
-| `permissions` | `permission.policy:create` | `permission.policy:edit` |
-| `assay_specific_panels` (`asp`) | `assay.panel:create` | `assay.panel:edit` |
-| `asp_configs` (`aspc`) | `assay.config:create` | `assay.config:edit` |
-| `insilico_genelists` (`isgl`) | `gene_list.insilico:create` | `gene_list.insilico:edit` |
-| Sample-linked data (`samples`, `variants`, `cnvs`, `translocations`, `biomarkers`, `panel_coverage`, `fusions`, `rna_expression`, `rna_classification`, `rna_qc`, `reported_variants`, `group_coverage`) | `sample:edit:own` | `sample:edit:own` |
-| Shared and annotation knowledgebase collections (`hgnc_genes`, `vep_metadata`, `civic_*`, `oncokb_*`, `cosmic`, `hpaexpr`, `iarc_tp53`, `annotation`, `blacklist`, `dashboard_metrics`, `brcaexchange`, `mane_select`, `asp_to_groups`) | developer/admin role-level gate | developer/admin role-level gate |
-
-`admin` role-level users are always allowed for these operations.
+Normal administrative routes continue to enforce their resource-specific
+permissions, such as `user:create`, `assay.panel:edit`, or
+`gene_list.insilico:view`. Possessing one of those narrower permissions does
+not authorize arbitrary collection ingestion.
 
 ## First-time center bootstrap order
 
@@ -619,7 +591,7 @@ Use this order for a clean deployment at a new center.
 5. Ingest sample data.
    - `POST /api/v1/internal/ingest/sample-bundle` for fresh sample + analysis data
    - `POST /api/v1/internal/ingest/sample-bundle/upload` for fresh sample + uploaded data files
-   - `POST /api/v1/internal/ingest/dependents` for dependent-data refresh on existing sample
+   - use a complete sample bundle with `update_existing=true` to replace an existing sample's declared analysis data
 
 ## Collection bootstrapping via API
 
@@ -793,8 +765,8 @@ Core collections typically seeded first:
 
 ## Test fixtures for ingestion
 
-- `tests/data/ingest_demo/*`
-- `tests/fixtures/db_dummy/all_collections_dummy` (center onboarding seed)
+- `demo_data/ingest/*`
+- `demo_data/collections/all_collections_dummy` (automated tests only; not a deployment seed)
 
 ## Client example (Python)
 
@@ -810,9 +782,9 @@ payload = {
         "assay": "assay_1",
         "profile": "test",
         "genome_build": 38,
-        "vcf_files": "/app/tests/data/ingest_demo/generic_case_control.final.filtered.vcf",
-        "cnv": "/app/tests/data/ingest_demo/generic_case_control.cnvs.merged.json",
-        "cov": "/app/tests/data/ingest_demo/generic_case_control.cov.json",
+        "vcf_files": "/app/demo_data/ingest/generic_case_control.final.filtered.vcf",
+        "cnv": "/app/demo_data/ingest/generic_case_control.cnvs.merged.json",
+        "cov": "/app/demo_data/ingest/generic_case_control.cov.json",
     },
     "update_existing": False,
 }

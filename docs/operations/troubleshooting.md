@@ -5,10 +5,12 @@ This section outlines standard diagnostic signatures and remediation protocols f
 ## Authentication Failures During Index Provisioning
 
 **Signature:**
+
 - Process initialization halts unconditionally during the `ensure_indexes` procedure.
 - Output logs broadcast `createIndexes requires authentication`.
 
 **Diagnostic Cause:**
+
 - The backend application component attempted execution against the persistent MongoDB instance without valid mapped credentials.
 
 **Remediation Protocol:**
@@ -20,6 +22,7 @@ This section outlines standard diagnostic signatures and remediation protocols f
 ## Configuration File Absence
 
 **Signature:**
+
 - The Docker Compose execution faults sequentially with the output: `.coyote3_env not found`.
 
 **Remediation Protocol:**
@@ -35,6 +38,7 @@ Ensure all explicit cryptographic secrets and API token parameters are manually 
 ## Sub-Process Interpreter Faults
 
 **Signature:**
+
 - Security or gate-checking bash scripts terminate reporting: `No module named pytest`.
 
 **Remediation Protocol:**
@@ -48,6 +52,7 @@ PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_
 ## Pre-Commit Framework Isolation Faults
 
 **Signature:**
+
 - Automated Git pre-commit hooks fail silently or explicitly broadcast `pytest not found`.
 
 **Remediation Protocol:**
@@ -62,6 +67,7 @@ python -m pre_commit run --all-files
 ## Unbounded Collection Growth Metrics
 
 **Signature:**
+
 - Storage analytics indicate the `dashboard_metrics` target collection expands perpetually without data reduction.
 
 **Diagnostic Protocol:**

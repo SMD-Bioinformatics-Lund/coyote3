@@ -169,7 +169,7 @@ for the complete producer/consumer protocol.
 
 Use:
 
-- `tests/fixtures/db_dummy/all_collections_dummy`
+- `demo_data/collections/all_collections_dummy`
 - `tests/unit/test_db_dummy_fixture.py`
 - `scripts/validate_assay_consistency.py`
 

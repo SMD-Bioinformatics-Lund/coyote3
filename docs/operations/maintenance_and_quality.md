@@ -22,6 +22,7 @@ The full gate is deliberately read-only with respect to MongoDB. Run the
 procedure separately with controlled fixtures before promoting a release.
 
 Checks covered:
+
 - import integrity
 - removal of stray `print()` calls in runtime code
 - logging and error-message checks
@@ -35,8 +36,9 @@ Validate seed data and cross-collection assay relationships before using them.
 ```bash
 # Validate core seed structures and assay relations
 .venv/bin/python scripts/validate_assay_consistency.py \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --reference-seed-data tests/data/seed_data \
+  --seed-file api/config/bootstrap/demo_center \
+  --reference-seed-data api/config/bootstrap/rbac \
+  --reference-seed-data api/config/bootstrap/reference \
   --validate-all-contracts
 ```
 
@@ -52,22 +54,26 @@ scripts/center_first_run.sh \
   --admin-username "admin.coyote3" \
   --admin-email "admin@coyote3.local" \
   --admin-password "ENFORCED_SECRET" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --seed-data-pack tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
+  --seed-file api/config/bootstrap/demo_center \
+  --seed-data-pack api/config/bootstrap/rbac \
+  --yaml-file demo_data/ingest/generic_case_control.yaml \
   --with-optional
 ```
 
 ## Audit and Logging
 
 ### Logging Integrity
+
 Use structured logging:
+
 - add operation-specific metadata
 - keep exception traces with `exc_info=True`
 - do not use stdout `print()` for runtime telemetry
 
 ### Audit Metadata Persistence
+
 Documents created through administrative or clinical actions must keep an audit trail:
+
 - `created_by` / `updated_by`: Explicit identity of the originating user.
 - `created_on` / `updated_on`: Standardized UTC (ISO-8601) timestamps.
 
@@ -89,6 +95,7 @@ Do not test destructive retention cleanup against production evidence stores.
 ## Integrated Operational Assets
 
 Use these related documents for detailed procedures:
+
 - [Initial Deployment Checklist](initial_deployment_checklist.md)
 - [Center Deployment Guide](center_deployment_guide.md)
 - [Quality Engineering and Validation Standards](../testing/testing_and_quality.md)

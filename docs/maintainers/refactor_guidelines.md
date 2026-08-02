@@ -5,6 +5,7 @@ This document establishes the binding architectural requirements and engineering
 ## Fundamental Engineering Goals
 
 All modifications delivered to the core codebase must satisfy the following technical prerequisites:
+
 - Deliver measurable improvements to code maintainability and execution clarity.
 - Systematically eliminate structural duplication without circumventing or mutating original execution behavior.
 - Enforce explicit isolation boundaries separating Presentation logic (UI), Data Access capabilities, and Core API rule abstractions globally.
@@ -12,6 +13,7 @@ All modifications delivered to the core codebase must satisfy the following tech
 ## Non-Negotiable Contract Requirements
 
 Code modifications are forbidden from altering foundational security constraints or implicit access boundaries:
+
 - Implementation of hidden bridging layers or undocumented middleware APIs is fundamentally prohibited.
 - Endpoints shall not silently mutate outbound or inbound structural data layouts unless officially documented via Pydantic model version bumps.
 - Request interceptor policies and role-based access checks (RBAC) must remain visibly intact and strictly evaluated against original coverage paths.

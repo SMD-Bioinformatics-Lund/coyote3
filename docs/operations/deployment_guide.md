@@ -3,6 +3,7 @@
 This guide covers deployment and routine upgrade work for Coyote3.
 
 ## Scope
+
 - **Standard Deployment**: Repeatable container-based deployment and upgrades.
 - **Initial Provisioning**: For first-time environment setup, refer to the [Center Deployment Guide](center_deployment_guide.md) and the [Initial Deployment Checklist](initial_deployment_checklist.md).
 
@@ -42,6 +43,7 @@ image because it changes the generated browser bundle. Do not place secrets in
 these values.
 
 ### Production Deployment
+
 Production deployments require the production environment file and explicit versioning.
 
 ```bash
@@ -52,6 +54,7 @@ Production deployments require the production environment file and explicit vers
 ```
 
 ### Staging And Development
+
 Non-production environments use their own compose files and env files.
 
 ```bash
@@ -103,6 +106,7 @@ For upgrades:
 ## Rollback Strategy
 
 If a deployment fails badly:
+
 1. Immediately suspend the target orchestration stack.
 2. Revert to the previous known-good image version.
 3. If data corruption has occurred during migration, initiate the restoration of the most recent database snapshot.

@@ -20,28 +20,36 @@ At the top of the dashboard, metric cards summarize the current state of the lab
 
 ## Analytical Charts
 
-The dashboard uses reusable React chart components with export support where appropriate. Charts are placed inside the same glass-card system as the rest of the application.
+The dashboard uses reusable React chart components with export support where appropriate. Charts use the same layered surface system as the rest of the application.
 
 ### 1. Sample Progress
-A donut chart visualizing the ratio of Analysed vs. Pending samples. This allows at-a-glance monitoring of the current workload status.
+
+The operational snapshot shows analysed and pending samples as counts and a completion indicator. This allows at-a-glance monitoring of the current workload status.
 
 ### 2. Variant Composition
+
 Displays the distribution of findings across different analysis domains, including small variants, CNVs, translocations, RNA fusions, and other enabled modules. This helps clinicians understand the complexity of the current workload.
 
 ### 3. Tier Distribution
+
 A bar chart showing the categorization of variants that have been included in clinical reports (Tiers I through IV). This provides a snapshot of the clinical significance of findings across the platform.
 
 ### 4. Quality Snapshot
+
 A radial chart monitoring three critical quality markers:
+
 *   **Analysed Rate**: Progress toward completion.
 *   **Blacklist Rate**: Percentage of variants identified as known technical artifacts.
 *   **False Positive (FP) Rate**: Percentage of findings manually flagged as false results by clinicians.
 
-## My Assay Workload
+## Panel Analysis Capability
 
-This section is personalized to your assigned assays. It shows a breakdown of progress for each assay group (e.g., Solid Tumors, Myeloid, WGS).
+This chart summarizes configuration coverage rather than repeating the sample workload shown earlier on the page. For every analysis type, it compares:
 
-*   **Actionable Navigation**: Clicking on any bar in this chart will take you directly to the filtered Sample List for that specific assay group, allowing for rapid transition from oversight to action.
+* **Enabled**: the number of active targeted-panel ASPCs that expose the analysis in `analysis_types`.
+* **Reportable**: the number of those configurations that include the analysis in `reporting.report_sections`.
+
+WGS and WTS configurations are excluded. A lower reportable count is not automatically an error: an analysis can be available for review without being approved as a report section. The difference makes that policy visible to administrators and clinical leads.
 
 ## Platform Capacity and Metadata
 
@@ -63,9 +71,13 @@ not replace the detailed sample, variant, CNV, fusion, or report views.
 | Tier distribution | `reported_variants` | Findings saved into clinical reports, grouped by tier |
 | False-positive rate | `variants` | Unique variant identities that have a false-positive curation flag |
 | Blacklist rate | `blacklist` | Unique technical-artifact identities recorded in the active blacklist |
-| Assay gene coverage | ASP and ISGL configuration | Physically covered and germline gene counts by assay |
+| Panel gene coverage | Active ASP definitions whose `asp_family` is `panel`, `panel-dna`, or `panel-rna` | Physically covered and germline gene assignments by targeted panel; WGS and WTS are excluded |
+| Panel portfolio | Active targeted-panel ASP definitions | Number of panels, represented assay groups, accredited panels, and covered/germline gene assignments |
+| Panel analysis capability | Active ASPC definitions linked to targeted-panel ASPs | Number of configurations enabling each analysis type compared with the number permitting that type in report output; WGS and WTS are excluded |
 
 ### Derived metric lifecycle
+
+![Dashboard metric data path](../assets/diagrams/dashboard_metric_path.svg)
 
 Coyote3 maintains short-lived Redis entries and persisted MongoDB metric
 snapshots for expensive aggregate calculations. These are derived operational
@@ -88,7 +100,7 @@ write has completed.
 
 ## Visual Design
 
-Dashboard panels use the standard Coyote3 glass-card surface:
+Dashboard panels use the standard Coyote3 layered surface:
 
 | UI element | Behavior |
 | --- | --- |

@@ -20,6 +20,7 @@ Every clinical analysis starts at the **Sample List**.
 ## 2. Navigating the Interpretation Interface
 
 The analysis page is divided into three functional zones:
+
 *   **Central Workspace**: Displays clinical metadata, active gene panels, comments, report preview, and interactive review tables.
 *   **Global Navigation Sidebar (Left)**: Vertical application navigation grouped by clinical, public, operational, and administrative areas.
 *   **Filter Sidebar (Right)**: Domain-specific filters for the active analysis tab. The sidebar starts collapsed and can be expanded when filter editing is needed.
@@ -31,12 +32,14 @@ The analysis page is divided into three functional zones:
 The **Right Sidebar** contains tab-specific filters that allow you to narrow down thousands of sequencing artifacts to a smaller clinical review set. Applying filters re-queries the backend and refreshes the table and temporary report preview context.
 
 ### SNV Filters
+
 *   **Min Depth & Alt Count**: Set minimum sequencing sensitivity (e.g., Depth ≥ 500x).
 *   **Frequency Control (VAF)**: Adjust the minimum and maximum Allelic Fraction (e.g., 0.05 to 1.0).
 *   **Population Frequency (PopFreq)**: Filter out common polymorphisms using GnomAD frequency thresholds (e.g., ≤ 0.01).
 *   **Consequence & Gene Lists**: Use the dropdowns to focus only on specific variant types (e.g., Missense, Nonsense) or specific virtual panels (ISGL).
 
 ### CNV Filters
+
 *   **Ratio Thresholds**: Adjust Gain/Loss ratios to detect large genomic events.
 *   **Size Filtering**: Limit the view to large chromosomal shifts or focal gene-level events.
 
@@ -47,13 +50,16 @@ The **Right Sidebar** contains tab-specific filters that allow you to narrow dow
 Coyote3 supports a standardized classification workflow based on ACMG/AMP and Comper guidelines.
 
 ### Individual Tiering
+
 1.  Click the **View** button next to any variant to see the detailed evidence page.
 2.  Use the classification card on the detail page to assign or remove tiers.
 3.  Assign the **Tier (I-IV)** and select the specific evidence criteria (e.g., PM1, BA1).
 4.  **Save**: The classification persists across all clinical views and propagates to the final report.
 
 ### Bulk Operations (Batch Actions)
+
 For high-efficiency triage, use the **Bulk Action Bar**:
+
 1.  Select multiple variants using the checkboxes in the SNV table.
 2.  Open the bulk action menu above the table.
 3.  Select the desired action, confirm it, and let the table refresh from persisted backend state.
@@ -85,11 +91,13 @@ data in session storage.
 ## 5. Clinical Dialogue and Reporting
 
 ### Adding Comments
+
 *   **Sample Comments**: Sample-level comments appear below review tables where the tab supports comments.
 *   **Finding Comments**: Detail pages show sample-specific and global annotations. Existing comments can be used as a draft by selecting them.
 *   **Markdown**: Comment fields support Markdown rendering and preview.
 
 ### Final Summary
+
 The **Reports** tab builds a temporary report preview from the current filter state and ASPC reporting configuration. Saving the report persists the report document, rendered artifacts, filter snapshot, ASPC context, and reported finding snapshots.
 
 ---

@@ -4,6 +4,8 @@ This page summarizes how to contribute safely and efficiently.
 
 ## Basic contribution flow
 
+![Feature delivery flow](../assets/diagrams/feature_delivery.svg)
+
 1. Sync your branch with latest mainline.
 2. Implement focused change(s) with tests.
 3. Run local quality gates.

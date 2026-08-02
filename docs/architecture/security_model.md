@@ -2,6 +2,8 @@
 
 ## Security Flow Diagram
 
+![Login provider resolution](../assets/diagrams/login_provider_resolution.svg)
+
 ```text
 Incoming request
   |
@@ -18,8 +20,7 @@ Resolve user / principal
   v
 Apply access rules
   |
-  +--> role gate
-  +--> permission gate
+  +--> permission granted by an assigned role
   +--> assay / scope visibility
   |
   v
@@ -29,7 +30,7 @@ Allow request or return structured denial
 ## Layers
 
 1. Authentication (session/login)
-2. Authorization (role + permission checks)
+2. Authorization (role-derived permission checks)
 3. Internal token gate for selected system-to-system routes
 4. Environment secret hardening (prod/dev strict behavior)
 
@@ -94,18 +95,163 @@ duplicate configuration documents.
 
 Default role hierarchy used across API access checks:
 
-- `external` -> `1`
-- `viewer` -> `5`
-- `intern` -> `7`
+- `external` -> `0`
+- `viewer` -> `1`
+- `intern` -> `5`
 - `user` -> `9`
 - `manager` -> `99`
 - `developer` -> `9999`
 - `admin` -> `99999`
 
-Notes:
+Role levels order roles for display and compatibility metadata. They do not
+grant an API capability. A manager can access an administrative function only
+when one of the manager's assigned roles contains that function's permission.
+The same rule applies to `admin`: only `superuser` has an unconditional bypass.
 
-- Admin-only APIs and global destructive operations are guarded at `99999`.
-- Bootstrap/seed role documents should use the same values to avoid unexpected authorization failures.
+### Administrative capability matrix
+
+Administrative permission policies are normal documents in the MongoDB
+`permissions` collection. Role documents in `roles` reference their stable
+`permission_id` values. Permission definitions are not maintained in Python.
+Each protected route names the single `permission_id` required to call it, and
+the authorization layer resolves that identifier against active MongoDB
+permission and role documents.
+
+The application ships the canonical policy and built-in role catalogs in
+`api/config/bootstrap/rbac`. They are installed explicitly during first
+deployment into an empty governance database. After initialization, MongoDB is
+the runtime source of truth. Normal startup never replaces center role grants or
+permission documents. Application upgrades that add a policy use the explicit
+`scripts/sync_rbac_catalog.py` maintenance command.
+
+The synchronization operation is a union. It inserts missing bundled
+permissions and roles, marks bundled permissions active and system-managed, and
+adds missing bundled grants to matching roles. It does not delete center-created
+permissions or roles, remove extra grants, or replace role metadata. This makes
+the command suitable after an application upgrade introduces new authorization
+capabilities.
+
+Bundled permission documents carry `system_managed: true`. They form the stable
+authorization vocabulary required by application routes and therefore cannot
+be edited, deactivated, or deleted through the API or administration UI. They
+remain assignable: administrators grant or revoke them by editing role
+documents. A center-created permission is stored with `system_managed: false`
+and remains editable through normal permission-policy workflows.
+
+This separation gives each layer one responsibility:
+
+| Layer | Responsibility |
+| --- | --- |
+| `api/config/bootstrap/rbac/permissions.seed.ndjson` | Canonical labels, categories, descriptions, tags, and identifiers shipped by the application. |
+| MongoDB `permissions` | Deployed permission catalog used at runtime. |
+| MongoDB `roles` | Permission assignments for each role. |
+| MongoDB `users` | Role assignments and user scope. |
+| Route declaration | Identifier of the permission required for that operation; it does not define or grant the permission. |
+| Casbin policy builder | Resolves active database documents and evaluates the request. |
+
+Administrative resources use independent list, view, create, edit, and delete
+permissions. A role may therefore be read-only for one resource, an editor for
+another, and have no access to the remaining administration pages.
+
+| Administrative resource | List | View | Create | Edit | Delete |
+| --- | --- | --- | --- | --- | --- |
+| Users | `user:list` | `user:view` | `user:create` | `user:edit` | `user:delete` |
+| Roles | `role:list` | `role:view` | `role:create` | `role:edit` | `role:delete` |
+| Permission policies | `permission.policy:list` | `permission.policy:view` | `permission.policy:create` | `permission.policy:edit` | `permission.policy:delete` |
+| Assay panels (ASP) | `assay.panel:list` | `assay.panel:view` | `assay.panel:create` | `assay.panel:edit` | `assay.panel:delete` |
+| Assay configurations (ASPC) | `assay.config:list` | `assay.config:view` | `assay.config:create` | `assay.config:edit` | `assay.config:delete` |
+| In-silico gene lists (ISGL) | `gene_list.insilico:list` | `gene_list.insilico:view` | `gene_list.insilico:create` | `gene_list.insilico:edit` | `gene_list.insilico:delete` |
+
+Global sample administration and operational tools use these capabilities:
+
+| Capability | Permission |
+| --- | --- |
+| List samples in Admin Samples | `sample:list:global` |
+| Inspect one sample in Admin Samples | `sample:view:global` |
+| Edit any sample through Admin Samples | `sample:edit:global` |
+| Delete a sample and dependent records | `sample:delete:global` |
+| View application controls and runtime state | `app.controls:view` |
+| Change application controls | `app.controls:edit` |
+| Run maintenance immediately | `app.maintenance:run` |
+| Review audit events | `audit_log:view` |
+| Review schema contracts | `schema:list` |
+| View administrative dashboard insights | `dashboard.admin:view` |
+| Manage ingest workflows | `internal.ingest:manage` |
+| Inspect task state | `internal.task:view` |
+| Review the UI route audit | `ui.route_audit:view` |
+| Broadcast notifications to active users | `notification.broadcast:create` |
+
+The seed catalog is validated against route declarations by the API security
+test suite. A route cannot introduce an undeployable permission identifier
+without causing that validation to fail.
+
+!!! warning
+    `role:edit` and `permission.policy:edit` can change authorization policy.
+    Assign them only to trusted security administrators. A manager who only
+    maintains users normally needs selected `user:*` permissions and should not
+    receive role or permission-policy editing rights.
+
+### Notification authorization
+
+Authenticated notification list, read, and dismissal routes always use the
+username from the verified session. A caller cannot supply another username to
+inspect or modify another account's inbox. Broadcast recipient discovery and
+publication require `notification.broadcast:create`; assigning an Admin page
+link without this permission does not grant API access.
+
+The **Admin > Broadcast Notifications** page is available to roles granted
+`notification.broadcast:create`. A broadcaster can address:
+
+- every active user;
+- active users assigned any selected role; or
+- explicitly selected active users.
+
+Role-targeted broadcasts resolve the matching active usernames when the message
+is created. The stored audience therefore remains stable if role assignments
+change later. The inbox, read state, and dismissal state remain private to each
+recipient.
+
+The public password-reset request remains neutral to prevent account
+enumeration. When the identifier resolves to an active local account, the API
+creates a security notification addressed to active users assigned the `admin`
+or `superuser` role. Requests for missing, inactive, or externally managed
+accounts do not disclose account state and do not generate an administrative
+notification.
+
+### User account editing boundaries
+
+User administration deliberately uses a small permission model. The
+`user:edit` permission allows editing a user account's profile, role assignments,
+authentication providers, active state, and assay/environment scope. It does
+not allow changing a password. Password creation and replacement use dedicated
+invite, reset, and authenticated password-change flows so credentials never
+travel through the generic user form.
+
+The `superuser` role is a protected boundary. Only an authenticated superuser
+may assign or remove that role, disable a superuser account, or delete a
+superuser account. Other account fields remain governed by the normal
+`user:edit` and `user:delete` permissions.
+
+Every authenticated user may edit only these fields on their own profile:
+
+| Field | Purpose |
+| --- | --- |
+| `firstname` | Given name displayed in the application |
+| `lastname` | Family name displayed in the application |
+| `fullname` | Preferred complete display name |
+| `job_title` | Position or clinical function |
+
+Self-service profile editing cannot change username, email, authentication
+provider, password, roles, account status, environments, assay groups, or assay
+scope.
+
+The catalog also retains `user:manage`, `user:role:edit`, and
+`user:group:edit` because deployed centers already use those identifiers in
+role assignments. New route authorization should use the independent
+`user:list`, `user:view`, `user:create`, `user:edit`, and `user:delete`
+permissions shown in the capability matrix. The retained identifiers remain
+system-managed compatibility policies and may continue to be assigned where a
+center's role model requires them.
 
 ### Policy Enforcement
 
@@ -143,9 +289,32 @@ out actions that matter for clinical reconstruction or operations.
 
 ## Bootstrap superuser rule
 
-- First-time deployment creates a single bootstrap `superuser`.
-- `scripts/bootstrap_local_admin.py` refuses to create another `superuser` if one already exists.
-- Additional superusers must be created by an authenticated existing superuser through the normal management flow.
+- First-time deployment installs the canonical permission and role catalogs and
+  creates one local bootstrap account assigned `superuser`.
+- The command runs only when `users`, `roles`, and `permissions` are all empty.
+- A fully initialized deployment is left unchanged. A partially initialized
+  deployment without a superuser is rejected for manual review instead of being
+  overwritten.
+- Additional superusers must be created by an authenticated existing superuser
+  through normal user management.
+
+The built-in role catalog includes general clinical roles and focused delegated
+administration roles:
+
+| Role | Intended responsibility |
+| --- | --- |
+| `superuser` | Unrestricted bootstrap and security recovery authority |
+| `admin` | Permission-bound full administration |
+| `asp_manager` | ASP definition management |
+| `aspc_manager` | ASPC configuration and filter management |
+| `isgl_manager` | In-silico gene-list management |
+| `operations_viewer` | Read-only runtime, audit, and diagnostics access |
+| `app_control_operator` | Runtime controls and approved maintenance |
+| `user_account_manager` | User lifecycle management without password access |
+
+The catalog also includes `developer`, `tester`, `manager`, `user`, `intern`,
+`viewer`, and `external`. Centers may edit built-in grants and create additional
+roles after initialization.
 
 ## Authentication providers
 

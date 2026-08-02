@@ -91,6 +91,8 @@ explicit confirmation.
 
 ## Variant Detail
 
+![Small-variant detail workspace](../assets/screenshots/sample_variant_detail.png)
+
 The variant detail page arranges decision-making cards around the finding.
 
 | Card/table | Information |
@@ -109,6 +111,8 @@ The variant detail page arranges decision-making cards around the finding.
 | Seen in other samples | Prior sample/report contexts for the same finding. |
 
 ## CNVs, Fusions, And Translocations
+
+![CNV review with profile image](../assets/screenshots/sample_cnvs_detail.png)
 
 These tabs use the same review model as small variants: status/evidence badges, core biological identity, supporting evidence, tier, and detail link.
 

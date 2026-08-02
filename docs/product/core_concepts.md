@@ -20,13 +20,17 @@ When you "ingest" data, you are telling Coyote3: *"Here is a sample, here is whe
 This is the most critical concept for understanding how Coyote3 "thinks."
 
 ### ASP (Assay Specific Panel)
+
 Think of an **ASP** as a **Physical Definition**. It describes the wet-lab reality of a test:
+
 *   Which genes were sequence?
 *   What kit was used?
 *   Is it DNA or RNA?
 
 ### ASPC (Assay Specific Configuration)
+
 Think of an **ASPC** as a **Virtual Definition** or "Software Profile." It describes how the software should *behave* when looking at that ASP:
+
 *   What are the default filter thresholds? (e.g., "Only show variants with >2% frequency")
 *   What gene lists should be active?
 *   What report template should be used?
@@ -65,4 +69,5 @@ Lastly, understand the state of a variant:
 ---
 
 ### Still have questions?
+
 Browse the [Workflow Chain Guide](workflow_dna_rna.md) for a deeper technical dive into these relationships.

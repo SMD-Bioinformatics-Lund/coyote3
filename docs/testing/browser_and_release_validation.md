@@ -11,9 +11,12 @@ data.
 Automated backend tests validate contracts, permissions, business logic, and
 route declarations. The frontend route registry is checked against the FastAPI
 route table and every React Router path is required to have a route contract.
-Playwright exercises browser-level login and account-route behavior with
-deterministic API fixtures. The composed-stack workflow then verifies the
-actual API, MongoDB, Celery ingestion path, and persisted ready-sample state.
+Playwright exercises complete browser workflows with deterministic API
+fixtures. These workflows cover authentication, analysis-tab request gating,
+dashboard composition, sample-list state, module availability, public matrix
+search, profile persistence, and administrative notification broadcasting.
+The composed-stack workflow then verifies the actual API, MongoDB, Celery
+ingestion path, and persisted ready-sample state.
 
 Browser validation remains necessary because it exercises the deployed bundle,
 reverse proxy, browser history, viewport behavior, tooltips, file rendering,
@@ -55,6 +58,41 @@ npm run test:e2e
 The suite uses API fixtures for repeatable rendering and error-state tests. It
 does not replace deployment validation or clinical test data checks. GitHub
 Actions installs Chromium and runs the same command in the `quality` workflow.
+
+The sample-analysis browser contracts also assert that endpoints are requested
+only when their configured tab is opened. DNA tests distinguish somatic and
+germline SNV requests by the `intent` query parameter; RNA tests ensure fusion
+requests are not issued for DNA samples or before the RNA fusion tab is
+selected. This protects both correctness and unnecessary backend/database
+work.
+
+The deterministic suite intentionally does not repeat every component-level
+assertion already owned by Vitest. Playwright owns behavior that depends on the
+browser runtime: routing, URL state, navigation between pages, deferred network
+requests, form submission across real React providers, and module guards.
+
+### Running Against A Deployment
+
+The real-deployment suite does not intercept API requests. It validates the
+deployed reverse proxy, `SCRIPT_NAME` prefix, public routes, and optionally an
+authenticated account against the running services:
+
+```bash
+cd frontend
+COYOTE3_E2E_BASE_URL=https://localhost/coyote3_dev/ \
+  npm run test:e2e:real
+
+# Include the authenticated dashboard and sample-workspace smoke test.
+COYOTE3_E2E_BASE_URL=https://localhost/coyote3_dev/ \
+COYOTE3_E2E_USERNAME=coyote3.user \
+COYOTE3_E2E_PASSWORD='<controlled-test-password>' \
+  npm run test:e2e:real
+```
+
+`COYOTE3_E2E_BASE_URL` must include the deployment prefix. Relative navigation
+is used deliberately so browser requests remain below that prefix. The
+authenticated smoke test is skipped when credentials are absent. Credentials
+must come from the shell or CI secret store and must never be committed.
 
 ### Composed Stack Acceptance Check
 
