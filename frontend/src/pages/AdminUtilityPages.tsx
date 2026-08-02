@@ -25,6 +25,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DataTable } from "@/components/data-table/DataTable"
 import { fullDateTime, humanRelativeDate, localDate } from "@/lib/detail-formatters"
+import { appControlHelp, type AppControlHelp } from "@/lib/app-control-metadata"
+import {
+  ADMIN_UTILITY_PERMISSIONS,
+  hasPermission,
+  useCurrentUserAccess,
+} from "@/lib/access-control"
 
 type Severity = "info" | "warning" | "error" | "critical"
 type TimeWindow = "24h" | "7d" | "30d" | "all"
@@ -85,47 +91,63 @@ type AppControls = {
 }
 
 type AppControlsRuntime = {
+  observed_at?: string
   celery?: {
     configured_enabled?: boolean
+    configured_families?: Record<string, boolean>
     status?: string
+    execution_state?: string
     workers_online?: number
     worker_names?: string[]
+    worker_details?: {
+      name?: string
+      status?: string
+      pid?: number | null
+      uptime_seconds?: number | null
+      pool?: string | null
+      concurrency?: number | null
+      processed_count?: number
+      active_count?: number
+      reserved_count?: number
+      scheduled_count?: number
+      registered_count?: number
+      queues?: string[]
+    }[]
     active_count?: number
     reserved_count?: number
     scheduled_count?: number
     registered_task_count?: number
+    registered_tasks?: string[]
     beat_schedule_count?: number
+    beat_entries?: { name?: string; task?: string; schedule?: string }[]
     queue_names?: string[]
+    queue_consumers?: Record<string, string[]>
+    tasks?: {
+      worker?: string
+      state?: string
+      task_id?: string | null
+      task_name?: string | null
+      queue?: string | null
+      eta?: string | null
+      started_at?: number | string | null
+    }[]
+    inspection_timeout_seconds?: number
     error?: string | null
   }
+  modules?: Record<string, { enabled?: boolean; label?: string }>
   index_setup_conflicts?: { repository?: string; code?: string; message?: string }[]
 }
 
-const controlLabels: Record<string, string> = {
-  enabled: "Enable Celery workers",
-  ingest_watch_enabled: "Watch-folder ingest",
-  ingest_bundle_enabled: "Sample bundle ingest",
-  ingest_dependents_enabled: "Dependent analysis writes",
-  collection_writes_enabled: "Validated collection writes",
-  maintenance_enabled: "Nightly maintenance",
-  dna_enabled: "DNA module",
-  rna_enabled: "RNA module",
-  reports_enabled: "Reports",
-  ingest_workspace_enabled: "Ingest workspace",
-  audit_ui_enabled: "Audit UI",
-  assay_catalog_enabled: "Assay catalog",
-  audit_events_days: "Audit event retention",
-  notification_days: "Notification retention",
-  disk_log_days: "Disk log retention",
-  gzip_disk_logs_after_days: "Gzip disk logs after",
-}
-
 export function AdminControlsPage() {
+  const accessQuery = useCurrentUserAccess()
+  const canEdit = hasPermission(accessQuery.data, ADMIN_UTILITY_PERMISSIONS.controlsEdit)
+  const canRunMaintenance = hasPermission(accessQuery.data, ADMIN_UTILITY_PERMISSIONS.maintenanceRun)
   const [draft, setDraft] = useState<AppControls | null>(null)
   const controlsQuery = useQuery({
     queryKey: ["admin-controls"],
     queryFn: () => api.get("/admin/controls").then((res) => res.data),
     retry: false,
+    refetchInterval: 30_000,
   })
   const controls = (draft || controlsQuery.data?.controls || null) as AppControls | null
   const runtime = (controlsQuery.data?.runtime || {}) as AppControlsRuntime
@@ -172,14 +194,14 @@ export function AdminControlsPage() {
       description="Runtime switches for background workers, application modules, and operational retention policies."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" onClick={() => runMaintenance.mutate()} disabled={runMaintenance.isPending || !controls?.celery?.maintenance_enabled}>
+          {canRunMaintenance && <Button type="button" variant="outline" onClick={() => runMaintenance.mutate()} disabled={runMaintenance.isPending || !controls?.celery?.enabled || !controls?.celery?.maintenance_enabled}>
             <RefreshCw className={`h-4 w-4 ${runMaintenance.isPending ? "animate-spin" : ""}`} />
             Run maintenance
-          </Button>
-          <Button type="button" onClick={() => controls && saveControls.mutate(controls)} disabled={!controls || saveControls.isPending}>
+          </Button>}
+          {canEdit && <Button type="button" onClick={() => controls && saveControls.mutate(controls)} disabled={!controls || saveControls.isPending}>
             {saveControls.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save controls
-          </Button>
+          </Button>}
         </div>
       }
     >
@@ -193,47 +215,80 @@ export function AdminControlsPage() {
         <div className="grid gap-3 xl:grid-cols-[1fr_1fr]">
           <ControlSection
             title="Celery Task Families"
-            description="Disabling a family prevents new executions. Already running tasks are not killed."
+            description="Sample ingestion is one complete clinical transaction. Generic collection writes and retention remain independent operational jobs."
             icon={<SlidersHorizontal className="h-4 w-4" />}
           >
             {Object.entries(controls.celery).map(([key, value]) => (
-              <ControlToggle key={key} label={controlLabels[key] || key} checked={Boolean(value)} onChange={(checked) => updateBool("celery", key, checked)} />
+              <ControlToggle key={key} definition={appControlHelp(key)} checked={Boolean(value)} disabled={!canEdit} onChange={(checked) => updateBool("celery", key, checked)} />
             ))}
           </ControlSection>
 
           <ControlSection
             title="Application Modules"
-            description="Feature switches for operational UI and major analysis areas."
+            description="Disabling a module hides its UI routes and causes its API routes to return HTTP 503. Audit access remains permission-controlled."
             icon={<Settings2 className="h-4 w-4" />}
           >
             {Object.entries(controls.modules).map(([key, value]) => (
-              <ControlToggle key={key} label={controlLabels[key] || key} checked={Boolean(value)} onChange={(checked) => updateBool("modules", key, checked)} />
+              <ControlToggle key={key} definition={appControlHelp(key)} checked={Boolean(value)} disabled={!canEdit} onChange={(checked) => updateBool("modules", key, checked)} />
             ))}
           </ControlSection>
 
-          <section className="surface-panel p-3 xl:col-span-2">
-            <div className="mb-3 flex items-start justify-between gap-3">
+          <section className="surface-panel !overflow-visible p-3 xl:col-span-2">
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-base font-bold">Observed Runtime State</h2>
-                <p className="text-sm text-muted-foreground">Live worker and repository health reported by the API runtime.</p>
+                <p className="text-sm text-muted-foreground">Live Celery process, queue, schedule, and repository health reported by the API runtime.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {runtime.observed_at ? `Observed ${humanRelativeDate(runtime.observed_at)} (${fullDateTime(runtime.observed_at)}).` : "Observation time was not reported."}
+                  {` Automatically refreshed every 30 seconds; inspection timeout ${runtime.celery?.inspection_timeout_seconds ?? 0.5} seconds.`}
+                </p>
               </div>
-              <RuntimeStatusBadge status={runtime.celery?.status} />
+              <div className="flex shrink-0 items-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => controlsQuery.refetch()} disabled={controlsQuery.isFetching}>
+                  <RefreshCw className={`h-3.5 w-3.5 ${controlsQuery.isFetching ? "animate-spin" : ""}`} />
+                  Refresh
+                </Button>
+                <RuntimeStatusBadge status={runtime.celery?.status} />
+              </div>
+            </div>
+            <RuntimeExecutionSummary
+              configuredEnabled={Boolean(runtime.celery?.configured_enabled)}
+              executionState={runtime.celery?.execution_state}
+              workersOnline={runtime.celery?.workers_online ?? 0}
+            />
+            <div className="mb-3 grid gap-3 lg:grid-cols-2">
+              <EffectiveStatePanel
+                title="Task-family gates"
+                description="Effective gates checked by workers before application work starts."
+                states={runtime.celery?.configured_families || {}}
+              />
+              <EffectiveStatePanel
+                title="Application modules"
+                description="Effective route availability enforced by both navigation and the API."
+                states={Object.fromEntries(
+                  Object.entries(runtime.modules || {}).map(([key, value]) => [
+                    value.label || key,
+                    Boolean(value.enabled),
+                  ]),
+                )}
+              />
             </div>
             <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
-              <RuntimeMetric label="Workers" value={runtime.celery?.workers_online ?? 0} />
-              <RuntimeMetric label="Active" value={runtime.celery?.active_count ?? 0} />
-              <RuntimeMetric label="Reserved" value={runtime.celery?.reserved_count ?? 0} />
-              <RuntimeMetric label="Scheduled" value={runtime.celery?.scheduled_count ?? 0} />
-              <RuntimeMetric label="Registered" value={runtime.celery?.registered_task_count ?? 0} />
-              <RuntimeMetric label="Beat entries" value={runtime.celery?.beat_schedule_count ?? 0} />
+              <RuntimeMetric label="Workers" value={runtime.celery?.workers_online ?? 0} description="Worker processes that responded to live inspection." />
+              <RuntimeMetric label="Active" value={runtime.celery?.active_count ?? 0} description="Tasks currently executing across responding workers." />
+              <RuntimeMetric label="Reserved" value={runtime.celery?.reserved_count ?? 0} description="Tasks fetched by workers but not yet executing." />
+              <RuntimeMetric label="Scheduled" value={runtime.celery?.scheduled_count ?? 0} description="ETA or countdown tasks held by workers for later execution." />
+              <RuntimeMetric label="Registered" value={runtime.celery?.registered_task_count ?? 0} description="Distinct task names known by responding workers." />
+              <RuntimeMetric label="Beat entries" value={runtime.celery?.beat_schedule_count ?? 0} description="Periodic schedules configured in the API image. This does not prove that Beat is running." />
             </div>
-            <div className="mt-3 grid gap-2 lg:grid-cols-2">
-              <RuntimeList
-                label="Worker nodes"
-                values={runtime.celery?.worker_names || []}
-                empty={runtime.celery?.status === "offline" ? "No workers responded." : "No worker names reported."}
+            <div className="mt-3 grid gap-3 xl:grid-cols-2">
+              <WorkerRuntimePanel workers={runtime.celery?.worker_details || []} />
+              <BeatRuntimePanel entries={runtime.celery?.beat_entries || []} />
+              <QueueRuntimePanel consumers={runtime.celery?.queue_consumers || {}} />
+              <TaskRuntimePanel
+                tasks={runtime.celery?.tasks || []}
+                registeredTasks={runtime.celery?.registered_tasks || []}
               />
-              <RuntimeList label="Queues" values={runtime.celery?.queue_names || []} empty="No queues reported by active workers." />
             </div>
             {runtime.celery?.error ? (
               <div className="mt-3 rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">
@@ -247,7 +302,7 @@ export function AdminControlsPage() {
             ) : null}
           </section>
 
-          <section className="surface-panel p-3 xl:col-span-2">
+          <section className="surface-panel !overflow-visible p-3 xl:col-span-2">
             <div className="mb-3">
               <h2 className="text-base font-bold">Retention Policies</h2>
               <p className="text-sm text-muted-foreground">All values are days. Audit retention also updates the expiry horizon used when new audit events are written.</p>
@@ -255,8 +310,11 @@ export function AdminControlsPage() {
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {Object.entries(controls.retention).map(([key, value]) => (
                 <div key={key} className="rounded-xl border border-border bg-background/70 p-3">
-                  <Label htmlFor={key} className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">{controlLabels[key] || key}</Label>
-                  <Input id={key} type="number" min={key === "audit_events_days" ? 30 : 1} value={String(value)} onChange={(event) => updateNumber(key, event.target.value)} />
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <Label htmlFor={key} className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{appControlHelp(key).label}</Label>
+                    <ControlHelp definition={appControlHelp(key)} />
+                  </div>
+                  <Input id={key} type="number" min={key === "audit_events_days" ? 30 : 1} value={String(value)} disabled={!canEdit} onChange={(event) => updateNumber(key, event.target.value)} />
                 </div>
               ))}
             </div>
@@ -271,6 +329,38 @@ export function AdminControlsPage() {
   )
 }
 
+function EffectiveStatePanel({
+  title,
+  description,
+  states,
+}: {
+  title: string
+  description: string
+  states: Record<string, boolean>
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-background/70 p-3">
+      <div className="mb-2">
+        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {Object.entries(states).map(([key, enabled]) => (
+          <span
+            key={key}
+            className={enabled
+              ? "rounded-md border border-success/35 bg-success/10 px-2 py-1 text-xs font-bold text-success"
+              : "rounded-md border border-warn/35 bg-warn/10 px-2 py-1 text-xs font-bold text-warn"
+            }
+          >
+            {key.replaceAll("_", " ")}: {enabled ? "enabled" : "disabled"}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function RuntimeStatusBadge({ status }: { status?: string }) {
   const normalized = (status || "unknown").toLowerCase()
   const cls = normalized === "online"
@@ -281,37 +371,192 @@ function RuntimeStatusBadge({ status }: { status?: string }) {
   return <span className={`rounded-full border px-2.5 py-1 text-xs font-bold uppercase ${cls}`}>{normalized}</span>
 }
 
-function RuntimeMetric({ label, value }: { label: string; value: number }) {
+function RuntimeMetric({ label, value, description }: { label: string; value: number; description: string }) {
   return (
     <div className="rounded-lg border border-border bg-background/70 p-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+        <InfoHint title={label} description={description} />
+      </div>
       <p className="mt-1 text-lg font-black tabular-nums text-foreground">{value}</p>
     </div>
   )
 }
 
-function RuntimeList({ label, values, empty }: { label: string; values: string[]; empty: string }) {
+function RuntimeExecutionSummary({
+  configuredEnabled,
+  executionState,
+  workersOnline,
+}: {
+  configuredEnabled: boolean
+  executionState?: string
+  workersOnline: number
+}) {
+  const state = executionState || "unknown"
+  const content = state === "ready"
+    ? {
+        title: "Execution is allowed and workers are responding",
+        detail: `${workersOnline} worker${workersOnline === 1 ? "" : "s"} can accept work, subject to each task-family gate.`,
+        cls: "border-success/30 bg-success/10 text-success",
+      }
+    : state === "workers_missing"
+      ? {
+          title: "Execution is allowed, but no workers responded",
+          detail: "Queued work cannot be confirmed as consumable. Check the worker container and broker connectivity.",
+          cls: "border-warn/30 bg-warn/10 text-warn",
+        }
+      : state === "execution_disabled_workers_online"
+        ? {
+            title: "Application task execution is disabled",
+            detail: `${workersOnline} worker${workersOnline === 1 ? " remains" : "s remain"} online, but controlled tasks will return without doing application work.`,
+            cls: "border-warn/30 bg-warn/10 text-warn",
+          }
+        : state === "execution_disabled"
+          ? {
+              title: "Application task execution is disabled",
+              detail: "No workers responded. The switch does not start or stop worker processes.",
+              cls: "border-muted-foreground/20 bg-muted text-muted-foreground",
+            }
+          : {
+              title: "Runtime execution state is unavailable",
+              detail: configuredEnabled ? "The task gate is enabled, but live execution readiness could not be established." : "The task gate is disabled and live worker state could not be established.",
+              cls: "border-warn/30 bg-warn/10 text-warn",
+            }
+  return (
+    <div className={`mb-3 flex items-start gap-2 rounded-lg border p-3 ${content.cls}`}>
+      <Activity className="mt-0.5 h-4 w-4 shrink-0" />
+      <div>
+        <p className="text-sm font-bold">{content.title}</p>
+        <p className="text-xs opacity-90">{content.detail}</p>
+      </div>
+    </div>
+  )
+}
+
+function WorkerRuntimePanel({ workers }: { workers: NonNullable<AppControlsRuntime["celery"]>["worker_details"] }) {
   return (
     <div className="rounded-lg border border-border bg-background/70 p-3">
-      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
-      {values.length ? (
-        <div className="flex flex-wrap gap-1.5">
-          {values.map((value) => (
-            <span key={value} className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
-              {value}
-            </span>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Worker details</p>
+        <span className="text-xs text-muted-foreground">{workers?.length || 0} responding</span>
+      </div>
+      {workers?.length ? (
+        <div className="grid gap-2">
+          {workers.map((worker) => (
+            <div key={worker.name} className="rounded-lg border border-border bg-card p-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-mono text-xs font-bold text-foreground">{worker.name}</span>
+                <span className="rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[11px] font-bold uppercase text-success">{worker.status || "online"}</span>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground sm:grid-cols-4">
+                <span>Concurrency <strong className="text-foreground">{worker.concurrency ?? "-"}</strong></span>
+                <span>Uptime <strong className="text-foreground">{formatDuration(worker.uptime_seconds)}</strong></span>
+                <span>Processed <strong className="text-foreground">{worker.processed_count ?? 0}</strong></span>
+                <span>PID <strong className="text-foreground">{worker.pid ?? "-"}</strong></span>
+                <span>Active <strong className="text-foreground">{worker.active_count ?? 0}</strong></span>
+                <span>Reserved <strong className="text-foreground">{worker.reserved_count ?? 0}</strong></span>
+                <span>Scheduled <strong className="text-foreground">{worker.scheduled_count ?? 0}</strong></span>
+                <span>Registered <strong className="text-foreground">{worker.registered_count ?? 0}</strong></span>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">Queues: {(worker.queues || []).join(", ") || "none reported"}</p>
+            </div>
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">{empty}</p>
+        <p className="text-sm text-muted-foreground">No worker details were reported.</p>
       )}
     </div>
   )
 }
 
+function BeatRuntimePanel({ entries }: { entries: NonNullable<AppControlsRuntime["celery"]>["beat_entries"] }) {
+  return (
+    <div className="rounded-lg border border-border bg-background/70 p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Periodic schedules</p>
+        <InfoHint title="Periodic schedules" description="Schedules configured in the application image. Their presence does not prove that the separate Beat process is online." />
+      </div>
+      {entries?.length ? (
+        <div className="grid gap-2">
+          {entries.map((entry) => (
+            <div key={entry.name} className="rounded-lg border border-border bg-card p-2.5">
+              <p className="text-sm font-semibold text-foreground">{entry.name}</p>
+              <p className="mt-0.5 font-mono text-xs text-muted-foreground">{entry.task || "Task not reported"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Schedule: {entry.schedule || "not reported"}</p>
+            </div>
+          ))}
+        </div>
+      ) : <p className="text-sm text-muted-foreground">No periodic schedule entries are configured.</p>}
+    </div>
+  )
+}
+
+function QueueRuntimePanel({ consumers }: { consumers: Record<string, string[]> }) {
+  const entries = Object.entries(consumers)
+  return (
+    <div className="rounded-lg border border-border bg-background/70 p-3">
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Queue consumers</p>
+      {entries.length ? (
+        <div className="grid gap-2">
+          {entries.map(([queue, workers]) => (
+            <div key={queue} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-2.5 py-2">
+              <span className="font-mono text-xs font-bold text-foreground">{queue}</span>
+              <span className="text-xs text-muted-foreground">{workers.join(", ")}</span>
+            </div>
+          ))}
+        </div>
+      ) : <p className="text-sm text-muted-foreground">No queues were reported by responding workers.</p>}
+    </div>
+  )
+}
+
+function TaskRuntimePanel({
+  tasks,
+  registeredTasks,
+}: {
+  tasks: NonNullable<AppControlsRuntime["celery"]>["tasks"]
+  registeredTasks: string[]
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-background/70 p-3">
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Task activity and capabilities</p>
+      {tasks?.length ? (
+        <div className="mb-3 grid gap-2">
+          {tasks.map((task, index) => (
+            <div key={`${task.state}-${task.task_id || task.task_name || index}`} className="rounded-lg border border-border bg-card p-2.5 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-mono font-bold text-foreground">{task.task_name || "Unnamed task"}</span>
+                <span className="rounded-full border border-border bg-muted px-2 py-0.5 font-bold uppercase text-muted-foreground">{task.state}</span>
+              </div>
+              <p className="mt-1 text-muted-foreground">Worker {task.worker || "-"} · Queue {task.queue || "-"} · ID {task.task_id || "-"}</p>
+            </div>
+          ))}
+        </div>
+      ) : <p className="mb-3 text-sm text-muted-foreground">No active, reserved, or scheduled tasks were observed.</p>}
+      <details>
+        <summary className="cursor-pointer text-xs font-semibold text-link">Show {registeredTasks.length} registered task names</summary>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {registeredTasks.map((task) => <span key={task} className="rounded-md border border-border bg-card px-2 py-1 font-mono text-[11px] text-muted-foreground">{task}</span>)}
+        </div>
+      </details>
+    </div>
+  )
+}
+
+function formatDuration(seconds?: number | null) {
+  if (!Number.isFinite(seconds)) return "-"
+  const total = Math.max(0, Number(seconds))
+  const days = Math.floor(total / 86_400)
+  const hours = Math.floor((total % 86_400) / 3_600)
+  const minutes = Math.floor((total % 3_600) / 60)
+  if (days) return `${days}d ${hours}h`
+  if (hours) return `${hours}h ${minutes}m`
+  return `${minutes}m`
+}
+
 function ControlSection({ title, description, icon, children }: { title: string; description: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <section className="surface-panel p-3">
+    <section className="surface-panel !overflow-visible p-3">
       <div className="mb-3 flex items-start gap-2">
         <div className="rounded-lg bg-primary/10 p-2 text-primary">{icon}</div>
         <div>
@@ -324,12 +569,75 @@ function ControlSection({ title, description, icon, children }: { title: string;
   )
 }
 
-function ControlToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+function InfoHint({ title, description }: { title: string; description: string }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold">
-      <span>{label}</span>
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-primary" />
-    </label>
+    <span className="group relative inline-flex">
+      <button
+        type="button"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={`About ${title}`}
+      >
+        <Info className="h-3.5 w-3.5" />
+      </button>
+      <span role="tooltip" className="pointer-events-none invisible absolute right-0 top-[calc(100%+0.4rem)] z-50 w-72 rounded-lg border border-border bg-popover p-3 text-left text-xs font-normal text-popover-foreground opacity-0 shadow-lg transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+        <strong className="mb-1 block text-sm text-foreground">{title}</strong>
+        {description}
+      </span>
+    </span>
+  )
+}
+
+function ControlHelp({ definition }: { definition: AppControlHelp }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span className="group relative inline-flex shrink-0">
+      <button
+        type="button"
+        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={`About ${definition.label}`}
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <Info className="h-3.5 w-3.5" />
+      </button>
+      <span
+        role="tooltip"
+        className={`absolute right-0 top-[calc(100%+0.4rem)] z-50 w-[min(26rem,calc(100vw-3rem))] rounded-lg border border-border bg-popover p-3 text-left text-xs font-normal text-popover-foreground shadow-xl transition-opacity ${open ? "visible opacity-100" : "pointer-events-none invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"}`}
+      >
+        <strong className="block text-sm text-foreground">{definition.label}</strong>
+        <span className="mt-1 block text-muted-foreground">{definition.summary}</span>
+        <span className="mt-2 grid gap-1.5">
+          <span><strong className="text-success">When enabled:</strong> {definition.enabledEffect}</span>
+          <span><strong className="text-warn">When disabled:</strong> {definition.disabledEffect}</span>
+          <span><strong className="text-foreground">Operational note:</strong> {definition.operationalNote}</span>
+        </span>
+      </span>
+    </span>
+  )
+}
+
+function ControlToggle({ definition, checked, onChange, disabled = false }: { definition: AppControlHelp; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background/70 px-3 py-2">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-foreground">{definition.label}</p>
+        <p className="truncate text-xs text-muted-foreground">{definition.summary}</p>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <ControlHelp definition={definition} />
+        <button
+          type="button"
+          role="switch"
+          aria-checked={checked}
+          aria-label={`${definition.label}: ${checked ? "enabled" : "disabled"}`}
+          disabled={disabled}
+          onClick={() => onChange(!checked)}
+          className={`relative h-6 w-11 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${checked ? "border-primary bg-primary" : "border-border bg-muted"}`}
+        >
+          <span className={`absolute top-0.5 h-[1.125rem] w-[1.125rem] rounded-full bg-white shadow-sm transition-transform ${checked ? "left-[1.35rem]" : "left-0.5"}`} />
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -485,10 +793,7 @@ export function AdminAuditPage() {
       header: "Outcome",
       accessorFn: (event) => event.outcome || "unknown",
       cell: ({ row }) => (
-        <div className="flex items-center gap-1.5">
-          <span className={`size-1.5 rounded-full ${row.original.outcome === "success" ? "bg-pass" : "bg-destructive"}`} />
-          <span className="text-sm capitalize">{row.original.outcome || "unknown"}</span>
-        </div>
+        <span className="text-sm capitalize">{row.original.outcome || "unknown"}</span>
       ),
     },
     {

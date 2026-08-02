@@ -1,0 +1,103 @@
+import { fireEvent, screen } from "@testing-library/react"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { renderWithRouter } from "@/test/render"
+
+const mocks = vi.hoisted(() => ({
+  context: {} as Record<string, unknown>,
+}))
+
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: ({ queryKey, enabled }: { queryKey: unknown[]; enabled?: boolean }) => {
+    if (queryKey[0] === "sample") return { data: mocks.context, isLoading: false, error: null }
+    return { data: enabled === false ? undefined : { suggested_text: "Suggested" }, isLoading: false, error: null }
+  },
+}))
+
+vi.mock("./OverviewTab", () => ({
+  BiomarkerRow: () => <div>Biomarkers</div>,
+  OverviewTab: () => <div>Overview content</div>,
+  PanelSummary: () => <div>Panel summary</div>,
+}))
+vi.mock("./VariantsTab", () => ({ VariantsTab: ({ intent }: { intent: string }) => <div>{intent} variants</div> }))
+vi.mock("./CNVTab", () => ({ CNVTab: () => <div>CNV content</div> }))
+vi.mock("./FusionsTab", () => ({ FusionsTab: () => <div>Fusion content</div> }))
+vi.mock("./TranslocationsTab", () => ({ TranslocationsTab: () => <div>Translocation content</div> }))
+vi.mock("./ReportsTab", () => ({ ReportsTab: () => <div>Reports content</div> }))
+vi.mock("./CoverageTab", () => ({ CoverageTab: () => <div>Coverage content</div> }))
+vi.mock("./FiltersSidebar", () => ({ FiltersSidebar: ({ intent }: { intent: string }) => <div>Filters {intent}</div> }))
+vi.mock("@/components/comments/CommentsPanel", () => ({ CommentsPanel: () => <div>Comments</div> }))
+
+import { SampleDetail } from "./index"
+
+function sampleContext(overrides: Record<string, unknown> = {}) {
+  return {
+    sample: {
+      name: "DNA_001",
+      case_id: "CASE_001",
+      asp_id: "hema_gmsv1",
+      environment: "production",
+      ingest_status: "ready",
+      omics_layer: "dna",
+      analysis_intents: ["somatic", "germline"],
+      data_counts: { snvs: 12, cnvs: 3, cov: true },
+      ...overrides,
+    },
+    analysis_sections: ["SNV", "CNV", "COVERAGE"],
+  }
+}
+
+describe("SampleDetail", () => {
+  beforeEach(() => {
+    mocks.context = sampleContext()
+  })
+
+  it("shows only analysis tabs supported by the sample resources and ASPC", () => {
+    renderWithRouter(<SampleDetail />, "/samples/DNA_001")
+
+    expect(screen.getByRole("tab", { name: "Overview" })).toBeVisible()
+    expect(screen.getByRole("tab", { name: "Somatic SNVs" })).toBeVisible()
+    expect(screen.getByRole("tab", { name: "Germline SNVs" })).toBeVisible()
+    expect(screen.getByRole("tab", { name: "CNVs" })).toBeVisible()
+    expect(screen.getByRole("tab", { name: "Coverage" })).toBeVisible()
+    expect(screen.queryByRole("tab", { name: "Fusions" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("tab", { name: "Translocations" })).not.toBeInTheDocument()
+  })
+
+  it("switches between somatic and germline views without mixing intent", () => {
+    renderWithRouter(<SampleDetail />, "/samples/DNA_001?tab=snvs")
+    expect(screen.getByText("somatic variants")).toBeVisible()
+    expect(screen.getByText("Filters somatic")).toBeVisible()
+
+    fireEvent.click(screen.getByRole("tab", { name: "Germline SNVs" }))
+    expect(screen.getByText("germline variants")).toBeVisible()
+    expect(screen.getByText("Filters germline")).toBeVisible()
+  })
+
+  it("does not expose germline or coverage tabs when intent and resources are absent", () => {
+    mocks.context = sampleContext({ analysis_intents: ["somatic"], data_counts: { snvs: 2 } })
+    renderWithRouter(<SampleDetail />, "/samples/DNA_001")
+
+    expect(screen.getByRole("tab", { name: "Somatic SNVs" })).toBeVisible()
+    expect(screen.queryByRole("tab", { name: "Germline SNVs" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("tab", { name: "Coverage" })).not.toBeInTheDocument()
+  })
+
+  it("shows RNA fusion analysis without DNA-only analysis tabs", () => {
+    mocks.context = {
+      sample: {
+        name: "RNA_001",
+        omics_layer: "rna",
+        analysis_intents: ["somatic"],
+        data_counts: { fusions: 4 },
+      },
+      analysis_sections: ["FUSION"],
+    }
+    renderWithRouter(<SampleDetail />, "/samples/RNA_001?tab=fusions")
+
+    expect(screen.getByRole("tab", { name: "Fusions" })).toBeVisible()
+    expect(screen.getByText("Fusion content")).toBeVisible()
+    expect(screen.queryByRole("tab", { name: "Somatic SNVs" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("tab", { name: "CNVs" })).not.toBeInTheDocument()
+  })
+})

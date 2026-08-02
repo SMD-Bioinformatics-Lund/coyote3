@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { Search, X } from "lucide-react"
+import { ChevronDown, Search, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { ExpandableText } from "@/components/detail/ExpandableText"
@@ -12,9 +12,11 @@ import { sampleDetailPath } from "@/lib/sample-routing"
 import { shortCount } from "@/lib/detail-formatters"
 import { ColumnDef } from "@tanstack/react-table"
 import { useUrlTableState } from "@/hooks/useUrlTableState"
+import { tieredVariantSearchState } from "@/lib/variant-routing"
 
+const tierBarClasses = ["", "bg-tier1", "bg-tier2", "bg-tier3", "bg-tier4"]
+const tierTextClasses = ["", "text-tier1", "text-tier2", "text-tier3", "text-tier4"]
 const tierHeaderClasses = ["", "bg-tier-header1", "bg-tier-header2", "bg-tier-header3", "bg-tier-header4"]
-const tierDotClasses = ["", "bg-tier1", "bg-tier2", "bg-tier3", "bg-tier4"]
 
 function tierCount(stats: Record<string, unknown>, tier: number) {
   return Number(stats?.[`tier${tier}`] || 0)
@@ -25,14 +27,16 @@ function totalTierCount(stats: Record<string, unknown>) {
 }
 
 export function TieredVariantSearch() {
-  const [search, setSearch] = useState("")
-  const [appliedSearch, setAppliedSearch] = useState("")
-  const [mode, setMode] = useState("variant")
-  const [appliedMode, setAppliedMode] = useState("variant")
-  const [includeText, setIncludeText] = useState(false)
-  const [appliedIncludeText, setAppliedIncludeText] = useState(false)
-  const [selectedAssays, setSelectedAssays] = useState<string[]>([])
-  const [appliedAssays, setAppliedAssays] = useState<string[]>([])
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [initialSearchState] = useState(() => tieredVariantSearchState(searchParams))
+  const [search, setSearch] = useState(initialSearchState.search)
+  const [appliedSearch, setAppliedSearch] = useState(initialSearchState.search)
+  const [mode, setMode] = useState(initialSearchState.mode)
+  const [appliedMode, setAppliedMode] = useState(initialSearchState.mode)
+  const [includeText, setIncludeText] = useState(initialSearchState.includeText)
+  const [appliedIncludeText, setAppliedIncludeText] = useState(initialSearchState.includeText)
+  const [selectedAssays, setSelectedAssays] = useState<string[]>(initialSearchState.assays)
+  const [appliedAssays, setAppliedAssays] = useState<string[]>(initialSearchState.assays)
   const {
     sorting,
     setSorting,
@@ -64,10 +68,21 @@ export function TieredVariantSearch() {
   }, [data?.tier_stats?.by_assay])
 
   const submitSearch = () => {
-    setAppliedSearch(search.trim())
+    const normalizedSearch = search.trim()
+    setAppliedSearch(normalizedSearch)
     setAppliedMode(mode)
     setAppliedIncludeText(includeText)
     setAppliedAssays(selectedAssays)
+    const params = new URLSearchParams(searchParams)
+    params.delete("search_str")
+    params.delete("search_mode")
+    params.delete("include_annotation_text")
+    params.delete("assays")
+    if (normalizedSearch) params.set("search_str", normalizedSearch)
+    params.set("search_mode", mode)
+    if (includeText) params.set("include_annotation_text", "true")
+    selectedAssays.forEach((assay) => params.append("assays", assay))
+    setSearchParams(params, { replace: true })
   }
 
   const clearSearch = () => {
@@ -79,6 +94,12 @@ export function TieredVariantSearch() {
     setAppliedMode("variant")
     setAppliedIncludeText(false)
     setAppliedAssays([])
+    const params = new URLSearchParams(searchParams)
+    params.delete("search_str")
+    params.delete("search_mode")
+    params.delete("include_annotation_text")
+    params.delete("assays")
+    setSearchParams(params, { replace: true })
   }
 
   const columns: ColumnDef<any, any>[] = useMemo(() => [
@@ -269,42 +290,68 @@ export function TieredVariantSearch() {
         )}
 
         {assayStats.length > 0 && (
-          <div className="mb-3 rounded-xl border border-border bg-background/70 p-3">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <details className="group mb-3 overflow-hidden rounded-xl border border-border bg-card">
+            <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-3 marker:hidden hover:bg-muted/30">
               <div>
                 <div className="text-xs font-black uppercase tracking-wider text-muted-foreground">Assay distribution</div>
                 <div className="text-xs text-muted-foreground">Unique tiered variants by assay for the current search.</div>
               </div>
-              <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-black text-foreground">
-                {assayStats.length} assay{assayStats.length === 1 ? "" : "s"}
-              </span>
-            </div>
-            <div className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
-              {assayStats.map(({ assay, stats, total }) => (
-                <div key={assay} className="glass-card rounded-lg px-3 py-2">
-                  <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
-                    <span className="truncate text-xs font-black uppercase text-foreground" title={assay}>
-                      {assay}
-                    </span>
-                    <span className="rounded-md bg-muted px-2 py-0.5 text-[0.72rem] font-black text-muted-foreground">
-                      {shortCount(total)}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-1.5">
+              <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+                <span>{assayStats.length} assay{assayStats.length === 1 ? "" : "s"}</span>
+                <ChevronDown className="h-4 w-4 transition-transform duration-150 group-open:rotate-180" />
+              </div>
+            </summary>
+            <div className="overflow-x-auto border-t border-border">
+              <table className="w-full min-w-[42rem] border-collapse text-xs">
+                <thead className="bg-muted/45 text-left uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-2 font-black">Assay</th>
+                    <th className="w-full min-w-48 px-4 py-2 font-black">Distribution</th>
                     {[1, 2, 3, 4].map((tier) => (
-                      <div key={tier} className="rounded-md border border-border bg-background px-2 py-1">
-                        <div className="flex items-center gap-1.5 text-[0.68rem] font-black uppercase text-muted-foreground">
-                          <span className={`h-2 w-2 rounded-full ${tierDotClasses[tier]}`} />
-                          T{tier}
-                        </div>
-                        <div className="text-sm font-black text-foreground">{shortCount(tierCount(stats, tier))}</div>
-                      </div>
+                      <th key={tier} className={`w-16 px-3 py-2 text-right font-black ${tierTextClasses[tier]}`}>
+                        Tier {tier}
+                      </th>
                     ))}
-                  </div>
-                </div>
-              ))}
+                    <th className="w-16 px-4 py-2 text-right font-black">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {assayStats.map(({ assay, stats, total }) => (
+                    <tr key={assay} className="hover:bg-muted/25">
+                      <th scope="row" className="max-w-48 truncate px-4 py-2.5 text-left font-black uppercase text-foreground" title={assay}>
+                        {assay}
+                      </th>
+                      <td className="px-4 py-2.5">
+                        <div
+                          className="flex h-3 min-w-48 overflow-hidden rounded-full bg-muted"
+                          aria-label={`${assay}: ${total} tiered variants`}
+                        >
+                          {[1, 2, 3, 4].map((tier) => (
+                            tierCount(stats, tier) > 0 && (
+                              <span
+                                key={tier}
+                                className={`${tierBarClasses[tier]} h-full border-r border-card/50 last:border-r-0`}
+                                style={{ width: `${(tierCount(stats, tier) / total) * 100}%` }}
+                                title={`Tier ${tier}: ${tierCount(stats, tier)}`}
+                              />
+                            )
+                          ))}
+                        </div>
+                      </td>
+                      {[1, 2, 3, 4].map((tier) => (
+                        <td key={tier} className={`px-3 py-2.5 text-right font-bold tabular-nums ${tierTextClasses[tier]}`}>
+                          {shortCount(tierCount(stats, tier))}
+                        </td>
+                      ))}
+                      <td className="px-4 py-2.5 text-right text-sm font-black tabular-nums text-foreground" title={`${total} total variants`}>
+                        {shortCount(total)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          </details>
         )}
 
         {isLoading ? (

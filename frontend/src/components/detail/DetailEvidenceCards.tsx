@@ -36,10 +36,10 @@ export function DetailMetricTable({
         <tbody className="divide-y divide-border/60">
           {visible.map((metric) => (
             <tr key={metric.label} className="bg-background/45 align-top">
-              <th className={cn("w-36 px-3 font-bold uppercase tracking-wide text-muted-foreground", dense ? "py-1.5" : "py-2")}>
+              <th className={cn("w-36 px-3 font-bold uppercase tracking-wide text-muted-foreground", dense ? "py-0.5" : "py-1")}>
                 {metric.label}
               </th>
-              <td className={cn("px-3 font-semibold text-foreground", dense ? "py-1.5" : "py-2", metric.monospace && "font-mono")}>
+              <td className={cn("px-3 font-semibold text-foreground", dense ? "py-0.5" : "py-1", metric.monospace && "font-mono")}>
                 {metric.href ? (
                   <a
                     className="link-text inline-flex min-w-0 items-center gap-1"
@@ -81,7 +81,7 @@ export function DetailDataTable<T>({
         <thead className="bg-muted text-[11px] font-black uppercase tracking-wide text-foreground dark:bg-muted/70">
           <tr>
             {columns.map((column) => (
-              <th key={column.key} className={cn("border-b-2 border-r border-border px-2.5 py-2 last:border-r-0", column.className)}>
+              <th key={column.key} className={cn("border-b-2 border-r border-border px-2.5 py-1 last:border-r-0", column.className)}>
                 {column.header}
               </th>
             ))}
@@ -91,7 +91,7 @@ export function DetailDataTable<T>({
           {rows.map((row, index) => (
             <tr key={index} className="align-top odd:bg-background/35 even:bg-card/50 hover:bg-muted/35">
               {columns.map((column) => (
-                <td key={column.key} className={cn("border-b border-r border-border/65 px-2.5 py-2 last:border-r-0", column.className)}>
+                <td key={column.key} className={cn("border-b border-r border-border/40 px-2.5 py-1 last:border-r-0", column.className)}>
                   {column.render(row, index)}
                 </td>
               ))}

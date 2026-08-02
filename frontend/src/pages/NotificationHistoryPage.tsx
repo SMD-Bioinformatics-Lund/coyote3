@@ -19,7 +19,7 @@ export function NotificationHistoryPage() {
     <PageShell
       eyebrow="Account"
       title="Notifications"
-      description="Recent application messages, API failures, and workflow feedback retained locally in this browser."
+      description="Messages addressed to your account, together with recent workflow feedback from this browser."
       actions={
         <>
           <Button variant="outline" onClick={markAllRead} disabled={!unreadCount}>
@@ -63,6 +63,11 @@ export function NotificationHistoryPage() {
                       {notification.source && (
                         <span className="truncate text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                           {notification.source}
+                        </span>
+                      )}
+                      {notification.category && (
+                        <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-black uppercase text-muted-foreground">
+                          {notification.category}
                         </span>
                       )}
                     </div>

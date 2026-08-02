@@ -121,7 +121,7 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
       cell: ({ row }) => {
         const f = selectedFusionCall(row.original)?.effect || row.original.frame
         return (
-          <span className={`rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${f === 'in-frame' ? 'bg-pass/10 text-pass' : 'bg-muted text-muted-foreground'}`}>
+          <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${f === 'in-frame' ? 'bg-pass/10 text-pass' : 'bg-muted text-muted-foreground'}`}>
             {f || "Unknown"}
           </span>
         )
@@ -151,7 +151,7 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
         const bps = [call?.breakpoint1, call?.breakpoint2].filter(Boolean)
         const breakpoints = bps.length ? bps : row.original.breakpoints || []
         return (
-          <div className="flex flex-col gap-1 text-[11px]">
+          <div className="flex flex-col gap-0.5 text-[11px] leading-tight">
             {breakpoints.map((bp: string, i: number) => (
               <span key={i} className="font-mono bg-muted/50 px-1.5 py-0.5 rounded w-max">{bp}</span>
             ))}
@@ -189,7 +189,7 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
             <Link
               to={`/samples/${sampleId}/fusion/${row.original._id}`}
               state={{ from: `${location.pathname}${location.search}` }}
-              className="inline-block p-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-md transition-colors duration-100 shadow-sm"
+              className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-white"
             >
               <span title="View Detail"><ExternalLink className="w-4 h-4" /></span>
             </Link>

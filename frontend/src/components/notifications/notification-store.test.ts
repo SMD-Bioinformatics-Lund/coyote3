@@ -30,19 +30,30 @@ describe("notification store", () => {
   })
 
   it("loads valid arrays and fails closed for malformed storage", () => {
-    storage.set("coyote3.notifications", JSON.stringify([{ id: "1" }]))
-    expect(loadNotifications()).toEqual([{ id: "1" }])
-    storage.set("coyote3.notifications", "not json")
-    expect(loadNotifications()).toEqual([])
-    storage.set("coyote3.notifications", JSON.stringify({ id: "1" }))
-    expect(loadNotifications()).toEqual([])
+    storage.set("coyote3.notifications:user.one", JSON.stringify([{ id: "1" }]))
+    expect(loadNotifications("user.one")).toEqual([{ id: "1" }])
+    expect(loadNotifications("user.two")).toEqual([])
+    storage.set("coyote3.notifications:user.one", "not json")
+    expect(loadNotifications("user.one")).toEqual([])
+    storage.set("coyote3.notifications:user.one", JSON.stringify({ id: "1" }))
+    expect(loadNotifications("user.one")).toEqual([])
   })
 
   it("retains at most 200 notifications", () => {
     saveNotifications(
+      "user.one",
       Array.from({ length: 205 }, (_, index) => createNotification({ title: `Event ${index}` })),
     )
-    expect(JSON.parse(storage.get("coyote3.notifications") || "[]")).toHaveLength(200)
+    expect(JSON.parse(storage.get("coyote3.notifications:user.one") || "[]")).toHaveLength(200)
+  })
+
+  it("does not copy durable server messages into browser storage", () => {
+    saveNotifications("user.one", [
+      { ...createNotification({ title: "Local" }), persisted: false },
+      { ...createNotification({ title: "Server" }), persisted: true },
+    ])
+
+    expect(JSON.parse(storage.get("coyote3.notifications:user.one") || "[]")).toHaveLength(1)
   })
 
   it("delivers unique notifications, suppresses duplicates, and unsubscribes", () => {

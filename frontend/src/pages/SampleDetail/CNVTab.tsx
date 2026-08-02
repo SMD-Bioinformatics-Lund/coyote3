@@ -101,12 +101,12 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
         const primaryGenes = genesList.filter((g: any) => g.class).map((g: any) => g.gene)
         const otherGenesCount = genesList.length - primaryGenes.length
         return (
-          <div>
-            <div className="font-bold text-primary max-w-[150px] truncate" title={primaryGenes.join(', ')}>
+          <div className="leading-tight">
+            <div className="max-w-[150px] truncate font-bold text-primary" title={primaryGenes.join(', ')}>
               {primaryGenes.join(', ') || "-"}
             </div>
             {otherGenesCount > 0 && (
-              <div className="text-[11px] text-muted-foreground mt-0.5">
+              <div className="text-[11px] leading-tight text-muted-foreground">
                 + {otherGenesCount} other genes
               </div>
             )}
@@ -122,7 +122,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
         const cnv = row.original
         const region = `${cnv.chr}:${cnv.start}-${cnv.end}`
         return (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5 leading-tight">
             <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded w-max">{region}</span>
             <span className="text-xs text-muted-foreground">{Math.abs(cnv.size).toLocaleString()} bp</span>
           </div>
@@ -147,7 +147,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
         const copyNumber = (2 * Math.pow(2, cnv.ratio)).toFixed(2)
         const isGain = cnv.ratio > 0
         return (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5 leading-tight">
             <div className="flex items-center gap-2">
               <span className={`font-mono font-bold ${isGain ? 'text-fail' : 'text-tier3'}`}>
                 {copyNumber}
@@ -155,7 +155,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
               <span className="text-[11px] text-muted-foreground">({Number(cnv.ratio).toFixed(2)})</span>
             </div>
             {sample.purity && (
-              <div className="text-[11px] text-muted-foreground mt-0.5">
+              <div className="text-[11px] leading-tight text-muted-foreground">
                 Adj Purity: {isGain ? (Number(copyNumber) * 1 / sample.purity).toFixed(2) : (Number(copyNumber) * sample.purity).toFixed(2)}
               </div>
             )}
@@ -188,7 +188,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
         const artefactKeys = Object.keys(cnv).filter(k => k.startsWith('AFRQ_'))
 
         return (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-0.5 leading-tight">
             <div className="flex flex-wrap gap-1">
               {isInteresting && <span className="w-max rounded bg-pass px-1.5 py-0.5 text-[11px] font-bold uppercase text-primary-foreground">Report</span>}
               {isFp && <span className="w-max rounded bg-destructive px-1.5 py-0.5 text-[11px] font-bold uppercase text-destructive-foreground">False Positive</span>}
@@ -228,7 +228,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
             <Link
               to={`/samples/${sampleId}/cnv/${row.original._id}`}
               state={{ from: `${location.pathname}${location.search}` }}
-              className="inline-block rounded-md bg-primary/10 p-1.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-primary-foreground"
+              className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-primary-foreground"
             >
               <span title="View Detail"><ExternalLink className="w-4 h-4" /></span>
             </Link>

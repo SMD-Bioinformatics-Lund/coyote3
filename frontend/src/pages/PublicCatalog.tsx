@@ -723,14 +723,14 @@ function AssayMatrixTable({
           </colgroup>
           <thead className="sticky top-0 z-20 border-b-2 border-border text-[11px] font-black uppercase tracking-wide text-foreground shadow-sm">
             <tr>
-              <th rowSpan={3} className="sticky left-0 z-30 border-b-2 border-r border-border matrix-head-list px-3 py-2 text-center align-middle text-xs font-black uppercase text-foreground">
+              <th rowSpan={3} className="sticky left-0 z-30 border-b-2 border-r border-border matrix-head-list px-3 py-1.5 text-center align-middle text-xs font-black uppercase text-foreground">
                 Gene
               </th>
               {headerSpans.mod.map((span, index) => (
                 <th
                   key={span.key}
                   colSpan={span.span}
-                  className="matrix-head-mod border-b border-r border-border px-3 py-3 text-center align-middle text-xs font-black uppercase tracking-wider text-primary last:border-r-0"
+                  className="matrix-head-mod border-b border-r border-border px-3 py-2.5 text-center align-middle text-xs font-black uppercase tracking-wider text-primary last:border-r-0"
                   style={index > 0 ? matrixBoundaryStyle("matrix-section") : undefined}
                 >
                   <span className="inline-block max-w-full truncate">
@@ -744,7 +744,7 @@ function AssayMatrixTable({
                 <th
                   key={span.key}
                   colSpan={span.span}
-                  className="matrix-head-group border-b border-r border-border px-3 py-2.5 text-center align-middle text-[11px] font-black uppercase tracking-wider text-foreground last:border-r-0"
+                  className="matrix-head-group border-b border-r border-border px-3 py-2 text-center align-middle text-[11px] font-black uppercase tracking-wider text-foreground last:border-r-0"
                   style={index > 0 ? matrixBoundaryStyle("matrix-group") : undefined}
                 >
                   <span className="inline-block max-w-full truncate">
@@ -759,7 +759,7 @@ function AssayMatrixTable({
                 return (
                   <th
                     key={col.key}
-                    className="matrix-head-list border-b-2 border-r border-border px-2 py-2 text-center align-middle text-[10px] font-black uppercase text-foreground last:border-r-0"
+                    className="matrix-head-list border-b-2 border-r border-border px-2 py-1.5 text-center align-middle text-[10px] font-black uppercase text-foreground last:border-r-0"
                     title={col.isgl_key}
                     style={matrixBoundaryStyle(boundary)}
                   >
@@ -772,7 +772,7 @@ function AssayMatrixTable({
           <tbody>
             {genes.map((gene) => (
               <tr key={gene} className="bg-[var(--paper-raised)] transition-colors duration-75 hover:bg-primary/10 dark:hover:bg-primary/20">
-                <th className="sticky left-0 z-10 border-b border-r border-border/65 bg-card px-3 py-1.5 text-sm font-black">
+                <th className="sticky left-0 z-10 border-b border-r border-border/40 bg-card px-3 py-1 text-sm font-black">
                   <Link
                     to={`/public/gene/${encodeURIComponent(gene)}/info`}
                     className="link-text transition-colors duration-100"
@@ -785,7 +785,7 @@ function AssayMatrixTable({
                   return (
                     <td
                       key={`${gene}:${col.key}`}
-                      className="h-8 border-b border-r border-border/65 px-2 py-1.5 text-center last:border-r-0"
+                      className="h-7 border-b border-r border-border/40 px-2 py-1 text-center last:border-r-0"
                     >
                       {present ? (
                         <Check className="mx-auto h-4 w-4 rounded-full text-pass" strokeWidth={2.4} />

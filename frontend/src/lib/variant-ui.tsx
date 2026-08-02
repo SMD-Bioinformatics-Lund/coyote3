@@ -654,7 +654,7 @@ export function ImpactBadge({ value }: { value: unknown }) {
 }
 
 export function CallerBadges({ value }: { value: unknown }) {
-  const callers = normalizedCallerList(value)
+  const callers = Array.from(new Set(normalizedCallerList(value)))
   if (!callers.length) return null
 
   return (
@@ -671,8 +671,8 @@ export function CallerBadges({ value }: { value: unknown }) {
 function predictionSeverity(value: unknown) {
   const text = String(value || "").toLowerCase()
   if (!text) return "neutral"
-  if (text.includes("deleterious") || text.includes("damaging") || text.includes("probably")) return "fail"
   if (text.includes("possibly") || text.includes("low_confidence")) return "warn"
+  if (text.includes("deleterious") || text.includes("damaging") || text.includes("probably")) return "fail"
   if (text.includes("tolerated") || text.includes("benign")) return "pass"
   return "info"
 }
@@ -680,9 +680,9 @@ function predictionSeverity(value: unknown) {
 function predictionLabel(value: unknown) {
   const text = String(value || "").toLowerCase()
   if (text.includes("deleterious")) return "Deleterious"
-  if (text.includes("probably") || text.includes("damaging")) return "Damaging"
   if (text.includes("possibly")) return "Possibly damaging"
   if (text.includes("low_confidence")) return "Low confidence"
+  if (text.includes("probably") || text.includes("damaging")) return "Damaging"
   if (text.includes("tolerated")) return "Tolerated"
   if (text.includes("benign")) return "Benign"
   return "Prediction"
@@ -693,17 +693,17 @@ function predictionDescription(value: unknown) {
   if (text.includes("deleterious")) {
     return "SIFT predicts that the amino-acid substitution is likely to affect protein function."
   }
-  if (text.includes("probably")) {
-    return "PolyPhen predicts a probably damaging protein effect. Treat this as supporting computational evidence, not as a standalone classification."
-  }
-  if (text.includes("damaging")) {
-    return "The prediction suggests a damaging protein effect. Use together with clinical, population, and assay evidence."
-  }
   if (text.includes("possibly")) {
     return "PolyPhen predicts a possible damaging effect, with lower confidence than a probably damaging call."
   }
   if (text.includes("low_confidence")) {
     return "The prediction is low confidence and should be interpreted cautiously."
+  }
+  if (text.includes("probably")) {
+    return "PolyPhen predicts a probably damaging protein effect. Treat this as supporting computational evidence, not as a standalone classification."
+  }
+  if (text.includes("damaging")) {
+    return "The prediction suggests a damaging protein effect. Use together with clinical, population, and assay evidence."
   }
   if (text.includes("tolerated")) {
     return "SIFT predicts that the amino-acid substitution is likely tolerated."

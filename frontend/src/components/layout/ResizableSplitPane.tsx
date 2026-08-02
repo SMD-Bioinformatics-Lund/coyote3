@@ -19,7 +19,9 @@ interface ResizableSplitPaneProps {
 function storedSize(storageKey: string, fallback: number, min: number, max: number) {
   if (typeof window === "undefined") return fallback
   try {
-    const value = Number(window.localStorage.getItem(storageKey))
+    const stored = window.localStorage.getItem(storageKey)
+    if (stored === null || stored.trim() === "") return fallback
+    const value = Number(stored)
     return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback
   } catch {
     return fallback

@@ -17,6 +17,7 @@ import { CommentsPanel } from "@/components/comments/CommentsPanel"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { hasSampleFile } from "@/lib/sample-shape"
 import { sampleUrlKey } from "@/lib/sample-routing"
+import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -29,7 +30,7 @@ const TABS = [
   { id: "reports", label: "Reports" }
 ]
 
-function visibleTabs(sample: any, context: any) {
+function visibleTabs(sample: any, context: any, modules?: any) {
   const configured = new Set((context?.analysis_sections || []).map((item: string) => String(item).toUpperCase()))
   const hasCount = (key: string) => {
     const value = sample?.data_counts?.[key]
@@ -42,6 +43,9 @@ function visibleTabs(sample: any, context: any) {
       .map((intent: unknown) => String(intent).toLowerCase()),
   )
   return TABS.filter((tab) => {
+    if (tab.id === "reports") return moduleIsEnabled(modules, "reports")
+    if (["snvs", "germline-snvs", "cnvs", "translocations", "coverage"].includes(tab.id) && !moduleIsEnabled(modules, "dna_analysis")) return false
+    if (tab.id === "fusions" && !moduleIsEnabled(modules, "rna_analysis")) return false
     if (tab.id === "coverage") {
       const isDna = String(sample?.omics_layer || "").toLowerCase() === "dna"
       const hasResource = hasSampleFile(sample, "cov") || hasCount("cov")
@@ -78,6 +82,7 @@ export function SampleDetail() {
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedTab = searchParams.get("tab") || "overview"
   const requestedIntent = searchParams.get("intent") === "germline" ? "germline" : "somatic"
+  const modulesQuery = useApplicationModules()
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['sample', id],
@@ -85,7 +90,7 @@ export function SampleDetail() {
   })
   const sample = data?.sample || {}
   const sampleRouteKey = sampleUrlKey(sample, id)
-  const tabs = useMemo(() => visibleTabs(data?.sample || {}, data), [data])
+  const tabs = useMemo(() => visibleTabs(data?.sample || {}, data, modulesQuery.data), [data, modulesQuery.data])
   const canonicalRequestedTab = requestedTab === "snvs" && requestedIntent === "germline"
     ? "germline-snvs"
     : requestedTab

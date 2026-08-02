@@ -46,6 +46,7 @@ export function GeneWithOncoKbBadge({
   oncokbGenes,
   record,
   showOncoKbBadge = true,
+  geneTo,
   className,
 }: {
   gene?: string
@@ -56,6 +57,7 @@ export function GeneWithOncoKbBadge({
   oncokbGenes?: string[] | Record<string, OncoKbGeneRecord>
   record?: OncoKbGeneRecord | null
   showOncoKbBadge?: boolean
+  geneTo?: string
   className?: string
 }) {
   const shownGene = displayGene || gene
@@ -75,7 +77,7 @@ export function GeneWithOncoKbBadge({
   return (
     <span className={cn("inline-flex min-w-0 items-center gap-1.5", className)}>
       <Link
-        to={`/public/gene/${encodeURIComponent(String(geneHrefId || shownGene))}/info`}
+        to={geneTo || `/public/gene/${encodeURIComponent(String(geneHrefId || shownGene))}/info`}
         className="link-text truncate font-bold"
         title={hasSymbolChange ? symbolTitle : String(shownGene)}
       >

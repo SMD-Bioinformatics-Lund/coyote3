@@ -265,6 +265,13 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     dataUsed: ["compiled UI route registry"],
   },
   {
+    path: "/admin/notifications",
+    page: "AdminNotificationBroadcastPage",
+    area: "admin",
+    api: ["GET /admin/notifications/recipients", "POST /admin/notifications/broadcast"],
+    dataUsed: ["active recipient accounts", "broadcast audience", "message category and severity"],
+  },
+  {
     path: "/admin/:resource/:id/view",
     page: "AdminResourceEditorPage",
     area: "admin",
@@ -275,8 +282,8 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/notifications",
     page: "NotificationHistoryPage",
     area: "account",
-    api: [],
-    dataUsed: ["local notification history"],
+    api: ["GET /notifications", "PATCH /notifications/:id/read", "DELETE /notifications/:id"],
+    dataUsed: ["current-user notification inbox", "per-user read and dismissal state", "local workflow feedback"],
   },
   {
     path: "/profile",

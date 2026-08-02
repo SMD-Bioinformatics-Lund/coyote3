@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { apiPath } from "@/lib/runtime-paths"
 import { NotificationContext, type NotificationContextValue } from "./notification-context"
 import {
   type AppNotification,
@@ -19,46 +20,133 @@ const toneMeta = {
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<AppNotification[]>(() => loadNotifications())
+  const [username, setUsername] = useState("")
+  const usernameRef = useRef("")
+  const initializedServerInbox = useRef(false)
+  const seenServerIds = useRef(new Set<string>())
+  const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [visibleToasts, setVisibleToasts] = useState<AppNotification[]>([])
 
   useEffect(() => {
-    saveNotifications(notifications)
-  }, [notifications])
+    saveNotifications(username, notifications)
+  }, [notifications, username])
+
+  const showToast = useCallback((notification: AppNotification) => {
+    setVisibleToasts((current) => [notification, ...current].slice(0, 4))
+    window.setTimeout(() => {
+      setVisibleToasts((current) => current.filter((item) => item.id !== notification.id))
+    }, notification.tone === "error" ? 8000 : 5000)
+  }, [])
+
+  const refreshServerInbox = useCallback(async () => {
+    try {
+      const identityResponse = await fetch(apiPath("/auth/whoami"), { credentials: "same-origin" })
+      if (!identityResponse.ok) {
+        usernameRef.current = ""
+        setUsername("")
+        setNotifications([])
+        initializedServerInbox.current = false
+        seenServerIds.current.clear()
+        return
+      }
+      const identity = await identityResponse.json() as { username?: string }
+      const nextUsername = String(identity.username || "").trim().toLowerCase()
+      if (!nextUsername) return
+      const changedUser = usernameRef.current !== nextUsername
+      if (changedUser) {
+        usernameRef.current = nextUsername
+        setUsername(nextUsername)
+        initializedServerInbox.current = false
+        seenServerIds.current.clear()
+      }
+
+      const inboxResponse = await fetch(apiPath("/notifications?limit=200"), {
+        credentials: "same-origin",
+      })
+      if (!inboxResponse.ok) return
+      const payload = await inboxResponse.json() as { notifications?: ServerNotification[] }
+      const serverNotifications = (payload.notifications || []).map(mapServerNotification)
+
+      if (initializedServerInbox.current) {
+        serverNotifications
+          .filter((item) => !item.read && !seenServerIds.current.has(item.id))
+          .slice(0, 4)
+          .forEach(showToast)
+      }
+      seenServerIds.current = new Set(serverNotifications.map((item) => item.id))
+      initializedServerInbox.current = true
+      setNotifications((current) => {
+        const local = changedUser
+          ? loadNotifications(nextUsername)
+          : current.filter((item) => !item.persisted)
+        return [...serverNotifications, ...local]
+          .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+          .slice(0, 400)
+      })
+    } catch {
+      // Notification polling must never interrupt the active clinical workflow.
+    }
+  }, [showToast])
+
+  useEffect(() => {
+    void refreshServerInbox()
+    const interval = window.setInterval(() => void refreshServerInbox(), 30_000)
+    const refresh = () => void refreshServerInbox()
+    window.addEventListener("focus", refresh)
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener("focus", refresh)
+    }
+  }, [refreshServerInbox])
 
   useEffect(() => {
     return subscribeNotifications((notification) => {
       setNotifications((current) => [notification, ...current].slice(0, 200))
-      setVisibleToasts((current) => [notification, ...current].slice(0, 4))
-      window.setTimeout(() => {
-        setVisibleToasts((current) => current.filter((item) => item.id !== notification.id))
-      }, notification.tone === "error" ? 8000 : 5000)
+      showToast(notification)
     })
+  }, [showToast])
+
+  const updateServerState = useCallback(async (path: string, method: "PATCH" | "DELETE") => {
+    try {
+      await fetch(apiPath(path), { method, credentials: "same-origin" })
+    } catch {
+      // The next inbox refresh reconciles state after a transient network error.
+    }
   }, [])
 
   const push = useCallback((input: NotificationInput) => notify(input), [])
 
   const markRead = useCallback((id: string) => {
+    const persisted = notifications.some((item) => item.id === id && item.persisted)
     setNotifications((current) =>
       current.map((notification) =>
         notification.id === id ? { ...notification, read: true } : notification
       )
     )
-  }, [])
+    if (persisted) void updateServerState(`/notifications/${encodeURIComponent(id)}/read`, "PATCH")
+  }, [notifications, updateServerState])
 
   const markAllRead = useCallback(() => {
     setNotifications((current) => current.map((notification) => ({ ...notification, read: true })))
-  }, [])
+    if (notifications.some((item) => item.persisted)) {
+      void updateServerState("/notifications/read-all", "PATCH")
+    }
+  }, [notifications, updateServerState])
 
   const remove = useCallback((id: string) => {
+    const persisted = notifications.some((item) => item.id === id && item.persisted)
     setNotifications((current) => current.filter((notification) => notification.id !== id))
     setVisibleToasts((current) => current.filter((notification) => notification.id !== id))
-  }, [])
+    if (persisted) void updateServerState(`/notifications/${encodeURIComponent(id)}`, "DELETE")
+  }, [notifications, updateServerState])
 
   const clear = useCallback(() => {
     setNotifications([])
     setVisibleToasts([])
-  }, [])
+    if (notifications.some((item) => item.persisted)) {
+      void updateServerState("/notifications", "DELETE")
+    }
+  }, [notifications, updateServerState])
 
   const value = useMemo<NotificationContextValue>(
     () => ({
@@ -83,6 +171,45 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       </div>
     </NotificationContext.Provider>
   )
+}
+
+type ServerNotification = {
+  id: string
+  tone: AppNotification["tone"]
+  category?: AppNotification["category"]
+  title: string
+  message?: string
+  source?: string
+  resource?: {
+    type?: string
+    id?: string
+    name?: string
+    sample_name?: string
+    finding?: string
+  }
+  created_at: string
+  read: boolean
+}
+
+function mapServerNotification(item: ServerNotification): AppNotification {
+  return {
+    id: item.id,
+    tone: item.tone,
+    category: item.category,
+    title: item.title,
+    message: item.message,
+    source: item.source,
+    resource: item.resource ? {
+      type: item.resource.type,
+      id: item.resource.id,
+      name: item.resource.name,
+      sampleName: item.resource.sample_name,
+      finding: item.resource.finding,
+    } : undefined,
+    createdAt: item.created_at,
+    read: item.read,
+    persisted: true,
+  }
 }
 
 function NotificationToast({

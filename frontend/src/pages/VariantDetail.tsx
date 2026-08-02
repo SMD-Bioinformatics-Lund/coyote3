@@ -508,19 +508,19 @@ export function VariantDetail() {
                   <table className="w-full text-left text-sm">
                     <thead className="bg-muted/50 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       <tr>
-                        <th className="px-3 py-2">Type</th>
-                        <th className="px-3 py-2">VAF</th>
-                        <th className="px-3 py-2">Alt Depth</th>
-                        <th className="px-3 py-2">Total Depth</th>
+                        <th className="px-3 py-1">Type</th>
+                        <th className="px-3 py-1">VAF</th>
+                        <th className="px-3 py-1">Alt Depth</th>
+                        <th className="px-3 py-1">Total Depth</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/30">
                       {variant?.GT?.map((gt: any, i: number) => (
                         <tr key={i}>
-                          <td className="px-3 py-2 capitalize font-semibold">{gt.type}</td>
-                          <td className="px-3 py-2 font-mono">{(gt.AF * 100).toFixed(1)}%</td>
-                          <td className="px-3 py-2 font-mono">{gt.VD}</td>
-                          <td className="px-3 py-2 font-mono">{gt.DP}</td>
+                          <td className="px-3 py-1 capitalize font-semibold">{gt.type}</td>
+                          <td className="px-3 py-1 font-mono">{(gt.AF * 100).toFixed(1)}%</td>
+                          <td className="px-3 py-1 font-mono">{gt.VD}</td>
+                          <td className="px-3 py-1 font-mono">{gt.DP}</td>
                         </tr>
                       ))}
                     </tbody>

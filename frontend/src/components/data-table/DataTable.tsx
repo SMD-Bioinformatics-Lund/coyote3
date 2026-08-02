@@ -243,7 +243,7 @@ export function DataTable<TData, TValue>({
                       <th
                         key={header.id}
                         className={cn(
-                            "whitespace-normal break-words border-b-2 border-r border-border px-2 py-2 align-bottom leading-tight last:border-r-0",
+                            "whitespace-normal break-words border-b-2 border-r border-border px-2 py-1 align-bottom leading-tight last:border-r-0",
                           align === "center" ? "text-center" : "text-left",
                           defaultColumnClass(header.column.id),
                           meta?.headerClassName,
@@ -252,7 +252,7 @@ export function DataTable<TData, TValue>({
                         {header.isPlaceholder ? null : (
                           <div
                             className={cn(
-                              "flex min-h-10 items-end gap-0.5",
+                              "flex min-h-7 items-end gap-0.5",
                               align === "center" ? "justify-center" : "justify-start",
                               header.column.getCanSort() ? "cursor-pointer select-none hover:text-foreground transition-colors" : ""
                             )}
@@ -293,7 +293,7 @@ export function DataTable<TData, TValue>({
                         <td
                           key={cell.id}
                           className={cn(
-                            "border-b border-r border-border/65 px-2 py-2 align-middle last:border-r-0",
+                            "border-b border-r border-border/40 px-2 py-0.5 align-middle last:border-r-0",
                             align === "center" ? "text-center" : "text-left",
                             defaultColumnClass(cell.column.id),
                             meta?.cellClassName,

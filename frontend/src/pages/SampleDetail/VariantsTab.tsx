@@ -13,6 +13,7 @@ import { filterFlags, findingRowClass, statusLabels, tierValue } from "@/lib/var
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
 import { igvLoadUrl } from "@/lib/external-links"
+import { tieredVariantSearchPath } from "@/lib/variant-routing"
 import {
   CLINICAL_TABLE_CACHE_MS,
   CLINICAL_TABLE_STALE_MS,
@@ -110,6 +111,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
   const caseSample = firstGt.find((gt: any) => gt.type === "case")?.sample || samplePayload.case_id || samplePayload.case?.id
   const controlSample = firstGt.find((gt: any) => gt.type === "control")?.sample || samplePayload.control_id || samplePayload.control?.id
   const hasControlColumn = samplePayload.paired === true
+  const assayGroup = String(data?.assay_group || "").trim()
 
   const columns: ColumnDef<any, any>[] = [
     {
@@ -173,6 +175,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
             hgncId={csq.HGNC_ID}
             matchSource={csq.HGNC_MATCH_SOURCE}
             showOncoKbBadge={false}
+            geneTo={tieredVariantSearchPath(resolvedGene || displayGene, assayGroup)}
             className="max-w-full"
           />
         )
@@ -186,9 +189,9 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
       cell: ({ row }) => {
         const csq = row.original.INFO?.selected_CSQ || {}
         return (
-          <div className="flex w-52 flex-col gap-0.5">
-            <ExpandableText text={csq.HGVSc || "-"} maxLength={28} className="text-muted-foreground text-[11px] font-mono" />
-            <ExpandableText text={csq.HGVSp && csq.HGVSp !== "-" ? csq.HGVSp : "-"} maxLength={28} className="text-foreground font-semibold text-[11px] font-mono" />
+          <div className="flex w-52 flex-col leading-tight">
+            <ExpandableText text={csq.HGVSc || "-"} maxLength={28} className="font-mono text-[11px] leading-tight text-muted-foreground" />
+            <ExpandableText text={csq.HGVSp && csq.HGVSp !== "-" ? csq.HGVSp : "-"} maxLength={28} className="font-mono text-[11px] font-semibold leading-tight text-foreground" />
           </div>
         )
       }
@@ -368,7 +371,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
             <Link
               to={`/samples/${sampleId}/variant/${row.original._id}`}
               state={{ from: `${location.pathname}${location.search}` }}
-              className="inline-block p-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-md transition-colors duration-100 shadow-sm"
+              className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-white"
             >
               <span title="View Detail"><ExternalLink className="w-4 h-4" /></span>
             </Link>

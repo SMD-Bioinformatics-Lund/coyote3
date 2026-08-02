@@ -10,6 +10,13 @@ export type AdminResourceSpec = {
   searchParam?: string
   canToggle?: boolean
   canDelete?: boolean
+  permissions: {
+    list: string
+    view: string
+    create: string
+    edit: string
+    delete: string
+  }
 }
 
 export type FormField = {
@@ -60,6 +67,13 @@ export const specs: Record<string, AdminResourceSpec> = {
     idKeys: ["username", "user_id", "_id"],
     canToggle: true,
     canDelete: true,
+    permissions: {
+      list: "user:list",
+      view: "user:view",
+      create: "user:create",
+      edit: "user:edit",
+      delete: "user:delete",
+    },
   },
   roles: {
     key: "roles",
@@ -70,6 +84,13 @@ export const specs: Record<string, AdminResourceSpec> = {
     idKeys: ["role_id", "_id", "name"],
     canToggle: true,
     canDelete: true,
+    permissions: {
+      list: "role:list",
+      view: "role:view",
+      create: "role:create",
+      edit: "role:edit",
+      delete: "role:delete",
+    },
   },
   permissions: {
     key: "permissions",
@@ -80,6 +101,13 @@ export const specs: Record<string, AdminResourceSpec> = {
     idKeys: ["permission_id", "permission_name", "_id"],
     canToggle: true,
     canDelete: true,
+    permissions: {
+      list: "permission.policy:list",
+      view: "permission.policy:view",
+      create: "permission.policy:create",
+      edit: "permission.policy:edit",
+      delete: "permission.policy:delete",
+    },
   },
   asp: {
     key: "asp",
@@ -90,6 +118,13 @@ export const specs: Record<string, AdminResourceSpec> = {
     idKeys: ["asp_id", "assay_name", "_id"],
     canToggle: true,
     canDelete: true,
+    permissions: {
+      list: "assay.panel:list",
+      view: "assay.panel:view",
+      create: "assay.panel:create",
+      edit: "assay.panel:edit",
+      delete: "assay.panel:delete",
+    },
   },
   aspc: {
     key: "aspc",
@@ -100,6 +135,13 @@ export const specs: Record<string, AdminResourceSpec> = {
     idKeys: ["aspc_id", "assay_id", "_id"],
     canToggle: true,
     canDelete: true,
+    permissions: {
+      list: "assay.config:list",
+      view: "assay.config:view",
+      create: "assay.config:create",
+      edit: "assay.config:edit",
+      delete: "assay.config:delete",
+    },
   },
   genelists: {
     key: "genelists",
@@ -110,6 +152,13 @@ export const specs: Record<string, AdminResourceSpec> = {
     idKeys: ["isgl_id", "genelist_id", "_id", "name"],
     canToggle: true,
     canDelete: true,
+    permissions: {
+      list: "gene_list.insilico:list",
+      view: "gene_list.insilico:view",
+      create: "gene_list.insilico:create",
+      edit: "gene_list.insilico:edit",
+      delete: "gene_list.insilico:delete",
+    },
   },
   samples: {
     key: "samples",
@@ -120,6 +169,13 @@ export const specs: Record<string, AdminResourceSpec> = {
     idKeys: ["_id", "name", "sample_id"],
     searchParam: "search",
     canDelete: true,
+    permissions: {
+      list: "sample:list:global",
+      view: "sample:view:global",
+      create: "internal.ingest:manage",
+      edit: "sample:edit:global",
+      delete: "sample:delete:global",
+    },
   },
 }
 

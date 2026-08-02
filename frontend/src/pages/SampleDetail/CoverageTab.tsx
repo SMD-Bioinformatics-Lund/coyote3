@@ -95,21 +95,21 @@ function CoverageGeneView({
       <table className="w-full text-left text-xs">
         <thead className="sticky top-0 bg-muted text-[10px] uppercase tracking-wider text-muted-foreground">
           <tr>
-            {region === "CDS" && <th className="px-2 py-2">Exon</th>}
-            <th className="px-2 py-2">Coordinates</th>
-            <th className="px-2 py-2">Coverage</th>
-            <th className="px-2 py-2">Size</th>
-            <th className="px-2 py-2">Actions</th>
+            {region === "CDS" && <th className="px-2 py-1">Exon</th>}
+            <th className="px-2 py-1">Coordinates</th>
+            <th className="px-2 py-1">Coverage</th>
+            <th className="px-2 py-1">Size</th>
+            <th className="px-2 py-1">Actions</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr key={`${coord(row)}-${index}`} className="border-t border-border/60">
-              {region === "CDS" && <td className="px-2 py-2 font-mono">{row.nbr || row.exon || "-"}</td>}
-              <td className="px-2 py-2 font-mono">{coord(row)}</td>
-              <td className="px-2 py-2 font-mono font-bold text-fail">{coverageNumber(row).toFixed(2)}X</td>
-              <td className="px-2 py-2 font-mono">{metric(regionLength(row))}</td>
-              <td className="px-2 py-2">
+            <tr key={`${coord(row)}-${index}`} className="border-t border-border/40">
+              {region === "CDS" && <td className="px-2 py-1 font-mono">{row.nbr || row.exon || "-"}</td>}
+              <td className="px-2 py-1 font-mono">{coord(row)}</td>
+              <td className="px-2 py-1 font-mono font-bold text-fail">{coverageNumber(row).toFixed(2)}X</td>
+              <td className="px-2 py-1 font-mono">{metric(regionLength(row))}</td>
+              <td className="px-2 py-1">
                 <button
                   onClick={() => blacklist.mutate({ row, region })}
                   disabled={blacklist.isPending}
@@ -147,13 +147,13 @@ function CoverageGeneView({
       <table className="w-full text-left text-xs">
         <thead className="sticky top-0 bg-muted text-[10px] uppercase tracking-wider text-muted-foreground">
           <tr>
-            <th className="px-2 py-2">Feature</th>
-            <th className="px-2 py-2">Coordinates</th>
-            <th className="px-2 py-2">Size</th>
-            <th className="px-2 py-2">Coverage</th>
-            <th className="px-2 py-2">Status</th>
-            {region === "probe" && <th className="px-2 py-2">Overlapping exons</th>}
-            <th className="px-2 py-2">Actions</th>
+            <th className="px-2 py-1">Feature</th>
+            <th className="px-2 py-1">Coordinates</th>
+            <th className="px-2 py-1">Size</th>
+            <th className="px-2 py-1">Coverage</th>
+            <th className="px-2 py-1">Status</th>
+            {region === "probe" && <th className="px-2 py-1">Overlapping exons</th>}
+            <th className="px-2 py-1">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -165,20 +165,20 @@ function CoverageGeneView({
               ? row.exon_nr.map((item: any) => item.nbr || item.exon || item).join(", ")
               : row.exon_nr || "-"
             return (
-              <tr key={`${region}-${coord(row)}-${index}`} className="border-t border-border/60">
-                <td className="px-2 py-2 font-mono">{featureLabel}</td>
-                <td className="px-2 py-2 font-mono">{coord(row)}</td>
-                <td className="px-2 py-2 font-mono">{metric(regionLength(row))}</td>
-                <td className={`px-2 py-2 font-mono font-bold ${isLow ? "text-fail" : "text-pass"}`}>
+              <tr key={`${region}-${coord(row)}-${index}`} className="border-t border-border/40">
+                <td className="px-2 py-1 font-mono">{featureLabel}</td>
+                <td className="px-2 py-1 font-mono">{coord(row)}</td>
+                <td className="px-2 py-1 font-mono">{metric(regionLength(row))}</td>
+                <td className={`px-2 py-1 font-mono font-bold ${isLow ? "text-fail" : "text-pass"}`}>
                   {Number.isFinite(cov) ? `${cov.toFixed(2)}X` : "N/A"}
                 </td>
-                <td className="px-2 py-2">
+                <td className="px-2 py-1">
                   <span className={`rounded-md px-2 py-1 text-[10px] font-bold uppercase ${isLow ? "bg-fail/10 text-fail" : "bg-pass/10 text-pass"}`}>
                     {Number.isFinite(cov) ? (isLow ? "Low" : "Pass") : "No design"}
                   </span>
                 </td>
-                {region === "probe" && <td className="px-2 py-2 font-mono">{overlapping}</td>}
-                <td className="px-2 py-2">
+                {region === "probe" && <td className="px-2 py-1 font-mono">{overlapping}</td>}
+                <td className="px-2 py-1">
                   {(region === "CDS" || region === "probe") && (
                     <button
                       onClick={() => blacklist.mutate({ row, region })}

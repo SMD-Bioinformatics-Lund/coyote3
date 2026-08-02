@@ -10,6 +10,8 @@ import { apiPath, appPath } from "@/lib/runtime-paths"
 import { runtimeConfig } from "@/lib/runtime-config"
 import { useNotifications } from "@/components/notifications/use-notifications"
 import { GlobalLoadingIndicator } from "@/components/layout/AppLoader"
+import { ADMIN_ENTRY_PERMISSIONS, hasAnyPermission, type CurrentUserAccess } from "@/lib/access-control"
+import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 
 type PublicContactPayload = {
   support?: Record<string, string>
@@ -36,8 +38,10 @@ export function Layout() {
   const backgroundFetches = useIsFetching({
     predicate: (query) => query.state.data !== undefined,
   })
+  const modulesQuery = useApplicationModules()
+  const modules = modulesQuery.data
 
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<CurrentUserAccess | null>({
     queryKey: ['whoami'],
     queryFn: async () => {
       if (!isPublicRoute) return api.get('/auth/whoami').then(res => res.data)
@@ -52,6 +56,7 @@ export function Layout() {
     queryKey: ['assay-catalog-nav'],
     queryFn: () => api.get('/public/assay-catalog/context').then(res => res.data),
     staleTime: 5 * 60 * 1000,
+    enabled: moduleIsEnabled(modules, "assay_catalog"),
   })
 
   const { data: navigationCounts } = useQuery({
@@ -89,21 +94,24 @@ export function Layout() {
     }
   }
 
-  const isAdmin = user?.role === 'superuser' || user?.role === 'admin'
+  const canAccessAdministration = hasAnyPermission(user, ADMIN_ENTRY_PERMISSIONS)
   const publicOnlyMode = isPublicRoute && !user
 
   const navigationSections = useMemo(() => {
     if (publicOnlyMode) {
+      const publicItems = [
+        ...(moduleIsEnabled(modules, "assay_catalog") ? [
+          { name: "Public Home", href: "/public", icon: BookOpen },
+          { name: "Catalog", href: "/public/catalog", icon: FileText },
+          { name: "Matrix", href: "/public/matrix", icon: Database },
+        ] : []),
+        { name: "About", href: "/about", icon: FileQuestion },
+        { name: "Contact", href: "/contact", icon: LifeBuoy },
+      ]
       return [
         {
           label: "Public",
-          items: [
-            { name: "Public Home", href: "/public", icon: BookOpen },
-            { name: "Catalog", href: "/public/catalog", icon: FileText },
-            { name: "Matrix", href: "/public/matrix", icon: Database },
-            { name: "About", href: "/about", icon: FileQuestion },
-            { name: "Contact", href: "/contact", icon: LifeBuoy },
-          ],
+          items: publicItems,
         },
       ]
     }
@@ -113,28 +121,30 @@ export function Layout() {
         items: [
           { name: "Home", href: "/", icon: LayoutDashboard },
           { name: "Samples", href: "/samples", icon: Dna },
-          { name: "Variant Search", href: "/variants/search", icon: Search },
-          { name: "Reports", href: "/reports", icon: FileText },
+          ...(moduleIsEnabled(modules, "variant_search") ? [{ name: "Variant Search", href: "/variants/search", icon: Search }] : []),
+          ...(moduleIsEnabled(modules, "reports") ? [{ name: "Reports", href: "/reports", icon: FileText }] : []),
         ],
       },
       {
         label: "Reference",
         items: [
-          { name: "Matrix", href: "/public/matrix", icon: Database },
-          { name: "Catalog", href: "/public/catalog", icon: FileText },
+          ...(moduleIsEnabled(modules, "assay_catalog") ? [
+            { name: "Matrix", href: "/public/matrix", icon: Database },
+            { name: "Catalog", href: "/public/catalog", icon: FileText },
+          ] : []),
           { name: "About", href: "/about", icon: BookOpen },
           { name: "Contact", href: "/contact", icon: LifeBuoy },
         ],
       },
     ]
-    if (isAdmin) {
+    if (canAccessAdministration) {
       sections.push({
         label: "Administration",
         items: [{ name: "Admin Settings", href: "/admin", icon: Settings }],
       })
     }
     return sections
-  }, [isAdmin, publicOnlyMode])
+  }, [canAccessAdministration, modules, publicOnlyMode])
 
   const activeCategory = searchParams.get("panel_type") || searchParams.get("category") || ""
   const activePanelTech = searchParams.get("panel_tech") || ""
@@ -188,8 +198,12 @@ export function Layout() {
     return [
       ...preferred.filter((category) => assayTree[category]),
       ...Object.keys(assayTree).filter((category) => !preferred.includes(category)).sort(),
-    ]
-  }, [assayTree])
+    ].filter((category) => {
+      if (category === "dna") return moduleIsEnabled(modules, "dna_analysis")
+      if (category === "rna") return moduleIsEnabled(modules, "rna_analysis")
+      return true
+    })
+  }, [assayTree, modules])
 
   const navigationCount = (group: any) => {
     const key = [group.category, group.family, group.assay_group]

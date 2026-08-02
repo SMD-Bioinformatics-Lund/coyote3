@@ -143,7 +143,7 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
         const ann = selectedTranslocationAnnotation(row.original)
         const hgvs = translocationHgvs(ann)
         return (
-          <div className="flex w-48 flex-col gap-1.5">
+          <div className="flex w-48 flex-col leading-tight">
             <ExpandableText text={hgvs.coding || "-"} maxLength={18} className="text-xs font-mono text-muted-foreground" />
             <ExpandableText text={hgvs.protein || "-"} maxLength={18} className="text-xs font-mono font-semibold" />
           </div>
@@ -181,7 +181,7 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
             <Link
               to={`/samples/${sampleId}/translocation/${row.original._id}`}
               state={{ from: `${location.pathname}${location.search}` }}
-              className="inline-block p-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-md transition-colors duration-100 shadow-sm"
+              className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-white"
             >
               <span title="View Detail"><ExternalLink className="w-4 h-4" /></span>
             </Link>

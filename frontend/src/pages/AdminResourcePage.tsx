@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Activity, AlertTriangle, Database, Dna, Download, Edit, Eye, FileUp, KeyRound, ListTree, MailPlus, Plus, Power, Save, Search, Settings2, Shield, ShieldCheck, SlidersHorizontal, Trash2, UsersRound, X } from "lucide-react"
+import { Activity, AlertTriangle, Database, Dna, Download, Edit, Eye, FileUp, KeyRound, ListTree, LockKeyhole, MailPlus, Megaphone, Plus, Power, Save, Search, Settings2, Shield, ShieldCheck, SlidersHorizontal, Trash2, UsersRound, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -10,8 +10,14 @@ import { ColumnDef } from "@tanstack/react-table"
 import { cn } from "@/lib/utils"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { accentColor, configuredValueDescription, valueBadgeClass } from "@/lib/badge-colors"
-import { fullDateTime, humanRelativeDate } from "@/lib/detail-formatters"
+import { fullDateTime, humanRelativeDate, shortCount } from "@/lib/detail-formatters"
 import { downloadJson } from "@/lib/json-download"
+import {
+  ADMIN_UTILITY_PERMISSIONS,
+  hasPermission,
+  useCurrentUserAccess,
+} from "@/lib/access-control"
+import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 import {
   actionLabels,
   specs,
@@ -58,7 +64,7 @@ function ValueBadge({
     const displayColor = accentColor(color)
     return (
       <span
-        className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-semibold leading-4"
+        className="inline-flex items-center rounded-md border px-2 py-1 text-xs font-semibold leading-4"
         title={title || configuredValueDescription(value) || value}
         style={{
           borderColor: `color-mix(in srgb, ${displayColor} 45%, transparent)`,
@@ -66,11 +72,6 @@ function ValueBadge({
           color: "var(--foreground)",
         }}
       >
-        <span
-          className="h-1.5 w-1.5 rounded-full"
-          style={{ backgroundColor: displayColor, boxShadow: `0 0 0 2px color-mix(in srgb, ${displayColor} 18%, transparent)` }}
-          aria-hidden="true"
-        />
         {value}
       </span>
     )
@@ -191,6 +192,67 @@ function normalizeList(value: any) {
   return []
 }
 
+type ResourceListFilter = {
+  field: string
+  label: string
+  allLabel: string
+}
+
+function resourceListFilters(resourceKey: string): ResourceListFilter[] {
+  const filters: Record<string, ResourceListFilter[]> = {
+    users: [
+      { field: "roles", label: "Role", allLabel: "All roles" },
+      { field: "auth_type", label: "Authentication", allLabel: "All authentication types" },
+      { field: "is_active", label: "Status", allLabel: "All statuses" },
+    ],
+    permissions: [
+      { field: "category", label: "Category", allLabel: "All categories" },
+    ],
+    asp: [
+      { field: "asp_category", label: "ASP category", allLabel: "All ASP categories" },
+      { field: "asp_group", label: "Assay group", allLabel: "All assay groups" },
+    ],
+    aspc: [
+      { field: "asp_category", label: "ASP category", allLabel: "All ASP categories" },
+      { field: "asp_group", label: "Assay group", allLabel: "All assay groups" },
+      { field: "asp_id", label: "Assay panel", allLabel: "All assay panels" },
+    ],
+    genelists: [
+      { field: "asp_groups", label: "Assay group", allLabel: "All assay groups" },
+      { field: "asp_ids", label: "Assay panel", allLabel: "All assay panels" },
+    ],
+    samples: [
+      { field: "asp_group", label: "Assay group", allLabel: "All assay groups" },
+      { field: "asp_id", label: "Assay", allLabel: "All assays" },
+    ],
+  }
+  return filters[resourceKey] || []
+}
+
+function resourceFilterValues(row: any, field: string) {
+  if (field === "is_active") return [row?.is_active === false ? "false" : "true"]
+  const value = row?.[field]
+  const values = Array.isArray(value) ? value : [value]
+  return values.map((item) => String(item ?? "").trim()).filter(Boolean)
+}
+
+function resourceFilterOptionLabel(field: string, value: string) {
+  if (field === "is_active") return value === "false" ? "Inactive" : "Active"
+  if (field === "auth_type") return titleize(value)
+  return value
+}
+
+function rowMatchesResourceFilters(
+  row: any,
+  definitions: ResourceListFilter[],
+  selections: Record<string, string>
+) {
+  return definitions.every(({ field }) => {
+    const selected = selections[field]
+    return !selected || resourceFilterValues(row, field).includes(selected)
+  })
+}
+
 function optionValue(option: any) {
   if (option && typeof option === "object") {
     return String(option.value ?? option.id ?? option.key ?? option.permission_id ?? option.role_id ?? option.name ?? "")
@@ -247,11 +309,26 @@ function defaultAdminFields(resourceKey: string) {
   const fields: Record<string, string[]> = {
     users: ["username", "fullname", "email", "roles", "auth_type", "is_active", "last_login", "updated_on"],
     roles: ["role_id", "label", "level", "permissions", "is_active", "version", "updated_on"],
-    permissions: ["permission_id", "label", "category", "description", "tags", "is_active", "version", "updated_on"],
+    permissions: ["permission_id", "label", "category", "description", "tags", "system_managed", "is_active", "version", "updated_on"],
     asp: ["asp_id", "display_name", "asp_category", "asp_group", "asp_family", "platform", "is_active", "version", "updated_on"],
     aspc: ["aspc_id", "asp_id", "subpanel_id", "environment", "asp_category", "analysis_types", "is_active", "version", "updated_on"],
     genelists: ["isgl_id", "name", "list_type", "diagnosis", "asp_ids", "asp_groups", "is_public", "is_active", "version", "updated_on"],
-    samples: ["name", "case_id", "control_id", "assay", "subpanel", "profile", "ingest_status", "time_added"],
+    samples: [
+      "name",
+      "case_id",
+      "case_clarity_id",
+      "control_id",
+      "control_clarity_id",
+      "asp_group",
+      "asp_id",
+      "subpanel_id",
+      "environment",
+      "omics_layer",
+      "paired",
+      "ingest_status",
+      "reported",
+      "time_added",
+    ],
     generic: ["name", "username", "email", "role_id", "permission_id", "asp_id", "aspc_id", "is_active", "updated_on"],
   }
   return fields[resourceKey] || fields.generic
@@ -285,6 +362,52 @@ function adminCell(field: string, row: any, context?: { roleColors?: Record<stri
     )
   }
   if (field === "is_active") return <StatusBadge value={value} />
+  if (field === "system_managed") {
+    return (
+      <ValueBadge
+        value={value ? "System" : "Custom"}
+        kind={value ? "status" : "neutral"}
+        title={
+          value
+            ? "Bundled application permission. Assign it through roles; its definition is read-only."
+            : "Center-created permission policy."
+        }
+      />
+    )
+  }
+  if (field === "paired") {
+    return <ValueBadge value={value ? "Paired" : "Unpaired"} kind={value ? "status" : "warning"} />
+  }
+  if (field === "reported") {
+    return <ValueBadge value={value ? "Reported" : "Unreported"} kind={value ? "status" : "warning"} />
+  }
+  if (field === "data_counts") {
+    const counts = value && typeof value === "object" && !Array.isArray(value) ? value : {}
+    const numericLabels: Record<string, string> = {
+      snvs: "SNV",
+      cnvs: "CNV",
+      fusions: "Fusion",
+      translocations: "Transloc",
+    }
+    const booleanLabels: Record<string, string> = {
+      cov: "Cov",
+      coverage: "Coverage",
+      biomarkers: "Biomarkers",
+      expression: "Expression",
+      classification: "Classification",
+      qc: "QC",
+      pgx: "PGx",
+    }
+    const badges = [
+      ...Object.entries(numericLabels)
+        .filter(([key]) => Number(counts[key] || 0) > 0)
+        .map(([key, label]) => `${label} ${shortCount(Number(counts[key]))}`),
+      ...Object.entries(booleanLabels)
+        .filter(([key]) => counts[key] === true)
+        .map(([, label]) => label),
+    ]
+    return <MiniBadges values={badges} max={6} />
+  }
   if (field === "email") {
     const email = String(value || "")
     if (!email) return <span className="text-muted-foreground">-</span>
@@ -307,12 +430,12 @@ function adminCell(field: string, row: any, context?: { roleColors?: Record<stri
   if (field === "list_type") {
     return <MiniBadges values={value} kind="list_type" max={5} />
   }
-  if (["asp_category", "asp_group", "asp_family", "platform", "environment", "profile", "subpanel_id"].includes(field)) {
+  if (["asp_category", "asp_group", "asp_family", "platform", "environment", "profile", "subpanel_id", "omics_layer", "ingest_status"].includes(field)) {
     const label = String(value || "")
     return label ? <ValueBadge value={label} /> : <span className="text-muted-foreground">-</span>
   }
-  if (["permissions", "tags", "asp_ids", "asp_groups", "analysis_types"].includes(field)) {
-    const kind = field === "asp_groups" ? "assay_group" : field === "analysis_types" ? "analysis" : undefined
+  if (["permissions", "tags", "asp_ids", "asp_groups", "analysis_types", "analysis_intents"].includes(field)) {
+    const kind = field === "asp_groups" ? "assay_group" : ["analysis_types", "analysis_intents"].includes(field) ? "analysis" : undefined
     return <MiniBadges values={value} max={field === "permissions" ? 5 : 4} kind={kind} />
   }
   if (typeof value === "boolean") return <StatusBadge value={value} />
@@ -593,7 +716,14 @@ function StructuredObjectField({
                   field={nestedField}
                   value={valueAtPath(objectValue, nested.key) ?? nested.default ?? defaultForField(nestedField)}
                   mode="edit"
-                  onChange={(nextValue) => onChange(setAtPath(objectValue, nested.key, nextValue))}
+                  onChange={(nextValue) => {
+                    const coerced = coerceFieldValue(nestedField, nextValue)
+                    onChange(setAtPath(
+                      objectValue,
+                      nested.key,
+                      coerced === undefined && nextValue === "" ? "" : coerced,
+                    ))
+                  }}
                   disabled={disabled}
                   compact
                   formValues={formValues}
@@ -678,6 +808,36 @@ function FormControl({
         placeholder={field.placeholder}
         className={cn(commonClass, "min-h-24")}
       />
+    )
+  } else if (field.display_type === "color") {
+    const textValue = String(value ?? "")
+    const pickerValue = /^#[0-9a-f]{6}$/i.test(textValue) ? textValue : "#64748b"
+    control = (
+      <div className="flex min-h-9 items-center gap-2 rounded-lg border border-input bg-background px-2 py-1 focus-within:ring-2 focus-within:ring-primary/30">
+        <input
+          type="color"
+          aria-label={`${label} picker`}
+          value={pickerValue}
+          onChange={(event) => onChange(event.target.value.toLowerCase())}
+          disabled={readOnly}
+          className="h-7 w-10 cursor-pointer rounded-md border border-border bg-transparent p-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+        />
+        <input
+          type="text"
+          aria-label={`${label} hex value`}
+          value={textValue}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={readOnly}
+          placeholder={field.placeholder || "#4f46e5"}
+          pattern="#[0-9A-Fa-f]{6}"
+          className="min-w-0 flex-1 border-0 bg-transparent px-1 py-1 text-sm outline-none disabled:opacity-60"
+        />
+        <span
+          aria-hidden="true"
+          className="h-5 w-5 rounded-full border border-border"
+          style={{ backgroundColor: accentColor(textValue || pickerValue) }}
+        />
+      </div>
     )
   } else {
     control = readOnly && name === "email" && value ? (
@@ -791,7 +951,7 @@ function AdminManagedForm({
   )
 }
 
-function PermissionCategoryOverview({ rows }: { rows: any[] }) {
+function PermissionCategoryOverview({ rows, canEdit }: { rows: any[]; canEdit: boolean }) {
   if (!rows.length) return null
   const grouped = rows.reduce((acc, row) => {
     const category = String(row?.category || "Uncategorized")
@@ -820,7 +980,7 @@ function PermissionCategoryOverview({ rows }: { rows: any[] }) {
               {items.map((item) => (
                 <Link
                   key={String(item.permission_id || item._id)}
-                  to={`/admin/permissions/${encodeURIComponent(String(item.permission_id || item._id))}/edit`}
+                  to={`/admin/permissions/${encodeURIComponent(String(item.permission_id || item._id))}/${canEdit && !item.system_managed ? "edit" : "view"}`}
                   className="rounded-full border border-border bg-card px-2 py-1 text-xs font-semibold leading-4 text-foreground hover:border-primary/40 hover:text-primary"
                   title={item.description || item.label || item.permission_id}
                 >
@@ -836,6 +996,9 @@ function PermissionCategoryOverview({ rows }: { rows: any[] }) {
 }
 
 export function AdminHub() {
+  const accessQuery = useCurrentUserAccess()
+  const modulesQuery = useApplicationModules()
+  const user = accessQuery.data
   const resourceIcons: Record<string, ComponentType<{ className?: string }>> = {
     users: UsersRound,
     roles: Shield,
@@ -851,26 +1014,45 @@ export function AdminHub() {
       description: "Manage runtime module switches, Celery task gates, and retention settings.",
       href: "/admin/controls",
       icon: Settings2,
+      permission: ADMIN_UTILITY_PERMISSIONS.controlsView,
     },
     {
       title: "Audit",
       description: "Review administrative and workflow audit events.",
       href: "/admin/audit",
       icon: ShieldCheck,
+      permission: ADMIN_UTILITY_PERMISSIONS.auditView,
     },
     {
       title: "Ingest Workspace",
       description: "Queue validated sample-bundle ingestion and inspect worker task state.",
       href: "/admin/ingest",
       icon: FileUp,
+      permission: ADMIN_UTILITY_PERMISSIONS.ingestManage,
     },
     {
       title: "UI Route Audit",
       description: "Review frontend routes, API dependencies, and consumed payload fields.",
       href: "/admin/ui-routes",
       icon: ShieldCheck,
+      permission: ADMIN_UTILITY_PERMISSIONS.uiRouteAuditView,
+    },
+    {
+      title: "Broadcast Notifications",
+      description: "Send application information, warnings, and maintenance notices to all or selected users.",
+      href: "/admin/notifications",
+      icon: Megaphone,
+      permission: ADMIN_UTILITY_PERMISSIONS.broadcastCreate,
     },
   ]
+
+  const visibleResources = Object.values(specs).filter((spec) =>
+    hasPermission(user, spec.permissions.list)
+  )
+  const visibleUtilities = utilityModules.filter((module) =>
+    hasPermission(user, module.permission)
+    && (module.href !== "/admin/ingest" || moduleIsEnabled(modulesQuery.data, "ingest_workspace"))
+  )
 
   return (
     <PageShell
@@ -878,8 +1060,17 @@ export function AdminHub() {
       title="Admin Settings"
       description="Govern identity, assays, configurations, ingestion, audit events, and platform contracts."
     >
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {Object.values(specs).map((spec) => {
+      {accessQuery.isLoading ? (
+        <AppLoader label="Loading administration access" />
+      ) : visibleResources.length === 0 && visibleUtilities.length === 0 ? (
+        <section className="surface-panel p-5">
+          <h2 className="text-base font-bold">Administration access is not assigned</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Your roles do not include permission to view an administrative resource.
+          </p>
+        </section>
+      ) : <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {visibleResources.map((spec) => {
           const Icon = resourceIcons[spec.key] || Settings2
           return (
             <Link
@@ -895,7 +1086,7 @@ export function AdminHub() {
             </Link>
           )
         })}
-        {utilityModules.map((module) => (
+        {visibleUtilities.map((module) => (
           <Link
             key={module.href}
             to={module.href}
@@ -908,7 +1099,7 @@ export function AdminHub() {
             <p className="mt-1 text-sm text-muted-foreground">{module.description}</p>
           </Link>
         ))}
-      </div>
+      </div>}
     </PageShell>
   )
 }
@@ -916,18 +1107,43 @@ export function AdminHub() {
 export function AdminResourcePage() {
   const { resource = "users" } = useParams()
   const spec = specs[resource] ?? specs.users
+  const accessQuery = useCurrentUserAccess()
+  const user = accessQuery.data
+  const canList = hasPermission(user, spec.permissions.list)
+  const canView = hasPermission(user, spec.permissions.view)
+  const canCreate = hasPermission(user, spec.permissions.create)
+  const canEdit = hasPermission(user, spec.permissions.edit)
+  const canDelete = hasPermission(user, spec.permissions.delete)
   const queryClient = useQueryClient()
   const [q, setQ] = useState("")
+  const [resourceFilters, setResourceFilters] = useState<Record<string, string>>({})
   const [pendingAction, setPendingAction] = useState<{ action: "toggle" | "delete" | "invite"; id: string; name: string } | null>(null)
 
+  useEffect(() => {
+    setResourceFilters({})
+  }, [spec.key])
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ["admin-resource", spec.key, q],
+    queryKey: [
+      "admin-resource",
+      spec.key,
+      q,
+      spec.key === "samples" ? resourceFilters.asp_group || "" : "",
+      spec.key === "samples" ? resourceFilters.asp_id || "" : "",
+    ],
     queryFn: () => {
       const params = new URLSearchParams()
       if (q) params.set(spec.searchParam ?? "q", q)
+      if (spec.key === "samples" && resourceFilters.asp_group) {
+        params.set("asp_group", resourceFilters.asp_group)
+      }
+      if (spec.key === "samples" && resourceFilters.asp_id) {
+        params.set("asp_id", resourceFilters.asp_id)
+      }
       params.set("per_page", "100")
       return api.get(`${spec.endpoint}?${params.toString()}`).then((res) => res.data)
     },
+    enabled: canList,
   })
 
   const mutate = useMutation({
@@ -969,6 +1185,26 @@ export function AdminResourcePage() {
   })
 
   const rows = useMemo(() => (data?.[spec.listKey] || []) as any[], [data, spec.listKey])
+  const listFilterDefinitions = useMemo(() => resourceListFilters(spec.key), [spec.key])
+  const listFilterOptions = useMemo(() => {
+    return Object.fromEntries(listFilterDefinitions.map((definition, index) => {
+      const serverOptions = data?.filter_options?.[definition.field]
+      if (spec.key === "samples" && Array.isArray(serverOptions)) {
+        return [definition.field, serverOptions]
+      }
+      const parentDefinitions = listFilterDefinitions.slice(0, index)
+      const candidateRows = rows.filter((row) =>
+        rowMatchesResourceFilters(row, parentDefinitions, resourceFilters)
+      )
+      const options = Array.from(
+        new Set(candidateRows.flatMap((row) => resourceFilterValues(row, definition.field)))
+      ).sort((left, right) => left.localeCompare(right))
+      return [definition.field, options]
+    })) as Record<string, string[]>
+  }, [data?.filter_options, listFilterDefinitions, resourceFilters, rows, spec.key])
+  const visibleRows = useMemo(() => {
+    return rows.filter((row) => rowMatchesResourceFilters(row, listFilterDefinitions, resourceFilters))
+  }, [listFilterDefinitions, resourceFilters, rows])
   const fields = useMemo(() => adminFields(spec.key, rows), [spec.key, rows])
   const columns: ColumnDef<any, any>[] = [
     ...fields.map((field): ColumnDef<any, any> => ({
@@ -987,23 +1223,24 @@ export function AdminResourcePage() {
       enableSorting: false,
       cell: ({ row }) => {
         const id = rowId(row.original, spec)
+        const systemPermission = spec.key === "permissions" && Boolean(row.original.system_managed)
         return (
           <div className="flex items-center gap-1">
-            <Link
+            {canView && <Link
               to={`/admin/${spec.key}/${encodeURIComponent(id)}/view`}
               className="rounded-md p-1.5 text-primary hover:bg-primary/10"
               title="View"
             >
               <Eye className="h-4 w-4" />
-            </Link>
-            <Link
+            </Link>}
+            {canEdit && !systemPermission && <Link
               to={`/admin/${spec.key}/${encodeURIComponent(id)}/edit`}
               className="rounded-md p-1.5 text-panel hover:bg-panel/10"
               title="Edit"
             >
               <Edit className="h-4 w-4" />
-            </Link>
-            {spec.canToggle && (
+            </Link>}
+            {spec.canToggle && canEdit && !systemPermission && (
               <button
                 onClick={() =>
                   setPendingAction({ action: "toggle", id, name: rowDisplayName(row.original, spec) })
@@ -1015,7 +1252,7 @@ export function AdminResourcePage() {
                 <Power className="h-4 w-4" />
               </button>
             )}
-            {spec.key === "users" && (
+            {spec.key === "users" && canCreate && (
               <button
                 onClick={() => setPendingAction({ action: "invite", id, name: rowDisplayName(row.original, spec) })}
                 disabled={mutate.isPending}
@@ -1025,7 +1262,7 @@ export function AdminResourcePage() {
                 <MailPlus className="h-4 w-4" />
               </button>
             )}
-            {spec.canDelete && (
+            {spec.canDelete && canDelete && !systemPermission && (
               <button
                 onClick={() => setPendingAction({ action: "delete", id, name: rowDisplayName(row.original, spec) })}
                 disabled={mutate.isPending}
@@ -1034,6 +1271,14 @@ export function AdminResourcePage() {
               >
                 <Trash2 className="h-4 w-4" />
               </button>
+            )}
+            {systemPermission && (
+              <span
+                className="rounded-md p-1.5 text-muted-foreground"
+                title="System permission definitions are read-only and are assigned through roles."
+              >
+                <LockKeyhole className="h-4 w-4" />
+              </span>
             )}
           </div>
         )
@@ -1048,13 +1293,13 @@ export function AdminResourcePage() {
       description={spec.description}
       actions={
         <>
-          <Link
+          {canCreate && <Link
             to={`/admin/${spec.key}/create`}
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-sm"
           >
             <Plus className="h-4 w-4" />
             Create
-          </Link>
+          </Link>}
           <Link to="/admin" className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
             Admin home
           </Link>
@@ -1062,7 +1307,7 @@ export function AdminResourcePage() {
       }
     >
       <div className="glass-card p-3">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex flex-wrap items-end gap-2">
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <input
@@ -1072,21 +1317,50 @@ export function AdminResourcePage() {
               className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
             />
           </div>
-          <span className="text-xs font-semibold text-muted-foreground">{rows.length} loaded</span>
+          {listFilterDefinitions.map((definition, index) => (
+            <label key={definition.field} className="grid min-w-52 gap-1">
+              <span className="text-[0.68rem] font-bold uppercase text-muted-foreground">{definition.label}</span>
+              <select
+                value={resourceFilters[definition.field] || ""}
+                onChange={(event) => {
+                  const nextFilters = { ...resourceFilters, [definition.field]: event.target.value }
+                  listFilterDefinitions.slice(index + 1).forEach(({ field }) => {
+                    delete nextFilters[field]
+                  })
+                  setResourceFilters(nextFilters)
+                }}
+                className="h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+              >
+                <option value="">{definition.allLabel}</option>
+                {(listFilterOptions[definition.field] || []).map((option) => (
+                  <option key={option} value={option}>{resourceFilterOptionLabel(definition.field, option)}</option>
+                ))}
+              </select>
+            </label>
+          ))}
+          <span className="pb-2 text-xs font-semibold text-muted-foreground">
+            {visibleRows.length === rows.length ? `${rows.length} loaded` : `${visibleRows.length} of ${rows.length} loaded`}
+          </span>
         </div>
 
-        {isLoading ? (
+        {accessQuery.isLoading ? (
+          <AppLoader label="Checking administration access" />
+        ) : !canList ? (
+          <div className="rounded-lg border border-warn/30 bg-warn/10 p-4 text-sm text-warn">
+            You do not have permission to list {spec.title.toLowerCase()}.
+          </div>
+        ) : isLoading ? (
           <AppLoader label={`Loading ${spec.title.toLowerCase()}`} />
         ) : error ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
             {error instanceof Error ? error.message : "Unable to load resource"}
           </div>
         ) : (
-          <DataTable columns={columns} data={rows} filename={`${spec.key}.csv`} hideSearch />
+          <DataTable columns={columns} data={visibleRows} filename={`${spec.key}.csv`} hideSearch />
         )}
       </div>
 
-      {spec.key === "permissions" && <PermissionCategoryOverview rows={rows} />}
+      {spec.key === "permissions" && canList && <PermissionCategoryOverview rows={visibleRows} canEdit={canEdit} />}
 
       {pendingAction && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 p-4">
@@ -1140,6 +1414,15 @@ export function AdminResourcePage() {
 export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
   const { resource = "users", id = "" } = useParams()
   const spec = specs[resource] ?? specs.users
+  const accessQuery = useCurrentUserAccess()
+  const user = accessQuery.data
+  const requiredPermission = mode === "create"
+    ? spec.permissions.create
+    : mode === "edit"
+      ? spec.permissions.edit
+      : spec.permissions.view
+  const allowed = hasPermission(user, requiredPermission)
+  const canEdit = hasPermission(user, spec.permissions.edit)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [values, setValues] = useState<Record<string, any>>({})
@@ -1149,7 +1432,7 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
   const isSamples = spec.key === "samples"
   const contextQuery = useQuery({
     queryKey: ["admin-resource-context", spec.key, mode, id, aspcCategory],
-    enabled: !isSamples,
+    enabled: allowed && !isSamples,
     retry: false,
     queryFn: () => {
       if (mode === "create") {
@@ -1162,6 +1445,8 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
 
   const form = contextQuery.data?.form as FormSpec | undefined
   const doc = resourceDocFromContext(contextQuery.data, spec)
+  const systemPermission = spec.key === "permissions" && Boolean(doc?.system_managed)
+  const effectiveMode: AdminFormMode = systemPermission && mode === "edit" ? "view" : mode
 
   useEffect(() => {
     if (!form) return
@@ -1196,7 +1481,7 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
     },
   })
 
-  const title = `${mode === "create" ? "Create" : mode === "view" ? "View" : "Edit"} ${spec.title}`
+  const title = `${effectiveMode === "create" ? "Create" : effectiveMode === "view" ? "View" : "Edit"} ${spec.title}`
 
   return (
     <PageShell
@@ -1205,7 +1490,7 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
       description={spec.description}
       actions={
         <div className="flex items-center gap-2">
-          {mode === "view" && (
+          {mode === "view" && canEdit && !systemPermission && (
             <Link
               to={`/admin/${spec.key}/${encodeURIComponent(id)}/edit`}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-sm"
@@ -1230,7 +1515,18 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
         </div>
       }
     >
-      {isSamples ? (
+      {accessQuery.isLoading ? (
+        <section className="surface-panel flex justify-center p-10">
+          <AppLoader label="Checking administration access" />
+        </section>
+      ) : !allowed ? (
+        <section className="surface-panel p-4">
+          <h2 className="text-lg font-bold">Access not assigned</h2>
+          <p className="mt-2 rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">
+            Your roles do not include <code>{requiredPermission}</code>.
+          </p>
+        </section>
+      ) : isSamples ? (
         <section className="surface-panel p-4">
           <h2 className="text-lg font-bold">Sample Admin Editing</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -1253,6 +1549,17 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
         </section>
       ) : (
         <>
+          {systemPermission && (
+            <section className="surface-panel flex items-start gap-3 p-3">
+              <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <div>
+                <h2 className="text-sm font-bold">System permission</h2>
+                <p className="text-xs text-muted-foreground">
+                  This definition is shipped with Coyote3 and cannot be edited, deactivated, or deleted. Assign or remove it through role policies.
+                </p>
+              </div>
+            </section>
+          )}
           {spec.key === "aspc" && mode === "create" && (
             <div className="surface-panel flex items-center justify-between gap-3 p-3">
               <div>
@@ -1274,7 +1581,7 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
             </div>
           )}
           <AdminManagedForm
-            mode={mode}
+            mode={effectiveMode}
             spec={spec}
             form={form}
             values={values}
@@ -1283,9 +1590,9 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
             error={editorError}
             onCancel={() => navigate(`/admin/${spec.key}`)}
             onSave={() => {
-              if (mode === "view") return
+              if (effectiveMode === "view") return
               setEditorError("")
-              saveMutation.mutate(submitPayload(form, values, mode))
+              saveMutation.mutate(submitPayload(form, values, effectiveMode))
             }}
           />
         </>

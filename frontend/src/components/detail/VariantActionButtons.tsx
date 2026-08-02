@@ -44,7 +44,7 @@ export function VariantActionButtons({
   const isNoteworthy = variant.noteworthy
   const supportsIrrelevant = resourceType === "small_variant"
   const supportsBlacklist = resourceType === "small_variant"
-  const supportsInteresting = resourceType === "small_variant" || resourceType === "cnv" || resourceType === "translocation"
+  const supportsInteresting = resourceType === "small_variant" || resourceType === "cnv" || resourceType === "fusion" || resourceType === "translocation"
   const supportsNoteworthy = resourceType === "cnv"
   const supportsBlacklistEntry = resourceType === "small_variant" && !isBlacklisted
 
@@ -80,11 +80,11 @@ export function VariantActionButtons({
   }
 
   const buttonBase = compact
-    ? "paper-raised-control inline-flex h-7 w-7 items-center justify-center rounded-lg border text-xs font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-100 disabled:opacity-50"
+    ? "paper-raised-control inline-flex h-6 w-6 items-center justify-center rounded-md border text-xs font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-100 disabled:opacity-50"
     : "paper-raised-control inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-100 disabled:opacity-50"
   const labeledCompactReport = compact && showReportLabel && resourceType !== "small_variant"
   const reportButtonBase = labeledCompactReport
-    ? "paper-raised-control inline-flex h-7 items-center justify-center gap-1 rounded-lg border px-2 text-xs font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-100 disabled:opacity-50"
+    ? "paper-raised-control inline-flex h-6 items-center justify-center gap-1 rounded-md border px-1.5 text-[11px] font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-100 disabled:opacity-50"
     : buttonBase
 
   return (
@@ -204,7 +204,7 @@ export function VariantActionButtons({
         </button>
       )}
       {variant.override_blacklist && (
-        <span className={compact ? "inline-flex h-7 w-7 items-center justify-center rounded-md border border-rna/30 bg-rna/10 text-xs font-bold text-rna" : "inline-flex items-center gap-1 rounded-lg border border-rna/30 bg-rna/10 px-2.5 py-1.5 text-xs font-bold text-rna"}>
+        <span className={compact ? "inline-flex h-6 w-6 items-center justify-center rounded-md border border-rna/30 bg-rna/10 text-xs font-bold text-rna" : "inline-flex items-center gap-1 rounded-lg border border-rna/30 bg-rna/10 px-2.5 py-1.5 text-xs font-bold text-rna"}>
           <ShieldCheck className="h-3.5 w-3.5" />
           {!compact && "Override"}
         </span>

@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Activity, BadgeCheck, Dna, KeyRound, Mail, ShieldCheck, User } from "lucide-react"
 import { api } from "@/lib/api"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -7,9 +7,11 @@ import { PageShell } from "@/components/layout/PageShell"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 
 export function Profile() {
+  const queryClient = useQueryClient()
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [message, setMessage] = useState("")
+  const [profileDraft, setProfileDraft] = useState({ firstname: "", lastname: "", fullname: "", job_title: "" })
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["auth-session"],
@@ -34,6 +36,23 @@ export function Profile() {
   })
 
   const user = data?.user ?? {}
+  useEffect(() => {
+    if (!data?.user) return
+    setProfileDraft({
+      firstname: data.user.firstname || "",
+      lastname: data.user.lastname || "",
+      fullname: data.user.fullname || "",
+      job_title: data.user.job_title || "",
+    })
+  }, [data?.user])
+  const updateProfile = useMutation({
+    mutationFn: () => api.patch("/auth/profile", profileDraft),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["auth-session"] })
+      notifySuccess("Profile updated", "Your account details were saved.", "Profile")
+    },
+    onError: (err) => notifyActionError("Unable to update profile", err, "Profile"),
+  })
   const effectiveRole = user.role || user.primary_role || "Authenticated"
   const assignedRoles = Array.isArray(user.roles) && user.roles.length
     ? user.roles
@@ -120,6 +139,19 @@ export function Profile() {
                 </dd>
               </div>
             </dl>
+            <section className="mt-4 rounded-lg border border-border bg-background/70 p-3">
+              <h3 className="mb-3 text-xs font-black uppercase tracking-wide text-muted-foreground">Editable profile</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {([
+                  ["firstname", "First name"],
+                  ["lastname", "Last name"],
+                  ["fullname", "Display name"],
+                  ["job_title", "Job title"],
+                ] as const).map(([field, label]) => <label key={field} className="block text-sm font-semibold">{label}<input className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" value={profileDraft[field]} onChange={(event) => setProfileDraft((current) => ({ ...current, [field]: event.target.value }))} /></label>)}
+              </div>
+              <button type="button" onClick={() => updateProfile.mutate()} disabled={updateProfile.isPending} className="mt-3 inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">Save profile</button>
+              <p className="mt-2 text-xs text-muted-foreground">Roles, assay scope, authentication providers, account status, email, username, and passwords are managed through their dedicated administrative or security workflows.</p>
+            </section>
             <div className="mt-4 grid gap-3 lg:grid-cols-3">
               <ScopeCard title="Profiles" icon={BadgeCheck} values={environments} empty="No profile scope" />
               <ScopeCard title="Assays" icon={Dna} values={assays} empty="No assay scope" />

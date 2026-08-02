@@ -381,7 +381,7 @@ function reportItems(sample: any) {
 }
 
 function configuredAnalysisSections(sample: any, context?: any) {
-  const sections = context?.analysis_sections || context?.aspc?.reporting?.analysis || sample?.analysis_sections || []
+  const sections = context?.analysis_sections || context?.aspc?.analysis_types || sample?.analysis_sections || []
   return new Set((Array.isArray(sections) ? sections : []).map((item: unknown) => String(item).toLowerCase()))
 }
 
@@ -901,9 +901,9 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
             <table className="w-full min-w-[38rem] border-separate border-spacing-0 text-xs">
               <thead>
                 <tr className="bg-muted/65 text-left text-[10px] font-black uppercase tracking-wide text-muted-foreground">
-                  <th className="w-28 px-3 py-2">Field</th>
-                  <th className="border-l border-pass/25 bg-pass/8 px-3 py-2 text-pass">Case</th>
-                  <th className="border-l border-tier3/25 bg-tier3/8 px-3 py-2 text-tier3">Control</th>
+                  <th className="w-28 px-3 py-1">Field</th>
+                  <th className="border-l border-pass/25 bg-pass/8 px-3 py-1 text-pass">Case</th>
+                  <th className="border-l border-tier3/25 bg-tier3/8 px-3 py-1 text-tier3">Control</th>
                 </tr>
               </thead>
               <tbody>
@@ -916,10 +916,10 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
                   ["FFPE", sample?.case?.ffpe ? "Yes" : "No", sample?.control?.ffpe ? "Yes" : "No"],
                   ["Purity", sample?.case?.purity, sample?.control?.purity],
                 ].map(([label, caseValue, controlValue]) => (
-                  <tr key={String(label)} className="border-t border-border/75">
-                    <th scope="row" className="border-t border-border/75 bg-muted/35 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</th>
-                    <td className="border-l border-t border-pass/20 bg-pass/5 px-3 py-2 font-semibold text-foreground">{displayValue(caseValue)}</td>
-                    <td className="border-l border-t border-tier3/20 bg-tier3/5 px-3 py-2 font-semibold text-foreground">{sample?.paired ? displayValue(controlValue) : "Not paired"}</td>
+                  <tr key={String(label)} className="border-t border-border/40">
+                    <th scope="row" className="border-t border-border/40 bg-muted/35 px-3 py-1 text-left text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</th>
+                    <td className="border-l border-t border-pass/20 bg-pass/5 px-3 py-1 font-semibold text-foreground">{displayValue(caseValue)}</td>
+                    <td className="border-l border-t border-tier3/20 bg-tier3/5 px-3 py-1 font-semibold text-foreground">{sample?.paired ? displayValue(controlValue) : "Not paired"}</td>
                   </tr>
                 ))}
               </tbody>

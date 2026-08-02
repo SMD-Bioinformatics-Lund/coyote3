@@ -6,11 +6,13 @@ import { Activity, AlertTriangle, ArrowRight, CheckCircle2, Clock, Users } from 
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { humanRelativeDate, localDate, shortCount } from "@/lib/detail-formatters"
+import { buildPanelAnalysisCapabilityData, buildPanelGeneChartData } from "@/lib/dashboard-data"
 import { sampleDetailPath } from "@/lib/sample-routing"
 
 const chartColors = ["var(--color-tier1)", "var(--color-tier2)", "var(--color-tier3)", "var(--color-tier4)", "var(--color-dna)", "var(--color-rna)", "var(--color-panel)"]
 const TierDistributionChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.TierDistributionChart })))
 const GeneCoverageChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.GeneCoverageChart })))
+const PanelAnalysisCapabilityChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.PanelAnalysisCapabilityChart })))
 
 function fmt(value: unknown) {
   return shortCount(value)
@@ -70,20 +72,16 @@ export function Dashboard() {
   const tierStats = data?.tier_stats?.total || data?.tier_stats || {}
   const quality = data?.quality_stats || {}
   const capacity = data?.capacity_counts || {}
-  const geneGroups = data?.assay_gene_stats_grouped || {}
+  const geneGroups = data?.panel_gene_stats_grouped || {}
+  const panelPortfolio = data?.panel_portfolio || {}
+  const panelAnalysisCapabilityData = buildPanelAnalysisCapabilityData(data?.panel_analysis_capabilities || [])
   const isglVisibility = data?.isgl_visibility || {}
   const isglAssociationRows = data?.isgl_association?.assay_isgl_counts || []
   const userScope = data?.user_scope_summary || {}
   const scopeStats = userScope.sample_stats || {}
   const recentSamples = userScope.recent_samples || []
 
-  const geneChartData = Object.keys(geneGroups).flatMap(group =>
-    (geneGroups[group] || []).map((assay: any) => ({
-      name: assay.display_name || assay.assay_name,
-      Covered: Number(assay.covered_genes_count ?? assay.gene_count ?? 0),
-      Germline: Number(assay.germline_genes_count ?? assay.germline_gene_count ?? 0),
-    }))
-  )
+  const geneChartData = buildPanelGeneChartData(geneGroups)
   const hasGeneChartData = geneChartData.some((item) => item.Covered > 0 || item.Germline > 0)
 
   const tierChartData = [1, 2, 3, 4].map((tier) => ({
@@ -294,8 +292,8 @@ export function Dashboard() {
         </SurfacePanel>
       </div>
 
-      <div className="grid items-start gap-3 xl:grid-cols-[1.35fr_0.65fr]">
-        <SurfacePanel className="dashboard-panel dashboard-panel--teal" title="Gene Coverage Per Assay" description="Covered and germline gene scope across assays.">
+      <div className="grid items-stretch gap-3 xl:grid-cols-[1.35fr_0.65fr]">
+        <SurfacePanel className="dashboard-panel dashboard-panel--teal h-full" title="Panel Gene Coverage" description="Covered and germline gene scope across active targeted panels.">
           <div className="h-[320px]">
             {hasGeneChartData ? (
               <Suspense fallback={<ChartFallback />}>
@@ -312,8 +310,33 @@ export function Dashboard() {
           </div>
         </SurfacePanel>
 
-        <SurfacePanel className="dashboard-panel dashboard-panel--rose" title="Resource Capacity" description="Configured resources and reference inventory.">
-          <div className="grid grid-cols-2 gap-2">
+        <SurfacePanel className="dashboard-panel dashboard-panel--rose h-full" title="Panel Portfolio" description="Active targeted-panel design inventory.">
+          <div className="grid grid-cols-2 gap-2 xl:h-[320px] xl:auto-rows-fr">
+            <Metric title="Active panels" value={panelPortfolio.active_panels} sub={`${fmt(panelPortfolio.accredited_panels)} accredited`} />
+            <Metric title="Assay groups" value={panelPortfolio.assay_groups} sub="Represented by active panels" />
+            <Metric title="Covered assignments" value={panelPortfolio.covered_gene_assignments} sub="Genes across panel definitions" />
+            <Metric title="Germline assignments" value={panelPortfolio.germline_gene_assignments} sub="Configured germline scope" />
+          </div>
+        </SurfacePanel>
+      </div>
+
+      <div className="grid items-stretch gap-3 xl:grid-cols-[1.35fr_0.65fr]">
+        <SurfacePanel className="dashboard-panel dashboard-panel--blue h-full" title="Panel Analysis Capability" description="Enabled analysis and report sections across active targeted-panel configurations.">
+          <div className="h-[280px]">
+            {panelAnalysisCapabilityData.length ? (
+              <Suspense fallback={<ChartFallback />}>
+                <PanelAnalysisCapabilityChart data={panelAnalysisCapabilityData} />
+              </Suspense>
+            ) : (
+              <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border text-center text-xs text-muted-foreground">
+                No targeted-panel analysis capabilities are configured.
+              </div>
+            )}
+          </div>
+        </SurfacePanel>
+
+        <SurfacePanel className="dashboard-panel dashboard-panel--amber h-full" title="Resource Capacity" description="Configured resources and reference inventory.">
+          <div className="grid grid-cols-2 gap-2 xl:h-[280px] xl:auto-rows-fr">
             {capacityEntries.length ? capacityEntries.map(([key, value], index) => (
               <div key={key} className="dashboard-subcard p-2.5">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{key.replaceAll("_", " ")}</p>

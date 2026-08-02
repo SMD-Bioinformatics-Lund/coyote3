@@ -253,7 +253,7 @@ export function Samples() {
       enableSorting: false,
       cell: ({ row }) => (
         <Link to={sampleDetailPath(row.original)}>
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl shadow-sm hover:bg-primary hover:text-primary-foreground">
+          <Button variant="ghost" size="icon-xs" className="rounded-md shadow-sm hover:bg-primary hover:text-primary-foreground">
             <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>

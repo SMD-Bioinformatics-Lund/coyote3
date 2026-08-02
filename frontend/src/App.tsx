@@ -6,6 +6,10 @@ import { Layout } from "./components/layout/Layout"
 import { notify } from "./components/notifications/notification-store"
 import { APP_BASENAME } from "./lib/runtime-paths"
 import { Login } from "./pages/Login"
+import { AdminPermissionBoundary } from "./components/admin/AdminPermissionBoundary"
+import { ADMIN_UTILITY_PERMISSIONS } from "./lib/access-control"
+import type { ApplicationModuleKey } from "./lib/app-module-state"
+import { ApplicationModuleBoundary } from "./lib/app-modules"
 
 const Dashboard = lazy(() => import("./pages/Dashboard").then((module) => ({ default: module.Dashboard })))
 const Samples = lazy(() => import("./pages/Samples").then((module) => ({ default: module.Samples })))
@@ -39,6 +43,7 @@ const ReportsPage = lazy(() => import("./pages/ReportsPage").then((module) => ({
 const SavedReportPage = lazy(() => import("./pages/SavedReportPage").then((module) => ({ default: module.SavedReportPage })))
 const NotificationHistoryPage = lazy(() => import("./pages/NotificationHistoryPage").then((module) => ({ default: module.NotificationHistoryPage })))
 const UiRouteAuditPage = lazy(() => import("./pages/admin/UiRouteAuditPage").then((module) => ({ default: module.UiRouteAuditPage })))
+const AdminNotificationBroadcastPage = lazy(() => import("./pages/admin/AdminNotificationBroadcastPage").then((module) => ({ default: module.AdminNotificationBroadcastPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,6 +85,18 @@ function withRouteLoader(element: ReactNode) {
   return <Suspense fallback={<RouteFallback />}>{element}</Suspense>
 }
 
+function withAdminPermission(element: ReactNode, permission: string) {
+  return withRouteLoader(
+    <AdminPermissionBoundary permission={permission}>{element}</AdminPermissionBoundary>
+  )
+}
+
+function withModule(element: ReactNode, moduleKey: ApplicationModuleKey) {
+  return withRouteLoader(
+    <ApplicationModuleBoundary moduleKey={moduleKey}>{element}</ApplicationModuleBoundary>
+  )
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -92,31 +109,35 @@ export default function App() {
             <Route path="/" element={withRouteLoader(<Dashboard />)} />
             <Route path="/samples" element={withRouteLoader(<Samples />)} />
             <Route path="/samples/:id" element={withRouteLoader(<SampleDetail />)} />
-            <Route path="/samples/:id/variant/:varId" element={withRouteLoader(<VariantDetail />)} />
-            <Route path="/samples/:id/cnv/:varId" element={withRouteLoader(<CNVDetail />)} />
-            <Route path="/samples/:id/fusion/:varId" element={withRouteLoader(<FusionDetail />)} />
-            <Route path="/samples/:id/translocation/:varId" element={withRouteLoader(<TranslocationDetail />)} />
-            <Route path="/samples/:id/reports/:reportId" element={withRouteLoader(<SavedReportPage />)} />
-            <Route path="/variants" element={withRouteLoader(<TieredVariantSearch />)} />
-            <Route path="/variants/search" element={withRouteLoader(<TieredVariantSearch />)} />
-            <Route path="/variants/reported/:variantId/:tier" element={withRouteLoader(<TieredVariantContext />)} />
-            <Route path="/reports" element={withRouteLoader(<ReportsPage />)} />
+            <Route path="/samples/:id/variant/:varId" element={withModule(<VariantDetail />, "dna_analysis")} />
+            <Route path="/samples/:id/cnv/:varId" element={withModule(<CNVDetail />, "dna_analysis")} />
+            <Route path="/samples/:id/fusion/:varId" element={withModule(<FusionDetail />, "rna_analysis")} />
+            <Route path="/samples/:id/translocation/:varId" element={withModule(<TranslocationDetail />, "dna_analysis")} />
+            <Route path="/samples/:id/reports/:reportId" element={withModule(<SavedReportPage />, "reports")} />
+            <Route path="/variants" element={withModule(<TieredVariantSearch />, "variant_search")} />
+            <Route path="/variants/search" element={withModule(<TieredVariantSearch />, "variant_search")} />
+            <Route path="/variants/reported/:variantId/:tier" element={withModule(<TieredVariantContext />, "variant_search")} />
+            <Route path="/reports" element={withModule(<ReportsPage />, "reports")} />
             <Route path="/notifications" element={withRouteLoader(<NotificationHistoryPage />)} />
             <Route path="/about" element={withRouteLoader(<AboutPage />)} />
             <Route path="/contact" element={withRouteLoader(<ContactPage />)} />
-            <Route path="/public" element={withRouteLoader(<PublicCatalog />)} />
-            <Route path="/public/catalog" element={withRouteLoader(<PublicCatalog />)} />
-            <Route path="/public/matrix" element={withRouteLoader(<PublicCatalogMatrix />)} />
-            <Route path="/public/genelists/:genelistId/view" element={withRouteLoader(<PublicGenelistPage />)} />
-            <Route path="/public/asp/:aspId/genes" element={withRouteLoader(<PublicAspGenesPage />)} />
-            <Route path="/public/gene/:geneId/info" element={withRouteLoader(<GeneInfoPage />)} />
-            <Route path="/coverage/blacklisted/:group" element={withRouteLoader(<CoverageBlacklistPage />)} />
+            <Route path="/public" element={withModule(<PublicCatalog />, "assay_catalog")} />
+            <Route path="/public/catalog" element={withModule(<PublicCatalog />, "assay_catalog")} />
+            <Route path="/public/matrix" element={withModule(<PublicCatalogMatrix />, "assay_catalog")} />
+            <Route path="/public/genelists/:genelistId/view" element={withModule(<PublicGenelistPage />, "assay_catalog")} />
+            <Route path="/public/asp/:aspId/genes" element={withModule(<PublicAspGenesPage />, "assay_catalog")} />
+            <Route path="/public/gene/:geneId/info" element={withModule(<GeneInfoPage />, "knowledgebases")} />
+            <Route path="/coverage/blacklisted/:group" element={withModule(<CoverageBlacklistPage />, "dna_analysis")} />
             <Route path="/admin" element={withRouteLoader(<AdminHub />)} />
-            <Route path="/admin/audit" element={withRouteLoader(<AdminAuditPage />)} />
-            <Route path="/admin/controls" element={withRouteLoader(<AdminControlsPage />)} />
-            <Route path="/admin/ingest" element={withRouteLoader(<AdminIngestPage />)} />
-            <Route path="/admin/schemas" element={withRouteLoader(<AdminSchemasPage />)} />
-            <Route path="/admin/ui-routes" element={withRouteLoader(<UiRouteAuditPage />)} />
+            <Route path="/admin/audit" element={withAdminPermission(<AdminAuditPage />, ADMIN_UTILITY_PERMISSIONS.auditView)} />
+            <Route path="/admin/controls" element={withAdminPermission(<AdminControlsPage />, ADMIN_UTILITY_PERMISSIONS.controlsView)} />
+            <Route path="/admin/ingest" element={withModule(
+              <AdminPermissionBoundary permission={ADMIN_UTILITY_PERMISSIONS.ingestManage}><AdminIngestPage /></AdminPermissionBoundary>,
+              "ingest_workspace",
+            )} />
+            <Route path="/admin/schemas" element={withAdminPermission(<AdminSchemasPage />, ADMIN_UTILITY_PERMISSIONS.schemasView)} />
+            <Route path="/admin/ui-routes" element={withAdminPermission(<UiRouteAuditPage />, ADMIN_UTILITY_PERMISSIONS.uiRouteAuditView)} />
+            <Route path="/admin/notifications" element={withAdminPermission(<AdminNotificationBroadcastPage />, ADMIN_UTILITY_PERMISSIONS.broadcastCreate)} />
             <Route path="/admin/:resource/create" element={withRouteLoader(<AdminResourceEditorPage mode="create" />)} />
             <Route path="/admin/:resource/:id/view" element={withRouteLoader(<AdminResourceEditorPage mode="view" />)} />
             <Route path="/admin/:resource/:id/edit" element={withRouteLoader(<AdminResourceEditorPage mode="edit" />)} />

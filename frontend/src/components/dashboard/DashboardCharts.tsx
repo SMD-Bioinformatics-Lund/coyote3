@@ -60,3 +60,32 @@ export function GeneCoverageChart({
     </ChartPanel>
   )
 }
+
+export function PanelAnalysisCapabilityChart({
+  data,
+}: {
+  data: Array<{ name: string; Enabled: number; Reportable: number }>
+}) {
+  return (
+    <ChartPanel
+      title="Panel analysis capability"
+      description="Enabled and reportable analysis sections across active targeted-panel configurations."
+      filename="panel_analysis_capability"
+      data={data}
+    >
+      <div className="h-full min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 8, right: 18, left: 0, bottom: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" opacity={0.22} vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+            <Tooltip cursor={{ fill: "var(--chart-tooltip-cursor)" }} contentStyle={{ borderRadius: "10px", border: "1px solid var(--border)" }} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Bar dataKey="Enabled" fill="var(--color-panel)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Reportable" fill="var(--color-pass)" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </ChartPanel>
+  )
+}

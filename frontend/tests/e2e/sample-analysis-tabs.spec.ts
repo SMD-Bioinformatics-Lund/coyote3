@@ -112,16 +112,16 @@ test("DNA sample tabs and requests are limited to its ASPC analysis selection", 
   const requests = sampleAnalysisRequests(page, "DNA_001")
 
   await page.goto("/samples/DNA_001")
-  await expect(page.getByRole("button", { name: "Somatic SNVs" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "CNVs" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Translocations" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Coverage" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Germline SNVs" })).toHaveCount(0)
-  await expect(page.getByRole("button", { name: "Fusions" })).toHaveCount(0)
+  await expect(page.getByRole("tab", { name: "Somatic SNVs" })).toBeVisible()
+  await expect(page.getByRole("tab", { name: "CNVs" })).toBeVisible()
+  await expect(page.getByRole("tab", { name: "Translocations" })).toBeVisible()
+  await expect(page.getByRole("tab", { name: "Coverage" })).toBeVisible()
+  await expect(page.getByRole("tab", { name: "Germline SNVs" })).toHaveCount(0)
+  await expect(page.getByRole("tab", { name: "Fusions" })).toHaveCount(0)
   expect(requests.some((path) => path.endsWith("/fusions"))).toBe(false)
   expect(requests.some((path) => path.endsWith("/small-variants"))).toBe(false)
 
-  await page.getByRole("button", { name: "Somatic SNVs" }).click()
+  await page.getByRole("tab", { name: "Somatic SNVs" }).click()
   await expect.poll(() => requests.some((path) => path.endsWith("/small-variants"))).toBe(true)
   expect(requests.some((path) => path.endsWith("/fusions"))).toBe(false)
 })
@@ -131,14 +131,14 @@ test("RNA sample requests the fusion endpoint only after the configured fusion t
   const requests = sampleAnalysisRequests(page, "RNA_001")
 
   await page.goto("/samples/RNA_001")
-  await expect(page.getByRole("button", { name: "Fusions" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Somatic SNVs" })).toHaveCount(0)
-  await expect(page.getByRole("button", { name: "CNVs" })).toHaveCount(0)
-  await expect(page.getByRole("button", { name: "Translocations" })).toHaveCount(0)
-  await expect(page.getByRole("button", { name: "Coverage" })).toHaveCount(0)
+  await expect(page.getByRole("tab", { name: "Fusions" })).toBeVisible()
+  await expect(page.getByRole("tab", { name: "Somatic SNVs" })).toHaveCount(0)
+  await expect(page.getByRole("tab", { name: "CNVs" })).toHaveCount(0)
+  await expect(page.getByRole("tab", { name: "Translocations" })).toHaveCount(0)
+  await expect(page.getByRole("tab", { name: "Coverage" })).toHaveCount(0)
   expect(requests.some((path) => path.endsWith("/fusions"))).toBe(false)
 
-  await page.getByRole("button", { name: "Fusions" }).click()
+  await page.getByRole("tab", { name: "Fusions" }).click()
   await expect.poll(() => requests.some((path) => path.endsWith("/fusions"))).toBe(true)
   expect(requests.some((path) => path.endsWith("/small-variants"))).toBe(false)
 })
@@ -148,8 +148,8 @@ test("germline SNVs use an isolated intent-specific request", async ({ page }) =
   const requests = sampleAnalysisRequests(page, "DNA_BOTH_001")
 
   await page.goto("/samples/DNA_BOTH_001")
-  await expect(page.getByRole("button", { name: "Somatic SNVs" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Germline SNVs" })).toBeVisible()
+  await expect(page.getByRole("tab", { name: "Somatic SNVs" })).toBeVisible()
+  await expect(page.getByRole("tab", { name: "Germline SNVs" })).toBeVisible()
 
   const germlineRequest = page.waitForRequest((request) => {
     const url = new URL(request.url())
@@ -158,7 +158,7 @@ test("germline SNVs use an isolated intent-specific request", async ({ page }) =
       url.searchParams.get("intent") === "germline"
     )
   })
-  await page.getByRole("button", { name: "Germline SNVs" }).click()
+  await page.getByRole("tab", { name: "Germline SNVs" }).click()
   await germlineRequest
 
   expect(requests.some((path) => path.endsWith("/cnvs"))).toBe(false)
