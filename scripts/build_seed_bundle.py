@@ -67,8 +67,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed-time", required=True, help="created_on/updated_on stamp value")
     parser.add_argument(
         "--reference-seed-data",
-        default="",
-        help="Optional directory with compressed reference seed packs",
+        action="append",
+        default=[],
+        help="Reference seed directory; repeat for RBAC and compressed reference packs",
     )
     return parser.parse_args()
 
@@ -84,10 +85,10 @@ def load_seed(path: Path) -> dict[str, list[dict]]:
 
 
 def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
-    required_pack = {
-        "hgnc_genes": "hgnc_genes.seed.ndjson",
+    supported_pack = {
         "permissions": "permissions.seed.ndjson",
         "roles": "roles.seed.ndjson",
+        "hgnc_genes": "hgnc_genes.seed.ndjson",
         "vep_metadata": "vep_metadata.seed.ndjson",
     }
 
@@ -98,7 +99,7 @@ def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
         gzip_path = base_dir / f"{stem_name}.gz"
         if gzip_path.exists():
             return gzip_path
-        raise SystemExit(f"Missing reference seed file: {plain_path} or {gzip_path}")
+        return plain_path
 
     def load_ndjson(file_path: Path) -> list[dict]:
         docs: list[dict] = []
@@ -117,8 +118,10 @@ def load_reference_seed_pack(path: Path) -> dict[str, list[dict]]:
         return docs
 
     payload: dict[str, list[dict]] = {}
-    for collection, filename in required_pack.items():
+    for collection, filename in supported_pack.items():
         file_path = resolve_reference_file(path, filename)
+        if not file_path.exists():
+            continue
         payload[collection] = load_ndjson(file_path)
     return payload
 
@@ -178,6 +181,7 @@ def canonicalize_permission_fields(seed: dict[str, list[dict]]) -> None:
         )
         if permission_id:
             doc["permission_id"] = permission_id
+        doc["system_managed"] = True
         doc.pop("permission_name", None)
 
     for doc in seed.get("roles", []) or []:
@@ -277,15 +281,17 @@ def main() -> int:
     args = parse_args()
     source = Path(args.seed_source)
     dest_dir = Path(args.dest_dir)
-    reference_seed_data = Path(args.reference_seed_data) if args.reference_seed_data else None
+    reference_seed_data = [Path(value) for value in args.reference_seed_data]
 
     if not source.is_dir():
         raise SystemExit(f"Seed source not found: {source}")
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     seed = load_seed(source)
-    if reference_seed_data is not None:
-        seed.update(load_reference_seed_pack(reference_seed_data))
+    for reference_dir in reference_seed_data:
+        if not reference_dir.is_dir():
+            raise SystemExit(f"Reference seed source not found: {reference_dir}")
+        seed.update(load_reference_seed_pack(reference_dir))
     canonicalize_seed_contract(seed)
     lower_business_keys(seed)
     stamp_docs(seed, args.seed_actor, args.seed_time)

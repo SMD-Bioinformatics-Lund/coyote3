@@ -535,7 +535,7 @@ def test_service_uses_base_yaml_when_the_selected_subpanel_has_no_file():
     context_payload["asp"]["asp_id"] = "hema_gmsv1"
     context_payload["aspc"]["asp_id"] = "hema_gmsv1"
     context_payload["aspc"]["subpanel_id"] = "hem-snabb"
-    context_payload["aspc"]["reporting"] = {"analysis": ["SNV"]}
+    context_payload["aspc"]["reporting"] = {"report_sections": ["SNV"]}
     context = PreparedReportContext.model_validate(context_payload)
 
     result = ClinicalRuleService().evaluate(

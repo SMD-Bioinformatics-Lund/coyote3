@@ -1,0 +1,75 @@
+[
+  {
+    "aspc_id": "assay_1_base_production",
+    "display_name": "Hema GMS v1",
+    "asp_group": "hematology",
+    "asp_category": "dna",
+    "description": "Demo ASP config for first-run DNA sample workflows",
+    "reference_genome": "GRCh38",
+    "platform": "Illumina",
+    "environment": "production",
+    "version": 1,
+    "is_active": true,
+    "analysis_types": [
+      "SNV",
+      "CNV",
+      "COVERAGE"
+    ],
+    "filters": {
+      "somatic": {
+        "snv": {
+          "max_freq": 1,
+          "min_freq": 0.03,
+          "max_control_freq": 0.05,
+          "max_popfreq": 0.01,
+          "min_depth": 100,
+          "min_alt_reads": 5,
+          "vep_consequences": [
+            "splicing",
+            "stop_gained",
+            "stop_lost",
+            "start_lost",
+            "frameshift",
+            "inframe_indel",
+            "missense",
+            "other_coding"
+          ],
+          "snvlists": []
+        },
+        "cnv": {
+          "min_cnv_size": 100,
+          "max_cnv_size": 1000000,
+          "cnv_loss_cutoff": -0.3,
+          "cnv_gain_cutoff": 0.3,
+          "cnveffects": [
+            "gain",
+            "loss"
+          ],
+          "cnvlists": []
+        },
+        "coverage": {
+          "warn_cov": 500,
+          "error_cov": 100
+        }
+      }
+    },
+    "reporting": {
+      "report_sections": [
+        "SNV",
+        "CNV"
+      ],
+      "report_header": "Demo report header",
+      "report_method": "Demo method",
+      "report_description": "DNA panel summary report for assay_1",
+      "general_report_summary": "Automated summary generated from curated panel filters.",
+      "plots_path": "/tmp",
+      "report_folder": "demo"
+    },
+    "verification_samples": {},
+    "asp_id": "assay_1",
+    "subpanel_id": "base",
+    "analysis_intents": [
+      "somatic"
+    ]
+  }
+]

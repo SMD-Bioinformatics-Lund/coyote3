@@ -782,14 +782,17 @@ class SampleRepository(BaseRepository):
     ) -> tuple[list[dict], int]:
         """Search samples in MongoDB for admin listings with pagination."""
         query: dict[str, Any] = {"ingest_status": "ready"} if ready_only else {}
-        if asp_ids:
+        if asp_ids is not None:
             query["asp_id"] = {"$in": asp_ids}
         normalized_q = str(search_str or "").strip()
         if normalized_q:
             pattern = re.escape(normalized_q)
             query["$or"] = [
                 {"name": {"$regex": pattern, "$options": "i"}},
+                {"case_id": {"$regex": pattern, "$options": "i"}},
+                {"control_id": {"$regex": pattern, "$options": "i"}},
                 {"asp_id": {"$regex": pattern, "$options": "i"}},
+                {"subpanel_id": {"$regex": pattern, "$options": "i"}},
                 {"environment": {"$regex": pattern, "$options": "i"}},
             ]
         page = max(1, int(page or 1))

@@ -7,6 +7,7 @@ from collections import defaultdict
 
 from api.config.application_metadata import oncokb_gene_url
 from api.domain.common.reporting import nl_join, nl_num, utc_now
+from api.domain.core.annotation_identity import annotation_identity_fields
 from api.infra.mongo.persistence import new_object_id
 from api.infra.request_context import current_username
 
@@ -100,6 +101,13 @@ def create_comment_doc(
         elif nomenclature in ["f", "t"]:
             doc["gene1"] = data.get("gene1", None)
             doc["gene2"] = data.get("gene2", None)
+        doc.update(
+            annotation_identity_fields(
+                variant=variant,
+                nomenclature=nomenclature,
+                source=data,
+            )
+        )
     else:
         doc = {
             "_id": new_object_id(),

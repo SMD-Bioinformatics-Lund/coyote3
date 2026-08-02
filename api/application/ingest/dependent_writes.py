@@ -65,60 +65,6 @@ def write_dependents(
     return written
 
 
-def ingest_dependents(
-    service: Any,
-    *,
-    sample_id: str,
-    sample_name: str,
-    delete_existing: bool,
-    preload: dict[str, Any],
-) -> dict[str, int]:
-    """Insert dependent analysis payload for an existing sample id."""
-    sid = str(sample_id)
-    written: dict[str, int] = {}
-    anno_vep_docs = preload.get("anno_vep")
-    if anno_vep_docs:
-        service.anno_vep_repository.upsert_many(list(anno_vep_docs))
-    dependent_preload = {
-        key: value for key, value in preload.items() if key in INGEST_DEPENDENT_COLLECTIONS
-    }
-    for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
-        if key not in dependent_preload:
-            continue
-        if delete_existing:
-            service._collection(col_name).delete_many({"SAMPLE_ID": sid})
-
-        payload_value: Any = dependent_preload[key]
-        if key in INGEST_SINGLE_DOCUMENT_KEYS:
-            if not isinstance(payload_value, dict):
-                raise ValueError(f"{key} expected dict payload")
-            doc = dict(payload_value)
-            doc["SAMPLE_ID"] = sid
-            if key == "cov":
-                doc["sample"] = sample_name
-            normalized_doc = service._normalize_collection_docs(col_name, [doc])[0]
-            service._collection(col_name).insert_one(dict(normalized_doc))
-            written[key] = 1
-            continue
-
-        if not isinstance(payload_value, (list, tuple)):
-            raise ValueError(f"{key} expected list payload")
-        docs: list[dict[str, Any]] = []
-        for item in payload_value:
-            if not isinstance(item, dict):
-                raise ValueError(f"{key} contains non-dict item")
-            doc = dict(item)
-            doc["SAMPLE_ID"] = sid
-            if key == "snvs":
-                doc = ensure_variant_identity_fields(doc)
-            docs.append(doc)
-        normalized_docs = service._normalize_collection_docs(col_name, docs)
-        if normalized_docs:
-            insert_many_documents(service._collection(col_name), normalized_docs)
-        written[key] = len(normalized_docs)
-    return written
-
-
 def cleanup(service: Any, sample_id: str) -> None:
     """Roll back a failed ingest by deleting the sample and its dependents."""
     sid = str(sample_id)

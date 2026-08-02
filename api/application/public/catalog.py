@@ -642,12 +642,7 @@ class PublicCatalogService:
     def _aspc_available_analysis(cls, aspc: dict[str, Any] | None) -> list[str]:
         if not aspc:
             return []
-        reporting = aspc.get("reporting") if isinstance(aspc.get("reporting"), dict) else {}
-        return cls._unique(
-            list(reporting.get("analysis") or [])
-            + list(aspc.get("analysis_types") or [])
-            + list(reporting.get("report_sections") or [])
-        )
+        return cls._unique(list(aspc.get("analysis_types") or []))
 
     @classmethod
     def _aspc_report_sections(cls, aspc: dict[str, Any] | None) -> list[str]:

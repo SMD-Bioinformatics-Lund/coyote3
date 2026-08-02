@@ -14,7 +14,7 @@ from api.contracts.managed_resources import managed_resource_spec
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.contracts.schemas.app_controls import AppControlsDoc
 from api.contracts.schemas.dna import CnvsDoc, VariantsDoc
-from api.contracts.schemas.governance import UsersDoc
+from api.contracts.schemas.governance import RolesDoc, UsersDoc
 from api.contracts.schemas.registry import (
     normalize_collection_document,
     supported_collections,
@@ -28,13 +28,14 @@ def _load_seed_list(path: Path) -> list[dict]:
 
 
 def _load_reference_seed_list(filename: str) -> list[dict]:
-    base = Path("tests/data/seed_data")
+    base = (
+        Path("api/config/bootstrap/rbac")
+        if filename.startswith(("permissions.", "roles."))
+        else Path("api/config/bootstrap/reference")
+    )
     path = base / filename
     if not path.exists() and filename.endswith(".gz"):
-        plain_name = filename[:-3]
-        plain_path = base / plain_name
-        if plain_path.exists():
-            path = plain_path
+        path = base / filename[:-3]
     docs: list[dict] = []
     opener = gzip.open if path.suffix == ".gz" else open
     with opener(path, "rt", encoding="utf-8") as handle:
@@ -120,7 +121,7 @@ def test_collection_validator_rejects_vep_groups_with_unknown_terms():
 
 def test_collection_validator_accepts_oncokb_actionable_shape():
     """OncoKB actionable strict model should accept curated fixture docs."""
-    fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/oncokb_actionable.json")
+    fixture = Path("demo_data/collections/all_collections_dummy/oncokb_actionable.json")
     payload = _load_seed_list(fixture)[0]
     validate_collection_document("oncokb_actionable", payload)
 
@@ -155,7 +156,7 @@ def test_collection_validator_accepts_public_oncokb_cancer_gene_shape():
 
 def test_collection_validator_accepts_nested_sample_shape():
     """samples collection should validate nested case/control/filter/comment/report blocks."""
-    fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/samples.json")
+    fixture = Path("demo_data/collections/all_collections_dummy/samples.json")
     payload = _load_seed_list(fixture)[0]
     validate_collection_document("samples", payload)
 
@@ -313,7 +314,7 @@ def test_collection_validator_rejects_rna_sample_with_dna_keys():
 
 def test_collection_validator_accepts_nested_panel_coverage_shape():
     """panel_coverage strict model should accept curated fixture docs."""
-    fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/panel_coverage.json")
+    fixture = Path("demo_data/collections/all_collections_dummy/panel_coverage.json")
     payload = _load_seed_list(fixture)[0]
     validate_collection_document("panel_coverage", payload)
 
@@ -340,7 +341,7 @@ def test_app_controls_doc_accepts_persisted_created_timestamp():
             "control_id": "default",
             "celery": {"enabled": True},
             "retention": {"audit_events_days": 730, "notification_days": 180},
-            "modules": {"dna_enabled": True},
+            "modules": {"dna_analysis_enabled": True},
             "created_on": "2026-07-17T16:02:06.074000Z",
             "updated_on": "2026-07-17T16:02:06.074000Z",
             "updated_by": "coyote3.admin",
@@ -360,6 +361,27 @@ def test_managed_user_form_exposes_environment_options_and_username_readonly_on_
         "validation",
     ]
     assert form["fields"]["username"]["readonly_mode"] == ["edit"]
+
+
+def test_managed_role_form_exposes_runtime_color_picker():
+    form = build_form_spec(managed_resource_spec("role"))
+
+    assert form["fields"]["color"]["display_type"] == "color"
+    assert form["fields"]["color"]["placeholder"] == "#4f46e5"
+
+
+def test_role_color_normalizes_hex_and_preserves_legacy_names():
+    base = {
+        "role_id": "reviewer",
+        "name": "reviewer",
+        "label": "Reviewer",
+        "level": 20,
+    }
+
+    assert RolesDoc.model_validate({**base, "color": " #DC2626 "}).color == "#dc2626"
+    assert RolesDoc.model_validate({**base, "color": "Slate"}).color == "slate"
+    with pytest.raises(ValueError, match="six-digit"):
+        RolesDoc.model_validate({**base, "color": "#fff"})
 
 
 def test_managed_isgl_form_uses_predefined_list_type_choices():
@@ -479,7 +501,6 @@ def test_collection_validator_requires_canonical_aspc_analysis_types():
                 }
             },
             "reporting": {
-                "analysis": ["SNV", "TMB", "PGX", "CNV_PROFILE", "COVERAGE"],
                 "report_sections": ["TMB", "CNV_PROFILE"],
                 "report_header": "Header",
                 "report_method": "Method",
@@ -492,8 +513,8 @@ def test_collection_validator_requires_canonical_aspc_analysis_types():
     )
 
     assert payload["analysis_types"] == ["SNV", "TMB", "PGX", "CNV_PROFILE", "COVERAGE"]
-    assert payload["reporting"]["analysis"] == ["SNV", "TMB", "PGX", "CNV_PROFILE", "COVERAGE"]
     assert payload["reporting"]["report_sections"] == ["TMB", "CNV_PROFILE"]
+    assert "analysis" not in payload["reporting"]
 
 
 def test_collection_validator_normalizes_user_asp_groups_to_known_values():
@@ -603,7 +624,7 @@ def test_collection_validator_rejects_user_without_role():
 
 def test_collection_validator_accepts_strict_ready_fixture_subset():
     """Strict-ready fixture collections should pass validation end-to-end."""
-    fixture_dir = Path("tests/fixtures/db_dummy/all_collections_dummy")
+    fixture_dir = Path("demo_data/collections/all_collections_dummy")
     payload = {
         file.stem: json.loads(file.read_text(encoding="utf-8"))
         for file in sorted(fixture_dir.glob("*.json"))

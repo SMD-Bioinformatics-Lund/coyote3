@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import gzip
 import json
 import sys
 from datetime import datetime, timezone
@@ -19,7 +18,7 @@ from werkzeug.security import generate_password_hash  # noqa: E402
 
 from api.contracts.schemas.registry import normalize_collection_document  # noqa: E402
 
-DEFAULT_SEED_DATA_DIR = ROOT_DIR / "tests" / "data" / "seed_data"
+DEFAULT_SEED_DATA_DIR = ROOT_DIR / "api" / "config" / "bootstrap" / "rbac"
 
 
 def _normalize_permission_id(permission_id) -> str:
@@ -42,7 +41,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--seed-data-dir",
         default=str(DEFAULT_SEED_DATA_DIR),
-        help="Directory containing compressed RBAC seed files",
+        help="Directory containing application RBAC NDJSON seed files",
     )
     parser.add_argument("--assay-group", default="hematology", help="Initial assay group")
     parser.add_argument("--assay", default="assay_1", help="Initial assay id")
@@ -68,9 +67,9 @@ def _fail_if_placeholder_values(args: argparse.Namespace) -> None:
         raise SystemExit(2)
 
 
-def _load_seed_ndjson_gz(path: Path) -> list[dict]:
+def _load_seed_ndjson(path: Path) -> list[dict]:
     docs: list[dict] = []
-    with gzip.open(path, "rt", encoding="utf-8") as handle:
+    with path.open("rt", encoding="utf-8") as handle:
         for line in handle:
             text = line.strip()
             if not text:
@@ -83,14 +82,14 @@ def _load_seed_ndjson_gz(path: Path) -> list[dict]:
 
 
 def _load_bootstrap_rbac(seed_data_dir: Path) -> tuple[list[dict], list[dict]]:
-    permissions_path = seed_data_dir / "permissions.seed.ndjson.gz"
-    roles_path = seed_data_dir / "roles.seed.ndjson.gz"
+    permissions_path = seed_data_dir / "permissions.seed.ndjson"
+    roles_path = seed_data_dir / "roles.seed.ndjson"
     if not permissions_path.exists():
         raise SystemExit(f"Missing bootstrap permission seed file: {permissions_path}")
     if not roles_path.exists():
         raise SystemExit(f"Missing bootstrap role seed file: {roles_path}")
-    permissions = _load_seed_ndjson_gz(permissions_path)
-    roles = _load_seed_ndjson_gz(roles_path)
+    permissions = _load_seed_ndjson(permissions_path)
+    roles = _load_seed_ndjson(roles_path)
     if not permissions:
         raise SystemExit(f"Bootstrap permission seed file is empty: {permissions_path}")
     if not roles:
@@ -108,6 +107,7 @@ def _upsert_permission(db, permission_doc: dict) -> None:
         {
             **permission_doc,
             "permission_id": canonical_id,
+            "system_managed": True,
         },
     )
     db["permissions"].update_one(
@@ -184,6 +184,14 @@ def _superuser_exists(db) -> bool:
     return db["users"].count_documents({"roles": "superuser"}, limit=1) > 0
 
 
+def _deployment_is_initialized(db) -> bool:
+    """Return whether application governance data already exists."""
+    return any(
+        db[collection].count_documents({}, limit=1) > 0
+        for collection in ("users", "roles", "permissions")
+    )
+
+
 def main() -> int:
     args = parse_args()
     _fail_if_placeholder_values(args)
@@ -200,17 +208,20 @@ def main() -> int:
     if args.role_id not in role_map:
         available_roles = ", ".join(sorted(role for role in role_map if role))
         raise SystemExit(
-            f"Role '{args.role_id}' not found in {seed_data_dir / 'roles.seed.ndjson.gz'}. "
+            f"Role '{args.role_id}' not found in {seed_data_dir / 'roles.seed.ndjson'}. "
             f"Available roles: {available_roles}"
         )
     client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000)
     client.admin.command("ping")
     db = client[args.db]
 
-    if args.role_id == "superuser" and _superuser_exists(db):
+    if _deployment_is_initialized(db):
+        if _superuser_exists(db):
+            print("[skip] application governance is already initialized")
+            return 0
         raise SystemExit(
-            "A superuser already exists. bootstrap_local_admin.py may create only the first "
-            "bootstrap superuser. Additional superusers must be created by an existing superuser."
+            "Application governance collections are partially initialized but no superuser exists. "
+            "Refusing first-deployment bootstrap to avoid overwriting an existing center policy."
         )
 
     for permission_doc in permission_docs:

@@ -60,6 +60,21 @@ class ApiPasswordChangeRequest(BaseModel):
     new_password: str
 
 
+class ApiProfileUpdateRequest(BaseModel):
+    """Safe identity fields an authenticated user may edit on their own account."""
+
+    firstname: str = Field(max_length=120)
+    lastname: str = Field(max_length=120)
+    fullname: str = Field(max_length=240)
+    job_title: str = Field(max_length=160)
+
+
+class ApiProfileUpdateResponse(ApiStatusResponse):
+    """Updated current-user profile."""
+
+    user: dict
+
+
 class ApiPasswordResetRequest(BaseModel):
     """Represent a password reset request payload."""
 

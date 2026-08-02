@@ -90,8 +90,11 @@ def _read_staged(path: str) -> bytes:
     return _git("show", f":{path}")
 
 
-def _read_worktree(path: str) -> bytes:
-    return Path(path).read_bytes()
+def _read_worktree(path: str) -> bytes | None:
+    candidate = Path(path)
+    if not candidate.is_file():
+        return None
+    return candidate.read_bytes()
 
 
 def _decode(path: str, content: bytes) -> str:
@@ -166,6 +169,8 @@ def main() -> int:
     findings: list[tuple[str, list[str]]] = []
     for path in filter(None, paths):
         content = _read_worktree(path) if args.all_files else _read_staged(path)
+        if content is None:
+            continue
         violations = _find_violations(path, content)
         if violations:
             findings.append((path, violations))

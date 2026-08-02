@@ -222,12 +222,12 @@ class AspcService:
     def _validate_static_rule_source(config: dict[str, Any]) -> None:
         """Require each active reporting ASPC to resolve to a repository YAML file."""
         reporting = config.get("reporting") or {}
-        reporting_analyses = {
+        report_sections = {
             normalize_analysis_type(value)
-            for value in reporting.get("analysis", [])
+            for value in reporting.get("report_sections", [])
             if str(value or "").strip()
         }
-        if not config.get("is_active") or not reporting_analyses:
+        if not config.get("is_active") or not report_sections:
             return
         context = type(
             "RuleScope",
@@ -249,11 +249,11 @@ class AspcService:
             source, _source_path = ClinicalRuleService().resolve(context=context)
         except ValueError as exc:
             raise api_error(409, str(exc)) from exc
-        undeclared = sorted(reporting_analyses - set(source.analyses))
+        undeclared = sorted(report_sections - set(source.analyses))
         if undeclared:
             raise api_error(
                 409,
-                "Clinical rule source does not declare every selected reporting analysis: "
+                "Clinical rule source does not declare every selected report section: "
                 + ", ".join(undeclared),
             )
 
@@ -282,6 +282,8 @@ class AspcService:
         config["asp_group"] = panel.get("asp_group")
         config["asp_category"] = _normalize_asp_category_doc(panel.get("asp_category"))
         config["platform"] = panel.get("platform")
+        if isinstance(config.get("reporting"), dict):
+            config["reporting"].pop("analysis", None)
         self._build_filter_profiles(config, category=category)
         config["aspc_id"] = config.get(
             "aspc_id"
@@ -350,6 +352,8 @@ class AspcService:
         updated_doc["asp_group"] = panel.get("asp_group")
         updated_doc["asp_category"] = _normalize_asp_category_doc(panel.get("asp_category"))
         updated_doc["platform"] = panel.get("platform")
+        if isinstance(updated_doc.get("reporting"), dict):
+            updated_doc["reporting"].pop("analysis", None)
         self._build_filter_profiles(updated_doc, category=category)
         spec = aspc_spec_for_category(category)
         updated_doc.pop("version_history", None)

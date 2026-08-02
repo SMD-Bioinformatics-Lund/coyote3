@@ -14,9 +14,7 @@ class CeleryControlDoc(BaseModel):
     """Runtime switches for background task families."""
 
     enabled: bool = True
-    ingest_watch_enabled: bool = True
-    ingest_bundle_enabled: bool = True
-    ingest_dependents_enabled: bool = True
+    sample_ingest_enabled: bool = True
     collection_writes_enabled: bool = True
     maintenance_enabled: bool = True
 
@@ -41,11 +39,12 @@ class RetentionControlDoc(BaseModel):
 class ModuleControlDoc(BaseModel):
     """Runtime visibility switches for major application modules."""
 
-    dna_enabled: bool = True
-    rna_enabled: bool = True
+    dna_analysis_enabled: bool = True
+    rna_analysis_enabled: bool = True
     reports_enabled: bool = True
+    variant_search_enabled: bool = True
+    knowledgebases_enabled: bool = True
     ingest_workspace_enabled: bool = True
-    audit_ui_enabled: bool = True
     assay_catalog_enabled: bool = True
 
 

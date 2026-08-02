@@ -58,6 +58,10 @@ def set_variant_tier_bulk(
             "assay_group": assay_group,
             "subpanel": subpanel,
             "transcript": transcript,
+            "hgvsp": hgvs_p,
+            "hgvsc": hgvs_c,
+            "genomic": var.get("simple_id"),
+            "genomic_hash": var.get("simple_id_hash"),
         }
 
         if not apply:

@@ -25,34 +25,6 @@ class IsglMetaPayload(BaseModel):
     display_name: str | None = None
 
 
-class InternalIngestDependentsRequest(BaseModel):
-    """Represent internal dependent-data ingest request payload."""
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "sample_id": "sample_oid_seed",
-                "sample_name": "seed_sample",
-                "delete_existing": True,
-                "preload": {"cnvs": [{"chr": "7", "start": 1, "end": 2}]},
-            }
-        }
-    )
-
-    sample_id: str
-    sample_name: str
-    delete_existing: bool = False
-    preload: dict[str, Any]
-
-
-class InternalIngestDependentsPayload(BaseModel):
-    """Represent internal dependent-data ingest response payload."""
-
-    status: str
-    sample_id: str
-    written: dict[str, int]
-
-
 class InternalIngestSampleBundleRequest(BaseModel):
     sample: SamplesDoc | None = None
     yaml_content: str | None = None
@@ -186,6 +158,15 @@ class InternalCollectionSupportPayload(BaseModel):
 
     status: str
     collections: list[str]
+
+
+class InternalCollectionStatusPayload(BaseModel):
+    """Represent collection occupancy for first-deployment bootstrap decisions."""
+
+    status: str
+    collection: str
+    document_count: int
+    empty: bool
 
 
 class InternalCollectionUploadPayload(BaseModel):

@@ -35,9 +35,10 @@ ADMIN_USERNAME=""
 ADMIN_EMAIL=""
 ADMIN_PASSWORD=""
 MONGO_URI_OVERRIDE=""
-SEED_FILE="tests/fixtures/db_dummy/all_collections_dummy"
-SEED_DATA_PACK=""
-YAML_FILE="tests/data/ingest_demo/generic_case_control.yaml"
+SEED_FILE="api/config/bootstrap/demo_center"
+SEED_DATA_PACK="api/config/bootstrap/rbac"
+REFERENCE_DATA_PACK="api/config/bootstrap/reference"
+YAML_FILE="demo_data/ingest/generic_case_control.yaml"
 WITH_OPTIONAL=0
 SKIP_EXISTING=1
 STRICT_NO_RETRY=0
@@ -103,7 +104,7 @@ parse_args() {
       --mongo-uri) MONGO_URI_OVERRIDE="$2"; shift 2 ;;
       --seed-file) SEED_FILE="$2"; shift 2 ;;
       --seed-data-pack) SEED_DATA_PACK="$2"; shift 2 ;;
-      --use-default-seed-data-pack) SEED_DATA_PACK="tests/data/seed_data"; shift ;;
+      --use-default-seed-data-pack) SEED_DATA_PACK="api/config/bootstrap/rbac"; shift ;;
       --yaml-file) YAML_FILE="$2"; shift 2 ;;
       --with-optional) WITH_OPTIONAL=1; shift ;;
       --skip-existing) SKIP_EXISTING=1; shift ;;
@@ -124,6 +125,10 @@ validate_args() {
 
   if [[ -n "$SEED_DATA_PACK" && ! -d "$SEED_DATA_PACK" ]]; then
     echo "ERROR: seed data pack directory not found: $SEED_DATA_PACK" >&2
+    exit 2
+  fi
+  if [[ ! -d "$REFERENCE_DATA_PACK" ]]; then
+    echo "ERROR: reference data pack directory not found: $REFERENCE_DATA_PACK" >&2
     exit 2
   fi
 
@@ -263,6 +268,7 @@ run_preflight() {
   if [[ -n "$SEED_DATA_PACK" ]]; then
     args+=(--reference-seed-data "$SEED_DATA_PACK")
   fi
+  args+=(--reference-seed-data "$REFERENCE_DATA_PACK")
   bash scripts/center_preflight.sh "${args[@]}"
 }
 
@@ -334,11 +340,6 @@ bootstrap_local_admin() {
     return 0
   fi
 
-  if grep -Fq "A superuser already exists." <<<"$output"; then
-    echo "[info] bootstrap superuser already exists; continuing with seed + ingest"
-    return 0
-  fi
-
   printf '%s\n' "$output" >&2
   return 1
 }
@@ -353,6 +354,7 @@ seed_baseline_collections() {
   if [[ -n "$SEED_DATA_PACK" ]]; then
     seed_args+=(--reference-seed-data "$SEED_DATA_PACK")
   fi
+  seed_args+=(--reference-seed-data "$REFERENCE_DATA_PACK")
   if [[ "$WITH_OPTIONAL" -eq 1 ]]; then
     seed_args+=(--with-optional)
   fi
@@ -378,8 +380,8 @@ run_ingest_check() {
 
 main() {
   parse_args "$@"
-  if [[ -z "$SEED_DATA_PACK" && -d "tests/data/seed_data" ]]; then
-    SEED_DATA_PACK="tests/data/seed_data"
+  if [[ -z "$SEED_DATA_PACK" && -d "api/config/bootstrap/rbac" ]]; then
+    SEED_DATA_PACK="api/config/bootstrap/rbac"
     echo "[info] using default seed data pack: ${SEED_DATA_PACK}"
   fi
   validate_args

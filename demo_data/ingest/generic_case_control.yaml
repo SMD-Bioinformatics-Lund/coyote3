@@ -25,7 +25,7 @@ control_sequencing_run: 'seed_run'
 control_reads: 45889968
 control_purity: null
 paired: true
-vcf_files: tests/data/ingest_demo/generic_case_control.final.filtered.vcf
-cnv: tests/data/ingest_demo/generic_case_control.cnvs.merged.json
-cnvprofile: tests/data/ingest_demo/generic_case_control.modeled.png
-cov: tests/data/ingest_demo/generic_case_control.cov.json
+vcf_files: demo_data/ingest/generic_case_control.final.filtered.vcf
+cnv: demo_data/ingest/generic_case_control.cnvs.merged.json
+cnvprofile: demo_data/ingest/generic_case_control.modeled.png
+cov: demo_data/ingest/generic_case_control.cov.json

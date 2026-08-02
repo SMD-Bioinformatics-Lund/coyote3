@@ -691,7 +691,13 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
         "subpanel",
         "gene",
         "transcript",
+        "hgvsp",
+        "hgvsc",
+        "genomic",
+        "genomic_hash",
     }
+    assert captured["docs"][0]["variant_data"]["hgvsp"] == "p.V600E"
+    assert captured["docs"][0]["variant_data"]["hgvsc"] is None
 
 
 def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatch):

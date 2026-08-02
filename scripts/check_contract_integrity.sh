@@ -62,11 +62,10 @@ fi
 
 echo "[check] validate seed bundle contract and assay consistency"
 seed_check_args=(
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy
+  --seed-file demo_data/collections/all_collections_dummy
+  --reference-seed-data api/config/bootstrap/rbac
+  --reference-seed-data api/config/bootstrap/reference
 )
-if [[ -d tests/data/seed_data ]]; then
-  seed_check_args+=(--reference-seed-data tests/data/seed_data)
-fi
 "$PYTHON_BIN" scripts/validate_assay_consistency.py "${seed_check_args[@]}"
 
 echo "[check] shell script static analysis"

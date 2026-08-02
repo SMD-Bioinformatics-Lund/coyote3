@@ -9,7 +9,26 @@ from fastapi.responses import JSONResponse
 from starlette.requests import Request
 
 from api.app import middleware
+from api.app.deps import services
 from api.security.access import ApiUser
+
+
+class _EnabledModuleControls:
+    """Provide enabled module state to isolated middleware tests."""
+
+    @staticmethod
+    def module_enabled(_module_key: str) -> bool:
+        return True
+
+
+@pytest.fixture(autouse=True)
+def _enable_application_modules(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep module availability independent from request-audit assertions."""
+    monkeypatch.setattr(
+        services,
+        "get_app_controls_service",
+        lambda: _EnabledModuleControls(),
+    )
 
 
 def _user(level: int = 9) -> ApiUser:

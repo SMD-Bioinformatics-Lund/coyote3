@@ -26,12 +26,11 @@ from api.contracts.internal import (
     InternalCollectionBulkInsertRequest,
     InternalCollectionInsertPayload,
     InternalCollectionInsertRequest,
+    InternalCollectionStatusPayload,
     InternalCollectionSupportPayload,
     InternalCollectionUploadPayload,
     InternalCollectionUpsertPayload,
     InternalCollectionUpsertRequest,
-    InternalIngestDependentsPayload,
-    InternalIngestDependentsRequest,
     InternalIngestSampleBundlePayload,
     InternalIngestSampleBundleRequest,
     InternalTaskStatusPayload,
@@ -49,7 +48,6 @@ from api.security.access import (
     require_access,
 )
 from api.tasks.ingest import (
-    ingest_dependents_task,
     ingest_sample_bundle_task,
     insert_collection_document_task,
     insert_collection_documents_task,
@@ -193,52 +191,26 @@ def get_isgl_meta_internal(
     )
 
 
-@router.post(
-    "/api/v1/internal/ingest/dependents",
-    response_model=InternalIngestDependentsPayload,
+@router.get(
+    "/api/v1/internal/ingest/collection/{collection}/status",
+    response_model=InternalCollectionStatusPayload,
 )
-def ingest_dependents_internal(
-    payload: InternalIngestDependentsRequest,
+def get_ingest_collection_status_internal(
+    collection: str,
     user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
     ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
-    """Write parsed dependent ingestion payload into Mongo collections."""
-    _enforce_sample_ingest_permission(user)
-
-    written = ingest_service.ingest_dependents(
-        sample_id=str(payload.sample_id),
-        sample_name=str(payload.sample_name),
-        delete_existing=payload.delete_existing,
-        preload=payload.preload,
-    )
-
-    return util.common.convert_to_serializable(
-        {"status": "ok", "sample_id": str(payload.sample_id), "written": written}
-    )
-
-
-@router.post(
-    "/api/v1/internal/ingest/dependents/async",
-    response_model=InternalTaskSubmitPayload,
-    status_code=status.HTTP_202_ACCEPTED,
-)
-def enqueue_ingest_dependents_internal(
-    payload: InternalIngestDependentsRequest,
-    user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
-):
-    """Enqueue dependent-document ingestion on the Celery ingest queue."""
-    _enforce_sample_ingest_permission(user)
-    queue = DefaultConfig.CELERY_INGEST_QUEUE
-    task = ingest_dependents_task.apply_async(
-        kwargs={
-            "sample_id": str(payload.sample_id),
-            "sample_name": str(payload.sample_name),
-            "delete_existing": payload.delete_existing,
-            "preload": payload.preload,
-        },
-        queue=queue,
-    )
-    return _task_submit_payload(task, task_name="api.tasks.ingest.ingest_dependents", queue=queue)
+    """Return collection occupancy used by first-deployment bootstrap tooling."""
+    try:
+        count = ingest_service.collection_document_count(collection)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return {
+        "status": "ok",
+        "collection": collection,
+        "document_count": count,
+        "empty": count == 0,
+    }
 
 
 @router.post(

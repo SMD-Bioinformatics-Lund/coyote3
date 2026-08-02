@@ -5,6 +5,7 @@ from __future__ import annotations
 TAG_SYSTEM = "System & Health"
 TAG_AUTH = "Authentication"
 TAG_DASHBOARD = "Dashboard"
+TAG_NOTIFICATIONS = "Notifications"
 TAG_PUBLIC = "Public Catalog"
 
 TAG_CLINICAL_SAMPLES = "Clinical Samples"
@@ -33,6 +34,10 @@ OPENAPI_TAGS = [
     {
         "name": TAG_DASHBOARD,
         "description": "Operational, workload, assay, and review summary metrics.",
+    },
+    {
+        "name": TAG_NOTIFICATIONS,
+        "description": "Current-user notifications, read state, dismissal, and administrative broadcasts.",
     },
     {
         "name": TAG_CLINICAL_SAMPLES,
@@ -117,6 +122,7 @@ __all__ = [
     "TAG_DNA_VARIANTS",
     "TAG_INTERNAL",
     "TAG_KNOWLEDGEBASE",
+    "TAG_NOTIFICATIONS",
     "TAG_PUBLIC",
     "TAG_REPORTING",
     "TAG_RNA_FUSIONS",

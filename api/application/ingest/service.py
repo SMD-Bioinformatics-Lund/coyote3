@@ -17,7 +17,6 @@ from api.application.ingest.collection_writes import (
 )
 from api.application.ingest.dependent_writes import cleanup as _cleanup
 from api.application.ingest.dependent_writes import data_counts as _data_counts
-from api.application.ingest.dependent_writes import ingest_dependents as _ingest_dependents
 from api.application.ingest.helpers import (
     _normalize_case_control,  # noqa: F401 — re-exported for test namespace access
     _normalize_uploaded_checksums,
@@ -584,23 +583,6 @@ class InternalIngestService:
             written[key] = len(normalized_docs)
         return written
 
-    def ingest_dependents(
-        self,
-        *,
-        sample_id: str,
-        sample_name: str,
-        delete_existing: bool,
-        preload: dict[str, Any],
-    ) -> dict[str, int]:
-        """Insert dependent analysis payload for an existing sample id."""
-        return _ingest_dependents(
-            self,
-            sample_id=sample_id,
-            sample_name=sample_name,
-            delete_existing=delete_existing,
-            preload=preload,
-        )
-
     def _cleanup(self, sample_id: str) -> None:
         """Roll back a failed ingest by deleting the sample and all its dependents.
 
@@ -987,6 +969,12 @@ class InternalIngestService:
             "inserted_count": 1,
             "inserted_id": inserted_id,
         }
+
+    def collection_document_count(self, collection: str) -> int:
+        """Return the current document count for a supported collection."""
+        if collection not in self.list_supported_collections():
+            raise ValueError(f"Unsupported collection: {collection}")
+        return int(self._collection(collection).estimated_document_count() or 0)
 
     def insert_collection_documents(
         self, *, collection: str, documents: list[dict[str, Any]], ignore_duplicates: bool = False

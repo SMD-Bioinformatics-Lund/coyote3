@@ -100,6 +100,7 @@ from api.app.utilities.serialization import (
 from api.domain.common.assay_filters import (
     get_sample_effective_genes as _get_sample_effective_genes,
 )
+from api.domain.core.annotation_identity import annotation_identity_fields
 from api.domain.core.dna.variant_identity import (
     build_simple_id,
     normalize_simple_id,
@@ -535,6 +536,14 @@ class CommonUtility:
         else:
             document["gene1"] = variant_data.get("gene1", None)
             document["gene2"] = variant_data.get("gene2", None)
+
+        document.update(
+            annotation_identity_fields(
+                variant=variant,
+                nomenclature=nomenclature,
+                source=variant_data,
+            )
+        )
 
         return document
 

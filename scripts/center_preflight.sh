@@ -6,7 +6,7 @@ usage() {
 Validate a center deployment setup before first run.
 
 Usage:
-  scripts/center_preflight.sh --env-file <path> --compose-file <path> [--seed-file <path>] [--yaml-file <path>] [--reference-seed-data <path>]
+  scripts/center_preflight.sh --env-file <path> --compose-file <path> [--seed-file <path>] [--yaml-file <path>] [--reference-seed-data <path>]...
 
 Example:
   scripts/center_preflight.sh \
@@ -19,7 +19,7 @@ ENV_FILE=""
 COMPOSE_FILE=""
 SEED_FILE=""
 YAML_FILE=""
-REFERENCE_SEED_DATA=""
+REFERENCE_SEED_DATA=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -27,7 +27,7 @@ while [[ $# -gt 0 ]]; do
     --compose-file) COMPOSE_FILE="$2"; shift 2 ;;
     --seed-file) SEED_FILE="$2"; shift 2 ;;
     --yaml-file) YAML_FILE="$2"; shift 2 ;;
-    --reference-seed-data) REFERENCE_SEED_DATA="$2"; shift 2 ;;
+    --reference-seed-data) REFERENCE_SEED_DATA+=("$2"); shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; usage; exit 2 ;;
   esac
@@ -162,13 +162,13 @@ if [[ -n "$SEED_FILE" ]]; then
     fi
   fi
   cmd=("$PYTHON_BIN" scripts/validate_assay_consistency.py --seed-file "$SEED_FILE")
-  if [[ -n "$REFERENCE_SEED_DATA" ]]; then
-    if [[ ! -d "$REFERENCE_SEED_DATA" ]]; then
-      echo "ERROR: reference seed data source not found: $REFERENCE_SEED_DATA" >&2
+  for reference_dir in "${REFERENCE_SEED_DATA[@]}"; do
+    if [[ ! -d "$reference_dir" ]]; then
+      echo "ERROR: reference seed data source not found: $reference_dir" >&2
       exit 2
     fi
-    cmd+=(--reference-seed-data "$REFERENCE_SEED_DATA")
-  fi
+    cmd+=(--reference-seed-data "$reference_dir")
+  done
   if [[ -n "$YAML_FILE" ]]; then
     if [[ ! -f "$YAML_FILE" ]]; then
       echo "ERROR: yaml file not found: $YAML_FILE" >&2

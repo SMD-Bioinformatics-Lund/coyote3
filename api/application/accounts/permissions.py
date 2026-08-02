@@ -23,6 +23,21 @@ def _normalize_permission_id(permission_id: Any) -> str:
     return str(permission_id or "").strip().lower()
 
 
+def _require_center_managed(permission: dict[str, Any]) -> None:
+    """Reject mutations of permission policies shipped with the application."""
+    if bool(permission.get("system_managed", False)):
+        raise api_error(
+            409,
+            "System permission policies are read-only",
+            (
+                f"Permission '{permission.get('permission_id')}' is supplied by Coyote3 and is "
+                "required by application authorization checks. Assign it through roles instead "
+                "of modifying it."
+            ),
+            category="conflict",
+        )
+
+
 class PermissionManagementService:
     """Own permission-policy workflows for admin HTTP routes."""
 
@@ -114,6 +129,7 @@ class PermissionManagementService:
         """
         form_data = payload.get("form_data", {}) or {}
         policy = normalize_managed_form_payload(self._spec, form_data)
+        policy["system_managed"] = False
         policy.setdefault("is_active", True)
         policy_id = _normalize_permission_id(policy["permission_id"])
         policy["permission_id"] = policy_id
@@ -147,6 +163,7 @@ class PermissionManagementService:
         permission = self.permissions_repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
+        _require_center_managed(permission)
         form_data = payload.get("form_data", {}) or {}
         updated_permission = normalize_managed_form_payload(self._spec, form_data)
         actor = current_actor(actor_username)
@@ -158,6 +175,7 @@ class PermissionManagementService:
         updated_permission["created_by"] = existing_created_by or actor
         updated_permission["created_on"] = existing_created_on or now
         updated_permission["is_active"] = bool(permission.get("is_active", True))
+        updated_permission["system_managed"] = False
         updated_permission["version"] = permission.get("version", 1) + 1
         updated_permission["permission_id"] = str(
             _normalize_permission_id(updated_permission.get("permission_id"))
@@ -191,6 +209,7 @@ class PermissionManagementService:
         permission = self.permissions_repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
+        _require_center_managed(permission)
         new_status = not bool(permission.get("is_active", True))
         self.permissions_repository.toggle_policy_active(permission_id, new_status)
         payload = change_payload(resource="permission", resource_id=permission_id, action="toggle")
@@ -209,6 +228,7 @@ class PermissionManagementService:
         permission = self.permissions_repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
+        _require_center_managed(permission)
         self.permissions_repository.delete_policy(permission_id)
         return change_payload(resource="permission", resource_id=permission_id, action="delete")
 

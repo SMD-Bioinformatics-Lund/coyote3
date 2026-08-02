@@ -71,10 +71,10 @@ class ClinicalRuleService:
         )
 
     @staticmethod
-    def _reporting_analyses(context: PreparedReportContext) -> set[str]:
+    def _report_sections(context: PreparedReportContext) -> set[str]:
         return {
             normalize_analysis_type(value)
-            for value in context.aspc.reporting.analysis
+            for value in context.aspc.reporting.report_sections
             if str(value or "").strip()
         }
 
@@ -87,11 +87,11 @@ class ClinicalRuleService:
         """Evaluate the selected static source against one prepared report result."""
         _ = aspc
         source, source_path = self.resolve(context=context)
-        reporting_analyses = self._reporting_analyses(context)
-        undeclared = sorted(reporting_analyses - set(source.analyses))
+        report_sections = self._report_sections(context)
+        undeclared = sorted(report_sections - set(source.analyses))
         if undeclared:
             raise ValueError(
-                "Clinical rule source does not declare every ASPC reporting analysis: "
+                "Clinical rule source does not declare every ASPC report section: "
                 + ", ".join(undeclared)
             )
         return self.evaluator.evaluate(
@@ -99,7 +99,7 @@ class ClinicalRuleService:
             source,
             source_path=source_path.relative_to(self.rules_root.parent),
             content_hash=self.compiler.content_hash(source),
-            reporting_analyses=reporting_analyses,
+            reporting_analyses=report_sections,
         )
 
 

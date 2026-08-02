@@ -72,6 +72,9 @@ class ApiUser:
     asp_map: dict
     auth_type: list[str]
     must_change_password: bool = False
+    firstname: str = ""
+    lastname: str = ""
+    job_title: str = ""
 
     @property
     def is_superuser(self) -> bool:
@@ -247,6 +250,9 @@ def api_user_from_user_doc(user_doc: dict) -> ApiUser:
         id=str(user_model.username),
         email=user_model.email,
         fullname=user_model.fullname,
+        firstname=user_model.firstname,
+        lastname=user_model.lastname,
+        job_title=user_model.job_title or "",
         username=user_model.username,
         roles=list(user_model.roles),
         role=user_model.role,
@@ -276,6 +282,9 @@ def serialize_api_user(user: ApiUser) -> dict:
         "_id": user.username,
         "email": user.email,
         "fullname": user.fullname,
+        "firstname": user.firstname,
+        "lastname": user.lastname,
+        "job_title": user.job_title,
         "username": user.username,
         "roles": sorted(user.roles),
         "role": user.role,

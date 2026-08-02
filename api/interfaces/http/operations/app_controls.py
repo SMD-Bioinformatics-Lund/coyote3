@@ -20,7 +20,7 @@ router = APIRouter(tags=[TAG_ADMIN_OPERATIONS])
 
 @router.get("/api/v1/admin/controls", response_model=AdminAppControlsPayload)
 def admin_controls_read(
-    user: ApiUser = Depends(require_access(permission="schema:list")),
+    user: ApiUser = Depends(require_access(permission="app.controls:view")),
     service: AppControlsService = Depends(get_app_controls_service),
 ):
     """Return effective runtime controls for admin review."""
@@ -31,7 +31,7 @@ def admin_controls_read(
 @router.put("/api/v1/admin/controls", response_model=AdminAppControlsPayload)
 def admin_controls_update(
     payload: AdminAppControlsUpdatePayload,
-    user: ApiUser = Depends(require_access(permission="schema:edit")),
+    user: ApiUser = Depends(require_access(permission="app.controls:edit")),
     service: AppControlsService = Depends(get_app_controls_service),
 ):
     """Persist runtime-control overrides."""
@@ -41,7 +41,7 @@ def admin_controls_update(
 
 @router.post("/api/v1/admin/controls/maintenance", response_model=AdminMaintenanceRunPayload)
 def admin_controls_maintenance_run(
-    user: ApiUser = Depends(require_access(permission="schema:edit")),
+    user: ApiUser = Depends(require_access(permission="app.maintenance:run")),
 ):
     """Queue one explicit maintenance cleanup run."""
     _ = user

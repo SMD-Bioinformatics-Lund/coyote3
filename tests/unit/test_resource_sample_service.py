@@ -14,7 +14,12 @@ from api.domain.core.exceptions import AppError
 class SampleRepository:
     def __init__(self) -> None:
         self.samples = {
-            "sample-oid": {"_id": "sample-oid", "name": "synthetic-sample", "status": "ready"}
+            "sample-oid": {
+                "_id": "sample-oid",
+                "name": "synthetic-sample",
+                "asp_id": "assay",
+                "ingest_status": "ready",
+            }
         }
         self.updated: tuple[object, dict[str, object]] | None = None
         self.search_args: dict[str, object] | None = None
@@ -44,6 +49,25 @@ class RecordsUtil:
         return value
 
 
+class AssayPanelRepository:
+    def get_all_asps(self, *, is_active: bool | None = None) -> list[dict[str, object]]:
+        assert is_active is True
+        return [
+            {
+                "asp_id": "assay",
+                "asp_group": "hematology",
+                "asp_category": "dna",
+                "is_active": True,
+            },
+            {
+                "asp_id": "solid-assay",
+                "asp_group": "solid",
+                "asp_category": "dna",
+                "is_active": True,
+            },
+        ]
+
+
 def build_service() -> tuple[ResourceSampleService, SampleRepository, RecordsUtil, list[object]]:
     sample_repository = SampleRepository()
     records_util = RecordsUtil()
@@ -59,6 +83,7 @@ def build_service() -> tuple[ResourceSampleService, SampleRepository, RecordsUti
         translocation_repository=dependencies[3],
         fusion_repository=dependencies[4],
         biomarker_repository=dependencies[5],
+        assay_panel_repository=AssayPanelRepository(),
         records_util=records_util,
     )
     return service, sample_repository, records_util, dependencies
@@ -75,6 +100,7 @@ def test_from_store_wires_all_repositories() -> None:
             "translocation_repository",
             "fusion_repository",
             "biomarker_repository",
+            "assay_panel_repository",
         )
     }
     records_util = object()
@@ -93,8 +119,21 @@ def test_list_payload_filters_non_documents_and_preserves_query_parameters() -> 
     payload = service.list_payload(asp_ids=["assay"], search="synthetic", page=2, per_page=10)
 
     assert payload["samples"] == [
-        {"_id": "sample-oid", "name": "synthetic-sample", "status": "ready"}
+        {
+            "_id": "sample-oid",
+            "name": "synthetic-sample",
+            "asp_id": "assay",
+            "asp_group": "hematology",
+            "asp_category": "dna",
+            "case_clarity_id": None,
+            "control_clarity_id": None,
+            "ingest_status": "ready",
+        }
     ]
+    assert payload["filter_options"] == {
+        "asp_group": ["hematology"],
+        "asp_id": ["assay"],
+    }
     assert payload["pagination"]["total"] == 0
     assert repository.search_args == {
         "asp_ids": ["assay"],
@@ -103,6 +142,34 @@ def test_list_payload_filters_non_documents_and_preserves_query_parameters() -> 
         "per_page": 10,
         "ready_only": False,
     }
+
+
+def test_list_payload_filters_assays_by_group_and_returns_cascading_options() -> None:
+    service, repository, _, _ = build_service()
+
+    payload = service.list_payload(
+        asp_ids=None,
+        search="",
+        asp_group="solid",
+        page=1,
+        per_page=30,
+    )
+
+    assert payload["filter_options"] == {
+        "asp_group": ["hematology", "solid"],
+        "asp_id": ["solid-assay"],
+    }
+    assert repository.search_args is not None
+    assert repository.search_args["asp_ids"] == ["solid-assay"]
+
+
+def test_list_payload_uses_empty_assay_scope_for_unknown_selection() -> None:
+    service, repository, _, _ = build_service()
+
+    service.list_payload(asp_ids=None, search="", asp_id="unknown")
+
+    assert repository.search_args is not None
+    assert repository.search_args["asp_ids"] == []
 
 
 def test_context_payload_returns_sample_and_rejects_unknown_id() -> None:

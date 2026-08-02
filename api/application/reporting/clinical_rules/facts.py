@@ -39,7 +39,6 @@ class PreparedAspFacts(_FactModel):
 class PreparedAspcReportingFacts(_FactModel):
     """Stable ASPC reporting facts."""
 
-    analysis: list[str] = Field(default_factory=list)
     report_sections: list[str] = Field(default_factory=list)
     general_report_summary: str = ""
 

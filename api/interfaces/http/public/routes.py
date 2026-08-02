@@ -11,7 +11,7 @@ import yaml
 from fastapi import APIRouter, Query
 
 from api.app.container import util
-from api.app.deps.services import get_public_catalog_service
+from api.app.deps.services import get_app_controls_service, get_public_catalog_service
 from api.app.http import api_error as _api_error
 from api.app.runtime_state import app as runtime_app
 from api.application.public.catalog import PublicCatalogService
@@ -28,6 +28,7 @@ from api.contracts.public import (
     PublicFilterFlagMetadataPayload,
     PublicGenelistViewPayload,
     PublicGeneSymbolsPayload,
+    PublicModulesPayload,
 )
 from api.interfaces.http.tags import TAG_PUBLIC
 
@@ -52,6 +53,12 @@ def _load_filter_flag_metadata() -> dict:
 def public_contact_read():
     """Return center-owned public contact and support metadata."""
     return _public_contact_payload()
+
+
+@router.get("/api/v1/public/modules", response_model=PublicModulesPayload)
+def public_modules_read():
+    """Return effective availability for software-defined application modules."""
+    return get_app_controls_service().public_module_payload()
 
 
 @router.get("/api/v1/public/about", response_model=PublicAboutPayload)

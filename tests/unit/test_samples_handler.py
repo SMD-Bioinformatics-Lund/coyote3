@@ -108,3 +108,21 @@ def test_search_samples_for_admin_can_include_non_ready_docs() -> None:
 
     assert total == 2
     assert [row["name"] for row in rows] == ["ready-report", "loading-report"]
+
+
+def test_search_samples_for_admin_with_empty_assay_scope_returns_no_documents() -> None:
+    handler = _handler_with_docs(
+        {
+            "name": "ready-report",
+            "asp_id": "ASP1",
+            "environment": "production",
+            "ingest_status": "ready",
+        }
+    )
+
+    rows, total = handler.search_samples_for_admin(
+        asp_ids=[], search_str="", page=1, per_page=30, ready_only=False
+    )
+
+    assert rows == []
+    assert total == 0

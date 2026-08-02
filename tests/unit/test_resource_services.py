@@ -195,6 +195,8 @@ class _VariantHandlerStub:
             "POS": 76736896,
             "REF": "T",
             "ALT": "C",
+            "simple_id": "17_76736896_T_C",
+            "simple_id_hash": "029e8e74947bc798c060013909b9e2da",
             "INFO": {
                 "selected_CSQ": {
                     "Feature": "ENST00000359995",
@@ -402,7 +404,14 @@ def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatc
     assert docs[0]["variant"] == "2:100^2:200"
     assert docs[0]["variant_data"]["gene1"] == "EML4"
     assert docs[0]["variant_data"]["gene2"] == "ALK"
-    assert set(docs[0]["variant_data"]) == {"assay_group", "subpanel", "gene1", "gene2"}
+    assert set(docs[0]["variant_data"]) == {
+        "assay_group",
+        "subpanel",
+        "gene1",
+        "gene2",
+        "fusion",
+    }
+    assert docs[0]["variant_data"]["fusion"] == "2:100^2:200"
 
 
 def test_resource_classification_service_generates_text_only_for_tier_three_snvs():
@@ -427,6 +436,11 @@ def test_resource_classification_service_generates_text_only_for_tier_three_snvs
     assert len(docs) == 2
     assert docs[0]["class"] == 3
     assert docs[0]["text"] is None
+    assert docs[0]["variant_data"]["hgvsp"] == "p.Met89Val"
+    assert docs[0]["variant_data"]["hgvsc"] == "c.265A>G"
+    assert docs[0]["variant_data"]["genomic"] == "17_76736896_T_C"
+    assert docs[0]["variant_data"]["genomic_hash"] == "029e8e74947bc798c060013909b9e2da"
+    assert "simple_id" not in docs[0]["variant_data"]
     assert docs[1]["text"] == "Tier III text for SRSF2"
 
 

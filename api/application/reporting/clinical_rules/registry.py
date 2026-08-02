@@ -23,7 +23,6 @@ ALLOWED_FACT_PATHS: frozenset[str] = frozenset(
         "aspc.asp_category",
         "aspc.subpanel_id",
         "aspc.environment",
-        "aspc.reporting.analysis",
         "aspc.reporting.report_sections",
         "aspc.reporting.general_report_summary",
         "applied_gene_lists",

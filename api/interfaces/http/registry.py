@@ -28,6 +28,7 @@ from api.interfaces.http.operations.auth import router as auth_router
 from api.interfaces.http.operations.dashboard import router as dashboard_router
 from api.interfaces.http.operations.health import router as health_router
 from api.interfaces.http.operations.internal import router as internal_router
+from api.interfaces.http.operations.notifications import router as notifications_router
 from api.interfaces.http.public.routes import router as public_router
 
 ROUTERS = (
@@ -47,6 +48,7 @@ ROUTERS = (
     dashboard_router,
     fusions_router,
     internal_router,
+    notifications_router,
     roles_router,
     permissions_router,
     public_router,

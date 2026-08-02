@@ -148,6 +148,18 @@ class RolesDoc(_StrictDocBase):
     def _normalize_permissions(cls, value: Any) -> list[str]:
         return _normalize_permission_ids(value)
 
+    @field_validator("color", mode="before")
+    @classmethod
+    def _normalize_color(cls, value: Any) -> str:
+        normalized = str(value or "").strip().lower()
+        if re.fullmatch(r"#[0-9a-f]{6}", normalized):
+            return normalized
+        # Preserve named colors already stored by earlier releases. New color
+        # picker selections are always persisted as explicit hex values.
+        if re.fullmatch(r"[a-z][a-z0-9_-]*", normalized):
+            return normalized
+        raise ValueError("color must be a six-digit #RRGGBB value")
+
 
 class PermissionsDoc(_StrictDocBase):
     permission_id: str
@@ -155,6 +167,7 @@ class PermissionsDoc(_StrictDocBase):
     category: str
     description: str | None = None
     tags: list[str] = Field(default_factory=list)
+    system_managed: bool = False
     is_active: bool = True
     version: int = 1
     created_by: str | None = None

@@ -10,7 +10,7 @@ Usage:
     --api-base-url <url> \
     (--bearer-token <token> | --username <user> --password <pass>) \
     [--seed-file <path>] \
-    [--reference-seed-data <path>] \
+    [--reference-seed-data <path>]... \
     [--seed-actor <email>] \
     [--with-optional] \
     [--skip-existing] \
@@ -22,8 +22,8 @@ Options:
   --username       API username/email (password mode)
   --password       API password (password mode)
   --seed-file      Seed directory path containing one <collection>.json file per collection
-                   default: tests/fixtures/db_dummy/all_collections_dummy
-  --reference-seed-data  Directory containing reference pack files
+                   default: api/config/bootstrap/demo_center
+  --reference-seed-data  Directory containing reference pack files; repeatable
                    (plain .seed.ndjson is preferred; .seed.ndjson.gz also works)
   --seed-actor     Value used for created_by/updated_by seed metadata.
                    default: --username value, otherwise admin@coyote3.local
@@ -34,7 +34,7 @@ Options:
 Notes:
   - This is intended for first-time center bootstrap.
   - Inserts are not upserts.
-  - Duplicate key conflicts are ignored by default for idempotent reruns.
+  - Non-empty destination collections are never modified.
   - Use --strict-no-retry to disable retry and fail immediately.
   - `users` collection is intentionally skipped; bootstrap first admin/user separately.
 USAGE
@@ -44,8 +44,8 @@ API_BASE_URL=""
 BEARER_TOKEN=""
 USERNAME=""
 PASSWORD=""
-SEED_FILE="tests/fixtures/db_dummy/all_collections_dummy"
-REFERENCE_SEED_DATA=""
+SEED_FILE="api/config/bootstrap/demo_center"
+REFERENCE_SEED_DATA=()
 SEED_ACTOR=""
 WITH_OPTIONAL=0
 SKIP_EXISTING=1
@@ -60,7 +60,7 @@ while [[ $# -gt 0 ]]; do
     --username) USERNAME="$2"; shift 2 ;;
     --password) PASSWORD="$2"; shift 2 ;;
     --seed-file) SEED_FILE="$2"; shift 2 ;;
-    --reference-seed-data) REFERENCE_SEED_DATA="$2"; shift 2 ;;
+    --reference-seed-data) REFERENCE_SEED_DATA+=("$2"); shift 2 ;;
     --seed-actor) SEED_ACTOR="$2"; shift 2 ;;
     --with-optional) WITH_OPTIONAL=1; shift ;;
     --skip-existing) SKIP_EXISTING=1; shift ;;
@@ -80,14 +80,19 @@ if [[ ! -d "$SEED_FILE" ]]; then
   echo "ERROR: seed source not found: $SEED_FILE" >&2
   exit 2
 fi
-if [[ -z "$REFERENCE_SEED_DATA" && -d "tests/data/seed_data" ]]; then
-  REFERENCE_SEED_DATA="tests/data/seed_data"
-  echo "[info] using default reference seed data pack: ${REFERENCE_SEED_DATA}"
+if [[ "${#REFERENCE_SEED_DATA[@]}" -eq 0 ]]; then
+  REFERENCE_SEED_DATA=(
+    "api/config/bootstrap/rbac"
+    "api/config/bootstrap/reference"
+  )
 fi
-if [[ -n "$REFERENCE_SEED_DATA" && ! -d "$REFERENCE_SEED_DATA" ]]; then
-  echo "ERROR: reference seed data source not found: $REFERENCE_SEED_DATA" >&2
-  exit 2
-fi
+for reference_dir in "${REFERENCE_SEED_DATA[@]}"; do
+  if [[ ! -d "$reference_dir" ]]; then
+    echo "ERROR: reference seed data source not found: $reference_dir" >&2
+    exit 2
+  fi
+  echo "[info] using reference seed data pack: ${reference_dir}"
+done
 
 if [[ -z "$PYTHON_BIN" ]]; then
   if command -v python3 >/dev/null 2>&1; then
@@ -142,25 +147,22 @@ trap 'rm -rf "$SEED_BUNDLE_DIR"' EXIT
 
 echo "[step] preparing seed bundle from ${SEED_FILE}"
 
-"$PYTHON_BIN" scripts/build_seed_bundle.py \
-  --seed-source "$SEED_FILE" \
-  --dest-dir "$SEED_BUNDLE_DIR" \
-  --seed-actor "$SEED_ACTOR" \
-  --seed-time "$SEED_NOW" \
-  --reference-seed-data "$REFERENCE_SEED_DATA"
+bundle_args=(
+  scripts/build_seed_bundle.py
+  --seed-source "$SEED_FILE"
+  --dest-dir "$SEED_BUNDLE_DIR"
+  --seed-actor "$SEED_ACTOR"
+  --seed-time "$SEED_NOW"
+)
+for reference_dir in "${REFERENCE_SEED_DATA[@]}"; do
+  bundle_args+=(--reference-seed-data "$reference_dir")
+done
+"$PYTHON_BIN" "${bundle_args[@]}"
 
-#echo "[step] validating source seed naming"
-#if [[ -n "$REFERENCE_SEED_DATA" ]]; then
-#  "$PYTHON_BIN" scripts/validate_assay_consistency.py \
-#    --seed-file "$SEED_FILE" \
-#    --reference-seed-data "$REFERENCE_SEED_DATA"
-#else
-#  "$PYTHON_BIN" scripts/validate_assay_consistency.py \
-#    --seed-file "$SEED_FILE"
-#fi
-#
-#echo "[step] validating assay consistency in seed directory"
-#"$PYTHON_BIN" scripts/validate_assay_consistency.py --seed-file "$SEED_BUNDLE_DIR"
+echo "[step] validating normalized bootstrap bundle"
+"$PYTHON_BIN" scripts/validate_assay_consistency.py \
+  --seed-file "$SEED_BUNDLE_DIR" \
+  --validate-all-contracts
 
 required_collections=(
   permissions
@@ -186,6 +188,19 @@ collection_count() {
   "$PYTHON_BIN" scripts/seed_payload_utils.py count \
     --seed-dir "$SEED_BUNDLE_DIR" \
     --collection "$1"
+}
+
+remote_collection_count() {
+  local collection="$1"
+  local response
+  response="$(curl -fsS \
+    -H "Authorization: Bearer ${BEARER_TOKEN}" \
+    "${API_BASE_URL%/}/api/v1/internal/ingest/collection/${collection}/status")"
+  "$PYTHON_BIN" -c '
+import json
+import sys
+print(int(json.loads(sys.argv[1]).get("document_count", 0)))
+' "$response"
 }
 
 write_payload_file() {
@@ -253,6 +268,12 @@ seed_one() {
   count="$(collection_count "$collection")"
   if [[ "$count" -eq 0 ]]; then
     echo "[skip] ${collection}: no docs in ${SEED_FILE}"
+    return 0
+  fi
+  local existing_count
+  existing_count="$(remote_collection_count "$collection")"
+  if [[ "$existing_count" -gt 0 ]]; then
+    echo "[skip] ${collection}: destination already contains ${existing_count} document(s)"
     return 0
   fi
   echo "[step] seeding ${collection} (${count} docs)"

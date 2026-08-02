@@ -92,10 +92,10 @@ def test_aspc_service_uses_static_yaml_scope_validation(monkeypatch) -> None:
     )
     service._validate_static_rule_source(
         {
-            "active": True,
+            "is_active": True,
             "asp_id": "hema_gmsv1",
             "asp_category": "dna",
             "subpanel_id": "base",
-            "reporting": {"analysis": ["SNV"]},
+            "reporting": {"report_sections": ["SNV"]},
         }
     )

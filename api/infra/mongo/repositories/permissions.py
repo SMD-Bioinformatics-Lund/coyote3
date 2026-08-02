@@ -216,9 +216,7 @@ class PermissionsRepository(BaseRepository):
         Returns:
         Optional[dict]: The permission document if found, otherwise None.
         """
-        return self.get_collection().find_one(
-            {**self._permission_lookup_query(permission_id), "is_active": True}
-        )
+        return self.get_collection().find_one(self._permission_lookup_query(permission_id))
 
     def create_new_policy(self, policy: dict) -> Any:
         """
@@ -267,7 +265,7 @@ class PermissionsRepository(BaseRepository):
             Any: The result of the update operation.
         """
         return self.get_collection().update_one(
-            {**self._permission_lookup_query(permission_id), "is_active": True},
+            self._permission_lookup_query(permission_id),
             {"$set": {"is_active": active_status}},
         )
 

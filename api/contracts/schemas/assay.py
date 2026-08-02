@@ -46,7 +46,6 @@ class AssayPanelToAssayGroupMappingDoc(_DocBase):
 
 class AspcReportingDoc(_StrictDocBase):
     # Reporting
-    analysis: list[str] = Field(default_factory=list)
     report_sections: list[str] = Field(default_factory=list)
     report_header: str
     report_method: str
@@ -78,9 +77,9 @@ class AspcReportingDoc(_StrictDocBase):
 
         return self
 
-    @field_validator("analysis", "report_sections", mode="before")
+    @field_validator("report_sections", mode="before")
     @classmethod
-    def _normalize_reporting_analysis(cls, value: Any) -> list[str]:
+    def _normalize_report_sections(cls, value: Any) -> list[str]:
         if value is None:
             return []
         values = value if isinstance(value, list) else [value]
@@ -227,14 +226,6 @@ class AspConfigDoc(_StrictDocBase):
                 f"report_sections contains invalid values: {invalid_report_sections}. "
                 f"Allowed values are: {sorted(allowed_analysis)}"
             )
-        invalid_reporting_analysis = [
-            value for value in self.reporting.analysis if value not in allowed_analysis
-        ]
-        if invalid_reporting_analysis:
-            raise ValueError(
-                f"reporting.analysis contains invalid values: {invalid_reporting_analysis}. "
-                f"Allowed values are: {sorted(allowed_analysis)}"
-            )
         if not self.analysis_types:
             raise ValueError("analysis_types must include at least one enabled analysis")
         self.analysis_intents = normalize_analysis_intents(
@@ -242,20 +233,14 @@ class AspConfigDoc(_StrictDocBase):
         )
         if "germline" in self.analysis_intents and "SNV" not in self.analysis_types:
             raise ValueError("germline analysis requires SNV in analysis_types")
-        if not self.reporting.analysis:
-            raise ValueError("reporting.analysis must include at least one enabled analysis")
         if not self.reporting.report_sections:
             raise ValueError("reporting.report_sections must include at least one report section")
-        if set(self.reporting.analysis) != set(self.analysis_types):
-            raise ValueError("reporting.analysis must match analysis_types")
         unavailable_sections = [
-            value
-            for value in self.reporting.report_sections
-            if value not in self.reporting.analysis
+            value for value in self.reporting.report_sections if value not in self.analysis_types
         ]
         if unavailable_sections:
             raise ValueError(
-                "reporting.report_sections must be enabled in reporting.analysis: "
+                "reporting.report_sections must be enabled in analysis_types: "
                 f"{unavailable_sections}"
             )
         filter_profiles = self.filters.model_dump(exclude_none=True)

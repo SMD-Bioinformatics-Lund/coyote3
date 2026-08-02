@@ -5,6 +5,11 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from api.application.dashboard.analytics import DashboardService
+from api.domain.common.dashboard import (
+    format_panel_gene_stats,
+    panel_asp_ids,
+    summarize_panel_gene_stats,
+)
 
 
 class _DashboardBackendStub:
@@ -27,6 +32,14 @@ class _DashboardBackendStub:
 
     def count_aspcs(self, is_active=None):  # noqa: ARG002
         return 5
+
+    def get_dashboard_analysis_type_rollup(self, *, asp_ids):
+        if asp_ids != ["A1"]:
+            return []
+        return [
+            {"analysis_type": "SNV", "enabled": 2, "reportable": 2},
+            {"analysis_type": "CNV", "enabled": 2, "reportable": 1},
+        ]
 
     def count_isgls(self, is_active=None):  # noqa: ARG002
         return 6
@@ -108,9 +121,19 @@ class _DashboardBackendStub:
                 "asp_id": "A1",
                 "display_name": "Assay 1",
                 "asp_group": "hematology",
+                "asp_family": "panel-dna",
+                "accredited": True,
                 "covered_genes_count": 42,
                 "germline_genes_count": 7,
-            }
+            },
+            {
+                "asp_id": "WGS1",
+                "display_name": "TumWGS",
+                "asp_group": "tumwgs",
+                "asp_family": "wgs",
+                "covered_genes_count": 1000,
+                "germline_genes_count": 500,
+            },
         ]
 
     def get_dashboard_isgl_association(self):
@@ -123,6 +146,7 @@ def _noop_handler(**methods):
         "count_roles": lambda is_active=None: 0,
         "count_asps": lambda is_active=None: 0,
         "count_aspcs": lambda is_active=None: 0,
+        "get_dashboard_analysis_type_rollup": lambda asp_ids: [],
         "count_isgls": lambda is_active=None: 0,
         "get_dashboard_user_rollup": lambda: {},
         "get_dashboard_visibility_rollup": lambda: {},
@@ -159,7 +183,10 @@ def _dashboard_service(backend=None) -> DashboardService:
             get_all_asps_unique_gene_count=backend.get_all_asps_unique_gene_count,
             get_all_asp_gene_counts=backend.get_all_asp_gene_counts,
         ),
-        assay_configuration_repository=_noop_handler(count_aspcs=backend.count_aspcs),
+        assay_configuration_repository=_noop_handler(
+            count_aspcs=backend.count_aspcs,
+            get_dashboard_analysis_type_rollup=backend.get_dashboard_analysis_type_rollup,
+        ),
         gene_list_repository=_noop_handler(
             count_isgls=backend.count_isgls,
             get_dashboard_visibility_rollup=backend.get_dashboard_isgl_visibility,
@@ -258,8 +285,58 @@ def test_summary_payload_calculates_quality_rates(monkeypatch):
     assert payload["variant_stats"]["by_variant_class"]["INDEL"] == 300
     assert payload["assay_gene_stats_grouped"]["hematology"][0]["covered_genes_count"] == 42
     assert payload["assay_gene_stats_grouped"]["hematology"][0]["germline_genes_count"] == 7
+    assert list(payload["panel_gene_stats_grouped"]) == ["hematology"]
+    assert payload["panel_portfolio"] == {
+        "active_panels": 1,
+        "assay_groups": 1,
+        "covered_gene_assignments": 42,
+        "germline_gene_assignments": 7,
+        "accredited_panels": 1,
+    }
+    assert payload["panel_analysis_capabilities"] == [
+        {"analysis_type": "SNV", "enabled": 2, "reportable": 2},
+        {"analysis_type": "CNV", "enabled": 2, "reportable": 1},
+    ]
     assert payload["quality_stats"]["analysed_rate_percent"] == 75.0
     assert payload["quality_stats"]["fp_rate_percent"] == 5.0
     assert payload["quality_stats"]["blacklist_rate_percent"] == 10.0
     assert payload["admin_insights"]["counts"]["users_total"] == 12
     assert payload["dashboard_meta"]["scope_assays"] == ["A1", "A2"]
+
+
+def test_panel_gene_stats_exclude_wgs_and_wts_families():
+    rows = [
+        {
+            "asp_id": "dna",
+            "asp_group": "solid",
+            "asp_family": "panel-dna",
+            "covered_genes_count": 500,
+        },
+        {
+            "asp_id": "rna",
+            "asp_group": "solid",
+            "asp_family": "panel-rna",
+            "covered_genes_count": 160,
+        },
+        {"asp_id": "wgs", "asp_group": "tumwgs", "asp_family": "wgs", "covered_genes_count": 20000},
+        {"asp_id": "wts", "asp_group": "wts", "asp_family": "wts", "covered_genes_count": 20000},
+    ]
+
+    grouped = format_panel_gene_stats(rows)
+    summary = summarize_panel_gene_stats(rows)
+
+    assert [row["asp_id"] for row in grouped["solid"]] == ["dna", "rna"]
+    assert "tumwgs" not in grouped
+    assert "wts" not in grouped
+    assert summary["active_panels"] == 2
+    assert summary["covered_gene_assignments"] == 660
+
+
+def test_panel_asp_ids_exclude_non_panel_families():
+    assert panel_asp_ids(
+        [
+            {"asp_id": "solid_gmsv3", "asp_family": "panel-dna"},
+            {"asp_id": "tumwgs_solid", "asp_family": "wgs"},
+            {"asp_id": "fusion", "asp_family": "wts"},
+        ]
+    ) == ["solid_gmsv3"]

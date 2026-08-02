@@ -73,6 +73,7 @@ class MongoStore:
     gene_list_repository: Any
     oncokb_repository: Any
     permissions_repository: Any
+    notification_repository: Any
     reported_variant_repository: Any
     report_repository: Any
     rna_classification_repository: Any
@@ -107,6 +108,7 @@ class MongoStore:
         "gene_list_repository",
         "oncokb_repository",
         "permissions_repository",
+        "notification_repository",
         "reported_variant_repository",
         "report_repository",
         "rna_classification_repository",
@@ -150,6 +152,7 @@ class MongoStore:
         self.gene_list_repository = _LazyRepositoryProxy()
         self.oncokb_repository = _LazyRepositoryProxy()
         self.permissions_repository = _LazyRepositoryProxy()
+        self.notification_repository = _LazyRepositoryProxy()
         self.reported_variant_repository = _LazyRepositoryProxy()
         self.report_repository = _LazyRepositoryProxy()
         self.rna_classification_repository = _LazyRepositoryProxy()

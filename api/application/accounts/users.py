@@ -189,11 +189,19 @@ class UserManagementService:
                 changed.append(key)
         return changed
 
-    def create_user(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+    def create_user(
+        self,
+        *,
+        payload: dict[str, Any],
+        actor_username: str,
+        actor_is_superuser: bool = False,
+    ) -> dict[str, Any]:
         form_data = dict(payload.get("form_data", {}) or {})
         form_data["roles"] = _normalize_role_ids(form_data.get("roles"))
         if not form_data["roles"]:
             raise api_error(400, "At least one role is required")
+        if "superuser" in form_data["roles"] and not actor_is_superuser:
+            raise api_error(403, "Only a superuser may assign the superuser role")
 
         user_data = normalize_managed_form_payload(self._spec, form_data)
         username = _sanitize_username(user_data.get("username"))
@@ -255,17 +263,33 @@ class UserManagementService:
         return response
 
     def update_user(
-        self, *, user_id: str, payload: dict[str, Any], actor_username: str
+        self,
+        *,
+        user_id: str,
+        payload: dict[str, Any],
+        actor_username: str,
+        actor_is_superuser: bool = False,
     ) -> dict[str, Any]:
         user_doc = self.user_repository.user_with_id(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
         form_data = dict(payload.get("form_data", {}) or {})
+        if form_data.get("password"):
+            raise api_error(
+                400,
+                "Passwords cannot be changed from user administration",
+                hint="Use an invite, password reset, or the authenticated profile password flow.",
+            )
+        form_data.pop("password", None)
         form_data["roles"] = _normalize_role_ids(form_data.get("roles"))
         if not form_data["roles"]:
             form_data["roles"] = _normalize_role_ids(user_doc.get("roles"))
         if not form_data["roles"]:
             raise api_error(400, "At least one role is required")
+        old_roles = set(_normalize_role_ids(user_doc.get("roles")))
+        new_roles = set(form_data["roles"])
+        if "superuser" in old_roles.symmetric_difference(new_roles) and not actor_is_superuser:
+            raise api_error(403, "Only a superuser may assign or remove the superuser role")
         updated_user = normalize_managed_form_payload(self._spec, form_data)
         actor = current_actor(actor_username)
         updated_user["updated_on"] = utc_now()
@@ -273,10 +297,7 @@ class UserManagementService:
         updated_user["auth_type"] = _normalize_allowed_auth_types(
             updated_user.get("auth_type") or user_doc.get("auth_type")
         )
-        if AUTH_PROVIDER_LOCAL in updated_user["auth_type"] and updated_user.get("password"):
-            updated_user["password"] = self.common_util.hash_password(updated_user["password"])
-        else:
-            updated_user["password"] = user_doc.get("password")
+        updated_user["password"] = user_doc.get("password")
         updated_user["version"] = user_doc.get("version", 1) + 1
         updated_user["_id"] = user_doc.get("_id")
         updated_user["created_by"] = user_doc.get("created_by")
@@ -292,8 +313,6 @@ class UserManagementService:
             resource="user", resource_id=user_id, action="update"
         )
         changed_fields = self._changed_user_fields(user_doc, updated_user)
-        if form_data.get("password"):
-            changed_fields.append("password")
         notification = notify_user_change(
             user_doc=updated_user,
             event="profile_updated",
@@ -304,6 +323,48 @@ class UserManagementService:
         if notification.get("warning"):
             response["meta"]["warning"] = str(notification["warning"])
         return response
+
+    def update_own_profile(self, *, username: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """Update only non-security identity fields on the current account."""
+        user_doc = self.user_repository.user_with_id(username)
+        if not user_doc:
+            raise api_error(404, "User not found")
+        allowed = {"firstname", "lastname", "fullname", "job_title"}
+        unexpected = sorted(set(payload) - allowed)
+        if unexpected:
+            raise api_error(400, f"Profile field(s) cannot be edited: {', '.join(unexpected)}")
+        updated_user = dict(user_doc)
+        for field in allowed:
+            if field in payload:
+                updated_user[field] = str(payload[field] or "").strip()
+        if not updated_user.get("fullname"):
+            updated_user["fullname"] = " ".join(
+                value
+                for value in (
+                    updated_user.get("firstname", ""),
+                    updated_user.get("lastname", ""),
+                )
+                if value
+            )
+        updated_user["version"] = int(user_doc.get("version", 1) or 1) + 1
+        updated_user["updated_by"] = str(username).strip().lower()
+        updated_user["updated_on"] = utc_now()
+        try:
+            updated_user = normalize_collection_document(self._spec.collection, updated_user)
+        except Exception as exc:
+            raise api_error(400, f"Invalid profile payload: {exc}") from exc
+        self.user_repository.update_user(username, updated_user)
+        return {
+            "status": "ok",
+            "user": {
+                "username": updated_user["username"],
+                "email": updated_user["email"],
+                "firstname": updated_user["firstname"],
+                "lastname": updated_user["lastname"],
+                "fullname": updated_user["fullname"],
+                "job_title": updated_user["job_title"],
+            },
+        }
 
     def send_local_user_invite(self, *, user_id: str, actor_username: str) -> dict[str, Any]:
         """Issue and email a local-user set-password invite."""
@@ -331,20 +392,24 @@ class UserManagementService:
             payload["meta"]["warning"] = str(invite["warning"])
         return payload
 
-    def delete_user(self, *, user_id: str) -> dict[str, Any]:
+    def delete_user(self, *, user_id: str, actor_is_superuser: bool = False) -> dict[str, Any]:
         user_doc = self.user_repository.user_with_id(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
+        if "superuser" in _normalize_role_ids(user_doc.get("roles")) and not actor_is_superuser:
+            raise api_error(403, "Only a superuser may delete a superuser account")
         self.user_repository.delete_user(user_id)
         payload: dict[str, Any] = change_payload(
             resource="user", resource_id=user_id, action="delete"
         )
         return payload
 
-    def toggle_user(self, *, user_id: str) -> dict[str, Any]:
+    def toggle_user(self, *, user_id: str, actor_is_superuser: bool = False) -> dict[str, Any]:
         user_doc = self.user_repository.user_with_id(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
+        if "superuser" in _normalize_role_ids(user_doc.get("roles")) and not actor_is_superuser:
+            raise api_error(403, "Only a superuser may change a superuser account status")
         new_status = not bool(user_doc.get("is_active"))
         self.user_repository.toggle_user_active(user_id, new_status)
         payload: dict[str, Any] = change_payload(

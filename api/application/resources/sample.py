@@ -34,6 +34,7 @@ class ResourceSampleService:
             translocation_repository=store.translocation_repository,
             fusion_repository=store.fusion_repository,
             biomarker_repository=store.biomarker_repository,
+            assay_panel_repository=store.assay_panel_repository,
             records_util=records_util,
         )
 
@@ -47,6 +48,7 @@ class ResourceSampleService:
         translocation_repository: Any,
         fusion_repository: Any,
         biomarker_repository: Any,
+        assay_panel_repository: Any,
         records_util: Any,
     ) -> None:
         """Create the service with explicit injected persistence/util dependencies."""
@@ -57,22 +59,77 @@ class ResourceSampleService:
         self.translocation_repository = translocation_repository
         self.fusion_repository = fusion_repository
         self.biomarker_repository = biomarker_repository
+        self.assay_panel_repository = assay_panel_repository
         self.records_util = records_util
 
     def list_payload(
-        self, *, asp_ids: list[str] | None, search: str, page: int = 1, per_page: int = 30
+        self,
+        *,
+        asp_ids: list[str] | None,
+        search: str,
+        asp_group: str = "",
+        asp_id: str = "",
+        page: int = 1,
+        per_page: int = 30,
     ) -> dict[str, Any]:
         """Return the admin sample list payload."""
+        panels = [
+            dict(item)
+            for item in (self.assay_panel_repository.get_all_asps(is_active=True) or [])
+            if isinstance(item, dict) and item.get("asp_id")
+        ]
+        allowed_ids = None if asp_ids is None else set(asp_ids)
+        allowed_panels = [
+            panel
+            for panel in panels
+            if allowed_ids is None or str(panel.get("asp_id")) in allowed_ids
+        ]
+        normalized_group = str(asp_group or "").strip()
+        normalized_asp_id = str(asp_id or "").strip()
+        group_panels = [
+            panel
+            for panel in allowed_panels
+            if not normalized_group or str(panel.get("asp_group") or "") == normalized_group
+        ]
+        filtered_ids = [str(panel["asp_id"]) for panel in group_panels]
+        if normalized_asp_id:
+            filtered_ids = [value for value in filtered_ids if value == normalized_asp_id]
+        query_asp_ids = filtered_ids if normalized_group or normalized_asp_id else asp_ids
+
         rows, total = self.sample_repository.search_samples_for_admin(
-            asp_ids=asp_ids,
+            asp_ids=query_asp_ids,
             search_str=search,
             page=page,
             per_page=per_page,
             ready_only=False,
         )
-        samples = [dict(item) for item in rows if isinstance(item, dict)]
+        panels_by_id = {str(panel["asp_id"]): panel for panel in allowed_panels}
+        samples = []
+        for item in rows:
+            if not isinstance(item, dict):
+                continue
+            sample = dict(item)
+            panel = panels_by_id.get(str(sample.get("asp_id") or ""), {})
+            case = sample.get("case") if isinstance(sample.get("case"), dict) else {}
+            control = sample.get("control") if isinstance(sample.get("control"), dict) else {}
+            sample["asp_group"] = panel.get("asp_group")
+            sample["asp_category"] = panel.get("asp_category")
+            sample["case_clarity_id"] = case.get("clarity_id")
+            sample["control_clarity_id"] = control.get("clarity_id")
+            samples.append(sample)
+
         return {
             "samples": samples,
+            "filter_options": {
+                "asp_group": sorted(
+                    {
+                        str(panel.get("asp_group"))
+                        for panel in allowed_panels
+                        if panel.get("asp_group")
+                    }
+                ),
+                "asp_id": sorted({str(panel["asp_id"]) for panel in group_panels}),
+            },
             "pagination": admin_list_pagination(
                 q=search,
                 page=page,

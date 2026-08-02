@@ -16,6 +16,12 @@ from urllib.parse import unquote
 from bson import ObjectId
 
 from api.contracts.operations import OperationResult
+from api.domain.core.annotation_identity import (
+    ANNOTATION_IDENTITY_FIELDS,
+    annotation_identity_fields,
+    enrich_annotation_identity,
+)
+from api.domain.core.dna.variant_identity import build_simple_id
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
 from api.infra.request_context import current_user_is_superuser, current_username
@@ -61,6 +67,13 @@ def _annotation_search_query(
     mode = str(search_mode or "variant").lower()
     variant_fields = [
         "variant",
+        "hgvsp",
+        "hgvsc",
+        "genomic",
+        "genomic_hash",
+        "cnv",
+        "fusion",
+        "translocation",
         "var_p",
         "var_c",
         "var_g",
@@ -101,6 +114,7 @@ def _annotation_search_query(
     elif mode == "hgvsp":
         query = {
             "$or": [
+                {"hgvsp": regex},
                 {"nomenclature": "p", "variant": regex},
                 {"var_p": regex},
                 {"HGVSp": regex},
@@ -112,6 +126,7 @@ def _annotation_search_query(
     elif mode == "hgvsc":
         query = {
             "$or": [
+                {"hgvsc": regex},
                 {"nomenclature": "c", "variant": regex},
                 {"var_c": regex},
                 {"HGVSc": regex},
@@ -123,6 +138,8 @@ def _annotation_search_query(
     elif mode == "genomic":
         query = {
             "$or": [
+                {"genomic": regex},
+                {"genomic_hash": regex},
                 {"nomenclature": "g", "variant": regex},
                 {"var_g": regex},
                 {"variant_data.simple_id": regex},
@@ -222,6 +239,13 @@ class AnnotationsRepository(BaseRepository):
         )
         col.create_index([("gene", 1)], name="gene_1", background=True)
         col.create_index([("variant", 1)], name="variant_1", background=True)
+        for identity_field in ANNOTATION_IDENTITY_FIELDS:
+            col.create_index(
+                [(identity_field, 1)],
+                name=f"{identity_field}_1",
+                background=True,
+                sparse=True,
+            )
         col.create_index(
             [("variant", 1), ("time_created", 1)],
             name="variant_time_created_1",
@@ -315,7 +339,9 @@ class AnnotationsRepository(BaseRepository):
             return None
 
         # Create a deep copy to avoid modifying the original list
-        annotations_copy = deepcopy(annotations)
+        annotations_copy = [
+            enrich_annotation_identity(annotation) for annotation in deepcopy(annotations)
+        ]
         return OperationResult.from_insert_many(
             self.get_collection().insert_many(annotations_copy),
             requested_count=len(annotations_copy),
@@ -352,8 +378,12 @@ class AnnotationsRepository(BaseRepository):
             genomic_location = (
                 f"{str(variant['CHROM'])}:{str(variant['POS'])}:{variant['REF']}/{variant['ALT']}"
             )
+            genomic = build_simple_id(
+                variant["CHROM"], variant["POS"], variant["REF"], variant["ALT"]
+            )
         except KeyError:
             genomic_location = ""
+            genomic = ""
         selected_CSQ = variant.get("INFO", {}).get("selected_CSQ", {})
         hgvsp = unquote(selected_CSQ.get("HGVSp", ""))
         hgvsc = unquote(selected_CSQ.get("HGVSc", ""))
@@ -365,6 +395,9 @@ class AnnotationsRepository(BaseRepository):
                     {
                         "gene": selected_CSQ["SYMBOL"],
                         "$or": [
+                            {"hgvsp": hgvsp},
+                            {"hgvsc": hgvsc},
+                            {"genomic": genomic},
                             {
                                 "nomenclature": "p",
                                 "variant": hgvsp,
@@ -387,6 +420,8 @@ class AnnotationsRepository(BaseRepository):
                     {
                         "gene": selected_CSQ["SYMBOL"],
                         "$or": [
+                            {"hgvsc": hgvsc},
+                            {"genomic": genomic},
                             {
                                 "nomenclature": "c",
                                 "variant": hgvsc,
@@ -403,8 +438,10 @@ class AnnotationsRepository(BaseRepository):
                 .find(
                     {
                         "gene": selected_CSQ["SYMBOL"],
-                        "nomenclature": "g",
-                        "variant": genomic_location,
+                        "$or": [
+                            {"genomic": genomic},
+                            {"nomenclature": "g", "variant": genomic_location},
+                        ],
                     }
                 )
                 .sort("time_created", 1)
@@ -414,8 +451,13 @@ class AnnotationsRepository(BaseRepository):
                 self.get_collection()
                 .find(
                     {
-                        "nomenclature": "f",
-                        "variant": f"{variant['breakpoint1']}^{variant['breakpoint2']}",
+                        "$or": [
+                            {"fusion": f"{variant['breakpoint1']}^{variant['breakpoint2']}"},
+                            {
+                                "nomenclature": "f",
+                                "variant": f"{variant['breakpoint1']}^{variant['breakpoint2']}",
+                            },
+                        ],
                     }
                 )
                 .sort("time_created", 1)
@@ -503,29 +545,34 @@ class AnnotationsRepository(BaseRepository):
         """
         transcripts = variant.get("transcripts", [])
         transcript_patterns = [f"^{transcript}(\\..*)?$" for transcript in transcripts]
-        simple_id = variant.get("simple_id", "")
+        genomic = variant.get("simple_id", "")
         hgvsp = variant.get("HGVSp", "")
         hgvsc = variant.get("HGVSc", "")
         genes = variant.get("genes", "")
         breakpoint1 = variant.get("breakpoint1", "")
         breakpoint2 = variant.get("breakpoint2", "")
 
-        if simple_id:
+        if genomic:
             query = {
                 "gene": {"$in": genes},
                 "transcript": {"$regex": "|".join(transcript_patterns)},
                 "$or": [
+                    {"hgvsp": {"$in": hgvsp}},
+                    {"hgvsc": {"$in": hgvsc}},
+                    {"genomic": genomic},
                     {"nomenclature": "p", "variant": {"$in": hgvsp}},
                     {"nomenclature": "c", "variant": {"$in": hgvsc}},
-                    {"nomenclature": "g", "variant": simple_id},
+                    {"nomenclature": "g", "variant": genomic},
                 ],
                 "assay": assay_group,
                 "class": {"$exists": True},
             }
         else:
             query = {
-                "nomenclature": "f",
-                "variant": f"{breakpoint1}^{breakpoint2}",
+                "$or": [
+                    {"fusion": f"{breakpoint1}^{breakpoint2}"},
+                    {"nomenclature": "f", "variant": f"{breakpoint1}^{breakpoint2}"},
+                ],
                 "assay": assay_group,
                 "class": {"$exists": True},
             }
@@ -587,6 +634,13 @@ class AnnotationsRepository(BaseRepository):
             document["gene1"] = variant_data.get("gene1", None)
             document["gene2"] = variant_data.get("gene2", None)
 
+        document.update(
+            annotation_identity_fields(
+                variant=variant,
+                nomenclature=nomenclature,
+                source=variant_data,
+            )
+        )
         return OperationResult.from_insert_one(self.get_collection().insert_one(document))
 
     def delete_classified_variant(
@@ -692,7 +746,7 @@ class AnnotationsRepository(BaseRepository):
         Returns:
             Any: The result of the insert operation
         """
-        self.add_comment(comment)
+        self.add_comment(enrich_annotation_identity(comment))
 
     def get_assay_classified_stats(self) -> tuple:
         """

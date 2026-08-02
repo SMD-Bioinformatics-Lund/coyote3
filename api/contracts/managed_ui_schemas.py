@@ -459,13 +459,6 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "options": list(DNA_ANALYSIS_TYPE_OPTIONS),
                             "default": ["SNV", "CNV"],
                         },
-                        {
-                            "key": "analysis",
-                            "label": "Available Analysis",
-                            "type": "checkbox-group",
-                            "options": list(DNA_ANALYSIS_TYPE_OPTIONS),
-                            "default": ["SNV", "CNV"],
-                        },
                     ],
                 },
                 {
@@ -669,13 +662,6 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "options": list(RNA_ANALYSIS_TYPE_OPTIONS),
                             "default": ["FUSION"],
                         },
-                        {
-                            "key": "analysis",
-                            "label": "Available Analysis",
-                            "type": "checkbox-group",
-                            "options": list(RNA_ANALYSIS_TYPE_OPTIONS),
-                            "default": ["FUSION"],
-                        },
                     ],
                 },
                 {
@@ -773,6 +759,11 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "version": {"readonly": True},
     },
     "role": {
+        "color": {
+            "display_type": "color",
+            "placeholder": "#4f46e5",
+            "help": "Badge color stored as a six-digit hexadecimal value and applied immediately throughout the UI.",
+        },
         "permissions": {"display_type": "checkbox-group"},
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
@@ -785,7 +776,11 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "auth_type": {"display_type": "checkbox-group", "options": list(AUTH_TYPE_OPTIONS)},
         "roles": {"display_type": "checkbox-group"},
         "username": {"readonly_mode": ["edit"]},
-        "password": {"display_type": "password"},
+        "password": {
+            "display_type": "password",
+            "readonly_mode": ["edit"],
+            "help": "Passwords are changed only through invite, reset, or authenticated password flows.",
+        },
         "environments": {
             "display_type": "checkbox-group",
             "options": list(ENVIRONMENT_OPTIONS),
@@ -803,6 +798,12 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     "permission": {
         "category": {"display_type": "select", "options": list(PERMISSION_CATEGORY_OPTIONS)},
         "tags": {"display_type": "textarea"},
+        "system_managed": {
+            "display_type": "checkbox",
+            "readonly": True,
+            "default": False,
+            "help": "Bundled application permissions are system-managed and assigned through roles.",
+        },
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
         "created_on": {"readonly": True},
@@ -886,7 +887,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
     ],
     "permission": [
         ("identity", ["permission_id", "label", "category", "description", "tags"]),
-        ("status", ["is_active"]),
+        ("status", ["system_managed", "is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
 }

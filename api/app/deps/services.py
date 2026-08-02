@@ -19,6 +19,7 @@ from api.application.dashboard.analytics import DashboardService
 from api.application.dna.structural_variants import DnaStructuralService
 from api.application.dna.variant_analysis import DnaService
 from api.application.ingest.service import InternalIngestService
+from api.application.notifications.service import NotificationService
 from api.application.public.catalog import PublicCatalogService
 from api.application.reporting.dna_workflow import DNAWorkflowService
 from api.application.reporting.report_builder import ReportService
@@ -216,6 +217,15 @@ def get_audit_service() -> AuditService | None:
         store.coyote_db[get_audit_events_collection_name(runtime_app.config)],
         retention_days=effective_audit_retention_days(store.coyote_db, runtime_app.config),
         environment=get_runtime_environment(runtime_app.config),
+    )
+
+
+def get_notification_service() -> NotificationService:
+    """Return the recipient-scoped notification service."""
+    return NotificationService.from_store(
+        get_store(),
+        retention_days=int(runtime_app.config.get("NOTIFICATION_RETENTION_DAYS", 180)),
+        audit_service=get_audit_service(),
     )
 
 

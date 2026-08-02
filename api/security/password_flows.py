@@ -160,6 +160,20 @@ def issue_password_token_for_user(
         issued_by=actor_username,
     )
 
+    if purpose == _TOKEN_PURPOSE_RESET:
+        try:
+            # Imported locally to avoid coupling password-flow module initialization
+            # to the application service dependency graph.
+            from api.app.deps.services import get_notification_service
+
+            get_notification_service().notify_password_reset_request(
+                account_username=user_id,
+            )
+        except Exception:
+            runtime_app.logger.exception(
+                "Unable to publish the administrative password-reset notification"
+            )
+
     to_email = str(user_doc.get("email") or "").strip()
     setup_url = _build_set_password_url(token)
     ttl_minutes = max(1, int(_password_token_ttl_seconds() / 60))

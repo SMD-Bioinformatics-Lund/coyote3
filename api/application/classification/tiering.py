@@ -162,6 +162,10 @@ class ResourceClassificationService:
                     **base_context,
                     "gene": gene,
                     "transcript": transcript,
+                    "hgvsp": hgvs_p,
+                    "hgvsc": hgvs_c,
+                    "genomic": var.get("simple_id"),
+                    "genomic_hash": var.get("simple_id_hash"),
                 },
             }
 
@@ -182,6 +186,7 @@ class ResourceClassificationService:
                     **base_context,
                     "gene1": gene1,
                     "gene2": gene2,
+                    "fusion": f"{selected_call.get('breakpoint1', '')}^{selected_call.get('breakpoint2', '')}",
                 },
             }
 
@@ -203,6 +208,7 @@ class ResourceClassificationService:
                 "variant_data": {
                     **base_context,
                     "gene": gene_label,
+                    "cnv": f"{cnv.get('chr')}:{cnv.get('start')}-{cnv.get('end')}",
                 },
             }
 
@@ -229,6 +235,7 @@ class ResourceClassificationService:
                 "variant_data": {
                     **base_context,
                     "gene": gene_label,
+                    "translocation": f"{transloc.get('CHROM')}:{transloc.get('POS')}^{transloc.get('ALT')}",
                 },
             }
 

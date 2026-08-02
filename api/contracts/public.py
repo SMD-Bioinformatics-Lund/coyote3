@@ -34,6 +34,20 @@ class PublicGeneSymbolsPayload(BaseModel):
     gene_symbols: list[str]
 
 
+class PublicModuleAvailability(BaseModel):
+    """Represent effective availability for one application module."""
+
+    label: str
+    description: str
+    enabled: bool
+
+
+class PublicModulesPayload(BaseModel):
+    """Represent public application-module availability."""
+
+    modules: dict[str, PublicModuleAvailability]
+
+
 class PublicAssayCatalogMatrixPayload(BaseModel):
     """Represent the public assay catalog matrix payload."""
 

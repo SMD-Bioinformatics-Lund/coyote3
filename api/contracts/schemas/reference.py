@@ -13,6 +13,13 @@ from api.contracts.schemas.base import _DocBase
 
 class AnnotationDoc(_DocBase):
     variant: str
+    hgvsp: str | None = None
+    hgvsc: str | None = None
+    genomic: str | None = None
+    genomic_hash: str | None = None
+    cnv: str | None = None
+    fusion: str | None = None
+    translocation: str | None = None
     gene: str | None = None
     gene1: str | None = None
     gene2: str | None = None

@@ -39,6 +39,13 @@ Required keys:
 - `nomenclature` (Literal['p', 'g', 'c', 'f', 'cn', 't'])
 
 Optional keys:
+- `hgvsp` (str | None)
+- `hgvsc` (str | None)
+- `genomic` (str | None)
+- `genomic_hash` (str | None)
+- `cnv` (str | None)
+- `fusion` (str | None)
+- `translocation` (str | None)
 - `gene` (str | None)
 - `gene1` (str | None)
 - `gene2` (str | None)
@@ -532,6 +539,7 @@ Optional keys:
 - `id_` (Any | None)
 - `description` (str | None)
 - `tags` (list[str])
+- `system_managed` (bool)
 - `is_active` (bool)
 - `version` (int)
 - `created_by` (str | None)

@@ -12,6 +12,7 @@ from api.config.sequencing import PLATFORM_OPTIONS, READ_MODE_OPTIONS
 
 PERMISSION_CATEGORY_OPTIONS: tuple[str, ...] = (
     "Analysis Actions",
+    "Application Control Management",
     "Assay Configuration Management",
     "Assay Panel Management",
     "Audit & Monitoring",

@@ -71,6 +71,9 @@ class _Col:
         self.updated.append((filter, replacement, upsert))
         return SimpleNamespace(matched_count=1, modified_count=1, upserted_id=None)
 
+    def estimated_document_count(self):
+        return len(self.docs)
+
 
 class _Handler:
     def __init__(self, col):
@@ -211,6 +214,17 @@ def _use_store(monkeypatch, store_stub, *, new_sample_id="507f1f77bcf86cd7994390
         invalidate_variant_cache=lambda: None,
         invalidate_summary_cache=lambda: None,
     )
+
+
+def test_collection_document_count_reports_supported_collection_occupancy(monkeypatch):
+    store_stub = _store_stub(sample_docs=[{"_id": "sample-1", "name": "sample_one"}])
+    service = _use_store(monkeypatch, store_stub)
+
+    assert service.collection_document_count("samples") == 1
+    assert service.collection_document_count("variants") == 0
+
+    with pytest.raises(ValueError, match="Unsupported collection"):
+        service.collection_document_count("not_a_collection")
 
 
 def test_small_helpers_and_build_meta(tmp_path):
@@ -1149,14 +1163,6 @@ def test_write_and_ingest_dependents(monkeypatch):
         service._write_dependents(
             preload={"cov": []}, sample_id="507f1f77bcf86cd799439013", sample_name="S1"
         )
-
-    out2 = service.ingest_dependents(
-        sample_id="sid",
-        sample_name="S1",
-        delete_existing=True,
-        preload={"biomarkers": {"name": "b"}, "cnvs": [{"chr": "1"}]},
-    )
-    assert out2["biomarkers"] == 1 and out2["cnvs"] == 1
 
 
 def test_snapshot_restore_replace_and_counts(monkeypatch):

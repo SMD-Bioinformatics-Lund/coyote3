@@ -60,7 +60,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--reference-seed-data",
-        help="Optional directory with compressed NDJSON seed packs",
+        action="append",
+        default=[],
+        help="Reference seed directory; repeat for multiple application-owned packs",
     )
     parser.add_argument(
         "--validate-all-contracts",
@@ -99,14 +101,14 @@ def _load_reference_seed_pack(path: str) -> dict[str, Any]:
         "vep_metadata": "vep_metadata.seed.ndjson",
     }
 
-    def _resolve_reference_file(base_dir: Path, stem_name: str) -> Path:
+    def _resolve_reference_file(base_dir: Path, stem_name: str) -> Path | None:
         plain_path = base_dir / stem_name
         if plain_path.exists():
             return plain_path
         gzip_path = base_dir / f"{stem_name}.gz"
         if gzip_path.exists():
             return gzip_path
-        raise SystemExit(f"Missing reference seed file: {plain_path} or {gzip_path}")
+        return None
 
     def _load_ndjson(file_path: Path) -> list[dict[str, Any]]:
         docs: list[dict[str, Any]] = []
@@ -127,7 +129,16 @@ def _load_reference_seed_pack(path: str) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     for collection, filename in required_pack.items():
         file_path = _resolve_reference_file(reference_path, filename)
+        if file_path is None:
+            continue
         payload[collection] = _load_ndjson(file_path)
+
+    if not payload:
+        expected = ", ".join(required_pack.values())
+        raise SystemExit(
+            f"Reference seed data directory contains no supported files: {reference_path}. "
+            f"Expected one or more of: {expected} (optionally gzip-compressed)."
+        )
 
     return payload
 
@@ -507,8 +518,8 @@ def _validate_bootstrap_dependencies(seed: dict[str, Any]) -> list[str]:
 def main() -> int:
     args = parse_args()
     seed = _load_seed(args.seed_file)
-    if args.reference_seed_data:
-        seed.update(_load_reference_seed_pack(args.reference_seed_data))
+    for reference_dir in args.reference_seed_data:
+        seed.update(_load_reference_seed_pack(reference_dir))
     shape_errors = _validate_contract_shaping(seed)
     if shape_errors:
         raise SystemExit("Seed contract-shape errors:\n- " + "\n- ".join(shape_errors))

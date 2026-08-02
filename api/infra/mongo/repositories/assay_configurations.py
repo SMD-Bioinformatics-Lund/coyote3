@@ -147,6 +147,56 @@ class ASPConfigRepository(BaseRepository):
             query["is_active"] = is_active
         return int(self.get_collection().count_documents(query))
 
+    def get_dashboard_analysis_type_rollup(self, *, asp_ids: list[str]) -> list[dict]:
+        """Count enabled and reportable analysis types for active targeted-panel ASPCs."""
+        normalized_ids = sorted(
+            {
+                normalize_clinical_identifier(value, label="asp_id")
+                for value in asp_ids
+                if str(value or "").strip()
+            }
+        )
+        if not normalized_ids:
+            return []
+
+        rows = list(
+            self.get_collection().aggregate(
+                [
+                    {"$match": {"is_active": True, "asp_id": {"$in": normalized_ids}}},
+                    {
+                        "$facet": {
+                            "enabled": [
+                                {"$unwind": "$analysis_types"},
+                                {"$group": {"_id": "$analysis_types", "count": {"$sum": 1}}},
+                            ],
+                            "reportable": [
+                                {"$unwind": "$reporting.report_sections"},
+                                {
+                                    "$group": {
+                                        "_id": "$reporting.report_sections",
+                                        "count": {"$sum": 1},
+                                    }
+                                },
+                            ],
+                        }
+                    },
+                ],
+                allowDiskUse=True,
+            )
+        )
+        result = rows[0] if rows else {}
+        counts: dict[str, dict[str, int | str]] = {}
+        for field, output_key in (("enabled", "enabled"), ("reportable", "reportable")):
+            for row in result.get(field, []) or []:
+                analysis_type = str(row.get("_id") or "").strip().upper()
+                if not analysis_type:
+                    continue
+                counts.setdefault(
+                    analysis_type,
+                    {"analysis_type": analysis_type, "enabled": 0, "reportable": 0},
+                )[output_key] = int(row.get("count", 0) or 0)
+        return [counts[key] for key in sorted(counts)]
+
     def get_all_aspc(self) -> cursor.Cursor:
         """
         Retrieves all assay configuration documents from the collection.

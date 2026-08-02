@@ -67,7 +67,11 @@ def create_user(
 ):
     """Create an admin user."""
     return util.common.convert_to_serializable(
-        service.create_user(payload=payload, actor_username=user.username)
+        service.create_user(
+            payload=payload,
+            actor_username=user.username,
+            actor_is_superuser=user.is_superuser,
+        )
     )
 
 
@@ -80,7 +84,12 @@ def update_user(
 ):
     """Update an admin user."""
     return util.common.convert_to_serializable(
-        service.update_user(user_id=user_id, payload=payload, actor_username=user.username)
+        service.update_user(
+            user_id=user_id,
+            payload=payload,
+            actor_username=user.username,
+            actor_is_superuser=user.is_superuser,
+        )
     )
 
 
@@ -91,8 +100,9 @@ def delete_user(
     service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Delete an admin user."""
-    _ = user
-    return util.common.convert_to_serializable(service.delete_user(user_id=user_id))
+    return util.common.convert_to_serializable(
+        service.delete_user(user_id=user_id, actor_is_superuser=user.is_superuser)
+    )
 
 
 @router.patch(
@@ -106,8 +116,9 @@ def toggle_user_status(
     service: UserManagementService = Depends(get_admin_user_service),
 ):
     """Toggle an admin user's active status."""
-    _ = user
-    return util.common.convert_to_serializable(service.toggle_user(user_id=user_id))
+    return util.common.convert_to_serializable(
+        service.toggle_user(user_id=user_id, actor_is_superuser=user.is_superuser)
+    )
 
 
 @router.post(

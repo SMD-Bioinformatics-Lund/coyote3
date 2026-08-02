@@ -26,13 +26,13 @@ description = "Use this channel for questions about variant interpretation, repo
 [[contacts]]
 label = "Sample and sequencing support"
 role = "Sample intake, sequencing, and run-level questions"
-email = "ram.nanduri@skane, viktor.henmyr@skane.se, Sailendra.Pradhananga@skane.se"
+email = "ram.nanduri@skane, viktor.henmyr@skane.se, sailendra.pradhananga@skane.se"
 phone = ""
 description = "Use this channel for questions about submitted samples, sequencing runs, or file availability."
 
 [[contacts]]
 label = "Platform support"
 role = "Application access, configuration, and operational issues"
-email = "ram.nanduri@skane, viktor.henmyr@skane.se, Sailendra.Pradhananga@skane.se"
+email = "ram.nanduri@skane, viktor.henmyr@skane.se, sailendra.pradhananga@skane.se"
 phone = ""
 description = "Use this channel for login, permission, ingest, or system availability issues."

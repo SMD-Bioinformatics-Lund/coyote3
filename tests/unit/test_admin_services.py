@@ -132,11 +132,17 @@ class _AdminRepoStub:
             "_id": "tester",
             "username": "tester",
             "email": "tester@example.com",
+            "firstname": "Test",
+            "lastname": "User",
+            "fullname": "Test User",
+            "job_title": "Analyst",
             "roles": ["admin"],
             "password": "hashed",
             "version": 3,
             "asp_groups": [],
             "asp_ids": [],
+            "environments": ["production"],
+            "is_active": True,
             "auth_type": ["ldap"],
         }
 
@@ -650,17 +656,25 @@ class _AdminRepoStub:
         """
         return ["production"]
 
-    def list_samples_for_admin(self, *, assays, search, page=1, per_page=30):
+    def list_samples_for_admin(
+        self,
+        *,
+        asp_ids=None,
+        search_str="",
+        page=1,
+        per_page=30,
+        ready_only=True,
+    ):
         """List samples for admin.
 
         Args:
-            assays: Value for ``assays``.
-            search: Value for ``search``.
+            asp_ids: Value for ``asp_ids``.
+            search_str: Value for ``search_str``.
 
         Returns:
             The function result.
         """
-        _ = (assays, search, page, per_page)
+        _ = (asp_ids, search_str, page, per_page, ready_only)
         return ([{"_id": "S1"}], 1)
 
     def search_panels(self, *, q="", page=1, per_page=30, is_active=None):
@@ -922,6 +936,7 @@ def _resource_sample_service(repo: _AdminRepoStub) -> ResourceSampleService:
         translocation_repository=store.translocation_repository,
         fusion_repository=store.fusion_repository,
         biomarker_repository=store.biomarker_repository,
+        assay_panel_repository=store.assay_panel_repository,
         records_util=shared_util.records,
     )
 
@@ -1020,8 +1035,91 @@ def test_admin_user_service_toggle_user_sets_status(monkeypatch):
 
     payload = service.toggle_user(user_id="tester")
 
-    assert payload["meta"]["is_active"] is True
-    assert repo.updated_user == ("tester", {"is_active": True})
+    assert payload["meta"]["is_active"] is False
+    assert repo.updated_user == ("tester", {"is_active": False})
+
+
+def test_admin_user_edit_rejects_password_fields():
+    """Generic user administration must not mutate credentials."""
+    service = _user_service(_AdminRepoStub())
+
+    with pytest.raises(AppError, match="Passwords cannot be changed") as exc_info:
+        service.update_user(
+            user_id="tester",
+            payload={"form_data": {"password": "replacement"}},
+            actor_username="manager",
+        )
+
+    assert exc_info.value.status_code == 400
+
+
+def test_non_superuser_cannot_assign_superuser_role():
+    """The user-edit capability does not grant the superuser boundary."""
+    service = _user_service(_AdminRepoStub())
+
+    with pytest.raises(AppError, match="Only a superuser") as exc_info:
+        service.create_user(
+            payload={
+                "form_data": {
+                    "username": "elevated.user",
+                    "email": "elevated@example.com",
+                    "roles": ["superuser"],
+                }
+            },
+            actor_username="manager",
+        )
+
+    assert exc_info.value.status_code == 403
+
+
+def test_non_superuser_cannot_delete_or_disable_superuser(monkeypatch):
+    """Delete and status changes preserve the privileged account boundary."""
+    repo = _AdminRepoStub()
+    monkeypatch.setattr(
+        repo,
+        "get_user",
+        lambda _user_id: {
+            "username": "root.user",
+            "roles": ["superuser"],
+            "is_active": True,
+        },
+    )
+    service = _user_service(repo)
+
+    with pytest.raises(AppError, match="Only a superuser"):
+        service.delete_user(user_id="root.user")
+    with pytest.raises(AppError, match="Only a superuser"):
+        service.toggle_user(user_id="root.user")
+
+    assert repo.deleted_users == []
+    assert repo.updated_user is None
+
+
+def test_user_can_update_only_safe_own_profile_fields():
+    """Self-service profile editing cannot alter authorization or login identity."""
+    repo = _AdminRepoStub()
+    service = _user_service(repo)
+
+    payload = service.update_own_profile(
+        username="tester",
+        payload={
+            "firstname": "Updated",
+            "lastname": "Name",
+            "fullname": "Updated Name",
+            "job_title": "Clinical Scientist",
+        },
+    )
+
+    assert payload["user"]["fullname"] == "Updated Name"
+    assert repo.updated_user[1]["email"] == "tester@example.com"
+    assert repo.updated_user[1]["roles"] == ["admin"]
+    assert repo.updated_user[1]["password"] == "hashed"
+
+    with pytest.raises(AppError, match="cannot be edited"):
+        service.update_own_profile(
+            username="tester",
+            payload={"roles": ["superuser"]},
+        )
 
 
 def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
@@ -1215,6 +1313,8 @@ def test_admin_aspc_create_context_uses_analysis_sections_not_genelist_fields(mo
     assert "somatic.fusion.fusionlists" not in filter_keys
     assert "TMB" in report_section_options
     assert "PGX" in report_section_options
+    assert "report_sections" in reporting_field_keys
+    assert "analysis" not in reporting_field_keys
     assert "general_report_summary" in reporting_field_keys
 
 

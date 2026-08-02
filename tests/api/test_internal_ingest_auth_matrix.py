@@ -130,6 +130,37 @@ def test_internal_ingest_collection_requires_auth_and_admin(monkeypatch):
     assert result["status"] == "ok"
 
 
+def test_internal_ingest_collection_status_reports_empty_and_rejects_unknown_collection():
+    user = _user(
+        role="developer",
+        level=9999,
+        permissions=["internal.ingest:manage"],
+    )
+    result = internal_router.get_ingest_collection_status_internal(
+        collection="hgnc_genes",
+        user=user,
+        ingest_service=SimpleNamespace(collection_document_count=lambda _collection: 0),
+    )
+
+    assert result == {
+        "status": "ok",
+        "collection": "hgnc_genes",
+        "document_count": 0,
+        "empty": True,
+    }
+
+    def _unsupported(_collection):
+        raise ValueError("Unsupported collection: unknown")
+
+    with pytest.raises(HTTPException) as exc_info:
+        internal_router.get_ingest_collection_status_internal(
+            collection="unknown",
+            user=user,
+            ingest_service=SimpleNamespace(collection_document_count=_unsupported),
+        )
+    assert exc_info.value.status_code == 400
+
+
 def test_internal_ingest_sample_bundle_update_requires_sample_edit_own_permission(monkeypatch):
     """Update mode requires sample:edit:own for developer-level operators."""
     calls: dict[str, object] = {}

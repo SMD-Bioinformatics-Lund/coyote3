@@ -49,6 +49,8 @@ class UserModel(BaseModel):
     email: str
     username: str
     fullname: str
+    firstname: str = ""
+    lastname: str = ""
     roles: List[str] = Field(default_factory=list)
     role: str = ""
     asp_groups: List[str] = Field(default_factory=list)

@@ -33,6 +33,7 @@ from api.infra.mongo.repositories.expression import ExpressionRepository
 from api.infra.mongo.repositories.fusions import FusionsRepository
 from api.infra.mongo.repositories.gene_lists import ISGLRepository
 from api.infra.mongo.repositories.grouped_coverage import GroupCoverageRepository
+from api.infra.mongo.repositories.notifications import NotificationsRepository
 from api.infra.mongo.repositories.permissions import PermissionsRepository
 from api.infra.mongo.repositories.reported_variants import ReportedVariantsRepository
 from api.infra.mongo.repositories.reports import ReportRepository
@@ -67,6 +68,7 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("assay_configuration_repository", ASPConfigRepository, "aspc"),
     ("roles_repository", RolesRepository, "roles"),
     ("permissions_repository", PermissionsRepository, "permissions"),
+    ("notification_repository", NotificationsRepository, "notifications"),
     ("vep_metadata_repository", VEPMetaRepository, "vep_meta"),
     ("gene_list_repository", ISGLRepository, "isgl"),
     ("rna_expression_repository", RNAExpressionRepository, "rna_expression"),

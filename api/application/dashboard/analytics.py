@@ -6,7 +6,12 @@ import hashlib
 import json
 from typing import Any
 
-from api.domain.common.dashboard import format_asp_gene_stats
+from api.domain.common.dashboard import (
+    format_asp_gene_stats,
+    format_panel_gene_stats,
+    panel_asp_ids,
+    summarize_panel_gene_stats,
+)
 
 
 class DashboardService:
@@ -316,7 +321,7 @@ class DashboardService:
         """
         scope_assays = self.resolve_scope_assays(user=user)
         scope_key = self._summary_scope_key(user=user, scope_assays=scope_assays)
-        cache_key = f"dashboard:summary:v4:{self._cache_version_token()}:{scope_key}"
+        cache_key = f"dashboard:summary:v6:{self._cache_version_token()}:{scope_key}"
         cache_ttl = self._cache_ttl_seconds()
         snapshot_max_age = self._snapshot_max_age_seconds()
 
@@ -414,6 +419,8 @@ class DashboardService:
             if unique_total_variants
             else 0.0
         )
+        asp_gene_stats = self.assay_panel_repository.get_all_asp_gene_counts()
+        targeted_panel_ids = panel_asp_ids(asp_gene_stats)
         payload = {
             "total_samples": total_samples_count,
             "analysed_samples": analysed_samples_count,
@@ -423,8 +430,11 @@ class DashboardService:
             "unique_gene_count_all_panels": int(
                 self.assay_panel_repository.get_all_asps_unique_gene_count() or 0
             ),
-            "assay_gene_stats_grouped": format_asp_gene_stats(
-                self.assay_panel_repository.get_all_asp_gene_counts()
+            "assay_gene_stats_grouped": format_asp_gene_stats(asp_gene_stats),
+            "panel_gene_stats_grouped": format_panel_gene_stats(asp_gene_stats),
+            "panel_portfolio": summarize_panel_gene_stats(asp_gene_stats),
+            "panel_analysis_capabilities": self.assay_configuration_repository.get_dashboard_analysis_type_rollup(
+                asp_ids=targeted_panel_ids
             ),
             "sample_stats": sample_stats,
             "user_scope_summary": {

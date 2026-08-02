@@ -13,6 +13,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from api.app.container import ldap_manager, util
+from api.app.deps.services import get_admin_user_service
+from api.application.accounts.users import UserManagementService
 from api.config.constants import AUTH_PROVIDER_LDAP, AUTH_PROVIDER_LOCAL, AUTH_TYPE_OPTIONS
 from api.contracts.auth import (
     ApiAuthLoginRequest,
@@ -21,6 +23,8 @@ from api.contracts.auth import (
     ApiPasswordChangeResponse,
     ApiPasswordResetConfirmRequest,
     ApiPasswordResetRequest,
+    ApiProfileUpdateRequest,
+    ApiProfileUpdateResponse,
     ApiSessionDeleteResponse,
     ApiStatusResponse,
 )
@@ -309,6 +313,18 @@ def auth_session(user: ApiUser = Depends(require_access())):
         AuthUserEnvelope: A standard envelope containing the serialized API user profile representation.
     """
     return util.common.convert_to_serializable({"status": "ok", "user": serialize_api_user(user)})
+
+
+@router.patch("/api/v1/auth/profile", response_model=ApiProfileUpdateResponse)
+def update_current_profile(
+    payload: ApiProfileUpdateRequest,
+    user: ApiUser = Depends(require_access()),
+    service: UserManagementService = Depends(get_admin_user_service),
+):
+    """Update safe identity fields for the authenticated account."""
+    return util.common.convert_to_serializable(
+        service.update_own_profile(username=user.username, payload=payload.model_dump())
+    )
 
 
 @router.post("/api/v1/auth/password/change", response_model=ApiPasswordChangeResponse)

@@ -40,6 +40,14 @@ def test_variant_search_includes_hgvsp_hgvsc_and_genomic_aliases():
     assert query is not None
     fields = _or_fields(query)
     assert "variant" in fields
+    assert "hgvsp" in fields
+    assert "hgvsc" in fields
+    assert "genomic" in fields
+    assert "genomic_hash" in fields
+    assert "simple_id" not in fields
+    assert "cnv" in fields
+    assert "fusion" in fields
+    assert "translocation" in fields
     assert "var_p" in fields
     assert "var_c" in fields
     assert "var_g" in fields

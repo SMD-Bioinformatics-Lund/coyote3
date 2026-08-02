@@ -23,6 +23,11 @@ def get_permissions_repository():
     return store.permissions_repository
 
 
+def get_notification_repository():
+    """Return the user-notification repository."""
+    return store.notification_repository
+
+
 def get_assay_panel_repository():
     """Return the assay-panel repository."""
     return store.assay_panel_repository

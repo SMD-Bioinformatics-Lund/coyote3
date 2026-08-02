@@ -23,7 +23,6 @@ def test_prepare_report_context_normalizes_every_supported_finding_family() -> N
             "subpanel_id": "base",
             "environment": "production",
             "reporting": {
-                "analysis": ["SNV", "CNV", "FUSION", "BIOMARKER"],
                 "report_sections": ["results"],
                 "general_report_summary": "Configured summary.",
             },
@@ -93,7 +92,7 @@ def test_prepare_report_context_normalizes_every_supported_finding_family() -> N
     assert context.sample.environment == "production"
     assert context.sample.analysis_intent == "germline"
     assert context.asp.asp_id == "hema_gmsv1"
-    assert context.aspc.reporting.analysis == ["SNV", "CNV", "FUSION", "BIOMARKER"]
+    assert context.aspc.reporting.report_sections == ["results"]
     assert context.applied_gene_lists[0].list_type == ["snv"]
     assert context.applied_gene_lists[0].adhoc is True
 

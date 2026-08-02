@@ -21,6 +21,8 @@ router = APIRouter(tags=[TAG_ADMIN_ASSAYS])
 @router.get("/api/v1/resources/samples", response_model=AdminSamplesListPayload)
 def list_admin_samples_read(
     search: str = Query(default=""),
+    asp_group: str = Query(default=""),
+    asp_id: str = Query(default=""),
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=30, ge=1, le=200),
     user: ApiUser = Depends(require_access(permission="sample:list:global")),
@@ -40,6 +42,8 @@ def list_admin_samples_read(
         service.list_payload(
             asp_ids=None if user.is_superuser else user.asp_ids,
             search=search,
+            asp_group=asp_group,
+            asp_id=asp_id,
             page=page,
             per_page=per_page,
         )
@@ -51,7 +55,7 @@ def list_admin_samples_read(
 )
 def admin_sample_context_read(
     sample_id: str,
-    user: ApiUser = Depends(require_access(permission="sample:edit:own")),
+    user: ApiUser = Depends(require_access(permission="sample:view:global")),
     service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
     """Return edit context for an admin sample.
@@ -77,7 +81,7 @@ def update_sample_change(
     request: Request,
     sample_id: str,
     payload: dict = Body(default_factory=dict),
-    user: ApiUser = Depends(require_access(permission="sample:edit:own")),
+    user: ApiUser = Depends(require_access(permission="sample:edit:global")),
     service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
     """Update an admin sample.

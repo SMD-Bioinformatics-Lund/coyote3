@@ -19,6 +19,7 @@ from api.app.runtime_state import (
     set_current_request_id,
     set_current_user,
 )
+from api.config.application_modules import modules_for_api_path
 from api.infra.observability.logging import (
     bind_request_context,
     request_context_from_request,
@@ -123,6 +124,65 @@ def build_authentication_middleware(
                         request=request, request_id=request_id, start=start
                     )
                     return response
+
+                governed_modules = modules_for_api_path(path)
+                if governed_modules:
+                    from api.app.deps.services import get_app_controls_service
+
+                    controls_service = get_app_controls_service()
+                    disabled_module = next(
+                        (
+                            module
+                            for module in governed_modules
+                            if not controls_service.module_enabled(module.key)
+                        ),
+                        None,
+                    )
+                    if disabled_module is not None:
+                        duration_ms = (time.perf_counter() - start) * 1000.0
+                        username = (
+                            authenticated_user.username
+                            if authenticated_user is not None
+                            else current_username(default="anonymous")
+                        )
+                        response = JSONResponse(
+                            status_code=503,
+                            content={
+                                "status": 503,
+                                "error": f"{disabled_module.label} is temporarily unavailable",
+                                "details": disabled_module.description,
+                                "category": "module_disabled",
+                                "hint": "Contact an application administrator if this module should be available.",
+                                "module": disabled_module.key,
+                            },
+                            headers={"Retry-After": "60", "X-Request-ID": request_id},
+                        )
+                        _log_api_request(
+                            request_id=request_id,
+                            method=request.method,
+                            path=path,
+                            status_code=503,
+                            duration_ms=duration_ms,
+                            username=username,
+                            ip=request_ip(request),
+                        )
+                        observe_request(
+                            method=request.method,
+                            path=path,
+                            status_code=503,
+                            duration_ms=duration_ms,
+                        )
+                        emit_request_event(
+                            request=request,
+                            username=username,
+                            status_code=503,
+                            duration_ms=duration_ms,
+                            extra={
+                                "kind": "module_disabled",
+                                "module": disabled_module.key,
+                            },
+                        )
+                        return response
 
             response = await call_next(request)
             response.headers["X-Request-ID"] = request_id

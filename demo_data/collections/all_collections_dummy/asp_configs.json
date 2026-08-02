@@ -54,11 +54,6 @@
       }
     },
     "reporting": {
-      "analysis": [
-        "SNV",
-        "CNV",
-        "COVERAGE"
-      ],
       "report_sections": [
         "SNV",
         "CNV"
@@ -132,11 +127,6 @@
       }
     },
     "reporting": {
-      "analysis": [
-        "SNV",
-        "CNV",
-        "COVERAGE"
-      ],
       "report_sections": [
         "SNV",
         "CNV"

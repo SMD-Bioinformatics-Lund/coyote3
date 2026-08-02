@@ -213,7 +213,6 @@ def prepare_report_context(
             "subpanel_id": str(aspc.get("subpanel_id") or sample.get("subpanel_id") or "base"),
             "environment": str(aspc.get("environment") or sample.get("environment") or ""),
             "reporting": {
-                "analysis": list((aspc.get("reporting") or {}).get("analysis") or []),
                 "report_sections": list((aspc.get("reporting") or {}).get("report_sections") or []),
                 "general_report_summary": str(
                     (aspc.get("reporting") or {}).get("general_report_summary") or ""

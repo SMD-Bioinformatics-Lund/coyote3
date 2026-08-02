@@ -202,6 +202,7 @@ class AdminSamplesListPayload(BaseModel):
 
     samples: list[dict[str, Any]]
     pagination: AdminListPagePayload
+    filter_options: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class AdminSampleContextPayload(BaseModel):

@@ -211,6 +211,30 @@ class UsersRepository(BaseRepository):
         """
         return list(self.get_collection().find().sort("firstname", 1))
 
+    def list_active_users_for_notifications(
+        self, *, role_ids: list[str] | None = None
+    ) -> list[dict]:
+        """Return active notification recipients, optionally limited by role."""
+        query: dict = {"is_active": {"$ne": False}}
+        normalized_roles = sorted(
+            {
+                role
+                for value in (role_ids or [])
+                if (role := self._normalize_user_id(value)) is not None
+            }
+        )
+        if normalized_roles:
+            query["roles"] = {"$in": normalized_roles}
+        projection = {
+            "username": 1,
+            "firstname": 1,
+            "lastname": 1,
+            "fullname": 1,
+            "email": 1,
+            "roles": 1,
+        }
+        return list(self.get_collection().find(query, projection).sort("username", 1))
+
     def search_users(
         self, *, q: str = "", page: int = 1, per_page: int = 30
     ) -> tuple[list[dict], int]:

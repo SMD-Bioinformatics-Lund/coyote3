@@ -186,8 +186,8 @@ def _run_watch_directory_once(self) -> dict[str, Any]:
 def ingest_watch_directory_once(self) -> dict[str, Any]:
     """Scan the configured ingest folder for coyote3.yaml and ingest each bundle once."""
     _ensure_worker_runtime()
-    if not task_family_enabled("ingest_watch"):
-        return disabled_result("ingest_watch")
+    if not task_family_enabled("sample_ingest"):
+        return disabled_result("sample_ingest")
     lock = FileLock(WATCH_INGEST_LOCK_PATH)
     try:
         with lock.acquire(timeout=0):
@@ -208,8 +208,8 @@ def ingest_sample_bundle_task(
 ) -> dict[str, Any]:
     """Create or update a sample bundle through the internal ingest service."""
     _ensure_worker_runtime()
-    if not task_family_enabled("ingest_bundle"):
-        return disabled_result("ingest_bundle")
+    if not task_family_enabled("sample_ingest"):
+        return disabled_result("sample_ingest")
     logger.info("celery_ingest_sample_bundle_started task_id=%s", self.request.id)
     try:
         result = get_internal_ingest_service().ingest_sample_bundle(
@@ -242,31 +242,6 @@ def ingest_sample_bundle_task(
     finally:
         if staging_dir:
             shutil.rmtree(staging_dir, ignore_errors=True)
-
-
-@celery_app.task(name="api.tasks.ingest.ingest_dependents", bind=True)
-def ingest_dependents_task(
-    self,
-    *,
-    sample_id: str,
-    sample_name: str,
-    delete_existing: bool,
-    preload: dict[str, Any],
-) -> dict[str, Any]:
-    """Write dependent analysis documents for an existing sample."""
-    _ensure_worker_runtime()
-    if not task_family_enabled("ingest_dependents"):
-        return disabled_result("ingest_dependents")
-    logger.info(
-        "celery_ingest_dependents_started task_id=%s sample_id=%s", self.request.id, sample_id
-    )
-    written = get_internal_ingest_service().ingest_dependents(
-        sample_id=sample_id,
-        sample_name=sample_name,
-        delete_existing=delete_existing,
-        preload=preload,
-    )
-    return _serializable({"status": "ok", "sample_id": sample_id, "written": written})
 
 
 @celery_app.task(name="api.tasks.ingest.insert_collection_document", bind=True)
