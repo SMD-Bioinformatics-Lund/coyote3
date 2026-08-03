@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import {
+  ArtefactFrequencyBadges,
   CallerBadges,
   ConsequenceBadges,
   FilterFlagBadges,
@@ -83,6 +84,17 @@ describe("variant UI semantics", () => {
     )
     fireEvent.focus(screen.getByLabelText("ClinPGx gene"))
     expect(screen.getByText("ClinPGx variant annotation")).toBeInTheDocument()
+  })
+
+  it("describes CNV artefact frequency and reference-case count", () => {
+    render(<ArtefactFrequencyBadges finding={{ AFRQ_PON: 0.125, ACOUNT_PON: 42 }} />)
+
+    const badge = screen.getByLabelText("PON artefact frequency 12.5 percent")
+    expect(badge).toHaveTextContent("PON")
+    fireEvent.focus(badge)
+    expect(screen.getByText("PON artefact frequency")).toBeInTheDocument()
+    expect(screen.getByText(/42 matching cases/)).toBeInTheDocument()
+    expect(screen.getByText(/does not recalculate/)).toBeInTheDocument()
   })
 
   it("renders linked and unlinked informational badges with tooltip context", () => {

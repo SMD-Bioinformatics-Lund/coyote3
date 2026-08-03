@@ -9,6 +9,7 @@ import { AppLoader } from "@/components/layout/AppLoader"
 import { ColumnDef } from "@tanstack/react-table"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import {
+  ConsequenceBadges,
   StatusBadges,
   TierBadge,
 } from "@/lib/variant-ui"
@@ -75,6 +76,7 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
   const columns: ColumnDef<any, any>[] = [
     {
       id: "select",
+      meta: { headerClassName: "text-center w-8", cellClassName: "text-center w-8" },
       header: ({ table }) => (
         <input
           type="checkbox"
@@ -92,13 +94,6 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
         />
       ),
       enableSorting: false,
-    },
-    {
-      id: "badges",
-      header: "Status",
-      accessorFn: (row) => statusLabels(row),
-      meta: { exportValue: statusLabels },
-      cell: ({ row }) => <StatusBadges finding={row.original} />,
     },
     {
       id: "gene1",
@@ -129,7 +124,14 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
       id: "type",
       header: "Type",
       accessorFn: translocationType,
-      cell: ({ row }) => <span className="font-semibold text-foreground text-xs">{translocationType(row.original)}</span>
+      meta: { headerClassName: "min-w-48", cellClassName: "min-w-48" },
+      cell: ({ row }) => (
+        <ConsequenceBadges
+          value={translocationType(row.original)}
+          translations={data?.vep_conseq_translations}
+          wide
+        />
+      ),
     },
     {
       id: "hgvs",
@@ -139,13 +141,14 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
         const hgvs = translocationHgvs(ann)
         return [hgvs.coding, hgvs.protein].filter(Boolean).join(" ")
       },
+      meta: { headerClassName: "w-80 min-w-72", cellClassName: "w-80 min-w-72" },
       cell: ({ row }) => {
         const ann = selectedTranslocationAnnotation(row.original)
         const hgvs = translocationHgvs(ann)
         return (
-          <div className="flex w-48 flex-col leading-tight">
-            <ExpandableText text={hgvs.coding || "-"} maxLength={18} className="text-xs font-mono text-muted-foreground" />
-            <ExpandableText text={hgvs.protein || "-"} maxLength={18} className="text-xs font-mono font-semibold" />
+          <div className="flex w-full max-w-80 flex-col leading-tight">
+            <ExpandableText text={hgvs.coding || "-"} maxLength={42} className="text-xs font-mono text-muted-foreground" />
+            <ExpandableText text={hgvs.protein || "-"} maxLength={42} className="text-xs font-mono font-semibold" />
           </div>
         )
       }
@@ -163,7 +166,13 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
       meta: { exportValue: (row: any) => tierValue(row) === 999 ? "" : tierValue(row), headerClassName: "w-14 min-w-14", cellClassName: "w-14 min-w-14" },
       cell: ({ row }) => <TierBadge tier={tierValue(row.original)} />,
     },
-
+    {
+      id: "badges",
+      header: "Status",
+      meta: { exportValue: statusLabels, headerClassName: "w-24 min-w-24 max-w-24", cellClassName: "w-24 min-w-24 max-w-24" },
+      accessorFn: (row) => statusLabels(row),
+      cell: ({ row }) => <StatusBadges finding={row.original} />,
+    },
     {
       id: "actions",
       header: "Actions",
@@ -192,7 +201,7 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
   ]
 
   return (
-    <div className="glass-card flex flex-col overflow-hidden p-2">
+    <div className="glass-card flex flex-col overflow-hidden py-2">
       <DataTable
         columns={columns}
         data={translocations}

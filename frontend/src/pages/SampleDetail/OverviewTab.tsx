@@ -241,6 +241,11 @@ function selectedPanelEntriesFromFilters(context: any, sample: any) {
       ids: sampleFilterSection(sample || context?.sample, "fusion", "somatic")?.fusionlists,
       options: context?.fusionlist_options,
     },
+    {
+      target: "TRANSLOCATION",
+      ids: sampleFilterSection(sample || context?.sample, "translocation", "somatic")?.fusionlists,
+      options: context?.fusionlist_options,
+    },
   ]
   return sections.flatMap((section) => {
     const ids = Array.isArray(section.ids) ? section.ids : []
@@ -486,12 +491,13 @@ function targetOptions(sample: any) {
     : [
         { value: "snv", label: "SNV gene lists" },
         { value: "cnv", label: "CNV gene lists" },
+        { value: "translocation", label: "DNA fusion / translocation lists" },
       ]
 }
 
 function filterKeyForTarget(target: string) {
   if (target === "cnv") return "cnvlists"
-  if (target === "fusion") return "fusionlists"
+  if (target === "fusion" || target === "translocation") return "fusionlists"
   return "snvlists"
 }
 
@@ -535,6 +541,7 @@ function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sample: an
       snv: [["sample-variants", sampleId], ["variants", sampleId]],
       cnv: [["sample-cnvs", sampleId], ["cnvs", sampleId]],
       fusion: [["sample-fusions", sampleId], ["fusions", sampleId]],
+      translocation: [["sample-translocations", sampleId], ["translocations", sampleId]],
     }
     ;(targetQueryKeys[target] || []).forEach((queryKey) => queryClient.invalidateQueries({ queryKey }))
   }
@@ -831,6 +838,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
   const snvFilters = sampleFilterSection(sample, "snv")
   const cnvFilters = sampleFilterSection(sample, "cnv")
   const fusionFilters = sampleFilterSection(sample, "fusion")
+  const translocationFilters = sampleFilterSection(sample, "translocation")
   const coverageFilters = sampleFilterSection(sample, "coverage")
   const adhoc = {
     ...(snvFilters?.adhoc_genes ? { snv: snvFilters.adhoc_genes } : {}),
@@ -1007,6 +1015,14 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
                 <h3 className="text-xs font-black uppercase tracking-wider text-tier4">Selected Fusion Lists</h3>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {(fusionFilters.fusionlists || []).length ? fusionFilters.fusionlists.map((name: string) => <StatusPill key={name} tone="green">{name}</StatusPill>) : <p className="text-muted-foreground">No fusion lists selected for this sample.</p>}
+                </div>
+              </div>
+            )}
+            {omics === "dna" && (
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-wider text-tier3">Selected DNA Fusion / Translocation ISGLs</h3>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {(translocationFilters.fusionlists || []).length ? translocationFilters.fusionlists.map((name: string) => <StatusPill key={name} tone="blue">{name}</StatusPill>) : <p className="text-muted-foreground">No DNA fusion or translocation ISGLs selected for this sample.</p>}
                 </div>
               </div>
             )}

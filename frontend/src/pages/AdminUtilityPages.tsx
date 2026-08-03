@@ -147,7 +147,9 @@ export function AdminControlsPage() {
     queryKey: ["admin-controls"],
     queryFn: () => api.get("/admin/controls").then((res) => res.data),
     retry: false,
-    refetchInterval: 30_000,
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   })
   const controls = (draft || controlsQuery.data?.controls || null) as AppControls | null
   const runtime = (controlsQuery.data?.runtime || {}) as AppControlsRuntime
@@ -240,7 +242,7 @@ export function AdminControlsPage() {
                 <p className="text-sm text-muted-foreground">Live Celery process, queue, schedule, and repository health reported by the API runtime.</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {runtime.observed_at ? `Observed ${humanRelativeDate(runtime.observed_at)} (${fullDateTime(runtime.observed_at)}).` : "Observation time was not reported."}
-                  {` Automatically refreshed every 30 seconds; inspection timeout ${runtime.celery?.inspection_timeout_seconds ?? 0.5} seconds.`}
+                  {` Automatically refreshed every 5 seconds; inspection timeout ${runtime.celery?.inspection_timeout_seconds ?? 1.5} seconds.`}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">

@@ -293,7 +293,7 @@ export function DataTable<TData, TValue>({
                         <td
                           key={cell.id}
                           className={cn(
-                            "border-b border-r border-border/40 px-2 py-0.5 align-middle last:border-r-0",
+                            "border-b border-r border-border/40 px-2 py-1.5 align-middle last:border-r-0",
                             align === "center" ? "text-center" : "text-left",
                             defaultColumnClass(cell.column.id),
                             meta?.cellClassName,

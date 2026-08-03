@@ -33,6 +33,7 @@ const sample = {
         snvlists: ["heme"],
       },
       cnv: { min_cnv_size: 5000, cnvlists: ["heme_cnv"], cnveffects: ["gain"] },
+      translocation: { fusionlists: ["fusion_core"] },
     },
     germline: {
       snv: { min_depth: 30, min_alt_reads: 3, min_freq: 0.3, max_freq: 1, max_popfreq: 0.001 },
@@ -139,6 +140,28 @@ describe("FiltersSidebar", () => {
     expect(screen.getByRole("checkbox", { name: "Hematology CNV" })).toBeChecked()
     expect(screen.getByRole("checkbox", { name: "Gain" })).toBeChecked()
     expect(screen.queryByText("Consequences")).not.toBeInTheDocument()
+  })
+
+  it("edits DNA translocation gene lists independently", async () => {
+    const user = userEvent.setup()
+    renderSidebar({ activeTab: "translocations" })
+    await expand(user)
+
+    expect(screen.getByText("Fusion/Translocation Gene Lists")).toBeVisible()
+    expect(screen.getByRole("checkbox", { name: "Core fusions" })).toBeChecked()
+    await user.click(screen.getByRole("checkbox", { name: "Core fusions" }))
+    await user.click(screen.getByRole("button", { name: "Apply" }))
+
+    await waitFor(() => expect(mocks.put).toHaveBeenCalledOnce())
+    expect(mocks.put).toHaveBeenCalledWith("/samples/CASE_001/filters", {
+      filters: expect.objectContaining({
+        somatic: expect.objectContaining({
+          snv: sample.filters.somatic.snv,
+          cnv: sample.filters.somatic.cnv,
+          translocation: { fusionlists: [] },
+        }),
+      }),
+    })
   })
 
   it("confirms reset success and reports update failures", async () => {

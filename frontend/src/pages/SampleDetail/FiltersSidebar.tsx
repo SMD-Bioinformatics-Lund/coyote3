@@ -352,8 +352,12 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
         )}
 
         {activeTab === "translocations" && (
-          <Section title="Translocation Filters">
-            <p className="text-xs text-muted-foreground">Historical translocation controls are action-oriented. Status, tier, report, and FP actions are available in the table toolbar and row actions.</p>
+          <Section title="Fusion/Translocation Gene Lists">
+            <CheckboxList
+              options={listOptions.fusion}
+              values={values("fusionlists")}
+              onChange={(next) => setValue("fusionlists", next)}
+            />
           </Section>
         )}
       </div>

@@ -59,13 +59,14 @@ function compactVariantClass(value: unknown) {
 export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "somatic" | "germline" }) {
   const bulkAction = useBulkFindingAction(sampleId, "small_variant")
   const location = useLocation()
+  const tabId = intent === "germline" ? "germline-snvs" : "snvs"
   const {
     page,
     perPage,
     sortParam,
     debouncedSearchText,
     tableProps,
-  } = useClinicalTableState({ prefix: `snv-${intent}`, tab: `${intent}-snvs` })
+  } = useClinicalTableState({ prefix: `snv-${intent}`, tab: tabId })
   const { data, isLoading, error } = useQuery({
     queryKey: [
       "sample-variants",
@@ -116,6 +117,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
   const columns: ColumnDef<any, any>[] = [
     {
       id: "select",
+      meta: { headerClassName: "text-center w-8", cellClassName: "text-center w-8" },
       header: ({ table }) => (
         <input
           type="checkbox"
@@ -133,7 +135,6 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
         />
       ),
       enableSorting: false,
-      meta: { headerClassName: "w-8", cellClassName: "w-8" },
     },
     {
       id: "badges",
@@ -382,7 +383,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
   ]
 
   return (
-    <div className="space-y-2 p-2">
+    <div className="glass-card flex flex-col overflow-hidden py-2">
       <DataTable
         columns={columns}
         data={variants || []}

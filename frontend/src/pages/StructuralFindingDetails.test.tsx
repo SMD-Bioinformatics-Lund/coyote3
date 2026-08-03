@@ -34,7 +34,7 @@ describe("structural finding detail pages", () => {
       cnv: {
         _id: "CNV1", chr: "7", start: 100, end: 1100, type: "gain", ratio: 1,
         callers: ["CNVKIT", "MANTA"], fp: true, interesting: true,
-        PR: [20, 8], SR: [10, 4], AFRQ_PON: 0.12,
+        PR: [20, 8], SR: [10, 4], AFRQ_PON: 0.12, ACOUNT_PON: 17,
         genes: [
           { gene: "EGFR", class: "panel", effect: "gain" },
           { gene: "LANCL2", effect: "overlap" },
@@ -49,7 +49,8 @@ describe("structural finding detail pages", () => {
     expect(await screen.findByRole("heading", { name: "EGFR" })).toBeVisible()
     expect(screen.getByText("GAIN · 7:100-1100")).toBeVisible()
     expect(screen.getAllByText("4.00").length).toBeGreaterThan(0)
-    expect(screen.getByText("False positive")).toBeVisible()
+    expect(screen.getByLabelText("False positive")).toBeVisible()
+    expect(screen.getByLabelText("PON artefact frequency 12.0 percent")).toBeVisible()
     expect(screen.getByText("LANCL2")).toBeVisible()
     expect(screen.getByText("CNVKIT")).toBeVisible()
     expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_001/cnvs/CNV1")

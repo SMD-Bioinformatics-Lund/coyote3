@@ -127,10 +127,11 @@ export function translocationHgvs(annotation: any) {
 }
 
 export function translocationType(translocation: any) {
-  const raw = translocationInfo(translocation)?.SVTYPE ?? translocation?.SVTYPE ?? translocation?.svtype ?? translocation?.type
   const annotation = selectedTranslocationAnnotation(translocation)
   const terms = annotation?.Annotation ?? annotation?.Consequence
   if (Array.isArray(terms) && terms.length > 0) return terms.join(", ")
+  if (typeof terms === "string" && terms.trim()) return terms.trim()
+  const raw = translocationInfo(translocation)?.SVTYPE ?? translocation?.SVTYPE ?? translocation?.svtype ?? translocation?.type
   if (raw) return String(raw)
   return "BND"
 }

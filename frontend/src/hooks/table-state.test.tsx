@@ -83,4 +83,17 @@ describe("clinical table state", () => {
     expect(result.current.sorting).toHaveLength(2)
     expect(result.current.sortParam).toBe("vaf:desc,gene:asc")
   })
+
+  it("preserves the canonical somatic SNV tab when sorting", () => {
+    const { result } = renderHook(() => ({
+      table: useClinicalTableState({ prefix: "snv-somatic", tab: "snvs" }),
+      location: useLocation(),
+    }), { wrapper: router("/samples/CASE?tab=snvs") })
+
+    act(() => result.current.table.tableProps.onSortingChange([{ id: "tier", desc: false }]))
+
+    expect(result.current.location.search).toContain("tab=snvs")
+    expect(result.current.location.search).toContain("snv-somatic_sort=tier%3Aasc")
+    expect(result.current.location.search).not.toContain("tab=somatic-snvs")
+  })
 })

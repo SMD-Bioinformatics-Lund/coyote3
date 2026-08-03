@@ -172,12 +172,30 @@ describe("sample analysis table tabs", () => {
 
   it("supports both current and historical translocation response envelopes", async () => {
     mocks.get.mockResolvedValue({ data: {
-      display_sections_data: { translocs: [{ _id: "T1", CHROM: "11", POS: 100 }] },
+      display_sections_data: {
+        translocs: [{
+          _id: "T1",
+          CHROM: "11",
+          POS: 100,
+          INFO: { MANE_ANN: { Consequence: "gene_fusion" } },
+        }],
+      },
       meta: { count: 1, page: 1, per_page: 50 },
+      vep_conseq_translations: {
+        gene_fusion: {
+          display_name: "Gene fusion",
+          description: "A transcript altered by a structural gene fusion.",
+          impact: "HIGH",
+        },
+      },
     } })
     mount(<TranslocationsTab sampleId="DNA_1" />, "/samples/DNA_1?tab=translocations")
 
     expect(await screen.findByText("Table with 1 rows")).toBeVisible()
+    const typeBadge = screen.getByText("Gene fusion")
+    expect(typeBadge).toBeVisible()
+    fireEvent.mouseEnter(typeBadge)
+    expect(await screen.findByText("A transcript altered by a structural gene fusion.")).toBeVisible()
     expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_1/translocations?page=1&per_page=50")
     expect(mocks.dataTable).toHaveBeenLastCalledWith(expect.objectContaining({
       rowLabel: "translocations",

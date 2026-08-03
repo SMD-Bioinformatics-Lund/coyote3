@@ -1,4 +1,4 @@
-export type FilterSection = "snv" | "cnv" | "coverage" | "fusion"
+export type FilterSection = "snv" | "cnv" | "coverage" | "fusion" | "translocation"
 
 export function sampleFilePath(sample: any, key: string): string | undefined {
   const file = sample?.files?.[key]
@@ -51,5 +51,6 @@ export function activeFilterSectionForTab(activeTab: string): FilterSection | nu
   if (activeTab === "cnvs") return "cnv"
   if (activeTab === "coverage") return "coverage"
   if (activeTab === "fusions") return "fusion"
+  if (activeTab === "translocations") return "translocation"
   return null
 }

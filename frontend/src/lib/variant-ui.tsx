@@ -1,4 +1,4 @@
-import { AlertCircle, Ban, MessageSquare, ShieldCheck, XCircle, XSquare } from "lucide-react"
+import { AlertCircle, Ban, Bookmark, MessageSquare, ShieldCheck, XCircle, XSquare } from "lucide-react"
 import { useState, type FocusEvent, type MouseEvent, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { cn } from "@/lib/utils"
@@ -127,6 +127,8 @@ export function StatusBadges({
   const isBlacklist = Boolean(finding?.blacklisted || (finding?.blacklist && finding?.override_blacklist !== true))
   const isIrrelevant = Boolean(finding?.irrelevant)
   const isInteresting = Boolean(finding?.interesting)
+  const isNoteworthy = Boolean(finding?.noteworthy)
+  const isNormalCall = finding?.NORMAL === 1 || finding?.NORMAL === true
   const hasBlacklistOverride = Boolean(finding?.override_blacklist)
   const hasComments = Array.isArray(finding?.comments) && finding.comments.length > 0
 
@@ -180,6 +182,27 @@ export function StatusBadges({
           ariaLabel="Interesting"
         >
           <AlertCircle className="h-3.5 w-3.5" />
+        </StatusTooltipBadge>
+      )}
+      {isNoteworthy && (
+        <StatusTooltipBadge
+          label="Noteworthy"
+          description="This finding has been marked for additional reviewer attention without automatically including it in the report."
+          severity="warn"
+          ariaLabel="Noteworthy"
+        >
+          <Bookmark className="h-3.5 w-3.5" />
+        </StatusTooltipBadge>
+      )}
+      {isNormalCall && (
+        <StatusTooltipBadge
+          label="Normal/control call"
+          description="This CNV record was emitted for the normal or control genome. Whole-genome workflows retain these records for paired review."
+          severity="neutral"
+          ariaLabel="Normal or control CNV"
+          textBadge
+        >
+          N
         </StatusTooltipBadge>
       )}
       {hasComments && (
@@ -239,6 +262,63 @@ export function StatusBadges({
           PGx
         </StatusTooltipBadge>
       )}
+    </div>
+  )
+}
+
+type ArtefactFrequencyItem = {
+  key: string
+  label: string
+  frequency: number
+  percent: number
+  count: unknown
+}
+
+function artefactFrequencyItems(finding: any): ArtefactFrequencyItem[] {
+  if (!finding || typeof finding !== "object") return []
+  return Object.entries(finding)
+    .filter(([key]) => key.startsWith("AFRQ_"))
+    .map(([key, value]) => {
+      const frequency = Number(value)
+      const label = key.slice("AFRQ_".length)
+      return {
+        key,
+        label,
+        frequency,
+        percent: frequency * 100,
+        count: finding[`ACOUNT_${label}`],
+      }
+    })
+    .filter((item) => Number.isFinite(item.frequency))
+    .sort((left, right) => left.label.localeCompare(right.label))
+}
+
+/** Render upstream CNV artefact frequencies with their reference-case counts. */
+export function ArtefactFrequencyBadges({ finding }: { finding: any }) {
+  const items = artefactFrequencyItems(finding)
+  if (!items.length) return <span className="text-muted-foreground">-</span>
+
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {items.map((item) => {
+        const severity = item.percent >= 1 ? "info" : item.percent >= 0.1 ? "warn" : "pass"
+        const countText = item.count !== undefined && item.count !== null && item.count !== ""
+          ? ` The reference set contains ${item.count} matching case${Number(item.count) === 1 ? "" : "s"}.`
+          : " No matching-case count was supplied."
+        return (
+          <StatusTooltipBadge
+            key={item.key}
+            label={`${item.label} artefact frequency`}
+            description={`Observed frequency: ${item.percent.toFixed(1)}%.${countText} This evidence is supplied by the upstream CNV pipeline; Coyote displays it but does not recalculate it.`}
+            severity={severity}
+            ariaLabel={`${item.label} artefact frequency ${item.percent.toFixed(1)} percent`}
+            textBadge
+            contextLabel="CNV artefact evidence"
+          >
+            {item.label}
+          </StatusTooltipBadge>
+        )
+      })}
     </div>
   )
 }
@@ -763,10 +843,12 @@ function ConsequenceBadge({
   term,
   translations,
   compact,
+  wide,
 }: {
   term: string
   translations?: Record<string, any>
   compact: boolean
+  wide: boolean
 }) {
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
   const meta = consequenceMeta(term, translations)
@@ -787,7 +869,8 @@ function ConsequenceBadge({
       <span
         tabIndex={0}
         className={cn(
-          "max-w-[108px] cursor-help truncate rounded-md border px-2 py-0.5 text-[0.72rem] font-bold lowercase leading-5 shadow-sm outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
+          "cursor-help rounded-md border px-2 py-0.5 text-[0.72rem] font-bold lowercase leading-5 shadow-sm outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
+          wide ? "max-w-[280px] whitespace-normal break-words" : "max-w-[108px] truncate",
           impact ? severityClass(severity) : "border-border bg-muted text-foreground",
         )}
       >
@@ -818,21 +901,26 @@ export function ConsequenceBadges({
   value,
   translations,
   compact = true,
+  wide = false,
 }: {
   value: unknown
   translations?: Record<string, any>
   compact?: boolean
+  wide?: boolean
 }) {
-  const terms = Array.isArray(value) ? value : String(value || "").split(/[,&]/).filter(Boolean)
+  const terms = (Array.isArray(value) ? value : String(value || "").split(/[,&]/))
+    .map((term) => String(term).trim())
+    .filter(Boolean)
   if (!terms.length) return <span className="text-muted-foreground">-</span>
   return (
-    <div className="flex max-w-[220px] flex-wrap items-center gap-1">
+    <div className={cn("flex flex-wrap items-center gap-1", wide ? "max-w-[320px]" : "max-w-[220px]") }>
       {terms.map((term) => (
         <ConsequenceBadge
           key={String(term)}
           term={String(term)}
           translations={translations}
           compact={compact}
+          wide={wide}
         />
       ))}
     </div>

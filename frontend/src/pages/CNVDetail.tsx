@@ -8,11 +8,10 @@ import { CommentsPanel } from "@/components/comments/CommentsPanel"
 import {
   DetailDataTable,
   DetailMetricTable,
-  EvidenceBadge,
   ExternalLinksCard,
 } from "@/components/detail/DetailEvidenceCards"
 import { percentValue } from "@/lib/detail-formatters"
-import { CallerBadges } from "@/lib/variant-ui"
+import { ArtefactFrequencyBadges, CallerBadges, StatusBadges } from "@/lib/variant-ui"
 import {
   DetailCard,
   DetailField,
@@ -130,7 +129,7 @@ export function CNVDetail() {
           />
         }
         statLabel="Copy Number"
-        statValue={(2 * Math.pow(2, cnv?.ratio || 0)).toFixed(2)}
+        statValue={copyNumber(cnv)}
       />
 
       <FindingMainGrid
@@ -181,11 +180,10 @@ export function CNVDetail() {
                   <DetailField label="Ratio (log2)" valueClassName="font-mono">{Number.isFinite(Number(cnv?.ratio)) ? Number(cnv?.ratio).toFixed(4) : "-"}</DetailField>
                   <DetailField label="Copy Number" valueClassName="font-mono text-tier4">{copyNumber(cnv)}</DetailField>
                   <DetailField label="Status">
-                    <div className="flex flex-wrap gap-1">
-                      {cnv?.fp && <EvidenceBadge tone="danger">False positive</EvidenceBadge>}
-                      {cnv?.interesting && <EvidenceBadge tone="success">Report</EvidenceBadge>}
-                      {cnv?.noteworthy && <EvidenceBadge tone="info">Noteworthy</EvidenceBadge>}
-                    </div>
+                    <StatusBadges finding={cnv} />
+                  </DetailField>
+                  <DetailField label="Artefact evidence">
+                    <ArtefactFrequencyBadges finding={cnv} />
                   </DetailField>
                 </DetailFieldGrid>
               </DetailCard>

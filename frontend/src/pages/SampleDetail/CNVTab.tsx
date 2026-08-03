@@ -17,6 +17,7 @@ import { gensSampleUrl } from "@/lib/external-links"
 import { ResizableSplitPane } from "@/components/layout/ResizableSplitPane"
 import { Button } from "@/components/ui/button"
 import { RotatableImage } from "@/components/detail/RotatableImage"
+import { ArtefactFrequencyBadges, StatusBadges } from "@/lib/variant-ui"
 import {
   CLINICAL_TABLE_CACHE_MS,
   CLINICAL_TABLE_STALE_MS,
@@ -31,6 +32,47 @@ const cnvBulkActions: BulkActionOption[] = [
   { value: "noteworthy", label: "Mark Noteworthy" },
   { value: "unnoteworthy", label: "Unmark Noteworthy" },
 ]
+
+function cnvRatio(cnv: any): number | null {
+  const raw = cnv?.ratio ?? cnv?.log2
+  if (raw === null || raw === undefined || raw === "") return null
+  const value = Number(raw)
+  return Number.isFinite(value) ? value : null
+}
+
+function cnvCopyNumber(cnv: any): number | null {
+  const ratio = cnvRatio(cnv)
+  return ratio === null ? null : 2 * Math.pow(2, ratio)
+}
+
+function purityAdjustedCopyNumber(cnv: any, purity: unknown): number | null {
+  const ratio = cnvRatio(cnv)
+  const copyNumber = cnvCopyNumber(cnv)
+  const purityValue = Number(purity)
+  if (ratio === null || copyNumber === null || !Number.isFinite(purityValue) || purityValue <= 0) return null
+  return ratio > 0 ? copyNumber / purityValue : copyNumber * purityValue
+}
+
+function structuralReadEvidence(cnv: any): string {
+  const value = cnv?.SR ?? cnv?.sr ?? cnv?.INFO?.SR
+  if (Array.isArray(value)) return value.length ? value.join(",") : "-"
+  return value === null || value === undefined || value === "" ? "-" : String(value)
+}
+
+function artefactExportValue(cnv: any): string {
+  return Object.keys(cnv || {})
+    .filter((key) => key.startsWith("AFRQ_"))
+    .map((key) => {
+      const label = key.slice("AFRQ_".length)
+      const frequency = Number(cnv[key])
+      if (!Number.isFinite(frequency)) return ""
+      const count = cnv[`ACOUNT_${label}`]
+      const countText = count === null || count === undefined || count === "" ? "" : ` (${count} cases)`
+      return `${label}: ${(frequency * 100).toFixed(1)}%${countText}`
+    })
+    .filter(Boolean)
+    .join(" | ")
+}
 
 export function CNVTab({ sampleId }: { sampleId: string }) {
   const bulkAction = useBulkFindingAction(sampleId, "cnv")
@@ -74,6 +116,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
   const columns: ColumnDef<any, any>[] = [
     {
       id: "select",
+      meta: { headerClassName: "text-center w-8", cellClassName: "text-center w-8" },
       header: ({ table }) => (
         <input
           type="checkbox"
@@ -102,7 +145,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
         const otherGenesCount = genesList.length - primaryGenes.length
         return (
           <div className="leading-tight">
-            <div className="max-w-[150px] truncate font-bold text-primary" title={primaryGenes.join(', ')}>
+            <div className="max-w-[120px] wrap-break-word font-bold text-primary" title={primaryGenes.join(', ')}>
               {primaryGenes.join(', ') || "-"}
             </div>
             {otherGenesCount > 0 && (
@@ -141,75 +184,54 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
     {
       id: "copy_number",
       header: "Copy Number",
-      accessorFn: (row) => (2 * Math.pow(2, row.ratio)).toFixed(2),
+      accessorFn: (row) => cnvCopyNumber(row),
       cell: ({ row }) => {
         const cnv = row.original
-        const copyNumber = (2 * Math.pow(2, cnv.ratio)).toFixed(2)
-        const isGain = cnv.ratio > 0
+        const ratio = cnvRatio(cnv)
+        const copyNumber = cnvCopyNumber(cnv)
+        if (ratio === null || copyNumber === null) return <span className="text-muted-foreground">-</span>
+        const isGain = ratio > 0
         return (
-          <div className="flex flex-col gap-0.5 leading-tight">
-            <div className="flex items-center gap-2">
-              <span className={`font-mono font-bold ${isGain ? 'text-fail' : 'text-tier3'}`}>
-                {copyNumber}
-              </span>
-              <span className="text-[11px] text-muted-foreground">({Number(cnv.ratio).toFixed(2)})</span>
-            </div>
-            {sample.purity && (
-              <div className="text-[11px] leading-tight text-muted-foreground">
-                Adj Purity: {isGain ? (Number(copyNumber) * 1 / sample.purity).toFixed(2) : (Number(copyNumber) * sample.purity).toFixed(2)}
-              </div>
-            )}
+          <div className="flex items-center gap-2 leading-tight">
+            <span className={`font-mono font-bold ${isGain ? "text-fail" : "text-tier3"}`}>
+              {copyNumber.toFixed(2)}
+            </span>
+            <span className="text-[11px] text-muted-foreground">({ratio.toFixed(2)})</span>
           </div>
         )
       }
     },
     {
-      id: "status_artefact",
-      header: "Status / Artefact",
-      accessorFn: (row) => {
-        const artefacts = Object.keys(row)
-          .filter((key) => key.startsWith("AFRQ_"))
-          .map((key) => `${key.split("_")[1]} ${(Number(row[key]) * 100).toFixed(1)}%`)
-        return [statusLabels(row), row.noteworthy ? "Noteworthy" : "", ...artefacts].filter(Boolean).join(" | ")
-      },
-      meta: {
-        exportValue: (row: any) => {
-          const artefacts = Object.keys(row)
-            .filter((key) => key.startsWith("AFRQ_"))
-            .map((key) => `${key.split("_")[1]} ${(Number(row[key]) * 100).toFixed(1)}%`)
-          return [statusLabels(row), row.noteworthy ? "Noteworthy" : "", ...artefacts].filter(Boolean).join(" | ")
-        },
-      },
+      id: "purity",
+      header: sample.purity ? `Purity ${sample.purity}` : "Purity",
+      accessorFn: (row) => purityAdjustedCopyNumber(row, sample.purity),
+      enableSorting: false,
       cell: ({ row }) => {
-        const cnv = row.original
-        const isInteresting = cnv.interesting
-        const isFp = cnv.fp
-        const isNoteworthy = cnv.noteworthy
-        const artefactKeys = Object.keys(cnv).filter(k => k.startsWith('AFRQ_'))
-
-        return (
-          <div className="flex flex-col gap-0.5 leading-tight">
-            <div className="flex flex-wrap gap-1">
-              {isInteresting && <span className="w-max rounded bg-pass px-1.5 py-0.5 text-[11px] font-bold uppercase text-primary-foreground">Report</span>}
-              {isFp && <span className="w-max rounded bg-destructive px-1.5 py-0.5 text-[11px] font-bold uppercase text-destructive-foreground">False Positive</span>}
-              {isNoteworthy && <span className="w-max rounded bg-warn px-1.5 py-0.5 text-[11px] font-bold uppercase text-primary-foreground">Noteworthy</span>}
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {artefactKeys.map(key => {
-                const label = key.split('_')[1]
-                const percent = (cnv[key] * 100).toFixed(1)
-                return (
-                  <span key={key} className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase text-primary-foreground ${
-                    Number(percent) >= 1 ? 'bg-tier3' : Number(percent) >= 0.1 ? 'bg-tier2' : 'bg-pass'
-                  }`} title={`${percent}% Artefact Frequency`}>
-                    {label}
-                  </span>
-                )
-              })}
-            </div>
-          </div>
-        )
+        const adjusted = purityAdjustedCopyNumber(row.original, sample.purity)
+        return <span className="font-mono text-xs font-medium text-muted-foreground">{adjusted === null ? "-" : adjusted.toFixed(2)}</span>
       }
+    },
+    {
+      id: "sr",
+      header: "SR (ref/alt)",
+      accessorFn: (row) => structuralReadEvidence(row),
+      cell: ({ row }) => <span className="font-mono text-xs font-medium text-muted-foreground">{structuralReadEvidence(row.original)}</span>,
+    },
+    {
+      id: "status",
+      header: "Status",
+      accessorFn: (row) => [statusLabels(row), row.noteworthy ? "Noteworthy" : "", row.NORMAL ? "Normal" : ""].filter(Boolean).join(" | "),
+      meta: {
+        exportValue: (row: any) => [statusLabels(row), row.noteworthy ? "Noteworthy" : "", row.NORMAL ? "Normal" : ""].filter(Boolean).join(" | "),
+      },
+      cell: ({ row }) => <StatusBadges finding={row.original} />,
+    },
+    {
+      id: "artefact",
+      header: "Artefact",
+      accessorFn: artefactExportValue,
+      meta: { exportValue: artefactExportValue },
+      cell: ({ row }) => <ArtefactFrequencyBadges finding={row.original} />,
     },
     {
       id: "actions",
@@ -223,7 +245,6 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
               resourceType="cnv"
               variant={row.original}
               compact
-              showReportLabel
             />
             <Link
               to={`/samples/${sampleId}/cnv/${row.original._id}`}
@@ -239,7 +260,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
   ]
 
   const tablePane = (
-    <div className="glass-card flex w-full min-w-0 flex-col overflow-hidden p-2">
+    <div className="glass-card flex w-full min-w-0 flex-col overflow-hidden py-2">
           <DataTable
             columns={columns}
             data={cnvs}
@@ -294,7 +315,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
           </Button>
         </div>
       </div>
-      <div className="flex min-h-72 flex-col bg-muted/10 p-3">
+      <div className="flex min-h-72 flex-col bg-muted/10 py-3">
         <RotatableImage
           key={cnvProfileName}
           src={apiPath(`/samples/${sampleId}/plots/${cnvProfileName}`)}
