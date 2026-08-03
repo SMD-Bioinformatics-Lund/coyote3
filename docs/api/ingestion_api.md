@@ -160,6 +160,13 @@ directory. After successful ingest, the watcher renames the manifest to
 `coyote3.yaml.done`; failed manifests are renamed to `coyote3.yaml.failed` so
 they do not loop continuously.
 
+The success marker covers the required clinical transaction: the sample and
+every declared analysis resource have been validated, persisted, and marked
+`ready`. Optional public knowledgebase enrichment is queued only after that
+marker is written. A slow or unavailable external service cannot hold the
+watch-folder lock, leave a successful manifest pending, or turn a ready sample
+into a failed ingest.
+
 The watcher is protected by a non-overlap lock. If a previous scan is still
 parsing or writing a sample bundle when the next beat tick fires, the newer task
 returns `skipped` with `reason=already_running` and does not touch any manifest

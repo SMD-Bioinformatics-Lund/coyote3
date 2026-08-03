@@ -44,6 +44,8 @@ header.
 8. The watcher appends `.done` after success or `.failed` after failure. Failed
    manifests are not retried until an operator corrects and restores them to the
    configured manifest filename.
+9. Optional public knowledgebase enrichment is queued after `.done` and runs
+   independently from the required clinical ingest transaction.
 
 ## Filesystem and Symlink Contract
 

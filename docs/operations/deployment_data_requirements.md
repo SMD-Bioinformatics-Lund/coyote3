@@ -119,10 +119,12 @@ Minimum DNA manifest fields:
 8. The sample is marked `ready` only after declared database-backed resources
    are persisted. CNV profile images remain file resources and are displayed in
    the CNV tab without creating database rows.
-9. Optional knowledgebase enrichment runs for configured public/local sources.
-10. On success, the manifest is renamed with the configured done suffix. On
+9. On success, the manifest is renamed with the configured done suffix. On
    failure, it is renamed with the configured failed suffix and an audit event is
    emitted.
+10. Optional public knowledgebase enrichment runs as an independent Celery
+    task. Its audit outcome is separate from sample readiness and manifest
+    completion.
 
 ## Review And Reporting Storage
 

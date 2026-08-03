@@ -286,6 +286,7 @@ manifest
   -> update ingest status
   -> rename manifest to .done or failure suffix
   -> emit audit events
+  -> queue optional public knowledgebase enrichment after successful completion
 ```
 
 The sample document stores sample identity, paired/single-sample state, assay context, pipeline details, normalized file references, current filters, default ASPC context, biomarker summaries, data counts, ingest state, and timestamps.
@@ -348,19 +349,54 @@ VEP consequence display should use VEP metadata. The UI label may be short, but 
 
 ## 12. Filters And Gene Lists
 
-Filters are domain-specific. SNV filters should not be shown as CNV filters, and CNV lists should not be mixed with SNV lists.
+Filters are domain-specific. An SNV list can restrict only SNV review, a CNV
+list can restrict only CNV review, and a fusion-compatible list can be selected
+independently for RNA fusion review and DNA fusion/translocation review. The
+API validates this boundary even when a request is submitted without the UI.
 
 Filter state is grouped by analysis domain:
 
 ```text
-filters.snv
-filters.cnv
-filters.fusion
-filters.coverage
-filters.reporting
+filters.somatic.snv
+filters.somatic.cnv
+filters.somatic.translocation
+filters.somatic.fusion
+filters.somatic.coverage
+filters.germline.snv
 ```
 
-When a reviewer changes a filter, the UI updates local form state, the API re-queries the relevant domain, row counts and report preview state update, and saving filters persists the correct domain filter blob on the sample.
+The selected list keys are likewise independent:
+
+| Analysis | Persisted selection | Accepted ISGL types | Empty selection |
+| --- | --- | --- | --- |
+| Somatic SNV | `filters.somatic.snv.snvlists` | `snv`, `adhoc_snv` | ASP covered genes, or all genes when ASP coverage is empty |
+| Germline SNV | `filters.germline.snv.snvlists` | `snv`, `adhoc_snv` | ASP covered genes, or all genes when ASP coverage is empty |
+| CNV | `filters.somatic.cnv.cnvlists` | `cnv`, `adhoc_cnv` | ASP covered genes, or all genes when ASP coverage is empty |
+| DNA fusion/translocation | `filters.somatic.translocation.fusionlists` | `fusion`, `adhoc_fusion` | ASP covered genes, or all genes when ASP coverage is empty |
+| Fusion | `filters.somatic.fusion.fusionlists` | `fusion`, `adhoc_fusion` | ASP covered genes, or all genes when ASP coverage is empty |
+
+DNA fusion/translocation findings reuse fusion-compatible ISGL definitions,
+but persist their selection under the DNA `translocation` filter section. This
+keeps DNA structural findings independent from RNA fusion selections while
+avoiding duplicate gene-list definitions for the same fusion gene scope.
+
+`ISGL.list_type` is an availability declaration. A list with
+`list_type: [snv, cnv, fusion]` appears in each compatible selector, but it
+affects only the analysis whose selection field contains its ID. Selecting it
+for SNV does not select or apply it for CNV, RNA fusion, or DNA
+fusion/translocation review.
+
+When a reviewer changes a filter, the UI updates local form state, the API
+validates that every selected ISGL supports the active analysis, re-queries
+only that domain, updates row counts and report preview state, and persists the
+correct domain filter section on the sample. Physical coverage in
+`ASP.covered_genes` remains the baseline when no narrower list is selected.
+An empty physical coverage list means unrestricted gene scope, which supports
+WGS and WTS without requiring an artificial all-genes ISGL.
+
+An explicitly selected list that has no genes in common with a targeted
+panel remains restrictive and returns no rows. It is never treated as an empty
+selection or as permission to show every finding.
 
 !!! warning "Filter/report relationship"
 

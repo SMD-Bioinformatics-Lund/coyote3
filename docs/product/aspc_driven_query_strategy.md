@@ -85,9 +85,20 @@ Analytic execution relies on the synchronization of three core architectural pil
 
 The **Effective Gene Scope** is target-specific:
 
-- **SNV**: Active SNV genelists and ad-hoc genes define the optional SNV gene restriction. If no SNV genelist is selected, the SNV query is not gene-restricted.
-- **CNV**: Active CNV genelists and ad-hoc genes define the CNV scope. If no CNV genelist is selected, CNV workflows fall back to ASP covered genes.
-- **RNA fusion**: Fusion list selection and ad-hoc fusion genes govern RNA fusion scope.
+- **SNV**: only IDs selected in `snv.snvlists`, plus SNV ad-hoc genes, can narrow the SNV scope.
+- **CNV**: only IDs selected in `cnv.cnvlists`, plus CNV ad-hoc genes, can narrow the CNV scope.
+- **RNA fusion**: only IDs selected in `fusion.fusionlists`, plus fusion ad-hoc genes, can narrow the fusion scope.
+
+An ISGL may declare more than one `list_type`. For example,
+`["snv", "cnv", "fusion"]` makes the same curated list available in all three
+selectors. It does not apply the list to all three analyses. Application is
+controlled exclusively by the ID saved in the corresponding target-specific
+selection field.
+
+When an analysis has no selected ISGL or ad-hoc genes, the query uses
+`ASP.covered_genes` as its physical assay scope. If `covered_genes` is empty,
+the query has no gene predicate and therefore includes all genes. This is the
+intended representation for broad WGS and WTS designs.
 
 ## Clinical Query Policy
 
@@ -225,14 +236,17 @@ exclusion examples, and safe change protocol are in
 
 | Analysis | Filter source | Retrieval behavior | Post-query processing |
 | --- | --- | --- | --- |
-| CNV | `filters.somatic.cnv` plus selected CNV ISGLs | Requires non-normal status, ratio at or beyond configured loss/gain cutoff, configured size range, and optional gene scope. A selected list also retains panel-gene records, unlabelled panel records, and the `tumwgs` assay path. | configured gain/loss effect selection and gene organisation are applied before search, sort, and pagination |
-| DNA translocation | sample identity; no configured structural thresholds currently | retrieves records for the sample only | text search, multi-column sorting, pagination, annotation and review-state enrichment |
+| CNV | `filters.somatic.cnv` plus selected CNV ISGLs | Uses two evidence branches. Ratio-based calls use strict loss/gain and minimum/maximum size boundaries; a ratio above `3` retains a high-level amplification beyond the size ceiling. Ratio-less structural calls are retained when `SR` or `PR` evidence is present, so callers such as Manta are not removed by segment-ratio rules. Optional CNV gene scope is applied independently of SNV lists. Targeted-panel review excludes `NORMAL` records; WGS/TumWGS review includes them. | configured gain/loss effect selection, structural evidence retention, WGS normal-call scope, and gene organisation are applied before search, sort, and pagination |
+| DNA fusion/translocation | `filters.somatic.translocation` plus independently selected fusion-compatible ISGLs | Retrieves records for the sample, then applies the resolved DNA structural gene scope. A selected list or ad-hoc scope is used first; otherwise the query falls back to `ASP.covered_genes`; an empty ASP coverage list leaves the result unrestricted. | gene matching, text search, multi-column sorting, pagination, annotation and review-state enrichment |
 | RNA fusion | `filters.somatic.fusion` plus selected fusion ISGLs | RNA-only. Applies configured supporting-read/pair thresholds, selected effects, selected callers, known/Mitelman list markers, and optional fusion-gene scope. The Arriba caller intentionally has no spanning-pair predicate. | global annotation enrichment, text search, multi-column sorting, pagination, and report summary preparation |
 
-Translocation filtering has no hidden threshold configuration at present. If a
-future policy needs one, it must be added as a typed filter field, with an
-explicit domain query implementation and test coverage, rather than being
-handled as a UI-only filter.
+DNA translocation records do not currently have validated cross-caller numeric
+thresholds equivalent to RNA spanning-read filters. The old production query
+also retrieved these records by sample identity. The supported DNA filter is
+therefore the typed, target-specific gene scope. If a future caller contract
+introduces evidence thresholds, each threshold must be added to the typed ASPC
+and sample schema, query implementation, UI schema, documentation, and tests
+before it can affect finding visibility.
 
 ## Query Execution Protocol
 

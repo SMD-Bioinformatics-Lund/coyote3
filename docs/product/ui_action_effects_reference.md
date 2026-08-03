@@ -6,7 +6,7 @@ This reference maps UI controls to backend endpoints, persistent state changes, 
 
 | UI Interceptor | Interface Context | Execution Endpoint | Persistent Mutation | Operational Outcome |
 |---|---|---|---|---|
-| **Apply selected** | Sample Overview Gene Settings | `PUT /api/v1/samples/{id}/genelists/selection?target={snv,cnv,fusion}` | `samples.filters.snv.snvlists`, `samples.filters.cnv.cnvlists`, or `samples.filters.fusion.fusionlists` | Update of effective gene scope, active table queries, report preview snapshots, and sample summaries. |
+| **Apply selected** | Sample Overview Gene Settings | `PUT /api/v1/samples/{id}/genelists/selection?target={snv,cnv,fusion}` | `samples.filters.somatic.snv.snvlists`, `samples.filters.somatic.cnv.cnvlists`, or `samples.filters.somatic.fusion.fusionlists` | Update of the selected analysis scope, its table query, report preview snapshots, and sample summaries. Lists never cross analysis boundaries. |
 | **Save Ad-Hoc** | Sample Overview Gene Settings | `PUT /api/v1/samples/{id}/adhoc-genes?target={snv,cnv,fusion}` | `samples.filters.<target>.adhoc_genes` | Insertion of targeted gene inclusions for the selected analysis domain. |
 | **Clear Ad-Hoc** | Sample Overview Gene Settings | `DELETE /api/v1/samples/{id}/adhoc-genes?target={snv,cnv,fusion}` | Removes `samples.filters.<target>.adhoc_genes` | Reversion of the selected target to ISGL/ASPC-defined gene scope. |
 | **Download** | Report Catalog | Service file stream | (Read-only) | Local archival retrieval of report PDF/JSON. |

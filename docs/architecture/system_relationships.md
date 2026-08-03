@@ -185,21 +185,29 @@ Reset sample filters
 
 ```text
 SNV target
-  sample.filters.snv.snvlists
-  + sample.filters.snv.adhoc_genes
+  sample.filters.somatic.snv.snvlists
+  + sample.filters.somatic.snv.adhoc_genes
   -?> selected ISGL genes
-  -> if nothing selected: no SNV gene restriction
+  -> if nothing selected: ASP.covered_genes
+  -> if ASP.covered_genes is empty: no gene restriction
 
 CNV target
-  sample.filters.cnv.cnvlists
-  + sample.filters.cnv.adhoc_genes
+  sample.filters.somatic.cnv.cnvlists
+  + sample.filters.somatic.cnv.adhoc_genes
   -?> selected ISGL genes
-  -> if nothing selected: fall back to ASP.covered_genes
+  -> if nothing selected: ASP.covered_genes
+  -> if ASP.covered_genes is empty: no gene restriction
 
 Fusion target
-  sample.filters.fusion.fusionlists
-  + sample.filters.fusion.adhoc_genes
+  sample.filters.somatic.fusion.fusionlists
+  + sample.filters.somatic.fusion.adhoc_genes
   -?> selected ISGL genes
+  -> if nothing selected: ASP.covered_genes
+  -> if ASP.covered_genes is empty: no gene restriction
+
+Translocation target
+  -> no current ISGL contract
+  -> never inherit SNV, CNV, or fusion selections
 ```
 
 ### 4.2 Effective gene calculation
@@ -209,12 +217,27 @@ ASP.covered_genes
   |
   +--> baseline effective set
   |
-  +--> intersect with selected ISGL/ad hoc genes
+  +--> intersect with an analysis-compatible selected ISGL/ad hoc gene set
        for panel-style assays
   |
   +--> use selected genes directly
        for broad-family assays like WGS/WTS
 ```
+
+The selected ISGL document must declare the matching `list_type`. For example,
+an ID stored under `cnvlists` is ignored by query assembly and rejected by the
+selection endpoint unless its document includes `cnv` or `adhoc_cnv`.
+
+`list_type` does not select the ISGL. A document declaring
+`list_type: [snv, cnv, fusion]` is offered by all three selectors, but it is
+applied only where its `isgl_id` is persisted: `snvlists`, `cnvlists`, or
+`fusionlists`. This keeps the three query scopes independent while allowing
+one curated list to be reused deliberately.
+
+If no compatible selection exists for a target, `ASP.covered_genes` is the
+baseline effective set. If the ASP has no covered genes, the effective set is
+unrestricted. Selected lists are intersected with physical coverage for panel
+assays and used directly for WGS/WTS designs.
 
 ## 5. Report and Interpretation Relationships
 

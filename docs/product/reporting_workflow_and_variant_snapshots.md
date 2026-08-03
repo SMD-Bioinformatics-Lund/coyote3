@@ -267,6 +267,12 @@ Rules:
 - organize genes for display
 - render the clinical report CNV summary table
 
+Selected SNV lists are not reused as CNV filters. Each analysis consumes only
+gene-list types declared for that analysis. The historical application had one
+assay-specific development/tumor-exome branch in which the presence of any SNV
+list activated a fixed six-gene CNV query. That behavior did not apply the
+selected list itself and is not part of the general Coyote3 filtering contract.
+
 ### CNV Profile Logic
 
 CNV profile is separate from CNV calls and coverage. It is an image artifact stored on the sample as `files.cnvprofile`. The review UI displays it beside the CNV table so copy-number calls and the profile can be assessed together. It is included in report output only when `CNV_PROFILE` is selected in report sections.

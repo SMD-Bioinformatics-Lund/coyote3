@@ -21,6 +21,22 @@ All clinical tables follow the same basic conventions.
 | Header rows | Header cells are visually separated from data cells with stronger background and borders. |
 | Detail action | Opens the clinical detail page for the row. |
 
+### Contextual Tooltips
+
+Informative controls, compact markers, truncated values, dates, and icon-only
+actions use one application-wide tooltip surface. Tooltips open on pointer hover
+and keyboard focus, remain close to the pointer or focused control, and move
+above the control when there is insufficient space below. The surface uses an
+opaque themed background so table text does not show through it.
+
+Clinical badges provide domain-specific content rather than a color
+description. For example, consequence tooltips explain the VEP term and impact,
+filter-flag tooltips explain the configured filter rule, and CNV artefact
+tooltips show the upstream frequency and reference-case count. Concise hints on
+general controls are upgraded by the same global tooltip layer. Semantic titles
+required for embedded report frames remain accessibility labels and are not
+treated as hover hints.
+
 !!! info "Table caching and refresh"
 
     Table requests are cached by their clinical query state: sample, page, page size,
@@ -224,7 +240,12 @@ The CNV tab lists copy-number events and opens CNV detail pages.
 | Status | Review flags, comments, and evidence badges where applicable. |
 | Gene/region | Primary gene list and genomic region for the event. |
 | Type/effect | Gain, loss, amplification, deletion, or configured CNV effect. |
-| Size/copy number | Event size, copy number, log ratio, and supporting metrics when available. |
+| Region and size | Chromosomal interval and event length. Ratio-based calls are evaluated against the configured CNV size range. Structural breakpoint calls with split-read or paired-read evidence are retained even when they do not carry a ratio or meet the segment-size range. |
+| Copy number | Diploid copy-number estimate calculated as `2 × 2^ratio`, with the source log2 ratio in parentheses. Structural callers without a ratio display `-`; Coyote does not invent a copy-number estimate for them. |
+| Purity | Purity-adjusted copy-number estimate. The column heading includes the case purity used for the calculation when one is available. Gains use `copy number / purity`; losses use `copy number × purity`, preserving the established clinical review convention. |
+| SR (ref/alt) | Caller-supplied split-read evidence. This is the primary table evidence for Manta-style calls that do not contain a copy-number ratio. The value is displayed as stored and is not recalculated by Coyote. |
+| Status | Review state such as false positive, report inclusion, noteworthy, or normal/control call. Each marker has an explanatory tooltip. Whole-genome review retains records marked `NORMAL`; targeted-panel review excludes them from the tumour CNV table. |
+| Artefact | One badge for each caller-supplied `AFRQ_*` field. Hovering shows the frequency and its matching `ACOUNT_*` reference-case count. These values are upstream evidence, not frequencies calculated by Coyote. |
 | Tier | CNV classification tier. |
 | Actions | False-positive, report inclusion/exclusion, noteworthy, and detail-page actions. The labeled **Report** control persists report inclusion immediately and changes to **Exclude** for included CNVs. |
 
@@ -232,6 +253,16 @@ The CNV bulk-action menu is limited to CNV review operations: mark or unmark
 false positive, include or exclude from the report, and mark or unmark
 noteworthy. Small-variant tier, relevance, and blacklist operations are not
 shown in this menu.
+
+SNV and CNV gene-list scopes are independent. `ISGL.list_type` determines the
+selectors in which a list is available; the saved target-specific selection
+determines where it is applied. Selecting a multi-purpose ISGL in the SNV
+selector therefore does not filter the CNV table. Without a CNV selection, the
+table uses ASP covered genes, or all genes when the ASP has no covered-gene
+scope. RNA fusion uses the same target-specific rule. DNA
+fusion/translocation review has its own saved selection under
+`filters.somatic.translocation.fusionlists`; it accepts fusion-compatible
+ISGLs but does not inherit the RNA fusion or SNV selection.
 
 #### CNV Profile Review
 

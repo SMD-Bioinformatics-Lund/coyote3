@@ -93,15 +93,36 @@ During ingest, the system creates a sample anchor and then links finding collect
 For DNA and RNA workflows, the platform dynamically computes **effective gene scope** per data type:
 
 1. **SNV**:
-   - Active `sample.filters.snv.snvlists` and
-     `sample.filters.snv.adhoc_genes` define the SNV gene restriction.
-   - If no SNV genelist is selected, SNV findings are not gene-restricted.
+   - Active `sample.filters.somatic.snv.snvlists` and
+     `sample.filters.somatic.snv.adhoc_genes` define the somatic SNV gene restriction.
+   - If neither is selected, the SNV scope is `ASP.covered_genes`; an empty ASP
+     coverage list means no gene restriction.
 2. **CNV**:
-   - Active `sample.filters.cnv.cnvlists` and
-     `sample.filters.cnv.adhoc_genes` define the CNV gene restriction.
-   - If no CNV genelist is selected, CNV workflows fall back to ASP `covered_genes`.
+   - Active `sample.filters.somatic.cnv.cnvlists` and
+     `sample.filters.somatic.cnv.adhoc_genes` define the CNV gene restriction.
+   - Only ISGLs typed as `cnv` or `adhoc_cnv` are accepted.
+   - If neither is selected, the CNV scope is `ASP.covered_genes`; an empty ASP
+     coverage list means no gene restriction.
+   - The SNV selection never becomes a CNV filter, even when the selected ISGL
+     also declares `cnv` in its `list_type`.
 3. **RNA Fusion**:
-   - Active fusion lists and ad-hoc fusion genes define fusion scope.
+   - Active `sample.filters.somatic.fusion.fusionlists` and ad-hoc fusion genes
+     define fusion scope.
+   - Only ISGLs typed as `fusion` or `adhoc_fusion` are accepted.
+   - Without a fusion selection, the fusion scope is `ASP.covered_genes`; an
+     empty ASP coverage list means no gene restriction.
+4. **Translocation**:
+   - Active `sample.filters.somatic.translocation.fusionlists` and ad-hoc
+     translocation genes define the DNA fusion/translocation scope.
+   - Fusion-compatible ISGLs are accepted because DNA translocations and RNA
+     fusions share gene-list membership semantics, but the saved selections
+     remain independent.
+   - Without a translocation selection, the scope is `ASP.covered_genes`; an
+     empty ASP coverage list means no gene restriction.
+
+`ISGL.list_type` controls selector availability, not automatic application. A
+single ISGL may be available for SNV, CNV, and fusion, while each analysis
+retains an independent saved selection and independent query.
 
 ### Gene-scope dependency diagram
 
@@ -110,18 +131,29 @@ SNV scope
   ASP.covered_genes
   + optional selected SNV ISGLs
   + optional SNV ad hoc genes
-  -> if no list/adhoc selected: SNVs stay unfiltered by genes
+  -> if no list/adhoc selected: use ASP.covered_genes
+  -> if ASP.covered_genes is empty: no gene restriction
 
 CNV scope
   ASP.covered_genes
   + optional selected CNV ISGLs
   + optional CNV ad hoc genes
   -> if no list/adhoc selected: use ASP.covered_genes
+  -> if ASP.covered_genes is empty: no gene restriction
 
 Fusion scope
-  ASP assay context
+  ASP.covered_genes
   + optional selected fusion ISGLs
   + optional fusion ad hoc genes
+  -> if no list/adhoc selected: use ASP.covered_genes
+  -> if ASP.covered_genes is empty: no gene restriction
+
+DNA fusion/translocation scope
+  ASP.covered_genes
+  + optional selected fusion-compatible ISGLs
+  + optional translocation ad hoc genes
+  -> if no list/adhoc selected: use ASP.covered_genes
+  -> if ASP.covered_genes is empty: no gene restriction
 ```
 
 ## Execution Sequence
