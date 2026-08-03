@@ -1,6 +1,13 @@
 # Assay Configuration and Dynamic Query Orchestration
 
-The platform's analytic engine is driven by the Assay-Specific Panel Configuration (ASPC) system—a strictly versioned runtime strategy contract that governs finding retrieval, filtering logic, and clinical review behavior.
+The platform's analytic engine is driven by the Assay-Specific Panel
+Configuration (ASPC) system. An ASPC is the current operational strategy for
+one assay, subpanel, and environment scope. It governs finding retrieval,
+filtering logic, and clinical review behavior. Configuration mutations are
+audited, while saved reports preserve immutable configuration, filter,
+finding, and rule snapshots for reproducibility.
+
+![Sample analysis and query resolution](../assets/diagrams/sample_analysis_resolution.svg)
 
 ## Systematic Logic Hierarchy
 

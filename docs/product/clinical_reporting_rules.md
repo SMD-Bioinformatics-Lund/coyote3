@@ -12,6 +12,8 @@ translocations, biomarkers, ASP, ASPC, and applied in-silico gene lists. It
 uses the static YAML source for the assay and subpanel to decide which text is
 included in the report.
 
+![Clinical report generation flow](../assets/diagrams/report_generation_flow.svg)
+
 !!! info
     The report text is clinical content. Changes to a rule file are reviewed
     and released with the application source. They are not edited in MongoDB

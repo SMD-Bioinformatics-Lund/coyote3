@@ -11,6 +11,8 @@ For the raw VCF and JSON file shapes consumed by the ingest parsers, see [API / 
 
 All ingest endpoints validate request documents with backend Pydantic contracts before any database write. Payloads are normalized before persistence, so the behavior is the same whether the caller is a script or an API client.
 
+![Celery-backed sample ingest flow](../assets/diagrams/celery_ingest_flow.svg)
+
 ## Atomicity and rollback guarantees
 
 For fresh sample creation through:

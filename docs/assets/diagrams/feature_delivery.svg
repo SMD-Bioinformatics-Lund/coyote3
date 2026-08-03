@@ -1,53 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="220" viewBox="0 0 1200 220" role="img" aria-labelledby="title desc">
-  <title id="title">Feature Delivery Flow</title>
-  <desc id="desc">Steps from requirement to release for adding a feature.</desc>
-  <defs>
-    <style>
-      .canvas { fill: #f8fafc; }
-      .title-band { fill: #e2e8f0; }
-      .title { font: 700 22px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
-      .label { font: 700 13px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
-      .box { stroke: #334155; stroke-width: 1.8; rx: 12; ry: 12; }
-      .arrow { stroke: #334155; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
-    </style>
-    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
-      <polygon points="0,0 10,4 0,8" fill="#334155"/>
-    </marker>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="430" viewBox="0 0 1240 430" role="img" aria-labelledby="title desc">
+  <title id="title">Coyote3 feature delivery flow</title>
+  <desc id="desc">Feature delivery from clinical or operational requirement through architecture impact, contracts, implementation, tests, documentation, review, release, and monitoring.</desc>
+  <defs><style>.canvas{fill:#f8fafc}.band{fill:#e2e8f0}.discover{fill:#dbeafe}.design{fill:#e0e7ff}.build{fill:#dcfce7}.verify{fill:#fef3c7}.release{fill:#fce7f3}.title{font:700 23px Inter,'Segoe UI',Arial,sans-serif;fill:#0f172a}.phase{font:700 12px Inter,'Segoe UI',Arial,sans-serif;fill:#475569}.label{font:700 13px Inter,'Segoe UI',Arial,sans-serif;fill:#0f172a}.sub{font:11px Inter,'Segoe UI',Arial,sans-serif;fill:#334155}.box{stroke:#64748b;stroke-width:1.5}.arrow{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#a)}.feedback{stroke:#7c3aed;stroke-width:1.8;fill:none;stroke-dasharray:7 5;marker-end:url(#p)}</style><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#475569"/></marker><marker id="p" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#7c3aed"/></marker></defs>
+  <rect width="1240" height="430" class="canvas"/><rect x="20" y="18" width="1200" height="48" rx="10" class="band"/><text x="40" y="49" class="title">Feature delivery with clinical and contract gates</text>
+  <text x="45" y="101" class="phase">DISCOVER</text><text x="300" y="101" class="phase">DESIGN</text><text x="560" y="101" class="phase">BUILD</text><text x="820" y="101" class="phase">VERIFY</text><text x="1080" y="101" class="phase">RELEASE</text>
+  <rect x="35" y="122" width="180" height="88" rx="11" class="box discover"/><text x="125" y="149" text-anchor="middle" class="label">1 · Define outcome</text><text x="125" y="171" text-anchor="middle" class="sub">clinical / user / operational</text><text x="125" y="190" text-anchor="middle" class="sub">acceptance and failure states</text>
+  <rect x="270" y="122" width="200" height="88" rx="11" class="box design"/><text x="370" y="149" text-anchor="middle" class="label">2 · Map impact</text><text x="370" y="171" text-anchor="middle" class="sub">route · permission · contract</text><text x="370" y="190" text-anchor="middle" class="sub">collection · audit · UI</text>
+  <rect x="525" y="122" width="200" height="88" rx="11" class="box build"/><text x="625" y="149" text-anchor="middle" class="label">3 · Implement vertically</text><text x="625" y="171" text-anchor="middle" class="sub">schema → repository → service</text><text x="625" y="190" text-anchor="middle" class="sub">route → client → page</text>
+  <rect x="780" y="122" width="200" height="88" rx="11" class="box verify"/><text x="880" y="149" text-anchor="middle" class="label">4 · Verify behavior</text><text x="880" y="171" text-anchor="middle" class="sub">unit · API · component · E2E</text><text x="880" y="190" text-anchor="middle" class="sub">negative + permission paths</text>
+  <rect x="1035" y="122" width="170" height="88" rx="11" class="box release"/><text x="1120" y="149" text-anchor="middle" class="label">5 · Release</text><text x="1120" y="171" text-anchor="middle" class="sub">changelog + version</text><text x="1120" y="190" text-anchor="middle" class="sub">deploy + observe</text>
+  <path d="M215 166 H270" class="arrow"/><path d="M470 166 H525" class="arrow"/><path d="M725 166 H780" class="arrow"/><path d="M980 166 H1035" class="arrow"/>
 
-  <rect x="0" y="0" width="1200" height="220" class="canvas"/>
-  <rect x="20" y="16" width="1160" height="36" rx="10" class="title-band"/>
-  <text x="24" y="40" class="title">Feature Delivery Flow</text>
-
-  <rect x="24" y="96" width="128" height="62" class="box" fill="#dbeafe"/>
-  <text x="88" y="132" text-anchor="middle" class="label">Requirement</text>
-
-  <rect x="172" y="96" width="128" height="62" class="box" fill="#e0f2fe"/>
-  <text x="236" y="132" text-anchor="middle" class="label">Contract</text>
-
-  <rect x="320" y="96" width="148" height="62" class="box" fill="#dcfce7"/>
-  <text x="394" y="132" text-anchor="middle" class="label">Service/Core</text>
-
-  <rect x="488" y="96" width="128" height="62" class="box" fill="#fef3c7"/>
-  <text x="552" y="132" text-anchor="middle" class="label">Router</text>
-
-  <rect x="636" y="96" width="128" height="62" class="box" fill="#fde68a"/>
-  <text x="700" y="132" text-anchor="middle" class="label">UI Wiring</text>
-
-  <rect x="784" y="96" width="128" height="62" class="box" fill="#fbcfe8"/>
-  <text x="848" y="132" text-anchor="middle" class="label">Tests</text>
-
-  <rect x="932" y="96" width="128" height="62" class="box" fill="#ddd6fe"/>
-  <text x="996" y="132" text-anchor="middle" class="label">Docs</text>
-
-  <rect x="1080" y="96" width="96" height="62" class="box" fill="#bfdbfe"/>
-  <text x="1128" y="132" text-anchor="middle" class="label">Release</text>
-
-  <path d="M152 127 L172 127" class="arrow"/>
-  <path d="M300 127 L320 127" class="arrow"/>
-  <path d="M468 127 L488 127" class="arrow"/>
-  <path d="M616 127 L636 127" class="arrow"/>
-  <path d="M764 127 L784 127" class="arrow"/>
-  <path d="M912 127 L932 127" class="arrow"/>
-  <path d="M1060 127 L1080 127" class="arrow"/>
+  <rect x="270" y="260" width="200" height="92" rx="11" class="box design"/><text x="370" y="287" text-anchor="middle" class="label">Architecture gate</text><text x="370" y="309" text-anchor="middle" class="sub">existing patterns preferred</text><text x="370" y="329" text-anchor="middle" class="sub">data and permission ownership clear</text>
+  <rect x="525" y="260" width="200" height="92" rx="11" class="box build"/><text x="625" y="287" text-anchor="middle" class="label">Contract gate</text><text x="625" y="309" text-anchor="middle" class="sub">typed reads and writes</text><text x="625" y="329" text-anchor="middle" class="sub">OpenAPI and frontend agree</text>
+  <rect x="780" y="260" width="200" height="92" rx="11" class="box verify"/><text x="880" y="287" text-anchor="middle" class="label">Release gate</text><text x="880" y="309" text-anchor="middle" class="sub">lint · typecheck · tests · build</text><text x="880" y="329" text-anchor="middle" class="sub">browser + documentation validation</text>
+  <path d="M370 210 V260" class="arrow"/><path d="M625 210 V260" class="arrow"/><path d="M880 210 V260" class="arrow"/>
+  <path d="M1120 210 C1120 395 125 395 125 210" class="feedback"/><text x="620" y="400" text-anchor="middle" class="sub">Production evidence and user feedback return to the next requirement</text>
 </svg>

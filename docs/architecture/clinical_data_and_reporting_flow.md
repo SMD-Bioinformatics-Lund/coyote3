@@ -320,6 +320,8 @@ terms before the query is executed.
 
 ### 5.2 Transcript selection
 
+![Transcript selection protocol](../assets/diagrams/transcript_selection_flow.svg)
+
 The selected VEP consequence is established before report preparation.
 Transcript selection follows the documented preference:
 

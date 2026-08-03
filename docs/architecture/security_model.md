@@ -56,6 +56,8 @@ permission collections directly and should not implement local minimum-role
 checks. The API remains the authorization source of truth; UI visibility is only
 an ergonomic reflection of the session payload.
 
+![RBAC and scoped access decision](../assets/diagrams/rbac_access_decision.svg)
+
 !!! info
     Keep policy decisions close to `api/security` and persistence details close
     to `api/infra/security`. This makes authorization auditable and keeps

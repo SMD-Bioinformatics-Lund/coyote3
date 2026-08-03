@@ -44,6 +44,8 @@ changed separator was normalized differently by another service.
 
 ## Active Clinical Configuration
 
+![Managed configuration update flow](../assets/diagrams/configuration_resource_update.svg)
+
 ASP, ASPC, and ISGL are current-state configuration resources. Each business
 key has exactly one active document. Administrators edit the current document;
 the document remains the current operational definition for that key.

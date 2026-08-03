@@ -1,53 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="980" height="360" viewBox="0 0 980 360" role="img" aria-labelledby="title desc">
-  <title id="title">Login Provider Resolution</title>
-  <desc id="desc">Login flow resolves user then branches by login_type to local or LDAP auth.</desc>
-  <defs>
-    <style>
-      .canvas { fill: #f8fafc; }
-      .title-band { fill: #e2e8f0; }
-      .title { font: 700 22px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
-      .label { font: 700 14px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
-      .sub { font: 12px 'Segoe UI', Arial, sans-serif; fill: #334155; }
-      .box { stroke: #334155; stroke-width: 1.8; rx: 12; ry: 12; }
-      .arrow { stroke: #334155; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
-    </style>
-    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
-      <polygon points="0,0 10,4 0,8" fill="#334155"/>
-    </marker>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="610" viewBox="0 0 1120 610" role="img" aria-labelledby="title desc">
+  <title id="title">Login provider resolution</title>
+  <desc id="desc">Login flow from configured provider availability and selected provider through user lookup, per-user authorization, local or LDAP verification, session creation, and failure handling.</desc>
+  <defs><style>.canvas{fill:#f8fafc}.band{fill:#e2e8f0}.config{fill:#dbeafe}.decision{fill:#fef3c7}.local{fill:#dcfce7}.ldap{fill:#e0e7ff}.success{fill:#d1fae5}.failbox{fill:#fee2e2}.title{font:700 23px Inter,'Segoe UI',Arial,sans-serif;fill:#0f172a}.label{font:700 13px Inter,'Segoe UI',Arial,sans-serif;fill:#0f172a}.sub{font:11px Inter,'Segoe UI',Arial,sans-serif;fill:#334155}.box{stroke:#64748b;stroke-width:1.5}.arrow{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#a)}.fail{stroke:#b91c1c;stroke-width:1.9;fill:none;stroke-dasharray:6 4;marker-end:url(#r)}</style><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#475569"/></marker><marker id="r" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#b91c1c"/></marker></defs>
+  <rect width="1120" height="610" class="canvas"/><rect x="20" y="18" width="1080" height="48" rx="10" class="band"/><text x="40" y="49" class="title">Authentication provider resolution</text>
+  <rect x="55" y="92" width="250" height="82" rx="11" class="box config"/><text x="180" y="118" text-anchor="middle" class="label">1 · Effective providers</text><text x="180" y="139" text-anchor="middle" class="sub">center config, optionally overridden</text><text x="180" y="157" text-anchor="middle" class="sub">by AUTHENTICATION_PROVIDERS</text>
+  <rect x="420" y="92" width="250" height="82" rx="11" class="box config"/><text x="545" y="118" text-anchor="middle" class="label">2 · Login screen</text><text x="545" y="139" text-anchor="middle" class="sub">shows Local and/or LDAP</text><text x="545" y="157" text-anchor="middle" class="sub">unconfigured LDAP may remain selectable</text>
+  <rect x="785" y="92" width="260" height="82" rx="11" class="box decision"/><text x="915" y="118" text-anchor="middle" class="label">3 · Submitted provider</text><text x="915" y="139" text-anchor="middle" class="sub">explicit provider from login request</text><text x="915" y="157" text-anchor="middle" class="sub">plus normalized identifier</text>
+  <path d="M305 133 H420" class="arrow"/><path d="M670 133 H785" class="arrow"/>
 
-  <rect x="0" y="0" width="980" height="360" class="canvas"/>
-  <rect x="20" y="16" width="940" height="36" rx="10" class="title-band"/>
-  <text x="30" y="40" class="title">Login Provider Resolution</text>
+  <rect x="400" y="220" width="320" height="92" rx="12" class="box decision"/><text x="560" y="247" text-anchor="middle" class="label">4 · Resolve active user document</text><text x="560" y="269" text-anchor="middle" class="sub">Local: username · LDAP: email</text><text x="560" y="289" text-anchor="middle" class="sub">provider must be listed in user.auth_type[]</text>
+  <path d="M915 174 L560 220" class="arrow"/>
 
-  <rect x="40" y="94" width="200" height="70" class="box" fill="#dbeafe"/>
-  <text x="140" y="120" text-anchor="middle" class="label">Login request</text>
-  <text x="140" y="138" text-anchor="middle" class="sub">username and password</text>
+  <rect x="85" y="370" width="300" height="102" rx="12" class="box local"/><text x="235" y="397" text-anchor="middle" class="label">5A · Local verification</text><text x="235" y="420" text-anchor="middle" class="sub">validate stored password hash</text><text x="235" y="441" text-anchor="middle" class="sub">no LDAP configuration required</text><text x="235" y="459" text-anchor="middle" class="sub">rate limits and audit still apply</text>
+  <rect x="735" y="370" width="300" height="102" rx="12" class="box ldap"/><text x="885" y="397" text-anchor="middle" class="label">5B · LDAP verification</text><text x="885" y="420" text-anchor="middle" class="sub">validate LDAP runtime configuration</text><text x="885" y="441" text-anchor="middle" class="sub">bind/authenticate against directory</text><text x="885" y="459" text-anchor="middle" class="sub">configuration error is returned at login</text>
+  <path d="M500 312 L235 370" class="arrow"/><path d="M620 312 L885 370" class="arrow"/><text x="337" y="343" class="sub">local</text><text x="763" y="343" class="sub">ldap</text>
 
-  <rect x="300" y="94" width="230" height="70" class="box" fill="#e0f2fe"/>
-  <text x="415" y="120" text-anchor="middle" class="label">Find user document</text>
-  <text x="415" y="138" text-anchor="middle" class="sub">read login_type</text>
-
-  <rect x="590" y="94" width="160" height="70" class="box" fill="#dcfce7"/>
-  <text x="670" y="120" text-anchor="middle" class="label">Decision</text>
-  <text x="670" y="138" text-anchor="middle" class="sub">coyote3 or ldap</text>
-
-  <rect x="520" y="234" width="170" height="70" class="box" fill="#fde68a"/>
-  <text x="605" y="260" text-anchor="middle" class="label">Local auth</text>
-  <text x="605" y="278" text-anchor="middle" class="sub">password hash check</text>
-
-  <rect x="760" y="234" width="170" height="70" class="box" fill="#fbcfe8"/>
-  <text x="845" y="260" text-anchor="middle" class="label">LDAP auth</text>
-  <text x="845" y="278" text-anchor="middle" class="sub">directory bind/check</text>
-
-  <rect x="700" y="24" width="220" height="56" class="box" fill="#ddd6fe"/>
-  <text x="810" y="56" text-anchor="middle" class="label">Issue session/token</text>
-
-  <path d="M240 129 L300 129" class="arrow"/>
-  <path d="M530 129 L590 129" class="arrow"/>
-  <path d="M670 164 L605 234" class="arrow"/>
-  <path d="M700 164 L825 234" class="arrow"/>
-  <path d="M690 264 L760 264" class="arrow"/>
-  <path d="M845 234 L820 80" class="arrow"/>
-  <path d="M605 234 L780 80" class="arrow"/>
+  <rect x="410" y="515" width="300" height="68" rx="12" class="box success"/><text x="560" y="541" text-anchor="middle" class="label">6 · Create API session</text><text x="560" y="562" text-anchor="middle" class="sub">roles + permissions + assay scope + last login</text>
+  <rect x="40" y="515" width="260" height="68" rx="12" class="box failbox"/><text x="170" y="541" text-anchor="middle" class="label">Structured login failure</text><text x="170" y="562" text-anchor="middle" class="sub">inactive · not allowed · invalid · unavailable</text>
+  <rect x="820" y="515" width="260" height="68" rx="12" class="box failbox"/><text x="950" y="541" text-anchor="middle" class="label">Provider configuration failure</text><text x="950" y="562" text-anchor="middle" class="sub">application remains available</text>
+  <path d="M235 472 L500 515" class="arrow"/><path d="M885 472 L620 515" class="arrow"/><path d="M400 266 L170 515" class="fail"/><path d="M885 472 L950 515" class="fail"/>
 </svg>
