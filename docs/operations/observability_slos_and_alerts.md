@@ -1,8 +1,8 @@
-# Observability SLOs And Alerts
+# Observability SLOs and Alerts
 
 This guide turns Coyote3 auth/mail telemetry into practical SLO dashboards and alert rules.
 
-## Telemetry signals available now
+## Available Telemetry Signals
 
 The API emits structured log lines with stable prefixes:
 

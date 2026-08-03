@@ -1,110 +1,126 @@
 # Operational Dashboard
 
-The Operational Dashboard is the primary landing page for Coyote3, providing a high-level overview of laboratory throughput, clinical quality signals, and active workloads. It is accessible at the `/dashboard` route.
+The dashboard summarizes the samples, findings, review workload, and clinical
+configuration visible to the signed-in user. It uses aggregated API responses
+instead of loading complete clinical collections into the browser.
 
 ![Coyote3 operational dashboard](../assets/screenshots/dashboard.png)
 
-!!! info "Dashboard purpose"
+!!! info
+    Dashboard counts respect the user's role, assay, and environment scope.
+    Two users can therefore see different totals from the same deployment.
 
-    The dashboard is optimized for fast orientation. It uses aggregated backend data and compact charts so reviewers can see workload, review quality, and resource health without opening every sample table.
+## Operational Snapshot
 
-## Operational Overview
+The first section answers three immediate questions:
 
-At the top of the dashboard, metric cards summarize the current state of the laboratory:
+| Card | Meaning |
+| --- | --- |
+| Analysis progress | Analysed samples compared with all samples in the visible scope, including the number awaiting review. |
+| My visible samples | Samples available through the user's assigned roles, assays, and environments. |
+| Finding inventory | Persisted findings across the visible samples, with the unique small-variant count shown as supporting context. |
 
-*   **Total Samples**: The cumulative count of all clinical samples ingested into the platform.
-*   **Analysed Samples**: Samples that have been reviewed and finalized by a clinician.
-*   **Pending Samples**: The current active backlog requiring clinical attention.
-*   **Analysed Rate**: A percentage indicating the laboratory's efficiency in clearing the sample queue.
-*   **Available Findings**: Current variant, CNV, fusion, translocation, and coverage availability when those domains are enabled.
+## Review Workload and Recent Samples
 
-## Analytical Charts
+**Review Workload** groups sample progress by assay and shows the distribution
+of sample environments. Each assay row reports analysed, total, and pending
+samples.
 
-The dashboard uses reusable React chart components with export support where appropriate. Charts use the same layered surface system as the rest of the application.
+**My Recent Samples** lists the latest samples visible to the account. Select a
+row to open the sample workspace. Each row includes the sample name, omics
+layer, ingest state, ASP, subpanel, and relative ingest time when available.
 
-### 1. Sample Progress
+## Sample Composition
 
-The operational snapshot shows analysed and pending samples as counts and a completion indicator. This allows at-a-glance monitoring of the current workload status.
+The composition section summarizes the visible sample population by:
 
-### 2. Variant Composition
+- ingest status;
+- omics layer;
+- sequencing scope;
+- environment; and
+- paired or unpaired state.
 
-Displays the distribution of findings across different analysis domains, including small variants, CNVs, translocations, RNA fusions, and other enabled modules. This helps clinicians understand the complexity of the current workload.
+These values describe workload composition. They do not replace sample-level
+quality review.
 
-### 3. Tier Distribution
+## Variant Review
 
-A bar chart showing the categorization of variants that have been included in clinical reports (Tiers I through IV). This provides a snapshot of the clinical significance of findings across the platform.
+The variant review section provides persisted finding and curation totals:
 
-### 4. Quality Snapshot
+- small variants, CNVs, fusions, and translocations;
+- blacklisted and false-positive findings;
+- Tier 1 or Tier 2 findings, Tier 4 findings, and VUS;
+- findings saved in report snapshots;
+- reported-tier distribution; and
+- small-variant class distribution.
 
-A radial chart monitoring three critical quality markers:
+An unavailable tier chart means that the aggregate contains no reported tier
+data. It is not rendered as a clinical zero unless the source aggregate
+explicitly reports zero.
 
-*   **Analysed Rate**: Progress toward completion.
-*   **Blacklist Rate**: Percentage of variants identified as known technical artifacts.
-*   **False Positive (FP) Rate**: Percentage of findings manually flagged as false results by clinicians.
+## Targeted-Panel Configuration
 
-## Panel Analysis Capability
+The panel sections include only active targeted-panel ASP and ASPC definitions;
+WGS and WTS configurations are excluded.
 
-This chart summarizes configuration coverage rather than repeating the sample workload shown earlier on the page. For every analysis type, it compares:
+### Panel Gene Coverage
 
-* **Enabled**: the number of active targeted-panel ASPCs that expose the analysis in `analysis_types`.
-* **Reportable**: the number of those configurations that include the analysis in `reporting.report_sections`.
+The chart compares covered and germline gene assignments across active panels.
+It summarizes panel design scope, not observed sample coverage.
 
-WGS and WTS configurations are excluded. A lower reportable count is not automatically an error: an analysis can be available for review without being approved as a report section. The difference makes that policy visible to administrators and clinical leads.
+### Panel Portfolio
 
-## Platform Capacity and Metadata
+The portfolio reports active panels, represented assay groups, accredited
+panels, and covered or germline gene assignments.
 
-For administrators and senior lead clinicians, additional resource panels show the growth of the system knowledgebase, including the number of active assay panels (ASP), configurations (ASPC), and gene lists (ISGL) currently powering review logic.
+### Panel Analysis Capability
 
-## Data Calculation And Freshness
+For each analysis type, this chart compares:
 
-The dashboard reads compact aggregates rather than transferring complete sample
-or finding collections to the browser. It presents operational counts and does
-not replace the detailed sample, variant, CNV, fusion, or report views.
+- **Enabled:** active targeted-panel ASPCs that expose the analysis in
+  `analysis_types`.
+- **Reportable:** those configurations that also include the analysis in
+  `reporting.report_sections`.
 
-| Dashboard value | Source collection or aggregate | Meaning |
-|---|---|---|
-| Sample workload | `samples` | Ready, analysed, pending, and profile-level sample counts visible within the user's assay scope |
-| Small variants | `variants` | Persisted small-variant document count and variant-class composition |
-| CNVs | `cnvs` | Persisted copy-number finding count |
-| Translocations | `translocations` | Persisted structural translocation count |
-| Fusions | `fusions` | Persisted RNA fusion finding count |
-| Tier distribution | `reported_variants` | Findings saved into clinical reports, grouped by tier |
-| False-positive rate | `variants` | Unique variant identities that have a false-positive curation flag |
-| Blacklist rate | `blacklist` | Unique technical-artifact identities recorded in the active blacklist |
-| Panel gene coverage | Active ASP definitions whose `asp_family` is `panel`, `panel-dna`, or `panel-rna` | Physically covered and germline gene assignments by targeted panel; WGS and WTS are excluded |
-| Panel portfolio | Active targeted-panel ASP definitions | Number of panels, represented assay groups, accredited panels, and covered/germline gene assignments |
-| Panel analysis capability | Active ASPC definitions linked to targeted-panel ASPs | Number of configurations enabling each analysis type compared with the number permitting that type in report output; WGS and WTS are excluded |
+An enabled analysis does not have to be reportable. The difference represents
+the configured review and reporting policy.
 
-### Derived metric lifecycle
+### Resource Capacity
+
+The resource panel reports administrative inventory such as users, roles,
+ASPs, ASPCs, and ISGLs when those values are available to the current user.
+
+## Clinical Configuration
+
+This section summarizes active gene-list and assay relationships, including
+unique active genes, public and private ISGL counts, ad-hoc lists, and common
+assay-to-ISGL associations. Use **Open catalog** for the complete public assay
+and gene-list reference.
+
+## Data Sources
+
+| Dashboard value | Source | Meaning |
+| --- | --- | --- |
+| Sample workload and composition | `samples` aggregates | Ready, analysed, pending, profile, omics, scope, and pairing counts visible to the user. |
+| Finding inventory | Finding collection aggregates | Persisted small variants, CNVs, fusions, and translocations. |
+| Tier distribution | `reported_variants` aggregates | Findings stored in clinical report snapshots, grouped by tier. |
+| False-positive and blacklist counts | Finding and blacklist aggregates | Persisted curation and technical-artifact identities. |
+| Panel gene coverage and portfolio | Active targeted-panel ASP definitions | Covered and germline gene assignments and panel metadata. |
+| Panel analysis capability | Active targeted-panel ASPC definitions | Enabled analyses compared with reportable sections. |
+| Clinical configuration | Active ASP and ISGL aggregates | Gene-list visibility and assay relationships. |
+
+## Caching and Refresh Behavior
 
 ![Dashboard metric data path](../assets/diagrams/dashboard_metric_path.svg)
 
-Coyote3 maintains short-lived Redis entries and persisted MongoDB metric
-snapshots for expensive aggregate calculations. These are derived operational
-data, never clinical source records. Cache identities are versioned with the
-dashboard aggregate contract. When an aggregate contract changes, the next
-request uses a new identity and recomputes the metric from the current clinical
-collections; older derived snapshots are not reused.
-
-Sample ingest, finding mutation, blacklist changes, and other dashboard-relevant
-writes invalidate the affected metric families and the dashboard summary. This
-keeps normal page navigation fast while ensuring that a new filter state,
-curation action, or newly ingested sample is reflected after the corresponding
-write has completed.
+Expensive aggregates use versioned, short-lived Redis cache entries and
+persisted MongoDB metric snapshots. They are derived operational data, not
+clinical source records. Sample ingest and relevant finding, blacklist, or
+configuration mutations invalidate the affected metric families. The next
+dashboard request then recomputes the changed values from the source
+collections.
 
 !!! note
-    A zero is a real count only when the underlying persisted collection is
-    empty for that analysis domain. An unavailable chart or failed aggregate is
-    displayed as an explanatory state rather than being silently presented as a
-    clinical zero.
-
-## Visual Design
-
-Dashboard panels use the standard Coyote3 layered surface:
-
-| UI element | Behavior |
-| --- | --- |
-| Metric cards | Compact values with short-count formatting, consistent borders, and clinical color accents. |
-| Charts | Plotting components receive normalized backend aggregates and avoid loading full sample or variant tables. |
-| Recent samples | Uses the same bordered table conventions as other application tables. |
-| Empty states | Explain why a chart is empty instead of showing a blank plotting area. |
+    A displayed zero is a real count only when the corresponding aggregate was
+    calculated successfully. Failed or unavailable aggregates are shown with an
+    explanatory state instead of a blank chart or silent zero.

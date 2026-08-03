@@ -30,11 +30,12 @@ cd coyote3
 cp deploy/env/example.env .coyote3_dev_env
 ```
 
-> [!NOTE]
-> For local development, the template defaults are intentionally close to the
-> development compose profile, but you still need to review `MONGO_URI`, data
-> paths, and secret values for your machine.
-> For production, set all secrets explicitly.
+!!! note "Review the environment file"
+
+    The example values are suitable as a starting point for the development
+    Compose profile. Before starting the stack, review `MONGO_URI`, mounted data
+    paths, and every secret value. Production deployments must provide their own
+    generated secrets.
 
 ---
 
@@ -159,7 +160,7 @@ scripts/center_first_run.sh \
 
 ## Cleaning Up
 
-When you are done with your session, you can spin down the environment:
+When the development session is complete, stop the environment:
 
 ```bash
 ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.yml down

@@ -1,38 +1,80 @@
 # Engineering and Refactoring Standards
 
-This document establishes the binding architectural requirements and engineering guidelines required when modifying, refactoring, or optimizing any application logic within the platform. All maintenance strategies must strictly prioritize deployment stability, contract adherence, and absolute security policy enforcement.
+Use these standards when changing existing application behavior or structure.
+They are intended to keep clinical workflows stable while allowing the codebase
+to evolve.
 
-## Fundamental Engineering Goals
+## Preserve the Contract
 
-All modifications delivered to the core codebase must satisfy the following technical prerequisites:
+Before changing implementation details, identify the contracts affected by the
+change:
 
-- Deliver measurable improvements to code maintainability and execution clarity.
-- Systematically eliminate structural duplication without circumventing or mutating original execution behavior.
-- Enforce explicit isolation boundaries separating Presentation logic (UI), Data Access capabilities, and Core API rule abstractions globally.
+- HTTP request and response models;
+- MongoDB document contracts and indexes;
+- permissions and Casbin policy checks;
+- audit events and user notifications;
+- report content and saved report snapshots; and
+- frontend states, including loading, empty, error, and permission-denied
+  states.
 
-## Non-Negotiable Contract Requirements
+Do not change a contract indirectly. A deliberate contract change must include
+the corresponding schema, tests, documentation, and any required operational
+procedure.
 
-Code modifications are forbidden from altering foundational security constraints or implicit access boundaries:
+## Keep Responsibilities Separate
 
-- Implementation of hidden bridging layers or undocumented middleware APIs is fundamentally prohibited.
-- Endpoints shall not silently mutate outbound or inbound structural data layouts unless officially documented via Pydantic model version bumps.
-- Request interceptor policies and role-based access checks (RBAC) must remain visibly intact and strictly evaluated against original coverage paths.
-- Mandatory database validation schemes and payload validation pipelines must be enforced prior to dispatching operational writes to persistent endpoints.
+- HTTP routers validate transport input, apply dependencies, and return the
+  application result.
+- Application services coordinate use cases and authorization-aware workflow
+  decisions.
+- Domain code contains deterministic rules that do not depend on FastAPI or
+  MongoDB.
+- Repositories own collection access and index definitions.
+- React pages compose user workflows; reusable presentation and interaction
+  behavior belongs in components and hooks.
 
-## Executable Modification Lifecycle
+Avoid passing raw MongoDB collections outside the infrastructure composition
+boundary. Avoid placing clinical decisions in routers or React components.
 
-All system refactoring workflows are required to proceed through a sequential validation process:
+## Refactoring Procedure
 
-1. **Verify Baseline State:** Architect and pass determinable state tests validating the functionality of the precise route or logic function awaiting alteration.
-2. **Isolate Seams:** Implement changes compartmentalizing independent system domains iteratively (Example: Segmenting route parameters, then testing service classes, and finally data connection layers individually).
-3. **Continuous Execution Checking:** Execute continuous component-specific analytical tests directly after securing individual infrastructure seams successfully.
-4. **Final Acceptance Validation:** Pass all systemic linting gates, typing boundaries, end-to-end containerized pipelines, and holistic test boundaries natively before proposing production readiness.
+1. **Establish the baseline.** Run the focused tests and record the current
+   observable behavior.
+2. **Define the boundary.** State which module or responsibility is moving and
+   which contracts remain unchanged.
+3. **Make a focused change.** Keep unrelated cleanup out of the same change
+   unless it is required for correctness.
+4. **Test each affected layer.** Add unit tests for extracted logic, API tests
+   for route contracts, and frontend tests for user-visible behavior.
+5. **Run repository checks.** Run formatting, linting, typing, contract, and
+   documentation checks appropriate to the changed area.
+6. **Review operational effects.** Check startup, indexes, background tasks,
+   auditing, permissions, and deployment configuration when relevant.
 
-## Prohibited Operational Anti-Patterns
+## Error Handling
 
-Engineering PRs will be systematically rejected if any implementations fall into the following restricted practices:
+Catch exceptions only when the caller can add context, translate the error into
+a stable application error, or perform required cleanup. Do not suppress an
+unexpected exception or return a successful response for a failed write.
 
-- Embedding dynamic database commands, algorithmic decisions, or heavy rule manipulations natively within UI templates or Presentation domains natively.
-- Eliminating required application perimeter permissions in favor of convenience functions inside REST layers.
-- Running incomplete backend operations inside transactional contexts without proper rollback behavior.
-- Using untargeted or unbounded global exception handlers (`except Exception`) that inherently swallow application state failure logging implicitly in background processes natively.
+User-facing errors should explain the failed operation without exposing stack
+traces, secrets, database internals, or protected sample data. Operational logs
+should retain the request identifier and enough context for investigation.
+
+## Data and Security Requirements
+
+- Validate writes with the registered Pydantic contract.
+- Apply the explicit permission for every protected operation.
+- Preserve UTC timestamps in storage and convert them for display at the UI
+  boundary.
+- Keep collection names in the collection configuration, not domain code.
+- Do not add sample identifiers, patient information, credentials, or tokens to
+  fixtures, documentation, or commits.
+- Do not weaken an authorization check to simplify a test or integration.
+
+## Completion Criteria
+
+A refactor is complete when the behavior is covered at the appropriate layers,
+the relevant documentation matches the implementation, generated contracts are
+current, and the focused quality suite passes. Broader test suites are required
+when the change affects shared infrastructure or cross-domain behavior.

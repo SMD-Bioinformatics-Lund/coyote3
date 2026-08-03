@@ -3,9 +3,9 @@
 Use this guide when adding a new analysis area such as methylation, MSI, or a
 new reference-data collection.
 
-## Current backend pattern
+## Backend Structure
 
-The backend now uses this structure:
+The backend uses the following ownership boundaries:
 
 - `api/infra/mongo/repositories/*`: collection-scoped persistence
 - `api/application/*`: orchestration and use-case logic
@@ -87,7 +87,7 @@ def get_methylation_service() -> MethylationService:
 ### 6. Add the router
 
 ```python
-@router.get("/api/v1/methylation/{sample_id}")
+@router.get("/api/v1/samples/{sample_id}/methylation")
 def list_methylation(
     sample_id: str,
     service: MethylationService = Depends(get_methylation_service),
@@ -106,7 +106,7 @@ If the collection is reference data or a support collection:
 4. register it in `api/infra/mongo/runtime_adapter.py`
 5. add service methods only if a route or workflow needs them
 
-## How things are wired now
+## Runtime Wiring
 
 ### Runtime boot
 

@@ -66,7 +66,7 @@ echo "[check] validating compose render"
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" config -q
 
 echo "[check] mandatory keys"
-for key in COYOTE3_DB MONGO_URI CACHE_REDIS_URL SECRET_KEY INTERNAL_API_TOKEN LDAP_SECRET CORS_ORIGINS; do
+for key in COYOTE3_DB MONGO_URI SECRET_KEY INTERNAL_API_TOKEN API_SESSION_SALT PASSWORD_TOKEN_SALT CORS_ORIGINS; do
   if ! grep -qE "^${key}=" "$ENV_FILE"; then
     echo "ERROR: missing key in env file: $key" >&2
     exit 1
@@ -134,15 +134,13 @@ if app_password and parsed.password and unquote(parsed.password) != app_password
 ' "$ENV_FILE"
 
 echo "[check] endpoint ports"
-for key in COYOTE3_PORT COYOTE3_STAGE_PORT COYOTE3_DEV_PORT COYOTE3_TEST_PORT; do
-  if grep -qE "^${key}=" "$ENV_FILE"; then
-    val="$(grep -E "^${key}=" "$ENV_FILE" | tail -n1 | cut -d'=' -f2- | tr -d "'\"")"
-    if [[ -n "$val" && ! "$val" =~ ^[0-9]+$ ]]; then
-      echo "ERROR: ${key} must be numeric, got: ${val}" >&2
-      exit 1
-    fi
+if grep -qE '^COYOTE3_PORT=' "$ENV_FILE"; then
+  val="$(grep -E '^COYOTE3_PORT=' "$ENV_FILE" | tail -n1 | cut -d'=' -f2- | tr -d "'\"")"
+  if [[ -n "$val" && ! "$val" =~ ^[0-9]+$ ]]; then
+    echo "ERROR: COYOTE3_PORT must be numeric, got: ${val}" >&2
+    exit 1
   fi
-done
+fi
 
 if [[ -n "$SEED_FILE" ]]; then
   if [[ ! -e "$SEED_FILE" ]]; then

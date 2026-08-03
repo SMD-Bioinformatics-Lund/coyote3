@@ -41,7 +41,7 @@ If you want to debug outside Docker, you can run the main services directly:
 PYTHONPATH=. python -m uvicorn api.app.main:app --reload --port 8001
 
 # Web UI
-PYTHONPATH=. python -m wsgi
+cd frontend && npm run dev
 ```
 
 ## Development Loop

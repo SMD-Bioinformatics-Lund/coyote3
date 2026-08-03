@@ -2,6 +2,10 @@
 
 ## v4.0.0 - Unreleased
 
+This release entry describes the complete application replacement and every supported
+workflow introduced after the `master` branch baseline, rather than only the latest
+incremental changes on the development branch.
+
 ### Added
 
 - Rebuilt the application around a FastAPI backend and a typed React/Vite frontend, with stable API contracts for clinical, administrative, public, knowledgebase, and operational workflows.
@@ -15,6 +19,11 @@
 - Added public assay catalog and gene-coverage matrix views, richer operational dashboards, panel capability plots, application About and Contact pages, and center-configurable contact information.
 - Added centralized semantic UI theming, responsive data tables, server-side multi-column sorting, query caching and invalidation, compact clinical badges, accessible tooltips, confirmation dialogs, and route-state restoration.
 - Added centralized OpenAPI visibility policy so supported client contracts remain documented while health and internal integration routes stay callable but schema-hidden.
+- Added atomic watch-folder and manually queued ingestion through consolidated Celery task controls, declared-file validation, failed-manifest handling, ingest audit events, and observed worker/queue state.
+- Added complete administrative workspaces for users, roles, permission policies, ASPs, ASPCs, ISGLs, samples, notifications, route contracts, ingestion, application controls, and retention settings.
+- Added API session-cookie and bearer-token authentication, local and LDAP provider resolution, password reset and invitation flows, rate limiting, mutation auditing, and reverse-proxy-aware OpenAPI authorization.
+- Added Mongo repository adapters and indexes for clinical findings, annotations, configuration history, reports, audit events, notifications, external knowledgebases, VEP transcripts, and runtime controls.
+- Added synthetic demo manifests and fixtures, deterministic center bootstrap bundles, browser-level workflow tests, and real-database release validation entry points.
 
 ### Changed
 
@@ -26,6 +35,11 @@
 - Reorganized API routers into clinical, administrative, public, operations, and knowledgebase packages while keeping public endpoint paths stable.
 - Reworked the frontend into route-level bundles and standardized tables, cards, forms, icons, status colors, local-time display, loading overlays, dark mode, and responsive page widths.
 - Consolidated synthetic fixtures and demo imports under `demo_data/`; application bootstrap assets now live under `api/config/bootstrap/`.
+- Replaced embedded Flask/Jinja pages and direct collection access with versioned Pydantic contracts, application services, repository adapters, FastAPI routers, and typed frontend API envelopes.
+- Standardized one externally published reverse-proxy port and `SCRIPT_NAME` prefix for the React UI, public catalog, API documentation, generated OpenAPI schema, and MkDocs site.
+- Changed clinical timestamps to remain UTC in storage and render in the center-configured local time zone in the UI.
+- Changed report templates to preserve the clinical PDF layout while report composition, rule evaluation, filter snapshots, and persisted artifacts use the new application services.
+- Changed permission and role bootstrap data into application-owned catalogs that can be synchronized without deleting center-defined roles or policies.
 
 ### Fixed
 
@@ -34,18 +48,33 @@
 - Corrected CNV/translocation/fusion ingestion and presentation, control-sample column visibility, CNV profile sizing and rotation, and coverage availability.
 - Corrected ASPC base fallback, normalized configuration lookup, dashboard counts, sample gene-list summaries, report introductions, and database-version extraction from VCF headers.
 - Corrected authentication-provider startup behavior, local/LDAP account normalization, SCRIPT_NAME routing, reverse-proxy paths, prefixed API/docs routes, and user-facing API error messages.
+- Corrected user-specific notification delivery, password-reset escalation to authorized administrators, broadcast targeting, audit-route authorization, and delegated admin field controls.
+- Corrected assay catalog pagination and matrix filtering, gene-page enrichment, active gene-list display, matrix header grouping, and panel-only dashboard analytics.
+- Corrected report comment drafting, global and sample annotation separation, automatic Tier 3 text, finding action confirmation, and page-specific finding actions.
+- Corrected environment and deployment validation so local-only authentication does not require LDAP credentials, current token salts are mandatory, and ingest file checks use the shared center vocabulary.
+
+### Removed
+
+- Removed the Flask application, WSGI launcher, Jinja page layer, Flask blueprints, legacy `coyote/` package, and Flask-era runtime guidance.
+- Removed the legacy schema JSON files, retired install scripts, ad hoc reported-variant backfill, historical gene-database builder, and tracked migration implementations. The ignored `migration_scripts/` workspace now contains only its policy README.
+- Removed the split Tailwind runtime and legacy template CSS pipeline. Production now serves one prebuilt Vite application; development uses the Vite watcher without container restart loops.
+- Removed ObjectId-based sample navigation, legacy sample/configuration aliases, duplicate database-version keys, old transcript-canonical collection behavior, and compatibility query fallbacks.
+- Removed the broken Compose `first-run` service that referenced a nonexistent script. `scripts/center_first_run.sh` is the single documented first-deployment orchestrator.
+- Removed internal integration, health, and maintenance plumbing from the supported OpenAPI client contract while retaining secured runtime endpoints.
 
 ### Security and quality
 
 - Added staged and full-tree checks for secrets, private environment files, clinical identifiers, personal identity numbers, and non-synthetic test metadata.
 - Added collection-contract generation and integrity checks, assay consistency validation, ingest-manifest validation, shell quality checks, strict documentation builds, backend family coverage gates, frontend unit coverage, and Playwright route/workflow tests.
 - Expanded API and frontend negative-path tests for authentication, permissions, application modules, ingestion, clinical queries, report generation, notifications, admin forms, and empty/error states.
+- Reduced GitHub Actions usage with changed-scope validation, draft-pull-request deferral, superseded-run cancellation, cached Playwright browsers, one-pass backend coverage, bounded artifact retention, and a manually dispatched composed-stack acceptance check.
 
 ### Documentation
 
 - Replaced legacy handbook material with task-oriented user, developer, administrator, deployment, API, security, data-contract, testing, and troubleshooting documentation.
 - Added screenshots and architecture diagrams for bootstrap data flow, configuration authority, clinical review, sample-to-report processing, and deployment topology.
 - Documented every supported sample manifest field, configuration key, clinical reporting rule key/operator/helper, transcript-selection stage, filtering exception, collection relationship, and first-deployment requirement.
+- Added an audited repository-script reference identifying automated callers, manual operator commands, internal helpers, current architecture dependencies, and safe retirement criteria.
 
 ## v3.1.23
 - Added typed DNA CSV export row models (`SNV`/`CNV`) and API-backed export context endpoints for stable, contract-driven CSV formatting.

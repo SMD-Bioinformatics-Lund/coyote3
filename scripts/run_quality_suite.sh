@@ -22,7 +22,8 @@ PYTHONPATH=. "$PYTHON_BIN" -m pytest -q tests/unit tests/api tests/integration \
   --cov-report=xml:coverage.xml
 
 echo "[quality] Backend coverage gates"
-PYTHON_BIN="$PYTHON_BIN" PYTHONPATH=. bash scripts/run_family_coverage_gates.sh
+PYTHON_BIN="$PYTHON_BIN" PYTHONPATH=. \
+  bash scripts/run_family_coverage_gates.sh --from-existing
 
 echo "[quality] Strict Python type boundary"
 PYTHONPATH=. "$PYTHON_BIN" -m mypy

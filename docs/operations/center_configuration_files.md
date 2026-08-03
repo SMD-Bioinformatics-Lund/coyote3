@@ -109,13 +109,14 @@ cannot be changed in this file. The transcript selector names are implemented
 software contracts, but their released order is center configuration and is
 validated strictly at startup.
 
-> [!IMPORTANT]
-> Assay groups are not center configuration. They are a software-owned clinical
-> taxonomy because they define persisted access, annotation, query, ASP, ASPC,
-> and ISGL scope. The supported identifiers are `hematology`, `solid`,
-> `pgx`, `tumwgs`, `wts`, `myeloid`, `lymphoid`, `fusion`, and `fusionrna`.
-> Assay family (`panel-dna`, `wgs`, `panel-rna`, `wts`) and subpanel (for
-> example `endometrie` or `breast`) are separate concepts.
+!!! important "Assay groups are software-defined"
+
+    Assay groups are not center configuration. They define persisted access,
+    annotation, query, ASP, ASPC, and ISGL scope. The supported identifiers are
+    `hematology`, `solid`, `pgx`, `tumwgs`, `wts`, `myeloid`, `lymphoid`,
+    `fusion`, and `fusionrna`. Assay family (`panel-dna`, `wgs`, `panel-rna`,
+    `wts`) and subpanel (for example `endometrie` or `breast`) are separate
+    concepts.
 
 ## `clinical_query_policy.toml`
 

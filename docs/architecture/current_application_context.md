@@ -1,16 +1,21 @@
-# Current Application Context
+# Application Architecture
 
 ![Application request lifecycle](../assets/diagrams/request_lifecycle.svg)
 
-This document explains how the current Coyote3 application works as one connected system. It is written for developers, operators, and advanced users who need to understand the rules behind the UI, API, background workers, database collections, and clinical review workflows.
+This document explains how Coyote3 operates as a connected system. It is
+written for developers, operators, and advanced users who need to understand
+the relationships among the UI, API, background workers, database collections,
+and clinical review workflows.
 
 ## System Purpose
 
 Coyote3 is a clinical genomics review and reporting platform. It receives validated sample manifests and analysis files, persists normalized MongoDB documents, applies assay-specific configuration, exposes sample review workflows in React, and stores report and audit snapshots so clinical decisions can be reconstructed later.
 
-!!! info "Current architecture source"
+!!! info "Architecture reference"
 
-    This document describes the current application architecture. For a workflow-first explanation across clinical, operational, and engineering concerns, use the [Complete Application Manual](../product/complete_application_manual.md).
+    For a workflow-first explanation across clinical, operational, and
+    engineering concerns, use the
+    [Complete Application Manual](../product/complete_application_manual.md).
 
 The application is organized around a few stable principles:
 

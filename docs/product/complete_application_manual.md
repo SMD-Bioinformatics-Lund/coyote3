@@ -781,29 +781,7 @@ Keep application behavior in explicit services, contracts, repositories, and reu
 
     Start by identifying the clinical domain and data contract. Add the backend contract and service behavior first, then connect the UI. This avoids building screens that rely on accidental raw payload shapes.
 
-## 25. Documentation Rules
-
-Documentation should explain workflow, rule, and consequence. It should not only list endpoints or files.
-
-Use admonitions consistently:
-
-!!! info "Use info for context"
-
-    Use `info` when explaining source of truth, ownership, or architecture context.
-
-!!! tip "Use tip for practical guidance"
-
-    Use `tip` for reviewer habits, operator shortcuts, or developer workflow advice.
-
-!!! warning "Use warning for preventable errors"
-
-    Use `warning` for unsafe or misleading behavior that could cause bad clinical, operational, or security outcomes.
-
-!!! caution "Use caution for high-impact changes"
-
-    Use `caution` for migrations, reporting reconstruction, destructive operations, and changes that require review or backup.
-
-## 26. Quality And Governance Principles
+## 25. Quality and Governance Principles
 
 Coyote3 is designed as a clinical genomics platform, so product behavior,
 developer workflow, and operational controls are expected to preserve

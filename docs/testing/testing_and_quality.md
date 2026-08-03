@@ -188,14 +188,21 @@ translocation query builders and the RNA fusion query builder. This is a
 combined branch-aware gate, not a line-count exclusion. It protects the code
 that decides which findings enter clinical review.
 
-The gate first collects coverage for the `api` package, then evaluates each
-family by its filesystem scope. This prevents a stale or renamed Python module
-path from silently turning a family gate into a repository-wide total.
+When run directly, the gate first collects coverage for the `api` package and
+then evaluates each family by its filesystem scope. The repository quality
+suite and CI collect the complete backend coverage database once and invoke
+the gate with `--from-existing`. Reusing that database preserves the same
+family thresholds without executing the backend suite four additional times.
+This also prevents a stale or renamed Python module path from silently turning
+a family gate into a repository-wide total.
 
-CI also publishes `coverage.xml` as the `backend-coverage` workflow artifact
-and `frontend/coverage/lcov.info` as part of the `frontend-coverage` artifact.
-The backend XML is the repository-wide observation report; family gates remain
-the release controls for clinically important boundaries.
+CI publishes `coverage.xml` as the `backend-coverage` workflow artifact and
+`frontend/coverage/lcov.info` as part of the `frontend-coverage` artifact on
+default-branch and manually dispatched runs. Pull-request checks enforce the
+same thresholds but do not upload coverage artifacts. Artifacts are retained
+for seven days to keep storage use bounded. The backend XML is the
+repository-wide observation report; family gates remain the release controls
+for clinically important boundaries.
 
 !!! note "Why the repository-wide percentage is not the clinical gate"
 
@@ -222,7 +229,43 @@ CI should run these checks:
    added to the configured boundary only after they pass strict mode; the
    boundary must not be weakened to admit a module.
 8. **Coverage Artifacts**: backend XML and frontend LCOV results are retained
-   with each workflow run for review and trend integration.
+   for seven days after default-branch and manually dispatched runs.
+
+### GitHub Actions execution policy
+
+Branch protection should require one `quality / lint-and-test` check. The workflow
+is designed for a repository without paid GitHub Actions capacity while still
+protecting clinical and security boundaries:
+
+| Policy | Behavior |
+| --- | --- |
+| Default branch | Pull requests and pushes target `master`, which is the repository default branch. |
+| Draft pull requests | Expensive validation starts when the pull request is marked ready for review. |
+| Superseded commits | A newer commit cancels the running quality job for the same pull request or branch. |
+| Backend changes | Run Python lint, formatting, strict typing, the complete backend suite once, family coverage gates, and repository contract checks. |
+| Frontend changes | Run frontend lint, Vitest coverage, the production build, and Playwright Chromium workflows. |
+| API contract changes | Changes under `api/contracts/` or `api/interfaces/http/` also run frontend checks because they can change consumed payloads or routes. |
+| Deployment changes | Compose, proxy, and container build changes run all scopes because they can alter every runtime surface. |
+| Documentation changes | Run Markdown lint, internal-link validation, and a strict MkDocs build. |
+| Workflow changes | Run all scopes so CI changes validate the complete execution path. |
+| Manual full check | `workflow_dispatch` runs backend, frontend, and documentation checks regardless of changed paths. |
+| Browser installation | Cache the Chromium browser bundle; install only its system libraries on cache hits. |
+| Artifacts | Do not upload coverage from pull requests. Retain default-branch and manual coverage artifacts for seven days. |
+
+The changelog check is part of the same quality job, avoiding a second runner
+for every pull-request update. A maintainer may apply the
+`skip-changelog-update` label when a change has no release-facing effect.
+Label changes trigger only the sensitive-data and changelog checks; they do
+not repeat backend, frontend, or documentation suites. Repositories upgrading
+from an earlier configuration should remove the retired
+`CHANGELOG Reminder / changelog` check from branch protection.
+
+The `bootstrap-and-ingest-check` workflow is intentionally manual. It builds a
+complete stage stack with a disposable MongoDB profile, validates the
+`SCRIPT_NAME` reverse-proxy path, creates the initial account, imports baseline
+collections, ingests the approved synthetic bundle, and verifies the ready
+sample through the running API. Its container logs are uploaded only on
+failure and retained for three days.
 
 ## Browser And External API Contracts
 

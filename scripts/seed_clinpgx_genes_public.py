@@ -31,7 +31,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--zip",
-        default=".design/clinPGx_genes.zip",
+        required=True,
         help="Path to ClinPGx genes zip export.",
     )
     parser.add_argument("--mongo-uri", default=os.getenv("MONGO_URI", "mongodb://localhost:27017"))

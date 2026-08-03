@@ -460,3 +460,154 @@ def test_check_markdown_links_script_runs_clean():
     result = _run_script(["scripts/check_markdown_links.py"])
     assert result.returncode == 0, result.stderr
     assert "[ok] markdown internal links validated" in result.stdout
+
+
+def test_env_secret_validation_accepts_local_auth_without_ldap_secret(tmp_path):
+    env_file = tmp_path / "center.env"
+    env_file.write_text(
+        "\n".join(
+            (
+                "SECRET_KEY=secret-value",
+                "INTERNAL_API_TOKEN=internal-token",
+                "API_SESSION_SALT=session-salt",
+                "PASSWORD_TOKEN_SALT=password-salt",
+                "CORS_ORIGINS=https://coyote3.example.org",
+                "MONGO_URI=mongodb://mongo:27017/coyote3",
+                "AUTHENTICATION_PROVIDERS=local,ldap",
+                "LDAP_SECRET=",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["bash", "scripts/validate_env_secrets.sh", "--env-file", str(env_file)],
+        cwd=ROOT_DIR,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "[ok] env validation passed" in result.stdout
+
+
+def test_env_secret_validation_requires_password_token_salt(tmp_path):
+    env_file = tmp_path / "center.env"
+    env_file.write_text(
+        "\n".join(
+            (
+                "SECRET_KEY=secret-value",
+                "INTERNAL_API_TOKEN=internal-token",
+                "API_SESSION_SALT=session-salt",
+                "CORS_ORIGINS=https://coyote3.example.org",
+                "MONGO_URI=mongodb://mongo:27017/coyote3",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["bash", "scripts/validate_env_secrets.sh", "--env-file", str(env_file)],
+        cwd=ROOT_DIR,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "missing required key: PASSWORD_TOKEN_SALT" in result.stdout
+
+
+def test_ingest_spec_file_check_uses_configured_file_key_catalog(tmp_path):
+    vcf_path = tmp_path / "synthetic.vcf"
+    vcf_path.write_text("##fileformat=VCFv4.2\n", encoding="utf-8")
+    manifest_path = tmp_path / "sample.yaml"
+    missing_profile = tmp_path / "missing-profile.png"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "name": "SYNTHETIC_CASE_001",
+                "asp_id": "assay_1",
+                "subpanel_id": "base",
+                "environment": "testing",
+                "case_id": "SYNTHETIC_CASE_001",
+                "sample_no": 1,
+                "paired": False,
+                "sequencing_scope": "panel",
+                "omics_layer": "dna",
+                "platform": "illumina",
+                "pipeline": "SyntheticPipeline",
+                "pipeline_version": "1.0",
+                "vcf_files": str(vcf_path),
+                "cnvprofile": str(missing_profile),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = _run_script(
+        ["scripts/validate_ingest_spec.py", "--yaml", str(manifest_path), "--check-files"]
+    )
+
+    assert result.returncode != 0
+    assert f"cnvprofile: {missing_profile}" in result.stderr
+
+
+def test_first_run_and_preflight_scripts_do_not_use_retired_environment_port_names():
+    combined = "\n".join(
+        (ROOT_DIR / path).read_text(encoding="utf-8")
+        for path in ("scripts/center_first_run.sh", "scripts/center_preflight.sh")
+    )
+    for retired_key in (
+        "COYOTE3_STAGE_PORT",
+        "COYOTE3_DEV_PORT",
+        "COYOTE3_TEST_PORT",
+        "COYOTE3_STAGE_MONGO_PORT",
+        "COYOTE3_DEV_MONGO_PORT",
+        "COYOTE3_TEST_MONGO_PORT",
+    ):
+        assert retired_key not in combined
+
+
+def test_production_compose_does_not_register_removed_first_run_service():
+    compose = (ROOT_DIR / "deploy/compose/docker-compose.yml").read_text(encoding="utf-8")
+    assert "coyote3_first_run:" not in compose
+    assert "compose_first_run.sh" not in compose
+
+
+def test_quality_workflow_uses_cost_bounded_current_branch_validation():
+    workflow = (ROOT_DIR / ".github/workflows/quality.yml").read_text(encoding="utf-8")
+
+    assert "branches: [master]" in workflow
+    assert "branches: [main]" not in workflow
+    assert "cancel-in-progress: true" in workflow
+    assert "github.event.pull_request.draft == false" in workflow
+    assert '"$EVENT_ACTION" == "labeled"' in workflow
+    assert 'if [[ "$label_only" != "true" ]]' in workflow
+    assert workflow.count("PYTHONPATH=. pytest -q tests/unit tests/api tests/integration") == 1
+    assert "run_family_coverage_gates.sh --from-existing" in workflow
+    assert "github.event_name != 'pull_request'" in workflow
+    assert "retention-days: 7" in workflow
+    assert not (ROOT_DIR / ".github/workflows/changelog-reminder.yml").exists()
+
+
+def test_manual_composed_workflow_uses_current_proxy_and_mongo_profile():
+    workflow = (ROOT_DIR / ".github/workflows/bootstrap-and-ingest-check.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "workflow_dispatch:" in workflow
+    assert "--with-mongo" in workflow
+    assert "--profile with-mongo" in workflow
+    assert "COYOTE3_PORT:" in workflow
+    assert "SCRIPT_NAME:" in workflow
+    assert "${COYOTE3_PORT}${SCRIPT_NAME}/api/v1/health" in workflow
+    assert "retention-days: 3" in workflow
+    for retired_key in (
+        "COYOTE3_STAGE_WEB_PORT",
+        "COYOTE3_STAGE_API_PORT",
+        "COYOTE3_STAGE_REDIS_PORT",
+        "COYOTE3_STAGE_MONGO_PORT",
+    ):
+        assert retired_key not in workflow

@@ -33,7 +33,7 @@ required=(
   SECRET_KEY
   INTERNAL_API_TOKEN
   API_SESSION_SALT
-  LDAP_SECRET
+  PASSWORD_TOKEN_SALT
   CORS_ORIGINS
   MONGO_URI
 )
@@ -59,6 +59,21 @@ for key in "${required[@]}"; do
     errors=1
   fi
 done
+
+# LDAP configuration is validated when LDAP login is attempted. This allows
+# the API to start and local authentication to remain available while a center
+# completes or repairs its LDAP settings. Supplied secrets must still never be
+# placeholders.
+line="$(grep -E '^LDAP_SECRET=' "$ENV_FILE" | tail -n1 || true)"
+if [[ -n "$line" ]]; then
+  value="${line#*=}"
+  value="${value#\"}"; value="${value%\"}"
+  value="${value#\'}"; value="${value%\'}"
+  if [[ "$value" == *"CHANGE_ME"* ]]; then
+    echo "[error] placeholder detected for LDAP_SECRET"
+    errors=1
+  fi
+fi
 
 # Optional Mongo credentials if using compose-managed Mongo.
 for key in MONGO_ROOT_PASSWORD MONGO_APP_PASSWORD; do

@@ -96,14 +96,18 @@ The platform uses two pagination patterns:
 
 ### Server-Side Pagination
 
-Primary sample listings utilize independent server-side pagination for "Live" versus "Finalized" cohorts.
+Primary sample listings use independent server-side pagination for live and
+reported cohorts.
 
 - **State Partitioning**: Navigating one dataset does not reset the cursor of the parallel list.
 - **Metadata**: Response payloads provide `has_next` flags to control interface control visibility.
 
-### Client-Side Pagination
+### Finding Table Pagination
 
-Localized interpretation tables utilize in-page pagination to allow for rapid sorting and filtering after the initial data packet is delivered to the browser.
+Finding tables send paging, search, filter, and multi-column sort state to the
+API. The backend applies those operations to the complete matching result set
+before returning one page. The frontend query cache reuses an unchanged result
+and invalidates affected entries after finding or filter mutations.
 
 ## 5. Temporal Standards
 

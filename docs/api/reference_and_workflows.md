@@ -46,17 +46,23 @@ A typical read flow looks like this:
 
 For write operations:
 
-1. Systems transport targeted actions or classifications through structured Pydantic body definitions.
-2. Required authorization policies validate standard execution permissions automatically derived through token extraction.
-3. Successful validation leads to database updates and audit events.
+1. The client submits the action or classification through a typed request
+   body.
+2. The API authenticates the caller and checks the permission required by the
+   endpoint.
+3. The application service validates the operation and writes through the
+   repository layer.
+4. Clinically or operationally significant changes produce an audit event.
 
 ## Engineering Standards
 
 When adding or changing routes:
 
 1. Pick a canonical OpenAPI tag from `api/interfaces/http/tags.py`.
-2. Implement or extend strictly typed input schemas within `api/contracts/`.
-3. Map endpoints natively through FastAPI router modules linking to authorization interceptors.
-4. Decouple domain functions via constructor-injected implementations within standard service structures.
-5. Expand targeted unit and integration suites located inside explicit `tests/api` suites before submission.
+2. Implement or extend typed request and response schemas in `api/contracts/`.
+3. Add the endpoint to the appropriate FastAPI router and apply its explicit
+   authentication and permission dependencies.
+4. Put use-case coordination in an application service and inject its
+   repository dependencies through the runtime container.
+5. Add focused unit tests and API contract tests under `tests/`.
 6. Run the relevant automated checks before submitting the change.

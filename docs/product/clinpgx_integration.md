@@ -93,7 +93,7 @@ Run the seed command from the repository root:
 
 ```bash
 python scripts/seed_clinpgx_genes_public.py \
-  --zip .design/clinPGx_genes.zip \
+  --zip /srv/coyote3/reference/clinpgx_genes.zip \
   --mongo-uri "$MONGO_URI" \
   --db "$COYOTE3_DB"
 ```

@@ -47,10 +47,6 @@ PYTHON_BIN="${PYTHON_BIN:-}"
 
 MONGO_URI=""
 COYOTE3_DB=""
-MONGO_ROOT_USERNAME=""
-MONGO_ROOT_PASSWORD=""
-MONGO_APP_USER=""
-MONGO_APP_PASSWORD=""
 
 extract_env() {
   local key="$1"
@@ -173,10 +169,6 @@ resolve_version() {
 load_env_runtime_values() {
   MONGO_URI="$(extract_env MONGO_URI)"
   COYOTE3_DB="$(extract_env COYOTE3_DB)"
-  MONGO_ROOT_USERNAME="$(extract_env MONGO_ROOT_USERNAME)"
-  MONGO_ROOT_PASSWORD="$(extract_env MONGO_ROOT_PASSWORD)"
-  MONGO_APP_USER="$(extract_env MONGO_APP_USER)"
-  MONGO_APP_PASSWORD="$(extract_env MONGO_APP_PASSWORD)"
 
   if [[ -z "$MONGO_URI" || -z "$COYOTE3_DB" ]]; then
     echo "ERROR: ENV file must contain MONGO_URI and COYOTE3_DB" >&2
@@ -203,59 +195,6 @@ validate_profile_requirements() {
     echo "Add: --compose-profile with-mongo" >&2
     exit 2
   fi
-}
-
-rewrite_internal_mongo_uri_for_host() {
-  if [[ ! "$MONGO_URI" =~ @coyote3(_.*)?_mongo:27017/ ]]; then
-    return 0
-  fi
-
-  local stage_mongo_port dev_mongo_port test_mongo_port prod_mongo_port target_port
-  stage_mongo_port="$(extract_env COYOTE3_STAGE_MONGO_PORT)"
-  dev_mongo_port="$(extract_env COYOTE3_DEV_MONGO_PORT)"
-  test_mongo_port="$(extract_env COYOTE3_TEST_MONGO_PORT)"
-  prod_mongo_port="$(extract_env COYOTE3_MONGO_PORT)"
-  target_port="${stage_mongo_port:-${dev_mongo_port:-${test_mongo_port:-${prod_mongo_port:-8008}}}}"
-  MONGO_URI="$(echo "$MONGO_URI" | sed -E "s#@[^/]+:27017/#@localhost:${target_port}/#")"
-}
-
-bootstrap_mongo_app_user() {
-  local stage_port dev_port test_port prod_port target_port admin_uri
-  local max_attempts
-  stage_port="$(extract_env COYOTE3_STAGE_MONGO_PORT)"
-  dev_port="$(extract_env COYOTE3_DEV_MONGO_PORT)"
-  test_port="$(extract_env COYOTE3_TEST_MONGO_PORT)"
-  prod_port="$(extract_env COYOTE3_MONGO_PORT)"
-  target_port="${stage_port:-${dev_port:-${test_port:-${prod_port:-8008}}}}"
-
-  if [[ -z "$MONGO_ROOT_USERNAME" || -z "$MONGO_ROOT_PASSWORD" || -z "$MONGO_APP_USER" || -z "$MONGO_APP_PASSWORD" ]]; then
-    echo "ERROR: missing mongo root/app credentials in env file; cannot guarantee app-user authentication." >&2
-    echo "Required: MONGO_ROOT_USERNAME, MONGO_ROOT_PASSWORD, MONGO_APP_USER, MONGO_APP_PASSWORD" >&2
-    return 2
-  fi
-
-  if [[ "$MONGO_ROOT_PASSWORD" == CHANGE_ME* || "$MONGO_APP_PASSWORD" == CHANGE_ME* ]]; then
-    echo "ERROR: placeholder Mongo credentials detected (CHANGE_ME*). Set real values in env file." >&2
-    return 2
-  fi
-
-  admin_uri="mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${target_port}/admin?authSource=admin"
-  echo "[step] ensure mongo app user exists and password matches env (with retry)"
-  max_attempts=45
-  for _attempt in $(seq 1 "$max_attempts"); do
-    if PYTHONPATH=. "$PYTHON_BIN" scripts/mongo_bootstrap_users.py \
-      --mongo-uri "$admin_uri" \
-      --app-db "$COYOTE3_DB" \
-      --app-user "$MONGO_APP_USER" \
-      --app-password "$MONGO_APP_PASSWORD"; then
-      return 0
-    fi
-    sleep 2
-  done
-
-  echo "ERROR: failed to bootstrap Mongo app user after ${max_attempts} attempts." >&2
-  echo "Check Mongo root credentials and port (${target_port}) in env file." >&2
-  return 2
 }
 
 run_preflight() {
@@ -324,9 +263,28 @@ wait_for_api_health() {
 
 bootstrap_local_admin() {
   echo "[step] bootstrap first local superuser"
+  local compose_args=(--env-file "$ENV_FILE" -f "$COMPOSE_FILE")
+  local profile=""
+  for profile in "${COMPOSE_PROFILES[@]}"; do
+    compose_args+=(--profile "$profile")
+  done
+
+  local api_service=""
+  while IFS= read -r service; do
+    if [[ "$service" =~ (^|_)api$ ]]; then
+      api_service="$service"
+      break
+    fi
+  done < <(docker compose "${compose_args[@]}" config --services)
+  if [[ -z "$api_service" ]]; then
+    echo "ERROR: could not resolve the API service from the compose file." >&2
+    return 2
+  fi
+
   local output
   if output="$(
-    PYTHONPATH=. "$PYTHON_BIN" scripts/bootstrap_local_admin.py \
+    docker compose "${compose_args[@]}" exec -T "$api_service" \
+      python3 scripts/bootstrap_local_admin.py \
       --mongo-uri "$MONGO_URI" \
       --db "$COYOTE3_DB" \
       --username "$ADMIN_USERNAME" \
@@ -390,11 +348,9 @@ main() {
   resolve_version
   load_env_runtime_values
   validate_profile_requirements
-  rewrite_internal_mongo_uri_for_host
 
   run_preflight
   start_compose_stack
-  bootstrap_mongo_app_user
   trap cleanup EXIT
   wait_for_api_health
   bootstrap_local_admin

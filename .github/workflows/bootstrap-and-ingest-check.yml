@@ -3,26 +3,27 @@ name: bootstrap-and-ingest-check
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: bootstrap-and-ingest-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   bootstrap-and-ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 35
     env:
-      COYOTE3_VERSION: ci-bootstrap
-      COYOTE3_DB: coyote3
+      COYOTE3_DB: coyote3_ci
       MONGO_ROOT_USERNAME: coyote3_root
       MONGO_ROOT_PASSWORD: ci-root-password
       MONGO_APP_USER: coyote3_app
       MONGO_APP_PASSWORD: ci-app-password
-      COYOTE3_FERNET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
-      SECRET_KEY: ci-test-secret-key
-      INTERNAL_API_TOKEN: ci-test-internal-token
-      CACHE_REDIS_URL: redis://coyote3_redis_stage:6379/0
-      COYOTE3_STAGE_WEB_PORT: "8005"
-      COYOTE3_STAGE_API_PORT: "8006"
-      COYOTE3_STAGE_REDIS_PORT: "8007"
-      COYOTE3_STAGE_MONGO_PORT: "8008"
-      ADMIN_USERNAME: admin.coyote3
+      MONGO_URI: mongodb://coyote3_app:ci-app-password@coyote3_stage_mongo:27017/coyote3_ci?authSource=coyote3_ci
+      COYOTE3_PORT: "8005"
+      SCRIPT_NAME: /coyote3_ci
+      ADMIN_USERNAME: coyote3.admin
       ADMIN_EMAIL: admin@center.local
       ADMIN_PASSWORD: ci-admin-password
 
@@ -30,110 +31,157 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-          cache-dependency-path: "requirements.txt"
-
-      - name: Install dependencies
+      - name: Prepare disposable storage and stage environment
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Prepare stage env file
-        run: |
+          mkdir -p \
+            "$RUNNER_TEMP/coyote3/data" \
+            "$RUNNER_TEMP/coyote3/logs" \
+            "$RUNNER_TEMP/coyote3/mongo-data" \
+            "$RUNNER_TEMP/coyote3/mongo-backups"
           cat > .coyote3_stage_env <<EOF
           ENV_NAME=staging
-          TESTING=0
-          DEVELOPMENT=0
           COYOTE3_DB=${COYOTE3_DB}
+          BAM_DB=BAM_Service
+          ORGANIZATION_NAME=Coyote3 CI
+          LOCAL_TIME_ZONE=UTC
+          SECRET_KEY=ci-test-secret-key
+          INTERNAL_API_TOKEN=ci-test-internal-token
+          API_SESSION_SALT=ci-stage-session-salt
+          PASSWORD_TOKEN_SALT=ci-stage-password-token-salt
+          COYOTE3_PORT=${COYOTE3_PORT}
+          SCRIPT_NAME=${SCRIPT_NAME}
+          PUBLIC_BASE_URL=http://localhost:${COYOTE3_PORT}
+          CORS_ORIGINS=http://localhost:${COYOTE3_PORT}
           MONGO_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
           MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
           MONGO_APP_USER=${MONGO_APP_USER}
           MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD}
-          MONGO_URI=mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@coyote3_stage_mongo:27017/${COYOTE3_DB}
-          CACHE_REDIS_URL=${CACHE_REDIS_URL}
-          COYOTE3_FERNET_KEY=${COYOTE3_FERNET_KEY}
-          SECRET_KEY=${SECRET_KEY}
-          INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN}
-          API_SESSION_SALT=ci-stage-session-salt
-          COYOTE3_STAGE_WEB_PORT=${COYOTE3_STAGE_WEB_PORT}
-          COYOTE3_STAGE_API_PORT=${COYOTE3_STAGE_API_PORT}
-          COYOTE3_STAGE_REDIS_PORT=${COYOTE3_STAGE_REDIS_PORT}
-          COYOTE3_STAGE_MONGO_PORT=${COYOTE3_STAGE_MONGO_PORT}
+          MONGO_URI=${MONGO_URI}
+          COYOTE3_DATA_HOST_ROOT=${RUNNER_TEMP}/coyote3/data
+          COYOTE3_LOGS_HOST_ROOT=${RUNNER_TEMP}/coyote3/logs
+          COYOTE3_MONGO_DATA_HOST_ROOT=${RUNNER_TEMP}/coyote3/mongo-data
+          COYOTE3_MONGO_BACKUP_HOST_ROOT=${RUNNER_TEMP}/coyote3/mongo-backups
+          CACHE_ENABLED=1
+          CACHE_REQUIRED=1
+          API_WORKERS=1
+          SESSION_COOKIE_SECURE=0
+          API_SESSION_COOKIE_NAME=coyote3_ci_api_session
+          AUTHENTICATION_PROVIDERS=local
+          COYOTE3_INGEST_WATCH_ENABLED=0
+          CELERY_WORKER_CONCURRENCY=1
           EOF
 
-      - name: Start stage stack
+      - name: Start stage stack with disposable MongoDB
         run: |
-          docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml up -d --build
+          ./scripts/compose-with-version.sh \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.stage.yml \
+            --with-mongo \
+            up -d --build
 
-      - name: Wait for API health
+      - name: Wait for proxied API health
         run: |
-          for i in $(seq 1 60); do
-            if curl -fsS "http://localhost:${COYOTE3_STAGE_API_PORT}/api/v1/health" >/dev/null; then
-              echo "API is healthy"
+          health_url="http://localhost:${COYOTE3_PORT}${SCRIPT_NAME}/api/v1/health"
+          for _ in $(seq 1 60); do
+            if curl -fsS "$health_url" >/dev/null; then
+              echo "API is healthy through the public proxy"
               exit 0
             fi
             sleep 2
           done
-          echo "API did not become healthy in time" >&2
+          echo "API did not become healthy in time: $health_url" >&2
           exit 1
 
       - name: Create first bootstrap superuser
         run: |
-          python scripts/bootstrap_local_admin.py \
-            --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT}/${COYOTE3_DB}?authSource=${COYOTE3_DB}" \
-            --db "${COYOTE3_DB}" \
-            --username "${ADMIN_USERNAME}" \
-            --email "${ADMIN_EMAIL}" \
-            --password "${ADMIN_PASSWORD}" \
-            --role-id "superuser" \
-            --assay-group "hematology" \
-            --assay "assay_1"
+          docker compose \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.stage.yml \
+            --profile with-mongo \
+            exec -T coyote3_stage_api \
+            python scripts/bootstrap_local_admin.py \
+              --mongo-uri "${MONGO_URI}" \
+              --db "${COYOTE3_DB}" \
+              --username "${ADMIN_USERNAME}" \
+              --email "${ADMIN_EMAIL}" \
+              --password "${ADMIN_PASSWORD}" \
+              --role-id superuser \
+              --assay-group hematology \
+              --assay hema_gmsv1
 
       - name: Seed baseline collections
         run: |
-          scripts/bootstrap_center_collections.sh \
-            --api-base-url "http://localhost:${COYOTE3_STAGE_API_PORT}" \
-            --username "${ADMIN_EMAIL}" \
-            --password "${ADMIN_PASSWORD}" \
-            --seed-file api/config/bootstrap/demo_center \
-            --with-optional \
-            --skip-existing
+          docker compose \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.stage.yml \
+            --profile with-mongo \
+            exec -T coyote3_stage_api \
+            scripts/bootstrap_center_collections.sh \
+              --api-base-url http://127.0.0.1:8001 \
+              --username "${ADMIN_USERNAME}" \
+              --password "${ADMIN_PASSWORD}" \
+              --seed-file api/config/bootstrap/demo_center \
+              --with-optional \
+              --skip-existing
 
       - name: Run sample ingest check
         run: |
-          scripts/center_check.sh \
-            --api-base-url "http://localhost:${COYOTE3_STAGE_API_PORT}" \
-            --username "${ADMIN_EMAIL}" \
-            --password "${ADMIN_PASSWORD}" \
-            --yaml-file demo_data/ingest/generic_case_control.yaml
+          docker compose \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.stage.yml \
+            --profile with-mongo \
+            exec -T coyote3_stage_api \
+            scripts/center_check.sh \
+              --api-base-url http://127.0.0.1:8001 \
+              --username "${ADMIN_USERNAME}" \
+              --password "${ADMIN_PASSWORD}" \
+              --yaml-file demo_data/ingest/generic_case_control.yaml
 
       - name: Verify composed sample workflow
         run: |
-          AUTH_JSON="$(python scripts/api_login.py \
-            --base-url "http://localhost:${COYOTE3_STAGE_API_PORT}" \
-            --mode password \
-            --username "${ADMIN_EMAIL}" \
-            --password "${ADMIN_PASSWORD}" \
-            --print-token)"
-          BEARER_TOKEN="$(python -c 'import json, sys; print(json.loads(sys.argv[1])["session_token"])' "$AUTH_JSON")"
-          python scripts/verify_composed_workflow.py \
-            --api-base-url "http://localhost:${COYOTE3_STAGE_API_PORT}" \
-            --bearer-token "$BEARER_TOKEN" \
-            --sample-name "seed_case"
+          auth_json="$(docker compose \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.stage.yml \
+            --profile with-mongo \
+            exec -T coyote3_stage_api \
+            python scripts/api_login.py \
+              --base-url http://127.0.0.1:8001 \
+              --mode password \
+              --username "${ADMIN_USERNAME}" \
+              --password "${ADMIN_PASSWORD}" \
+              --print-token)"
+          bearer_token="$(python3 -c \
+            'import json, sys; print(json.loads(sys.argv[1])["session_token"])' \
+            "$auth_json")"
+          docker compose \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.stage.yml \
+            --profile with-mongo \
+            exec -T coyote3_stage_api \
+            python scripts/verify_composed_workflow.py \
+              --api-base-url http://127.0.0.1:8001 \
+              --bearer-token "$bearer_token" \
+              --sample-name seed_case
 
-      - name: Stop stack
+      - name: Capture logs and stop stack
         if: always()
         run: |
-          docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml logs --no-color > bootstrap_and_ingest_logs.txt || true
-          docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml down -v || true
+          docker compose \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.stage.yml \
+            --profile with-mongo \
+            logs --no-color > bootstrap_and_ingest_logs.txt 2>&1 || true
+          docker compose \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.stage.yml \
+            --profile with-mongo \
+            down -v || true
 
-      - name: Upload logs
-        if: always()
+      - name: Upload failure logs
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: bootstrap-and-ingest-logs
+          name: bootstrap-and-ingest-failure-logs
           path: bootstrap_and_ingest_logs.txt
+          if-no-files-found: warn
+          retention-days: 3

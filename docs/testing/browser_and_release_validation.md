@@ -96,13 +96,17 @@ must come from the shell or CI secret store and must never be committed.
 
 ### Composed Stack Acceptance Check
 
-The `bootstrap-and-ingest-check` workflow starts the stage Compose profile,
-creates a disposable administrator, seeds the minimum test collections, uploads
-the approved synthetic DNA bundle, and calls
+The manually dispatched `bootstrap-and-ingest-check` workflow starts the stage
+Compose stack with its disposable `with-mongo` profile, routes health checks
+through the configured `SCRIPT_NAME` and single public proxy port, creates a
+disposable administrator, seeds the minimum test collections, uploads the
+approved synthetic DNA bundle, and calls
 `scripts/verify_composed_workflow.py`. The final check requires `/samples` to
 return an ingested sample in the `ready` state. This verifies the production
 boundaries that mocked browser tests cannot cover: authentication, request
-routing, persistence, ingest processing, and sample-list projection.
+routing, persistence, ingest processing, and sample-list projection. The
+workflow uploads its composed service logs only when the check fails and keeps
+them for three days.
 
 ## Browser Validation Protocol
 

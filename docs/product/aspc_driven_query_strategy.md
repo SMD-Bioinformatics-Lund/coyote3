@@ -298,6 +298,10 @@ RNA-specific analytics prioritize evidence-based detection parameters:
 - `min_spanning_reads` / `min_spanning_pairs`: Supporting evidence thresholds.
 - `fusion_callers` / `fusion_effects`: Tool-specific and biological impact filter sets.
 
-## Automated Clinical Context Matching
+## Diagnosis-Based Gene-List Selection
 
-The platform provides sophisticated diagnosis-driven list allocation. When the `use_diagnosis_genelist` protocol is active, the system can resolve and attach ISGL gene cohorts where the genelist's clinical definition aligns with the sample's sub-panel context, ensuring immediate diagnostic relevance upon sample initialization or reset.
+When `use_diagnosis_genelist` is enabled, the application compares the sample
+diagnosis and subpanel context with eligible ISGL definitions. Matching lists
+can then be attached when the sample is initialized or its gene-list selection
+is reset. The selected list identifiers are stored with the sample context so
+that filtering and report generation use the same gene scope.

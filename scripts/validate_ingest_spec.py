@@ -16,20 +16,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-REQUIRED_ONE_OF = (("vcf_files", "fusion_files"),)
-
-FILE_FIELDS = (
-    "vcf_files",
-    "cnv",
-    "cov",
-    "transloc",
-    "biomarkers",
-    "fusion_files",
-    "expression_path",
-    "classification_path",
-    "qc",
-)
-
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Validate Coyote3 ingest spec YAML")
@@ -48,6 +34,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    from api.config.constants import ALL_SAMPLE_FILE_KEYS
     from api.contracts.schemas.samples import SamplesDoc
 
     args = parse_args()
@@ -59,10 +46,6 @@ def main() -> int:
     if not isinstance(payload, dict):
         raise SystemExit("YAML must decode to an object")
 
-    for choices in REQUIRED_ONE_OF:
-        if not any(payload.get(k) for k in choices):
-            raise SystemExit(f"At least one of {choices} is required")
-
     try:
         model = SamplesDoc.model_validate(payload)
     except ValidationError as exc:
@@ -70,13 +53,13 @@ def main() -> int:
 
     if args.check_files:
         missing: list[str] = []
-        for field in FILE_FIELDS:
-            value = getattr(model, field, None)
-            if value in (None, ""):
+        for field in ALL_SAMPLE_FILE_KEYS:
+            resource = model.files.get(field)
+            if resource is None:
                 continue
-            path = Path(str(value))
+            path = Path(resource.path)
             if not path.exists():
-                missing.append(f"{field}: {value}")
+                missing.append(f"{field}: {resource.path}")
         if missing:
             joined = "\n".join(missing)
             raise SystemExit(f"Referenced files missing:\n{joined}")

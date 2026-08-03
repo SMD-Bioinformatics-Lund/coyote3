@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+reuse_coverage=0
+if [[ "${1:-}" == "--from-existing" ]]; then
+  reuse_coverage=1
+  shift
+fi
+if [[ "$#" -ne 0 ]]; then
+  echo "Usage: $0 [--from-existing]" >&2
+  exit 2
+fi
+
 if [[ -z "${PYTHON_BIN:-}" ]]; then
   if [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/python" ]]; then
     PYTHON_BIN="${VIRTUAL_ENV}/bin/python"
@@ -40,15 +50,22 @@ run_family_gate() {
   shift 3
 
   echo "[coverage-gates] ${label} >= ${minimum}%"
-  "${PYTHON_BIN}" -m pytest -q "$@" \
-    --cov=api \
-    --cov-config=.coveragerc \
-    --cov-report=
+  if [[ "$reuse_coverage" -eq 0 ]]; then
+    "${PYTHON_BIN}" -m pytest -q "$@" \
+      --cov=api \
+      --cov-config=.coveragerc \
+      --cov-report=
+  fi
   "${PYTHON_BIN}" -m coverage report \
     --include="${include}" \
     --show-missing \
     --fail-under="${minimum}"
 }
+
+if [[ "$reuse_coverage" -eq 1 && ! -f .coverage ]]; then
+  echo "ERROR: --from-existing requires a .coverage database in the repository root." >&2
+  exit 2
+fi
 
 run_family_gate "api/domain/core" "api/domain/core/*" "${CORE_MIN}" \
   tests/unit tests/api tests/integration

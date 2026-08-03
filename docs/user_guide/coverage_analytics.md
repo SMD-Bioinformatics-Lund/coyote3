@@ -1,42 +1,85 @@
-# Coverage Analytics Guide
+# Coverage Review
 
-The Coverage Analytics suite allows clinicians to verify the diagnostic depth and technical quality of genomic sequencing for a specific sample. It ensures that critical regions (e.g., clinically actionable exons) have been sequenced with sufficient sensitivity.
+The coverage workspace identifies assay regions below a selected depth cutoff
+and provides the transcript, exon, CDS, and probe context needed for technical
+review. Coverage is a DNA quality analysis and appears only when it is enabled
+by the active ASPC and coverage data was ingested for the sample.
 
-## 1. Per-Base Coverage View
+## Open Coverage Review
 
-The Per-Base view provides a high-resolution graph of sequencing depth across the targeted genomic regions.
+1. Open a DNA sample.
+2. Confirm on **Overview** that coverage data was loaded.
+3. Open **Coverage**.
+4. Set the depth cutoff appropriate for the validated assay workflow.
+5. Select a low-coverage gene to inspect its detailed design and measurements.
 
-### Key Features
+Changing the cutoff requests a new server-side coverage result. The displayed
+counts and low-coverage lists therefore use the same cutoff.
 
-*   **Depth Thresholds**: Visual horizontal lines representing the minimum required depth (e.g., 50x, 100x, 500x).
-*   **Zoom and Pan**: Interactive charts allow you to zoom into specific exons or focus on broad genomic blocks.
-*   **Transcript Switcher**: Toggle between different genetic transcripts to ensure coverage on all relevant coding variants.
+## Summary Metrics
 
----
+The top of the workspace shows:
 
-## 2. Low-Coverage Region Detection
+| Metric | Meaning |
+| --- | --- |
+| Low regions | Number of returned regions below the selected depth cutoff. |
+| Genes with coverage | Number of genes represented in the coverage payload. |
+| Cutoff | Depth threshold, in `X`, used to classify a measured region as low or passing. |
 
-Coyote3 automatically identifies "Gaps" or "Hotspots" where the sequencing depth falls below the laboratory-defined threshold.
+## Low-Coverage Genes and Regions
 
-### Navigating Gaps
+The left pane lists genes with one or more measurements below the cutoff.
+Selecting a gene restricts the low-region table and opens the complete gene
+view.
 
-*   **Gap Table**: A list of all regions that failed to meet the quality baseline, prioritized by gene importance and clinical tier.
-*   **Exon Breakdown**: Detailed percentage of each exon covered at specific depth tiers (e.g., "% at 100x").
-*   **Blacklist Management**: (Admins Only) Mark specific noisy or clinically irrelevant regions to be hidden from the default review view.
+| Column | Information shown |
+| --- | --- |
+| Gene | Gene associated with the region. Select it to open the gene view. |
+| Region | Source region label. |
+| Chrom | Chromosome from the coverage payload. |
+| Start and End | Genomic coordinates of the measured interval. |
+| Coverage | Measured depth. Values below the cutoff use the failure color. |
+| Exon | Exon identifier when supplied by the source data. |
 
----
+Use **Export to CSV** in the table controls to export the displayed coverage
+rows.
 
-## 3. Blacklisted Regions
+## Gene Coverage View
 
-In some cases, specific genomic coordinates may consistently produce poor data or are known artifacts.
+The gene view draws the transcript interval and the available exon, CDS, and
+probe records. Hover a region to read its exact coordinates and measured
+coverage. The legend distinguishes:
 
-*   **View Blacklist**: Access a consolidated list of regions currently excluded from quality metrics.
-*   **Impact on Reporting**: Blacklisted regions are clearly noted in the clinical report to ensure transparency regarding technical limitations.
+- coverage below the current cutoff;
+- passing probe coverage;
+- passing CDS coverage; and
+- regions not covered by the assay design.
 
----
+Below the plot, use **Low exons** and **Low probes** to review only failed
+features. The complete information area provides separate transcript, exon,
+CDS, and probe tables for the selected gene.
 
-## 4. Navigation & Workflow
+## Coverage Blacklist
 
-1.  **From Interpretation**: While reviewing DNA findings, click the **Coverage** button in the sample header.
-2.  **Verify Gaps**: Review the Gap Table to ensure no critical mutations were missed due to low depth.
-3.  **Cross-Reference**: Use the **IGV Link** to visually inspect the raw alignment data (BAM) for any ambiguous regions.
+Authorized users can add a low CDS or probe interval to the assay-group scoped
+coverage blacklist. The action records the genomic region, gene, and relevant
+sample context through the coverage blacklist API.
+
+!!! warning
+    Blacklisting changes how a region is handled in subsequent review. Apply
+    it only under the laboratory's approved quality procedure and confirm the
+    action when prompted.
+
+## Interpreting Missing Information
+
+- **Coverage tab absent:** coverage is not enabled for the active ASPC, the
+  module is disabled, or no coverage resource is available for the sample.
+- **No low-covered genes:** no returned measurement is below the selected
+  cutoff and applied gene-list scope.
+- **No design:** the payload contains a feature without a numeric coverage
+  measurement.
+- **Missing exon or probe details:** the ingest source did not provide that
+  level of design metadata.
+
+Coverage review supports technical assessment; it does not replace the
+assay-specific acceptance criteria or laboratory quality procedure.
