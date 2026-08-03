@@ -6,6 +6,7 @@ from typing import Any
 
 from api.application.admin.app_controls import (
     APP_CONTROLS_ID,
+    CELERY_INSPECTION_TIMEOUT_SECONDS,
     AppControlsService,
     _task_summary,
     _worker_runtime_details,
@@ -120,6 +121,61 @@ def test_public_module_payload_exposes_only_module_availability_metadata():
     assert payload["modules"]["reports"]["enabled"] is False
     assert payload["modules"]["reports"]["label"] == "Clinical reporting"
     assert "control_field" not in payload["modules"]["reports"]
+
+
+def test_runtime_status_observes_active_tasks_before_worker_metadata(monkeypatch):
+    from api.celery_app import celery_app
+
+    calls: list[str] = []
+    worker = "celery@worker-1"
+
+    class _Inspect:
+        def active(self):
+            calls.append("active")
+            return {
+                worker: [
+                    {
+                        "id": "ingest-1",
+                        "name": "api.tasks.ingest.ingest_watch_directory_once",
+                        "delivery_info": {"routing_key": "ingest"},
+                    }
+                ]
+            }
+
+        def reserved(self):
+            calls.append("reserved")
+            return {worker: []}
+
+        def scheduled(self):
+            calls.append("scheduled")
+            return {worker: []}
+
+        def stats(self):
+            calls.append("stats")
+            return {worker: {"pool": {"max-concurrency": 2}, "total": {}}}
+
+        def registered(self):
+            calls.append("registered")
+            return {worker: ["api.tasks.ingest.ingest_watch_directory_once"]}
+
+        def active_queues(self):
+            calls.append("active_queues")
+            return {worker: [{"name": "ingest"}]}
+
+    def _inspect(*, timeout):
+        assert timeout == CELERY_INSPECTION_TIMEOUT_SECONDS
+        return _Inspect()
+
+    monkeypatch.setattr(celery_app.control, "inspect", _inspect)
+    service = AppControlsService(_Db(_AppControlsCollection()), config={})
+
+    runtime = service.runtime_status()["celery"]
+
+    assert calls[0] == "active"
+    assert runtime["active_count"] == 1
+    assert runtime["reserved_count"] == 0
+    assert runtime["tasks"][0]["task_id"] == "ingest-1"
+    assert runtime["inspection_timeout_seconds"] == CELERY_INSPECTION_TIMEOUT_SECONDS
 
 
 def test_task_summary_excludes_task_payloads_and_normalizes_scheduled_requests():

@@ -251,7 +251,13 @@ class AspConfigDoc(_StrictDocBase):
             canonical=True,
         )
         somatic = filter_profiles.get("somatic") or {}
-        required_sections = {"SNV": "snv", "CNV": "cnv", "COVERAGE": "coverage", "FUSION": "fusion"}
+        required_sections = {
+            "SNV": "snv",
+            "CNV": "cnv",
+            "TRANSLOCATION": "translocation",
+            "COVERAGE": "coverage",
+            "FUSION": "fusion",
+        }
         for analysis_type, section in required_sections.items():
             if analysis_type in self.analysis_types and not somatic.get(section):
                 raise ValueError(

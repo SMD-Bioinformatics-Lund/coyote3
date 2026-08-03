@@ -195,6 +195,8 @@ def build_cnv_export_rows(
     """Build typed CNV export rows from filtered CNV documents."""
     rows: list[DnaCnvExportRow] = []
     sample_purity = sample.get("purity")
+    if sample_purity is None:
+        sample_purity = (sample.get("case") or {}).get("purity")
     for cnv in cnvs:
         comments = cnv.get("comments") or []
         latest_comment = comments[-1] if comments else {}
@@ -230,10 +232,7 @@ def build_cnv_export_rows(
         except Exception:
             copy_number_value = safe_text(ratio)
 
-        if assay_group in {"solid", "gmsonco"}:
-            ref_alt_reads = safe_text(cnv.get("PR", "-") or "-")
-            if "gatk" not in callers_value and "cnvkit" not in callers_value:
-                copy_number_value = "-"
+        ref_alt_reads = safe_text(cnv.get("SR") or cnv.get("sr") or cnv.get("PR") or "-")
 
         status = ""
         if cnv.get("interesting"):

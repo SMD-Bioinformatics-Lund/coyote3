@@ -51,11 +51,26 @@ def cnvtype_variant(cnvs: list, checked_effects: list) -> list:
     filtered_cnvs = []
     for var in cnvs:
         effect = None
-        if var["ratio"] > 0:
+        ratio = var.get("ratio")
+        if isinstance(ratio, (int, float)) and ratio > 0:
             effect = "AMP"
-        elif var["ratio"] < 0:
+        elif isinstance(ratio, (int, float)) and ratio < 0:
             effect = "DEL"
-        if effect and effect in checked_effects:
+        else:
+            declared_type = str(var.get("type") or "").strip().upper()
+            if declared_type in {"AMP", "DUP", "GAIN"}:
+                effect = "AMP"
+            elif declared_type in {"DEL", "LOSS"}:
+                effect = "DEL"
+
+        has_structural_evidence = any(
+            var.get(key) is not None
+            and var.get(key) != ""
+            and var.get(key) != ()
+            and var.get(key) != []
+            for key in ("SR", "PR")
+        )
+        if (effect and effect in checked_effects) or (effect is None and has_structural_evidence):
             filtered_cnvs.append(var)
     return filtered_cnvs
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from api.contracts.operations import OperationResult
 from api.domain.common.errors import api_error
-from api.domain.core.dna.cnvqueries import build_cnv_query
+from api.domain.core.dna.cnvqueries import build_cnv_query, include_normal_cnvs
 from api.domain.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
 
 
@@ -15,6 +15,7 @@ def load_cnvs_for_sample(
     cnv_query = build_cnv_query(
         str(sample["_id"]),
         filters={**sample_filters, "filter_genes": filter_genes},
+        include_normal=include_normal_cnvs(sample),
     )
     cnvs = list(service.copy_number_variant_repository.get_sample_cnvs(cnv_query))
     filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))

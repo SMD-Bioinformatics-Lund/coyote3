@@ -234,7 +234,12 @@ def test_dna_report_payload_filters_reported_cnvs_by_selected_cnv_list():
         gene_list_repository=SimpleNamespace(
             get_isgl_by_asp=lambda assay, is_active=True: [],
             get_isgl_by_ids=lambda ids: {
-                "CNV_GL": {"displayname": "CNV GL", "is_active": True, "genes": ["TP53"]}
+                "CNV_GL": {
+                    "displayname": "CNV GL",
+                    "is_active": True,
+                    "list_type": ["cnv"],
+                    "genes": ["TP53"],
+                }
             },
         ),
         variant_repository=SimpleNamespace(get_case_variants=lambda query: []),

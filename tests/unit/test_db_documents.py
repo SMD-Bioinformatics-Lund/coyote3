@@ -517,6 +517,38 @@ def test_collection_validator_requires_canonical_aspc_analysis_types():
     assert "analysis" not in payload["reporting"]
 
 
+def test_collection_validator_requires_translocation_filter_scope() -> None:
+    """A translocation-enabled ASPC must define its independent gene-scope block."""
+    with pytest.raises(
+        ValueError,
+        match=r"analysis_types includes TRANSLOCATION but filters\.somatic\.translocation is missing",
+    ):
+        normalize_collection_document(
+            "asp_configs",
+            {
+                "aspc_id": "assay_1_base_development",
+                "asp_id": "assay_1",
+                "subpanel_id": "base",
+                "environment": "development",
+                "asp_group": "hematology",
+                "asp_category": "dna",
+                "analysis_types": ["SNV", "TRANSLOCATION"],
+                "display_name": "Assay 1 Dev",
+                "analysis_intents": ["somatic"],
+                "filters": {"somatic": {"snv": {"vep_consequences": ["missense"]}}},
+                "reporting": {
+                    "report_sections": ["SNV"],
+                    "report_header": "Header",
+                    "report_method": "Method",
+                    "report_description": "Description",
+                    "general_report_summary": "Summary",
+                    "plots_path": "/tmp",
+                    "report_folder": "reports",
+                },
+            },
+        )
+
+
 def test_collection_validator_normalizes_user_asp_groups_to_known_values():
     """User ASP-group scope should use the fixed assay-group vocabulary."""
     payload = normalize_collection_document(

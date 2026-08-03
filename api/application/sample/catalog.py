@@ -10,7 +10,10 @@ from typing import Any
 
 from api.application.common.assay_config import get_formatted_assay_config
 from api.config.constants import DEFAULT_ENVIRONMENT, primary_analysis_file_key
-from api.domain.common.assay_filters import get_sample_effective_genes
+from api.domain.common.assay_filters import (
+    get_sample_effective_genes,
+    has_sample_gene_restriction,
+)
 from api.domain.common.errors import api_error
 from api.domain.common.sample_filters import (
     merge_filter_defaults,
@@ -268,7 +271,7 @@ class SampleCatalogService:
             normalized = target.strip().lower()
         if omics == "rna":
             return normalized if normalized in {"fusion", "all"} else "fusion"
-        return normalized if normalized in {"snv", "cnv", "all"} else "snv"
+        return normalized if normalized in {"snv", "cnv", "translocation", "all"} else "snv"
 
     @staticmethod
     def _filter_key_for_target(target: str) -> str:
@@ -277,12 +280,13 @@ class SampleCatalogService:
             "snv": "snvlists",
             "cnv": "cnvlists",
             "fusion": "fusionlists",
+            "translocation": "fusionlists",
         }.get(target, "snvlists")
 
     @staticmethod
     def _filter_section_for_target(target: str) -> str:
         """Map target scope to the sample filter section."""
-        return "fusion" if target == "fusion" else target
+        return target
 
     @classmethod
     def _sample_filters(cls, sample: dict[str, Any]) -> dict[str, Any]:
@@ -340,7 +344,47 @@ class SampleCatalogService:
     def _is_matching_target(cls, gl: dict[str, Any], target: str) -> bool:
         """Check whether a genelist document matches the requested scope."""
         supported_targets = cls._normalized_gl_list_types(gl)
-        return target == "all" or target in supported_targets
+        normalized_target = "fusion" if target == "translocation" else target
+        return normalized_target == "all" or normalized_target in supported_targets
+
+    def _validated_genelist_ids(self, values: Any, *, target: str) -> list[str]:
+        """Validate selected ISGL IDs against one analysis-specific list contract."""
+        if not isinstance(values, list):
+            raise api_error(400, f"{target.upper()} gene-list selection must be a list")
+        normalized_ids = list(
+            dict.fromkeys(str(value).strip() for value in values if str(value).strip())
+        )
+        selected_docs = self.gene_list_repository.get_isgl_by_ids(normalized_ids)
+        missing_ids = [list_id for list_id in normalized_ids if list_id not in selected_docs]
+        incompatible_ids = [
+            list_id
+            for list_id, list_doc in selected_docs.items()
+            if not self._is_matching_target(list_doc, target)
+        ]
+        if missing_ids:
+            raise api_error(400, f"Unknown or inactive gene list(s): {', '.join(missing_ids)}")
+        if incompatible_ids:
+            raise api_error(
+                400,
+                f"Gene list(s) do not support {target.upper()} analysis: "
+                + ", ".join(incompatible_ids),
+            )
+        return normalized_ids
+
+    def _validate_filter_genelists(self, filters: dict[str, Any]) -> dict[str, Any]:
+        """Validate every persisted analysis-specific ISGL selection."""
+        validated = deepcopy(filters)
+        for intent, target, key in (
+            ("somatic", "snv", "snvlists"),
+            ("germline", "snv", "snvlists"),
+            ("somatic", "cnv", "cnvlists"),
+            ("somatic", "fusion", "fusionlists"),
+            ("somatic", "translocation", "fusionlists"),
+        ):
+            section = (validated.get(intent) or {}).get(target) or {}
+            if key in section:
+                section[key] = self._validated_genelist_ids(section[key], target=target)
+        return validated
 
     @staticmethod
     def _isgl_list_type_for_target(target: str) -> str | None:
@@ -349,6 +393,7 @@ class SampleCatalogService:
             "snv": "snv",
             "cnv": "cnv",
             "fusion": "fusion",
+            "translocation": "fusion",
         }.get(target)
 
     @classmethod
@@ -396,7 +441,7 @@ class SampleCatalogService:
     ) -> dict[str, Any]:
         """Return selected ISGL/ad-hoc list summaries for the sample header card."""
         omics = str(sample.get("omics_layer") or "dna").strip().lower()
-        targets = ["fusion"] if omics == "rna" else ["snv", "cnv"]
+        targets = ["fusion"] if omics == "rna" else ["snv", "cnv", "translocation"]
         summary: dict[str, Any] = {}
         for target in targets:
             target_filters = self._target_filters(sample, target)
@@ -439,7 +484,7 @@ class SampleCatalogService:
         raw = filters.get("adhoc_genes")
         if not raw:
             sectioned_raw: dict[str, Any] = {}
-            for scope in ("snv", "cnv", "fusion"):
+            for scope in ("snv", "cnv", "fusion", "translocation"):
                 section = filters.get(scope)
                 if isinstance(section, dict) and section.get("adhoc_genes"):
                     sectioned_raw[scope] = section.get("adhoc_genes")
@@ -447,7 +492,7 @@ class SampleCatalogService:
         if not raw:
             return None
         if isinstance(raw, dict):
-            scoped_keys = {"snv", "cnv", "fusion", "all"}
+            scoped_keys = {"snv", "cnv", "fusion", "translocation", "all"}
             if scoped_keys & set(raw.keys()):
                 normalized_scopes: dict[str, Any] = {}
                 for scope in scoped_keys:
@@ -521,7 +566,7 @@ class SampleCatalogService:
         genes: set[str] = set()
 
         def _add(value: Any) -> None:
-            text = str(value or "").strip()
+            text = str(value or "").strip().upper()
             if text:
                 genes.add(text)
 
@@ -546,8 +591,14 @@ class SampleCatalogService:
             info_entries = []
 
         for entry in info_entries:
-            anns = entry.get("ANN") if isinstance(entry, dict) else None
-            for ann in anns or []:
+            if not isinstance(entry, dict):
+                continue
+            annotations = []
+            mane_annotation = entry.get("MANE_ANN")
+            if isinstance(mane_annotation, dict):
+                annotations.append(mane_annotation)
+            annotations.extend(ann for ann in (entry.get("ANN") or []) if isinstance(ann, dict))
+            for ann in annotations:
                 if not isinstance(ann, dict):
                     continue
                 gene_name = ann.get("Gene_Name")
@@ -559,6 +610,7 @@ class SampleCatalogService:
     @classmethod
     def _count_matching_docs(cls, rows: Any, genes: set[str]) -> int:
         """Count docs whose resolved gene names intersect the provided gene set."""
+        genes = {str(gene).strip().upper() for gene in genes if str(gene).strip()}
         if not genes:
             return 0
         total = 0
@@ -578,23 +630,16 @@ class SampleCatalogService:
             raise api_error(400, "Sample is missing the 'asp_id' field")
         asp_group = str(asp.get("asp_group") or "")
         asp_covered_genes, _asp_germline_genes = self.assay_panel_repository.get_asp_genes(assay)
-
-        effective_genes = set(asp_covered_genes)
-        adhoc_genes = self._adhoc_genes_for_target(filters, target)
-        isgl_genes: set[str] = set()
-
+        resolved_asp = {**asp, "covered_genes": asp_covered_genes}
         selected_list_ids = target_filters.get(self._filter_key_for_target(target), [])
-        if selected_list_ids:
-            isgls = self.gene_list_repository.get_isgl_by_ids(selected_list_ids)
-            for _gl_key, gl_values in isgls.items():
-                isgl_genes.update(gl_values.get("genes", []))
-
-        filter_genes = adhoc_genes.union(isgl_genes) if adhoc_genes or isgl_genes else set()
-        if filter_genes and asp_group not in ["tumwgs", "wts"]:
-            effective_genes = effective_genes.intersection(filter_genes)
-        elif filter_genes:
-            effective_genes = deepcopy(filter_genes)
-        return sorted(effective_genes), asp_covered_genes, asp_group
+        selected_lists = self.gene_list_repository.get_isgl_by_ids(selected_list_ids)
+        _covered_map, effective_genes = get_sample_effective_genes(
+            {**sample, "filters": filters},
+            resolved_asp,
+            selected_lists,
+            target=target,
+        )
+        return effective_genes, asp_covered_genes, asp_group
 
     def _analysis_counts(
         self, *, sample: dict, asp: dict[str, Any], variant_stats_raw: dict[str, Any]
@@ -610,9 +655,17 @@ class SampleCatalogService:
         fusion_genes, _fusion_covered_genes, _ = self._effective_genes_for_target(
             sample=sample, asp=asp, target="fusion"
         )
+        translocation_genes, _translocation_covered_genes, _ = self._effective_genes_for_target(
+            sample=sample, asp=asp, target="translocation"
+        )
 
         variant_stats_filtered = deepcopy(variant_stats_raw or {})
-        if (
+        snv_restricted = has_sample_gene_restriction(sample, asp, target="snv")
+        cnv_restricted = has_sample_gene_restriction(sample, asp, target="cnv")
+        fusion_restricted = has_sample_gene_restriction(sample, asp, target="fusion")
+        if snv_restricted and not snv_genes:
+            variant_stats_filtered = {**variant_stats_filtered, "variants": 0}
+        elif (
             snv_genes
             and variant_stats_raw
             and (len(snv_genes) < len(asp_covered_genes) or asp_group in ["tumwgs", "wts"])
@@ -642,13 +695,13 @@ class SampleCatalogService:
         filtered_counts = {
             "snv": int(variant_stats_filtered.get("variants") or 0),
             "cnv": self._count_matching_docs(cnv_rows, set(cnv_genes))
-            if cnv_genes
+            if cnv_restricted
             else raw_counts["cnv"],
-            "transloc": self._count_matching_docs(transloc_rows, set(snv_genes))
-            if snv_genes
+            "transloc": self._count_matching_docs(transloc_rows, set(translocation_genes))
+            if has_sample_gene_restriction(sample, asp, target="translocation")
             else raw_counts["transloc"],
             "fusion": self._count_matching_docs(fusion_rows, set(fusion_genes))
-            if fusion_genes
+            if fusion_restricted
             else raw_counts["fusion"],
             "biomarker": raw_counts["biomarker"],
         }
@@ -844,7 +897,7 @@ class SampleCatalogService:
         asp = self.assay_panel_repository.get_asp(sample.get("asp_id"))
         if target == "all":
             items = []
-            for scoped_target in ("snv", "cnv", "fusion"):
+            for scoped_target in ("snv", "cnv", "translocation", "fusion"):
                 items.extend(
                     self._genelist_options_for_target(sample=sample, asp=asp, target=scoped_target)
                 )
@@ -918,7 +971,7 @@ class SampleCatalogService:
             omics_layer=str(sample.get("omics_layer") or "dna"),
         )
         for scope, entry in adhoc_scopes.items():
-            if scope in {"snv", "cnv", "fusion"}:
+            if scope in {"snv", "cnv", "fusion", "translocation"}:
                 sample_filters.setdefault(scope, {})["adhoc_genes"] = entry
         sample["filters"] = sample_filters
 
@@ -984,14 +1037,17 @@ class SampleCatalogService:
         genelist_ids = payload.get("isgl_ids", [])
         if not isinstance(genelist_ids, list):
             raise api_error(400, "Invalid isgl_ids payload")
-        target_filters[self._filter_key_for_target(target)] = list(deepcopy(genelist_ids))
+        if target == "all":
+            raise api_error(400, "Gene lists must be applied to one analysis type")
+        normalized_ids = self._validated_genelist_ids(genelist_ids, target=target)
+        target_filters[self._filter_key_for_target(target)] = normalized_ids
         filters = self._replace_target_filters(sample, target, target_filters)
         self.sample_repository.update_sample_filters(sample.get("_id"), filters)
         return {
             "status": "ok",
             "sample_id": sample_id,
             "action": "apply_genelists",
-            "genelist_ids": genelist_ids,
+            "genelist_ids": normalized_ids,
             "list_type": target,
         }
 
@@ -1122,6 +1178,7 @@ class SampleCatalogService:
             omics_layer=str(sample.get("omics_layer") or "dna"),
             analysis_intents=sample.get("analysis_intents"),
         )
+        normalized = self._validate_filter_genelists(normalized)
         self.sample_repository.update_sample_filters(sample.get("_id"), normalized)
 
     def reset_sample_filters(self, *, sample: dict, assay_config: dict) -> None:
@@ -1131,6 +1188,7 @@ class SampleCatalogService:
             str(sample.get("omics_layer") or "dna"),
             analysis_intents=sample.get("analysis_intents"),
         )
+        default_filters = self._validate_filter_genelists(default_filters)
         self.sample_repository.reset_sample_settings(
             sample.get("_id"),
             default_filters,

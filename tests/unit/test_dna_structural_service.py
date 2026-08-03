@@ -33,9 +33,10 @@ class _CnvHandlerStub:
 class _TranslocHandlerStub:
     def __init__(self) -> None:
         self.doc: dict | None = {"_id": "t1", "SAMPLE_ID": "S1"}
+        self.sample_translocations_payload = [{"_id": "t1", "SAMPLE_ID": "S1"}]
 
-    def get_sample_translocations(self, sample_id: str):
-        return [{"_id": "t1", "SAMPLE_ID": sample_id}]
+    def get_sample_translocations(self, _query):
+        return self.sample_translocations_payload
 
     def get_transloc(self, _transloc_id: str):
         return self.doc
@@ -51,9 +52,13 @@ class _RepoStub:
     def __init__(self) -> None:
         self.copy_number_variant_repository = _CnvHandlerStub()
         self.translocation_repository = _TranslocHandlerStub()
-        self.assay_panel_repository = SimpleNamespace(get_asp=lambda asp_name: {"_id": asp_name})
+        self.asp_doc = {"_id": "WGS", "covered_genes": []}
+        self.gene_lists: dict[str, dict] = {}
+        self.assay_panel_repository = SimpleNamespace(get_asp=lambda **_kwargs: self.asp_doc)
         self.gene_list_repository = SimpleNamespace(
-            get_isgl_by_ids=lambda ids: {i: [] for i in ids}
+            get_isgl_by_ids=lambda ids: {
+                list_id: self.gene_lists[list_id] for list_id in ids if list_id in self.gene_lists
+            }
         )
         self.bam_record_repository = SimpleNamespace(
             get_bams=lambda sample_ids: {"ids": sample_ids}
@@ -120,7 +125,11 @@ def test_load_cnvs_for_sample_applies_query_and_filter(monkeypatch):
     monkeypatch.setattr(
         service_module,
         "build_cnv_query",
-        lambda sample_id, filters: {"sample": sample_id, **filters},
+        lambda sample_id, filters, include_normal=False: {
+            "sample": sample_id,
+            "include_normal": include_normal,
+            **filters,
+        },
     )
     monkeypatch.setattr(service_module, "create_cnveffectlist", lambda effects: effects)
     monkeypatch.setattr(
@@ -142,7 +151,7 @@ def test_list_cnvs_payload_uses_selected_cnvlists_for_effective_genes(monkeypatc
 
     def _get_isgl_by_ids(ids):
         captured["ids"] = list(ids)
-        return {"GL1": {"genes": ["TP53"]}}
+        return {"GL1": {"genes": ["TP53"], "list_type": ["cnv"]}}
 
     repo.gene_list_repository = SimpleNamespace(get_isgl_by_ids=_get_isgl_by_ids)
     service = DnaStructuralService(
@@ -238,10 +247,84 @@ def test_show_cnv_payload_returns_detail(monkeypatch):
 def test_list_translocations_payload_returns_count(monkeypatch):
     repo = _RepoStub()
     service = _service_from_repo(repo)
+    monkeypatch.setattr(
+        service_module, "get_formatted_assay_config", lambda _sample: {"filters": {}}
+    )
     payload = service.list_translocations_payload(
         request=_request("/api/v1/translocations/S1"), sample=_sample()
     )
     assert payload["meta"]["count"] == 1
+    assert payload["vep_conseq_translations"] == {"A": "B"}
+
+
+def test_list_translocations_uses_selected_translocation_list(monkeypatch):
+    repo = _RepoStub()
+    repo.asp_doc = {"_id": "WGS", "covered_genes": ["KMT2A", "NPM1"]}
+    repo.gene_lists = {
+        "STRUCTURAL": {
+            "displayname": "Structural genes",
+            "is_active": True,
+            "list_type": ["snv", "cnv", "fusion"],
+            "genes": ["KMT2A"],
+        }
+    }
+    repo.translocation_repository.sample_translocations_payload = [
+        {
+            "_id": "keep",
+            "SAMPLE_ID": "S1",
+            "INFO": {"MANE_ANN": {"Gene_Name": "KMT2A"}},
+        },
+        {"_id": "drop", "SAMPLE_ID": "S1", "gene1": "NPM1", "gene2": "ALK"},
+    ]
+    sample = _sample()
+    sample["filters"] = {"somatic": {"translocation": {"fusionlists": ["STRUCTURAL"]}}}
+    monkeypatch.setattr(
+        service_module, "get_formatted_assay_config", lambda _sample: {"filters": {}}
+    )
+
+    payload = _service_from_repo(repo).list_translocations_payload(
+        request=_request("/api/v1/translocations/S1"),
+        sample=sample,
+    )
+
+    assert [row["_id"] for row in payload["translocations"]] == ["keep"]
+
+
+def test_list_translocations_falls_back_to_asp_covered_genes(monkeypatch):
+    repo = _RepoStub()
+    repo.asp_doc = {"_id": "WGS", "covered_genes": ["NPM1"]}
+    repo.translocation_repository.sample_translocations_payload = [
+        {"_id": "keep", "SAMPLE_ID": "S1", "gene1": "NPM1"},
+        {"_id": "drop", "SAMPLE_ID": "S1", "gene1": "KMT2A"},
+    ]
+    monkeypatch.setattr(
+        service_module, "get_formatted_assay_config", lambda _sample: {"filters": {}}
+    )
+
+    payload = _service_from_repo(repo).list_translocations_payload(
+        request=_request("/api/v1/translocations/S1"),
+        sample=_sample(),
+    )
+
+    assert [row["_id"] for row in payload["translocations"]] == ["keep"]
+
+
+def test_list_translocations_is_unrestricted_without_list_or_asp_scope(monkeypatch):
+    repo = _RepoStub()
+    repo.translocation_repository.sample_translocations_payload = [
+        {"_id": "one", "SAMPLE_ID": "S1", "gene1": "NPM1"},
+        {"_id": "two", "SAMPLE_ID": "S1", "gene1": "KMT2A"},
+    ]
+    monkeypatch.setattr(
+        service_module, "get_formatted_assay_config", lambda _sample: {"filters": {}}
+    )
+
+    payload = _service_from_repo(repo).list_translocations_payload(
+        request=_request("/api/v1/translocations/S1"),
+        sample=_sample(),
+    )
+
+    assert [row["_id"] for row in payload["translocations"]] == ["one", "two"]
 
 
 def test_show_translocation_payload_rejects_cross_sample(monkeypatch):

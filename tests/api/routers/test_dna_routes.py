@@ -184,7 +184,11 @@ def test_load_cnvs_for_sample_uses_collection_shaped_docs(monkeypatch):
     monkeypatch.setattr(
         dna_service_module,
         "build_cnv_query",
-        lambda sample_id, filters: {"sample_id": sample_id, **filters},
+        lambda sample_id, filters, include_normal=False: {
+            "sample_id": sample_id,
+            "include_normal": include_normal,
+            **filters,
+        },
     )
     monkeypatch.setattr(dna_service_module, "create_cnveffectlist", lambda cnv_effects: [])
     monkeypatch.setattr(dna_service_module, "cnv_organizegenes", lambda cnvs: cnvs)

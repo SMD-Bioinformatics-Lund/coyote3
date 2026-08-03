@@ -16,15 +16,20 @@ from api.application.reporting.dna_report_payload import hotspot_variant
 from api.config.database_versions import require_sample_vep_version
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
+from api.domain.common.assay_filters import has_sample_gene_restriction
 from api.domain.common.errors import api_error, setup_error
 from api.domain.common.sample_filters import (
     merge_filter_defaults,
     merged_dna_cnv_filters,
+    merged_dna_translocation_filters,
     merged_dna_variant_filters,
 )
 from api.domain.core.dna.dna_variants import format_pon
 from api.domain.core.dna.notation import one_letter_p
-from api.domain.core.dna.translocqueries import build_transloc_query
+from api.domain.core.dna.translocqueries import (
+    build_transloc_query,
+    filter_translocations_by_genes,
+)
 
 
 def _variant_case_af_value(variant: dict[str, Any]) -> float:
@@ -298,6 +303,8 @@ def _build_display_and_summary_sections(
     cnv_filters: dict,
     filter_genes: list[str],
     cnv_filter_genes: list[str],
+    translocation_filter_genes: list[str],
+    translocation_restricted: bool,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Build display and summary section dictionaries for report payloads."""
     display_sections_data: dict[str, Any] = {"snvs": deepcopy(variants)}
@@ -323,8 +330,11 @@ def _build_display_and_summary_sections(
         transloc_query = build_transloc_query(
             str(sample["_id"]),
         )
-        display_sections_data["translocs"] = list(
-            service.translocation_repository.get_sample_translocations(transloc_query)
+        translocs = list(service.translocation_repository.get_sample_translocations(transloc_query))
+        display_sections_data["translocs"] = filter_translocations_by_genes(
+            translocs,
+            filter_genes=translocation_filter_genes,
+            restricted=translocation_restricted,
         )
 
     if "FUSION" in analysis_sections:
@@ -411,6 +421,35 @@ def list_variants_payload(
     _cnv_genes_covered_in_panel, cnv_filter_genes = util_module.common.get_sample_effective_genes(
         sample, assay_panel_doc, checked_cnvlists_genes_dict, target="cnv"
     )
+    snv_gene_restricted = has_sample_gene_restriction(
+        {**sample, "filters": sample_filters},
+        assay_panel_doc,
+        target="snv",
+        intent=intent,
+    )
+    cnv_filters["restrict_to_genes"] = has_sample_gene_restriction(
+        {**sample, "filters": sample_filters},
+        assay_panel_doc,
+        target="cnv",
+    )
+    translocation_filters = merged_dna_translocation_filters(sample_filters)
+    checked_translocation_lists = translocation_filters.get("fusionlists", [])
+    checked_translocation_docs = service.gene_list_repository.get_isgl_by_ids(
+        checked_translocation_lists
+    )
+    _translocation_covered, translocation_filter_genes = (
+        util_module.common.get_sample_effective_genes(
+            sample,
+            assay_panel_doc,
+            checked_translocation_docs,
+            target="translocation",
+        )
+    )
+    translocation_restricted = has_sample_gene_restriction(
+        {**sample, "filters": sample_filters},
+        assay_panel_doc,
+        target="translocation",
+    )
     filter_conseq = get_filter_conseq_terms_fn(snv_filters.get("vep_consequences", []))
 
     disp_pos = []
@@ -434,6 +473,7 @@ def list_variants_payload(
             "max_popfreq": snv_filters["max_popfreq"],
             "filter_conseq": filter_conseq,
             "filter_genes": filter_genes,
+            "restrict_to_genes": snv_gene_restricted,
             "disp_pos": disp_pos,
             "asp_id": sample.get("asp_id"),
             "subpanel_id": sample.get("subpanel_id") or assay_config.get("subpanel_id"),
@@ -488,6 +528,8 @@ def list_variants_payload(
         cnv_filters=cnv_filters,
         filter_genes=filter_genes,
         cnv_filter_genes=cnv_filter_genes,
+        translocation_filter_genes=translocation_filter_genes,
+        translocation_restricted=translocation_restricted,
     )
     pagination_meta: dict[str, Any] = {
         "total": len(variants),

@@ -1311,6 +1311,7 @@ def test_admin_aspc_create_context_uses_analysis_sections_not_genelist_fields(mo
     assert "somatic.snv.snvlists" in filter_keys
     assert "somatic.cnv.cnvlists" in filter_keys
     assert "somatic.fusion.fusionlists" not in filter_keys
+    assert "somatic.translocation.fusionlists" in filter_keys
     assert "TMB" in report_section_options
     assert "PGX" in report_section_options
     assert "report_sections" in reporting_field_keys

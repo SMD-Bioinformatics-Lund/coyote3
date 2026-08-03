@@ -23,7 +23,7 @@ from api.domain.core.filter_capabilities import (
     GERMLINE_ANALYSIS_TYPE_OPTIONS,
 )
 
-DNA_FILTER_SECTIONS = ("snv", "cnv", "coverage")
+DNA_FILTER_SECTIONS = ("snv", "cnv", "translocation", "coverage")
 RNA_FILTER_SECTIONS = ("fusion",)
 VALID_INTENTS = ANALYSIS_INTENT_OPTIONS
 
@@ -195,6 +195,19 @@ def merged_dna_cnv_filters(
     merged = dict(profile.get("cnv") or {})
     merged.update(profile.get("coverage") or {})
     return merged
+
+
+def merged_dna_translocation_filters(
+    filters: dict[str, Any] | None, *, analysis_intents: Any = None
+) -> dict[str, Any]:
+    """Return the somatic DNA fusion/translocation gene-scope values."""
+    profile = normalize_sample_filters(
+        filters,
+        omics_layer="dna",
+        analysis_intents=analysis_intents,
+        intent="somatic",
+    )
+    return dict(profile.get("translocation") or {})
 
 
 def _validate_profile_availability(

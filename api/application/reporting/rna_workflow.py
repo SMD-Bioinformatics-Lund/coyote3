@@ -16,6 +16,7 @@ from api.application.reporting.persistence import (
 from api.domain.common.assay_filters import (
     format_filters_from_form,
     get_sample_effective_genes,
+    has_sample_gene_restriction,
     merge_sample_settings_with_assay_config,
 )
 from api.domain.common.reporting import get_report_header, utc_now
@@ -181,6 +182,15 @@ class RNAWorkflowService:
             "checked_fusionlists": checked_fusionlists,
             "genes_covered_in_panel": genes_covered_in_panel,
             "filter_genes": filter_genes,
+            "restrict_to_genes": has_sample_gene_restriction(
+                {
+                    **sample,
+                    "omics_layer": "rna",
+                    "filters": {"somatic": {"fusion": sample_filters}},
+                },
+                assay_panel_doc,
+                target="fusion",
+            ),
             "fusion_effect_form_keys": fusion_effect_form_keys,
         }
 
@@ -202,6 +212,7 @@ class RNAWorkflowService:
                 "fusion_callers": filter_context["fusion_callers"],
                 "checked_fusionlists": filter_context["checked_fusionlists"],
                 "filter_genes": filter_context["filter_genes"],
+                "restrict_to_genes": filter_context["restrict_to_genes"],
             },
         )
 

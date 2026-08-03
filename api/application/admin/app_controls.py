@@ -18,6 +18,7 @@ from api.infra.request_context import current_username
 
 APP_CONTROLS_COLLECTION = "app_controls"
 APP_CONTROLS_ID = "default"
+CELERY_INSPECTION_TIMEOUT_SECONDS = 1.5
 
 
 def _task_summary(
@@ -235,7 +236,7 @@ class AppControlsService:
                 "queue_names": [],
                 "queue_consumers": {},
                 "tasks": [],
-                "inspection_timeout_seconds": 0.5,
+                "inspection_timeout_seconds": CELERY_INSPECTION_TIMEOUT_SECONDS,
                 "error": None,
             },
             "modules": {
@@ -258,11 +259,13 @@ class AppControlsService:
         try:
             from api.celery_app import celery_app
 
-            inspect = celery_app.control.inspect(timeout=0.5)
-            stats = inspect.stats() or {}
+            inspect = celery_app.control.inspect(timeout=CELERY_INSPECTION_TIMEOUT_SECONDS)
+            # Active work is the most time-sensitive observation. Read it before
+            # slower worker metadata so short jobs are less likely to finish first.
             active = inspect.active() or {}
             reserved = inspect.reserved() or {}
             scheduled = inspect.scheduled() or {}
+            stats = inspect.stats() or {}
             registered = inspect.registered() or {}
             active_queues = inspect.active_queues() or {}
             queue_names = {

@@ -120,6 +120,8 @@ class DnaTranslocationsPayload(BaseModel):
 
     sample: dict[str, Any]
     meta: dict[str, Any]
+    filters: dict[str, Any]
+    vep_conseq_translations: dict[str, Any]
     translocations: list[dict[str, Any]]
 
 

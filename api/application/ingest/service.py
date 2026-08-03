@@ -192,24 +192,19 @@ class InternalIngestService:
         self, *, sample_id: str, sample: dict[str, Any]
     ) -> dict[str, int]:
         """Populate the public OncoKB cache for persisted small variants."""
+        empty_result = {
+            "queried": 0,
+            "inserted": 0,
+            "genes_upserted": 0,
+            "skipped": 0,
+            "cached": 0,
+            "genes_seeded": 0,
+        }
         if not self.oncokb_public_lookups_enabled:
-            return {
-                "queried": 0,
-                "inserted": 0,
-                "genes_upserted": 0,
-                "skipped": 0,
-                "cached": 0,
-                "genes_seeded": 0,
-            }
+            return empty_result
+
         if self.oncokb_public_cache_repository is None or self.oncokb_public_client is None:
-            return {
-                "queried": 0,
-                "inserted": 0,
-                "genes_upserted": 0,
-                "skipped": 0,
-                "cached": 0,
-                "genes_seeded": 0,
-            }
+            return empty_result
         try:
             variants = list(self._collection("variants").find({"SAMPLE_ID": str(sample_id)}))
             try:
@@ -231,14 +226,19 @@ class InternalIngestService:
                 sample.get("name"),
                 exc,
             )
-            return {
-                "queried": 0,
-                "inserted": 0,
-                "genes_upserted": 0,
-                "skipped": 0,
-                "cached": 0,
-                "genes_seeded": 0,
-            }
+            return empty_result
+
+    def enrich_public_oncokb_cache_for_sample(self, sample_id: str) -> dict[str, int]:
+        """Populate optional public OncoKB caches after core sample ingest completes."""
+        sample = self._sample_collection().find_one(
+            {"_id": self._provider_sample_id(str(sample_id))}
+        )
+        if not sample:
+            raise ValueError(f"sample not found: {sample_id}")
+        return self._enrich_public_oncokb_cache(
+            sample_id=str(sample_id),
+            sample=dict(sample),
+        )
 
     def list_supported_collections(self) -> list[str]:
         """List collection names that can be validated/inserted via ingest APIs."""
@@ -824,10 +824,6 @@ class InternalIngestService:
             {"$set": {"ingest_status": "ready", "data_counts": counts}},
             upsert=False,
         )
-        oncokb_public = self._enrich_public_oncokb_cache(
-            sample_id=sample_id,
-            sample={**dict(current_doc), **validated_payload, "_id": sample_id},
-        )
         self._invalidate_dashboard_cache_after_ingest()
         return {
             "status": "ok",
@@ -835,7 +831,7 @@ class InternalIngestService:
             "sample_name": str(current_doc["name"]),
             "written": written,
             "data_counts": counts,
-            "oncokb_public": oncokb_public,
+            "oncokb_public": {"status": "deferred"},
         }
 
     def ingest_sample_bundle(
@@ -933,10 +929,6 @@ class InternalIngestService:
                         upsert=False,
                         **sample_kwargs,
                     )
-            oncokb_public = self._enrich_public_oncokb_cache(
-                sample_id=sample_id,
-                sample={**document, "_id": sample_id, "name": sample_name},
-            )
             self._invalidate_dashboard_cache_after_ingest()
         except Exception:
             self._cleanup(sample_id)
@@ -948,7 +940,7 @@ class InternalIngestService:
             "sample_name": sample_name,
             "written": written,
             "data_counts": counts,
-            "oncokb_public": oncokb_public,
+            "oncokb_public": {"status": "deferred"},
         }
 
     def insert_collection_document(

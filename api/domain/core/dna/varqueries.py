@@ -267,6 +267,8 @@ def build_pos_genes_filter(settings: dict[str, Any]) -> dict[str, Any]:
     partial_query: dict[str, Any] = {}
     if pos_list:
         partial_query["POS"] = {"$in": pos_list}
+    elif settings.get("restrict_to_genes") and not genes_list:
+        partial_query["_id"] = {"$exists": False}
     elif genes_list:
         partial_query["genes"] = {"$in": genes_list}
     if fp:

@@ -18,6 +18,7 @@ from api.config.database_versions import sample_vep_version
 from api.domain.common.assay_filters import (
     get_assay_genelist_names,
     get_sample_effective_genes,
+    has_sample_gene_restriction,
 )
 from api.domain.common.reporting import (
     TIER_DESC,
@@ -29,6 +30,7 @@ from api.domain.common.reporting import (
 from api.domain.common.sample_filters import (
     merge_filter_defaults,
     merged_dna_cnv_filters,
+    merged_dna_translocation_filters,
     merged_dna_variant_filters,
 )
 from api.domain.core.dna.dna_filters import (
@@ -40,6 +42,7 @@ from api.domain.core.dna.dna_filters import (
     get_filter_conseq_terms as shared_get_filter_conseq_terms,
 )
 from api.domain.core.dna.notation import one_letter_p, standard_hgvs
+from api.domain.core.dna.translocqueries import filter_translocations_by_genes
 from api.domain.core.dna.variant_identity import (
     build_simple_id_hash_from_simple_id,
     normalize_simple_id,
@@ -79,7 +82,13 @@ def hotspot_variant(variants: list) -> list[dict]:
     return hotspots
 
 
-def filter_variants_for_report(variants: list, filter_genes: list, assay: str) -> list:
+def filter_variants_for_report(
+    variants: list,
+    filter_genes: list,
+    assay: str,
+    *,
+    restrict_to_genes: bool = False,
+) -> list:
     """
     Filter and sort variants included in report output.
     """
@@ -89,7 +98,7 @@ def filter_variants_for_report(variants: list, filter_genes: list, assay: str) -
             for var in variants
             if (
                 var.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL") in filter_genes
-                or len(filter_genes) == 0
+                or (not restrict_to_genes and len(filter_genes) == 0)
             )
             and not var.get("blacklist")
             and var.get("classification")
@@ -319,11 +328,48 @@ def _resolve_cnv_filter_genes(
     return filter_genes
 
 
+def _resolve_translocation_filter_genes(
+    sample: dict,
+    sample_filters: dict,
+    assay_panel_doc: dict,
+    *,
+    gene_list_repository,
+) -> tuple[list[str], bool]:
+    """Resolve DNA fusion/translocation report gene scope."""
+    translocation_filters = merged_dna_translocation_filters(sample_filters)
+    selected_ids = list(translocation_filters.get("fusionlists") or [])
+    selected_docs = gene_list_repository.get_isgl_by_ids(selected_ids)
+    _covered, filter_genes = get_sample_effective_genes(
+        sample,
+        assay_panel_doc,
+        selected_docs,
+        target="translocation",
+    )
+    restricted = has_sample_gene_restriction(
+        {**sample, "filters": sample_filters},
+        assay_panel_doc,
+        target="translocation",
+    )
+    return filter_genes, restricted
+
+
+def _filter_translocations_for_report(
+    rows: list[dict], *, filter_genes: list[str], restricted: bool
+) -> list[dict]:
+    """Apply the DNA fusion/translocation gene scope to report findings."""
+    return filter_translocations_by_genes(
+        rows,
+        filter_genes=filter_genes,
+        restricted=restricted,
+    )
+
+
 def _filter_cnvs_for_report(
     cnvs: list[dict],
     *,
     sample_filters: dict,
     filter_genes: list[str],
+    restricted: bool,
 ) -> list[dict]:
     """Apply CNV effect and gene-list filters to report-included CNVs."""
     filtered_cnvs = list(cnvs)
@@ -331,12 +377,15 @@ def _filter_cnvs_for_report(
     filter_cnveffects = create_cnveffectlist(cnv_filters.get("cnveffects", []))
     if filter_cnveffects:
         filtered_cnvs = cnvtype_variant(filtered_cnvs, filter_cnveffects)
-    if filter_genes:
-        filter_genes_set = set(filter_genes)
+    if restricted:
+        filter_genes_set = {str(gene).strip().upper() for gene in filter_genes if str(gene).strip()}
         filtered_cnvs = [
             cnv
             for cnv in filtered_cnvs
-            if any((gene or {}).get("gene") in filter_genes_set for gene in cnv.get("genes", []))
+            if any(
+                str((gene or {}).get("gene") or "").strip().upper() in filter_genes_set
+                for gene in cnv.get("genes", [])
+            )
         ]
     return cnv_organizegenes(filtered_cnvs)
 
@@ -357,6 +406,7 @@ def _build_variant_query(
     filter_conseq: list,
     filter_genes: list,
     disp_pos: list,
+    restrict_to_genes: bool,
     intent: str = "somatic",
 ) -> dict:
     """Build variant lookup query payload for report preparation."""
@@ -373,6 +423,7 @@ def _build_variant_query(
             "max_popfreq": snv_filters["max_popfreq"],
             "filter_conseq": filter_conseq,
             "filter_genes": filter_genes,
+            "restrict_to_genes": restrict_to_genes,
             "disp_pos": disp_pos,
             "asp_id": sample.get("asp_id"),
             "subpanel_id": sample.get("subpanel_id"),
@@ -492,6 +543,11 @@ def build_dna_report_payload(
         filter_conseq=filter_conseq,
         filter_genes=filter_genes,
         disp_pos=disp_pos,
+        restrict_to_genes=has_sample_gene_restriction(
+            sample,
+            assay_panel_doc,
+            target="snv",
+        ),
     )
 
     variants = list(variant_repository.get_case_variants(query) or [])
@@ -501,7 +557,16 @@ def build_dna_report_payload(
         variants, assay_group, subpanel, annotation_repository=annotation_repository
     )
     variants = hotspot_variant(variants)
-    variants = filter_variants_for_report(variants, filter_genes, assay_group)
+    variants = filter_variants_for_report(
+        variants,
+        filter_genes,
+        assay_group,
+        restrict_to_genes=has_sample_gene_restriction(
+            sample,
+            assay_panel_doc,
+            target="snv",
+        ),
+    )
 
     latest_sample_comment = sample_repository.get_latest_sample_comment(
         sample_id=str(sample["_id"])
@@ -533,6 +598,12 @@ def build_dna_report_payload(
             filter_conseq=germline_consequences,
             filter_genes=filter_genes,
             disp_pos=disp_pos,
+            restrict_to_genes=has_sample_gene_restriction(
+                sample,
+                assay_panel_doc,
+                target="snv",
+                intent="germline",
+            ),
             intent="germline",
         )
         germline_variants = list(variant_repository.get_case_variants(germline_query) or [])
@@ -543,7 +614,17 @@ def build_dna_report_payload(
             germline_variants, assay_group, subpanel, annotation_repository=annotation_repository
         )
         germline_variants = hotspot_variant(germline_variants)
-        germline_variants = filter_variants_for_report(germline_variants, filter_genes, assay_group)
+        germline_variants = filter_variants_for_report(
+            germline_variants,
+            filter_genes,
+            assay_group,
+            restrict_to_genes=has_sample_gene_restriction(
+                sample,
+                assay_panel_doc,
+                target="snv",
+                intent="germline",
+            ),
+        )
         if include_snapshot:
             snapshot_rows.extend(
                 _build_snapshot_rows(
@@ -573,6 +654,11 @@ def build_dna_report_payload(
             interesting_cnvs,
             sample_filters=sample_filters,
             filter_genes=cnv_filter_genes,
+            restricted=has_sample_gene_restriction(
+                sample,
+                assay_panel_doc,
+                target="cnv",
+            ),
         )
         rule_sections_data["cnvs"] = report_sections_data["cnvs"]
 
@@ -591,11 +677,24 @@ def build_dna_report_payload(
         rule_sections_data["biomarkers"] = report_sections_data["biomarkers"]
 
     if "TRANSLOCATION" in report_sections:
-        report_sections_data["translocs"] = list(
+        translocation_filter_genes, translocation_scope_restricted = (
+            _resolve_translocation_filter_genes(
+                sample,
+                sample_filters,
+                assay_panel_doc,
+                gene_list_repository=gene_list_repository,
+            )
+        )
+        interesting_translocations = list(
             translocation_repository.get_interesting_sample_translocations(
                 sample_id=str(sample["_id"])
             )
             or []
+        )
+        report_sections_data["translocs"] = _filter_translocations_for_report(
+            interesting_translocations,
+            filter_genes=translocation_filter_genes,
+            restricted=translocation_scope_restricted,
         )
         rule_sections_data["translocs"] = report_sections_data["translocs"]
 
@@ -617,6 +716,7 @@ def build_dna_report_payload(
             [
                 *snv_filters.get("snvlists", []),
                 *cnv_filters.get("cnvlists", []),
+                *merged_dna_translocation_filters(sample_filters).get("fusionlists", []),
             ]
         )
     )
@@ -630,6 +730,10 @@ def build_dna_report_payload(
                 for domain, selected_ids in (
                     ("snv", snv_filters.get("snvlists", [])),
                     ("cnv", cnv_filters.get("cnvlists", [])),
+                    (
+                        "translocation",
+                        merged_dna_translocation_filters(sample_filters).get("fusionlists", []),
+                    ),
                 )
                 if isgl_id in selected_ids
             ],

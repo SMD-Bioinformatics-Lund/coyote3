@@ -247,20 +247,31 @@ def get_sample_effective_genes(
     target: str = "snv",
     intent: str = "somatic",
 ) -> tuple:
-    """Return covered genelist details and effective filter genes for a sample target."""
+    """Return selected-list details and the effective genes for one analysis target.
+
+    ``checked_gl_dict`` must contain only IDs selected in the target-specific
+    filter section. An ISGL's ``list_type`` controls whether it is valid for
+    that target; it does not make a selection in one analysis apply to another.
+
+    Without a target-specific ISGL or ad-hoc selection, a targeted assay uses
+    the ASP's physical ``covered_genes``. An ASP with no covered-gene scope
+    returns an empty effective list, which query builders interpret as
+    unrestricted (the expected behavior for WGS/WTS designs).
+    """
     sample_filters = normalize_sample_filters(
         sample.get("filters"),
         omics_layer=str(sample.get("omics_layer") or "dna"),
         analysis_intents=sample.get("analysis_intents"),
         intent=intent,
     )
-    section = "fusion" if target == "fusion" else target
+    section = "translocation" if target == "translocation" else target
     target_filters = sample_filters.get(section) or {}
-    adhoc_genes_doc = (
-        target_filters.get("adhoc_genes") or sample_filters.get("adhoc_genes", {}) or {}
-    )
+    target_adhoc_genes = target_filters.get("adhoc_genes") or {}
+    adhoc_genes_doc = target_adhoc_genes or sample_filters.get("adhoc_genes", {}) or {}
     scoped_adhoc_entries = {}
-    if {"snv", "cnv", "fusion", "all"} & set(adhoc_genes_doc.keys()):
+    if isinstance(target_adhoc_genes, dict) and target_adhoc_genes.get("genes"):
+        scoped_adhoc_entries[target] = target_adhoc_genes
+    elif {"snv", "cnv", "fusion", "translocation", "all"} & set(adhoc_genes_doc.keys()):
         for scope in ("all", target):
             entry = adhoc_genes_doc.get(scope)
             if isinstance(entry, dict) and entry.get("genes"):
@@ -275,24 +286,83 @@ def get_sample_effective_genes(
         if not adhoc_list_types:
             adhoc_list_types = {"snv"}
         if target == "all" or "all" in adhoc_list_types or target in adhoc_list_types:
-            scoped_adhoc_entries[target if target in {"snv", "cnv", "fusion"} else "all"] = {
+            scoped_adhoc_entries[
+                target if target in {"snv", "cnv", "fusion", "translocation"} else "all"
+            ] = {
                 "label": sample_filters.get("adhoc_genes", {}).get("label", "AdHoc genes"),
                 "genes": adhoc_genes_doc.get("genes", {}),
             }
+
+    allowed_list_types = {
+        "snv": {"snv", "adhoc_snv"},
+        "cnv": {"cnv", "adhoc_cnv"},
+        "fusion": {"fusion", "adhoc_fusion"},
+        "translocation": {"fusion", "adhoc_fusion", "adhoc_translocation"},
+    }.get(target)
+    target_gl_dict = {}
+    for list_id, list_doc in (checked_gl_dict or {}).items():
+        raw_types = list_doc.get("list_type") or []
+        if isinstance(raw_types, str):
+            list_types = {raw_types.strip().lower()}
+        else:
+            list_types = {str(value).strip().lower() for value in raw_types if str(value).strip()}
+        if allowed_list_types is None or list_types & allowed_list_types:
+            target_gl_dict[list_id] = dict(list_doc)
 
     for scope, entry in scoped_adhoc_entries.items():
         adhoc_key = entry.get("label", "AdHoc genes")
         if scope != "all":
             adhoc_key = f"{adhoc_key} ({scope.upper()})"
-        checked_gl_dict[adhoc_key] = {
+        target_gl_dict[adhoc_key] = {
             "displayname": adhoc_key,
             "is_active": True,
+            "list_type": [f"adhoc_{target}"],
             "genes": entry.get("genes", {}),
             "adhoc": True,
         }
 
-    genes_covered_in_panel = get_genes_covered_in_panel(checked_gl_dict, asp_doc)
+    genes_covered_in_panel = get_genes_covered_in_panel(target_gl_dict, asp_doc)
     effective_filter_genes = create_filter_genelist(genes_covered_in_panel)
-    if target == "cnv" and not effective_filter_genes:
-        effective_filter_genes = sorted(asp_doc.get("covered_genes", []))
+    if not target_gl_dict:
+        effective_filter_genes = sorted(
+            {
+                str(gene).strip()
+                for gene in (asp_doc.get("covered_genes") or [])
+                if str(gene).strip()
+            }
+        )
     return genes_covered_in_panel, effective_filter_genes
+
+
+def has_sample_gene_restriction(
+    sample: dict,
+    asp_doc: dict,
+    *,
+    target: str,
+    intent: str = "somatic",
+) -> bool:
+    """Return whether a target has an explicit or physical gene scope.
+
+    This is intentionally separate from the resolved gene list. A selected
+    ISGL can have no overlap with a targeted panel; that state is restrictive
+    and must return no findings rather than being mistaken for an unrestricted
+    WGS/WTS scope.
+    """
+    sample_filters = normalize_sample_filters(
+        sample.get("filters"),
+        omics_layer=str(sample.get("omics_layer") or "dna"),
+        analysis_intents=sample.get("analysis_intents"),
+        intent=intent,
+    )
+    section = "translocation" if target == "translocation" else target
+    target_filters = sample_filters.get(section) or {}
+    list_key = {
+        "snv": "snvlists",
+        "cnv": "cnvlists",
+        "fusion": "fusionlists",
+        "translocation": "fusionlists",
+    }.get(target)
+    selected_ids = target_filters.get(list_key, []) if list_key else []
+    adhoc = target_filters.get("adhoc_genes") or {}
+    has_adhoc = isinstance(adhoc, dict) and bool(adhoc.get("genes"))
+    return bool(selected_ids or has_adhoc or (asp_doc.get("covered_genes") or []))

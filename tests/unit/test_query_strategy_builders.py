@@ -1,6 +1,8 @@
 """Unit tests for ASPC-driven CNV/fusion/translocation query strategy."""
 
-from api.domain.core.dna.cnvqueries import build_cnv_query
+from api.domain.core.dna.cnvqueries import build_cnv_query, include_normal_cnvs
+from api.domain.core.dna.dna_filters import cnvtype_variant
+from api.domain.core.dna.varqueries import build_pos_genes_filter
 from api.domain.core.rna.fusion_query_builder import build_fusion_query
 
 
@@ -47,7 +49,126 @@ def test_build_cnv_query_filters_against_stored_gene_array_shape() -> None:
         )
     ]
     assert len(gene_clauses) == 1
-    assert {"genes.gene": {"$in": ["EGFR", "ERBB2"]}} in gene_clauses[0]["$or"]
+    assert gene_clauses[0]["$or"] == [
+        {"genes.gene": {"$in": ["EGFR", "ERBB2"]}},
+        {"panel_gene": {"$in": ["EGFR", "ERBB2"]}},
+    ]
+
+
+def test_build_cnv_query_has_no_gene_clause_for_unrestricted_scope() -> None:
+    """An ASP without covered genes leaves WGS/WTS CNVs unrestricted by gene."""
+    query = build_cnv_query(
+        "SAMPLE_1",
+        {
+            "cnv_loss_cutoff": -0.3,
+            "cnv_gain_cutoff": 0.3,
+            "min_cnv_size": 100,
+            "max_cnv_size": 10000,
+            "filter_genes": [],
+        },
+    )
+
+    assert all("genes.gene" not in str(clause) for clause in query["$and"])
+    assert all("panel_gene" not in str(clause) for clause in query["$and"])
+
+
+def test_build_cnv_query_rejects_all_rows_for_empty_selected_scope() -> None:
+    query = build_cnv_query(
+        "SAMPLE_1",
+        {
+            "cnv_loss_cutoff": -0.3,
+            "cnv_gain_cutoff": 0.3,
+            "min_cnv_size": 100,
+            "max_cnv_size": 10000,
+            "filter_genes": [],
+            "restrict_to_genes": True,
+        },
+    )
+
+    assert {"_id": {"$exists": False}} in query["$and"]
+
+
+def test_build_snv_gene_filter_rejects_all_rows_for_empty_selected_scope() -> None:
+    assert build_pos_genes_filter({"filter_genes": [], "restrict_to_genes": True}) == {
+        "$and": [{"_id": {"$exists": False}}]
+    }
+
+
+def test_build_cnv_query_accepts_ratio_less_structural_read_calls() -> None:
+    query = build_cnv_query(
+        "SAMPLE_1",
+        {
+            "cnv_loss_cutoff": -0.3,
+            "cnv_gain_cutoff": 0.3,
+            "min_cnv_size": 100,
+            "max_cnv_size": 10000,
+        },
+    )
+
+    evidence_clause = next(
+        clause
+        for clause in query["$and"]
+        if any(
+            isinstance(option, dict)
+            and any(
+                isinstance(child, dict)
+                and "$or" in child
+                and {"SR": {"$exists": True, "$nin": [None, "", []]}} in child["$or"]
+                for child in option.get("$and", [])
+            )
+            for option in clause.get("$or", [])
+        )
+    )
+    assert evidence_clause
+
+
+def test_build_cnv_query_preserves_historical_strict_boundaries_and_amplification() -> None:
+    """Ratio CNVs use strict cutoffs while high amplifications bypass the size ceiling."""
+    query = build_cnv_query(
+        "SAMPLE_1",
+        {
+            "cnv_loss_cutoff": -0.3,
+            "cnv_gain_cutoff": 0.3,
+            "min_cnv_size": 100,
+            "max_cnv_size": 10000,
+        },
+    )
+
+    query_text = str(query)
+    assert "'$lt': -0.3" in query_text
+    assert "'$gt': 0.3" in query_text
+    assert "'$gt': 100" in query_text
+    assert "'$lt': 10000" in query_text
+    assert "'$gt': 3" in query_text
+
+
+def test_build_cnv_query_keeps_normal_calls_for_wgs() -> None:
+    filters = {
+        "cnv_loss_cutoff": -0.3,
+        "cnv_gain_cutoff": 0.3,
+        "min_cnv_size": 100,
+        "max_cnv_size": 10000,
+    }
+    query = build_cnv_query("SAMPLE_1", filters, include_normal=True)
+
+    assert all("NORMAL" not in str(clause) for clause in query["$and"])
+    assert include_normal_cnvs({"sequencing_scope": "wgs"}) is True
+    assert include_normal_cnvs({}, {"asp_group": "tumwgs"}) is True
+    assert include_normal_cnvs({"sequencing_scope": "panel"}, {"asp_group": "solid"}) is False
+
+
+def test_cnv_effect_filter_retains_untyped_structural_read_calls() -> None:
+    cnvs = [
+        {"_id": "ratio-gain", "ratio": 0.8},
+        {"_id": "declared-loss", "type": "DEL"},
+        {"_id": "manta-breakpoint", "ratio": None, "SR": "43,0"},
+        {"_id": "unsupported", "ratio": None},
+    ]
+
+    assert [row["_id"] for row in cnvtype_variant(cnvs, ["AMP"])] == [
+        "ratio-gain",
+        "manta-breakpoint",
+    ]
 
 
 def test_build_fusion_query_applies_base_filters() -> None:
@@ -120,3 +241,16 @@ def test_build_fusion_query_applies_known_list_and_arriba_pair_rule() -> None:
 def test_build_fusion_query_keeps_unconfigured_groups_sample_scoped() -> None:
     """An unsupported group never inherits fusion thresholds accidentally."""
     assert build_fusion_query("solid", {"id": "SAMPLE_1"}) == {"SAMPLE_ID": "SAMPLE_1"}
+
+
+def test_build_fusion_query_rejects_all_rows_for_empty_selected_scope() -> None:
+    query = build_fusion_query(
+        "wts",
+        {
+            "id": "SAMPLE_1",
+            "filter_genes": [],
+            "restrict_to_genes": True,
+        },
+    )
+
+    assert query["_id"] == {"$exists": False}

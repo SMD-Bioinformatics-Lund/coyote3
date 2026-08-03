@@ -95,9 +95,22 @@ class FusionFiltersDoc(_StrictDocBase):
     adhoc_genes: dict[str, Any] = Field(default_factory=dict)
 
 
+class TranslocationFiltersDoc(_StrictDocBase):
+    """Gene scope for DNA fusion/translocation review.
+
+    DNA translocations reuse fusion-compatible ISGLs because both represent
+    gene-pair findings. RNA-only spanning-read and caller thresholds do not
+    apply to the DNA VCF contract.
+    """
+
+    fusionlists: list[str] = Field(default_factory=list)
+    adhoc_genes: dict[str, Any] = Field(default_factory=dict)
+
+
 class SomaticDnaFiltersDoc(_StrictDocBase):
     snv: SnvFiltersDoc | None = None
     cnv: CnvFiltersDoc | None = None
+    translocation: TranslocationFiltersDoc | None = None
     coverage: CoverageFiltersDoc | None = None
 
 

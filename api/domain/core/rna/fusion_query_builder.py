@@ -52,7 +52,9 @@ def build_fusion_query(assay_group: str, settings: Dict[str, Any]) -> Dict[str, 
         query["calls"] = {"$elemMatch": call_match}
 
     filter_genes = settings.get("filter_genes") or []
-    if filter_genes:
+    if settings.get("restrict_to_genes") and not filter_genes:
+        query["_id"] = {"$exists": False}
+    elif filter_genes:
         query["$or"] = [{"gene1": {"$in": filter_genes}}, {"gene2": {"$in": filter_genes}}]
 
     return query

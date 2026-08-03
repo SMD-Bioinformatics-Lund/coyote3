@@ -426,6 +426,25 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                     ],
                 },
                 {
+                    "title": "Somatic DNA Fusion And Translocation Scope",
+                    "requires_analysis": ["TRANSLOCATION"],
+                    "requires_intent": ["somatic"],
+                    "fields": [
+                        {
+                            "key": "somatic.translocation.fusionlists",
+                            "label": "Fusion/Translocation Gene Lists",
+                            "type": "checkbox-group",
+                            "options": [],
+                            "dynamic_options": {
+                                "resource": "isgl",
+                                "filter": {"list_type": "fusion", "adhoc": False},
+                                "value": "isgl_id",
+                                "label": "displayname",
+                            },
+                        },
+                    ],
+                },
+                {
                     "title": "Somatic Coverage Thresholds",
                     "requires_analysis": ["COVERAGE"],
                     "requires_intent": ["somatic"],
@@ -642,8 +661,12 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "label": "Fusion Gene Lists",
                             "type": "checkbox-group",
                             "options": [],
-                            "disabled": True,
-                            "help": "TODO: define fusion genelist partner/breakpoint schema before enabling this selector.",
+                            "dynamic_options": {
+                                "resource": "isgl",
+                                "filter": {"list_type": "fusion", "adhoc": False},
+                                "value": "isgl_id",
+                                "label": "displayname",
+                            },
                         },
                     ],
                 },

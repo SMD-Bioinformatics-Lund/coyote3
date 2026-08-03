@@ -1336,6 +1336,11 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": []})
     monkeypatch.setattr(service, "_next_unique_name", lambda *_: "S1")
     monkeypatch.setattr(service, "_write_dependents", lambda **_: {"snvs": 0})
+    monkeypatch.setattr(
+        service,
+        "_enrich_public_oncokb_cache",
+        lambda **_: (_ for _ in ()).throw(AssertionError("must not run during core ingest")),
+    )
 
     class _Valid:
         def model_dump(self, *args, **kwargs):
@@ -1351,6 +1356,7 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
         {"name": "S1", "asp_id": "A", "omics_layer": "dna"}, allow_update=False
     )
     assert out["status"] == "ok"
+    assert out["oncokb_public"] == {"status": "deferred"}
 
     monkeypatch.setattr(
         service, "_write_dependents", lambda **_: (_ for _ in ()).throw(RuntimeError("boom"))

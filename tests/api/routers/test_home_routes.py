@@ -212,6 +212,61 @@ def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
     assert exc.value.detail["error"] == "Invalid isgl_ids payload"
 
 
+def test_home_apply_isgl_rejects_list_for_different_analysis_type(monkeypatch):
+    """The API must reject an SNV-only list submitted to the CNV filter section."""
+    sample = fx.sample_doc()
+    service = _sample_catalog_service()
+    monkeypatch.setattr(
+        service.gene_list_repository,
+        "get_isgl_by_ids",
+        lambda ids: {"SNV_ONLY": {"list_type": ["snv"], "genes": ["TP53"]}},
+    )
+
+    with pytest.raises(AppError) as exc:
+        service.apply_genelists(
+            sample=sample,
+            payload={"isgl_ids": ["SNV_ONLY"]},
+            sample_id="S1",
+            target="cnv",
+        )
+
+    assert exc.value.status_code == 400
+    assert exc.value.detail["error"] == ("Gene list(s) do not support CNV analysis: SNV_ONLY")
+
+
+def test_replace_sample_filters_rejects_snv_list_in_cnv_section(monkeypatch):
+    """Full filter updates must enforce the same analysis-specific ISGL boundary."""
+    sample = fx.sample_doc()
+    service = _sample_catalog_service()
+    submitted = {
+        "somatic": {
+            "snv": {"snvlists": []},
+            "cnv": {"cnvlists": ["SNV_ONLY"]},
+        }
+    }
+    monkeypatch.setattr(
+        service,
+        "_get_formatted_assay_config",
+        lambda sample_doc: {"filters": submitted},
+    )
+    monkeypatch.setattr(
+        service.gene_list_repository,
+        "get_isgl_by_ids",
+        lambda ids: {"SNV_ONLY": {"list_type": ["snv"], "genes": ["TP53"]}} if ids else {},
+    )
+    monkeypatch.setattr(
+        service.sample_repository,
+        "update_sample_filters",
+        lambda sample_id, filters: pytest.fail("invalid filters must not be persisted"),
+    )
+
+    with pytest.raises(AppError) as exc:
+        service.replace_sample_filters(sample=sample, filters=submitted)
+
+    assert exc.value.status_code == 400
+    assert exc.value.detail["error"] == ("Gene list(s) do not support CNV analysis: SNV_ONLY")
+
+
 def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
     """Test home save adhoc genes mutation parses and sorts.
 
@@ -288,7 +343,7 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
     monkeypatch.setattr(
         service.gene_list_repository,
         "get_isgl_by_ids",
-        lambda ids: {"gl1": {"genes": ["TP53"]}},
+        lambda ids: {"gl1": {"genes": ["TP53"], "list_type": ["snv", "cnv"]}},
     )
     monkeypatch.setattr(service.gene_list_repository, "get_isgl_for_scope", lambda **kwargs: [])
     monkeypatch.setattr(
@@ -340,7 +395,7 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
     assert payload["analysis_counts_filtered"] == {
         "snv": 4,
         "cnv": 1,
-        "transloc": 1,
+        "transloc": 2,
         "fusion": 0,
         "biomarker": 1,
     }

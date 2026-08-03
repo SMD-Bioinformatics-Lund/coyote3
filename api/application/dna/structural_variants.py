@@ -16,11 +16,23 @@ from api.application.common.table_state import (
     sortable_text,
 )
 from api.config.database_versions import require_sample_vep_version
+from api.domain.common.assay_filters import (
+    get_sample_effective_genes,
+    has_sample_gene_restriction,
+)
 from api.domain.common.errors import api_error, setup_error
-from api.domain.common.sample_filters import merge_filter_defaults, merged_dna_cnv_filters
-from api.domain.core.dna.cnvqueries import build_cnv_query
+from api.domain.common.sample_filters import (
+    merge_filter_defaults,
+    merged_dna_cnv_filters,
+    merged_dna_translocation_filters,
+)
+from api.domain.core.dna.cnvqueries import build_cnv_query, include_normal_cnvs
 from api.domain.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
-from api.domain.core.dna.translocqueries import build_transloc_query
+from api.domain.core.dna.translocqueries import (
+    build_transloc_query,
+    filter_translocations_by_genes,
+    translocation_genes,
+)
 
 
 def _cnv_copy_number(cnv: dict[str, Any]) -> float | None:
@@ -51,11 +63,26 @@ def _cnv_sort_value(cnv: dict[str, Any], sort_by: str) -> Any:
             else cnv.get("callers")
         ),
         "copy_number": lambda: _cnv_copy_number(cnv),
-        "status_artefact": lambda: sortable_text(
+        "purity": lambda: _cnv_copy_number(cnv),
+        "sr": lambda: sortable_text(cnv.get("SR")),
+        "status": lambda: sortable_text(
             " ".join(
                 str(value)
-                for value in (cnv.get("fp"), cnv.get("interesting"), cnv.get("noteworthy"))
+                for value in (
+                    cnv.get("fp"),
+                    cnv.get("interesting"),
+                    cnv.get("noteworthy"),
+                    cnv.get("NORMAL"),
+                )
             )
+        ),
+        "artefact": lambda: max(
+            (
+                numeric_value(value) or 0
+                for key, value in cnv.items()
+                if str(key).startswith("AFRQ_")
+            ),
+            default=0,
         ),
     }
     builder = sort_map.get(sort_by)
@@ -75,17 +102,8 @@ def _cnv_search_text(cnv: dict[str, Any]) -> str:
     return " ".join(str(value) for value in values if value not in (None, ""))
 
 
-def _translocation_genes(translocation: dict[str, Any]) -> list[str]:
-    genes = translocation.get("genes")
-    if isinstance(genes, list):
-        return [str(gene) for gene in genes if gene]
-    gene1 = translocation.get("gene1") or translocation.get("GENE1")
-    gene2 = translocation.get("gene2") or translocation.get("GENE2")
-    return [str(gene) for gene in (gene1, gene2) if gene]
-
-
 def _translocation_sort_value(translocation: dict[str, Any], sort_by: str) -> Any:
-    genes = _translocation_genes(translocation)
+    genes = translocation_genes(translocation)
     annotations = translocation.get("annotations") or []
     annotation_text = (
         " ".join(str(value) for value in annotations)
@@ -124,7 +142,7 @@ def _translocation_search_text(translocation: dict[str, Any]) -> str:
         translocation.get("positions"),
         translocation.get("breakpoints"),
         translocation.get("HGVS"),
-        " ".join(_translocation_genes(translocation)),
+        " ".join(translocation_genes(translocation)),
     ]
     return " ".join(str(value) for value in values if value not in (None, ""))
 
@@ -181,6 +199,7 @@ class DnaStructuralService:
         sample: dict,
         sample_filters: dict,
         filter_genes: list[str],
+        assay_panel: dict | None = None,
     ) -> list[dict]:
         """Load CNVs for a sample using the active filters.
 
@@ -198,6 +217,7 @@ class DnaStructuralService:
                 **sample_filters,
                 "filter_genes": filter_genes,
             },
+            include_normal=include_normal_cnvs(sample, assay_panel),
         )
         cnvs = list(self.copy_number_variant_repository.get_sample_cnvs(cnv_query))
         filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))
@@ -242,10 +262,16 @@ class DnaStructuralService:
         _genes_covered_in_panel, filter_genes = util_module.common.get_sample_effective_genes(
             sample, assay_panel_doc, checked_cnvlists_genes_dict, target="cnv"
         )
+        cnv_filters["restrict_to_genes"] = has_sample_gene_restriction(
+            sample,
+            assay_panel_doc or {},
+            target="cnv",
+        )
         cnvs = self.load_cnvs_for_sample(
             sample=sample,
             sample_filters=cnv_filters,
             filter_genes=filter_genes,
+            assay_panel=assay_panel_doc,
         )
         query_params = getattr(request, "query_params", {}) or {}
         search_query = str(query_params.get("q", "")).strip()
@@ -272,6 +298,7 @@ class DnaStructuralService:
                 "name": sample.get("name"),
                 "asp_id": sample.get("asp_id"),
                 "environment": sample.get("environment"),
+                "purity": (sample.get("case") or {}).get("purity"),
                 "files": deepcopy(sample.get("files") or {}),
             },
             "meta": {
@@ -372,10 +399,49 @@ class DnaStructuralService:
         Returns:
             dict[str, Any]: Translocation list payload for the UI.
         """
+        assay_config = self._get_formatted_assay_config(sample)
+        if not assay_config:
+            raise setup_error(
+                "ASPC could not be resolved for the sample",
+                (
+                    f"Sample '{sample.get('name', sample.get('_id'))}' could not resolve an assay "
+                    "configuration during translocation loading."
+                ),
+            )
+        sample_filters = merge_filter_defaults(
+            sample.get("filters"),
+            assay_config.get("filters"),
+            omics_layer="dna",
+            analysis_intents=sample.get("analysis_intents"),
+        )
+        translocation_filters = merged_dna_translocation_filters(
+            sample_filters,
+            analysis_intents=sample.get("analysis_intents"),
+        )
+        assay_panel_doc = self.assay_panel_repository.get_asp(asp_name=sample.get("asp_id")) or {}
+        selected_list_ids = list(translocation_filters.get("fusionlists") or [])
+        selected_lists = self.gene_list_repository.get_isgl_by_ids(selected_list_ids)
+        _covered_map, filter_genes = get_sample_effective_genes(
+            {**sample, "filters": sample_filters},
+            assay_panel_doc,
+            selected_lists,
+            target="translocation",
+        )
+        restricted = has_sample_gene_restriction(
+            {**sample, "filters": sample_filters},
+            assay_panel_doc,
+            target="translocation",
+        )
+
         translocs = list(
             self.translocation_repository.get_sample_translocations(
-                build_transloc_query(str(sample["_id"]))
+                build_transloc_query(str(sample["_id"]), translocation_filters)
             )
+        )
+        translocs = filter_translocations_by_genes(
+            translocs,
+            filter_genes=filter_genes,
+            restricted=restricted,
         )
         query_params = getattr(request, "query_params", {}) or {}
         search_query = str(query_params.get("q", "")).strip()
@@ -419,6 +485,10 @@ class DnaStructuralService:
                 "search": search_query,
                 "sort": sort_spec_to_query_value(sort_specs),
             },
+            "filters": sample_filters,
+            "vep_conseq_translations": self.vep_metadata_repository.get_conseq_translations(
+                require_sample_vep_version(sample)
+            ),
             "translocations": page_translocs,
         }
 
