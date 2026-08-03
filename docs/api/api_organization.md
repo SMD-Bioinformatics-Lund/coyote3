@@ -21,7 +21,6 @@ and FastAPI `root_path` expose those routes under the public prefix.
 
 | Group | Responsibility |
 | --- | --- |
-| System & Health | Health checks and runtime availability. |
 | Authentication | Session creation, logout, current-user context, and password workflows. |
 | Dashboard | Operational, workload, assay, and review summary metrics. |
 | Clinical Samples | Sample lists, sample context, comments, file/QC metadata, BAM-service file lookup, and sample-level settings. |
@@ -38,13 +37,39 @@ and FastAPI `root_path` expose those routes under the public prefix.
 | Admin: Assays & Gene Lists | ASP, ASPC, ISGL, and admin sample resource configuration. |
 | Admin: Users | User-account management, invites, provider state, and profile metadata. |
 | Admin: Roles & Permissions | Role and permission policy management. |
-| Internal Ingest & Maintenance | Internal ingest, collection writes, task status, metrics, and maintenance endpoints. |
 
 !!! info "Stable URLs, clearer documentation"
 
     The grouping changes how endpoints are presented in Swagger. It does not
     change endpoint URLs, request bodies, response contracts, or permission
     checks.
+
+## OpenAPI Visibility Policy
+
+OpenAPI describes the supported client contract. It is not the security
+boundary for the service. Supported authentication, clinical, reporting,
+knowledgebase, public-catalog, dashboard, notification, and administrative
+routes remain visible in Swagger, ReDoc, and generated clients. Protected
+operations declare cookie and bearer authentication and document `401` and
+`403` responses.
+
+Runtime plumbing is intentionally excluded from the generated schema:
+
+```text
+/api/v1/health
+/api/v1/internal/*
+```
+
+These routes remain registered and callable. Health probes continue to serve
+Docker, reverse proxies, and monitoring systems. Internal metadata, ingest,
+task-status, and metrics routes retain their existing user-permission or
+internal-token checks. Hiding them from OpenAPI neither grants access nor
+replaces authentication, authorization, proxy policy, or auditing.
+
+Router visibility is declared once in `api/interfaces/http/registry.py`.
+Adding a new service-integration router requires an explicit schema-visibility
+decision there, which prevents internal endpoints from becoming supported
+client contracts accidentally.
 
 ## Router Ownership
 

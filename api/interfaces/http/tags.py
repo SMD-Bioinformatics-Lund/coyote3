@@ -26,7 +26,6 @@ TAG_ADMIN_ACCESS = "Admin: Roles & Permissions"
 TAG_INTERNAL = "Internal Ingest & Maintenance"
 
 OPENAPI_TAGS = [
-    {"name": TAG_SYSTEM, "description": "Health checks and runtime availability endpoints."},
     {
         "name": TAG_AUTH,
         "description": "Session creation, logout, current-user context, and password workflows.",
@@ -97,10 +96,6 @@ OPENAPI_TAGS = [
     {
         "name": TAG_ADMIN_ACCESS,
         "description": "Role and permission policy management.",
-    },
-    {
-        "name": TAG_INTERNAL,
-        "description": "Internal ingest, collection writes, task status, metrics, and maintenance endpoints.",
     },
 ]
 

@@ -154,8 +154,11 @@ def create_api_app() -> FastAPI:
     )
     app.add_exception_handler(Exception, unhandled_exception_handler)
     app.openapi = lambda: apply_openapi_security_schema(app)
-    for router in ROUTERS:
-        app.include_router(router)
+    for registration in ROUTERS:
+        app.include_router(
+            registration.router,
+            include_in_schema=registration.include_in_schema,
+        )
     register_route_modules()
     return app
 

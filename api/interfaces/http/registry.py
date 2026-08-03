@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
+from fastapi import APIRouter
+
 from api.interfaces.http.admin.operations import router as admin_operations_router
 from api.interfaces.http.admin.permissions import router as permissions_router
 from api.interfaces.http.admin.resources.asp import router as resource_asp_router
@@ -31,32 +35,41 @@ from api.interfaces.http.operations.internal import router as internal_router
 from api.interfaces.http.operations.notifications import router as notifications_router
 from api.interfaces.http.public.routes import router as public_router
 
+
+@dataclass(frozen=True, slots=True)
+class RouterRegistration:
+    """Describe one router and whether it belongs to the supported API contract."""
+
+    router: APIRouter
+    include_in_schema: bool = True
+
+
 ROUTERS = (
-    health_router,
-    auth_router,
-    admin_operations_router,
-    app_controls_router,
-    resource_asp_router,
-    resource_aspc_router,
-    resource_genelists_router,
-    resource_samples_router,
-    biomarkers_router,
-    classifications_router,
-    common_router,
-    cnvs_router,
-    coverage_router,
-    dashboard_router,
-    fusions_router,
-    internal_router,
-    notifications_router,
-    roles_router,
-    permissions_router,
-    public_router,
-    reports_router,
-    samples_router,
-    small_variants_router,
-    translocations_router,
-    users_router,
+    RouterRegistration(health_router, include_in_schema=False),
+    RouterRegistration(auth_router),
+    RouterRegistration(admin_operations_router),
+    RouterRegistration(app_controls_router),
+    RouterRegistration(resource_asp_router),
+    RouterRegistration(resource_aspc_router),
+    RouterRegistration(resource_genelists_router),
+    RouterRegistration(resource_samples_router),
+    RouterRegistration(biomarkers_router),
+    RouterRegistration(classifications_router),
+    RouterRegistration(common_router),
+    RouterRegistration(cnvs_router),
+    RouterRegistration(coverage_router),
+    RouterRegistration(dashboard_router),
+    RouterRegistration(fusions_router),
+    RouterRegistration(internal_router, include_in_schema=False),
+    RouterRegistration(notifications_router),
+    RouterRegistration(roles_router),
+    RouterRegistration(permissions_router),
+    RouterRegistration(public_router),
+    RouterRegistration(reports_router),
+    RouterRegistration(samples_router),
+    RouterRegistration(small_variants_router),
+    RouterRegistration(translocations_router),
+    RouterRegistration(users_router),
 )
 
-__all__ = ["ROUTERS", "auth_http_exception_handler"]
+__all__ = ["ROUTERS", "RouterRegistration", "auth_http_exception_handler"]

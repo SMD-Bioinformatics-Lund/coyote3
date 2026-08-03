@@ -1,11 +1,51 @@
 # Changelog
 
-## v4.0.0- Unreleased
-- Introduced the API-first backend architecture with the Flask/Tailwind frontend and containerized MongoDB workflow.
-- Improved coverage performance and stability by removing N+1 blacklist lookups and bootstrapping targeted indexes for hot collections.
-- Hardened DNA variant handling and comment persistence, including robust consequence parsing and correct SNV/CNV/translocation comment storage.
-- Refined dashboard visuals and behavior across charts, ISGL overlap views, workload rings, and logged-in summary cards.
-- Expanded developer, operations, and dashboard documentation around metrics, Mongo index strategy, and troubleshooting.
+## v4.0.0 - Unreleased
+
+### Added
+
+- Rebuilt the application around a FastAPI backend and a typed React/Vite frontend, with stable API contracts for clinical, administrative, public, knowledgebase, and operational workflows.
+- Added complete DNA and RNA sample workspaces with ASPC-driven analysis tabs, independent somatic and germline SNV filtering, CNV profile review, coverage, fusions, translocations, biomarkers, comments, and report workflows.
+- Added a YAML-driven clinical reporting rules engine with deterministic rule selection, validated template helpers, separate somatic and germline report sections, temporary report snapshots, HTML/PDF output, and persisted reported findings.
+- Added version-aware VEP annotation storage, HGNC-based gene normalization, configurable RefSeq-first transcript selection, MANE and canonical transcript indicators, and normalized annotation identities for genomic, HGVS, CNV, and fusion findings.
+- Added public OncoKB and ClinPGx integrations, local gene markers for dense tables, and expandable knowledgebase evidence in finding detail views.
+- Added database-backed RBAC with locked application permission policies, built-in operational roles, delegated administration, user-specific notifications, password-reset requests, and targeted or broadcast notifications.
+- Added application module controls, consolidated ingest-task controls, observed Celery runtime state, retention policies, Mongo backup/restore tooling, and maintenance operations.
+- Added first-deployment bootstrap catalogs for permissions, roles, demo ASP/ASPC/ISGL records, and compressed HGNC/VEP reference snapshots. Bootstrap imports are collection-aware and do not overwrite non-empty collections.
+- Added public assay catalog and gene-coverage matrix views, richer operational dashboards, panel capability plots, application About and Contact pages, and center-configurable contact information.
+- Added centralized semantic UI theming, responsive data tables, server-side multi-column sorting, query caching and invalidation, compact clinical badges, accessible tooltips, confirmation dialogs, and route-state restoration.
+- Added centralized OpenAPI visibility policy so supported client contracts remain documented while health and internal integration routes stay callable but schema-hidden.
+
+### Changed
+
+- Standardized ASP, ASPC, ISGL, sample, assay-group, subpanel, environment, analysis-type, and file-key contracts while retaining versioned configuration history for future edits.
+- Made ASPCs responsible for available analyses, report sections, intent-specific filters, and base-subpanel fallback behavior. Sample pages now expose only analysis tabs enabled by the resolved ASPC.
+- Reworked sample ingestion as an atomic workflow: every declared resource must validate and load successfully before the sample becomes ready; optional resources may be absent only when they are not declared.
+- Moved deployment-specific collection names, ingest mappings, contacts, file policies, transcript priorities, and clinical metadata to documented center configuration files. Software-owned vocabularies and repository links remain application constants.
+- Changed sample-facing routes to use sample names while retaining finding identifiers where needed for unambiguous detail routes.
+- Reorganized API routers into clinical, administrative, public, operations, and knowledgebase packages while keeping public endpoint paths stable.
+- Reworked the frontend into route-level bundles and standardized tables, cards, forms, icons, status colors, local-time display, loading overlays, dark mode, and responsive page widths.
+- Consolidated synthetic fixtures and demo imports under `demo_data/`; application bootstrap assets now live under `api/config/bootstrap/`.
+
+### Fixed
+
+- Corrected global sorting across paginated findings, filter-triggered refreshes, cached-query invalidation after curation actions, and preservation of table state when returning from detail pages.
+- Corrected consequence filtering, synonymous exclusion, tiered-variant lookup, annotation text matching, caller and flag presentation, and alternate-transcript metadata.
+- Corrected CNV/translocation/fusion ingestion and presentation, control-sample column visibility, CNV profile sizing and rotation, and coverage availability.
+- Corrected ASPC base fallback, normalized configuration lookup, dashboard counts, sample gene-list summaries, report introductions, and database-version extraction from VCF headers.
+- Corrected authentication-provider startup behavior, local/LDAP account normalization, SCRIPT_NAME routing, reverse-proxy paths, prefixed API/docs routes, and user-facing API error messages.
+
+### Security and quality
+
+- Added staged and full-tree checks for secrets, private environment files, clinical identifiers, personal identity numbers, and non-synthetic test metadata.
+- Added collection-contract generation and integrity checks, assay consistency validation, ingest-manifest validation, shell quality checks, strict documentation builds, backend family coverage gates, frontend unit coverage, and Playwright route/workflow tests.
+- Expanded API and frontend negative-path tests for authentication, permissions, application modules, ingestion, clinical queries, report generation, notifications, admin forms, and empty/error states.
+
+### Documentation
+
+- Replaced legacy handbook material with task-oriented user, developer, administrator, deployment, API, security, data-contract, testing, and troubleshooting documentation.
+- Added screenshots and architecture diagrams for bootstrap data flow, configuration authority, clinical review, sample-to-report processing, and deployment topology.
+- Documented every supported sample manifest field, configuration key, clinical reporting rule key/operator/helper, transcript-selection stage, filtering exception, collection relationship, and first-deployment requirement.
 
 ## v3.1.23
 - Added typed DNA CSV export row models (`SNV`/`CNV`) and API-backed export context endpoints for stable, contract-driven CSV formatting.
