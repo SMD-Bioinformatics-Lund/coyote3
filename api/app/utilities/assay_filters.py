@@ -16,7 +16,7 @@ def assay_config(assay_name: str | None = None) -> dict:
     if conf is None:
         return {}
     if assay_name is not None:
-        conf = conf.get(assay_name)
+        conf = conf.get(assay_name, {})
     return deepcopy(conf)
 
 

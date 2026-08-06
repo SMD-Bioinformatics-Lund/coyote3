@@ -51,6 +51,7 @@ from api.config.database_versions import sample_vep_version
 from api.contracts.operations import OperationResult
 from api.domain.core.dna.cnvqueries import build_cnv_query, include_normal_cnvs
 from api.domain.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
+from api.infra.observability.operations import measured_operation
 
 
 class DnaService:
@@ -333,6 +334,7 @@ class DnaService:
             create_comment_doc_fn=create_comment_doc_fn,
         )
 
+    @measured_operation("query.variants")
     def list_variants_payload(
         self,
         *,

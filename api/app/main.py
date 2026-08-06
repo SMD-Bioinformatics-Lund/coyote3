@@ -95,6 +95,7 @@ async def validation_exception_handler(_request: Request, exc: RequestValidation
             outcome="failure",
             actor="anonymous",
             resource_type="api_route",
+            resource_id=str(_request.url.path),
             tags=["api", "validation"],
             metadata={"details": issues},
         )
@@ -128,9 +129,11 @@ def create_api_app() -> FastAPI:
     mode_flags = get_runtime_mode_flags()
     script_name = _script_name()
 
+    from api.version import __version__ as _api_version
+
     app = FastAPI(
         title="Coyote3 API",
-        version="1.0.0",
+        version=_api_version,
         root_path=script_name,
         root_path_in_servers=bool(script_name),
         docs_url="/api/v1/docs",

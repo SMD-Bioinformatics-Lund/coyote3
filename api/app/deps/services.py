@@ -81,7 +81,7 @@ def get_admin_aspc_service() -> AspcService:
 @lru_cache
 def get_admin_sample_service() -> ResourceSampleService:
     """Return the admin sample-management service."""
-    return ResourceSampleService.from_store(get_store(), records_util=util.records)
+    return ResourceSampleService.from_store(get_store())
 
 
 @lru_cache

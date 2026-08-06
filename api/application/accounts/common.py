@@ -137,10 +137,15 @@ def inject_version_history(
 
 def admin_list_pagination(*, q: str, page: int, per_page: int, total: int) -> dict[str, Any]:
     """Build normalized pagination metadata for admin list payloads."""
+    from api.application.common.pagination import MAX_PAGE_SIZE
+
+    safe_page = max(1, int(page or 1))
+    safe_per_page = min(max(1, int(per_page or 1)), MAX_PAGE_SIZE)
+    safe_total = max(0, int(total or 0))
     return {
         "q": str(q or ""),
-        "page": max(1, int(page or 1)),
-        "per_page": max(1, int(per_page or 1)),
-        "total": max(0, int(total or 0)),
-        "has_next": (max(1, int(page or 1)) * max(1, int(per_page or 1))) < max(0, int(total or 0)),
+        "page": safe_page,
+        "per_page": safe_per_page,
+        "total": safe_total,
+        "has_next": (safe_page * safe_per_page) < safe_total,
     }

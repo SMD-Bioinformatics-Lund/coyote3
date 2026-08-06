@@ -11,6 +11,7 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+import time
 from typing import Any
 
 import pymongo
@@ -47,6 +48,7 @@ from api.infra.mongo.repositories.translocations import TranslocsRepository
 from api.infra.mongo.repositories.users import UsersRepository
 from api.infra.mongo.repositories.variants import VariantsRepository
 from api.infra.mongo.repositories.vep_metadata import VEPMetaRepository
+from api.infra.observability.prometheus_metrics import observe_operation
 
 CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("translocation_repository", TranslocsRepository, "translocs"),
@@ -210,6 +212,7 @@ class MongoAdapter:
 
     def _ensure_repository_indexes(self, repository_name: str, repository: object) -> None:
         """Create indexes for a repository while tolerating historical index-name conflicts."""
+        started = time.perf_counter()
         try:
             repository.ensure_indexes()
         except OperationFailure as exc:
@@ -236,5 +239,20 @@ class MongoAdapter:
                     repository_name,
                     exc,
                 )
+                observe_operation(
+                    operation=f"mongo_index_reconcile.{repository_name}",
+                    outcome="conflict",
+                    duration_ms=(time.perf_counter() - started) * 1000.0,
+                )
                 return
+            observe_operation(
+                operation=f"mongo_index_reconcile.{repository_name}",
+                outcome="failure",
+                duration_ms=(time.perf_counter() - started) * 1000.0,
+            )
             raise
+        observe_operation(
+            operation=f"mongo_index_reconcile.{repository_name}",
+            outcome="success",
+            duration_ms=(time.perf_counter() - started) * 1000.0,
+        )

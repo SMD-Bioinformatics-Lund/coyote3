@@ -95,7 +95,17 @@ def build_authentication_middleware(
                 limiter = _get_api_limiter()
                 if limiter and path not in _API_RATE_LIMIT_EXCLUDED_PATHS:
                     ip = request_ip(request)
-                    allowed, retry_after = limiter.check(f"{ip}|{request.method}")
+                    # Resolve the user here (before the gate) so the rate-limit
+                    # bucket is per-user rather than per-IP when authenticated.
+                    # This prevents co-located authenticated users sharing quota
+                    # and stops credential-rotating IP bypass attempts.
+                    _early_user = resolve_request_user(request)
+                    _rate_limit_identity = (
+                        f"{ip}|{_early_user.username}|{request.method}"
+                        if _early_user is not None
+                        else f"{ip}|{request.method}"
+                    )
+                    allowed, retry_after = limiter.check(_rate_limit_identity)
                     if not allowed:
                         duration_ms = (time.perf_counter() - start) * 1000.0
                         record_rate_limited(path=path)
@@ -115,7 +125,13 @@ def build_authentication_middleware(
                             extra={"retry_after": retry_after, "ip": ip},
                         )
                         return response
-                authenticated_user = resolve_request_user(request)
+                # Reuse the early resolution performed for the rate-limit key
+                # when available, otherwise resolve now (unauthenticated paths).
+                authenticated_user = (
+                    _early_user
+                    if limiter and path not in _API_RATE_LIMIT_EXCLUDED_PATHS
+                    else resolve_request_user(request)
+                )
                 if authenticated_user is not None:
                     request.state.authenticated_user = authenticated_user
                     user_token = set_current_user(authenticated_user)

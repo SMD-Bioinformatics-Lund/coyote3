@@ -12,6 +12,12 @@ from api.domain.common.dashboard import (
     panel_asp_ids,
     summarize_panel_gene_stats,
 )
+from api.domain.core.repository_protocols import (
+    AssayConfigurationRepositoryProtocol,
+    SampleRepositoryProtocol,
+    VariantsRepositoryProtocol,
+)
+from api.infra.observability.operations import measured_operation
 
 
 class DashboardService:
@@ -46,10 +52,10 @@ class DashboardService:
         user_repository: Any,
         roles_repository: Any,
         assay_panel_repository: Any,
-        assay_configuration_repository: Any,
+        assay_configuration_repository: AssayConfigurationRepositoryProtocol,
         gene_list_repository: Any,
-        sample_repository: Any,
-        variant_repository: Any,
+        sample_repository: SampleRepositoryProtocol,
+        variant_repository: VariantsRepositoryProtocol,
         copy_number_variant_repository: Any,
         translocation_repository: Any,
         fusion_repository: Any,
@@ -310,6 +316,7 @@ class DashboardService:
                 effective_assays.add(str(asp_id).strip())
         return sorted(effective_assays)
 
+    @measured_operation("query.dashboard_summary")
     def summary_payload(self, *, user) -> dict[str, Any]:
         """Build the cached dashboard summary payload for a user.
 

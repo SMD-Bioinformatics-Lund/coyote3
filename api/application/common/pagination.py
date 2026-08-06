@@ -21,6 +21,7 @@ def paginate_items(
     items: Sequence[Any], *, page: int, per_page: int
 ) -> tuple[list[Any], dict[str, Any]]:
     """Return a page slice and normalized metadata for an in-memory result set."""
+    per_page = min(max(1, per_page), MAX_PAGE_SIZE)
     total = len(items)
     start = (page - 1) * per_page
     end = start + per_page

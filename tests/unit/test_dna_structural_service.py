@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
@@ -35,7 +36,7 @@ class _TranslocHandlerStub:
         self.doc: dict | None = {"_id": "t1", "SAMPLE_ID": "S1"}
         self.sample_translocations_payload = [{"_id": "t1", "SAMPLE_ID": "S1"}]
 
-    def get_sample_translocations(self, _query):
+    def get_sample_translocations(self, _query=None, **_kwargs):
         return self.sample_translocations_payload
 
     def get_transloc(self, _transloc_id: str):
@@ -356,3 +357,267 @@ def test_show_translocation_payload_returns_detail(monkeypatch):
 
     assert payload["translocation"]["_id"] == "t1"
     assert payload["vep_conseq_translations"] == {"A": "B"}
+
+
+@pytest.mark.parametrize(
+    ("ratio", "expected"),
+    [(None, None), ("invalid", None), (0, 2.0), (1, 4.0)],
+)
+def test_cnv_copy_number_handles_missing_invalid_and_numeric_ratios(ratio, expected):
+    assert service_module._cnv_copy_number({"ratio": ratio}) == expected
+
+
+def test_cnv_table_value_helpers_cover_supported_columns():
+    cnv = {
+        "_id": "cnv-1",
+        "chr": "7",
+        "start": "10",
+        "end": 20,
+        "ratio": 1,
+        "callers": ["MANTA", "CNVKIT"],
+        "genes": [{"gene": "BRAF"}, "ignored", {"gene": "KIAA1549"}],
+        "SR": "4,9",
+        "fp": True,
+        "interesting": False,
+        "noteworthy": True,
+        "NORMAL": False,
+        "AFRQ_a": "0.2",
+        "AFRQ_b": 0.7,
+    }
+
+    assert service_module._cnv_gene_text(cnv) == "BRAF KIAA1549"
+    assert service_module._cnv_gene_text({"genes": "BRAF"}) == ""
+    assert service_module._cnv_sort_value(cnv, "genes") == "braf kiaa1549"
+    assert service_module._cnv_sort_value(cnv, "region") == ("7", 10.0, 20.0)
+    assert service_module._cnv_sort_value(cnv, "callers") == "manta, cnvkit"
+    assert service_module._cnv_sort_value({"callers": "MANTA"}, "callers") == "manta"
+    assert service_module._cnv_sort_value(cnv, "copy_number") == 4.0
+    assert service_module._cnv_sort_value(cnv, "purity") == 4.0
+    assert service_module._cnv_sort_value(cnv, "sr") == "4,9"
+    assert "true" in service_module._cnv_sort_value(cnv, "status")
+    assert service_module._cnv_sort_value(cnv, "artefact") == 0.7
+    assert service_module._cnv_sort_value(cnv, "unsupported") is None
+    assert "BRAF KIAA1549" in service_module._cnv_search_text(cnv)
+
+
+def test_translocation_table_value_helpers_cover_supported_columns():
+    translocation = {
+        "_id": "t-1",
+        "gene1": "NTRK1",
+        "gene2": "TPM3",
+        "fp": False,
+        "interesting": True,
+        "POS": "1:10-1:20",
+        "SVTYPE": "fusion",
+        "annotations": ["p.Ala1Val", "frameshift"],
+        "in_panel": "intersection",
+        "classification": "2",
+        "breakpoints": "1:10,1:20",
+        "HGVS": "t(1;1)",
+    }
+
+    assert "true" in service_module._translocation_sort_value(translocation, "badges")
+    assert service_module._translocation_sort_value(translocation, "gene1") == "ntrk1"
+    assert service_module._translocation_sort_value(translocation, "gene2") == "tpm3"
+    assert service_module._translocation_sort_value(translocation, "positions") == "1:10-1:20"
+    assert service_module._translocation_sort_value(translocation, "type") == "fusion"
+    assert service_module._translocation_sort_value(translocation, "hgvs") == "p.ala1val frameshift"
+    assert service_module._translocation_sort_value(translocation, "panel") == "intersection"
+    assert service_module._translocation_sort_value(translocation, "tier") == 2.0
+    assert service_module._translocation_sort_value(translocation, "unsupported") is None
+    assert service_module._translocation_sort_value({}, "gene1") is None
+    assert service_module._translocation_sort_value({}, "gene2") is None
+    assert service_module._translocation_sort_value({"annotations": "single"}, "hgvs") == "single"
+    assert "NTRK1 TPM3" in service_module._translocation_search_text(translocation)
+
+
+def test_service_factory_and_config_resolution_use_injected_repositories(monkeypatch):
+    store = SimpleNamespace(
+        copy_number_variant_repository=object(),
+        translocation_repository=object(),
+        assay_panel_repository=object(),
+        assay_configuration_repository=object(),
+        gene_list_repository=object(),
+        bam_record_repository=object(),
+        vep_metadata_repository=object(),
+    )
+    service = DnaStructuralService.from_store(store)
+    captured: dict[str, object] = {}
+
+    def _resolve(sample, **repositories):
+        captured["sample"] = sample
+        captured.update(repositories)
+        return {"resolved": True}
+
+    monkeypatch.setattr(service_module, "get_formatted_assay_config", _resolve)
+
+    assert service._get_formatted_assay_config({"_id": "S1"}) == {"resolved": True}
+    assert captured["assay_panel_repository"] is store.assay_panel_repository
+    assert captured["assay_configuration_repository"] is store.assay_configuration_repository
+
+
+def test_cnv_list_search_sort_and_unpaginated_metadata(monkeypatch):
+    repo = _RepoStub()
+    service = _service_from_repo(repo)
+    rows = [
+        {"_id": "b", "chr": "2", "genes": [{"gene": "BRAF"}]},
+        {"_id": "a", "chr": "1", "genes": [{"gene": "ALK"}]},
+    ]
+    monkeypatch.setattr(service, "_get_formatted_assay_config", lambda _sample: {"filters": {}})
+    monkeypatch.setattr(service, "load_cnvs_for_sample", lambda **_kwargs: rows)
+    request = SimpleNamespace(
+        url=SimpleNamespace(path="/api/v1/samples/S1/cnvs"),
+        query_params={"q": "BRAF", "sort": "genes:desc"},
+    )
+
+    payload = service.list_cnvs_payload(
+        request=request,
+        sample=_sample(),
+        util_module=_UtilModule,
+        paginate=False,
+    )
+
+    assert [row["_id"] for row in payload["cnvs"]] == ["b"]
+    assert payload["meta"]["search"] == "BRAF"
+    assert payload["meta"]["sort"] == "genes:desc"
+    assert payload["meta"]["page_count"] == 1
+
+
+def test_translocation_list_search_sort_and_pagination(monkeypatch):
+    repo = _RepoStub()
+    repo.translocation_repository.sample_translocations_payload = [
+        {"_id": "b", "SAMPLE_ID": "S1", "gene1": "NTRK1", "gene2": "TPM3"},
+        {"_id": "a", "SAMPLE_ID": "S1", "gene1": "ALK", "gene2": "EML4"},
+    ]
+    service = _service_from_repo(repo)
+    monkeypatch.setattr(service, "_get_formatted_assay_config", lambda _sample: {"filters": {}})
+    request = SimpleNamespace(
+        url=SimpleNamespace(path="/api/v1/samples/S1/translocations"),
+        query_params={"q": "NTRK1", "sort": "gene1:asc", "page": "1", "per_page": "1"},
+    )
+
+    payload = service.list_translocations_payload(request=request, sample=_sample())
+
+    assert [row["_id"] for row in payload["translocations"]] == ["b"]
+    assert payload["meta"]["total"] == 1
+    assert payload["meta"]["sort"] == "gene1:asc"
+
+
+def test_cnv_detail_handles_missing_records_and_legacy_membership(monkeypatch):
+    repo = _RepoStub()
+    service = _service_from_repo(repo)
+    repo.copy_number_variant_repository.cnv_doc = None
+    with pytest.raises(AppError, match="CNV not found"):
+        service.show_cnv_payload(sample=_sample(), cnv_id="missing", util_module=_UtilModule)
+
+    repo.copy_number_variant_repository.cnv_doc = {"_id": "legacy", "genes": []}
+    repo.copy_number_variant_repository.sample_cnvs_payload = [{"_id": "other"}]
+    with pytest.raises(AppError, match="CNV not found for sample"):
+        service.show_cnv_payload(sample=_sample(), cnv_id="legacy", util_module=_UtilModule)
+
+    repo.copy_number_variant_repository.sample_cnvs_payload = [{"_id": "legacy"}]
+    monkeypatch.setattr(service, "_get_formatted_assay_config", lambda _sample: {})
+    payload = service.show_cnv_payload(sample=_sample(), cnv_id="legacy", util_module=_UtilModule)
+    assert payload["assay_group"] == "unknown"
+
+
+@pytest.mark.parametrize("flag", ["interesting", "false_positive", "noteworthy"])
+@pytest.mark.parametrize("apply", [True, False])
+def test_cnv_flag_commands_dispatch_to_repository(flag, apply):
+    repo = _RepoStub()
+    handler = repo.copy_number_variant_repository
+    methods = {
+        ("interesting", True): "mark_interesting_cnv",
+        ("interesting", False): "unmark_interesting_cnv",
+        ("false_positive", True): "mark_false_positive_cnv",
+        ("false_positive", False): "unmark_false_positive_cnv",
+        ("noteworthy", True): "noteworthy_cnv",
+        ("noteworthy", False): "unnoteworthy_cnv",
+    }
+    for method_name in methods.values():
+        setattr(handler, method_name, Mock())
+
+    _service_from_repo(repo).set_cnv_flag(cnv_id="cnv1", apply=apply, flag=flag)
+
+    getattr(handler, methods[(flag, apply)]).assert_called_once_with("cnv1")
+
+
+def test_cnv_flag_and_comment_validation_and_dispatch():
+    repo = _RepoStub()
+    handler = repo.copy_number_variant_repository
+    handler.hide_cnvs_comment = Mock()
+    handler.unhide_cnvs_comment = Mock()
+    service = _service_from_repo(repo)
+
+    with pytest.raises(ValueError, match="Unsupported flag"):
+        service.set_cnv_flag(cnv_id="cnv1", apply=True, flag="unknown")
+    service.set_cnv_comment_hidden(cnv_id="cnv1", comment_id="comment1", hidden=True)
+    service.set_cnv_comment_hidden(cnv_id="cnv1", comment_id="comment1", hidden=False)
+
+    handler.hide_cnvs_comment.assert_called_once_with("cnv1", "comment1")
+    handler.unhide_cnvs_comment.assert_called_once_with("cnv1", "comment1")
+
+
+def test_translocation_detail_handles_missing_records_and_legacy_membership(monkeypatch):
+    repo = _RepoStub()
+    service = _service_from_repo(repo)
+    repo.translocation_repository.doc = None
+    with pytest.raises(AppError, match="Translocation not found"):
+        service.show_translocation_payload(
+            sample=_sample(), transloc_id="missing", util_module=_UtilModule
+        )
+
+    repo.translocation_repository.doc = {"_id": "legacy"}
+    repo.translocation_repository.sample_translocations_payload = [{"_id": "other"}]
+    with pytest.raises(AppError, match="Translocation not found for sample"):
+        service.show_translocation_payload(
+            sample=_sample(), transloc_id="legacy", util_module=_UtilModule
+        )
+
+    repo.translocation_repository.sample_translocations_payload = [{"_id": "legacy"}]
+    monkeypatch.setattr(service, "_get_formatted_assay_config", lambda _sample: {})
+    payload = service.show_translocation_payload(
+        sample=_sample(), transloc_id="legacy", util_module=_UtilModule
+    )
+    assert payload["assay_group"] == "unknown"
+
+
+@pytest.mark.parametrize("flag", ["interesting", "false_positive"])
+@pytest.mark.parametrize("apply", [True, False])
+def test_translocation_boolean_flag_commands_dispatch_to_repository(flag, apply):
+    repo = _RepoStub()
+    handler = repo.translocation_repository
+    methods = {
+        ("interesting", True): "mark_interesting_transloc",
+        ("interesting", False): "unmark_interesting_transloc",
+        ("false_positive", True): "mark_false_positive_transloc",
+        ("false_positive", False): "unmark_false_positive_transloc",
+    }
+    for method_name in methods.values():
+        setattr(handler, method_name, Mock())
+
+    _service_from_repo(repo).set_translocation_flag(transloc_id="t1", apply=apply, flag=flag)
+
+    getattr(handler, methods[(flag, apply)]).assert_called_once_with("t1")
+
+
+def test_translocation_flags_comments_and_validation_dispatch():
+    repo = _RepoStub()
+    handler = repo.translocation_repository
+    handler.mark_irrelevant = Mock()
+    handler.mark_blacklisted = Mock()
+    handler.hide_transloc_comment = Mock()
+    handler.unhide_transloc_comment = Mock()
+    service = _service_from_repo(repo)
+
+    service.set_translocation_flag(transloc_id="t1", apply=True, flag="irrelevant")
+    service.set_translocation_flag(transloc_id="t1", apply=False, flag="blacklisted")
+    with pytest.raises(ValueError, match="Unsupported flag"):
+        service.set_translocation_flag(transloc_id="t1", apply=True, flag="unknown")
+    service.set_translocation_comment_hidden(transloc_id="t1", comment_id="comment1", hidden=True)
+    service.set_translocation_comment_hidden(transloc_id="t1", comment_id="comment1", hidden=False)
+
+    handler.mark_irrelevant.assert_called_once_with("t1", True)
+    handler.mark_blacklisted.assert_called_once_with("t1", False)
+    handler.hide_transloc_comment.assert_called_once_with("t1", "comment1")
+    handler.unhide_transloc_comment.assert_called_once_with("t1", "comment1")

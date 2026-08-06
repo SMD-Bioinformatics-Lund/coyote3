@@ -5,6 +5,8 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from bson import ObjectId
+
 from api.application.accounts.common import (
     admin_list_pagination,
     change_payload,
@@ -13,6 +15,7 @@ from api.application.accounts.common import (
 )
 from api.application.admin.sample_deletion import delete_all_sample_traces
 from api.domain.common.errors import api_error
+from api.infra.observability.operations import measured_operation
 
 
 class ResourceSampleService:
@@ -22,8 +25,6 @@ class ResourceSampleService:
     def from_store(
         cls,
         store: Any,
-        *,
-        records_util: Any,
     ) -> "ResourceSampleService":
         """Build the service from the runtime store."""
         return cls(
@@ -42,7 +43,6 @@ class ResourceSampleService:
             reported_variant_repository=store.reported_variant_repository,
             oncokb_public_cache_repository=store.oncokb_public_cache_repository,
             assay_panel_repository=store.assay_panel_repository,
-            records_util=records_util,
         )
 
     def __init__(
@@ -63,7 +63,6 @@ class ResourceSampleService:
         reported_variant_repository: Any,
         oncokb_public_cache_repository: Any,
         assay_panel_repository: Any,
-        records_util: Any,
     ) -> None:
         """Create the service with explicit injected persistence/util dependencies."""
         self.sample_repository = sample_repository
@@ -81,8 +80,8 @@ class ResourceSampleService:
         self.reported_variant_repository = reported_variant_repository
         self.oncokb_public_cache_repository = oncokb_public_cache_repository
         self.assay_panel_repository = assay_panel_repository
-        self.records_util = records_util
 
+    @measured_operation("query.samples")
     def list_payload(
         self,
         *,
@@ -179,7 +178,7 @@ class ResourceSampleService:
             raise api_error(400, "Missing sample payload")
         updated_sample["updated_on"] = utc_now()
         updated_sample["updated_by"] = current_actor(actor_username)
-        updated_sample = self.records_util.restore_object_ids(updated_sample)
+        updated_sample = _restore_object_ids(updated_sample)
         updated_sample["_id"] = sample_obj
         self.sample_repository.update_sample(sample_obj, updated_sample)
         sample_name = str(updated_sample.get("name") or sample_doc.get("name") or sample_obj)
@@ -215,3 +214,17 @@ class ResourceSampleService:
         payload["meta"]["sample_oid"] = sample_id
         payload["meta"]["results"] = deletion_summary.get("results", [])
         return payload
+
+
+def _restore_object_ids(value: Any) -> Any:
+    """Restore serialized Mongo object identifiers in an admin sample payload."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key == "_id" and isinstance(item, str):
+                value[key] = ObjectId(item)
+            else:
+                _restore_object_ids(item)
+    elif isinstance(value, list):
+        for item in value:
+            _restore_object_ids(item)
+    return value

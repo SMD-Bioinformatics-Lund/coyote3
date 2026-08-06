@@ -407,8 +407,8 @@ class AssaySpecificPanelsDoc(_StrictDocBase):
 
 
 class InsilicoGenelistsDoc(_StrictDocBase):
-    # TODO: add a dedicated fusion genelist schema once the accepted partner and
-    # breakpoint format is defined. SNV/CNV lists stay as one-symbol-per-entry.
+    """One-gene-per-entry list shared by SNV, CNV, and fusion filtering."""
+
     isgl_id: str
     diagnosis: list[str] = Field(default_factory=list)
     name: str

@@ -158,3 +158,14 @@ def test_clinpgx_client_propagates_http_contract_failures(monkeypatch):
         client.get_gene(clinpgx_id="PA124")
 
     assert error.value.response.status_code == 503
+
+
+def test_clinpgx_client_propagates_timeout_without_creating_partial_evidence(monkeypatch):
+    def fake_get(url, *, params, timeout):
+        raise httpx.ReadTimeout("ClinPGx timed out", request=httpx.Request("GET", url))
+
+    monkeypatch.setattr("api.infra.knowledgebase.clinpgx_public.httpx.get", fake_get)
+    client = ClinPgxPublicClient(base_url="https://api.clinpgx.org", timeout=0.25)
+
+    with pytest.raises(httpx.ReadTimeout):
+        client.get_gene_knowledge(clinpgx_id="PA124")

@@ -93,7 +93,7 @@ def _login_response(payload: ApiAuthLoginRequest):
     """Construct a successful login response and issue a secure session cookie.
 
     Validates user credentials against the internal authentication service.
-    Upon successful verification, issues an encrypted session token, updates
+    Upon successful verification, issues an opaque server-side session token, updates
     the user's last login timestamp, and sets an HTTP-only secure cookie for
     subsequent API authentication.
 

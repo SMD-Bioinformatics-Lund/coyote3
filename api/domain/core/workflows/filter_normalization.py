@@ -17,7 +17,7 @@ def coerce_nonnegative_int(value: Any, default: int = 0) -> int:
         return default
 
 
-def normalize_rna_filter_keys(filters: dict | None) -> dict:
+def normalize_rna_filter_keys(filters: dict[str, Any] | None) -> dict[str, Any]:
     """
     Normalize RNA filters and map form-style prefixed keys to canonical lists.
     """
@@ -39,7 +39,7 @@ def normalize_rna_filter_keys(filters: dict | None) -> dict:
     return normalized
 
 
-def normalize_dna_filter_keys(filters: dict | None) -> dict:
+def normalize_dna_filter_keys(filters: dict[str, Any] | None) -> dict[str, Any]:
     """
     Normalize DNA filters and map form-style prefixed keys to canonical lists.
     """

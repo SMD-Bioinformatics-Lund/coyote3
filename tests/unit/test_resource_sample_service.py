@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
+from bson import ObjectId
 
 from api.application.resources.sample import ResourceSampleService
 from api.domain.core.exceptions import AppError
@@ -39,16 +40,6 @@ class SampleRepository:
         self.updated = (sample_id, sample)
 
 
-class RecordsUtil:
-    def __init__(self) -> None:
-        self.received: dict[str, object] | None = None
-
-    def restore_object_ids(self, value: dict[str, object]) -> dict[str, object]:
-        self.received = value
-        value["restored"] = True
-        return value
-
-
 class AssayPanelRepository:
     def get_all_asps(self, *, is_active: bool | None = None) -> list[dict[str, object]]:
         assert is_active is True
@@ -68,9 +59,8 @@ class AssayPanelRepository:
         ]
 
 
-def build_service() -> tuple[ResourceSampleService, SampleRepository, RecordsUtil, list[object]]:
+def build_service() -> tuple[ResourceSampleService, SampleRepository, list[object]]:
     sample_repository = SampleRepository()
-    records_util = RecordsUtil()
     dependencies = [
         Mock(name=name)
         for name in (
@@ -105,9 +95,8 @@ def build_service() -> tuple[ResourceSampleService, SampleRepository, RecordsUti
         reported_variant_repository=dependencies[11],
         oncokb_public_cache_repository=dependencies[12],
         assay_panel_repository=AssayPanelRepository(),
-        records_util=records_util,
     )
-    return service, sample_repository, records_util, dependencies
+    return service, sample_repository, dependencies
 
 
 def test_from_store_wires_all_repositories() -> None:
@@ -131,18 +120,14 @@ def test_from_store_wires_all_repositories() -> None:
             "assay_panel_repository",
         )
     }
-    records_util = object()
-    service = ResourceSampleService.from_store(
-        SimpleNamespace(**repositories), records_util=records_util
-    )
+    service = ResourceSampleService.from_store(SimpleNamespace(**repositories))
 
     for name, repository in repositories.items():
         assert getattr(service, name) is repository
-    assert service.records_util is records_util
 
 
 def test_list_payload_filters_non_documents_and_preserves_query_parameters() -> None:
-    service, repository, _, _ = build_service()
+    service, repository, _ = build_service()
 
     payload = service.list_payload(asp_ids=["assay"], search="synthetic", page=2, per_page=10)
 
@@ -173,7 +158,7 @@ def test_list_payload_filters_non_documents_and_preserves_query_parameters() -> 
 
 
 def test_list_payload_filters_assays_by_group_and_returns_cascading_options() -> None:
-    service, repository, _, _ = build_service()
+    service, repository, _ = build_service()
 
     payload = service.list_payload(
         asp_ids=None,
@@ -192,7 +177,7 @@ def test_list_payload_filters_assays_by_group_and_returns_cascading_options() ->
 
 
 def test_list_payload_uses_empty_assay_scope_for_unknown_selection() -> None:
-    service, repository, _, _ = build_service()
+    service, repository, _ = build_service()
 
     service.list_payload(asp_ids=None, search="", asp_id="unknown")
 
@@ -201,7 +186,7 @@ def test_list_payload_uses_empty_assay_scope_for_unknown_selection() -> None:
 
 
 def test_context_payload_returns_sample_and_rejects_unknown_id() -> None:
-    service, _, _, _ = build_service()
+    service, _, _ = build_service()
 
     assert service.context_payload(sample_id="sample-oid")["sample"]["name"] == "synthetic-sample"
     with pytest.raises(AppError) as error:
@@ -210,35 +195,41 @@ def test_context_payload_returns_sample_and_rejects_unknown_id() -> None:
 
 
 def test_update_normalizes_copy_without_mutating_request(monkeypatch: pytest.MonkeyPatch) -> None:
-    service, repository, records_util, _ = build_service()
+    service, repository, _ = build_service()
     timestamp = datetime(2026, 7, 31, 10, 0, tzinfo=UTC)
     monkeypatch.setattr("api.application.resources.sample.utc_now", lambda: timestamp)
     monkeypatch.setattr(
         "api.application.resources.sample.current_actor", lambda actor: f"actor:{actor}"
     )
-    request = {"sample": {"_id": "untrusted-id", "name": "renamed"}}
+    nested_id = "507f1f77bcf86cd799439011"
+    request = {
+        "sample": {
+            "_id": "507f191e810c19729de860ea",
+            "name": "renamed",
+            "nested": {"_id": nested_id},
+        }
+    }
     original = deepcopy(request)
 
     result = service.update(sample_id="sample-oid", payload=request, actor_username="admin")
 
     assert request == original
-    assert records_util.received is not request["sample"]
     assert repository.updated is not None
     sample_id, updated = repository.updated
     assert sample_id == "sample-oid"
     assert updated == {
         "_id": "sample-oid",
         "name": "renamed",
+        "nested": {"_id": ObjectId(nested_id)},
         "updated_on": timestamp,
         "updated_by": "actor:admin",
-        "restored": True,
     }
     assert result["meta"]["sample_name"] == "renamed"
     assert result["meta"]["sample_oid"] == "sample-oid"
 
 
 def test_update_rejects_unknown_sample_and_missing_document() -> None:
-    service, _, _, _ = build_service()
+    service, _, _ = build_service()
 
     with pytest.raises(AppError) as missing_sample:
         service.update(sample_id="missing", payload={"sample": {}}, actor_username="admin")
@@ -252,7 +243,7 @@ def test_update_rejects_unknown_sample_and_missing_document() -> None:
 def test_delete_delegates_all_repositories_and_returns_summary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    service, sample_repository, _, dependencies = build_service()
+    service, sample_repository, dependencies = build_service()
     delete = Mock(
         return_value={
             "sample_name": "synthetic-sample",
@@ -286,7 +277,7 @@ def test_delete_delegates_all_repositories_and_returns_summary(
 
 
 def test_delete_rejects_unknown_sample() -> None:
-    service, _, _, _ = build_service()
+    service, _, _ = build_service()
 
     with pytest.raises(AppError) as error:
         service.delete(sample_id="missing")

@@ -23,7 +23,6 @@ jobs:
     env:
       TESTING: "1"
       DEVELOPMENT: "0"
-      COYOTE3_FERNET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       SECRET_KEY: ci-test-secret-key
       INTERNAL_API_TOKEN: ci-test-internal-token
       PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
@@ -181,7 +180,7 @@ jobs:
         if: steps.scope.outputs.frontend == 'true' || steps.scope.outputs.docs == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: |
             package-lock.json

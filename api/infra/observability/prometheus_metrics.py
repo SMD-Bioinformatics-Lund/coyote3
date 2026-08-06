@@ -17,6 +17,10 @@ class _ApiMetricsStore:
         self._latency_ms_sum: defaultdict[tuple[str, str], float] = defaultdict(float)
         self._latency_ms_count: defaultdict[tuple[str, str], int] = defaultdict(int)
         self._rate_limited_total: defaultdict[str, int] = defaultdict(int)
+        self._operations_total: defaultdict[tuple[str, str], int] = defaultdict(int)
+        self._operation_duration_ms_sum: defaultdict[str, float] = defaultdict(float)
+        self._operation_duration_ms_count: defaultdict[str, int] = defaultdict(int)
+        self._startup_phase_duration_ms: dict[str, float] = {}
 
     def observe_request(
         self, *, method: str, path: str, status_code: int, duration_ms: float
@@ -32,6 +36,17 @@ class _ApiMetricsStore:
     def inc_rate_limited(self, *, path: str) -> None:
         with self._lock:
             self._rate_limited_total[_label(path)] += 1
+
+    def observe_operation(self, *, operation: str, outcome: str, duration_ms: float) -> None:
+        operation_label = _label(operation)
+        with self._lock:
+            self._operations_total[(operation_label, _label(outcome))] += 1
+            self._operation_duration_ms_sum[operation_label] += max(float(duration_ms), 0.0)
+            self._operation_duration_ms_count[operation_label] += 1
+
+    def set_startup_phase_duration(self, *, phase: str, duration_ms: float) -> None:
+        with self._lock:
+            self._startup_phase_duration_ms[_label(phase)] = max(float(duration_ms), 0.0)
 
     def render(self) -> str:
         with self._lock:
@@ -77,6 +92,45 @@ class _ApiMetricsStore:
             )
             for path, count in sorted(self._rate_limited_total.items()):
                 lines.append('coyote3_api_rate_limited_total{path="%s"} %d' % (path, count))
+            lines.extend(
+                [
+                    "# HELP coyote3_operation_total Application operations by name and outcome.",
+                    "# TYPE coyote3_operation_total counter",
+                ]
+            )
+            for (operation, outcome), count in sorted(self._operations_total.items()):
+                lines.append(
+                    'coyote3_operation_total{operation="%s",outcome="%s"} %d'
+                    % (operation, outcome, count)
+                )
+            lines.extend(
+                [
+                    "# HELP coyote3_operation_duration_ms_sum Cumulative application operation duration.",
+                    "# TYPE coyote3_operation_duration_ms_sum counter",
+                ]
+            )
+            for operation, value in sorted(self._operation_duration_ms_sum.items()):
+                lines.append(
+                    'coyote3_operation_duration_ms_sum{operation="%s"} %.6f' % (operation, value)
+                )
+            lines.extend(
+                [
+                    "# HELP coyote3_operation_duration_ms_count Application operation observations.",
+                    "# TYPE coyote3_operation_duration_ms_count counter",
+                ]
+            )
+            for operation, count in sorted(self._operation_duration_ms_count.items()):
+                lines.append(
+                    'coyote3_operation_duration_ms_count{operation="%s"} %d' % (operation, count)
+                )
+            lines.extend(
+                [
+                    "# HELP coyote3_startup_phase_duration_ms Latest startup phase duration.",
+                    "# TYPE coyote3_startup_phase_duration_ms gauge",
+                ]
+            )
+            for phase, value in sorted(self._startup_phase_duration_ms.items()):
+                lines.append('coyote3_startup_phase_duration_ms{phase="%s"} %.6f' % (phase, value))
             lines.append("")
             return "\n".join(lines)
 
@@ -95,6 +149,16 @@ def observe_request(*, method: str, path: str, status_code: int, duration_ms: fl
 
 def record_rate_limited(*, path: str) -> None:
     _STORE.inc_rate_limited(path=path)
+
+
+def observe_operation(*, operation: str, outcome: str, duration_ms: float) -> None:
+    """Record a bounded application operation metric."""
+    _STORE.observe_operation(operation=operation, outcome=outcome, duration_ms=duration_ms)
+
+
+def set_startup_phase_duration(*, phase: str, duration_ms: float) -> None:
+    """Record the latest duration for a process startup phase."""
+    _STORE.set_startup_phase_duration(phase=phase, duration_ms=duration_ms)
 
 
 def render_prometheus_metrics() -> str:

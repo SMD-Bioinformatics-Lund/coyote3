@@ -961,7 +961,6 @@ def _resource_sample_service(repo: _AdminRepoStub) -> ResourceSampleService:
         reported_variant_repository=store.reported_variant_repository,
         oncokb_public_cache_repository=store.oncokb_public_cache_repository,
         assay_panel_repository=store.assay_panel_repository,
-        records_util=shared_util.records,
     )
 
 
@@ -1471,8 +1470,6 @@ def test_admin_sample_service_update_restores_ids(monkeypatch):
     monkeypatch.setattr(
         "api.application.resources.sample.utc_now", lambda: datetime.now(timezone.utc)
     )
-    service.records_util = SimpleNamespace(restore_object_ids=lambda payload: payload)
-
     payload = service.update(
         sample_id="S1",
         payload={"sample": {"name": "CASE_1", "field": "value"}},

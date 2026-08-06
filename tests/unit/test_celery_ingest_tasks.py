@@ -57,10 +57,12 @@ def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch
     monkeypatch.setattr(
         ingest,
         "_queue_public_oncokb_enrichment",
-        lambda result: enrichment_requests.append(
-            {"result": result, "manifest_finalized": not manifest.exists()}
-        )
-        or "enrichment-task-id",
+        lambda result: (
+            enrichment_requests.append(
+                {"result": result, "manifest_finalized": not manifest.exists()}
+            )
+            or "enrichment-task-id"
+        ),
     )
     result = ingest.ingest_watch_directory_once.run()
 

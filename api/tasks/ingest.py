@@ -17,6 +17,7 @@ from api.config import get_runtime_mode_flags
 from api.config.paths import INGEST_WATCH_DIR
 from api.config.runtime_settings import DefaultConfig
 from api.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
+from api.infra.observability.operations import timed_operation
 from api.tasks.controls import disabled_result, task_family_enabled
 
 logger = get_task_logger(__name__)
@@ -141,13 +142,16 @@ def _run_watch_directory_once(self) -> dict[str, Any]:
 
     for manifest_path in manifests:
         try:
-            payload = service.parse_yaml_payload(manifest_path.read_text(encoding="utf-8"))
-            payload = _resolve_relative_sample_paths(payload, manifest_path)
-            result = service.ingest_sample_bundle(
-                payload,
-                allow_update=allow_update,
-                increment=increment,
-            )
+            task_context = {"task_id": self.request.id, "manifest": str(manifest_path)}
+            with timed_operation("ingest.manifest_parse", **task_context):
+                payload = service.parse_yaml_payload(manifest_path.read_text(encoding="utf-8"))
+                payload = _resolve_relative_sample_paths(payload, manifest_path)
+            with timed_operation("ingest.sample_bundle", **task_context):
+                result = service.ingest_sample_bundle(
+                    payload,
+                    allow_update=allow_update,
+                    increment=increment,
+                )
             done_path = _unique_marker_path(manifest_path, done_suffix, self.request.id)
             manifest_path.rename(done_path)
             ingested.append(
@@ -224,7 +228,8 @@ def ingest_watch_directory_once(self) -> dict[str, Any]:
     lock = FileLock(WATCH_INGEST_LOCK_PATH)
     try:
         with lock.acquire(timeout=0):
-            return _run_watch_directory_once(self)
+            with timed_operation("ingest.watch_scan", task_id=self.request.id):
+                return _run_watch_directory_once(self)
     except Timeout:
         logger.info("celery_ingest_watch_skipped reason=already_running")
         return {"status": "skipped", "reason": "already_running"}
@@ -245,11 +250,12 @@ def ingest_sample_bundle_task(
         return disabled_result("sample_ingest")
     logger.info("celery_ingest_sample_bundle_started task_id=%s", self.request.id)
     try:
-        result = get_internal_ingest_service().ingest_sample_bundle(
-            source_payload,
-            allow_update=update_existing,
-            increment=increment,
-        )
+        with timed_operation("ingest.sample_bundle", task_id=self.request.id):
+            result = get_internal_ingest_service().ingest_sample_bundle(
+                source_payload,
+                allow_update=update_existing,
+                increment=increment,
+            )
         logger.info("celery_ingest_sample_bundle_finished task_id=%s", self.request.id)
         _record_ingest_audit(
             "ingest.bundle.succeeded",
@@ -296,7 +302,12 @@ def enrich_public_oncokb_cache_task(
         sample_id,
     )
     try:
-        result = get_internal_ingest_service().enrich_public_oncokb_cache_for_sample(sample_id)
+        with timed_operation(
+            "ingest.oncokb_enrichment",
+            task_id=self.request.id,
+            sample_id=sample_id,
+        ):
+            result = get_internal_ingest_service().enrich_public_oncokb_cache_for_sample(sample_id)
         _record_ingest_audit(
             "ingest.enrichment.succeeded",
             "Optional public OncoKB enrichment completed",

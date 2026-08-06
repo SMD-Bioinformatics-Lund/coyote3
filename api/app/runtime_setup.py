@@ -4,14 +4,18 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from dataclasses import dataclass
 from typing import Any
+
+from pymongo.errors import AutoReconnect, ConnectionFailure, NetworkTimeout
 
 from api.app.container import ldap_manager, store, util
 from api.config import app_config
 from api.config.constants import AUTH_PROVIDER_LDAP, AUTH_TYPE_OPTIONS
 from api.infra.cache import create_cache_backend
 from api.infra.observability.logging import configure_json_logging
+from api.infra.observability.prometheus_metrics import set_startup_phase_duration
 from api.infra.security.indexes import ensure_security_indexes
 
 
@@ -31,6 +35,7 @@ class ApiRuntimeContext:
 
 def create_runtime_context(testing: bool = False, development: bool = False) -> ApiRuntimeContext:
     """Build runtime configuration and initialize API dependencies."""
+    startup_started = time.perf_counter()
     config_obj = _select_config(testing=testing, development=development)
     conf = _config_dict(config_obj)
     configure_json_logging(
@@ -50,11 +55,27 @@ def create_runtime_context(testing: bool = False, development: bool = False) -> 
     )
     runtime = ApiRuntimeContext(config=conf, logger=logger)
 
+    phase_started = time.perf_counter()
     _init_cache(runtime)
+    set_startup_phase_duration(
+        phase="cache", duration_ms=(time.perf_counter() - phase_started) * 1000.0
+    )
+    phase_started = time.perf_counter()
     _init_store(runtime)
+    set_startup_phase_duration(
+        phase="database_and_indexes",
+        duration_ms=(time.perf_counter() - phase_started) * 1000.0,
+    )
     if AUTH_PROVIDER_LDAP in AUTH_TYPE_OPTIONS:
+        phase_started = time.perf_counter()
         ldap_manager.init_from_config(runtime.config)
+        set_startup_phase_duration(
+            phase="ldap", duration_ms=(time.perf_counter() - phase_started) * 1000.0
+        )
     util.init_util()
+    total_ms = (time.perf_counter() - startup_started) * 1000.0
+    set_startup_phase_duration(phase="total", duration_ms=total_ms)
+    logger.info("runtime_initialized duration_ms=%.2f", total_ms)
 
     return runtime
 
@@ -104,9 +125,31 @@ def _config_dict(config_obj) -> dict[str, Any]:
 
 def _init_store(runtime: ApiRuntimeContext) -> None:
     """Initialize MongoDB and bind the runtime store."""
-    store.reset()
-    store.init_from_app(runtime)
-    ensure_security_indexes(db=store.coyote_db, config=runtime.config, logger=runtime.logger)
+    max_retries = 5
+    retry_delay = 2.0
+    for attempt in range(1, max_retries + 1):
+        try:
+            store.reset()
+            store.init_from_app(runtime)
+            ensure_security_indexes(
+                db=store.coyote_db, config=runtime.config, logger=runtime.logger
+            )
+            return
+        except (AutoReconnect, ConnectionFailure, NetworkTimeout) as exc:
+            if attempt < max_retries:
+                runtime.logger.warning(
+                    "MongoDB connection failed (attempt %d/%d): %s. Retrying in %.1fs...",
+                    attempt,
+                    max_retries,
+                    exc,
+                    retry_delay,
+                )
+                time.sleep(retry_delay)
+            else:
+                runtime.logger.error(
+                    "MongoDB connection failed after %d attempts: %s", max_retries, exc
+                )
+                raise
 
 
 def _init_cache(runtime: ApiRuntimeContext) -> None:

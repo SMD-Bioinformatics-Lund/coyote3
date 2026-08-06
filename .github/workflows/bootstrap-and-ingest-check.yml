@@ -2,6 +2,10 @@ name: bootstrap-and-ingest-check
 
 on:
   workflow_dispatch:
+  schedule:
+    # Monthly full-stack verification keeps runner use predictable for the
+    # repository while still exercising bootstrap and ingest outside PR CI.
+    - cron: "17 3 1 * *"
 
 permissions:
   contents: read
@@ -138,6 +142,61 @@ jobs:
               --yaml-file demo_data/ingest/generic_case_control.yaml
 
       - name: Verify composed sample workflow
+        run: |
+          auth_json="$(docker compose \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.stage.yml \
+            --profile with-mongo \
+            exec -T coyote3_stage_api \
+            python scripts/api_login.py \
+              --base-url http://127.0.0.1:8001 \
+              --mode password \
+              --username "${ADMIN_USERNAME}" \
+              --password "${ADMIN_PASSWORD}" \
+              --print-token)"
+          bearer_token="$(python3 -c \
+            'import json, sys; print(json.loads(sys.argv[1])["session_token"])' \
+            "$auth_json")"
+          docker compose \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.stage.yml \
+            --profile with-mongo \
+            exec -T coyote3_stage_api \
+            python scripts/verify_composed_workflow.py \
+              --api-base-url http://127.0.0.1:8001 \
+              --bearer-token "$bearer_token" \
+              --sample-name seed_case
+
+      - name: Rehearse disposable database backup and restore
+        run: |
+          mongo_container="$(docker compose \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.stage.yml \
+            --profile with-mongo \
+            ps -q coyote3_stage_mongo)"
+          mongo_network="$(docker inspect \
+            --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}' \
+            "$mongo_container")"
+          backup_dir="${RUNNER_TEMP}/coyote3/mongo-backups"
+
+          ./scripts/mongo_backup_archive.sh \
+            --mongo-uri "${MONGO_URI}" \
+            --db "${COYOTE3_DB}" \
+            --out-dir "$backup_dir" \
+            --label ci-rehearsal \
+            --docker-network "$mongo_network"
+
+          archive="$(find "$backup_dir" -maxdepth 1 -name '*.archive.gz' -print -quit)"
+          test -n "$archive"
+          ./scripts/mongo_restore_archive.sh \
+            --mongo-uri "${MONGO_URI}" \
+            --db "${COYOTE3_DB}" \
+            --archive "$archive" \
+            --drop \
+            --confirm RESTORE_PATIENT_DATA \
+            --docker-network "$mongo_network"
+
+      - name: Verify sample workflow after restore
         run: |
           auth_json="$(docker compose \
             --env-file .coyote3_stage_env \

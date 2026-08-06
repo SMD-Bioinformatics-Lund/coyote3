@@ -1,6 +1,6 @@
 """Strict workflow input contracts used by DNA/RNA services."""
 
-from typing import Protocol
+from typing import Any, Protocol
 
 from api.domain.common.errors import validation_error
 
@@ -8,7 +8,7 @@ from api.domain.common.errors import validation_error
 class _LoggerLike(Protocol):
     """Define the minimal logger interface used by workflow contract checks."""
 
-    def error(self, msg: str) -> None:
+    def error(self, msg: str, *args: object) -> None:
         """Record an error message.
 
         Args:
@@ -32,8 +32,8 @@ def _raise_contract_error(logger: _LoggerLike, tag: str, sample_name: str, messa
 
 def validate_report_inputs(
     logger: _LoggerLike,
-    sample: dict | None,
-    assay_config: dict | None,
+    sample: dict[str, Any] | None,
+    assay_config: dict[str, Any] | None,
     analyte: str,
 ) -> None:
     """Validate report-input prerequisites and raise 400 on contract violations."""
@@ -73,7 +73,7 @@ def validate_report_inputs(
 def validate_rna_filter_inputs(
     logger: _LoggerLike,
     sample_name: str,
-    sample_filters: dict | None,
+    sample_filters: dict[str, Any] | None,
 ) -> None:
     """Validate RNA filter payload shape and raise 400 on invalid values."""
     sample_filters = sample_filters or {}

@@ -21,7 +21,8 @@ def _as_symbol_list(value: Any) -> list[str]:
     if value is None:
         return []
     if isinstance(value, str):
-        return [value] if value.strip() else []
+        normalized = value.strip()
+        return [normalized] if normalized else []
     if isinstance(value, list | tuple | set):
         return [str(item).strip() for item in value if str(item or "").strip()]
     return [str(value).strip()] if str(value or "").strip() else []
@@ -55,6 +56,11 @@ def _merge_public_gene_records(
     merged["public_api"] = True
     merged["therapeutic_data_included"] = False
     return merged
+
+
+def _present_cache_fields(payload: dict[str, Any], fields: tuple[str, ...]) -> dict[str, Any]:
+    """Return only fields supplied by an API response so partial refreshes do not erase data."""
+    return {field: payload[field] for field in fields if field in payload}
 
 
 class OncoKbPublicCacheRepository(BaseRepository):
@@ -210,34 +216,45 @@ class OncoKbPublicCacheRepository(BaseRepository):
             payload = dict(doc)
             payload.setdefault("created_on", now)
             payload["last_seen_at"] = now
+            update_fields = _present_cache_fields(
+                payload,
+                (
+                    "source",
+                    "public_api",
+                    "therapeutic_data_included",
+                    "data_version",
+                    "gene_exist",
+                    "gene_summary",
+                    "background",
+                    "setting",
+                    "entrez_gene_id",
+                    "gene_type",
+                    "highest_sensitive_level",
+                    "highest_resistance_level",
+                    "grch37_refseq",
+                    "grch37_isoform",
+                    "grch38_refseq",
+                    "grch38_isoform",
+                    "hgnc_id",
+                    "previous_symbols",
+                    "alias_symbols",
+                ),
+            )
+            update_fields["last_seen_at"] = now
+            existing = self.gene_collection.find_one(
+                {"gene": gene},
+                {field: 1 for field in update_fields if field != "last_seen_at"},
+            )
+            content_changed = existing is None or any(
+                existing.get(field) != value
+                for field, value in update_fields.items()
+                if field != "last_seen_at"
+            )
             try:
                 result = self.gene_collection.update_one(
                     {"gene": gene},
                     {
-                        "$set": {
-                            "last_seen_at": payload["last_seen_at"],
-                            "source": payload.get("source"),
-                            "public_api": payload.get("public_api"),
-                            "therapeutic_data_included": payload.get(
-                                "therapeutic_data_included", False
-                            ),
-                            "data_version": payload.get("data_version"),
-                            "gene_exist": payload.get("gene_exist"),
-                            "gene_summary": payload.get("gene_summary"),
-                            "background": payload.get("background"),
-                            "setting": payload.get("setting"),
-                            "entrez_gene_id": payload.get("entrez_gene_id"),
-                            "gene_type": payload.get("gene_type"),
-                            "highest_sensitive_level": payload.get("highest_sensitive_level"),
-                            "highest_resistance_level": payload.get("highest_resistance_level"),
-                            "grch37_refseq": payload.get("grch37_refseq"),
-                            "grch37_isoform": payload.get("grch37_isoform"),
-                            "grch38_refseq": payload.get("grch38_refseq"),
-                            "grch38_isoform": payload.get("grch38_isoform"),
-                            "hgnc_id": payload.get("hgnc_id"),
-                            "previous_symbols": payload.get("previous_symbols", []),
-                            "alias_symbols": payload.get("alias_symbols", []),
-                        },
+                        "$set": update_fields,
                         "$setOnInsert": {
                             "gene": gene,
                             "created_on": payload["created_on"],
@@ -247,7 +264,7 @@ class OncoKbPublicCacheRepository(BaseRepository):
                 )
             except DuplicateKeyError:
                 continue
-            changed += int(result.upserted_id is not None or result.modified_count > 0)
+            changed += int(result.upserted_id is not None or content_changed)
         return changed
 
     def upsert_cancer_gene_markers(self, docs: list[dict[str, Any]]) -> int:
@@ -261,36 +278,47 @@ class OncoKbPublicCacheRepository(BaseRepository):
             payload = dict(doc)
             payload.setdefault("created_on", now)
             payload["last_seen_at"] = now
+            update_fields = _present_cache_fields(
+                payload,
+                (
+                    "source",
+                    "public_api",
+                    "therapeutic_data_included",
+                    "data_version",
+                    "hgnc_id",
+                    "previous_symbols",
+                    "alias_symbols",
+                    "entrez_gene_id",
+                    "gene_type",
+                    "occurrence_count",
+                    "oncokb_annotated",
+                    "sanger_cgc",
+                    "vogelstein",
+                    "foundation",
+                    "foundation_heme",
+                    "msk_impact",
+                    "msk_heme",
+                    "grch37_refseq",
+                    "grch37_isoform",
+                    "grch38_refseq",
+                    "grch38_isoform",
+                ),
+            )
+            update_fields["last_seen_at"] = now
+            existing = self.cancer_gene_collection.find_one(
+                {"gene": gene},
+                {field: 1 for field in update_fields if field != "last_seen_at"},
+            )
+            content_changed = existing is None or any(
+                existing.get(field) != value
+                for field, value in update_fields.items()
+                if field != "last_seen_at"
+            )
             try:
                 result = self.cancer_gene_collection.update_one(
                     {"gene": gene},
                     {
-                        "$set": {
-                            "last_seen_at": payload["last_seen_at"],
-                            "source": payload.get("source"),
-                            "public_api": payload.get("public_api"),
-                            "therapeutic_data_included": payload.get(
-                                "therapeutic_data_included", False
-                            ),
-                            "data_version": payload.get("data_version"),
-                            "hgnc_id": payload.get("hgnc_id"),
-                            "previous_symbols": payload.get("previous_symbols", []),
-                            "alias_symbols": payload.get("alias_symbols", []),
-                            "entrez_gene_id": payload.get("entrez_gene_id"),
-                            "gene_type": payload.get("gene_type"),
-                            "occurrence_count": payload.get("occurrence_count"),
-                            "oncokb_annotated": payload.get("oncokb_annotated"),
-                            "sanger_cgc": payload.get("sanger_cgc"),
-                            "vogelstein": payload.get("vogelstein"),
-                            "foundation": payload.get("foundation"),
-                            "foundation_heme": payload.get("foundation_heme"),
-                            "msk_impact": payload.get("msk_impact"),
-                            "msk_heme": payload.get("msk_heme"),
-                            "grch37_refseq": payload.get("grch37_refseq"),
-                            "grch37_isoform": payload.get("grch37_isoform"),
-                            "grch38_refseq": payload.get("grch38_refseq"),
-                            "grch38_isoform": payload.get("grch38_isoform"),
-                        },
+                        "$set": update_fields,
                         "$setOnInsert": {
                             "gene": gene,
                             "created_on": payload["created_on"],
@@ -300,7 +328,7 @@ class OncoKbPublicCacheRepository(BaseRepository):
                 )
             except DuplicateKeyError:
                 continue
-            changed += int(result.upserted_id is not None or result.modified_count > 0)
+            changed += int(result.upserted_id is not None or content_changed)
         return changed
 
     def get_gene_record(self, gene: str | None) -> dict[str, Any] | None:

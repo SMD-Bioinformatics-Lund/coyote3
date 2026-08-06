@@ -12,6 +12,7 @@ from api.domain.core.dna.variant_identity import (
     build_simple_id_hash_from_simple_id,
     normalize_simple_id,
 )
+from api.infra.observability.operations import measured_operation
 
 
 class CommonQueryService:
@@ -296,6 +297,7 @@ class CommonQueryService:
             "report_oids": {},
         }
 
+    @measured_operation("query.tiered_variants")
     def tiered_variant_search_payload(
         self,
         *,
@@ -363,11 +365,7 @@ class CommonQueryService:
                 annotation_text_oid = reported_doc.get("annotation_text_oid")
                 report_id = reported_doc.get("report_id")
                 sample_doc = self.sample_repository.get_sample_by_oid(sample_oid)
-                sample_name = (
-                    reported_doc.get("sample_name") or sample_doc.get("name")
-                    if sample_doc
-                    else None
-                )
+                sample_name = reported_doc.get("sample_name") or (sample_doc or {}).get("name")
                 report_num = reported_doc.get("report_num")
 
                 if sample_oid:

@@ -6,8 +6,12 @@ from typing import Any
 
 from api.app.utilities.common import CommonUtility
 from api.app.utilities.dashboard import DashBoardUtility
-from api.app.utilities.managed_records import ManagedRecordUtility
 from api.app.utilities.reporting import ReportUtility
+from api.domain.core.repository_protocols import (
+    AssayConfigurationRepositoryProtocol,
+    SampleRepositoryProtocol,
+    VariantsRepositoryProtocol,
+)
 from api.infra.integrations.ldap import LdapManager
 
 
@@ -22,13 +26,12 @@ class Utility:
             return
         self.common = CommonUtility()
         self.dashboard = DashBoardUtility()
-        self.records = ManagedRecordUtility()
         self.report = ReportUtility()
         self._initialized = True
 
     def __getattr__(self, name: str) -> Any:
         """Lazy-initialize utility groups on first access."""
-        if name in {"common", "dashboard", "records", "report"}:
+        if name in {"common", "dashboard", "report"}:
             self.init_util()
             return object.__getattribute__(self, name)
         raise AttributeError(name)
@@ -54,7 +57,7 @@ class MongoStore:
     # Statically declare repository attributes so type checkers and IDEs can
     # understand the runtime-populated store surface.
     annotation_repository: Any
-    assay_configuration_repository: Any
+    assay_configuration_repository: AssayConfigurationRepositoryProtocol
     assay_panel_repository: Any
     bam_record_repository: Any
     biomarker_repository: Any
@@ -80,11 +83,11 @@ class MongoStore:
     rna_expression_repository: Any
     rna_quality_repository: Any
     roles_repository: Any
-    sample_repository: Any
+    sample_repository: SampleRepositoryProtocol
     sample_comment_repository: Any
     translocation_repository: Any
     user_repository: Any
-    variant_repository: Any
+    variant_repository: VariantsRepositoryProtocol
     vep_metadata_repository: Any
 
     _repository_names: tuple[str, ...] = (

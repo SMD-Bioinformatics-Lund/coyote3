@@ -201,6 +201,18 @@ def test_ingest_service_uses_collection_gateway_not_collection_maps() -> None:
     )
 
 
+def test_retired_ingest_and_mongo_compatibility_modules_stay_removed() -> None:
+    """Keep duplicate orchestration and unused Mongo wrappers out of the architecture."""
+    retired = (
+        Path("api/application/ingest/sample_bundle.py"),
+        Path("api/infra/mongo/collections.py"),
+        Path("api/infra/mongo/indexes.py"),
+        Path("api/infra/mongo/settings.py"),
+    )
+
+    assert not [path.as_posix() for path in retired if path.exists()]
+
+
 def test_http_routes_declare_response_contracts() -> None:
     """Every documented route must declare a response model or a non-JSON response class."""
     offenders: list[str] = []

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import Any
@@ -244,3 +245,50 @@ def test_worker_runtime_details_reports_capacity_activity_and_consumed_queues():
             "queues": ["celery", "ingest"],
         }
     ]
+
+
+def test_cleanup_disk_logs_gzips_and_deletes_by_retention(tmp_path):
+    collection = _AppControlsCollection()
+    collection.doc = {
+        "control_id": APP_CONTROLS_ID,
+        "retention": {"disk_log_days": 30, "gzip_disk_logs_after_days": 1},
+    }
+    service = AppControlsService(_Db(collection), config={"LOGS": str(tmp_path)})
+    compressible = tmp_path / "api.log"
+    expired = tmp_path / "worker.log"
+    recent = tmp_path / "recent.log"
+    compressible.write_text("compress me", encoding="utf-8")
+    expired.write_text("delete me", encoding="utf-8")
+    recent.write_text("keep me", encoding="utf-8")
+    now = datetime.now(timezone.utc).timestamp()
+    os.utime(compressible, (now - 2 * 86_400, now - 2 * 86_400))
+    os.utime(expired, (now - 31 * 86_400, now - 31 * 86_400))
+
+    result = service.cleanup_disk_logs()
+
+    assert result["status"] == "ok"
+    assert result["gzipped"] == 1
+    assert result["deleted"] == 1
+    assert (tmp_path / "api.log.gz").exists()
+    assert not compressible.exists()
+    assert not expired.exists()
+    assert recent.exists()
+
+
+def test_run_maintenance_audits_failure_without_exposing_error_text(monkeypatch):
+    events: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
+    audit = SimpleNamespace(record=lambda *args, **kwargs: events.append((args, kwargs)))
+    service = AppControlsService(_Db(_AppControlsCollection()), config={}, audit_service=audit)
+    monkeypatch.setattr(
+        service, "cleanup_audit_events", lambda: (_ for _ in ()).throw(OSError("secret path"))
+    )
+
+    try:
+        service.run_maintenance()
+    except OSError:
+        pass
+    else:
+        raise AssertionError("maintenance failure should propagate to Celery")
+
+    assert events[0][0][0] == "maintenance.retention.failed"
+    assert events[0][1]["metadata"] == {"error_type": "OSError"}

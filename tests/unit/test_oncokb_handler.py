@@ -268,6 +268,27 @@ def test_public_oncokb_client_discards_non_json_contract_payload(monkeypatch):
     assert client.annotate_hgvsgs([{"hgvsg": "17:g.76736896T>C"}]) == []
 
 
+def test_public_oncokb_client_propagates_timeout_without_annotation(monkeypatch):
+    class _Client:
+        def __init__(self, timeout):
+            self.timeout = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def post(self, url, json, headers):
+            raise httpx.ReadTimeout("OncoKB timed out", request=httpx.Request("POST", url))
+
+    monkeypatch.setattr("api.infra.knowledgebase.public_oncokb.httpx.Client", _Client)
+    client = PublicOncoKbClient(base_url="https://public.api.oncokb.org/api/v1", timeout=0.25)
+
+    with pytest.raises(httpx.ReadTimeout):
+        client.annotate_hgvsgs([{"hgvsg": "17:g.76736896T>C", "referenceGenome": "GRCh38"}])
+
+
 def test_public_oncokb_client_fetches_cancer_gene_list(monkeypatch):
     captured = {}
 

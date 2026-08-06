@@ -460,8 +460,39 @@ class AppControlsService:
         controls = self.get_controls()
         if not controls.celery.enabled or not controls.celery.maintenance_enabled:
             return {"status": "disabled"}
-        return {
-            "status": "ok",
-            "audit": self.cleanup_audit_events(),
-            "disk_logs": self.cleanup_disk_logs(),
-        }
+        try:
+            result = {
+                "status": "ok",
+                "audit": self.cleanup_audit_events(),
+                "disk_logs": self.cleanup_disk_logs(),
+            }
+        except Exception as exc:
+            if self.audit_service is not None:
+                self.audit_service.record(
+                    "maintenance.retention.failed",
+                    "Retention maintenance failed",
+                    severity="error",
+                    category="operations",
+                    outcome="failure",
+                    resource_type="app_controls",
+                    resource_id=APP_CONTROLS_ID,
+                    tags=["operations", "maintenance", "retention"],
+                    metadata={"error_type": type(exc).__name__},
+                )
+            raise
+        if self.audit_service is not None:
+            self.audit_service.record(
+                "maintenance.retention.completed",
+                "Retention maintenance completed",
+                category="operations",
+                outcome="success",
+                resource_type="app_controls",
+                resource_id=APP_CONTROLS_ID,
+                tags=["operations", "maintenance", "retention"],
+                metadata={
+                    "audit_events_deleted": result["audit"]["deleted"],
+                    "disk_logs_deleted": result["disk_logs"]["deleted"],
+                    "disk_logs_gzipped": result["disk_logs"]["gzipped"],
+                },
+            )
+        return result

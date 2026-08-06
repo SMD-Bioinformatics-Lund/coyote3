@@ -44,7 +44,6 @@ dependencies = [
     "colorlog==6.10.1",
     "cffi==2.0.0",
     "click==8.3.2",
-    "cryptography==46.0.7",
     "cssselect2==0.9.0",
     "dnspython==2.8.0",
     "email_validator==2.3.0",
@@ -73,12 +72,9 @@ dependencies = [
     "pytz==2026.1.post1",
     "PyYAML==6.0.3",
     "rich-click==1.9.7",
-    "sentinels==1.1.1",
-    "six==1.17.0",
     "tinycss2==1.5.1",
     "tinyhtml5==2.1.0",
     "toml==0.10.2",
-    "types-python-dateutil==2.9.0.20260408",
     "typing_extensions==4.15.0",
     "weasyprint==68.1",
     "webencodings==0.5.1",
@@ -102,6 +98,9 @@ dev = [
     "shellcheck-py==0.11.0.1",
     "black==26.3.1",
     "ruff==0.15.10",
+    "flake8==7.1.0",
+    "isort==5.13.2",
+    "types-python-dateutil==2.9.0.20260408",
 ]
 test = [
     "pytest==9.0.3",
@@ -112,8 +111,7 @@ test = [
     "mongomock==4.3.0",
 ]
 docs = [
-    "mkdocs",
-    "mkdocs-readthedocs",
+    "mkdocs==1.6.1",
 ]
 
 [tool.ruff]
@@ -129,7 +127,7 @@ exclude = [
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "D", "TID"]
-# D1xx: missing docstrings — not enforced yet (too many to add at once; future work)
+# D1xx: incremental docstring adoption is tracked in .design/TODO.md.
 # D203/D213: conflict with Google style (D211/D212 selected by convention)
 # D400/D401/D415: first-line punctuation — too noisy for existing codebase
 ignore = [
@@ -191,6 +189,15 @@ files = [
     "api/security/password_flows.py",
     "api/infra/notifications/email.py",
     "api/application/accounts/users.py",
+    "api/config/application_modules.py",
+    "api/domain/core/annotation_identity.py",
+    "api/domain/core/dna/variant_identity.py",
+    "api/domain/core/filter_capabilities.py",
+    "api/domain/core/workflows/contracts.py",
+    "api/domain/core/workflows/filter_normalization.py",
+    "api/infra/observability/operations.py",
+    "api/infra/observability/prometheus_metrics.py",
+    "api/domain/core/repository_protocols.py",
 ]
 
 [tool.setuptools]

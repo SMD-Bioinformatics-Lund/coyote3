@@ -34,6 +34,7 @@ def test_aspc_service_create_inherits_scope_fields_from_selected_asp(monkeypatch
                 "platform": "illumina",
             }
         ),
+        gene_list_repository=SimpleNamespace(get_isgl_for_scope=lambda **_kwargs: []),
         vep_metadata_repository=SimpleNamespace(get_consequence_group_options=lambda *a, **k: []),
         common_util=SimpleNamespace(),
     )
@@ -76,6 +77,7 @@ def test_aspc_service_uses_static_yaml_scope_validation(monkeypatch) -> None:
     service = AspcService(
         assay_configuration_repository=SimpleNamespace(),
         assay_panel_repository=SimpleNamespace(),
+        gene_list_repository=SimpleNamespace(),
         vep_metadata_repository=SimpleNamespace(),
         common_util=SimpleNamespace(),
     )

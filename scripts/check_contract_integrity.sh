@@ -68,6 +68,9 @@ seed_check_args=(
 )
 "$PYTHON_BIN" scripts/validate_assay_consistency.py "${seed_check_args[@]}"
 
+echo "[check] dependency exports match pyproject.toml"
+"$PYTHON_BIN" scripts/check_dependency_consistency.py
+
 echo "[check] shell script static analysis"
 bash scripts/check_shell_quality.sh
 
@@ -77,8 +80,8 @@ echo "[check] docs internal links"
 echo "[check] regenerate collection contracts doc"
 preexisting_doc_changes=0
 if command -v git >/dev/null 2>&1; then
-  if ! git diff --quiet -- docs/api/collection-contracts.md || \
-     ! git diff --cached --quiet -- docs/api/collection-contracts.md; then
+  if ! git diff --quiet -- docs/api/collection_contracts.md || \
+     ! git diff --cached --quiet -- docs/api/collection_contracts.md; then
     preexisting_doc_changes=1
   fi
 fi
@@ -86,12 +89,12 @@ fi
 
 if command -v git >/dev/null 2>&1; then
   if [[ "$preexisting_doc_changes" -eq 1 ]]; then
-    echo "[warn] docs/api/collection-contracts.md had preexisting local changes; skip clean-tree diff check."
+    echo "[warn] docs/api/collection_contracts.md had preexisting local changes; skip clean-tree diff check."
   else
     echo "[check] collection contract doc is committed"
-    if ! git diff --quiet -- docs/api/collection-contracts.md; then
-      echo "ERROR: docs/api/collection-contracts.md changed. Commit regenerated contracts." >&2
-      git --no-pager diff -- docs/api/collection-contracts.md >&2 || true
+    if ! git diff --quiet -- docs/api/collection_contracts.md; then
+      echo "ERROR: docs/api/collection_contracts.md changed. Commit regenerated contracts." >&2
+      git --no-pager diff -- docs/api/collection_contracts.md >&2 || true
       exit 1
     fi
   fi

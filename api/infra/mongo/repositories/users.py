@@ -495,6 +495,8 @@ class UsersRepository(BaseRepository):
         expected_hash = str(user.get("password_action_token_hash") or "")
         expected_purpose = str(user.get("password_action_purpose") or "")
         expires_at = user.get("password_action_expires_at")
+        if isinstance(expires_at, datetime) and expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
         if (
             expected_hash != str(token_hash)
             or expected_purpose != str(purpose)
