@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
-import { TooltipSurface, tooltipToneClass } from "@/components/ui/app-tooltip"
+import { TooltipSurface } from "@/components/ui/app-tooltip"
+import { tooltipToneClass } from "@/components/ui/app-tooltip-meta"
 
 type TooltipState = {
   target: HTMLElement
@@ -23,6 +24,9 @@ function isTooltipTarget(value: EventTarget | null): value is Element {
 
 function eligibleTarget(value: EventTarget | null) {
   if (!isTooltipTarget(value)) return null
+  // A domain component inside this subtree owns the complete tooltip lifecycle.
+  // Do not climb past it and activate a title on an ancestor as a second tooltip.
+  if (value.closest<HTMLElement>('[data-tooltip-managed="true"]')) return null
   const target = value.closest<HTMLElement>("[data-tooltip-content], [title]:not(iframe)")
   if (!target || target.dataset.nativeTitle === "true" || target.dataset.tooltipManaged === "true") return null
   return target

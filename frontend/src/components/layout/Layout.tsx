@@ -235,20 +235,20 @@ export function Layout() {
     <div className="relative isolate flex h-screen flex-col overflow-hidden bg-transparent font-sans antialiased">
       {backgroundFetches > 0 && <GlobalLoadingIndicator />}
       <div className="app-chrome-bg pointer-events-none absolute inset-0 z-0" />
-      <header className="paper-surface z-30 h-16 flex-shrink-0 rounded-none border-x-0 border-t-0">
+      <header className="z-30 h-16 flex-shrink-0 rounded-none border-x-0 border-t-0 border-b border-[var(--chrome-border)] [background:var(--chrome-top)] text-[var(--chrome-foreground)] shadow-sm">
         <div className="flex h-full w-full items-center justify-between gap-4 px-4">
           <Link to="/" className="flex shrink-0 items-center gap-3">
-            <div className="paper-raised-control rounded-lg p-1">
-              <img src={appPath("/logo.png")} alt="Coyote3" className="h-7 w-10 shrink-0 dark:invert" />
+            <div className="rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] p-1">
+              <img src={appPath("/logo.png")} alt="Coyote3" className="h-7 w-10 shrink-0 brightness-0 invert" />
             </div>
             <div className="hidden sm:flex flex-col leading-tight">
-              <span className="brand-gradient-text text-lg font-black tracking-wider">COYOT3</span>
+              <span className="text-lg font-black tracking-wider text-[var(--chrome-foreground)]">COYOT3</span>
             </div>
           </Link>
 
           {!publicOnlyMode && (
           <div className="relative flex h-full min-w-0 items-center" ref={assayMenuRef}>
-            <div className="flex h-full items-center gap-1.5 py-2 text-xs font-bold text-foreground/80">
+            <div className="flex h-full items-center gap-1.5 py-2 text-xs font-bold text-[var(--chrome-muted-foreground)]">
               {assayCategories.map(category => (
                 <button
                   key={category}
@@ -256,8 +256,8 @@ export function Layout() {
                   className={cn(
                     "inline-flex items-center gap-1.5 rounded-lg px-4 py-1.5 uppercase tracking-wider transition-colors duration-100",
                     activeCategory === category || activeAssayCategory === category
-                      ? "border border-primary/75 bg-primary text-primary-foreground shadow-[1px_2px_0_color-mix(in_srgb,var(--primary)_68%,transparent),4px_5px_10px_color-mix(in_srgb,var(--primary)_24%,transparent)]"
-                      : "paper-raised-control hover:bg-muted/80"
+                      ? "border border-[var(--chrome-active-border)] bg-[var(--chrome-active)] text-[var(--chrome-foreground)] shadow-sm"
+                      : "border border-[var(--chrome-border)] bg-[var(--chrome-control)] text-[var(--chrome-muted-foreground)] hover:bg-[var(--chrome-control-hover)] hover:text-[var(--chrome-foreground)]"
                   )}
                 >
                   {category}
@@ -324,8 +324,8 @@ export function Layout() {
               <Link
                 to="/notifications"
                 className={cn(
-                  "paper-raised-control relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground",
-                  location.pathname.startsWith("/notifications") && "bg-primary/10 text-primary"
+                  "relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] text-[var(--chrome-muted-foreground)] hover:bg-[var(--chrome-control-hover)] hover:text-[var(--chrome-foreground)]",
+                  location.pathname.startsWith("/notifications") && "border-[var(--chrome-active-border)] bg-[var(--chrome-active)] text-[var(--chrome-foreground)]"
                 )}
                 title="Notifications"
                 aria-label="Notifications"
@@ -341,7 +341,7 @@ export function Layout() {
             {publicOnlyMode ? (
               <Link
                 to="/login"
-                className="paper-raised-control inline-flex h-10 items-center rounded-lg px-3 text-sm font-bold text-primary"
+                className="inline-flex h-10 items-center rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] px-3 text-sm font-bold text-[var(--chrome-foreground)] hover:bg-[var(--chrome-control-hover)]"
               >
                 Sign in
               </Link>
@@ -349,16 +349,16 @@ export function Layout() {
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="paper-raised-control flex items-center gap-2 rounded-lg px-2 py-1.5"
+                className="flex items-center gap-2 rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] px-2 py-1.5 hover:bg-[var(--chrome-control-hover)]"
               >
                 <div className="brand-gradient-fill flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold text-primary-foreground shadow-md">
                   {user?.username?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div className="hidden sm:flex flex-col items-start text-xs leading-tight">
                   <span className="font-bold">{user?.username || "Loading..."}</span>
-                  <span className="text-muted-foreground">{user?.role || "Guest"}</span>
+                  <span className="text-[var(--chrome-muted-foreground)]">{user?.role || "Guest"}</span>
                 </div>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                <ChevronDown className="h-4 w-4 text-[var(--chrome-muted-foreground)]" />
               </button>
 
               {isUserMenuOpen && (
@@ -410,7 +410,7 @@ export function Layout() {
       <div className="z-10 flex min-h-0 flex-1 overflow-hidden">
         <aside
           className={cn(
-            "paper-surface hidden md:flex flex-col flex-shrink-0 rounded-none border-y-0 border-l-0 transition-[width] duration-150 ease-out",
+            "hidden md:flex flex-col flex-shrink-0 rounded-none border-y-0 border-l-0 border-r border-[var(--chrome-border)] [background:var(--chrome-side)] text-[var(--chrome-foreground)] shadow-sm transition-[width] duration-150 ease-out",
             isCollapsed ? "w-[52px]" : "w-[180px]"
           )}
         >
@@ -419,11 +419,11 @@ export function Layout() {
               {navigationSections.map((section, sectionIndex) => (
                 <div key={section.label} className="space-y-1">
                   {!isCollapsed ? (
-                    <div className="px-2 pt-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground/70">
+                    <div className="px-2 pt-1 text-[10px] font-black uppercase tracking-wider text-[var(--chrome-muted-foreground)]">
                       {section.label}
                     </div>
                   ) : sectionIndex > 0 ? (
-                    <div className="mx-auto h-px w-7 bg-sidebar-border" aria-hidden="true" />
+                    <div className="mx-auto h-px w-7 bg-[var(--chrome-border)]" aria-hidden="true" />
                   ) : (
                     <div className="h-px" aria-hidden="true" />
                   )}
@@ -439,8 +439,8 @@ export function Layout() {
                           "group flex items-center rounded-lg py-2.5 text-sm font-semibold transition-colors duration-100",
                           isCollapsed ? "justify-center px-0" : "px-3",
                           isActive
-                            ? "border border-primary/75 bg-primary text-primary-foreground shadow-[1px_2px_0_color-mix(in_srgb,var(--primary)_68%,transparent),3px_4px_8px_color-mix(in_srgb,var(--primary)_24%,transparent)]"
-                            : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                            ? "border border-[var(--chrome-active-border)] bg-[var(--chrome-active)] text-[var(--chrome-foreground)] shadow-sm"
+                            : "text-[var(--chrome-muted-foreground)] hover:bg-[var(--chrome-control-hover)] hover:text-[var(--chrome-foreground)]"
                         )}
                       >
                         <item.icon className={cn("h-5 w-5 flex-shrink-0", !isCollapsed && "mr-3")} />
@@ -453,11 +453,11 @@ export function Layout() {
             </div>
           </nav>
 
-          <div className="border-t border-sidebar-border p-2">
+          <div className="border-t border-[var(--chrome-border)] p-2">
             <div className={cn("flex items-center gap-2", isCollapsed ? "flex-col justify-center" : "flex-col items-stretch")}>
               <div
                 className={cn(
-                  "text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70",
+                  "text-[10px] font-bold uppercase tracking-wider text-[var(--chrome-muted-foreground)]",
                   isCollapsed ? "max-w-8 text-center [writing-mode:vertical-rl]" : "px-2 pb-1"
                 )}
                 title={appVersion}
@@ -468,19 +468,19 @@ export function Layout() {
                 variant="ghost"
                 size={isCollapsed ? "icon" : "sm"}
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className={cn("text-muted-foreground hover:bg-muted/80 rounded-lg", !isCollapsed && "justify-start gap-2")}
+                className={cn("rounded-lg text-[var(--chrome-muted-foreground)] hover:bg-[var(--chrome-control-hover)] hover:text-[var(--chrome-foreground)]", !isCollapsed && "justify-start gap-2")}
                 title="Toggle Sidebar"
               >
                 {isCollapsed ? <PanelRightClose className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
                 {!isCollapsed && <span>Collapse</span>}
               </Button>
               {!isCollapsed && (
-                <div className="paper-inset flex items-center justify-between gap-2 rounded-lg px-2 py-1">
-                  <span className="text-xs font-semibold text-muted-foreground">Theme</span>
-                  <ThemeToggle />
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] px-2 py-1">
+                  <span className="text-xs font-semibold text-[var(--chrome-muted-foreground)]">Theme</span>
+                  <ThemeToggle className="text-[var(--chrome-foreground)] hover:bg-[var(--chrome-control-hover)]" />
                 </div>
               )}
-              {isCollapsed && <ThemeToggle />}
+              {isCollapsed && <ThemeToggle className="text-[var(--chrome-foreground)] hover:bg-[var(--chrome-control-hover)]" />}
             </div>
           </div>
         </aside>

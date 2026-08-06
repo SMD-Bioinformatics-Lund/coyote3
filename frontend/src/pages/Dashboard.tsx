@@ -5,9 +5,12 @@ import { api } from "@/lib/api"
 import { Activity, AlertTriangle, ArrowRight, CheckCircle2, Clock, Users } from "lucide-react"
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
 import { AppLoader } from "@/components/layout/AppLoader"
+import { PageShell } from "@/components/layout/PageShell"
+import { buttonVariants } from "@/components/ui/button-variants"
 import { humanRelativeDate, localDate, shortCount } from "@/lib/detail-formatters"
 import { buildPanelAnalysisCapabilityData, buildPanelGeneChartData } from "@/lib/dashboard-data"
 import { sampleDetailPath } from "@/lib/sample-routing"
+import { cn } from "@/lib/utils"
 
 const chartColors = ["var(--color-tier1)", "var(--color-tier2)", "var(--color-tier3)", "var(--color-tier4)", "var(--color-dna)", "var(--color-rna)", "var(--color-panel)"]
 const TierDistributionChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.TierDistributionChart })))
@@ -99,19 +102,19 @@ export function Dashboard() {
   const capacityEntries = Object.entries(capacity)
 
   return (
-    <div className="max-w-[2600px] space-y-3">
-      <div className="dashboard-hero flex flex-col gap-3 p-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-wide text-primary">Operations</p>
-          <h1 className="text-2xl font-black tracking-tight">Dashboard</h1>
-          <p className="mt-1 text-xs text-muted-foreground">Throughput, quality, tiering, assay scope, and resource health.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/samples" className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Open samples</Link>
-          <Link to="/variants/search" className="paper-raised-control rounded-lg px-3 py-2 text-xs font-bold">Variant search</Link>
-          <Link to="/public/catalog" className="paper-raised-control rounded-lg px-3 py-2 text-xs font-bold">Catalog</Link>
-        </div>
-      </div>
+    <PageShell
+      eyebrow="Operations"
+      title="Dashboard"
+      description="Throughput, quality, tiering, assay scope, and resource health."
+      className="space-y-3"
+      actions={
+        <>
+          <Link to="/samples" className={buttonVariants({ size: "sm" })}>Open samples</Link>
+          <Link to="/variants/search" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "paper-raised-control")}>Variant search</Link>
+          <Link to="/public/catalog" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "paper-raised-control")}>Catalog</Link>
+        </>
+      }
+    >
 
       <SurfacePanel className="dashboard-panel" title="Operational Snapshot" description="Current clinical workload, analysis progress, and finding volume.">
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[1.45fr_1fr_1fr]">
@@ -388,6 +391,6 @@ export function Dashboard() {
           </div>
         </div>
       </SurfacePanel>
-    </div>
+    </PageShell>
   )
 }

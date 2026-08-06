@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom"
 import type { ColumnDef } from "@tanstack/react-table"
 import { api } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
+import { TableBadge } from "@/components/ui/table-badge"
 import { Button } from "@/components/ui/button"
 import { FileText, ArrowRight, Dna, Search as SearchIcon } from "lucide-react"
 import { SegmentedControl } from "@/components/ui/segmented-control"
@@ -157,9 +158,9 @@ export function Samples() {
       header: "Environment",
       accessorFn: (sample) => sample.environment || "",
       cell: ({ row }) => (
-        <Badge variant="outline" className={`${valueBadgeClass(row.original.environment || "")} font-bold uppercase`}>
+        <TableBadge className={`${valueBadgeClass(row.original.environment || "")} uppercase`}>
           {row.original.environment || "-"}
-        </Badge>
+        </TableBadge>
       ),
     },
     {
@@ -179,15 +180,15 @@ export function Samples() {
       header: "Analysis",
       accessorFn: (sample) => sample.ingest_status || "",
       cell: ({ row }) => (
-        <Badge
+        <TableBadge
           className={
             row.original.ingest_status === "ready"
-              ? "border-pass/30 bg-pass/15 text-pass hover:bg-pass/20 font-bold"
-              : "border-warn/30 bg-warn/15 text-warn hover:bg-warn/20 font-bold"
+              ? "border-pass/30 bg-pass/15 text-pass hover:bg-pass/20"
+              : "border-warn/30 bg-warn/15 text-warn hover:bg-warn/20"
           }
         >
           {row.original.ingest_status || "-"}
-        </Badge>
+        </TableBadge>
       ),
     },
     {
@@ -195,12 +196,11 @@ export function Samples() {
       header: "Report",
       accessorFn: (sample) => sampleReported(sample) ? 1 : 0,
       cell: ({ row }) => (
-        <Badge
-          variant="outline"
-          className={sampleReported(row.original) ? "border-primary/30 bg-primary/10 text-primary font-bold" : "border-warn/30 bg-warn/10 text-warn font-bold"}
+        <TableBadge
+          className={sampleReported(row.original) ? "border-primary/30 bg-primary/10 text-primary" : "border-warn/30 bg-warn/10 text-warn"}
         >
           {sampleReported(row.original) ? "reported" : "unreported"}
-        </Badge>
+        </TableBadge>
       ),
       meta: {
         exportValue: (sample: any) => sampleReported(sample) ? "reported" : "unreported",
@@ -215,9 +215,9 @@ export function Samples() {
         return (
           <div className="flex flex-wrap gap-1">
             {badges.length ? badges.map((item: any) => (
-              <Badge key={item.label} variant="outline" className={`${item.className} font-bold`}>
+              <TableBadge key={item.label} className={item.className}>
                 {item.value === undefined ? item.label : `${item.label} ${item.value}`}
-              </Badge>
+              </TableBadge>
             )) : <span className="text-muted-foreground">-</span>}
           </div>
         )

@@ -19,7 +19,7 @@ import { gensSampleUrl } from "@/lib/external-links"
 import { ResizableSplitPane } from "@/components/layout/ResizableSplitPane"
 import { Button } from "@/components/ui/button"
 import { RotatableImage } from "@/components/detail/RotatableImage"
-import { ArtefactFrequencyBadges, StatusBadges } from "@/lib/variant-ui"
+import { ArtefactFrequencyBadges, CallerBadges, StatusBadges } from "@/lib/variant-ui"
 import {
   CLINICAL_TABLE_CACHE_MS,
   CLINICAL_TABLE_STALE_MS,
@@ -171,10 +171,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
       id: "callers",
       header: "Callers",
       accessorFn: (row) => normalizedCallerList(row.callers).join(", "),
-      cell: ({ row }) => {
-        const callers = normalizedCallerList(row.original.callers)
-        return <span className="text-xs uppercase font-medium text-muted-foreground">{callers.join(", ") || "-"}</span>
-      }
+      cell: ({ row }) => <CallerBadges value={row.original.callers} />
     },
     {
       id: "copy_number",

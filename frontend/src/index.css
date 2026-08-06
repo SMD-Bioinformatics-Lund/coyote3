@@ -168,6 +168,7 @@
   .paper-menu {
     border: 1px solid var(--paper-edge);
     background: var(--paper-surface);
+    color: var(--foreground);
     box-shadow:
       inset 0 1px 0 var(--paper-highlight),
       0 3px 7px color-mix(in srgb, var(--paper-shadow) 60%, transparent),
@@ -268,12 +269,6 @@
   }
   .dashboard-panel--blue {
     --panel-accent: var(--color-tier3);
-  }
-  .dashboard-hero {
-    border: 1px solid var(--paper-edge);
-    border-radius: 1rem;
-    background: var(--paper-raised);
-    box-shadow: 0 1px 3px var(--paper-shadow);
   }
   .dashboard-subcard {
     border: 1px solid color-mix(in srgb, var(--paper-edge) 88%, transparent);
@@ -524,19 +519,19 @@
     animation: app-loader-dot 0.9s cubic-bezier(0.2, 0, 0, 1) infinite;
   }
   .app-loader-material span:nth-child(1) {
-    background: #4285f4;
+    background: var(--color-tier3);
     animation-delay: 0ms;
   }
   .app-loader-material span:nth-child(2) {
-    background: #ea4335;
+    background: var(--color-fail);
     animation-delay: 110ms;
   }
   .app-loader-material span:nth-child(3) {
-    background: #fbbc04;
+    background: var(--color-warn);
     animation-delay: 220ms;
   }
   .app-loader-material span:nth-child(4) {
-    background: #34a853;
+    background: var(--color-tier4);
     animation-delay: 330ms;
   }
   .app-loader-label {

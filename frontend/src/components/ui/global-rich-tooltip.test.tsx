@@ -47,6 +47,25 @@ describe("GlobalRichTooltip", () => {
     expect(screen.getByRole("tooltip")).toHaveTextContent("Open the complete clinical finding record.")
   })
 
+  it("does not activate an ancestor title inside a managed tooltip subtree", () => {
+    render(
+      <>
+        <span title="Ancestor navigation hint">
+          <AppTooltip content="Clinical tier description" label="Tier II">
+            <button>Tier 2</button>
+          </AppTooltip>
+        </span>
+        <GlobalRichTooltip />
+      </>,
+    )
+
+    fireEvent.mouseEnter(screen.getByRole("button", { name: "Tier 2" }))
+    const tooltips = screen.getAllByRole("tooltip")
+    expect(tooltips).toHaveLength(1)
+    expect(tooltips[0]).toHaveTextContent("Clinical tier description")
+    expect(tooltips[0]).not.toHaveTextContent("Ancestor navigation hint")
+  })
+
   it("supports keyboard focus and ignores iframe accessibility titles", () => {
     render(
       <>

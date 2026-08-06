@@ -9,12 +9,10 @@ import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { ColumnDef } from "@tanstack/react-table"
 import {
-  FusionCallerBadges,
-  FusionEffectBadge,
-  FusionEvidenceBadges,
   StatusBadges,
   TierBadge,
 } from "@/lib/variant-ui"
+import { FusionCallerBadges, FusionEffectBadge, FusionEvidenceBadges } from "@/lib/fusion-ui"
 import {
   findingRowClass,
   fusionCallers,

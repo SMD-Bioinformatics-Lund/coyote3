@@ -233,6 +233,23 @@
   --brand-start: oklch(0.5 0.115 302);
   --brand-end: oklch(0.66 0.13 58);
   --brand-gradient: linear-gradient(135deg, var(--brand-start), var(--brand-end));
+  --chrome-top: linear-gradient(
+    105deg,
+    color-mix(in srgb, var(--brand-start) 82%, #2d2535),
+    color-mix(in srgb, var(--brand-end) 68%, var(--brand-start))
+  );
+  --chrome-side: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--brand-start) 76%, #2d2535),
+    color-mix(in srgb, var(--brand-start) 58%, #25212b)
+  );
+  --chrome-foreground: oklch(0.97 0.006 75);
+  --chrome-muted-foreground: oklch(0.84 0.018 75);
+  --chrome-border: rgb(255 255 255 / 18%);
+  --chrome-control: rgb(255 255 255 / 8%);
+  --chrome-control-hover: rgb(255 255 255 / 15%);
+  --chrome-active: rgb(255 255 255 / 20%);
+  --chrome-active-border: rgb(255 255 255 / 32%);
 }
 
 .dark {
@@ -317,6 +334,15 @@
   --brand-start: oklch(0.63 0.105 302);
   --brand-end: oklch(0.69 0.12 62);
   --brand-gradient: linear-gradient(135deg, var(--brand-start), var(--brand-end));
+  --chrome-top: linear-gradient(105deg, oklch(0.3 0.055 302), oklch(0.31 0.045 35));
+  --chrome-side: linear-gradient(180deg, oklch(0.275 0.05 302), oklch(0.235 0.032 302));
+  --chrome-foreground: oklch(0.94 0.008 75);
+  --chrome-muted-foreground: oklch(0.76 0.016 75);
+  --chrome-border: rgb(255 255 255 / 15%);
+  --chrome-control: rgb(255 255 255 / 7%);
+  --chrome-control-hover: rgb(255 255 255 / 13%);
+  --chrome-active: rgb(255 255 255 / 18%);
+  --chrome-active-border: rgb(255 255 255 / 28%);
 
   --color-production: #86aaa2;
   --color-development: #8ba6e8;

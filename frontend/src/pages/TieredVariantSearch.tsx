@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { ChevronDown, Search, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
+import { TableBadge } from "@/components/ui/table-badge"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -178,21 +179,22 @@ export function TieredVariantSearch() {
               const sampleLabel = sample.sample_name || sample.name || "sample"
               return (
                 <div key={sampleId || index} className="flex flex-wrap items-center gap-1">
-                  <Link
-                    to={sampleDetailPath(sample, sampleId)}
-                    className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary hover:bg-primary/15 hover:underline"
-                    title={[sampleLabel, sample.asp_id, sample.subpanel_id, sample.environment].filter(Boolean).join(" / ")}
-                  >
-                    {sampleLabel}
+                  <Link to={sampleDetailPath(sample, sampleId)}>
+                    <TableBadge
+                      className="border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 hover:underline"
+                      title={[sampleLabel, sample.asp_id, sample.subpanel_id, sample.environment].filter(Boolean).join(" / ")}
+                    >
+                      {sampleLabel}
+                    </TableBadge>
                   </Link>
                   {Object.entries(sample.report_oids || {}).map(([reportId, reportNum]) => (
-                    <Link
-                      key={reportId}
-                      to={`${sampleDetailPath(sample, sampleId)}/reports/${reportId}`}
-                      className="rounded-md bg-tier2 px-1.5 py-0.5 text-[10px] font-black text-white hover:bg-tier2/90"
-                      title={`Report ${String(reportNum || reportId)}`}
-                    >
-                      {String(reportNum || reportId)}
+                    <Link key={reportId} to={`${sampleDetailPath(sample, sampleId)}/reports/${reportId}`}>
+                      <TableBadge
+                        className="border-tier2 bg-tier2 font-black text-white hover:bg-tier2/90"
+                        title={`Report ${String(reportNum || reportId)}`}
+                      >
+                        {String(reportNum || reportId)}
+                      </TableBadge>
                     </Link>
                   ))}
                 </div>

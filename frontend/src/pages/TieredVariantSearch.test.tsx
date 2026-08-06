@@ -87,4 +87,21 @@ describe("TieredVariantSearch", () => {
     expect(screen.getByLabelText("Include annotation text")).not.toBeChecked()
     await waitFor(() => expect(screen.getByRole("checkbox", { name: "hematology" })).not.toBeChecked())
   })
+
+  it("renders an empty result without assay or tier summaries", async () => {
+    mocks.get.mockResolvedValueOnce({ data: { docs: [], assay_choices: [], tier_stats: {} } })
+    mount()
+
+    expect(await screen.findByText("Results: 0")).toBeVisible()
+    expect(screen.queryByText("Assay distribution")).not.toBeInTheDocument()
+    expect(screen.queryByText("Tier 1")).not.toBeInTheDocument()
+  })
+
+  it("shows the request error instead of rendering stale results", async () => {
+    mocks.get.mockRejectedValueOnce(new Error("Tier search is unavailable"))
+    mount()
+
+    expect(await screen.findByText("Tier search is unavailable")).toBeVisible()
+    expect(screen.queryByText(/Results:/)).not.toBeInTheDocument()
+  })
 })

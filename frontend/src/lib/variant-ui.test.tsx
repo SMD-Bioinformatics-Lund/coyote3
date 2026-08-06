@@ -5,22 +5,20 @@ import {
   CallerBadges,
   ConsequenceBadges,
   FilterFlagBadges,
-  FusionCallerBadges,
-  FusionEffectBadge,
-  FusionEvidenceBadges,
   ImpactBadge,
   InfoTooltipBadge,
   PredictionBadge,
   StatusBadges,
   TierBadge,
 } from "./variant-ui"
+import { FusionCallerBadges, FusionEffectBadge, FusionEvidenceBadges } from "./fusion-ui"
 
 describe("variant UI semantics", () => {
   it.each([
-    [1, "Tier I", "Stark klinisk signifikans"],
-    [2, "Tier II", "Potentiell klinisk signifikans"],
-    [3, "Tier III", "Oklar klinisk signifikans"],
-    [4, "Tier IV", "Benign/sannolikt benign"],
+    [1, "Tier I", "Strong clinical significance"],
+    [2, "Tier II", "Potential clinical significance"],
+    [3, "Tier III", "Uncertain clinical significance"],
+    [4, "Tier IV", "Benign / likely benign"],
     [7, "Tier 7", "Classification"],
   ])("describes tier %s", (tier, heading, description) => {
     render(<TierBadge tier={tier} />)

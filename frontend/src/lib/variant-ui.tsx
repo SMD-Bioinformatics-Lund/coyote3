@@ -1,9 +1,11 @@
 import { AlertCircle, Ban, Bookmark, MessageSquare, ShieldCheck, XCircle, XSquare } from "lucide-react"
 import { useState, type FocusEvent, type MouseEvent, type ReactNode } from "react"
 import { TooltipSurface } from "@/components/ui/app-tooltip"
+import { TableBadge } from "@/components/ui/table-badge"
 import { cn } from "@/lib/utils"
 import { clinpgxGeneUrl, oncokbGeneUrl } from "@/lib/external-links"
 import { filterFlags, normalizedCallerList } from "@/lib/variant-helpers"
+import { TIER_LABELS } from "@/lib/variant-ui-meta"
 
 export type FilterFlagMetadata = {
   exact?: Record<string, FilterFlagMeta>
@@ -19,30 +21,10 @@ type FilterFlagMeta = {
 }
 
 const tierMeta: Record<number, { roman: string; short: string; description: string; severity: string }> = {
-  1: {
-    roman: "I",
-    short: "Stark klinisk signifikans",
-    description: "Variant av stark klinisk signifikans.",
-    severity: "fail",
-  },
-  2: {
-    roman: "II",
-    short: "Potentiell klinisk signifikans",
-    description: "Variant av potentiell klinisk signifikans.",
-    severity: "warn",
-  },
-  3: {
-    roman: "III",
-    short: "Oklar klinisk signifikans",
-    description: "Variant av oklar klinisk signifikans.",
-    severity: "info",
-  },
-  4: {
-    roman: "IV",
-    short: "Benign/sannolikt benign",
-    description: "Variant bedömd som benign eller sannolikt benign.",
-    severity: "pass",
-  },
+  1: { ...TIER_LABELS[1], severity: "fail" },
+  2: { ...TIER_LABELS[2], severity: "warn" },
+  3: { ...TIER_LABELS[3], severity: "info" },
+  4: { ...TIER_LABELS[4], severity: "pass" },
 }
 
 export function TierBadge({ tier, className }: { tier: unknown; className?: string }) {
@@ -72,22 +54,23 @@ export function TierBadge({ tier, className }: { tier: unknown; className?: stri
   return (
     <span
       className="inline-flex"
+      data-tooltip-managed="true"
       onMouseEnter={(event) => setPosition(belowOrAboveTooltipPosition(event))}
       onMouseMove={(event) => setPosition(belowOrAboveTooltipPosition(event))}
       onMouseLeave={() => setPosition(null)}
       onFocus={(event) => setPosition(belowOrAboveTooltipPosition(event))}
       onBlur={() => setPosition(null)}
     >
-      <span
+      <TableBadge
         tabIndex={0}
         className={cn(
-          "inline-flex h-6 min-w-6 cursor-help items-center justify-center rounded-full px-2 text-xs font-bold text-white shadow-sm outline-none ring-offset-background transition-all duration-100 hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-ring/35 focus:ring-2 focus:ring-ring/40",
+          "cursor-help rounded-full px-1.5 text-[0.68rem] text-white outline-none ring-offset-background transition-all duration-100 hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-ring/35 focus:ring-2 focus:ring-ring/40",
           color,
           className,
         )}
       >
         {value}
-      </span>
+      </TableBadge>
       {position && (
         <TooltipSurface position={position} className={tooltipSeverityClass(meta.severity)}>
           <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">
@@ -101,6 +84,33 @@ export function TierBadge({ tier, className }: { tier: unknown; className?: stri
   )
 }
 
+/**
+ * Shape of a finding/variant document as consumed by StatusBadges.
+ * Fields are optional because not every variant type carries every flag.
+ */
+export type FindingRecord = {
+  fp?: boolean | null
+  blacklisted?: boolean | null
+  blacklist?: boolean | null
+  override_blacklist?: boolean | null
+  irrelevant?: boolean | null
+  interesting?: boolean | null
+  noteworthy?: boolean | null
+  NORMAL?: 0 | 1 | boolean | null
+  comments?: unknown[]
+  [key: string]: unknown
+}
+
+/**
+ * Shape of a ClinPGx gene record as consumed by StatusBadges.
+ */
+export type ClinPgxRecord = {
+  pharmgkb_accession_id?: string | null
+  has_cpic_dosing_guideline?: boolean | null
+  has_variant_annotation?: boolean | null
+  [key: string]: unknown
+}
+
 export function StatusBadges({
   finding,
   gene,
@@ -109,12 +119,12 @@ export function StatusBadges({
   hasClinPgxGene = false,
   clinPgxRecord,
 }: {
-  finding: any
+  finding: FindingRecord
   gene?: string
   hasOncoKbCancerGene?: boolean
   hasOncoKbActionable?: boolean
   hasClinPgxGene?: boolean
-  clinPgxRecord?: any
+  clinPgxRecord?: ClinPgxRecord
 }) {
   const isFp = Boolean(finding?.fp)
   const isBlacklist = Boolean(finding?.blacklisted || (finding?.blacklist && finding?.override_blacklist !== true))
@@ -267,7 +277,7 @@ type ArtefactFrequencyItem = {
   count: unknown
 }
 
-function artefactFrequencyItems(finding: any): ArtefactFrequencyItem[] {
+function artefactFrequencyItems(finding: FindingRecord): ArtefactFrequencyItem[] {
   if (!finding || typeof finding !== "object") return []
   return Object.entries(finding)
     .filter(([key]) => key.startsWith("AFRQ_"))
@@ -287,7 +297,7 @@ function artefactFrequencyItems(finding: any): ArtefactFrequencyItem[] {
 }
 
 /** Render upstream CNV artefact frequencies with their reference-case counts. */
-export function ArtefactFrequencyBadges({ finding }: { finding: any }) {
+export function ArtefactFrequencyBadges({ finding }: { finding: FindingRecord }) {
   const items = artefactFrequencyItems(finding)
   if (!items.length) return <span className="text-muted-foreground">-</span>
 
@@ -351,148 +361,6 @@ export function InfoTooltipBadge({
   )
 }
 
-const fusionCallerDescriptions: Record<string, string> = {
-  arriba: "Fusion call emitted by Arriba.",
-  fusioncatcher: "Fusion call emitted by FusionCatcher.",
-  starfusion: "Fusion call emitted by STAR-Fusion.",
-}
-
-/** Render fusion callers independently from DNA variant callers. */
-export function FusionCallerBadges({ callers }: { callers: unknown }) {
-  const values = normalizedCallerList(callers)
-    .map((caller) => caller.toLowerCase())
-    .filter((caller, index, items) => items.indexOf(caller) === index)
-  if (!values.length) return <span className="text-muted-foreground">-</span>
-
-  return (
-    <div className="flex flex-wrap gap-1">
-      {values.map((caller) => (
-        <InfoTooltipBadge
-          key={caller}
-          label={caller}
-          description={fusionCallerDescriptions[caller] || "Fusion caller reported by the upstream RNA analysis pipeline."}
-          severity="info"
-          contextLabel="Fusion caller"
-        >
-          {caller}
-        </InfoTooltipBadge>
-      ))}
-    </div>
-  )
-}
-
-function fusionEffectDescription(effect: string) {
-  const normalized = effect.toLowerCase()
-  if (normalized === "in-frame") {
-    return "The selected fusion call is predicted to preserve the coding reading frame. This value is supplied by the fusion caller, not recalculated by Coyote3."
-  }
-  return `The fusion caller reported "${effect}". In the RNA review model, every non-empty effect other than the exact in-frame value is treated as out-of-frame.`
-}
-
-/** Render caller-authored fusion effect/frame context with provenance-aware help. */
-export function FusionEffectBadge({ effect }: { effect: unknown }) {
-  const value = String(effect || "").trim()
-  if (!value) return <span className="text-muted-foreground">-</span>
-  const normalized = value.toLowerCase()
-  const severity = normalized === "in-frame" ? "pass" : "fail"
-  return (
-    <InfoTooltipBadge
-      label={value}
-      description={fusionEffectDescription(value)}
-      severity={severity}
-      contextLabel="Caller-reported fusion effect"
-      className="h-auto min-h-5 max-w-full whitespace-normal text-left leading-tight"
-    >
-      {value}
-    </InfoTooltipBadge>
-  )
-}
-
-const fusionEvidenceDescriptions: Record<string, string> = {
-  cancer: "The upstream caller marked this fusion with cancer-associated evidence.",
-  oncogene: "The upstream caller associated one or both partners with an oncogene reference set.",
-  reciprocal: "The upstream caller marked evidence for a reciprocal fusion configuration.",
-  ribosomal: "The upstream caller marked a ribosomal-gene association.",
-  tumor: "The upstream caller marked tumor-associated reference evidence.",
-  "exon-exon": "The upstream caller marked an exon-to-exon breakpoint pattern.",
-  polya: "The upstream caller marked sequence evidence involving a poly-A region.",
-  polyt: "The upstream caller marked sequence evidence involving a poly-T region.",
-}
-
-export type FusionAnnotationMetadata = {
-  important?: string[]
-  not_important?: string[]
-  context?: string[]
-}
-
-function fusionEvidenceMetadata(value: string, metadata: FusionAnnotationMetadata) {
-  const normalized = value.toLowerCase()
-  const configuredDescription = fusionEvidenceDescriptions[normalized]
-  if ((metadata.important || []).includes(normalized)) {
-    return {
-      severity: "pass",
-      description: configuredDescription || "The upstream caller associated this fusion with a cancer or curated fusion reference set. This is supporting caller evidence, not a Coyote3 clinical classification.",
-    }
-  }
-  if ((metadata.not_important || []).includes(normalized)) {
-    return {
-      severity: "fail",
-      description: configuredDescription || "The upstream caller associated this fusion with a normal-tissue, recurrent-artifact, overlap, or sequence-similarity reference set. Review this artifact evidence before interpretation.",
-    }
-  }
-  if ((metadata.context || []).includes(normalized)) {
-    return {
-      severity: "neutral",
-      description: configuredDescription || "The upstream caller reported contextual fusion evidence. Review the breakpoints and supporting reads together with this annotation.",
-    }
-  }
-  return {
-    severity: "neutral",
-    description: configuredDescription || "Caller-specific evidence tag retained verbatim from the selected fusion call. Its vocabulary may vary by caller and caller database version.",
-  }
-}
-
-/** Display selected-call evidence tags while preserving the complete raw description. */
-export function FusionEvidenceBadges({
-  description,
-  metadata = {},
-}: {
-  description: unknown
-  metadata?: FusionAnnotationMetadata
-}) {
-  const raw = String(description || "").trim()
-  if (!raw) return <span className="text-muted-foreground">-</span>
-  const values = raw.split(",").map((value) => value.trim()).filter(Boolean)
-  const visible = values.slice(0, 3)
-  return (
-    <div className="flex max-w-full flex-wrap gap-1" aria-label={`Fusion evidence: ${raw}`}>
-      {visible.map((value, index) => {
-        const badgeMetadata = fusionEvidenceMetadata(value, metadata)
-        return (
-          <InfoTooltipBadge
-            key={`${value}-${index}`}
-            label={value}
-            description={badgeMetadata.description}
-            severity={badgeMetadata.severity}
-            contextLabel="Fusion evidence"
-          >
-            {value}
-          </InfoTooltipBadge>
-        )
-      })}
-      {values.length > visible.length && (
-        <InfoTooltipBadge
-          label={`${values.length - visible.length} additional evidence tags`}
-          description={values.slice(visible.length).join(", ")}
-          severity="neutral"
-          contextLabel="Fusion evidence"
-        >
-          +{values.length - visible.length}
-        </InfoTooltipBadge>
-      )}
-    </div>
-  )
-}
 
 function StatusTooltipBadge({
   children,
@@ -517,9 +385,7 @@ function StatusTooltipBadge({
 }) {
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
   const badgeClass = cn(
-    textBadge
-      ? "h-5 min-w-5 rounded-md px-2 text-[0.68rem] font-bold leading-none"
-      : "h-5 w-5 rounded-full p-0",
+    !textBadge && "h-5 w-5 rounded-full p-0",
     "inline-flex cursor-help items-center justify-center border shadow-sm outline-none ring-offset-background transition-all duration-100 hover:-translate-y-0.5 hover:shadow-md focus:ring-2 focus:ring-ring/40",
     severityClass(severity),
     className,
@@ -531,18 +397,19 @@ function StatusTooltipBadge({
     onFocus: (event: FocusEvent<HTMLElement>) => setPosition(belowOrAboveTooltipPosition(event)),
     onBlur: () => setPosition(null),
   }
-  const content = href ? (
-    <a
+  const content = textBadge ? (
+    <TableBadge
+      as={href ? "a" : "span"}
       href={href}
-      target="_blank"
-      rel="noreferrer"
+      target={href ? "_blank" : undefined}
+      rel={href ? "noreferrer" : undefined}
       className={badgeClass}
       aria-label={ariaLabel}
       tabIndex={0}
       {...handlers}
     >
       {children}
-    </a>
+    </TableBadge>
   ) : (
     <span className={badgeClass} aria-label={ariaLabel} tabIndex={0} {...handlers}>
       {children}
@@ -550,7 +417,7 @@ function StatusTooltipBadge({
   )
 
   return (
-    <span className="inline-flex">
+    <span className="inline-flex" data-tooltip-managed="true">
       {content}
       {position && (
         <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
@@ -733,21 +600,22 @@ function FilterFlagBadge({
   return (
     <span
       className="relative inline-flex"
+      data-tooltip-managed="true"
       onMouseEnter={(event) => setPosition(tooltipPosition(event))}
       onMouseMove={(event) => setPosition(tooltipPosition(event))}
       onMouseLeave={() => setPosition(null)}
       onFocus={(event) => setPosition(tooltipPosition(event))}
       onBlur={() => setPosition(null)}
     >
-      <span
+      <TableBadge
         tabIndex={0}
         className={cn(
-          "inline-flex max-w-[128px] cursor-help truncate rounded-md border px-2 py-0.5 text-[0.7rem] font-black uppercase leading-5 shadow-sm outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
+          "max-w-[128px] cursor-help truncate font-black uppercase outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
           severityClass(severity),
         )}
       >
         {label}
-      </span>
+      </TableBadge>
       {position && (
         <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
           <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">
@@ -824,21 +692,22 @@ export function ImpactBadge({ value }: { value: unknown }) {
   return (
     <span
       className="inline-flex"
+      data-tooltip-managed="true"
       onMouseEnter={(event) => setPosition(belowOrAboveTooltipPosition(event))}
       onMouseMove={(event) => setPosition(belowOrAboveTooltipPosition(event))}
       onMouseLeave={() => setPosition(null)}
       onFocus={(event) => setPosition(belowOrAboveTooltipPosition(event))}
       onBlur={() => setPosition(null)}
     >
-      <span
+      <TableBadge
         tabIndex={0}
         className={cn(
-          "inline-flex cursor-help rounded-md border px-2 py-0.5 text-[0.72rem] font-black uppercase leading-5 shadow-sm outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
+          "cursor-help font-black uppercase outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
           impactClass(value),
         )}
       >
         {impact}
-      </span>
+      </TableBadge>
       {position && (
         <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
           <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">VEP impact</span>
@@ -855,13 +724,13 @@ export function CallerBadges({ value }: { value: unknown }) {
   if (!callers.length) return null
 
   return (
-    <>
+    <div className="flex flex-wrap items-center gap-1">
       {callers.map((caller) => (
-        <span key={caller} className="soft-chip bg-primary/10 text-primary">
+        <TableBadge key={caller} className="border-primary/25 bg-primary/10 text-primary">
           {caller}
-        </span>
+        </TableBadge>
       ))}
-    </>
+    </div>
   )
 }
 
@@ -918,21 +787,22 @@ export function PredictionBadge({ value }: { value: unknown }) {
   return (
     <span
       className="inline-flex"
+      data-tooltip-managed="true"
       onMouseEnter={(event) => setPosition(belowOrAboveTooltipPosition(event))}
       onMouseMove={(event) => setPosition(belowOrAboveTooltipPosition(event))}
       onMouseLeave={() => setPosition(null)}
       onFocus={(event) => setPosition(belowOrAboveTooltipPosition(event))}
       onBlur={() => setPosition(null)}
     >
-      <span
+      <TableBadge
         tabIndex={0}
         className={cn(
-          "inline-flex cursor-help rounded-md border px-2 py-0.5 text-[0.72rem] font-bold leading-5 shadow-sm outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
+          "cursor-help outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
           severityClass(severity),
         )}
       >
         {String(value)}
-      </span>
+      </TableBadge>
       {position && (
         <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
           <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">Protein prediction</span>
@@ -945,7 +815,19 @@ export function PredictionBadge({ value }: { value: unknown }) {
   )
 }
 
-function consequenceMeta(term: string, translations?: Record<string, any>) {
+type ConsequenceMetadata = {
+  label?: string
+  display_name?: string
+  description?: string
+  definition?: string
+  tooltip?: string
+  impact?: string
+  IMPACT?: string
+}
+
+type ConsequenceTranslations = Record<string, ConsequenceMetadata>
+
+function consequenceMeta(term: string, translations?: ConsequenceTranslations): ConsequenceMetadata {
   return translations?.[term] || {}
 }
 
@@ -956,7 +838,7 @@ function ConsequenceBadge({
   wide,
 }: {
   term: string
-  translations?: Record<string, any>
+  translations?: ConsequenceTranslations
   compact: boolean
   wide: boolean
 }) {
@@ -970,22 +852,23 @@ function ConsequenceBadge({
   return (
     <span
       className="inline-flex"
+      data-tooltip-managed="true"
       onMouseEnter={(event) => setPosition(belowOrAboveTooltipPosition(event))}
       onMouseMove={(event) => setPosition(belowOrAboveTooltipPosition(event))}
       onMouseLeave={() => setPosition(null)}
       onFocus={(event) => setPosition(belowOrAboveTooltipPosition(event))}
       onBlur={() => setPosition(null)}
     >
-      <span
+      <TableBadge
         tabIndex={0}
         className={cn(
-          "cursor-help rounded-md border px-2 py-0.5 text-[0.68rem] font-bold lowercase leading-5 shadow-sm outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
+          "cursor-help lowercase outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
           wide ? "max-w-[280px] whitespace-normal break-words" : "max-w-[108px] truncate",
           impact ? severityClass(severity) : "border-border bg-muted text-foreground",
         )}
       >
         {compact ? label : term}
-      </span>
+      </TableBadge>
       {position && (
         <TooltipSurface
           position={position}
@@ -1010,7 +893,7 @@ export function ConsequenceBadges({
   wide = false,
 }: {
   value: unknown
-  translations?: Record<string, any>
+  translations?: ConsequenceTranslations
   compact?: boolean
   wide?: boolean
 }) {

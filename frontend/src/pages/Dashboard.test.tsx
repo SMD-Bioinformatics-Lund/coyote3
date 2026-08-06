@@ -70,6 +70,10 @@ describe("Dashboard page", () => {
     renderWithRouter(<Dashboard />)
 
     expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument()
+    expect(screen.getByText("Operations")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Open samples" })).toHaveAttribute("href", "/samples")
+    expect(screen.getByRole("link", { name: "Variant search" })).toHaveAttribute("href", "/variants/search")
+    expect(screen.getByRole("link", { name: "Catalog" })).toHaveAttribute("href", "/public/catalog")
     expect(screen.getByText((_, element) => element?.textContent === "4 of 10 analysed")).toBeInTheDocument()
     expect(screen.getByText("800 unique small variants across visible samples.")).toBeInTheDocument()
     expect(screen.getByText("DNA_CASE_001")).toBeInTheDocument()

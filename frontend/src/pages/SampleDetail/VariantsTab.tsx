@@ -259,7 +259,10 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
         const tier = tierValue(row.original)
         if (tier === 999) return <TierBadge tier={tier} />
         return (
-          <Link to={`/variants/reported/${row.original._id}/${tier}`} title="Show reported samples for this tiered variant">
+          <Link
+            to={`/variants/reported/${row.original._id}/${tier}`}
+            aria-label={`Show reported samples for this Tier ${tier} variant`}
+          >
             <TierBadge tier={tier} className="hover:ring-2 hover:ring-ring/40" />
           </Link>
         )
