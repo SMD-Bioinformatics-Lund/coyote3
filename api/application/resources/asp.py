@@ -102,7 +102,6 @@ class AspService:
         config["updated_on"] = now
         config.pop("gene_count", None)
         config["version"] = 1
-        config.pop("version_history", None)
         config = _validated_doc(self._spec.collection, config)
         self.assay_panel_repository.create_panel(config)
         return change_payload(
@@ -138,7 +137,6 @@ class AspService:
         updated_doc["updated_on"] = now
         updated_doc["is_active"] = True
         updated_doc["version"] = 1
-        updated_doc.pop("version_history", None)
         updated_doc.pop("retired_by", None)
         updated_doc.pop("retired_on", None)
         updated_doc.pop("retired_reason", None)

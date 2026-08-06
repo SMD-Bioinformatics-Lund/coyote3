@@ -359,9 +359,6 @@ def test_admin_role_update_success(monkeypatch):
     monkeypatch.setattr(role_module, "current_actor", lambda u: u)
     monkeypatch.setattr(role_module, "utc_now", lambda: datetime.now(timezone.utc))
     monkeypatch.setattr(
-        role_module, "inject_version_history", lambda **kwargs: kwargs["new_config"]
-    )
-    monkeypatch.setattr(
         role_module,
         "normalize_managed_form_payload",
         lambda _spec, _form: {
@@ -379,6 +376,7 @@ def test_admin_role_update_success(monkeypatch):
     assert payload["action"] == "update"
     assert repo.updated_role[1]["role_id"] == "admin"
     assert repo.updated_role[1]["level"] == 99999
+    assert "version_history" not in repo.updated_role[1]
 
 
 def test_admin_role_update_works_without_db_schema_dependency(monkeypatch):
@@ -387,9 +385,6 @@ def test_admin_role_update_works_without_db_schema_dependency(monkeypatch):
     service = _role_service(_Repo())
     monkeypatch.setattr(role_module, "current_actor", lambda u: u)
     monkeypatch.setattr(role_module, "utc_now", lambda: datetime.now(timezone.utc))
-    monkeypatch.setattr(
-        role_module, "inject_version_history", lambda **kwargs: kwargs["new_config"]
-    )
     monkeypatch.setattr(
         role_module,
         "normalize_managed_form_payload",
@@ -413,9 +408,6 @@ def test_permission_create_and_update_success(monkeypatch):
     monkeypatch.setattr(perm_module, "current_actor", lambda u: u)
     monkeypatch.setattr(perm_module, "utc_now", lambda: datetime.now(timezone.utc))
     monkeypatch.setattr(
-        perm_module, "inject_version_history", lambda **kwargs: kwargs["new_config"]
-    )
-    monkeypatch.setattr(
         perm_module,
         "normalize_managed_form_payload",
         lambda _spec, form_data: {
@@ -438,8 +430,10 @@ def test_permission_create_and_update_success(monkeypatch):
     assert create_payload["resource_id"] == "sample:create"
     assert repo.created_permission["permission_id"] == "sample:create"
     assert repo.created_permission["system_managed"] is False
+    assert "version_history" not in repo.created_permission
     assert update_payload["action"] == "update"
     assert repo.updated_permission[1]["permission_id"] == "sample:view"
+    assert "version_history" not in repo.updated_permission[1]
 
 
 def test_permission_context_and_delete_paths(monkeypatch):

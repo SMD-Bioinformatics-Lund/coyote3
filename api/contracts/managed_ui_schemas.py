@@ -909,15 +909,11 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
 }
 
 RESOURCE_EXCLUDED_FIELDS: dict[str, set[str]] = {
-    "asp": {"asp_id", "version_history"},
-    "aspc_dna": {"id_", "version_history"},
-    "aspc_rna": {
-        "id_",
-        "version_history",
-    },
-    "isgl": {"isgl_id", "version_history"},
+    "asp": {"asp_id"},
+    "aspc_dna": {"id_"},
+    "aspc_rna": {"id_"},
+    "isgl": {"isgl_id"},
     "user": {
-        "version_history",
         "password_updated_on",
         "password_action_token_hash",
         "password_action_purpose",
@@ -925,8 +921,7 @@ RESOURCE_EXCLUDED_FIELDS: dict[str, set[str]] = {
         "password_action_issued_at",
         "password_action_issued_by",
     },
-    "role": {"role_id", "version_history"},
-    "permission": {"version_history"},
+    "role": {"role_id"},
 }
 
 

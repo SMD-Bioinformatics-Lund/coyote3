@@ -9,7 +9,6 @@ from api.application.accounts.common import (
     build_managed_form,
     change_payload,
     current_actor,
-    inject_version_history,
     lower,
     normalize_managed_form_payload,
     normalize_permission_ids,
@@ -158,7 +157,11 @@ class RoleManagementService:
         if role_id in CANONICAL_ROLE_LEVELS:
             role["level"] = CANONICAL_ROLE_LEVELS[role_id]
         actor = current_actor(actor_username)
-        role = inject_version_history(actor_username=actor, new_config=role, is_new=True)
+        now = utc_now()
+        role["created_by"] = actor
+        role["created_on"] = now
+        role["updated_by"] = actor
+        role["updated_on"] = now
         try:
             role = normalize_collection_document(self._spec.collection, role)
         except Exception as exc:
@@ -201,12 +204,6 @@ class RoleManagementService:
         if canonical_level is not None:
             updated_role["level"] = canonical_level
         updated_role.pop("_id", None)
-        updated_role = inject_version_history(
-            actor_username=actor,
-            new_config=updated_role,
-            old_config=role,
-            is_new=False,
-        )
         try:
             updated_role = normalize_collection_document(self._spec.collection, updated_role)
         except Exception as exc:

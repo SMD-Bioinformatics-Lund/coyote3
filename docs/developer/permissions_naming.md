@@ -71,7 +71,7 @@ replace route-level enforcement.
 *   **dot-nesting**: Sub-resources must use dots, never underscores (e.g., `sample.comment:add:global`).
 *   **Persistence**: Permissions are managed in the `permissions` collection and mapped to users via the `roles` collection.
 *   **No user overrides**: User documents do not carry permission allow/deny override fields. Assign or update roles instead.
-*   **Versioning**: Editing a role or permission updates that document in place, increments `version`, appends `version_history`, and writes an audit event. ASP, ASPC, and ISGL are also maintained as one active first-version document per business key; their operational history is recorded through audit events.
+*   **Versioning**: Editing a role or permission updates that document in place, increments `version`, and writes an audit event. Managed documents do not embed deltas or version-history arrays. ASP, ASPC, and ISGL are maintained as one active first-version document per business key; their operational history is also recorded through audit events.
 
 ## Wildcard Support (Future)
 

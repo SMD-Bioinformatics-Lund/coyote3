@@ -395,7 +395,6 @@ class AspcService:
         config["updated_by"] = actor
         config["updated_on"] = now
         config["version"] = 1
-        config.pop("version_history", None)
         self._validate_static_rule_source(config)
         config = _validated_doc(spec.collection, config)
         self.assay_configuration_repository.create_assay_config(config)
@@ -445,7 +444,6 @@ class AspcService:
             updated_doc["reporting"].pop("analysis", None)
         self._build_filter_profiles(updated_doc, category=category)
         spec = aspc_spec_for_category(category)
-        updated_doc.pop("version_history", None)
         updated_doc.pop("retired_by", None)
         updated_doc.pop("retired_on", None)
         updated_doc.pop("retired_reason", None)

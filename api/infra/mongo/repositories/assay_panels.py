@@ -178,7 +178,7 @@ class ASPRepository(BaseRepository):
         Retrieve all assay specific asp (ASPs), optionally filtered by active status.
 
         This method fetches all panel documents from the database collection,
-        excluding the `covered_genes` and `version_history` fields for efficiency.
+        excluding the `covered_genes` field for efficiency.
         If `is_active` is specified, only asps matching the active status are returned.
         The results are sorted in descending order by the `created_on` field.
 
@@ -192,11 +192,7 @@ class ASPRepository(BaseRepository):
         if is_active is not None:
             query["is_active"] = is_active
 
-        cursor = (
-            self.get_collection()
-            .find(query, {"covered_genes": 0, "version_history": 0})
-            .sort("created_on", -1)
-        )
+        cursor = self.get_collection().find(query, {"covered_genes": 0}).sort("created_on", -1)
         return list(cursor)
 
     def search_asps(
@@ -225,7 +221,7 @@ class ASPRepository(BaseRepository):
         page = max(1, int(page or 1))
         per_page = max(1, min(int(per_page or 30), 200))
         skip = (page - 1) * per_page
-        projection = {"covered_genes": 0, "version_history": 0}
+        projection = {"covered_genes": 0}
         col = self.get_collection()
         total = int(col.count_documents(query))
         docs = list(col.find(query, projection).sort("created_on", -1).skip(skip).limit(per_page))

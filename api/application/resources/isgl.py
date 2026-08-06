@@ -198,7 +198,6 @@ class IsglService:
         config["updated_by"] = actor
         config["updated_on"] = now
         config["version"] = 1
-        config.pop("version_history", None)
         config = _validated_doc(self._spec.collection, config)
         self._validate_asp_scope(config)
         self.gene_list_repository.create_genelist(config)
@@ -242,7 +241,6 @@ class IsglService:
         updated_doc["updated_on"] = now
         updated_doc["is_active"] = True
         updated_doc["version"] = 1
-        updated_doc.pop("version_history", None)
         updated_doc.pop("retired_by", None)
         updated_doc.pop("retired_on", None)
         updated_doc.pop("retired_reason", None)

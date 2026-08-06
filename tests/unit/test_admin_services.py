@@ -1159,10 +1159,6 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
     service = _role_service(repo)
     monkeypatch.setattr("api.application.accounts.roles.current_actor", lambda username: username)
     monkeypatch.setattr(
-        "api.application.accounts.roles.inject_version_history",
-        lambda **kwargs: kwargs["new_config"],
-    )
-    monkeypatch.setattr(
         admin_role_service_module,
         "normalize_managed_form_payload",
         lambda _spec, form_data: {
@@ -1181,6 +1177,7 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
     assert repo.created_role["role_id"] == "developer"
     assert repo.created_role["name"] == "developer"
     assert repo.created_role["level"] == 9999
+    assert "version_history" not in repo.created_role
 
 
 def test_admin_role_service_delete_role_removes_existing_role(monkeypatch):

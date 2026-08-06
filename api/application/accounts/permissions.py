@@ -9,7 +9,6 @@ from api.application.accounts.common import (
     build_managed_form,
     change_payload,
     current_actor,
-    inject_version_history,
     normalize_managed_form_payload,
     utc_now,
 )
@@ -139,7 +138,11 @@ class PermissionManagementService:
         ):
             raise api_error(409, "Permission policy already exists")
         actor = current_actor(actor_username)
-        policy = inject_version_history(actor_username=actor, new_config=policy, is_new=True)
+        now = utc_now()
+        policy["created_by"] = actor
+        policy["created_on"] = now
+        policy["updated_by"] = actor
+        policy["updated_on"] = now
         try:
             policy = normalize_collection_document(self._spec.collection, policy)
         except Exception as exc:
@@ -182,12 +185,6 @@ class PermissionManagementService:
             or permission.get("permission_id", permission_id)
         )
         updated_permission.pop("_id", None)
-        updated_permission = inject_version_history(
-            actor_username=actor,
-            new_config=updated_permission,
-            old_config=permission,
-            is_new=False,
-        )
         try:
             updated_permission = normalize_collection_document(
                 self._spec.collection, updated_permission

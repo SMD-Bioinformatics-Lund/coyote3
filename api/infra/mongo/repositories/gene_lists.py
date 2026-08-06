@@ -626,7 +626,6 @@ class ISGLRepository(BaseRepository):
             "genes": 0,
             "created_on": 0,
             "created_by": 0,
-            "version_history": 0,
             "is_active": 0,
         }
 
@@ -658,7 +657,6 @@ class ISGLRepository(BaseRepository):
             "genes": 0,
             "created_on": 0,
             "created_by": 0,
-            "version_history": 0,
         }
         return list(
             self.get_collection().find(query, projection).sort([("displayname", 1), ("isgl_id", 1)])

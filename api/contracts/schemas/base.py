@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class _DocBase(BaseModel):
@@ -42,21 +41,3 @@ class _StrictDocBase(_DocBase):
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
     id_: Any | None = Field(default=None, alias="_id")
-
-
-class VersionHistoryEntryDoc(_DocBase):
-    version: int | float | None = None
-    user: str | None = None
-    date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    diff: dict[str, Any] | None = None
-    delta: dict[str, Any] | None = None
-    hash: str | None = None
-    initial: bool | None = None
-
-    @field_validator("date", "timestamp", mode="before")
-    @classmethod
-    def _normalize_datetime_value(cls, value: Any) -> Any:
-        if isinstance(value, dict) and "$date" in value:
-            return value.get("$date")
-        return value

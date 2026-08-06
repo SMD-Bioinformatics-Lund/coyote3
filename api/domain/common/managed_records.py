@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from copy import deepcopy
 from typing import Any
 
 from api.contracts.managed_ui_schemas import build_form_spec
@@ -69,26 +68,4 @@ def normalize_managed_form_payload(spec, form_data: dict[str, Any]) -> dict[str,
     config = normalize_form_payload(form_data, build_form_spec(spec))
     for key, value in form_data.items():
         config.setdefault(key, value)
-    return config
-
-
-def inject_version_history(
-    *,
-    actor_username: str,
-    new_config: dict[str, Any],
-    old_config: dict[str, Any] | None = None,
-    is_new: bool,
-) -> dict[str, Any]:
-    """Attach deterministic version-history metadata to a config payload."""
-    config = deepcopy(new_config)
-    history = list(old_config.get("version_history", [])) if isinstance(old_config, dict) else []
-    history.append(
-        {
-            "version": int(config.get("version", 1) or 1),
-            "actor": actor_username,
-            "action": "create" if is_new else "update",
-            "updated_on": config.get("updated_on"),
-        }
-    )
-    config["version_history"] = history
     return config

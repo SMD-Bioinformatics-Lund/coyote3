@@ -551,7 +551,6 @@ Optional keys:
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
-- `version_history` (list[api.contracts.schemas.base.VersionHistoryEntryDoc])
 
 ## `reported_variants`
 
@@ -661,7 +660,6 @@ Optional keys:
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
-- `version_history` (list[api.contracts.schemas.base.VersionHistoryEntryDoc])
 
 ## `sample_comments`
 

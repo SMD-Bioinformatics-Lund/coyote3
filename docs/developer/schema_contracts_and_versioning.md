@@ -117,9 +117,11 @@ document with the same business key. Instead, the existing document is updated
 with:
 
 - incremented `version`
-- appended `version_history`
 - updated `updated_by` and `updated_on`
 - audit-log event through the mutation/audit path
+
+These documents do not store embedded deltas or version-history arrays. Audit
+events are the authoritative operational history.
 
 MongoDB enforces one document per `role_id` and one document per
 `permission_id`. User documents are unique by their object identity plus unique

@@ -76,8 +76,9 @@ User documents do not carry allow/deny permission overrides. Effective
 permissions are derived from the assigned roles only.
 
 Role and permission policy edits update the existing document in place. Each
-edit increments `version`, appends `version_history`, updates mutation metadata,
-and emits an audit event through the normal mutation/audit path. Runtime
+edit increments `version`, updates mutation metadata, and emits an audit event
+through the normal mutation/audit path. The role and permission documents do
+not contain embedded deltas or version-history arrays. Runtime
 authorization resolves the single current role or permission document by
 `role_id` or `permission_id`. MongoDB enforces one document per `role_id` and
 one document per `permission_id`.

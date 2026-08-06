@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.contracts.schemas.base import (
     _DocBase,
     _StrictDocBase,
-    field_validator,
     model_validator,
 )
 

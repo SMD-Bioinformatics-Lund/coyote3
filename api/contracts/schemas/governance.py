@@ -15,7 +15,7 @@ from api.config.constants import (
     normalize_environment,
     normalize_permission_category,
 )
-from api.contracts.schemas.base import VersionHistoryEntryDoc, _StrictDocBase
+from api.contracts.schemas.base import _StrictDocBase
 
 
 class UsersDoc(_StrictDocBase):
@@ -129,7 +129,6 @@ class RolesDoc(_StrictDocBase):
     created_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_by: str | None = None
     updated_on: datetime | None = None
-    version_history: list[VersionHistoryEntryDoc] = Field(default_factory=list)
 
     @field_validator("role_id", "name", mode="before")
     @classmethod
@@ -174,7 +173,6 @@ class PermissionsDoc(_StrictDocBase):
     created_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_by: str | None = None
     updated_on: datetime | None = None
-    version_history: list[VersionHistoryEntryDoc] = Field(default_factory=list)
 
     @field_validator("category", mode="before")
     @classmethod

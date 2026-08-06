@@ -323,7 +323,6 @@ This validator checks:
 - assay references across `samples`, `blacklist`, `insilico_genelists`
 - seed document contract shape (`*.json` arrays of objects only)
 - metadata field typing (`created_on`/`updated_on` ISO-8601 strings, numeric `version`)
-- `version_history` structure and timestamp typing
 - rejection of Mongo Extended JSON wrappers (`$date`, `$oid`) in seed files
 - required baseline governance/config presence (`roles`, `permissions`)
 - `asp_configs` (`aspc_id` format, assay/environment consistency)
@@ -642,7 +641,9 @@ Use this as the minimum deployment contract:
 Managed-admin form source:
 
 - For ASP/ASPC/ISGL/users/roles/permissions, admin UI forms use backend-generated schemas from contracts (`api/contracts/managed_ui_schemas.py`).
-- Version and history are tracked via `version` and `version_history`.
+- ASP, ASPC, and ISGL remain baseline `version: 1` documents. Users, roles,
+  and permissions increment `version` when edited. Change history is recorded
+  in audit events rather than embedded in managed documents.
 
 Assay-group contract:
 

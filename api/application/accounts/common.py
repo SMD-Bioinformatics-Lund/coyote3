@@ -10,9 +10,6 @@ from api.application.common.change_payload import change_payload as _change_payl
 from api.contracts.managed_resources import ManagedResourceSpec
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.domain.common.managed_records import (
-    inject_version_history as _inject_version_history,
-)
-from api.domain.common.managed_records import (
     normalize_managed_form_payload as _normalize_managed_form_payload,
 )
 from api.infra.request_context import current_username
@@ -107,32 +104,6 @@ def lower(value: Any) -> str:
         str: Lowercased string representation.
     """
     return str(value or "").strip().lower()
-
-
-def inject_version_history(
-    *,
-    actor_username: str,
-    new_config: dict[str, Any],
-    old_config: dict[str, Any] | None = None,
-    is_new: bool,
-) -> dict[str, Any]:
-    """Attach version history metadata to a managed config payload.
-
-    Args:
-        actor_username: User recording the change.
-        new_config: Updated config payload.
-        old_config: Existing config payload when updating.
-        is_new: Whether the config is being created.
-
-    Returns:
-        dict[str, Any]: Config payload with version history metadata.
-    """
-    return _inject_version_history(
-        actor_username=actor_username,
-        new_config=deepcopy(new_config),
-        old_config=old_config,
-        is_new=is_new,
-    )
 
 
 def admin_list_pagination(*, q: str, page: int, per_page: int, total: int) -> dict[str, Any]:
