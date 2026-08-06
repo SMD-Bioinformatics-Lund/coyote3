@@ -80,17 +80,20 @@ def test_rna_report_renderer_uses_generated_summary_without_reviewed_comment():
     html = render_report_html(
         template_name="report_fusion.html",
         template_context={
-            "assay": "fusion",
+            "assay_config": {
+                "reporting": {
+                    "report_method": "RNA fusion analysis",
+                    "report_description": "Fusion analysis",
+                }
+            },
             "fusions": [],
             "report_header": "RNA report",
-            "analysis_method": "RNA fusion analysis",
-            "analysis_desc": "Fusion analysis",
             "sample": {
                 "name": "seed_rna_case",
                 "comments": [],
             },
-            "class_desc": [],
-            "class_desc_short": [],
+            "class_desc": {},
+            "class_desc_short": {},
             "report_date": date(2026, 7, 15),
             "clinical_summary_text": "Inga rapporterbara fusioner påvisades.",
         },
@@ -101,3 +104,5 @@ def test_rna_report_renderer_uses_generated_summary_without_reviewed_comment():
 
     assert "Inga rapporterbara fusioner påvisades." in html
     assert "Slutsats saknas!" not in html
+    assert "<th>Fusion</th><th>Klassificering</th>" in html
+    assert "Detekterade fusioner" in html

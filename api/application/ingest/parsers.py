@@ -204,6 +204,64 @@ def _normalize_nprobes_field(value: Any) -> int:
         return 0
 
 
+def _normalize_fusion_docs(payload: Any) -> list[dict[str, Any]]:
+    """Expand sparse pipeline fusion calls into the canonical stored shape.
+
+    The RNA fusion aggregator marks the chosen call with ``selected: 1`` and
+    omits the field from alternative calls. Stored fusion documents require an
+    explicit integer selection state on every call, so omitted values become
+    zero at the ingest boundary.
+    """
+    if not isinstance(payload, list):
+        raise ValueError("Fusion JSON must decode to a list of fusion records")
+
+    normalized_fusions: list[dict[str, Any]] = []
+    for fusion_index, fusion in enumerate(payload):
+        if not isinstance(fusion, dict):
+            raise ValueError(f"Fusion record {fusion_index} must be an object")
+
+        calls = fusion.get("calls")
+        if not isinstance(calls, list) or not calls:
+            raise ValueError(f"Fusion record {fusion_index} must contain at least one call")
+
+        normalized_calls: list[dict[str, Any]] = []
+        for call_index, call in enumerate(calls):
+            if not isinstance(call, dict):
+                raise ValueError(
+                    f"Fusion record {fusion_index} call {call_index} must be an object"
+                )
+            normalized_call = dict(call)
+            raw_selected = normalized_call.get("selected", 0)
+            try:
+                selected = int(raw_selected)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"Fusion record {fusion_index} call {call_index} has invalid selected value"
+                ) from exc
+            if selected not in {0, 1}:
+                raise ValueError(
+                    f"Fusion record {fusion_index} call {call_index} selected must be 0 or 1"
+                )
+            normalized_call["selected"] = selected
+            normalized_call.setdefault("effect", "")
+            normalized_call.setdefault("commonreads", 0)
+            normalized_call.setdefault("desc", "")
+            normalized_calls.append(normalized_call)
+
+        selected_count = sum(call["selected"] for call in normalized_calls)
+        if selected_count != 1:
+            genes = str(fusion.get("genes") or f"record {fusion_index}")
+            raise ValueError(
+                f"Fusion '{genes}' must contain exactly one selected call; found {selected_count}"
+            )
+
+        normalized_fusion = dict(fusion)
+        normalized_fusion["calls"] = normalized_calls
+        normalized_fusions.append(normalized_fusion)
+
+    return normalized_fusions
+
+
 def _normalize_cnv_ratio(value: Any) -> float | None:
     """Normalize pipeline CNV ratio values to the internal numeric representation."""
     if value is None or value == "":
@@ -1082,7 +1140,7 @@ class RnaIngestParser:
         if fusions:
             require_exists("Fusions JSON", fusions)
             with open(fusions, "r", encoding="utf-8") as handle:
-                preload["fusions"] = json.load(handle)
+                preload["fusions"] = _normalize_fusion_docs(json.load(handle))
 
         expr_path = runtime_file_path(args, primary_analysis_file_key("rna", "EXPRESSION"))
         if expr_path:

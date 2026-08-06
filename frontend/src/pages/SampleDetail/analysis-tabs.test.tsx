@@ -15,6 +15,12 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/api", () => ({ api: { get: mocks.get, post: mocks.post } }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: mocks.notifySuccess, notifyActionError: vi.fn() }))
+vi.mock("@/lib/access-control", () => ({
+  hasPermission: (_user: unknown, permission: string) => permission === "fusion:manage",
+  useCurrentUserAccess: () => ({
+    data: { username: "reviewer", roles: [], role: "reviewer", access_level: 10, permissions: ["fusion:manage"] },
+  }),
+}))
 vi.mock("@/hooks/useFindingActions", () => ({
   useBulkFindingAction: (sampleId: string, resourceType: string) => {
     mocks.bulkHook(sampleId, resourceType)
@@ -281,6 +287,42 @@ describe("sample analysis table tabs", () => {
     )
   })
 
+  it("uses the fixed RNA report workflow for an RNA sample", async () => {
+    mocks.get.mockResolvedValue({ data: {
+      sample: { name: "RNA_REPORT", omics_layer: "rna" },
+      meta: { snapshot_count: 1, template_status: { status: "ready", has_html: true } },
+      report: {
+        html: "Rendered RNA report",
+        snapshot_rows: [{
+          fusion: "KMT2A::AFF1",
+          breakpoint_1: "11:1",
+          breakpoint_2: "4:2",
+          effect: "in-frame",
+          spanning_pairs: 8,
+          spanning_reads: 13,
+          classification: 2,
+          text: "Reviewed fusion",
+        }],
+      },
+    } })
+    mount(<ReportsTab sampleId="RNA_REPORT" reportType="rna" />, "/samples/RNA_REPORT?tab=reports")
+
+    expect(await screen.findByTestId("report-frame")).toHaveTextContent("Rendered RNA report")
+    expect(mocks.get).toHaveBeenCalledWith("/samples/RNA_REPORT/reports/rna/preview?include_snapshot=true&save=false")
+    expect(screen.queryByRole("button", { name: "dna" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "rna" })).not.toBeInTheDocument()
+    expect(screen.getByText("KMT2A::AFF1")).toBeVisible()
+    expect(screen.getByText("11:1 / 4:2")).toBeVisible()
+    expect(screen.getByText("in-frame")).toBeVisible()
+    expect(screen.getByText("8 / 13")).toBeVisible()
+    expect(screen.getByText("Tier 2")).toBeVisible()
+    expect(screen.getByText("Reviewed fusion")).toBeVisible()
+    const reportTable = mocks.dataTable.mock.calls.at(-1)?.[0]
+    expect(reportTable.columns.map((column: { id: string }) => column.id)).toEqual([
+      "fusion", "breakpoints", "effect", "support", "classification", "text",
+    ])
+  })
+
   it("keeps report actions disabled when no approved HTML is available", async () => {
     mocks.get.mockResolvedValue({ data: {
       sample: { name: "DNA_REPORT" },
@@ -322,8 +364,8 @@ describe("sample analysis table tabs", () => {
       resourceType: "fusion",
       row: { _id: "FUSION_1", genes: ["BCR", "ABL1"], callers: ["ARRIBA"] },
       responseKey: "fusions",
-      actionLabel: "Mark Irrelevant",
-      action: "irrelevant",
+      actionLabel: "Mark Blacklisted",
+      action: "blacklisted",
     },
     {
       name: "translocations",

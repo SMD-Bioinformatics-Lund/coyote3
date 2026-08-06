@@ -1,25 +1,13 @@
 import { useState } from "react"
 import { Check } from "lucide-react"
-import { FindingAction } from "@/lib/finding-actions"
+import {
+  FindingAction,
+  FindingActionOption,
+  findingBulkActionOptions,
+} from "@/lib/finding-actions"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 
-export type BulkActionOption = {
-  value: FindingAction
-  label: string
-}
-
-const defaultActions: BulkActionOption[] = [
-  { value: "tier_1", label: "Classify as Tier 1" },
-  { value: "tier_2", label: "Classify as Tier 2" },
-  { value: "tier_3", label: "Classify as Tier 3" },
-  { value: "tier_4", label: "Classify as Tier 4" },
-  { value: "fp", label: "Mark False Positive" },
-  { value: "unfp", label: "Unmark False Positive" },
-  { value: "irrelevant", label: "Mark Irrelevant" },
-  { value: "relevant", label: "Unmark Irrelevant" },
-  { value: "interesting", label: "Mark Interesting" },
-  { value: "uninteresting", label: "Unmark Interesting" },
-]
+const defaultActions = findingBulkActionOptions("small_variant")
 
 export function BulkActionDropdown({
   selectedCount,
@@ -29,7 +17,7 @@ export function BulkActionDropdown({
 }: {
   selectedCount: number,
   onAction: (action: FindingAction) => void | Promise<unknown>
-  actions?: BulkActionOption[]
+  actions?: FindingActionOption[]
   isPending?: boolean
 }) {
   const [action, setAction] = useState<FindingAction | "">("")

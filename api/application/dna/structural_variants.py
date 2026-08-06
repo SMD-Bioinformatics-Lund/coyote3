@@ -560,6 +560,12 @@ class DnaStructuralService:
             else:
                 self.translocation_repository.unmark_false_positive_transloc(transloc_id)
             return
+        if flag == "irrelevant":
+            self.translocation_repository.mark_irrelevant(transloc_id, apply)
+            return
+        if flag == "blacklisted":
+            self.translocation_repository.mark_blacklisted(transloc_id, apply)
+            return
         raise ValueError(f"Unsupported flag: {flag}")
 
     def set_translocation_comment_hidden(

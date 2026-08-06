@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class RnaFusionListPayload(BaseModel):
@@ -27,6 +27,8 @@ class RnaFusionListPayload(BaseModel):
     filter_context: dict[str, Any]
     fusions: list[dict[str, Any]]
     ai_text: str
+    fusion_caller_options: list[str] = Field(default_factory=list)
+    fusion_annotation_metadata: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class RnaFusionContextPayload(BaseModel):
@@ -45,6 +47,18 @@ class RnaFusionContextPayload(BaseModel):
     assay_group: str
     subpanel: str | None = None
     assay_group_mappings: dict[str, Any]
+    fusion_caller_options: list[str] = Field(default_factory=list)
+    fusion_annotation_metadata: dict[str, list[str]] = Field(default_factory=dict)
+
+
+class RnaAnalysisPayload(BaseModel):
+    """Represent expression, classification, and quality records for an RNA sample."""
+
+    sample_id: str
+    sample_name: str
+    expression: dict[str, Any] = Field(default_factory=dict)
+    classification: dict[str, Any] = Field(default_factory=dict)
+    quality: dict[str, Any] = Field(default_factory=dict)
 
 
 class RnaFusionExportRow(BaseModel):
@@ -63,6 +77,7 @@ class RnaFusionExportRow(BaseModel):
     status: str = ""
     false_positive: str = ""
     irrelevant: str = ""
+    blacklisted: str = ""
     interesting: str = ""
     latest_comment: str = ""
     latest_comment_author: str = ""

@@ -5,6 +5,9 @@ import {
   CallerBadges,
   ConsequenceBadges,
   FilterFlagBadges,
+  FusionCallerBadges,
+  FusionEffectBadge,
+  FusionEvidenceBadges,
   ImpactBadge,
   InfoTooltipBadge,
   PredictionBadge,
@@ -182,6 +185,38 @@ describe("variant UI semantics", () => {
     expect(screen.getByText("TNSCOPE")).toBeInTheDocument()
     rerender(<CallerBadges value={null} />)
     expect(container).toBeEmptyDOMElement()
+  })
+
+  it("renders lowercase fusion callers with source help", () => {
+    render(<FusionCallerBadges callers="FusionCatcher,STARFUSION,FusionCatcher" />)
+    expect(screen.getByText("fusioncatcher")).toBeInTheDocument()
+    expect(screen.getByText("starfusion")).toBeInTheDocument()
+    expect(screen.getAllByText("fusioncatcher")).toHaveLength(1)
+    fireEvent.focus(screen.getByText("fusioncatcher"))
+    expect(screen.getByText("Fusion call emitted by FusionCatcher.")).toBeInTheDocument()
+  })
+
+  it("treats only the exact in-frame fusion effect as in-frame", () => {
+    const { rerender } = render(<FusionEffectBadge effect="in-frame" />)
+    fireEvent.focus(screen.getByText("in-frame"))
+    expect(screen.getByText("not recalculated by Coyote3", { exact: false })).toBeInTheDocument()
+
+    rerender(<FusionEffectBadge effect="UTR/CDS(truncated)" />)
+    fireEvent.focus(screen.getByLabelText("UTR/CDS(truncated)"))
+    expect(screen.getByText("treated as out-of-frame", { exact: false })).toBeInTheDocument()
+  })
+
+  it("renders bounded fusion evidence badges while retaining all raw tags", () => {
+    render(
+      <FusionEvidenceBadges
+        description="oncogene,cancer,t1,reciprocal,m7"
+        metadata={{ important: ["oncogene", "cancer"], context: ["reciprocal"] }}
+      />,
+    )
+    expect(screen.getByText("oncogene")).toBeInTheDocument()
+    expect(screen.getByText("+2")).toBeInTheDocument()
+    fireEvent.focus(screen.getByText("+2"))
+    expect(screen.getByText("reciprocal, m7")).toBeInTheDocument()
   })
 
   it("uses VEP translations for consequence display and tooltip content", () => {

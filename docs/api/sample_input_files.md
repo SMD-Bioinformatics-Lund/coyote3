@@ -303,12 +303,11 @@ The RNA parser reads file paths from these manifest keys:
 - `classification_path`
 - `qc`
 
-The RNA parser currently performs much less structural normalization than the DNA parser. In practice it:
-
-- checks that the file exists
-- loads JSON
-- passes the loaded object onward
-- relies on downstream collection validation during write
+The RNA parser validates each declared file, loads the JSON payload, normalizes
+sparse caller fields to the canonical collection contract, attaches the parent
+sample identifier, and validates every document before it is committed. A
+declared RNA file that cannot be parsed or normalized fails the complete sample
+bundle; the sample is not published as ready.
 
 ### Fusions JSON
 
@@ -354,6 +353,36 @@ Recommended raw structure:
 Note:
 
 - `SAMPLE_ID` in raw files is overwritten or reattached at ingest time, so the sample-linking source of truth is the parent sample being ingested.
+- Every fusion must contain exactly one call with `selected: 1`. Alternative
+  calls may omit `selected`; ingest stores those values as `0`. The selected
+  state identifies the caller observation displayed, classified, and reported.
+- `calls[].effect` is caller-authored fusion frame or breakpoint-region context.
+  The exact normalized value `in-frame` is presented as in-frame; every other
+  non-empty value, including `out-of-frame` and `UTR/CDS(truncated)`, is
+  presented as out-of-frame. It is not a DNA VEP `Consequence` value.
+- `calls[].desc` is a comma-delimited, caller-controlled evidence vocabulary.
+  Values such as `oncogene`, `cancer`, `reciprocal`, and caller-specific codes
+  are retained verbatim. Coyote3 does not discard unknown future tags. The UI
+  distinguishes curated/cancer-reference tags, cautionary context, and
+  artifact-associated tags using the historical FusionCatcher vocabulary, but
+  those visual groups are review aids rather than clinical classifications.
+- Fusion description colors are driven by
+  `api/config/center/clinical_vocabulary.toml`. Important cancer/reference
+  terms are green, artifact or normal-tissue terms are red, contextual terms
+  are gray, and unknown future caller terms remain visible with the neutral
+  style.
+- All caller alternatives remain in the same `fusions.calls` array. They are not
+  written to `anno_vep`, because they are independent caller observations rather
+  than alternate VEP transcript consequences. A reviewer may change the selected
+  call on the fusion detail page; that operation clears the previous selection
+  and marks exactly one call as selected.
+
+Fusion eligibility and fusion presentation are intentionally separate. The
+query admits a fusion when one individual call satisfies all configured caller,
+effect, evidence, and read-support predicates. The table and report then present
+the call marked `selected`. This preserves alternative caller observations
+without allowing support from one call and effect from another to satisfy a
+single filter expression.
 
 ### RNA Expression JSON
 

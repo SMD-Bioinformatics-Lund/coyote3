@@ -11,6 +11,7 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
 
 
@@ -67,3 +68,9 @@ class RNAQCRepository(BaseRepository):
 
         doc.pop("_id", None)
         return doc
+
+    def delete_sample_qc(self, sample_oid: str) -> OperationResult:
+        """Delete quality-control documents owned by a sample."""
+        return OperationResult.from_delete(
+            self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
+        )

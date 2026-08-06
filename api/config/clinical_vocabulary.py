@@ -44,11 +44,60 @@ class ClinicalVocabulary:
     sample_file_keys: dict[str, tuple[str, ...]]
     required_file_keys_by_family: dict[str, tuple[str, ...]]
     analysis_file_keys_by_omics: dict[str, dict[str, tuple[str, ...]]]
+    analysis_types_by_family: dict[str, tuple[str, ...]]
     auth_type_options: tuple[str, ...]
     genelist_standard_types: tuple[str, ...]
     genelist_adhoc_types: tuple[str, ...]
     required_aspc_reporting_fields: tuple[str, ...]
     transcript_selection_order: tuple[str, ...]
+    fusion_callers: tuple[str, ...]
+    fusion_description_important_terms: tuple[str, ...]
+    fusion_description_not_important_terms: tuple[str, ...]
+    fusion_description_context_terms: tuple[str, ...]
+
+    def fusion_annotation_metadata(self) -> dict[str, list[str]]:
+        """Return configured caller-annotation categories for API consumers."""
+        return {
+            "important": list(self.fusion_description_important_terms),
+            "not_important": list(self.fusion_description_not_important_terms),
+            "context": list(self.fusion_description_context_terms),
+        }
+
+    def normalize_fusion_callers(self, values: Any, *, reject_unknown: bool = True) -> list[str]:
+        """Return configured caller IDs from pipeline or display-name aliases."""
+        raw_values = values if isinstance(values, (list, tuple, set)) else [values]
+        canonical_by_token = {
+            _fusion_caller_token(caller): caller for caller in self.fusion_callers
+        }
+        normalized: list[str] = []
+        unknown: list[str] = []
+        for value in raw_values:
+            if value is None:
+                continue
+            raw_value = str(value).strip()
+            if not raw_value:
+                continue
+            caller = canonical_by_token.get(_fusion_caller_token(raw_value))
+            if caller is None:
+                unknown.append(raw_value)
+                continue
+            if caller not in normalized:
+                normalized.append(caller)
+        if unknown and reject_unknown:
+            raise ValueError(
+                "fusion_callers must use configured caller IDs: "
+                + ", ".join(self.fusion_callers)
+                + "; unknown value(s): "
+                + ", ".join(unknown)
+            )
+        return normalized
+
+
+def _fusion_caller_token(value: Any) -> str:
+    """Build a case- and separator-insensitive fusion-caller lookup token."""
+    normalized = str(value or "").strip().lower()
+    normalized = re.sub(r"^fusioncaller[-_\s]*", "", normalized)
+    return re.sub(r"[^a-z0-9]+", "", normalized)
 
 
 def _string_tuple(
@@ -105,6 +154,7 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
     authentication = raw.get("authentication")
     genelist = raw.get("genelist")
     reporting = raw.get("reporting")
+    fusion = raw.get("fusion")
     if not all(
         isinstance(section, dict)
         for section in (
@@ -115,11 +165,12 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
             authentication,
             genelist,
             reporting,
+            fusion,
         )
     ):
         raise RuntimeError(
             "clinical vocabulary requires assay, environment, files, analysis, "
-            "authentication, genelist, and reporting tables"
+            "authentication, genelist, reporting, and fusion tables"
         )
 
     assay_categories = _identifier_tuple(assay.get("categories"), key="assay.categories")
@@ -185,6 +236,7 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         required_file_keys_by_family[family] = required
 
     analysis_file_keys_by_omics: dict[str, dict[str, tuple[str, ...]]] = {}
+    analysis_types_by_category: dict[str, tuple[str, ...]] = {}
     for category in assay_categories:
         analysis_section = analysis.get(category)
         if not isinstance(analysis_section, dict):
@@ -192,6 +244,7 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         analysis_types = _string_tuple(
             analysis_section.get("types"), key=f"analysis.{category}.types", uppercase=True
         )
+        analysis_types_by_category[category] = analysis_types
         raw_bindings = analysis_section.get("file_keys")
         if not isinstance(raw_bindings, dict):
             raise RuntimeError(f"clinical vocabulary requires analysis.{category}.file_keys table")
@@ -213,6 +266,28 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
                 )
             bindings[analysis_type] = binding
         analysis_file_keys_by_omics[category] = bindings
+
+    raw_allowed_by_family = analysis.get("allowed_by_family")
+    if not isinstance(raw_allowed_by_family, dict):
+        raise RuntimeError("clinical vocabulary requires analysis.allowed_by_family table")
+    if set(raw_allowed_by_family) != set(assay_families):
+        raise RuntimeError(
+            "analysis.allowed_by_family must define exactly the configured assay families"
+        )
+    analysis_types_by_family: dict[str, tuple[str, ...]] = {}
+    for family, category in assay_family_categories.items():
+        allowed = _string_tuple(
+            raw_allowed_by_family.get(family),
+            key=f"analysis.allowed_by_family.{family}",
+            uppercase=True,
+        )
+        invalid = set(allowed) - set(analysis_types_by_category[category])
+        if invalid:
+            raise RuntimeError(
+                f"analysis.allowed_by_family.{family} contains invalid {category} analysis "
+                f"types: {', '.join(sorted(invalid))}"
+            )
+        analysis_types_by_family[family] = allowed
 
     auth_type_options = _identifier_tuple(
         authentication.get("providers"), key="authentication.providers"
@@ -255,6 +330,29 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
             "reporting.transcript_selection_order must contain each supported selector exactly once"
             + (f" ({'; '.join(details)})" if details else "")
         )
+    description_terms = fusion.get("description_terms")
+    if not isinstance(description_terms, dict):
+        raise RuntimeError("clinical vocabulary requires fusion.description_terms table")
+    fusion_callers = _identifier_tuple(fusion.get("callers"), key="fusion.callers")
+    if len({_fusion_caller_token(caller) for caller in fusion_callers}) != len(fusion_callers):
+        raise RuntimeError("fusion.callers must remain unique after separator normalization")
+    fusion_description_important_terms = _string_tuple(
+        description_terms.get("important"), key="fusion.description_terms.important"
+    )
+    fusion_description_not_important_terms = _string_tuple(
+        description_terms.get("not_important"),
+        key="fusion.description_terms.not_important",
+    )
+    fusion_description_context_terms = _string_tuple(
+        description_terms.get("context"), key="fusion.description_terms.context"
+    )
+    categorized_terms = (
+        list(fusion_description_important_terms)
+        + list(fusion_description_not_important_terms)
+        + list(fusion_description_context_terms)
+    )
+    if len(categorized_terms) != len(set(categorized_terms)):
+        raise RuntimeError("fusion.description_terms categories must not overlap")
     return ClinicalVocabulary(
         assay_categories=assay_categories,
         assay_families=assay_families,
@@ -266,11 +364,16 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
         sample_file_keys=sample_file_keys,
         required_file_keys_by_family=required_file_keys_by_family,
         analysis_file_keys_by_omics=analysis_file_keys_by_omics,
+        analysis_types_by_family=analysis_types_by_family,
         auth_type_options=auth_type_options,
         genelist_standard_types=genelist_standard_types,
         genelist_adhoc_types=genelist_adhoc_types,
         required_aspc_reporting_fields=required_aspc_reporting_fields,
         transcript_selection_order=transcript_selection_order,
+        fusion_callers=fusion_callers,
+        fusion_description_important_terms=fusion_description_important_terms,
+        fusion_description_not_important_terms=fusion_description_not_important_terms,
+        fusion_description_context_terms=fusion_description_context_terms,
     )
 
 

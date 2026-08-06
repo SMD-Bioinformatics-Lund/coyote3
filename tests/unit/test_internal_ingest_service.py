@@ -9,6 +9,7 @@ import pytest
 
 import api.application.ingest.parsers as ingest_parsers
 import api.application.ingest.service as ingest
+from api.contracts.schemas.rna import FusionsDoc
 from api.infra.mongo.ingest_gateway import IngestCollectionGateway
 
 
@@ -256,8 +257,10 @@ def test_small_helpers_and_build_meta(tmp_path):
             "control_ffpe": True,
         }
     )
-    assert norm_case["reads"] is None
-    assert norm_ctrl["reads"] is None
+    assert "reads" not in norm_case
+    assert "reads" not in norm_ctrl
+    assert norm_case["ffpe"] is False
+    assert norm_ctrl["ffpe"] is True
 
     meta = ingest.build_sample_meta_dict(
         {
@@ -278,6 +281,39 @@ def test_small_helpers_and_build_meta(tmp_path):
     assert meta["database_versions"] == {"clinvar": "202402", "dbsnp": "154", "vep": "110"}
     assert meta["case"]["reads"] == 10
     assert meta["control"]["reads"] == 20
+
+
+def test_sample_meta_omits_unknown_ffpe_and_uses_contract_default():
+    payload = {
+        "name": "RNA1",
+        "asp_id": "fusion",
+        "subpanel_id": "base",
+        "environment": "production",
+        "case_id": "RNA1",
+        "sample_no": 1,
+        "paired": False,
+        "sequencing_scope": "wts",
+        "omics_layer": "rna",
+        "platform": "illumina",
+        "pipeline": "rnaseq_fusion",
+        "pipeline_version": "not_provided",
+        "fusion_files": "/data/fusions.json",
+        "genome_build": None,
+        "case_ffpe": None,
+        "case_sequencing_run": None,
+        "case_reads": None,
+        "case_purity": None,
+    }
+
+    validated = ingest.SamplesDoc.model_validate(payload).model_dump(exclude_none=True)
+    meta = ingest.build_sample_meta_dict(validated)
+
+    assert meta["case"] == {"id": "RNA1"}
+    final_sample = ingest.SamplesDoc.model_validate(meta)
+    assert final_sample.case.ffpe is False
+    assert final_sample.case.sequencing_run is None
+    assert final_sample.case.reads is None
+    assert final_sample.case.purity is None
 
 
 def test_dna_parser_loads_nested_sample_file_docs(tmp_path, monkeypatch):
@@ -1041,7 +1077,40 @@ def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
     cnv.write_text(json.dumps({"k": {"ratio": 1}}), encoding="utf-8")
     bio.write_text(json.dumps({"name": "b"}), encoding="utf-8")
     cov.write_text(json.dumps({"genes": {}}), encoding="utf-8")
-    fus.write_text(json.dumps([{"f": 1}]), encoding="utf-8")
+    fus.write_text(
+        json.dumps(
+            [
+                {
+                    "genes": "NTRK1^TPM3",
+                    "gene1": "NTRK1",
+                    "gene2": "TPM3",
+                    "calls": [
+                        {
+                            "caller": "starfusion",
+                            "selected": 1,
+                            "longestanchor": "<25",
+                            "spanpairs": "1",
+                            "spanreads": "6",
+                            "breakpoint1": "1:100:+",
+                            "breakpoint2": "2:200:-",
+                        },
+                        {
+                            "caller": "fusioncatcher",
+                            "longestanchor": "36",
+                            "spanpairs": "9",
+                            "spanreads": "2",
+                            "breakpoint1": "1:101:+",
+                            "breakpoint2": "2:201:-",
+                            "effect": "out-of-frame",
+                            "commonreads": "0",
+                            "desc": "known",
+                        },
+                    ],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
     expr.write_text(json.dumps({"a": 1}), encoding="utf-8")
     cls.write_text(json.dumps({"c": 1}), encoding="utf-8")
     qc.write_text(json.dumps({"q": 1}), encoding="utf-8")
@@ -1071,6 +1140,37 @@ def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
         }
     )
     assert "fusions" in rna and "rna_expr" in rna and "rna_class" in rna and "rna_qc" in rna
+    assert rna["fusions"][0]["calls"][0]["selected"] == 1
+    assert rna["fusions"][0]["calls"][1]["selected"] == 0
+    assert rna["fusions"][0]["calls"][0]["effect"] == ""
+    assert rna["fusions"][0]["calls"][0]["commonreads"] == 0
+    assert rna["fusions"][0]["calls"][0]["desc"] == ""
+
+    stored = dict(rna["fusions"][0], SAMPLE_ID="S1")
+    validated = FusionsDoc.model_validate(stored)
+    assert validated.calls[0].longestanchor == "<25"
+    assert validated.calls[1].longestanchor == 36
+
+
+def test_rna_parser_rejects_fusion_without_exactly_one_selected_call(tmp_path):
+    fusion_path = tmp_path / "invalid-fusions.json"
+    fusion_path.write_text(
+        json.dumps(
+            [
+                {
+                    "genes": "NTRK1^TPM3",
+                    "calls": [
+                        {"caller": "fusioncatcher"},
+                        {"caller": "star-fusion"},
+                    ],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="exactly one selected call; found 0"):
+        ingest.RnaIngestParser.parse({"fusion_files": str(fusion_path)})
 
 
 def test_dna_parser_normalizes_pipeline_cnv_shape(tmp_path):

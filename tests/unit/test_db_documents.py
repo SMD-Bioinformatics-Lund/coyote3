@@ -13,6 +13,7 @@ from api.config.database_versions import normalize_database_versions, require_sa
 from api.contracts.managed_resources import managed_resource_spec
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.contracts.schemas.app_controls import AppControlsDoc
+from api.contracts.schemas.assay import InsilicoGenelistsDoc
 from api.contracts.schemas.dna import CnvsDoc, VariantsDoc
 from api.contracts.schemas.governance import RolesDoc, UsersDoc
 from api.contracts.schemas.registry import (
@@ -21,6 +22,24 @@ from api.contracts.schemas.registry import (
     validate_collection_document,
 )
 from api.contracts.schemas.samples import SampleCaseControlDoc, SamplesDoc
+
+
+def test_isgl_diagnosis_is_the_canonical_multi_subpanel_scope():
+    """ISGL diagnosis accepts comma/newline tags without a duplicate subpanel field."""
+    doc = InsilicoGenelistsDoc.model_validate(
+        {
+            "isgl_id": "solid_scope",
+            "name": "Solid scope",
+            "displayname": "Solid scope",
+            "diagnosis": "endometrie, breast\ncolon, breast",
+            "list_type": ["snv"],
+            "asp_groups": ["solid"],
+            "asp_ids": ["solid_gmsv3"],
+        }
+    )
+
+    assert doc.diagnosis == ["endometrie", "breast", "colon"]
+    assert "subpanel_id" not in doc.model_dump()
 
 
 def _load_seed_list(path: Path) -> list[dict]:

@@ -27,6 +27,21 @@ const samples = {
       time_added: "2026-08-01T10:00:00Z",
       data_counts: { snvs: 2100, cnvs: 3, cov: true },
     },
+    {
+      name: "RNA_CASE_001",
+      case_id: "RNA_CASE_001",
+      environment: "production",
+      asp_id: "solidrna_gmsv5",
+      subpanel_id: "base",
+      ingest_status: "ready",
+      time_added: "2026-08-01T11:00:00Z",
+      data_counts: {
+        fusions: 3600,
+        rna_expr: true,
+        rna_class: true,
+        rna_qc: true,
+      },
+    },
   ],
   done_samples: [
     {
@@ -58,6 +73,13 @@ describe("Samples page", () => {
     expect(screen.getByText("SNV 2.1K")).toBeInTheDocument()
     expect(screen.getByText("CNV 3")).toBeInTheDocument()
     expect(screen.getByText("Cov")).toBeInTheDocument()
+    expect(screen.getByText("Fusion 3.6K")).toBeInTheDocument()
+    expect(screen.getByText("Expr")).toBeInTheDocument()
+    expect(screen.getByText("Class")).toBeInTheDocument()
+    expect(screen.getByText("QC")).toBeInTheDocument()
+    expect(screen.queryByText("RNA EXPR")).not.toBeInTheDocument()
+    expect(screen.queryByText("RNA CLASS")).not.toBeInTheDocument()
+    expect(screen.queryByText("RNA QC")).not.toBeInTheDocument()
     expect(screen.queryByText("DNA_REPORTED_001")).not.toBeInTheDocument()
   })
 

@@ -49,6 +49,10 @@ describe("variant display normalization", () => {
     ])
     expect(normalizedCallerList("freebayes, vardict & -")).toEqual(["freebayes", "vardict"])
     expect(normalizedCallerList(["manta", "", "-"])).toEqual(["manta"])
+    expect(normalizedCallerList(["FusionCatcher", "fusioncatcher", "STARFUSION"])).toEqual([
+      "FusionCatcher",
+      "STARFUSION",
+    ])
   })
 
   it("selects fusion calls and supports legacy fusion shapes", () => {

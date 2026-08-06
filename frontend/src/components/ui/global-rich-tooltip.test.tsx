@@ -1,9 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
+import { AppTooltip } from "./app-tooltip"
 import { GlobalRichTooltip } from "./global-rich-tooltip"
 
 describe("GlobalRichTooltip", () => {
-  it("upgrades button titles and restores the native hint after hover", () => {
+  it("upgrades button titles and suppresses the native hint", () => {
     render(
       <>
         <button title="Download the complete table" aria-label="Export CSV" data-tooltip-context="Table action">
@@ -22,7 +23,28 @@ describe("GlobalRichTooltip", () => {
 
     fireEvent.pointerOut(button)
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument()
-    expect(button).toHaveAttribute("title", "Download the complete table")
+    expect(button).not.toHaveAttribute("title")
+    expect(button).toHaveAttribute("data-tooltip-content", "Download the complete table")
+  })
+
+  it("renders explicit application tooltip metadata", () => {
+    render(
+      <>
+        <AppTooltip
+          content="Open the complete clinical finding record."
+          label="View details"
+          context="Table action"
+        >
+          <button>Open</button>
+        </AppTooltip>
+        <GlobalRichTooltip />
+      </>,
+    )
+
+    fireEvent.mouseEnter(screen.getByRole("button", { name: "Open" }))
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Table action")
+    expect(screen.getByRole("tooltip")).toHaveTextContent("View details")
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Open the complete clinical finding record.")
   })
 
   it("supports keyboard focus and ignores iframe accessibility titles", () => {

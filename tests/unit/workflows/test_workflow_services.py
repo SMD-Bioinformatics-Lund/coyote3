@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from api.application.reporting import dna_workflow, rna_workflow
 
 
@@ -376,38 +378,39 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
         "_id": "f1",
         "gene1": "KMT2A",
         "gene2": "AFF1",
-        "calls": [{"selected": 1, "breakpoint1": "chr11:1", "breakpoint2": "chr4:2"}],
+        "interesting": False,
+        "calls": [
+            {
+                "selected": 1,
+                "breakpoint1": "chr11:1",
+                "breakpoint2": "chr4:2",
+                "effect": "in-frame",
+                "spanpairs": 8,
+                "spanreads": 13,
+                "longestanchor": 42,
+                "caller": "fusioncatcher",
+            }
+        ],
         "classification": {"class": 2, "_id": "ann1"},
+        "global_annotations": [{"text": "Reviewed fusion", "time_created": "2026-01-01"}],
+    }
+    tier_four_interesting_fusion = {
+        **fusion_doc,
+        "_id": "f2",
+        "gene1": "BCR",
+        "gene2": "ABL1",
+        "interesting": True,
+        "classification": {"class": 4, "_id": "ann2"},
     }
     fusion_repository = SimpleNamespace(
-        get_sample_fusions=lambda _query: [dict(fusion_doc)],
+        get_sample_fusions=lambda _query: [
+            dict(fusion_doc),
+            dict(tier_four_interesting_fusion),
+        ],
         get_fusion_annotations=lambda fusion: ([{"text": "a"}], fusion.get("classification")),
     )
 
     monkeypatch.setattr(rna_workflow, "utc_now", lambda: "NOW")
-    monkeypatch.setattr(
-        rna_workflow.util,
-        "common",
-        SimpleNamespace(
-            get_assay_from_sample=lambda sample: "hema",
-            get_analysis_method=lambda assay: f"method:{assay}",
-            get_report_header=lambda assay, sample: f"{assay}:{sample.get('name')}",
-        ),
-        raising=False,
-    )
-    monkeypatch.setattr(
-        rna_workflow,
-        "app",
-        SimpleNamespace(
-            config={
-                "REPORT_CONFIG": {
-                    "CLASS_DESC": {"2": "Tier II"},
-                    "CLASS_DESC_SHORT": {"2": "T2"},
-                    "ANALYSIS_DESCRIPTION": {"hema": "desc"},
-                }
-            }
-        ),
-    )
     monkeypatch.setattr(
         rna_workflow,
         "persist_shared_report_and_snapshot",
@@ -424,19 +427,45 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
     rows = workflow._build_snapshot_rows([fusion_doc])
     assert rows[0]["simple_id"] == "KMT2A::AFF1::chr11:1::chr4:2"
     assert rows[0]["created_on"] == "NOW"
+    assert rows[0]["fusion"] == "KMT2A::AFF1"
+    assert rows[0]["effect"] == "in-frame"
+    assert rows[0]["spanning_pairs"] == 8
+    assert rows[0]["spanning_reads"] == 13
+    assert rows[0]["classification"] == 2
+    assert rows[0]["text"] == "Reviewed fusion"
 
     template, context, snapshot_rows = workflow.build_report_payload(
-        {"_id": "S1", "name": "S1", "assay": "fusion", "omics_layer": "rna"},
+        {
+            "_id": "S1",
+            "name": "S1",
+            "asp_id": "fusion",
+            "omics_layer": "rna",
+            "analysis_intents": ["somatic"],
+            "filters": {
+                "somatic": {
+                    "fusion": {
+                        "fusion_descriptions": ["known", "matched-normal"],
+                    }
+                }
+            },
+        },
         assay_config={
             "asp_group": "hema",
-            "reporting": {},
+            "reporting": {
+                "report_header": "RNA fusion report",
+                "report_method": "RNA fusion analysis",
+                "report_description": "Fusion analysis description",
+            },
         },
         save=1,
         include_snapshot=True,
     )
     assert template == "report_fusion.html"
-    assert context["analysis_method"] == "method:hema"
+    assert context["assay_config"]["reporting"]["report_method"] == "RNA fusion analysis"
+    assert "analysis_method" not in context
+    assert context["class_desc_short"][2] == "Potentiell klinisk signifikans"
     assert len(snapshot_rows) == 1
+    assert snapshot_rows[0]["fusion"] == "KMT2A::AFF1"
     assert (
         workflow.persist_report(
             sample_id="S1",
@@ -450,3 +479,17 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
         )
         == "RID-1"
     )
+
+
+def test_rna_report_rejects_fusion_without_exactly_one_selected_call():
+    """RNA reports fail instead of selecting a legacy first-call fallback."""
+    fusion = {
+        "_id": "fusion-1",
+        "gene1": "KMT2A",
+        "gene2": "AFF1",
+        "calls": [{"selected": 0}],
+        "classification": {"class": 2},
+    }
+
+    with pytest.raises(ValueError, match="exactly one selected call"):
+        rna_workflow.RNAWorkflowService._build_snapshot_rows([fusion])

@@ -156,10 +156,13 @@ def _normalize_case_control(args: dict[str, Any]) -> tuple[dict[str, Any], dict[
     case: dict[str, Any] = {}
     control: dict[str, Any] = {}
     for key in _CASE_CONTROL_KEYS:
+        value = normalized.get(key)
+        if value is None:
+            continue
         if "case" in key:
-            case[key.replace("case_", "")] = normalized.get(key)
+            case[key.replace("case_", "")] = value
         elif "control" in key:
-            control[key.replace("control_", "")] = normalized.get(key)
+            control[key.replace("control_", "")] = value
     return case, control
 
 

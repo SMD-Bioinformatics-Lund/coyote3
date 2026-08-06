@@ -105,7 +105,7 @@ describe("AdminControlsPage", () => {
     const toggle = await screen.findByRole("switch", { name: /Reports: disabled/i })
     const helpButton = screen.getByRole("button", { name: "About Reports" })
     await user.click(helpButton)
-    expect(within(helpButton.parentElement!).getByRole("tooltip")).toBeVisible()
+    expect(screen.getByRole("tooltip")).toBeVisible()
     await user.click(toggle)
     expect(toggle).toBeChecked()
     await user.click(screen.getByRole("button", { name: "Save controls" }))

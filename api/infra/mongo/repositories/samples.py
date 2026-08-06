@@ -612,7 +612,7 @@ class SampleRepository(BaseRepository):
                     ],
                     "recent_samples": [
                         {"$sort": {"time_added": -1, "_id": -1}},
-                        {"$limit": 6},
+                        {"$limit": 5},
                         {
                             "$project": {
                                 "_id": 0,

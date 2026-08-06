@@ -6,6 +6,7 @@ from typing import Any
 
 from bson.objectid import ObjectId
 
+from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
 from api.infra.request_context import current_username
@@ -70,3 +71,9 @@ class SampleCommentsRepository(BaseRepository):
         if not include_hidden:
             query["hidden"] = {"$in": [0, False, None]}
         return list(self.get_collection().find(query).sort("time_created", -1))
+
+    def delete_sample_comments(self, sample_oid: str) -> OperationResult:
+        """Delete comments owned by a sample."""
+        return OperationResult.from_delete(
+            self.get_collection().delete_many({"sample_oid": self._object_id(sample_oid)})
+        )

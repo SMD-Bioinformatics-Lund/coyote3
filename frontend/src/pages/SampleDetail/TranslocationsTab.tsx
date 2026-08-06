@@ -3,7 +3,8 @@ import { Link, useLocation } from "react-router-dom"
 import { api } from "@/lib/api"
 import { AlertTriangle, ExternalLink } from "lucide-react"
 import { DataTable } from "@/components/data-table/DataTable"
-import { BulkActionDropdown, BulkActionOption } from "@/components/data-table/BulkActionDropdown"
+import { AppTooltip } from "@/components/ui/app-tooltip"
+import { BulkActionDropdown } from "@/components/data-table/BulkActionDropdown"
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { ColumnDef } from "@tanstack/react-table"
@@ -25,6 +26,7 @@ import {
   translocationType,
 } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
+import { findingBulkActionOptions } from "@/lib/finding-actions"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import {
   CLINICAL_TABLE_CACHE_MS,
@@ -32,12 +34,7 @@ import {
   useClinicalTableState,
 } from "@/hooks/useClinicalTableState"
 
-const translocationBulkActions: BulkActionOption[] = [
-  { value: "fp", label: "Mark False Positive" },
-  { value: "unfp", label: "Unmark False Positive" },
-  { value: "interesting", label: "Include in report" },
-  { value: "uninteresting", label: "Exclude from report" },
-]
+const translocationBulkActions = findingBulkActionOptions("translocation")
 
 export function TranslocationsTab({ sampleId }: { sampleId: string }) {
   const bulkAction = useBulkFindingAction(sampleId, "translocation")
@@ -185,15 +182,22 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
               resourceType="translocation"
               variant={row.original}
               compact
-              showReportLabel
+              showActionLabel
             />
-            <Link
-              to={`/samples/${sampleId}/translocation/${row.original._id}`}
-              state={{ from: `${location.pathname}${location.search}` }}
-              className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-white"
+            <AppTooltip
+              context="Table action"
+              label="View translocation details"
+              content="Open the complete translocation record, transcript evidence, comments, and review controls."
             >
-              <span title="View Detail"><ExternalLink className="w-4 h-4" /></span>
-            </Link>
+              <Link
+                to={`/samples/${sampleId}/translocation/${row.original._id}`}
+                state={{ from: `${location.pathname}${location.search}` }}
+                aria-label="View translocation details"
+                className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-white"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </Link>
+            </AppTooltip>
           </div>
         )
       }

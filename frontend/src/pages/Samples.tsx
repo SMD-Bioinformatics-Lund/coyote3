@@ -25,6 +25,11 @@ const BOOLEAN_ANALYSIS_LABELS: Record<string, string> = {
   biomarkers: "Biomarkers",
   qc: "QC",
   classification: "Classification",
+  rna_expr: "Expr",
+  rna_expression: "Expr",
+  rna_class: "Class",
+  rna_classification: "Class",
+  rna_qc: "QC",
 }
 
 function countBadges(sample: any) {

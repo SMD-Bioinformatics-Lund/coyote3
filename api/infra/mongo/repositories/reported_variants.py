@@ -30,6 +30,7 @@ from typing import Any, Dict, List
 
 from pymongo import ASCENDING, DESCENDING, UpdateOne
 
+from api.contracts.operations import OperationResult
 from api.domain.core.dna.variant_identity import build_simple_id_hash_from_simple_id
 from api.infra.mongo.repositories.base import BaseRepository
 
@@ -265,6 +266,12 @@ class ReportedVariantsRepository(BaseRepository):
         List reported variant snapshot documents matching the given Mongo query.
         """
         return list(self.get_collection().find(query).sort("time_created", -1))
+
+    def delete_sample_reported_variants(self, sample_oid) -> OperationResult:
+        """Delete immutable report snapshots owned by a deleted sample."""
+        return OperationResult.from_delete(
+            self.get_collection().delete_many({"sample_oid": sample_oid})
+        )
 
     def find_reported_variants_by_search_string(
         self,

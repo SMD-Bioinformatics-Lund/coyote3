@@ -241,7 +241,8 @@ services, access the filesystem, or use arbitrary Jinja globals.
 | `aspc` | `aspc_id`, `asp_id`, `asp_group`, `asp_category`, `subpanel_id`, `environment`, `reporting` | Effective assay-configuration wording context. |
 | `aspc.reporting` | `report_sections`, `general_report_summary` | Selected report domains and the approved DNA introduction baseline. |
 | `applied_gene_lists` | List entries with `isgl_id`, `version`, `list_type`, `selected_for`, `genes`, `germline_genes`, `adhoc` | Exact ISGL scope applied to this report. |
-| `finding` | `kind`, `gene`, `genes`, `tier`, `exon`, `intron`, `case_vaf`, `case_vaf_percent`, `control_vaf`, `control_vaf_percent`, `consequence`, `hgvsc`, `hgvsp`, `variant_type`, `cnv_effect`, `fusion_gene_1`, `fusion_gene_2` | One finding; populated only for `finding_text` rules. |
+| `finding` | `kind`, `gene`, `genes`, `tier`, `exon`, `intron`, `case_vaf`, `case_vaf_percent`, `control_vaf`, `control_vaf_percent`, `consequence`, `hgvsc`, `hgvsp`, `variant_type`, `cnv_effect`, `fusion_gene_1`, `fusion_gene_2`, `fusion_breakpoint_1`, `fusion_breakpoint_2`, `fusion_effect`, `fusion_spanning_pairs`, `fusion_spanning_reads`, `fusion_annotation` | One finding; populated only for `finding_text` rules. Fusion fields come from the selected caller record and latest visible reviewed annotation. |
+| `findings` | List of the same prepared finding objects described above | The complete reportable finding set supplied to a report-wide rule. The RNA fusion summary helper consumes this list; it never reloads or broadens the set. |
 | `biomarkers` | List of prepared biomarker result mappings | Biomarker text where a typed result is already prepared. Use only fields confirmed by a corresponding test. |
 | `aggregates` | `finding_count`, `snv_count`, `cnv_count`, `fusion_count`, `translocation_count`, `biomarker_count`, `tier_1_count`, `tier_2_count`, `tier_3_count`, `tier_summaries`, `has_tiered_snvs`, `has_reportable_findings` | Report-wide counts, positive/negative states, and tier summary text. |
 
@@ -263,8 +264,10 @@ condition.
 | <code>{{ value &#124; round(1) }}</code> | Rounds a numeric value. | <code>{{ finding.case_vaf_percent &#124; round(1) }}</code> |
 | <code>{{ aspc.reporting.general_report_summary &#124; dna_report_intro(sample, asp, applied_gene_lists) }}</code> | Builds the standard DNA introduction from the configured baseline, paired status, applied SNV ISGLs, and germline scope. | Used in DNA <code>document_rules</code>. |
 | <code>{{ aggregates.tier_summaries &#124; tier_summary }}</code> | Builds the standard Swedish tiered mutation summary from prepared tier groups. | Used for positive SNV result text. |
+| <code>{{ findings &#124; fusion_summary }}</code> | Builds the reviewed RNA fusion finding paragraphs from Tier I-III fusion facts, selected breakpoints, read support, and the latest visible global annotation. | Used between the assay-specific RNA introduction and closing text. |
 
-`dna_report_intro` and `tier_summary` are the only domain-specific helpers.
+`dna_report_intro`, `tier_summary`, and `fusion_summary` are the only
+domain-specific helpers.
 Their grammar is shared Python behavior because it is common across rule
 sources; the decision to include them and every assay-specific sentence remain
 in YAML. They accept no optional phrase dictionaries or other author-defined
@@ -291,6 +294,28 @@ template: "{{ aggregates.tier_summaries | tier_summary }}"
 The helper consumes only the prepared `aggregates.tier_summaries` structure and
 renders the approved Swedish mutation wording for Tiers I, II, and III. It does
 not query variants and it does not choose which variants are tiered.
+
+**Reviewed RNA fusion result**
+
+```yaml
+template: |-
+  RNA har extraherats ...{{ findings | fusion_summary }}För ytterligare information ...
+```
+
+The introduction and closing sentences remain authored verbatim in the
+assay/subpanel YAML. `fusion_summary` inserts one report paragraph for each
+reportable Tier I-III fusion. It uses the two genes, selected caller
+breakpoints, spanning-pair and spanning-read support, and the latest visible
+reviewed global annotation. Findings marked false positive, irrelevant, or
+blacklisted, and Tier IV or unclassified findings, are removed by report
+preparation before the helper receives them. The helper does not query MongoDB,
+select a caller, change classification, or invent missing values.
+
+The helper owns the paragraph boundaries around its generated content. When no
+fusion is reportable, it emits one blank-line separator between the approved
+introduction and closing text. Rule authors must therefore place the helper
+directly between those sentences, as shown above, without adding blank lines
+around the expression.
 
 **Germline-only wording**
 

@@ -8,7 +8,7 @@ This is the canonical collection-key reference used by ingestion validation.
 
 - `samples.asp_id` must match `asp_configs.asp_id` and `assay_specific_panels.asp_id`.
 - Initial ASPC resolution uses `samples.asp_id`, `samples.subpanel_id`, and `samples.environment`; the resolved ObjectId/key and `aspc_resolution` are persisted on the sample.
-- `insilico_genelists.asp_ids[]` and `asp_groups[]` must map to ASP/ASPC assay setup.
+- `insilico_genelists.asp_ids[]` and `asp_groups[]` must map to ASP/ASPC assay setup; `diagnosis[]` carries its reusable diagnosis/in-silico-subpanel tags.
 - `roles.permissions[]` must reference `permissions.permission_id`.
 - `users.roles[]` must reference `roles.role_id`.
 
@@ -300,7 +300,10 @@ Required keys:
 - `calls` (List[api.contracts.schemas.rna.FusionCallDoc])
 
 Optional keys:
-- None
+- `fp` (str | bool)
+- `irrelevant` (str | bool)
+- `interesting` (str | bool)
+- `blacklisted` (str | bool)
 
 ## `group_coverage`
 
@@ -390,7 +393,6 @@ Required keys:
 
 Optional keys:
 - `id_` (Any | None)
-- `subpanel_id` (str)
 - `diagnosis` (list[str])
 - `list_type` (list[str])
 - `adhoc` (bool)
@@ -724,6 +726,10 @@ Optional keys:
 - `FILTER` (list[str])
 - `FORMAT` (list[str])
 - `QUAL` (float | None)
+- `fp` (str | bool)
+- `irrelevant` (str | bool)
+- `interesting` (str | bool)
+- `blacklisted` (str | bool)
 
 ## `users`
 

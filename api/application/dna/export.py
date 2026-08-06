@@ -44,25 +44,24 @@ def consequence_list(value: object) -> list[str]:
 
 
 def join_tokens(value: object, *, delimiter: str = " | ") -> str:
-    """Normalize arbitrary list/string-ish values as a single pipe-delimited string."""
+    """Normalize list-like values into unique, ordered, pipe-delimited text."""
     if value is None:
         return ""
-    if isinstance(value, str):
-        raw_tokens = []
-        for split_value in value.replace("\r", "\n").split("\n"):
-            raw_tokens.extend(split_value.split("&"))
-            raw_tokens.extend(split_value.split(","))
-            raw_tokens.extend(split_value.split(";"))
-        tokens = [token.strip() for token in raw_tokens if token.strip()]
-    elif isinstance(value, (list, tuple, set)):
-        tokens = []
-        for item in value:
-            token = str(item).strip()
-            if token:
+
+    values = (
+        sorted(value, key=lambda item: str(item).casefold()) if isinstance(value, set) else value
+    )
+    items = values if isinstance(values, (list, tuple)) else [values]
+    tokens: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        parts = re.split(r"[|&,;\r\n]+", item) if isinstance(item, str) else [str(item)]
+        for part in parts:
+            token = part.strip()
+            identity = token.casefold()
+            if token and identity not in seen:
+                seen.add(identity)
                 tokens.append(token)
-    else:
-        token = str(value).strip()
-        tokens = [token] if token else []
     return delimiter.join(tokens)
 
 
@@ -215,7 +214,7 @@ def build_cnv_export_rows(
                 else f"+ {other_genes} other genes"
             )
 
-        callers_value = safe_text(cnv.get("callers", ""))
+        callers_value = join_tokens(cnv.get("callers", ""))
         ratio = cnv.get("ratio")
         copy_number_value = ""
         purity_cn_value = ""

@@ -235,6 +235,40 @@ class BaseRepository:
         except Exception as exc:
             return OperationResult.failed(str(exc), requested_count=len(object_ids))
 
+    def mark_blacklisted(self, var_id: str, blacklisted: bool) -> OperationResult:
+        """Set the sample-specific blacklist state for a structural finding."""
+        return OperationResult.from_update(
+            self.get_collection().update_one(
+                {"_id": ObjectId(var_id)},
+                {"$set": {"blacklisted": blacklisted}},
+            )
+        )
+
+    def mark_blacklisted_bulk(self, var_ids: list[str], blacklisted: bool) -> OperationResult:
+        """Set sample-specific blacklist state for multiple structural findings."""
+        if not var_ids:
+            return OperationResult.empty()
+
+        object_ids: list[ObjectId] = []
+        for var_id in var_ids:
+            try:
+                object_ids.append(ObjectId(var_id))
+            except Exception:
+                continue
+        if not object_ids:
+            return OperationResult.empty(requested_count=len(var_ids))
+
+        try:
+            return OperationResult.from_update(
+                self.get_collection().update_many(
+                    {"_id": {"$in": object_ids}},
+                    {"$set": {"blacklisted": blacklisted}},
+                ),
+                requested_count=len(object_ids),
+            )
+        except Exception as exc:
+            return OperationResult.failed(str(exc), requested_count=len(object_ids))
+
     def mark_noteworthy(self, var_id: str, noteworthy: bool) -> Any:
         """
         Mark / Unmark a variant as noteworthy.

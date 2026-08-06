@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
 import { DataTable } from "./DataTable"
+import { csvCellText } from "@/lib/csv-export"
 
 type Row = { gene: string; tier: number; note: string }
 
@@ -19,6 +20,13 @@ const data: Row[] = [
 ]
 
 describe("DataTable", () => {
+  it("deduplicates list-valued CSV cells while preserving their order", () => {
+    expect(csvCellText(["fusioncatcher", "FusionCatcher", "starfusion"])).toBe(
+      "fusioncatcher | starfusion",
+    )
+    expect(csvCellText(["PASS", "WARN", "PASS"])).toBe("PASS | WARN")
+  })
+
   it("filters rows, persists search, and reports empty results", async () => {
     const user = userEvent.setup()
     const { rerender } = render(<DataTable columns={columns} data={data} filename="variants.csv" />)

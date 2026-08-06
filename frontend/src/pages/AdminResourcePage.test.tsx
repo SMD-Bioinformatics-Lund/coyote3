@@ -268,6 +268,111 @@ describe("AdminResourcePage", () => {
     expect(await screen.findByText("Resource list")).toBeVisible()
   })
 
+  it("limits ASPC analysis types to the selected ASP category and sequencing family", async () => {
+    mocks.get.mockResolvedValue({
+      data: {
+        form: {
+          sections: { identity: ["asp_id", "subpanel_id", "analysis_types"] },
+          fields: {
+            asp_id: {
+              label: "ASP",
+              display_type: "select",
+              options: [
+                { value: "rna_panel", label: "RNA fusion panel" },
+                { value: "wts_panel", label: "WTS panel" },
+              ],
+            },
+            subpanel_id: {
+              label: "Subpanel",
+              display_type: "select",
+              default: "base",
+              options_by_field: {
+                field: "asp_id",
+                values: {
+                  rna_panel: ["base", "heme"],
+                  wts_panel: ["base", "myeloid"],
+                },
+              },
+            },
+            analysis_types: {
+              label: "Analysis types",
+              display_type: "checkbox-group",
+              default: ["FUSION"],
+              help: "Select an ASP to see the analysis types available for its sequencing family.",
+              options_by_field: {
+                field: "asp_id",
+                values: {
+                  rna_panel: ["FUSION", "QC", "PGX"],
+                  wts_panel: ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"],
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+    const user = userEvent.setup()
+    renderEditor("aspc", "create")
+
+    expect(await screen.findByText(/Select an ASP to see the analysis types/)).toBeVisible()
+    await user.selectOptions(screen.getByRole("combobox", { name: "ASP" }), "rna_panel")
+    expect(screen.getByRole("combobox", { name: "Subpanel" })).toHaveValue("base")
+    await user.selectOptions(screen.getByRole("combobox", { name: "Subpanel" }), "heme")
+    expect(screen.getByLabelText("FUSION")).toBeVisible()
+    expect(screen.getByLabelText("QC")).toBeVisible()
+    expect(screen.queryByLabelText("EXPRESSION")).not.toBeInTheDocument()
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "ASP" }), "wts_panel")
+    expect(screen.getByRole("combobox", { name: "Subpanel" })).toHaveValue("")
+    expect(screen.getByRole("option", { name: "myeloid" })).toBeVisible()
+    expect(screen.getByLabelText("EXPRESSION")).toBeVisible()
+    expect(screen.getByLabelText("CLASSIFICATION")).toBeVisible()
+  })
+
+  it("combines ASP choices for all selected genelist assay groups", async () => {
+    mocks.get.mockResolvedValue({
+      data: {
+        form: {
+          sections: { scope: ["asp_groups", "asp_ids"] },
+          fields: {
+            asp_groups: {
+              label: "Assay groups",
+              display_type: "checkbox-group",
+              options: ["hematology", "solid"],
+            },
+            asp_ids: {
+              label: "ASPs",
+              display_type: "checkbox-group",
+              help: "Select assay groups first.",
+              options_by_field: {
+                field: "asp_groups",
+                values: {
+                  hematology: [{ value: "hema_gmsv1", label: "Hematology GMSv1" }],
+                  solid: [{ value: "solid_gmsv3", label: "Solid DNA GMSv3" }],
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+    const user = userEvent.setup()
+    renderEditor("genelists", "create")
+
+    expect((await screen.findAllByText("Select assay groups first."))[0]).toBeVisible()
+    await user.click(screen.getByLabelText("hematology"))
+    expect(screen.getByLabelText("Hematology GMSv1")).toBeVisible()
+    expect(screen.queryByLabelText("Solid DNA GMSv3")).not.toBeInTheDocument()
+
+    await user.click(screen.getByLabelText("solid"))
+    expect(screen.getByLabelText("Hematology GMSv1")).toBeVisible()
+    expect(screen.getByLabelText("Solid DNA GMSv3")).toBeVisible()
+
+    await user.click(screen.getByLabelText("Hematology GMSv1"))
+    await user.click(screen.getByLabelText("hematology"))
+    expect(screen.queryByLabelText("Hematology GMSv1")).not.toBeInTheDocument()
+  })
+
   it("omits blank passwords and readonly fields from edit payloads", async () => {
     mocks.get.mockResolvedValue({ data: {
       user_doc: { username: "reviewer", email: "old@example.org", immutable_id: "SYS-1" },

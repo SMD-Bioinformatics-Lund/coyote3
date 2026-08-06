@@ -56,6 +56,19 @@ def _validate_report_inputs(analyte: ReportAnalyte, sample: dict, assay_config: 
         sample: Sample payload being reported.
         assay_config: Assay-config payload for the sample.
     """
+    omics_layer = str(sample.get("omics_layer") or "").strip().lower()
+    if omics_layer in {"dna", "rna"} and analyte != omics_layer:
+        sample_name = str(sample.get("name") or sample.get("case_id") or "sample")
+        raise _api_error(
+            422,
+            "Report type does not match sample modality",
+            (
+                f"Sample '{sample_name}' has omics layer '{omics_layer}'. "
+                f"Use the {omics_layer.upper()} report endpoint for this sample."
+            ),
+            category="validation",
+        )
+
     if analyte == "dna":
         get_dna_workflow_service().validate_report_inputs(runtime_app.logger, sample, assay_config)
     else:
@@ -84,12 +97,20 @@ def _build_preview_report(
             save=1 if save else 0,
             include_snapshot=include_snapshot,
         )
-    return get_rna_workflow_service().build_report_payload(
-        sample=sample,
-        assay_config=assay_config,
-        save=1 if save else 0,
-        include_snapshot=include_snapshot,
-    )
+    try:
+        return get_rna_workflow_service().build_report_payload(
+            sample=sample,
+            assay_config=assay_config,
+            save=1 if save else 0,
+            include_snapshot=include_snapshot,
+        )
+    except (KeyError, ValueError) as exc:
+        raise _api_error(
+            422,
+            "RNA report data does not satisfy the reporting contract",
+            str(exc),
+            category="validation",
+        ) from exc
 
 
 def _build_report_location(

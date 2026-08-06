@@ -41,7 +41,7 @@ export function useSingleFindingFlag(sampleId: string, resourceType: FindingReso
       apply,
     }: {
       resourceId: string
-      flag: "false-positive" | "irrelevant" | "interesting" | "noteworthy" | "override-blacklist"
+      flag: "false-positive" | "irrelevant" | "interesting" | "noteworthy" | "override-blacklist" | "blacklisted"
       apply: boolean
     }) => setSingleFlag({ sampleId, resourceType, resourceId, flag, apply }),
     onSuccess: (_result, variables) => {

@@ -209,8 +209,8 @@ def test_build_fusion_query_applies_thresholds_without_selected_callers() -> Non
     }
 
 
-def test_build_fusion_query_applies_known_list_and_arriba_pair_rule() -> None:
-    """Arriba has no spanning-pair predicate; other callers retain it."""
+def test_build_fusion_query_applies_gene_scope_and_arriba_pair_rule() -> None:
+    """Resolved fusion-list genes scope either partner without filtering evidence text."""
     query = build_fusion_query(
         "fusionrna",
         {
@@ -225,8 +225,8 @@ def test_build_fusion_query_applies_known_list_and_arriba_pair_rule() -> None:
     )
 
     call_match = query["calls"]["$elemMatch"]
-    assert call_match["effect"] == {"$in": ["in-frame"]}
-    assert call_match["desc"] == {"$regex": "known|mitelman", "$options": "i"}
+    assert call_match["effect"] == {"$regex": "^in-frame$", "$options": "i"}
+    assert "desc" not in call_match
     assert call_match["$or"] == [
         {"caller": "arriba", "spanreads": {"$gte": 5}},
         {
@@ -238,9 +238,63 @@ def test_build_fusion_query_applies_known_list_and_arriba_pair_rule() -> None:
     assert query["$or"] == [{"gene1": {"$in": ["KMT2A"]}}, {"gene2": {"$in": ["KMT2A"]}}]
 
 
-def test_build_fusion_query_keeps_unconfigured_groups_sample_scoped() -> None:
-    """An unsupported group never inherits fusion thresholds accidentally."""
+def test_build_fusion_query_keeps_empty_filters_sample_scoped_for_any_rna_group() -> None:
+    """An empty filter block remains sample-scoped regardless of RNA assay group."""
     assert build_fusion_query("solid", {"id": "SAMPLE_1"}) == {"SAMPLE_ID": "SAMPLE_1"}
+
+
+def test_build_fusion_query_applies_filters_to_targeted_rna_panel_groups() -> None:
+    """Targeted RNA panels must not bypass the shared fusion filter contract."""
+    query = build_fusion_query(
+        "solid",
+        {
+            "id": "SAMPLE_1",
+            "min_spanning_reads": 8,
+            "fusion_effects": ["in-frame"],
+            "fusion_callers": ["fusioncatcher"],
+            "filter_genes": ["ALK"],
+        },
+    )
+
+    assert query["calls"] == {
+        "$elemMatch": {
+            "effect": {"$regex": "^in-frame$", "$options": "i"},
+            "$or": [{"caller": "fusioncatcher", "spanreads": {"$gte": 8}}],
+        }
+    }
+    assert query["$or"] == [
+        {"gene1": {"$in": ["ALK"]}},
+        {"gene2": {"$in": ["ALK"]}},
+    ]
+
+
+def test_build_fusion_query_treats_non_in_frame_effects_as_out_of_frame() -> None:
+    """Out-of-frame is a category covering every non-empty non-in-frame caller value."""
+    query = build_fusion_query(
+        "wts",
+        {
+            "id": "SAMPLE_1",
+            "fusion_effects": ["out-of-frame"],
+        },
+    )
+
+    assert query["calls"]["$elemMatch"]["effect"] == {
+        "$regex": "^(?!in-frame$).+",
+        "$options": "i",
+    }
+
+
+def test_build_fusion_query_omits_effect_predicate_when_both_categories_selected() -> None:
+    """Selecting both display categories does not exclude any caller effect value."""
+    query = build_fusion_query(
+        "wts",
+        {
+            "id": "SAMPLE_1",
+            "fusion_effects": ["in-frame", "out-of-frame"],
+        },
+    )
+
+    assert query == {"SAMPLE_ID": "SAMPLE_1"}
 
 
 def test_build_fusion_query_rejects_all_rows_for_empty_selected_scope() -> None:
@@ -254,3 +308,77 @@ def test_build_fusion_query_rejects_all_rows_for_empty_selected_scope() -> None:
     )
 
     assert query["_id"] == {"$exists": False}
+
+
+def test_build_fusion_query_matches_selected_description_tokens() -> None:
+    """Description filters match complete comma-delimited evidence terms."""
+    query = build_fusion_query(
+        "wts",
+        {
+            "id": "SAMPLE_1",
+            "fusion_descriptions": ["known", "matched-normal"],
+        },
+    )
+
+    clauses = query["calls"]["$elemMatch"]["$or"]
+    assert clauses == [
+        {
+            "desc": {
+                "$regex": r"(?:^|,\s*)known(?:\s*,|$)",
+                "$options": "i",
+            }
+        },
+        {
+            "desc": {
+                "$regex": r"(?:^|,\s*)matched\-normal(?:\s*,|$)",
+                "$options": "i",
+            }
+        },
+    ]
+
+
+def test_build_fusion_query_combines_callers_and_descriptions_on_one_call() -> None:
+    """Caller and evidence restrictions must be satisfied by the same call."""
+    query = build_fusion_query(
+        "wts",
+        {
+            "id": "SAMPLE_1",
+            "fusion_callers": ["fusioncatcher"],
+            "fusion_descriptions": ["oncogene"],
+            "min_spanning_reads": 4,
+        },
+    )
+
+    assert query["calls"]["$elemMatch"]["$and"] == [
+        {
+            "$or": [
+                {"caller": "fusioncatcher", "spanreads": {"$gte": 4}},
+            ]
+        },
+        {
+            "$or": [
+                {
+                    "desc": {
+                        "$regex": r"(?:^|,\s*)oncogene(?:\s*,|$)",
+                        "$options": "i",
+                    }
+                }
+            ]
+        },
+    ]
+
+
+def test_build_fusion_query_normalizes_caller_aliases_before_matching() -> None:
+    """Mongo predicates always use canonical caller keys, never UI display labels."""
+    query = build_fusion_query(
+        "wts",
+        {
+            "id": "SAMPLE_1",
+            "fusion_callers": ["FusionCatcher", "fusioncaller_STAR-FUSION"],
+        },
+    )
+
+    assert query["calls"]["$elemMatch"]["$or"] == [
+        {"caller": "fusioncatcher"},
+        {"caller": "starfusion"},
+    ]

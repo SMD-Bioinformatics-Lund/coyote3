@@ -19,7 +19,7 @@ from api.domain.common.assay_filters import (
     has_sample_gene_restriction,
     merge_sample_settings_with_assay_config,
 )
-from api.domain.common.reporting import get_report_header, utc_now
+from api.domain.common.reporting import TIER_DESC, TIER_SHORT_DESC, get_report_header, utc_now
 from api.domain.common.sample_filters import sample_filter_section
 from api.domain.core.reporting.report_paths import build_report_file_location
 from api.domain.core.rna.fusion_query_builder import build_fusion_query
@@ -40,17 +40,15 @@ util = SimpleNamespace(
         merge_sample_settings_with_assay_config=merge_sample_settings_with_assay_config,
         format_filters_from_form=format_filters_from_form,
         get_sample_effective_genes=get_sample_effective_genes,
-        get_report_header=get_report_header,
     )
 )
-app = SimpleNamespace(config={})
 
 
 class RNAWorkflowService:
     """Coordinate common RNA workflow steps."""
 
     @classmethod
-    def from_store(cls, store, *, report_config: dict | None = None) -> "RNAWorkflowService":
+    def from_store(cls, store) -> "RNAWorkflowService":
         """Build the workflow service from the runtime store."""
         return cls(
             sample_repository=store.sample_repository,
@@ -64,7 +62,6 @@ class RNAWorkflowService:
             reported_variant_repository=store.reported_variant_repository,
             report_repository=store.report_repository,
             clinical_rule_service=ClinicalRuleService.from_store(store),
-            report_config=report_config,
         )
 
     def __init__(
@@ -81,7 +78,6 @@ class RNAWorkflowService:
         reported_variant_repository,
         report_repository,
         clinical_rule_service=None,
-        report_config: dict | None = None,
     ) -> None:
         """Create the workflow service with explicit injected repositories."""
         self.sample_repository = sample_repository
@@ -95,7 +91,6 @@ class RNAWorkflowService:
         self.reported_variant_repository = reported_variant_repository
         self.report_repository = report_repository
         self.clinical_rule_service = clinical_rule_service
-        self.report_config = report_config or {}
 
     def next_report_num(self, sample_id: str) -> int:
         """Return the next sequential report number for a sample."""
@@ -160,6 +155,13 @@ class RNAWorkflowService:
         """Compute the canonical filter context used by fusion-list routes."""
         fusion_effects = create_fusioneffectlist(sample_filters.get("fusion_effects", []))
         fusion_callers = create_fusioncallers(sample_filters.get("fusion_callers", []))
+        fusion_descriptions = sorted(
+            {
+                str(value).strip().lower()
+                for value in sample_filters.get("fusion_descriptions", [])
+                if str(value).strip()
+            }
+        )
         checked_fusionlists = sample_filters.get("fusionlists", [])
         checked_fusionlists_genes_dict = self.gene_list_repository.get_isgl_by_ids(
             checked_fusionlists
@@ -179,6 +181,7 @@ class RNAWorkflowService:
         return {
             "fusion_effects": fusion_effects,
             "fusion_callers": fusion_callers,
+            "fusion_descriptions": fusion_descriptions,
             "checked_fusionlists": checked_fusionlists,
             "genes_covered_in_panel": genes_covered_in_panel,
             "filter_genes": filter_genes,
@@ -210,6 +213,7 @@ class RNAWorkflowService:
                 "min_spanning_pairs": sample_filters.get("min_spanning_pairs", 0),
                 "fusion_effects": filter_context["fusion_effects"],
                 "fusion_callers": filter_context["fusion_callers"],
+                "fusion_descriptions": filter_context["fusion_descriptions"],
                 "checked_fusionlists": filter_context["checked_fusionlists"],
                 "filter_genes": filter_context["filter_genes"],
                 "restrict_to_genes": filter_context["restrict_to_genes"],
@@ -322,6 +326,33 @@ class RNAWorkflowService:
         )
 
     @staticmethod
+    def _selected_report_call(fusion: dict) -> dict:
+        """Return the single selected call required by the RNA report contract."""
+        selected_calls = [
+            call
+            for call in fusion.get("calls", [])
+            if isinstance(call, dict) and call.get("selected") == 1
+        ]
+        if len(selected_calls) != 1:
+            fusion_id = fusion.get("_id") or f"{fusion.get('gene1')}::{fusion.get('gene2')}"
+            raise ValueError(
+                f"Fusion '{fusion_id}' must contain exactly one selected call; "
+                f"found {len(selected_calls)}."
+            )
+        return selected_calls[0]
+
+    @classmethod
+    def _validate_reportable_fusion(cls, fusion: dict) -> None:
+        """Validate canonical fields consumed by RNA report rendering and snapshots."""
+        missing = [field for field in ("gene1", "gene2") if not fusion.get(field)]
+        if missing:
+            fusion_id = fusion.get("_id") or "unknown"
+            raise ValueError(
+                f"Fusion '{fusion_id}' is missing required report field(s): {', '.join(missing)}."
+            )
+        cls._selected_report_call(fusion)
+
+    @staticmethod
     def _build_snapshot_rows(fusions: list[dict]) -> list[dict]:
         """
         Build snapshot rows for report persistence.
@@ -332,38 +363,58 @@ class RNAWorkflowService:
         for fus in fusions:
             cls = fus.get("classification") or {}
             tier = cls.get("class", 999)
-            if fus.get("blacklist") or tier in (None, 999, 4):
+            if fus.get("blacklist") or fus.get("blacklisted") or tier in (None, 999, 4):
                 continue
 
-            calls = fus.get("calls") or []
-            selected = next((c for c in calls if c.get("selected") == 1), calls[0] if calls else {})
-
-            gene1 = fus.get("gene1")
-            gene2 = fus.get("gene2")
-            if (
-                (not gene1 or not gene2)
-                and isinstance(fus.get("genes"), str)
-                and "^" in fus.get("genes")
-            ):
-                _g = fus.get("genes").split("^")
-                gene1 = gene1 or _g[0]
-                gene2 = gene2 or (_g[1] if len(_g) > 1 else None)
+            RNAWorkflowService._validate_reportable_fusion(fus)
+            calls = fus["calls"]
+            selected = RNAWorkflowService._selected_report_call(fus)
+            gene1 = fus["gene1"]
+            gene2 = fus["gene2"]
 
             bp1 = selected.get("breakpoint1", "")
             bp2 = selected.get("breakpoint2", "")
-            simple_id = f"{gene1 or 'NA'}::{gene2 or 'NA'}::{bp1}::{bp2}"
+            simple_id = f"{gene1}::{gene2}::{bp1}::{bp2}"
+            annotations = fus.get("global_annotations") or []
+            visible_annotations = [
+                annotation
+                for annotation in annotations
+                if isinstance(annotation, dict)
+                and annotation.get("text")
+                and not annotation.get("hidden")
+            ]
+            latest_annotation = max(
+                visible_annotations,
+                key=lambda annotation: str(
+                    annotation.get("time_created") or annotation.get("created_on") or ""
+                ),
+                default={},
+            )
 
             rows.append(
                 {
                     "var_oid": fus.get("_id"),
                     "simple_id": simple_id,
                     "tier": tier,
-                    "gene": f"{gene1 or 'NA'}-{gene2 or 'NA'}",
-                    "transcript": selected.get("transcript"),
-                    "hgvsp": None,
-                    "hgvsc": None,
+                    "gene": f"{gene1}-{gene2}",
+                    "fusion": f"{gene1}::{gene2}",
+                    "gene_1": gene1,
+                    "gene_2": gene2,
+                    "breakpoint_1": bp1,
+                    "breakpoint_2": bp2,
+                    "effect": selected.get("effect"),
+                    "spanning_pairs": selected.get("spanpairs"),
+                    "spanning_reads": selected.get("spanreads"),
+                    "longest_anchor": selected.get("longestanchor"),
+                    "callers": [
+                        call.get("caller")
+                        for call in calls
+                        if isinstance(call, dict) and call.get("caller")
+                    ],
                     "created_on": created_on,
                     "annotation_oid": cls.get("_id"),
+                    "classification": tier,
+                    "text": latest_annotation.get("text", ""),
                 }
             )
         return rows
@@ -378,12 +429,10 @@ class RNAWorkflowService:
         """
         Build RNA report template context and optional snapshot rows through cross-domain workflow service.
         """
-        get_assay_from_sample = getattr(util.common, "get_assay_from_sample", None)
-        assay = (
-            get_assay_from_sample(sample)
-            if callable(get_assay_from_sample)
-            else str(sample.get("asp_id") or "").strip()
-        )
+        assay = str(sample.get("asp_id") or "").strip()
+        if not assay:
+            raise ValueError("RNA report input is missing the canonical sample asp_id.")
+        reporting_config = assay_config["reporting"]
         fusion_query = {"SAMPLE_ID": str(sample["_id"])}
         fusions = list(self.fusion_repository.get_sample_fusions(fusion_query) or [])
 
@@ -393,28 +442,23 @@ class RNAWorkflowService:
                 fusions[fus_idx]["classification"],
             ) = self.fusion_repository.get_fusion_annotations(fusion)
 
-        report_config = self.report_config or app.config.get("REPORT_CONFIG", {})
-        class_desc = list((report_config.get("CLASS_DESC") or {}).values())
-        class_desc_short = list((report_config.get("CLASS_DESC_SHORT") or {}).values())
-        analysis_desc = (report_config.get("ANALYSIS_DESCRIPTION") or {}).get(assay)
-        get_analysis_method = getattr(util.common, "get_analysis_method", None)
-        analysis_method = (
-            get_analysis_method(assay)
-            if callable(get_analysis_method)
-            else (report_config.get("ANALYSIS_METHOD") or {}).get(assay)
+        report_header = get_report_header(
+            str(assay_config["asp_group"]),
+            sample,
+            reporting_config["report_header"],
         )
-        report_header_default = (report_config.get("REPORT_HEADER") or {}).get(assay, assay)
-        try:
-            report_header = util.common.get_report_header(assay, sample, report_header_default)
-        except TypeError:
-            report_header = util.common.get_report_header(assay, sample)
         report_date = datetime.now().date()
         reportable_fusions = [
             fusion
             for fusion in fusions
             if not fusion.get("blacklist")
+            and not fusion.get("blacklisted")
+            and not fusion.get("fp")
+            and not fusion.get("irrelevant")
             and (fusion.get("classification") or {}).get("class") not in (None, 4, 999)
         ]
+        for fusion in reportable_fusions:
+            self._validate_reportable_fusion(fusion)
         fusion_filters = sample_filter_section(sample.get("filters"), "fusion", omics_layer="rna")
         selected_list_ids = list(fusion_filters.get("fusionlists", []) or [])
         selected_list_docs = self.gene_list_repository.get_isgl_by_ids(selected_list_ids)
@@ -442,13 +486,12 @@ class RNAWorkflowService:
 
         template_context = {
             "asp_id": assay,
-            "fusions": fusions,
+            "assay_config": assay_config,
+            "fusions": reportable_fusions,
             "report_header": report_header,
-            "analysis_method": analysis_method,
-            "analysis_desc": analysis_desc,
             "sample": sample,
-            "class_desc": class_desc,
-            "class_desc_short": class_desc_short,
+            "class_desc": TIER_DESC,
+            "class_desc_short": TIER_SHORT_DESC,
             "report_date": report_date,
             "save": save,
             "clinical_summary_text": rendered_summary(clinical_rule_evaluation),

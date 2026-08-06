@@ -8,8 +8,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.contracts.schemas.base import _StrictDocBase
 
 
@@ -88,11 +89,17 @@ class CoverageFiltersDoc(_StrictDocBase):
 
 class FusionFiltersDoc(_StrictDocBase):
     fusion_callers: list[str] = Field(default_factory=list)
+    fusion_descriptions: list[str] = Field(default_factory=list)
     fusion_effects: list[str] = Field(default_factory=list)
     fusionlists: list[str] = Field(default_factory=list)
     min_spanning_pairs: int = Field(default=0, ge=0)
     min_spanning_reads: int = Field(default=0, ge=0)
     adhoc_genes: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("fusion_callers", mode="before")
+    @classmethod
+    def _normalize_fusion_callers(cls, value: Any) -> list[str]:
+        return CLINICAL_VOCABULARY.normalize_fusion_callers(value or [])
 
 
 class TranslocationFiltersDoc(_StrictDocBase):

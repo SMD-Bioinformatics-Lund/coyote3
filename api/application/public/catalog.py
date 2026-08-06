@@ -710,7 +710,7 @@ class PublicCatalogService:
                     or isgl_id,
                     "description": list_overlay.get("description") or isgl.get("description") or "",
                     "diagnosis": isgl.get("diagnosis") or [],
-                    "subpanel_id": isgl.get("subpanel_id") or SUBPANEL_BASE_ID,
+                    "subpanel_id": subpanel_id,
                     "list_type": isgl.get("list_type") or [],
                     "tat": list_overlay.get("tat") or category_overlay.get("tat"),
                     "input_material": list_overlay.get("input_material")
@@ -767,13 +767,14 @@ class PublicCatalogService:
     ) -> dict[str, dict[str, list[dict[str, Any]]]]:
         grouped: dict[str, dict[str, list[dict[str, Any]]]] = {}
         for isgl in isgls or []:
-            subpanel_id = (
-                str(isgl.get("subpanel_id") or SUBPANEL_BASE_ID).strip() or SUBPANEL_BASE_ID
-            )
+            diagnosis_ids = [
+                str(value).strip() for value in (isgl.get("diagnosis") or []) if str(value).strip()
+            ] or [SUBPANEL_BASE_ID]
             for asp_id in isgl.get("asp_ids") or []:
                 key = str(asp_id or "").strip()
                 if key:
-                    grouped.setdefault(key, {}).setdefault(subpanel_id, []).append(dict(isgl))
+                    for diagnosis_id in diagnosis_ids:
+                        grouped.setdefault(key, {}).setdefault(diagnosis_id, []).append(dict(isgl))
         for asp_id, by_subpanel in grouped.items():
             for subpanel_id, values in by_subpanel.items():
                 by_subpanel[subpanel_id] = sorted(

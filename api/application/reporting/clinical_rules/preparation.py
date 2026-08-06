@@ -92,6 +92,25 @@ def _structural_fact(finding: dict[str, Any], kind: str) -> dict[str, Any]:
         names = str((annotation or {}).get("Gene_Name") or "").split("&")
         gene_1 = gene_1 or (names[0] if names and names[0] else None)
         gene_2 = gene_2 or (names[1] if len(names) > 1 else None)
+    calls = finding.get("calls") if isinstance(finding.get("calls"), list) else []
+    selected_call = next(
+        (call for call in calls if isinstance(call, dict) and call.get("selected") in (1, True)),
+        calls[0] if calls and isinstance(calls[0], dict) else {},
+    )
+    annotations = finding.get("global_annotations") or []
+    visible_annotations = [
+        annotation
+        for annotation in annotations
+        if isinstance(annotation, dict) and annotation.get("text") and not annotation.get("hidden")
+    ]
+    latest_annotation = max(
+        visible_annotations,
+        key=lambda annotation: str(
+            annotation.get("time_created") or annotation.get("created_on") or ""
+        ),
+        default={},
+    )
+
     return {
         "kind": kind,
         "gene": None,
@@ -99,6 +118,12 @@ def _structural_fact(finding: dict[str, Any], kind: str) -> dict[str, Any]:
         "tier": (finding.get("classification") or {}).get("class"),
         "fusion_gene_1": gene_1,
         "fusion_gene_2": gene_2,
+        "fusion_breakpoint_1": selected_call.get("breakpoint1"),
+        "fusion_breakpoint_2": selected_call.get("breakpoint2"),
+        "fusion_effect": selected_call.get("effect"),
+        "fusion_spanning_pairs": selected_call.get("spanpairs"),
+        "fusion_spanning_reads": selected_call.get("spanreads"),
+        "fusion_annotation": latest_annotation.get("text"),
         "variant_type": kind,
     }
 

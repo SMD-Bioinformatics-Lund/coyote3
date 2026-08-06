@@ -12,6 +12,7 @@ import { FusionsTab } from "./FusionsTab"
 import { TranslocationsTab } from "./TranslocationsTab"
 import { ReportsTab } from "./ReportsTab"
 import { CoverageTab } from "./CoverageTab"
+import { RnaAnalysisTab } from "./RnaAnalysisTabs"
 import { FiltersSidebar } from "./FiltersSidebar"
 import { CommentsPanel } from "@/components/comments/CommentsPanel"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -25,6 +26,7 @@ const TABS = [
   { id: "germline-snvs", label: "Germline SNVs", analysis: "SNV", intent: "germline" },
   { id: "cnvs", label: "CNVs", analysis: "CNV" },
   { id: "fusions", label: "Fusions", analysis: "FUSION" },
+  { id: "rna-analysis", label: "Expression & Classification", analysis: "RNA_ANALYSIS" },
   { id: "translocations", label: "Translocations", analysis: "TRANSLOCATION" },
   { id: "coverage", label: "Coverage", analysis: "COVERAGE" },
   { id: "reports", label: "Reports" }
@@ -45,7 +47,7 @@ function visibleTabs(sample: any, context: any, modules?: any) {
   return TABS.filter((tab) => {
     if (tab.id === "reports") return moduleIsEnabled(modules, "reports")
     if (["snvs", "germline-snvs", "cnvs", "translocations", "coverage"].includes(tab.id) && !moduleIsEnabled(modules, "dna_analysis")) return false
-    if (tab.id === "fusions" && !moduleIsEnabled(modules, "rna_analysis")) return false
+    if (["fusions", "rna-analysis"].includes(tab.id) && !moduleIsEnabled(modules, "rna_analysis")) return false
     if (tab.id === "coverage") {
       const isDna = String(sample?.omics_layer || "").toLowerCase() === "dna"
       const hasResource = hasSampleFile(sample, "cov") || hasCount("cov")
@@ -72,6 +74,11 @@ function visibleTabs(sample: any, context: any, modules?: any) {
       const hasResource = hasSampleFile(sample, "fusion_files") || hasCount("fusions")
       return omicsLayer === "rna" && hasResource && hasAnalysis("FUSION")
     }
+    if (tab.id === "rna-analysis") {
+      const hasExpression = (hasSampleFile(sample, "expression_path") || hasCount("rna_expression")) && hasAnalysis("EXPRESSION")
+      const hasClassification = (hasSampleFile(sample, "classification_path") || hasCount("rna_classification")) && hasAnalysis("CLASSIFICATION")
+      return omicsLayer === "rna" && (hasExpression || hasClassification)
+    }
     return configured.has(String(tab.analysis).toUpperCase())
   })
 }
@@ -90,10 +97,12 @@ export function SampleDetail() {
   })
   const sample = data?.sample || {}
   const sampleRouteKey = sampleUrlKey(sample, id)
+  const sampleReportType: "dna" | "rna" =
+    String(sample?.omics_layer || "").toLowerCase() === "rna" ? "rna" : "dna"
   const tabs = useMemo(() => visibleTabs(data?.sample || {}, data, modulesQuery.data), [data, modulesQuery.data])
   const canonicalRequestedTab = requestedTab === "snvs" && requestedIntent === "germline"
     ? "germline-snvs"
-    : requestedTab
+    : ["expression", "classification"].includes(requestedTab) ? "rna-analysis" : requestedTab
   const activeTab = tabs.some((tab) => tab.id === canonicalRequestedTab) ? canonicalRequestedTab : "overview"
   const activeIntent = activeTab === "germline-snvs" ? "germline" : "somatic"
   const showComments = ["snvs", "germline-snvs", "cnvs", "fusions", "translocations"].includes(activeTab)
@@ -192,9 +201,12 @@ export function SampleDetail() {
                 )}
                 {activeTab === "cnvs" && <CNVTab sampleId={sampleRouteKey} />}
                 {activeTab === "fusions" && <FusionsTab sampleId={sampleRouteKey} />}
+                {activeTab === "rna-analysis" && <RnaAnalysisTab sampleId={sampleRouteKey} />}
                 {activeTab === "translocations" && <TranslocationsTab sampleId={sampleRouteKey} />}
                 {activeTab === "coverage" && <CoverageTab sampleId={sampleRouteKey} />}
-                {activeTab === "reports" && <ReportsTab sampleId={sampleRouteKey} />}
+                {activeTab === "reports" && (
+                  <ReportsTab sampleId={sampleRouteKey} reportType={sampleReportType} />
+                )}
               </div>
             </div>
             {showComments && (

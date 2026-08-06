@@ -12,6 +12,7 @@ import { useEffect, useState, type ReactNode } from "react"
 import { Search, ArrowDownToLine, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { shortCount } from "@/lib/detail-formatters"
 import { cn } from "@/lib/utils"
+import { csvCellText } from "@/lib/csv-export"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -129,7 +130,7 @@ export function DataTable<TData, TValue>({
           const val = typeof exportValue === "function"
             ? exportValue(row.original)
             : row.getValue(col.id)
-          const strVal = typeof val === 'object' && val !== null ? JSON.stringify(val) : String(val ?? "")
+          const strVal = csvCellText(val)
           return `"${strVal.replace(/"/g, '""')}"`
         })
         .join(",")

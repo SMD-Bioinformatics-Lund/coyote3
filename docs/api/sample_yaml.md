@@ -148,7 +148,7 @@ These keys are common to DNA and RNA sample bundles.
 | `sample_no` | Yes | DNA, RNA | `1` for single-sample ingest, `2` for paired case/control ingest. |
 | `paired` | Yes | DNA, RNA | `true` when `control_id` is present, otherwise `false`. |
 | `genome_build` | Recommended | DNA, RNA | Integer reference genome build, normally `38`. |
-| `database_versions.vep` | No for DNA VCF ingest; optional override | DNA, RNA | VEP metadata version used to resolve consequence groups, display labels, transcript metadata, and report text. Normally extracted from the DNA VCF `##VEP=` header. Supply it only when an explicit manifest value must take precedence or the input has no usable header value. |
+| `database_versions.vep` | No | DNA only | VEP metadata version. Normally extracted from the DNA VCF `##VEP=` header. RNA fusion inputs do not use VEP and must not declare a VEP version. |
 | `sequencing_scope` | Yes | DNA, RNA | Sequencing scope. Valid values are `panel`, `wgs`, or `wts`. |
 | `omics_layer` | Yes | DNA, RNA | `dna` or `rna` (case-insensitive input). This controls which file keys are legal. |
 | `sequencing_technology` | Recommended | DNA, RNA | Pipeline platform label, for example `Illumina`, `Nanopore`, or `PacBio`. Ingest normalizes it to internal `platform`; the ASP platform compatibility check then applies. |
@@ -346,7 +346,28 @@ Notes:
 
 - `fusion_files` is the main RNA variant-like input.
 - `expression_path`, `classification_path`, and `qc` are optional but recommended for richer RNA workflows.
-- RNA samples may carry `database_versions.vep` when their pipeline emits VEP-compatible annotation metadata.
+- RNA manifests support the same case and control metadata fields as DNA
+  manifests: Clarity IDs, pool IDs, FFPE state, sequencing run, read count, and
+  purity where meaningful. Unpaired RNA samples omit control fields. Missing
+  source metadata must remain absent; ingest does not invent a sequencing run or
+  read count.
+- RNA fusion ingest has no VEP step. FusionCatcher and STAR-Fusion frame,
+  breakpoint-region, and evidence values are stored as caller output and are
+  never interpreted through `vep_metadata` or written to `anno_vep`.
+- `pipeline` and `pipeline_version` identify the upstream workflow release. The
+  current sample contract does not have a separate per-caller software-version
+  map. A center using independently versioned FusionCatcher and STAR-Fusion
+  releases should define that provenance contract before adding ad-hoc keys to
+  `database_versions`; caller software versions are not database versions.
+- `expression_path` and `classification_path` are valid only for an ASP whose
+  sequencing family is `wts`, and only when the resolved ASPC enables the
+  corresponding `EXPRESSION` or `CLASSIFICATION` analysis. Targeted
+  `panel-rna` configurations may enable fusion, QC, and PGX, but cannot enable
+  expression or classification.
+- A selected fusion ISGL contains one gene symbol per line. A fusion passes the
+  gene-list predicate when either `gene1` or `gene2` occurs in the effective
+  selected list. With no selected fusion ISGL, the ASP covered genes apply; if
+  both scopes are empty, no gene predicate is added.
 - A repo-local example is available at `demo_data/ingest/generic_rna_sample.yaml`.
 - The raw JSON file expectations for `fusion_files`, `expression_path`, `classification_path`, and `qc` are documented in [API / Sample Input Files](sample_input_files.md#rna-raw-input-files).
 

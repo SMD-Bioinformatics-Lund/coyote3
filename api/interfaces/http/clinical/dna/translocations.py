@@ -31,6 +31,29 @@ from api.security.access import ApiUser, _get_sample_for_api, require_access
 router = APIRouter(tags=[TAG_STRUCTURAL_VARIANTS])
 
 
+def _translocation_flag_change(
+    *,
+    sample_id: str,
+    transloc_id: str,
+    user: ApiUser,
+    service: DnaStructuralService,
+    flag: str,
+    apply: bool,
+):
+    action = f"{'mark' if apply else 'unmark'}_{flag}"
+    return resource_change(
+        sample_id,
+        transloc_id,
+        user,
+        service,
+        resource="translocation",
+        action=action,
+        mutate=lambda: service.set_translocation_flag(
+            transloc_id=transloc_id, apply=apply, flag=flag
+        ),
+    )
+
+
 def _get_filter_conseq_terms(checked: list[str], vep_version: str | int | None = None) -> list[str]:
     """Resolve filter consequence terms using grouped VEP metadata from Mongo."""
     return _shared_get_filter_conseq_terms(
@@ -218,6 +241,94 @@ def unmark_false_positive_translocation(
         mutate=lambda: service.set_translocation_flag(
             transloc_id=transloc_id, apply=False, flag="false_positive"
         ),
+    )
+
+
+@router.patch(
+    "/api/v1/samples/{sample_id}/translocations/{transloc_id}/flags/irrelevant",
+    response_model=SampleChangePayload,
+    summary="Mark translocation irrelevant",
+)
+def mark_irrelevant_translocation(
+    sample_id: str,
+    transloc_id: str,
+    user: ApiUser = Depends(require_access(permission="translocation:manage")),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
+):
+    """Mark a translocation irrelevant for the current review."""
+    return _translocation_flag_change(
+        sample_id=sample_id,
+        transloc_id=transloc_id,
+        user=user,
+        service=service,
+        flag="irrelevant",
+        apply=True,
+    )
+
+
+@router.delete(
+    "/api/v1/samples/{sample_id}/translocations/{transloc_id}/flags/irrelevant",
+    response_model=SampleChangePayload,
+    summary="Restore irrelevant translocation",
+)
+def unmark_irrelevant_translocation(
+    sample_id: str,
+    transloc_id: str,
+    user: ApiUser = Depends(require_access(permission="translocation:manage")),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
+):
+    """Restore an irrelevant translocation to the active review set."""
+    return _translocation_flag_change(
+        sample_id=sample_id,
+        transloc_id=transloc_id,
+        user=user,
+        service=service,
+        flag="irrelevant",
+        apply=False,
+    )
+
+
+@router.patch(
+    "/api/v1/samples/{sample_id}/translocations/{transloc_id}/flags/blacklisted",
+    response_model=SampleChangePayload,
+    summary="Blacklist translocation for sample",
+)
+def mark_blacklisted_translocation(
+    sample_id: str,
+    transloc_id: str,
+    user: ApiUser = Depends(require_access(permission="translocation:manage")),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
+):
+    """Apply the sample-specific structural blacklist state."""
+    return _translocation_flag_change(
+        sample_id=sample_id,
+        transloc_id=transloc_id,
+        user=user,
+        service=service,
+        flag="blacklisted",
+        apply=True,
+    )
+
+
+@router.delete(
+    "/api/v1/samples/{sample_id}/translocations/{transloc_id}/flags/blacklisted",
+    response_model=SampleChangePayload,
+    summary="Remove sample translocation blacklist",
+)
+def unmark_blacklisted_translocation(
+    sample_id: str,
+    transloc_id: str,
+    user: ApiUser = Depends(require_access(permission="translocation:manage")),
+    service: DnaStructuralService = Depends(get_dna_structural_service),
+):
+    """Remove the sample-specific structural blacklist state."""
+    return _translocation_flag_change(
+        sample_id=sample_id,
+        transloc_id=transloc_id,
+        user=user,
+        service=service,
+        flag="blacklisted",
+        apply=False,
     )
 
 

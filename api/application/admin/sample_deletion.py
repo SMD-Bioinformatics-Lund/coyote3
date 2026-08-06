@@ -19,6 +19,13 @@ def delete_all_sample_traces(
     translocation_repository,
     fusion_repository,
     biomarker_repository,
+    rna_expression_repository,
+    rna_classification_repository,
+    rna_quality_repository,
+    sample_comment_repository,
+    report_repository,
+    reported_variant_repository,
+    oncokb_public_cache_repository,
 ) -> dict[str, object]:
     """Delete all persisted traces for a sample and return summary metadata."""
     sample = sample_repository.get_sample_by_id(sample_id) or {}
@@ -29,6 +36,12 @@ def delete_all_sample_traces(
         translocation_repository.delete_sample_translocs,
         fusion_repository.delete_sample_fusions,
         biomarker_repository.delete_sample_biomarkers,
+        rna_expression_repository.delete_sample_expression,
+        rna_classification_repository.delete_sample_classification,
+        rna_quality_repository.delete_sample_qc,
+        sample_comment_repository.delete_sample_comments,
+        reported_variant_repository.delete_sample_reported_variants,
+        report_repository.delete_sample_reports,
         sample_repository.delete_sample,
     ]
     results: list[dict[str, object]] = []
@@ -47,6 +60,11 @@ def delete_all_sample_traces(
                 **result_payload,
             }
         )
+    cache_result = oncokb_public_cache_repository.remove_sample_references(
+        sample_id=sample_id,
+        sample_name=sample.get("name"),
+    )
+    results.append({"collection": "oncokb_public_references", **cache_result.to_dict()})
     return {
         "sample_name": sample.get("name"),
         "results": results,

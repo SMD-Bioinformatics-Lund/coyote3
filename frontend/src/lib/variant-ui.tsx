@@ -1,6 +1,6 @@
 import { AlertCircle, Ban, Bookmark, MessageSquare, ShieldCheck, XCircle, XSquare } from "lucide-react"
 import { useState, type FocusEvent, type MouseEvent, type ReactNode } from "react"
-import { createPortal } from "react-dom"
+import { TooltipSurface } from "@/components/ui/app-tooltip"
 import { cn } from "@/lib/utils"
 import { clinpgxGeneUrl, oncokbGeneUrl } from "@/lib/external-links"
 import { filterFlags, normalizedCallerList } from "@/lib/variant-helpers"
@@ -88,21 +88,14 @@ export function TierBadge({ tier, className }: { tier: unknown; className?: stri
       >
         {value}
       </span>
-      {position && createPortal(
-        <span
-          className={cn(
-            "pointer-events-none fixed z-[9999] w-72 rounded-lg border px-3 py-2 text-left text-xs shadow-lg",
-            tooltipSeverityClass(meta.severity),
-          )}
-          style={{ left: position.left, top: position.top }}
-        >
+      {position && (
+        <TooltipSurface position={position} className={tooltipSeverityClass(meta.severity)}>
           <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">
             Tier {meta.roman}
           </span>
           <span className="block font-bold text-foreground">{meta.short}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{meta.description}</span>
-        </span>,
-        document.body,
+        </TooltipSurface>
       )}
     </span>
   )
@@ -331,6 +324,7 @@ export function InfoTooltipBadge({
   href,
   ariaLabel,
   className,
+  contextLabel = "Transcript marker",
 }: {
   children: ReactNode
   label: string
@@ -339,6 +333,7 @@ export function InfoTooltipBadge({
   href?: string
   ariaLabel?: string
   className?: string
+  contextLabel?: string
 }) {
   return (
     <StatusTooltipBadge
@@ -348,11 +343,154 @@ export function InfoTooltipBadge({
       href={href}
       ariaLabel={ariaLabel || label}
       textBadge
-      contextLabel="Transcript marker"
+      contextLabel={contextLabel}
       className={className}
     >
       {children}
     </StatusTooltipBadge>
+  )
+}
+
+const fusionCallerDescriptions: Record<string, string> = {
+  arriba: "Fusion call emitted by Arriba.",
+  fusioncatcher: "Fusion call emitted by FusionCatcher.",
+  starfusion: "Fusion call emitted by STAR-Fusion.",
+}
+
+/** Render fusion callers independently from DNA variant callers. */
+export function FusionCallerBadges({ callers }: { callers: unknown }) {
+  const values = normalizedCallerList(callers)
+    .map((caller) => caller.toLowerCase())
+    .filter((caller, index, items) => items.indexOf(caller) === index)
+  if (!values.length) return <span className="text-muted-foreground">-</span>
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {values.map((caller) => (
+        <InfoTooltipBadge
+          key={caller}
+          label={caller}
+          description={fusionCallerDescriptions[caller] || "Fusion caller reported by the upstream RNA analysis pipeline."}
+          severity="info"
+          contextLabel="Fusion caller"
+        >
+          {caller}
+        </InfoTooltipBadge>
+      ))}
+    </div>
+  )
+}
+
+function fusionEffectDescription(effect: string) {
+  const normalized = effect.toLowerCase()
+  if (normalized === "in-frame") {
+    return "The selected fusion call is predicted to preserve the coding reading frame. This value is supplied by the fusion caller, not recalculated by Coyote3."
+  }
+  return `The fusion caller reported "${effect}". In the RNA review model, every non-empty effect other than the exact in-frame value is treated as out-of-frame.`
+}
+
+/** Render caller-authored fusion effect/frame context with provenance-aware help. */
+export function FusionEffectBadge({ effect }: { effect: unknown }) {
+  const value = String(effect || "").trim()
+  if (!value) return <span className="text-muted-foreground">-</span>
+  const normalized = value.toLowerCase()
+  const severity = normalized === "in-frame" ? "pass" : "fail"
+  return (
+    <InfoTooltipBadge
+      label={value}
+      description={fusionEffectDescription(value)}
+      severity={severity}
+      contextLabel="Caller-reported fusion effect"
+      className="h-auto min-h-5 max-w-full whitespace-normal text-left leading-tight"
+    >
+      {value}
+    </InfoTooltipBadge>
+  )
+}
+
+const fusionEvidenceDescriptions: Record<string, string> = {
+  cancer: "The upstream caller marked this fusion with cancer-associated evidence.",
+  oncogene: "The upstream caller associated one or both partners with an oncogene reference set.",
+  reciprocal: "The upstream caller marked evidence for a reciprocal fusion configuration.",
+  ribosomal: "The upstream caller marked a ribosomal-gene association.",
+  tumor: "The upstream caller marked tumor-associated reference evidence.",
+  "exon-exon": "The upstream caller marked an exon-to-exon breakpoint pattern.",
+  polya: "The upstream caller marked sequence evidence involving a poly-A region.",
+  polyt: "The upstream caller marked sequence evidence involving a poly-T region.",
+}
+
+export type FusionAnnotationMetadata = {
+  important?: string[]
+  not_important?: string[]
+  context?: string[]
+}
+
+function fusionEvidenceMetadata(value: string, metadata: FusionAnnotationMetadata) {
+  const normalized = value.toLowerCase()
+  const configuredDescription = fusionEvidenceDescriptions[normalized]
+  if ((metadata.important || []).includes(normalized)) {
+    return {
+      severity: "pass",
+      description: configuredDescription || "The upstream caller associated this fusion with a cancer or curated fusion reference set. This is supporting caller evidence, not a Coyote3 clinical classification.",
+    }
+  }
+  if ((metadata.not_important || []).includes(normalized)) {
+    return {
+      severity: "fail",
+      description: configuredDescription || "The upstream caller associated this fusion with a normal-tissue, recurrent-artifact, overlap, or sequence-similarity reference set. Review this artifact evidence before interpretation.",
+    }
+  }
+  if ((metadata.context || []).includes(normalized)) {
+    return {
+      severity: "neutral",
+      description: configuredDescription || "The upstream caller reported contextual fusion evidence. Review the breakpoints and supporting reads together with this annotation.",
+    }
+  }
+  return {
+    severity: "neutral",
+    description: configuredDescription || "Caller-specific evidence tag retained verbatim from the selected fusion call. Its vocabulary may vary by caller and caller database version.",
+  }
+}
+
+/** Display selected-call evidence tags while preserving the complete raw description. */
+export function FusionEvidenceBadges({
+  description,
+  metadata = {},
+}: {
+  description: unknown
+  metadata?: FusionAnnotationMetadata
+}) {
+  const raw = String(description || "").trim()
+  if (!raw) return <span className="text-muted-foreground">-</span>
+  const values = raw.split(",").map((value) => value.trim()).filter(Boolean)
+  const visible = values.slice(0, 3)
+  return (
+    <div className="flex max-w-full flex-wrap gap-1" aria-label={`Fusion evidence: ${raw}`}>
+      {visible.map((value, index) => {
+        const badgeMetadata = fusionEvidenceMetadata(value, metadata)
+        return (
+          <InfoTooltipBadge
+            key={`${value}-${index}`}
+            label={value}
+            description={badgeMetadata.description}
+            severity={badgeMetadata.severity}
+            contextLabel="Fusion evidence"
+          >
+            {value}
+          </InfoTooltipBadge>
+        )
+      })}
+      {values.length > visible.length && (
+        <InfoTooltipBadge
+          label={`${values.length - visible.length} additional evidence tags`}
+          description={values.slice(visible.length).join(", ")}
+          severity="neutral"
+          contextLabel="Fusion evidence"
+        >
+          +{values.length - visible.length}
+        </InfoTooltipBadge>
+      )}
+    </div>
   )
 }
 
@@ -380,7 +518,7 @@ function StatusTooltipBadge({
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
   const badgeClass = cn(
     textBadge
-      ? "h-5 min-w-5 rounded-md px-1.5 text-[0.58rem] font-black leading-none"
+      ? "h-5 min-w-5 rounded-md px-2 text-[0.68rem] font-bold leading-none"
       : "h-5 w-5 rounded-full p-0",
     "inline-flex cursor-help items-center justify-center border shadow-sm outline-none ring-offset-background transition-all duration-100 hover:-translate-y-0.5 hover:shadow-md focus:ring-2 focus:ring-ring/40",
     severityClass(severity),
@@ -414,19 +552,12 @@ function StatusTooltipBadge({
   return (
     <span className="inline-flex">
       {content}
-      {position && createPortal(
-        <span
-          className={cn(
-            "pointer-events-none fixed z-[9999] w-72 rounded-lg border px-3 py-2 text-left text-xs shadow-lg",
-            tooltipSeverityClass(severity),
-          )}
-          style={{ left: position.left, top: position.top }}
-        >
+      {position && (
+        <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
           <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">{contextLabel}</span>
           <span className="block font-bold text-foreground">{label}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{description}</span>
-        </span>,
-        document.body,
+        </TooltipSurface>
       )}
     </span>
   )
@@ -617,21 +748,14 @@ function FilterFlagBadge({
       >
         {label}
       </span>
-      {position && createPortal(
-        <span
-          className={cn(
-            "pointer-events-none fixed z-[9999] w-72 rounded-lg border px-3 py-2 text-left text-xs shadow-lg",
-            tooltipSeverityClass(severity),
-          )}
-          style={{ left: position.left, top: position.top }}
-        >
+      {position && (
+        <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
           <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">
             {severityLabel(severity)} filter
           </span>
           <span className="block break-words font-mono font-bold text-foreground">{flag}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{description}</span>
-        </span>,
-        document.body,
+        </TooltipSurface>
       )}
     </span>
   )
@@ -715,19 +839,12 @@ export function ImpactBadge({ value }: { value: unknown }) {
       >
         {impact}
       </span>
-      {position && createPortal(
-        <span
-          className={cn(
-            "pointer-events-none fixed z-[9999] w-72 rounded-lg border px-3 py-2 text-left text-xs shadow-lg",
-            tooltipSeverityClass(severity),
-          )}
-          style={{ left: position.left, top: position.top }}
-        >
+      {position && (
+        <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
           <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">VEP impact</span>
           <span className="block font-bold text-foreground">{impact}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{impactDescription(value)}</span>
-        </span>,
-        document.body,
+        </TooltipSurface>
       )}
     </span>
   )
@@ -816,20 +933,13 @@ export function PredictionBadge({ value }: { value: unknown }) {
       >
         {String(value)}
       </span>
-      {position && createPortal(
-        <span
-          className={cn(
-            "pointer-events-none fixed z-[9999] w-72 rounded-lg border px-3 py-2 text-left text-xs shadow-lg",
-            tooltipSeverityClass(severity),
-          )}
-          style={{ left: position.left, top: position.top }}
-        >
+      {position && (
+        <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
           <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">Protein prediction</span>
           <span className="block font-bold text-foreground">{predictionLabel(value)}</span>
           <span className="mt-1 block break-words font-mono text-[11px] font-semibold text-foreground/85">{String(value)}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{predictionDescription(value)}</span>
-        </span>,
-        document.body,
+        </TooltipSurface>
       )}
     </span>
   )
@@ -869,20 +979,17 @@ function ConsequenceBadge({
       <span
         tabIndex={0}
         className={cn(
-          "cursor-help rounded-md border px-2 py-0.5 text-[0.72rem] font-bold lowercase leading-5 shadow-sm outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
+          "cursor-help rounded-md border px-2 py-0.5 text-[0.68rem] font-bold lowercase leading-5 shadow-sm outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
           wide ? "max-w-[280px] whitespace-normal break-words" : "max-w-[108px] truncate",
           impact ? severityClass(severity) : "border-border bg-muted text-foreground",
         )}
       >
         {compact ? label : term}
       </span>
-      {position && createPortal(
-        <span
-          className={cn(
-            "pointer-events-none fixed z-[9999] w-72 rounded-lg border px-3 py-2 text-left text-xs shadow-lg",
-            impact ? tooltipSeverityClass(severity) : "border-border bg-popover text-popover-foreground",
-          )}
-          style={{ left: position.left, top: position.top }}
+      {position && (
+        <TooltipSurface
+          position={position}
+          className={impact ? tooltipSeverityClass(severity) : "border-border text-popover-foreground"}
         >
           <span className="mb-1 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-wide opacity-80">
             <span>VEP consequence</span>
@@ -890,8 +997,7 @@ function ConsequenceBadge({
           </span>
           <span className="block font-mono font-bold text-foreground">{term}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{description}</span>
-        </span>,
-        document.body,
+        </TooltipSurface>
       )}
     </span>
   )

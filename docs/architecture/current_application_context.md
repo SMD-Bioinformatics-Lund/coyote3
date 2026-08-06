@@ -192,7 +192,21 @@ ISGL documents describe curated in-silico gene lists. List types use canonical c
 - `adhoc_expression`
 - `adhoc_pgx`
 
-The UI separates ad-hoc and non-ad-hoc list types. ISGLs are linked to assays, assay groups, diagnosis/subpanel context, and gene content.
+The UI separates ad-hoc and non-ad-hoc list types. ISGL scope is represented by
+three related fields:
+
+| Field | Meaning | Admin behavior |
+| --- | --- | --- |
+| `asp_groups[]` | Assay groups in which the list may be used, such as `hematology` or `solid` | Selecting one or more groups reveals the union of active ASPs in those groups. |
+| `asp_ids[]` | Specific ASPs allowed to use the list | The user selects one or more ASPs from the group-filtered choices. Removing an assay group also removes ASP selections that no longer belong to the remaining groups. |
+| `diagnosis[]` | Clinical diagnosis or in-silico subpanel identifiers associated with the list | The form accepts comma-separated or newline-separated values and stores a deduplicated array. An empty array means assay-wide rather than diagnosis-specific scope. |
+
+ISGL does not duplicate `subpanel_id`. That singular field belongs to sample and
+ASPC identity, where it selects one effective configuration. A gene list can be
+reused by several diagnoses/subpanels, so ISGL stores those tags in the
+multi-valued `diagnosis[]` field. Runtime ISGL matching and public catalog
+grouping use `diagnosis[]`; the public catalog treats an empty list as the
+`base` scope.
 
 ## Sample Ingest Flow
 

@@ -6,7 +6,7 @@ import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { ClassificationsCard } from "@/components/detail/FindingDetailCards"
 import { CommentsPanel } from "@/components/comments/CommentsPanel"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
-import { CallerBadges } from "@/lib/variant-ui"
+import { FusionCallerBadges, FusionEffectBadge, FusionEvidenceBadges, StatusBadges } from "@/lib/variant-ui"
 import { fusionCallers, fusionGenes, selectedFusionCall } from "@/lib/variant-helpers"
 import {
   DetailDataTable,
@@ -38,11 +38,6 @@ function fusionBreakpoint(call: any) {
   const left = call?.breakpoint1 || call?.breakpoints?.[0]
   const right = call?.breakpoint2 || call?.breakpoints?.[1]
   return [left, right].filter(Boolean).join(" | ") || "-"
-}
-
-function fusionDescription(value: unknown) {
-  if (!value) return "-"
-  return String(value).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
 }
 
 export function FusionDetail() {
@@ -118,7 +113,7 @@ export function FusionDetail() {
         chips={
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">Called by</span>
-            <CallerBadges value={fusionCallers(fusion)} />
+            <FusionCallerBadges callers={fusionCallers(fusion)} />
           </div>
         }
         actions={
@@ -178,11 +173,12 @@ export function FusionDetail() {
                   <DetailField label="Gene 1">{genes[0] || fusion?.gene1 || "-"}</DetailField>
                   <DetailField label="Gene 2">{genes[1] || fusion?.gene2 || "-"}</DetailField>
                   <DetailField label="Breakpoints" valueClassName="font-mono">{fusionBreakpoint(selectedCall)}</DetailField>
-                  <DetailField label="Effect" valueClassName="uppercase">{selectedCall?.effect || fusion?.frame || "-"}</DetailField>
-                  <DetailField label="Caller">{selectedCall?.caller || fusionCallers(fusion)}</DetailField>
+                  <DetailField label="Effect"><FusionEffectBadge effect={selectedCall?.effect || fusion?.frame} /></DetailField>
+                  <DetailField label="Caller"><FusionCallerBadges callers={selectedCall?.caller || fusionCallers(fusion)} /></DetailField>
+                  <DetailField label="Evidence"><FusionEvidenceBadges description={selectedCall?.desc || fusion?.desc} metadata={data.fusion_annotation_metadata} /></DetailField>
                   <DetailField label="Status">
                     <div className="flex flex-wrap gap-1">
-                      {fusion?.fp && <EvidenceBadge tone="danger">False positive</EvidenceBadge>}
+                      <StatusBadges finding={fusion} />
                       {selectedCall?.selected && <EvidenceBadge tone="success">Selected</EvidenceBadge>}
                     </div>
                   </DetailField>
@@ -195,7 +191,6 @@ export function FusionDetail() {
                     { label: "Spanning pairs", value: selectedCall?.spanpairs || fusion?.supporting_reads?.span, monospace: true },
                     { label: "Spanning reads", value: selectedCall?.spanreads || fusion?.supporting_reads?.split, monospace: true },
                     { label: "Longest anchor", value: selectedCall?.longestanchor, monospace: true },
-                    { label: "Description", value: fusionDescription(selectedCall?.desc || fusion?.desc) },
                   ]}
                   dense
                 />
@@ -211,12 +206,12 @@ export function FusionDetail() {
                   { key: "gene1", header: "Gene 1", render: () => genes[0] || fusion?.gene1 || "-" },
                   { key: "gene2", header: "Gene 2", render: () => genes[1] || fusion?.gene2 || "-" },
                   { key: "breakpoints", header: "Breakpoints", render: (row: any) => <span className="font-mono">{fusionBreakpoint(row)}</span> },
-                  { key: "effect", header: "Effect", render: (row: any) => row.effect || "-" },
+                  { key: "effect", header: "Effect", render: (row: any) => <FusionEffectBadge effect={row.effect} /> },
                   { key: "spanpairs", header: "Span pairs", render: (row: any) => displayValue(row.spanpairs) },
                   { key: "spanreads", header: "Span reads", render: (row: any) => displayValue(row.spanreads) },
                   { key: "anchor", header: "Anchor", render: (row: any) => displayValue(row.longestanchor) },
-                  { key: "caller", header: "Caller", render: (row: any) => row.caller || "-" },
-                  { key: "desc", header: "Description", render: (row: any) => <span className="block max-w-md whitespace-normal">{fusionDescription(row.desc)}</span> },
+                  { key: "caller", header: "Caller", render: (row: any) => <FusionCallerBadges callers={row.caller} /> },
+                  { key: "desc", header: "Description", render: (row: any) => <FusionEvidenceBadges description={row.desc} metadata={data.fusion_annotation_metadata} /> },
                 ]}
               />
             </DetailCard>

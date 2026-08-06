@@ -1,14 +1,20 @@
+import re
 from typing import Any, Dict
 
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.domain.core.workflows.filter_normalization import coerce_nonnegative_int
 
 
 def build_fusion_query(assay_group: str, settings: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Build a query to retrieve fusion data for a given sample.
+    Build a query to retrieve fusion data for a given RNA sample.
+
+    The calling workflow has already established that fusion analysis is
+    enabled for the sample. Assay group is retained in the public signature
+    for workflow compatibility, but it must not suppress configured filters:
+    targeted RNA panels and WTS samples use the same fusion filter contract.
     """
-    if assay_group not in ["fusion", "fusionrna", "wts"]:
-        return {"SAMPLE_ID": settings["id"]}
+    _ = assay_group
 
     min_spanning_reads = coerce_nonnegative_int(settings.get("min_spanning_reads"), default=0)
     min_spanning_pairs = coerce_nonnegative_int(settings.get("min_spanning_pairs"), default=0)
@@ -16,18 +22,20 @@ def build_fusion_query(assay_group: str, settings: Dict[str, Any]) -> Dict[str, 
     call_match: Dict[str, Any] = {}
 
     effects = settings.get("fusion_effects") or []
-    callers = settings.get("fusion_callers") or []
-    if effects:
-        call_match["effect"] = {"$in": effects}
-
-    checked = set(settings.get("checked_fusionlists") or [])
-    selected_desc_patterns = []
-    if "FCknown" in checked:
-        selected_desc_patterns.append("known")
-    if "mitelman" in checked:
-        selected_desc_patterns.append("mitelman")
-    if selected_desc_patterns:
-        call_match["desc"] = {"$regex": "|".join(selected_desc_patterns), "$options": "i"}
+    callers = CLINICAL_VOCABULARY.normalize_fusion_callers(settings.get("fusion_callers") or [])
+    descriptions = [
+        str(value).strip()
+        for value in settings.get("fusion_descriptions") or []
+        if str(value).strip()
+    ]
+    effect_set = {str(effect).strip().lower() for effect in effects if str(effect).strip()}
+    if effect_set == {"in-frame"}:
+        call_match["effect"] = {"$regex": r"^in-frame$", "$options": "i"}
+    elif effect_set == {"out-of-frame"}:
+        call_match["effect"] = {
+            "$regex": r"^(?!in-frame$).+",
+            "$options": "i",
+        }
 
     if callers:
         caller_clauses = []
@@ -46,6 +54,25 @@ def build_fusion_query(assay_group: str, settings: Dict[str, Any]) -> Dict[str, 
             call_match["spanreads"] = {"$gte": min_spanning_reads}
         if min_spanning_pairs > 0:
             call_match["spanpairs"] = {"$gte": min_spanning_pairs}
+
+    if descriptions:
+        description_clauses = [
+            {
+                "desc": {
+                    "$regex": rf"(?:^|,\s*){re.escape(description)}(?:\s*,|$)",
+                    "$options": "i",
+                }
+            }
+            for description in descriptions
+        ]
+        if "$or" in call_match:
+            caller_clauses = call_match.pop("$or")
+            call_match["$and"] = [
+                {"$or": caller_clauses},
+                {"$or": description_clauses},
+            ]
+        else:
+            call_match["$or"] = description_clauses
 
     query: Dict[str, Any] = {"SAMPLE_ID": settings["id"]}
     if call_match:

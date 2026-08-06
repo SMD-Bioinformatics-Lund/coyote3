@@ -272,19 +272,97 @@ The rotate control switches the profile between its original `0°` orientation a
 
 ### Fusions Tab
 
-The fusions tab lists RNA or DNA fusion calls.
+The fusions tab lists caller observations for an enabled fusion analysis. The
+table uses the one call marked `selected` in each fusion document. Alternative
+calls remain available on the fusion detail page and may be selected there.
 
 | Column family | Data shown |
 | --- | --- |
 | Status | Review flags, comments, and knowledgebase indicators when available. |
 | Gene 1 / Gene 2 | Fusion partners. |
-| Breakpoints | Coordinates and transcript context when available. |
-| Support | Spanning pairs, unique reads, anchor support, and caller information. |
+| Effect | Caller-reported frame context. A normalized value exactly equal to `in-frame` is shown as in-frame; every other non-empty effect is shown as out-of-frame. The tooltip identifies this as caller output rather than a DNA VEP consequence. |
+| Spanning pairs / unique spanning reads | Support counts from the selected call. |
+| Fusion points | The selected call's two breakpoints. |
+| Description | Comma-delimited caller evidence displayed as bounded badges. Exact terms are categorized by `clinical_vocabulary.toml`: important cancer-reference terms are green, not-important or artifact-associated terms are red, contextual terms are gray, and unknown terms are neutral. These colors support review and are not clinical classifications. |
+| Callers | Lowercase caller badges for all callers represented in the fusion document. Hover help identifies the upstream caller. |
 | Tier | Fusion classification tier. |
-| Actions | False-positive and detail-page actions. Fusion rows do not expose a report-inclusion control because fusion reporting is governed by the fusion review/filter workflow rather than an `interesting` finding flag. |
+| Actions | An `Interesting` review marker and the detail-page action. The detail page also supports false-positive, irrelevant, and blacklist review states. `Interesting` does not include or exclude a fusion from the report. |
 
-The fusion bulk-action menu contains only fusion review operations: mark or
-unmark false positive and mark or unmark irrelevant.
+The fusion bulk-action menu contains only fusion review operations: assign or
+remove tiers and mark or unmark false positive, irrelevant, interesting, and
+blacklisted. These mutations require the
+`fusion:manage` permission. The detail page exposes the same controls and
+displays their current state using the same review vocabulary as DNA finding
+pages.
+
+RNA fusion report eligibility is independent of the `interesting` marker. A
+fusion is included only when its classification is Tier 1, Tier 2, or Tier 3
+and it is not false positive, irrelevant, or blacklisted. Tier 4 and
+unclassified fusions are not reportable. This is the same effective inclusion
+rule used by the previous RNA reporting workflow.
+
+Fusion filter selections are combined predictably. Multiple selected callers
+are alternatives, and multiple selected effects or description terms are also
+alternatives within their respective group. Different groups are cumulative:
+a matching fusion call must satisfy the selected caller, effect, description,
+and read-support groups together. All call-level predicates must be satisfied
+by one member of `calls`; evidence from different caller observations is never
+combined to admit a row. Description matching uses complete comma-delimited
+terms and is case-insensitive, so selecting `cancer` does not match an unrelated
+partial word.
+
+The sample overview groups configured filters by analysis. RNA samples display
+only fusion callers, effects, lists, and support thresholds when fusion analysis
+is enabled. DNA samples display only enabled DNA filter groups (SNV, CNV,
+coverage, and DNA fusion/translocation). DNA thresholds are never shown for an
+RNA sample, and RNA spanning-read filters are never shown for a DNA sample.
+
+### Expression Tab
+
+The expression tab is a WTS analysis view. It appears only when all of these
+conditions are true:
+
+1. the sample is RNA;
+2. the ASP belongs to the `wts` family;
+3. the active ASPC enables the `EXPRESSION` analysis type; and
+4. an expression resource was successfully ingested for the sample.
+
+| Column | Meaning |
+| --- | --- |
+| Gene | HGNC symbol from the expression result, with the Ensembl gene identifier as a fallback. |
+| TPM | Sample transcripts-per-million value. |
+| Reference mean | Mean TPM in the configured reference cohort. |
+| Z-score | Signed standardized difference between the sample and reference cohort. The centered bar preserves direction as well as magnitude. |
+
+The view presents the ingested values and does not recalculate the reference
+cohort or z-score in the browser. The display applies the following visual
+bands consistently:
+
+| Z-score band | Display | Meaning |
+| --- | --- | --- |
+| `-2 < Z < 2` | Neutral gray | The value is within the displayed reference range. |
+| `2 <= |Z| < 3` | Matte amber | The value has a moderate positive or negative deviation from the reference mean. |
+| `Z >= 3` | Matte green | The value has a strong positive deviation from the reference mean. |
+| `Z <= -3` | Matte red | The value has a strong negative deviation from the reference mean. |
+
+Hovering or focusing the score bar shows the signed score, direction,
+magnitude, and applicable band. These colors communicate statistical direction
+and magnitude only; they are not a clinical classification and do not replace
+assay-specific interpretation.
+
+### Classification Tab
+
+The classification tab follows the same WTS, ASPC, and ingested-resource gates
+as expression, using the `CLASSIFICATION` analysis type and classification
+resource. Classifier results are sorted by score from highest to lowest and
+shown as bounded score bars. Scores between zero and one are rendered as a
+percentage of the bar while retaining the original numeric value. The model
+name and result semantics remain properties of the ingested classifier output;
+Coyote3 does not reinterpret the class labels.
+
+Targeted `panel-rna` assays cannot enable expression or classification through
+the standard configuration vocabulary. This prevents an RNA fusion panel from
+displaying WTS-only views merely because similarly named files are present.
 
 ### Translocations Tab
 
@@ -324,8 +402,19 @@ The reports tab builds and previews clinical report content from current filters
 | --- | --- |
 | Preview controls | DNA/RNA selection, snapshot toggle, save report, and export/PDF actions where enabled. |
 | Report preview | Rendered clinical report preview using the configured report format. |
-| Snapshot rows | Gene, variant, class/tier, and report text for reportable findings. |
+| DNA snapshot table | Gene, variant identity, tier, and reviewed report text captured for DNA report findings. |
+| RNA fusion snapshot table | Fusion (`GENE1::GENE2`), selected breakpoints, effect, spanning pairs/reads, classification, and latest visible reviewed annotation. RNA reports do not use the DNA `Gene / Variant / Class / Text` snapshot layout. |
 | Report context | Collapsible technical context used for the report snapshot. |
+
+The rendered RNA report uses the active ASPC `reporting.report_header`,
+`report_method`, and `report_description`. Its result table contains `Fusion`
+and `Klassificering`; the detailed section adds effect, breakpoints, spanning
+reads, spanning pairs, longest anchor, classification, and reviewed comment.
+Only the same reportable fusion set shown in the snapshot is passed to the
+renderer. The table consumes the RNA snapshot contract directly; it does not
+fall back to DNA snapshot fields such as `gene`, `variant`, `hgvsc`, or
+`hgvsp`. Missing canonical fusion fields therefore surface as report contract
+errors instead of producing a partially populated preview.
 
 !!! warning "Temporary snapshot"
 

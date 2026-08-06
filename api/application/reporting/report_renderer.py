@@ -561,9 +561,9 @@ RNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
     <tr><td class="top_report_key">Prov-ID</td><td class="top_report_val">{{ sample.name }}</td></tr>
     <tr><td class="top_report_key">Registreringsdatum</td><td class="top_report_val">&lt;REGISTRATION_DATE&gt;</td></tr>
     <tr><td class="top_report_key">Provtyp</td><td class="top_report_val">&lt;SAMPLE_TYPE&gt; / RNA</td></tr>
-    <tr><td class="top_report_key">Frågeställning</td><td class="top_report_val">{% if assay == "fusions" %}RNA fusions{% else %}Gene Panel{% endif %}</td></tr>
+    <tr><td class="top_report_key">Frågeställning</td><td class="top_report_val">Fusionsgenanalys</td></tr>
     <tr><td class="top_report_key">Rapportdatum</td><td class="top_report_val">{{ report_date }}</td></tr>
-    <tr><td class="top_report_key">Analysmetod</td><td class="top_report_val">{{ analysis_method }}</td></tr>
+    <tr><td class="top_report_key">Analysmetod</td><td class="top_report_val">{{ assay_config.reporting.report_method }}</td></tr>
     <tr><td class="top_report_key">Analys genomförd av</td><td class="top_report_val">Centrum för molekylär diagnostik (CMD) och Klinisk genetik och patologi</td></tr>
     <tr><td class="top_report_key">Rapport genererad av</td><td class="top_report_val">{{ current_user.fullname }}</td></tr>
     <tr><td class="top_report_key">Rapport-ID</td><td class="top_report_val">{{ sample.name }}.{{ sample.report_num + 1 if sample.report_num is defined else 1 }}</td></tr>
@@ -572,8 +572,8 @@ RNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
 
 <span class="report_header">Analysresultat</span>
 <table class="variant_table">
-  {% if assay=="fusion" %}<tr><th>Fusion</th><th>Klassificering</th></tr>{% elif assay=="fusionrna" %}<tr><th>Fusion/exon skipping</th><th>Klassificering</th></tr>{% endif %}
-  {% for var in fusions|sort(attribute='classification.class') if (not var.blacklist and var.classification.class != 999 and var.classification.class != 4) %}
+  <tr><th>Fusion</th><th>Klassificering</th></tr>
+  {% for var in fusions|sort(attribute='classification.class') %}
     <tr><td>{{ var.gene1 }} - {{ var.gene2 }}</td><td>{{ class_desc_short[var.classification.class] }}</td></tr>
   {% else %}
     <tr><td>Inga detekterade fusioner</td><td></td></tr>
@@ -598,10 +598,10 @@ RNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
 <p style="page-break-before: always;"></p>
 <br>
 
-{% if assay=="fusion" %}<span class="report_header">Detekterade fusioner</span>{% elif assay=="fusionrna" %}<span class="report_header">Detekterade fusioner och exon skipping</span>{% endif %}
-{% for var in fusions|sort(attribute='classification.class') if not var.blacklist and var.classification.class != 999 and var.classification.class != 4 %}
+<span class="report_header">Detekterade fusioner</span>
+{% for var in fusions|sort(attribute='classification.class') %}
   {% set selected_calls = var.calls|selectattr('selected', 'equalto', 1)|list %}
-  {% set sel_fus = selected_calls[0] if selected_calls else var.calls[0] %}
+  {% set sel_fus = selected_calls[0] %}
   <div class=report_div style="page-break-inside:avoid;">
     <table class='report_variant'>
       <tr><th class="report_variant_header" colspan=6>{{ var.gene1 }} - {{ var.gene2 }}</th></tr>
@@ -629,7 +629,7 @@ RNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
 
 <span class="report_header">Analysbeskrivning</span>
 <div class="analysis_description">
-  {{ analysis_desc|safe }}
+  {{ assay_config.reporting.report_description|safe }}
   <p><b>Tabell: Förklaring av klassificering</b></p>
   <table class="info">
     <tr><td>Tier I</td><td>Variant av stark klinisk signifikans (innefattar varianter i gener som finns med i internationella/nationella riktlinjer)</td></tr>
@@ -743,8 +743,6 @@ def _template_defaults(context: dict[str, Any], *, analyte: str, preview: bool) 
     context.setdefault("germline", False)
     context.setdefault("pdf", 0 if preview else 1)
     context["save"] = 0 if preview else 1
-    if analyte == "rna":
-        context.setdefault("assay", context.get("assay") or "fusion")
     return context
 
 

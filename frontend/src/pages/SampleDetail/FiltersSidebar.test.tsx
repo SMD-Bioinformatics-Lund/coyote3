@@ -34,6 +34,13 @@ const sample = {
       },
       cnv: { min_cnv_size: 5000, cnvlists: ["heme_cnv"], cnveffects: ["gain"] },
       translocation: { fusionlists: ["fusion_core"] },
+      fusion: {
+        min_spanning_pairs: 2,
+        fusionlists: ["fusion_core"],
+        fusion_callers: ["fusioncatcher"],
+        fusion_effects: ["in-frame"],
+        fusion_descriptions: ["known"],
+      },
     },
     germline: {
       snv: { min_depth: 30, min_alt_reads: 3, min_freq: 0.3, max_freq: 1, max_popfreq: 0.001 },
@@ -48,6 +55,12 @@ const context = {
   ],
   cnvlist_options: [{ isgl_id: "heme_cnv", display_name: "Hematology CNV" }],
   fusionlist_options: [{ isgl_id: "fusion_core", display_name: "Core fusions" }],
+  fusion_caller_options: ["arriba", "fusioncatcher", "starfusion"],
+  fusion_annotation_metadata: {
+    important: ["known", "oncogene"],
+    context: ["short_distance"],
+    not_important: ["matched-normal"],
+  },
 }
 
 function renderSidebar(props: Partial<React.ComponentProps<typeof FiltersSidebar>> = {}) {
@@ -162,6 +175,48 @@ describe("FiltersSidebar", () => {
         }),
       }),
     })
+  })
+
+  it("filters RNA fusions by configured evidence-description terms", async () => {
+    const user = userEvent.setup()
+    renderSidebar({ activeTab: "fusions" })
+    await expand(user)
+
+    expect(screen.getByRole("checkbox", { name: "known" })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "oncogene" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "short_distance" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "matched-normal" })).not.toBeChecked()
+    expect(screen.getByText("Relevant evidence")).toBeVisible()
+    expect(screen.getByText("Artifact and exclusion evidence")).toBeVisible()
+    expect(screen.queryByText("Context evidence")).not.toBeInTheDocument()
+    expect(screen.getByText("known")).toHaveClass("matte-badge-pass")
+    expect(screen.getByText("short_distance")).toHaveClass("matte-badge-fail")
+    expect(screen.getByText("matched-normal")).toHaveClass("matte-badge-fail")
+
+    await user.click(screen.getByRole("checkbox", { name: "matched-normal" }))
+    await user.click(screen.getByRole("button", { name: "Apply" }))
+
+    await waitFor(() => expect(mocks.put).toHaveBeenCalledOnce())
+    expect(mocks.put).toHaveBeenCalledWith("/samples/CASE_001/filters", {
+      filters: expect.objectContaining({
+        somatic: expect.objectContaining({
+          fusion: expect.objectContaining({
+            fusion_descriptions: ["known", "matched-normal"],
+          }),
+        }),
+      }),
+    })
+  })
+
+  it("renders fusion caller choices from the API contract using canonical IDs", async () => {
+    const user = userEvent.setup()
+    renderSidebar({ activeTab: "fusions" })
+    await expand(user)
+
+    expect(screen.getByRole("checkbox", { name: "arriba" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "fusioncatcher" })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "starfusion" })).not.toBeChecked()
+    expect(screen.queryByRole("checkbox", { name: "FusionCatcher" })).not.toBeInTheDocument()
   })
 
   it("confirms reset success and reports update failures", async () => {

@@ -203,4 +203,59 @@ def test_restful_rna_mutation_routes_are_registered():
     assert "/api/v1/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/hidden" in paths
     assert "/api/v1/samples/{sample_id}/fusions/flags/false-positive" in paths
     assert "/api/v1/samples/{sample_id}/fusions/flags/irrelevant" in paths
+    assert "/api/v1/samples/{sample_id}/fusions/flags/blacklisted" in paths
+    assert "/api/v1/samples/{sample_id}/fusions/{fusion_id}/flags/blacklisted" in paths
     assert "/api/v1/samples/{sample_id}/fusions/comment-suggestion" in paths
+    assert "/api/v1/samples/{sample_id}/rna-analysis" in paths
+
+
+def test_read_rna_analysis_returns_independent_records(monkeypatch):
+    """The WTS views read expression, classification, and QC by sample ObjectId."""
+    sample = {**fx.sample_doc(), "_id": "sample-oid", "name": "RNA_1", "omics_layer": "rna"}
+    service = SimpleNamespace(
+        rna_analysis_payload=lambda **kwargs: {
+            "sample_id": "sample-oid",
+            "sample_name": "RNA_1",
+            "expression": {"sample": [{"hgnc_symbol": "CD19", "z": 2.5}]},
+            "classification": {"classifier_results": [{"class": "DUX4-high", "score": 0.8}]},
+            "quality": {"mapped_pct": 97.4},
+        }
+    )
+    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(rna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = rna.read_rna_analysis("RNA_1", user=fx.api_user(), service=service)
+
+    assert payload["sample_id"] == "sample-oid"
+    assert payload["expression"]["sample"][0]["hgnc_symbol"] == "CD19"
+    assert payload["classification"]["classifier_results"][0]["class"] == "DUX4-high"
+
+
+def test_rna_analysis_service_reads_each_sample_owned_repository(monkeypatch):
+    """RNA analysis aggregation uses the canonical repository methods."""
+    service = _rna_service()
+    calls: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        store.rna_expression_repository,
+        "get_rna_expression",
+        lambda sample_id: calls.append(("expression", sample_id)) or {"sample": []},
+    )
+    monkeypatch.setattr(
+        store.rna_classification_repository,
+        "get_rna_classification",
+        lambda sample_id: calls.append(("classification", sample_id)) or {"classifier_results": []},
+    )
+    monkeypatch.setattr(
+        store.rna_quality_repository,
+        "get_rna_qc",
+        lambda sample_id: calls.append(("quality", sample_id)) or {"mapped_pct": 98.2},
+    )
+
+    payload = service.rna_analysis_payload(sample={"_id": "rna-oid", "name": "RNA_1"})
+
+    assert calls == [
+        ("expression", "rna-oid"),
+        ("classification", "rna-oid"),
+        ("quality", "rna-oid"),
+    ]
+    assert payload["quality"]["mapped_pct"] == 98.2

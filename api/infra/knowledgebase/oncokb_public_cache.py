@@ -7,6 +7,7 @@ from typing import Any
 
 from pymongo.errors import BulkWriteError, DuplicateKeyError
 
+from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
 
 
@@ -126,6 +127,24 @@ class OncoKbPublicCacheRepository(BaseRepository):
             return set()
         rows = self.get_collection().find({"query_hash": {"$in": hashes}}, {"query_hash": 1})
         return {str(row.get("query_hash")) for row in rows if row.get("query_hash")}
+
+    def remove_sample_references(
+        self, *, sample_id: str, sample_name: str | None = None
+    ) -> OperationResult:
+        """Remove one deleted sample from shared public annotation cache records."""
+        pull: dict[str, str] = {"sample_ids": str(sample_id)}
+        if sample_name:
+            pull["sample_names"] = str(sample_name)
+        result = self.get_collection().update_many(
+            {
+                "$or": [
+                    {"sample_ids": str(sample_id)},
+                    *([{"sample_names": str(sample_name)}] if sample_name else []),
+                ]
+            },
+            {"$pull": pull},
+        )
+        return OperationResult.from_update(result)
 
     def public_gene_count(self) -> int:
         """Return the number of public OncoKB gene marker records."""

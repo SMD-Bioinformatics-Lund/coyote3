@@ -58,9 +58,10 @@ class IsglService:
             dict[str, Any]: Form payload for the create view.
         """
         form = build_managed_form(self._spec, actor_username=actor_username)
+        assay_group_map = self._configure_asp_scope(form)
         return {
             "form": form,
-            "assay_group_map": create_assay_group_map(self.assay_panel_repository.get_all_asps()),
+            "assay_group_map": assay_group_map,
         }
 
     def context_payload(self, *, genelist_id: str) -> dict[str, Any]:
@@ -76,13 +77,66 @@ class IsglService:
         if not genelist:
             raise api_error(404, "Genelist not found")
         form = build_managed_form(self._spec)
+        assay_group_map = self._configure_asp_scope(form)
         form["fields"]["asp_groups"]["default"] = genelist.get("asp_groups", [])
         form["fields"]["asp_ids"]["default"] = genelist.get("asp_ids", [])
         return {
             "genelist": genelist,
             "form": form,
-            "assay_group_map": create_assay_group_map(self.assay_panel_repository.get_all_asps()),
+            "assay_group_map": assay_group_map,
         }
+
+    def _configure_asp_scope(self, form: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+        """Limit ASP choices to the assay groups selected in the ISGL form."""
+        assay_group_map = create_assay_group_map(
+            self.assay_panel_repository.get_all_asps(is_active=True)
+        )
+        option_map: dict[str, list[dict[str, Any]]] = {}
+        for group, panels in assay_group_map.items():
+            if not group:
+                continue
+            option_map[str(group).lower()] = [
+                {
+                    "value": panel.get("asp_id"),
+                    "label": panel.get("display_name") or panel.get("asp_id"),
+                    "category": str(group),
+                }
+                for panel in panels
+                if panel.get("asp_id")
+            ]
+        form["fields"]["asp_ids"]["options_by_field"] = {
+            "field": "asp_groups",
+            "values": option_map,
+        }
+        return assay_group_map
+
+    def _validate_asp_scope(self, config: dict[str, Any]) -> None:
+        """Reject ASP selections outside the ISGL's selected assay groups."""
+        panels = {
+            str(panel.get("asp_id") or "").strip().lower(): panel
+            for panel in (self.assay_panel_repository.get_all_asps(is_active=True) or [])
+            if isinstance(panel, dict) and panel.get("asp_id")
+        }
+        selected_groups = {str(value).strip().lower() for value in config.get("asp_groups", [])}
+        unknown: list[str] = []
+        mismatched: list[str] = []
+        for asp_id in config.get("asp_ids", []):
+            key = str(asp_id).strip().lower()
+            panel = panels.get(key)
+            if panel is None:
+                unknown.append(str(asp_id))
+                continue
+            panel_group = str(panel.get("asp_group") or "").strip().lower()
+            if panel_group not in selected_groups:
+                mismatched.append(str(asp_id))
+        if unknown:
+            raise api_error(400, "Unknown or inactive ASP IDs: " + ", ".join(sorted(unknown)))
+        if mismatched:
+            raise api_error(
+                400,
+                "ASP IDs must belong to the selected assay groups: "
+                + ", ".join(sorted(mismatched)),
+            )
 
     def view_context_payload(self, *, genelist_id: str, assay: str | None) -> dict[str, Any]:
         """Return the read-only view payload for a genelist.
@@ -128,6 +182,7 @@ class IsglService:
         if not config:
             raise api_error(400, "Missing genelist config payload")
         config.setdefault("is_active", True)
+        config.pop("subpanel_id", None)
         config["isgl_id"] = config.get("isgl_id") or config.get("name")
         if not config.get("isgl_id"):
             raise api_error(400, "Missing isgl_id")
@@ -145,6 +200,7 @@ class IsglService:
         config["version"] = 1
         config.pop("version_history", None)
         config = _validated_doc(self._spec.collection, config)
+        self._validate_asp_scope(config)
         self.gene_list_repository.create_genelist(config)
         return change_payload(
             resource="genelist", resource_id=str(config.get("isgl_id", "unknown")), action="create"
@@ -172,6 +228,7 @@ class IsglService:
         updated_doc["isgl_id"] = genelist.get("isgl_id", genelist_id)
         updated_doc.pop("_id", None)
         updated_doc.pop("gene_count", None)
+        updated_doc.pop("subpanel_id", None)
         # Required contract fields should not be unintentionally blanked by partial form submits.
         if not updated_doc.get("asp_ids"):
             updated_doc["asp_ids"] = list(genelist.get("asp_ids", []))
@@ -190,6 +247,7 @@ class IsglService:
         updated_doc.pop("retired_on", None)
         updated_doc.pop("retired_reason", None)
         updated_doc = _validated_doc(self._spec.collection, updated_doc)
+        self._validate_asp_scope(updated_doc)
         self.gene_list_repository.update_isgl(genelist_id, updated_doc)
         return change_payload(resource="genelist", resource_id=genelist_id, action="update")
 

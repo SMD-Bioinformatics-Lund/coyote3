@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import pytest
+
 from api.app.main import app as api_app
+from api.domain.core.exceptions import AppError
 from api.interfaces.http.clinical.reporting import reports
 from api.security.access import ApiUser
 
@@ -32,6 +35,19 @@ def _user(username: str = "tester", role: str = "admin") -> ApiUser:
         asp_map={},
         auth_type=["local"],
     )
+
+
+def test_report_validation_rejects_analyte_that_does_not_match_sample_modality():
+    """Reject a DNA report request for an RNA sample before workflow rendering."""
+    with pytest.raises(AppError) as exc_info:
+        reports._validate_report_inputs(
+            "dna",
+            {"name": "RNA_SAMPLE", "omics_layer": "rna"},
+            {"analysis_types": ["FUSION"]},
+        )
+
+    assert exc_info.value.status_code == 422
+    assert "RNA report endpoint" in str(exc_info.value.details)
 
 
 def test_preview_report_success_includes_snapshot_when_requested(monkeypatch):

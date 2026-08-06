@@ -5,7 +5,7 @@ import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { ClassificationsCard } from "@/components/detail/FindingDetailCards"
 import { CommentsPanel } from "@/components/comments/CommentsPanel"
-import { CallerBadges } from "@/lib/variant-ui"
+import { CallerBadges, StatusBadges } from "@/lib/variant-ui"
 import { selectedTranslocationAnnotation, translocationGenes, translocationPositionLabel } from "@/lib/variant-helpers"
 import {
   DetailDataTable,
@@ -176,6 +176,7 @@ export function TranslocationDetail() {
                   <DetailField label="Quality" valueClassName="font-mono">{translocation?.QUAL ?? "-"}</DetailField>
                   <DetailField label="Callers">{translocation?.INFO?.variant_callers || translocation?.callers || "-"}</DetailField>
                   <DetailField label="Unique reads">{translocation?.INFO?.UNIQUE_READS || translocation?.unique_reads || "-"}</DetailField>
+                  <DetailField label="Status"><StatusBadges finding={translocation} /></DetailField>
                 </DetailFieldGrid>
               </DetailCard>
 

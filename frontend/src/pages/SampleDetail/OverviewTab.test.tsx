@@ -123,6 +123,40 @@ describe("sample overview presentation", () => {
     expect(screen.getByText("2.0 KB")).toBeVisible()
     expect(screen.getByText("Optional missing")).toBeVisible()
     expect(screen.getByText("No biomarkers file available")).toBeVisible()
+    expect(screen.getByRole("heading", { name: "SNV filters" })).toBeVisible()
+    expect(screen.getByRole("heading", { name: "CNV filters" })).toBeVisible()
+    expect(screen.getByRole("heading", { name: "Coverage filters" })).toBeVisible()
+    expect(screen.queryByRole("heading", { name: "Fusion filters" })).not.toBeInTheDocument()
+  })
+
+  it("shows only RNA fusion filters for an RNA sample", () => {
+    const rnaSample = {
+      ...sample,
+      name: "RNA_001",
+      case_id: "RNA_001",
+      omics_layer: "RNA",
+      paired: false,
+      control: undefined,
+      filters: {
+        somatic: {
+          fusion: {
+            fusion_callers: ["fusioncatcher", "starfusion"],
+            fusion_effects: ["in-frame"],
+            fusionlists: ["rna_core"],
+            min_spanning_pairs: 3,
+            min_spanning_reads: 5,
+          },
+        },
+      },
+    }
+    wrapper(<OverviewTab sampleId="RNA_001" sample={rnaSample} context={{ analysis_sections: ["fusion"] }} />)
+
+    expect(screen.getByRole("heading", { name: "Fusion filters" })).toBeVisible()
+    expect(screen.getByText("fusioncatcher, starfusion")).toBeVisible()
+    expect(screen.getAllByText("rna_core").length).toBeGreaterThan(0)
+    expect(screen.queryByRole("heading", { name: "SNV filters" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "CNV filters" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Coverage filters" })).not.toBeInTheDocument()
   })
 
   it("presents case and control values as aligned columns", () => {

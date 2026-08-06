@@ -9,6 +9,7 @@ from typing import Any, Literal, Union, get_args, get_origin
 from pydantic import BaseModel
 from pydantic.fields import PydanticUndefined
 
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.config.constants import (
     ALL_SAMPLE_FILE_KEYS,
     ASP_CATEGORY_OPTIONS,
@@ -157,13 +158,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "label": "Subpanel",
             "options": [SUBPANEL_BASE_ID],
             "default": SUBPANEL_BASE_ID,
-            "dynamic_options": {
-                "resource": "isgl",
-                "value": "subpanel_id",
-                "label": "displayname",
-                "depends_on": "asp_id",
-                "include_base": True,
-            },
+            "help": "Select one ASPC subpanel identity derived from the diagnosis tags of gene lists linked to the selected ASP. Use base for an assay-wide configuration.",
         },
         "aspc_id": {"readonly": True, "derive_from": ["asp_id", "subpanel_id", "environment"]},
         "asp_group": {"readonly": True},
@@ -547,13 +542,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "label": "Subpanel",
             "options": [SUBPANEL_BASE_ID],
             "default": SUBPANEL_BASE_ID,
-            "dynamic_options": {
-                "resource": "isgl",
-                "value": "subpanel_id",
-                "label": "displayname",
-                "depends_on": "asp_id",
-                "include_base": True,
-            },
+            "help": "Select one ASPC subpanel identity derived from the diagnosis tags of gene lists linked to the selected ASP. Use base for an assay-wide configuration.",
         },
         "aspc_id": {"readonly": True, "derive_from": ["asp_id", "subpanel_id", "environment"]},
         "asp_group": {"readonly": True},
@@ -646,7 +635,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "key": "somatic.fusion.fusion_callers",
                             "label": "Fusion Callers",
                             "type": "checkbox-group",
-                            "options": ["arriba", "starfusion", "fusioncatcher"],
+                            "options": list(CLINICAL_VOCABULARY.fusion_callers),
                             "default": ["arriba", "starfusion"],
                         },
                         {
@@ -753,16 +742,20 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             },
             "help": "Choose the clinical analysis domain. Ad-hoc lists expose only ad-hoc list types; curated lists expose only standard list types.",
         },
-        "subpanel_id": {
-            "display_type": "input",
-            "default": SUBPANEL_BASE_ID,
-            "help": "Use 'base' for global assay lists, or a clinical subpanel identifier such as myeloid.",
+        "diagnosis": {
+            "label": "Diagnosis / Subpanel IDs",
+            "display_type": "textarea",
+            "placeholder": "endometrie, breast, colon",
+            "help": "Clinical diagnosis or in-silico subpanel identifiers. Enter multiple values separated by commas or new lines.",
         },
-        "diagnosis": {"display_type": "textarea"},
-        "asp_groups": {"display_type": "checkbox-group", "options": list(ASP_GROUP_OPTIONS)},
+        "asp_groups": {
+            "display_type": "checkbox-group",
+            "options": list(ASP_GROUP_OPTIONS),
+            "help": "Select one or more assay groups to expose the ASPs that may use this gene list.",
+        },
         "asp_ids": {
             "display_type": "checkbox-group",
-            "dynamic_options": {"resource": "asp", "value": "asp_id", "label": "display_name"},
+            "help": "Select one or more assay groups first, then select the specific ASPs that may use this gene list.",
         },
         "genes": {
             "display_type": "jsoneditor-or-upload",
@@ -889,7 +882,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
     ],
     "isgl": [
         ("list identity", ["name", "displayname", "list_type", "diagnosis"]),
-        ("clinical scope", ["subpanel_id", "asp_groups", "asp_ids"]),
+        ("clinical scope", ["asp_groups", "asp_ids"]),
         ("curated gene content", ["genes", "germline_genes"]),
         ("availability", ["adhoc", "is_public", "is_active"]),
         ("record history", ["created_by", "created_on", "updated_by", "updated_on", "version"]),

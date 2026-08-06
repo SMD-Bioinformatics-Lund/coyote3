@@ -18,6 +18,7 @@ from api.application.resources.helpers import (
     _normalize_asp_category_doc,
     _validated_doc,
 )
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.config.constants import SUBPANEL_BASE_ID, normalize_analysis_type
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.domain.common.errors import api_error
@@ -39,6 +40,7 @@ class AspcService:
         return cls(
             assay_configuration_repository=store.assay_configuration_repository,
             assay_panel_repository=store.assay_panel_repository,
+            gene_list_repository=store.gene_list_repository,
             vep_metadata_repository=store.vep_metadata_repository,
             common_util=common_util,
         )
@@ -48,12 +50,14 @@ class AspcService:
         *,
         assay_configuration_repository: Any,
         assay_panel_repository: Any,
+        gene_list_repository: Any,
         vep_metadata_repository: Any,
         common_util: Any,
     ) -> None:
         """Create the service for assay-configuration resource workflows."""
         self.assay_configuration_repository = assay_configuration_repository
         self.assay_panel_repository = assay_panel_repository
+        self.gene_list_repository = gene_list_repository
         self.vep_metadata_repository = vep_metadata_repository
         self.common_util = common_util
 
@@ -76,6 +80,35 @@ class AspcService:
             self._set_group_field_options(
                 form, top_field="filters", subfield_key="vep_consequences", options=conseq_options
             )
+
+    def _subpanel_options_for_asp(self, asp_id: str) -> list[str]:
+        """Return the ASPC subpanel identities declared by linked ISGL diagnoses."""
+        panel = self.assay_panel_repository.get_asp(asp_id) or {}
+        assay_group = str(panel.get("asp_group") or "").strip() or None
+        diagnoses = {
+            str(diagnosis).strip()
+            for genelist in (
+                self.gene_list_repository.get_isgl_for_scope(
+                    asp_name=asp_id,
+                    assay_group=assay_group,
+                    is_active=True,
+                )
+                or []
+            )
+            if isinstance(genelist, dict)
+            for diagnosis in (genelist.get("diagnosis") or [])
+            if str(diagnosis).strip()
+        }
+        return [SUBPANEL_BASE_ID, *sorted(diagnoses, key=str.casefold)]
+
+    def _set_subpanel_options(self, form: dict[str, Any], asp_ids: list[str]) -> None:
+        """Attach ASP-dependent subpanel choices to an ASPC managed form."""
+        form["fields"]["subpanel_id"]["options_by_field"] = {
+            "field": "asp_id",
+            "values": {
+                asp_id.lower(): self._subpanel_options_for_asp(asp_id) for asp_id in asp_ids
+            },
+        }
 
     @staticmethod
     def _build_filter_profiles(config: dict[str, Any], *, category: str) -> None:
@@ -118,6 +151,40 @@ class AspcService:
             canonical=True,
         )
 
+    @staticmethod
+    def _validate_analysis_types_for_panel(config: dict[str, Any], panel: dict[str, Any]) -> None:
+        """Require ASPC analysis selections to be valid for the ASP sequencing family."""
+        family = str(panel.get("asp_family") or "").strip().lower()
+        if not family:
+            return
+        allowed = CLINICAL_VOCABULARY.analysis_types_by_family.get(family)
+        if allowed is None:
+            raise api_error(400, f"Unsupported ASP family: {family}")
+        selected = {normalize_analysis_type(value) for value in config.get("analysis_types") or []}
+        invalid = sorted(selected - set(allowed))
+        if invalid:
+            raise api_error(
+                400,
+                f"Analysis type(s) not available for ASP family '{family}': " + ", ".join(invalid),
+            )
+
+    @staticmethod
+    def _analysis_types_for_panel(panel: dict[str, Any], *, category: str) -> list[str]:
+        """Return the selectable analysis types for one ASP.
+
+        ASP category establishes the DNA/RNA boundary. The sequencing family
+        then narrows that category, for example separating panel RNA from WTS.
+        Older ASP records without a family retain the category-level options.
+        """
+        family = str(panel.get("asp_family") or "").strip().lower()
+        if family:
+            allowed = CLINICAL_VOCABULARY.analysis_types_by_family.get(family)
+            if allowed is not None:
+                return list(allowed)
+        return list(
+            CLINICAL_VOCABULARY.analysis_file_keys_by_omics.get(category.lower(), {}).keys()
+        )
+
     def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """Return the admin list payload for assay configurations.
 
@@ -155,6 +222,7 @@ class AspcService:
             if isinstance(item, dict)
         ]
         prefill_map: dict[str, dict[str, Any]] = {}
+        analysis_options_by_asp: dict[str, list[str]] = {}
         valid_assay_ids: list[str] = []
         env_options = form.get("fields", {}).get("environment", {}).get("options", [])
         for panel in assay_panels:
@@ -176,10 +244,19 @@ class AspcService:
                         "asp_group": panel.get("asp_group"),
                         "asp_category": panel_category,
                         "platform": panel.get("platform"),
-                        "subpanel_id": [SUBPANEL_BASE_ID],
+                        "subpanel_id": SUBPANEL_BASE_ID,
                         "environment": envs,
                     }
+                    analysis_options_by_asp[assay_id.lower()] = self._analysis_types_for_panel(
+                        panel,
+                        category=form_category,
+                    )
         form["fields"]["asp_id"]["options"] = valid_assay_ids
+        form["fields"]["analysis_types"]["options_by_field"] = {
+            "field": "asp_id",
+            "values": analysis_options_by_asp,
+        }
+        self._set_subpanel_options(form, valid_assay_ids)
         self._decorate_form_options(
             form=form,
             form_category=form_category,
@@ -208,6 +285,16 @@ class AspcService:
         category = _normalize_asp_category((panel or {}).get("asp_category"))
         spec = aspc_spec_for_category(category)
         form = build_managed_form(spec)
+        form["fields"]["analysis_types"]["options_by_field"] = {
+            "field": "asp_id",
+            "values": {
+                str(assay_config.get("asp_id") or "").lower(): self._analysis_types_for_panel(
+                    panel or {},
+                    category=category,
+                )
+            },
+        }
+        self._set_subpanel_options(form, [str(assay_config.get("asp_id") or "")])
         self._decorate_form_options(
             form=form,
             form_category=category,
@@ -282,6 +369,7 @@ class AspcService:
         config["asp_group"] = panel.get("asp_group")
         config["asp_category"] = _normalize_asp_category_doc(panel.get("asp_category"))
         config["platform"] = panel.get("platform")
+        self._validate_analysis_types_for_panel(config, panel)
         if isinstance(config.get("reporting"), dict):
             config["reporting"].pop("analysis", None)
         self._build_filter_profiles(config, category=category)
@@ -352,6 +440,7 @@ class AspcService:
         updated_doc["asp_group"] = panel.get("asp_group")
         updated_doc["asp_category"] = _normalize_asp_category_doc(panel.get("asp_category"))
         updated_doc["platform"] = panel.get("platform")
+        self._validate_analysis_types_for_panel(updated_doc, panel)
         if isinstance(updated_doc.get("reporting"), dict):
             updated_doc["reporting"].pop("analysis", None)
         self._build_filter_profiles(updated_doc, category=category)

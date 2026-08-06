@@ -20,8 +20,93 @@ export type FindingAction =
   | "noteworthy"
   | "unnoteworthy"
   | "blacklist"
+  | "blacklisted"
+  | "unblacklisted"
   | "override_blacklist"
   | "clear_override_blacklist"
+
+export type FindingActionOption = {
+  value: FindingAction
+  label: string
+}
+
+const FINDING_ACTION_LABELS: Record<FindingAction, string> = {
+  tier_1: "Classify as Tier 1",
+  tier_2: "Classify as Tier 2",
+  tier_3: "Classify as Tier 3",
+  tier_4: "Classify as Tier 4",
+  remove_tier_1: "Remove Tier 1",
+  remove_tier_2: "Remove Tier 2",
+  remove_tier_3: "Remove Tier 3",
+  remove_tier_4: "Remove Tier 4",
+  fp: "Mark False Positive",
+  unfp: "Unmark False Positive",
+  irrelevant: "Mark Irrelevant",
+  relevant: "Unmark Irrelevant",
+  interesting: "Mark Interesting",
+  uninteresting: "Unmark Interesting",
+  noteworthy: "Mark Noteworthy",
+  unnoteworthy: "Unmark Noteworthy",
+  blacklist: "Add to Blacklist",
+  blacklisted: "Mark Blacklisted",
+  unblacklisted: "Remove Blacklist",
+  override_blacklist: "Override Blacklist",
+  clear_override_blacklist: "Clear Blacklist Override",
+}
+
+const TIER_ACTIONS: FindingAction[] = [
+  "tier_1",
+  "tier_2",
+  "tier_3",
+  "tier_4",
+  "remove_tier_1",
+  "remove_tier_2",
+  "remove_tier_3",
+  "remove_tier_4",
+]
+
+const REVIEW_ACTIONS: FindingAction[] = [
+  "fp",
+  "unfp",
+  "irrelevant",
+  "relevant",
+  "interesting",
+  "uninteresting",
+]
+
+const FINDING_BULK_ACTIONS: Record<FindingResourceType, FindingAction[]> = {
+  small_variant: [
+    ...TIER_ACTIONS,
+    ...REVIEW_ACTIONS,
+    "blacklist",
+    "override_blacklist",
+    "clear_override_blacklist",
+  ],
+  cnv: ["fp", "unfp", "interesting", "uninteresting", "noteworthy", "unnoteworthy"],
+  fusion: [...TIER_ACTIONS, ...REVIEW_ACTIONS, "blacklisted", "unblacklisted"],
+  translocation: ["fp", "unfp", "interesting", "uninteresting"],
+}
+
+const RESOURCE_ACTION_LABELS: Partial<
+  Record<FindingResourceType, Partial<Record<FindingAction, string>>>
+> = {
+  cnv: {
+    interesting: "Include in report",
+    uninteresting: "Exclude from report",
+  },
+  translocation: {
+    interesting: "Include in report",
+    uninteresting: "Exclude from report",
+  },
+}
+
+export function findingBulkActionOptions(resourceType: FindingResourceType): FindingActionOption[] {
+  const resourceLabels = RESOURCE_ACTION_LABELS[resourceType] || {}
+  return FINDING_BULK_ACTIONS[resourceType].map((value) => ({
+    value,
+    label: resourceLabels[value] || FINDING_ACTION_LABELS[value],
+  }))
+}
 
 const listPathByResource: Record<FindingResourceType, string> = {
   small_variant: "small-variants",
@@ -85,7 +170,7 @@ async function setBulkFlag({
   sampleId: string
   resourceType: FindingResourceType
   resourceIds: string[]
-  flag: "false-positive" | "irrelevant"
+  flag: "false-positive" | "irrelevant" | "blacklisted"
   apply: boolean
 }) {
   const listPath = listPathByResource[resourceType]
@@ -119,7 +204,7 @@ export async function setSingleFlag({
   sampleId: string
   resourceType: FindingResourceType
   resourceId: string
-  flag: "false-positive" | "irrelevant" | "interesting" | "noteworthy" | "override-blacklist"
+  flag: "false-positive" | "irrelevant" | "interesting" | "noteworthy" | "override-blacklist" | "blacklisted"
   apply: boolean
 }) {
   const listPath = listPathByResource[resourceType]
@@ -169,6 +254,16 @@ export async function applyFindingAction({
       resourceIds: ids,
       flag: "irrelevant",
       apply: action === "irrelevant",
+    })
+  }
+
+  if (action === "blacklisted" || action === "unblacklisted") {
+    return setBulkFlag({
+      sampleId,
+      resourceType,
+      resourceIds: ids,
+      flag: "blacklisted",
+      apply: action === "blacklisted",
     })
   }
 

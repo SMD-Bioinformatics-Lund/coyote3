@@ -73,7 +73,21 @@ def build_service() -> tuple[ResourceSampleService, SampleRepository, RecordsUti
     records_util = RecordsUtil()
     dependencies = [
         Mock(name=name)
-        for name in ("variants", "cnvs", "coverage", "translocs", "fusions", "biomarkers")
+        for name in (
+            "variants",
+            "cnvs",
+            "coverage",
+            "translocs",
+            "fusions",
+            "biomarkers",
+            "rna_expression",
+            "rna_classification",
+            "rna_quality",
+            "sample_comments",
+            "reports",
+            "reported_variants",
+            "oncokb_public_cache",
+        )
     ]
     service = ResourceSampleService(
         sample_repository=sample_repository,
@@ -83,6 +97,13 @@ def build_service() -> tuple[ResourceSampleService, SampleRepository, RecordsUti
         translocation_repository=dependencies[3],
         fusion_repository=dependencies[4],
         biomarker_repository=dependencies[5],
+        rna_expression_repository=dependencies[6],
+        rna_classification_repository=dependencies[7],
+        rna_quality_repository=dependencies[8],
+        sample_comment_repository=dependencies[9],
+        report_repository=dependencies[10],
+        reported_variant_repository=dependencies[11],
+        oncokb_public_cache_repository=dependencies[12],
         assay_panel_repository=AssayPanelRepository(),
         records_util=records_util,
     )
@@ -100,6 +121,13 @@ def test_from_store_wires_all_repositories() -> None:
             "translocation_repository",
             "fusion_repository",
             "biomarker_repository",
+            "rna_expression_repository",
+            "rna_classification_repository",
+            "rna_quality_repository",
+            "sample_comment_repository",
+            "report_repository",
+            "reported_variant_repository",
+            "oncokb_public_cache_repository",
             "assay_panel_repository",
         )
     }
@@ -244,6 +272,13 @@ def test_delete_delegates_all_repositories_and_returns_summary(
         translocation_repository=dependencies[3],
         fusion_repository=dependencies[4],
         biomarker_repository=dependencies[5],
+        rna_expression_repository=dependencies[6],
+        rna_classification_repository=dependencies[7],
+        rna_quality_repository=dependencies[8],
+        sample_comment_repository=dependencies[9],
+        report_repository=dependencies[10],
+        reported_variant_repository=dependencies[11],
+        oncokb_public_cache_repository=dependencies[12],
     )
     assert result["meta"]["sample_name"] == "synthetic-sample"
     assert result["meta"]["sample_oid"] == "sample-oid"

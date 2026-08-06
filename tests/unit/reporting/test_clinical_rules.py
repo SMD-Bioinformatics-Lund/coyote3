@@ -107,6 +107,11 @@ def _rna_context() -> PreparedReportContext:
                 "tier": 1,
                 "fusion_gene_1": "KMT2A",
                 "fusion_gene_2": "AFF1",
+                "fusion_breakpoint_1": "11:118354227",
+                "fusion_breakpoint_2": "4:87957570",
+                "fusion_spanning_pairs": 12,
+                "fusion_spanning_reads": 9,
+                "fusion_annotation": "Granskad klinisk kommentar.",
             }
         ],
         aggregates={
@@ -438,9 +443,37 @@ def test_solid_gmsv3_tier_two_multi_gene_edge_case_is_verbatim():
     ]
 
 
-def test_fusion_report_text_is_verbatim():
+def test_fusion_report_text_includes_the_reviewed_finding():
     result = _evaluate(
         _rna_context(), RULES_ROOT / "fusion" / "base.yaml", reporting_analyses={"FUSION"}
+    )
+
+    assert result.sections["Report summary"] == [
+        "RNA har extraherats från insänt prov och analyserats med massivt parallell "
+        "sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar hela mRNA "
+        "transkriptomet och avser detektion av fusionsgener.\n\nVid analysen finner "
+        "man en fusion av stark klinisk signifikans (Tier I) mellan generna KMT2A "
+        "och AFF1. De genomiska positionerna för brottspunkterna är 11:118354227 "
+        "och 4:87957570.\n\nRearrangemanget är påvisat efter manuell eftergranskning "
+        "av data där 12 läspar, och 9 läsningar direkt över brottspunkten ger stöd "
+        "för en KMT2A::AFF1-genfusion.\n\nGranskad klinisk kommentar.\n\nFör ytterligare "
+        "information om utförd analys och beskrivning av eventuellt funna fusionsgener, "
+        "var god se bifogad rapport. RNA-seq-analys har gjorts som led i ett "
+        "utvecklingsarbete och har ej debiterats. Analysen omfattas inte av "
+        "ackrediteringen."
+    ]
+
+
+def test_fusion_report_text_keeps_the_approved_baseline_when_no_fusion_is_reportable():
+    context_payload = _rna_context().model_dump(mode="python")
+    context_payload["findings"] = []
+    context_payload["aggregates"]["finding_count"] = 0
+    context_payload["aggregates"]["fusion_count"] = 0
+    context_payload["aggregates"]["has_reportable_findings"] = False
+    result = _evaluate(
+        PreparedReportContext.model_validate(context_payload),
+        RULES_ROOT / "fusion" / "base.yaml",
+        reporting_analyses={"FUSION"},
     )
 
     assert result.sections["Report summary"] == [
@@ -487,7 +520,16 @@ def test_targeted_rna_report_text_is_verbatim(assay_id, expected):
         reporting_analyses={"FUSION"},
     )
 
-    assert result.sections["Report summary"] == [expected]
+    introduction, closing = expected.split("\n\n", 1)
+    finding_text = (
+        "Vid analysen finner man en fusion av stark klinisk signifikans (Tier I) "
+        "mellan generna KMT2A och AFF1. De genomiska positionerna för brottspunkterna "
+        "är 11:118354227 och 4:87957570.\n\nRearrangemanget är påvisat efter manuell "
+        "eftergranskning av data där 12 läspar, och 9 läsningar direkt över "
+        "brottspunkten ger stöd för en KMT2A::AFF1-genfusion.\n\n"
+        "Granskad klinisk kommentar."
+    )
+    assert result.sections["Report summary"] == [f"{introduction}\n\n{finding_text}\n\n{closing}"]
 
 
 @pytest.mark.parametrize("assay_id", ["tumwgs_hema", "tumwgs_solid"])

@@ -43,6 +43,14 @@ providers = ["local", "ldap"]
 standard_types = ["snv", "cnv", "fusion", "expression", "pgx"]
 adhoc_types = ["adhoc_snv", "adhoc_cnv", "adhoc_fusion", "adhoc_expression", "adhoc_pgx"]
 
+[fusion]
+callers = ["arriba", "fusioncatcher", "starfusion"]
+
+[fusion.description_terms]
+important = ["mitelman", "known", "oncogene", "cancer", "cosmic", "high"]
+not_important = ["1000genomes", "banned", "matched-normal", "readthrough"]
+context = ["distance100kbp", "duplicates", "healthy", "short_distance"]
+
 [reporting]
 required_aspc_fields = ["report_header", "report_method", "general_report_summary"]
 transcript_selection_order = [
@@ -90,7 +98,21 @@ EXPRESSION = ["expression_path"]
 CLASSIFICATION = ["classification_path"]
 QC = ["qc"]
 PGX = ["pgx"]
+
+[analysis.allowed_by_family]
+panel-dna = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "BIOMARKER", "COVERAGE", "FUSION", "TMB", "PGX"]
+wgs = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "BIOMARKER", "COVERAGE", "FUSION", "TMB", "PGX"]
+panel-rna = ["FUSION", "QC", "PGX"]
+wts = ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"]
 ```
+
+The ASPC editor applies this matrix dynamically. Selecting the DNA or RNA
+configuration type first limits the available ASPs to that omics category.
+Selecting an ASP then limits **Analysis types** to its sequencing family. For
+example, an RNA fusion panel does not offer `EXPRESSION` or `CLASSIFICATION`,
+while a WTS ASP does. If the selected ASP changes, options that are invalid for
+the new family are removed from the pending form before it is saved. The API
+validates the same matrix and rejects incompatible submitted values.
 
 ## Center-Owned Tables
 
@@ -104,6 +126,8 @@ PGX = ["pgx"]
 | `[environment]` | `options`, `default` | Unique identifiers; default must be one listed option | Defines selectable ASPC/sample environments and the initial environment used where none is provided. |
 | `[authentication]` | `providers` | One or both of `local`, `ldap` | Defines the enabled values permitted in a user's `auth_type` list. `local` uses username and local password; `ldap` uses email and directory credentials. |
 | `[genelist]` | `standard_types`, `adhoc_types` | Non-empty unique identifiers with no overlap | Defines selectable ISGL list types and determines which options appear when the ISGL ad-hoc switch is enabled. |
+| `[fusion]` | `callers` | Unique lowercase caller IDs, for example `arriba`, `fusioncatcher`, and `starfusion` | Defines the canonical IDs accepted on ingested `fusions.calls[].caller`, persisted in `filters.somatic.fusion.fusion_callers`, offered by ASPC and sample filter forms, and used in MongoDB predicates. Input capitalization and separators are normalized to these IDs; unconfigured callers are rejected at typed write boundaries. |
+| `[fusion.description_terms]` | `important`, `not_important`, `context` | Unique lowercase exact terms with no term repeated across groups | Categorizes comma-delimited caller annotations in both the fusion filter selector and table tooltips. Important terms are green, not-important/artifact terms are red, contextual terms are gray, and unlisted terms remain neutral. Selecting terms applies exact, case-insensitive token filters; these categories do not assign a clinical tier. |
 | `[reporting]` | `required_aspc_fields` | Non-empty unique ASPC reporting field identifiers | Names the reporting values administrators must supply for an active report-capable ASPC. |
 | `[reporting]` | `transcript_selection_order` | Ordered array containing every selector in the table below exactly once | Determines the clinical transcript selection order during DNA VCF ingest. The first selector with a matching CSQ row wins; within that selector, VEP impact is ordered HIGH, MODERATE, LOW, then MODIFIER. |
 | `[files.dna]` | `keys` | Non-empty unique manifest-key identifiers | Declares the accepted file keys for DNA sample YAML `files`. |
@@ -111,6 +135,51 @@ PGX = ["pgx"]
 | `[files.required_by_family]` | family arrays | Keys declared for that family's omics category | Establishes the baseline required input files for `panel-dna`, `wgs`, `panel-rna`, and `wts`. ASP-specific requirements can make additional configured keys mandatory. |
 | `[analysis.dna]` / `[analysis.rna]` | `types` | Supported application analysis types | Enables the analysis types that the center intends to use for that omics category. |
 | `[analysis.<omics>.file_keys]` | one array per enabled type | One or more configured keys for that omics category | Binds each analysis workflow to the manifest field(s) it reads. The first key is the primary path used by single-file consumers such as report images. |
+| `[analysis.allowed_by_family]` | one array for every configured assay family | Analysis types declared by the family's omics category | Narrows implemented analysis types by sequencing family. Targeted `panel-rna` can enable fusion, QC, and PGX; only `wts` can enable expression and classification. ASPC create/update validation rejects incompatible selections. |
+
+### Fusion Annotation Vocabulary
+
+Fusion caller IDs have one representation throughout the application. For
+example, pipeline values `FusionCatcher`, `fusion-catcher`, and
+`fusioncaller_fusion_catcher` all resolve to the configured `fusioncatcher`
+ID. The API returns the configured IDs to the filter UI instead of maintaining
+a separate frontend list. This keeps checkbox state, persisted sample filters,
+and `calls.caller` query values identical. Add a new released caller to
+`fusion.callers` before ingesting records produced by it.
+
+Fusion descriptions and frame effects are supplied by the upstream fusion
+caller. They do not pass through VEP, the DNA transcript-selection order, or
+the `anno_vep` collection.
+
+The application splits each caller description on commas, normalizes terms for
+exact case-insensitive comparison, and looks them up in
+`fusion.description_terms`. A center may extend these lists when a released
+caller database introduces new documented terms. A term must occur in exactly
+one group; startup fails on duplicates so the same evidence cannot receive two
+meanings. Unknown terms are preserved and displayed neutrally.
+
+Fusion effect display follows one fixed workflow rule: normalized `in-frame`
+means in-frame, while every other non-empty effect means out-of-frame. The
+TOML vocabulary controls description evidence only; it does not redefine that
+frame rule.
+
+### Analysis Availability by Family
+
+`analysis.<omics>.types` defines the implemented vocabulary for an omics
+layer. `analysis.allowed_by_family` applies the narrower sequencing-family
+contract used by ASPC forms and API validation. This prevents an RNA label
+from implying that every RNA assay produces every RNA resource.
+
+| Family | Default allowed analysis | Operational meaning |
+| --- | --- | --- |
+| `panel-dna` | DNA analysis types listed in TOML | Targeted DNA panels may enable only analyses implemented for DNA. |
+| `wgs` | DNA analysis types listed in TOML | WGS uses the DNA workflow vocabulary but may select a different subset per ASPC. |
+| `panel-rna` | `FUSION`, `QC`, `PGX` | Targeted fusion panels do not expose expression or classification. |
+| `wts` | `FUSION`, `EXPRESSION`, `CLASSIFICATION`, `QC`, `PGX` | Whole-transcriptome configurations may enable expression and classification. |
+
+The resolved ASPC still determines which allowed analyses are active for a
+specific sample. A family allowance makes an option valid; it does not enable
+that option automatically.
 
 ### Transcript Selection Selectors
 
@@ -196,6 +265,9 @@ VCF. They remain distinct analysis sections downstream.
    `local` and `ldap` mechanisms.
 9. `reporting.transcript_selection_order` contains every supported selector
    exactly once, including `first_available` as its terminal fallback.
+10. `fusion.description_terms` must contain three disjoint exact-term groups.
+11. `analysis.allowed_by_family` must define every assay family and may only
+    reference analysis types implemented for that family's omics category.
 
 ## Fixed Assay-Group Taxonomy
 

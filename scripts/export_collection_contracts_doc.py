@@ -47,7 +47,8 @@ def main() -> int:
         "`samples.environment`; the resolved ObjectId/key and `aspc_resolution` are persisted on the sample."
     )
     lines.append(
-        "- `insilico_genelists.asp_ids[]` and `asp_groups[]` must map to ASP/ASPC assay setup."
+        "- `insilico_genelists.asp_ids[]` and `asp_groups[]` must map to ASP/ASPC assay setup; "
+        "`diagnosis[]` carries its reusable diagnosis/in-silico-subpanel tags."
     )
     lines.append("- `roles.permissions[]` must reference `permissions.permission_id`.")
     lines.append("- `users.roles[]` must reference `roles.role_id`.")

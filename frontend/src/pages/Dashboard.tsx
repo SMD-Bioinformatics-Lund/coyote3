@@ -79,7 +79,7 @@ export function Dashboard() {
   const isglAssociationRows = data?.isgl_association?.assay_isgl_counts || []
   const userScope = data?.user_scope_summary || {}
   const scopeStats = userScope.sample_stats || {}
-  const recentSamples = userScope.recent_samples || []
+  const recentSamples = (userScope.recent_samples || []).slice(0, 5)
 
   const geneChartData = buildPanelGeneChartData(geneGroups)
   const hasGeneChartData = geneChartData.some((item) => item.Covered > 0 || item.Germline > 0)
@@ -211,6 +211,13 @@ export function Dashboard() {
                 <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
               </Link>
             )) : <p className="text-xs text-muted-foreground">No recent visible samples.</p>}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+            <span>Showing up to 5 most recent samples.</span>
+            <Link to="/samples" className="inline-flex items-center gap-1 font-semibold text-link hover:underline">
+              View all samples
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
         </SurfacePanel>
       </div>

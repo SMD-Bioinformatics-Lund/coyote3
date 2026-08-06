@@ -87,6 +87,12 @@ class PreparedFindingFacts(_FactModel):
     cnv_effect: str | None = None
     fusion_gene_1: str | None = None
     fusion_gene_2: str | None = None
+    fusion_breakpoint_1: str | None = None
+    fusion_breakpoint_2: str | None = None
+    fusion_effect: str | None = None
+    fusion_spanning_pairs: int | None = None
+    fusion_spanning_reads: int | None = None
+    fusion_annotation: str | None = None
 
 
 class PreparedTierGeneFacts(_FactModel):
@@ -148,6 +154,7 @@ class PreparedReportContext(BaseModel):
                 gene_list.model_dump(mode="python") for gene_list in self.applied_gene_lists
             ],
             "finding": finding.model_dump(mode="python") if finding else {},
+            "findings": [item.model_dump(mode="python") for item in self.findings],
             "biomarkers": self.biomarkers,
             "aggregates": self.aggregates.model_dump(mode="python"),
         }

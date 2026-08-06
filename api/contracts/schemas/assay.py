@@ -410,7 +410,6 @@ class InsilicoGenelistsDoc(_StrictDocBase):
     # TODO: add a dedicated fusion genelist schema once the accepted partner and
     # breakpoint format is defined. SNV/CNV lists stay as one-symbol-per-entry.
     isgl_id: str
-    subpanel_id: str = SUBPANEL_BASE_ID
     diagnosis: list[str] = Field(default_factory=list)
     name: str
     displayname: str
@@ -437,18 +436,22 @@ class InsilicoGenelistsDoc(_StrictDocBase):
     @classmethod
     def _normalize_diagnosis(cls, value: Any) -> list[str]:
         if isinstance(value, str):
-            value = [value]
+            value = value.replace(",", "\n").splitlines()
         if not value:
             return []
-        return [str(item).strip() for item in value if str(item).strip()]
-
-    @field_validator("subpanel_id", mode="before")
-    @classmethod
-    def _validate_subpanel_id(cls, value: Any) -> str:
-        raw = str(value or "").strip()
-        if not raw:
-            return SUBPANEL_BASE_ID
-        return normalize_clinical_identifier(raw, label="subpanel_id")
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            for token in str(item).replace(",", "\n").splitlines():
+                diagnosis = token.strip()
+                if diagnosis:
+                    diagnosis_id = normalize_clinical_identifier(
+                        diagnosis, label="diagnosis/subpanel identifier"
+                    )
+                    if diagnosis_id not in seen:
+                        normalized.append(diagnosis_id)
+                        seen.add(diagnosis_id)
+        return normalized
 
     @field_validator("list_type", mode="before")
     @classmethod

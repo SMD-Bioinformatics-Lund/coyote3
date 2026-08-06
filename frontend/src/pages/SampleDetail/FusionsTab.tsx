@@ -3,11 +3,15 @@ import { Link, useLocation } from "react-router-dom"
 import { api } from "@/lib/api"
 import { AlertTriangle, ExternalLink } from "lucide-react"
 import { DataTable } from "@/components/data-table/DataTable"
-import { BulkActionDropdown, BulkActionOption } from "@/components/data-table/BulkActionDropdown"
+import { AppTooltip } from "@/components/ui/app-tooltip"
+import { BulkActionDropdown } from "@/components/data-table/BulkActionDropdown"
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { ColumnDef } from "@tanstack/react-table"
 import {
+  FusionCallerBadges,
+  FusionEffectBadge,
+  FusionEvidenceBadges,
   StatusBadges,
   TierBadge,
 } from "@/lib/variant-ui"
@@ -20,22 +24,21 @@ import {
   tierValue,
 } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
+import { findingBulkActionOptions } from "@/lib/finding-actions"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import {
   CLINICAL_TABLE_CACHE_MS,
   CLINICAL_TABLE_STALE_MS,
   useClinicalTableState,
 } from "@/hooks/useClinicalTableState"
+import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 
-const fusionBulkActions: BulkActionOption[] = [
-  { value: "fp", label: "Mark False Positive" },
-  { value: "unfp", label: "Unmark False Positive" },
-  { value: "irrelevant", label: "Mark Irrelevant" },
-  { value: "relevant", label: "Unmark Irrelevant" },
-]
+const fusionBulkActions = findingBulkActionOptions("fusion")
 
 export function FusionsTab({ sampleId }: { sampleId: string }) {
   const bulkAction = useBulkFindingAction(sampleId, "fusion")
+  const access = useCurrentUserAccess()
+  const canManage = hasPermission(access.data, "fusion:manage")
   const location = useLocation()
   const {
     page,
@@ -71,6 +74,7 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
   const columns: ColumnDef<any, any>[] = [
     {
       id: "select",
+      meta: { headerClassName: "text-center w-8", cellClassName: "text-center w-8" },
       header: ({ table }) => (
         <input
           type="checkbox"
@@ -91,9 +95,9 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
     },
     {
       id: "badges",
-      header: "Status",
+      header: "Info",
+      meta: { exportValue: statusLabels, headerClassName: "w-24 min-w-24 max-w-24", cellClassName: "w-24 min-w-24 max-w-24" },
       accessorFn: (row) => statusLabels(row),
-      meta: { exportValue: statusLabels },
       cell: ({ row }) => <StatusBadges finding={row.original} />,
     },
     {
@@ -118,14 +122,7 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
       id: "effect",
       header: "Effect",
       accessorFn: (row) => selectedFusionCall(row)?.effect || row.frame || "Unknown",
-      cell: ({ row }) => {
-        const f = selectedFusionCall(row.original)?.effect || row.original.frame
-        return (
-          <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${f === 'in-frame' ? 'bg-pass/10 text-pass' : 'bg-muted text-muted-foreground'}`}>
-            {f || "Unknown"}
-          </span>
-        )
-      }
+      cell: ({ row }) => <FusionEffectBadge effect={selectedFusionCall(row.original)?.effect || row.original.frame} />,
     },
     {
       id: "spanpairs",
@@ -170,13 +167,18 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
       id: "description",
       header: "Description",
       accessorFn: (row) => selectedFusionCall(row)?.desc || row.desc || "-",
-      cell: ({ row }) => <span className="text-xs text-muted-foreground">{selectedFusionCall(row.original)?.desc || row.original.desc || "-"}</span>
+      cell: ({ row }) => (
+        <FusionEvidenceBadges
+          description={selectedFusionCall(row.original)?.desc || row.original.desc}
+          metadata={data?.fusion_annotation_metadata}
+        />
+      ),
     },
     {
       id: "callers",
       header: "Callers",
       accessorFn: fusionCallers,
-      cell: ({ row }) => <span className="text-xs uppercase font-medium text-muted-foreground">{fusionCallers(row.original)}</span>
+      cell: ({ row }) => <FusionCallerBadges callers={fusionCallers(row.original)} />,
     },
     {
       id: "actions",
@@ -185,14 +187,30 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
       cell: ({ row }) => {
         return (
           <div className="flex items-center gap-1">
-            <VariantActionButtons sampleId={sampleId} resourceType="fusion" variant={row.original} compact />
-            <Link
-              to={`/samples/${sampleId}/fusion/${row.original._id}`}
-              state={{ from: `${location.pathname}${location.search}` }}
-              className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-white"
+            {canManage && (
+              <VariantActionButtons
+                sampleId={sampleId}
+                resourceType="fusion"
+                variant={row.original}
+                compact
+                showActionLabel
+                controls={["interesting"]}
+              />
+            )}
+            <AppTooltip
+              context="Table action"
+              label="View fusion details"
+              content="Open the complete fusion record, caller evidence, comments, and classification controls."
             >
-              <span title="View Detail"><ExternalLink className="w-4 h-4" /></span>
-            </Link>
+              <Link
+                to={`/samples/${sampleId}/fusion/${row.original._id}`}
+                state={{ from: `${location.pathname}${location.search}` }}
+                aria-label="View fusion details"
+                className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-white"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </Link>
+            </AppTooltip>
           </div>
         )
       }
@@ -213,7 +231,7 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
         {...tableProps}
         filename={`fusions_${sampleId}.csv`}
         getRowClassName={findingRowClass}
-        renderToolbar={(table) => (
+        renderToolbar={canManage ? (table) => (
           <BulkActionDropdown
             selectedCount={Object.keys(table.getState().rowSelection).length}
             actions={fusionBulkActions}
@@ -223,7 +241,7 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
               resourceIds: table.getSelectedRowModel().rows.map((row: any) => String(row.original._id)),
             })}
           />
-        )}
+        ) : undefined}
         renderExportButton={() => (
           <ServerCsvButton
             endpoint={`/samples/${sampleId}/fusions/exports/context`}

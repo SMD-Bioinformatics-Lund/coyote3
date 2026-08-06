@@ -12,6 +12,7 @@ from api.contracts.managed_ui_schemas import build_form_spec
 from api.contracts.schemas.dna import DnaFiltersDoc
 from api.contracts.schemas.rna import RnaFiltersDoc
 from api.domain.common.assay_filters import has_sample_gene_restriction
+from api.domain.common.sample_filters import normalize_sample_filters
 
 
 def test_merge_sample_settings_only_uses_assay_defaults_when_filters_missing() -> None:
@@ -110,8 +111,58 @@ def test_rna_filters_doc_restores_defaults_for_null_and_empty_values() -> None:
 
     assert filters.min_spanning_reads == 0
     assert filters.fusion_callers == []
+    assert filters.fusion_descriptions == []
     assert filters.fusion_effects == []
     assert filters.fusionlists == []
+
+
+def test_canonical_rna_filter_profiles_accept_fusion_descriptions() -> None:
+    """Persisted RNA sample filters must accept configured description terms."""
+    filters = normalize_sample_filters(
+        {
+            "somatic": {
+                "fusion": {
+                    "fusion_descriptions": ["known", "matched-normal"],
+                }
+            }
+        },
+        omics_layer="rna",
+        analysis_intents=["somatic"],
+        canonical=True,
+    )
+
+    assert filters["somatic"]["fusion"]["fusion_descriptions"] == [
+        "known",
+        "matched-normal",
+    ]
+
+
+def test_canonical_rna_filter_profiles_normalize_fusion_caller_aliases() -> None:
+    """Filter snapshots expose the same caller IDs stored on fusion calls."""
+    filters = normalize_sample_filters(
+        {
+            "somatic": {
+                "fusion": {
+                    "fusion_callers": [
+                        "Arriba",
+                        "FusionCatcher",
+                        "fusion-catcher",
+                        "StarFusion",
+                        "starfusion",
+                    ],
+                }
+            }
+        },
+        omics_layer="rna",
+        analysis_intents=["somatic"],
+        canonical=True,
+    )
+
+    assert filters["somatic"]["fusion"]["fusion_callers"] == [
+        "arriba",
+        "fusioncatcher",
+        "starfusion",
+    ]
 
 
 def test_effective_genes_respects_adhoc_list_types_for_target() -> None:

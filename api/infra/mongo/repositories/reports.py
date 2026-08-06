@@ -6,6 +6,7 @@ from typing import Any
 
 from bson.objectid import ObjectId
 
+from api.contracts.operations import OperationResult
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
@@ -113,4 +114,10 @@ class ReportRepository(BaseRepository):
             return None
         return self.get_collection().find_one(
             {"sample_oid": self._object_id(sample.get("_id")), "report_id": report_id}
+        )
+
+    def delete_sample_reports(self, sample_oid: str) -> OperationResult:
+        """Delete report metadata owned by a sample."""
+        return OperationResult.from_delete(
+            self.get_collection().delete_many({"sample_oid": self._object_id(sample_oid)})
         )

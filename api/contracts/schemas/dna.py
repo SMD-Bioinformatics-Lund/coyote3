@@ -381,6 +381,10 @@ class TranslocationsDoc(_DocBase):
     QUAL: Optional[float] = None
     GT: list[TranslocationGtDoc]
     INFO: TranslocationInfoDoc
+    fp: str | bool = ""
+    irrelevant: str | bool = ""
+    interesting: str | bool = ""
+    blacklisted: str | bool = ""
 
 
 class BiomarkersMsiDoc(_DocBase):

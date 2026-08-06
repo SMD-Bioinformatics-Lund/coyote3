@@ -96,6 +96,57 @@ def _tier_summary(groups: list[dict]) -> str:
     return _render_tier_summary(groups, _STANDARD_TIER_SUMMARY_PHRASES)
 
 
+_FUSION_TIER_LABELS = {
+    1: "stark klinisk signifikans (Tier I)",
+    2: "potentiell klinisk signifikans (Tier II)",
+    3: "oklar klinisk signifikans (Tier III)",
+}
+
+
+def _fusion_summary(findings: list[dict]) -> str:
+    """Render reviewed RNA fusions using the established clinical wording."""
+    reportable = [
+        finding
+        for finding in findings
+        if finding.get("kind") == "fusion"
+        and finding.get("tier") in _FUSION_TIER_LABELS
+        and finding.get("fusion_gene_1")
+        and finding.get("fusion_gene_2")
+    ]
+    paragraphs: list[str] = []
+    for index, finding in enumerate(reportable):
+        gene_1 = str(finding["fusion_gene_1"])
+        gene_2 = str(finding["fusion_gene_2"])
+        lead = "Vid analysen finner man" if index == 0 else "Vidare finner man"
+        finding_text = (
+            f"{lead} en fusion av {_FUSION_TIER_LABELS[int(finding['tier'])]} "
+            f"mellan generna {gene_1} och {gene_2}."
+        )
+        breakpoint_1 = finding.get("fusion_breakpoint_1")
+        breakpoint_2 = finding.get("fusion_breakpoint_2")
+        if breakpoint_1 and breakpoint_2:
+            finding_text += (
+                " De genomiska positionerna för brottspunkterna är "
+                f"{breakpoint_1} och {breakpoint_2}."
+            )
+        paragraphs.append(finding_text)
+
+        pairs = finding.get("fusion_spanning_pairs")
+        reads = finding.get("fusion_spanning_reads")
+        if pairs is not None and reads is not None:
+            paragraphs.append(
+                "Rearrangemanget är påvisat efter manuell eftergranskning av data där "
+                f"{pairs} läspar, och {reads} läsningar direkt över brottspunkten ger stöd "
+                f"för en {gene_1}::{gene_2}-genfusion."
+            )
+        annotation = str(finding.get("fusion_annotation") or "").strip()
+        if annotation:
+            paragraphs.append(annotation)
+    if not paragraphs:
+        return "\n\n"
+    return "\n\n" + "\n\n".join(paragraphs) + "\n\n"
+
+
 def _dna_report_intro(
     base_text: str,
     sample: dict,
@@ -160,5 +211,6 @@ def clinical_template_environment() -> SandboxedEnvironment:
         for name in ("default", "join", "length", "lower", "round", "upper")
     }
     environment.filters["dna_report_intro"] = _dna_report_intro
+    environment.filters["fusion_summary"] = _fusion_summary
     environment.filters["tier_summary"] = _tier_summary
     return environment

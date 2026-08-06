@@ -49,7 +49,16 @@ def validate_report_inputs(
         _raise_contract_error(logger, "report", sample_name, "Missing sample.case.clarity_id")
     if not assay_config.get("asp_group"):
         _raise_contract_error(logger, "report", sample_name, "Missing assay_config.asp_group")
-    report_folder = ((assay_config.get("reporting") or {}).get("report_folder") or "").strip()
+    reporting = assay_config.get("reporting") or {}
+    for field_name in ("report_header", "report_method", "report_description"):
+        if not str(reporting.get(field_name) or "").strip():
+            _raise_contract_error(
+                logger,
+                "report",
+                sample_name,
+                f"Missing assay_config.reporting.{field_name}",
+            )
+    report_folder = str(reporting.get("report_folder") or "").strip()
     if not report_folder:
         _raise_contract_error(
             logger,
@@ -70,7 +79,12 @@ def validate_rna_filter_inputs(
     sample_filters = sample_filters or {}
     sample_name = str(sample_name or "unknown_sample")
 
-    for list_key in ("fusion_effects", "fusion_callers", "fusionlists"):
+    for list_key in (
+        "fusion_effects",
+        "fusion_callers",
+        "fusion_descriptions",
+        "fusionlists",
+    ):
         value = sample_filters.get(list_key)
         if value is not None and not isinstance(value, list):
             _raise_contract_error(

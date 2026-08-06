@@ -1,5 +1,7 @@
 """Common RNA helper functions for fusion filter/call normalization."""
 
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
+
 
 def create_fusioneffectlist(eff_names: list) -> list:
     """Normalize fusion effect labels into canonical values.
@@ -37,30 +39,7 @@ def create_fusioncallers(fuscallers: list) -> list:
     Returns:
         list: Deduplicated canonical caller names.
     """
-    canonical_map = {
-        "arriba": "arriba",
-        "fusioncatcher": "fusioncatcher",
-        "fusion-catcher": "fusioncatcher",
-        "fusion_catcher": "fusioncatcher",
-        "starfusion": "starfusion",
-        "star-fusion": "starfusion",
-        "star_fusion": "starfusion",
-    }
-
-    callers = []
-    for caller_name in fuscallers or []:
-        if caller_name is None:
-            continue
-
-        caller = str(caller_name).strip()
-        if "_" in caller and caller.startswith("fusioncaller_"):
-            caller = caller.split("_", 1)[1]
-        key = caller.lower()
-
-        canonical = canonical_map.get(key)
-        if canonical:
-            callers.append(canonical)
-    return list(dict.fromkeys(callers))
+    return CLINICAL_VOCABULARY.normalize_fusion_callers(fuscallers or [], reject_unknown=False)
 
 
 def get_selected_fusioncall(fusion: list) -> dict:

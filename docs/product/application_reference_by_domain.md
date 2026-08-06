@@ -80,6 +80,7 @@ Sample-level filters are persisted within the domain sections
 | `fusion.min_spanning_reads` | Integer | Minimum supporting split/span read counts. | Query Gate |
 | `fusion.fusion_callers` | List | Array of authorized or selected fusion callers. | Query Gate |
 | `fusion.fusion_effects` | List | Functional effect classifications (e.g., in-frame). | Query Gate |
+| `fusion.fusion_descriptions` | List | Exact comma-delimited caller evidence terms. Terms within the list are alternatives; this group is cumulative with caller, effect, and support filters. | Query Gate |
 
 ### Query Operators
 

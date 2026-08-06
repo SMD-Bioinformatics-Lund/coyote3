@@ -8,7 +8,12 @@ const apiMock = vi.hoisted(() => ({
 
 vi.mock("@/lib/api", () => ({ api: apiMock }))
 
-import { applyFindingAction, findingQueryKeys, setSingleFlag } from "./finding-actions"
+import {
+  applyFindingAction,
+  findingBulkActionOptions,
+  findingQueryKeys,
+  setSingleFlag,
+} from "./finding-actions"
 
 describe("finding actions", () => {
   beforeEach(() => {
@@ -29,6 +34,19 @@ describe("finding actions", () => {
       "translocations",
       "sample-1",
     ])
+  })
+
+  it("builds resource-specific bulk action catalogs from shared definitions", () => {
+    const snvActions = findingBulkActionOptions("small_variant")
+    const fusionActions = findingBulkActionOptions("fusion")
+    const cnvActions = findingBulkActionOptions("cnv")
+
+    expect(snvActions).toContainEqual({ value: "tier_1", label: "Classify as Tier 1" })
+    expect(snvActions).toContainEqual({ value: "blacklist", label: "Add to Blacklist" })
+    expect(fusionActions).toContainEqual({ value: "blacklisted", label: "Mark Blacklisted" })
+    expect(fusionActions.some(({ value }) => value === "blacklist")).toBe(false)
+    expect(cnvActions).toContainEqual({ value: "interesting", label: "Include in report" })
+    expect(cnvActions.some(({ value }) => value.startsWith("tier_"))).toBe(false)
   })
 
   it("ignores empty selections and applies or removes tiers in bulk", async () => {
@@ -74,6 +92,32 @@ describe("finding actions", () => {
     expect(apiMock.patch).toHaveBeenCalledWith(
       "/samples/sample-1/fusions/flags/irrelevant?apply=false&fusion_ids=fusion+1&fusion_ids=fusion%2F2",
     )
+
+    await applyFindingAction({
+      sampleId: "sample-1",
+      resourceType: "fusion",
+      action: "blacklisted",
+      resourceIds: ["fusion 1"],
+    })
+    expect(apiMock.patch).toHaveBeenCalledWith(
+      "/samples/sample-1/fusions/flags/blacklisted?apply=true&fusion_ids=fusion+1",
+    )
+  })
+
+  it("applies fusion tiers through the shared classification endpoint", async () => {
+    await applyFindingAction({
+      sampleId: "sample-1",
+      resourceType: "fusion",
+      action: "tier_2",
+      resourceIds: ["fusion-1", "fusion-2"],
+    })
+
+    expect(apiMock.patch).toHaveBeenCalledWith("/samples/sample-1/classifications/tier", {
+      resource_type: "fusion",
+      resource_ids: ["fusion-1", "fusion-2"],
+      tier: 2,
+      apply: true,
+    })
   })
 
   it("applies CNV flags individually and chooses PATCH or DELETE by state", async () => {

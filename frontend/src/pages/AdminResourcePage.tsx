@@ -272,6 +272,20 @@ function optionDescription(option: any) {
   return String(option.description ?? option.category ?? "")
 }
 
+function optionsForDependency(field: FormField, formValues?: Record<string, any>) {
+  const dependency = field.options_by_field
+  if (!dependency) return null
+  const selectedDependencies = normalizeList(formValues?.[dependency.field])
+  const options = selectedDependencies.flatMap((value) => dependency.values[value.toLowerCase()] || [])
+  const seen = new Set<string>()
+  return options.filter((option) => {
+    const value = optionValue(option)
+    if (!value || seen.has(value)) return false
+    seen.add(value)
+    return true
+  })
+}
+
 function coerceFieldValue(field: FormField, value: any) {
   if (field.readonly && value === "") return undefined
   if (field.display_type === "checkbox") return Boolean(value)
@@ -396,6 +410,11 @@ function adminCell(field: string, row: any, context?: { roleColors?: Record<stri
       expression: "Expression",
       classification: "Classification",
       qc: "QC",
+      rna_expr: "Expr",
+      rna_expression: "Expr",
+      rna_class: "Class",
+      rna_classification: "Class",
+      rna_qc: "QC",
       pgx: "PGx",
     }
     const badges = [
@@ -472,12 +491,23 @@ function CheckboxGroup({
   const selected = new Set(normalizeList(value))
   const conditional = field.conditional_options
   const conditionalValue = conditional ? Boolean(formValues?.[conditional.field]) : false
-  const options = conditional
-    ? (conditionalValue ? conditional.truthy || [] : conditional.falsy || [])
-    : field.options || []
+  const dependent = field.options_by_field
+  const dependentOptions = optionsForDependency(field, formValues)
+  const options = dependentOptions
+    ? dependentOptions
+    : conditional
+      ? (conditionalValue ? conditional.truthy || [] : conditional.falsy || [])
+      : field.options || []
   const allowed = new Set(options.map(optionValue).filter(Boolean))
   const visibleSelected = new Set([...selected].filter((item) => allowed.has(item)))
   if (!options.length) {
+    if (dependent) {
+      return (
+        <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+          Select the controlling field to see the available options.
+        </div>
+      )
+    }
     return (
       <textarea
         value={normalizeList(value).join("\n")}
@@ -770,9 +800,7 @@ function FormControl({
       </label>
     )
   } else if (field.display_type === "select") {
-    const dependentOptions = field.options_by_field
-      ? field.options_by_field.values[String(formValues?.[field.options_by_field.field] || "").toLowerCase()] || []
-      : null
+    const dependentOptions = optionsForDependency(field, formValues)
     const options = dependentOptions ?? field.options ?? []
     control = (
       <select value={String(value ?? "")} disabled={readOnly || (field.options_by_field !== undefined && !options.length)} onChange={(event) => onChange(event.target.value)} className={commonClass}>
@@ -891,6 +919,22 @@ function AdminManagedForm({
   error: string
 }) {
   const sections = form.sections && Object.keys(form.sections).length ? form.sections : { general: Object.keys(form.fields || {}) }
+  const updateField = (name: string, next: any) => {
+    const updated = { ...values, [name]: next }
+    Object.entries(form.fields || {}).forEach(([dependentName, dependentField]) => {
+      const dependency = dependentField.options_by_field
+      if (!dependency || dependency.field !== name) return
+      const allowedOptions = optionsForDependency(dependentField, updated) || []
+      const allowed = new Set(allowedOptions.map(optionValue))
+      if (dependentField.display_type === "checkbox-group") {
+        updated[dependentName] = normalizeList(updated[dependentName]).filter((item) => allowed.has(item))
+        return
+      }
+      const current = String(updated[dependentName] ?? "")
+      updated[dependentName] = allowed.has(current) ? current : ""
+    })
+    setValues(updated)
+  }
   return (
     <section className="surface-panel p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -936,7 +980,7 @@ function AdminManagedForm({
                         field={field}
                         value={values[name]}
                         mode={mode}
-                        onChange={(next) => setValues({ ...values, [name]: next })}
+                        onChange={(next) => updateField(name, next)}
                         formValues={values}
                       />
                     </div>

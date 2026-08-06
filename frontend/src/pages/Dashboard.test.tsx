@@ -79,6 +79,27 @@ describe("Dashboard page", () => {
     expect(screen.queryByText("No active panel gene counts available")).not.toBeInTheDocument()
   })
 
+  it("shows at most five recent samples and links to the complete sample list", () => {
+    queryState.data = {
+      ...dashboardData,
+      user_scope_summary: {
+        ...dashboardData.user_scope_summary,
+        recent_samples: Array.from({ length: 6 }, (_, index) => ({
+          name: `DNA_CASE_00${index + 1}`,
+          omics_layer: "dna",
+          ingest_status: "ready",
+        })),
+      },
+    }
+
+    renderWithRouter(<Dashboard />)
+
+    expect(screen.getByText("DNA_CASE_005")).toBeInTheDocument()
+    expect(screen.queryByText("DNA_CASE_006")).not.toBeInTheDocument()
+    expect(screen.getByText("Showing up to 5 most recent samples.")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /view all samples/i })).toHaveAttribute("href", "/samples")
+  })
+
   it("builds panel coverage and analysis capability chart data", () => {
     const geneData = buildPanelGeneChartData({
       hematology: [{ asp_id: "hema_gmsv1", display_name: "Hematology GMSv1", covered_genes_count: 385, germline_genes_count: 20 }],

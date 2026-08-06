@@ -21,6 +21,7 @@ import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { Button } from "@/components/ui/button"
+import { AppTooltip } from "@/components/ui/app-tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DataTable } from "@/components/data-table/DataTable"
@@ -573,7 +574,7 @@ function ControlSection({ title, description, icon, children }: { title: string;
 
 function InfoHint({ title, description }: { title: string; description: string }) {
   return (
-    <span className="group relative inline-flex">
+    <AppTooltip context="More information" label={title} content={description}>
       <button
         type="button"
         className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -581,40 +582,22 @@ function InfoHint({ title, description }: { title: string; description: string }
       >
         <Info className="h-3.5 w-3.5" />
       </button>
-      <span role="tooltip" className="pointer-events-none invisible absolute right-0 top-[calc(100%+0.4rem)] z-50 w-72 rounded-lg border border-border bg-popover p-3 text-left text-xs font-normal text-popover-foreground opacity-0 shadow-lg transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-        <strong className="mb-1 block text-sm text-foreground">{title}</strong>
-        {description}
-      </span>
-    </span>
+    </AppTooltip>
   )
 }
 
 function ControlHelp({ definition }: { definition: AppControlHelp }) {
-  const [open, setOpen] = useState(false)
+  const content = `${definition.summary} Enabled: ${definition.enabledEffect} Disabled: ${definition.disabledEffect} Operational note: ${definition.operationalNote}`
   return (
-    <span className="group relative inline-flex shrink-0">
+    <AppTooltip context="Application control" label={definition.label} content={content} persistOnClick>
       <button
         type="button"
         className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={`About ${definition.label}`}
-        aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
       >
         <Info className="h-3.5 w-3.5" />
       </button>
-      <span
-        role="tooltip"
-        className={`absolute right-0 top-[calc(100%+0.4rem)] z-50 w-[min(26rem,calc(100vw-3rem))] rounded-lg border border-border bg-popover p-3 text-left text-xs font-normal text-popover-foreground shadow-xl transition-opacity ${open ? "visible opacity-100" : "pointer-events-none invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"}`}
-      >
-        <strong className="block text-sm text-foreground">{definition.label}</strong>
-        <span className="mt-1 block text-muted-foreground">{definition.summary}</span>
-        <span className="mt-2 grid gap-1.5">
-          <span><strong className="text-success">When enabled:</strong> {definition.enabledEffect}</span>
-          <span><strong className="text-warn">When disabled:</strong> {definition.disabledEffect}</span>
-          <span><strong className="text-foreground">Operational note:</strong> {definition.operationalNote}</span>
-        </span>
-      </span>
-    </span>
+    </AppTooltip>
   )
 }
 

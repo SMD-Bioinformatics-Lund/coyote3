@@ -346,7 +346,7 @@ class FusionsRepository(BaseRepository):
             Structured write result for the delete.
         """
         return OperationResult.from_delete(
-            self.get_collection().delete_many({"sample": sample_oid})
+            self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
         )
 
     def hidden_fusion_comments(self, fus_id: str) -> bool:

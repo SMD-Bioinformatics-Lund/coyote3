@@ -40,7 +40,12 @@ def test_validate_report_inputs_accepts_valid_payload():
         },
         assay_config={
             "asp_group": "dna",
-            "reporting": {"report_folder": "templates/dna_report.html"},
+            "reporting": {
+                "report_header": "DNA report",
+                "report_method": "Panel sequencing",
+                "report_description": "Clinical DNA analysis.",
+                "report_folder": "templates/dna_report.html",
+            },
         },
         analyte="dna",
     )
@@ -62,7 +67,14 @@ def test_validate_report_inputs_raises_on_missing_report_folder():
                 "case_id": "C1",
                 "case": {"clarity_id": "CL1"},
             },
-            assay_config={"asp_group": "dna", "reporting": {}},
+            assay_config={
+                "asp_group": "dna",
+                "reporting": {
+                    "report_header": "DNA report",
+                    "report_method": "Panel sequencing",
+                    "report_description": "Clinical DNA analysis.",
+                },
+            },
             analyte="dna",
         )
     assert exc.value.status_code == 400

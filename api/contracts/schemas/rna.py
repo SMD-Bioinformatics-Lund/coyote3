@@ -6,6 +6,7 @@ from typing import Dict, List
 
 from pydantic import Field
 
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.contracts.schemas.base import (
     _DocBase,
     _StrictDocBase,
@@ -16,10 +17,16 @@ from api.contracts.schemas.base import (
 
 class RnaFiltersDoc(_StrictDocBase):
     fusion_callers: list[str] = Field(default_factory=list)
+    fusion_descriptions: list[str] = Field(default_factory=list)
     fusion_effects: list[str] = Field(default_factory=list)
     fusionlists: list[str] = Field(default_factory=list)
     min_spanning_pairs: int = 0
     min_spanning_reads: int = 0
+
+    @field_validator("fusion_callers", mode="before")
+    @classmethod
+    def normalize_fusion_callers(cls, value):
+        return CLINICAL_VOCABULARY.normalize_fusion_callers(value or [])
 
     @model_validator(mode="before")
     @classmethod
@@ -32,7 +39,7 @@ class RnaFiltersDoc(_StrictDocBase):
         for key in {"min_spanning_pairs", "min_spanning_reads"}:
             if key in normalized and normalized[key] is None:
                 normalized.pop(key, None)
-        for key in {"fusion_callers", "fusion_effects", "fusionlists"}:
+        for key in {"fusion_callers", "fusion_descriptions", "fusion_effects", "fusionlists"}:
             if key in normalized and (
                 normalized[key] is None
                 or (isinstance(normalized[key], list) and len(normalized[key]) == 0)
@@ -43,7 +50,7 @@ class RnaFiltersDoc(_StrictDocBase):
 
 class FusionCallDoc(_DocBase):
     selected: int
-    longestanchor: int
+    longestanchor: int | str
     caller: str
     spanpairs: int
     spanreads: int
@@ -53,10 +60,23 @@ class FusionCallDoc(_DocBase):
     commonreads: int
     desc: str
 
-    @field_validator("longestanchor", "commonreads", mode="before")
+    @field_validator("caller", mode="before")
     @classmethod
-    def convert_str_to_int(cls, v):
-        # Handles "30" → 30
+    def normalize_caller(cls, value):
+        callers = CLINICAL_VOCABULARY.normalize_fusion_callers([value])
+        return callers[0]
+
+    @field_validator("longestanchor", mode="before")
+    @classmethod
+    def normalize_longest_anchor(cls, v):
+        """Preserve bounded STAR-Fusion anchors while typing numeric anchors."""
+        if isinstance(v, str) and v.strip().lstrip("-").isdigit():
+            return int(v)
+        return v
+
+    @field_validator("commonreads", mode="before")
+    @classmethod
+    def convert_common_reads_to_int(cls, v):
         if isinstance(v, str):
             return int(v)
         return v
@@ -68,6 +88,10 @@ class FusionsDoc(_DocBase):
     gene1: str
     gene2: str
     genes: str
+    fp: str | bool = ""
+    irrelevant: str | bool = ""
+    interesting: str | bool = ""
+    blacklisted: str | bool = ""
 
     calls: List[FusionCallDoc]
 

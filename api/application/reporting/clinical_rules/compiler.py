@@ -16,7 +16,16 @@ from api.config.constants import DNA_ANALYSIS_TYPE_OPTIONS, RNA_ANALYSIS_TYPE_OP
 from api.contracts.schemas.clinical_rules import ClinicalRuleSetSource
 
 TEMPLATE_ROOTS = frozenset(
-    {"sample", "asp", "aspc", "applied_gene_lists", "finding", "biomarkers", "aggregates"}
+    {
+        "sample",
+        "asp",
+        "aspc",
+        "applied_gene_lists",
+        "finding",
+        "findings",
+        "biomarkers",
+        "aggregates",
+    }
 )
 
 

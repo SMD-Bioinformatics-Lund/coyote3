@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from api.application.common.assay_config import get_formatted_assay_config
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.config.constants import DEFAULT_ENVIRONMENT, primary_analysis_file_key
 from api.domain.common.assay_filters import (
     get_sample_effective_genes,
@@ -993,8 +994,10 @@ class SampleCatalogService:
                 self.sample_comment_repository.list_sample_comments(str(sample.get("_id"))) or []
             )
 
+        response_sample = deepcopy(sample)
+        response_sample["filters"] = self._sample_filters(sample)
         return {
-            "sample": sample,
+            "sample": response_sample,
             "comments": sample_comments,
             "asp": asp,
             "sample_expected_files": self._file_rows_for_sample(sample, asp),
@@ -1007,6 +1010,8 @@ class SampleCatalogService:
             "fusionlist_options": self._genelist_options_for_target(
                 sample=sample, asp=asp, target="fusion"
             ),
+            "fusion_caller_options": list(CLINICAL_VOCABULARY.fusion_callers),
+            "fusion_annotation_metadata": CLINICAL_VOCABULARY.fusion_annotation_metadata(),
             "selected_gene_panels": self._selected_gene_panel_summary(sample=sample, asp=asp),
             "analysis_sections": analysis_sections,
             "analysis_counts_raw": analysis_counts_raw,

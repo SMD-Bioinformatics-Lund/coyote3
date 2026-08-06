@@ -169,10 +169,7 @@ def get_public_catalog_service() -> PublicCatalogService:
 
 def get_rna_workflow_service() -> RNAWorkflowService:
     """Return the RNA reporting workflow service."""
-    return RNAWorkflowService.from_store(
-        get_store(),
-        report_config=runtime_app.config.get("REPORT_CONFIG", {}),
-    )
+    return RNAWorkflowService.from_store(get_store())
 
 
 def get_dna_workflow_service() -> DNAWorkflowService:

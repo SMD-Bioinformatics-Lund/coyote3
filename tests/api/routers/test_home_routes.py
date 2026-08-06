@@ -343,7 +343,13 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
     monkeypatch.setattr(
         service.gene_list_repository,
         "get_isgl_by_ids",
-        lambda ids: {"gl1": {"genes": ["TP53"], "list_type": ["snv", "cnv"]}},
+        lambda ids: {
+            "gl1": {
+                "genes": ["TP53"],
+                "list_type": ["snv", "cnv"],
+                "is_active": True,
+            }
+        },
     )
     monkeypatch.setattr(service.gene_list_repository, "get_isgl_for_scope", lambda **kwargs: [])
     monkeypatch.setattr(
@@ -395,7 +401,7 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
     assert payload["analysis_counts_filtered"] == {
         "snv": 4,
         "cnv": 1,
-        "transloc": 2,
+        "transloc": 1,
         "fusion": 0,
         "biomarker": 1,
     }
@@ -427,7 +433,13 @@ def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
     monkeypatch.setattr(
         service.gene_list_repository,
         "get_isgl_by_ids",
-        lambda ids: {"gl1": {"genes": ["TP53"]}},
+        lambda ids: {
+            "gl1": {
+                "genes": ["TP53"],
+                "list_type": ["snv"],
+                "is_active": True,
+            }
+        },
     )
     monkeypatch.setattr(service.gene_list_repository, "get_isgl_for_scope", lambda **kwargs: [])
     service.sample_repository = SimpleNamespace(

@@ -4,12 +4,14 @@ import { Link, useLocation } from "react-router-dom"
 import { api } from "@/lib/api"
 import { AlertTriangle, ExternalLink, Image as ImageIcon, RotateCw } from "lucide-react"
 import { DataTable } from "@/components/data-table/DataTable"
-import { BulkActionDropdown, BulkActionOption } from "@/components/data-table/BulkActionDropdown"
+import { AppTooltip } from "@/components/ui/app-tooltip"
+import { BulkActionDropdown } from "@/components/data-table/BulkActionDropdown"
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { ColumnDef } from "@tanstack/react-table"
-import { findingRowClass, statusLabels } from "@/lib/variant-helpers"
+import { findingRowClass, normalizedCallerList, statusLabels } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
+import { findingBulkActionOptions } from "@/lib/finding-actions"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { sampleFileName, hasSampleFile } from "@/lib/sample-shape"
 import { apiPath } from "@/lib/runtime-paths"
@@ -24,14 +26,7 @@ import {
   useClinicalTableState,
 } from "@/hooks/useClinicalTableState"
 
-const cnvBulkActions: BulkActionOption[] = [
-  { value: "fp", label: "Mark False Positive" },
-  { value: "unfp", label: "Unmark False Positive" },
-  { value: "interesting", label: "Include in report" },
-  { value: "uninteresting", label: "Exclude from report" },
-  { value: "noteworthy", label: "Mark Noteworthy" },
-  { value: "unnoteworthy", label: "Unmark Noteworthy" },
-]
+const cnvBulkActions = findingBulkActionOptions("cnv")
 
 function cnvRatio(cnv: any): number | null {
   const raw = cnv?.ratio ?? cnv?.log2
@@ -175,10 +170,10 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
     {
       id: "callers",
       header: "Callers",
-      accessorFn: (row) => Array.isArray(row.callers) ? row.callers.join(', ') : row.callers,
+      accessorFn: (row) => normalizedCallerList(row.callers).join(", "),
       cell: ({ row }) => {
-        const c = row.original.callers
-        return <span className="text-xs uppercase font-medium text-muted-foreground">{c ? (Array.isArray(c) ? c.join(', ') : c) : "-"}</span>
+        const callers = normalizedCallerList(row.original.callers)
+        return <span className="text-xs uppercase font-medium text-muted-foreground">{callers.join(", ") || "-"}</span>
       }
     },
     {
@@ -246,13 +241,20 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
               variant={row.original}
               compact
             />
-            <Link
-              to={`/samples/${sampleId}/cnv/${row.original._id}`}
-              state={{ from: `${location.pathname}${location.search}` }}
-              className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-primary-foreground"
+            <AppTooltip
+              context="Table action"
+              label="View CNV details"
+              content="Open the complete copy-number finding, supporting evidence, comments, and review controls."
             >
-              <span title="View Detail"><ExternalLink className="w-4 h-4" /></span>
-            </Link>
+              <Link
+                to={`/samples/${sampleId}/cnv/${row.original._id}`}
+                state={{ from: `${location.pathname}${location.search}` }}
+                aria-label="View CNV details"
+                className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-primary-foreground"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </Link>
+            </AppTooltip>
           </div>
         )
       }

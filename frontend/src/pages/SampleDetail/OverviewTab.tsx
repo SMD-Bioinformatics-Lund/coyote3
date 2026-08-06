@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import type { FocusEvent, MouseEvent, ReactNode } from "react"
 import { createPortal } from "react-dom"
+import { TooltipSurface } from "@/components/ui/app-tooltip"
 import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Activity, AlertTriangle, Save, Trash2, ChevronDown, ChevronUp, Search, X } from "lucide-react"
@@ -12,6 +13,7 @@ import { apiPath } from "@/lib/runtime-paths"
 
 function displayValue(value: unknown) {
   if (value === undefined || value === null || value === "") return "-"
+  if (Array.isArray(value)) return value.length ? value.join(", ") : "None"
   if (typeof value === "number") return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(4)))
   return String(value)
 }
@@ -98,17 +100,13 @@ function BiomarkerBadge({ label, value, details }: { label: string; value: unkno
         <span className="text-muted-foreground">{label}:</span>
         {displayValue(value)}
       </span>
-      {position && createPortal(
-        <span
-          className="pointer-events-none fixed z-[9999] w-72 rounded-lg border border-sand-300/80 bg-sand-50 px-3 py-2 text-left text-xs text-sand-950 shadow-lg dark:border-sand-400/30 dark:bg-sand-950/95 dark:text-sand-100"
-          style={{ left: position.left, top: position.top }}
-        >
+      {position && (
+        <TooltipSurface position={position} className="border-sand-300/80 text-sand-950 dark:border-sand-400/30 dark:text-sand-100">
           <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">Sample biomarker</span>
           <span className="block font-bold text-foreground">{label}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{biomarkerDescription(label)}</span>
           {details ? <span className="mt-1 block font-mono text-[11px] font-semibold text-foreground/85">{details}</span> : null}
-        </span>,
-        document.body,
+        </TooltipSurface>
       )}
     </span>
   )
@@ -388,6 +386,80 @@ function reportItems(sample: any) {
 function configuredAnalysisSections(sample: any, context?: any) {
   const sections = context?.analysis_sections || context?.aspc?.analysis_types || sample?.analysis_sections || []
   return new Set((Array.isArray(sections) ? sections : []).map((item: unknown) => String(item).toLowerCase()))
+}
+
+type OverviewFilterGroup = {
+  key: string
+  label: string
+  rows: Array<[string, unknown]>
+}
+
+function hasConfiguredAnalysis(configured: Set<string>, ...keys: string[]) {
+  return keys.some((key) => configured.has(key))
+}
+
+/** Build omics- and ASPC-aware filter groups for the sample overview. */
+function overviewFilterGroups(sample: any, context?: any): OverviewFilterGroup[] {
+  const configured = configuredAnalysisSections(sample, context)
+  const omics = String(sample?.omics_layer || "").toLowerCase()
+  const include = (...keys: string[]) => configured.size === 0 || hasConfiguredAnalysis(configured, ...keys)
+
+  if (omics === "rna") {
+    if (!include("fusion", "fusions")) return []
+    const fusion = sampleFilterSection(sample, "fusion")
+    return [{
+      key: "fusion",
+      label: "Fusion filters",
+      rows: [
+        ["Callers", fusion.fusion_callers],
+        ["Effects", fusion.fusion_effects],
+        ["Gene lists", fusion.fusionlists],
+        ["Minimum spanning pairs", fusion.min_spanning_pairs],
+        ["Minimum spanning reads", fusion.min_spanning_reads],
+      ],
+    }]
+  }
+
+  if (omics !== "dna") return []
+  const groups: OverviewFilterGroup[] = []
+  if (include("snv", "snvs", "small_variant", "small_variants")) {
+    const snv = sampleFilterSection(sample, "snv")
+    groups.push({ key: "snv", label: "SNV filters", rows: [
+      ["Minimum depth", snv.min_depth],
+      ["Minimum alternate reads", snv.min_alt_reads],
+      ["Minimum VAF", snv.min_freq],
+      ["Maximum VAF", snv.max_freq],
+      ["Maximum control VAF", snv.max_control_freq],
+      ["Maximum population frequency", snv.max_popfreq],
+      ["Consequences", snv.vep_consequences],
+      ["Gene lists", snv.snvlists],
+    ] })
+  }
+  if (include("cnv", "cnvs")) {
+    const cnv = sampleFilterSection(sample, "cnv")
+    groups.push({ key: "cnv", label: "CNV filters", rows: [
+      ["Minimum size", cnv.min_cnv_size],
+      ["Maximum size", cnv.max_cnv_size],
+      ["Gain cutoff", cnv.cnv_gain_cutoff],
+      ["Loss cutoff", cnv.cnv_loss_cutoff],
+      ["Effects", cnv.cnveffects],
+      ["Gene lists", cnv.cnvlists],
+    ] })
+  }
+  if (include("coverage", "cov")) {
+    const coverage = sampleFilterSection(sample, "coverage")
+    groups.push({ key: "coverage", label: "Coverage filters", rows: [
+      ["Warning threshold", coverage.warn_cov],
+      ["Error threshold", coverage.error_cov],
+    ] })
+  }
+  if (include("translocation", "translocations", "fusion", "fusions")) {
+    const translocation = sampleFilterSection(sample, "translocation")
+    groups.push({ key: "translocation", label: "DNA fusion / translocation filters", rows: [
+      ["Gene lists", translocation.fusionlists],
+    ] })
+  }
+  return groups
 }
 
 function countValue(...values: unknown[]) {
@@ -839,7 +911,6 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
   const cnvFilters = sampleFilterSection(sample, "cnv")
   const fusionFilters = sampleFilterSection(sample, "fusion")
   const translocationFilters = sampleFilterSection(sample, "translocation")
-  const coverageFilters = sampleFilterSection(sample, "coverage")
   const adhoc = {
     ...(snvFilters?.adhoc_genes ? { snv: snvFilters.adhoc_genes } : {}),
     ...(cnvFilters?.adhoc_genes ? { cnv: cnvFilters.adhoc_genes } : {}),
@@ -847,22 +918,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
   }
   const omics = String(sample?.omics_layer || "").toLowerCase()
   const reports = reportItems(sample)
-  const filterRows: Array<[string, unknown]> = [
-    ["Min depth", snvFilters.min_depth],
-    ["Min alt reads", snvFilters.min_alt_reads],
-    ["Min VAF", snvFilters.min_freq],
-    ["Max VAF", snvFilters.max_freq],
-    ["Max normal VAF", snvFilters.max_control_freq],
-    ["Max pop freq", snvFilters.max_popfreq],
-    ["CNV min size", cnvFilters.min_cnv_size],
-    ["CNV max size", cnvFilters.max_cnv_size],
-    ["CNV gain", cnvFilters.cnv_gain_cutoff],
-    ["CNV loss", cnvFilters.cnv_loss_cutoff],
-    ["Coverage warn", coverageFilters.warn_cov],
-    ["Coverage error", coverageFilters.error_cov],
-    ["Fusion pairs", fusionFilters.min_spanning_pairs],
-    ["Fusion reads", fusionFilters.min_spanning_reads],
-  ]
+  const filterGroups = overviewFilterGroups(sample, context)
 
   return (
     <div className="space-y-3">
@@ -996,12 +1052,14 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
 
         <SettingsCard title="Gene Filters" tone="border-t-slate-400" className="xl:col-span-2">
           <div className="space-y-4 text-sm">
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-green-700 dark:text-green-300">Selected SNV ISGLs</h3>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {(snvFilters.snvlists || []).length ? snvFilters.snvlists.map((name: string) => <StatusPill key={name} tone="green">{name}</StatusPill>) : <p className="text-muted-foreground">No ISGLs selected for this sample.</p>}
+            {omics === "dna" && (
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-wider text-green-700 dark:text-green-300">Selected SNV ISGLs</h3>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {(snvFilters.snvlists || []).length ? snvFilters.snvlists.map((name: string) => <StatusPill key={name} tone="green">{name}</StatusPill>) : <p className="text-muted-foreground">No ISGLs selected for this sample.</p>}
+                </div>
               </div>
-            </div>
+            )}
             {omics === "dna" && (
               <div>
                 <h3 className="text-xs font-black uppercase tracking-wider text-warn">Selected CNV ISGLs</h3>
@@ -1041,14 +1099,21 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
           </div>
         </SettingsCard>
 
-        <SettingsCard title="Filter Thresholds" tone="border-t-blue-400" className="xl:col-span-2">
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {filterRows.map(([label, rowValue]) => (
-              <div key={label} className="rounded-xl bg-background/70 p-2">
-                <dt className="text-xs text-muted-foreground">{label}</dt>
-                <dd className="font-semibold">{displayValue(rowValue)}</dd>
-              </div>
-            ))}
+        <SettingsCard title="Configured Filters" tone="border-t-blue-400" className="xl:col-span-2">
+          <div className="space-y-3">
+            {filterGroups.length ? filterGroups.map((group) => (
+              <section key={group.key} aria-labelledby={`filter-group-${group.key}`} className="rounded-xl border border-border bg-background/55 p-2.5">
+                <h3 id={`filter-group-${group.key}`} className="mb-2 text-xs font-black uppercase tracking-wide text-foreground">{group.label}</h3>
+                <dl className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.rows.map(([label, rowValue]) => (
+                    <div key={label} className="rounded-lg bg-card px-2.5 py-2 shadow-sm">
+                      <dt className="text-xs text-muted-foreground">{label}</dt>
+                      <dd className="break-words font-semibold">{displayValue(rowValue)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )) : <p className="text-sm text-muted-foreground">No configurable filters apply to the enabled analyses for this sample.</p>}
           </div>
         </SettingsCard>
       </div>

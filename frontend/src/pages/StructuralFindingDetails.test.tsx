@@ -73,8 +73,8 @@ describe("structural finding detail pages", () => {
 
     expect(await screen.findByRole("heading", { name: "BCR--ABL1" })).toBeVisible()
     expect(screen.getAllByText(/22:100 \| 9:200/).length).toBeGreaterThanOrEqual(2)
-    expect(screen.getAllByText("ARRIBA").length).toBeGreaterThanOrEqual(2)
-    expect(screen.getAllByText("STARFUSION").length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByText("arriba").length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByText("starfusion").length).toBeGreaterThanOrEqual(2)
     expect(screen.getByRole("button", { name: "Pick" })).toBeEnabled()
     expect(mocks.get).toHaveBeenCalledWith("/samples/RNA_001/fusions/F1")
   })

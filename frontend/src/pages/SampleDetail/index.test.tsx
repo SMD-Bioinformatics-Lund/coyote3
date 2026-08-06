@@ -25,6 +25,9 @@ vi.mock("./FusionsTab", () => ({ FusionsTab: () => <div>Fusion content</div> }))
 vi.mock("./TranslocationsTab", () => ({ TranslocationsTab: () => <div>Translocation content</div> }))
 vi.mock("./ReportsTab", () => ({ ReportsTab: () => <div>Reports content</div> }))
 vi.mock("./CoverageTab", () => ({ CoverageTab: () => <div>Coverage content</div> }))
+vi.mock("./RnaAnalysisTabs", () => ({
+  RnaAnalysisTab: () => <div>Expression and classification content</div>,
+}))
 vi.mock("./FiltersSidebar", () => ({ FiltersSidebar: ({ intent }: { intent: string }) => <div>Filters {intent}</div> }))
 vi.mock("@/components/comments/CommentsPanel", () => ({ CommentsPanel: () => <div>Comments</div> }))
 
@@ -99,5 +102,51 @@ describe("SampleDetail", () => {
     expect(screen.getByText("Fusion content")).toBeVisible()
     expect(screen.queryByRole("tab", { name: "Somatic SNVs" })).not.toBeInTheDocument()
     expect(screen.queryByRole("tab", { name: "CNVs" })).not.toBeInTheDocument()
+  })
+
+  it("combines configured WTS expression and classification in one analysis tab", () => {
+    mocks.context = {
+      sample: {
+        name: "WTS_001",
+        omics_layer: "rna",
+        analysis_intents: ["somatic"],
+        data_counts: { fusions: 4, rna_expression: true, rna_classification: true },
+      },
+      analysis_sections: ["FUSION", "EXPRESSION", "CLASSIFICATION"],
+    }
+    renderWithRouter(<SampleDetail />, "/samples/WTS_001?tab=rna-analysis")
+
+    expect(screen.getByRole("tab", { name: "Expression & Classification" })).toBeVisible()
+    expect(screen.queryByRole("tab", { name: "Classification" })).not.toBeInTheDocument()
+    expect(screen.getByText("Expression and classification content")).toBeVisible()
+  })
+
+  it("does not infer WTS tabs from files when ASPC omits the analyses", () => {
+    mocks.context = {
+      sample: {
+        name: "RNA_PANEL_001",
+        omics_layer: "rna",
+        data_counts: { fusions: 2, rna_expression: true, rna_classification: true },
+      },
+      analysis_sections: ["FUSION"],
+    }
+    renderWithRouter(<SampleDetail />, "/samples/RNA_PANEL_001")
+
+    expect(screen.queryByRole("tab", { name: "Expression & Classification" })).not.toBeInTheDocument()
+  })
+
+  it("keeps old expression links working through the combined RNA analysis tab", () => {
+    mocks.context = {
+      sample: {
+        name: "WTS_001",
+        omics_layer: "rna",
+        data_counts: { rna_expression: true, rna_classification: true },
+      },
+      analysis_sections: ["EXPRESSION", "CLASSIFICATION"],
+    }
+    renderWithRouter(<SampleDetail />, "/samples/WTS_001?tab=expression")
+
+    expect(screen.getByRole("tab", { name: "Expression & Classification" })).toHaveAttribute("aria-selected", "true")
+    expect(screen.getByText("Expression and classification content")).toBeVisible()
   })
 })

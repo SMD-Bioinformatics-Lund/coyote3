@@ -3,7 +3,8 @@ import { Link, useLocation } from "react-router-dom"
 import { api } from "@/lib/api"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import { DataTable } from "@/components/data-table/DataTable"
-import { BulkActionDropdown, BulkActionOption } from "@/components/data-table/BulkActionDropdown"
+import { AppTooltip } from "@/components/ui/app-tooltip"
+import { BulkActionDropdown } from "@/components/data-table/BulkActionDropdown"
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { ColumnDef } from "@tanstack/react-table"
@@ -11,6 +12,7 @@ import { AlertTriangle, ExternalLink } from "lucide-react"
 import { ConsequenceBadges, FilterFlagBadges, StatusBadges, TierBadge } from "@/lib/variant-ui"
 import { filterFlags, findingRowClass, statusLabels, tierValue } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
+import { findingBulkActionOptions } from "@/lib/finding-actions"
 import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
 import { igvLoadUrl } from "@/lib/external-links"
 import { tieredVariantSearchPath } from "@/lib/variant-routing"
@@ -20,25 +22,7 @@ import {
   useClinicalTableState,
 } from "@/hooks/useClinicalTableState"
 
-const variantBulkActions: BulkActionOption[] = [
-  { value: "tier_1", label: "Classify as Tier 1" },
-  { value: "tier_2", label: "Classify as Tier 2" },
-  { value: "tier_3", label: "Classify as Tier 3" },
-  { value: "tier_4", label: "Classify as Tier 4" },
-  { value: "remove_tier_1", label: "Remove Tier 1" },
-  { value: "remove_tier_2", label: "Remove Tier 2" },
-  { value: "remove_tier_3", label: "Remove Tier 3" },
-  { value: "remove_tier_4", label: "Remove Tier 4" },
-  { value: "fp", label: "Mark False Positive" },
-  { value: "unfp", label: "Unmark False Positive" },
-  { value: "irrelevant", label: "Mark Irrelevant" },
-  { value: "relevant", label: "Unmark Irrelevant" },
-  { value: "interesting", label: "Mark Interesting" },
-  { value: "uninteresting", label: "Unmark Interesting" },
-  { value: "blacklist", label: "Add to Blacklist" },
-  { value: "override_blacklist", label: "Override Blacklist" },
-  { value: "clear_override_blacklist", label: "Clear Blacklist Override" },
-]
+const variantBulkActions = findingBulkActionOptions("small_variant")
 
 const variantClassShort: Record<string, string> = {
   SNV: "SNV",
@@ -369,13 +353,20 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
       cell: ({ row }) => {
         return (
           <div className="flex items-center justify-start">
-            <Link
-              to={`/samples/${sampleId}/variant/${row.original._id}`}
-              state={{ from: `${location.pathname}${location.search}` }}
-              className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-white"
+            <AppTooltip
+              context="Table action"
+              label="View variant details"
+              content="Open the complete variant record, evidence, comments, and classification controls."
             >
-              <span title="View Detail"><ExternalLink className="w-4 h-4" /></span>
-            </Link>
+              <Link
+                to={`/samples/${sampleId}/variant/${row.original._id}`}
+                state={{ from: `${location.pathname}${location.search}` }}
+                aria-label="View variant details"
+                className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-white"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </Link>
+            </AppTooltip>
           </div>
         )
       }

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 
 type ReportType = "dna" | "rna"
 
-const snapshotColumns: ColumnDef<any, any>[] = [
+const dnaSnapshotColumns: ColumnDef<any, any>[] = [
   {
     id: "gene",
     header: "Gene",
@@ -40,8 +40,62 @@ const snapshotColumns: ColumnDef<any, any>[] = [
   },
 ]
 
-export function ReportsTab({ sampleId }: { sampleId: string }) {
-  const [reportType, setReportType] = useState<ReportType>("dna")
+const rnaSnapshotColumns: ColumnDef<any, any>[] = [
+  {
+    id: "fusion",
+    header: "Fusion",
+    accessorFn: (row) => row.fusion ?? "-",
+    cell: ({ row }) => <span className="font-bold text-link">{String(row.getValue("fusion"))}</span>,
+  },
+  {
+    id: "breakpoints",
+    header: "Breakpoints",
+    accessorFn: (row) => [row.breakpoint_1, row.breakpoint_2].filter(Boolean).join(" / ") || "-",
+    cell: ({ row }) => <span className="font-mono text-xs">{String(row.getValue("breakpoints"))}</span>,
+  },
+  {
+    id: "effect",
+    header: "Effect",
+    accessorFn: (row) => row.effect ?? "-",
+  },
+  {
+    id: "support",
+    header: "Pairs / reads",
+    accessorFn: (row) => `${row.spanning_pairs ?? "-"} / ${row.spanning_reads ?? "-"}`,
+  },
+  {
+    id: "classification",
+    header: "Classification",
+    accessorFn: (row) => row.classification ?? "-",
+    cell: ({ row }) => {
+      const value = row.getValue("classification")
+      return <span className="text-xs font-semibold">{value === "-" ? value : `Tier ${value}`}</span>
+    },
+  },
+  {
+    id: "text",
+    header: "Annotation",
+    accessorFn: (row) => row.text ?? "",
+    cell: ({ row }) => (
+      <span
+        className="block max-w-[34rem] truncate text-xs"
+        title={String(row.getValue("text") || "")}
+      >
+        {String(row.getValue("text") || "-")}
+      </span>
+    ),
+  },
+]
+
+export function ReportsTab({
+  sampleId,
+  reportType: fixedReportType,
+}: {
+  sampleId: string
+  reportType?: ReportType
+}) {
+  const [selectedReportType, setSelectedReportType] = useState<ReportType>("dna")
+  const reportType = fixedReportType ?? selectedReportType
   const [includeSnapshot, setIncludeSnapshot] = useState(true)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -118,6 +172,7 @@ export function ReportsTab({ sampleId }: { sampleId: string }) {
   })
 
   const templateStatus = data?.meta?.template_status
+  const snapshotColumns = reportType === "rna" ? rnaSnapshotColumns : dnaSnapshotColumns
   const hasRenderedHtml = Boolean(templateStatus?.has_html && data?.report?.html)
   const templateStatusMessage = templateStatus?.message || "Report preview has not been rendered yet."
 
@@ -131,17 +186,19 @@ export function ReportsTab({ sampleId }: { sampleId: string }) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border border-border bg-background p-1">
-            {(["dna", "rna"] as ReportType[]).map((type) => (
-              <button
-                key={type}
-                onClick={() => setReportType(type)}
-                className={`rounded-md px-3 py-1.5 text-xs font-bold uppercase ${reportType === type ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
+          {!fixedReportType && (
+            <div className="inline-flex rounded-lg border border-border bg-background p-1">
+              {(["dna", "rna"] as ReportType[]).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setSelectedReportType(type)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-bold uppercase ${reportType === type ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          )}
           <label className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm">
             <input
               type="checkbox"

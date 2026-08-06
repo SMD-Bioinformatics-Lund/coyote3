@@ -28,6 +28,28 @@ providers = ["local", "ldap"]
 standard_types = ["snv", "cnv", "fusion", "expression", "pgx"]
 adhoc_types = ["adhoc_snv", "adhoc_cnv", "adhoc_fusion", "adhoc_expression", "adhoc_pgx"]
 
+[fusion]
+callers = ["arriba", "fusioncatcher", "starfusion"]
+
+[fusion.description_terms]
+important = [
+  "mitelman", "18cancers", "known", "oncogene", "cgp", "cancer", "cosmic",
+  "gliomas", "oesophagus", "tumor", "pancreases", "prostates", "tcga", "ticdb", "high",
+]
+not_important = [
+  "1000genomes", "banned", "bodymap2", "cacg", "conjoing", "cortex", "cta", "ctb",
+  "ctc", "ctd", "distance1000bp", "ensembl_fully_overlapping",
+  "ensembl_same_strand_overlapping", "gtex", "hpa", "matched-normal", "mt",
+  "non_cancer_tissues", "non_tumor_cells", "pair_pseudo_genes", "paralogs",
+  "readthrough", "refseq_fully_overlapping", "rp11", "rp", "rrna", "similar_reads",
+  "similar_symbols", "ucsc_fully_overlapping", "ucsc_same_strand_overlapping",
+]
+context = [
+  "distance100kbp", "distance10kbp", "duplicates", "ensembl_partially_overlapping",
+  "fragments", "healthy", "short_repeats", "long_repeats", "partial-matched-normal",
+  "refseq_partially_overlapping", "short_distance", "ucsc_partially_overlapping",
+]
+
 [reporting]
 required_aspc_fields = [
   "report_header",
@@ -82,3 +104,9 @@ EXPRESSION = ["expression_path"]
 CLASSIFICATION = ["classification_path"]
 QC = ["qc"]
 PGX = ["pgx"]
+
+[analysis.allowed_by_family]
+panel-dna = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "BIOMARKER", "COVERAGE", "FUSION", "TMB", "PGX"]
+wgs = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "BIOMARKER", "COVERAGE", "FUSION", "TMB", "PGX"]
+panel-rna = ["FUSION", "QC", "PGX"]
+wts = ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"]

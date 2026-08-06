@@ -104,10 +104,12 @@ workflow options, validation rules, and change procedure are documented in
 Use it when a center needs to change local authentication-provider
 availability, a sample YAML file key, baseline file requirement, the file
 bound to an implemented analysis type, or the approved transcript-selection
-order. Sequencing platforms and their read capabilities are software-owned and
-cannot be changed in this file. The transcript selector names are implemented
-software contracts, but their released order is center configuration and is
-validated strictly at startup.
+order. It also controls exact fusion-description evidence categories and the
+implemented analysis subset allowed for each assay family. Sequencing platforms
+and their read capabilities are software-owned and cannot be changed in this
+file. The transcript selector names are implemented software contracts, but
+their released order is center configuration and is validated strictly at
+startup.
 
 !!! important "Assay groups are software-defined"
 

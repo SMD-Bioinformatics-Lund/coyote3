@@ -44,7 +44,15 @@ export function filterFlags(value: unknown) {
 
 export function normalizedCallerList(value: unknown) {
   const raw = Array.isArray(value) ? value : String(value || "").split(/[,&]/)
-  return raw.map((item) => String(item || "").trim()).filter((item) => Boolean(item) && item !== "-")
+  const seen = new Set<string>()
+  return raw
+    .map((item) => String(item || "").trim())
+    .filter((item) => {
+      const identity = item.toLocaleLowerCase()
+      if (!item || item === "-" || seen.has(identity)) return false
+      seen.add(identity)
+      return true
+    })
 }
 
 export function selectedFusionCall(fusion: any) {
@@ -72,9 +80,9 @@ export function fusionGenes(fusion: any) {
 
 export function fusionCallers(fusion: any) {
   if (Array.isArray(fusion?.calls)) {
-    return Array.from(new Set(fusion.calls.map((call: any) => call?.caller).filter(Boolean))).join(", ")
+    return normalizedCallerList(fusion.calls.map((call: any) => call?.caller).filter(Boolean)).join(", ")
   }
-  return Array.isArray(fusion?.callers) ? fusion.callers.join(", ") : (fusion?.callers ?? "-")
+  return normalizedCallerList(fusion?.callers).join(", ") || "-"
 }
 
 export function selectedTranslocationAnnotation(translocation: any) {

@@ -7,7 +7,8 @@ import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { useSingleFindingFlag } from "@/hooks/useFindingActions"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 
-type FindingFlag = "false-positive" | "irrelevant" | "interesting" | "noteworthy" | "override-blacklist"
+type FindingFlag = "false-positive" | "irrelevant" | "interesting" | "noteworthy" | "override-blacklist" | "blacklisted"
+type FindingActionControl = "false-positive" | "blacklist" | "irrelevant" | "interesting" | "noteworthy"
 
 type PendingFlagAction = {
   title: string
@@ -23,14 +24,16 @@ export function VariantActionButtons({
   variant,
   onUpdate,
   compact = false,
-  showReportLabel = false,
+  showActionLabel = false,
+  controls,
 }: {
   sampleId: string
   resourceType?: FindingResourceType
   variant: any
   onUpdate?: () => void
   compact?: boolean
-  showReportLabel?: boolean
+  showActionLabel?: boolean
+  controls?: FindingActionControl[]
 }) {
   const [confirmBlacklist, setConfirmBlacklist] = useState(false)
   const [pendingFlagAction, setPendingFlagAction] = useState<PendingFlagAction | null>(null)
@@ -42,11 +45,13 @@ export function VariantActionButtons({
   const isBlacklisted = Boolean(variant.blacklist || variant.blacklisted)
   const isInteresting = variant.interesting
   const isNoteworthy = variant.noteworthy
-  const supportsIrrelevant = resourceType === "small_variant"
-  const supportsBlacklist = resourceType === "small_variant"
+  const supportsIrrelevant = resourceType === "small_variant" || resourceType === "fusion" || resourceType === "translocation"
+  const supportsBlacklist = resourceType === "small_variant" || resourceType === "fusion" || resourceType === "translocation"
   const supportsInteresting = resourceType === "small_variant" || resourceType === "cnv" || resourceType === "fusion" || resourceType === "translocation"
+  const interestingControlsReport = resourceType === "cnv" || resourceType === "translocation"
   const supportsNoteworthy = resourceType === "cnv"
   const supportsBlacklistEntry = resourceType === "small_variant" && !isBlacklisted
+  const showsControl = (control: FindingActionControl) => !controls || controls.includes(control)
 
   const blacklistMutation = useMutation({
     mutationFn: () => api.post(`/samples/${sampleId}/small-variants/${variant._id}/blacklist-entries`, {}),
@@ -82,14 +87,14 @@ export function VariantActionButtons({
   const buttonBase = compact
     ? "paper-raised-control inline-flex h-6 w-6 items-center justify-center rounded-md border text-xs font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-100 disabled:opacity-50"
     : "paper-raised-control inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-100 disabled:opacity-50"
-  const labeledCompactReport = compact && showReportLabel && resourceType !== "small_variant"
-  const reportButtonBase = labeledCompactReport
+  const labeledCompactAction = compact && showActionLabel
+  const interestingButtonBase = labeledCompactAction
     ? "paper-raised-control inline-flex h-6 items-center justify-center gap-1 rounded-md border px-1.5 text-[11px] font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-100 disabled:opacity-50"
     : buttonBase
 
   return (
     <div className={compact ? "flex items-center gap-1" : "flex flex-wrap items-center gap-1.5"}>
-      <button
+      {showsControl("false-positive") && <button
         onClick={() => setPendingFlagAction({
           title: isFp ? "Remove false-positive flag?" : "Mark finding as false positive?",
           description: isFp
@@ -105,8 +110,8 @@ export function VariantActionButtons({
       >
         <XCircle className="h-3.5 w-3.5" />
         {!compact && "FP"}
-      </button>
-      {supportsBlacklist && (
+      </button>}
+      {supportsBlacklist && showsControl("blacklist") && (
         <>
           {supportsBlacklistEntry && (
             <button
@@ -138,9 +143,28 @@ export function VariantActionButtons({
               {!compact && (isBlacklist ? "Override BL" : "Clear BL Override")}
             </button>
           )}
+          {resourceType !== "small_variant" && (
+            <button
+              onClick={() => setPendingFlagAction({
+                title: isBlacklisted ? "Remove structural blacklist state?" : "Blacklist finding for this sample?",
+                description: isBlacklisted
+                  ? "The finding will return to the active structural review set."
+                  : "This sample-specific structural finding will be de-emphasized and excluded where blacklisted findings are filtered.",
+                confirmLabel: isBlacklisted ? "Remove blacklist" : "Blacklist finding",
+                flag: "blacklisted",
+                apply: !isBlacklisted,
+              })}
+              disabled={flagMutation.isPending}
+              className={`${buttonBase} ${isBlacklisted ? 'border-fail/40 bg-fail/15 text-fail' : 'border-border bg-background hover:bg-fail/10 hover:text-fail'}`}
+              title={isBlacklisted ? "Remove sample blacklist" : "Blacklist for this sample"}
+            >
+              <Ban className="h-3.5 w-3.5" />
+              {!compact && (isBlacklisted ? "Remove BL" : "Blacklist")}
+            </button>
+          )}
         </>
       )}
-      {supportsIrrelevant && (
+      {supportsIrrelevant && showsControl("irrelevant") && (
         <button
           onClick={() => setPendingFlagAction({
             title: isIrrelevant ? "Restore finding to review?" : "Mark finding as irrelevant?",
@@ -159,34 +183,34 @@ export function VariantActionButtons({
           {!compact && "Ignore"}
         </button>
       )}
-      {supportsInteresting && (
+      {supportsInteresting && showsControl("interesting") && (
         <button
           onClick={() => setPendingFlagAction({
-            title: resourceType === "small_variant"
+            title: !interestingControlsReport
               ? (isInteresting ? "Remove interesting flag?" : "Mark finding as interesting?")
               : (isInteresting ? "Exclude finding from report?" : "Include finding in report?"),
-            description: resourceType === "small_variant"
+            description: !interestingControlsReport
               ? "This changes the finding's clinical review state."
               : `This will ${isInteresting ? "remove the finding from" : "add the finding to"} the reportable set.`,
-            confirmLabel: resourceType === "small_variant"
+            confirmLabel: !interestingControlsReport
               ? (isInteresting ? "Remove flag" : "Mark interesting")
               : (isInteresting ? "Exclude from report" : "Include in report"),
             flag: "interesting",
             apply: !isInteresting,
           })}
           disabled={flagMutation.isPending}
-          className={`${reportButtonBase} ${isInteresting ? 'border-pass/40 bg-pass/15 text-pass' : 'border-border bg-background hover:bg-pass/10 hover:text-pass'}`}
-          title={resourceType === "small_variant" ? "Toggle interesting" : isInteresting ? "Exclude from report" : "Include in report"}
+          className={`${interestingButtonBase} ${isInteresting ? 'border-pass/40 bg-pass/15 text-pass' : 'border-border bg-background hover:bg-pass/10 hover:text-pass'}`}
+          title={!interestingControlsReport ? "Toggle interesting" : isInteresting ? "Exclude from report" : "Include in report"}
         >
-          {resourceType === "small_variant" ? (
+          {!interestingControlsReport ? (
             <AlertCircle className="h-3.5 w-3.5" />
           ) : (
             <FileCheck2 className="h-3.5 w-3.5" />
           )}
-          {(!compact || labeledCompactReport) && (resourceType === "small_variant" ? "Interesting" : isInteresting ? "Exclude" : "Report")}
+          {(!compact || labeledCompactAction) && (!interestingControlsReport ? "Interesting" : isInteresting ? "Exclude" : "Report")}
         </button>
       )}
-      {supportsNoteworthy && (
+      {supportsNoteworthy && showsControl("noteworthy") && (
         <button
           onClick={() => setPendingFlagAction({
             title: isNoteworthy ? "Remove noteworthy flag?" : "Mark finding as noteworthy?",
@@ -203,7 +227,7 @@ export function VariantActionButtons({
           {!compact && (isNoteworthy ? "Unnote" : "Note")}
         </button>
       )}
-      {variant.override_blacklist && (
+      {showsControl("blacklist") && variant.override_blacklist && (
         <span className={compact ? "inline-flex h-6 w-6 items-center justify-center rounded-md border border-rna/30 bg-rna/10 text-xs font-bold text-rna" : "inline-flex items-center gap-1 rounded-lg border border-rna/30 bg-rna/10 px-2.5 py-1.5 text-xs font-bold text-rna"}>
           <ShieldCheck className="h-3.5 w-3.5" />
           {!compact && "Override"}

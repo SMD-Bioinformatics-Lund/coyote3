@@ -46,12 +46,6 @@ const fusionEffects = [
   ["out-of-frame", "Out-of-frame"],
 ] as const
 
-const fusionCallers = [
-  ["arriba", "Arriba"],
-  ["fusioncatcher", "FusionCatcher"],
-  ["starfusion", "STAR-Fusion"],
-] as const
-
 function optionLabel(option: any) {
   return option?.display_name || option?.displayname || option?.name || option?.label || option?.isgl_id || option?.id || option?._id || String(option)
 }
@@ -170,6 +164,72 @@ function CheckboxList({
             />
             <span className="min-w-0 truncate" title={optionLabel(option)}>{optionLabel(option)}</span>
           </label>
+        )
+      })}
+    </div>
+  )
+}
+
+function FusionDescriptionList({
+  metadata,
+  values,
+  onChange,
+}: {
+  metadata: Record<string, string[]>
+  values: string[]
+  onChange: (values: string[]) => void
+}) {
+  const groups = [
+    {
+      key: "relevant",
+      label: "Relevant evidence",
+      description: "Include fusions carrying any selected clinically relevant annotation.",
+      badgeClass: "matte-badge-pass",
+      terms: Array.from(new Set(metadata.important || [])),
+    },
+    {
+      key: "exclusion",
+      label: "Artifact and exclusion evidence",
+      description: "Include fusions carrying any selected context or artifact annotation.",
+      badgeClass: "matte-badge-fail",
+      terms: Array.from(new Set([...(metadata.context || []), ...(metadata.not_important || [])])),
+    },
+  ]
+
+  if (!groups.some(({ terms }) => terms.length > 0)) {
+    return <p className="rounded-md border border-dashed border-border p-2 text-xs text-muted-foreground">No configured description terms.</p>
+  }
+
+  return (
+    <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+      {groups.map(({ key, label, description, badgeClass, terms }) => {
+        if (!terms.length) return null
+        return (
+          <fieldset key={key} className="space-y-1.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+            <p className="text-[10px] leading-4 text-muted-foreground">{description}</p>
+            <div className="space-y-1">
+              {terms.map((term) => (
+                <label key={term} className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 hover:bg-muted/70">
+                  <input
+                    type="checkbox"
+                    checked={values.includes(term)}
+                    onChange={(event) => onChange(
+                      event.target.checked
+                        ? Array.from(new Set([...values, term]))
+                        : values.filter((value) => value !== term),
+                    )}
+                    className="shrink-0 rounded border-border text-primary focus:ring-primary"
+                  />
+                  <span
+                    className={`${badgeClass} inline-flex min-h-5 min-w-0 items-center rounded-md border px-2 text-[0.68rem] font-bold`}
+                  >
+                    {term}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
         )
       })}
     </div>
@@ -343,10 +403,21 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
               <CheckboxList options={listOptions.fusion} values={values("fusionlists")} onChange={(next) => setValue("fusionlists", next)} />
             </Section>
             <Section title="Callers">
-              <CheckboxList options={fusionCallers.map(([id, label]) => ({ id, label }))} values={values("fusion_callers")} onChange={(next) => setValue("fusion_callers", next)} />
+              <CheckboxList
+                options={(context?.fusion_caller_options || []).map((caller: string) => ({ id: caller, label: caller }))}
+                values={values("fusion_callers")}
+                onChange={(next) => setValue("fusion_callers", next)}
+              />
             </Section>
             <Section title="Fusion Effects">
               <CheckboxList options={fusionEffects.map(([id, label]) => ({ id, label }))} values={values("fusion_effects")} onChange={(next) => setValue("fusion_effects", next)} />
+            </Section>
+            <Section title="Fusion Descriptions">
+              <FusionDescriptionList
+                metadata={context?.fusion_annotation_metadata || {}}
+                values={values("fusion_descriptions")}
+                onChange={(next) => setValue("fusion_descriptions", next)}
+              />
             </Section>
           </>
         )}

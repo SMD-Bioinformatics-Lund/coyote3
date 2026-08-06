@@ -13,9 +13,7 @@ analyses:
         priority: 100
         when: []
         template: |-
-          RNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar 160 kända fusionsgener vid solid tumörsjukdom som inkluderas i RNA fusionspanel (Twist Alliance CeGaT RNA Fusion Panel).
-
-          För ytterligare information om utförd analys och beskrivning av eventuellt funna fusionsgener, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen.
+          RNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar 160 kända fusionsgener vid solid tumörsjukdom som inkluderas i RNA fusionspanel (Twist Alliance CeGaT RNA Fusion Panel).{{ findings | fusion_summary }}För ytterligare information om utförd analys och beskrivning av eventuellt funna fusionsgener, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen.
         heading: false
         stop: true
   EXPRESSION: { enabled: false }

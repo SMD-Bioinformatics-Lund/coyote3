@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { createPortal } from "react-dom"
-import { cn } from "@/lib/utils"
+import { TooltipSurface, tooltipToneClass } from "@/components/ui/app-tooltip"
 
 type TooltipState = {
   target: HTMLElement
@@ -18,14 +17,14 @@ const CURSOR_GAP = 14
 const VIEWPORT_MARGIN = 12
 const TOOLTIP_ID = "global-rich-tooltip"
 
-function isTooltipTarget(value: EventTarget | null): value is HTMLElement {
-  return value instanceof HTMLElement
+function isTooltipTarget(value: EventTarget | null): value is Element {
+  return value instanceof Element
 }
 
 function eligibleTarget(value: EventTarget | null) {
   if (!isTooltipTarget(value)) return null
-  const target = value.closest<HTMLElement>("[title]:not(iframe)")
-  if (!target || target.dataset.nativeTitle === "true") return null
+  const target = value.closest<HTMLElement>("[data-tooltip-content], [title]:not(iframe)")
+  if (!target || target.dataset.nativeTitle === "true" || target.dataset.tooltipManaged === "true") return null
   return target
 }
 
@@ -46,14 +45,6 @@ function focusPosition(target: HTMLElement) {
   return tooltipPosition(rect.left + Math.min(rect.width / 2, 24), rect.bottom)
 }
 
-function tooltipToneClass(tone: string) {
-  if (tone === "success") return "border-pass/45 text-pass"
-  if (tone === "warning") return "border-warn/50 text-warn"
-  if (tone === "danger") return "border-fail/45 text-fail"
-  if (tone === "neutral") return "border-muted-foreground/35 text-muted-foreground"
-  return "border-info/45 text-info"
-}
-
 function tooltipLabel(target: HTMLElement, title: string) {
   return target.dataset.tooltipLabel || target.getAttribute("aria-label") || title
 }
@@ -72,12 +63,35 @@ export function GlobalRichTooltip() {
   const previousDescribedBy = useRef<string | null>(null)
 
   useEffect(() => {
+    const enhancedTitles = new Map<HTMLElement, string>()
+    const enhanceTitle = (target: HTMLElement) => {
+      if (target instanceof HTMLIFrameElement || target.dataset.nativeTitle === "true") return
+      const title = target.getAttribute("title")
+      if (!title) return
+      enhancedTitles.set(target, title)
+      target.dataset.tooltipContent = title
+      target.removeAttribute("title")
+    }
+    const enhanceTree = (root: ParentNode) => {
+      if (root instanceof HTMLElement && root.hasAttribute("title")) enhanceTitle(root)
+      root.querySelectorAll<HTMLElement>("[title]:not(iframe)").forEach(enhanceTitle)
+    }
+    enhanceTree(document)
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === "attributes" && mutation.target instanceof HTMLElement) {
+          enhanceTitle(mutation.target)
+        }
+        mutation.addedNodes.forEach((node) => {
+          if (node instanceof HTMLElement) enhanceTree(node)
+        })
+      })
+    })
+    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["title"] })
+
     const restoreTarget = () => {
       const target = activeTarget.current
       if (!target) return
-      const originalTitle = target.dataset.richTooltipTitle
-      if (originalTitle && !target.hasAttribute("title")) target.setAttribute("title", originalTitle)
-      delete target.dataset.richTooltipTitle
       if (previousDescribedBy.current) target.setAttribute("aria-describedby", previousDescribedBy.current)
       else target.removeAttribute("aria-describedby")
       activeTarget.current = null
@@ -87,15 +101,14 @@ export function GlobalRichTooltip() {
     const activate = (target: HTMLElement, left: number, top: number) => {
       if (activeTarget.current !== target) {
         restoreTarget()
-        const title = target.getAttribute("title")
+        enhanceTitle(target)
+        const title = target.dataset.tooltipContent
         if (!title) return
         activeTarget.current = target
         previousDescribedBy.current = target.getAttribute("aria-describedby")
-        target.dataset.richTooltipTitle = title
-        target.removeAttribute("title")
         target.setAttribute("aria-describedby", TOOLTIP_ID)
       }
-      const title = target.dataset.richTooltipTitle
+      const title = target.dataset.tooltipContent
       if (!title) return
       setTooltip({
         target,
@@ -128,6 +141,7 @@ export function GlobalRichTooltip() {
       const target = activeTarget.current
       if (!target) return
       if (isTooltipTarget(event.relatedTarget) && target.contains(event.relatedTarget)) return
+      if (document.activeElement instanceof HTMLElement && target.contains(document.activeElement)) return
       close()
     }
     const onFocusIn = (event: FocusEvent) => {
@@ -155,6 +169,7 @@ export function GlobalRichTooltip() {
     window.addEventListener("scroll", close, true)
     window.addEventListener("resize", close)
     return () => {
+      observer.disconnect()
       document.removeEventListener("pointerover", onPointerOver, true)
       document.removeEventListener("pointermove", onPointerMove, true)
       document.removeEventListener("pointerout", onPointerOut, true)
@@ -164,28 +179,26 @@ export function GlobalRichTooltip() {
       window.removeEventListener("scroll", close, true)
       window.removeEventListener("resize", close)
       restoreTarget()
+      enhancedTitles.forEach((title, target) => {
+        if (!target.hasAttribute("title")) target.setAttribute("title", title)
+        if (target.dataset.tooltipContent === title) delete target.dataset.tooltipContent
+      })
     }
   }, [])
 
   if (!tooltip) return null
 
-  return createPortal(
-    <div
+  return (
+    <TooltipSurface
       id={TOOLTIP_ID}
-      role="tooltip"
-      className={cn(
-        "pointer-events-none fixed z-[10000] w-72 rounded-lg border bg-popover px-3 py-2 text-left shadow-xl",
-        tooltipToneClass(tooltip.tone),
-      )}
-      style={{ left: tooltip.left, top: tooltip.top }}
-      data-tooltip-for={tooltip.target.tagName.toLowerCase()}
+      position={{ left: tooltip.left, top: tooltip.top }}
+      className={tooltipToneClass(tooltip.tone)}
     >
       <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">{tooltip.context}</span>
       <span className="block text-xs font-bold text-popover-foreground">{tooltip.label}</span>
       {tooltip.label !== tooltip.title && (
         <span className="mt-1 block text-[11px] leading-relaxed text-popover-foreground/75">{tooltip.title}</span>
       )}
-    </div>,
-    document.body,
+    </TooltipSurface>
   )
 }

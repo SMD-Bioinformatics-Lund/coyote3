@@ -27,6 +27,7 @@ def normalize_rna_filter_keys(filters: dict | None) -> dict:
         normalized,
         {
             "fusioncaller_": "fusion_callers",
+            "fusiondescription_": "fusion_descriptions",
             "fusioneffect_": "fusion_effects",
             "fusionlist_": "fusionlists",
         },

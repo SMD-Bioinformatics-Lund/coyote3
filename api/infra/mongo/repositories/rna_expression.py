@@ -11,6 +11,7 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
 
 
@@ -71,3 +72,9 @@ class RNAExpressionRepository(BaseRepository):
 
         doc.pop("_id", None)
         return doc
+
+    def delete_sample_expression(self, sample_oid: str) -> OperationResult:
+        """Delete expression documents owned by a sample."""
+        return OperationResult.from_delete(
+            self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
+        )

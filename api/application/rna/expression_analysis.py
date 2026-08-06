@@ -19,6 +19,7 @@ from api.application.dna.export import export_rows_to_csv, join_tokens, safe_tex
 from api.application.interpretation.annotation_enrichment import add_global_annotations
 from api.application.interpretation.report_summary import generate_summary_text
 from api.application.reporting.rna_workflow import RNAWorkflowService
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.contracts.managed_resources import aspc_spec_for_category
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.contracts.operations import OperationResult
@@ -78,7 +79,14 @@ def _fusion_sort_value(fusion: dict[str, Any], sort_by: str) -> Any:
     supporting_reads = _fusion_supporting_reads(fusion)
     sort_map = {
         "badges": lambda: sortable_text(
-            " ".join(str(value) for value in (fusion.get("fp"), fusion.get("irrelevant")))
+            " ".join(
+                str(value)
+                for value in (
+                    fusion.get("fp"),
+                    fusion.get("irrelevant"),
+                    fusion.get("blacklisted"),
+                )
+            )
         ),
         "gene1": lambda: sortable_text(genes[0] if len(genes) > 0 else None),
         "gene2": lambda: sortable_text(genes[1] if len(genes) > 1 else None),
@@ -307,6 +315,8 @@ class RnaService:
             "filter_context": filter_context,
             "fusions": page_fusions,
             "ai_text": ai_text,
+            "fusion_caller_options": list(CLINICAL_VOCABULARY.fusion_callers),
+            "fusion_annotation_metadata": CLINICAL_VOCABULARY.fusion_annotation_metadata(),
         }
 
     def show_fusion_payload(self, *, sample: dict, fusion_id: str) -> dict[str, Any]:
@@ -361,6 +371,8 @@ class RnaService:
             "assay_group": assay_group,
             "subpanel": subpanel,
             "assay_group_mappings": show_context["assay_group_mappings"],
+            "fusion_caller_options": list(CLINICAL_VOCABULARY.fusion_callers),
+            "fusion_annotation_metadata": CLINICAL_VOCABULARY.fusion_annotation_metadata(),
         }
 
     def build_fusion_export_rows(self, fusions: list[dict[str, Any]]) -> list[RnaFusionExportRow]:
@@ -386,11 +398,13 @@ class RnaService:
                 breakpoints = []
             status = []
             if fusion.get("interesting"):
-                status.append("report")
+                status.append("interesting")
             if fusion.get("fp"):
                 status.append("false positive")
             if fusion.get("irrelevant"):
                 status.append("irrelevant")
+            if fusion.get("blacklisted"):
+                status.append("blacklisted")
 
             rows.append(
                 RnaFusionExportRow(
@@ -425,6 +439,7 @@ class RnaService:
                     status=join_tokens(status),
                     false_positive=yes_no(fusion.get("fp")),
                     irrelevant=yes_no(fusion.get("irrelevant")),
+                    blacklisted=yes_no(fusion.get("blacklisted")),
                     interesting=yes_no(fusion.get("interesting")),
                     latest_comment=safe_text(latest_comment.get("text")),
                     latest_comment_author=safe_text(latest_comment.get("author")),
@@ -462,6 +477,15 @@ class RnaService:
             else:
                 self.fusion_repository.unmark_false_positive_fusion(fusion_id)
             return
+        if flag == "interesting":
+            self.fusion_repository.mark_interesting(fusion_id, apply)
+            return
+        if flag == "irrelevant":
+            self.fusion_repository.mark_irrelevant(fusion_id, apply)
+            return
+        if flag == "blacklisted":
+            self.fusion_repository.mark_blacklisted(fusion_id, apply)
+            return
         raise ValueError(f"Unsupported flag: {flag}")
 
     def select_fusion_call(self, *, fusion_id: str, callidx: str, num_calls: str) -> None:
@@ -485,4 +509,17 @@ class RnaService:
             return self.fusion_repository.mark_false_positive_bulk(fusion_ids, apply)
         if flag == "irrelevant":
             return self.fusion_repository.mark_irrelevant_bulk(fusion_ids, apply)
+        if flag == "blacklisted":
+            return self.fusion_repository.mark_blacklisted_bulk(fusion_ids, apply)
         raise ValueError(f"Unsupported flag: {flag}")
+
+    def rna_analysis_payload(self, *, sample: dict[str, Any]) -> dict[str, Any]:
+        """Return independently stored RNA analysis records for one sample."""
+        sample_id = str(sample.get("_id") or "")
+        return {
+            "sample_id": sample_id,
+            "sample_name": str(sample.get("name") or sample_id),
+            "expression": self.rna_expression_repository.get_rna_expression(sample_id),
+            "classification": self.rna_classification_repository.get_rna_classification(sample_id),
+            "quality": self.rna_quality_repository.get_rna_qc(sample_id),
+        }

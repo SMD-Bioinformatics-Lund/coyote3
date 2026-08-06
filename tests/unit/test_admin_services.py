@@ -847,6 +847,15 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
             search_isgls=repo.search_genelists,
             get_all_isgl=repo.list_genelists,
             get_isgl=repo.get_genelist,
+            get_isgl_for_scope=lambda asp_name=None, assay_group=None, is_active=None: [
+                item
+                for item in repo.list_genelists()
+                if (
+                    asp_name in (item.get("asp_ids") or [])
+                    or assay_group in (item.get("asp_groups") or [])
+                )
+                and (is_active is None or item.get("is_active") is is_active)
+            ],
             create_genelist=repo.create_genelist,
             update_isgl=repo.update_genelist,
             rotate_isgl=repo.rotate_genelist,
@@ -876,6 +885,13 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
         translocation_repository=SimpleNamespace(),
         fusion_repository=SimpleNamespace(),
         biomarker_repository=SimpleNamespace(),
+        rna_expression_repository=SimpleNamespace(),
+        rna_classification_repository=SimpleNamespace(),
+        rna_quality_repository=SimpleNamespace(),
+        sample_comment_repository=SimpleNamespace(),
+        report_repository=SimpleNamespace(),
+        reported_variant_repository=SimpleNamespace(),
+        oncokb_public_cache_repository=SimpleNamespace(),
     )
 
 
@@ -921,6 +937,7 @@ def _aspc_service(repo: _AdminRepoStub) -> AspcService:
     return AspcService(
         assay_configuration_repository=store.assay_configuration_repository,
         assay_panel_repository=store.assay_panel_repository,
+        gene_list_repository=store.gene_list_repository,
         vep_metadata_repository=store.vep_metadata_repository,
         common_util=shared_util.common,
     )
@@ -936,6 +953,13 @@ def _resource_sample_service(repo: _AdminRepoStub) -> ResourceSampleService:
         translocation_repository=store.translocation_repository,
         fusion_repository=store.fusion_repository,
         biomarker_repository=store.biomarker_repository,
+        rna_expression_repository=store.rna_expression_repository,
+        rna_classification_repository=store.rna_classification_repository,
+        rna_quality_repository=store.rna_quality_repository,
+        sample_comment_repository=store.sample_comment_repository,
+        report_repository=store.report_repository,
+        reported_variant_repository=store.reported_variant_repository,
+        oncokb_public_cache_repository=store.oncokb_public_cache_repository,
         assay_panel_repository=store.assay_panel_repository,
         records_util=shared_util.records,
     )
@@ -1289,6 +1313,70 @@ def test_admin_genelist_service_view_context_filters_genes(monkeypatch):
     assert payload["panel_germline_genes"] == ["BRCA1"]
 
 
+def test_admin_genelist_form_filters_asps_by_selected_groups(monkeypatch):
+    """ISGL forms expose active ASP choices under their owning assay groups."""
+    repo = _AdminRepoStub()
+    _patch_admin_stores(monkeypatch, repo)
+    service = _isgl_service(repo)
+    service.assay_panel_repository.get_all_asps = lambda is_active=None: [
+        {"asp_id": "hema_gmsv1", "display_name": "Hematology GMSv1", "asp_group": "hematology"},
+        {"asp_id": "solid_gmsv3", "display_name": "Solid DNA GMSv3", "asp_group": "solid"},
+    ]
+
+    payload = service.create_context_payload(actor_username="actor@example.com")
+    form = payload["form"]
+
+    assert "subpanel_id" not in form["fields"]
+    assert form["fields"]["diagnosis"]["label"] == "Diagnosis / Subpanel IDs"
+    assert form["fields"]["asp_ids"]["options_by_field"] == {
+        "field": "asp_groups",
+        "values": {
+            "hematology": [
+                {
+                    "value": "hema_gmsv1",
+                    "label": "Hematology GMSv1",
+                    "category": "hematology",
+                }
+            ],
+            "solid": [
+                {
+                    "value": "solid_gmsv3",
+                    "label": "Solid DNA GMSv3",
+                    "category": "solid",
+                }
+            ],
+        },
+    }
+
+
+def test_admin_genelist_rejects_asp_outside_selected_groups(monkeypatch):
+    """Direct API writes cannot bypass the dependent ASP-group selection."""
+    repo = _AdminRepoStub()
+    _patch_admin_stores(monkeypatch, repo)
+    service = _isgl_service(repo)
+    service.assay_panel_repository.get_all_asps = lambda is_active=None: [
+        {"asp_id": "hema_gmsv1", "asp_group": "hematology"},
+        {"asp_id": "solid_gmsv3", "asp_group": "solid"},
+    ]
+
+    with pytest.raises(AppError) as exc_info:
+        service.create(
+            payload={
+                "config": {
+                    "isgl_id": "missing",
+                    "name": "Solid scope",
+                    "displayname": "Solid scope",
+                    "list_type": ["snv"],
+                    "asp_groups": ["solid"],
+                    "asp_ids": ["hema_gmsv1"],
+                }
+            }
+        )
+
+    assert exc_info.value.status_code == 400
+    assert "selected assay groups" in exc_info.value.message
+
+
 def test_admin_aspc_create_context_uses_analysis_sections_not_genelist_fields(monkeypatch):
     """ASPC form should expose analysis/report toggles, not sample-owned gene-list selectors."""
     repo = _AdminRepoStub()
@@ -1298,6 +1386,8 @@ def test_admin_aspc_create_context_uses_analysis_sections_not_genelist_fields(mo
     payload = service.create_context_payload(category="DNA", actor_username="actor@example.com")
     form = payload["form"]
     analysis_options = form["fields"]["analysis_types"]["options"]
+    analysis_options_by_asp = form["fields"]["analysis_types"]["options_by_field"]
+    subpanel_options_by_asp = form["fields"]["subpanel_id"]["options_by_field"]
     filter_groups = form["fields"]["filters"]["groups"]
     reporting_groups = form["fields"]["reporting"]["groups"]
     filter_keys = {field["key"] for group in filter_groups for field in group.get("fields", [])}
@@ -1308,6 +1398,10 @@ def test_admin_aspc_create_context_uses_analysis_sections_not_genelist_fields(mo
 
     assert "TMB" in analysis_options
     assert "PGX" in analysis_options
+    assert analysis_options_by_asp["field"] == "asp_id"
+    assert "SNV" in analysis_options_by_asp["values"]["wgs"]
+    assert subpanel_options_by_asp["field"] == "asp_id"
+    assert subpanel_options_by_asp["values"]["wgs"][0] == "base"
     assert "somatic.snv.snvlists" in filter_keys
     assert "somatic.cnv.cnvlists" in filter_keys
     assert "somatic.fusion.fusionlists" not in filter_keys
@@ -1317,6 +1411,32 @@ def test_admin_aspc_create_context_uses_analysis_sections_not_genelist_fields(mo
     assert "report_sections" in reporting_field_keys
     assert "analysis" not in reporting_field_keys
     assert "general_report_summary" in reporting_field_keys
+
+
+def test_admin_aspc_analysis_types_follow_the_asp_sequencing_family():
+    """Targeted RNA panels reject WTS-only capabilities while WTS accepts them."""
+    with pytest.raises(AppError) as exc_info:
+        AspcService._validate_analysis_types_for_panel(
+            {"analysis_types": ["FUSION", "EXPRESSION"]},
+            {"asp_family": "panel-rna"},
+        )
+
+    assert exc_info.value.status_code == 400
+    assert "EXPRESSION" in exc_info.value.message
+
+    AspcService._validate_analysis_types_for_panel(
+        {"analysis_types": ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC"]},
+        {"asp_family": "wts"},
+    )
+
+    assert AspcService._analysis_types_for_panel({"asp_family": "panel-rna"}, category="RNA") == [
+        "FUSION",
+        "QC",
+        "PGX",
+    ]
+    assert "EXPRESSION" in AspcService._analysis_types_for_panel(
+        {"asp_family": "wts"}, category="RNA"
+    )
 
 
 def test_admin_aspc_service_create_rejects_duplicate(monkeypatch):

@@ -60,6 +60,8 @@ class HomeEditContextPayload(BaseModel):
     snv_genelist_options: list[dict[str, Any]] = Field(default_factory=list)
     cnvlist_options: list[dict[str, Any]] = Field(default_factory=list)
     fusionlist_options: list[dict[str, Any]] = Field(default_factory=list)
+    fusion_caller_options: list[str] = Field(default_factory=list)
+    fusion_annotation_metadata: dict[str, list[str]] = Field(default_factory=dict)
     selected_gene_panels: dict[str, Any] = Field(default_factory=dict)
     analysis_sections: list[str] = Field(default_factory=list)
     analysis_counts_raw: dict[str, int] = Field(default_factory=dict)
