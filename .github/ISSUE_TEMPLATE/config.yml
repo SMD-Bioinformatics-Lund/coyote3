@@ -2,4 +2,7 @@ blank_issues_enabled: false
 contact_links:
   - name: Coyote3 Documentation
     url: https://smd-bioinformatics-lund.github.io/coyote3/
-    about: Official guides and documentation.
+    about: Read the deployment, operation, API, and clinical workflow guides.
+  - name: Report a security vulnerability
+    url: https://github.com/SMD-Bioinformatics-Lund/coyote3/security/advisories/new
+    about: Privately report security issues. Do not open a public issue.
