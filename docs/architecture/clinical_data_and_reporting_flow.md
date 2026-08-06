@@ -61,10 +61,11 @@ An Assay Specific Panel (ASP) describes the physical test.
 | `germline_genes` | Germline-capable genes | Supports germline-aware review and reporting |
 | `accredited` | Accreditation status | Supports report metadata and conclusion wording |
 
-ASP data is active configuration. It is updated in place and kept as the
-single current first-version document for its `asp_id`; it does not contain
-sample-specific results or report text selected for one case. Operational
-change history belongs to the audit-event stream.
+ASP data is versioned clinical configuration. An edit creates a new document
+with the same `asp_id` and the next `version`, then retires the previous active
+revision. It does not contain sample-specific results or report text selected
+for one case. Retired revisions and permanent traceability audit events retain
+the configuration lineage.
 
 ### 2.2 ASPC: analytical and reporting configuration
 

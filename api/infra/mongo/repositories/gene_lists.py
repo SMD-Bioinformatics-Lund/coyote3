@@ -17,6 +17,7 @@ from api.config.constants import normalize_clinical_identifier
 from api.contracts.operations import OperationResult
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
 
 
 # -------------------------------------------------------------------------
@@ -70,6 +71,12 @@ class ISGLRepository(BaseRepository):
         col.create_index([("asp_groups", 1)], name="asp_groups_1", background=True)
         col.create_index([("diagnosis", 1)], name="diagnosis_1", background=True)
         col.create_index([("list_type", 1)], name="list_type_1", background=True)
+        col.create_index(
+            [("isgl_id", 1), ("version", 1)],
+            name="isgl_id_version_1",
+            unique=True,
+            background=True,
+        )
 
     @staticmethod
     def _normalize_isgl_id(isgl_id: str | None) -> str | None:
@@ -126,7 +133,7 @@ class ISGLRepository(BaseRepository):
         return int(self.get_collection().count_documents(query))
 
     def get_isgl(
-        self, isgl_id: str, is_active: bool | None = None, is_public: bool | None = None
+        self, isgl_id: str, is_active: bool | None = True, is_public: bool | None = None
     ) -> dict | None:
         """
         Fetch a single gene list.
@@ -416,25 +423,22 @@ class ISGLRepository(BaseRepository):
         invalidate_dashboard_summary_cache(self.adapter)
         return operation
 
-    def update_isgl(self, isgl_id: str, updated_data: dict) -> OperationResult:
-        """
-        Update an existing gene list.
-
-        This method replaces an existing gene list document in the database
-        with the provided updated data, identified by the `isgl_id`.
-
-        Args:
-            isgl_id (str): The unique identifier of the gene list to update.
-            updated_data (dict): A dictionary containing the updated gene list data.
-
-        Returns:
-            Structured write result for the replace.
-        """
-        result = self.get_collection().replace_one(
-            {**self._isgl_lookup_query(isgl_id), "is_active": True},
-            self.ensure_isgl_id(dict(updated_data)),
+    def rotate_isgl(
+        self,
+        isgl_id: str,
+        updated_data: dict,
+        *,
+        expected_version: int,
+        retire_fields: dict,
+    ) -> OperationResult:
+        """Retire the active ISGL revision and insert its successor."""
+        operation = rotate_active_revision(
+            self.get_collection(),
+            selector=self._isgl_lookup_query(isgl_id),
+            expected_version=expected_version,
+            new_document=self.ensure_isgl_id(dict(updated_data)),
+            retire_fields=retire_fields,
         )
-        operation = OperationResult.from_update(result)
         invalidate_dashboard_summary_cache(self.adapter)
         return operation
 
@@ -452,8 +456,16 @@ class ISGLRepository(BaseRepository):
         Returns:
             Structured write result for the update.
         """
-        result = self.get_collection().update_one(
-            self._isgl_lookup_query(isgl_id),
+        collection = self.get_collection()
+        target = collection.find_one(
+            {
+                **self._isgl_lookup_query(isgl_id),
+                "is_active": not active_status,
+            },
+            sort=[("version", -1), ("created_on", -1)],
+        )
+        result = collection.update_one(
+            {"_id": target["_id"]} if target else {"_id": None},
             {"$set": {"is_active": active_status}},
         )
         operation = OperationResult.from_update(result)

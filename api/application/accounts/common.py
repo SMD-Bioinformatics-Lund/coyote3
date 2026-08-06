@@ -37,11 +37,20 @@ def normalize_permission_ids(permission_ids: Any) -> list[str]:
 
 
 def change_payload(
-    *, resource: str, resource_id: str, action: str, sample_id: str = "admin"
+    *,
+    resource: str,
+    resource_id: str,
+    action: str,
+    sample_id: str = "admin",
+    operation: Any | None = None,
 ) -> dict[str, Any]:
     """Build the standard admin change response payload."""
     return _change_payload(
-        sample_id=sample_id, resource=resource, resource_id=resource_id, action=action
+        sample_id=sample_id,
+        resource=resource,
+        resource_id=resource_id,
+        action=action,
+        operation=operation,
     )
 
 

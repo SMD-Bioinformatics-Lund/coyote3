@@ -22,5 +22,10 @@ def set_managed_resource_audit_context(
         "id": resource_id,
         "name": resource_id,
         "message": f"{action.capitalize()} {resource_label} {resource_id}",
-        "metadata": {"action": action, "resource_key": resource_id},
+        "retention_class": "traceability",
+        "metadata": {
+            "action": action,
+            "resource_key": resource_id,
+            **dict(result.get("meta", {}).get("revision") or {}),
+        },
     }

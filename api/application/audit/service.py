@@ -13,6 +13,7 @@ from api.infra.observability.logging import current_request_context
 
 AuditSeverity = Literal["info", "warning", "error", "critical"]
 AuditOutcome = Literal["success", "failure", "denied"]
+AuditRetentionClass = Literal["operational", "traceability"]
 
 
 class AuditService:
@@ -39,6 +40,7 @@ class AuditService:
         resource_name: str | None = None,
         tags: list[str] | tuple[str, ...] = (),
         metadata: dict[str, Any] | None = None,
+        retention_class: AuditRetentionClass = "operational",
     ) -> str | None:
         """Append one sanitized audit event and return its id when persisted."""
         now = datetime.now(timezone.utc)
@@ -46,7 +48,8 @@ class AuditService:
         actor_doc = self._actor_document(actor, provider=provider)
         document = {
             "occurred_at": now,
-            "expires_at": now + timedelta(days=self.retention_days),
+            "retention_class": retention_class,
+            "immutable": retention_class == "traceability",
             "severity": severity,
             "category": category.strip().lower(),
             "event_type": event_type.strip().lower(),
@@ -70,6 +73,8 @@ class AuditService:
             "tags": sorted({str(tag).strip().lower() for tag in tags if str(tag).strip()}),
             "metadata": safe_audit_metadata(metadata or {}),
         }
+        if retention_class == "operational":
+            document["expires_at"] = now + timedelta(days=self.retention_days)
         try:
             event_id = self.collection.insert_one(document).inserted_id
         except PyMongoError:

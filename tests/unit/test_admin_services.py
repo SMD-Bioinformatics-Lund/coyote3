@@ -30,6 +30,7 @@ from api.config.constants import (
     PLATFORM_OPTIONS,
     SAMPLE_FILE_KEYS,
 )
+from api.contracts.operations import OperationResult
 from api.domain.core.exceptions import AppError
 
 
@@ -431,7 +432,7 @@ class _AdminRepoStub:
         """
         self.updated_panel = (panel_id, panel)
 
-    def rotate_panel(self, panel_id, panel, retire_fields=None):
+    def rotate_panel(self, panel_id, panel, expected_version=None, retire_fields=None):
         """Rotate panel.
 
         Args:
@@ -442,7 +443,8 @@ class _AdminRepoStub:
         Returns:
             The function result.
         """
-        self.updated_panel = (panel_id, panel, retire_fields or {})
+        self.updated_panel = (panel_id, panel, expected_version, retire_fields or {})
+        return OperationResult(inserted_count=1, inserted_id="new-panel-id")
 
     def set_panel_active(self, panel_id, is_active):
         """Set panel active.
@@ -526,7 +528,7 @@ class _AdminRepoStub:
         """
         self.updated_genelist = (genelist_id, genelist)
 
-    def rotate_genelist(self, genelist_id, genelist, retire_fields=None):
+    def rotate_genelist(self, genelist_id, genelist, expected_version=None, retire_fields=None):
         """Rotate genelist.
 
         Args:
@@ -537,7 +539,8 @@ class _AdminRepoStub:
         Returns:
             The function result.
         """
-        self.updated_genelist = (genelist_id, genelist, retire_fields or {})
+        self.updated_genelist = (genelist_id, genelist, expected_version, retire_fields or {})
+        return OperationResult(inserted_count=1, inserted_id="new-genelist-id")
 
     def set_genelist_active(self, genelist_id, is_active):
         """Set genelist active.
@@ -607,7 +610,7 @@ class _AdminRepoStub:
         """
         self.updated_aspc = (assay_id, config)
 
-    def rotate_assay_config(self, assay_id, config, retire_fields=None):
+    def rotate_assay_config(self, assay_id, config, expected_version=None, retire_fields=None):
         """Rotate assay config.
 
         Args:
@@ -618,7 +621,8 @@ class _AdminRepoStub:
         Returns:
             The function result.
         """
-        self.updated_aspc = (assay_id, config, retire_fields or {})
+        self.updated_aspc = (assay_id, config, expected_version, retire_fields or {})
+        return OperationResult(inserted_count=1, inserted_id="new-aspc-id")
 
     def set_assay_config_active(self, assay_id, is_active):
         """Set assay config active.

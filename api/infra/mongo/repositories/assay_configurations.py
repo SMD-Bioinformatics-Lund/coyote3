@@ -25,6 +25,7 @@ from api.config.constants import (
 from api.contracts.operations import OperationResult
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
 
 
 # -------------------------------------------------------------------------
@@ -81,6 +82,12 @@ class ASPConfigRepository(BaseRepository):
                 "environment": {"$exists": True, "$type": "string"},
                 "is_active": True,
             },
+        )
+        col.create_index(
+            [("aspc_id", 1), ("version", 1)],
+            name="aspc_id_version_1",
+            unique=True,
+            background=True,
         )
 
     @staticmethod
@@ -315,22 +322,22 @@ class ASPConfigRepository(BaseRepository):
             .sort([("catalog.display_order", 1), ("subpanel_id", 1), ("aspc_id", 1)])
         )
 
-    def update_aspc(self, aspc_id: str, data: dict) -> OperationResult:
-        """
-        Updates an existing assay configuration document with new data.
-
-        Args:
-            aspc_id (str): The unique identifier of the assay configuration to update. (assay:profile format)
-            data (dict): A dictionary containing the fields to update and their new values.
-
-        Returns:
-            Structured write result for the update.
-        """
-        result = self.get_collection().update_one(
-            {**self._aspc_lookup_query(aspc_id), "is_active": True},
-            {"$set": self.ensure_aspc_id(data)},
+    def rotate_aspc(
+        self,
+        aspc_id: str,
+        data: dict,
+        *,
+        expected_version: int,
+        retire_fields: dict,
+    ) -> OperationResult:
+        """Retire the active ASPC revision and insert its successor."""
+        operation = rotate_active_revision(
+            self.get_collection(),
+            selector=self._aspc_lookup_query(aspc_id),
+            expected_version=expected_version,
+            new_document=self.ensure_aspc_id(dict(data)),
+            retire_fields=retire_fields,
         )
-        operation = OperationResult.from_update(result)
         invalidate_dashboard_summary_cache(self.adapter)
         return operation
 
@@ -378,8 +385,16 @@ class ASPConfigRepository(BaseRepository):
         Returns:
             Structured write result for the update.
         """
-        result = self.get_collection().update_one(
-            self._aspc_lookup_query(aspc_id),
+        collection = self.get_collection()
+        target = collection.find_one(
+            {
+                **self._aspc_lookup_query(aspc_id),
+                "is_active": not active_status,
+            },
+            sort=[("version", -1), ("created_on", -1)],
+        )
+        result = collection.update_one(
+            {"_id": target["_id"]} if target else {"_id": None},
             {"$set": {"is_active": active_status}},
         )
         operation = OperationResult.from_update(result)

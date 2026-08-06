@@ -131,18 +131,38 @@ class AspService:
         updated_doc.pop("_id", None)
         actor = current_actor(actor_username)
         now = utc_now()
-        updated_doc["created_by"] = panel.get("created_by") or actor
-        updated_doc["created_on"] = panel.get("created_on") or now
+        previous_version = int(panel.get("version") or 1)
+        updated_doc["created_by"] = actor
+        updated_doc["created_on"] = now
         updated_doc["updated_by"] = actor
         updated_doc["updated_on"] = now
         updated_doc["is_active"] = True
-        updated_doc["version"] = 1
+        updated_doc["version"] = previous_version + 1
+        updated_doc["supersedes_id"] = panel.get("_id")
         updated_doc.pop("retired_by", None)
         updated_doc.pop("retired_on", None)
         updated_doc.pop("retired_reason", None)
         updated_doc = _validated_doc(self._spec.collection, updated_doc)
-        self.assay_panel_repository.update_asp(panel_id, updated_doc)
-        return change_payload(resource="asp", resource_id=panel_id, action="update")
+        operation = self.assay_panel_repository.rotate_asp(
+            panel_id,
+            updated_doc,
+            expected_version=previous_version,
+            retire_fields={
+                "retired_by": actor,
+                "retired_on": now,
+                "retired_reason": "superseded_by_edit",
+            },
+        )
+        result = change_payload(
+            resource="asp", resource_id=panel_id, action="update", operation=operation
+        )
+        result["meta"]["revision"] = {
+            "previous_version": previous_version,
+            "new_version": previous_version + 1,
+            "previous_document_id": str(panel.get("_id") or ""),
+            "new_document_id": operation.inserted_id,
+        }
+        return result
 
     def toggle(self, *, panel_id: str) -> dict[str, Any]:
         """Toggle whether an assay panel is active.

@@ -46,6 +46,10 @@ def ensure_security_indexes(*, db: Any, config: dict[str, Any], logger: logging.
         ([("event_type", ASCENDING), ("occurred_at", DESCENDING)], "idx_audit_event_type_time"),
         ([("actor.username", ASCENDING), ("occurred_at", DESCENDING)], "idx_audit_actor_time"),
         ([("tags", ASCENDING), ("occurred_at", DESCENDING)], "idx_audit_tags_time"),
+        (
+            [("retention_class", ASCENDING), ("occurred_at", DESCENDING)],
+            "idx_audit_retention_time",
+        ),
     ):
         _create_index(audit, fields, name=name, logger=logger)
     _create_index(

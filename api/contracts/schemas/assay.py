@@ -136,6 +136,10 @@ class AspConfigDoc(_StrictDocBase):
     created_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_by: str | None = None
     updated_on: datetime | None = None
+    supersedes_id: Any | None = None
+    retired_by: str | None = None
+    retired_on: datetime | None = None
+    retired_reason: str | None = None
 
     @field_validator("environment", mode="before")
     @classmethod
@@ -296,6 +300,10 @@ class AssaySpecificPanelsDoc(_StrictDocBase):
     created_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_by: str | None = None
     updated_on: datetime | None = None
+    supersedes_id: Any | None = None
+    retired_by: str | None = None
+    retired_on: datetime | None = None
+    retired_reason: str | None = None
 
     @field_validator("asp_id", mode="before")
     @classmethod
@@ -426,6 +434,10 @@ class InsilicoGenelistsDoc(_StrictDocBase):
     created_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_by: str | None = None
     updated_on: datetime | None = None
+    supersedes_id: Any | None = None
+    retired_by: str | None = None
+    retired_on: datetime | None = None
+    retired_reason: str | None = None
 
     @field_validator("isgl_id", mode="before")
     @classmethod

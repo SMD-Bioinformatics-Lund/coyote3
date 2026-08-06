@@ -426,12 +426,14 @@ class AspcService:
         updated_doc["subpanel_id"] = str(updated_doc.get("subpanel_id") or SUBPANEL_BASE_ID).strip()
         actor = current_actor(actor_username)
         now = utc_now()
-        updated_doc["created_by"] = assay_config.get("created_by") or actor
-        updated_doc["created_on"] = assay_config.get("created_on") or now
+        previous_version = int(assay_config.get("version") or 1)
+        updated_doc["created_by"] = actor
+        updated_doc["created_on"] = now
         updated_doc["updated_by"] = actor
         updated_doc["updated_on"] = now
         updated_doc["is_active"] = True
-        updated_doc["version"] = 1
+        updated_doc["version"] = previous_version + 1
+        updated_doc["supersedes_id"] = assay_config.get("_id")
         panel = self.assay_panel_repository.get_asp(str(updated_doc.get("asp_id", "")))
         if not panel:
             raise api_error(400, "Selected ASP does not exist")
@@ -449,8 +451,26 @@ class AspcService:
         updated_doc.pop("retired_reason", None)
         self._validate_static_rule_source(updated_doc)
         updated_doc = _validated_doc(spec.collection, updated_doc)
-        self.assay_configuration_repository.update_aspc(assay_id, updated_doc)
-        return change_payload(resource="aspc", resource_id=assay_id, action="update")
+        operation = self.assay_configuration_repository.rotate_aspc(
+            assay_id,
+            updated_doc,
+            expected_version=previous_version,
+            retire_fields={
+                "retired_by": actor,
+                "retired_on": now,
+                "retired_reason": "superseded_by_edit",
+            },
+        )
+        result = change_payload(
+            resource="aspc", resource_id=assay_id, action="update", operation=operation
+        )
+        result["meta"]["revision"] = {
+            "previous_version": previous_version,
+            "new_version": previous_version + 1,
+            "previous_document_id": str(assay_config.get("_id") or ""),
+            "new_document_id": operation.inserted_id,
+        }
+        return result
 
     def toggle(self, *, assay_id: str) -> dict[str, Any]:
         """Toggle whether an assay configuration is active.

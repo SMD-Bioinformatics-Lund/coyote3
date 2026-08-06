@@ -90,7 +90,29 @@ def test_audit_service_redacts_sensitive_metadata_and_sets_expiry():
     assert event_id == stored["_id"]
     assert stored["metadata"] == {"password": "[redacted]", "safe": 1}
     assert stored["actor"]["username"] == "alice"
+    assert stored["retention_class"] == "operational"
+    assert stored["immutable"] is False
     assert stored["expires_at"] > datetime.now(timezone.utc) + timedelta(days=89)
+
+
+def test_traceability_audit_events_do_not_expire():
+    collection = _Collection()
+    service = AuditService(collection, retention_days=90, environment="test")
+
+    service.record(
+        "clinical.configuration.updated",
+        "Updated ASP hema_gmsv1",
+        category="clinical_configuration",
+        actor="admin",
+        resource_type="asp",
+        resource_id="hema_gmsv1",
+        retention_class="traceability",
+    )
+
+    stored = collection.docs[0]
+    assert stored["retention_class"] == "traceability"
+    assert stored["immutable"] is True
+    assert "expires_at" not in stored
 
 
 def test_access_audit_records_denials_only(monkeypatch):
@@ -153,6 +175,41 @@ def test_mutation_audit_uses_route_resource_metadata(monkeypatch):
     assert calls[0][1]["resource_id"] == "507f1f77bcf86cd799439011"
     assert calls[0][1]["resource_name"] == "CASE_DEMO"
     assert calls[0][1]["metadata"]["sample_oid"] == "507f1f77bcf86cd799439011"
+    assert calls[0][1]["retention_class"] == "operational"
+
+
+def test_mutation_audit_preserves_traceability_retention_class(monkeypatch):
+    calls = []
+    request = SimpleNamespace(
+        method="PUT",
+        headers={},
+        client=SimpleNamespace(host="127.0.0.1"),
+        url=SimpleNamespace(path="/api/v1/admin/asp/hema_gmsv1"),
+        state=SimpleNamespace(
+            audit_resource={
+                "type": "asp",
+                "id": "hema_gmsv1",
+                "retention_class": "traceability",
+                "metadata": {"previous_version": 1, "new_version": 2},
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        "api.app.deps.services.get_audit_service",
+        lambda: SimpleNamespace(record=lambda *args, **kwargs: calls.append((args, kwargs))),
+    )
+
+    audit_events.emit_mutation_event(
+        request=request,
+        username="admin",
+        status_code=200,
+        action="PUT",
+        target="/api/v1/admin/asp/hema_gmsv1",
+    )
+
+    assert calls[0][1]["retention_class"] == "traceability"
+    assert calls[0][1]["metadata"]["previous_version"] == 1
+    assert calls[0][1]["metadata"]["new_version"] == 2
 
 
 def test_json_formatter_includes_bound_request_context():

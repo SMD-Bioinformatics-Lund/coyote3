@@ -88,20 +88,46 @@ This keeps UI schema behavior and DB-write validation in one backend source of t
 
 ## Admin Resource Versioning Model
 
-Clinical configuration uses one active document per business key. ASP, ASPC,
-and ISGL documents are updated in place, remain at baseline `version: 1`, and
-do not retain `version_history` or retired duplicates. MongoDB uniqueness is
-enforced for each active `asp_id`, `aspc_id`, and `isgl_id`.
+### Clinical configuration: immutable revision rotation
 
-Clinical reproducibility is preserved at the report boundary: a report stores
-the resolved ASPC identity, applied filter snapshot, report rows, and static
-rule-source provenance. Audit events record who changed operational
-configuration and when. Each future ASP, ASPC, and ISGL create, update, status
-change, or deletion is recorded with its domain resource type, business key,
-actor, timestamp, route, request identifier, and outcome. This operational
-audit trail is retained independently of the one-time migration that removed
-superseded configuration documents; it is not a second copy of the full
-configuration document.
+ASP, ASPC, and ISGL use immutable content revisions. Their business identifiers
+remain stable, while each approved edit creates a successor MongoDB document.
+
+| Resource | Stable business identifier | Revision uniqueness |
+| --- | --- | --- |
+| ASP | `asp_id` | `(asp_id, version)` |
+| ASPC | `aspc_id` | `(aspc_id, version)` |
+| ISGL | `isgl_id` | `(isgl_id, version)` |
+
+The lifecycle is:
+
+1. Creation writes active revision `1`.
+2. An edit reads the active revision and validates the complete successor.
+3. The successor receives `version + 1`, a new ObjectId, and `supersedes_id`
+   pointing to the previous document.
+4. The previous document becomes inactive and receives `retired_by`,
+   `retired_on`, and `retired_reason` metadata.
+5. The successor becomes the only active document for the business identifier.
+
+MongoDB partial unique indexes enforce one active revision per business
+identifier. Unique compound indexes prevent reuse of a revision number. A
+replica-set deployment rotates the two documents in a transaction. Standalone
+development deployments use a guarded retire-and-insert operation and restore
+the previous active document if successor insertion fails.
+
+Content edits never overwrite a retired revision. Activation state is lifecycle
+metadata: deactivation or reactivation can change the latest revision's active
+state without rewriting its clinical payload.
+
+Samples and saved reports retain resolved configuration identity, including the
+ASPC document ObjectId, business key, and version. Retired revisions therefore
+remain available for historical reconstruction after a newer revision becomes
+active. Static report-rule identity and report snapshots provide the remaining
+report-boundary provenance.
+
+Managed ASP, ASPC, and ISGL mutations emit non-expiring traceability audit
+events. These events identify the prior and successor revision but do not embed
+an unrestricted second copy of either document.
 
 ### Identity and access governance: in-place version increments
 

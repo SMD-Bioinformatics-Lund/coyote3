@@ -416,7 +416,12 @@ class AppControlsService:
         retention_days = self.get_controls().retention.audit_events_days
         cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
         audit_collection = self.collection.database[get_audit_events_collection_name(self.config)]
-        result = audit_collection.delete_many({"occurred_at": {"$lt": cutoff}})
+        result = audit_collection.delete_many(
+            {
+                "retention_class": "operational",
+                "occurred_at": {"$lt": cutoff},
+            }
+        )
         return {
             "retention_days": retention_days,
             "deleted": int(result.deleted_count),

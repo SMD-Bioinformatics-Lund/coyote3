@@ -16,7 +16,8 @@ method, and path. The API returns the correlation id in the `X-Request-ID` respo
 Durable audit events are append-only MongoDB documents in the fixed
 `audit_events` collection. Events include:
 
-- `occurred_at` and `expires_at`
+- `occurred_at`, `retention_class`, and `immutable`
+- `expires_at` for expiring operational events only
 - `severity`, `category`, `event_type`, and `outcome`
 - actor username/fullname/roles/provider
 - resource type/id/name
@@ -40,7 +41,8 @@ Indexes are created at runtime for session expiry and audit retention/filtering:
 
 - `ttl_api_session_expiry`
 - `ttl_audit_expiry`
-- audit indexes for time, severity, category, event type, actor, and tags
+- audit indexes for time, retention class, severity, category, event type,
+  actor, and tags
 
 Relevant settings:
 
@@ -183,11 +185,26 @@ API caller cannot bypass a disabled module.
 
 ## Retention Maintenance
 
-Audit retention is enforced in two layers:
+Audit events use explicit retention classes:
+
+| Retention class | Intended content | Expiry behavior |
+| --- | --- | --- |
+| `operational` | Routine requests, access observations, runtime diagnostics, and other time-bounded operational records | Receives `expires_at`; eligible for MongoDB TTL expiry and manual/nightly cleanup |
+| `traceability` | Clinical-configuration mutations whose history is needed to explain ASP, ASPC, or ISGL lineage | Stores `immutable: true`, omits `expires_at`, and is excluded from application cleanup |
+
+Audit retention is enforced in two layers for `operational` events only:
 
 - MongoDB TTL indexes delete documents after their `expires_at` timestamp.
-- The nightly `api.tasks.maintenance.run_retention_maintenance` Celery task explicitly deletes audit
-  events older than the current admin retention policy and reports the cleanup result.
+- The nightly `api.tasks.maintenance.run_retention_maintenance` Celery task
+  deletes operational events older than the current admin retention policy and
+  reports the cleanup result.
+
+Legacy audit documents without a retention class are retained conservatively.
+The application does not provide a cleanup path for traceability events. This
+protects them from routine retention changes, but it cannot prevent a
+privileged database administrator from deleting collection data directly.
+Production deployments must therefore restrict database write access and
+include `audit_events` in protected backup and restore procedures.
 
 Disk log retention is handled by the same maintenance task when file logging is enabled. The task:
 

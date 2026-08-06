@@ -430,21 +430,29 @@ def test_asp_repository_business_keys_scope_genes_and_lifecycle(monkeypatch) -> 
     assert repository.get_asp_genes("missing") == ([], [])
     assert repository.get_asp_group_mappings()["solid_gmsv3"] == "solid"
 
-    repository.update_asp(
+    adapter.assay_panels_collection.update_one({"asp_id": "hema_gmsv1"}, {"$set": {"version": 1}})
+    repository.rotate_asp(
         "hema_gmsv1",
         {
             "asp_id": "hema_gmsv1",
             "display_name": "Hematology updated",
             "asp_group": "hematology",
             "is_active": True,
+            "version": 2,
         },
+        expected_version=1,
+        retire_fields={"retired_by": "tester", "retired_reason": "superseded_by_edit"},
     )
     assert repository.get_asp("hema_gmsv1")["display_name"] == "Hematology updated"
+    assert adapter.assay_panels_collection.count_documents({"asp_id": "hema_gmsv1"}) == 2
+    assert (
+        adapter.assay_panels_collection.count_documents({"asp_id": "hema_gmsv1", "is_active": True})
+        == 1
+    )
     repository.toggle_asp_active("hema_gmsv1", False)
     assert repository.get_asp("hema_gmsv1") is None
-    adapter.assay_panels_collection.update_one(
-        {"asp_id": "hema_gmsv1"}, {"$set": {"is_active": True}}
-    )
+    repository.toggle_asp_active("hema_gmsv1", True)
+    assert repository.get_asp("hema_gmsv1")["version"] == 2
     assert repository.delete_panel("hema_gmsv1").modified_count == 1
     with pytest.raises(ValueError):
         repository.ensure_asp_id({})
@@ -492,7 +500,10 @@ def test_aspc_repository_business_keys_queries_and_lifecycle(monkeypatch) -> Non
         "hema_gmsv1", ["production", "testing", "validation"], "hem-snabb"
     ) == ["testing", "validation"]
 
-    repository.update_aspc(
+    adapter.assay_configurations_collection.update_one(
+        {"aspc_id": aspc_id}, {"$set": {"version": 1}}
+    )
+    repository.rotate_aspc(
         aspc_id,
         {
             "aspc_id": aspc_id,
@@ -501,14 +512,23 @@ def test_aspc_repository_business_keys_queries_and_lifecycle(monkeypatch) -> Non
             "environment": "production",
             "analysis_types": ["SNV"],
             "is_active": True,
+            "version": 2,
         },
+        expected_version=1,
+        retire_fields={"retired_by": "tester", "retired_reason": "superseded_by_edit"},
     )
     assert repository.get_aspc_with_id(aspc_id)["analysis_types"] == ["SNV"]
+    assert adapter.assay_configurations_collection.count_documents({"aspc_id": aspc_id}) == 2
+    assert (
+        adapter.assay_configurations_collection.count_documents(
+            {"aspc_id": aspc_id, "is_active": True}
+        )
+        == 1
+    )
     repository.toggle_aspc_active(aspc_id, False)
     assert repository.get_aspc_with_id(aspc_id) is None
-    adapter.assay_configurations_collection.update_one(
-        {"aspc_id": aspc_id}, {"$set": {"is_active": True}}
-    )
+    repository.toggle_aspc_active(aspc_id, True)
+    assert repository.get_aspc_with_id(aspc_id)["version"] == 2
     assert repository.delete_assay_config(aspc_id).modified_count == 1
     with pytest.raises(ValueError):
         repository.ensure_aspc_id({})
@@ -577,20 +597,28 @@ def test_isgl_repository_scope_gene_selection_and_lifecycle(monkeypatch) -> None
     assert repository.is_isgl_adhoc("solid") is True
     assert repository.get_isgl_display_name("hem") == "Hematology"
 
-    repository.update_isgl(
+    adapter.insilico_genelist_collection.update_one({"isgl_id": "hem"}, {"$set": {"version": 1}})
+    repository.rotate_isgl(
         "hem",
         {
             "isgl_id": "hem",
             "name": "Hematology updated",
             "is_active": True,
+            "version": 2,
         },
+        expected_version=1,
+        retire_fields={"retired_by": "tester", "retired_reason": "superseded_by_edit"},
     )
     assert repository.get_isgl("hem")["name"] == "Hematology updated"
+    assert adapter.insilico_genelist_collection.count_documents({"isgl_id": "hem"}) == 2
+    assert (
+        adapter.insilico_genelist_collection.count_documents({"isgl_id": "hem", "is_active": True})
+        == 1
+    )
     repository.toggle_isgl_active("hem", False)
     assert repository.get_isgl("hem", True) is None
-    adapter.insilico_genelist_collection.update_one(
-        {"isgl_id": "hem"}, {"$set": {"is_active": True}}
-    )
+    repository.toggle_isgl_active("hem", True)
+    assert repository.get_isgl("hem")["version"] == 2
     assert repository.delete_genelist("hem").modified_count == 1
     with pytest.raises(ValueError):
         repository.ensure_isgl_id({})

@@ -18,6 +18,7 @@ from api.config.constants import normalize_clinical_identifier
 from api.contracts.operations import OperationResult
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
 
 
 # -------------------------------------------------------------------------
@@ -78,6 +79,12 @@ class ASPRepository(BaseRepository):
         col.create_index(
             [("is_active", 1), ("asp_group", 1)],
             name="is_active_asp_group",
+            background=True,
+        )
+        col.create_index(
+            [("asp_id", 1), ("version", 1)],
+            name="asp_id_version_1",
+            unique=True,
             background=True,
         )
 
@@ -245,20 +252,21 @@ class ASPRepository(BaseRepository):
         invalidate_dashboard_summary_cache(self.adapter)
         return operation
 
-    def update_asp(self, asp_id, asp_data) -> OperationResult:
-        """
-        Update a panel's data in the database.
-        Args:
-            asp_id: The unique identifier of the panel.
-            asp_data: The new data to replace the existing panel data.
-        Returns:
-            Structured write result for the replace.
-        """
-        operation = OperationResult.from_update(
-            self.get_collection().replace_one(
-                {**self._asp_lookup_query(asp_id), "is_active": True},
-                self.ensure_asp_id(dict(asp_data)),
-            )
+    def rotate_asp(
+        self,
+        asp_id: str,
+        asp_data: dict,
+        *,
+        expected_version: int,
+        retire_fields: dict,
+    ) -> OperationResult:
+        """Retire the active ASP revision and insert its successor."""
+        operation = rotate_active_revision(
+            self.get_collection(),
+            selector=self._asp_lookup_query(asp_id),
+            expected_version=expected_version,
+            new_document=self.ensure_asp_id(dict(asp_data)),
+            retire_fields=retire_fields,
         )
         invalidate_dashboard_summary_cache(self.adapter)
         return operation
@@ -277,9 +285,18 @@ class ASPRepository(BaseRepository):
         Returns:
             Structured write result for the update.
         """
+        collection = self.get_collection()
+        target = collection.find_one(
+            {
+                **self._asp_lookup_query(asp_id),
+                "is_active": not active_status,
+            },
+            sort=[("version", -1), ("created_on", -1)],
+        )
         operation = OperationResult.from_update(
-            self.get_collection().update_one(
-                self._asp_lookup_query(asp_id), {"$set": {"is_active": active_status}}
+            collection.update_one(
+                {"_id": target["_id"]} if target else {"_id": None},
+                {"$set": {"is_active": active_status}},
             )
         )
         invalidate_dashboard_summary_cache(self.adapter)

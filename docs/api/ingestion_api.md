@@ -641,9 +641,11 @@ Use this as the minimum deployment contract:
 Managed-admin form source:
 
 - For ASP/ASPC/ISGL/users/roles/permissions, admin UI forms use backend-generated schemas from contracts (`api/contracts/managed_ui_schemas.py`).
-- ASP, ASPC, and ISGL remain baseline `version: 1` documents. Users, roles,
-  and permissions increment `version` when edited. Change history is recorded
-  in audit events rather than embedded in managed documents.
+- ASP, ASPC, and ISGL start at `version: 1`. Each edit writes a successor
+  document with the same business identifier and the next version, then retires
+  the previous active revision. Users, roles, and permissions instead update in
+  place and increment `version`. Neither model stores embedded delta arrays;
+  managed mutations are also recorded in audit events.
 
 Assay-group contract:
 

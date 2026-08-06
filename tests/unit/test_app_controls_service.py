@@ -20,6 +20,8 @@ class _AppControlsCollection:
     def __init__(self) -> None:
         self.doc: dict[str, Any] | None = None
         self.last_update: dict[str, Any] | None = None
+        self.last_delete_query: dict[str, Any] | None = None
+        self.database: Any | None = None
 
     def find_one(self, query, projection=None):
         _ = projection
@@ -40,10 +42,15 @@ class _AppControlsCollection:
         self.doc.update(update.get("$set", {}))
         return dict(self.doc)
 
+    def delete_many(self, query):
+        self.last_delete_query = query
+        return SimpleNamespace(deleted_count=3)
+
 
 class _Db:
     def __init__(self, collection: _AppControlsCollection) -> None:
         self.collection = collection
+        self.collection.database = self
 
     def __getitem__(self, name: str):
         _ = name
@@ -273,6 +280,23 @@ def test_cleanup_disk_logs_gzips_and_deletes_by_retention(tmp_path):
     assert not compressible.exists()
     assert not expired.exists()
     assert recent.exists()
+
+
+def test_cleanup_audit_events_only_deletes_expired_operational_events():
+    collection = _AppControlsCollection()
+    collection.doc = {
+        "control_id": APP_CONTROLS_ID,
+        "retention": {"audit_events_days": 90},
+    }
+    service = AppControlsService(_Db(collection), config={})
+
+    result = service.cleanup_audit_events()
+
+    assert result["deleted"] == 3
+    assert collection.last_delete_query == {
+        "retention_class": "operational",
+        "occurred_at": {"$lt": result["cutoff"]},
+    }
 
 
 def test_run_maintenance_audits_failure_without_exposing_error_text(monkeypatch):

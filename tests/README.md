@@ -41,10 +41,6 @@ PYTHONPATH=. ${PYTEST_BIN:-pytest} -q tests --cov=api --cov-report=term-missing 
 
 - Mutation testing should run in an isolated virtualenv to avoid dependency conflicts with the main test environment.
 
-`tests/fixtures/api/extract_latest_docs.py` is a read-only operational helper,
-not a test. It is intentionally excluded from normal test execution and must
-not be run with production credentials during local validation.
-
 Run by directory:
 
 ```bash

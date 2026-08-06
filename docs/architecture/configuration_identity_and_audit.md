@@ -46,15 +46,16 @@ changed separator was normalized differently by another service.
 
 ![Managed configuration update flow](../assets/diagrams/configuration_resource_update.svg)
 
-ASP, ASPC, and ISGL are current-state configuration resources. Each business
-key has exactly one active document. Administrators edit the current document;
-the document remains the current operational definition for that key.
+ASP, ASPC, and ISGL are immutable, versioned configuration resources. Each
+business key has exactly one active document and may have multiple retired
+revisions. Administrators edit the active definition by creating its successor;
+the previous document remains available for reconstruction.
 
-| Resource | Unique current key | Owns |
-|---|---|---|
-| ASP | `asp_id` | Physical assay and platform definition, assay family, coverage, and supported scope |
-| ASPC | `aspc_id` | Environment-specific enabled analyses, filter profiles, reporting configuration, and rule resolution scope |
-| ISGL | `isgl_id` | Typed curated genes and permitted assay/subpanel associations |
+| Resource | Stable key | Revision key | Owns |
+|---|---|---|---|
+| ASP | `asp_id` | `(asp_id, version)` | Physical assay and platform definition, assay family, coverage, and supported scope |
+| ASPC | `aspc_id` | `(aspc_id, version)` | Environment-specific enabled analyses, filter profiles, reporting configuration, and rule resolution scope |
+| ISGL | `isgl_id` | `(isgl_id, version)` | Typed curated genes and permitted assay/subpanel associations |
 
 The `base` subpanel is the explicit default for an ASP with no subpanel-specific
 configuration. If a sample requests a subpanel that does not have an active
@@ -63,15 +64,26 @@ resolved subpanel IDs in `samples.aspc_resolution`. The UI shows this as a
 configuration warning because the configured default, rather than a matching
 subpanel configuration, was used.
 
-### Why configuration is current-state
+### Revision protocol
 
-The administrative configuration must be simple to query and safe to migrate.
-Duplicating inactive ASP, ASPC, or ISGL records would make a clinical key
-ambiguous and would require every read path to choose a version. Coyote3
-instead keeps one current document and records operational changes in audit
-events. Clinical reproducibility is preserved where it matters: a saved report
-stores the resolved ASPC, applied filter snapshot, prepared finding snapshots,
-and static report-rule provenance.
+1. A new business identifier starts with one active document at version `1`.
+2. An edit validates a complete successor payload before changing persistence.
+3. The successor keeps the same business identifier, receives `version + 1`,
+   and records the previous ObjectId in `supersedes_id`.
+4. The previous revision becomes inactive and records `retired_by`,
+   `retired_on`, and `retired_reason`.
+5. The successor is inserted as the only active revision.
+
+Active reads remain unambiguous because a partial unique index permits only one
+active document per business identifier. Compound unique indexes prevent two
+documents from using the same business identifier and version. MongoDB
+transactions make rotation atomic on replica sets. The standalone development
+path uses guarded writes and restores the previous active revision if insertion
+of the successor fails.
+
+Deactivation and reactivation are lifecycle operations on the latest revision;
+they do not rewrite its clinical payload. Any payload edit always creates a new
+revision.
 
 ## Audit Events
 
@@ -81,9 +93,10 @@ or secret material.
 
 ### Events recorded for managed clinical resources
 
-The ASP, ASPC, and ISGL administration routes record successful and failed
-create, update, status, and deletion actions. Events contain the following
-operational context.
+The ASP, ASPC, and ISGL administration routes record successful create, update,
+status, and retirement actions as permanent traceability events. Failed HTTP
+requests remain visible as operational request or mutation failures and follow
+the operational retention policy. Events contain the following context.
 
 | Field | Meaning |
 |---|---|
@@ -95,6 +108,7 @@ operational context.
 | Outcome | Success or failure |
 | Request context | HTTP method, route, request ID, and permitted operational metadata |
 | Error context | Sanitized failure reason when an action cannot complete |
+| Revision context | Previous and successor version and document identifiers for a successful rotation |
 
 Audit events are also produced for clinically important actions such as sample
 ingest success or failure, sample deletion, report creation, and variant
@@ -105,6 +119,13 @@ replacement for clinical report snapshots.
     Audit metadata must not include passwords, session tokens, API tokens, or
     unrestricted source-file content. Error details are sanitized before they
     are persisted or presented to users.
+
+ASP, ASPC, and ISGL mutations are stored as `traceability` audit events. These
+events have `immutable: true`, do not receive `expires_at`, and are excluded
+from both MongoDB TTL expiry and application retention cleanup. Routine request
+and runtime events use the expiring `operational` class. Database access and
+backups remain part of the control boundary: a privileged MongoDB operator can
+still alter data outside the application.
 
 ## Report Reproducibility
 
@@ -120,8 +141,10 @@ Current configuration and report reproducibility serve different purposes.
    and static-rule identity/content hash.
 
 Consequently, a later ASPC edit affects future preparation but does not change
-an already saved report. The saved report remains interpretable with the exact
-configuration and rule source used at the time it was created.
+an already saved report. The sample and report retain the resolved ASPC ObjectId,
+business key, and version, while the retired ASPC revision remains in MongoDB.
+The saved report remains interpretable with the exact configuration and rule
+source used at the time it was created.
 
 ## Operational Migration Policy
 

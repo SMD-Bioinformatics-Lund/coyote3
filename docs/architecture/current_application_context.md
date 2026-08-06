@@ -330,7 +330,11 @@ Authentication provider behavior comes from `user.auth_type`, which is a list. L
 
 Admin pages are contract-driven, not DB-schema-driven. Managed forms are generated from backend-owned models and resource metadata. The UI should not expose raw JSON editors for normal resource editing.
 
-Clinical configuration resources such as ASP, ASPC, and ISGL are treated more conservatively than ordinary user/role records. They should support clinical reconstruction and version-aware history. Users, roles, and permissions are updated in place with version metadata and audit entries so access governance remains simple to query and migrate.
+Clinical configuration resources such as ASP, ASPC, and ISGL use immutable
+revision rotation. Each edit preserves the business identifier, increments the
+version, creates a new active document, and retires the previous revision.
+Users, roles, and permissions are updated in place with version metadata and
+audit entries so access governance remains simple to query and migrate.
 
 ## Application Controls
 
@@ -355,11 +359,11 @@ Disabling a Celery task family prevents new executions from doing work. It does 
 
 Audit events are durable MongoDB documents. Every important access, mutation, ingest, report, and runtime failure should emit an audit event with bounded, redacted metadata.
 
-Audit retention is enforced by:
-
-- `expires_at` on each event
-- MongoDB TTL index
-- nightly Celery retention maintenance
+Audit events have two retention classes. Operational events receive
+`expires_at` and are subject to the MongoDB TTL index and nightly retention
+maintenance. Traceability events are immutable, have no expiry timestamp, and
+are excluded from application cleanup. Managed ASP, ASPC, and ISGL mutations
+use the traceability class.
 
 Runtime logs are JSON lines written to stdout and optionally to disk. Disk logs rotate daily. The retention maintenance task gzips old plain log files and deletes files beyond configured retention. In production, stdout/centralized logging remains the primary operational log path.
 

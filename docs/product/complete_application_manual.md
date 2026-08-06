@@ -695,7 +695,11 @@ Admin pages should use forms built from application contracts, not raw JSON edit
 
 Admin areas include users, roles, permissions, ASP, ASPC, ISGL, assay catalog support, application controls, audit events, and notifications.
 
-Clinical configuration resources should preserve reconstruction history. Governance resources such as users, roles, and permissions are updated in place with version metadata and audit events to keep access management operationally simple.
+Clinical configuration resources preserve reconstruction history through
+immutable revisions. Editing an ASP, ASPC, or ISGL creates the next version and
+retires the previous active document. Governance resources such as users,
+roles, and permissions are updated in place with version metadata and audit
+events to keep access management operationally simple.
 
 !!! caution "Admin visibility"
 

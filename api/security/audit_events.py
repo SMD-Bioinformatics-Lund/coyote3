@@ -169,6 +169,11 @@ def emit_mutation_event(
                 **resource_metadata,
                 **(extra or {}),
             },
+            retention_class=(
+                "traceability"
+                if audit_resource.get("retention_class") == "traceability"
+                else "operational"
+            ),
         )
 
 

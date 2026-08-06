@@ -101,6 +101,10 @@ Optional keys:
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
+- `supersedes_id` (Any | None)
+- `retired_by` (str | None)
+- `retired_on` (datetime.datetime | None)
+- `retired_reason` (str | None)
 
 ## `asp_to_groups`
 
@@ -143,6 +147,10 @@ Optional keys:
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
+- `supersedes_id` (Any | None)
+- `retired_by` (str | None)
+- `retired_on` (datetime.datetime | None)
+- `retired_reason` (str | None)
 
 ## `biomarkers`
 
@@ -410,6 +418,10 @@ Optional keys:
 - `created_on` (datetime)
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
+- `supersedes_id` (Any | None)
+- `retired_by` (str | None)
+- `retired_on` (datetime.datetime | None)
+- `retired_reason` (str | None)
 
 ## `mane_select`
 
