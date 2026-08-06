@@ -1,5 +1,7 @@
 # Initial Deployment Checklist
 
+**Last verified:** 6 August 2026
+
 Use this checklist for a first deployment.
 
 For a shorter command reference, see:

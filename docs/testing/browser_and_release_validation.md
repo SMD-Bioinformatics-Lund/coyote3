@@ -81,7 +81,16 @@ authenticated account against the running services:
 cd frontend
 COYOTE3_E2E_BASE_URL=https://localhost/coyote3_dev/ \
   npm run test:e2e:real
+```
 
+For release promotion, use `scripts/run_release_browser_smoke.sh`. It requires
+controlled DNA and RNA validation sample names and fails before Playwright
+starts when any release-gate input is absent. The complete promotion checklist
+is maintained in [Release readiness](../operations/release_readiness.md).
+
+**Procedure verified:** 6 August 2026.
+
+```bash
 # Include the authenticated dashboard and sample-workspace smoke test.
 COYOTE3_E2E_BASE_URL=https://localhost/coyote3_dev/ \
 COYOTE3_E2E_USERNAME=coyote3.user \

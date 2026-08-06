@@ -1,5 +1,7 @@
 # Operational Maintenance and Quality Verification
 
+**Procedure verified:** 6 August 2026.
+
 This document lists the routine checks for code quality, seed integrity, and environment validation.
 
 ## Pre-Release Quality Check

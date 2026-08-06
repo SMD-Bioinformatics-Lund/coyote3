@@ -53,6 +53,26 @@ The platform separates browser, API, background, and persistence responsibilitie
 | Develop or test the application | [Local Development](start_here/local_development.md) |
 | Diagnose an operational problem | [Operational Troubleshooting](operations/troubleshooting.md) |
 
+## Authoritative References
+
+Some guides summarize a workflow before linking to its full specification. Use
+the following pages as the authoritative source when behavior or configuration
+details differ from a summary:
+
+| Subject | Authoritative reference |
+| --- | --- |
+| Installation and center configuration | [Configuration](start_here/configuration.md) |
+| ASP, ASPC, ISGL, and sample relationships | [Core Concepts](product/core_concepts.md) |
+| DNA and RNA ingest manifests | [Sample YAML specification](api/sample_yaml.md) |
+| Clinical reporting rules | [Clinical Reporting Rules](product/clinical_reporting_rules.md) |
+| Collection fields and validation | [Generated Collection Contracts](api/collection_contracts.md) |
+| Authentication and authorization | [Security Model](architecture/security_model.md) |
+| Deployment and reverse proxy topology | [Deployment Guide](operations/deployment_guide.md) |
+| Release evidence and required checks | [Release Readiness](operations/release_readiness.md) |
+
+The collection-contract page is generated from Pydantic schemas. Edit the
+schema or its generator rather than editing that page directly.
+
 ---
 
 ## Platform Topology

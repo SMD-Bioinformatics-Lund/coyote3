@@ -1,5 +1,7 @@
 # Backup And Restore
 
+**Procedure verified:** 6 August 2026.
+
 ## Create Mongo archive backup
 
 ```bash

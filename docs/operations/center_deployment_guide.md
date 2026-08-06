@@ -1,5 +1,7 @@
 # Center Deployment Guide
 
+**Last verified:** 6 August 2026
+
 This page is the entry point for deployment.
 Use the checklist for the full procedure.
 

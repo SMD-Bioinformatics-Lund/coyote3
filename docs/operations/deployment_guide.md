@@ -1,5 +1,7 @@
 # Deployment Guide
 
+**Procedure verified:** 6 August 2026.
+
 This guide covers deployment and routine upgrade work for Coyote3.
 
 ## Scope

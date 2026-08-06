@@ -50,6 +50,7 @@ nav:
       - Configuration Identity and Audit: architecture/configuration_identity_and_audit.md
       - Permissions and Access: developer/permissions_naming.md
   - Deployment and Operations:
+      - Release Readiness: operations/release_readiness.md
       - Center Deployment: operations/center_deployment_guide.md
       - Initial Deployment Checklist: operations/initial_deployment_checklist.md
       - Center Configuration Files: operations/center_configuration_files.md
@@ -71,8 +72,9 @@ nav:
       - Ingestion API: api/ingestion_api.md
       - Sample YAML Manifest: api/sample_yaml.md
       - Sample Input Files: api/sample_input_files.md
-      - Collection Contracts: api/collection_contracts.md
       - Collection Permissions: api/collection_operations_and_permissions.md
+  - Generated Reference:
+      - Collection Contracts: api/collection_contracts.md
   - Architecture:
       - Application Architecture: architecture/current_application_context.md
       - System Relationships: architecture/system_relationships.md
