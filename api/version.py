@@ -2,7 +2,7 @@
 
 import sys
 
-__version__ = "4.0.0-DEV"
+__version__ = "4.0.0"
 
 
 if __name__ == "__main__":

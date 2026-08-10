@@ -1,6 +1,6 @@
 # Changelog
 
-## v4.0.0 - Unreleased
+## v4.0.0 - 2026-08-10
 
 This release entry describes the complete application replacement and every supported
 workflow introduced after the `master` branch baseline, rather than only the latest

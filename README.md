@@ -5,7 +5,7 @@ interpretation, triage, and reporting of DNA and RNA findings in governed
 diagnostic workflows.
 
 [![Quality Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml/badge.svg)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml)
-![Coyote3 4.0.0-DEV](https://img.shields.io/badge/Coyote3-4.0.0--DEV-4F46A5)
+![Coyote3 4.0.0](https://img.shields.io/badge/Coyote3-4.0.0-4F46A5)
 ![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
 ![Pydantic 2](https://img.shields.io/badge/Contracts-Pydantic%202-E92063?logo=pydantic&logoColor=white)
