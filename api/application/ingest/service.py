@@ -7,23 +7,13 @@ from contextlib import nullcontext
 from datetime import datetime, timezone
 from typing import Any
 
-from api.application.ingest.collection_writes import (
-    list_supported_collections as _list_supported_collections,
-)
-from api.application.ingest.collection_writes import parse_yaml_payload as _parse_yaml_payload
-from api.application.ingest.collection_writes import (
-    upsert_collection_document as _upsert_collection_document,
-)
-from api.application.ingest.dependent_writes import cleanup as _cleanup
-from api.application.ingest.dependent_writes import data_counts as _data_counts
+from api.application.ingest import collection_writes, dependent_writes, helpers, sample_updates
 from api.application.ingest.file_policy import (
     assay_file_policy,
     validate_declared_file_resources,
     validate_payload_file_keys,
 )
 from api.application.ingest.helpers import (
-    _normalize_case_control,  # noqa: F401 — re-exported for test namespace access
-    _normalize_uploaded_checksums,
     assay_default_filters_from_aspc_collection,
     build_sample_meta_dict,
     normalize_sample_version_metadata,
@@ -34,26 +24,16 @@ from api.application.ingest.parsers import (
     RnaIngestParser,
     infer_omics_layer,
 )
-from api.application.ingest.sample_updates import catch_left_right
-from api.application.ingest.sample_updates import next_unique_name as _next_unique_name
-from api.application.ingest.sample_updates import (
-    prepare_update_payload as _prepare_update_payload,
-)
-from api.application.ingest.sample_updates import update_meta_fields as _update_meta_fields
 from api.config.constants import (
-    primary_analysis_file_key,
+    manifest_file_preload_keys,
+    non_database_manifest_file_keys,
 )
-from api.contracts.schemas.registry import (
-    INGEST_DEPENDENT_COLLECTIONS,
-    INGEST_SINGLE_DOCUMENT_KEYS,
-    normalize_collection_document,
-)
+from api.contracts.schemas.registry import normalize_collection_document
 from api.contracts.schemas.samples import (
     SAMPLE_SOURCE_PATH_KEYS,
-    SamplesDoc,  # noqa: F401 - re-exported for tests
+    SamplesDoc,
 )
 from api.domain.common.sample_filters import sample_filters_from_aspc_filters
-from api.domain.core.dna.variant_identity import ensure_variant_identity_fields
 from api.infra.knowledgebase.public_oncokb import PublicOncoKbClient
 from api.infra.mongo.ingest_gateway import IngestCollectionGateway
 from api.infra.mongo.persistence import (
@@ -64,29 +44,6 @@ from api.infra.mongo.persistence import (
 )
 
 logger = logging.getLogger(__name__)
-
-_catch_left_right = catch_left_right
-
-_FILE_KEY_TO_PRELOAD_KEY: dict[str, str] = {
-    primary_analysis_file_key("dna", "SNV"): "snvs",
-    primary_analysis_file_key("dna", "CNV"): "cnvs",
-    primary_analysis_file_key("dna", "COVERAGE"): "cov",
-    primary_analysis_file_key("dna", "TRANSLOCATION"): "transloc",
-    primary_analysis_file_key("dna", "BIOMARKER"): "biomarkers",
-    primary_analysis_file_key("dna", "PGX"): "pgx",
-    primary_analysis_file_key("rna", "FUSION"): "fusions",
-    primary_analysis_file_key("rna", "EXPRESSION"): "rna_expr",
-    primary_analysis_file_key("rna", "CLASSIFICATION"): "rna_class",
-    primary_analysis_file_key("rna", "QC"): "rna_qc",
-}
-
-_NON_DATABASE_FILE_KEYS: frozenset[str] = frozenset(
-    {
-        primary_analysis_file_key("dna", "CNV_PROFILE"),
-        primary_analysis_file_key("dna", "PGX"),
-        primary_analysis_file_key("rna", "PGX"),
-    }
-)
 
 
 def _provider_sample_id(sample_id: str) -> Any:
@@ -238,7 +195,7 @@ class InternalIngestService:
 
     def list_supported_collections(self) -> list[str]:
         """List collection names that can be validated/inserted via ingest APIs."""
-        return _list_supported_collections()
+        return collection_writes.list_supported_collections()
 
     def parse_yaml_payload(self, yaml_content: str) -> dict[str, Any]:
         """Parse and validate a YAML ingest payload string.
@@ -252,7 +209,7 @@ class InternalIngestService:
         Raises:
             ValueError: If the YAML does not decode to a dict or is missing mandatory fields.
         """
-        return _parse_yaml_payload(yaml_content)
+        return collection_writes.parse_yaml_payload(yaml_content)
 
     def _hgnc_metadata_maps(self) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
         """Build HGNC metadata lookup maps by HGNC ID and symbol aliases."""
@@ -373,12 +330,18 @@ class InternalIngestService:
 
     @staticmethod
     def _validate_preload_matches_declared_files(
-        *, declared_file_keys: set[str], preload: dict[str, Any]
+        *, declared_file_keys: set[str], preload: dict[str, Any], omics_layer: str | None
     ) -> None:
         """Ensure each declared database-backed file produced a parsed preload section."""
+        if not declared_file_keys:
+            return
+        if not omics_layer:
+            raise ValueError("omics_layer is required to validate declared ingest files")
         missing_sections: list[str] = []
-        for file_key in sorted(declared_file_keys - _NON_DATABASE_FILE_KEYS):
-            preload_key = _FILE_KEY_TO_PRELOAD_KEY.get(file_key)
+        preload_keys = manifest_file_preload_keys(omics_layer)
+        non_database_keys = non_database_manifest_file_keys(omics_layer)
+        for file_key in sorted(declared_file_keys - non_database_keys):
+            preload_key = preload_keys.get(file_key)
             if preload_key and preload_key not in preload:
                 missing_sections.append(f"{file_key}->{preload_key}")
         if missing_sections:
@@ -409,64 +372,14 @@ class InternalIngestService:
         sample_name: str,
         session: Any | None = None,
     ) -> dict[str, int]:
-        """Write all dependent analysis documents for a newly created sample.
-
-        Iterates over each data type in preload and inserts the corresponding
-        documents into the appropriate collection, tagging each with SAMPLE_ID.
-
-        Args:
-            preload: Parsed analysis data keyed by type (snvs, cnvs, cov, etc.).
-            sample_id: Sample id of the newly inserted sample document.
-            sample_name: Human-readable sample name (used for coverage docs).
-
-        Returns:
-            A dict mapping data type keys to the count of documents written.
-
-        Raises:
-            TypeError: If a payload value has an unexpected type for its key.
-        """
-        sid = str(sample_id)
-        written: dict[str, int] = {}
-        anno_vep_docs = preload.get("anno_vep")
-        if anno_vep_docs:
-            self.anno_vep_repository.upsert_many(list(anno_vep_docs), session=session)
-        dependent_preload = {
-            key: value for key, value in preload.items() if key in INGEST_DEPENDENT_COLLECTIONS
-        }
-        for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
-            if key not in dependent_preload:
-                continue
-
-            payload = dependent_preload[key]
-            if key in INGEST_SINGLE_DOCUMENT_KEYS:
-                if not isinstance(payload, dict):
-                    raise TypeError(f"{key} expected dict, got {type(payload).__name__}")
-                doc = dict(payload)
-                doc["SAMPLE_ID"] = sid
-                if key == "cov":
-                    doc["sample"] = sample_name
-                normalized_doc = self._normalize_collection_docs(col_name, [doc])[0]
-                kwargs = {"session": session} if session is not None else {}
-                self._collection(col_name).insert_one(dict(normalized_doc), **kwargs)
-                written[key] = 1
-                continue
-
-            if not isinstance(payload, (list, tuple)):
-                raise TypeError(f"{key} expected list, got {type(payload).__name__}")
-            docs: list[dict[str, Any]] = []
-            for item in payload:
-                if not isinstance(item, dict):
-                    raise TypeError(f"{key} contains non-dict item")
-                doc = dict(item)
-                doc["SAMPLE_ID"] = sid
-                if key == "snvs":
-                    doc = ensure_variant_identity_fields(doc)
-                docs.append(doc)
-            normalized_docs = self._normalize_collection_docs(col_name, docs)
-            if normalized_docs:
-                insert_many_documents(self._collection(col_name), normalized_docs, session=session)
-            written[key] = len(normalized_docs)
-        return written
+        """Write parsed analysis data through the shared dependent-write workflow."""
+        return dependent_writes.write_dependents(
+            self,
+            preload=preload,
+            sample_id=sample_id,
+            sample_name=sample_name,
+            session=session,
+        )
 
     def _cleanup(self, sample_id: str) -> None:
         """Roll back a failed ingest by deleting the sample and all its dependents.
@@ -477,7 +390,7 @@ class InternalIngestService:
         Args:
             sample_id: Sample id of the sample document to remove.
         """
-        _cleanup(self, sample_id)
+        dependent_writes.cleanup(self, sample_id)
 
     def _data_counts(self, preload: dict[str, Any]) -> dict[str, int | bool]:
         """Count documents in each preload data type.
@@ -489,7 +402,7 @@ class InternalIngestService:
             A dict mapping each key to its document count (list length) or
             a boolean presence flag (for single-document types).
         """
-        return _data_counts(preload)
+        return dependent_writes.data_counts(preload)
 
     def _snapshot_dependents(
         self, *, sample_id: str, keys: set[str]
@@ -503,11 +416,7 @@ class InternalIngestService:
         Returns:
             A dict mapping each key to the list of current documents for that type.
         """
-        from api.application.ingest.dependent_writes import (
-            snapshot_dependents as _snapshot_dependents,
-        )
-
-        return _snapshot_dependents(self, sample_id=sample_id, keys=keys)
+        return dependent_writes.snapshot_dependents(self, sample_id=sample_id, keys=keys)
 
     def _restore_dependents(
         self, *, sample_id: str, sample_name: str, backup: dict[str, list[dict[str, Any]]]
@@ -522,11 +431,7 @@ class InternalIngestService:
             sample_name: Human-readable name (re-applied to coverage docs).
             backup: Snapshot produced by ``_snapshot_dependents``.
         """
-        from api.application.ingest.dependent_writes import (
-            restore_dependents as _restore_dependents,
-        )
-
-        _restore_dependents(
+        dependent_writes.restore_dependents(
             self,
             sample_id=sample_id,
             sample_name=sample_name,
@@ -552,25 +457,12 @@ class InternalIngestService:
         Raises:
             Exception: Re-raises any exception after restoring from snapshot.
         """
-        sid = str(sample_id)
-        keys_to_replace = set(preload.keys())
-        backup = self._snapshot_dependents(sample_id=sample_id, keys=keys_to_replace)
-        try:
-            for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
-                if key in keys_to_replace:
-                    self._collection(col_name).delete_many({"SAMPLE_ID": sid})
-            return self._write_dependents(
-                preload=preload,
-                sample_id=sample_id,
-                sample_name=sample_name,
-            )
-        except Exception:
-            self._restore_dependents(
-                sample_id=sample_id,
-                sample_name=sample_name,
-                backup=backup,
-            )
-            raise
+        return dependent_writes.replace_dependents(
+            self,
+            preload=preload,
+            sample_id=sample_id,
+            sample_name=sample_name,
+        )
 
     def _prepare_update_payload(
         self, *, sample_doc: dict[str, Any], payload: dict[str, Any]
@@ -591,7 +483,7 @@ class InternalIngestService:
             ValueError: If the omics layer cannot be determined, or if the
                 payload attempts a DNA↔RNA swap, or adds cross-layer file keys.
         """
-        return _prepare_update_payload(self, sample_doc=sample_doc, payload=payload)
+        return sample_updates.prepare_update_payload(self, sample_doc=sample_doc, payload=payload)
 
     def _update_meta_fields(
         self,
@@ -613,7 +505,7 @@ class InternalIngestService:
         Raises:
             ValueError: If payload_meta contains a changed value for a blocked field.
         """
-        _update_meta_fields(
+        sample_updates.update_meta_fields(
             self,
             sample_id=sample_id,
             payload_meta=payload_meta,
@@ -661,14 +553,14 @@ class InternalIngestService:
         parsed_payload.pop("report_num", None)
         parsed_payload.pop("increment", None)
         parsed_payload.pop("update_existing", None)
-        uploaded_checksums = _normalize_uploaded_checksums(
+        uploaded_checksums = helpers.normalize_uploaded_checksums(
             parsed_payload.pop("_uploaded_file_checksums", None)
         )
 
         merged_doc = dict(current_doc)
         merged_doc.update(parsed_payload)
         if uploaded_checksums:
-            existing_checksums = _normalize_uploaded_checksums(
+            existing_checksums = helpers.normalize_uploaded_checksums(
                 current_doc.get("uploaded_file_checksums", {})
             )
             existing_checksums.update(uploaded_checksums)
@@ -690,6 +582,7 @@ class InternalIngestService:
         self._validate_preload_matches_declared_files(
             declared_file_keys=declared_file_keys,
             preload=preload,
+            omics_layer=validated_payload.get("omics_layer"),
         )
         counts = dict(current_doc.get("data_counts") or {})
         counts.update(self._data_counts(preload))
@@ -755,7 +648,7 @@ class InternalIngestService:
         parsed_payload.pop("report_num", None)
         parsed_payload.pop("increment", None)
         parsed_payload.pop("update_existing", None)
-        uploaded_checksums = _normalize_uploaded_checksums(
+        uploaded_checksums = helpers.normalize_uploaded_checksums(
             parsed_payload.pop("_uploaded_file_checksums", None)
         )
         if not parsed_payload.get("name"):
@@ -774,6 +667,7 @@ class InternalIngestService:
         self._validate_preload_matches_declared_files(
             declared_file_keys=declared_file_keys,
             preload=preload,
+            omics_layer=validated_payload.get("omics_layer"),
         )
         sample_name = self._next_unique_name(str(validated_payload["name"]), bool(increment))
         sample_id = self._new_sample_id()
@@ -880,7 +774,7 @@ class InternalIngestService:
         upsert: bool = False,
     ) -> dict[str, Any]:
         """Validate and replace one document in a supported collection."""
-        return _upsert_collection_document(
+        return collection_writes.upsert_collection_document(
             self,
             collection=collection,
             match=match,
@@ -890,7 +784,7 @@ class InternalIngestService:
 
     def _next_unique_name(self, case_id: str, increment: bool) -> str:
         """Return a unique sample name, optionally auto-suffixing if name already exists."""
-        return _next_unique_name(self, case_id, increment)
+        return sample_updates.next_unique_name(self, case_id, increment)
 
     @staticmethod
     def _provider_sample_id(sample_id: str) -> Any:

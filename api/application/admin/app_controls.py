@@ -12,13 +12,10 @@ from typing import Any
 from pymongo import ReturnDocument
 
 from api.config.application_modules import APPLICATION_MODULES
+from api.config.contracts.application import OPERATIONAL_COLLECTIONS
 from api.config.security import get_audit_events_collection_name, get_audit_retention_days
 from api.contracts.schemas.app_controls import AppControlsDoc
 from api.infra.request_context import current_username
-
-APP_CONTROLS_COLLECTION = "app_controls"
-APP_CONTROLS_ID = "default"
-CELERY_INSPECTION_TIMEOUT_SECONDS = 1.5
 
 
 def _task_summary(
@@ -100,7 +97,7 @@ def default_app_controls(config: dict[str, Any] | None = None) -> AppControlsDoc
     """Build default application controls from runtime configuration."""
     config = config or {}
     controls = AppControlsDoc(
-        control_id=APP_CONTROLS_ID,
+        control_id=OPERATIONAL_COLLECTIONS.app_controls_document_id,
         celery={
             "enabled": True,
             "sample_ingest_enabled": True,
@@ -156,8 +153,8 @@ def merge_controls(defaults: AppControlsDoc, stored: dict[str, Any] | None) -> A
 def effective_audit_retention_days(db: Any, config: dict[str, Any]) -> int:
     """Return audit retention from controls, falling back to runtime config."""
     defaults = default_app_controls(config)
-    stored = db[APP_CONTROLS_COLLECTION].find_one(
-        {"control_id": APP_CONTROLS_ID},
+    stored = db[OPERATIONAL_COLLECTIONS.app_controls].find_one(
+        {"control_id": OPERATIONAL_COLLECTIONS.app_controls_document_id},
         {"retention.audit_events_days": 1},
     )
     try:
@@ -178,7 +175,7 @@ class AppControlsService:
         audit_service: Any | None = None,
         index_conflicts_provider: Any | None = None,
     ) -> None:
-        self.collection = db[APP_CONTROLS_COLLECTION]
+        self.collection = db[OPERATIONAL_COLLECTIONS.app_controls]
         self.config = config
         self.audit_service = audit_service
         self.index_conflicts_provider = index_conflicts_provider
@@ -186,8 +183,17 @@ class AppControlsService:
     def get_controls(self) -> AppControlsDoc:
         """Return effective controls with stored overrides applied."""
         defaults = default_app_controls(self.config)
-        stored = self.collection.find_one({"control_id": APP_CONTROLS_ID})
+        stored = self.collection.find_one(
+            {"control_id": OPERATIONAL_COLLECTIONS.app_controls_document_id}
+        )
         return merge_controls(defaults, stored)
+
+    def _inspection_timeout_seconds(self) -> float:
+        """Return the deployment-configured Celery inspection timeout."""
+        try:
+            return max(0.1, float(self.config.get("CELERY_INSPECTION_TIMEOUT_SECONDS", 1.5)))
+        except (TypeError, ValueError):
+            return 1.5
 
     def payload(self) -> dict[str, Any]:
         """Return controls and defaults for the admin UI."""
@@ -236,7 +242,7 @@ class AppControlsService:
                 "queue_names": [],
                 "queue_consumers": {},
                 "tasks": [],
-                "inspection_timeout_seconds": CELERY_INSPECTION_TIMEOUT_SECONDS,
+                "inspection_timeout_seconds": self._inspection_timeout_seconds(),
                 "error": None,
             },
             "modules": {
@@ -259,7 +265,7 @@ class AppControlsService:
         try:
             from api.celery_app import celery_app
 
-            inspect = celery_app.control.inspect(timeout=CELERY_INSPECTION_TIMEOUT_SECONDS)
+            inspect = celery_app.control.inspect(timeout=self._inspection_timeout_seconds())
             # Active work is the most time-sensitive observation. Read it before
             # slower worker metadata so short jobs are less likely to finish first.
             active = inspect.active() or {}
@@ -359,13 +365,13 @@ class AppControlsService:
         for section in ("celery", "retention", "modules"):
             if isinstance(payload.get(section), dict):
                 incoming[section].update(payload[section])
-        incoming["control_id"] = APP_CONTROLS_ID
+        incoming["control_id"] = OPERATIONAL_COLLECTIONS.app_controls_document_id
         incoming["updated_by"] = getattr(actor, "username", None) or current_username()
         incoming["updated_on"] = datetime.now(timezone.utc)
         validated = AppControlsDoc.model_validate(incoming)
         update_doc = validated.model_dump(by_alias=True, exclude={"id_", "created_on"})
         saved = self.collection.find_one_and_update(
-            {"control_id": APP_CONTROLS_ID},
+            {"control_id": OPERATIONAL_COLLECTIONS.app_controls_document_id},
             {"$set": update_doc, "$setOnInsert": {"created_on": datetime.now(timezone.utc)}},
             upsert=True,
             return_document=ReturnDocument.AFTER,
@@ -377,7 +383,7 @@ class AppControlsService:
                 category="admin",
                 actor=actor,
                 resource_type="app_controls",
-                resource_id=APP_CONTROLS_ID,
+                resource_id=OPERATIONAL_COLLECTIONS.app_controls_document_id,
                 tags=["admin", "controls"],
                 metadata={"sections": sorted(payload.keys())},
             )
@@ -480,7 +486,7 @@ class AppControlsService:
                     category="operations",
                     outcome="failure",
                     resource_type="app_controls",
-                    resource_id=APP_CONTROLS_ID,
+                    resource_id=OPERATIONAL_COLLECTIONS.app_controls_document_id,
                     tags=["operations", "maintenance", "retention"],
                     metadata={"error_type": type(exc).__name__},
                 )
@@ -492,7 +498,7 @@ class AppControlsService:
                 category="operations",
                 outcome="success",
                 resource_type="app_controls",
-                resource_id=APP_CONTROLS_ID,
+                resource_id=OPERATIONAL_COLLECTIONS.app_controls_document_id,
                 tags=["operations", "maintenance", "retention"],
                 metadata={
                     "audit_events_deleted": result["audit"]["deleted"],

@@ -60,8 +60,8 @@ const context = {
   analysis_counts_raw: { snv: 1421, cnv: 3 },
   analysis_counts_filtered: { snv: 187, cnv: 2 },
   sample_expected_files: [
-    { label: "VCF", path: "/data/case.vcf", required: true, present: true, exists: true, size_bytes: 2048, count_badge: "1.4K SNVs", status_label: "Loaded" },
-    { label: "Biomarkers JSON", required: false, present: false, exists: false, missing_msg: "No biomarkers file available", status_label: "Optional missing" },
+    { key: "vcf_files", analysis_type: "SNV", path: "/data/case.vcf", required: true, present: true, exists: true, size_bytes: 2048, data_count: 1421, availability: "available" },
+    { key: "biomarkers", analysis_type: "BIOMARKER", required: false, present: false, exists: false, availability: "optional_missing" },
   ],
   biomarkers: [{ MSIS: { perc: 0.12, tot: 100, som: 12 }, HRD: { sum: 21, tai: 6, hrd: 7, lst: 8 } }],
   snv_genelist_options: [{ isgl_id: "heme", display_name: "Hematology", gene_count: 197 }],

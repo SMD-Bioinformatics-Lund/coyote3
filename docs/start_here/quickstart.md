@@ -4,7 +4,7 @@ This guide starts a local Coyote3 stack and loads the demo data.
 
 ---
 
-## Step 1: Check Prerequisites
+## Step 1: Check prerequisites
 
 Make sure the required tools are installed.
 
@@ -18,7 +18,7 @@ python3 --version
 
 ---
 
-## Step 2: Clone The Repository
+## Step 2: Clone the repository
 
 Clone the repository and create a local environment file.
 
@@ -39,7 +39,7 @@ cp deploy/env/example.env .coyote3_dev_env
 
 ---
 
-## Step 3: Start The Stack
+## Step 3: Start the stack
 
 Start the development stack. This brings up:
 
@@ -57,7 +57,7 @@ Start the development stack. This brings up:
 
 ---
 
-## Step 4: Load Seed Data
+## Step 4: Load seed data
 
 Once the stack is running, create the first superuser, load the baseline collections, and ingest the demo DNA sample.
 
@@ -66,9 +66,9 @@ scripts/center_first_run.sh \
   --env-file .coyote3_dev_env \
   --compose-file deploy/compose/docker-compose.dev.yml \
   --api-base-url "http://localhost:6801" \
-  --admin-username "admin.coyote3" \
-  --admin-email "admin@coyote3.local" \
-  --admin-password "Coyote3.Admin" \
+  --admin-username "<first-superuser-username>" \
+  --admin-email "<first-superuser-email>" \
+  --admin-password "<generate-a-unique-password>" \
   --seed-file api/config/bootstrap/demo_center \
   --seed-data-pack api/config/bootstrap/rbac \
   --yaml-file demo_data/ingest/generic_case_control.yaml \
@@ -112,7 +112,7 @@ Ingest references:
 
 ---
 
-## Step 5: Open The Application
+## Step 5: Open the application
 
 Open:
 
@@ -121,11 +121,9 @@ Open:
 - Swagger UI: [http://localhost:6801/coyote3_dev/api/v1/docs](http://localhost:6801/coyote3_dev/api/v1/docs)
 - Documentation site: [http://localhost:6801/coyote3_dev/docs-site/](http://localhost:6801/coyote3_dev/docs-site/)
 
-Login with:
-
-- username: `admin.coyote3`
-- email: `admin@coyote3.local`
-- password: `Coyote3.Admin`
+Sign in with the username and password supplied to the bootstrap command. The
+command deliberately requires these values at deployment time; no account
+credentials are stored in the repository.
 
 You should see the demo DNA sample in the sample list.
 
@@ -137,7 +135,7 @@ configured session cookie and may also be sent as
 
 ---
 
-## Prod-Like Local Run
+## Production-like local run
 
 Use this when you want to test the production compose file locally with the Mongo container enabled.
 
@@ -147,9 +145,9 @@ scripts/center_first_run.sh \
   --compose-file deploy/compose/docker-compose.yml \
   --with-mongo \
   --api-base-url "http://localhost:5815" \
-  --admin-username "admin.coyote3" \
-  --admin-email "admin@coyote3.local" \
-  --admin-password "Coyote3.Admin" \
+  --admin-username "<first-superuser-username>" \
+  --admin-email "<first-superuser-email>" \
+  --admin-password "<generate-a-unique-password>" \
   --seed-file api/config/bootstrap/demo_center \
   --seed-data-pack api/config/bootstrap/rbac \
   --yaml-file demo_data/ingest/generic_case_control.yaml \

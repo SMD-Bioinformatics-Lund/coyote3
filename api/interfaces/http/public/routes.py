@@ -10,9 +10,9 @@ from copy import deepcopy
 import yaml
 from fastapi import APIRouter, Query
 
+from api.app import http
 from api.app.container import util
 from api.app.deps.services import get_app_controls_service, get_public_catalog_service
-from api.app.http import api_error as _api_error
 from api.app.runtime_state import app as runtime_app
 from api.application.public.catalog import PublicCatalogService
 from api.config.application_metadata import APPLICATION_DESCRIPTION
@@ -149,7 +149,7 @@ def public_genelist_view_context_read(genelist_id: str, assay: str | None = None
     service = get_public_catalog_service()
     payload = service.genelist_view_context(genelist_id, assay)
     if not payload:
-        raise _api_error(404, "Genelist not found")
+        raise http.api_error(404, "Genelist not found")
     return util.common.convert_to_serializable(payload)
 
 
@@ -213,7 +213,7 @@ def public_assay_catalog_context_read(
     catalog = service.load_catalog()
     order = service.modalities_order()
     if not order:
-        raise _api_error(404, "Catalog not found")
+        raise http.api_error(404, "Catalog not found")
 
     selected_mod = service.normalize_mod(mod) if mod else None
     selected_cat = cat if cat else None
@@ -258,7 +258,7 @@ def public_assay_catalog_context_read(
                 selected_mod, selected_cat, env=DEFAULT_ENVIRONMENT
             )
         if not hydrated_cat:
-            raise _api_error(404, "Category not found")
+            raise http.api_error(404, "Category not found")
         right = {
             "title": hydrated_cat.get("title") or hydrated_cat.get("label"),
             "catalog_id": hydrated_cat.get("catalog_id"),
@@ -321,7 +321,7 @@ def public_assay_catalog_genes_csv_context_read(
     service = get_public_catalog_service()
     selected_mod = service.normalize_mod(mod)
     if not selected_mod:
-        raise _api_error(404, "Modality not found")
+        raise http.api_error(404, "Modality not found")
 
     if not cat:
         right = service.hydrate_modality(selected_mod)
@@ -329,7 +329,7 @@ def public_assay_catalog_genes_csv_context_read(
     else:
         hydrated_cat = service.hydrate_category(selected_mod, cat, env=DEFAULT_ENVIRONMENT)
         if not hydrated_cat:
-            raise _api_error(404, "Category not found")
+            raise http.api_error(404, "Category not found")
         asp_id = hydrated_cat.get("asp_id")
 
     mode, rows, _stats = service.resolve_gene_table(asp_id, isgl_key)

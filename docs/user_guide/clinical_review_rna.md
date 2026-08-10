@@ -6,7 +6,7 @@ the required data is available. An RNA sample therefore does not display DNA
 SNV, CNV, translocation, or coverage tabs unless a future assay contract
 explicitly supports them.
 
-## Open an RNA Sample
+## Open an RNA sample
 
 1. Open **Samples**.
 2. Select an RNA sample.
@@ -16,9 +16,12 @@ explicitly supports them.
    enabled.
 
 The available tabs are derived from the active ASPC analysis types, ingested
-resources, application module controls, and the user's permissions. A missing
-tab normally means that the analysis is not enabled for that sample; it does
-not indicate an empty result set.
+resources, application module controls, and the user's permissions.
+
+!!! info "Analysis availability"
+
+    A missing tab normally means that the analysis is not enabled for that
+    sample; it does not indicate an empty result set.
 
 ## Fusion Table
 

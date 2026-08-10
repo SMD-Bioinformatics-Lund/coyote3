@@ -24,19 +24,6 @@ def _normalize_permission_id(permission_id: Any) -> str:
     return str(permission_id or "").strip().lower()
 
 
-CANONICAL_ROLE_LEVELS: dict[str, int] = {
-    "external": 1,
-    "viewer": 5,
-    "intern": 7,
-    "user": 9,
-    "manager": 99,
-    "tester": 999,
-    "developer": 9999,
-    "admin": 99999,
-    "superuser": 1000000,
-}
-
-
 class RoleManagementService:
     """Role-management workflows for privileged HTTP routes."""
 
@@ -154,8 +141,6 @@ class RoleManagementService:
             existing_role.get("role_id") or existing_role.get("_id")
         ):
             raise api_error(409, "Role already exists")
-        if role_id in CANONICAL_ROLE_LEVELS:
-            role["level"] = CANONICAL_ROLE_LEVELS[role_id]
         actor = current_actor(actor_username)
         now = utc_now()
         role["created_by"] = actor
@@ -200,9 +185,6 @@ class RoleManagementService:
         updated_role["is_active"] = bool(role.get("is_active", True))
         updated_role["version"] = role.get("version", 1) + 1
         updated_role["role_id"] = role.get("role_id", role_id)
-        canonical_level = CANONICAL_ROLE_LEVELS.get(updated_role["role_id"])
-        if canonical_level is not None:
-            updated_role["level"] = canonical_level
         updated_role.pop("_id", None)
         try:
             updated_role = normalize_collection_document(self._spec.collection, updated_role)

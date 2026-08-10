@@ -98,65 +98,71 @@ During ingest, the system creates a sample anchor and then links finding collect
 
 For DNA and RNA workflows, the platform dynamically computes **effective gene scope** per data type:
 
-1. **SNV**:
-   - Active `sample.filters.somatic.snv.snvlists` and
-     `sample.filters.somatic.snv.adhoc_genes` define the somatic SNV gene restriction.
-   - If neither is selected, the SNV scope is `ASP.covered_genes`; an empty ASP
-     coverage list means no gene restriction.
-2. **CNV**:
-   - Active `sample.filters.somatic.cnv.cnvlists` and
-     `sample.filters.somatic.cnv.adhoc_genes` define the CNV gene restriction.
-   - Only ISGLs typed as `cnv` or `adhoc_cnv` are accepted.
-   - If neither is selected, the CNV scope is `ASP.covered_genes`; an empty ASP
-     coverage list means no gene restriction.
-   - The SNV selection never becomes a CNV filter, even when the selected ISGL
-     also declares `cnv` in its `list_type`.
-3. **RNA Fusion**:
-   - Active `sample.filters.somatic.fusion.fusionlists` and ad-hoc fusion genes
-     define fusion scope.
-   - Only ISGLs typed as `fusion` or `adhoc_fusion` are accepted.
-   - Without a fusion selection, the fusion scope is `ASP.covered_genes`; an
-     empty ASP coverage list means no gene restriction.
-   - Caller, effect, minimum spanning-pair, and minimum spanning-read criteria
-     are read only from `sample.filters.somatic.fusion`.
-   - Fusion filtering is not gated by a legacy assay-group name. Once an RNA
-     ASPC enables fusion analysis, targeted RNA panels and WTS samples use the
-     same filter contract. Assay group organizes the workflow but does not
-     suppress configured caller, effect, support, or gene predicates.
-   - The aggregator or upstream pipeline nominates exactly one selected call.
-     Query eligibility is satisfied when one call in `fusions.calls` meets all
-     configured caller, effect, evidence, and support predicates. The list,
-     detail, classification identity, and reporting presentation use the call
-     marked `selected`. The detail workflow can explicitly replace that
-     selection while preserving every alternative in `fusions.calls`.
-   - Fusion `effect` and `desc` are caller-owned values. They are not selected by
-     the DNA MANE/RefSeq transcript protocol and are not stored in `anno_vep`.
-   - A normalized effect equal to `in-frame` is presented as in-frame. Every
-     other non-empty effect is presented as out-of-frame. This is a display and
-     review convention for caller output, not a VEP consequence calculation.
-     The effect filter uses the same categories: **In-frame** matches exact
-     `in-frame`, while **Out-of-frame** matches every non-empty caller effect
-     other than `in-frame`, including truncated UTR/CDS descriptions.
-   - Description terms are split on commas and rendered using the exact
-     importance groups configured in
-     `api/config/center/clinical_vocabulary.toml`. Important cancer-reference
-     terms are green, not-important or artifact-associated terms are red, and
-     contextual terms are gray. Unknown terms remain visible with neutral
-     styling so upstream vocabulary changes are not hidden.
-   - Selected description terms are query predicates as well as display
-     metadata. Terms selected within the description group are alternatives.
-     The description group is combined with caller, effect, and read-support
-     groups using AND, and one call must satisfy every active call-level group.
-     Matching is case-insensitive and respects comma-delimited token
-     boundaries.
-4. **Translocation**:
-   - Active `sample.filters.somatic.translocation.fusionlists` and ad-hoc
-     translocation genes define the DNA fusion/translocation scope.
-   - Fusion-compatible ISGLs are accepted because DNA translocations and RNA
-     fusions share gene-list membership semantics, but the saved selections
-     remain independent.
-   - Without a translocation selection, the scope is `ASP.covered_genes`; an
-     empty ASP coverage list means no gene restriction.
+### SNV
+
+Active `sample.filters.somatic.snv.snvlists` and
+`sample.filters.somatic.snv.adhoc_genes` define the somatic SNV gene
+restriction. If neither is selected, the SNV scope is `ASP.covered_genes`; an
+empty ASP coverage list means no gene restriction.
+
+### CNV
+
+Active `sample.filters.somatic.cnv.cnvlists` and
+`sample.filters.somatic.cnv.adhoc_genes` define the CNV gene restriction. Only
+ISGLs typed as `cnv` or `adhoc_cnv` are accepted. If neither is selected, the
+CNV scope is `ASP.covered_genes`; an empty ASP coverage list means no gene
+restriction. The SNV selection never becomes a CNV filter, even when the
+selected ISGL also declares `cnv` in its `list_type`.
+
+### RNA fusion
+
+Active `sample.filters.somatic.fusion.fusionlists` and ad-hoc fusion genes
+define fusion scope. Only ISGLs typed as `fusion` or `adhoc_fusion` are
+accepted. Without a fusion selection, the fusion scope is `ASP.covered_genes`;
+an empty ASP coverage list means no gene restriction. Caller, effect, minimum
+spanning-pair, and minimum spanning-read criteria are read only from
+`sample.filters.somatic.fusion`.
+
+Fusion filtering is not gated by a legacy assay-group name. Once an RNA ASPC
+enables fusion analysis, targeted RNA panels and WTS samples use the same filter
+contract. Assay group organizes the workflow but does not suppress configured
+caller, effect, support, or gene predicates.
+
+The aggregator or upstream pipeline nominates exactly one selected call. Query
+eligibility is satisfied when one call in `fusions.calls` meets all configured
+caller, effect, evidence, and support predicates. The list, detail,
+classification identity, and reporting presentation use the call marked
+`selected`. The detail workflow can explicitly replace that selection while
+preserving every alternative in `fusions.calls`.
+
+Fusion `effect` and `desc` are caller-owned values. They are not selected by
+the DNA MANE/RefSeq transcript protocol and are not stored in `anno_vep`. A
+normalized effect equal to `in-frame` is presented as in-frame; every other
+non-empty effect is presented as out-of-frame. This is a display and review
+convention for caller output, not a VEP consequence calculation. The effect
+filter uses the same categories: **In-frame** matches exact `in-frame`, while
+**Out-of-frame** matches every other non-empty caller effect, including
+truncated UTR/CDS descriptions.
+
+Description terms are split on commas and rendered using the exact importance
+groups configured in `api/config/center/clinical_vocabulary.toml`. Important
+cancer-reference terms are green, not-important or artifact-associated terms
+are red, and contextual terms are gray. Unknown terms remain visible with
+neutral styling so upstream vocabulary changes are not hidden. Selected
+description terms are query predicates as well as display metadata. Terms
+selected within the description group are alternatives; the description group
+is combined with caller, effect, and read-support groups using AND. One call
+must satisfy every active call-level group. Matching is case-insensitive and
+respects comma-delimited token boundaries.
+### DNA translocation
+
+Active `sample.filters.somatic.translocation.fusionlists` and ad-hoc
+translocation genes define the DNA fusion/translocation scope.
+
+Fusion-compatible ISGLs are accepted because DNA translocations and RNA fusions
+share gene-list membership semantics, but the saved selections remain
+independent. Without a translocation selection, the scope is
+`ASP.covered_genes`; an empty ASP coverage list means no gene restriction.
 
 `ISGL.list_type` controls selector availability, not automatic application. A
 single ISGL may be available for SNV, CNV, and fusion, while each analysis

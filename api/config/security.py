@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from api.config.constants import DEFAULT_ENVIRONMENT
+from api.config.contracts.application import OPERATIONAL_COLLECTIONS
 
 _PROD_BLOCKED_VALUES: dict[str, set[str]] = {
     "SECRET_KEY": {"ci-test-secret-key", "coyote3-api-dev-only"},
@@ -202,12 +203,14 @@ def get_api_session_cookie_samesite(config: Mapping[str, Any]) -> str:
 
 def get_api_sessions_collection_name(config: Mapping[str, Any]) -> str:
     """Return the MongoDB collection used for API sessions."""
-    return "api_sessions"
+    del config
+    return OPERATIONAL_COLLECTIONS.api_sessions
 
 
 def get_audit_events_collection_name(config: Mapping[str, Any]) -> str:
     """Return the MongoDB collection used for durable audit events."""
-    return "audit_events"
+    del config
+    return OPERATIONAL_COLLECTIONS.audit_events
 
 
 def get_audit_retention_days(config: Mapping[str, Any]) -> int:

@@ -4,48 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from api.application.dna.payloads import (
-    biomarkers_payload as _biomarkers_payload,
-)
-from api.application.dna.payloads import (
-    list_variants_payload as _list_variants_payload,
-)
-from api.application.dna.payloads import (
-    plot_context_payload as _plot_context_payload,
-)
-from api.application.dna.payloads import (
-    variant_context_payload as _variant_context_payload,
-)
-from api.application.dna.variant_classification import classify_variant as _classify_variant
-from api.application.dna.variant_classification import (
-    remove_classified_variant as _remove_classified_variant,
-)
-from api.application.dna.variant_classification import (
-    set_variant_tier_bulk as _set_variant_tier_bulk,
-)
-from api.application.dna.variant_comments import add_variant_comment as _add_variant_comment
-from api.application.dna.variant_exports import (
-    build_cnv_export_rows as _build_cnv_export_rows,
-)
-from api.application.dna.variant_exports import (
-    build_snv_export_rows as _build_snv_export_rows,
-)
-from api.application.dna.variant_exports import (
-    build_transloc_export_rows as _build_transloc_export_rows,
-)
-from api.application.dna.variant_exports import export_rows_to_csv as _export_rows_to_csv
-from api.application.dna.variant_state import blacklist_variant as _blacklist_variant
-from api.application.dna.variant_state import coerce_bool as _coerce_bool
-from api.application.dna.variant_state import (
-    require_variant_for_sample as _require_variant_for_sample,
-)
-from api.application.dna.variant_state import set_variant_bulk_flag as _set_variant_bulk_flag
-from api.application.dna.variant_state import (
-    set_variant_comment_hidden as _set_variant_comment_hidden,
-)
-from api.application.dna.variant_state import set_variant_flag as _set_variant_flag
-from api.application.dna.variant_state import (
-    set_variant_override_blacklist as _set_variant_override_blacklist,
+from api.application.dna import (
+    export,
+    payloads,
+    variant_classification,
+    variant_comments,
+    variant_state,
 )
 from api.config.database_versions import sample_vep_version
 from api.contracts.operations import OperationResult
@@ -132,21 +96,21 @@ class DnaService:
     @staticmethod
     def export_rows_to_csv(rows: list[Any]) -> str:
         """Serialize export rows into CSV text with stable column ordering."""
-        return _export_rows_to_csv(rows)
+        return export.export_rows_to_csv(rows)
 
     def build_snv_export_rows(self, variants: list[dict[str, Any]]) -> list[Any]:
         """Build typed SNV export rows from filtered variant documents."""
-        return _build_snv_export_rows(variants)
+        return export.build_snv_export_rows(variants)
 
     def build_cnv_export_rows(
         self, cnvs: list[dict[str, Any]], sample: dict[str, Any], assay_group: str
     ) -> list[Any]:
         """Build typed CNV export rows from filtered CNV documents."""
-        return _build_cnv_export_rows(cnvs, sample, assay_group)
+        return export.build_cnv_export_rows(cnvs, sample, assay_group)
 
     def build_transloc_export_rows(self, translocs: list[dict[str, Any]]) -> list[Any]:
         """Build typed translocation export rows from filtered translocation documents."""
-        return _build_transloc_export_rows(translocs)
+        return export.build_transloc_export_rows(translocs)
 
     def load_cnvs_for_sample(
         self,
@@ -186,7 +150,7 @@ class DnaService:
         Returns:
             dict: Variant document belonging to the sample.
         """
-        return _require_variant_for_sample(self, sample=sample, var_id=var_id)
+        return variant_state.require_variant_for_sample(self, sample=sample, var_id=var_id)
 
     def set_variant_bulk_flag(
         self, *, resource_ids: list[str], apply: bool, flag: str
@@ -198,11 +162,13 @@ class DnaService:
             apply: Whether to add or remove the flag.
             flag: Flag name to apply.
         """
-        return _set_variant_bulk_flag(self, resource_ids=resource_ids, apply=apply, flag=flag)
+        return variant_state.set_variant_bulk_flag(
+            self, resource_ids=resource_ids, apply=apply, flag=flag
+        )
 
     def set_variant_flag(self, *, var_id: str, apply: bool, flag: str) -> None:
         """Apply or remove a boolean flag on a single variant."""
-        _set_variant_flag(self, var_id=var_id, apply=apply, flag=flag)
+        variant_state.set_variant_flag(self, var_id=var_id, apply=apply, flag=flag)
 
     def select_variant_transcript(
         self,
@@ -247,15 +213,17 @@ class DnaService:
 
     def blacklist_variant(self, *, variant: dict[str, Any], assay_group: str) -> OperationResult:
         """Create a blacklist entry for a variant in an assay group."""
-        return _blacklist_variant(self, variant=variant, assay_group=assay_group)
+        return variant_state.blacklist_variant(self, variant=variant, assay_group=assay_group)
 
     def set_variant_override_blacklist(self, *, var_id: str, override: bool) -> None:
         """Apply or remove the blacklist-override flag on a small variant."""
-        _set_variant_override_blacklist(self, var_id=var_id, override=override)
+        variant_state.set_variant_override_blacklist(self, var_id=var_id, override=override)
 
     def set_variant_comment_hidden(self, *, var_id: str, comment_id: str, hidden: bool) -> None:
         """Hide or unhide a variant comment."""
-        _set_variant_comment_hidden(self, var_id=var_id, comment_id=comment_id, hidden=hidden)
+        variant_state.set_variant_comment_hidden(
+            self, var_id=var_id, comment_id=comment_id, hidden=hidden
+        )
 
     def set_variant_tier_bulk(
         self,
@@ -281,7 +249,7 @@ class DnaService:
             create_annotation_text_fn: Helper used to build default annotation text.
             create_classified_variant_doc_fn: Helper used to build classification documents.
         """
-        _set_variant_tier_bulk(
+        variant_classification.set_variant_tier_bulk(
             self,
             sample=sample,
             resource_ids=resource_ids,
@@ -297,7 +265,7 @@ class DnaService:
         self, *, form_data: dict, get_tier_classification_fn, get_variant_nomenclature_fn
     ) -> None:
         """Classify a variant and persist classification documents."""
-        _classify_variant(
+        variant_classification.classify_variant(
             self,
             form_data=form_data,
             get_tier_classification_fn=get_tier_classification_fn,
@@ -306,7 +274,7 @@ class DnaService:
 
     def remove_classified_variant(self, *, form_data: dict, get_variant_nomenclature_fn) -> None:
         """Remove a classified variant document."""
-        _remove_classified_variant(
+        variant_classification.remove_classified_variant(
             self,
             form_data=form_data,
             get_variant_nomenclature_fn=get_variant_nomenclature_fn,
@@ -326,7 +294,7 @@ class DnaService:
         Returns:
             str: Comment resource type used in the change payload.
         """
-        return _add_variant_comment(
+        return variant_comments.add_variant_comment(
             self,
             form_data=form_data,
             target_id=target_id,
@@ -349,7 +317,7 @@ class DnaService:
         paginate: bool = True,
     ) -> dict[str, Any]:
         """Return the small-variant list payload for a sample."""
-        return _list_variants_payload(
+        return payloads.list_variants_payload(
             service=self,
             request=request,
             sample=sample,
@@ -372,7 +340,7 @@ class DnaService:
         Returns:
             dict[str, Any]: Plot-context payload for DNA routes.
         """
-        return _plot_context_payload(
+        return payloads.plot_context_payload(
             service=self,
             sample=sample,
             assay_config_getter=assay_config_getter,
@@ -387,7 +355,7 @@ class DnaService:
         Returns:
             dict[str, Any]: Biomarker payload for DNA routes.
         """
-        return _biomarkers_payload(service=self, sample=sample)
+        return payloads.biomarkers_payload(service=self, sample=sample)
 
     def variant_context_payload(
         self,
@@ -410,7 +378,7 @@ class DnaService:
         Returns:
             dict[str, Any]: Variant-context payload for DNA routes.
         """
-        return _variant_context_payload(
+        return payloads.variant_context_payload(
             service=self,
             sample=sample,
             var_id=var_id,
@@ -430,4 +398,4 @@ class DnaService:
         Returns:
             bool: Coerced boolean value.
         """
-        return _coerce_bool(value, default=default)
+        return variant_state.coerce_bool(value, default=default)

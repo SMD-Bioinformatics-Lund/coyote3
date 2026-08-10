@@ -4,6 +4,11 @@ import { TooltipSurface } from "@/components/ui/app-tooltip"
 import { Link } from "react-router-dom"
 import { AlertTriangle, ChevronDown, ChevronUp } from "lucide-react"
 import { fullDateTime, shortCount } from "@/lib/detail-formatters"
+import {
+  sampleArtifactCountLabel,
+  sampleArtifactPresentation,
+  sampleArtifactStatus,
+} from "@/lib/sample-artifact-ui"
 import { sampleFilterSection, sampleReported } from "@/lib/sample-shape"
 import { apiPath } from "@/lib/runtime-paths"
 import { SampleGeneSettings, SettingsCard } from "@/pages/SampleDetail/SampleGeneSettings"
@@ -358,8 +363,8 @@ export function PanelSummary({ sample, context }: { sample: any; context?: any }
   )
 }
 
-function fileItems(sample: any, context?: any) {
-  return context?.sample_expected_files || sample?.sample_expected_files || sample?.expected_files || []
+function fileItems(context?: any) {
+  return context?.sample_expected_files || []
 }
 
 function reportItems(sample: any) {
@@ -545,7 +550,7 @@ function AnalysisStatusStrip({ sample, context }: { sample: any; context?: any }
 
 export function OverviewTab({ sampleId, sample, context }: { sampleId: string; sample: any; context?: any }) {
   const verificationSample = context?.verification_sample_used || sample?.verification_sample_used
-  const files = fileItems(sample, context)
+  const files = fileItems(context)
   const snvFilters = sampleFilterSection(sample, "snv")
   const cnvFilters = sampleFilterSection(sample, "cnv")
   const fusionFilters = sampleFilterSection(sample, "fusion")
@@ -633,18 +638,20 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
         <SettingsCard title={`Files & QC (${sample?.omics_layer || "-"})`} tone="border-t-orange-800" className="xl:col-span-2">
           <div className="space-y-2">
             {files.length ? files.map((file: any, index: number) => (
-              <div key={file.path || file.label || index} className="flex items-start justify-between gap-3 rounded-xl border border-border bg-background/70 px-3 py-2">
+              <div key={file.key || file.path || index} className="flex items-start justify-between gap-3 rounded-xl border border-border bg-background/70 px-3 py-2">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold">{file.label || file.name || "File"}</span>
+                    <span className="text-sm font-semibold">{sampleArtifactPresentation(file.analysis_type).label}</span>
                     <StatusPill tone={file.required ? "blue" : "muted"}>{file.required ? "Required" : "Optional"}</StatusPill>
                     {formatFileSize(file.size_bytes) && (
                       <StatusPill tone="muted">{formatFileSize(file.size_bytes)}</StatusPill>
                     )}
-                    {file.count_badge && <StatusPill tone="green">{file.count_badge}</StatusPill>}
+                    {sampleArtifactCountLabel(file.analysis_type, file.data_count) && (
+                      <StatusPill tone="green">{sampleArtifactCountLabel(file.analysis_type, file.data_count)}</StatusPill>
+                    )}
                   </div>
                   <p className={`mt-0.5 break-all text-[11px] ${file.path && file.exists === false ? "text-fail" : "text-muted-foreground"}`}>
-                    {file.path || file.missing_msg || "No file available"}
+                    {file.path || sampleArtifactPresentation(file.analysis_type).missingMessage}
                   </p>
                   {file.checksum && (
                     <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
@@ -652,8 +659,8 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
                     </p>
                   )}
                 </div>
-                <StatusPill tone={file.present || file.exists ? "green" : file.required ? "red" : "yellow"}>
-                  {file.status_label || (file.present || file.exists ? "Present" : "Missing")}
+                <StatusPill tone={sampleArtifactStatus(file.availability).tone}>
+                  {sampleArtifactStatus(file.availability).label}
                 </StatusPill>
               </div>
             )) : <p className="text-sm text-muted-foreground">No assay-configured files for this sample.</p>}

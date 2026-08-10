@@ -5,16 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from api.config.contracts.application import NOTIFICATIONS
 from api.domain.common.errors import api_error
-
-ALLOWED_NOTIFICATION_TONES = {"success", "info", "warning", "error"}
-ALLOWED_NOTIFICATION_CATEGORIES = {
-    "application",
-    "feature",
-    "maintenance",
-    "security",
-    "warning",
-}
 
 
 class NotificationService:
@@ -226,9 +218,9 @@ class NotificationService:
     ) -> str:
         normalized_tone = tone.strip().lower()
         normalized_category = category.strip().lower()
-        if normalized_tone not in ALLOWED_NOTIFICATION_TONES:
+        if normalized_tone not in NOTIFICATIONS.tones:
             raise api_error(400, f"Unsupported notification tone: {tone}")
-        if normalized_category not in ALLOWED_NOTIFICATION_CATEGORIES:
+        if normalized_category not in NOTIFICATIONS.categories:
             raise api_error(400, f"Unsupported notification category: {category}")
         if not title or not message:
             raise api_error(400, "Notification title and message are required")

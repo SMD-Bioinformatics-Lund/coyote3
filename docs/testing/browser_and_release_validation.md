@@ -88,7 +88,9 @@ controlled DNA and RNA validation sample names and fails before Playwright
 starts when any release-gate input is absent. The complete promotion checklist
 is maintained in [Release readiness](../operations/release_readiness.md).
 
-**Procedure verified:** 6 August 2026.
+Record the execution date, target environment, test-account scope, and evidence
+with each release candidate. This repository provides the procedure and test
+suite; deployment evidence is intentionally retained outside source control.
 
 ```bash
 # Include the authenticated dashboard and sample-workspace smoke test.

@@ -7,32 +7,15 @@ import re
 from typing import Iterable
 
 from api.config.assay_groups import ASP_GROUP_OPTIONS
-from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
+from api.config.clinical_vocabulary import CENTER_CLINICAL_CONTRACT, CLINICAL_VOCABULARY
+from api.config.contracts.governance import PERMISSION_CATALOG
+from api.config.contracts.ingest import ANALYSIS_PRELOAD_CONTRACT
 from api.config.sequencing import PLATFORM_OPTIONS, READ_MODE_OPTIONS
 
-PERMISSION_CATEGORY_OPTIONS: tuple[str, ...] = (
-    "Analysis Actions",
-    "Application Control Management",
-    "Assay Configuration Management",
-    "Assay Panel Management",
-    "Audit & Monitoring",
-    "Data Downloads",
-    "Gene List Management",
-    "Permission Policy Management",
-    "Reports",
-    "Role Management",
-    "Sample Management",
-    "Schema Management",
-    "User Management",
-    "Variant Curation",
-    "Visualization",
-)
-
-ASP_CATEGORY_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.assay_categories
-ASP_FAMILY_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.assay_families
-SEQUENCING_SCOPE_OPTIONS: tuple[str, ...] = tuple(
-    dict.fromkeys(CLINICAL_VOCABULARY.assay_family_scopes.values())
-)
+ASP_CATEGORY_OPTIONS: tuple[str, ...] = CENTER_CLINICAL_CONTRACT.vocabulary.assay_categories
+ASP_FAMILY_OPTIONS: tuple[str, ...] = CENTER_CLINICAL_CONTRACT.vocabulary.assay_families
+SEQUENCING_SCOPE_OPTIONS = CENTER_CLINICAL_CONTRACT.sequencing_scope_options
+TARGETED_PANEL_ASP_FAMILY_OPTIONS = CENTER_CLINICAL_CONTRACT.targeted_panel_asp_families
 
 # Expected sample file keys per ASP category.
 SAMPLE_FILE_KEYS: dict[str, tuple[str, ...]] = CLINICAL_VOCABULARY.sample_file_keys
@@ -115,6 +98,58 @@ def analysis_file_keys(omics_layer: object, analysis_type: object) -> tuple[str,
 def primary_analysis_file_key(omics_layer: object, analysis_type: object) -> str:
     """Return the primary configured manifest file key for an analysis."""
     return analysis_file_keys(omics_layer, analysis_type)[0]
+
+
+def analysis_type_for_file_key(omics_layer: object, file_key: object) -> str:
+    """Return the configured analysis type that owns a manifest file key."""
+    category = normalize_asp_category(omics_layer)
+    normalized_key = str(file_key or "").strip()
+    for analysis_type, keys in ANALYSIS_FILE_KEYS_BY_OMICS[category].items():
+        if normalized_key in keys:
+            return analysis_type
+    raise ValueError(f"file key '{normalized_key}' is not configured for {category}")
+
+
+def manifest_file_preload_keys(omics_layer: object) -> dict[str, str]:
+    """Map configured manifest file keys to their database preload payloads.
+
+    The configuration owns external manifest names. The application owns the
+    parser payload names because they are tied to collection contracts.
+    """
+    category = normalize_asp_category(omics_layer)
+    configured = ANALYSIS_FILE_KEYS_BY_OMICS[category]
+    bindings = ANALYSIS_PRELOAD_CONTRACT.preload_keys_by_omics.get(category, {})
+    missing = set(configured) - set(bindings)
+    if missing:
+        raise RuntimeError(
+            f"Missing ingest preload binding(s) for {category}: " + ", ".join(sorted(missing))
+        )
+
+    result: dict[str, str] = {}
+    for analysis_type, file_keys in configured.items():
+        preload_key = bindings[analysis_type]
+        if preload_key is None:
+            continue
+        for file_key in file_keys:
+            existing = result.setdefault(file_key, preload_key)
+            if existing != preload_key:
+                raise RuntimeError(
+                    f"Configured file key {file_key!r} has incompatible ingest payload bindings "
+                    f"({existing!r}, {preload_key!r})"
+                )
+    return result
+
+
+def non_database_manifest_file_keys(omics_layer: object) -> frozenset[str]:
+    """Return configured file keys that intentionally do not write a collection."""
+    category = normalize_asp_category(omics_layer)
+    bindings = ANALYSIS_PRELOAD_CONTRACT.preload_keys_by_omics.get(category, {})
+    return frozenset(
+        file_key
+        for analysis_type, file_keys in ANALYSIS_FILE_KEYS_BY_OMICS[category].items()
+        if bindings.get(analysis_type) is None
+        for file_key in file_keys
+    )
 
 
 GENELIST_STANDARD_TYPE_OPTIONS: tuple[str, ...] = CLINICAL_VOCABULARY.genelist_standard_types
@@ -267,9 +302,9 @@ def normalize_genelist_type(value: object) -> str:
 def normalize_permission_category(value: object) -> str:
     """Normalize and validate a permission category label."""
     normalized = str(value or "").strip()
-    if normalized not in PERMISSION_CATEGORY_OPTIONS:
+    if normalized not in PERMISSION_CATALOG.categories:
         raise ValueError(
-            "permission category must be one of: " + ", ".join(PERMISSION_CATEGORY_OPTIONS)
+            "permission category must be one of: " + ", ".join(PERMISSION_CATALOG.categories)
         )
     return normalized
 

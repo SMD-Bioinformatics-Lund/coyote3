@@ -441,7 +441,9 @@ Comment behavior:
 
 !!! caution "Global annotations"
 
-    Global annotations apply beyond a single sample context. The UI must make this explicit before save so a reviewer does not accidentally publish a sample-specific note globally.
+    Global annotations apply beyond one sample. Before saving one, Coyote3
+    clearly identifies its scope so a reviewer can distinguish it from a
+    sample-specific note.
 
 ### Annotation finding identity
 

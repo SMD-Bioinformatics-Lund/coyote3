@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-PANEL_ASP_FAMILIES = frozenset({"panel", "panel-dna", "panel-rna"})
+from api.config.constants import TARGETED_PANEL_ASP_FAMILY_OPTIONS
 
 
 def _asp_gene_stats_rows(data: dict | list | None) -> list[dict]:
@@ -19,7 +19,7 @@ def _asp_gene_stats_rows(data: dict | list | None) -> list[dict]:
 def is_panel_asp(details: dict) -> bool:
     """Return whether an ASP belongs to a targeted panel family."""
     family = str(details.get("asp_family") or "").strip().lower()
-    return family in PANEL_ASP_FAMILIES
+    return family in TARGETED_PANEL_ASP_FAMILY_OPTIONS
 
 
 def format_asp_gene_stats(data: dict | list | None) -> dict:

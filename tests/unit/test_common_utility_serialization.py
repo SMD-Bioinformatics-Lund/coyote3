@@ -3,7 +3,7 @@ from __future__ import annotations
 from bson import ObjectId
 from pydantic import BaseModel
 
-from api.app.utilities.common import convert_to_serializable
+from api.app.utilities.common import convert_to_serializable, nl_join
 
 
 class _PayloadModel(BaseModel):
@@ -39,3 +39,11 @@ def test_convert_to_serializable_ignores_dynamic_fake_model_dump_attributes():
     dynamic = _DynamicGetAttr()
     converted = convert_to_serializable(dynamic)
     assert converted is dynamic
+
+
+def test_nl_join_does_not_mutate_the_caller_list():
+    values = ["A", "B", "C"]
+
+    assert nl_join(values, "och") == "A, B och C"
+    assert values == ["A", "B", "C"]
+    assert nl_join([], "och") == ""

@@ -17,13 +17,15 @@ Every clinical analysis starts at the **Sample List**.
 
 ---
 
-## 2. Navigating the Interpretation Interface
+## 2. Navigating the interpretation interface
 
-The analysis page is divided into three functional zones:
+The analysis page has three working areas:
 
-*   **Central Workspace**: Displays clinical metadata, active gene panels, comments, report preview, and interactive review tables.
-*   **Global Navigation Sidebar (Left)**: Vertical application navigation grouped by clinical, public, operational, and administrative areas.
-*   **Filter Sidebar (Right)**: Domain-specific filters for the active analysis tab. The sidebar starts collapsed and can be expanded when filter editing is needed.
+| Area | Purpose |
+| --- | --- |
+| Main workspace | Clinical metadata, active gene panels, comments, report preview, and review tables. |
+| Left navigation | Application navigation grouped into clinical, public, operational, and administrative areas. |
+| Right filter panel | Filters for the active analysis tab. It is collapsed until filter editing is needed. |
 
 ---
 

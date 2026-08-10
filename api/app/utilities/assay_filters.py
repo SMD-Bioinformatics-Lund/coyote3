@@ -6,9 +6,7 @@ from copy import deepcopy
 from typing import Any
 
 from api.app.runtime_state import app
-from api.domain.common.assay_filters import (
-    get_sample_effective_genes as _domain_get_sample_effective_genes,
-)
+from api.domain.common import assay_filters as domain_assay_filters
 
 
 def assay_config(assay_name: str | None = None) -> dict:
@@ -322,7 +320,7 @@ def get_sample_effective_genes(
     intent: str = "somatic",
 ) -> tuple:
     """Delegate effective-gene resolution to the canonical domain helper."""
-    return _domain_get_sample_effective_genes(
+    return domain_assay_filters.get_sample_effective_genes(
         sample,
         asp_doc,
         checked_gl_dict,

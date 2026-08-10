@@ -4,14 +4,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
 
+from api.app import http
 from api.app.container import store, util
 from api.app.deps.services import get_dna_service, get_dna_structural_service
-from api.app.http import get_formatted_assay_config as _get_formatted_assay_config
 from api.application.dna.structural_variants import DnaStructuralService
 from api.application.dna.variant_analysis import DnaService
-from api.application.interpretation.annotation_enrichment import (
-    add_global_annotations as _shared_add_global_annotations,
-)
+from api.application.interpretation import annotation_enrichment
 from api.application.interpretation.report_summary import generate_summary_text
 from api.config.database_versions import require_sample_vep_version
 from api.contracts.dna import (
@@ -20,9 +18,7 @@ from api.contracts.dna import (
     DnaTranslocationsPayload,
 )
 from api.contracts.samples import SampleChangePayload
-from api.domain.core.dna.dna_filters import (
-    get_filter_conseq_terms as _shared_get_filter_conseq_terms,
-)
+from api.domain.core.dna import dna_filters
 from api.domain.core.dna.varqueries import build_query
 from api.interfaces.http.clinical.common.change_helpers import comment_change, resource_change
 from api.interfaces.http.tags import TAG_STRUCTURAL_VARIANTS
@@ -56,7 +52,7 @@ def _translocation_flag_change(
 
 def _get_filter_conseq_terms(checked: list[str], vep_version: str | int | None = None) -> list[str]:
     """Resolve filter consequence terms using grouped VEP metadata from Mongo."""
-    return _shared_get_filter_conseq_terms(
+    return dna_filters.get_filter_conseq_terms(
         checked,
         store.vep_metadata_repository.get_consequence_group_map(
             None if vep_version is None else str(vep_version)
@@ -70,7 +66,7 @@ def _add_global_annotations(
     subpanel: str | None,
 ) -> tuple[list[dict], list[dict]]:
     """Apply shared annotation enrichment for export-context construction."""
-    return _shared_add_global_annotations(
+    return annotation_enrichment.add_global_annotations(
         variants,
         assay_group,
         subpanel,
@@ -115,7 +111,7 @@ def export_transloc_csv_context(
         get_filter_conseq_terms_fn=lambda values: _get_filter_conseq_terms(
             values, require_sample_vep_version(sample)
         ),
-        assay_config_getter=_get_formatted_assay_config,
+        assay_config_getter=http.get_formatted_assay_config,
         paginate=False,
     )
     translocs = payload.get("display_sections_data", {}).get("translocs", [])

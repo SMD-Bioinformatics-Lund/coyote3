@@ -1,6 +1,6 @@
 # Operational Maintenance and Quality Verification
 
-**Procedure verified:** 6 August 2026.
+**Last reviewed:** 10 August 2026.
 
 This document lists the routine checks for code quality, seed integrity, and environment validation.
 
@@ -128,6 +128,29 @@ The retirement command requires the collection name, index name, and a second
 exact confirmation of the index name. This makes retirement a deliberate
 operation rather than an API-startup side effect. Preserve before-and-after
 command output with the release or maintenance evidence.
+
+### Capacity Baseline
+
+Capture a read-only capacity snapshot before a release, a large ingest change,
+or a planned index build. The command reads collection counts, storage/index
+sizes, and index names. It never reads clinical documents, changes indexes, or
+writes to MongoDB.
+
+```bash
+# Record all configured primary-database collections.
+PYTHONPATH=. python3 scripts/inspect_mongo_capacity.py \
+  --output maintenance/mongo_capacity_$(date +%F).json
+
+# Investigate only high-volume collections.
+PYTHONPATH=. python3 scripts/inspect_mongo_capacity.py \
+  --collection variants \
+  --collection anno_vep \
+  --collection annotations
+```
+
+Use the resulting JSON as maintenance evidence and compare it with the prior
+snapshot. It is a capacity inventory, not a synthetic benchmark: latency
+changes still need to be assessed against an approved non-production workload.
 
 ## Integrated Operational Assets
 

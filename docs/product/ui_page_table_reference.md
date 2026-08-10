@@ -214,7 +214,10 @@ Route: `/samples/:id` with Small Variants tab
 | Control (`sample`) | Control VAF and depth. Hidden for unpaired samples. | `VAF% (VD/DP)` |
 | Actions | Opens variant detail. | Detail icon |
 
-Bulk actions include assigning or removing tiers, marking/unmarking false positive, marking/unmarking irrelevant, marking/unmarking interesting, adding blacklist entries, overriding blacklist, and clearing blacklist overrides. Bulk actions require confirmation and update the table in place after success.
+Bulk actions include assigning or removing tiers, marking or unmarking a review
+state such as false positive, irrelevant, or interesting, adding blacklist
+entries, overriding blacklist, and clearing blacklist overrides. Bulk actions
+require confirmation and update the table in place after success.
 
 !!! warning "Tier annotation text"
 
@@ -298,8 +301,7 @@ pages.
 RNA fusion report eligibility is independent of the `interesting` marker. A
 fusion is included only when its classification is Tier 1, Tier 2, or Tier 3
 and it is not false positive, irrelevant, or blacklisted. Tier 4 and
-unclassified fusions are not reportable. This is the same effective inclusion
-rule used by the previous RNA reporting workflow.
+unclassified fusions are not reportable.
 
 Fusion filter selections are combined predictably. Multiple selected callers
 are alternatives, and multiple selected effects or description terms are also

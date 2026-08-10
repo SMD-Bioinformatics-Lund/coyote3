@@ -6,14 +6,13 @@ from types import SimpleNamespace
 from typing import Any
 
 from api.application.admin.app_controls import (
-    APP_CONTROLS_ID,
-    CELERY_INSPECTION_TIMEOUT_SECONDS,
     AppControlsService,
     _task_summary,
     _worker_runtime_details,
     default_app_controls,
     merge_controls,
 )
+from api.config.contracts.application import OPERATIONAL_COLLECTIONS
 
 
 class _AppControlsCollection:
@@ -25,19 +24,19 @@ class _AppControlsCollection:
 
     def find_one(self, query, projection=None):
         _ = projection
-        if query.get("control_id") == APP_CONTROLS_ID:
+        if query.get("control_id") == OPERATIONAL_COLLECTIONS.app_controls_document_id:
             return dict(self.doc) if self.doc else None
         return None
 
     def find_one_and_update(self, query, update, upsert=False, return_document=None):
         _ = return_document
         self.last_update = update
-        if query.get("control_id") != APP_CONTROLS_ID:
+        if query.get("control_id") != OPERATIONAL_COLLECTIONS.app_controls_document_id:
             return None
         if self.doc is None:
             if not upsert:
                 return None
-            self.doc = {"control_id": APP_CONTROLS_ID}
+            self.doc = {"control_id": OPERATIONAL_COLLECTIONS.app_controls_document_id}
             self.doc.update(update.get("$setOnInsert", {}))
         self.doc.update(update.get("$set", {}))
         return dict(self.doc)
@@ -82,7 +81,7 @@ def test_app_controls_update_validates_existing_created_on_metadata():
     created_on = datetime(2026, 7, 17, 16, 2, 6, 74000, tzinfo=timezone.utc)
     collection = _AppControlsCollection()
     collection.doc = {
-        "control_id": APP_CONTROLS_ID,
+        "control_id": OPERATIONAL_COLLECTIONS.app_controls_document_id,
         "created_on": created_on,
         "updated_by": "coyote3.admin",
         "updated_on": created_on,
@@ -119,7 +118,7 @@ def test_merge_controls_migrates_legacy_ingest_and_analysis_switches():
 def test_public_module_payload_exposes_only_module_availability_metadata():
     collection = _AppControlsCollection()
     collection.doc = {
-        "control_id": APP_CONTROLS_ID,
+        "control_id": OPERATIONAL_COLLECTIONS.app_controls_document_id,
         "modules": {"reports_enabled": False},
     }
     service = AppControlsService(_Db(collection), config={})
@@ -171,7 +170,7 @@ def test_runtime_status_observes_active_tasks_before_worker_metadata(monkeypatch
             return {worker: [{"name": "ingest"}]}
 
     def _inspect(*, timeout):
-        assert timeout == CELERY_INSPECTION_TIMEOUT_SECONDS
+        assert timeout == 1.5
         return _Inspect()
 
     monkeypatch.setattr(celery_app.control, "inspect", _inspect)
@@ -183,7 +182,7 @@ def test_runtime_status_observes_active_tasks_before_worker_metadata(monkeypatch
     assert runtime["active_count"] == 1
     assert runtime["reserved_count"] == 0
     assert runtime["tasks"][0]["task_id"] == "ingest-1"
-    assert runtime["inspection_timeout_seconds"] == CELERY_INSPECTION_TIMEOUT_SECONDS
+    assert runtime["inspection_timeout_seconds"] == 1.5
 
 
 def test_task_summary_excludes_task_payloads_and_normalizes_scheduled_requests():
@@ -257,7 +256,7 @@ def test_worker_runtime_details_reports_capacity_activity_and_consumed_queues():
 def test_cleanup_disk_logs_gzips_and_deletes_by_retention(tmp_path):
     collection = _AppControlsCollection()
     collection.doc = {
-        "control_id": APP_CONTROLS_ID,
+        "control_id": OPERATIONAL_COLLECTIONS.app_controls_document_id,
         "retention": {"disk_log_days": 30, "gzip_disk_logs_after_days": 1},
     }
     service = AppControlsService(_Db(collection), config={"LOGS": str(tmp_path)})
@@ -285,7 +284,7 @@ def test_cleanup_disk_logs_gzips_and_deletes_by_retention(tmp_path):
 def test_cleanup_audit_events_only_deletes_expired_operational_events():
     collection = _AppControlsCollection()
     collection.doc = {
-        "control_id": APP_CONTROLS_ID,
+        "control_id": OPERATIONAL_COLLECTIONS.app_controls_document_id,
         "retention": {"audit_events_days": 90},
     }
     service = AppControlsService(_Db(collection), config={})

@@ -26,10 +26,10 @@ from api.config.constants import (
     ASP_CATEGORY_OPTIONS,
     ASP_FAMILY_OPTIONS,
     ASP_GROUP_OPTIONS,
-    PERMISSION_CATEGORY_OPTIONS,
     PLATFORM_OPTIONS,
     SAMPLE_FILE_KEYS,
 )
+from api.config.contracts.governance import PERMISSION_CATALOG
 from api.contracts.operations import OperationResult
 from api.domain.core.exceptions import AppError
 
@@ -1169,6 +1169,7 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
             "name": form_data["name"],
             "label": form_data.get("name", ""),
             "color": "#1f2937",
+            "level": 9999,
             "permissions": [],
         },
     )
@@ -1226,7 +1227,7 @@ def test_admin_permission_service_create_context_uses_backend_contract_form(monk
 
     assert payload["form"]["form_type"] == "permission"
     assert payload["form"]["fields"]["created_by"]["default"] == "actor@example.com"
-    assert payload["form"]["fields"]["category"]["options"] == list(PERMISSION_CATEGORY_OPTIONS)
+    assert payload["form"]["fields"]["category"]["options"] == list(PERMISSION_CATALOG.categories)
 
 
 def test_admin_permission_service_toggle_permission_sets_status(monkeypatch):

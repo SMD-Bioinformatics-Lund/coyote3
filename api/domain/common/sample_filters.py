@@ -23,10 +23,6 @@ from api.domain.core.filter_capabilities import (
     GERMLINE_ANALYSIS_TYPE_OPTIONS,
 )
 
-DNA_FILTER_SECTIONS = ("snv", "cnv", "translocation", "coverage")
-RNA_FILTER_SECTIONS = ("fusion",)
-VALID_INTENTS = ANALYSIS_INTENT_OPTIONS
-
 
 def _merge_missing_values(current: Any, defaults: Any) -> Any:
     """Return current values completed with any missing nested defaults."""
@@ -49,7 +45,7 @@ def normalize_analysis_intents(value: Any, *, omics_layer: str) -> list[str]:
     )
     if not intents:
         return ["somatic"]
-    invalid = [intent for intent in intents if intent not in VALID_INTENTS]
+    invalid = [intent for intent in intents if intent not in ANALYSIS_INTENT_OPTIONS]
     if invalid:
         raise ValueError("analysis_intents may contain only somatic and germline")
     if str(omics_layer or "").strip().lower() != "dna" and "germline" in intents:
@@ -77,7 +73,7 @@ def normalize_sample_filters(
         source = {}
     inferred_intents = analysis_intents
     if inferred_intents is None:
-        inferred_intents = [key for key in VALID_INTENTS if key in source] or ["somatic"]
+        inferred_intents = [key for key in ANALYSIS_INTENT_OPTIONS if key in source] or ["somatic"]
     intents = normalize_analysis_intents(inferred_intents, omics_layer=layer)
 
     model = DnaFilterProfilesDoc if layer == "dna" else RnaFilterProfilesDoc

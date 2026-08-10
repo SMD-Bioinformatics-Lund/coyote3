@@ -131,20 +131,18 @@ def replace_dependents(
     """Atomically replace dependent data with rollback on failure."""
     sid = str(sample_id)
     keys_to_replace = set(preload.keys()) & set(INGEST_DEPENDENT_COLLECTIONS)
-    backup = snapshot_dependents(service, sample_id=sample_id, keys=keys_to_replace)
+    backup = service._snapshot_dependents(sample_id=sample_id, keys=keys_to_replace)
     try:
         for key, col_name in INGEST_DEPENDENT_COLLECTIONS.items():
             if key in keys_to_replace:
                 service._collection(col_name).delete_many({"SAMPLE_ID": sid})
-        return write_dependents(
-            service,
+        return service._write_dependents(
             preload=preload,
             sample_id=sample_id,
             sample_name=sample_name,
         )
     except Exception:
-        restore_dependents(
-            service,
+        service._restore_dependents(
             sample_id=sample_id,
             sample_name=sample_name,
             backup=backup,

@@ -378,6 +378,29 @@ The React application is organized around:
 - comments, filters, forms, cards, and admin components under their respective component folders
 - API formatting and variant UI helpers in `frontend/src/lib`
 
+### Responsibility boundaries
+
+Keep page files responsible for routing, query orchestration, local interaction
+state, and layout composition. Move reusable domain presentation out of the
+page once it is independently meaningful:
+
+- `components/detail/VariantKnowledgebase.tsx` owns knowledgebase summaries,
+  expandable evidence blocks, ClinPGx evidence-table definitions, and external
+  knowledgebase links for a small-variant detail view.
+- `components/detail/TranscriptConsequencesTable.tsx` owns alternate-transcript
+  table rendering and consequence badge sizing.
+- `lib/variant-badge-primitives.tsx` owns the common badge tooltip mechanics,
+  severity classes, and viewport-aware tooltip positioning.
+- `lib/variant-ui.tsx` owns variant-domain badges and consumes those primitives;
+  it remains the stable public import for existing variant views.
+
+The ingest service follows the same pattern. `application/ingest/service.py`
+coordinates the workflow and persistence boundary, while
+`application/ingest/dependent_writes.py` owns dependent-document writes,
+replacement snapshots, restoration, and cleanup. New collection-specific
+ingest behavior belongs in a focused helper or parser rather than in the
+orchestration service.
+
 The frontend should consume backend contracts and metadata rather than duplicating clinical logic. Hardcoded colors and clinical vocabularies should be avoided when a backend/config constant or metadata file exists.
 
 API calls should go through `frontend/src/lib/api.ts`. That wrapper provides:

@@ -20,6 +20,14 @@ PYTHONPATH=. black --check --line-length 100 api coyote tests scripts
 PYTHONPATH=. pytest -q
 ```
 
+## Shared editor settings
+
+The tracked `.vscode/settings.json` file contains only
+shared, non-personal defaults: Python formatting, trailing-whitespace cleanup,
+test discovery, and the frontend Vitest/Playwright roots. It does not select an
+interpreter, contain credentials, or encode a local path. Personal editor
+settings remain untracked.
+
 ## Documentation requirement
 
 If you change behavior, configuration, deployment, or API contracts, update corresponding docs in `docs/` in the same PR.

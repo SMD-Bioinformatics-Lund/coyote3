@@ -9,6 +9,7 @@ from typing import Any
 from pymongo import ASCENDING, DESCENDING
 from pymongo.errors import PyMongoError
 
+from api.config.contracts.application import OPERATIONAL_COLLECTIONS
 from api.config.security import (
     get_api_sessions_collection_name,
     get_audit_events_collection_name,
@@ -79,13 +80,13 @@ def security_index_contracts(config: dict[str, Any]) -> tuple[SecurityIndexContr
             "idx_audit_retention_time",
         ),
         SecurityIndexContract(
-            "app_controls",
+            OPERATIONAL_COLLECTIONS.app_controls,
             (("control_id", ASCENDING),),
             "uniq_app_controls_control_id",
             {"unique": True},
         ),
         SecurityIndexContract(
-            "app_controls",
+            OPERATIONAL_COLLECTIONS.app_controls,
             (("updated_on", DESCENDING),),
             "idx_app_controls_updated_on",
         ),

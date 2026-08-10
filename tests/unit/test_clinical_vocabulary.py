@@ -8,6 +8,11 @@ import pytest
 
 from api.config.assay_groups import ASP_GROUP_OPTIONS
 from api.config.clinical_vocabulary import CLINICAL_VOCABULARY, load_clinical_vocabulary
+from api.config.constants import (
+    analysis_type_for_file_key,
+    manifest_file_preload_keys,
+    non_database_manifest_file_keys,
+)
 
 
 def test_current_clinical_vocabulary_loads_center_owned_options():
@@ -51,6 +56,21 @@ def test_assay_groups_are_software_owned_not_center_vocabulary():
         "wts",
         "fusion",
     )
+
+
+def test_manifest_preload_bindings_follow_configured_file_keys():
+    """External manifest names resolve through the vocabulary, not ingest service literals."""
+    dna = manifest_file_preload_keys("dna")
+    rna = manifest_file_preload_keys("rna")
+
+    assert dna["vcf_files"] == "snvs"
+    assert dna["cnv"] == "cnvs"
+    assert rna["fusion_files"] == "fusions"
+    assert rna["expression_path"] == "rna_expr"
+    assert non_database_manifest_file_keys("dna") == {"cnvprofile", "pgx"}
+    assert non_database_manifest_file_keys("rna") == {"pgx"}
+    assert analysis_type_for_file_key("dna", "vcf_files") == "SNV"
+    assert analysis_type_for_file_key("rna", "fusion_files") == "FUSION"
 
 
 def test_clinical_vocabulary_rejects_missing_center_section(tmp_path):

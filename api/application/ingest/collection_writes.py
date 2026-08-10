@@ -11,6 +11,7 @@ from api.application.ingest.helpers import (
     normalize_null_placeholders,
 )
 from api.application.ingest.parsers import DnaIngestParser, RnaIngestParser, infer_omics_layer
+from api.config.contracts.application import PIPELINE_MANIFEST
 from api.contracts.schemas.registry import normalize_collection_document, supported_collections
 from api.domain.core.internal.results import ReplaceDocumentResult
 from api.infra.mongo.persistence import (
@@ -18,20 +19,11 @@ from api.infra.mongo.persistence import (
     insert_one_document,
 )
 
-# Pipeline manifests are an external ingest contract. They are normalized once
-# at the boundary; all downstream code receives the canonical clinical shape.
-PIPELINE_MANIFEST_FIELD_MAP: dict[str, str] = {
-    "assay": "asp_id",
-    "subpanel": "subpanel_id",
-    "profile": "environment",
-    "sequencing_technology": "platform",
-}
-
 
 def _normalize_pipeline_manifest_fields(payload: dict[str, Any]) -> dict[str, Any]:
     """Map supported pipeline field names to the canonical ingest contract."""
     normalized = dict(payload)
-    for pipeline_key, canonical_key in PIPELINE_MANIFEST_FIELD_MAP.items():
+    for pipeline_key, canonical_key in PIPELINE_MANIFEST.field_aliases.items():
         if pipeline_key not in normalized:
             continue
         pipeline_value = normalized.pop(pipeline_key)

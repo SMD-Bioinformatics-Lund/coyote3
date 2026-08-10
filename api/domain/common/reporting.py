@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from api.config.contracts.notation import CLINICAL_NOTATION
+
 TIER_NAME: dict[int, str] = {
     1: "I",
     2: "II",
@@ -81,24 +83,12 @@ def utc_now() -> datetime:
 
 def nl_num(i: int, gender: str) -> Any | str:
     """Return Swedish words for small numbers used in report summaries."""
-    names = [
-        "noll",
-        "en",
-        "två",
-        "tre",
-        "fyra",
-        "fem",
-        "sex",
-        "sju",
-        "åtta",
-        "nio",
-        "tio",
-        "elva",
-        "tolv",
-    ]
-    if gender == "t":
-        names[1] = "ett"
-    if i <= 12:
+    names = (
+        CLINICAL_NOTATION.swedish_small_cardinals_neuter
+        if gender == "t"
+        else CLINICAL_NOTATION.swedish_small_cardinals_common
+    )
+    if 0 <= i < len(names):
         return names[i]
     return str(i)
 

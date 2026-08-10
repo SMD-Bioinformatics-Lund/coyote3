@@ -93,6 +93,30 @@ class ClinicalVocabulary:
         return normalized
 
 
+@dataclass(frozen=True)
+class CenterClinicalContract:
+    """Derived centre configuration with one validated vocabulary source.
+
+    The underlying values remain defined in ``clinical_vocabulary.toml``. This
+    contract exposes derived choices shared by API schemas and ingest logic so
+    they are not recomputed independently throughout the application.
+    """
+
+    vocabulary: ClinicalVocabulary
+
+    @property
+    def sequencing_scope_options(self) -> tuple[str, ...]:
+        return tuple(dict.fromkeys(self.vocabulary.assay_family_scopes.values()))
+
+    @property
+    def targeted_panel_asp_families(self) -> frozenset[str]:
+        return frozenset(
+            family
+            for family, scope in self.vocabulary.assay_family_scopes.items()
+            if scope == "panel"
+        )
+
+
 def _fusion_caller_token(value: Any) -> str:
     """Build a case- and separator-insensitive fusion-caller lookup token."""
     normalized = str(value or "").strip().lower()
@@ -378,3 +402,4 @@ def load_clinical_vocabulary(path: str | Path = CLINICAL_VOCABULARY_PATH) -> Cli
 
 
 CLINICAL_VOCABULARY = load_clinical_vocabulary()
+CENTER_CLINICAL_CONTRACT = CenterClinicalContract(CLINICAL_VOCABULARY)

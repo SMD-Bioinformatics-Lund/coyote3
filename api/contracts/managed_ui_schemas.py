@@ -21,12 +21,12 @@ from api.config.constants import (
     GENELIST_ADHOC_TYPE_OPTIONS,
     GENELIST_STANDARD_TYPE_OPTIONS,
     GENELIST_TYPE_OPTIONS,
-    PERMISSION_CATEGORY_OPTIONS,
     PLATFORM_OPTIONS,
     RNA_ANALYSIS_TYPE_OPTIONS,
     SAMPLE_FILE_KEYS,
     SUBPANEL_BASE_ID,
 )
+from api.config.contracts.governance import PERMISSION_CATALOG
 from api.config.sequencing import PLATFORM_CAPABILITIES
 from api.contracts.managed_resources import ManagedResourceSpec
 from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
@@ -812,7 +812,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "version": {"readonly": True},
     },
     "permission": {
-        "category": {"display_type": "select", "options": list(PERMISSION_CATEGORY_OPTIONS)},
+        "category": {"display_type": "select", "options": list(PERMISSION_CATALOG.categories)},
         "tags": {"display_type": "textarea"},
         "system_managed": {
             "display_type": "checkbox",

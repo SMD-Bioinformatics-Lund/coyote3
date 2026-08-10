@@ -5,21 +5,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from api.application.ingest.dependent_writes import data_counts, replace_dependents
-from api.application.ingest.helpers import (
-    _normalize_uploaded_checksums,
-    assay_default_filters_from_aspc_collection,
-    build_sample_meta_dict,
-    normalize_sample_version_metadata,
-)
 from api.application.ingest.parsers import infer_omics_layer
-from api.contracts.schemas.samples import (
-    DNA_SAMPLE_FILE_KEYS,
-    RNA_SAMPLE_FILE_KEYS,
-    SAMPLE_SOURCE_PATH_KEYS,
-    SamplesDoc,
-)
-from api.domain.common.sample_filters import sample_filters_from_aspc_filters
+from api.contracts.schemas.samples import DNA_SAMPLE_FILE_KEYS, RNA_SAMPLE_FILE_KEYS
 
 
 def catch_left_right(case_id: str, name: str) -> tuple[str, str, str]:
@@ -116,100 +103,3 @@ def update_meta_fields(
             {"$set": update_fields},
             upsert=False,
         )
-
-
-def ingest_update(service: Any, payload: dict[str, Any]) -> dict[str, Any]:
-    """Update an existing sample and replace its dependent analysis data."""
-    if not payload:
-        raise ValueError("sample payload is required")
-    if not payload.get("name"):
-        raise ValueError("name is required for update")
-
-    current_doc = service._sample_collection().find_one({"name": payload["name"]})
-    if not current_doc:
-        raise ValueError("Sample not found for update")
-
-    sample_id = str(current_doc["_id"])
-    parsed_payload = prepare_update_payload(service, sample_doc=current_doc, payload=dict(payload))
-    parsed_payload = normalize_sample_version_metadata(parsed_payload)
-    parsed_payload.pop("_id", None)
-    parsed_payload.pop("data_counts", None)
-    parsed_payload.pop("time_added", None)
-    parsed_payload.pop("ingest_status", None)
-    parsed_payload.pop("report_num", None)
-    parsed_payload.pop("increment", None)
-    parsed_payload.pop("update_existing", None)
-    uploaded_checksums = _normalize_uploaded_checksums(
-        parsed_payload.pop("_uploaded_file_checksums", None)
-    )
-
-    merged_doc = dict(current_doc)
-    merged_doc.update(parsed_payload)
-    if merged_doc.get("filters") is None:
-        default_context = assay_default_filters_from_aspc_collection(
-            service._collection("asp_configs"), merged_doc
-        )
-        if default_context is not None:
-            merged_doc["filters"] = sample_filters_from_aspc_filters(
-                default_context["filters"],
-                merged_doc.get("omics_layer", "dna"),
-                analysis_intents=(default_context.get("aspc") or {}).get("analysis_intents"),
-            )
-            aspc = default_context.get("aspc") or {}
-            merged_doc["analysis_intents"] = aspc.get("analysis_intents") or ["somatic"]
-            merged_doc["current_aspc_id"] = aspc.get("_id")
-            merged_doc["current_aspc_key"] = aspc.get("aspc_id")
-            merged_doc["current_aspc_version"] = aspc.get("version")
-            merged_doc["aspc_resolution"] = default_context.get("aspc_resolution")
-    if uploaded_checksums:
-        existing_checksums = _normalize_uploaded_checksums(
-            current_doc.get("uploaded_file_checksums", {})
-        )
-        existing_checksums.update(uploaded_checksums)
-        merged_doc["uploaded_file_checksums"] = existing_checksums
-    validated_merged = SamplesDoc.model_validate(merged_doc)
-    validated_payload = validated_merged.model_dump(exclude_none=True)
-
-    preload_payload: dict[str, Any] = {"omics_layer": validated_payload["omics_layer"]}
-    if validated_payload.get("files"):
-        preload_payload["files"] = validated_payload["files"]
-    runtime_files = parsed_payload.get("_runtime_files")
-    if isinstance(runtime_files, dict) and runtime_files:
-        preload_payload["_runtime_files"] = dict(runtime_files)
-    for key in SAMPLE_SOURCE_PATH_KEYS:
-        if key in parsed_payload and parsed_payload.get(key):
-            preload_payload[key] = parsed_payload[key]
-
-    preload = service._parse_preload(preload_payload)
-    counts = dict(current_doc.get("data_counts") or {})
-    counts.update(data_counts(preload))
-
-    update_meta_fields(
-        service,
-        sample_id=sample_id,
-        payload_meta=build_sample_meta_dict(validated_merged.model_dump(exclude_none=True)),
-        block_fields={"asp_id"},
-    )
-
-    service._sample_collection().update_one(
-        {"_id": service._provider_sample_id(sample_id)},
-        {"$set": {"ingest_status": "ready", "data_counts": counts}},
-        upsert=False,
-    )
-
-    written = replace_dependents(
-        service,
-        preload=preload,
-        sample_id=sample_id,
-        sample_name=str(current_doc["name"]),
-    )
-
-    service._invalidate_dashboard_cache_after_ingest()
-
-    return {
-        "status": "ok",
-        "sample_id": str(sample_id),
-        "sample_name": str(current_doc["name"]),
-        "written": written,
-        "data_counts": counts,
-    }

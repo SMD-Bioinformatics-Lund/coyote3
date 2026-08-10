@@ -6,12 +6,10 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 
-from api.application.common.change_payload import change_payload as _change_payload
+from api.application.common import change_payload as change_payload_builder
 from api.contracts.managed_resources import ManagedResourceSpec
 from api.contracts.managed_ui_schemas import build_form_spec
-from api.domain.common.managed_records import (
-    normalize_managed_form_payload as _normalize_managed_form_payload,
-)
+from api.domain.common import managed_records
 from api.infra.request_context import current_username
 
 
@@ -45,7 +43,7 @@ def change_payload(
     operation: Any | None = None,
 ) -> dict[str, Any]:
     """Build the standard admin change response payload."""
-    return _change_payload(
+    return change_payload_builder.change_payload(
         sample_id=sample_id,
         resource=resource,
         resource_id=resource_id,
@@ -100,7 +98,7 @@ def normalize_managed_form_payload(
     spec: ManagedResourceSpec, form_data: dict[str, Any]
 ) -> dict[str, Any]:
     """Normalize submitted form data using the managed resource form."""
-    return _normalize_managed_form_payload(spec, form_data)
+    return managed_records.normalize_managed_form_payload(spec, form_data)
 
 
 def lower(value: Any) -> str:

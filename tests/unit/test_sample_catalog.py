@@ -27,12 +27,14 @@ def test_file_rows_read_current_sample_files_shape(tmp_path):
 
     by_key = {row["key"]: row for row in rows}
     assert by_key["vcf_files"]["path"] == str(vcf_path)
+    assert by_key["vcf_files"]["analysis_type"] == "SNV"
     assert by_key["vcf_files"]["present"] is True
     assert by_key["vcf_files"]["exists"] is True
-    assert by_key["vcf_files"]["status_label"] == "Uploaded"
+    assert by_key["vcf_files"]["availability"] == "available"
     assert by_key["vcf_files"]["size_bytes"] == 123
     assert by_key["vcf_files"]["checksum"] == "sha256:seed"
-    assert by_key["cnv"]["status_label"] == "Optional Missing"
+    assert by_key["cnv"]["analysis_type"] == "CNV"
+    assert by_key["cnv"]["availability"] == "optional_missing"
 
 
 def test_public_catalog_merges_previous_symbol_without_unresolved_placeholder():

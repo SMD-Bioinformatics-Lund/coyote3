@@ -64,6 +64,7 @@ created from inside the API container so internal Docker hostnames remain valid.
 | `mongo_restore_archive.sh` | Manual operation | Backup and recovery runbook | Restores a selected archive with explicit confirmation and target settings |
 | `mongo_bootstrap_users.py` | Manual operation | Existing-volume recovery runbook | Creates or rotates the Mongo application user when an existing volume cannot use init scripts |
 | `manage_mongo_indexes.py` | Manual operation | Maintenance and troubleshooting runbooks | Inspects repository/security index contracts, applies missing indexes, and retires one explicitly confirmed obsolete index |
+| `inspect_mongo_capacity.py` | Manual operation | Maintenance and quality runbook | Emits a read-only collection count, storage/index-size, and index-inventory snapshot without reading clinical documents |
 
 ## Reference and RBAC maintenance
 

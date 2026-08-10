@@ -9,73 +9,14 @@ from typing import Any
 from api.application.common.assay_config import get_formatted_assay_config
 from api.application.sample.catalog_filters import SampleCatalogFiltersMixin
 from api.application.sample.catalog_mutations import SampleCatalogMutationsMixin
-from api.config.constants import DEFAULT_ENVIRONMENT, primary_analysis_file_key
+from api.config.constants import (
+    DEFAULT_ENVIRONMENT,
+    analysis_type_for_file_key,
+    manifest_file_preload_keys,
+)
 from api.infra.observability.operations import measured_operation
 
 runtime_app = SimpleNamespace(config={})
-
-FILE_DISPLAY_METADATA: dict[str, dict[str, str]] = {
-    primary_analysis_file_key("dna", "SNV"): {
-        "label": "VCF",
-        "icon": "document-text",
-        "missing_msg": "No VCF file available",
-    },
-    primary_analysis_file_key("dna", "CNV"): {
-        "label": "CNV JSON",
-        "icon": "clipboard-document-list",
-        "missing_msg": "No CNV JSON available",
-    },
-    primary_analysis_file_key("dna", "TRANSLOCATION"): {
-        "label": "Transloc VCF",
-        "icon": "link",
-        "missing_msg": "No Transloc VCF available",
-    },
-    primary_analysis_file_key("dna", "COVERAGE"): {
-        "label": "Coverage JSON",
-        "icon": "chart-bar",
-        "missing_msg": "No coverage file available",
-    },
-    primary_analysis_file_key("dna", "BIOMARKER"): {
-        "label": "Biomarkers JSON",
-        "icon": "finger-print",
-        "missing_msg": "No biomarkers file available",
-    },
-    primary_analysis_file_key("dna", "CNV_PROFILE"): {
-        "label": "CNV Profile (image)",
-        "icon": "photo",
-        "missing_msg": "No CNV profile available",
-    },
-    primary_analysis_file_key("rna", "FUSION"): {
-        "label": "Fusion Calls",
-        "icon": "link",
-        "missing_msg": "No fusion file available",
-    },
-    primary_analysis_file_key("rna", "EXPRESSION"): {
-        "label": "Expression",
-        "icon": "clipboard-document-list",
-        "missing_msg": "No Expression file available",
-    },
-    primary_analysis_file_key("rna", "CLASSIFICATION"): {
-        "label": "Classification",
-        "icon": "document-text",
-        "missing_msg": "No Classification file available",
-    },
-    primary_analysis_file_key("rna", "QC"): {
-        "label": "QC",
-        "icon": "chart-bar",
-        "missing_msg": "No QC file available",
-    },
-}
-
-FILE_COUNT_BADGE_METADATA: dict[str, tuple[str, str]] = {
-    primary_analysis_file_key("dna", "SNV"): ("snvs", "SNVs"),
-    primary_analysis_file_key("dna", "CNV"): ("cnvs", "CNVs"),
-    primary_analysis_file_key("dna", "TRANSLOCATION"): ("transloc", "Translocs"),
-    primary_analysis_file_key("rna", "FUSION"): ("fusions", "Fusions"),
-    primary_analysis_file_key("rna", "EXPRESSION"): ("rna_expr", "Expr"),
-    primary_analysis_file_key("rna", "CLASSIFICATION"): ("rna_class", "classes"),
-    primary_analysis_file_key("rna", "QC"): ("rna_qc", "data"),
-}
 
 
 class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixin):
@@ -178,12 +119,12 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         """Build Files & QC rows from assay-configured expected file keys."""
         data_counts = dict(sample.get("data_counts") or {})
         sample_files = sample.get("files") if isinstance(sample.get("files"), dict) else {}
+        omics_layer = str(sample.get("omics_layer") or "dna").strip().lower()
+        preload_keys = manifest_file_preload_keys(omics_layer)
         required_keys = cls._required_file_keys_for_sample(asp)
         rows: list[dict[str, Any]] = []
         for key in cls._expected_file_keys_for_sample(sample, asp):
-            meta = FILE_DISPLAY_METADATA.get(key)
-            if not meta:
-                continue
+            analysis_type = analysis_type_for_file_key(omics_layer, key)
             file_doc = sample_files.get(key)
             file_meta = file_doc if isinstance(file_doc, dict) else {}
             path = (
@@ -203,36 +144,19 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
                     size_bytes = os.path.getsize(str(path))
                 except OSError:
                     size_bytes = None
-            count_key, count_suffix = FILE_COUNT_BADGE_METADATA.get(key, ("", ""))
-            count_badge = None
-            if count_key and data_counts.get(count_key):
-                count_badge = f"{data_counts[count_key]} {count_suffix}"
-            elif key == primary_analysis_file_key("dna", "COVERAGE") and data_counts.get("cov"):
-                count_badge = "Loaded"
-            elif key == primary_analysis_file_key("dna", "BIOMARKER") and data_counts.get(
-                "biomarkers"
-            ):
-                count_badge = "Loaded"
+            data_count = data_counts.get(preload_keys.get(key, ""))
             if path and path_exists:
-                status_label = "Uploaded"
-                status_tone = "ok"
-                warning_message = None
+                availability = "available"
             elif path and not path_exists:
-                status_label = "Broken Path"
-                status_tone = "error"
-                warning_message = "Sample references a file path that is not currently readable."
+                availability = "unreadable"
             elif required:
-                status_label = "Required Missing"
-                status_tone = "error"
-                warning_message = "Required file not uploaded for this sample."
+                availability = "required_missing"
             else:
-                status_label = "Optional Missing"
-                status_tone = "warning"
-                warning_message = "Optional file not uploaded for this sample."
+                availability = "optional_missing"
             rows.append(
                 {
                     "key": key,
-                    "label": meta["label"],
+                    "analysis_type": analysis_type,
                     "path": path,
                     "present": bool(path),
                     "exists": path_exists,
@@ -242,12 +166,8 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
                     if isinstance(file_meta, dict)
                     else None,
                     "required": required,
-                    "icon": meta["icon"],
-                    "missing_msg": meta["missing_msg"],
-                    "count_badge": count_badge,
-                    "status_label": status_label,
-                    "status_tone": status_tone,
-                    "warning_message": warning_message,
+                    "data_count": data_count if isinstance(data_count, int | float) else None,
+                    "availability": availability,
                 }
             )
         return rows

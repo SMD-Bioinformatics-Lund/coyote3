@@ -365,6 +365,7 @@ def test_admin_role_update_success(monkeypatch):
             "name": "Admin",
             "label": "Admin",
             "color": "#1f2937",
+            "level": 99,
             "permissions": [],
         },
     )
@@ -375,7 +376,7 @@ def test_admin_role_update_success(monkeypatch):
 
     assert payload["action"] == "update"
     assert repo.updated_role[1]["role_id"] == "admin"
-    assert repo.updated_role[1]["level"] == 99999
+    assert repo.updated_role[1]["level"] == 99
     assert "version_history" not in repo.updated_role[1]
 
 
@@ -392,6 +393,7 @@ def test_admin_role_update_works_without_db_schema_dependency(monkeypatch):
             "name": "Admin",
             "label": "Admin",
             "color": "#1f2937",
+            "level": 99,
             "permissions": [],
         },
     )

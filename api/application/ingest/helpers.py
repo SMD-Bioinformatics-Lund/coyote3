@@ -139,7 +139,7 @@ def _validate_yaml_manifest_minimum_fields(payload: dict[str, Any]) -> None:
         raise ValueError("YAML is missing mandatory fields: vcf, groups, name or build")
 
 
-def _normalize_case_control(args: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+def normalize_case_control(args: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     """Split a flat arg dict into case and control sub-dicts, normalising null strings.
 
     Args:
@@ -179,7 +179,7 @@ def build_sample_meta_dict(args: dict[str, Any]) -> dict[str, Any]:
         A flat dict suitable for persistence as a sample document.
     """
     sample_dict: dict[str, Any] = {}
-    case_dict, control_dict = _normalize_case_control(args)
+    case_dict, control_dict = normalize_case_control(args)
     blocked = {
         "load",
         "command_selection",
@@ -204,7 +204,7 @@ def build_sample_meta_dict(args: dict[str, Any]) -> dict[str, Any]:
     return sample_dict
 
 
-def _normalize_uploaded_checksums(payload: Any) -> dict[str, str]:
+def normalize_uploaded_checksums(payload: Any) -> dict[str, str]:
     """Normalise an uploaded checksums payload to a clean str->str mapping.
 
     Args:

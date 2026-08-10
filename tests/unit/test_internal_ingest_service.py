@@ -7,7 +7,9 @@ from types import SimpleNamespace
 
 import pytest
 
+import api.application.ingest.helpers as ingest_helpers
 import api.application.ingest.parsers as ingest_parsers
+import api.application.ingest.sample_updates as sample_updates
 import api.application.ingest.service as ingest
 from api.contracts.schemas.rna import FusionsDoc
 from api.infra.mongo.ingest_gateway import IngestCollectionGateway
@@ -247,7 +249,7 @@ def test_small_helpers_and_build_meta(tmp_path):
         == "/staged/a.vcf"
     )
 
-    norm_case, norm_ctrl = ingest._normalize_case_control(
+    norm_case, norm_ctrl = ingest_helpers.normalize_case_control(
         {
             "case_id": "C1",
             "control_id": "N1",
@@ -683,7 +685,7 @@ def test_type_and_string_helpers(monkeypatch):
     with pytest.raises(ValueError):
         ingest_parsers.infer_omics_layer({"vcf_files": "x", "fusion_files": "y"})
 
-    left, right, true = ingest._catch_left_right("CASE", "CASE-2")
+    left, right, true = sample_updates.catch_left_right("CASE", "CASE-2")
     assert (left, right, true) == ("", "-2", "CASE")
 
     assert ingest_parsers._split_on_colon("NM:123") == "123"
@@ -1243,8 +1245,7 @@ def test_write_and_ingest_dependents(monkeypatch):
     service = _use_store(monkeypatch, stub)
     monkeypatch.setattr(ingest, "normalize_collection_document", lambda _c, doc: dict(doc))
     monkeypatch.setattr(
-        ingest,
-        "ensure_variant_identity_fields",
+        "api.application.ingest.dependent_writes.ensure_variant_identity_fields",
         lambda doc: {**doc, "simple_id_hash": "ok"},
     )
 

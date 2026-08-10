@@ -19,87 +19,9 @@ from typing import Any, Dict, Tuple
 from werkzeug.security import generate_password_hash
 
 from api.app.runtime_state import app, current_username
-from api.app.utilities.assay_filters import (
-    assay_config as _assay_config,
-)
-from api.app.utilities.assay_filters import (
-    assay_exists as _assay_exists,
-)
-from api.app.utilities.assay_filters import (
-    assay_info_vars as _assay_info_vars,
-)
-from api.app.utilities.assay_filters import (
-    assay_names_for_db_query as _assay_names_for_db_query,
-)
-from api.app.utilities.assay_filters import (
-    assay_qc_vars as _assay_qc_vars,
-)
-from api.app.utilities.assay_filters import (
-    assays_in_assay_group as _assays_in_assay_group,
-)
-from api.app.utilities.assay_filters import (
-    create_assay_group_map as _create_assay_group_map,
-)
-from api.app.utilities.assay_filters import (
-    create_filter_genelist as _create_filter_genelist,
-)
-from api.app.utilities.assay_filters import (
-    cutoff_config as _cutoff_config,
-)
-from api.app.utilities.assay_filters import (
-    format_assay_config as _format_assay_config,
-)
-from api.app.utilities.assay_filters import (
-    format_filters_from_form as _format_filters_from_form,
-)
-from api.app.utilities.assay_filters import (
-    get_assay_genelist_names as _get_assay_genelist_names,
-)
-from api.app.utilities.assay_filters import (
-    get_case_and_control_sample_ids as _get_case_and_control_sample_ids,
-)
-from api.app.utilities.assay_filters import (
-    get_fusions_settings as _get_fusions_settings,
-)
-from api.app.utilities.assay_filters import (
-    get_genes_covered_in_panel as _get_genes_covered_in_panel,
-)
-from api.app.utilities.assay_filters import (
-    get_group_parameters as _get_group_parameters,
-)
-from api.app.utilities.assay_filters import (
-    get_sample_subtypes as _get_sample_subtypes,
-)
-from api.app.utilities.assay_filters import (
-    has_subtypes as _has_subtypes,
-)
-from api.app.utilities.assay_filters import (
-    merge_sample_settings_with_assay_config as _merge_sample_settings_with_assay_config,
-)
-from api.app.utilities.assay_filters import (
-    subtype_id_var as _subtype_id_var,
-)
-from api.app.utilities.assay_filters import (
-    table_config as _table_config,
-)
-from api.app.utilities.serialization import (
-    convert_object_id as _convert_object_id,
-)
-from api.app.utilities.serialization import (
-    convert_to_serializable as _convert_to_serializable,
-)
-from api.app.utilities.serialization import (
-    dict_to_tuple as _dict_to_tuple,
-)
-from api.app.utilities.serialization import (
-    safe_json_load as _safe_json_load,
-)
-from api.app.utilities.serialization import (
-    tuple_to_dict as _tuple_to_dict,
-)
-from api.domain.common.assay_filters import (
-    get_sample_effective_genes as _get_sample_effective_genes,
-)
+from api.app.utilities import assay_filters, serialization
+from api.domain.common import assay_filters as domain_assay_filters
+from api.domain.common.reporting import nl_num as render_swedish_number
 from api.domain.core.annotation_identity import annotation_identity_fields
 from api.domain.core.dna.variant_identity import (
     build_simple_id,
@@ -171,105 +93,76 @@ class CommonUtility:
 
     @staticmethod
     def assay_config(assay_name: str = None) -> dict:
-        return _assay_config(assay_name)
+        return assay_filters.assay_config(assay_name)
 
     @staticmethod
     def get_group_parameters(group: str) -> dict:
-        return _get_group_parameters(group)
+        return assay_filters.get_group_parameters(group)
 
     @staticmethod
     def table_config() -> dict:
-        return _table_config()
+        return assay_filters.table_config()
 
     @staticmethod
     def cutoff_config(assay_name: str, sample_type: str = None) -> dict:
-        return _cutoff_config(assay_name, sample_type)
+        return assay_filters.cutoff_config(assay_name, sample_type)
 
     @staticmethod
     def assay_info_vars(assay_name: str) -> list:
-        return _assay_info_vars(assay_name)
+        return assay_filters.assay_info_vars(assay_name)
 
     @staticmethod
     def assay_qc_vars(assay_name: str) -> list:
-        return _assay_qc_vars(assay_name)
+        return assay_filters.assay_qc_vars(assay_name)
 
     @staticmethod
     def assays_in_assay_group(assay_name: str) -> list:
-        return _assays_in_assay_group(assay_name)
+        return assay_filters.assays_in_assay_group(assay_name)
 
     @staticmethod
     def has_subtypes(assay_name: str) -> bool:
-        return _has_subtypes(assay_name)
+        return assay_filters.has_subtypes(assay_name)
 
     @staticmethod
     def get_sample_subtypes(assay_name: str) -> list:
-        return _get_sample_subtypes(assay_name)
+        return assay_filters.get_sample_subtypes(assay_name)
 
     @staticmethod
     def subtype_id_var(assay_name: str) -> list:
-        return _subtype_id_var(assay_name)
+        return assay_filters.subtype_id_var(assay_name)
 
     @staticmethod
     def assay_exists(assay_name: str) -> bool:
-        return _assay_exists(assay_name)
+        return assay_filters.assay_exists(assay_name)
 
     @staticmethod
     def assay_names_for_db_query(assay_category_name: str) -> list:
-        return _assay_names_for_db_query(assay_category_name)
+        return assay_filters.assay_names_for_db_query(assay_category_name)
 
     @staticmethod
     def merge_sample_settings_with_assay_config(sample_doc: dict, assay_config: dict) -> dict:
-        return _merge_sample_settings_with_assay_config(sample_doc, assay_config)
+        return assay_filters.merge_sample_settings_with_assay_config(sample_doc, assay_config)
 
     @staticmethod
     def get_fusions_settings(sample: dict, settings: dict) -> dict:
-        return _get_fusions_settings(sample, settings)
+        return assay_filters.get_fusions_settings(sample, settings)
 
     @staticmethod
     def create_filter_genelist(genelist_dict: dict) -> list:
-        return _create_filter_genelist(genelist_dict)
+        return assay_filters.create_filter_genelist(genelist_dict)
 
     @staticmethod
     def get_genes_covered_in_panel(genelists: dict, assay_panel_doc: dict) -> dict:
-        return _get_genes_covered_in_panel(genelists, assay_panel_doc)
+        return assay_filters.get_genes_covered_in_panel(genelists, assay_panel_doc)
 
     @staticmethod
     def get_assay_genelist_names(genelists: dict) -> list:
-        return _get_assay_genelist_names(genelists)
+        return assay_filters.get_assay_genelist_names(genelists)
 
     @staticmethod
     def nl_num(i: int, gender: str) -> Any | str:
-        """
-        Return the Swedish word for a number, optionally using the neuter form for 'one'.
-
-        Args:
-            i (int): The number to convert (0-12 returns Swedish word, otherwise returns the number as string).
-            gender (str): If 't', use the neuter form for 'one' ("ett"), otherwise use the common form ("en").
-
-        Returns:
-            str: The Swedish word for the number if 0-12, otherwise the number as a string.
-        """
-        names = [
-            "noll",
-            "en",
-            "två",
-            "tre",
-            "fyra",
-            "fem",
-            "sex",
-            "sju",
-            "åtta",
-            "nio",
-            "tio",
-            "elva",
-            "tolv",
-        ]
-        if gender == "t":
-            names[1] = "ett"
-        if i <= 12:
-            return names[i]
-        else:
-            return str(i)
+        """Return the shared Swedish report number rendering."""
+        return render_swedish_number(i, gender)
 
     @staticmethod
     def nl_join(arr: list, joiner: str) -> str:
@@ -283,13 +176,13 @@ class CommonUtility:
         Returns:
             str: The joined string in natural language format.
         """
+        if not arr:
+            return ""
         if len(arr) == 1:
             return arr[0]
         if len(arr) == 2:
             return f"{arr[0]} {joiner} {arr[1]}"
-        if len(arr) > 2:
-            last = arr.pop()
-            return f"{', '.join(arr)} {joiner} {last}"
+        return f"{', '.join(arr[:-1])} {joiner} {arr[-1]}"
 
     @staticmethod
     def convert_object_id(data: Any) -> list | dict | str | Any:
@@ -302,7 +195,7 @@ class CommonUtility:
         Returns:
             list | dict | str | Any: The data structure with all `ObjectId` instances converted to strings.
         """
-        return _convert_object_id(data)
+        return serialization.convert_object_id(data)
 
     @staticmethod
     def convert_to_serializable(data: Any) -> list | dict | str | Any:
@@ -315,7 +208,7 @@ class CommonUtility:
         Returns:
             list | dict | str | Any: The input data structure with all `ObjectId` and `datetime` instances converted to serializable strings.
         """
-        return _convert_to_serializable(data)
+        return serialization.convert_to_serializable(data)
 
     @staticmethod
     def dict_to_tuple(d: Dict) -> Tuple:
@@ -332,7 +225,7 @@ class CommonUtility:
         Returns:
             tuple: A tuple of (key, value) pairs sorted by key.
         """
-        return _dict_to_tuple(d)
+        return serialization.dict_to_tuple(d)
 
     @staticmethod
     def tuple_to_dict(t: Tuple) -> Dict:
@@ -344,7 +237,7 @@ class CommonUtility:
         Returns:
             dict: The reconstructed dictionary from the tuple of pairs.
         """
-        return _tuple_to_dict(t)
+        return serialization.tuple_to_dict(t)
 
     @staticmethod
     def get_report_header(assay: str, sample: dict, header: str) -> str:
@@ -470,19 +363,19 @@ class CommonUtility:
 
     @staticmethod
     def format_assay_config(config: dict, schema: dict) -> dict:
-        return _format_assay_config(config, schema)
+        return assay_filters.format_assay_config(config, schema)
 
     @staticmethod
     def format_filters_from_form(form_data: Any, assay_config_schema: dict) -> dict:
-        return _format_filters_from_form(form_data, assay_config_schema)
+        return assay_filters.format_filters_from_form(form_data, assay_config_schema)
 
     @staticmethod
     def create_assay_group_map(assay_groups_panels: list) -> dict:
-        return _create_assay_group_map(assay_groups_panels)
+        return assay_filters.create_assay_group_map(assay_groups_panels)
 
     @staticmethod
     def get_case_and_control_sample_ids(sample_doc: dict) -> dict:
-        return _get_case_and_control_sample_ids(sample_doc)
+        return assay_filters.get_case_and_control_sample_ids(sample_doc)
 
     @staticmethod
     def create_classified_variant_doc(
@@ -563,7 +456,7 @@ class CommonUtility:
         Returns:
             dict: The parsed JSON dictionary, or the fallback/empty dictionary on failure.
         """
-        return _safe_json_load(data, fallback=fallback)
+        return serialization.safe_json_load(data, fallback=fallback)
 
     @staticmethod
     def get_tier_classification(data: dict) -> int:
@@ -593,7 +486,7 @@ class CommonUtility:
         target: str = "snv",
         intent: str = "somatic",
     ) -> tuple:
-        return _get_sample_effective_genes(
+        return domain_assay_filters.get_sample_effective_genes(
             sample,
             asp_doc,
             checked_gl_dict,
@@ -617,10 +510,10 @@ get_plot = CommonUtility.get_plot
 generate_sample_cache_key = CommonUtility.generate_sample_cache_key
 get_tier_classification = CommonUtility.get_tier_classification
 create_classified_variant_doc = CommonUtility.create_classified_variant_doc
-convert_to_serializable = _convert_to_serializable
-convert_object_id = _convert_object_id
-dict_to_tuple = _dict_to_tuple
-tuple_to_dict = _tuple_to_dict
-merge_sample_settings_with_assay_config = _merge_sample_settings_with_assay_config
-get_sample_effective_genes = _get_sample_effective_genes
-get_assay_genelist_names = _get_assay_genelist_names
+convert_to_serializable = serialization.convert_to_serializable
+convert_object_id = serialization.convert_object_id
+dict_to_tuple = serialization.dict_to_tuple
+tuple_to_dict = serialization.tuple_to_dict
+merge_sample_settings_with_assay_config = assay_filters.merge_sample_settings_with_assay_config
+get_sample_effective_genes = domain_assay_filters.get_sample_effective_genes
+get_assay_genelist_names = assay_filters.get_assay_genelist_names

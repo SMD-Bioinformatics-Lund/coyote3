@@ -358,7 +358,9 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
     service = _dna_service()
 
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
-    monkeypatch.setattr(dna, "_get_formatted_assay_config", lambda _sample: {"asp_group": "dna"})
+    monkeypatch.setattr(
+        dna.http, "get_formatted_assay_config", lambda _sample: {"asp_group": "dna"}
+    )
     monkeypatch.setattr(store.variant_repository, "get_variant", lambda var_id: variant)
     monkeypatch.setattr(
         store.blacklist_repository,
@@ -436,7 +438,7 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
 
     service = _dna_service()
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
-    monkeypatch.setattr(dna, "_get_formatted_assay_config", lambda _sample: assay_config)
+    monkeypatch.setattr(dna.http, "get_formatted_assay_config", lambda _sample: assay_config)
     monkeypatch.setattr(dna.util.common, "merge_sample_settings_with_assay_config", lambda s, a: s)
     monkeypatch.setattr(
         store.assay_panel_repository, "get_asp", lambda asp_name: {"asp_name": asp_name}

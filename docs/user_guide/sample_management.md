@@ -6,7 +6,7 @@ The Sample List (accessible via the main navigation or assay-specific routes) is
 
 ## Interface Overview
 
-The sample management interface is designed to help you quickly locate and prioritize cases for review. It uses the same glass-card and bordered-table system as the rest of the React application.
+The sample management interface is designed to help you quickly locate and prioritize cases for review.
 
 ### 1. Global Filters and Search
 

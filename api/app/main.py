@@ -129,11 +129,11 @@ def create_api_app() -> FastAPI:
     mode_flags = get_runtime_mode_flags()
     script_name = _script_name()
 
-    from api.version import __version__ as _api_version
+    from api import version
 
     app = FastAPI(
         title="Coyote3 API",
-        version=_api_version,
+        version=version.__version__,
         root_path=script_name,
         root_path_in_servers=bool(script_name),
         docs_url="/api/v1/docs",
