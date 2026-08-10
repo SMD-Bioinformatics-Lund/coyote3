@@ -52,10 +52,6 @@ class ASPConfigRepository(BaseRepository):
         Create minimal indexes for ASPC filter/distinct paths.
         """
         col = self.get_collection()
-        existing = {index["name"] for index in col.list_indexes()}
-        for legacy_name in ("aspc_id_1", "asp_subpanel_environment_unique"):
-            if legacy_name in existing:
-                col.drop_index(legacy_name)
         col.create_index(
             [("aspc_id", 1), ("is_active", 1)],
             name="aspc_id_active_1",

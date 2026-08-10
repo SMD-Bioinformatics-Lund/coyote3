@@ -30,6 +30,7 @@ vi.mock("react-router-dom", async () => {
 
 const currentUser = {
   username: "analyst",
+  firstname: "Avery",
   role: "manager",
   roles: ["manager"],
   access_level: 50,
@@ -100,13 +101,21 @@ describe("Layout", () => {
     vi.mocked(api.get).mockReset()
     vi.mocked(api.delete).mockReset()
     vi.stubGlobal("fetch", vi.fn())
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    )
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })))
   })
 
   it("renders authenticated navigation, administration, and unread notifications", async () => {
     mockPrivateQueries()
     renderLayout()
 
-    expect(await screen.findByText("analyst")).toBeVisible()
+    expect(await screen.findByText("Avery")).toBeVisible()
     expect(screen.getByLabelText("Notifications")).toHaveTextContent("7")
     expect(screen.getByTitle("Workspace: Samples")).toBeVisible()
     expect(screen.getByTitle("Administration: Admin Settings")).toBeVisible()
@@ -137,7 +146,7 @@ describe("Layout", () => {
     vi.mocked(api.delete).mockResolvedValue({ data: {} } as never)
     renderLayout()
 
-    fireEvent.click(await screen.findByRole("button", { name: /analyst/i }))
+    fireEvent.click(await screen.findByRole("button", { name: /Avery/i }))
     expect(screen.getByRole("link", { name: "Profile" })).toHaveAttribute("href", "/profile")
     expect(screen.getByRole("link", { name: "Report a Bug" })).toHaveAttribute(
       "href",
@@ -171,10 +180,32 @@ describe("Layout", () => {
     mockPrivateQueries()
     renderLayout()
 
-    const toggle = await screen.findByTitle("Toggle Sidebar")
+    const toggle = await screen.findByTitle("Expand sidebar")
     fireEvent.click(toggle)
     expect(screen.getByText("Workspace")).toBeVisible()
-    expect(screen.getByText("Collapse")).toBeVisible()
+    expect(screen.getAllByText("Avery")).toHaveLength(2)
+    expect(screen.getAllByText("manager")).toHaveLength(2)
     expect(screen.getByText("Route content")).toBeVisible()
+  })
+
+  it("offers a back-to-top action when page height exceeds the viewport by ten percent", async () => {
+    mockPrivateQueries()
+    renderLayout()
+    await screen.findByText("Route content")
+
+    const main = screen.getByRole("main")
+    Object.defineProperties(main, {
+      clientHeight: { configurable: true, value: 800 },
+      scrollHeight: { configurable: true, value: 1200 },
+      scrollTop: { configurable: true, writable: true, value: 0 },
+    })
+    const scrollTo = vi.fn()
+    Object.defineProperty(main, "scrollTo", { configurable: true, value: scrollTo })
+
+    fireEvent.scroll(main)
+    const backToTop = await screen.findByRole("button", { name: "Back to top" })
+    fireEvent.click(backToTop)
+
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" })
   })
 })

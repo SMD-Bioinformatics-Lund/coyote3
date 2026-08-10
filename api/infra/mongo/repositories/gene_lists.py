@@ -47,9 +47,6 @@ class ISGLRepository(BaseRepository):
         Avoids broad indexing to keep disk usage controlled.
         """
         col = self.get_collection()
-        existing = {index["name"] for index in col.list_indexes()}
-        if "isgl_id_1" in existing:
-            col.drop_index("isgl_id_1")
         col.create_index(
             [("isgl_id", 1), ("is_active", 1)],
             name="isgl_id_active_1",
@@ -65,8 +62,6 @@ class ISGLRepository(BaseRepository):
             name="active_public_adhoc_created_on",
             background=True,
         )
-        if "assays_1" in existing:
-            col.drop_index("assays_1")
         col.create_index([("asp_ids", 1)], name="asp_ids_1", background=True)
         col.create_index([("asp_groups", 1)], name="asp_groups_1", background=True)
         col.create_index([("diagnosis", 1)], name="diagnosis_1", background=True)

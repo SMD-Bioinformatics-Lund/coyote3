@@ -121,7 +121,8 @@ class MongoAdapter:
         self.app = app
         self._setup_dbs(self.client)
         self.setup()
-        self._setup_repositories()
+        self._setup_repositories(ensure_indexes=False)
+        self.verify_index_contracts()
 
     def get_db_name(self) -> str:
         """
@@ -191,7 +192,7 @@ class MongoAdapter:
         ):
             setattr(self, bam_collection_name, self.bam_db[bam_collection_value])
 
-    def _setup_repositories(self):
+    def _setup_repositories(self, *, ensure_indexes: bool = True):
         """
         Setup database operations repositories
 
@@ -203,11 +204,36 @@ class MongoAdapter:
             setattr(self, repository_attr, repository_cls(self))
         for plugin in enabled_knowledgebase_plugins(self.app.config):
             setattr(self, plugin.repository_attr, plugin.repository_cls(self))
+        if ensure_indexes:
+            self.ensure_repository_indexes()
+
+    def iter_repositories(self):
+        """Yield registered repository names and instances in deterministic order."""
         for repository_attr, _repository_cls, index_name in CORE_REPOSITORIES:
-            self._ensure_repository_indexes(index_name, getattr(self, repository_attr))
+            yield index_name, getattr(self, repository_attr)
         for plugin in enabled_knowledgebase_plugins(self.app.config):
-            self._ensure_repository_indexes(
-                plugin.index_name, getattr(self, plugin.repository_attr)
+            yield plugin.index_name, getattr(self, plugin.repository_attr)
+
+    def ensure_repository_indexes(self) -> None:
+        """Apply every registered repository's idempotent index contract."""
+        for index_name, repository in self.iter_repositories():
+            self._ensure_repository_indexes(index_name, repository)
+
+    def verify_index_contracts(self) -> None:
+        """Inspect required indexes without creating, changing, or dropping them."""
+        from api.infra.mongo.index_management import build_index_plan
+
+        findings = [item for item in build_index_plan(self) if item["state"] != "present"]
+        self.index_setup_conflicts = findings
+        for item in findings:
+            self.app.logger.warning(
+                "Mongo index requires operator action repository=%s collection=%s "
+                "index=%s state=%s. Run scripts/manage_mongo_indexes.py plan and apply "
+                "during an approved maintenance window.",
+                item["repository"],
+                item["collection"],
+                item["name"],
+                item["state"],
             )
 
     def _ensure_repository_indexes(self, repository_name: str, repository: object) -> None:

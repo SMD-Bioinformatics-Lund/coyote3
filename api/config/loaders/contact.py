@@ -68,6 +68,31 @@ def _application_links() -> list[dict[str, str]]:
     ]
 
 
+def application_integration_links(config: dict[str, Any]) -> list[dict[str, str]]:
+    """Return configured external clinical tools suitable for the About page."""
+    candidates = (
+        ("GENS", "GENS copy-number and BAF visualization.", "GENS_URI", "external"),
+        ("IGV", "Integrative Genomics Viewer for alignment review.", "IGV_URI", "external"),
+        ("OncoKB Public", "Public cancer knowledgebase.", "ONCOKB_BASE_URL", "external"),
+        (
+            "ClinPGx Public",
+            "Public pharmacogenomics knowledgebase.",
+            "CLINPGX_BASE_URL",
+            "external",
+        ),
+    )
+    return [
+        {
+            "label": label,
+            "description": description,
+            "url": str(config.get(key) or "").strip(),
+            "icon": icon,
+        }
+        for label, description, key, icon in candidates
+        if str(config.get(key) or "").strip()
+    ]
+
+
 def load_contact_config(
     config_path: str | Path,
     *,

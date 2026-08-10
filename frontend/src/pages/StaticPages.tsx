@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { BookOpen, Bug, Building2, Database, ExternalLink, FileText, GitBranch, Home, LifeBuoy, Lightbulb, Mail, MapPin, MessageSquareWarning, Phone } from "lucide-react"
+import { BookOpen, Bug, Building2, Database, ExternalLink, FileText, GitBranch, Home, LifeBuoy, Lightbulb, Mail, MapPin, MessageSquareWarning, Phone, Workflow } from "lucide-react"
 import { PageShell } from "@/components/layout/PageShell"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { api } from "@/lib/api"
@@ -69,7 +69,7 @@ export function ContactPage() {
           </section>
 
           <aside className="space-y-3">
-            <SupportCard support={support} />
+            <SupportCard support={support} contacts={contacts} />
             <HoursCard hours={hours} />
             <AddressCard organization={organization} />
             <UsefulLinksCard links={links} />
@@ -88,6 +88,7 @@ export function AboutPage() {
   })
 
   const organization = data?.organization || {}
+  const contacts = data?.contacts || []
   const hours = data?.hours || []
   const links = data?.links || []
   const support = data?.support || {}
@@ -96,10 +97,11 @@ export function AboutPage() {
   const software = data?.software || {}
   const references = data?.references || {}
   const databases = data?.databases || {}
+  const softwareLinks = data?.software_links || []
   const orgName = organization.name || runtimeConfig.organizationName
   const pipelines = software.pipelines || {}
   const sampleReferenceVersions = references.sample_database_versions || {}
-  const aboutLinks = buildAboutLinks(links, codebase)
+  const aboutLinks = buildAboutLinks([...links, ...softwareLinks], codebase)
 
   return (
     <PageShell
@@ -153,8 +155,8 @@ export function AboutPage() {
         <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <InfoCard icon={GitBranch} label="Application Version" value={application.version || "-"} hint={application.environment ? `Environment: ${application.environment}` : undefined} />
           <InfoCard icon={Database} label="Primary Database" value={databases.primary || "-"} hint={databases.bam_service ? `BAM service: ${databases.bam_service}` : undefined} />
-          <InfoCard icon={FileText} label="VEP Versions" value={formatList(software.vep)} hint={formatList(references.vep_metadata, "No VEP metadata versions")} />
-          <InfoCard icon={LifeBuoy} label="Support" value={support.primary_email || "Configured by center"} hint={support.urgent_phone || undefined} />
+          <InfoCard icon={FileText} label="VEP Metadata" value={references.vep_metadata?.length ? `${references.vep_metadata.length} version${references.vep_metadata.length === 1 ? "" : "s"}` : "None recorded"} hint="Observed in the VEP metadata collection." />
+          <InfoCard icon={LifeBuoy} label="Support Channels" value={contacts.length ? `${contacts.length} configured` : "None configured"} hint="Contact information is maintained in the center contact configuration." />
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
@@ -167,6 +169,7 @@ export function AboutPage() {
               <div className="grid gap-3 md:grid-cols-2">
                 <VersionBlock title="Analysis Pipelines" values={pipelines} empty="No pipeline versions observed in loaded samples." />
                 <VersionBlock title="Sample Reference Databases" values={sampleReferenceVersions} empty="No sample database versions recorded yet." />
+                <VersionBlock title="VEP Metadata Versions" values={{ vep_metadata: references.vep_metadata || [] }} empty="No VEP metadata versions recorded yet." />
                 <div className="md:col-span-2">
                   <VersionBlock title="External Knowledgebases" values={databases.knowledgebases || {}} empty="No external knowledgebase endpoints configured." />
                 </div>
@@ -176,7 +179,7 @@ export function AboutPage() {
           </div>
 
           <aside className="space-y-3">
-            <SupportCard support={support} />
+            <SupportCard support={support} contacts={contacts} />
             <HoursCard hours={hours} />
             {aboutLinks.length ? (
               <section className="content-section p-4">
@@ -199,11 +202,21 @@ export function AboutPage() {
   )
 }
 
+type ContactPerson = { name?: string; email: string }
+type ContactChannel = {
+  label?: string
+  role?: string
+  description?: string
+  email?: string
+  phone?: string
+  people?: ContactPerson[]
+}
+
 type PublicContactPayload = {
   organization: Record<string, string>
   support: Record<string, string>
   codebase?: Record<string, string>
-  contacts: Array<Record<string, string>>
+  contacts: ContactChannel[]
   links: Array<Record<string, string>>
   hours: Array<Record<string, string>>
 }
@@ -213,23 +226,25 @@ type PublicAboutPayload = PublicContactPayload & {
   references: Record<string, any>
   software: Record<string, any>
   databases: Record<string, any>
+  software_links?: LinkLike[]
 }
 
 type LinkLike = Record<string, string>
 
-function ContactCard({ contact }: { contact: Record<string, string> }) {
+function ContactCard({ contact }: { contact: ContactChannel }) {
+  const people = contact.people || (contact.email ? [{ email: contact.email }] : [])
   return (
     <article className="content-item p-4">
       <p className="text-sm font-bold text-foreground">{contact.label}</p>
       {contact.role ? <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{contact.role}</p> : null}
       {contact.description ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{contact.description}</p> : null}
       <div className="mt-4 space-y-2 text-sm">
-        {contact.email ? (
-          <a className="link-text flex items-center gap-2 font-semibold" href={`mailto:${contact.email}`}>
-            <Mail className="h-4 w-4" />
-            {contact.email}
+        {people.map((person) => (
+          <a key={person.email} className="link-text flex items-start gap-2 font-semibold" href={`mailto:${person.email}`}>
+            <Mail className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{person.name ? `${person.name} (${person.email})` : person.email}</span>
           </a>
-        ) : null}
+        ))}
         {contact.phone ? (
           <a className="link-text flex items-center gap-2 font-semibold" href={`tel:${contact.phone}`}>
             <Phone className="h-4 w-4" />
@@ -241,11 +256,13 @@ function ContactCard({ contact }: { contact: Record<string, string> }) {
   )
 }
 
-function SupportCard({ support }: { support: Record<string, string> }) {
-  if (!support.primary_email && !support.urgent_phone) return null
+function SupportCard({ support, contacts }: { support: Record<string, string>; contacts: ContactChannel[] }) {
+  const configuredChannels = contacts.filter((contact) => (contact.people || []).length > 0 || contact.email)
+  const configuredPeople = configuredChannels.flatMap((contact) => contact.people || (contact.email ? [{ email: contact.email }] : []))
+  if (!support.primary_email && !support.urgent_phone && !configuredPeople.length) return null
   return (
     <div className="content-section p-4">
-      <p className="text-sm font-bold">Primary Support</p>
+      <p className="text-sm font-bold">Support</p>
       <div className="mt-3 space-y-2 text-sm">
         {support.primary_email ? (
           <a className="link-text flex items-center gap-2 font-semibold" href={`mailto:${support.primary_email}`}>
@@ -258,6 +275,23 @@ function SupportCard({ support }: { support: Record<string, string> }) {
             <Phone className="h-4 w-4" />
             {support.urgent_phone}
           </a>
+        ) : null}
+        {!support.primary_email && configuredPeople.length ? (
+          <div className="space-y-2">
+            {configuredChannels.map((channel) => (
+              <div key={channel.label}>
+                <p className="text-xs font-semibold text-muted-foreground">{channel.label}</p>
+                <div className="mt-1 space-y-1">
+                  {(channel.people || (channel.email ? [{ email: channel.email }] : [])).map((person) => (
+                    <a key={person.email} className="link-text flex items-start gap-2 font-semibold" href={`mailto:${person.email}`}>
+                      <Mail className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>{person.name || person.email}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : null}
       </div>
     </div>
@@ -309,6 +343,7 @@ function ResourceLink({ link }: { link: LinkLike }) {
     link.icon === "feature" ? Lightbulb :
     link.icon === "issue" ? MessageSquareWarning :
     link.icon === "docs" ? BookOpen :
+    link.icon === "external" ? Workflow :
     ExternalLink
   return (
     <a
@@ -352,7 +387,11 @@ function VersionBlock({ title, values, empty }: { title: string; values: any; em
           {entries.map(([key, value]) => (
             <div key={key} className="grid grid-cols-[minmax(110px,0.42fr)_minmax(0,1fr)] gap-3">
               <dt className="break-words font-semibold text-muted-foreground">{humanLabel(key)}</dt>
-              <dd className="break-words font-semibold text-foreground">{Array.isArray(value) ? value.join(", ") : String(value)}</dd>
+              <dd className="flex flex-wrap gap-1.5">
+                {Array.isArray(value) ? value.map((item) => (
+                  <span key={`${key}-${item}`} className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-foreground">{String(item)}</span>
+                )) : <span className="break-words font-semibold text-foreground">{String(value)}</span>}
+              </dd>
             </div>
           ))}
         </dl>
@@ -365,11 +404,6 @@ function VersionBlock({ title, values, empty }: { title: string; values: any; em
 
 function humanLabel(value: string) {
   return value.replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
-}
-
-function formatList(value: unknown, empty = "None recorded") {
-  if (Array.isArray(value) && value.length) return value.join(", ")
-  return empty
 }
 
 function buildAboutLinks(configuredLinks: LinkLike[], codebase: Record<string, string>) {

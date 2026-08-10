@@ -3,6 +3,8 @@ import { api } from "@/lib/api"
 
 export type CurrentUserAccess = {
   username: string
+  firstname?: string
+  fullname?: string
   roles: string[]
   role: string
   access_level: number

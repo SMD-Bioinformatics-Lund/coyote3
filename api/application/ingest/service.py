@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from contextlib import nullcontext
 from datetime import datetime, timezone
 from typing import Any
@@ -17,6 +16,11 @@ from api.application.ingest.collection_writes import (
 )
 from api.application.ingest.dependent_writes import cleanup as _cleanup
 from api.application.ingest.dependent_writes import data_counts as _data_counts
+from api.application.ingest.file_policy import (
+    assay_file_policy,
+    validate_declared_file_resources,
+    validate_payload_file_keys,
+)
 from api.application.ingest.helpers import (
     _normalize_case_control,  # noqa: F401 — re-exported for test namespace access
     _normalize_uploaded_checksums,
@@ -29,7 +33,6 @@ from api.application.ingest.parsers import (
     DnaIngestParser,
     RnaIngestParser,
     infer_omics_layer,
-    runtime_file_path,
 )
 from api.application.ingest.sample_updates import catch_left_right
 from api.application.ingest.sample_updates import next_unique_name as _next_unique_name
@@ -38,13 +41,6 @@ from api.application.ingest.sample_updates import (
 )
 from api.application.ingest.sample_updates import update_meta_fields as _update_meta_fields
 from api.config.constants import (
-    ANALYSIS_FILE_KEYS_BY_OMICS,
-    DEFAULT_ENVIRONMENT,
-    SAMPLE_FILE_KEYS,
-    SUBPANEL_BASE_ID,
-    expected_file_keys,
-    normalize_clinical_identifier,
-    normalize_environment,
     primary_analysis_file_key,
 )
 from api.contracts.schemas.registry import (
@@ -54,7 +50,7 @@ from api.contracts.schemas.registry import (
 )
 from api.contracts.schemas.samples import (
     SAMPLE_SOURCE_PATH_KEYS,
-    SamplesDoc,  # noqa: F401 - re-exported for existing tests/importers
+    SamplesDoc,  # noqa: F401 - re-exported for tests
 )
 from api.domain.common.sample_filters import sample_filters_from_aspc_filters
 from api.domain.core.dna.variant_identity import ensure_variant_identity_fields
@@ -331,63 +327,11 @@ class InternalIngestService:
         omics_layer: str | None,
     ) -> tuple[set[str], set[str]]:
         """Return ASP-controlled expected and required file keys for an assay."""
-        normalized_omics = str(omics_layer or "").strip().lower()
-        default_category = "rna" if normalized_omics == "rna" else "dna"
-        if not assay_name:
-            raise ValueError("assay is required for sample ingest")
-        asp_id = normalize_clinical_identifier(assay_name, label="asp_id")
-        panel_collection = self._collection("assay_specific_panels")
-        if not hasattr(panel_collection, "find_one"):
-            raise ValueError("assay_specific_panels collection is not available for sample ingest")
-        panel = panel_collection.find_one({"asp_id": asp_id})
-        if not isinstance(panel, dict):
-            raise ValueError(f"ASP is not registered for assay '{asp_id}'")
-        asp_category = str(panel.get("asp_category") or default_category).strip().lower()
-        allowed = set(SAMPLE_FILE_KEYS.get(asp_category, expected_file_keys(default_category)))
-        raw_expected = panel.get("expected_files")
-        if isinstance(raw_expected, list):
-            expected = {str(item or "").strip() for item in raw_expected if str(item or "").strip()}
-        else:
-            expected = set(expected_file_keys(asp_category))
-        expected = expected or set(expected_file_keys(asp_category))
-        raw_required = panel.get("required_files")
-        if isinstance(raw_required, list):
-            required = {str(item or "").strip() for item in raw_required if str(item or "").strip()}
-        else:
-            required = set()
-        invalid_required = required - expected
-        if invalid_required:
-            raise ValueError(
-                f"ASP '{assay_name}' has required_files outside expected_files: {sorted(invalid_required)}"
-            )
-        return expected & allowed, required & allowed
+        return assay_file_policy(self._collection, assay_name=assay_name, omics_layer=omics_layer)
 
     def _validate_payload_file_keys(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Reject declared file resources outside the active ASP contract."""
-        validated = dict(payload)
-        omics_layer = (
-            str(validated.get("omics_layer") or infer_omics_layer(validated) or "").strip().lower()
-        )
-        expected_keys, _required_keys = self._assay_file_policy(
-            assay_name=validated.get("asp_id"),
-            omics_layer=omics_layer,
-        )
-        files = validated.get("files")
-        files_dict = files if isinstance(files, dict) else {}
-        runtime_files = validated.get("_runtime_files")
-        runtime_dict = runtime_files if isinstance(runtime_files, dict) else {}
-        declared_keys = {
-            key
-            for key in SAMPLE_SOURCE_PATH_KEYS
-            if validated.get(key) or files_dict.get(key) or runtime_dict.get(key)
-        }
-        unexpected = sorted(declared_keys - expected_keys)
-        if unexpected:
-            raise ValueError(
-                f"ASP '{validated.get('asp_id')}' does not accept declared ingest file(s): "
-                + ", ".join(unexpected)
-            )
-        return validated
+        return validate_payload_file_keys(self._collection, payload)
 
     def _validate_declared_file_resources(self, payload: dict[str, Any]) -> set[str]:
         """Validate assay file policy and declared file paths before parsing.
@@ -397,66 +341,7 @@ class InternalIngestService:
         part of the ingest contract: if they are present, they must be readable
         and successfully parsed/written before the sample becomes ready.
         """
-        omics_layer = str(payload.get("omics_layer") or infer_omics_layer(payload) or "").lower()
-        expected_keys, required_keys = self._assay_file_policy(
-            assay_name=payload.get("asp_id"),
-            omics_layer=omics_layer,
-        )
-        aspc_collection = self._collection("asp_configs")
-        assay_name = normalize_clinical_identifier(payload.get("asp_id"), label="asp_id")
-        profile = normalize_environment(payload.get("environment") or DEFAULT_ENVIRONMENT)
-        subpanel = normalize_clinical_identifier(
-            payload.get("subpanel_id") or SUBPANEL_BASE_ID,
-            label="subpanel_id",
-        )
-        query = {
-            "asp_id": assay_name,
-            "environment": profile,
-            "is_active": True,
-        }
-        aspc = aspc_collection.find_one({**query, "subpanel_id": subpanel})
-        if not isinstance(aspc, dict) and subpanel != SUBPANEL_BASE_ID:
-            aspc = aspc_collection.find_one({**query, "subpanel_id": SUBPANEL_BASE_ID})
-        if not isinstance(aspc, dict):
-            raise ValueError(
-                "No active ASPC is configured for "
-                f"assay='{assay_name}', subpanel='{subpanel}', environment='{profile}'"
-            )
-
-        analysis_map = ANALYSIS_FILE_KEYS_BY_OMICS.get(omics_layer, {})
-        configured_analyses = [
-            str(value or "").strip().upper()
-            for value in (aspc.get("analysis_types") or [])
-            if str(value or "").strip()
-        ]
-        configured_file_keys = {
-            file_key
-            for analysis in configured_analyses
-            for file_key in analysis_map.get(analysis, ())
-        }
-        invalid_configuration = sorted(configured_file_keys - expected_keys)
-        if invalid_configuration:
-            raise ValueError(
-                f"ASPC '{aspc.get('aspc_id') or aspc.get('_id')}' enables analyses whose "
-                "file resources are not declared by the ASP: " + ", ".join(invalid_configuration)
-            )
-        required_keys = required_keys | configured_file_keys
-        declared_keys = {key for key in expected_keys if runtime_file_path(payload, key)}
-        missing_required = sorted(key for key in required_keys if key not in declared_keys)
-        if missing_required:
-            raise ValueError(
-                "Missing required ingest file(s) for assay "
-                f"'{payload.get('asp_id')}': {', '.join(missing_required)}"
-            )
-        unreadable = sorted(
-            key
-            for key in declared_keys
-            if not os.path.exists(str(runtime_file_path(payload, key) or ""))
-        )
-        if unreadable:
-            details = ", ".join(f"{key}={runtime_file_path(payload, key)}" for key in unreadable)
-            raise FileNotFoundError(f"Declared ingest file(s) are not readable: {details}")
-        return declared_keys
+        return validate_declared_file_resources(self._collection, payload)
 
     def _apply_resolved_aspc_snapshot(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Attach the exact active ASPC policy snapshot required for a new sample.

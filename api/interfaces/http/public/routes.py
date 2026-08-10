@@ -17,7 +17,9 @@ from api.app.runtime_state import app as runtime_app
 from api.application.public.catalog import PublicCatalogService
 from api.config.application_metadata import APPLICATION_DESCRIPTION
 from api.config.constants import DEFAULT_ENVIRONMENT
+from api.config.loaders.contact import application_integration_links
 from api.config.paths import FILTER_FLAG_METADATA_PATH
+from api.config.security import get_runtime_environment
 from api.contracts.public import (
     PublicAboutPayload,
     PublicAspGenesPayload,
@@ -70,7 +72,7 @@ def public_about_read():
             "application": {
                 "name": "Coyote3",
                 "version": runtime_app.config.get("APP_VERSION"),
-                "environment": runtime_app.config.get("ENV_NAME"),
+                "environment": get_runtime_environment(runtime_app.config),
                 "script_name": runtime_app.config.get("SCRIPT_NAME"),
                 "description": APPLICATION_DESCRIPTION,
             },
@@ -84,6 +86,7 @@ def public_about_read():
                     "clinpgx_public": runtime_app.config.get("CLINPGX_BASE_URL"),
                 },
             },
+            "software_links": application_integration_links(runtime_app.config),
         }
     )
     return util.common.convert_to_serializable(payload)
@@ -112,7 +115,7 @@ def _public_software_versions() -> dict:
         return get_public_catalog_service().observed_software_versions()
     except Exception as exc:  # pragma: no cover - defensive public metadata path
         runtime_app.logger.warning("Could not build public software versions: %s", exc)
-        return {"pipelines": {}, "vep": []}
+        return {"pipelines": {}}
 
 
 def _public_reference_versions() -> dict:

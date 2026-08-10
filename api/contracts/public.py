@@ -116,3 +116,4 @@ class PublicAboutPayload(PublicContactPayload):
     references: dict[str, Any]
     software: dict[str, Any]
     databases: dict[str, Any]
+    software_links: list[dict[str, Any]] = []

@@ -273,6 +273,14 @@ sources; the decision to include them and every assay-specific sentence remain
 in YAML. They accept no optional phrase dictionaries or other author-defined
 arguments.
 
+`tier_summary` applies one shared Swedish clinical grammar from the reporting
+domain. The YAML rule decides whether and where the summary is emitted; Python
+supplies only the invariant sentence construction and tier labels used by every
+assay. The annotation-suggestion service imports the same labels, so report
+summaries and suggested annotation wording cannot drift into independent
+vocabularies. English tier labels in the React interface are presentation
+metadata and do not replace the Swedish report wording.
+
 ### Working examples
 
 **Report-wide introduction**

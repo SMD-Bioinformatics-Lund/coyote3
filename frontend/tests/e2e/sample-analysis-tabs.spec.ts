@@ -164,3 +164,30 @@ test("germline SNVs use an isolated intent-specific request", async ({ page }) =
   expect(requests.some((path) => path.endsWith("/cnvs"))).toBe(false)
   expect(requests.some((path) => path.endsWith("/fusions"))).toBe(false)
 })
+
+test("selected analysis tab survives a browser reload", async ({ page }) => {
+  await installApiFixtures(page, dnaContext)
+
+  await page.goto("/samples/DNA_001")
+  await page.getByRole("tab", { name: "CNVs" }).click()
+  await expect(page).toHaveURL(/samples\/DNA_001\?tab=cnvs/)
+  await expect(page.getByRole("tab", { name: "CNVs" })).toHaveAttribute("aria-selected", "true")
+
+  await page.reload()
+
+  await expect(page.getByRole("tab", { name: "CNVs" })).toHaveAttribute("aria-selected", "true")
+  await expect(page).toHaveURL(/samples\/DNA_001\?tab=cnvs/)
+})
+
+test("analysis request failures remain on the selected tab", async ({ page }) => {
+  await installApiFixtures(page, dnaContext)
+  await page.route("**/api/v1/samples/DNA_001/cnvs**", async (route) => {
+    await route.fulfill({ status: 503, json: { detail: "CNV analysis is temporarily unavailable" } })
+  })
+
+  await page.goto("/samples/DNA_001?tab=cnvs")
+
+  await expect(page.getByRole("tab", { name: "CNVs" })).toHaveAttribute("aria-selected", "true")
+  await expect(page.getByText("Error loading CNVs")).toBeVisible()
+  await expect(page).toHaveURL(/samples\/DNA_001\?tab=cnvs/)
+})

@@ -2,22 +2,27 @@
 
 This section outlines standard diagnostic signatures and remediation protocols for known operational deployment states and container lifecycle initialization faults.
 
-## Authentication Failures During Index Provisioning
+## Authentication Failures During Index Inspection or Maintenance
 
 **Signature:**
 
-- Process initialization halts unconditionally during the `ensure_indexes` procedure.
-- Output logs broadcast `createIndexes requires authentication`.
+- API startup reports an authorization failure while listing index metadata, or
+  the maintenance command reports `createIndexes requires authentication`.
 
 **Diagnostic Cause:**
 
-- The backend application component attempted execution against the persistent MongoDB instance without valid mapped credentials.
+- The API requires read access to inspect index definitions. The explicit
+  maintenance command additionally requires index-management privileges.
 
 **Remediation Protocol:**
 
 1. Validate the local `.coyote3_env` file to ensure the configured `MONGO_URI` connection string contains the correct authentication payload (username and password).
-2. Confirm the specified application username possesses active administrative privileges within the targeted database volume.
-3. If connecting to a historical volume bootstrapped prior to authentication enforcement policies, administrators must initialize the target user manually or perform a clean container volume re-initialization.
+2. Confirm the runtime account can list collection indexes. Run `apply` with a
+   separately controlled maintenance identity that can create indexes.
+3. If connecting to a historical volume bootstrapped before authentication was
+   enabled, initialize the required database identities through the documented
+   first-deployment procedure. Do not grant the runtime account broad database
+   administration solely to make index maintenance convenient.
 
 ## Configuration File Absence
 
@@ -84,8 +89,24 @@ db.dashboard_metrics.getIndexes().filter(i => i.name === "updated_at_ttl_1")
 
 **Remediation Protocol:**
 
-- If the required TTL index is absent from the metrics query, forcibly restart the primary API container. The initial synchronization protocol will automatically provision missing indexes.
-- If storage policies require extended or limited retention periods, modify the `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS` deployment configuration value accordingly.
+1. Inspect the managed index contract and confirm the TTL index is reported as
+   missing rather than conflicting:
+
+   ```bash
+   PYTHONPATH=. python3 scripts/manage_mongo_indexes.py plan
+   ```
+
+2. Apply missing compatible definitions during an approved maintenance window:
+
+   ```bash
+   PYTHONPATH=. python3 scripts/manage_mongo_indexes.py apply
+   ```
+
+3. Run `status` and verify that `updated_at_ttl_1` is present. If storage
+   policies require a different retention period, change
+   `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS`, review the resulting conflict, and
+   follow the guarded retirement procedure in the next section. Restarting a
+   container is not an index migration procedure.
 
 ## Mongo Index Conflicts
 
@@ -99,30 +120,46 @@ db.dashboard_metrics.getIndexes().filter(i => i.name === "updated_at_ttl_1")
 - The collection already contains an index with the same name and different options, or the same key pattern under a different name.
 - This usually happens after a schema/index contract change against an existing database volume.
 
-**Diagnostic Command:**
+**Diagnostic Commands:**
 
-Run the relevant collection index inventory from `mongosh`:
+Run the index contract inspector from the repository root. It reads the same
+MongoDB configuration as the API and does not modify the database.
 
-```javascript
-use coyote3_dev
-db.<collection>.getIndexes()
+```bash
+PYTHONPATH=. python3 scripts/manage_mongo_indexes.py status
+PYTHONPATH=. python3 scripts/manage_mongo_indexes.py plan
 ```
 
-Compare the output with the repository `ensure_indexes()` method for the named repository.
+`status` includes every managed repository, session, audit, and
+application-control index. `plan` returns only missing definitions and
+conflicts. A conflict means the name exists with a different key order or a
+behavior-changing option such as uniqueness, sparsity, TTL expiry, or a partial
+filter.
 
 **Remediation Protocol:**
 
-1. Confirm the conflicting index is not required by the currently deployed application version.
+1. Preserve the `status` output as operational evidence and confirm the
+   conflicting index is not required by the deployed release.
 2. Schedule a maintenance window when writes to the affected collection are paused.
-3. Drop only the stale conflicting index by exact name:
+3. Retire only the exact stale index. Repeating the name is an intentional guard:
 
-   ```javascript
-   db.<collection>.dropIndex("<stale_index_name>")
+   ```bash
+   PYTHONPATH=. python3 scripts/manage_mongo_indexes.py retire \
+     --collection <collection> \
+     --index <stale_index_name> \
+     --confirm-index-name <stale_index_name>
    ```
 
-4. Restart the API container or run the repository index setup through the normal application startup path.
-5. Confirm `db.<collection>.getIndexes()` now matches the repository contract.
+4. Apply missing contracts without dropping any other index:
+
+   ```bash
+   PYTHONPATH=. python3 scripts/manage_mongo_indexes.py apply
+   ```
+
+5. Run `status` again and confirm every required contract is `present`.
 
 !!! warning "Index maintenance safety"
 
-    Do not drop all indexes from clinical collections. Remove only the stale conflicting index that was identified from the startup warning and repository contract comparison.
+    Normal API startup never retires indexes. Do not drop all indexes from
+    clinical collections. Retire only the exact index identified by `plan`,
+    after checking the release contract and current query usage.

@@ -82,6 +82,8 @@ def whoami(user: ApiUser = Depends(require_access())):
     """
     return {
         "username": user.username,
+        "firstname": user.firstname,
+        "fullname": user.fullname,
         "roles": sorted(user.roles),
         "role": user.role,
         "access_level": user.access_level,

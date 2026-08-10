@@ -15,6 +15,8 @@ class WhoamiPayload(BaseModel):
     """Represent the whoami payload."""
 
     username: str
+    firstname: str = ""
+    fullname: str = ""
     roles: list[str]
     role: str
     access_level: int

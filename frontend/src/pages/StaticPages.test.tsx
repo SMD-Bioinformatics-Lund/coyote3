@@ -32,8 +32,8 @@ const publicPayload = {
       label: "Clinical support",
       role: "Interpretation",
       description: "Questions about clinical reports.",
-      email: "clinical@example.org",
       phone: "+465678",
+      people: [{ name: "Clinical Team", email: "clinical@example.org" }],
     },
   ],
   hours: [{ label: "Service desk", value: "Weekdays 08:00-16:30" }],
@@ -51,9 +51,10 @@ const publicPayload = {
   application: { version: "4.0.0", environment: "production", description: "Coyote3" },
   references: {
     vep_metadata: ["103", "110"],
-    sample_database_versions: { assembly: "GRCh38.p13", clinvar: "202008" },
+    sample_database_versions: { assembly: ["GRCh38.p13", "GRCh38"], clinvar: ["202008"] },
   },
-  software: { vep: ["103"], pipelines: { SomaticPanelPipeline: "3.2.0" } },
+  software: { pipelines: { SomaticPanelPipeline: "3.2.0" } },
+  software_links: [{ label: "GENS", url: "https://gens.example.org", description: "Genome visualization", icon: "external" }],
   databases: {
     primary: "coyote3",
     bam_service: "BAM_Service",
@@ -71,7 +72,7 @@ describe("public static pages", () => {
     mount(<ContactPage />)
 
     expect(await screen.findByRole("heading", { name: "Molecular Diagnostics" })).toBeVisible()
-    expect(screen.getByRole("link", { name: /clinical@example.org/ })).toHaveAttribute("href", "mailto:clinical@example.org")
+    expect(screen.getByRole("link", { name: /Clinical Team \(clinical@example.org\)/ })).toHaveAttribute("href", "mailto:clinical@example.org")
     expect(screen.getByRole("link", { name: /\+465678/ })).toHaveAttribute("href", "tel:+465678")
     expect(screen.getByText("Weekdays 08:00-16:30")).toBeVisible()
     expect(screen.getByText(/Hospital Road 1/)).toBeVisible()
@@ -99,7 +100,9 @@ describe("public static pages", () => {
     expect(screen.getByText("BAM service: BAM_Service")).toBeVisible()
     expect(screen.getByText("SomaticPanelPipeline")).toBeVisible()
     expect(screen.getByText("GRCh38.p13")).toBeVisible()
+    expect(screen.getByText("GRCh38")).toBeVisible()
     expect(screen.getByText("https://public.api.oncokb.org/api/v1")).toBeVisible()
+    expect(screen.getByRole("link", { name: /GENS/ })).toHaveAttribute("href", "https://gens.example.org")
     expect(screen.getByRole("link", { name: "License" })).toHaveAttribute("target", "_blank")
     expect(screen.getByRole("link", { name: /Report a Bug/ })).toBeVisible()
     expect(mocks.get).toHaveBeenCalledWith("/public/about")

@@ -67,6 +67,7 @@ services:
     env_file:
       - ../../.coyote3_dev_env
     environment:
+      - ENV_NAME=${ENV_NAME:-development}
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
       - CACHE_ENABLED=1
@@ -117,6 +118,7 @@ services:
     env_file:
       - ../../.coyote3_dev_env
     environment:
+      - ENV_NAME=${ENV_NAME:-development}
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
       - CACHE_ENABLED=1
@@ -164,6 +166,7 @@ services:
     env_file:
       - ../../.coyote3_dev_env
     environment:
+      - ENV_NAME=${ENV_NAME:-development}
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
       - CACHE_ENABLED=1

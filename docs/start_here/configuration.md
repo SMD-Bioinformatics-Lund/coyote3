@@ -278,9 +278,12 @@ department = "Clinical Genomics"
 [[contacts]]
 label = "Clinical support"
 role = "Interpretation and report questions"
-email = "clinical-support@example.org"
 phone = "+46 ..."
 description = "Questions about interpretation, report content, or clinical review workflow."
+
+[[contacts.people]]
+name = "Clinical Support Team"
+email = "clinical-support@example.org"
 
 ```
 
@@ -288,6 +291,13 @@ description = "Questions about interpretation, report content, or clinical revie
 
     `ORGANIZATION_NAME` is authoritative for the organization display name.
     The contact TOML stores richer public contact details.
+
+!!! tip "Named contacts"
+
+    Add one `[[contacts.people]]` table for each recipient. The Contact and
+    About pages render each person on a separate line as `Name (email)`, with
+    the complete line linked using `mailto:`. This avoids ambiguous shared
+    mailbox strings and keeps each support route readable.
 
 !!! info "Product links"
 

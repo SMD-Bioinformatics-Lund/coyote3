@@ -42,9 +42,6 @@ class RolesRepository(BaseRepository):
         Create minimal indexes for role list/count paths.
         """
         col = self.get_collection()
-        existing = {index["name"] for index in col.list_indexes()}
-        if "role_id_active_1" in existing:
-            col.drop_index("role_id_active_1")
         col.create_index(
             [("role_id", 1)],
             name="role_id_1",

@@ -16,7 +16,6 @@ from api.config.constants import AUTH_PROVIDER_LDAP, AUTH_TYPE_OPTIONS
 from api.infra.cache import create_cache_backend
 from api.infra.observability.logging import configure_json_logging
 from api.infra.observability.prometheus_metrics import set_startup_phase_duration
-from api.infra.security.indexes import ensure_security_indexes
 
 
 @dataclass
@@ -131,9 +130,6 @@ def _init_store(runtime: ApiRuntimeContext) -> None:
         try:
             store.reset()
             store.init_from_app(runtime)
-            ensure_security_indexes(
-                db=store.coyote_db, config=runtime.config, logger=runtime.logger
-            )
             return
         except (AutoReconnect, ConnectionFailure, NetworkTimeout) as exc:
             if attempt < max_retries:

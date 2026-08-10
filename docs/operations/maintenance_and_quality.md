@@ -94,6 +94,41 @@ For a maintenance validation run:
 
 Do not test destructive retention cleanup against production evidence stores.
 
+## MongoDB Index Lifecycle
+
+MongoDB indexes are declared by repository and security contracts in the API.
+The API performs a read-only comparison during process initialization and
+reports missing or conflicting definitions through logs and observed runtime
+state. Startup does not create, rebuild, rename, or drop an index. Operators
+provision reviewed contracts with the explicit `apply` command.
+
+Index creation can be expensive only when a required index is genuinely absent,
+especially on large SNV, CNV, fusion, annotation, and transcript collections.
+Build new large indexes during a controlled maintenance window and monitor
+MongoDB disk, CPU, memory, replication lag, and temporary storage.
+
+MongoDB treats a matching `createIndex` request from the maintenance command as
+idempotent: an existing matching index is reused and its collection is not
+rebuilt or rescanned.
+
+| Command | Database effect | Intended use |
+| --- | --- | --- |
+| `status` | Read only | Show every required contract, current state, and known obsolete indexes. |
+| `plan` | Read only | Show only missing or conflicting contracts. |
+| `apply` | Creates missing compatible indexes | Provision a reviewed release contract; never drops indexes. |
+| `retire` | Drops one exact confirmed index | Remove an obsolete definition during a maintenance window. |
+
+```bash
+PYTHONPATH=. python3 scripts/manage_mongo_indexes.py status
+PYTHONPATH=. python3 scripts/manage_mongo_indexes.py plan
+PYTHONPATH=. python3 scripts/manage_mongo_indexes.py apply
+```
+
+The retirement command requires the collection name, index name, and a second
+exact confirmation of the index name. This makes retirement a deliberate
+operation rather than an API-startup side effect. Preserve before-and-after
+command output with the release or maintenance evidence.
+
 ## Integrated Operational Assets
 
 Use these related documents for detailed procedures:

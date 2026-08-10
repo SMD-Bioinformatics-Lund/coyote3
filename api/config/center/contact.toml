@@ -19,20 +19,45 @@ value = "Use the center's established urgent clinical escalation pathway."
 [[contacts]]
 label = "Clinical support"
 role = "Interpretation and report questions"
-email = "Christina.Orsmark-Pietras@skane.se"
 phone = ""
 description = "Use this channel for questions about variant interpretation, report content, or clinical review workflow."
+
+[[contacts.people]]
+name = "Christina Orsmark-Pietras"
+email = "Christina.Orsmark-Pietras@skane.se"
 
 [[contacts]]
 label = "Sample and sequencing support"
 role = "Sample intake, sequencing, and run-level questions"
-email = "ram.nanduri@skane, viktor.henmyr@skane.se, sailendra.pradhananga@skane.se"
 phone = ""
 description = "Use this channel for questions about submitted samples, sequencing runs, or file availability."
+
+[[contacts.people]]
+name = "Ram Nanduri"
+email = "ram.nanduri@skane.se"
+
+[[contacts.people]]
+name = "Viktor Henmyr"
+email = "viktor.henmyr@skane.se"
+
+[[contacts.people]]
+name = "Sailendra Pradhananga"
+email = "sailendra.pradhananga@skane.se"
 
 [[contacts]]
 label = "Platform support"
 role = "Application access, configuration, and operational issues"
-email = "ram.nanduri@skane, viktor.henmyr@skane.se, sailendra.pradhananga@skane.se"
 phone = ""
 description = "Use this channel for login, permission, ingest, or system availability issues."
+
+[[contacts.people]]
+name = "Ram Nanduri"
+email = "ram.nanduri@skane.se"
+
+[[contacts.people]]
+name = "Viktor Henmyr"
+email = "viktor.henmyr@skane.se"
+
+[[contacts.people]]
+name = "Sailendra Pradhananga"
+email = "sailendra.pradhananga@skane.se"

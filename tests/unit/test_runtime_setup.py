@@ -92,7 +92,6 @@ def test_init_cache_assigns_created_backend(monkeypatch: pytest.MonkeyPatch) -> 
 def test_init_store_retries_transient_mongo_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     attempts = 0
     sleeps: list[float] = []
-    index_calls: list[object] = []
     runtime = runtime_setup.ApiRuntimeContext(
         config={"COYOTE3_DB": "test"}, logger=logging.getLogger("runtime-test")
     )
@@ -105,19 +104,12 @@ def test_init_store_retries_transient_mongo_failure(monkeypatch: pytest.MonkeyPa
 
     monkeypatch.setattr(runtime_setup.store, "reset", lambda: None)
     monkeypatch.setattr(runtime_setup.store, "init_from_app", init_from_app)
-    monkeypatch.setattr(runtime_setup.store, "coyote_db", object())
     monkeypatch.setattr(runtime_setup.time, "sleep", sleeps.append)
-    monkeypatch.setattr(
-        runtime_setup,
-        "ensure_security_indexes",
-        lambda *, db, config, logger: index_calls.append(db),
-    )
 
     runtime_setup._init_store(runtime)
 
     assert attempts == 2
     assert sleeps == [2.0]
-    assert len(index_calls) == 1
 
 
 def test_init_store_does_not_retry_programming_error(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -244,3 +236,24 @@ def test_successful_index_setup_is_observed(monkeypatch: pytest.MonkeyPatch) -> 
     adapter._ensure_repository_indexes("samples", SimpleNamespace(ensure_indexes=lambda: None))
 
     assert observations == [("mongo_index_reconcile.samples", "success")]
+
+
+def test_runtime_index_verification_records_findings_without_writes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from api.infra.mongo import index_management
+
+    adapter = runtime_adapter.MongoAdapter.__new__(runtime_adapter.MongoAdapter)
+    adapter.app = SimpleNamespace(logger=logging.getLogger("adapter-test"))
+    adapter.index_setup_conflicts = []
+    finding = {
+        "repository": "samples",
+        "collection": "samples",
+        "name": "sample_id_1",
+        "state": "missing",
+    }
+    monkeypatch.setattr(index_management, "build_index_plan", lambda _adapter: [finding])
+
+    adapter.verify_index_contracts()
+
+    assert adapter.index_setup_conflicts == [finding]

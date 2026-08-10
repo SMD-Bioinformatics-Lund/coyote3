@@ -24,7 +24,8 @@ vi.mock("@/lib/access-control", async (importOriginal) => {
   return { ...actual, useCurrentUserAccess: () => mocks.access }
 })
 
-import { AdminAuditPage, AdminControlsPage, AdminIngestPage, AdminSchemasPage } from "./AdminUtilityPages"
+import { AdminAuditPage, AdminControlsPage, AdminIngestPage } from "./AdminUtilityPages"
+import AdminSchemasPage from "./admin/AdminSchemasPage"
 
 function renderPage(page: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
@@ -138,9 +139,10 @@ describe("AdminControlsPage", () => {
 })
 
 describe("AdminAuditPage", () => {
+  const recentTimestamp = (hoursAgo: number) => new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString()
   const events = [
     {
-      _id: "A1", occurred_at: "2026-08-02T10:00:00Z", severity: "error", category: "ingest",
+      _id: "A1", occurred_at: recentTimestamp(1), severity: "error", category: "ingest",
       event_type: "sample.ingest.failed", message: "Sample ingest failed", outcome: "failure",
       actor: { username: "operator", fullname: "Case Operator", roles: ["operator"] },
       resource: { type: "sample", id: "OID_1", name: "SAMPLE_A" },
@@ -148,7 +150,7 @@ describe("AdminAuditPage", () => {
       tags: ["sample", "ingest"], metadata: { reason: "missing VCF" },
     },
     {
-      _id: "A2", occurred_at: "2026-08-01T10:00:00Z", severity: "info", category: "reporting",
+      _id: "A2", occurred_at: recentTimestamp(2), severity: "info", category: "reporting",
       event_type: "report.saved", message: "Report created", outcome: "success",
       actor: { username: "reviewer" }, resource: { type: "report", name: "REPORT_A" }, tags: ["report"],
     },

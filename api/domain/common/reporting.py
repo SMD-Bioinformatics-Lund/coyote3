@@ -31,6 +31,34 @@ TIER_DESC: dict[int, str] = {
     4: "Variant bedömd som benign eller sannolikt benign",
 }
 
+TIER_SUMMARY_LABELS: dict[int, str] = {
+    1: " av stark klinisk signifikans (Tier I)",
+    2: " av potentiell klinisk signifikans (Tier II)",
+    3: " av oklar klinisk signifikans (Tier III)",
+}
+
+STANDARD_TIER_SUMMARY_PHRASES: dict[str, Any] = {
+    "first_prefix": "Vid analysen finner man ",
+    "next_prefix": "Vidare ses ",
+    "final_prefix": "Slutligen ses ",
+    "number_gender": "n",
+    "finding_singular": "mutation",
+    "finding_plural_suffix": "er",
+    "tier_labels": {str(tier): label for tier, label in TIER_SUMMARY_LABELS.items()},
+    "single_gene_prefix": " i ",
+    "multiple_gene_prefix": ": ",
+    "gene_count_joiner": " i ",
+    "value_open": " (",
+    "value_close": ")",
+    "read_context_prefix": "i ",
+    "read_context_suffix": " av läsningarna",
+    "multiple_gene_read_prefix_tiers": [1],
+    "respectively": "respektive",
+    "gene_joiner": "och",
+    "sentence_suffix": ". ",
+    "single_gene_always_read_context": False,
+}
+
 VARIANT_CLASS_TRANSLATION: dict[str, str] = {
     "missense_variant": "missense",
     "stop_gained": "stop gained",

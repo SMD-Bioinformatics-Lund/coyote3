@@ -5,33 +5,12 @@ from __future__ import annotations
 from jinja2 import StrictUndefined
 from jinja2.sandbox import SandboxedEnvironment
 
-from api.domain.common.reporting import nl_join, nl_num
-
-_STANDARD_TIER_SUMMARY_PHRASES = {
-    "first_prefix": "Vid analysen finner man ",
-    "next_prefix": "Vidare ses ",
-    "final_prefix": "Slutligen ses ",
-    "number_gender": "n",
-    "finding_singular": "mutation",
-    "finding_plural_suffix": "er",
-    "tier_labels": {
-        "1": " av stark klinisk signifikans (Tier I)",
-        "2": " av potentiell klinisk signifikans (Tier II)",
-        "3": " av oklar klinisk signifikans (Tier III)",
-    },
-    "single_gene_prefix": " i ",
-    "multiple_gene_prefix": ": ",
-    "gene_count_joiner": " i ",
-    "value_open": " (",
-    "value_close": ")",
-    "read_context_prefix": "i ",
-    "read_context_suffix": " av läsningarna",
-    "multiple_gene_read_prefix_tiers": [1],
-    "respectively": "respektive",
-    "gene_joiner": "och",
-    "sentence_suffix": ". ",
-    "single_gene_always_read_context": False,
-}
+from api.domain.common.reporting import (
+    STANDARD_TIER_SUMMARY_PHRASES,
+    TIER_SUMMARY_LABELS,
+    nl_join,
+    nl_num,
+)
 
 
 def _render_tier_summary(groups: list[dict], phrases: dict) -> str:
@@ -93,13 +72,11 @@ def _render_tier_summary(groups: list[dict], phrases: dict) -> str:
 
 def _tier_summary(groups: list[dict]) -> str:
     """Render the standard Swedish tier-summary wording."""
-    return _render_tier_summary(groups, _STANDARD_TIER_SUMMARY_PHRASES)
+    return _render_tier_summary(groups, STANDARD_TIER_SUMMARY_PHRASES)
 
 
 _FUSION_TIER_LABELS = {
-    1: "stark klinisk signifikans (Tier I)",
-    2: "potentiell klinisk signifikans (Tier II)",
-    3: "oklar klinisk signifikans (Tier III)",
+    tier: label.removeprefix(" av ") for tier, label in TIER_SUMMARY_LABELS.items()
 }
 
 

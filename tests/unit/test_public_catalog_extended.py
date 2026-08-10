@@ -112,7 +112,7 @@ class _HgncRepository:
 
 class _SampleRepository:
     def get_observed_software_versions(self):
-        return {"pipeline": ["1.0"]}
+        return {"pipelines": {"SomaticPanelPipeline": ["1.0"]}}
 
     def get_observed_database_versions(self):
         return {"vep": ["110"]}
@@ -145,7 +145,7 @@ def test_catalog_service_from_store_and_observed_versions():
         vep_metadata_repository=service.vep_metadata_repository,
     )
     built = PublicCatalogService.from_store(store)
-    assert built.observed_software_versions() == {"pipeline": ["1.0"]}
+    assert built.observed_software_versions() == {"pipelines": {"SomaticPanelPipeline": ["1.0"]}}
     assert built.observed_reference_versions() == {
         "sample_database_versions": {"vep": ["110"]},
         "vep_metadata": ["110"],

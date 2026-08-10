@@ -6,7 +6,7 @@ import logging
 from collections import defaultdict
 
 from api.config.application_metadata import oncokb_gene_url
-from api.domain.common.reporting import nl_join, nl_num, utc_now
+from api.domain.common.reporting import TIER_SUMMARY_LABELS, nl_join, nl_num, utc_now
 from api.domain.core.annotation_identity import annotation_identity_fields
 from api.infra.mongo.persistence import new_object_id
 from api.infra.request_context import current_username
@@ -470,11 +470,6 @@ def sort_tiered_variants(variants: list, genes_chosen: list) -> tuple:
 def summarize_tiered_snvs(class_vars: dict, class_cnt: dict, text: str) -> str:
     """Append tiered SNV summary text to the report body."""
     first = 1
-    tiers_text = {
-        1: " av stark klinisk signifikans (Tier I)",
-        2: " av potentiell klinisk signifikans (Tier II)",
-        3: " av oklar klinisk signifikans (Tier III)",
-    }
     tiers_to_summarize = [1, 2, 3]
     present_tiers = [tier for tier in tiers_to_summarize if tier in class_vars]
     for i, tier in enumerate(present_tiers):
@@ -488,7 +483,7 @@ def summarize_tiered_snvs(class_vars: dict, class_cnt: dict, text: str) -> str:
         num_vars = class_cnt[tier]
         num_genes = len(class_vars[tier])
         plural = "er" if num_vars > 1 else ""
-        text += nl_num(num_vars, "n") + " mutation" + plural + tiers_text[tier]
+        text += nl_num(num_vars, "n") + " mutation" + plural + TIER_SUMMARY_LABELS[tier]
         if num_genes == 1:
             first = 0
             for gene, perc_arr in class_vars[tier].items():

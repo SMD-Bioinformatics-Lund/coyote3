@@ -26,7 +26,7 @@ const AdminResourcePage = lazy(() => import("./pages/AdminResourcePage").then((m
 const AdminAuditPage = lazy(() => import("./pages/AdminUtilityPages").then((module) => ({ default: module.AdminAuditPage })))
 const AdminControlsPage = lazy(() => import("./pages/AdminUtilityPages").then((module) => ({ default: module.AdminControlsPage })))
 const AdminIngestPage = lazy(() => import("./pages/AdminUtilityPages").then((module) => ({ default: module.AdminIngestPage })))
-const AdminSchemasPage = lazy(() => import("./pages/AdminUtilityPages").then((module) => ({ default: module.AdminSchemasPage })))
+const AdminSchemasPage = lazy(() => import("./pages/admin/AdminSchemasPage"))
 const PublicCatalog = lazy(() => import("./pages/PublicCatalog").then((module) => ({ default: module.PublicCatalog })))
 const PublicCatalogMatrix = lazy(() => import("./pages/PublicCatalog").then((module) => ({ default: module.PublicCatalogMatrix })))
 const TieredVariantContext = lazy(() => import("./pages/TieredVariantContext").then((module) => ({ default: module.TieredVariantContext })))

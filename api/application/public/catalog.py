@@ -50,7 +50,8 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
 
     def observed_software_versions(self) -> dict[str, object]:
         """Return bounded software versions observed across ready samples."""
-        return self.sample_repository.get_observed_software_versions()
+        observed = self.sample_repository.get_observed_software_versions()
+        return {"pipelines": observed.get("pipelines") or {}}
 
     def observed_reference_versions(self) -> dict[str, object]:
         """Return observed sample and configured VEP metadata versions."""

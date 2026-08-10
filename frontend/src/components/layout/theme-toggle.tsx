@@ -13,6 +13,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     <Button
       variant="ghost"
       size="icon"
+      title="Toggle theme"
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
       className={cn("bg-transparent text-foreground hover:bg-muted", className)}
     >

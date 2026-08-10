@@ -85,7 +85,10 @@ they are codebase metadata and remain consistent across deployments.
 | `[[contacts]]` | Recommended, repeatable | TOML array of tables | Each row becomes one contact card. There is no maximum number of cards. |
 | `contacts[].label` | Yes | Text | Visible card title. |
 | `contacts[].role` | No | Text | Responsibility or scope beneath the title. |
-| `contacts[].email` | No | One email address or comma-separated addresses | Clickable contact destination. |
+| `contacts[].email` | No | One legacy email address | Backward-compatible single contact destination. Prefer `contacts[].people` for new configuration. |
+| `[[contacts.people]]` | Recommended, repeatable | TOML array of tables nested below one contact channel | One named recipient rendered on its own clickable email line. |
+| `contacts[].people[].name` | Recommended | Person or team name | Visible recipient label. |
+| `contacts[].people[].email` | Yes when a person is present | One valid email address | `mailto:` destination for that named recipient. |
 | `contacts[].phone` | No | Text | Optional direct telephone number. |
 | `contacts[].description` | Yes | Text | Explain which questions belong to this contact channel. |
 

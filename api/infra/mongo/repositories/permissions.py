@@ -43,9 +43,6 @@ class PermissionsRepository(BaseRepository):
             None.
         """
         col = self.get_collection()
-        existing = {index["name"] for index in col.list_indexes()}
-        if "permission_id_active_1" in existing:
-            col.drop_index("permission_id_active_1")
         col.create_index(
             [("permission_id", 1)],
             name="permission_id_1",

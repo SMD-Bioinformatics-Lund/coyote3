@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react"
 import { Outlet, Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { useIsFetching, useQuery } from "@tanstack/react-query"
 import { ThemeToggle } from "./theme-toggle"
-import { Bell, BookOpen, Bug, FileQuestion, LayoutDashboard, Dna, Database, FileText, LifeBuoy, Settings, User, ChevronDown, LogOut, Search, PanelLeftClose, PanelRightClose, Lightbulb } from "lucide-react"
+import { ArrowUp, Bell, BookOpen, Bug, FileQuestion, LayoutDashboard, Dna, Database, FileText, LifeBuoy, Settings, User, ChevronDown, LogOut, Search, PanelLeftClose, PanelRightClose, Lightbulb } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
@@ -33,6 +33,8 @@ export function Layout() {
   const [activeAssayCategory, setActiveAssayCategory] = useState<string | null>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const assayMenuRef = useRef<HTMLDivElement>(null)
+  const mainScrollRef = useRef<HTMLElement>(null)
+  const [showBackToTop, setShowBackToTop] = useState(false)
   const { appVersion } = runtimeConfig
   const { unreadCount } = useNotifications()
   const backgroundFetches = useIsFetching({
@@ -85,6 +87,32 @@ export function Layout() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    const scrollContainer = mainScrollRef.current
+    if (!scrollContainer) return
+
+    const updateVisibility = () => {
+      const pageExceedsThreshold =
+        scrollContainer.scrollHeight > scrollContainer.clientHeight * 1.1
+      setShowBackToTop(pageExceedsThreshold)
+    }
+
+    updateVisibility()
+    scrollContainer.addEventListener("scroll", updateVisibility, { passive: true })
+    window.addEventListener("resize", updateVisibility)
+    const resizeObserver = new ResizeObserver(updateVisibility)
+    resizeObserver.observe(scrollContainer)
+    if (scrollContainer.firstElementChild) {
+      resizeObserver.observe(scrollContainer.firstElementChild)
+    }
+
+    return () => {
+      scrollContainer.removeEventListener("scroll", updateVisibility)
+      window.removeEventListener("resize", updateVisibility)
+      resizeObserver.disconnect()
+    }
+  }, [location.pathname])
+
   const handleLogout = async () => {
     try {
       await api.delete('/auth/sessions/current')
@@ -96,6 +124,8 @@ export function Layout() {
 
   const canAccessAdministration = hasAnyPermission(user, ADMIN_ENTRY_PERMISSIONS)
   const publicOnlyMode = isPublicRoute && !user
+  const userDisplayName = user?.firstname?.trim() || user?.username || "Loading..."
+  const userInitial = userDisplayName.charAt(0).toUpperCase() || "U"
 
   const navigationSections = useMemo(() => {
     if (publicOnlyMode) {
@@ -237,6 +267,18 @@ export function Layout() {
       <div className="app-chrome-bg pointer-events-none absolute inset-0 z-0" />
       <header className="z-30 h-16 flex-shrink-0 rounded-none border-x-0 border-t-0 border-b border-[var(--chrome-border)] [background:var(--chrome-top)] text-[var(--chrome-foreground)] shadow-sm">
         <div className="flex h-full w-full items-center justify-between gap-4 px-4">
+          {!publicOnlyMode && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsCollapsed((collapsed) => !collapsed)}
+              className="h-10 w-10 shrink-0 rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] text-[var(--chrome-muted-foreground)] hover:bg-[var(--chrome-control-hover)] hover:text-[var(--chrome-foreground)]"
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {isCollapsed ? <PanelRightClose className="h-10 w-10" /> : <PanelLeftClose className="h-10 w-10" />}
+            </Button>
+          )}
           <Link to="/" className="flex shrink-0 items-center gap-3">
             <div className="rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] p-1">
               <img src={appPath("/logo.png")} alt="Coyote3" className="h-7 w-10 shrink-0 brightness-0 invert" />
@@ -320,6 +362,7 @@ export function Layout() {
           )}
 
           <div className="ml-auto flex h-full items-center gap-2">
+            <ThemeToggle className="rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] text-[var(--chrome-muted-foreground)] hover:bg-[var(--chrome-control-hover)] hover:text-[var(--chrome-foreground)] h-10 w-10" />
             {!publicOnlyMode && (
               <Link
                 to="/notifications"
@@ -352,10 +395,10 @@ export function Layout() {
                 className="flex items-center gap-2 rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] px-2 py-1.5 hover:bg-[var(--chrome-control-hover)]"
               >
                 <div className="brand-gradient-fill flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold text-primary-foreground shadow-md">
-                  {user?.username?.charAt(0).toUpperCase() || 'U'}
+                  {userInitial}
                 </div>
                 <div className="hidden sm:flex flex-col items-start text-xs leading-tight">
-                  <span className="font-bold">{user?.username || "Loading..."}</span>
+                  <span className="font-bold">{userDisplayName}</span>
                   <span className="text-[var(--chrome-muted-foreground)]">{user?.role || "Guest"}</span>
                 </div>
                 <ChevronDown className="h-4 w-4 text-[var(--chrome-muted-foreground)]" />
@@ -457,6 +500,23 @@ export function Layout() {
             <div className={cn("flex items-center gap-2", isCollapsed ? "flex-col justify-center" : "flex-col items-stretch")}>
               <div
                 className={cn(
+                  "flex items-center gap-2 rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] text-[var(--chrome-foreground)]",
+                  isCollapsed ? "h-9 w-9 justify-center" : "px-2.5 py-2",
+                )}
+                title={isCollapsed ? `${userDisplayName} (${user?.role || "Guest"})` : undefined}
+              >
+                <span className="brand-gradient-fill flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-primary-foreground">
+                  {userInitial}
+                </span>
+                {!isCollapsed && (
+                  <span className="min-w-0 leading-tight">
+                    <span className="block truncate text-xs font-bold">{userDisplayName}</span>
+                    <span className="block truncate text-[10px] font-semibold text-[var(--chrome-muted-foreground)]">{user?.role || "Guest"}</span>
+                  </span>
+                )}
+              </div>
+              <div
+                className={cn(
                   "text-[10px] font-bold uppercase tracking-wider text-[var(--chrome-muted-foreground)]",
                   isCollapsed ? "max-w-8 text-center [writing-mode:vertical-rl]" : "px-2 pb-1"
                 )}
@@ -464,32 +524,34 @@ export function Layout() {
               >
                 {appVersion}
               </div>
-              <Button
-                variant="ghost"
-                size={isCollapsed ? "icon" : "sm"}
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className={cn("rounded-lg text-[var(--chrome-muted-foreground)] hover:bg-[var(--chrome-control-hover)] hover:text-[var(--chrome-foreground)]", !isCollapsed && "justify-start gap-2")}
-                title="Toggle Sidebar"
-              >
-                {isCollapsed ? <PanelRightClose className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
-                {!isCollapsed && <span>Collapse</span>}
-              </Button>
-              {!isCollapsed && (
-                <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] px-2 py-1">
-                  <span className="text-xs font-semibold text-[var(--chrome-muted-foreground)]">Theme</span>
-                  <ThemeToggle className="text-[var(--chrome-foreground)] hover:bg-[var(--chrome-control-hover)]" />
-                </div>
-              )}
-              {isCollapsed && <ThemeToggle className="text-[var(--chrome-foreground)] hover:bg-[var(--chrome-control-hover)]" />}
             </div>
           </div>
         </aside>
 
-        <main className="flex-1 overflow-y-auto">
+        <main ref={mainScrollRef} className="flex-1 overflow-y-auto">
           <div className="w-full max-w-[2600px] px-4 py-3 2xl:px-6">
             <Outlet />
           </div>
         </main>
+        {showBackToTop && (
+          <Button
+            type="button"
+            size="icon"
+            className="fixed bottom-5 right-5 z-40 rounded-full shadow-lg"
+            aria-label="Back to top"
+            title="Back to top"
+            onClick={() => {
+              mainScrollRef.current?.scrollTo({
+                top: 0,
+                behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+                  ? "auto"
+                  : "smooth",
+              })
+            }}
+          >
+            <ArrowUp className="h-5 w-5" />
+          </Button>
+        )}
       </div>
     </div>
   )

@@ -8,6 +8,9 @@ incremental changes on the development branch.
 
 ### Added
 
+- Added explicit MongoDB index `status`, `plan`, `apply`, and guarded
+  single-index retirement operations. API startup now performs read-only index
+  verification; index creation and retirement require an operator command.
 - Rebuilt the application around a FastAPI backend and a typed React/Vite frontend, with stable API contracts for clinical, administrative, public, knowledgebase, and operational workflows.
 - Added complete DNA and RNA sample workspaces with ASPC-driven analysis tabs, independent somatic and germline SNV filtering, CNV profile review, coverage, fusions, translocations, biomarkers, comments, and report workflows.
 - Added a YAML-driven clinical reporting rules engine with deterministic rule selection, validated template helpers, separate somatic and germline report sections, temporary report snapshots, HTML/PDF output, and persisted reported findings.
@@ -18,6 +21,7 @@ incremental changes on the development branch.
 - Added first-deployment bootstrap catalogs for permissions, roles, demo ASP/ASPC/ISGL records, and compressed HGNC/VEP reference snapshots. Bootstrap imports are collection-aware and do not overwrite non-empty collections.
 - Added public assay catalog and gene-coverage matrix views, richer operational dashboards, panel capability plots, application About and Contact pages, and center-configurable contact information.
 - Added centralized semantic UI theming, responsive data tables, server-side multi-column sorting, query caching and invalidation, compact clinical badges, accessible tooltips, confirmation dialogs, and route-state restoration.
+- Added a global, reduced-motion-aware back-to-top control for application pages whose content exceeds 110% of the visible page height.
 - Added centralized OpenAPI visibility policy so supported client contracts remain documented while health and internal integration routes stay callable but schema-hidden.
 - Added atomic watch-folder and manually queued ingestion through consolidated Celery task controls, declared-file validation, failed-manifest handling, ingest audit events, and observed worker/queue state.
 - Added complete administrative workspaces for users, roles, permission policies, ASPs, ASPCs, ISGLs, samples, notifications, route contracts, ingestion, application controls, and retention settings.
@@ -27,6 +31,10 @@ incremental changes on the development branch.
 
 ### Changed
 
+- Consolidated Swedish tier-summary vocabulary across clinical report rendering
+  and annotation suggestions, removed the unused legacy report utility, and
+  extracted ingest file-policy and admin schema-catalog responsibilities into
+  focused modules.
 - Standardized ASP, ASPC, ISGL, sample, assay-group, subpanel, environment, analysis-type, and file-key contracts while retaining versioned configuration history for future edits.
 - Made ASPCs responsible for available analyses, report sections, intent-specific filters, and base-subpanel fallback behavior. Sample pages now expose only analysis tabs enabled by the resolved ASPC.
 - Reworked sample ingestion as an atomic workflow: every declared resource must validate and load successfully before the sample becomes ready; optional resources may be absent only when they are not declared.

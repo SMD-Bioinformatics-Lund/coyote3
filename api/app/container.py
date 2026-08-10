@@ -6,7 +6,6 @@ from typing import Any
 
 from api.app.utilities.common import CommonUtility
 from api.app.utilities.dashboard import DashBoardUtility
-from api.app.utilities.reporting import ReportUtility
 from api.domain.core.repository_protocols import (
     AssayConfigurationRepositoryProtocol,
     SampleRepositoryProtocol,
@@ -26,12 +25,11 @@ class Utility:
             return
         self.common = CommonUtility()
         self.dashboard = DashBoardUtility()
-        self.report = ReportUtility()
         self._initialized = True
 
     def __getattr__(self, name: str) -> Any:
         """Lazy-initialize utility groups on first access."""
-        if name in {"common", "dashboard", "report"}:
+        if name in {"common", "dashboard"}:
             self.init_util()
             return object.__getattribute__(self, name)
         raise AttributeError(name)

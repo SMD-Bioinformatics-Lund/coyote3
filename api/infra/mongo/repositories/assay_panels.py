@@ -53,9 +53,6 @@ class ASPRepository(BaseRepository):
         Create minimal indexes for ASP dashboard/admin queries.
         """
         col = self.get_collection()
-        existing = {index["name"] for index in col.list_indexes()}
-        if "asp_id_1" in existing:
-            col.drop_index("asp_id_1")
         col.create_index(
             [("asp_id", 1), ("is_active", 1)],
             name="asp_id_active_1",
