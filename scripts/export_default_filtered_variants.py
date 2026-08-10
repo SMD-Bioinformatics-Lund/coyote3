@@ -7,9 +7,9 @@ effective filter state from the assay configuration in memory, runs the same
 SNV query builder used by the DNA variant page, and writes CSV output.
 
 Examples:
-    python scripts/export_default_filtered_variants.py --sample 25MD17060p-2
-    python scripts/export_default_filtered_variants.py --sample 25MD17060p-2 --output /tmp/sample.snvs.csv
-    python scripts/export_default_filtered_variants.py --sample 25MD17060p-2 --output -
+    python scripts/export_default_filtered_variants.py --sample sample-id
+    python scripts/export_default_filtered_variants.py --sample sample-id --output /tmp/sample.snvs.csv
+    python scripts/export_default_filtered_variants.py --sample sample-id --output -
 """
 from __future__ import annotations
 
