@@ -53,6 +53,7 @@ nav:
       - Release Readiness: operations/release_readiness.md
       - Center Deployment: operations/center_deployment_guide.md
       - Initial Deployment Checklist: operations/initial_deployment_checklist.md
+      - Upgrade from v3.x: operations/upgrade_from_v3.md
       - Center Configuration Files: operations/center_configuration_files.md
       - Clinical Vocabulary: operations/clinical_vocabulary.md
       - Environment and Secrets: operations/environments_and_secrets.md

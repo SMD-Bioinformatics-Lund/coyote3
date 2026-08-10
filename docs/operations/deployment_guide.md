@@ -4,6 +4,11 @@
 
 This guide covers deployment and routine upgrade work for Coyote3.
 
+!!! important "Upgrading from v3.x?"
+    v4.0.0 is a full-stack replacement of the Flask application. Routine
+    container swap instructions do not apply. Follow the dedicated
+    [Upgrade from v3.x guide](upgrade_from_v3.md) instead.
+
 ## Scope
 
 - **Standard Deployment**: Repeatable container-based deployment and upgrades.
