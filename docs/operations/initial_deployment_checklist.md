@@ -85,14 +85,18 @@ docker compose \
   up -d --build
 ```
 
-If Mongo volume was pre-existing, bootstrap/rotate app DB user:
+If Mongo volume was pre-existing, bootstrap/rotate app DB user with `mongosh`:
 
 ```bash
-${PYTHON_BIN:-python} scripts/mongo_bootstrap_users.py \
-  --mongo-uri "<admin-mongo-uri>" \
-  --app-db "${COYOTE3_DB:-coyote3}" \
-  --app-user "${MONGO_APP_USER}" \
-  --app-password "${MONGO_APP_PASSWORD}"
+mongosh "<admin-mongo-uri>" --eval '
+  db = db.getSiblingDB("'"${COYOTE3_DB:-coyote3}"'");
+  var user = "'"${MONGO_APP_USER}"'";
+  var pwd  = "'"${MONGO_APP_PASSWORD}"'";
+  var roles = [{role: "readWrite", db: "'"${COYOTE3_DB:-coyote3}"'"}];
+  var info = db.getUser(user);
+  if (info) { db.updateUser(user, {pwd: pwd, roles: roles}); print("updated"); }
+  else       { db.createUser({user: user, pwd: pwd, roles: roles}); print("created"); }
+'
 ```
 
 Compose-managed MongoDB is internal-only. Use an external/admin MongoDB URI for

@@ -83,10 +83,11 @@ COYOTE3_E2E_BASE_URL=https://localhost/coyote3_dev/ \
   npm run test:e2e:real
 ```
 
-For release promotion, use `scripts/run_release_browser_smoke.sh`. It requires
-controlled DNA and RNA validation sample names and fails before Playwright
-starts when any release-gate input is absent. The complete promotion checklist
-is maintained in [Release readiness](../operations/release_readiness.md).
+For release promotion, set the required env vars and run `cd frontend && npm run test:e2e:real`
+directly. All five env vars (`COYOTE3_E2E_BASE_URL`, `COYOTE3_E2E_USERNAME`,
+`COYOTE3_E2E_PASSWORD`, `COYOTE3_E2E_DNA_SAMPLE`, `COYOTE3_E2E_RNA_SAMPLE`) must be
+exported before running. The complete promotion checklist is maintained in
+[Release readiness](../operations/release_readiness.md).
 
 Record the execution date, target environment, test-account scope, and evidence
 with each release candidate. This repository provides the procedure and test
@@ -111,13 +112,11 @@ The manually dispatched `bootstrap-and-ingest-check` workflow starts the stage
 Compose stack with its disposable `with-mongo` profile, routes health checks
 through the configured `SCRIPT_NAME` and single public proxy port, creates a
 disposable administrator, seeds the minimum test collections, uploads the
-approved synthetic DNA bundle, and calls
-`scripts/verify_composed_workflow.py`. The final check requires `/samples` to
-return an ingested sample in the `ready` state. This verifies the production
-boundaries that mocked browser tests cannot cover: authentication, request
-routing, persistence, ingest processing, and sample-list projection. The
-workflow uploads its composed service logs only when the check fails and keeps
-them for three days.
+approved synthetic DNA bundle, and checks that `/samples` returns an ingested
+sample in the `ready` state. This verifies the production boundaries that mocked
+browser tests cannot cover: authentication, request routing, persistence, ingest
+processing, and sample-list projection. The workflow uploads its composed service
+logs only when the check fails and keeps them for three days.
 
 ## Browser Validation Protocol
 

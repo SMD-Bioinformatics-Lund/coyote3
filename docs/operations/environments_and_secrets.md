@@ -86,16 +86,20 @@ Recommended:
 - `MONGO_ROOT_*`: bootstrap/admin operations
 - `MONGO_APP_*`: application runtime access (least privilege)
 - Compose mongo-init creates `MONGO_APP_*` only on first startup of an empty Mongo volume
-- If volume already exists, create/rotate app user with `scripts/mongo_bootstrap_users.py`
+- If volume already exists, create/rotate app user with `mongosh` using an admin-capable URI:
 
 Example (existing volume/user rotation):
 
 ```bash
-python scripts/mongo_bootstrap_users.py \
-  --mongo-uri "<admin-mongo-uri>" \
-  --app-db "${COYOTE3_DB:-coyote3}" \
-  --app-user "${MONGO_APP_USER}" \
-  --app-password "${MONGO_APP_PASSWORD}"
+mongosh "<admin-mongo-uri>" --eval '
+  db = db.getSiblingDB("'"${COYOTE3_DB:-coyote3}"'");
+  var user = "'"${MONGO_APP_USER}"'";
+  var pwd  = "'"${MONGO_APP_PASSWORD}"'";
+  var roles = [{role: "readWrite", db: "'"${COYOTE3_DB:-coyote3}"'"}];
+  var info = db.getUser(user);
+  if (info) { db.updateUser(user, {pwd: pwd, roles: roles}); print("updated"); }
+  else       { db.createUser({user: user, pwd: pwd, roles: roles}); print("created"); }
+'
 ```
 
 Compose-managed MongoDB is internal to the Docker network and is not published

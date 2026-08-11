@@ -142,30 +142,23 @@ jobs:
               --yaml-file demo_data/ingest/generic_case_control.yaml
 
       - name: Verify composed sample workflow
-        run: |
-          auth_json="$(docker compose \
-            --env-file .coyote3_stage_env \
-            -f deploy/compose/docker-compose.stage.yml \
-            --profile with-mongo \
-            exec -T coyote3_stage_api \
-            python scripts/api_login.py \
-              --base-url http://127.0.0.1:8001 \
-              --mode password \
-              --username "${ADMIN_USERNAME}" \
-              --password "${ADMIN_PASSWORD}" \
-              --print-token)"
-          bearer_token="$(python3 -c \
-            'import json, sys; print(json.loads(sys.argv[1])["session_token"])' \
-            "$auth_json")"
-          docker compose \
-            --env-file .coyote3_stage_env \
-            -f deploy/compose/docker-compose.stage.yml \
-            --profile with-mongo \
-            exec -T coyote3_stage_api \
-            python scripts/verify_composed_workflow.py \
-              --api-base-url http://127.0.0.1:8001 \
-              --bearer-token "$bearer_token" \
-              --sample-name seed_case
+        run: |-
+          api_url="http://localhost:${COYOTE3_PORT}${SCRIPT_NAME}/api/v1"
+          token_json="$(curl -fsS -X POST "${api_url}/auth/login" \
+            -H 'Content-Type: application/json' \
+            -d "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}")"
+          bearer_token="$(echo "$token_json" | python3 -c \
+            'import json,sys; print(json.load(sys.stdin)["session_token"])')"
+          samples_json="$(curl -fsS "${api_url}/samples" \
+            -H "Authorization: Bearer ${bearer_token}")"
+          ready="$(echo "$samples_json" | python3 -c \
+            'import json,sys; d=json.load(sys.stdin); \
+             rows=d if isinstance(d,list) else d.get("items",d.get("samples",[])); \
+             print(sum(1 for x in rows \
+               if str(x.get("name","")).startswith("seed_case") \
+               and x.get("ingest_status","").lower()=="ready"))')"
+          test "$ready" -gt 0 || { echo "ERROR: no ready seed_case sample found" >&2; exit 1; }
+          echo "Composed workflow verified: seed_case is ready (${ready} match)."
 
       - name: Rehearse disposable database backup and restore
         run: |
@@ -197,30 +190,23 @@ jobs:
             --docker-network "$mongo_network"
 
       - name: Verify sample workflow after restore
-        run: |
-          auth_json="$(docker compose \
-            --env-file .coyote3_stage_env \
-            -f deploy/compose/docker-compose.stage.yml \
-            --profile with-mongo \
-            exec -T coyote3_stage_api \
-            python scripts/api_login.py \
-              --base-url http://127.0.0.1:8001 \
-              --mode password \
-              --username "${ADMIN_USERNAME}" \
-              --password "${ADMIN_PASSWORD}" \
-              --print-token)"
-          bearer_token="$(python3 -c \
-            'import json, sys; print(json.loads(sys.argv[1])["session_token"])' \
-            "$auth_json")"
-          docker compose \
-            --env-file .coyote3_stage_env \
-            -f deploy/compose/docker-compose.stage.yml \
-            --profile with-mongo \
-            exec -T coyote3_stage_api \
-            python scripts/verify_composed_workflow.py \
-              --api-base-url http://127.0.0.1:8001 \
-              --bearer-token "$bearer_token" \
-              --sample-name seed_case
+        run: |-
+          api_url="http://localhost:${COYOTE3_PORT}${SCRIPT_NAME}/api/v1"
+          token_json="$(curl -fsS -X POST "${api_url}/auth/login" \
+            -H 'Content-Type: application/json' \
+            -d "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}")"
+          bearer_token="$(echo "$token_json" | python3 -c \
+            'import json,sys; print(json.load(sys.stdin)["session_token"])')"
+          samples_json="$(curl -fsS "${api_url}/samples" \
+            -H "Authorization: Bearer ${bearer_token}")"
+          ready="$(echo "$samples_json" | python3 -c \
+            'import json,sys; d=json.load(sys.stdin); \
+             rows=d if isinstance(d,list) else d.get("items",d.get("samples",[])); \
+             print(sum(1 for x in rows \
+               if str(x.get("name","")).startswith("seed_case") \
+               and x.get("ingest_status","").lower()=="ready"))')"
+          test "$ready" -gt 0 || { echo "ERROR: no ready seed_case sample found after restore" >&2; exit 1; }
+          echo "Post-restore workflow verified: seed_case is ready (${ready} match)."
 
       - name: Capture logs and stop stack
         if: always()

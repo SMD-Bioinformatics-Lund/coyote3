@@ -50,7 +50,8 @@ This repository uses a tracked Git pre-commit hook under `.githooks/` to block c
 Run once per clone:
 
 ```bash
-bash scripts/setup_git_hooks.sh
+git config core.hooksPath .githooks
+chmod +x .githooks/pre-commit
 ```
 
 After this, `git commit` is blocked unless pre-commit checks pass.

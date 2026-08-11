@@ -583,7 +583,7 @@ Use this order for a clean deployment at a new center.
 1. Create Mongo infrastructure users.
    - Root/admin user (`MONGO_ROOT_*`) and app user (`MONGO_APP_*`).
    - Compose init scripts create app user only on first boot of an empty Mongo volume.
-   - For existing volumes, run `scripts/mongo_bootstrap_users.py`.
+   - For existing volumes, use `mongosh` with an admin-capable URI to create/rotate the app user (see [Environments and Secrets](../operations/environments_and_secrets.md)).
 2. Seed mandatory shared collections.
    - `hgnc_genes`
    - `permissions`

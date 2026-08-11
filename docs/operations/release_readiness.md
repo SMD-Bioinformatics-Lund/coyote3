@@ -28,7 +28,7 @@ export COYOTE3_E2E_USERNAME="release.validator"
 export COYOTE3_E2E_PASSWORD="<from the secret store>"
 export COYOTE3_E2E_DNA_SAMPLE="DNA_VALIDATION_001"
 export COYOTE3_E2E_RNA_SAMPLE="RNA_VALIDATION_001"
-./scripts/run_release_browser_smoke.sh
+cd frontend && npm run test:e2e:real
 ```
 
 The real-service suite does not intercept API calls. A skipped authenticated

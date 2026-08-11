@@ -61,11 +61,12 @@ PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
 
 ## Git Hooks
 
-The repository uses `pre-commit` hooks to enforce basic quality checks before a commit is created.
+The repository uses `.githooks/pre-commit` to enforce quality checks before a commit is created.
 
 ```bash
 # Install hooks once per clone
-bash scripts/setup_git_hooks.sh
+git config core.hooksPath .githooks
+chmod +x .githooks/pre-commit
 
 # Run hooks manually across the repository
 python -m pre_commit run --all-files

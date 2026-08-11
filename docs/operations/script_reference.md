@@ -50,9 +50,8 @@ created from inside the API container so internal Docker hostnames remain valid.
 | `check_markdown_links.py` | Internal helper | `check_contract_integrity.sh`; tests | Rejects broken repository-local Markdown links |
 | `check_staged_sensitive_data.py` | Automated | pre-commit and CI | Blocks staged secrets, clinical identifiers, and unsafe fixture content |
 | `export_collection_contracts_doc.py` | Automated | contract integrity | Regenerates the collection-contract reference from Pydantic schemas |
-| `verify_composed_workflow.py` | Automated | CI bootstrap workflow | Verifies the running composed API workflow with authenticated calls |
+| `verify_composed_workflow.py` | — | — | **Removed.** Sample readiness is now verified inline in the CI workflow via `curl` against the public proxy port. |
 | `sync-package-version.js` | Automated | frontend package lifecycle | Synchronizes the frontend package version with `api/version.py` |
-| `setup_git_hooks.sh` | Manual setup | Contributing guide | Installs the repository-managed pre-commit hook configuration |
 
 ## Deployment and database operations
 
@@ -62,7 +61,6 @@ created from inside the API container so internal Docker hostnames remain valid.
 | `validate_env_secrets.sh` | Automated helper | compose wrapper and preflight | Rejects missing, empty, or placeholder runtime secrets; LDAP credentials remain login-time configuration |
 | `mongo_backup_archive.sh` | Manual operation | Backup and recovery runbook | Creates timestamped MongoDB archives using the configured backup location |
 | `mongo_restore_archive.sh` | Manual operation | Backup and recovery runbook | Restores a selected archive with explicit confirmation and target settings |
-| `mongo_bootstrap_users.py` | Manual operation | Existing-volume recovery runbook | Creates or rotates the Mongo application user when an existing volume cannot use init scripts |
 | `manage_mongo_indexes.py` | Manual operation | Maintenance and troubleshooting runbooks | Inspects repository/security index contracts, applies missing indexes, and retires one explicitly confirmed obsolete index |
 | `inspect_mongo_capacity.py` | Manual operation | Maintenance and quality runbook | Emits a read-only collection count, storage/index-size, and index-inventory snapshot without reading clinical documents |
 
@@ -77,9 +75,10 @@ created from inside the API container so internal Docker hostnames remain valid.
 
 1. Search CI, pre-commit, package scripts, Compose, documentation, and script-to-script calls.
 2. Confirm that no supported manual capability depends on it.
-3. Remove or replace its tests and documentation in the same change.
-4. Run `check_shell_quality.sh`, focused script tests, contract integrity, and strict MkDocs.
-5. Record the retirement in the changelog when it changes deployment or operator behavior.
+3. Replace its callers with the equivalent direct command or inline step.
+4. Remove or replace its tests and documentation in the same change.
+5. Run `check_shell_quality.sh`, focused script tests, contract integrity, and strict MkDocs.
+6. Record the retirement in the changelog when it changes deployment or operator behavior.
 
 !!! warning
     A script with no automatic caller is not necessarily unused. Database

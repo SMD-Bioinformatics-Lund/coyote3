@@ -203,7 +203,7 @@ export COYOTE3_E2E_USERNAME="validation-account"
 export COYOTE3_E2E_PASSWORD="..."
 export COYOTE3_E2E_DNA_SAMPLE="known-dna-sample-name"
 export COYOTE3_E2E_RNA_SAMPLE="known-rna-sample-name"
-bash scripts/run_release_browser_smoke.sh
+cd frontend && npm run test:e2e:real
 ```
 
 ---
