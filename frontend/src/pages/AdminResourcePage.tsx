@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState, type ComponentType } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ComponentType } from "react"
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Activity, AlertTriangle, Database, Dna, Download, Edit, Eye, FileUp, KeyRound, ListTree, LockKeyhole, MailPlus, Megaphone, Plus, Power, Search, Settings2, Shield, ShieldCheck, SlidersHorizontal, Trash2, UsersRound } from "lucide-react"
+import { Activity, AlertTriangle, CopyPlus, Database, Dna, Download, Edit, Eye, FileUp, KeyRound, ListTree, LockKeyhole, MailPlus, Megaphone, Plus, Power, Search, Settings2, Shield, ShieldCheck, SlidersHorizontal, Trash2, Upload, UsersRound } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -460,6 +460,7 @@ export function AdminResourcePage() {
 
 export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
   const { resource = "users", id = "" } = useParams()
+  const location = useLocation()
   const spec = specs[resource] ?? specs.users
   const accessQuery = useCurrentUserAccess()
   const user = accessQuery.data
@@ -475,6 +476,13 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
   const [values, setValues] = useState<Record<string, any>>({})
   const [editorError, setEditorError] = useState("")
   const [aspcCategory, setAspcCategory] = useState<"DNA" | "RNA">("DNA")
+  const [pendingImport, setPendingImport] = useState<{
+    document: Record<string, any>
+    aspcCategory?: "DNA" | "RNA"
+  } | null>(null)
+  const [hasImportedValues, setHasImportedValues] = useState(false)
+  const initialCopyApplied = useRef(false)
+  const importInputRef = useRef<HTMLInputElement>(null)
 
   const isSamples = spec.key === "samples"
   const contextQuery = useQuery({
@@ -494,11 +502,62 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
   const doc = resourceDocFromContext(contextQuery.data, spec)
   const systemPermission = spec.key === "permissions" && Boolean(doc?.system_managed)
   const effectiveMode: AdminFormMode = systemPermission && mode === "edit" ? "view" : mode
+  const supportsConfigurationTransfer = ["asp", "aspc", "genelists"].includes(spec.key)
+
+  const stageImport = (source: unknown) => {
+    if (!source || typeof source !== "object" || Array.isArray(source)) {
+      setEditorError("The selected file must contain one JSON configuration object.")
+      return
+    }
+    const imported = source as Record<string, any>
+    let importedAspcCategory: "DNA" | "RNA" | undefined
+    if (spec.key === "aspc") {
+      const category = String(imported.asp_category || "").toUpperCase()
+      if (category === "DNA" || category === "RNA") {
+        importedAspcCategory = category
+        setAspcCategory(category)
+      }
+    }
+    setHasImportedValues(false)
+    setPendingImport({ document: imported, aspcCategory: importedAspcCategory })
+    setEditorError("")
+  }
+
+  const handleImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+    if (!file) return
+    try {
+      stageImport(JSON.parse(await file.text()))
+    } catch {
+      setEditorError("The selected file is not valid JSON. Export a configuration from Coyote3 or correct the JSON file and try again.")
+    }
+  }
 
   useEffect(() => {
     if (!form) return
+    if (mode === "create" && pendingImport) {
+      if (
+        pendingImport.aspcCategory
+        && (pendingImport.aspcCategory !== aspcCategory || contextQuery.isFetching)
+      ) return
+      setValues(formStateFromSpec(form, pendingImport.document))
+      setPendingImport(null)
+      setHasImportedValues(true)
+      return
+    }
+    if (mode === "create" && hasImportedValues) return
+    if (mode === "create" && !initialCopyApplied.current) {
+      const copiedDocument = (location.state as { copiedDocument?: unknown } | null)?.copiedDocument
+      if (copiedDocument) {
+        initialCopyApplied.current = true
+        stageImport(copiedDocument)
+        return
+      }
+      initialCopyApplied.current = true
+    }
     setValues(formStateFromSpec(form, mode === "edit" || mode === "view" ? doc : null))
-  }, [form, doc, mode])
+  }, [aspcCategory, contextQuery.isFetching, doc, form, hasImportedValues, location.state, mode, pendingImport])
 
   const saveMutation = useMutation({
     mutationFn: (payload: any) => {
@@ -546,15 +605,45 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
               Edit
             </Link>
           )}
-          {mode === "view" && doc && (
+          {supportsConfigurationTransfer && mode === "create" && (
+            <>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="sr-only"
+                aria-label="Import configuration JSON"
+                onChange={handleImportFile}
+              />
+              <button
+                type="button"
+                onClick={() => importInputRef.current?.click()}
+                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
+              >
+                <Upload className="h-4 w-4" />
+                Import JSON
+              </button>
+            </>
+          )}
+          {supportsConfigurationTransfer && mode !== "create" && doc && (
             <button
               type="button"
-              onClick={() => downloadJson(`${spec.key}_${String(id)}`, doc)}
+              onClick={() => downloadJson(`${spec.key}_${String(id)}`, submitPayload(form, values, "create"))}
               className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
             >
               <Download className="h-4 w-4" />
-              Download JSON
+              Export JSON
             </button>
+          )}
+          {supportsConfigurationTransfer && mode !== "create" && doc && canEdit && (
+            <Link
+              to={`/admin/${spec.key}/create`}
+              state={{ copiedDocument: doc }}
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
+            >
+              <CopyPlus className="h-4 w-4" />
+              Copy as new
+            </Link>
           )}
           <Link to={`/admin/${spec.key}`} className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
             Back to list

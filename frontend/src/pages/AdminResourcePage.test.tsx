@@ -396,6 +396,50 @@ describe("AdminResourcePage", () => {
     }))
   })
 
+  it("imports a configuration JSON file into a create form without saving it", async () => {
+    mocks.get.mockResolvedValue({ data: {
+      form: { fields: {
+        asp_id: { label: "ASP ID", required: true },
+        display_name: { label: "Display name", required: true },
+        is_active: { label: "Active", display_type: "checkbox", default: true },
+      } },
+    } })
+    renderEditor("asp", "create")
+
+    await screen.findByLabelText(/ASP ID/)
+    const file = new File([JSON.stringify({ asp_id: "new_assay", display_name: "New assay", is_active: false })], "assay.json", {
+      type: "application/json",
+    })
+    fireEvent.change(screen.getByLabelText("Import configuration JSON"), { target: { files: [file] } })
+
+    await waitFor(() => expect(screen.getByLabelText(/ASP ID/)).toHaveValue("new_assay"))
+    expect(screen.getByLabelText(/Display name/)).toHaveValue("New assay")
+    expect(screen.getByLabelText(/Active/)).not.toBeChecked()
+    expect(mocks.post).not.toHaveBeenCalled()
+  })
+
+  it("uses the imported ASPC category before filling the create form", async () => {
+    mocks.get.mockImplementation((path: string) => Promise.resolve({ data: {
+      form: { fields: {
+        asp_category: { label: "Category", readonly: true },
+        asp_id: { label: "ASP ID", required: true },
+        environment: { label: "Environment", required: true },
+      } },
+      requested_path: path,
+    } }))
+    renderEditor("aspc", "create")
+
+    await screen.findByLabelText(/ASP ID/)
+    const file = new File([JSON.stringify({ asp_category: "RNA", asp_id: "fusion", environment: "testing" })], "rna-aspc.json", {
+      type: "application/json",
+    })
+    fireEvent.change(screen.getByLabelText("Import configuration JSON"), { target: { files: [file] } })
+
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/resources/aspc/create_context?category=RNA"))
+    await waitFor(() => expect(screen.getByLabelText(/ASP ID/)).toHaveValue("fusion"))
+    expect(screen.getByLabelText(/Environment/)).toHaveValue("testing")
+  })
+
   it("uses a color picker and persists the selected role badge color", async () => {
     mocks.get.mockResolvedValue({ data: {
       role: { role_id: "reviewer", color: "#64748b" },
