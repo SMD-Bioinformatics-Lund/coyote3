@@ -9,11 +9,12 @@ from pysam import VariantFile
 
 from api.config.constants import primary_analysis_file_key
 from api.domain.common.parsers import cmdvcf
+from api.domain.core.dna.transcript_payloads import compact_selected_csq
 from api.domain.core.dna.variant_identity import ensure_variant_identity_fields
 
 from .parsers import (
-    _annotate_transcript_provenance,
     _build_anno_vep_docs,
+    _build_transcript_vault_rows,
     _emulate_perl,
     _infer_cnv_type,
     _normalize_biomarkers_doc,
@@ -190,11 +191,11 @@ class DnaIngestParser:
                 prot_list,
                 genes_list,
                 hotspots,
+                consequence_terms,
             ) = _parse_transcripts(var_csq)
-            slim_csq = _annotate_transcript_provenance(
+            vault_csq = _build_transcript_vault_rows(
+                var_csq,
                 slim_csq,
-                hgnc_by_id=self.hgnc_by_id,
-                hgnc_by_symbol=self.hgnc_by_symbol,
             )
 
             selected_csq, selected_source = _select_csq(
@@ -204,8 +205,12 @@ class DnaIngestParser:
             )
             # Build the immutable VEP vault from the complete transcript set.
             # It is removed from the mutable variant document after staging.
-            var_dict["INFO"]["CSQ"] = slim_csq
-            var_dict["INFO"]["selected_CSQ"] = selected_csq
+            var_dict["INFO"]["CSQ"] = vault_csq
+            # ``Annotation`` is an unstructured pipeline INFO passthrough. It
+            # is not part of the DNA finding contract; structured VEP evidence
+            # is held by the selected CSQ and immutable annotation vault.
+            var_dict["INFO"].pop("Annotation", None)
+            var_dict["INFO"]["selected_CSQ"] = compact_selected_csq(selected_csq)
             var_dict["INFO"]["selected_CSQ_criteria"] = selected_source
             var_dict["selected_csq_feature"] = selected_csq["Feature"]
             var_dict["HGVSp"] = prot_list
@@ -216,6 +221,7 @@ class DnaIngestParser:
             var_dict["dbsnp_id"] = dbsnp
             var_dict["pubmed_ids"] = pubmed_list
             var_dict["hotspots"] = [hotspots]
+            var_dict["consequence_terms"] = consequence_terms
             var_dict["simple_id"] = (
                 f"{var_dict['CHROM']}_{var_dict['POS']}_{var_dict['REF']}_{var_dict['ALT']}"
             )

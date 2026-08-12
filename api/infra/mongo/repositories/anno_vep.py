@@ -32,7 +32,7 @@ class AnnoVepRepository(BaseRepository):
         )
 
     def upsert_many(self, docs: list[dict[str, Any]], *, session: Any | None = None) -> int:
-        """Upsert transcript vault documents without mutating existing identity keys."""
+        """Insert transcript evidence once for each genomic identity/VEP release pair."""
         if not docs:
             return 0
         operations: list[UpdateOne] = []
@@ -44,7 +44,7 @@ class AnnoVepRepository(BaseRepository):
             operations.append(
                 UpdateOne(
                     {"simple_id_hash": simple_id_hash, "vep_version": vep_version},
-                    {"$set": dict(doc)},
+                    {"$setOnInsert": dict(doc)},
                     upsert=True,
                 )
             )
@@ -52,7 +52,7 @@ class AnnoVepRepository(BaseRepository):
             return 0
         kwargs = {"session": session} if session is not None else {}
         result = self.get_collection().bulk_write(operations, ordered=False, **kwargs)
-        return int((result.upserted_count or 0) + (result.modified_count or 0))
+        return int(result.upserted_count or 0)
 
     def get_for_variant(self, *, simple_id_hash: str, vep_version: str) -> dict[str, Any] | None:
         """Return a transcript vault document for a variant/version pair."""

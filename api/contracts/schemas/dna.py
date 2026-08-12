@@ -106,9 +106,6 @@ class VariantCsqDoc(_DocBase):
     Feature: str | None = None
     HGNC_ID: str | None = None
     SYMBOL: str | None = None
-    VEP_SYMBOL: str | None = None
-    HGNC_MATCHED: bool | None = None
-    HGNC_MATCH_SOURCE: str | None = None
     PolyPhen: str | None = None
     SIFT: str | None = None
     Consequence: list[str] = Field(default_factory=list)
@@ -117,8 +114,6 @@ class VariantCsqDoc(_DocBase):
     INTRON: str | None = None
     EXON: str | None = None
     CANONICAL: str | None = None
-    MANE: str | None = None
-    MANE_PLUS_CLINICAL: str | None = None
     STRAND: str | None = None
     IMPACT: str | None = None
     CADD_PHRED: str | None = None
@@ -126,9 +121,6 @@ class VariantCsqDoc(_DocBase):
     VARIANT_CLASS: str | None = None
     HGVSc: str | None = None
     HGVSp: str | None = None
-    transcript_tags: list[str] = Field(default_factory=list)
-    canonical_source: str | None = None
-    is_canonical: bool = False
 
 
 class VariantInfoDoc(_DocBase):
@@ -145,7 +137,6 @@ class VariantInfoDoc(_DocBase):
     PON_VAFS_freebayes: str | None = None
     PON_FFPE_NUM_freebayes: str | None = None
     PON_FFPE_VAFS_freebayes: str | None = None
-    Annotation: str | None = None
     PON_FFPE_NUM_vardict: str | None = None
     PON_FFPE_VAFS_vardict: str | None = None
     CLNSIG: str | None = None
@@ -213,12 +204,27 @@ class VariantsDoc(_DocBase):
     transcripts: list[str] = Field(default_factory=list)
     HGVSc: list[str] = Field(default_factory=list)
     HGVSp: list[str] = Field(default_factory=list)
+    consequence_terms: list[str] = Field(default_factory=list)
     simple_id: str
     simple_id_hash: str
     cosmic_ids: list[str] = Field(default_factory=list)
     dbsnp_id: str | None = None
     pubmed_ids: list[str] = Field(default_factory=list)
     hotspots: list[dict[str, list[str]]] = Field(default_factory=list)
+
+    @field_validator("consequence_terms", mode="before")
+    @classmethod
+    def _normalize_consequence_terms(cls, value: Any) -> list[str]:
+        if value in (None, ""):
+            return []
+        raw_values = value.split("&") if isinstance(value, str) else value
+        if not isinstance(raw_values, (list, tuple, set)):
+            raw_values = [raw_values]
+        return list(
+            dict.fromkeys(
+                term for item in raw_values for term in str(item or "").split("&") if term
+            )
+        )
 
     @field_validator(
         "gnomad_frequency",

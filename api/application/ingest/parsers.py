@@ -8,6 +8,11 @@ from typing import Any
 
 from api.config.constants import TRANSCRIPT_SELECTION_ORDER
 from api.contracts.schemas.samples import DNA_SAMPLE_FILE_KEYS, RNA_SAMPLE_FILE_KEYS
+from api.domain.core.dna.transcript_payloads import (
+    canonicalize_selected_transcript_symbol,
+    hgnc_doc_for_transcript,
+    matches_mane_source,
+)
 from api.domain.core.dna.variant_identity import (
     build_simple_id_hash_from_simple_id,
     normalize_simple_id,
@@ -398,9 +403,10 @@ def _parse_transcripts(csq: list[dict[str, Any]]) -> tuple[Any, ...]:
         csq: List of VEP CSQ dicts from a parsed VCF variant.
 
     Returns:
-        A 9-tuple of:
+        A 10-tuple of:
             (slim_transcripts, cosmic_ids, dbsnp_first, pubmed_ids,
-             transcript_ids, hgvsc_ids, hgvsp_ids, gene_symbols, hotspots)
+             transcript_ids, hgvsc_ids, hgvsp_ids, gene_symbols, hotspots,
+             consequence_terms)
     """
     transcripts: list[dict[str, Any]] = []
     pubmed: dict[str, int] = {}
@@ -411,6 +417,7 @@ def _parse_transcripts(csq: list[dict[str, Any]]) -> tuple[Any, ...]:
     hgvsp_ids: dict[str, int] = {}
     gene_symbols: dict[str, int] = {}
     hotspots: dict[str, list] = {}
+    consequence_terms: dict[str, int] = {}
 
     for transcript in csq:
         slim: dict[str, Any] = {}
@@ -435,15 +442,24 @@ def _parse_transcripts(csq: list[dict[str, Any]]) -> tuple[Any, ...]:
             "INTRON",
             "EXON",
             "CANONICAL",
-            "MANE_SELECT",
-            "MANE_PLUS_CLINICAL",
             "STRAND",
             "IMPACT",
             "CADD_PHRED",
             "CLIN_SIG",
             "VARIANT_CLASS",
         ):
-            slim["MANE" if key == "MANE_SELECT" else key] = transcript.get(key)
+            slim[key] = transcript.get(key)
+
+        raw_consequences = transcript.get("Consequence")
+        if isinstance(raw_consequences, str):
+            for term in raw_consequences.split("&"):
+                if term:
+                    consequence_terms[term] = 1
+        elif isinstance(raw_consequences, (list, tuple, set)):
+            for term in raw_consequences:
+                normalized_term = str(term or "").strip()
+                if normalized_term:
+                    consequence_terms[normalized_term] = 1
 
         protein = _split_on_colon(transcript.get("HGVSp"))
         slim["HGVSp"] = protein
@@ -486,7 +502,22 @@ def _parse_transcripts(csq: list[dict[str, Any]]) -> tuple[Any, ...]:
         [x for x in hgvsp_ids.keys() if x],
         [x for x in gene_symbols.keys() if x],
         _collect_hotspots(hotspots),
+        list(consequence_terms),
     )
+
+
+def _build_transcript_vault_rows(
+    raw_csq: list[dict[str, Any]],
+    slim_csq: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Build immutable VEP transcript rows without mutable HGNC display state."""
+    vault_rows: list[dict[str, Any]] = []
+    for raw, slim in zip(raw_csq, slim_csq, strict=True):
+        row = dict(slim)
+        row["MANE_SELECT"] = raw.get("MANE_SELECT")
+        row["MANE_PLUS_CLINICAL"] = raw.get("MANE_PLUS_CLINICAL")
+        vault_rows.append(row)
+    return vault_rows
 
 
 def _build_anno_vep_docs(variants: list[dict[str, Any]], vep_version: Any) -> list[dict[str, Any]]:
@@ -520,178 +551,6 @@ def _build_anno_vep_docs(variants: list[dict[str, Any]], vep_version: Any) -> li
     return docs
 
 
-def _refseq_no_version(accession: str) -> str:
-    """Strip the version suffix from a RefSeq accession (e.g. ``NM_001234.5`` → ``NM_001234``).
-
-    Args:
-        accession: RefSeq accession string, with or without a version dot-suffix.
-
-    Returns:
-        The accession with everything from the first dot onwards removed.
-    """
-    return accession.split(".")[0]
-
-
-def _feature_no_version(value: Any) -> str:
-    """Return a transcript accession without version from any CSQ-like field."""
-    return str(value or "").split(".")[0]
-
-
-def _hgnc_lookup_key(value: Any) -> str:
-    """Normalize an HGNC ID for dictionary lookup."""
-    normalized = str(value or "").strip()
-    if normalized.startswith("HGNC:"):
-        return normalized
-    return f"HGNC:{normalized}" if normalized else ""
-
-
-def _hgnc_doc_for_csq(
-    csq: dict[str, Any],
-    hgnc_by_id: dict[str, dict[str, Any]] | None,
-    hgnc_by_symbol: dict[str, dict[str, Any]] | None,
-) -> dict[str, Any] | None:
-    """Find HGNC metadata for a CSQ transcript by HGNC ID, approved symbol, previous symbol, or alias."""
-    by_id = hgnc_by_id or {}
-    by_symbol = hgnc_by_symbol or {}
-    hgnc_id = _hgnc_lookup_key(csq.get("HGNC_ID"))
-    if hgnc_id and hgnc_id in by_id:
-        return by_id[hgnc_id]
-    symbol = str(csq.get("SYMBOL") or "").strip()
-    return by_symbol.get(symbol) or by_symbol.get(symbol.upper())
-
-
-def _approved_hgnc_symbol_for_csq(
-    csq: dict[str, Any],
-    hgnc_by_id: dict[str, dict[str, Any]] | None,
-    hgnc_by_symbol: dict[str, dict[str, Any]] | None,
-) -> str:
-    """Return the approved HGNC symbol for a CSQ transcript when resolvable."""
-    doc = _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol)
-    return str((doc or {}).get("hgnc_symbol") or csq.get("SYMBOL") or "").strip()
-
-
-def _hgnc_refseq_values(doc: dict[str, Any] | None, key: str) -> set[str]:
-    """Return normalized RefSeq transcript values from an HGNC metadata field."""
-    if not doc:
-        return set()
-    value = doc.get(key)
-    if isinstance(value, str):
-        values = [value]
-    elif isinstance(value, list):
-        values = value
-    else:
-        values = []
-    return {_feature_no_version(item) for item in values if str(item or "").strip()}
-
-
-def _is_ensembl_transcript(value: Any) -> bool:
-    """Return whether a transcript accession is from the Ensembl namespace."""
-    return _feature_no_version(value).startswith("ENST")
-
-
-def _is_refseq_transcript(value: Any) -> bool:
-    """Return whether a transcript accession is from the RefSeq namespace."""
-    return _feature_no_version(value).startswith(("NM_", "NR_"))
-
-
-def _matches_mane_source(
-    csq: dict[str, Any],
-    doc: dict[str, Any] | None,
-    *,
-    hgnc_key: str,
-    namespace: str,
-) -> bool:
-    """Match a VEP row to one native HGNC MANE transcript source.
-
-    RefSeq and Ensembl MANE values describe a paired transcript set, but the
-    selected row must remain in the source namespace being evaluated.  An
-    Ensembl row carrying a linked ``NM_`` accession must therefore not satisfy
-    an NCBI selector when the native RefSeq row is available in the VCF.
-    """
-    feature = _feature_no_version(csq.get("Feature"))
-    configured = _hgnc_refseq_values(doc, hgnc_key)
-    if namespace == "ncbi":
-        return _is_refseq_transcript(feature) and feature in configured
-    return _is_ensembl_transcript(feature) and feature in configured
-
-
-def _annotate_transcript_provenance(
-    csq_arr: list[dict[str, Any]],
-    hgnc_by_id: dict[str, dict[str, Any]] | None = None,
-    hgnc_by_symbol: dict[str, dict[str, Any]] | None = None,
-) -> list[dict[str, Any]]:
-    """Add HGNC and VEP transcript provenance tags to slim CSQ rows."""
-    for csq in csq_arr:
-        doc = _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol)
-        tags: list[str] = []
-        if _matches_mane_source(
-            csq,
-            doc,
-            hgnc_key="refseq_mane_plus_clinical",
-            namespace="ncbi",
-        ):
-            tags.append("ncbi_mane_plus_clinical")
-        if _matches_mane_source(
-            csq,
-            doc,
-            hgnc_key="ensembl_mane_plus_clinical",
-            namespace="ensembl",
-        ):
-            tags.append("ensembl_mane_plus_clinical")
-        if _matches_mane_source(
-            csq,
-            doc,
-            hgnc_key="refseq_mane_select",
-            namespace="ncbi",
-        ):
-            tags.append("ncbi_mane_select")
-        if _matches_mane_source(
-            csq,
-            doc,
-            hgnc_key="ensembl_mane_select",
-            namespace="ensembl",
-        ):
-            tags.append("ensembl_mane_select")
-
-        canonical_source = None
-        if csq.get("CANONICAL") == "YES":
-            tags.append("vep_canonical")
-            canonical_source = "vep_canonical"
-
-        csq["transcript_tags"] = list(dict.fromkeys(tags))
-        csq["canonical_source"] = canonical_source
-        csq["is_canonical"] = bool(canonical_source)
-    return csq_arr
-
-
-def _normalize_selected_csq_symbol(
-    csq: dict[str, Any],
-    hgnc_by_id: dict[str, dict[str, Any]] | None,
-    hgnc_by_symbol: dict[str, dict[str, Any]] | None,
-) -> dict[str, Any]:
-    """Canonicalize selected CSQ gene fields to current HGNC metadata."""
-    doc = _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol)
-    if not doc:
-        return csq
-    normalized = dict(csq)
-    original_symbol = normalized.get("SYMBOL")
-    approved_symbol = doc.get("hgnc_symbol")
-    if approved_symbol:
-        if original_symbol and original_symbol != approved_symbol:
-            normalized["VEP_SYMBOL"] = original_symbol
-        else:
-            normalized.pop("VEP_SYMBOL", None)
-        normalized["SYMBOL"] = approved_symbol
-    hgnc_id = doc.get("hgnc_id") or doc.get("_id")
-    if hgnc_id:
-        normalized["HGNC_ID"] = _hgnc_lookup_key(hgnc_id)
-    normalized["HGNC_MATCHED"] = True
-    normalized["HGNC_MATCH_SOURCE"] = (
-        "approved_symbol" if original_symbol == approved_symbol else "previous_or_alias_symbol"
-    )
-    return normalized
-
-
 def _first_csq_by_impact(
     csq_arr: list[dict[str, Any]],
     predicate: Callable[[dict[str, Any]], bool],
@@ -722,27 +581,27 @@ def _select_csq(
         A tuple of selected CSQ document and its configured selector name.
     """
     selectors: dict[str, Callable[[dict[str, Any]], bool]] = {
-        "ncbi_mane_plus_clinical": lambda csq: _matches_mane_source(
+        "ncbi_mane_plus_clinical": lambda csq: matches_mane_source(
             csq,
-            _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol),
+            hgnc_doc_for_transcript(csq, hgnc_by_id, hgnc_by_symbol),
             hgnc_key="refseq_mane_plus_clinical",
             namespace="ncbi",
         ),
-        "ensembl_mane_plus_clinical": lambda csq: _matches_mane_source(
+        "ensembl_mane_plus_clinical": lambda csq: matches_mane_source(
             csq,
-            _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol),
+            hgnc_doc_for_transcript(csq, hgnc_by_id, hgnc_by_symbol),
             hgnc_key="ensembl_mane_plus_clinical",
             namespace="ensembl",
         ),
-        "ncbi_mane_select": lambda csq: _matches_mane_source(
+        "ncbi_mane_select": lambda csq: matches_mane_source(
             csq,
-            _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol),
+            hgnc_doc_for_transcript(csq, hgnc_by_id, hgnc_by_symbol),
             hgnc_key="refseq_mane_select",
             namespace="ncbi",
         ),
-        "ensembl_mane_select": lambda csq: _matches_mane_source(
+        "ensembl_mane_select": lambda csq: matches_mane_source(
             csq,
-            _hgnc_doc_for_csq(csq, hgnc_by_id, hgnc_by_symbol),
+            hgnc_doc_for_transcript(csq, hgnc_by_id, hgnc_by_symbol),
             hgnc_key="ensembl_mane_select",
             namespace="ensembl",
         ),
@@ -756,7 +615,9 @@ def _select_csq(
         selected_index = _first_csq_by_impact(csq_arr, selectors[selector_name])
         if selected_index >= 0:
             return (
-                _normalize_selected_csq_symbol(csq_arr[selected_index], hgnc_by_id, hgnc_by_symbol),
+                canonicalize_selected_transcript_symbol(
+                    csq_arr[selected_index], hgnc_by_id, hgnc_by_symbol
+                ),
                 selector_name,
             )
     raise RuntimeError("transcript selection order did not contain a matching fallback")

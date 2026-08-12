@@ -804,6 +804,7 @@ Optional keys:
 - `transcripts` (list[str])
 - `HGVSc` (list[str])
 - `HGVSp` (list[str])
+- `consequence_terms` (list[str])
 - `cosmic_ids` (list[str])
 - `dbsnp_id` (str | None)
 - `pubmed_ids` (list[str])

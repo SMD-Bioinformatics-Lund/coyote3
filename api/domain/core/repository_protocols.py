@@ -54,6 +54,8 @@ class VariantsRepositoryProtocol(Protocol):
 class AssayConfigurationRepositoryProtocol(Protocol):
     """Protocol for assay configuration metadata operations."""
 
+    def get_aspc_revision_no_meta(self, revision_id: object) -> dict[str, Any] | None: ...
+
     def count_aspcs(self, is_active: bool = False) -> int: ...
 
     def get_dashboard_analysis_type_rollup(

@@ -112,6 +112,28 @@ def test_variant_info_normalizes_variant_callers_string():
     assert doc.INFO.selected_CSQ.Feature == "ENST1"
 
 
+def test_variant_consequence_terms_normalize_all_transcript_terms() -> None:
+    payload = {
+        "SAMPLE_ID": "S1",
+        "CHROM": "1",
+        "POS": 100,
+        "REF": "A",
+        "ALT": "G",
+        "ID": ".",
+        "INFO": {
+            "selected_CSQ": {"Feature": "ENST1", "SYMBOL": "TP53"},
+            "selected_CSQ_criteria": "first_available",
+        },
+        "consequence_terms": ["missense_variant&splice_region_variant", "missense_variant"],
+        "simple_id": "1_100_A_G",
+        "simple_id_hash": hashlib.md5("1_100_A_G".encode("utf-8")).hexdigest(),
+    }
+
+    doc = VariantsDoc.model_validate(payload)
+
+    assert doc.consequence_terms == ["missense_variant", "splice_region_variant"]
+
+
 def test_collection_validator_accepts_hgnc_genes_shape():
     """hgnc_genes strict model should accept the curated fixture shape."""
     payload = _load_reference_seed_list("hgnc_genes.seed.ndjson.gz")[0]

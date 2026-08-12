@@ -74,6 +74,59 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
     ]
 
 
+def test_paginated_small_variant_list_only_enriches_the_current_page() -> None:
+    """A normal table page does not run classification lookups for every finding."""
+    sample = fx.sample_doc()
+    assay_config = {"asp_group": "tumwgs", "analysis_types": [], "reporting": {}}
+    variants = [
+        {"_id": str(index), "GT": [{"type": "case", "AF": index / 100}]} for index in range(100)
+    ]
+    enriched_counts: list[int] = []
+    service = SimpleNamespace(
+        assay_panel_repository=SimpleNamespace(get_asp=lambda asp_name: {"asp_name": asp_name}),
+        gene_list_repository=SimpleNamespace(
+            get_isgl_by_ids=lambda ids: {}, get_isgl_by_asp=lambda assay, is_active=True: []
+        ),
+        variant_repository=SimpleNamespace(get_case_variants=lambda query: variants),
+        blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay_group: rows),
+        bam_record_repository=SimpleNamespace(get_bams=lambda sample_ids: {}),
+        vep_metadata_repository=SimpleNamespace(
+            get_variant_class_translations=lambda vep: {}, get_conseq_translations=lambda vep: {}
+        ),
+        sample_repository=SimpleNamespace(hidden_sample_comments=lambda sample_oid: False),
+        oncokb_repository=SimpleNamespace(get_oncokb_action_gene=lambda symbol: None),
+    )
+    util_module = SimpleNamespace(
+        common=SimpleNamespace(
+            get_sample_effective_genes=lambda s, a, g, target="snv", intent="somatic": ({}, []),
+            get_case_and_control_sample_ids=lambda s: {"case": "C1"},
+            get_assay_genelist_names=lambda docs: [],
+        )
+    )
+
+    payload = payloads.list_variants_payload(
+        service=service,
+        request=SimpleNamespace(
+            query_params={"page": "1", "per_page": "50"},
+            url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"),
+        ),
+        sample=sample,
+        util_module=util_module,
+        add_global_annotations_fn=lambda rows, *_args: (
+            enriched_counts.append(len(rows)) or rows,
+            [],
+        ),
+        generate_summary_text_fn=lambda *args, **kwargs: "",
+        build_query_fn=lambda assay_group, params, intent="somatic": {},
+        get_filter_conseq_terms_fn=lambda values: [],
+        assay_config_getter=lambda _sample: assay_config,
+    )
+
+    assert len(payload["variants"]) == 50
+    assert enriched_counts == [50]
+    assert payload["meta"]["tiered_count"] is None
+
+
 def test_list_variants_payload_maps_tmb_and_pgx_to_biomarker_section() -> None:
     """TMB/PGX toggles should surface the shared biomarker findings section."""
     sample = fx.sample_doc()

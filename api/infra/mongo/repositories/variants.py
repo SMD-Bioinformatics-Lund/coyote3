@@ -101,6 +101,11 @@ class VariantsRepository(BaseRepository):
             background=True,
         )
         col.create_index(
+            [("SAMPLE_ID", 1), ("consequence_terms", 1)],
+            name="sample_id_1_consequence_terms_1",
+            background=True,
+        )
+        col.create_index(
             [("variant_class", 1)],
             name="variant_class_1",
             background=True,

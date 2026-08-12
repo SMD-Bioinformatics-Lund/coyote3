@@ -48,9 +48,6 @@ class VepAnnoTranscriptDoc(_DocBase):
     Feature: str | None = None
     HGNC_ID: str | None = None
     SYMBOL: str | None = None
-    VEP_SYMBOL: str | None = None
-    HGNC_MATCHED: bool | None = None
-    HGNC_MATCH_SOURCE: str | None = None
     HGVSc: str | None = None
     HGVSp: str | None = None
     Consequence: list[str] = Field(default_factory=list)
@@ -60,16 +57,13 @@ class VepAnnoTranscriptDoc(_DocBase):
     BIOTYPE: str | None = None
     ENSP: str | None = None
     CANONICAL: str | None = None
-    MANE: str | None = None
+    MANE_SELECT: str | None = None
     MANE_PLUS_CLINICAL: str | None = None
     SIFT: str | None = None
     PolyPhen: str | None = None
     CADD_PHRED: str | float | int | None = None
     CLIN_SIG: str | None = None
     VARIANT_CLASS: str | None = None
-    transcript_tags: list[str] = Field(default_factory=list)
-    canonical_source: str | None = None
-    is_canonical: bool = False
 
     @field_validator("Consequence", mode="before")
     @classmethod
@@ -79,15 +73,6 @@ class VepAnnoTranscriptDoc(_DocBase):
         if isinstance(value, str):
             return [term for term in value.split("&") if term]
         return value
-
-    @field_validator("transcript_tags", mode="before")
-    @classmethod
-    def normalize_transcript_tags(cls, value: Any) -> list[str]:
-        if value in (None, ""):
-            return []
-        if isinstance(value, str):
-            return [value]
-        return list(value)
 
 
 class AnnoVepDoc(_DocBase):

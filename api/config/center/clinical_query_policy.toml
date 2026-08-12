@@ -37,7 +37,7 @@ mode = "extend_consequence"
 intents = ["somatic"]
 assay_groups = ["solid"]
 genes = ["TERT", "NFKBIE"]
-selected_consequences = ["regulatory_region_variant", "TF_binding_site_variant"]
+consequence_terms = ["regulatory_region_variant", "TF_binding_site_variant"]
 
 [[snv.exceptions]]
 id = "germline_myeloid_marker"

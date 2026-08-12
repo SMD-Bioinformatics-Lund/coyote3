@@ -26,6 +26,10 @@ from api.domain.common.sample_filters import (
 )
 from api.domain.core.dna.dna_variants import format_pon
 from api.domain.core.dna.notation import one_letter_p
+from api.domain.core.dna.transcript_payloads import (
+    annotate_transcript_provenance,
+    build_hgnc_lookup_maps,
+)
 from api.domain.core.dna.translocqueries import (
     build_transloc_query,
     filter_translocations_by_genes,
@@ -140,9 +144,7 @@ def _variant_sort_value(variant: dict[str, Any], sort_by: str) -> Any:
     )
     sort_map = {
         "gene": lambda: _sortable_text(
-            selected_csq.get("SYMBOL")
-            or selected_csq.get("VEP_SYMBOL")
-            or selected_csq.get("display_symbol")
+            selected_csq.get("SYMBOL") or selected_csq.get("display_symbol")
         ),
         "hgvs": lambda: _sortable_text(
             f"{selected_csq.get('HGVSc', '')} {selected_csq.get('HGVSp', '')}".strip()
@@ -198,7 +200,6 @@ def _variant_search_text(variant: dict[str, Any]) -> str:
         variant.get("ALT"),
         variant.get("variant_class"),
         selected_csq.get("SYMBOL"),
-        selected_csq.get("VEP_SYMBOL"),
         selected_csq.get("display_symbol"),
         selected_csq.get("HGNC_ID"),
         selected_csq.get("Gene"),
@@ -360,8 +361,11 @@ def list_variants_payload(
     get_filter_conseq_terms_fn,
     assay_config_getter,
     paginate: bool = True,
+    include_report_context: bool | None = None,
 ) -> dict[str, Any]:
-    """Build the list variants payload used by DNA routes."""
+    """Build a paginated DNA table payload or complete report-context payload."""
+    if include_report_context is None:
+        include_report_context = not paginate
     assay_config = assay_config_getter(sample)
     if not assay_config:
         raise setup_error(
@@ -483,13 +487,25 @@ def list_variants_payload(
 
     variants = list(service.variant_repository.get_case_variants(query))
     variants = service.blacklist_repository.add_blacklist_data(variants, assay_group)
-    variants, tiered_variants = add_global_annotations_fn(variants, assay_group, subpanel)
     variants = hotspot_variant(variants)
     variants = sorted(variants, key=_variant_case_af_value, reverse=True)
     search_query = str(query_params.get("q", "")).strip()
     if search_query:
         variants = _search_variants(variants, search_query)
     sort_specs = parse_sort_specs(query_params)
+    # A tier sort needs classification data before sorting. All other ordinary
+    # table sorts can defer classification enrichment until the current page.
+    requires_full_annotation = include_report_context or any(
+        sort_by == "tier" for sort_by, _direction in sort_specs
+    )
+    if requires_full_annotation:
+        _annotated, tiered_variants = add_global_annotations_fn(
+            variants,
+            assay_group,
+            subpanel,
+        )
+    else:
+        tiered_variants = []
     variants = _sort_variants_for_table(variants, sort_specs=sort_specs)
 
     sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
@@ -506,31 +522,6 @@ def list_variants_payload(
     all_panel_genelist_names = util_module.common.get_assay_genelist_names(insilico_panel_genelists)
     assay_config_schema = build_form_spec(aspc_spec_for_category("DNA"))
 
-    oncokb_genes = _collect_oncokb_genes(service, variants)
-    oncokb_gene_map = _collect_oncokb_gene_map(service, oncokb_genes)
-    variant_genes = [
-        symbol
-        for variant in variants
-        if (symbol := variant.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL"))
-    ]
-    oncokb_actionable_gene_map = _collect_oncokb_actionable_gene_map(
-        service,
-        variant_genes,
-    )
-    clinpgx_gene_map = _collect_clinpgx_gene_map(service, variant_genes)
-    display_sections_data, summary_sections_data = _build_display_and_summary_sections(
-        service,
-        variants=variants,
-        tiered_variants=tiered_variants,
-        analysis_sections=analysis_sections,
-        sample=sample,
-        sample_filters=sample_filters,
-        cnv_filters=cnv_filters,
-        filter_genes=filter_genes,
-        cnv_filter_genes=cnv_filter_genes,
-        translocation_filter_genes=translocation_filter_genes,
-        translocation_restricted=translocation_restricted,
-    )
     pagination_meta: dict[str, Any] = {
         "total": len(variants),
         "count": len(variants),
@@ -540,26 +531,74 @@ def list_variants_payload(
         "has_previous": False,
         "has_next": False,
     }
+    variants_page = variants
     if paginate:
         page, per_page = request_pagination(request)
         variants_page, pagination_meta = paginate_items(variants, page=page, per_page=per_page)
-        display_sections_data["snvs"] = variants_page
 
-    ai_text = generate_summary_text_fn(
-        sample_ids,
-        assay_config,
-        assay_panel_doc,
-        summary_sections_data,
-        filter_genes,
-        checked_snvlists,
+    # Annotation lookup is the costly part of the normal findings-table path:
+    # a 50-row page must not perform a classification lookup for every one of
+    # several thousand filtered findings. Report and export requests, and a
+    # tier sort, retain the full context required to remain correct.
+    if not requires_full_annotation:
+        _annotated, tiered_variants = add_global_annotations_fn(
+            variants_page,
+            assay_group,
+            subpanel,
+        )
+
+    context_variants = variants if include_report_context else variants_page
+    oncokb_genes = _collect_oncokb_genes(service, context_variants)
+    oncokb_gene_map = _collect_oncokb_gene_map(service, oncokb_genes)
+    variant_genes = [
+        symbol
+        for variant in context_variants
+        if (symbol := variant.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL"))
+    ]
+    oncokb_actionable_gene_map = _collect_oncokb_actionable_gene_map(
+        service,
+        variant_genes,
     )
+    clinpgx_gene_map = _collect_clinpgx_gene_map(service, variant_genes)
+    if include_report_context:
+        display_sections_data, summary_sections_data = _build_display_and_summary_sections(
+            service,
+            variants=variants,
+            tiered_variants=tiered_variants,
+            analysis_sections=analysis_sections,
+            sample=sample,
+            sample_filters=sample_filters,
+            cnv_filters=cnv_filters,
+            filter_genes=filter_genes,
+            cnv_filter_genes=cnv_filter_genes,
+            translocation_filter_genes=translocation_filter_genes,
+            translocation_restricted=translocation_restricted,
+        )
+        ai_text = generate_summary_text_fn(
+            sample_ids,
+            assay_config,
+            assay_panel_doc,
+            summary_sections_data,
+            filter_genes,
+            checked_snvlists,
+        )
+    else:
+        display_sections_data = {"snvs": variants_page}
+        # Biomarkers remain part of the table response when enabled, but do
+        # not require report-wide construction or enrichment of every SNV.
+        if "BIOMARKER" in analysis_sections:
+            display_sections_data["biomarkers"] = list(
+                service.biomarker_repository.get_sample_biomarkers(sample_id=str(sample["_id"]))
+            )
+        ai_text = ""
 
     return {
         "sample": sample,
         "meta": {
             "request_path": request.url.path,
             **pagination_meta,
-            "tiered": tiered_variants,
+            "tiered": tiered_variants if include_report_context else [],
+            "tiered_count": len(tiered_variants) if requires_full_annotation else None,
             "search": search_query,
             "sort": sort_spec_to_query_value(sort_specs),
             "intent": intent,
@@ -588,7 +627,7 @@ def list_variants_payload(
         "clinpgx_genes": list(clinpgx_gene_map),
         "clinpgx_gene_map": clinpgx_gene_map,
         "verification_sample_used": verification_sample_used,
-        "variants": variants,
+        "variants": variants_page,
         "display_sections_data": display_sections_data,
         "ai_text": ai_text,
     }
@@ -672,7 +711,24 @@ def variant_context_payload(
         )
         or {}
     )
-    transcripts = [dict(csq) for csq in transcript_vault.get("CSQ") or [] if isinstance(csq, dict)]
+    raw_transcripts = [
+        dict(csq) for csq in transcript_vault.get("CSQ") or [] if isinstance(csq, dict)
+    ]
+    hgnc_repository = getattr(service, "hgnc_repository", None)
+    get_hgnc_records = getattr(hgnc_repository, "get_metadata_by_ids_and_symbols", None)
+    if callable(get_hgnc_records):
+        hgnc_records = get_hgnc_records(
+            [str(csq.get("HGNC_ID") or "") for csq in raw_transcripts],
+            [str(csq.get("SYMBOL") or "") for csq in raw_transcripts],
+        )
+        hgnc_by_id, hgnc_by_symbol = build_hgnc_lookup_maps(hgnc_records)
+        transcripts = annotate_transcript_provenance(
+            raw_transcripts,
+            hgnc_by_id=hgnc_by_id,
+            hgnc_by_symbol=hgnc_by_symbol,
+        )
+    else:
+        transcripts = annotate_transcript_provenance(raw_transcripts)
     selected_csq = variant.get("INFO", {}).get("selected_CSQ", {})
     csq_terms = consequence_terms(selected_csq.get("Consequence"))
     variant_desc = "NOTHING_IN_HERE"

@@ -1,9 +1,4 @@
-"""Typed MongoDB predicate construction for DNA small-variant review.
-
-The builder only evaluates the selected transcript stored on the variant. Full
-VEP transcript annotations are versioned separately in the VEP vault and are
-used for transcript detail and selection, not as a second query source.
-"""
+"""Typed MongoDB predicate construction for DNA small-variant review."""
 
 from __future__ import annotations
 
@@ -85,9 +80,9 @@ def _population_frequency_clause(
     return {"$and": clauses}
 
 
-def _selected_consequence_clause(terms: list[str]) -> dict[str, Any]:
-    """Match only the selected transcript consequence persisted on the variant."""
-    return {"INFO.selected_CSQ.Consequence": {"$in": terms}}
+def _consequence_terms_clause(terms: list[str]) -> dict[str, Any]:
+    """Match terms aggregated from every VEP transcript at ingest time."""
+    return {"consequence_terms": {"$in": terms}}
 
 
 def _exception_clause(exception: SnvQueryException) -> dict[str, Any]:
@@ -95,10 +90,8 @@ def _exception_clause(exception: SnvQueryException) -> dict[str, Any]:
     clauses: list[dict[str, Any]] = []
     if exception.genes:
         clauses.append({"INFO.selected_CSQ.SYMBOL": {"$in": list(exception.genes)}})
-    if exception.selected_consequences:
-        clauses.append(
-            {"INFO.selected_CSQ.Consequence": {"$in": list(exception.selected_consequences)}}
-        )
+    if exception.consequence_terms:
+        clauses.append({"consequence_terms": {"$in": list(exception.consequence_terms)}})
     if exception.filter_values:
         clauses.append({"FILTER": {"$in": list(exception.filter_values)}})
     if exception.chromosomes:
@@ -130,8 +123,8 @@ def _consequence_admission_clause(
     intent: str,
     terms: list[str],
 ) -> dict[str, Any]:
-    """Allow selected terms or a configured clinically validated extension."""
-    clauses = [_selected_consequence_clause(terms)]
+    """Allow aggregated terms or a configured clinically validated extension."""
+    clauses = [_consequence_terms_clause(terms)]
     clauses.extend(
         _exception_clause(exception)
         for exception in policy.exceptions_for(

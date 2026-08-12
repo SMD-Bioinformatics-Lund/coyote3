@@ -323,6 +323,56 @@ def test_variant_context_builds_transcript_and_knowledgebase_payload() -> None:
     assert observed["bam_id"] == {"case": "C1"}
 
 
+def test_variant_context_derives_transcript_badges_from_current_hgnc() -> None:
+    variant = _selected_variant()
+    sample = {
+        "_id": "sample-1",
+        "name": "SAMPLE_1",
+        "asp_id": "solid_gmsv3",
+        "subpanel_id": "colon",
+        "database_versions": {"vep": "110"},
+    }
+    service = _context_service(variant)
+    service.anno_vep_repository = SimpleNamespace(
+        get_for_variant=lambda **kwargs: {
+            "CSQ": [
+                {
+                    "Feature": "NM_000546.6",
+                    "HGNC_ID": "HGNC:11998",
+                    "SYMBOL": "TP53",
+                }
+            ]
+        }
+    )
+    service.hgnc_repository = SimpleNamespace(
+        get_metadata_by_ids_and_symbols=lambda _ids, _symbols: [
+            {
+                "hgnc_id": "HGNC:11998",
+                "hgnc_symbol": "TP53",
+                "refseq_mane_plus_clinical": ["NM_000546.6"],
+            }
+        ]
+    )
+
+    observed = payloads.variant_context_payload(
+        service=service,
+        sample=sample,
+        var_id="variant-1",
+        add_alt_class_fn=lambda row, group, subpanel: row,
+        util_module=SimpleNamespace(
+            common=SimpleNamespace(get_case_and_control_sample_ids=lambda value: {"case": "C1"})
+        ),
+        assay_config_getter=lambda value: {"asp_group": "solid"},
+    )
+
+    transcript = observed["transcripts"][0]
+    assert transcript["transcript_tags"] == ["ncbi_mane_plus_clinical"]
+    assert transcript["canonical_source"] is None
+    assert transcript["is_canonical"] is False
+    assert "HGNC_MATCHED" not in transcript
+    assert "VEP_SYMBOL" not in transcript
+
+
 @pytest.mark.parametrize(
     ("symbol", "consequence", "info", "expected"),
     [

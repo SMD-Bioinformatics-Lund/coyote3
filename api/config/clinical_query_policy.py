@@ -37,7 +37,7 @@ _EXCEPTION_KEYS = frozenset(
         "asp_ids",
         "subpanel_ids",
         "genes",
-        "selected_consequences",
+        "consequence_terms",
         "filter_values",
         "chromosomes",
         "position_min",
@@ -106,7 +106,7 @@ class SnvQueryException:
     asp_ids: tuple[str, ...]
     subpanel_ids: tuple[str, ...]
     genes: tuple[str, ...]
-    selected_consequences: tuple[str, ...]
+    consequence_terms: tuple[str, ...]
     filter_values: tuple[str, ...]
     chromosomes: tuple[str, ...]
     position_min: int | None
@@ -229,9 +229,9 @@ def _exception(raw: Any, *, index: int) -> SnvQueryException:
             raw.get("subpanel_ids"), key=f"snv.exceptions[{index}].subpanel_ids"
         ),
         genes=_strings(raw.get("genes"), key=f"snv.exceptions[{index}].genes", uppercase=True),
-        selected_consequences=_strings(
-            raw.get("selected_consequences"),
-            key=f"snv.exceptions[{index}].selected_consequences",
+        consequence_terms=_strings(
+            raw.get("consequence_terms"),
+            key=f"snv.exceptions[{index}].consequence_terms",
             lowercase=False,
         ),
         filter_values=_strings(
@@ -254,7 +254,7 @@ def _exception(raw: Any, *, index: int) -> SnvQueryException:
     if not any(
         (
             result.genes,
-            result.selected_consequences,
+            result.consequence_terms,
             result.filter_values,
             result.chromosomes,
             result.position_min is not None,

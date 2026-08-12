@@ -15,6 +15,7 @@ from api.config.database_versions import sample_vep_version
 from api.contracts.operations import OperationResult
 from api.domain.core.dna.cnvqueries import build_cnv_query, include_normal_cnvs
 from api.domain.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, create_cnveffectlist
+from api.domain.core.dna.transcript_payloads import compact_selected_csq
 from api.infra.observability.operations import measured_operation
 
 
@@ -43,6 +44,7 @@ class DnaService:
             civic_repository=store.civic_repository,
             brca_repository=store.brca_repository,
             iarc_tp53_repository=store.iarc_tp53_repository,
+            hgnc_repository=getattr(store, "hgnc_repository", None),
             oncokb_public_cache_repository=getattr(store, "oncokb_public_cache_repository", None),
             clinpgx_public_repository=getattr(store, "clinpgx_public_repository", None),
         )
@@ -68,6 +70,7 @@ class DnaService:
         civic_repository: Any,
         brca_repository: Any,
         iarc_tp53_repository: Any,
+        hgnc_repository: Any | None = None,
         oncokb_public_cache_repository: Any | None = None,
         clinpgx_public_repository: Any | None = None,
     ) -> None:
@@ -92,6 +95,7 @@ class DnaService:
         self.civic_repository = civic_repository
         self.brca_repository = brca_repository
         self.iarc_tp53_repository = iarc_tp53_repository
+        self.hgnc_repository = hgnc_repository
 
     @staticmethod
     def export_rows_to_csv(rows: list[Any]) -> str:
@@ -205,7 +209,7 @@ class DnaService:
             return OperationResult.failed("requested transcript is not available for this variant")
         operation = self.variant_repository.update_selected_transcript(
             var_id=var_id,
-            selected_csq=selected,
+            selected_csq=compact_selected_csq(selected),
             selected_feature=feature,
             criteria="manual_override",
         )

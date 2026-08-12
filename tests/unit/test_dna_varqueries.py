@@ -54,16 +54,14 @@ def _settings(**overrides: object) -> dict:
     return settings
 
 
-def test_paired_query_uses_only_selected_transcript_consequence() -> None:
+def test_paired_query_uses_aggregated_transcript_consequence_terms() -> None:
     query = build_query("hematology", _settings())
     query_text = str(query)
 
     assert query["SAMPLE_ID"] == "SAMPLE_1"
-    assert "INFO.selected_CSQ.Consequence" in query_text
+    assert "consequence_terms" in query_text
     assert "INFO.CSQ" not in query_text
-    assert _contains_mapping(
-        query, {"INFO.selected_CSQ.Consequence": {"$in": ["missense_variant"]}}
-    )
+    assert _contains_mapping(query, {"consequence_terms": {"$in": ["missense_variant"]}})
 
 
 def test_paired_query_checks_every_configured_population_frequency_source() -> None:
@@ -82,7 +80,7 @@ def test_generic_case_only_omits_control_but_retains_population_frequency_checks
     assert "'type': 'control'" not in query_text
     for field in SNV_QUERY_POLICY.population_frequency_fields:
         assert field in query_text
-    assert "INFO.selected_CSQ.Consequence" in query_text
+    assert "consequence_terms" in query_text
 
 
 def test_unconfigured_group_uses_safe_default_paired_policy() -> None:
@@ -94,7 +92,7 @@ def test_unconfigured_group_uses_safe_default_paired_policy() -> None:
         assert field in query_text
 
 
-def test_exceptions_are_scoped_and_do_not_use_alternate_transcripts() -> None:
+def test_exceptions_are_scoped_and_use_aggregated_consequence_terms() -> None:
     hema_query = build_query("hematology", _settings())
     solid_query = build_query("solid", _settings(asp_id="solid_gmsv3", subpanel_id="colon"))
 
@@ -102,11 +100,7 @@ def test_exceptions_are_scoped_and_do_not_use_alternate_transcripts() -> None:
     assert _contains_mapping(solid_query, {"INFO.selected_CSQ.SYMBOL": {"$in": ["TERT", "NFKBIE"]}})
     assert _contains_mapping(
         solid_query,
-        {
-            "INFO.selected_CSQ.Consequence": {
-                "$in": ["regulatory_region_variant", "TF_binding_site_variant"]
-            }
-        },
+        {"consequence_terms": {"$in": ["regulatory_region_variant", "TF_binding_site_variant"]}},
     )
     assert "INFO.CSQ" not in str(hema_query)
     assert "INFO.CSQ" not in str(solid_query)
