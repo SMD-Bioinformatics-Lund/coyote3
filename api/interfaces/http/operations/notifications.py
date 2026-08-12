@@ -19,7 +19,11 @@ from api.security.access import ApiUser, require_access
 router = APIRouter(tags=[TAG_NOTIFICATIONS])
 
 
-@router.get("/api/v1/notifications", response_model=NotificationListPayload)
+@router.get(
+    "/api/v1/notifications",
+    response_model=NotificationListPayload,
+    include_in_schema=False,
+)
 def notification_inbox(
     limit: int = Query(default=200, ge=1, le=500),
     user: ApiUser = Depends(require_access()),
@@ -29,7 +33,11 @@ def notification_inbox(
     return service.inbox(username=user.username, limit=limit)
 
 
-@router.patch("/api/v1/notifications/read-all", response_model=NotificationChangePayload)
+@router.patch(
+    "/api/v1/notifications/read-all",
+    response_model=NotificationChangePayload,
+    include_in_schema=False,
+)
 def notification_mark_all_read(
     user: ApiUser = Depends(require_access()),
     service: NotificationService = Depends(get_notification_service),
@@ -39,7 +47,9 @@ def notification_mark_all_read(
 
 
 @router.patch(
-    "/api/v1/notifications/{notification_id}/read", response_model=NotificationChangePayload
+    "/api/v1/notifications/{notification_id}/read",
+    response_model=NotificationChangePayload,
+    include_in_schema=False,
 )
 def notification_mark_read(
     notification_id: str,
@@ -50,7 +60,11 @@ def notification_mark_read(
     return service.mark_read(notification_id=notification_id, username=user.username)
 
 
-@router.delete("/api/v1/notifications", response_model=NotificationChangePayload)
+@router.delete(
+    "/api/v1/notifications",
+    response_model=NotificationChangePayload,
+    include_in_schema=False,
+)
 def notification_dismiss_all(
     user: ApiUser = Depends(require_access()),
     service: NotificationService = Depends(get_notification_service),
@@ -59,7 +73,11 @@ def notification_dismiss_all(
     return service.dismiss_all(username=user.username)
 
 
-@router.delete("/api/v1/notifications/{notification_id}", response_model=NotificationChangePayload)
+@router.delete(
+    "/api/v1/notifications/{notification_id}",
+    response_model=NotificationChangePayload,
+    include_in_schema=False,
+)
 def notification_dismiss(
     notification_id: str,
     user: ApiUser = Depends(require_access()),
@@ -72,6 +90,7 @@ def notification_dismiss(
 @router.get(
     "/api/v1/admin/notifications/recipients",
     response_model=NotificationRecipientsPayload,
+    include_in_schema=False,
 )
 def notification_recipient_options(
     user: ApiUser = Depends(require_access(permission="notification.broadcast:create")),

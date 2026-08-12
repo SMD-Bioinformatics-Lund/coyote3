@@ -159,3 +159,21 @@ def test_retention_task_disabled_and_enabled(monkeypatch) -> None:
     monkeypatch.setattr(maintenance, "get_app_controls_service", lambda: service)
     monkeypatch.setattr(maintenance, "_serializable", lambda value: {**value, "serialized": True})
     assert maintenance.run_retention_maintenance.run() == {"removed": 4, "serialized": True}
+
+
+def test_public_oncokb_refresh_task_obeys_maintenance_gate(monkeypatch) -> None:
+    """The global public-reference refresh uses the maintenance task family."""
+    monkeypatch.setattr(maintenance, "_ensure_worker_runtime", lambda: None)
+    monkeypatch.setattr(maintenance, "task_family_enabled", lambda _family: False)
+    monkeypatch.setattr(maintenance, "disabled_result", lambda family: {"disabled": family})
+    assert maintenance.refresh_public_oncokb.run() == {"disabled": "maintenance"}
+
+    service = SimpleNamespace(refresh=lambda: {"status": "ok", "curated_genes_upserted": 8})
+    monkeypatch.setattr(maintenance, "task_family_enabled", lambda _family: True)
+    monkeypatch.setattr(maintenance, "get_public_oncokb_refresh_service", lambda: service)
+    monkeypatch.setattr(maintenance, "_serializable", lambda value: {**value, "serialized": True})
+    assert maintenance.refresh_public_oncokb.run() == {
+        "status": "ok",
+        "curated_genes_upserted": 8,
+        "serialized": True,
+    }

@@ -36,7 +36,7 @@ OPENAPI_TAGS = [
     },
     {
         "name": TAG_NOTIFICATIONS,
-        "description": "Current-user notifications, read state, dismissal, and administrative broadcasts.",
+        "description": "Administrative notification broadcasts to selected users, roles, or all active users.",
     },
     {
         "name": TAG_CLINICAL_SAMPLES,

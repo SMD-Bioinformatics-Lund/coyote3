@@ -51,37 +51,6 @@ def _record_ingest_audit(event_type: str, message: str, **kwargs: Any) -> None:
     )
 
 
-def _queue_public_oncokb_enrichment(result: dict[str, Any]) -> str | None:
-    """Queue optional OncoKB enrichment without changing ingest success."""
-    sample_id = str(result.get("sample_id") or "")
-    if not sample_id:
-        return None
-    sample_name = str(result.get("sample_name") or "")
-    try:
-        task = enrich_public_oncokb_cache_task.apply_async(
-            kwargs={"sample_id": sample_id, "sample_name": sample_name}
-        )
-    except Exception as exc:  # pragma: no cover - broker/runtime failure
-        logger.warning(
-            "public_oncokb_enrichment_queue_failed sample_id=%s sample=%s error=%s",
-            sample_id,
-            result.get("sample_name"),
-            exc,
-        )
-        _record_ingest_audit(
-            "ingest.enrichment.queue_failed",
-            "Optional public OncoKB enrichment could not be queued",
-            severity="warning",
-            outcome="failure",
-            resource_type="sample",
-            resource_id=sample_id,
-            resource_name=sample_name,
-            metadata={"error": str(exc)},
-        )
-        return None
-    return str(task.id)
-
-
 def _unique_marker_path(manifest_path: Path, suffix: str, task_id: str | None) -> Path:
     marker_path = manifest_path.with_name(f"{manifest_path.name}{suffix}")
     if not marker_path.exists():
@@ -175,8 +144,6 @@ def _run_watch_directory_once(self) -> dict[str, Any]:
                     "counts": result.get("counts") or result.get("data_counts"),
                 },
             )
-            enrichment_task_id = _queue_public_oncokb_enrichment(result)
-            ingested[-1]["enrichment_task_id"] = enrichment_task_id or ""
         except Exception as exc:  # pragma: no cover - defensive logging path
             logger.exception("celery_ingest_watch_failed manifest=%s", manifest_path)
             failed_path = _unique_marker_path(manifest_path, failed_suffix, self.request.id)
@@ -268,11 +235,6 @@ def ingest_sample_bundle_task(
                 "counts": result.get("counts") or result.get("data_counts"),
             },
         )
-        enrichment_task_id = _queue_public_oncokb_enrichment(result)
-        result["oncokb_public"] = {
-            "status": "queued" if enrichment_task_id else "not_queued",
-            "task_id": enrichment_task_id,
-        }
         return _serializable(result)
     except Exception as exc:
         _record_ingest_audit(
@@ -286,49 +248,6 @@ def ingest_sample_bundle_task(
     finally:
         if staging_dir:
             shutil.rmtree(staging_dir, ignore_errors=True)
-
-
-@celery_app.task(name="api.tasks.ingest.enrich_public_oncokb_cache", bind=True)
-def enrich_public_oncokb_cache_task(
-    self, *, sample_id: str, sample_name: str = ""
-) -> dict[str, Any]:
-    """Populate optional public OncoKB caches independently of sample ingest."""
-    _ensure_worker_runtime()
-    if not task_family_enabled("sample_ingest"):
-        return disabled_result("sample_ingest")
-    logger.info(
-        "public_oncokb_enrichment_started task_id=%s sample_id=%s",
-        self.request.id,
-        sample_id,
-    )
-    try:
-        with timed_operation(
-            "ingest.oncokb_enrichment",
-            task_id=self.request.id,
-            sample_id=sample_id,
-        ):
-            result = get_internal_ingest_service().enrich_public_oncokb_cache_for_sample(sample_id)
-        _record_ingest_audit(
-            "ingest.enrichment.succeeded",
-            "Optional public OncoKB enrichment completed",
-            resource_type="sample",
-            resource_id=str(sample_id),
-            resource_name=sample_name,
-            metadata={"task_id": self.request.id, "result": result},
-        )
-        return _serializable({"status": "ok", "sample_id": sample_id, "result": result})
-    except Exception as exc:
-        _record_ingest_audit(
-            "ingest.enrichment.failed",
-            "Optional public OncoKB enrichment failed",
-            severity="warning",
-            outcome="failure",
-            resource_type="sample",
-            resource_id=str(sample_id),
-            resource_name=sample_name,
-            metadata={"task_id": self.request.id, "error": str(exc)},
-        )
-        raise
 
 
 @celery_app.task(name="api.tasks.ingest.insert_collection_document", bind=True)

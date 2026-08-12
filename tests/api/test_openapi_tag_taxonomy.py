@@ -43,6 +43,10 @@ def test_openapi_exposes_supported_contract_and_hides_runtime_plumbing():
     assert not any(path.startswith("/api/v1/internal/") for path in paths)
     assert "/api/v1/samples" in paths
     assert "/api/v1/admin/controls" in paths
+    assert "/api/v1/notifications" not in paths
+    assert "/api/v1/notifications/read-all" not in paths
+    assert "/api/v1/admin/notifications/recipients" not in paths
+    assert "/api/v1/admin/notifications/broadcast" in paths
 
 
 def test_hidden_routers_remain_registered_at_runtime():

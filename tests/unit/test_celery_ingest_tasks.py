@@ -31,7 +31,6 @@ def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch
     manifest.write_text("name: SAMPLE_1\ncnv: files/sample.cnv.json\n", encoding="utf-8")
 
     captured_payloads = []
-    enrichment_requests = []
 
     class _Service:
         def parse_yaml_payload(self, raw):
@@ -54,16 +53,6 @@ def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch
     monkeypatch.setattr(ingest, "_ensure_worker_runtime", lambda: None)
     monkeypatch.setattr(ingest, "task_family_enabled", lambda _family: True)
     monkeypatch.setattr(ingest, "get_internal_ingest_service", lambda: _Service())
-    monkeypatch.setattr(
-        ingest,
-        "_queue_public_oncokb_enrichment",
-        lambda result: (
-            enrichment_requests.append(
-                {"result": result, "manifest_finalized": not manifest.exists()}
-            )
-            or "enrichment-task-id"
-        ),
-    )
     result = ingest.ingest_watch_directory_once.run()
 
     assert result["scanned"] == 1
@@ -71,13 +60,6 @@ def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch
     assert result["ingested"][0]["done_path"].endswith("coyote3.yaml.done")
     assert not manifest.exists()
     assert (sample_dir / "coyote3.yaml.done").exists()
-    assert result["ingested"][0]["enrichment_task_id"] == "enrichment-task-id"
-    assert enrichment_requests == [
-        {
-            "result": {"sample_id": "sample-id", "sample_name": "SAMPLE_1"},
-            "manifest_finalized": True,
-        }
-    ]
     assert captured_payloads == [
         {
             "payload": {
@@ -106,25 +88,3 @@ def test_ingest_watch_directory_once_skips_when_another_scan_is_active(tmp_path,
         result = ingest.ingest_watch_directory_once.run()
 
     assert result == {"status": "skipped", "reason": "already_running"}
-
-
-def test_public_oncokb_enrichment_runs_as_independent_task(monkeypatch):
-    class _Service:
-        def enrich_public_oncokb_cache_for_sample(self, sample_id):
-            assert sample_id == "sample-id"
-            return {"queried": 12, "inserted": 3}
-
-    monkeypatch.setattr(ingest, "_ensure_worker_runtime", lambda: None)
-    monkeypatch.setattr(ingest, "task_family_enabled", lambda _family: True)
-    monkeypatch.setattr(ingest, "get_internal_ingest_service", lambda: _Service())
-    monkeypatch.setattr(ingest, "_record_ingest_audit", lambda *args, **kwargs: None)
-
-    result = ingest.enrich_public_oncokb_cache_task.run(
-        sample_id="sample-id", sample_name="SAMPLE_1"
-    )
-
-    assert result == {
-        "status": "ok",
-        "sample_id": "sample-id",
-        "result": {"queried": 12, "inserted": 3},
-    }
