@@ -61,6 +61,7 @@ def test_dna_report_renderer_uses_master_style_template():
             "sample_assay": "hema_gmsv1",
             "assay_group": "hematology",
             "genes_covered_in_panel": {},
+            "latest_sample_comment_text": "Latest sample conclusion",
         },
         snapshot_rows=[],
         analyte="dna",
@@ -74,9 +75,11 @@ def test_dna_report_renderer_uses_master_style_template():
     assert "Detekterade mutationer" in html
     assert "Analysbeskrivning" in html
     assert "table.report_general" in html
+    assert "Latest sample conclusion" in html
+    assert "Clinical conclusion" not in html
 
 
-def test_rna_report_renderer_uses_generated_summary_without_reviewed_comment():
+def test_rna_report_renderer_leaves_conclusion_empty_without_sample_comment():
     html = render_report_html(
         template_name="report_fusion.html",
         template_context={
@@ -95,14 +98,36 @@ def test_rna_report_renderer_uses_generated_summary_without_reviewed_comment():
             "class_desc": {},
             "class_desc_short": {},
             "report_date": date(2026, 7, 15),
-            "clinical_summary_text": "Inga rapporterbara fusioner påvisades.",
+            "latest_sample_comment_text": "",
         },
         snapshot_rows=[],
         analyte="rna",
         preview=True,
     )
 
-    assert "Inga rapporterbara fusioner påvisades." in html
+    assert "Inga rapporterbara fusioner påvisades." not in html
     assert "Slutsats saknas!" not in html
     assert "<th>Fusion</th><th>Klassificering</th>" in html
     assert "Detekterade fusioner" in html
+
+
+def test_rna_report_renderer_uses_only_latest_sample_comment_for_conclusion():
+    html = render_report_html(
+        template_name="report_fusion.html",
+        template_context={
+            "assay_config": {"reporting": {}},
+            "fusions": [],
+            "report_header": "RNA report",
+            "sample": {"name": "seed_rna_case", "comments": [{"text": "Older comment"}]},
+            "class_desc": {},
+            "class_desc_short": {},
+            "report_date": date(2026, 7, 15),
+            "latest_sample_comment_text": "Latest reviewer conclusion",
+        },
+        snapshot_rows=[],
+        analyte="rna",
+        preview=True,
+    )
+
+    assert "Latest reviewer conclusion" in html
+    assert "Older comment" not in html

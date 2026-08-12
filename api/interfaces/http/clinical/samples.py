@@ -579,6 +579,29 @@ def reset_sample_filters(
 
 
 @router.post(
+    "/api/v1/samples/{sample_id}/aspc/apply-latest",
+    response_model=SampleChangePayload,
+    summary="Apply latest ASPC revision to a sample",
+)
+def apply_latest_sample_aspc(
+    sample_id: str,
+    user: ApiUser = Depends(require_access(permission="sample:edit:own")),
+    service: SampleCatalogService = Depends(get_sample_catalog_service),
+):
+    """Replace a sample's stored ASPC snapshot only after an explicit user action."""
+    sample = _get_sample_for_api(sample_id, user)
+    applied = service.apply_latest_aspc(sample=sample)
+    result = change_payload(
+        sample_id=sample_id,
+        resource="sample_aspc",
+        resource_id=str(sample.get("_id")),
+        action="apply_latest",
+    )
+    result["meta"] = {"applied_aspc": applied}
+    return util.common.convert_to_serializable(result)
+
+
+@router.post(
     "/api/v1/coverage/blacklist/entries",
     response_model=SampleChangePayload,
     summary="Create coverage blacklist entry",

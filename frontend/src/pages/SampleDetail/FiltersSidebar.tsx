@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
-import { ChevronLeft, ChevronRight, Filter, RotateCcw, Save } from "lucide-react"
+import { ChevronLeft, ChevronRight, Filter, RefreshCw, RotateCcw, Save } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { QueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
@@ -308,6 +308,24 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
     },
   })
 
+  const applyLatestAspc = useMutation({
+    mutationFn: () => api.post(`/samples/${sampleId}/aspc/apply-latest`, {}).then((res) => res.data),
+    onSuccess: async (result) => {
+      invalidateSampleQueries(queryClient, sampleId)
+      await refetchActiveTable(queryClient, activeTab, sampleId)
+      const applied = result?.meta?.applied_aspc
+      notifySuccess(
+        "Latest ASPC applied",
+        `${sampleName} now uses ${applied?.aspc_id || "the latest assay configuration"}${applied?.version ? ` v${applied.version}` : ""}.`,
+        "Assay configuration",
+        { type: "sample", id: sampleId, name: sampleName, sampleName },
+      )
+    },
+    onError: (error) => notifyActionError("Unable to apply latest ASPC", error, "Assay configuration", {
+      type: "sample", id: sampleId, name: sampleName, sampleName,
+    }),
+  })
+
   const setValue = (key: string, value: any) => setFilters((current: any) => ({ ...current, [key]: value }))
   const values = (key: string) => Array.isArray(filters[key]) ? filters[key].map(String) : []
   const consequenceValues = Array.isArray(filters.vep_consequences) ? filters.vep_consequences.map(String) : []
@@ -331,6 +349,12 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
         <div>
           <h3 className="text-sm font-black">Filters</h3>
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{intent} {activeTab}</p>
+          {sample?.current_aspc_key && (
+            <p className="mt-0.5 text-[10px] text-muted-foreground">
+              ASPC: <span className="font-semibold text-foreground">{sample.current_aspc_key}</span>
+              {sample?.current_aspc_version ? ` v${sample.current_aspc_version}` : ""}
+            </p>
+          )}
         </div>
         <button onClick={() => setIsCollapsed(true)} className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground" title="Collapse filters">
           <ChevronRight className="h-4 w-4" />
@@ -338,6 +362,27 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto p-2.5 scrollbar-thin scrollbar-thumb-border">
+        {context?.aspc_update?.available && (
+          <section className="rounded-lg border border-primary/25 bg-primary/5 p-2.5">
+            <p className="text-xs font-semibold text-foreground">A newer assay configuration is available.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {context.aspc_update.latest_aspc_id}{context.aspc_update.latest_version ? ` v${context.aspc_update.latest_version}` : ""}
+            </p>
+            <button
+              type="button"
+              disabled={applyLatestAspc.isPending}
+              onClick={() => {
+                if (window.confirm("Apply the latest ASPC? This replaces this sample's saved filters and analysis configuration.")) {
+                  applyLatestAspc.mutate()
+                }
+              }}
+              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-2 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              {applyLatestAspc.isPending ? "Applying..." : "Apply latest ASPC"}
+            </button>
+          </section>
+        )}
         {activeTab === "snvs" && (
           <>
             <Section title="Small Variant Thresholds">

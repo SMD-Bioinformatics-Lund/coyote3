@@ -353,6 +353,8 @@ class SampleRepository(BaseRepository):
         default_filters: dict,
         *,
         aspc: dict | None = None,
+        analysis_intents: list[str] | None = None,
+        aspc_resolution: dict | None = None,
     ) -> Any:
         """
         Reset a sample to its default settings.
@@ -376,6 +378,10 @@ class SampleRepository(BaseRepository):
             update["current_aspc_id"] = aspc.get("_id")
             update["current_aspc_key"] = aspc.get("aspc_id")
             update["current_aspc_version"] = aspc.get("version")
+        if analysis_intents is not None:
+            update["analysis_intents"] = analysis_intents
+        if aspc_resolution is not None:
+            update["aspc_resolution"] = aspc_resolution
 
         self.get_collection().update_one(
             {"_id": ObjectId(sample_id)},
@@ -385,7 +391,13 @@ class SampleRepository(BaseRepository):
         invalidate_dashboard_summary_cache(self.adapter)
 
     def update_sample_filters(
-        self, sample_id: str, filters: dict, *, aspc: dict | None = None
+        self,
+        sample_id: str,
+        filters: dict,
+        *,
+        aspc: dict | None = None,
+        analysis_intents: list[str] | None = None,
+        aspc_resolution: dict | None = None,
     ) -> None:
         """
         Update the filters of a sample document in the database.
@@ -404,6 +416,10 @@ class SampleRepository(BaseRepository):
             update["current_aspc_id"] = aspc.get("_id")
             update["current_aspc_key"] = aspc.get("aspc_id")
             update["current_aspc_version"] = aspc.get("version")
+        if analysis_intents is not None:
+            update["analysis_intents"] = analysis_intents
+        if aspc_resolution is not None:
+            update["aspc_resolution"] = aspc_resolution
         self.get_collection().update_one(
             {"_id": ObjectId(sample_id)},
             {"$set": update},

@@ -79,14 +79,17 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         self.reported_samples_search_limit = int(reported_samples_search_limit or 50)
         self.reports_base_path = str(reports_base_path or "")
 
-    def _get_formatted_assay_config(self, sample: dict) -> dict:
+    def _get_formatted_assay_config(
+        self, sample: dict, *, use_sample_revision: bool = True
+    ) -> dict:
         """Resolve formatted assay config using injected repositories when available."""
         if self.assay_configuration_repository is None:
-            return get_formatted_assay_config(sample)
+            return get_formatted_assay_config(sample, use_sample_revision=use_sample_revision)
         return get_formatted_assay_config(
             sample,
             assay_panel_repository=self.assay_panel_repository,
             assay_configuration_repository=self.assay_configuration_repository,
+            use_sample_revision=use_sample_revision,
         )
 
     @staticmethod

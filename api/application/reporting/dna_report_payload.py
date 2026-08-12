@@ -12,7 +12,6 @@ from api.application.interpretation.annotation_enrichment import (
     add_global_annotations as shared_add_global_annotations,
 )
 from api.application.reporting.clinical_rules.preparation import prepare_report_context
-from api.application.reporting.clinical_rules.service import rendered_summary
 from api.config.constants import primary_analysis_file_key
 from api.config.database_versions import sample_vep_version
 from api.domain.common.assay_filters import (
@@ -756,34 +755,8 @@ def build_dna_report_payload(
         if clinical_rule_service is not None
         else None
     )
-    germline_rule_evaluation = None
-    if (
-        "germline" in set(sample.get("analysis_intents") or [])
-        and clinical_rule_service is not None
-    ):
-        germline_rule_context = prepare_report_context(
-            sample=sample,
-            asp=assay_panel_doc or {},
-            aspc=assay_config,
-            analyte="dna",
-            applied_gene_lists=applied_gene_lists,
-            report_sections_data={"snvs": germline_variants},
-            intent="germline",
-        )
-        germline_rule_evaluation = clinical_rule_service.evaluate(
-            aspc=assay_config,
-            context=germline_rule_context,
-        )
-
     report_date = datetime.now().date()
     report_timestamp: str = shared_get_report_timestamp()
-    somatic_summary = rendered_summary(clinical_rule_evaluation)
-    germline_summary = rendered_summary(germline_rule_evaluation)
-    if "germline" in set(sample.get("analysis_intents") or []) and not germline_summary:
-        germline_summary = (
-            '<strong style="color:#b42318">Germline SNV report text has not been '
-            "configured for this ASP and subpanel.</strong>"
-        )
     template_context: Dict[str, Any] = {
         "assay_config": assay_config,
         "report_sections": report_sections,
@@ -802,10 +775,7 @@ def build_dna_report_payload(
         "panel_doc": json.dumps(assay_panel_doc, default=str),
         "report_snvlists": json.dumps(genes_covered_in_panel, default=str),
         "report_sample_filters": json.dumps(sample_filters, default=str),
-        "clinical_summary_text": "\n\n".join(
-            text for text in (somatic_summary, germline_summary) if text
-        ),
-        "clinical_germline_summary_text": germline_summary,
+        "latest_sample_comment_text": str((latest_sample_comment or {}).get("text") or ""),
         "clinical_rule_evaluation": (
             clinical_rule_evaluation.model_dump(mode="json") if clinical_rule_evaluation else None
         ),

@@ -119,6 +119,34 @@ def test_reset_sample_filters_requires_assay_config(monkeypatch):
     assert exc.value.detail["category"] == "setup"
 
 
+def test_apply_latest_aspc_replaces_a_sample_snapshot_explicitly(monkeypatch):
+    """The route delegates the deliberate latest-ASPC transition to the service."""
+    sample = {"_id": "sample-object-id", "name": "CASE_DEMO"}
+    calls = {}
+
+    def apply_latest_aspc(*, sample):
+        calls["sample"] = sample
+        return {"aspc_id": "hema_gmsv1_hem_production", "version": 3}
+
+    service = SimpleNamespace(apply_latest_aspc=apply_latest_aspc)
+    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = samples.apply_latest_sample_aspc(
+        "CASE_DEMO",
+        user=_route_test_user(),
+        service=service,
+    )
+
+    assert calls["sample"] is sample
+    assert payload["resource"] == "sample_aspc"
+    assert payload["action"] == "apply_latest"
+    assert payload["meta"]["applied_aspc"] == {
+        "aspc_id": "hema_gmsv1_hem_production",
+        "version": 3,
+    }
+
+
 def test_update_coverage_blacklist_gene_returns_change_payload(monkeypatch):
     """Create coverage blacklist entry should return a standard change payload."""
     calls = {}

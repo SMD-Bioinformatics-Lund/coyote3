@@ -6,7 +6,7 @@ from typing import Any
 
 from api.application.interpretation.annotation_enrichment import add_alt_class
 from api.application.reporting.clinical_rules.preparation import prepare_report_context
-from api.application.reporting.clinical_rules.service import ClinicalRuleService, rendered_summary
+from api.application.reporting.clinical_rules.service import ClinicalRuleService
 from api.application.reporting.persistence import (
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
 )
@@ -483,6 +483,9 @@ class RNAWorkflowService:
             if self.clinical_rule_service is not None
             else None
         )
+        latest_sample_comment = self.sample_repository.get_latest_sample_comment(
+            str(sample.get("_id") or "")
+        )
 
         template_context = {
             "asp_id": assay,
@@ -494,7 +497,7 @@ class RNAWorkflowService:
             "class_desc_short": TIER_SHORT_DESC,
             "report_date": report_date,
             "save": save,
-            "clinical_summary_text": rendered_summary(clinical_rule_evaluation),
+            "latest_sample_comment_text": str((latest_sample_comment or {}).get("text") or ""),
             "clinical_rule_evaluation": (
                 clinical_rule_evaluation.model_dump(mode="json")
                 if clinical_rule_evaluation

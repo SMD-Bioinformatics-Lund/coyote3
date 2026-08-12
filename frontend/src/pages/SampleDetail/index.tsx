@@ -110,12 +110,17 @@ export function SampleDetail() {
   const suggestionPath = String(sample?.omics_layer || "").toLowerCase() === "rna"
     ? `/samples/${sampleRouteKey}/fusions/comment-suggestion`
     : `/samples/${sampleRouteKey}/small-variants/comment-suggestion`
-  const { data: commentSuggestion } = useQuery({
+  const commentSuggestion = useQuery({
     queryKey: ["sample-comment-suggestion", sampleRouteKey, sample?.omics_layer, activeIntent],
     queryFn: () => api.get(`${suggestionPath}?intent=${activeIntent}`).then((res) => res.data),
-    enabled: Boolean(data) && showComments && Boolean(sampleRouteKey),
+    enabled: false,
     staleTime: 60_000,
   })
+  const requestCommentSuggestion = async () => {
+    if (!data || !showComments || !sampleRouteKey) return ""
+    const result = await commentSuggestion.refetch()
+    return String(result.data?.suggested_text || "")
+  }
   useEffect(() => {
     if (sample?.name && id && id !== sample.name) {
       const query = searchParams.toString()
@@ -217,7 +222,7 @@ export function SampleDetail() {
                   comments={data?.comments || sample?.comments || []}
                   queryKeys={[["sample", id]]}
                   allowGlobal={false}
-                  suggestedText={commentSuggestion?.suggested_text || ""}
+                  onRequestSuggestion={requestCommentSuggestion}
                 />
               </div>
             )}

@@ -4,13 +4,14 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
+  post: vi.fn(),
   put: vi.fn(),
   delete: vi.fn(),
   success: vi.fn(),
   error: vi.fn(),
 }))
 
-vi.mock("@/lib/api", () => ({ api: { put: mocks.put, delete: mocks.delete } }))
+vi.mock("@/lib/api", () => ({ api: { post: mocks.post, put: mocks.put, delete: mocks.delete } }))
 vi.mock("@/lib/notifications", () => ({
   notifySuccess: mocks.success,
   notifyActionError: mocks.error,
@@ -85,7 +86,34 @@ describe("FiltersSidebar", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.put.mockResolvedValue({ data: { ok: true } })
+    mocks.post.mockResolvedValue({ data: { meta: { applied_aspc: { aspc_id: "hema_gmsv1_hem_production", version: 3 } } } })
     mocks.delete.mockResolvedValue({ data: { ok: true } })
+  })
+
+  it("shows the sampled ASPC and applies a newer revision only after confirmation", async () => {
+    const user = userEvent.setup()
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true)
+    renderSidebar({
+      sample: { ...sample, current_aspc_key: "hema_gmsv1_hem_production", current_aspc_version: 2 },
+      context: {
+        ...context,
+        aspc_update: {
+          available: true,
+          latest_aspc_id: "hema_gmsv1_hem_production",
+          latest_version: 3,
+        },
+      },
+    })
+    await expand(user)
+
+    expect(screen.getByText(/ASPC:/)).toHaveTextContent("hema_gmsv1_hem_production v2")
+    await user.click(screen.getByRole("button", { name: "Apply latest ASPC" }))
+
+    await waitFor(() => expect(mocks.post).toHaveBeenCalledWith(
+      "/samples/CASE_001/aspc/apply-latest",
+      {},
+    ))
+    confirm.mockRestore()
   })
 
   it("starts collapsed and exposes the active intent and table", () => {

@@ -89,11 +89,12 @@ class SampleReportRecordDoc(_DocBase):
 
 
 class SampleAspcResolutionDoc(_StrictDocBase):
-    """Persisted resolution between a sample scope and its active ASPC."""
+    """Persisted resolution between a sample scope and its applied ASPC."""
 
     requested_subpanel_id: str
     resolved_subpanel_id: str
     used_base_configuration: bool = False
+    resolved_from_sample_revision: bool = False
     warning: str | None = None
 
     @field_validator("requested_subpanel_id", "resolved_subpanel_id", mode="before")

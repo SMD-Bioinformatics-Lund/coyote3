@@ -79,8 +79,11 @@ class SampleCatalogMutationsMixin:
 
         if sample.get("filters") is None:
             assay_config = self._get_formatted_assay_config(sample)
+            analysis_intents = list(assay_config.get("analysis_intents") or ["somatic"])
             default_filters = sample_filters_from_aspc_filters(
-                assay_config.get("filters"), str(sample.get("omics_layer") or "dna")
+                assay_config.get("filters"),
+                str(sample.get("omics_layer") or "dna"),
+                analysis_intents=analysis_intents,
             )
             self.sample_repository.reset_sample_settings(
                 sample.get("_id"),
@@ -90,6 +93,8 @@ class SampleCatalogMutationsMixin:
                     "aspc_id": assay_config.get("aspc_id"),
                     "version": assay_config.get("version"),
                 },
+                analysis_intents=analysis_intents,
+                aspc_resolution=assay_config.get("aspc_resolution"),
             )
             sample = self.sample_repository.get_sample(sample["_id"])
 
@@ -129,6 +134,9 @@ class SampleCatalogMutationsMixin:
 
         response_sample = deepcopy(sample)
         response_sample["filters"] = self._sample_filters(sample)
+        latest_assay_config = self._get_formatted_assay_config(sample, use_sample_revision=False)
+        current_revision = str(sample.get("current_aspc_id") or "")
+        latest_revision = str(latest_assay_config.get("_id") or "")
         return {
             "sample": response_sample,
             "comments": sample_comments,
@@ -152,6 +160,13 @@ class SampleCatalogMutationsMixin:
             "variant_stats_raw": variant_stats_raw,
             "variant_stats_filtered": variant_stats_filtered,
             "biomarkers": biomarker_rows,
+            "aspc_update": {
+                "available": bool(latest_revision and latest_revision != current_revision),
+                "current_aspc_id": sample.get("current_aspc_key"),
+                "current_version": sample.get("current_aspc_version"),
+                "latest_aspc_id": latest_assay_config.get("aspc_id"),
+                "latest_version": latest_assay_config.get("version"),
+            },
         }
 
     def apply_genelists(
@@ -319,6 +334,32 @@ class SampleCatalogMutationsMixin:
         normalized = self._validate_filter_genelists(normalized)
         self.sample_repository.update_sample_filters(sample.get("_id"), normalized)
 
+    def apply_latest_aspc(self, *, sample: dict) -> dict[str, Any]:
+        """Apply the active ASPC revision to a sample by explicit user action."""
+        assay_config = self._get_formatted_assay_config(sample, use_sample_revision=False)
+        analysis_intents = list(assay_config.get("analysis_intents") or ["somatic"])
+        filters = sample_filters_from_aspc_filters(
+            assay_config.get("filters"),
+            str(sample.get("omics_layer") or "dna"),
+            analysis_intents=analysis_intents,
+        )
+        filters = self._validate_filter_genelists(filters)
+        self.sample_repository.update_sample_filters(
+            sample.get("_id"),
+            filters,
+            aspc={
+                "_id": assay_config.get("_id"),
+                "aspc_id": assay_config.get("aspc_id"),
+                "version": assay_config.get("version"),
+            },
+            analysis_intents=analysis_intents,
+            aspc_resolution=assay_config.get("aspc_resolution"),
+        )
+        return {
+            "aspc_id": assay_config.get("aspc_id"),
+            "version": assay_config.get("version"),
+        }
+
     def reset_sample_filters(self, *, sample: dict, assay_config: dict) -> None:
         """Reset a sample's filters from assay defaults."""
         default_filters = sample_filters_from_aspc_filters(
@@ -335,6 +376,8 @@ class SampleCatalogMutationsMixin:
                 "aspc_id": assay_config.get("aspc_id"),
                 "version": assay_config.get("version"),
             },
+            analysis_intents=list(assay_config.get("analysis_intents") or ["somatic"]),
+            aspc_resolution=assay_config.get("aspc_resolution"),
         )
 
     def add_coverage_blacklist(

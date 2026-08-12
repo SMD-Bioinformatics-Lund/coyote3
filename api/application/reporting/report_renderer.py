@@ -419,15 +419,7 @@ DNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
 <span class="report_header">Slutsats</span>
 <div class="conclusion">
   <div class="results_summary">
-    {% if sample.comments|length > 0 %}
-      {% for comment in sample.comments if comment.hidden != 1 %}
-        {% if loop.last %}{{ comment.text|format_comment|safe }}{% endif %}
-      {% endfor %}
-    {% elif clinical_summary_text %}
-      {{ clinical_summary_text|format_comment|safe }}
-    {% else %}
-      Slutsats saknas!
-    {% endif %}
+    {% if latest_sample_comment_text %}{{ latest_sample_comment_text|format_comment|safe }}{% endif %}
   </div>
 </div>
 
@@ -583,15 +575,7 @@ RNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
 <span class="report_header">Slutsats</span>
 <div class="conclusion">
   <div class="results_summary">
-    {% if sample.comments|length > 0 %}
-      {% for comment in sample.comments if comment.hidden != 1 %}
-        {% if loop.last %}{{ comment.text|format_comment|safe }}{% endif %}
-      {% endfor %}
-    {% elif clinical_summary_text %}
-      {{ clinical_summary_text|format_comment|safe }}
-    {% else %}
-      Slutsats saknas!
-    {% endif %}
+    {% if latest_sample_comment_text %}{{ latest_sample_comment_text|format_comment|safe }}{% endif %}
   </div>
 </div>
 

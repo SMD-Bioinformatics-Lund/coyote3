@@ -421,7 +421,7 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
         fusion_repository=fusion_repository,
         gene_list_repository=SimpleNamespace(get_isgl_by_ids=lambda _ids: {}),
         assay_panel_repository=SimpleNamespace(get_asp=lambda _asp: {}),
-        sample_repository=SimpleNamespace(),
+        sample_repository=SimpleNamespace(get_latest_sample_comment=lambda _sample_id: None),
         reported_variant_repository=SimpleNamespace(),
     )
     rows = workflow._build_snapshot_rows([fusion_doc])

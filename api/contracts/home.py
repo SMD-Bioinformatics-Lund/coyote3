@@ -69,6 +69,7 @@ class HomeEditContextPayload(BaseModel):
     variant_stats_raw: Any = None
     variant_stats_filtered: Any = None
     biomarkers: list[dict[str, Any]] = Field(default_factory=list)
+    aspc_update: dict[str, Any] = Field(default_factory=dict)
 
 
 class HomeChangeStatusPayload(BaseModel):

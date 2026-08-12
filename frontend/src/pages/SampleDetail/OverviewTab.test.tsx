@@ -5,7 +5,7 @@ import type { ReactNode } from "react"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const mocks = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), delete: vi.fn() }))
+const mocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() }))
 vi.mock("@/lib/api", () => ({ api: mocks }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: vi.fn(), notifyActionError: vi.fn() }))
 
@@ -80,6 +80,7 @@ describe("sample overview presentation", () => {
         : { items: [{ isgl_id: "heme", name: "Hematology", gene_count: 197, version: 1 }] },
     }))
     mocks.put.mockResolvedValue({ data: {} })
+    mocks.post.mockResolvedValue({ data: { meta: { applied_aspc: { aspc_id: "hema_gmsv1_base_production", version: 2 } } } })
     mocks.delete.mockResolvedValue({ data: {} })
   })
 
@@ -127,6 +128,27 @@ describe("sample overview presentation", () => {
     expect(screen.getByRole("heading", { name: "CNV filters" })).toBeVisible()
     expect(screen.getByRole("heading", { name: "Coverage filters" })).toBeVisible()
     expect(screen.queryByRole("heading", { name: "Fusion filters" })).not.toBeInTheDocument()
+  })
+
+  it("shows the recorded ASPC and newer revision notice", () => {
+    wrapper(
+      <OverviewTab
+        sampleId="CASE_001"
+        sample={{ ...sample, current_aspc_key: "hema_gmsv1_base_production", current_aspc_version: 1 }}
+        context={{
+          ...context,
+          aspc_update: {
+            available: true,
+            latest_aspc_id: "hema_gmsv1_base_production",
+            latest_version: 2,
+          },
+        }}
+      />,
+    )
+
+    expect(screen.getByText(/ASPC: hema_gmsv1_base_production v1/)).toBeVisible()
+    expect(screen.getByText(/Newer ASPC available: hema_gmsv1_base_production v2/)).toBeVisible()
+    expect(screen.getByRole("button", { name: "Apply latest ASPC" })).toBeVisible()
   })
 
   it("shows only RNA fusion filters for an RNA sample", () => {

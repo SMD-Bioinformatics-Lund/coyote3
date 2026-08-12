@@ -13,6 +13,7 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 import re
 
+from bson import ObjectId
 from pymongo import cursor
 
 from api.config.constants import (
@@ -303,6 +304,29 @@ class ASPConfigRepository(BaseRepository):
             {"$and": [self._aspc_lookup_query(aspc_id), {"is_active": True}]},
             projection,
         )
+
+    def get_aspc_revision_no_meta(self, revision_id: object) -> dict | None:
+        """Return one stored ASPC revision, including an inactive historical revision.
+
+        Samples store this MongoDB identity when they are ingested or deliberately
+        moved to a newer configuration.  It is therefore the authoritative source
+        for that sample's filters and reporting context.
+        """
+        if revision_id is None:
+            return None
+        candidate_ids: list[object] = [revision_id]
+        if not isinstance(revision_id, ObjectId):
+            try:
+                candidate_ids.append(ObjectId(str(revision_id)))
+            except Exception:
+                pass
+        projection = {
+            "updated_on": 0,
+            "updated_by": 0,
+            "created_on": 0,
+            "created_by": 0,
+        }
+        return self.get_collection().find_one({"_id": {"$in": candidate_ids}}, projection)
 
     def get_active_aspcs_for_asp(
         self, asp_id: str, environment: str = DEFAULT_ENVIRONMENT

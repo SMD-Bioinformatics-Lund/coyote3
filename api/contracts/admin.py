@@ -241,7 +241,7 @@ class AdminAppControlsUpdatePayload(BaseModel):
 
 
 class AdminMaintenanceRunPayload(BaseModel):
-    """Represent a manually queued maintenance task."""
+    """Represent a manually queued operational task."""
 
     status: str
     task_id: str | None = None

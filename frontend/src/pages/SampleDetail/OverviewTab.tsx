@@ -2,7 +2,10 @@ import { useState } from "react"
 import type { FocusEvent, MouseEvent, ReactNode } from "react"
 import { TooltipSurface } from "@/components/ui/app-tooltip"
 import { Link } from "react-router-dom"
-import { AlertTriangle, ChevronDown, ChevronUp } from "lucide-react"
+import { AlertTriangle, ChevronDown, ChevronUp, RefreshCw } from "lucide-react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { api } from "@/lib/api"
+import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { fullDateTime, shortCount } from "@/lib/detail-formatters"
 import {
   sampleArtifactCountLabel,
@@ -549,6 +552,16 @@ function AnalysisStatusStrip({ sample, context }: { sample: any; context?: any }
 
 
 export function OverviewTab({ sampleId, sample, context }: { sampleId: string; sample: any; context?: any }) {
+  const queryClient = useQueryClient()
+  const applyLatestAspc = useMutation({
+    mutationFn: () => api.post(`/samples/${sampleId}/aspc/apply-latest`, {}).then((response) => response.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sample", sampleId] })
+      queryClient.invalidateQueries({ queryKey: ["samples"] })
+      notifySuccess("Latest ASPC applied", "The sample now uses the latest assay configuration.", "Assay configuration", { type: "sample", id: sampleId, name: sample?.name || sampleId })
+    },
+    onError: (error) => notifyActionError("Unable to apply latest ASPC", error, "Assay configuration", { type: "sample", id: sampleId, name: sample?.name || sampleId }),
+  })
   const verificationSample = context?.verification_sample_used || sample?.verification_sample_used
   const files = fileItems(context)
   const snvFilters = sampleFilterSection(sample, "snv")
@@ -598,9 +611,26 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
             {sample?.genome_build && <StatusPill>{`GRCh${sample.genome_build}`}</StatusPill>}
             {sample?.environment && <StatusPill tone="yellow">{sample.environment}</StatusPill>}
             {sample?.asp_id && <StatusPill tone="blue">ASP: {sample.asp_id}</StatusPill>}
+            {sample?.current_aspc_key && <StatusPill tone="blue">ASPC: {sample.current_aspc_key}{sample.current_aspc_version ? ` v${sample.current_aspc_version}` : ""}</StatusPill>}
             {sample?.pipeline && <StatusPill tone="blue">{sample.pipeline}{sample.pipeline_version ? ` v${sample.pipeline_version}` : ""}</StatusPill>}
             {sampleReported(sample) && <StatusPill tone="blue">Reported</StatusPill>}
           </div>
+          {context?.aspc_update?.available && (
+            <div className="mt-3 rounded-lg border border-primary/25 bg-primary/5 p-2">
+              <p className="text-xs font-semibold">Newer ASPC available: {context.aspc_update.latest_aspc_id}{context.aspc_update.latest_version ? ` v${context.aspc_update.latest_version}` : ""}</p>
+              <button
+                type="button"
+                disabled={applyLatestAspc.isPending}
+                onClick={() => {
+                  if (window.confirm("Apply the latest ASPC? This replaces this sample's saved filters and analysis configuration.")) applyLatestAspc.mutate()
+                }}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                {applyLatestAspc.isPending ? "Applying..." : "Apply latest ASPC"}
+              </button>
+            </div>
+          )}
           <BiomarkerRow context={context} />
         </SettingsCard>
 

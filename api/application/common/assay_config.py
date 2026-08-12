@@ -21,8 +21,14 @@ def get_formatted_assay_config(
     *,
     assay_panel_repository,
     assay_configuration_repository,
+    use_sample_revision: bool = True,
 ) -> dict:
-    """Resolve and format the assay configuration for a sample document."""
+    """Resolve and format the assay configuration for a sample document.
+
+    A sample with a stored ASPC revision always uses that exact revision.  Active
+    ASPC lookup is reserved for ingestion, legacy samples without a snapshot, and
+    an explicit user request to apply the latest configuration.
+    """
     sample_name = str(sample.get("name") or sample.get("_id") or "unknown_sample").strip()
     raw_asp_id = sample.get("asp_id")
     if not str(raw_asp_id or "").strip():
@@ -52,11 +58,29 @@ def get_formatted_assay_config(
             hint="Create and activate the ASP for this assay before opening sample analysis pages.",
         )
 
-    assay_config = assay_configuration_repository.get_aspc_no_meta(
-        assay_name,
-        environment,
-        requested_subpanel_id,
-    )
+    assay_config = None
+    resolved_from_sample_revision = False
+    if use_sample_revision and sample.get("current_aspc_id") is not None:
+        assay_config = assay_configuration_repository.get_aspc_revision_no_meta(
+            sample.get("current_aspc_id")
+        )
+        if not assay_config:
+            raise setup_error(
+                "Stored ASPC revision is unavailable",
+                (
+                    f"Sample '{sample_name}' is linked to ASPC revision "
+                    f"'{sample.get('current_aspc_id')}', but that revision no longer exists."
+                ),
+                hint="Restore the referenced ASPC revision before opening the sample, or explicitly apply a current ASPC.",
+            )
+        resolved_from_sample_revision = True
+
+    if not assay_config:
+        assay_config = assay_configuration_repository.get_aspc_no_meta(
+            assay_name,
+            environment,
+            requested_subpanel_id,
+        )
     used_base_configuration = False
     if not assay_config and requested_subpanel_id != SUBPANEL_BASE_ID:
         assay_config = assay_configuration_repository.get_aspc_no_meta(
@@ -83,14 +107,28 @@ def get_formatted_assay_config(
         omics = "RNA" if sample.get(primary_analysis_file_key("rna", "FUSION")) else "DNA"
     assay_config_schema = build_form_spec(aspc_spec_for_category(omics))
     formatted = format_assay_config(deepcopy(assay_config), assay_config_schema)
+    stored_resolution = sample.get("aspc_resolution") if resolved_from_sample_revision else None
     formatted["aspc_resolution"] = {
         "requested_subpanel_id": requested_subpanel_id,
-        "resolved_subpanel_id": formatted.get("subpanel_id") or SUBPANEL_BASE_ID,
-        "used_base_configuration": used_base_configuration,
+        "resolved_subpanel_id": (
+            stored_resolution.get("resolved_subpanel_id")
+            if isinstance(stored_resolution, dict)
+            else formatted.get("subpanel_id") or SUBPANEL_BASE_ID
+        ),
+        "used_base_configuration": (
+            bool(stored_resolution.get("used_base_configuration"))
+            if isinstance(stored_resolution, dict)
+            else used_base_configuration
+        ),
+        "resolved_from_sample_revision": resolved_from_sample_revision,
         "warning": (
-            "No subpanel-specific ASPC is active; base configuration is in use."
-            if used_base_configuration
-            else None
+            stored_resolution.get("warning")
+            if isinstance(stored_resolution, dict)
+            else (
+                "No subpanel-specific ASPC is active; base configuration is in use."
+                if used_base_configuration
+                else None
+            )
         ),
     }
     return formatted

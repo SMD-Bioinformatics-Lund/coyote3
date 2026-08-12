@@ -122,6 +122,7 @@ export function CommentsPanel({
   livePreview,
   previewToggle,
   suggestedText = "",
+  onRequestSuggestion,
   showList = true,
   showComposer = true,
   allowHide = true,
@@ -142,6 +143,7 @@ export function CommentsPanel({
   livePreview?: boolean
   previewToggle?: boolean
   suggestedText?: string
+  onRequestSuggestion?: () => Promise<string | undefined>
   showList?: boolean
   showComposer?: boolean
   allowHide?: boolean
@@ -154,6 +156,7 @@ export function CommentsPanel({
   const [internalText, setInternalText] = useState("")
   const [global, setGlobal] = useState(false)
   const [mode, setMode] = useState<"edit" | "preview">("edit")
+  const [isSuggestionLoading, setIsSuggestionLoading] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const queryClient = useQueryClient()
   const text = draftText ?? internalText
@@ -189,6 +192,23 @@ export function CommentsPanel({
     },
   })
   const effectiveSuggestedText = suggestedText.trim() || fallbackSuggestedText(resourceType, resource)
+
+  const requestSuggestion = async () => {
+    let suggestion = effectiveSuggestedText.trim()
+    if (!suggestion && onRequestSuggestion) {
+      setIsSuggestionLoading(true)
+      try {
+        suggestion = (await onRequestSuggestion())?.trim() || ""
+      } finally {
+        setIsSuggestionLoading(false)
+      }
+    }
+    if (!suggestion) return
+    setMode("edit")
+    setText(suggestion)
+    onUseAsDraft?.(suggestion)
+    textareaRef.current?.focus()
+  }
 
   const toggleHidden = useMutation({
     mutationFn: ({ commentId, hidden }: { commentId: string; hidden: boolean }) => {
@@ -242,13 +262,6 @@ export function CommentsPanel({
     { label: "Table", icon: Table2, action: () => insertMarkdown("| Column | Value |\n| --- | --- |\n| ", " | value |", "item", true) },
     { label: "Horizontal rule", icon: Minus, action: () => insertMarkdown("---\n", "", "", true) },
   ]
-
-  const useSuggestion = () => {
-    if (!effectiveSuggestedText.trim()) return
-    setText(effectiveSuggestedText.trim())
-    setMode("edit")
-    window.setTimeout(() => textareaRef.current?.focus(), 0)
-  }
 
   return (
     <section className="glass-card p-2.5">
@@ -336,13 +349,13 @@ export function CommentsPanel({
               <span className="mx-1 h-6 w-px bg-border" />
               <button
                 type="button"
-                onClick={useSuggestion}
-                disabled={!effectiveSuggestedText.trim()}
-                title={effectiveSuggestedText.trim() ? "Insert suggested text" : "No suggested text available"}
+                onClick={() => void requestSuggestion()}
+                disabled={isSuggestionLoading || (!effectiveSuggestedText.trim() && !onRequestSuggestion)}
+                title={effectiveSuggestedText.trim() || onRequestSuggestion ? "Insert suggested text" : "No suggested text available"}
                 className="inline-flex items-center gap-1.5 rounded-md bg-validation/10 px-2 py-1.5 text-xs font-bold text-validation hover:bg-validation/20 disabled:opacity-45"
               >
                 <Sparkles className="h-4 w-4" />
-                Suggest
+                {isSuggestionLoading ? "Preparing..." : "Suggest"}
               </button>
             </>
           )}

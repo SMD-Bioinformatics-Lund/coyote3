@@ -150,7 +150,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
       meta: { headerClassName: "w-20 min-w-20", cellClassName: "w-20 min-w-20" },
       cell: ({ row }) => {
         const csq = row.original.INFO?.selected_CSQ || {}
-        const displayGene = csq.VEP_SYMBOL || csq.display_symbol || csq.SYMBOL
+        const displayGene = csq.display_symbol || csq.SYMBOL
         const resolvedGene = csq.SYMBOL
         return (
           <GeneWithOncoKbBadge
@@ -158,7 +158,6 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
             displayGene={displayGene}
             resolvedGene={resolvedGene}
             hgncId={csq.HGNC_ID}
-            matchSource={csq.HGNC_MATCH_SOURCE}
             showOncoKbBadge={false}
             geneTo={tieredVariantSearchPath(resolvedGene || displayGene, assayGroup)}
             className="max-w-full"

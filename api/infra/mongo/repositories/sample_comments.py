@@ -60,9 +60,15 @@ class SampleCommentsRepository(BaseRepository):
             > 0
         )
 
-    def get_latest_sample_comment(self, sample_oid: str) -> dict | None:
+    def get_latest_sample_comment(
+        self, sample_oid: str, *, include_hidden: bool = False
+    ) -> dict | None:
+        """Return the newest sample comment eligible for report rendering."""
+        query: dict = {"sample_oid": self._object_id(sample_oid)}
+        if not include_hidden:
+            query["hidden"] = {"$in": [0, False, None]}
         return self.get_collection().find_one(
-            {"sample_oid": self._object_id(sample_oid)},
+            query,
             sort=[("time_created", -1), ("_id", -1)],
         )
 
