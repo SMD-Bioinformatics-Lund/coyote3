@@ -1,4 +1,4 @@
-"""Mongo repository for public OncoKB annotation cache records."""
+"""Mongo repository for public OncoKB gene-cache records."""
 
 from __future__ import annotations
 
@@ -64,7 +64,7 @@ def _present_cache_fields(payload: dict[str, Any], fields: tuple[str, ...]) -> d
 
 
 class OncoKbPublicCacheRepository(BaseRepository):
-    """Persist public OncoKB variant and gene cache records."""
+    """Persist public OncoKB gene-cache records and retain legacy cache access."""
 
     def __init__(self, adapter):
         """Bind the variant-level public cache collection."""
@@ -267,6 +267,11 @@ class OncoKbPublicCacheRepository(BaseRepository):
             changed += int(result.upserted_id is not None or content_changed)
         return changed
 
+    def remove_gene_markers_not_in(self, genes: set[str]) -> int:
+        """Remove stale curated-gene records after a successful full refresh."""
+        result = self.gene_collection.delete_many({"gene": {"$nin": sorted(genes)}})
+        return int(result.deleted_count or 0)
+
     def upsert_cancer_gene_markers(self, docs: list[dict[str, Any]]) -> int:
         """Create or refresh public OncoKB cancer-gene list marker records."""
         changed = 0
@@ -330,6 +335,11 @@ class OncoKbPublicCacheRepository(BaseRepository):
                 continue
             changed += int(result.upserted_id is not None or content_changed)
         return changed
+
+    def remove_cancer_gene_markers_not_in(self, genes: set[str]) -> int:
+        """Remove stale cancer-gene records after a successful full refresh."""
+        result = self.cancer_gene_collection.delete_many({"gene": {"$nin": sorted(genes)}})
+        return int(result.deleted_count or 0)
 
     def get_gene_record(self, gene: str | None) -> dict[str, Any] | None:
         """Return one UI-facing public OncoKB gene record by symbol."""

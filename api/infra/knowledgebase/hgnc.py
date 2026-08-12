@@ -37,6 +37,11 @@ class HGNCRepository(BaseRepository):
     def ensure_indexes(self) -> None:
         """Create indexes used by HGNC symbol lookups."""
         self.get_collection().create_index(
+            [("hgnc_id", 1)],
+            name="hgnc_id_1",
+            background=True,
+        )
+        self.get_collection().create_index(
             [("hgnc_symbol", 1)],
             name="hgnc_symbol_1",
             background=True,
@@ -128,3 +133,47 @@ class HGNCRepository(BaseRepository):
             )
             or []
         )
+
+    def iter_gene_metadata(self):
+        """Iterate the current HGNC identity records needed by reference refresh jobs."""
+        return self.get_collection().find(
+            {},
+            {
+                "_id": 1,
+                "hgnc_id": 1,
+                "hgnc_symbol": 1,
+                "prev_symbol": 1,
+                "alias_symbol": 1,
+            },
+        )
+
+    def get_metadata_by_ids_and_symbols(
+        self,
+        hgnc_ids: list[str],
+        symbols: list[str],
+    ) -> list[dict]:
+        """Fetch current HGNC records for a set of transcript IDs and symbols."""
+        ids = sorted(
+            {
+                value if value.startswith("HGNC:") else f"HGNC:{value}"
+                for item in hgnc_ids
+                if (value := str(item or "").strip())
+            }
+        )
+        normalized_symbols = sorted(
+            {str(item or "").strip() for item in symbols if str(item or "").strip()}
+        )
+        clauses: list[dict] = []
+        if ids:
+            clauses.extend(({"_id": {"$in": ids}}, {"hgnc_id": {"$in": ids}}))
+        if normalized_symbols:
+            clauses.extend(
+                (
+                    {"hgnc_symbol": {"$in": normalized_symbols}},
+                    {"prev_symbol": {"$in": normalized_symbols}},
+                    {"alias_symbol": {"$in": normalized_symbols}},
+                )
+            )
+        if not clauses:
+            return []
+        return list(self.get_collection().find({"$or": clauses}))

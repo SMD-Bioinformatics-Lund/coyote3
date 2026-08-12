@@ -22,9 +22,15 @@ class AspService:
     @classmethod
     def from_store(cls, store: Any) -> "AspService":
         """Build the service from the runtime store."""
-        return cls(assay_panel_repository=store.assay_panel_repository)
+        return cls(
+            assay_panel_repository=store.assay_panel_repository,
+        )
 
-    def __init__(self, *, assay_panel_repository: Any) -> None:
+    def __init__(
+        self,
+        *,
+        assay_panel_repository: Any,
+    ) -> None:
         """Create the service for assay-panel resource workflows."""
         self._spec = managed_resource_spec("asp")
         self.assay_panel_repository = assay_panel_repository
@@ -104,9 +110,10 @@ class AspService:
         config["version"] = 1
         config = _validated_doc(self._spec.collection, config)
         self.assay_panel_repository.create_panel(config)
-        return change_payload(
+        result = change_payload(
             resource="asp", resource_id=str(config.get("asp_id", "unknown")), action="create"
         )
+        return result
 
     def update(
         self, *, panel_id: str, payload: dict[str, Any], actor_username: str = "admin-ui"

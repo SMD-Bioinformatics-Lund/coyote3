@@ -30,3 +30,9 @@ def test_core_recovery_and_oversight_routes_are_not_switchable():
     assert _keys("/api/v1/admin/audit-events") == set()
     assert _keys("/api/v1/auth/sessions") == set()
     assert _keys("/api/v1/public/modules") == set()
+
+
+def test_public_oncokb_refresh_requires_the_knowledgebase_module():
+    assert _keys("/api/v1/admin/controls/knowledgebases/oncokb-public/refresh") == {
+        "knowledgebases"
+    }

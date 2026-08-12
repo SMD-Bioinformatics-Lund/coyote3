@@ -1,8 +1,9 @@
 """Public OncoKB API client.
 
 The public endpoint does not require an OncoKB token and excludes therapeutic
-data. Coyote3 uses this client only for explicit on-demand lookups from detail
-views; routine dense tables use the local cache for speed.
+data. Coyote3 uses this client for explicit on-demand detail lookups and the
+administrator-triggered public reference refresh; routine dense tables use the
+local cache for speed.
 """
 
 from __future__ import annotations
@@ -285,7 +286,7 @@ class PublicOncoKbClient:
             response_payload = response.json()
         if isinstance(response_payload, list):
             return [item for item in response_payload if isinstance(item, dict)]
-        return []
+        raise ValueError("Public OncoKB cancer-gene response must be a JSON list")
 
     def all_curated_genes(self, *, include_evidence: bool = True) -> list[dict[str, Any]]:
         """Fetch public OncoKB curated genes for local summary-cache seeding."""
@@ -299,4 +300,4 @@ class PublicOncoKbClient:
             response_payload = response.json()
         if isinstance(response_payload, list):
             return [item for item in response_payload if isinstance(item, dict)]
-        return []
+        raise ValueError("Public OncoKB curated-gene response must be a JSON list")

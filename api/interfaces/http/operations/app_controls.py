@@ -49,3 +49,18 @@ def admin_controls_maintenance_run(
 
     result = run_retention_maintenance.delay()
     return {"status": "queued", "task_id": result.id}
+
+
+@router.post(
+    "/api/v1/admin/controls/knowledgebases/oncokb-public/refresh",
+    response_model=AdminMaintenanceRunPayload,
+)
+def admin_controls_public_oncokb_refresh(
+    user: ApiUser = Depends(require_access(permission="app.maintenance:run")),
+):
+    """Queue a complete HGNC-backed refresh of public OncoKB reference records."""
+    _ = user
+    from api.tasks.maintenance import refresh_public_oncokb
+
+    result = refresh_public_oncokb.delay()
+    return {"status": "queued", "task_id": result.id}

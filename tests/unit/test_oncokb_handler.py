@@ -4,8 +4,7 @@ import httpx
 import pytest
 
 from api.application.ingest.oncokb_public import (
-    enrich_public_oncokb_cache,
-    seed_public_oncokb_curated_gene_cache,
+    refresh_public_oncokb_gene_cache,
 )
 from api.infra.knowledgebase.civic import CivicRepository
 from api.infra.knowledgebase.oncokb import OnkoKBRepository
@@ -365,8 +364,43 @@ def test_public_oncokb_client_fetches_all_curated_genes(monkeypatch):
     assert captured["params"] == {"includeEvidence": "true"}
 
 
-def test_seed_public_oncokb_curated_gene_cache_prefills_gene_summary_collection():
+@pytest.mark.parametrize("method_name", ["cancer_gene_list", "all_curated_genes"])
+def test_public_oncokb_catalogue_fetch_rejects_an_invalid_response_shape(monkeypatch, method_name):
+    class _Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"unexpected": "object"}
+
     class _Client:
+        def __init__(self, timeout):
+            self.timeout = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def get(self, *_args, **_kwargs):
+            return _Response()
+
+    monkeypatch.setattr("api.infra.knowledgebase.public_oncokb.httpx.Client", _Client)
+    client = PublicOncoKbClient(base_url="https://public.api.oncokb.org/api/v1")
+
+    with pytest.raises(ValueError, match="response must be a JSON list"):
+        getattr(client, method_name)()
+
+
+def test_refresh_public_oncokb_gene_cache_matches_the_complete_hgnc_catalogue():
+    class _Client:
+        def cancer_gene_list(self):
+            return [
+                {"hugoSymbol": "TP53", "geneAliases": ["P53"], "geneType": "TSG"},
+                {"hugoSymbol": "BRAF", "geneAliases": [], "geneType": "ONCOGENE"},
+            ]
+
         def all_curated_genes(self, *, include_evidence):
             assert include_evidence is True
             return [
@@ -388,88 +422,6 @@ def test_seed_public_oncokb_curated_gene_cache_prefills_gene_summary_collection(
         def __init__(self):
             self.genes = []
 
-        def public_gene_count(self):
-            return 0
-
-        def upsert_gene_markers(self, docs):
-            self.genes.extend(docs)
-            return len(docs)
-
-    cache = _Cache()
-    result = seed_public_oncokb_curated_gene_cache(
-        client=_Client(),
-        cache_repository=cache,
-    )
-
-    assert result == {"fetched": 1, "genes_upserted": 1}
-    assert cache.genes[0]["gene"] == "TP53"
-    assert cache.genes[0]["gene_summary"] == "TP53 is a tumor suppressor."
-    assert cache.genes[0]["background"] == "Curated background."
-    assert cache.genes[0]["highest_sensitive_level"] == "LEVEL_1"
-
-
-def test_public_oncokb_batch_cache_skips_existing_query():
-    class _Client:
-        @staticmethod
-        def build_annotation_query(*, sample, variant):
-            return PublicOncoKbClient.build_annotation_query(sample=sample, variant=variant)
-
-        @staticmethod
-        def query_hash(query):
-            return PublicOncoKbClient.query_hash(query)
-
-        def cancer_gene_list(self):
-            return [
-                {
-                    "hugoSymbol": "TP53",
-                    "geneType": "TSG",
-                    "oncokbAnnotated": True,
-                    "geneAliases": ["P53"],
-                    "entrezGeneId": 7157,
-                },
-                {
-                    "hugoSymbol": "BRAF",
-                    "geneType": "Oncogene",
-                    "oncokbAnnotated": True,
-                    "geneAliases": [],
-                    "entrezGeneId": 673,
-                },
-            ]
-
-        def annotate_hgvsgs(self, queries):
-            assert len(queries) == 1
-            return [
-                {
-                    "geneExist": True,
-                    "variantExist": True,
-                    "dataVersion": "public-test",
-                    "geneSummary": "BRAF is a kinase.",
-                }
-            ]
-
-    class _Cache:
-        def __init__(self, existing):
-            self.existing = existing
-            self.annotations = []
-            self.genes = []
-            self.cancer_genes = [
-                {"gene": "TP53", "gene_type": "TSG", "oncokb_annotated": True},
-                {"gene": "BRAF", "gene_type": "Oncogene", "oncokb_annotated": True},
-            ]
-
-        def public_cancer_gene_count(self):
-            return len(self.public_cancer_gene_symbols())
-
-        def public_cancer_gene_symbols(self):
-            return {doc["gene"] for doc in self.cancer_genes}
-
-        def existing_query_hashes(self, query_hashes):
-            return set(self.existing).intersection(query_hashes)
-
-        def insert_missing_annotations(self, docs):
-            self.annotations.extend(docs)
-            return len(docs)
-
         def upsert_gene_markers(self, docs):
             self.genes.extend(docs)
             return len(docs)
@@ -478,51 +430,62 @@ def test_public_oncokb_batch_cache_skips_existing_query():
             self.cancer_genes.extend(docs)
             return len(docs)
 
-    sample = {"_id": "s1", "name": "S1", "genome_build": 38}
-    existing_variant = {
-        "_id": "v-old",
-        "CHROM": "17",
-        "POS": 7675088,
-        "REF": "G",
-        "ALT": ["A"],
-        "INFO": {"selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "ENSP:p.Arg175His"}},
-    }
-    new_variant = {
-        "_id": "v-new",
-        "CHROM": "7",
-        "POS": 140753336,
-        "REF": "A",
-        "ALT": ["T"],
-        "INFO": {"selected_CSQ": {"SYMBOL": "BRAF", "HGVSp": "ENSP:p.Val600Glu"}},
-    }
-    _, existing_query = PublicOncoKbClient.build_annotation_query(
-        sample=sample,
-        variant=existing_variant,
-    )
-    cache = _Cache({PublicOncoKbClient.query_hash(existing_query)})
+        def remove_gene_markers_not_in(self, genes):
+            self.curated_genes_retained = genes
+            return 0
 
-    result = enrich_public_oncokb_cache(
-        sample=sample,
-        variants=[existing_variant, new_variant],
+        def remove_cancer_gene_markers_not_in(self, genes):
+            self.cancer_genes_retained = genes
+            return 0
+
+    class _Hgnc:
+        def iter_gene_metadata(self):
+            return [
+                {
+                    "hgnc_id": "HGNC:11998",
+                    "hgnc_symbol": "TP53",
+                    "prev_symbol": ["P53"],
+                    "alias_symbol": [],
+                }
+            ]
+
+    cache = _Cache()
+    cache.cancer_genes = []
+    result = refresh_public_oncokb_gene_cache(
         client=_Client(),
         cache_repository=cache,
-        batch_size=200,
+        hgnc_repository=_Hgnc(),
     )
 
     assert result == {
-        "queried": 1,
-        "inserted": 1,
-        "genes_upserted": 1,
-        "skipped": 0,
-        "cached": 1,
-        "genes_seeded": 0,
+        "hgnc_gene_records": 1,
+        "hgnc_symbols_indexed": 2,
+        "cancer_records_fetched": 2,
+        "cancer_records_matched": 1,
+        "cancer_genes_upserted": 1,
+        "cancer_genes_removed": 0,
+        "curated_records_fetched": 1,
+        "curated_records_matched": 1,
+        "curated_genes_upserted": 1,
+        "curated_genes_removed": 0,
     }
-    assert cache.annotations[0]["gene"] == "BRAF"
-    assert cache.annotations[0]["query_method"] == "hgvsg"
-    assert cache.annotations[0]["hgvsg"] == "7:g.140753336A>T"
-    assert cache.annotations[0]["variant_ids"] == ["v-new"]
-    assert {doc["gene"] for doc in cache.cancer_genes} == {"BRAF", "TP53"}
-    assert cache.cancer_genes[0]["gene_type"] == "TSG"
-    assert cache.cancer_genes[0]["oncokb_annotated"] is True
-    assert cache.genes[-1]["gene"] == "BRAF"
-    assert cache.genes[-1]["gene_summary"] == "BRAF is a kinase."
+    assert cache.cancer_genes[0]["gene"] == "TP53"
+    assert cache.genes[0]["gene"] == "TP53"
+    assert cache.genes[0]["gene_summary"] == "TP53 is a tumor suppressor."
+    assert cache.genes[0]["background"] == "Curated background."
+    assert cache.genes[0]["highest_sensitive_level"] == "LEVEL_1"
+    assert cache.cancer_genes_retained == {"TP53"}
+    assert cache.curated_genes_retained == {"TP53"}
+
+
+def test_refresh_public_oncokb_gene_cache_requires_local_hgnc_metadata():
+    class _Hgnc:
+        def iter_gene_metadata(self):
+            return []
+
+    with pytest.raises(RuntimeError, match="HGNC catalogue is empty"):
+        refresh_public_oncokb_gene_cache(
+            client=object(),
+            cache_repository=object(),
+            hgnc_repository=_Hgnc(),
+        )

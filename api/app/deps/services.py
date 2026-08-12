@@ -19,6 +19,7 @@ from api.application.dashboard.analytics import DashboardService
 from api.application.dna.structural_variants import DnaStructuralService
 from api.application.dna.variant_analysis import DnaService
 from api.application.ingest.service import InternalIngestService
+from api.application.knowledgebase.oncokb_refresh import PublicOncoKbRefreshService
 from api.application.notifications.service import NotificationService
 from api.application.public.catalog import PublicCatalogService
 from api.application.reporting.dna_workflow import DNAWorkflowService
@@ -236,4 +237,13 @@ def get_app_controls_service() -> AppControlsService:
         index_conflicts_provider=lambda: getattr(
             getattr(store, "_adapter", None), "index_setup_conflicts", []
         ),
+    )
+
+
+def get_public_oncokb_refresh_service() -> PublicOncoKbRefreshService:
+    """Return the HGNC-backed public OncoKB reference refresh service."""
+    return PublicOncoKbRefreshService.from_store(
+        get_store(),
+        config=runtime_app.config,
+        audit_service=get_audit_service(),
     )

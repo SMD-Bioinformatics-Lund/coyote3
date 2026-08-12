@@ -58,7 +58,11 @@ APPLICATION_MODULES: tuple[ApplicationModule, ...] = (
         control_field="knowledgebases_enabled",
         label="Knowledgebases",
         description="Gene annotations and local or external knowledgebase lookups.",
-        route_prefixes=("/api/v1/knowledgebases/", "/api/v1/common/gene/"),
+        route_prefixes=(
+            "/api/v1/knowledgebases/",
+            "/api/v1/common/gene/",
+            "/api/v1/admin/controls/knowledgebases/",
+        ),
         route_fragments=("/oncokb-public", "/clinpgx-public"),
     ),
     ApplicationModule(

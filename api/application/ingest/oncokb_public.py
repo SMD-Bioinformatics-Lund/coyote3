@@ -1,46 +1,10 @@
-"""Ingest-time public OncoKB enrichment helpers."""
+"""HGNC-backed public OncoKB gene-cache refresh helpers."""
 
 from __future__ import annotations
 
-import logging
-from collections.abc import Iterable
-from datetime import datetime, timezone
 from typing import Any
 
 from api.infra.knowledgebase.public_oncokb import PublicOncoKbClient
-
-logger = logging.getLogger(__name__)
-
-
-def _chunks(items: list[dict[str, Any]], size: int) -> Iterable[list[dict[str, Any]]]:
-    """Yield fixed-size chunks from a list."""
-    safe_size = max(1, int(size or 1))
-    for idx in range(0, len(items), safe_size):
-        yield items[idx : idx + safe_size]
-
-
-def _variant_id(value: Any) -> str:
-    """Serialize a variant identifier for cache metadata."""
-    return str(value or "")
-
-
-def _gene_record_from_annotation(
-    *,
-    gene: str,
-    response: dict[str, Any] | None,
-    source: str,
-) -> dict[str, Any]:
-    """Build a public OncoKB gene marker record from an annotation response."""
-    payload = response if isinstance(response, dict) else {}
-    return {
-        "gene": gene,
-        "source": source,
-        "public_api": True,
-        "therapeutic_data_included": False,
-        "data_version": payload.get("dataVersion"),
-        "gene_exist": payload.get("geneExist"),
-        "gene_summary": payload.get("geneSummary") or payload.get("oncokbGeneSummary"),
-    }
 
 
 def _extract_oncokb_gene_symbol(record: dict[str, Any]) -> str:
@@ -55,8 +19,18 @@ def _extract_oncokb_gene_symbol(record: dict[str, Any]) -> str:
     return ""
 
 
-def _hgnc_doc_for_symbol(symbol: str, hgnc_collection: Any | None) -> dict[str, Any] | None:
+def _hgnc_doc_for_symbol(
+    symbol: str,
+    hgnc_collection: Any | None,
+    *,
+    symbol_index: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any] | None:
     """Return HGNC metadata by approved, previous, or alias symbol."""
+    normalized = str(symbol or "").strip().upper()
+    if symbol_index is not None:
+        return symbol_index.get(normalized)
+    if hgnc_collection is not None and hasattr(hgnc_collection, "get_metadata_by_symbol_or_alias"):
+        return hgnc_collection.get_metadata_by_symbol_or_alias(symbol)
     if hgnc_collection is None or not hasattr(hgnc_collection, "find_one"):
         return None
     return hgnc_collection.find_one(
@@ -77,17 +51,162 @@ def _hgnc_doc_for_symbol(symbol: str, hgnc_collection: Any | None) -> dict[str, 
     )
 
 
+def _hgnc_doc_for_record(
+    record: dict[str, Any],
+    hgnc_collection: Any | None,
+    *,
+    symbol_index: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any] | None:
+    """Resolve an OncoKB record through any of its published gene symbols."""
+    for symbol in sorted(_record_symbols(record)):
+        if hgnc_doc := _hgnc_doc_for_symbol(
+            symbol,
+            hgnc_collection,
+            symbol_index=symbol_index,
+        ):
+            return hgnc_doc
+    return None
+
+
+def _normalized_symbols(values: Any) -> set[str]:
+    """Normalize panel and OncoKB symbols for case-insensitive matching."""
+    if isinstance(values, str):
+        values = [values]
+    if not isinstance(values, (list, tuple, set)):
+        return set()
+    return {str(value).strip().upper() for value in values if str(value or "").strip()}
+
+
+def _record_symbols(record: dict[str, Any]) -> set[str]:
+    """Return every public symbol that can identify an OncoKB gene record."""
+    return _normalized_symbols(
+        [
+            _extract_oncokb_gene_symbol(record),
+            *list(record.get("geneAliases") or []),
+            *list(record.get("aliases") or []),
+        ]
+    )
+
+
+def _hgnc_symbol_index(hgnc_repository: Any | None) -> tuple[dict[str, dict[str, Any]], int]:
+    """Index the local HGNC catalogue by every supported gene symbol."""
+    if hgnc_repository is None or not hasattr(hgnc_repository, "iter_gene_metadata"):
+        return {}, 0
+    records = list(hgnc_repository.iter_gene_metadata() or [])
+    index: dict[str, dict[str, Any]] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        for symbol in _normalized_symbols(
+            [
+                record.get("hgnc_symbol"),
+                *(record.get("prev_symbol") or []),
+                *(record.get("alias_symbol") or []),
+            ]
+        ):
+            index.setdefault(symbol, record)
+    return index, len(records)
+
+
+def refresh_public_oncokb_gene_cache(
+    *,
+    client: PublicOncoKbClient,
+    cache_repository: Any,
+    hgnc_repository: Any | None = None,
+) -> dict[str, int]:
+    """Refresh public OncoKB gene data against the complete local HGNC catalogue.
+
+    The public endpoints are fetched once per refresh. Their records are kept
+    only when a current HGNC record resolves the reported symbol, previous
+    symbol, or alias. This is shared reference maintenance, independent of
+    assay-panel administration and sample ingestion.
+    """
+    hgnc_index, hgnc_gene_records = _hgnc_symbol_index(hgnc_repository)
+    result = {
+        "hgnc_gene_records": hgnc_gene_records,
+        "hgnc_symbols_indexed": len(hgnc_index),
+        "cancer_records_fetched": 0,
+        "cancer_records_matched": 0,
+        "cancer_genes_upserted": 0,
+        "cancer_genes_removed": 0,
+        "curated_records_fetched": 0,
+        "curated_records_matched": 0,
+        "curated_genes_upserted": 0,
+        "curated_genes_removed": 0,
+    }
+    if not hgnc_index:
+        raise RuntimeError(
+            "The HGNC catalogue is empty; public OncoKB refresh requires local HGNC gene metadata."
+        )
+
+    source = "public.api.oncokb.org"
+    hgnc_symbols = set(hgnc_index)
+    cancer_records = client.cancer_gene_list()
+    result["cancer_records_fetched"] = len(cancer_records)
+    curated_records = client.all_curated_genes(include_evidence=True)
+    result["curated_records_fetched"] = len(curated_records)
+
+    matching_cancer_records = [
+        record for record in cancer_records if _record_symbols(record) & hgnc_symbols
+    ]
+    result["cancer_records_matched"] = len(matching_cancer_records)
+    cancer_docs = [
+        document
+        for record in matching_cancer_records
+        if (
+            document := _public_gene_marker_from_cancer_gene(
+                record=record,
+                hgnc_collection=hgnc_repository,
+                hgnc_symbol_index=hgnc_index,
+                source=source,
+            )
+        )
+    ]
+    matching_curated_records = [
+        record for record in curated_records if _record_symbols(record) & hgnc_symbols
+    ]
+    result["curated_records_matched"] = len(matching_curated_records)
+    curated_docs = [
+        document
+        for record in matching_curated_records
+        if (
+            document := _public_gene_summary_from_curated_gene(
+                record=record,
+                hgnc_collection=hgnc_repository,
+                hgnc_symbol_index=hgnc_index,
+                source=source,
+            )
+        )
+    ]
+
+    # Fetch and normalize both public catalogues before mutating either local cache.
+    result["cancer_genes_upserted"] = cache_repository.upsert_cancer_gene_markers(cancer_docs)
+    result["cancer_genes_removed"] = cache_repository.remove_cancer_gene_markers_not_in(
+        {str(document["gene"]) for document in cancer_docs}
+    )
+    result["curated_genes_upserted"] = cache_repository.upsert_gene_markers(curated_docs)
+    result["curated_genes_removed"] = cache_repository.remove_gene_markers_not_in(
+        {str(document["gene"]) for document in curated_docs}
+    )
+    return result
+
+
 def _public_gene_marker_from_cancer_gene(
     *,
     record: dict[str, Any],
     hgnc_collection: Any | None,
+    hgnc_symbol_index: dict[str, dict[str, Any]] | None = None,
     source: str,
 ) -> dict[str, Any] | None:
     """Build a normalized public cancer-gene marker from one OncoKB record."""
     symbol = _extract_oncokb_gene_symbol(record)
     if not symbol:
         return None
-    hgnc_doc = _hgnc_doc_for_symbol(symbol, hgnc_collection)
+    hgnc_doc = _hgnc_doc_for_record(
+        record,
+        hgnc_collection,
+        symbol_index=hgnc_symbol_index,
+    )
     approved_symbol = str((hgnc_doc or {}).get("hgnc_symbol") or symbol).strip()
     return {
         "gene": approved_symbol,
@@ -119,13 +238,18 @@ def _public_gene_summary_from_curated_gene(
     *,
     record: dict[str, Any],
     hgnc_collection: Any | None,
+    hgnc_symbol_index: dict[str, dict[str, Any]] | None = None,
     source: str,
 ) -> dict[str, Any] | None:
     """Build a normalized public gene-summary marker from one curated gene record."""
     symbol = _extract_oncokb_gene_symbol(record)
     if not symbol:
         return None
-    hgnc_doc = _hgnc_doc_for_symbol(symbol, hgnc_collection)
+    hgnc_doc = _hgnc_doc_for_record(
+        record,
+        hgnc_collection,
+        symbol_index=hgnc_symbol_index,
+    )
     approved_symbol = str((hgnc_doc or {}).get("hgnc_symbol") or symbol).strip()
     return {
         "gene": approved_symbol,
@@ -149,225 +273,4 @@ def _public_gene_summary_from_curated_gene(
         "grch37_isoform": record.get("grch37Isoform"),
         "grch38_refseq": record.get("grch38RefSeq"),
         "grch38_isoform": record.get("grch38Isoform"),
-    }
-
-
-def ensure_public_oncokb_gene_cache(
-    *,
-    client: PublicOncoKbClient,
-    cache_repository: Any,
-    hgnc_collection: Any | None = None,
-) -> dict[str, int]:
-    """Seed the public OncoKB cancer-gene marker cache once from the public API."""
-    if cache_repository.public_cancer_gene_count() > 0:
-        return {"fetched": 0, "genes_upserted": 0}
-    source = "public.api.oncokb.org"
-    records = client.cancer_gene_list()
-    docs = [
-        doc
-        for record in records
-        if (
-            doc := _public_gene_marker_from_cancer_gene(
-                record=record,
-                hgnc_collection=hgnc_collection,
-                source=source,
-            )
-        )
-    ]
-    return {
-        "fetched": len(records),
-        "genes_upserted": cache_repository.upsert_cancer_gene_markers(docs),
-    }
-
-
-def seed_public_oncokb_curated_gene_cache(
-    *,
-    client: PublicOncoKbClient,
-    cache_repository: Any,
-    hgnc_collection: Any | None = None,
-    include_evidence: bool = True,
-    refresh: bool = False,
-) -> dict[str, int]:
-    """Seed public OncoKB curated-gene summaries from /utils/allCuratedGenes."""
-    if not refresh and cache_repository.public_gene_count() > 0:
-        return {"fetched": 0, "genes_upserted": 0}
-    source = "public.api.oncokb.org"
-    records = client.all_curated_genes(include_evidence=include_evidence)
-    docs = [
-        doc
-        for record in records
-        if (
-            doc := _public_gene_summary_from_curated_gene(
-                record=record,
-                hgnc_collection=hgnc_collection,
-                source=source,
-            )
-        )
-    ]
-    return {
-        "fetched": len(records),
-        "genes_upserted": cache_repository.upsert_gene_markers(docs),
-    }
-
-
-def enrich_public_oncokb_cache(
-    *,
-    sample: dict[str, Any],
-    variants: list[dict[str, Any]],
-    client: PublicOncoKbClient,
-    cache_repository: Any,
-    batch_size: int,
-    hgnc_collection: Any | None = None,
-) -> dict[str, int]:
-    """Batch query and persist missing public OncoKB annotation records.
-
-    Public OncoKB is used only as a cache-building source here. Cache identity
-    is based on HGVSg when available, otherwise gene, protein alteration,
-    reference genome, and evidence type. Repeated variants across samples reuse
-    the same annotation record.
-    """
-    candidates: dict[str, dict[str, Any]] = {}
-    skipped = 0
-    sample_id = str(sample.get("_id") or "")
-    sample_name = str(sample.get("name") or "")
-    now = datetime.now(timezone.utc)
-    oncokb_genes = cache_repository.public_cancer_gene_symbols()
-
-    for variant in variants:
-        built_query = client.build_annotation_query(sample=sample, variant=variant)
-        if built_query is None:
-            skipped += 1
-            continue
-        query_method, query = built_query
-        query_hash = client.query_hash(query)
-        gene = str(
-            (query.get("gene") or {}).get("hugoSymbol")
-            or (variant.get("INFO", {}).get("selected_CSQ", {}) or {}).get("SYMBOL")
-            or ""
-        )
-        if gene not in oncokb_genes:
-            skipped += 1
-            continue
-        existing = candidates.get(query_hash)
-        if existing is None:
-            candidates[query_hash] = {
-                "query_hash": query_hash,
-                "query_method": query_method,
-                "query": query,
-                "gene": gene,
-                "hgvsg": query.get("hgvsg"),
-                "alteration": query.get("alteration"),
-                "reference_genome": query.get("referenceGenome"),
-                "variant_ids": [_variant_id(variant.get("_id"))],
-                "sample_ids": [sample_id] if sample_id else [],
-                "sample_names": [sample_name] if sample_name else [],
-            }
-            continue
-        variant_id = _variant_id(variant.get("_id"))
-        if variant_id and variant_id not in existing["variant_ids"]:
-            existing["variant_ids"].append(variant_id)
-        if sample_id and sample_id not in existing["sample_ids"]:
-            existing["sample_ids"].append(sample_id)
-        if sample_name and sample_name not in existing["sample_names"]:
-            existing["sample_names"].append(sample_name)
-
-    if not candidates:
-        return {
-            "queried": 0,
-            "inserted": 0,
-            "genes_upserted": 0,
-            "skipped": skipped,
-            "cached": 0,
-            "genes_seeded": 0,
-        }
-
-    existing_hashes = cache_repository.existing_query_hashes(list(candidates))
-    missing = [record for key, record in candidates.items() if key not in existing_hashes]
-    cached = len(candidates) - len(missing)
-    if not missing:
-        return {
-            "queried": 0,
-            "inserted": 0,
-            "genes_upserted": 0,
-            "skipped": skipped,
-            "cached": cached,
-            "genes_seeded": 0,
-        }
-
-    annotation_docs: list[dict[str, Any]] = []
-    gene_docs_by_gene: dict[str, dict[str, Any]] = {}
-    source = "public.api.oncokb.org"
-    missing_by_method: dict[str, list[dict[str, Any]]] = {
-        "hgvsg": [record for record in missing if record.get("query_method") == "hgvsg"],
-        "protein_change": [
-            record for record in missing if record.get("query_method") == "protein_change"
-        ],
-    }
-    for query_method, method_records in missing_by_method.items():
-        if not method_records:
-            continue
-        annotation_method = (
-            client.annotate_hgvsgs if query_method == "hgvsg" else client.annotate_protein_changes
-        )
-        for batch in _chunks(method_records, batch_size):
-            try:
-                responses = annotation_method([item["query"] for item in batch])
-            except Exception as exc:
-                logger.warning(
-                    "public_oncokb_batch_enrichment_failed sample=%s method=%s batch_size=%s error=%s",
-                    sample_name or sample_id,
-                    query_method,
-                    len(batch),
-                    exc,
-                )
-                skipped += len(batch)
-                continue
-            for record, response in zip(batch, responses, strict=False):
-                gene = str(record.get("gene") or "")
-                annotation_docs.append(
-                    {
-                        "query_hash": record["query_hash"],
-                        "query_method": record.get("query_method"),
-                        "source": source,
-                        "license": "public; therapeutic data excluded",
-                        "public_api": True,
-                        "therapeutic_data_included": False,
-                        "gene": gene,
-                        "hgvsg": record.get("hgvsg"),
-                        "alteration": record.get("alteration"),
-                        "reference_genome": record.get("reference_genome"),
-                        "query": record.get("query"),
-                        "response": response,
-                        "data_version": response.get("dataVersion")
-                        if isinstance(response, dict)
-                        else None,
-                        "gene_exist": response.get("geneExist")
-                        if isinstance(response, dict)
-                        else None,
-                        "variant_exist": response.get("variantExist")
-                        if isinstance(response, dict)
-                        else None,
-                        "variant_ids": record.get("variant_ids") or [],
-                        "sample_ids": record.get("sample_ids") or [],
-                        "sample_names": record.get("sample_names") or [],
-                        "queried_at": now,
-                        "created_on": now,
-                    }
-                )
-                if gene:
-                    gene_docs_by_gene[gene] = _gene_record_from_annotation(
-                        gene=gene,
-                        response=response if isinstance(response, dict) else None,
-                        source=source,
-                    )
-
-    inserted = cache_repository.insert_missing_annotations(annotation_docs)
-    genes_upserted = cache_repository.upsert_gene_markers(list(gene_docs_by_gene.values()))
-    return {
-        "queried": len(annotation_docs),
-        "inserted": inserted,
-        "genes_upserted": genes_upserted,
-        "skipped": skipped,
-        "cached": cached,
-        "genes_seeded": 0,
     }

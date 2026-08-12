@@ -12,6 +12,11 @@ import api.application.ingest.parsers as ingest_parsers
 import api.application.ingest.sample_updates as sample_updates
 import api.application.ingest.service as ingest
 from api.contracts.schemas.rna import FusionsDoc
+from api.domain.core.dna.transcript_payloads import (
+    annotate_transcript_provenance,
+    compact_selected_csq,
+    feature_without_version,
+)
 from api.infra.mongo.ingest_gateway import IngestCollectionGateway
 
 
@@ -410,9 +415,7 @@ def test_select_csq_prefers_hgnc_mane_plus_and_current_symbol():
     assert source == "ncbi_mane_plus_clinical"
     assert selected["Feature"] == "NM_000001.1"
     assert selected["SYMBOL"] == "NEW1"
-    assert selected["VEP_SYMBOL"] == "OLD1"
     assert selected["HGNC_ID"] == "HGNC:1"
-    assert selected["HGNC_MATCH_SOURCE"] == "previous_or_alias_symbol"
 
 
 def test_select_csq_uses_explicit_ncbi_then_ensembl_mane_priority():
@@ -490,7 +493,7 @@ def test_annotate_transcript_provenance_from_hgnc_and_vep_metadata():
         },
     ]
 
-    annotated = ingest_parsers._annotate_transcript_provenance(
+    annotated = annotate_transcript_provenance(
         rows,
         hgnc_by_id={"HGNC:1": hgnc_doc},
         hgnc_by_symbol={"OLD1": hgnc_doc, "NEW1": hgnc_doc},
@@ -903,8 +906,9 @@ def test_transcript_helpers():
     assert parsed[2] == "rs10"
     assert parsed[3] == ["1", "2"]
     assert parsed[4] == ["ENST0001"]
+    assert parsed[9] == ["missense_variant"]
 
-    assert ingest_parsers._refseq_no_version("NM_1.2") == "NM_1"
+    assert feature_without_version("NM_1.2") == "NM_1"
 
     chosen, src = ingest_parsers._select_csq(
         [
@@ -966,6 +970,44 @@ def test_build_anno_vep_docs_includes_selected_and_alternate_transcripts():
             ],
         }
     ]
+
+
+def test_selected_transcript_projection_excludes_vault_only_provenance() -> None:
+    selected = compact_selected_csq(
+        {
+            "Feature": "NM_000001.1",
+            "SYMBOL": "TP53",
+            "HGNC_ID": "HGNC:11998",
+            "Consequence": ["missense_variant"],
+            "VEP_SYMBOL": "P53",
+            "HGNC_MATCHED": True,
+            "HGNC_MATCH_SOURCE": "previous_or_alias_symbol",
+            "MANE_SELECT": "NM_000001.1",
+            "MANE_PLUS_CLINICAL": "NM_000001.1",
+            "transcript_tags": ["ncbi_mane_plus_clinical"],
+            "canonical_source": "vep_canonical",
+            "is_canonical": True,
+        }
+    )
+
+    assert selected == {
+        "Feature": "NM_000001.1",
+        "SYMBOL": "TP53",
+        "HGNC_ID": "HGNC:11998",
+        "Consequence": ["missense_variant"],
+    }
+
+
+def test_parse_transcripts_indexes_consequences_from_every_transcript() -> None:
+    parsed = ingest_parsers._parse_transcripts(
+        [
+            {"Consequence": "missense_variant"},
+            {"Consequence": "splice_region_variant&intron_variant"},
+            {"Consequence": "missense_variant"},
+        ]
+    )
+
+    assert parsed[9] == ["missense_variant", "splice_region_variant", "intron_variant"]
 
 
 def test_normalize_historical_biomarkers_doc():
@@ -1437,11 +1479,6 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": []})
     monkeypatch.setattr(service, "_next_unique_name", lambda *_: "S1")
     monkeypatch.setattr(service, "_write_dependents", lambda **_: {"snvs": 0})
-    monkeypatch.setattr(
-        service,
-        "_enrich_public_oncokb_cache",
-        lambda **_: (_ for _ in ()).throw(AssertionError("must not run during core ingest")),
-    )
 
     class _Valid:
         def model_dump(self, *args, **kwargs):
@@ -1457,7 +1494,6 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
         {"name": "S1", "asp_id": "A", "omics_layer": "dna"}, allow_update=False
     )
     assert out["status"] == "ok"
-    assert out["oncokb_public"] == {"status": "deferred"}
 
     monkeypatch.setattr(
         service, "_write_dependents", lambda **_: (_ for _ in ()).throw(RuntimeError("boom"))

@@ -18,7 +18,6 @@ from api.application.ingest.helpers import (
     build_sample_meta_dict,
     normalize_sample_version_metadata,
 )
-from api.application.ingest.oncokb_public import enrich_public_oncokb_cache
 from api.application.ingest.parsers import (
     DnaIngestParser,
     RnaIngestParser,
@@ -34,7 +33,6 @@ from api.contracts.schemas.samples import (
     SamplesDoc,
 )
 from api.domain.common.sample_filters import sample_filters_from_aspc_filters
-from api.infra.knowledgebase.public_oncokb import PublicOncoKbClient
 from api.infra.mongo.ingest_gateway import IngestCollectionGateway
 from api.infra.mongo.persistence import (
     insert_many_documents,
@@ -72,15 +70,6 @@ class InternalIngestService:
             anno_vep_repository=store.anno_vep_repository,
             invalidate_variant_cache=store.variant_repository.invalidate_dashboard_metrics_cache,
             invalidate_summary_cache=lambda: dashboard_summary_cache_invalidator(store),
-            oncokb_public_cache_repository=getattr(store, "oncokb_public_cache_repository", None),
-            oncokb_public_client=PublicOncoKbClient(
-                base_url=str(store.app.config.get("ONCOKB_BASE_URL")),
-                timeout=float(store.app.config.get("ONCOKB_REQUEST_TIMEOUT_SECONDS", 3.0)),
-            ),
-            oncokb_public_lookups_enabled=bool(
-                store.app.config.get("ONCOKB_PUBLIC_LOOKUPS_ENABLED", True)
-            ),
-            oncokb_public_batch_size=int(store.app.config.get("ONCOKB_PUBLIC_BATCH_SIZE", 200)),
         )
 
     def __init__(
@@ -90,20 +79,12 @@ class InternalIngestService:
         anno_vep_repository: Any,
         invalidate_variant_cache,
         invalidate_summary_cache,
-        oncokb_public_cache_repository: Any | None = None,
-        oncokb_public_client: PublicOncoKbClient | None = None,
-        oncokb_public_lookups_enabled: bool = False,
-        oncokb_public_batch_size: int = 200,
     ) -> None:
         """Create the service with an explicit collection gateway."""
         self.collection_gateway = collection_gateway
         self.anno_vep_repository = anno_vep_repository
         self.invalidate_variant_cache = invalidate_variant_cache
         self.invalidate_summary_cache = invalidate_summary_cache
-        self.oncokb_public_cache_repository = oncokb_public_cache_repository
-        self.oncokb_public_client = oncokb_public_client
-        self.oncokb_public_lookups_enabled = oncokb_public_lookups_enabled
-        self.oncokb_public_batch_size = oncokb_public_batch_size
 
     def _sample_collection(self):
         """Return the sample collection used by internal ingest workflows."""
@@ -140,58 +121,6 @@ class InternalIngestService:
             self.invalidate_summary_cache()
         except Exception as exc:
             logger.warning("ingest_dashboard_summary_cache_invalidate_failed error=%s", exc)
-
-    def _enrich_public_oncokb_cache(
-        self, *, sample_id: str, sample: dict[str, Any]
-    ) -> dict[str, int]:
-        """Populate the public OncoKB cache for persisted small variants."""
-        empty_result = {
-            "queried": 0,
-            "inserted": 0,
-            "genes_upserted": 0,
-            "skipped": 0,
-            "cached": 0,
-            "genes_seeded": 0,
-        }
-        if not self.oncokb_public_lookups_enabled:
-            return empty_result
-
-        if self.oncokb_public_cache_repository is None or self.oncokb_public_client is None:
-            return empty_result
-        try:
-            variants = list(self._collection("variants").find({"SAMPLE_ID": str(sample_id)}))
-            try:
-                hgnc_collection = self._collection("hgnc_genes")
-            except KeyError:
-                hgnc_collection = None
-            return enrich_public_oncokb_cache(
-                sample=sample,
-                variants=variants,
-                client=self.oncokb_public_client,
-                cache_repository=self.oncokb_public_cache_repository,
-                batch_size=self.oncokb_public_batch_size,
-                hgnc_collection=hgnc_collection,
-            )
-        except Exception as exc:
-            logger.warning(
-                "public_oncokb_cache_enrichment_failed sample_id=%s sample=%s error=%s",
-                sample_id,
-                sample.get("name"),
-                exc,
-            )
-            return empty_result
-
-    def enrich_public_oncokb_cache_for_sample(self, sample_id: str) -> dict[str, int]:
-        """Populate optional public OncoKB caches after core sample ingest completes."""
-        sample = self._sample_collection().find_one(
-            {"_id": self._provider_sample_id(str(sample_id))}
-        )
-        if not sample:
-            raise ValueError(f"sample not found: {sample_id}")
-        return self._enrich_public_oncokb_cache(
-            sample_id=str(sample_id),
-            sample=dict(sample),
-        )
 
     def list_supported_collections(self) -> list[str]:
         """List collection names that can be validated/inserted via ingest APIs."""
@@ -609,7 +538,6 @@ class InternalIngestService:
             "sample_name": str(current_doc["name"]),
             "written": written,
             "data_counts": counts,
-            "oncokb_public": {"status": "deferred"},
         }
 
     def ingest_sample_bundle(
@@ -719,7 +647,6 @@ class InternalIngestService:
             "sample_name": sample_name,
             "written": written,
             "data_counts": counts,
-            "oncokb_public": {"status": "deferred"},
         }
 
     def insert_collection_document(
