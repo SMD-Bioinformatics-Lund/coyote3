@@ -29,10 +29,10 @@ export const APP_CONTROL_HELP: Record<string, AppControlHelp> = {
     operationalNote: "This gate does not block ordinary synchronous API writes outside these Celery tasks.",
   },
   maintenance_enabled: {
-    label: "Retention maintenance",
-    summary: "Controls scheduled and manually queued audit and disk-log retention cleanup.",
-    enabledEffect: "Maintenance may delete expired audit events, gzip eligible logs, and delete logs beyond retention.",
-    disabledEffect: "Maintenance tasks exit without applying cleanup policies.",
+    label: "Operational maintenance",
+    summary: "Controls scheduled retention cleanup and explicitly requested reference knowledgebase refresh jobs.",
+    enabledEffect: "Maintenance may delete expired audit events, manage disk logs, and refresh public OncoKB reference records from the HGNC catalogue.",
+    disabledEffect: "Maintenance tasks exit without applying cleanup policies or external reference refreshes.",
     operationalNote: "The master background-task gate must also be enabled. MongoDB TTL expiry can still operate independently.",
   },
   dna_analysis_enabled: {

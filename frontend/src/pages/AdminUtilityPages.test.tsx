@@ -44,7 +44,7 @@ const controlsPayload = {
       collection_writes_enabled: true,
       maintenance_enabled: true,
     },
-    modules: { dna_analysis_enabled: true, reports_enabled: false },
+    modules: { dna_analysis_enabled: true, reports_enabled: false, knowledgebases_enabled: true },
     retention: { audit_event_days: 730, notification_days: 180 },
     updated_by: "admin",
     updated_on: "2026-08-01T10:00:00Z",
@@ -129,12 +129,27 @@ describe("AdminControlsPage", () => {
     expect(mocks.success).toHaveBeenCalledWith("Maintenance queued", expect.stringContaining("MAINT_1"), "Admin controls")
   })
 
+  it("queues one HGNC-backed public OncoKB refresh through operational maintenance", async () => {
+    const user = userEvent.setup()
+    renderPage(<AdminControlsPage />)
+    const button = await screen.findByRole("button", { name: "Refresh public OncoKB" })
+    await waitFor(() => expect(button).toBeEnabled())
+    await user.click(button)
+    await waitFor(() => expect(mocks.post).toHaveBeenCalledWith("/admin/controls/knowledgebases/oncokb-public/refresh"))
+    expect(mocks.success).toHaveBeenCalledWith(
+      "Public OncoKB refresh queued",
+      expect.stringContaining("MAINT_1"),
+      "Knowledgebases",
+    )
+  })
+
   it("renders controls read-only when delegated permissions are absent", async () => {
     mocks.access.data = { username: "viewer", roles: ["viewer"], role: "viewer", access_level: 10, permissions: ["admin:controls:view"] }
     renderPage(<AdminControlsPage />)
     expect(await screen.findByRole("switch", { name: /Allow background task execution/i })).toBeDisabled()
     expect(screen.queryByRole("button", { name: "Save controls" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Run maintenance" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Refresh public OncoKB" })).not.toBeInTheDocument()
   })
 })
 

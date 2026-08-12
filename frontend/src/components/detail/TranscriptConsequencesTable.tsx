@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { Link } from "react-router-dom"
 import { DetailDataTable, EvidenceBadge } from "@/components/detail/DetailEvidenceCards"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import { ConsequenceBadges, ImpactBadge, InfoTooltipBadge } from "@/lib/variant-ui"
@@ -122,7 +123,16 @@ export function TranscriptConsequencesTable({
           header: "Gene",
           render: (row) => (
             <span className="inline-flex items-center gap-1.5">
-              <span>{String(row.SYMBOL || "-")}</span>
+              {row.SYMBOL ? (
+                <Link
+                  to={`/public/gene/${encodeURIComponent(String(row.SYMBOL))}/info`}
+                  className="link-text font-semibold"
+                >
+                  {String(row.SYMBOL)}
+                </Link>
+              ) : (
+                <span>-</span>
+              )}
               {row.Feature === selectedFeature ? <EvidenceBadge tone="success">Selected</EvidenceBadge> : null}
             </span>
           ),

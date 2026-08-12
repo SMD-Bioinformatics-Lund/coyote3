@@ -55,7 +55,6 @@ const detailPayload = {
     INFO: {
       selected_CSQ: {
         SYMBOL: "SRSF2",
-        VEP_SYMBOL: "SRSF2",
         HGNC_ID: "HGNC:10783",
         Feature: "NM_003016.4",
         HGVSc: "NM_003016.4:c.265A>G",

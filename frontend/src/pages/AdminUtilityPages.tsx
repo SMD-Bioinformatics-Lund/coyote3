@@ -177,6 +177,12 @@ export function AdminControlsPage() {
     onError: (error) => notifyActionError("Unable to queue maintenance", error, "Admin controls"),
   })
 
+  const refreshPublicOncoKb = useMutation({
+    mutationFn: () => api.post("/admin/controls/knowledgebases/oncokb-public/refresh").then((res) => res.data),
+    onSuccess: (data) => notifySuccess("Public OncoKB refresh queued", `Task ${data.task_id || "queued"} will refresh the shared HGNC-matched reference collection.`, "Knowledgebases"),
+    onError: (error) => notifyActionError("Unable to queue public OncoKB refresh", error, "Knowledgebases"),
+  })
+
   const updateBool = (section: "celery" | "modules", key: string, value: boolean) => {
     const base = controls || controlsQuery.data?.controls
     if (!base) return
@@ -206,6 +212,10 @@ export function AdminControlsPage() {
           {canRunMaintenance && <Button type="button" variant="outline" onClick={() => runMaintenance.mutate()} disabled={runMaintenance.isPending || !controls?.celery?.enabled || !controls?.celery?.maintenance_enabled}>
             <RefreshCw className={`h-4 w-4 ${runMaintenance.isPending ? "animate-spin" : ""}`} />
             Run maintenance
+          </Button>}
+          {canRunMaintenance && <Button type="button" variant="outline" onClick={() => refreshPublicOncoKb.mutate()} disabled={refreshPublicOncoKb.isPending || !controls?.celery?.enabled || !controls?.celery?.maintenance_enabled || !controls?.modules?.knowledgebases_enabled}>
+            <Database className={`h-4 w-4 ${refreshPublicOncoKb.isPending ? "animate-spin" : ""}`} />
+            Refresh public OncoKB
           </Button>}
           {canEdit && <Button type="button" onClick={() => controls && saveControls.mutate(controls)} disabled={!controls || saveControls.isPending}>
             {saveControls.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -241,6 +251,17 @@ export function AdminControlsPage() {
               <ControlToggle key={key} definition={appControlHelp(key)} checked={Boolean(value)} disabled={!canEdit} onChange={(checked) => updateBool("modules", key, checked)} />
             ))}
           </ControlSection>
+
+          <section className="surface-panel p-3 xl:col-span-2">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold">Public OncoKB reference refresh</h2>
+                <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+                  Queues one background refresh of the public cancer-gene and curated-gene catalogues. The worker matches every remote record against approved, previous, and alias symbols in the local HGNC collection before updating shared reference records.
+                </p>
+              </div>
+            </div>
+          </section>
 
           <section className="surface-panel !overflow-visible p-3 xl:col-span-2">
             <div className="mb-3 flex flex-wrap items-start justify-between gap-3">

@@ -1,17 +1,35 @@
 import { fireEvent, render, screen } from "@testing-library/react"
+import { MemoryRouter } from "react-router-dom"
 import { describe, expect, it, vi } from "vitest"
 
 import { TranscriptConsequencesTable } from "./TranscriptConsequencesTable"
 
 describe("TranscriptConsequencesTable", () => {
+  it("links each transcript gene to its public gene-information page", () => {
+    render(
+      <MemoryRouter>
+        <TranscriptConsequencesTable
+          rows={[{ SYMBOL: "TP53", Feature: "NM_000546.6", Consequence: "missense_variant" }]}
+          selectedFeature=""
+          selecting={false}
+          onSelectTranscript={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole("link", { name: "TP53" })).toHaveAttribute("href", "/public/gene/TP53/info")
+  })
+
   it("renders complete consequence labels without compact truncation", () => {
     render(
+      <MemoryRouter>
       <TranscriptConsequencesTable
         rows={[{ SYMBOL: "TP53", Feature: "NM_000546.6", Consequence: "coding_transcript_exon_variant", IMPACT: "MODIFIER" }]}
         selectedFeature=""
         selecting={false}
         onSelectTranscript={vi.fn()}
       />,
+      </MemoryRouter>,
     )
 
     const consequence = screen.getByText("coding_transcript_exon_variant")
@@ -22,6 +40,7 @@ describe("TranscriptConsequencesTable", () => {
   it("marks the selected transcript and selects another transcript", () => {
     const onSelectTranscript = vi.fn()
     render(
+      <MemoryRouter>
       <TranscriptConsequencesTable
         rows={[
           { SYMBOL: "TP53", Feature: "NM_000546.6", Consequence: "missense_variant" },
@@ -31,6 +50,7 @@ describe("TranscriptConsequencesTable", () => {
         selecting={false}
         onSelectTranscript={onSelectTranscript}
       />,
+      </MemoryRouter>,
     )
 
     expect(screen.getByText("Selected")).toBeVisible()

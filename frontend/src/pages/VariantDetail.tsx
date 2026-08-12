@@ -132,7 +132,7 @@ export function VariantDetail() {
     ? String((location.state as { from?: string }).from || sampleHref)
     : sampleHref
   const csq = variant?.INFO?.selected_CSQ || {}
-  const displayGene = csq.VEP_SYMBOL || csq.display_symbol || csq.SYMBOL
+  const displayGene = csq.display_symbol || csq.SYMBOL
   const resolvedGene = csq.SYMBOL
   const alternateTranscripts = Array.isArray(data?.transcripts) ? data.transcripts : []
   const selectedFeature = String(csq?.Feature || "").trim()
@@ -155,7 +155,6 @@ export function VariantDetail() {
               displayGene={displayGene}
               resolvedGene={resolvedGene}
               hgncId={csq.HGNC_ID}
-              matchSource={csq.HGNC_MATCH_SOURCE}
               record={data.oncokb_gene}
               showOncoKbBadge={false}
             />
@@ -201,7 +200,6 @@ export function VariantDetail() {
                       displayGene={displayGene}
                       resolvedGene={resolvedGene}
                       hgncId={csq.HGNC_ID}
-                      matchSource={csq.HGNC_MATCH_SOURCE}
                       record={data.oncokb_gene}
                       showOncoKbBadge={false}
                     />
