@@ -214,11 +214,6 @@ def test_overlay_parsing_helpers_cover_list_dict_and_precedence():
     }
     assert PublicCatalogService._gene_list_overlay(category, "solid_list")["label"] == "Solid"
     assert PublicCatalogService._gene_list_overlay(category, "missing") == {}
-    assert PublicCatalogService._prefer_overlay(category, {"description": "db"}, "description") == (
-        "overlay"
-    )
-    assert PublicCatalogService._prefer_overlay({}, {"description": "db"}, "description") == "db"
-    assert PublicCatalogService._prefer_overlay({}, {}, "description") is None
 
 
 def test_collection_catalog_builds_public_aspc_and_genelists(monkeypatch):

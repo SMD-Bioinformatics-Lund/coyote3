@@ -339,7 +339,7 @@ class ASPConfigRepository(BaseRepository):
         return list(
             self.get_collection()
             .find({"asp_id": assay_id, "environment": env, "is_active": True})
-            .sort([("catalog.display_order", 1), ("subpanel_id", 1), ("aspc_id", 1)])
+            .sort([("subpanel_id", 1), ("aspc_id", 1)])
         )
 
     def rotate_aspc(

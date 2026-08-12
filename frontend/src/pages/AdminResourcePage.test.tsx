@@ -329,6 +329,59 @@ describe("AdminResourcePage", () => {
     expect(screen.getByLabelText("CLASSIFICATION")).toBeVisible()
   })
 
+  it("shows ASP-scoped optional gene-list checkboxes and clears stale selections", async () => {
+    mocks.get.mockResolvedValue({
+      data: {
+        form: {
+          sections: { identity: ["asp_id"], filters: ["filters"] },
+          fields: {
+            asp_id: {
+              label: "ASP",
+              display_type: "select",
+              options: ["hema_gmsv1", "solid_gmsv3"],
+            },
+            filters: {
+              label: "Filters",
+              display_type: "filters-structured",
+              groups: [
+                {
+                  title: "Somatic SNV scope",
+                  fields: [
+                    {
+                      key: "somatic.snv.snvlists",
+                      label: "SNV Gene Lists",
+                      type: "checkbox-group",
+                      options: [],
+                      options_by_field: {
+                        field: "asp_id",
+                        values: {
+                          hema_gmsv1: [{ value: "hema_snv", label: "Hematology SNV" }],
+                          solid_gmsv3: [{ value: "solid_snv", label: "Solid SNV" }],
+                        },
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      },
+    })
+    const user = userEvent.setup()
+    renderEditor("aspc", "create")
+
+    await user.selectOptions(await screen.findByRole("combobox", { name: "ASP" }), "hema_gmsv1")
+    const hematologyList = await screen.findByLabelText("Hematology SNV")
+    expect(hematologyList).not.toBeChecked()
+    await user.click(hematologyList)
+    expect(hematologyList).toBeChecked()
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "ASP" }), "solid_gmsv3")
+    expect(await screen.findByLabelText("Solid SNV")).not.toBeChecked()
+    await waitFor(() => expect(screen.queryByLabelText("Hematology SNV")).not.toBeInTheDocument())
+  })
+
   it("combines ASP choices for all selected genelist assay groups", async () => {
     mocks.get.mockResolvedValue({
       data: {

@@ -25,6 +25,12 @@ from api.domain.common.errors import api_error
 from api.domain.common.sample_filters import normalize_sample_filters
 from api.domain.core.filter_capabilities import filter_section_for_analysis, select_filter_values
 
+_GENE_LIST_TYPE_BY_FILTER_KEY = {
+    "snvlists": "snv",
+    "cnvlists": "cnv",
+    "fusionlists": "fusion",
+}
+
 
 class AspcService:
     """Assay-configuration resource workflows."""
@@ -72,13 +78,100 @@ class AspcService:
                     subfield["options"] = list(dict.fromkeys([str(o) for o in options if str(o)]))
 
     def _decorate_form_options(
-        self, *, form: dict[str, Any], form_category: str, assay_name: str | None
+        self, *, form: dict[str, Any], form_category: str, asp_ids: list[str]
     ) -> None:
-        _ = assay_name
         if form_category == "DNA":
             conseq_options = list(self.vep_metadata_repository.get_consequence_group_options())
             self._set_group_field_options(
                 form, top_field="filters", subfield_key="vep_consequences", options=conseq_options
+            )
+        self._set_filter_gene_list_options(form, asp_ids)
+
+    def _gene_list_options_for_asp(self, asp_id: str) -> dict[str, list[dict[str, str]]]:
+        """Return active non-ad-hoc ISGL choices, grouped by analytical use."""
+        panel = self.assay_panel_repository.get_asp(asp_id) or {}
+        assay_group = str(panel.get("asp_group") or "").strip() or None
+        options_by_type: dict[str, dict[str, dict[str, str]]] = {
+            list_type: {} for list_type in _GENE_LIST_TYPE_BY_FILTER_KEY.values()
+        }
+        for gene_list in (
+            self.gene_list_repository.get_isgl_for_scope(
+                asp_name=asp_id,
+                assay_group=assay_group,
+                is_active=True,
+                adhoc=False,
+            )
+            or []
+        ):
+            if not isinstance(gene_list, dict):
+                continue
+            isgl_id = str(gene_list.get("isgl_id") or "").strip()
+            if not isgl_id:
+                continue
+            option = {
+                "value": isgl_id,
+                "label": str(gene_list.get("displayname") or gene_list.get("name") or isgl_id),
+            }
+            for list_type in gene_list.get("list_type") or []:
+                normalized_type = str(list_type).strip().lower()
+                if normalized_type in options_by_type:
+                    options_by_type[normalized_type][isgl_id] = option
+        return {
+            list_type: sorted(options.values(), key=lambda item: item["label"].casefold())
+            for list_type, options in options_by_type.items()
+        }
+
+    def _set_filter_gene_list_options(self, form: dict[str, Any], asp_ids: list[str]) -> None:
+        """Attach ASP-dependent ISGL checkbox options to each filter list field."""
+        choices = {
+            asp_id.lower(): self._gene_list_options_for_asp(asp_id) for asp_id in asp_ids if asp_id
+        }
+        for filter_key, list_type in _GENE_LIST_TYPE_BY_FILTER_KEY.items():
+            values = {asp_id: options.get(list_type, []) for asp_id, options in choices.items()}
+            top = form.get("fields", {}).get("filters", {})
+            for group in top.get("groups", []) or []:
+                for field in group.get("fields", []) or []:
+                    if str(field.get("key") or "").rsplit(".", 1)[-1] == filter_key:
+                        field["options_by_field"] = {"field": "asp_id", "values": values}
+
+    def _validate_filter_gene_lists(self, config: dict[str, Any], panel: dict[str, Any]) -> None:
+        """Reject selected ISGLs that are not active choices for the selected ASP scope."""
+        asp_id = str(panel.get("asp_id") or config.get("asp_id") or "").strip()
+        allowed_by_type = {
+            list_type: {
+                str(option.get("value") or "")
+                for option in options
+                if str(option.get("value") or "")
+            }
+            for list_type, options in self._gene_list_options_for_asp(asp_id).items()
+        }
+        invalid_by_type: dict[str, set[str]] = {}
+        filters = config.get("filters") or {}
+        for intent in filters.values():
+            if not isinstance(intent, dict):
+                continue
+            for section in intent.values():
+                if not isinstance(section, dict):
+                    continue
+                for filter_key, list_type in _GENE_LIST_TYPE_BY_FILTER_KEY.items():
+                    values = section.get(filter_key) or []
+                    values = values if isinstance(values, list) else [values]
+                    invalid = {
+                        str(value).strip()
+                        for value in values
+                        if str(value).strip()
+                        and str(value).strip() not in allowed_by_type[list_type]
+                    }
+                    if invalid:
+                        invalid_by_type.setdefault(list_type, set()).update(invalid)
+        if invalid_by_type:
+            details = "; ".join(
+                f"{list_type.upper()}: {', '.join(sorted(values))}"
+                for list_type, values in sorted(invalid_by_type.items())
+            )
+            raise api_error(
+                400,
+                f"Selected gene lists are not active for ASP '{asp_id}' or its assay group: {details}",
             )
 
     def _subpanel_options_for_asp(self, asp_id: str) -> list[str]:
@@ -120,28 +213,32 @@ class AspcService:
         """
         intents = config.get("analysis_intents") or ["somatic"]
         raw = config.get("filters") or {}
-        if any(key in raw for key in ("somatic", "germline")):
-            config["filters"] = normalize_sample_filters(
-                raw,
-                omics_layer=category.lower(),
-                analysis_intents=intents,
-                canonical=True,
-            )
-            return
         layer = category.lower()
         selected = {normalize_analysis_type(value) for value in config.get("analysis_types") or []}
+        canonical_profiles = normalize_sample_filters(
+            raw,
+            omics_layer=layer,
+            analysis_intents=intents,
+            canonical=True,
+        )
         somatic: dict[str, Any] = {}
         for analysis_type in selected:
             section = filter_section_for_analysis(omics_layer=layer, analysis_type=analysis_type)
             if section:
                 somatic[section] = select_filter_values(
-                    raw, omics_layer=layer, intent="somatic", section=section
+                    canonical_profiles.get("somatic", {}).get(section),
+                    omics_layer=layer,
+                    intent="somatic",
+                    section=section,
                 )
         profiles: dict[str, Any] = {"somatic": somatic}
         if "germline" in intents:
             profiles["germline"] = {
                 "snv": select_filter_values(
-                    raw, omics_layer="dna", intent="germline", section="snv"
+                    canonical_profiles.get("germline", {}).get("snv"),
+                    omics_layer="dna",
+                    intent="germline",
+                    section="snv",
                 )
             }
         config["filters"] = normalize_sample_filters(
@@ -224,33 +321,28 @@ class AspcService:
         prefill_map: dict[str, dict[str, Any]] = {}
         analysis_options_by_asp: dict[str, list[str]] = {}
         valid_assay_ids: list[str] = []
-        env_options = form.get("fields", {}).get("environment", {}).get("options", [])
         for panel in assay_panels:
             panel_category = _normalize_asp_category(panel.get("asp_category"))
             if panel_category == form_category:
                 assay_id = str(panel.get("asp_id") or panel.get("_id") or "")
                 if not assay_id:
                     continue
-                envs = list(
-                    self.assay_configuration_repository.get_available_assay_envs(
-                        assay_id, env_options
-                    )
-                    or []
+                # A configuration identity includes ASP, subpanel, and environment.
+                # Do not hide an ASP merely because one of its configurations already
+                # exists: it can still validly receive another subpanel or environment.
+                # The create workflow enforces the exact identity at save time.
+                valid_assay_ids.append(assay_id)
+                prefill_map[assay_id] = {
+                    "display_name": panel.get("display_name"),
+                    "asp_group": panel.get("asp_group"),
+                    "asp_category": panel_category,
+                    "platform": panel.get("platform"),
+                    "subpanel_id": SUBPANEL_BASE_ID,
+                }
+                analysis_options_by_asp[assay_id.lower()] = self._analysis_types_for_panel(
+                    panel,
+                    category=form_category,
                 )
-                if envs:
-                    valid_assay_ids.append(assay_id)
-                    prefill_map[assay_id] = {
-                        "display_name": panel.get("display_name"),
-                        "asp_group": panel.get("asp_group"),
-                        "asp_category": panel_category,
-                        "platform": panel.get("platform"),
-                        "subpanel_id": SUBPANEL_BASE_ID,
-                        "environment": envs,
-                    }
-                    analysis_options_by_asp[assay_id.lower()] = self._analysis_types_for_panel(
-                        panel,
-                        category=form_category,
-                    )
         form["fields"]["asp_id"]["options"] = valid_assay_ids
         form["fields"]["analysis_types"]["options_by_field"] = {
             "field": "asp_id",
@@ -260,7 +352,7 @@ class AspcService:
         self._decorate_form_options(
             form=form,
             form_category=form_category,
-            assay_name=None,
+            asp_ids=valid_assay_ids,
         )
         return {
             "category": form_category,
@@ -298,7 +390,7 @@ class AspcService:
         self._decorate_form_options(
             form=form,
             form_category=category,
-            assay_name=str(assay_config.get("asp_id", "") or ""),
+            asp_ids=[str(assay_config.get("asp_id", "") or "")],
         )
         return {
             "assay_config": assay_config,
@@ -373,6 +465,7 @@ class AspcService:
         if isinstance(config.get("reporting"), dict):
             config["reporting"].pop("analysis", None)
         self._build_filter_profiles(config, category=category)
+        self._validate_filter_gene_lists(config, panel)
         config["aspc_id"] = config.get(
             "aspc_id"
         ) or self.assay_configuration_repository.build_aspc_id(
@@ -445,6 +538,7 @@ class AspcService:
         if isinstance(updated_doc.get("reporting"), dict):
             updated_doc["reporting"].pop("analysis", None)
         self._build_filter_profiles(updated_doc, category=category)
+        self._validate_filter_gene_lists(updated_doc, panel)
         spec = aspc_spec_for_category(category)
         updated_doc.pop("retired_by", None)
         updated_doc.pop("retired_on", None)

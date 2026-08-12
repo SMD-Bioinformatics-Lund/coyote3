@@ -532,7 +532,7 @@ After saving, later searches can answer which samples reported a gene, which var
 
 ## 17. Assay Catalog And Matrix
 
-The assay catalog combines database-backed assay resources with catalog metadata. YAML is used only for catalog presentation fields that are better maintained as curated descriptive content, such as assay descriptions, turnaround time, sample types, catalog grouping, display labels, and matrix presentation metadata.
+The assay catalog combines database-backed assay resources with center catalog metadata. The ASPC `catalog` object contains only `is_public`, which controls whether an active configuration may be shown. YAML owns the public presentation fields that are better maintained as curated descriptive content, such as assay descriptions, turnaround time, sample types, catalog grouping, display labels, and matrix presentation metadata.
 
 Clinical behavior remains database-driven through ASP, ASPC, and ISGL.
 
@@ -695,6 +695,21 @@ immutable revisions. Editing an ASP, ASPC, or ISGL creates the next version and
 retires the previous active document. Governance resources such as users,
 roles, and permissions are updated in place with version metadata and audit
 events to keep access management operationally simple.
+
+### System metadata in clinical configuration
+
+ASP, ASPC, and ISGL forms separate editable clinical configuration from
+system-managed provenance. The **System metadata** section is shown after a
+record is created or versioned and is read-only. It includes the revision
+number, the MongoDB identifier of the record it supersedes, creation and update
+actor/timestamps, and retirement actor/timestamp/reason when a revision has
+been retired. These values are written by the service layer and cannot be
+changed through the UI or an imported form payload.
+
+ASPC also shows its generated `aspc_id` and inherited platform in
+**Configuration scope**. The platform is derived from the selected ASP. It is
+editable on the ASP itself, where it defines sequencing capability, but never
+on an ASPC.
 
 !!! caution "Admin visibility"
 

@@ -851,7 +851,7 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
             search_isgls=repo.search_genelists,
             get_all_isgl=repo.list_genelists,
             get_isgl=repo.get_genelist,
-            get_isgl_for_scope=lambda asp_name=None, assay_group=None, is_active=None: [
+            get_isgl_for_scope=lambda asp_name=None, assay_group=None, is_active=None, adhoc=None: [
                 item
                 for item in repo.list_genelists()
                 if (
@@ -859,6 +859,7 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
                     or assay_group in (item.get("asp_groups") or [])
                 )
                 and (is_active is None or item.get("is_active") is is_active)
+                and (adhoc is None or item.get("adhoc") is adhoc)
             ],
             create_genelist=repo.create_genelist,
             update_isgl=repo.update_genelist,
@@ -1378,8 +1379,8 @@ def test_admin_genelist_rejects_asp_outside_selected_groups(monkeypatch):
     assert "selected assay groups" in exc_info.value.message
 
 
-def test_admin_aspc_create_context_uses_analysis_sections_not_genelist_fields(monkeypatch):
-    """ASPC form should expose analysis/report toggles, not sample-owned gene-list selectors."""
+def test_admin_aspc_create_context_scopes_optional_genelist_fields(monkeypatch):
+    """ASPC forms expose optional ISGL choices scoped to the selected ASP."""
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _aspc_service(repo)
@@ -1407,6 +1408,14 @@ def test_admin_aspc_create_context_uses_analysis_sections_not_genelist_fields(mo
     assert "somatic.cnv.cnvlists" in filter_keys
     assert "somatic.fusion.fusionlists" not in filter_keys
     assert "somatic.translocation.fusionlists" in filter_keys
+    snv_list_field = next(
+        field
+        for group in filter_groups
+        for field in group.get("fields", [])
+        if field["key"] == "somatic.snv.snvlists"
+    )
+    assert snv_list_field["options_by_field"]["field"] == "asp_id"
+    assert snv_list_field["options_by_field"]["values"]["wgs"] == []
     assert "TMB" in report_section_options
     assert "PGX" in report_section_options
     assert "report_sections" in reporting_field_keys

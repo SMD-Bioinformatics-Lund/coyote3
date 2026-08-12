@@ -425,6 +425,34 @@ def test_role_color_normalizes_hex_and_preserves_legacy_names():
         RolesDoc.model_validate({**base, "color": "#fff"})
 
 
+def test_managed_clinical_forms_expose_system_metadata_read_only_after_create():
+    """Clinical configuration provenance is visible but cannot be edited."""
+    expected_metadata = {
+        "version",
+        "supersedes_id",
+        "created_by",
+        "created_on",
+        "updated_by",
+        "updated_on",
+        "retired_by",
+        "retired_on",
+        "retired_reason",
+    }
+
+    for resource_key in ("asp", "aspc_dna", "aspc_rna", "isgl"):
+        form = build_form_spec(managed_resource_spec(resource_key))
+        metadata_fields = set(form["sections"]["system metadata"])
+        assert expected_metadata <= metadata_fields
+        for field_name in expected_metadata:
+            field = form["fields"][field_name]
+            assert field["readonly"] is True
+            assert field["hidden_mode"] == ["create"]
+
+    aspc_form = build_form_spec(managed_resource_spec("aspc_dna"))
+    assert aspc_form["fields"]["platform"]["readonly"] is True
+    assert {"aspc_id", "platform"} <= set(aspc_form["sections"]["configuration scope"])
+
+
 def test_managed_isgl_form_uses_predefined_list_type_choices():
     """ISGL list types should be selected from fixed choices, not free text."""
     form = build_form_spec(managed_resource_spec("isgl"))

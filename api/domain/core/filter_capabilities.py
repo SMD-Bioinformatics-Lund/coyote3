@@ -16,6 +16,7 @@ from api.contracts.schemas.filter_profiles import (
     FusionFiltersDoc,
     GermlineSnvFiltersDoc,
     SnvFiltersDoc,
+    TranslocationFiltersDoc,
 )
 
 ANALYSIS_INTENT_OPTIONS: tuple[str, ...] = ("somatic", "germline")
@@ -24,6 +25,7 @@ GERMLINE_ANALYSIS_TYPE_OPTIONS: tuple[str, ...] = ("SNV",)
 FILTER_PROFILE_MODELS: dict[tuple[str, str, str], type[Any]] = {
     ("dna", "somatic", "snv"): SnvFiltersDoc,
     ("dna", "somatic", "cnv"): CnvFiltersDoc,
+    ("dna", "somatic", "translocation"): TranslocationFiltersDoc,
     ("dna", "somatic", "coverage"): CoverageFiltersDoc,
     ("dna", "germline", "snv"): GermlineSnvFiltersDoc,
     ("rna", "somatic", "fusion"): FusionFiltersDoc,
@@ -32,6 +34,7 @@ FILTER_PROFILE_MODELS: dict[tuple[str, str, str], type[Any]] = {
 ANALYSIS_FILTER_SECTIONS: dict[tuple[str, str], str] = {
     ("dna", "SNV"): "snv",
     ("dna", "CNV"): "cnv",
+    ("dna", "TRANSLOCATION"): "translocation",
     ("dna", "COVERAGE"): "coverage",
     ("rna", "FUSION"): "fusion",
 }

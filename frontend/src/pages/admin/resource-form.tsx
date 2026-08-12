@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { Activity, Save, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { accentColor } from "@/lib/badge-colors"
@@ -39,11 +40,23 @@ export function CheckboxGroup({
       : field.options || []
   const allowed = new Set(options.map(optionValue).filter(Boolean))
   const visibleSelected = new Set([...selected].filter((item) => allowed.has(item)))
+  const hasDependentValue = dependent
+    ? normalizeList(formValues?.[dependent.field]).length > 0
+    : false
+
+  useEffect(() => {
+    if (!dependent || !formValues?.[dependent.field]) return
+    const current = normalizeList(value)
+    const next = current.filter((item) => allowed.has(item))
+    if (next.length !== current.length) onChange(next)
+  }, [dependent, formValues, onChange, value, [...allowed].join("\u0000")])
   if (!options.length) {
     if (dependent) {
       return (
         <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
-          Select the controlling field to see the available options.
+          {hasDependentValue
+            ? "No active options are available for the selected assay."
+            : "Select the assay to see the available options."}
         </div>
       )
     }
@@ -503,7 +516,9 @@ export function AdminManagedForm({
       {error && <p className="mb-3 rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-sm text-destructive">{error}</p>}
       <div className="space-y-4">
         {Object.entries(sections).map(([sectionName, names]) => {
-          const sectionFields = names.filter((name) => form.fields?.[name])
+          const sectionFields = names.filter((name) => (
+            form.fields?.[name] && !form.fields[name].hidden_mode?.includes(mode)
+          ))
           if (!sectionFields.length) return null
           return (
             <div key={sectionName} className="rounded-xl border border-border bg-card/70 p-3">

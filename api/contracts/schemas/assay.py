@@ -88,26 +88,21 @@ class AspcReportingDoc(_StrictDocBase):
 
 
 class AspcCatalogDoc(_StrictDocBase):
-    """Public catalog metadata for one ASPC environment/subpanel tuple."""
+    """Public visibility control for one ASPC environment/subpanel tuple."""
 
     is_public: bool = True
-    display_order: int = 100
-    title: str | None = None
-    description: str | None = None
-    input_material: str | None = None
-    tat: str | None = None
-    sample_modes: list[str] = Field(default_factory=list)
-    clinical_indications: list[str] = Field(default_factory=list)
-    limitations: str | None = None
-    public_notes: str | None = None
 
-    @field_validator("sample_modes", "clinical_indications", mode="before")
+    @model_validator(mode="before")
     @classmethod
-    def _normalize_text_list(cls, value: Any) -> list[str]:
-        if value is None:
-            return []
-        values = value if isinstance(value, list) else [value]
-        return list(dict.fromkeys(str(item).strip() for item in values if str(item).strip()))
+    def _retain_visibility_only(cls, value: Any) -> dict[str, Any]:
+        """Discard retired catalog presentation fields from older ASPC revisions.
+
+        Public presentation is owned by the center catalog YAML. ASPC only decides
+        whether an otherwise active configuration can be exposed publicly.
+        """
+        if isinstance(value, dict):
+            return {"is_public": value.get("is_public", True)}
+        return {"is_public": True}
 
 
 class AspConfigDoc(_StrictDocBase):

@@ -26,6 +26,7 @@ export type FormField = {
   required?: boolean
   readonly?: boolean
   readonly_mode?: string[]
+  hidden_mode?: string[]
   placeholder?: string
   help?: string
   options?: any[]

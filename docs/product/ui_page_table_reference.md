@@ -501,12 +501,12 @@ The Reports page lists saved reports and provides access to saved clinical repor
 
 Route: `/public/catalog`
 
-The assay catalog combines YAML catalog metadata with ASP, ASPC, ISGL, and gene metadata from the database.
+The assay catalog combines center-maintained catalog content with ASP, ASPC, ISGL, and gene metadata from the database. ASPC controls only whether an active configuration is public; titles, descriptions, turnaround times, input material, indications, and other presentation content are maintained in the center catalog configuration.
 
 | Area | Information shown |
 | --- | --- |
 | Modality tree | DNA/RNA, modality section, assay group, assay, subpanel, and gene list navigation. |
-| Header | Catalog title, subheading, description, catalog/ASP/ASPC/subpanel identifiers. |
+| Header | Catalog title, subheading, description, and ASP/ASPC/subpanel identifiers. |
 | Input material | Sample material badges from catalog metadata. |
 | TAT | Turnaround time from catalog metadata. |
 | Sample types | Accepted sample types as badges. |

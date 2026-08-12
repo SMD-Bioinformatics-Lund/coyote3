@@ -491,6 +491,8 @@ requirements, or report behavior.
     Catalog YAML is appropriate for descriptions, turnaround-time wording,
     public input labels, and display order. Use ASP, ASPC, and ISGL records for
     active assay behavior, required files, analytical settings, and genes.
+    ASPC contributes only `catalog.is_public` to the public catalog. All other
+    public catalog wording and presentation values belong in this YAML file.
 
 ## `filter_flag_metadata.yaml`
 

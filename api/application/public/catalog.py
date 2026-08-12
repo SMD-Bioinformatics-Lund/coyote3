@@ -137,17 +137,6 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
                 return item
         return {}
 
-    @staticmethod
-    def _prefer_overlay(
-        category_overlay: dict[str, Any], catalog: dict[str, Any], *keys: str
-    ) -> Any:
-        for key in keys:
-            if key in category_overlay and category_overlay.get(key) not in (None, ""):
-                return category_overlay.get(key)
-            if key in catalog and catalog.get(key) not in (None, ""):
-                return catalog.get(key)
-        return None
-
     def load_catalog(self) -> Dict[str, Any]:
         """Build the public assay catalog from active ASP, ASPC, and ISGL documents.
 
@@ -665,7 +654,6 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
     ) -> dict[str, Any]:
         asp_id = str(asp.get("asp_id") or "")
         subpanel_id = self._aspc_subpanel_id(aspc)
-        catalog = self._aspc_catalog(aspc)
         catalog_id = self._category_key(asp, aspc)
         category_overlay = self._category_overlay(
             overlay or {},
@@ -678,13 +666,14 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
         display_name = (
             category_overlay.get("title")
             or category_overlay.get("label")
-            or catalog.get("title")
             or aspc_display_name
             or asp.get("display_name")
             or asp.get("asp_id")
             or asp_id
         )
-        if subpanel_id != SUBPANEL_BASE_ID and catalog.get("title") is None:
+        if subpanel_id != SUBPANEL_BASE_ID and not (
+            category_overlay.get("title") or category_overlay.get("label")
+        ):
             display_name = f"{display_name} - {self._title(subpanel_id)}"
         list_entries = [
             {
@@ -726,11 +715,11 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             "catalog_id": catalog_id,
             "label": display_name,
             "title": display_name,
-            "description": self._prefer_overlay(category_overlay, catalog, "description")
+            "description": category_overlay.get("description")
             or (aspc or {}).get("description")
             or asp.get("description")
             or "",
-            "subheading": self._prefer_overlay(category_overlay, catalog, "subheading"),
+            "subheading": category_overlay.get("subheading"),
             "family": family,
             "assay_group": assay_group,
             "asp_id": asp_id,
@@ -743,18 +732,14 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
                 "covered_genes_count": asp.get("covered_genes_count"),
                 "germline_genes_count": asp.get("germline_genes_count"),
             },
-            "input_material": self._prefer_overlay(category_overlay, catalog, "input_material")
-            or asp.get("asp_category"),
-            "tat": self._prefer_overlay(category_overlay, catalog, "tat"),
-            "sample_modes": self._prefer_overlay(category_overlay, catalog, "sample_modes")
-            or ["paired", "single"],
+            "input_material": category_overlay.get("input_material") or asp.get("asp_category"),
+            "tat": category_overlay.get("tat"),
+            "sample_modes": category_overlay.get("sample_modes") or ["paired", "single"],
             "analysis": category_overlay.get("analysis") or self._aspc_available_analysis(aspc),
             "report_sections": self._aspc_report_sections(aspc),
-            "clinical_indications": category_overlay.get("clinical_indications")
-            or catalog.get("clinical_indications")
-            or [],
-            "limitations": category_overlay.get("limitations") or catalog.get("limitations"),
-            "public_notes": category_overlay.get("public_notes") or catalog.get("public_notes"),
+            "clinical_indications": category_overlay.get("clinical_indications") or [],
+            "limitations": category_overlay.get("limitations"),
+            "public_notes": category_overlay.get("public_notes"),
             "sample_query": {
                 "panel_type": asp.get("asp_category"),
                 "panel_tech": family,
