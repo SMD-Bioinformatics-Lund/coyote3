@@ -590,12 +590,13 @@ variant detail page and are not stored as a separate MongoDB collection.
 
 !!! warning "Knowledgebase reproducibility"
 
-    `oncokb_cancer_genes_public` and `oncokb_genes_public` are seeded by
-    explicit operational actions from the public OncoKB cancer-gene and
-    all-curated-gene endpoints. VCF ingest normalizes symbols through HGNC IDs
-    and previous/alias symbols, then batches missing public OncoKB lookups into
-    `oncokb_public` only for cached OncoKB genes. The preferred small-variant
-    query is HGVSg through `POST /annotate/mutations/byHGVSg`, using the exact
+    `oncokb_cancer_genes_public` and `oncokb_genes_public` are refreshed by an
+    explicit background operation in **Admin > Application Controls**. The job
+    reads the complete local HGNC catalogue and resolves public OncoKB records
+    through approved symbols, previous symbols, and aliases. It is independent
+    of ASP edits and sample ingest, and it makes one request to each public
+    catalogue endpoint per refresh. The preferred explicit small-variant lookup is
+    HGVSg through `POST /annotate/mutations/byHGVSg`, using the exact
     OncoKB-facing genomic format `chrom:g.positionRef>Alt`, for example
     `17:g.76736896T>C`. VEP-provided `HGVSg` is normalized from `chr17:g...` or
     RefSeq chromosome accessions into this chromosome-label format. If VEP does
@@ -648,8 +649,8 @@ variant detail page and are not stored as a separate MongoDB collection.
     outrank an available RefSeq row.
     HGNC resolution uses HGNC ID first, then approved symbol, previous symbol,
     and alias symbol. If VEP uses a previous or alias gene symbol, HGNC metadata
-    normalizes the displayed symbol to the approved symbol and stores the raw VEP
-    value in `VEP_SYMBOL` only when it differs.
+    normalizes the displayed symbol to the approved symbol. The raw VEP evidence
+    remains unchanged in the versioned transcript vault.
 
 !!! info "Versioned VEP transcript vault"
 
@@ -660,18 +661,10 @@ variant detail page and are not stored as a separate MongoDB collection.
     VEP version and updates `INFO.selected_CSQ` and
     `INFO.selected_CSQ_criteria`.
 
-Each stored transcript summary carries transcript provenance fields used by the
-detail page:
-
-| Field | Purpose |
-| --- | --- |
-| `transcript_tags` | Compact provenance markers such as `ncbi_mane_plus_clinical`, `ensembl_mane_plus_clinical`, `ncbi_mane_select`, `ensembl_mane_select`, and `vep_canonical`. |
-| `canonical_source` | Canonical authority for the row. The current workflow records `vep_canonical` only when VEP supplies that marker. |
-| `is_canonical` | Boolean display helper for the transcript table. |
-
-The UI renders these fields as tooltip badges in the transcript consequence
-table. This lets reviewers distinguish RefSeq MANE, Ensembl MANE, and
-VEP-provided transcript evidence without opening raw annotation data.
+The detail endpoint derives transcript provenance badges from the current HGNC
+record and VEP `CANONICAL` value at read time. The UI therefore distinguishes
+RefSeq MANE, Ensembl MANE, and VEP-canonical evidence without persisting a
+second, stale copy of HGNC interpretation fields in `anno_vep`.
 
 SIFT, PolyPhen, CADD, and similar predictor values are stored on the same
 versioned transcript rows in `anno_vep.CSQ[]`. They are not maintained as an

@@ -33,7 +33,7 @@ and FastAPI `root_path` expose those routes under the public prefix.
 | Reporting | Report preview, snapshot, save, HTML/PDF artifact, and report context endpoints. |
 | Knowledgebases & Annotations | Gene information, tiered variant search, annotations, external knowledgebase adapters, and variant evidence. |
 | Public Catalog | Unauthenticated public catalog, matrix, gene, assay reference, and center contact endpoints. |
-| Admin: Operations | Audit events, schema diagnostics, runtime controls, and maintenance operations. |
+| Admin: Operations | Audit events, schema diagnostics, runtime controls, retention maintenance, and explicit public-reference refresh operations. |
 | Admin: Assays & Gene Lists | ASP, ASPC, ISGL, and admin sample resource configuration. |
 | Admin: Users | User-account management, invites, provider state, and profile metadata. |
 | Admin: Roles & Permissions | Role and permission policy management. |

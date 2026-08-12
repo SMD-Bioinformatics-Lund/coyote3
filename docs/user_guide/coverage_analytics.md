@@ -3,7 +3,7 @@
 The coverage workspace identifies assay regions below a selected depth cutoff
 and provides the transcript, exon, CDS, and probe context needed for technical
 review. Coverage is a DNA quality analysis and appears only when it is enabled
-by the active ASPC and coverage data was ingested for the sample.
+by the sample's recorded ASPC revision and coverage data was ingested for the sample.
 
 ## Open Coverage Review
 
@@ -72,7 +72,7 @@ sample context through the coverage blacklist API.
 
 ## Interpreting Missing Information
 
-- **Coverage tab absent:** coverage is not enabled for the active ASPC, the
+- **Coverage tab absent:** coverage is not enabled for the sample's recorded ASPC revision, the
   module is disabled, or no coverage resource is available for the sample.
 - **No low-covered genes:** no returned measurement is below the selected
   cutoff and applied gene-list scope.

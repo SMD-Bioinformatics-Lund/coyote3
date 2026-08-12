@@ -114,8 +114,10 @@ Parser behavior:
 - `INFO.variant_callers` is split from a pipe-delimited string into a list.
 - `FILTER` is split from semicolon text into a list.
 - The VCF `CSQ` annotation is reduced into `INFO.selected_CSQ` and
-  `INFO.selected_CSQ_criteria` on the sample-local variant row. The complete
-  transcript set is stored once in the versioned `anno_vep` collection.
+  `INFO.selected_CSQ_criteria` on the sample-local variant row. The parser also
+  stores `consequence_terms`, the ordered union of all VEP consequence terms
+  across the variant's transcript rows. The complete transcript set is stored
+  once in the versioned `anno_vep` collection.
 - Canonical transcript selection prefers:
   1. NCBI/RefSeq MANE Plus Clinical transcript
   2. Ensembl MANE Plus Clinical transcript
@@ -133,13 +135,15 @@ Parser behavior:
   transcript changes read from this vault, so SIFT, PolyPhen, CADD, HGVS, exon,
   intron, and consequence values remain tied to the exact VEP version used when
   the sample was ingested.
-- Transcript summaries include provenance fields:
-  - `transcript_tags`: HGNC/VEP markers such as `ncbi_mane_plus_clinical`,
-    `ensembl_mane_plus_clinical`, `ncbi_mane_select`, `ensembl_mane_select`,
-    and `vep_canonical`.
-  - `canonical_source`: VEP canonical authority when the source record carries
-    `CANONICAL=YES`.
-  - `is_canonical`: boolean helper used by the detail-page transcript table.
+- `INFO.selected_CSQ` is a compact display projection. Raw MANE and canonical
+  VEP evidence is retained in `anno_vep.CSQ[]`. The detail API derives current
+  HGNC match information, MANE badges, and VEP-canonical display state when it
+  returns alternate transcripts; those mutable values are not stored in either
+  collection.
+- Consequence filters query `variants.consequence_terms`, not the selected
+  transcript and not the VEP vault. A consequence on a clinically relevant
+  alternate transcript therefore remains filterable without changing the
+  selected display transcript.
 - The parser adds:
   - `genes`
   - `transcripts`

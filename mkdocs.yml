@@ -80,6 +80,7 @@ nav:
       - Application Architecture: architecture/current_application_context.md
       - System Relationships: architecture/system_relationships.md
       - Runtime Data Contracts: architecture/data_contracts.md
+      - Clinical Data Lifecycle: architecture/data_ingest_storage_and_retrieval.md
       - Security Model: architecture/security_model.md
       - Architecture Decisions:
           - Authentication Provider Resolution: architecture/adr_0001_auth_provider_resolution.md

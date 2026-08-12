@@ -26,10 +26,10 @@ The resolution of analytic strategies follows a deterministic inheritance model 
 ## Analysis Availability and Tab Dispatch
 
 The sample workspace does not infer available analyses from a file name alone.
-The active ASPC is the source of truth for which analytical workflows are
-enabled. A tab is rendered only when all of the following are true:
+The ASPC revision recorded on the sample is the source of truth for which
+analytical workflows are enabled. A tab is rendered only when all of the following are true:
 
-1. The active ASPC `analysis_types` includes the relevant analysis type.
+1. The recorded ASPC revision's `analysis_types` includes the relevant analysis type.
 2. The sample has the matching declared and ingested resource, represented by a
    `files` entry or an analysis count.
 3. The sample modality supports the workflow.
@@ -111,7 +111,7 @@ the fixed predicate shape and the limited set of validated clinical exceptions.
 | Layer | Source | Controls | Does not control |
 | --- | --- | --- | --- |
 | Assay identity | ASP and sample | `asp_id`, assay group, omics layer, covered scope | MongoDB operators or ad-hoc exceptions |
-| Review configuration | Active ASPC | enabled analysis types, somatic/germline filter defaults, reporting sections | arbitrary data-store predicates |
+| Review configuration | Sample's recorded ASPC revision | enabled analysis types, somatic/germline filter defaults, reporting sections | arbitrary data-store predicates |
 | Per-sample review state | `samples.filters` | reviewer-selected ISGLs, ad-hoc genes, and permitted threshold changes | assay-group policy |
 | Versioned annotation metadata | VEP metadata referenced by `sample.database_versions.vep` | expansion of UI consequence groups to VEP terms | query threshold values |
 | Clinical query policy | `api/config/center/clinical_query_policy.toml` plus domain-core Python | released baseline evidence models, population-frequency sources, and typed clinical exceptions | raw MongoDB fields, operators, or arbitrary query fragments |
@@ -123,9 +123,9 @@ application version.
 
 ### SNV Query Inputs
 
-For every small-variant request, the application first resolves the sample's
-active ASPC and completes the persisted profile without overwriting a
-reviewer's saved filters. The resulting inputs are shown below.
+For every small-variant request, the application loads the sample's recorded
+ASPC revision and its persisted filter profile without overwriting a reviewer's
+saved filters. The resulting inputs are shown below.
 
 | Input | Source | Effect on the query |
 | --- | --- | --- |
@@ -150,15 +150,18 @@ The somatic baseline requires all of the following:
 3. Every configured numeric population-frequency source is at or below
    `max_popfreq`. A source value that is absent, null, or non-numeric remains
    eligible because it cannot be safely compared numerically.
-4. A selected consequence term on the selected transcript.
+4. A configured consequence term in `variants.consequence_terms`, the complete
+   term union captured from all VEP transcript consequences during ingest.
 5. Any selected gene, selected coordinate, false-positive, or irrelevant
    constraint requested by the reviewer.
 
-The SNV query reads only `INFO.selected_CSQ.Consequence`. Alternate transcript
+The SNV query reads only `variants.consequence_terms`. Alternate transcript
 annotations are held in the versioned VEP annotation collection and are used
 for transcript inspection and explicit transcript selection, not as a hidden
-second query source. This guarantees that a row is admitted for the same
-transcript and consequence that are displayed to the reviewer.
+second query source. The queryable consequence index is derived once from that
+complete transcript set at ingest and stored on the compact variant row. This
+keeps filtering independent of a reviewer changing the selected display
+transcript.
 
 ### Released SNV Policies And Exceptions
 
@@ -169,21 +172,21 @@ only the following baseline policies:
 
 | Policy | Required evidence | Population frequencies | Control evidence | Intended use |
 | --- | --- | --- | --- | --- |
-| `paired` | labelled case genotype, configured VAF/depth/alternate-read thresholds, and selected-transcript consequence | every configured source must pass | required when a control exists; absent control is allowed | default somatic policy |
-| `case_only` | labelled or untyped case evidence and selected-transcript consequence | every configured source must pass | deliberately not evaluated | validated assays without a matched control |
+| `paired` | labelled case genotype, configured VAF/depth/alternate-read thresholds, and an indexed VEP consequence term | every configured source must pass | required when a control exists; absent control is allowed | default somatic policy |
+| `case_only` | labelled or untyped case evidence and an indexed VEP consequence term | every configured source must pass | deliberately not evaluated | validated assays without a matched control |
 | `exception_only` | a released `admit` exception | not implied | not implied | current germline admission policy |
 
 | Rule ID | Scope | Mode | Admission condition |
 | --- | --- | --- | --- |
 | `flt3_svtype` | somatic hematology or myeloid | `extend_consequence` | selected gene `FLT3` and `INFO.SVTYPE` exists |
 | `flt3_large_insertion` | somatic hematology or myeloid | `extend_consequence` | selected gene `FLT3` and ALT matches the released large-insertion pattern |
-| `solid_regulatory_tert_nfkbie` | somatic solid | `extend_consequence` | selected gene `TERT` or `NFKBIE` with selected regulatory/TF-binding consequence |
+| `solid_regulatory_tert_nfkbie` | somatic solid | `extend_consequence` | selected gene `TERT` or `NFKBIE` with an indexed regulatory/TF-binding consequence |
 | `germline_myeloid_marker` | germline DNA | `admit` | `INFO.MYELOID_GERMLINE = 1` |
 | `germline_cebpa_filter` | germline DNA | `admit` | selected gene `CEBPA` and `FILTER` contains `GERMLINE` |
 | `germline_chr1_interval` | germline DNA | `admit` | chromosome 1 with position in the released interval |
 
 `extend_consequence` retains the complete baseline evidence model and adds a
-clinically approved alternative to the selected-consequence branch. `admit` is
+clinically approved alternative to the indexed consequence branch. `admit` is
 used only by an `exception_only` policy. `exclude` uses the same typed match
 conditions but removes the matching subset after baseline and admission rules
 are applied. A scope with no matching `admit` rule produces an intentionally
@@ -192,7 +195,7 @@ empty result set; it never falls back to an unfiltered query.
 #### Adding A Scoped Exception
 
 An exception can be limited to one or more `assay_groups`, `asp_ids`, or
-`subpanel_ids`, and can target a gene, selected consequence, VCF filter value,
+`subpanel_ids`, and can target a gene, indexed consequence term, VCF filter value,
 chromosome/position interval, exact `simple_id`, declared `INFO` field, or ALT
 pattern. All supplied match fields are combined with AND. The configuration
 author selects `extend_consequence` only when the standard evidence gates must
@@ -207,11 +210,11 @@ intents = ["somatic"]
 asp_ids = ["solid_gmsv3"]
 subpanel_ids = ["endometrie"]
 simple_ids = ["17_7674220_C_T"]
-selected_consequences = ["missense_variant"]
+consequence_terms = ["missense_variant"]
 ```
 
 The example does not bypass VAF, depth, control, or population-frequency
-checks. It only adds the listed selected-consequence admission branch for the
+checks. It only adds the listed consequence-term admission branch for the
 released ASP/subpanel scope.
 
 Exception entries are evaluated as additive query branches. Their order has no
@@ -254,13 +257,14 @@ Each table request follows the same ordered protocol. Sorting and pagination
 operate on the complete filtered result set, not only on the rows already
 visible in the browser.
 
-1. Resolve the active ASPC from sample `asp_id`, `subpanel_id`, and
-   `environment`; use `base` only through the documented subpanel fallback.
-2. Confirm that the requested analysis is enabled by the ASPC, declared on the
+1. Load the sample's recorded ASPC revision. New samples receive the active
+   ASPC resolved from `asp_id`, `subpanel_id`, and `environment` at ingest;
+   `base` is used only through the documented subpanel fallback. A reviewer may
+   explicitly replace the recorded revision with the latest active revision.
+2. Confirm that the requested analysis is enabled by the recorded ASPC revision, declared on the
    sample, and compatible with its omics layer.
 3. Select the requested intent and canonical target filter section.
-4. Complete the persisted sample profile from the ASPC without replacing
-   reviewer changes.
+4. Use the persisted sample filter profile without replacing reviewer changes.
 5. Resolve selected ISGLs and ad-hoc genes into the target-specific effective
    gene scope.
 6. For SNVs, expand selected VEP consequence groups using the exact VEP

@@ -349,6 +349,11 @@ Controls include:
 - disk log retention days
 - disk log gzip threshold
 
+The page also queues explicit public reference maintenance. The public OncoKB
+refresh is an HGNC-backed Celery task: it reads the complete local HGNC identity
+catalogue, fetches each public OncoKB catalogue endpoint once, and reconciles
+the two managed public OncoKB gene collections.
+
 Disabling a Celery task family prevents new executions from doing work. It does not resize the worker pool or terminate tasks already running. Capacity is effectively returned as tasks stop being queued or return early.
 
 !!! info "Task controls"

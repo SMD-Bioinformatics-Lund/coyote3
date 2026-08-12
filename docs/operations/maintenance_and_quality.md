@@ -94,6 +94,18 @@ For a maintenance validation run:
 
 Do not test destructive retention cleanup against production evidence stores.
 
+### Public OncoKB reference refresh
+
+**Admin > Application Controls > Refresh public OncoKB** queues a separate
+maintenance task. It reads all local `hgnc_genes` records, uses approved, previous, and alias
+symbols to resolve public records, fetches the public cancer-gene and
+curated-gene catalogues once each, and reconciles
+`oncokb_cancer_genes_public` and `oncokb_genes_public`.
+
+The maintenance task is subject to the current operational controls. An empty
+HGNC catalogue or an upstream OncoKB failure marks the task failed and emits an
+audit event; existing cache data is not cleared.
+
 ## MongoDB Index Lifecycle
 
 MongoDB indexes are declared by repository and security contracts in the API.

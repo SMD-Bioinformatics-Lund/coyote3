@@ -63,9 +63,9 @@ One ASPC
 [sample]
   assay                -------> [ASP.asp_id]
   assay + subpanel_id
-        + profile      -------> [ASPC scope]
-  current_aspc_id      -------> [ASPC recorded on sample]
-  current_aspc_version -------> [recorded ASPC version]
+        + profile      -------> [ASPC scope at ingest/update]
+  current_aspc_id      -------> [ASPC revision recorded on sample]
+  current_aspc_version -------> [recorded ASPC revision version]
 
 [sample.filters]
   snv.snvlists         -?> [ISGL.isgl_id]
@@ -88,7 +88,7 @@ Incoming sample payload
   |       +--> expected_files / required_files policy
   |       +--> ASP category influences allowed ingest keys
   |
-  +--> resolve ASPC by assay + subpanel + profile
+  +--> resolve active ASPC by assay + subpanel + profile
   |       |
   |       +--> fall back to subpanel_id="base" when permitted
   |       +--> persist current_aspc_id/key/version
@@ -151,7 +151,7 @@ Existing [sample] by name
 ```text
 [sample]
   |
-  +--> resolve active ASPC using assay + subpanel + profile
+  +--> resolve the ASPC revision recorded on the sample
   |
   +--> resolve ASP using sample.asp_id
   |

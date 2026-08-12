@@ -24,7 +24,7 @@ The core rule is:
    translocations, coverage, and comments.
 3. The user changes filters when needed. The sample filter blob is updated.
 4. The Reports tab asks the backend for a report preview.
-5. The backend resolves the sample, ASP, and active ASPC; applies the current
+5. The backend resolves the sample, ASP, and the sample's recorded ASPC revision; applies the current
    filters and gene scope; enriches and selects reportable findings; and builds
    a temporary prepared report context.
 6. The report composer generates text and sections from that prepared context
@@ -311,7 +311,11 @@ Rules:
 - hidden comments are ignored
 - the latest visible sample-level comment is used
 - Markdown is rendered and sanitized for report HTML
-- if no visible comment exists, the report displays `Slutsats saknas!`
+- if no visible comment exists, the conclusion section is empty
+
+Clinical-rule output and automatic finding summaries are not used as a fallback
+for the conclusion. A report therefore contains only reviewer-authored, current
+sample commentary in this section.
 
 ## RNA Report Build Logic
 

@@ -155,7 +155,7 @@ intents = ["somatic"]
 asp_ids = ["solid_gmsv3"]
 subpanel_ids = ["endometrie"]
 simple_ids = ["17_7674220_C_T"]
-selected_consequences = ["missense_variant"]
+consequence_terms = ["missense_variant"]
 ```
 
 ### Baseline Keys
@@ -181,13 +181,13 @@ MongoDB expressions.
 | TOML path | Required | TOML format | Allowed values / format | Meaning |
 | --- | --- | --- | --- | --- |
 | `snv.exceptions[].id` | Yes | String | Unique identifier using letters, numbers, `_`, or `-`; normalized to lowercase | Stable clinical exception name for review, tests, and release notes. Example: `endometrial_specific_variant`. |
-| `snv.exceptions[].mode` | Yes | String | `extend_consequence`, `admit`, or `exclude` | `extend_consequence` adds an approved selected-consequence route while retaining all baseline gates. `admit` is an alternative admission route used by `exception_only`. `exclude` removes matching findings after all baseline and admission rules are evaluated. |
+| `snv.exceptions[].mode` | Yes | String | `extend_consequence`, `admit`, or `exclude` | `extend_consequence` adds an approved consequence-term route while retaining all baseline gates. `admit` is an alternative admission route used by `exception_only`. `exclude` removes matching findings after all baseline and admission rules are evaluated. |
 | `snv.exceptions[].intents` | No | Array of strings | `somatic`, `germline` | Scope key. Restricts the exception to one or both review intents. Omit for either intent. |
 | `snv.exceptions[].assay_groups` | No | Array of strings | Supported normalized assay-group identifiers | Scope key. Restricts to assay groups such as `solid` or `hematology`. |
 | `snv.exceptions[].asp_ids` | No | Array of strings | Existing normalized ASP identifiers | Scope key. Restricts to design panels, for example `solid_gmsv3`. |
 | `snv.exceptions[].subpanel_ids` | No | Array of strings | Existing normalized subpanel identifiers; use `base` only for the base scope | Scope key. Restricts to in-silico subpanels. |
 | `snv.exceptions[].genes` | No | Array of strings | HGNC symbols; values are normalized to uppercase | Match key. Requires `INFO.selected_CSQ.SYMBOL` to be one listed gene. |
-| `snv.exceptions[].selected_consequences` | No | Array of strings | Exact VEP consequence terms on the selected transcript | Match key. Requires `INFO.selected_CSQ.Consequence` to contain one listed term. It never examines `INFO.CSQ`. |
+| `snv.exceptions[].consequence_terms` | No | Array of strings | Exact VEP consequence terms, for example `missense_variant` | Match key. Requires `variants.consequence_terms` to contain one listed term. Ingest derives this index from every VEP transcript consequence for the variant; it does not query a selected transcript or the versioned vault at request time. |
 | `snv.exceptions[].filter_values` | No | Array of strings | Exact VCF FILTER values; values are normalized to uppercase | Match key. Requires the stored `FILTER` array to contain one listed value. |
 | `snv.exceptions[].chromosomes` | No | Array of strings | Stored chromosome labels; values are normalized to uppercase | Match key. Requires `CHROM` to be one listed chromosome. |
 | `snv.exceptions[].position_min` | No | Integer | Non-negative genomic position | Match key. Inclusive lower bound for `POS`. Use with or without `position_max`. |
@@ -209,9 +209,9 @@ The following examples are complete `[[snv.exceptions]]` blocks. They show
 every supported match-key form. They are patterns only: use clinically
 approved identifiers and add fixture-based evidence before release.
 
-#### Gene and Selected Consequence
+#### Gene and Consequence Term
 
-Include one or more selected-transcript consequences for one gene while still
+Include one or more VEP consequence terms for one gene while still
 requiring the normal baseline evidence:
 
 ```toml
@@ -221,7 +221,7 @@ mode = "extend_consequence"
 intents = ["somatic"]
 assay_groups = ["solid"]
 genes = ["TERT"]
-selected_consequences = ["regulatory_region_variant", "TF_binding_site_variant"]
+consequence_terms = ["regulatory_region_variant", "TF_binding_site_variant"]
 ```
 
 #### Exact Variant Identity
@@ -333,7 +333,7 @@ different gene, or a TERT finding without that filter, remains eligible.
 2. Use the narrowest applicable scope: add `asp_ids` and `subpanel_ids` before
    adding a broad `assay_groups` scope.
 3. Add the narrowest biological match key that captures the approved finding:
-   `simple_ids` for one identity, `genes` plus `selected_consequences` for a
+   `simple_ids` for one identity, `genes` plus `consequence_terms` for a
    gene-level rule, or chromosome/position bounds for a genomic interval.
 4. Use `admit` only with an `exception_only` policy and only after explicit
    clinical approval. It does not inherit baseline evidence gates. Use

@@ -74,6 +74,11 @@ Application controls are also separated by responsibility:
 `app.controls:edit` changes switches, and `app.maintenance:run` starts an
 immediate maintenance run.
 
+The same `app.maintenance:run` permission queues the explicit public OncoKB
+reference refresh from Application Controls. That task is gated by the
+maintenance family and Knowledgebases module, and refreshes the shared public
+gene cache from the full local HGNC catalogue rather than from an ASP or sample.
+
 ### Runtime controls
 
 | Area | Control | Operational effect when disabled |
@@ -146,6 +151,35 @@ ASPCs are the "Software Profiles" that determine how a physical assay is handled
 ### In-Silico Gene Lists (ISGL)
 
 ISGL list types are also rendered as semantic badges. Standard list types (`snv`, `cnv`, `fusion`, `expression`, `pgx`) and ad-hoc list types (`adhoc_snv`, `adhoc_cnv`, `adhoc_fusion`, `adhoc_expression`, `adhoc_pgx`) use related colors so administrators can distinguish permanent curated lists from ad-hoc review lists.
+
+### Reusing configuration safely
+
+ASP, ASPC, and ISGL view and edit pages provide **Export JSON**. The download
+contains only the fields accepted by the corresponding create form. It omits
+MongoDB identifiers, timestamps, audit metadata, version state, and other
+server-managed values, so it can be reviewed, shared through an approved
+configuration workflow, and imported into a new configuration.
+
+On the create page, select **Import JSON** to choose one exported JSON file.
+The application fills the typed form but does not save anything automatically.
+Review every field and select **Save** to run the same server-side validation,
+permission checks, identifier uniqueness checks, audit handling, and release
+rules as a manually created configuration.
+
+The **Copy as new** action on ASP, ASPC, and ISGL view or edit pages uses the
+same import mechanism without requiring an intermediate file download.
+
+| Resource | Suitable reuse | Required change before saving |
+| --- | --- | --- |
+| ASP | Start a related assay-panel definition. | Change `asp_id`; review the assay category, group, family, platform, read-mode, gene scope, and expected files. ASPs are panel definitions and do not have a profile/environment. |
+| ASPC | Create a configuration for another profile/environment or a related panel/subpanel. | Change the ASP, subpanel, or environment as appropriate. The server derives a new `aspc_id` from these fields. Review enabled analyses, filters, report sections, and defaults. |
+| ISGL | Start a related curated or ad-hoc gene list. | Change `isgl_id` and name. Review list type, member genes, ASP/assay-group scope, diagnosis tags, and visibility. |
+
+!!! warning
+    Importing JSON is a convenience for creating a new configuration. It does
+    not update the exported source record, bypass a required field, or make an
+    identifier reusable. A duplicate `asp_id`, derived `aspc_id`, or `isgl_id`
+    is rejected when the form is saved.
 
 ---
 

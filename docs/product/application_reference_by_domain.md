@@ -52,7 +52,7 @@ identity used for retrieval. ASP and ASPC identifiers, configuration versions,
 environment, and API resource-dispatch fields are not embedded in annotation
 documents. Solid-tumor retrieval additionally constrains the classification by
 subpanel. Clients do not supply authoritative assay context; the API derives it
-from the sample's active ASPC.
+from the sample's recorded ASPC revision.
 
 ## 3. Filter and Logic Domains
 

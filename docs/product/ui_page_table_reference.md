@@ -170,7 +170,7 @@ The Samples page lists loaded samples visible to the user. It starts in producti
 
 Route: `/samples/:id`
 
-The sample detail page is the main review workspace. Tabs are shown from the ASPC analysis configuration for the sample, so a sample only shows analysis areas that are enabled for that assay/subpanel/environment. The selected tab is represented by the `tab` URL parameter; refresh, browser history, and return navigation therefore restore the same review area. Tab availability is validated only after the sample context has loaded.
+The sample detail page is the main review workspace. Tabs are shown from the ASPC revision recorded on the sample, so a sample only shows analysis areas enabled when that configuration was applied. The selected tab is represented by the `tab` URL parameter; refresh, browser history, and return navigation therefore restore the same review area. Tab availability is validated only after the sample context has loaded.
 
 ### Sample Header
 
@@ -182,7 +182,7 @@ The overview tab mirrors the sample settings and sample-level context needed bef
 
 | Card | Information shown |
 | --- | --- |
-| Overview | Case and control identifiers, Clarity IDs, pool IDs, run, reads, FFPE, and purity when present. |
+| Overview | Case and control identifiers, Clarity IDs, pool IDs, run, reads, FFPE, purity, and the recorded ASPC identifier/version when present. A newer active revision can be applied explicitly after confirmation. |
 | Files and QC | Expected input files, whether each file path is present, and file availability/size when the backend can inspect the mounted path. |
 | Gene settings | Selected SNV/CNV gene lists, ad-hoc gene lists, and effective gene scope. |
 | Biomarkers | MSI, HRD, and other configured biomarkers loaded for the sample. |
@@ -326,7 +326,7 @@ conditions are true:
 
 1. the sample is RNA;
 2. the ASP belongs to the `wts` family;
-3. the active ASPC enables the `EXPRESSION` analysis type; and
+3. the sample's recorded ASPC revision enables the `EXPRESSION` analysis type; and
 4. an expression resource was successfully ingested for the sample.
 
 | Column | Meaning |
@@ -388,7 +388,7 @@ not shown in this menu.
 
 ### Coverage Tab
 
-The coverage tab shows DNA sample quality coverage and gene-level coverage context. It appears when the active ASPC enables `COVERAGE` and the DNA sample has a successfully ingested `cov` resource. Coverage is independent of both CNV calls and the CNV profile image.
+The coverage tab shows DNA sample quality coverage and gene-level coverage context. It appears when the sample's recorded ASPC revision enables `COVERAGE` and the DNA sample has a successfully ingested `cov` resource. Coverage is independent of both CNV calls and the CNV profile image.
 
 | Area | Information shown |
 | --- | --- |
@@ -408,7 +408,7 @@ The reports tab builds and previews clinical report content from current filters
 | RNA fusion snapshot table | Fusion (`GENE1::GENE2`), selected breakpoints, effect, spanning pairs/reads, classification, and latest visible reviewed annotation. RNA reports do not use the DNA `Gene / Variant / Class / Text` snapshot layout. |
 | Report context | Collapsible technical context used for the report snapshot. |
 
-The rendered RNA report uses the active ASPC `reporting.report_header`,
+The rendered RNA report uses the sample's recorded ASPC revision's `reporting.report_header`,
 `report_method`, and `report_description`. Its result table contains `Fusion`
 and `Klassificering`; the detailed section adds effect, breakpoints, spanning
 reads, spanning pairs, longest anchor, classification, and reviewed comment.
@@ -570,7 +570,7 @@ Admin pages use forms and explicit contracts rather than JSON editors for normal
 | View page | Same structure as edit page, but read-only. |
 | Create/edit page | Field-specific form controls, constants-backed select options, grouped permissions, and validation messages. |
 | Audit events | Actor, event type, resource, method/path, severity, outcome, created time, request ID, and details. |
-| Application controls | Master background execution, complete sample-ingestion, generic collection-write, maintenance, application-module, and retention controls; observed worker/task/queue/schedule/module state. |
+| Application controls | Master background execution, complete sample-ingestion, generic collection-write, maintenance, application-module, and retention controls; observed worker/task/queue/schedule/module state; and the explicit HGNC-backed public OncoKB refresh. |
 | Ingest workspace | Watch-folder configuration, ingest task state, and manual ingest controls. |
 
 ### Admin Badge Families

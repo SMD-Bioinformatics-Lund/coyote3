@@ -34,7 +34,7 @@ An ASP describes what was designed and sequenced. An ASPC describes how Coyote3
 must analyze and report that design in a particular operating context. An ISGL
 can narrow the effective gene scope without changing the physical assay design.
 
-The active ASPC is resolved from `asp_id`, normalized `subpanel_id`, and
+At ingest, the active ASPC is resolved from `asp_id`, normalized `subpanel_id`, and
 `environment`. If no subpanel-specific configuration exists, the application
 may use the ASP's `base` configuration and displays that decision to the user.
 

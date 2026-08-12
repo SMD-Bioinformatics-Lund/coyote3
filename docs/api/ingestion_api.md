@@ -255,10 +255,12 @@ supplement; a supplied value takes precedence for its matching key. The stored
 keys are limited to `assembly`, `clinvar`, `cosmic`, `dbsnp`, `ensembl`,
 `gencode`, `genebuild`, `gnomad`, `hgmd_public`, `polyphen`, `sift`, and `vep`.
 
-DNA ingest writes two coordinated records for each small variant:
+DNA ingest writes two coordinated records and one compact query index for each
+small variant:
 
 - The sample-local variant row stores only the clinical display anchor in
-  `INFO.selected_CSQ`.
+  `INFO.selected_CSQ` and `consequence_terms`, the ordered union of all VEP
+  consequence terms for the variant.
 - The global `anno_vep` vault stores all parsed transcript summaries by
   `simple_id_hash` and `vep_version`.
 
@@ -269,17 +271,28 @@ DNA ingest writes two coordinated records for each small variant:
     sample-local display anchor. This keeps transcript switching deterministic
     across VEP releases while keeping the variant table compact.
 
-Every transcript summary in `anno_vep.CSQ` is validated by the
-`VepAnnoTranscriptDoc` contract. Besides the VEP fields used for review
-(`Feature`, `HGVSc`, `HGVSp`, `Consequence`, `IMPACT`, `EXON`, `INTRON`,
-`SIFT`, `PolyPhen`, and `CADD_PHRED`), Coyote3 enriches each row with:
+    The vault key is `(simple_id_hash, vep_version)`. A repeated ingest for the
+    same identity and release is an insert no-op and cannot replace existing
+    evidence. Ingesting the same identity with another VEP release writes a
+    separate vault document, and each sample reads its own recorded release.
 
-- `transcript_tags`: compact source markers for NCBI MANE Plus Clinical,
-  Ensembl MANE Plus Clinical, NCBI MANE Select, Ensembl MANE Select, and VEP
-  canonical evidence.
-- `canonical_source`: the source that made the transcript canonical for the
-  current review row.
-- `is_canonical`: a normalized boolean for table rendering.
+The selected anchor is deliberately compact. It retains display fields such as
+the transcript feature, normalized gene and HGNC identifiers, HGVS,
+consequence, impact, prediction values, and exon/intron. Raw MANE and
+canonical VEP fields remain in `anno_vep.CSQ[]`. Current HGNC match state and
+transcript badges are generated only when a transcript detail payload is read.
+
+Small-variant consequence filters query `variants.consequence_terms`. They do
+not query `INFO.selected_CSQ.Consequence` or the VEP vault at request time, so
+changing the selected display transcript does not change the filterable term
+set.
+
+Every transcript summary in `anno_vep.CSQ` is validated by the
+`VepAnnoTranscriptDoc` contract. It stores VEP fields used for review
+(`Feature`, `HGVSc`, `HGVSp`, `Consequence`, `IMPACT`, `EXON`, `INTRON`,
+`SIFT`, `PolyPhen`, and `CADD_PHRED`) exactly as versioned annotation evidence.
+The API derives NCBI/Ensembl MANE and VEP-canonical display badges against the
+current HGNC collection when a reviewer opens a variant detail page.
 
 SIFT, PolyPhen, CADD, and related prediction values are transcript-level VEP
 outputs, so they are versioned with the transcript consequence row in

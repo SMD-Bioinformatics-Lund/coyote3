@@ -1,7 +1,7 @@
 # RNA Clinical Review
 
 Use the RNA sample workspace to review the analyses enabled by the sample's
-active ASPC. Coyote3 shows only the tabs that apply to the sample and for which
+recorded ASPC revision. Coyote3 shows only the tabs that apply to the sample and for which
 the required data is available. An RNA sample therefore does not display DNA
 SNV, CNV, translocation, or coverage tabs unless a future assay contract
 explicitly supports them.
@@ -15,7 +15,7 @@ explicitly supports them.
 5. Open **Reports** to review or create the RNA report when reporting is
    enabled.
 
-The available tabs are derived from the active ASPC analysis types, ingested
+The available tabs are derived from the recorded ASPC revision's analysis types, ingested
 resources, application module controls, and the user's permissions.
 
 !!! info "Analysis availability"
@@ -70,7 +70,7 @@ style so that excluded findings are distinguishable from active findings.
 
 The **Reports** tab is available only when reporting is enabled for the sample.
 Report generation uses the filtered clinical context and the RNA report
-sections permitted by the active ASPC. Review the rendered preview before
+sections permitted by the recorded ASPC revision. Review the rendered preview before
 saving a report artifact.
 
 For the configuration rules that determine visible analyses and report

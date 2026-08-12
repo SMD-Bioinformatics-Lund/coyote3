@@ -55,7 +55,6 @@ richness of the UI.
 | `blacklist` | Blacklist and false-positive support for variant review state. |
 | `oncokb_genes_public` | Public OncoKB curated gene list from `/utils/allCuratedGenes`. |
 | `oncokb_cancer_genes_public` | Public cancer gene list from `/utils/cancerGeneList`; used for actionable/cancer-gene markers where therapeutic detail is not available through public API. |
-| `oncokb_public` | Cached public OncoKB HGVSg mutation responses created for relevant ingested variants. |
 | `clinpgx_genes_public` | Local ClinPGx gene markers imported from the approved gene source package; used to label PGx-relevant genes in tables. |
 | `civic_genes`, `civic_variants` | CIViC knowledgebase context displayed in the variant knowledgebase card. |
 | `brcaexchange` | BRCA Exchange context for relevant BRCA findings. |

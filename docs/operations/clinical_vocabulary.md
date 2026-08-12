@@ -207,8 +207,8 @@ The selected result is persisted in the following collection fields:
 | `variants` | `INFO.selected_CSQ` | The compact selected VEP transcript row: `Feature`, `MANE`, `MANE_PLUS_CLINICAL`, HGNC fields, HGVS, consequence, impact, and predictor values. | The row selected by the first matching selector. NCBI selector results use a native RefSeq `Feature`; Ensembl selector results use a native `ENST...` `Feature`. |
 | `variants` | `INFO.selected_CSQ_criteria` | One selector identifier from `reporting.transcript_selection_order`. | Records exactly which configured selector selected the row, for example `ncbi_mane_plus_clinical`. |
 | `anno_vep` | `CSQ[]` | Every parsed VEP transcript row for the sample VEP version. | Supplies alternate transcript review; it is not re-ranked by the SNV query. |
-| `anno_vep` | `CSQ[].transcript_tags` | All matching HGNC/VEP provenance markers for that row. | Allows the UI to display NCBI/Ensembl MANE and VEP canonical badges even when that row was not selected. |
-| `anno_vep` | `CSQ[].canonical_source` and `is_canonical` | VEP canonical display provenance. | Populated only from VEP `CANONICAL=YES`; no center canonical-transcript source exists. |
+| transcript detail payload | `transcript_tags` | Current HGNC/MANE and VEP-canonical display markers derived for one returned transcript row. | Allows the UI to display NCBI/Ensembl MANE and VEP canonical badges without persisting mutable HGNC interpretation data in `anno_vep`. |
+| transcript detail payload | `canonical_source` and `is_canonical` | Current VEP canonical display provenance. | Derived from stored VEP `CANONICAL=YES` evidence when the payload is read. |
 
 Changing this order changes future-ingest selected transcript provenance and
 can alter filtering and report content. Review it as a clinical configuration

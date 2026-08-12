@@ -63,6 +63,26 @@ Interpretation notes:
   fusion.fusionlists   -?> [ISGL.isgl_id]
 ```
 
+### Applying a newer ASPC to an existing sample
+
+An ingested sample records the exact ASPC MongoDB revision that supplied its
+analysis types, default filters, and reporting settings. Subsequent ASPC edits
+create a new active revision; they do not change the configuration used by
+existing samples.
+
+The sample overview and the expanded filters sidebar show the recorded ASPC
+business identifier and version. When a newer active revision exists for the
+same `asp_id`, `subpanel_id`, and `environment`, they show an **Apply latest
+ASPC** action. The action is deliberately explicit because it replaces the
+sample's saved filter defaults and enabled analysis intents with the new
+revision. It does not alter ingested evidence or previously saved report
+snapshots.
+
+After the action, the sample records the new ASPC ObjectId, business key,
+version, resolution metadata, analysis intents, and normalized default filters
+as one update. Regular review requests then continue using that newly recorded
+revision, even after later ASPC edits.
+
 ### Sample Persistence Flow
 
 During ingest, the system creates a sample anchor and then links finding collections back to it:
@@ -71,7 +91,7 @@ During ingest, the system creates a sample anchor and then links finding collect
 |---|---|---|
 | **Bundle Ingest** | Creation of parent `samples` document | Primary system anchor |
 | **Finding Persistence** | Writing to `variants`, `cnvs`, `fusions`, etc. | Keyed by `SAMPLE_ID` |
-| **Logic Resolution** | Resolve ASPC, ASP, and ISGL metadata | Exact ASPC from stored identity/version; initial resolution by assay + subpanel + profile |
+| **Logic Resolution** | Resolve ASPC, ASP, and ISGL metadata | Stored ASPC revision for existing samples; active assay + subpanel + profile lookup only at ingest or after Apply latest ASPC |
 
 ### Parent-child persistence model
 
@@ -229,7 +249,7 @@ Ingest
 
 Read / clinical review
   sample
-    -> resolve active ASPC by assay + subpanel + profile
+    -> load the sample's recorded ASPC revision
     -> resolve ASP by assay
     -> resolve selected ISGLs from sample.filters
     -> compute effective genes per target
@@ -263,7 +283,7 @@ findings. This single reportable set is used for all three outputs:
 3. the rendered report's `Fusion / Klassificering` result table and detailed
    fusion sections.
 
-The active ASPC provides the report header, method, and analysis description.
+The sample's recorded ASPC revision provides the report header, method, and analysis description.
 The static rule source provides the approved assay/subpanel wording. Fusion
 caller selection and filtering occur before rule evaluation, so report rules
 cannot silently select a different call or reintroduce an excluded fusion.
@@ -272,7 +292,7 @@ RNA reporting does not read the former application-level `REPORT_CONFIG`,
 reconstruct `gene1` and `gene2` from legacy combined strings, or select the
 first call when no call is marked selected. Each reportable fusion must contain
 canonical `gene1` and `gene2` values and exactly one `calls[].selected = 1`
-entry. The active ASPC must contain non-empty `reporting.report_header`,
+entry. The sample's recorded ASPC revision must contain non-empty `reporting.report_header`,
 `reporting.report_method`, `reporting.report_description`, and
 `reporting.report_folder` values. A missing requirement stops preview or save
 with a validation response; it is never replaced by legacy configuration or

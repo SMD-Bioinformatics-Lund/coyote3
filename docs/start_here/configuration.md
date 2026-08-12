@@ -201,9 +201,8 @@ physical collection names themselves remain TOML values.
 | `IGV_URI` | No | URL | Optional IGV integration. |
 | `KNOWLEDGEBASE_PLUGINS` | No | Comma-separated list | Optional Mongo-backed knowledgebase handlers. Supported values: `all`, `civic`, `iarc_tp53`, `brca`, `oncokb`, `cosmic`, `hgnc`. |
 | `ONCOKB_BASE_URL` | No | URL | Public OncoKB API base URL. |
-| `ONCOKB_PUBLIC_LOOKUPS_ENABLED` | No | `1` or `0` | Enables public OncoKB lookup buttons and enrichment jobs. |
-| `ONCOKB_REQUEST_TIMEOUT_SECONDS` | No | Seconds | Public OncoKB request timeout. |
-| `ONCOKB_PUBLIC_BATCH_SIZE` | No | Positive integer | Batch size for OncoKB public enrichment. |
+| `ONCOKB_PUBLIC_LOOKUPS_ENABLED` | No | `1` or `0` | Enables public OncoKB detail lookups and the administrator-triggered HGNC-backed reference refresh. |
+| `ONCOKB_REQUEST_TIMEOUT_SECONDS` | No | Seconds | Timeout for all public OncoKB requests, including the reference refresh. |
 | `CLINPGX_BASE_URL` | No | URL | Public ClinPGx API base URL. |
 | `CLINPGX_PUBLIC_LOOKUPS_ENABLED` | No | `1` or `0` | Enables ClinPGx lookup buttons. |
 | `CLINPGX_REQUEST_TIMEOUT_SECONDS` | No | Seconds | ClinPGx request timeout. |
