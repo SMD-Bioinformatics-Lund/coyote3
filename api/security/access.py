@@ -197,13 +197,13 @@ def get_api_session_ttl_seconds() -> int:
     return settings_session_ttl_seconds(runtime_app.config)
 
 
-def get_api_session_cookie_secure() -> bool:
+def get_api_session_cookie_secure(*, request_scheme: str | None = None) -> bool:
     """Return whether the API session cookie must be secure.
 
     Returns:
         bool: ``True`` when the cookie must only be sent over HTTPS.
     """
-    return settings_session_cookie_secure(runtime_app.config)
+    return settings_session_cookie_secure(runtime_app.config, request_scheme=request_scheme)
 
 
 def get_api_session_cookie_samesite() -> str:

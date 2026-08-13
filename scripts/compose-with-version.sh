@@ -24,10 +24,6 @@ is_down_action=0
 has_remove_volumes=0
 compose_args=()
 for arg in "$@"; do
-  if [[ "$arg" == "--with-mongo" ]]; then
-    compose_args+=("--profile" "with-mongo")
-    continue
-  fi
   compose_args+=("$arg")
   if [[ "$arg" == "-f" || "$arg" == "--file" ]]; then
     has_compose_file=1
@@ -67,13 +63,11 @@ fi
 if [[ "$compose_file" != /* ]]; then
   compose_file="$APP_DIR/$compose_file"
 fi
-PROD_COMPOSE_FILE="$APP_DIR/deploy/compose/docker-compose.yml"
-if [[ "$is_down_action" -eq 1 && "$has_remove_volumes" -eq 1 && "$compose_file" == "$PROD_COMPOSE_FILE" ]]; then
-  if [[ "${COYOTE3_ALLOW_PROD_VOLUME_PRUNE:-0}" != "1" ]]; then
-    echo "ERROR: refusing 'down -v/--volumes' for production compose without explicit override." >&2
-    echo "Set COYOTE3_ALLOW_PROD_VOLUME_PRUNE=1 only when intentional." >&2
-    exit 2
-  fi
+
+if [[ "$is_down_action" -eq 1 && "$has_remove_volumes" -eq 1 ]]; then
+  echo "ERROR: refusing 'down -v/--volumes': Coyote3 deployment data is never removed by this wrapper." >&2
+  echo "Use 'down' without volume removal. Host-mounted MongoDB data is retained independently." >&2
+  exit 2
 fi
 
 if [[ "$has_compose_file" -eq 1 ]]; then

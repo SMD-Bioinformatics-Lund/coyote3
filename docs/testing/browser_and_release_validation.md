@@ -109,7 +109,7 @@ must come from the shell or CI secret store and must never be committed.
 ### Composed Stack Acceptance Check
 
 The manually dispatched `bootstrap-and-ingest-check` workflow starts the stage
-Compose stack with its disposable `with-mongo` profile, routes health checks
+application stack against its designated disposable MongoDB deployment, routes health checks
 through the configured `SCRIPT_NAME` and single public proxy port, creates a
 disposable administrator, seeds the minimum test collections, uploads the
 approved synthetic DNA bundle, and checks that `/samples` returns an ingested

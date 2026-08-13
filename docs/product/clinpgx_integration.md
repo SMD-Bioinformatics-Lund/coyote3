@@ -134,9 +134,11 @@ and it does not mutate variant, sample, report, or annotation collections.
 
 Environment variables:
 
-- `CLINPGX_BASE_URL`: defaults to `https://api.clinpgx.org/v1`.
 - `CLINPGX_PUBLIC_LOOKUPS_ENABLED`: defaults to enabled.
 - `CLINPGX_REQUEST_TIMEOUT_SECONDS`: defaults to 3 seconds.
+
+The public API root is a fixed application contract:
+`https://api.clinpgx.org/v1`.
 
 Collection configuration:
 

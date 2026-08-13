@@ -62,6 +62,7 @@ nav:
       - Minimum Production Baseline: operations/minimum_production_baseline.md
       - Observability and Alerts: operations/observability_slos_and_alerts.md
       - Audit and Logging: operations/audit-and-logging.md
+      - MongoDB Deployment and Recovery: operations/mongodb_deployment_and_recovery.md
       - Backup and Recovery: operations/backup_restore_and_snapshots.md
       - Maintenance and Quality: operations/maintenance_and_quality.md
       - Repository Scripts: operations/script_reference.md

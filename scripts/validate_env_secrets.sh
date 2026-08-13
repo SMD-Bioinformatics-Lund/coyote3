@@ -32,7 +32,6 @@ fi
 required=(
   SECRET_KEY
   INTERNAL_API_TOKEN
-  API_SESSION_SALT
   PASSWORD_TOKEN_SALT
   CORS_ORIGINS
   MONGO_URI
@@ -74,20 +73,6 @@ if [[ -n "$line" ]]; then
     errors=1
   fi
 fi
-
-# Optional Mongo credentials if using compose-managed Mongo.
-for key in MONGO_ROOT_PASSWORD MONGO_APP_PASSWORD; do
-  line="$(grep -E "^${key}=" "$ENV_FILE" | tail -n1 || true)"
-  if [[ -n "$line" ]]; then
-    value="${line#*=}"
-    value="${value#\"}"; value="${value%\"}"
-    value="${value#\'}"; value="${value%\'}"
-    if [[ "$value" == *"CHANGE_ME"* ]]; then
-      echo "[error] placeholder detected for $key"
-      errors=1
-    fi
-  fi
-done
 
 if [[ "$errors" -ne 0 ]]; then
   echo "[fail] env validation failed for: $ENV_FILE"

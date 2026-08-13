@@ -8,9 +8,11 @@ from typing import Any
 
 import redis
 
+from api.config.security import to_bool
+
 
 class DisabledCacheBackend:
-    """No-op cache backend used when Redis is disabled/unavailable."""
+    """No-op cache backend used for an explicitly permitted Redis fallback."""
 
     def __init__(self, reason: str = "disabled"):
         self.reason = reason
@@ -87,21 +89,15 @@ def create_cache_backend(
     namespace: str,
 ) -> RedisCacheBackend | DisabledCacheBackend:
     """Create a cache backend from runtime config."""
-    cache_enabled = bool(config.get("CACHE_ENABLED", True))
-    if not cache_enabled:
-        logger.info("cache_backend_disabled namespace=%s reason=config_disabled", namespace)
-        return DisabledCacheBackend(reason="config_disabled")
-
     redis_url = str(config.get("CACHE_REDIS_URL") or "").strip()
+    cache_required = to_bool(config.get("CACHE_REQUIRED"), default=True)
     if not redis_url:
-        cache_required = bool(config.get("CACHE_REQUIRED", False))
         msg = f"cache_backend_unavailable namespace={namespace} reason=missing_url"
         if cache_required:
             raise RuntimeError(msg)
         logger.warning("%s", msg)
         return DisabledCacheBackend(reason="missing_url")
 
-    cache_required = bool(config.get("CACHE_REQUIRED", False))
     socket_connect_timeout = float(config.get("CACHE_REDIS_CONNECT_TIMEOUT", 1.0))
     socket_timeout = float(config.get("CACHE_REDIS_SOCKET_TIMEOUT", 1.0))
     key_prefix = str(config.get("CACHE_KEY_PREFIX", "coyote3_cache"))

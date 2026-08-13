@@ -22,22 +22,20 @@ execution classes below.
 
 | Script | Class | Current caller or entry point | Purpose |
 | --- | --- | --- | --- |
-| `center_first_run.sh` | Orchestrator | Quickstart and deployment runbooks | Validates configuration, starts Compose, creates the first local superuser inside the API container, seeds empty baseline collections, and runs an ingest smoke check |
-| `center_preflight.sh` | Automated helper | `center_first_run.sh`; initial-deployment checklist | Validates secrets, Compose rendering, Mongo configuration consistency, ports, seed dependencies, and optional ingest manifests |
-| `bootstrap_center_collections.sh` | Orchestrator | CI bootstrap workflow; `center_first_run.sh` | Authenticates to the API and imports baseline collection bundles without overwriting populated collections |
-| `bootstrap_local_admin.py` | Automated helper | CI bootstrap workflow; `center_first_run.sh` | Creates the first locked RBAC records and local superuser directly in an otherwise uninitialized database |
-| `build_seed_bundle.py` | Automated helper | `bootstrap_center_collections.sh`; tests | Normalizes center seed sources into deterministic API import payloads |
-| `center_check.sh` | Automated | CI bootstrap workflow; `center_first_run.sh` | Runs authenticated health, baseline-resource, manifest-validation, and ingest checks |
+| `bootstrap_database.py` | Manual operation | First-deployment runbooks; composed CI verification | Directly initializes an empty database with the first local superuser, bundled RBAC, HGNC, and VEP snapshot; optional synthetic ASP/ASPC/ISGL data is selected with `--with-demo-center` |
+| `center_preflight.sh` | Manual operation | Initial-deployment checklist | Validates secrets, Compose rendering, Mongo configuration consistency, ports, and optional seed or ingest inputs without writing data |
+| `build_seed_bundle.py` | Internal helper | Tests and controlled seed preparation | Normalizes center seed sources into deterministic collection documents |
+| `center_check.sh` | Manual operation | Composed CI verification | Runs authenticated health, baseline-resource, manifest-validation, and ingest checks after services are online |
 | `validate_assay_consistency.py` | Automated | preflight, contract integrity, bootstrap, tests | Verifies ASP, ASPC, ISGL, sample, catalog, and reporting-rule references before import |
 | `validate_ingest_spec.py` | Automated | `center_check.sh`; deployment checklist | Validates a DNA or RNA manifest through the current `SamplesDoc` contract and optionally checks every configured file path |
 | `api_login.py` | Internal helper | bootstrap and composed-workflow scripts | Creates an authenticated API session for script-driven checks |
 | `seed_payload_utils.py` | Internal helper | bootstrap bundle scripts | Provides shared seed parsing and serialization behavior |
 
-The former Compose `first-run` service was removed because it called a nonexistent
-`compose_first_run.sh` and duplicated the host-side orchestrator. The supported first-run
-entry point is `center_first_run.sh`. When Compose-managed MongoDB is enabled, its init
-script creates the application database user; the first local Coyote3 account is then
-created from inside the API container so internal Docker hostnames remain valid.
+The application does not provide an all-in-one first-run orchestrator. Database
+provisioning, direct bootstrap, application startup, and sample ingest are
+separate operational steps. The application stack always uses the configured
+`MONGO_URI`; the first local Coyote3 account is created before the API is
+started through `bootstrap_database.py`.
 
 ## Quality and generated contracts
 
@@ -59,8 +57,8 @@ created from inside the API container so internal Docker hostnames remain valid.
 | --- | --- | --- | --- |
 | `compose-with-version.sh` | Operator entry point | Deployment documentation | Resolves the application version, validates environment secrets, and invokes Docker Compose consistently |
 | `validate_env_secrets.sh` | Automated helper | compose wrapper and preflight | Rejects missing, empty, or placeholder runtime secrets; LDAP credentials remain login-time configuration |
-| `mongo_backup_archive.sh` | Manual operation | Backup and recovery runbook | Creates timestamped MongoDB archives using the configured backup location |
-| `mongo_restore_archive.sh` | Manual operation | Backup and recovery runbook | Restores a selected archive with explicit confirmation and target settings |
+| `mongo_backup_archive.sh` | Manual or infrastructure-scheduled operation | MongoDB recovery runbook | Creates complete oplog-consistent timestamped MongoDB archives, verifies them, and publishes only complete files |
+| `mongo_restore_archive.sh` | Manual recovery operation | Backup and recovery runbook | Verifies and restores a complete MongoDB archive with explicit confirmation and oplog replay |
 | `manage_mongo_indexes.py` | Manual operation | Maintenance and troubleshooting runbooks | Inspects repository/security index contracts, applies missing indexes, and retires one explicitly confirmed obsolete index |
 | `inspect_mongo_capacity.py` | Manual operation | Maintenance and quality runbook | Emits a read-only collection count, storage/index-size, and index-inventory snapshot without reading clinical documents |
 

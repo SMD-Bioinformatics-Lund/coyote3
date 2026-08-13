@@ -18,10 +18,14 @@ MongoDB document shape.
 
 ## Empty-collection rule
 
-`bootstrap_center_collections.sh` checks each supported destination collection
-through the internal collection-status API. A collection with one or more
-documents is skipped. This prevents a first-run command from silently mixing
-different HGNC/VEP snapshots or replacing center-managed assay definitions.
+`scripts/bootstrap_database.py` is the explicit first-deployment command. It
+connects directly to the configured MongoDB URI before API, worker, or UI
+services are started. It creates the first local superuser, then imports the
+bundled RBAC, HGNC, and VEP documents only into empty destination collections.
+The optional `--with-demo-center` flag additionally loads the synthetic ASP,
+ASPC, and ISGL catalog. A collection with one or more documents is skipped.
+This prevents a bootstrap run from silently mixing different HGNC/VEP snapshots
+or replacing center-managed clinical configuration.
 
 Application upgrades use dedicated synchronization or release procedures:
 

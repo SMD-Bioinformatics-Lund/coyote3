@@ -63,14 +63,10 @@ class _FakeRedis:
         return True
 
 
-def test_cache_backend_disabled_by_config():
-    """Test cache backend disabled by config.
-
-    Returns:
-        The function result.
-    """
+def test_cache_backend_degrades_when_not_required_and_url_is_missing():
+    """An explicitly non-required cache degrades to a no-op when unavailable."""
     backend = create_cache_backend(
-        config={"CACHE_ENABLED": False},
+        config={"CACHE_REQUIRED": "0"},
         logger=logging.getLogger("test.cache"),
         namespace="api",
     )
@@ -108,7 +104,6 @@ def test_cache_backend_falls_back_when_redis_unavailable(monkeypatch: pytest.Mon
     monkeypatch.setattr("api.infra.cache.redis.Redis", _NoRedis)
     backend = create_cache_backend(
         config={
-            "CACHE_ENABLED": True,
             "CACHE_REQUIRED": False,
             "CACHE_REDIS_URL": "redis://cache:6379/0",
         },
@@ -148,7 +143,6 @@ def test_cache_backend_required_raises_when_redis_unavailable(monkeypatch: pytes
     with pytest.raises(RuntimeError):
         create_cache_backend(
             config={
-                "CACHE_ENABLED": True,
                 "CACHE_REQUIRED": True,
                 "CACHE_REDIS_URL": "redis://cache:6379/0",
             },
@@ -188,7 +182,6 @@ def test_redis_cache_backend_roundtrip(monkeypatch: pytest.MonkeyPatch):
 
     backend = create_cache_backend(
         config={
-            "CACHE_ENABLED": True,
             "CACHE_REQUIRED": True,
             "CACHE_REDIS_URL": "redis://cache:6379/0",
             "CACHE_KEY_PREFIX": "coyote3_cache",

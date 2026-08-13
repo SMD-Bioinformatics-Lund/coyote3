@@ -46,9 +46,7 @@ class PublicOncoKbRefreshService:
             return {"status": "disabled"}
 
         client = PublicOncoKbClient(
-            base_url=str(
-                self.config.get("ONCOKB_BASE_URL") or "https://public.api.oncokb.org/api/v1"
-            ),
+            base_url=str(self.config["ONCOKB_BASE_URL"]),
             timeout=float(self.config.get("ONCOKB_REQUEST_TIMEOUT_SECONDS", 3.0) or 3.0),
         )
         try:

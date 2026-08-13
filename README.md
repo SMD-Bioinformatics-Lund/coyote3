@@ -82,6 +82,8 @@ demo_data/                   Synthetic demonstration and ingest data
 - Git
 - Docker with Docker Compose
 - Python 3.12 or later for repository scripts and local quality checks
+- MongoDB 8.2 or later when using an external database; the self-hosted stack
+  uses the pinned `mongo:8.2` image
 
 Create the development environment file:
 
@@ -102,17 +104,13 @@ Start the development stack:
   up -d --build
 ```
 
-The default command uses the MongoDB configured by `MONGO_URI`. To start the
-Compose-managed MongoDB service instead, configure `MONGO_URI` for the Compose
-Mongo host and add `--with-mongo`:
+The application always uses the MongoDB endpoint in `MONGO_URI`. It does not
+start MongoDB, create a network, or join a database-specific Docker network.
+The database may be host-installed, center-managed, or deployed independently
+with Docker, provided that the URI is reachable from the application containers.
 
-```bash
-./scripts/compose-with-version.sh \
-  --env-file .coyote3_dev_env \
-  -f deploy/compose/docker-compose.dev.yml \
-  --with-mongo \
-  up -d --build
-```
+See [MongoDB deployment and recovery](docs/operations/mongodb_deployment_and_recovery.md)
+for replica-set initialization, backups, and recovery testing.
 
 The public application path is controlled by `SCRIPT_NAME`. With the example
 development value `/coyote3_dev`, the standard endpoints are:

@@ -24,7 +24,9 @@ jobs:
       MONGO_ROOT_PASSWORD: ci-root-password
       MONGO_APP_USER: coyote3_app
       MONGO_APP_PASSWORD: ci-app-password
-      MONGO_URI: mongodb://coyote3_app:ci-app-password@coyote3_stage_mongo:27017/coyote3_ci?authSource=coyote3_ci
+      COYOTE3_MONGO_NETWORK: coyote3-ci-mongo-net
+      MONGO_URI: "mongodb://coyote3_app:ci-app-password@host.docker.internal:27017/coyote3_ci?authSource=coyote3_ci&replicaSet=coyote3-rs"
+      MONGO_BACKUP_URI: "mongodb://coyote3_root:ci-root-password@coyote3_mongo:27017/admin?authSource=admin&replicaSet=coyote3-rs"
       COYOTE3_PORT: "8005"
       SCRIPT_NAME: /coyote3_ci
       ADMIN_USERNAME: coyote3.admin
@@ -42,6 +44,9 @@ jobs:
             "$RUNNER_TEMP/coyote3/logs" \
             "$RUNNER_TEMP/coyote3/mongo-data" \
             "$RUNNER_TEMP/coyote3/mongo-backups"
+          openssl rand -base64 756 > "$RUNNER_TEMP/coyote3/mongo-keyfile"
+          chmod 0400 "$RUNNER_TEMP/coyote3/mongo-keyfile"
+          sudo chown 999:999 "$RUNNER_TEMP/coyote3/mongo-keyfile"
           cat > .coyote3_stage_env <<EOF
           ENV_NAME=staging
           COYOTE3_DB=${COYOTE3_DB}
@@ -65,6 +70,12 @@ jobs:
           COYOTE3_LOGS_HOST_ROOT=${RUNNER_TEMP}/coyote3/logs
           COYOTE3_MONGO_DATA_HOST_ROOT=${RUNNER_TEMP}/coyote3/mongo-data
           COYOTE3_MONGO_BACKUP_HOST_ROOT=${RUNNER_TEMP}/coyote3/mongo-backups
+          COYOTE3_MONGO_KEYFILE_HOST_PATH=${RUNNER_TEMP}/coyote3/mongo-keyfile
+          COYOTE3_MONGO_NETWORK=${COYOTE3_MONGO_NETWORK}
+          COYOTE3_MONGO_PORT=27017
+          COYOTE3_MONGO_BIND_ADDRESS=0.0.0.0
+          MONGO_REPLICA_SET_NAME=coyote3-rs
+          MONGO_REPLICA_MEMBER_HOST=host.docker.internal:27017
           CACHE_ENABLED=1
           CACHE_REQUIRED=1
           API_WORKERS=1
@@ -75,12 +86,38 @@ jobs:
           CELERY_WORKER_CONCURRENCY=1
           EOF
 
-      - name: Start stage stack with disposable MongoDB
+      - name: Start disposable MongoDB replica set
+        run: |
+          docker network create "${COYOTE3_MONGO_NETWORK}"
+          docker compose \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.mongo.yml \
+            up -d
+
+      - name: Initialize empty application database
+        run: |
+          docker compose \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.stage.yml \
+            build coyote3_stage_api
+          docker compose \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.stage.yml \
+            run --rm --no-deps coyote3_stage_api \
+            python scripts/bootstrap_database.py \
+              --mongo-uri "${MONGO_URI}" \
+              --db "${COYOTE3_DB}" \
+              --username "${ADMIN_USERNAME}" \
+              --email "${ADMIN_EMAIL}" \
+              --password "${ADMIN_PASSWORD}" \
+              --role-id superuser \
+              --with-demo-center
+
+      - name: Start stage application stack
         run: |
           ./scripts/compose-with-version.sh \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.stage.yml \
-            --with-mongo \
             up -d --build
 
       - name: Wait for proxied API health
@@ -96,44 +133,11 @@ jobs:
           echo "API did not become healthy in time: $health_url" >&2
           exit 1
 
-      - name: Create first bootstrap superuser
-        run: |
-          docker compose \
-            --env-file .coyote3_stage_env \
-            -f deploy/compose/docker-compose.stage.yml \
-            --profile with-mongo \
-            exec -T coyote3_stage_api \
-            python scripts/bootstrap_local_admin.py \
-              --mongo-uri "${MONGO_URI}" \
-              --db "${COYOTE3_DB}" \
-              --username "${ADMIN_USERNAME}" \
-              --email "${ADMIN_EMAIL}" \
-              --password "${ADMIN_PASSWORD}" \
-              --role-id superuser \
-              --assay-group hematology \
-              --assay hema_gmsv1
-
-      - name: Seed baseline collections
-        run: |
-          docker compose \
-            --env-file .coyote3_stage_env \
-            -f deploy/compose/docker-compose.stage.yml \
-            --profile with-mongo \
-            exec -T coyote3_stage_api \
-            scripts/bootstrap_center_collections.sh \
-              --api-base-url http://127.0.0.1:8001 \
-              --username "${ADMIN_USERNAME}" \
-              --password "${ADMIN_PASSWORD}" \
-              --seed-file api/config/bootstrap/demo_center \
-              --with-optional \
-              --skip-existing
-
       - name: Run sample ingest check
         run: |
           docker compose \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.stage.yml \
-            --profile with-mongo \
             exec -T coyote3_stage_api \
             scripts/center_check.sh \
               --api-base-url http://127.0.0.1:8001 \
@@ -162,32 +166,22 @@ jobs:
 
       - name: Rehearse disposable database backup and restore
         run: |
-          mongo_container="$(docker compose \
-            --env-file .coyote3_stage_env \
-            -f deploy/compose/docker-compose.stage.yml \
-            --profile with-mongo \
-            ps -q coyote3_stage_mongo)"
-          mongo_network="$(docker inspect \
-            --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}' \
-            "$mongo_container")"
           backup_dir="${RUNNER_TEMP}/coyote3/mongo-backups"
 
           ./scripts/mongo_backup_archive.sh \
-            --mongo-uri "${MONGO_URI}" \
-            --db "${COYOTE3_DB}" \
+            --mongo-uri "${MONGO_BACKUP_URI}" \
             --out-dir "$backup_dir" \
             --label ci-rehearsal \
-            --docker-network "$mongo_network"
+            --docker-network "${COYOTE3_MONGO_NETWORK}"
 
           archive="$(find "$backup_dir" -maxdepth 1 -name '*.archive.gz' -print -quit)"
           test -n "$archive"
           ./scripts/mongo_restore_archive.sh \
-            --mongo-uri "${MONGO_URI}" \
-            --db "${COYOTE3_DB}" \
+            --mongo-uri "${MONGO_BACKUP_URI}" \
             --archive "$archive" \
             --drop \
             --confirm RESTORE_PATIENT_DATA \
-            --docker-network "$mongo_network"
+            --docker-network "${COYOTE3_MONGO_NETWORK}"
 
       - name: Verify sample workflow after restore
         run: |-
@@ -214,13 +208,19 @@ jobs:
           docker compose \
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.stage.yml \
-            --profile with-mongo \
             logs --no-color > bootstrap_and_ingest_logs.txt 2>&1 || true
           docker compose \
             --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.mongo.yml \
+            logs --no-color >> bootstrap_and_ingest_logs.txt 2>&1 || true
+          docker compose \
+            --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.stage.yml \
-            --profile with-mongo \
-            down -v || true
+            down || true
+          docker compose \
+            --env-file .coyote3_stage_env \
+            -f deploy/compose/docker-compose.mongo.yml \
+            down || true
 
       - name: Upload failure logs
         if: failure()

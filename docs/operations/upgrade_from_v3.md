@@ -63,8 +63,7 @@ Work through this list before starting. Do not proceed if any item cannot be sat
 ```bash
 bash scripts/mongo_backup_archive.sh \
   --mongo-uri "${MONGO_URI}" \
-  --db "${COYOTE3_DB}" \
-  --out "/data/coyote3/backups/mongo"
+  --out-dir "/data/coyote3/backups/mongo"
 ```
 
 Verify the archive is non-empty and readable before continuing.
@@ -164,18 +163,18 @@ v4.0.0 introduces collections that did not exist in v3.x. Seed them before
 clinical ingest:
 
 ```bash
-scripts/bootstrap_center_collections.sh \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}" \
-  --username "superuser@your-center.org" \
-  --password "CHANGE_ME" \
-  --reference-seed-data api/config/bootstrap/rbac \
-  --reference-seed-data api/config/bootstrap/reference \
-  --skip-existing
+.venv/bin/python scripts/bootstrap_database.py \
+  --mongo-uri "$MONGO_URI" \
+  --db "$COYOTE3_DB" \
+  --username "superuser" \
+  --email "superuser@your-center.org" \
+  --password "<GENERATED_ADMIN_PASSWORD>"
 ```
 
-`--skip-existing` is safe to use here — it skips any collection that already
-has documents. The HGNC and VEP reference snapshots in
-`api/config/bootstrap/reference` are only loaded into empty collections.
+Run this only for a new empty v4 database. It skips populated reference
+collections and rejects partially initialized governance data. For an existing
+v4 database, use the dedicated RBAC and reference-data maintenance procedures
+instead of first-deployment bootstrap.
 
 ---
 
@@ -241,8 +240,8 @@ If the upgrade must be aborted after Step 3:
    ```bash
    bash scripts/mongo_restore_archive.sh \
      --mongo-uri "${MONGO_URI}" \
-     --db "${COYOTE3_DB}" \
-     --archive "/data/coyote3/backups/mongo/backup.archive.gz"
+     --archive "/data/coyote3/backups/mongo/backup.archive.gz" \
+     --confirm RESTORE_PATIENT_DATA
    ```
 
 3. Restart the v3.x stack:

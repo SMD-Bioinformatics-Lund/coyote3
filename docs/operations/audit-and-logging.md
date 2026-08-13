@@ -51,7 +51,6 @@ API_SESSION_COOKIE_NAME
 API_SESSION_COOKIE_SAMESITE
 API_SESSION_TTL_SECONDS
 AUDIT_RETENTION_DAYS
-LOG_SERVICE_NAME
 LOG_FILE_ENABLED
 LOG_GZIP_AFTER_DAYS
 LOG_RETENTION_DAYS
@@ -59,6 +58,11 @@ LOG_LEVEL
 COYOTE3_LOGS_HOST_ROOT
 NOTIFICATION_RETENTION_DAYS
 ```
+
+Session cookies are automatically marked `Secure` for HTTPS requests, including
+requests received through a reverse proxy that supplies `X-Forwarded-Proto`.
+An HTTP request is accepted only as a local-development fallback and emits a
+runtime warning; production deployments must terminate TLS before the API.
 
 ## Recipient-scoped notifications
 

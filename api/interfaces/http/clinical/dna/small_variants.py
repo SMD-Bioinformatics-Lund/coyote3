@@ -228,7 +228,7 @@ def show_dna_variant_public_oncokb(
         }
     sample, variant = _require_variant_for_sample(sample_id, var_id, user, service)
     client = PublicOncoKbClient(
-        base_url=runtime_app.config.get("ONCOKB_BASE_URL", "https://public.api.oncokb.org/api/v1"),
+        base_url=runtime_app.config["ONCOKB_BASE_URL"],
         timeout=float(runtime_app.config.get("ONCOKB_REQUEST_TIMEOUT_SECONDS", 3.0)),
     )
     try:
@@ -285,7 +285,7 @@ def show_dna_variant_public_clinpgx(
             "response": None,
         }
     client = ClinPgxPublicClient(
-        base_url=runtime_app.config.get("CLINPGX_BASE_URL", "https://api.clinpgx.org/v1"),
+        base_url=runtime_app.config["CLINPGX_BASE_URL"],
         timeout=float(runtime_app.config.get("CLINPGX_REQUEST_TIMEOUT_SECONDS", 3.0)),
     )
 

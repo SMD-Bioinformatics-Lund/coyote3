@@ -44,22 +44,17 @@ Validate seed data and cross-collection assay relationships before using them.
   --validate-all-contracts
 ```
 
-## Bootstrap Command
+## Database Bootstrap Command
 
 Example staging command:
 
 ```bash
-scripts/center_first_run.sh \
-  --env-file .coyote3_stage_env \
-  --compose-file deploy/compose/docker-compose.stage.yml \
-  --api-base-url "http://localhost:8804" \
-  --admin-username "admin.coyote3" \
-  --admin-email "admin@coyote3.local" \
-  --admin-password "ENFORCED_SECRET" \
-  --seed-file api/config/bootstrap/demo_center \
-  --seed-data-pack api/config/bootstrap/rbac \
-  --yaml-file demo_data/ingest/generic_case_control.yaml \
-  --with-optional
+.venv/bin/python scripts/bootstrap_database.py \
+  --mongo-uri "$MONGO_URI" \
+  --db "$COYOTE3_DB" \
+  --username "admin.coyote3" \
+  --email "admin@coyote3.local" \
+  --password "ENFORCED_SECRET"
 ```
 
 ## Audit and Logging

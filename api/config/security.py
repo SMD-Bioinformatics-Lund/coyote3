@@ -12,7 +12,6 @@ from api.config.contracts.application import OPERATIONAL_COLLECTIONS
 _PROD_BLOCKED_VALUES: dict[str, set[str]] = {
     "SECRET_KEY": {"ci-test-secret-key", "coyote3-api-dev-only"},
     "INTERNAL_API_TOKEN": {"ci-test-internal-token"},
-    "API_SESSION_SALT": {"coyote3-api-session-v1-dev-only"},
 }
 
 
@@ -141,20 +140,6 @@ def get_internal_api_token(config: Mapping[str, Any]) -> str:
     return _require_production_safe_setting(config, "INTERNAL_API_TOKEN")
 
 
-def get_api_session_salt(config: Mapping[str, Any]) -> str:
-    """Return the salt used to sign API session tokens.
-
-    Args:
-        config: Runtime configuration mapping.
-
-    Returns:
-        The session-signing salt.
-    """
-    if _is_non_production(config):
-        return str(config.get("API_SESSION_SALT", "coyote3-api-session-v1-dev-only"))
-    return _require_production_safe_setting(config, "API_SESSION_SALT")
-
-
 def get_api_session_cookie_name(config: Mapping[str, Any]) -> str:
     """Return the configured API session cookie name.
 
@@ -183,16 +168,23 @@ def get_api_session_ttl_seconds(config: Mapping[str, Any]) -> int:
         return 12 * 60 * 60
 
 
-def get_api_session_cookie_secure(config: Mapping[str, Any]) -> bool:
+def get_api_session_cookie_secure(
+    config: Mapping[str, Any], *, request_scheme: str | None = None
+) -> bool:
     """Return whether the API session cookie must be marked secure.
 
     Args:
         config: Runtime configuration mapping.
+        request_scheme: Effective browser-facing scheme, when available.
 
     Returns:
-        ``True`` when the session cookie should only be sent over HTTPS.
+        ``True`` for HTTPS. Local HTTP development falls back to a non-secure
+        cookie so browser login can proceed.
     """
-    return to_bool(config.get("SESSION_COOKIE_SECURE"), default=not _is_non_production(config))
+    scheme = str(request_scheme or "").strip().lower()
+    if scheme:
+        return scheme == "https"
+    return not _is_non_production(config)
 
 
 def get_api_session_cookie_samesite(config: Mapping[str, Any]) -> str:

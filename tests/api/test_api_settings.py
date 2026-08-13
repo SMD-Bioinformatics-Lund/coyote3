@@ -45,18 +45,6 @@ def test_production_requires_explicit_internal_api_token():
             runtime.get_internal_api_token({"SECRET_KEY": "x"})
 
 
-def test_production_requires_explicit_session_salt():
-    """Test production requires explicit session salt.
-
-    Returns:
-        The function result.
-    """
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("ENV_NAME", "production")
-        with pytest.raises(RuntimeError, match="API_SESSION_SALT"):
-            runtime.get_api_session_salt({"SECRET_KEY": "x", "INTERNAL_API_TOKEN": "y"})
-
-
 def test_non_production_allows_dev_fallbacks():
     """Test non production allows dev fallbacks.
 
@@ -67,7 +55,6 @@ def test_non_production_allows_dev_fallbacks():
 
     assert runtime.get_api_secret_key(config) == "coyote3-api-dev-only"
     assert runtime.get_internal_api_token(config) == ""
-    assert runtime.get_api_session_salt(config) == "coyote3-api-session-v1-dev-only"
     assert runtime.get_api_session_cookie_secure(config) is False
 
 
@@ -82,7 +69,13 @@ def test_production_session_cookie_secure_defaults_true():
         assert runtime.get_api_session_cookie_secure({}) is True
 
 
-def test_production_rejects_placeholder_secret_and_token_and_salt():
+def test_session_cookie_secure_follows_browser_facing_scheme():
+    """HTTPS uses a secure cookie while explicit local HTTP can proceed."""
+    assert runtime.get_api_session_cookie_secure({}, request_scheme="https") is True
+    assert runtime.get_api_session_cookie_secure({}, request_scheme="http") is False
+
+
+def test_production_rejects_placeholder_secret_and_token():
     """Production mode rejects known CI/dev placeholder values."""
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("ENV_NAME", "production")
@@ -93,6 +86,3 @@ def test_production_rejects_placeholder_secret_and_token_and_salt():
             RuntimeError, match="Insecure production setting for INTERNAL_API_TOKEN"
         ):
             runtime.get_internal_api_token({"INTERNAL_API_TOKEN": "ci-test-internal-token"})
-
-        with pytest.raises(RuntimeError, match="Insecure production setting for API_SESSION_SALT"):
-            runtime.get_api_session_salt({"API_SESSION_SALT": "coyote3-api-session-v1-dev-only"})

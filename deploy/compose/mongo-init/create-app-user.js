@@ -1,4 +1,4 @@
-/* Initialize per-database app user for compose-managed Mongo instances.
+/* Initialize the per-database app user for the repository-managed Docker Mongo instance.
  * Runs only on first initialization of an empty /data/db volume.
  */
 const appDbName = process.env.COYOTE3_DB || "coyote3";

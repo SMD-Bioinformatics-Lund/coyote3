@@ -7,6 +7,7 @@ session token issuance, secure logout, and secure password changes.
 
 from __future__ import annotations
 
+import logging
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -54,6 +55,7 @@ from api.security.password_flows import (
 )
 
 router = APIRouter(tags=[TAG_AUTH])
+logger = logging.getLogger(__name__)
 
 
 def _provider_from_login_identifier(login_identifier: str) -> str:
@@ -91,7 +93,7 @@ def whoami(user: ApiUser = Depends(require_access())):
     }
 
 
-def _login_response(payload: ApiAuthLoginRequest):
+def _login_response(payload: ApiAuthLoginRequest, request: Request | None = None):
     """Construct a successful login response and issue a secure session cookie.
 
     Validates user credentials against the internal authentication service.
@@ -171,11 +173,22 @@ def _login_response(payload: ApiAuthLoginRequest):
             }
         ),
     )
+    forwarded_scheme = ""
+    if request is not None:
+        forwarded_scheme = request.headers.get("X-Forwarded-Proto", "").split(",", 1)[0].strip()
+    request_scheme = forwarded_scheme or (request.url.scheme if request is not None else None)
+    secure_cookie = get_api_session_cookie_secure(request_scheme=request_scheme)
+    if not secure_cookie:
+        logger.warning(
+            "api_session_cookie_http_fallback scheme=%s; use HTTPS outside local development",
+            request_scheme or "unknown",
+        )
+
     response.set_cookie(
         key=get_api_session_cookie_name(),
         value=session_token,
         httponly=True,
-        secure=get_api_session_cookie_secure(),
+        secure=secure_cookie,
         samesite=get_api_session_cookie_samesite(),
         max_age=get_api_session_ttl_seconds(),
         path="/",
@@ -224,7 +237,7 @@ def _validate_new_password(new_password: str) -> None:
     status_code=201,
     summary="Create session",
 )
-def create_auth_session(payload: ApiAuthLoginRequest):
+def create_auth_session(payload: ApiAuthLoginRequest, request: Request):
     """Create an authenticated API session.
 
     Acts as the primary entry point for user login. It delegates credential
@@ -237,7 +250,7 @@ def create_auth_session(payload: ApiAuthLoginRequest):
     Returns:
         Response: The HTTP 201 response containing the created session data and secure cookie headers.
     """
-    response = _login_response(payload)
+    response = _login_response(payload, request=request)
     response.status_code = 201
     return response
 

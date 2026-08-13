@@ -178,11 +178,13 @@ The protein-change fallback sends the selected gene symbol, one-letter protein
 alteration, reference genome, and evidence types. It is intentionally secondary
 because protein-change annotation can be isoform-sensitive.
 
-Coyote3 exposes configuration keys for this integration:
+Coyote3 exposes deployment controls for this integration:
 
-- `ONCOKB_BASE_URL`
 - `ONCOKB_PUBLIC_LOOKUPS_ENABLED`
 - `ONCOKB_REQUEST_TIMEOUT_SECONDS`
+
+The public API root is a fixed application contract:
+`https://public.api.oncokb.org/api/v1`.
 
 !!! caution
     Public OncoKB responses exclude therapeutic data. They are useful for gene,

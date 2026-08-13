@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Validate a center deployment setup before first run.
+Validate a center deployment setup before starting application services.
 
 Usage:
   scripts/center_preflight.sh --env-file <path> --compose-file <path> [--seed-file <path>] [--yaml-file <path>] [--reference-seed-data <path>]...
@@ -66,7 +66,7 @@ echo "[check] validating compose render"
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" config -q
 
 echo "[check] mandatory keys"
-for key in COYOTE3_DB MONGO_URI SECRET_KEY INTERNAL_API_TOKEN API_SESSION_SALT PASSWORD_TOKEN_SALT CORS_ORIGINS; do
+for key in COYOTE3_DB MONGO_URI SECRET_KEY INTERNAL_API_TOKEN PASSWORD_TOKEN_SALT CORS_ORIGINS; do
   if ! grep -qE "^${key}=" "$ENV_FILE"; then
     echo "ERROR: missing key in env file: $key" >&2
     exit 1
@@ -97,7 +97,7 @@ fi
 
 "$PYTHON_BIN" -c '
 import sys
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, urlparse
 
 env_file = sys.argv[1]
 data = {}
@@ -111,8 +111,6 @@ with open(env_file, "r", encoding="utf-8") as fh:
 
 db = data.get("COYOTE3_DB", "")
 uri = data.get("MONGO_URI", "")
-app_user = data.get("MONGO_APP_USER", "")
-app_password = data.get("MONGO_APP_PASSWORD", "")
 if not db or not uri:
     raise SystemExit("ERROR: COYOTE3_DB and MONGO_URI must be set")
 
@@ -126,11 +124,6 @@ auth_source = (qs.get("authSource") or [""])[0]
 if auth_source and auth_source != db:
     raise SystemExit(f"ERROR: MONGO_URI authSource '"'"'{auth_source}'"'"' does not match COYOTE3_DB '"'"'{db}'"'"'.")
 
-if app_user and parsed.username and unquote(parsed.username) != app_user:
-    raise SystemExit(f"ERROR: MONGO_URI username '"'"'{unquote(parsed.username)}'"'"' does not match MONGO_APP_USER '"'"'{app_user}'"'"'.")
-
-if app_password and parsed.password and unquote(parsed.password) != app_password:
-    raise SystemExit("ERROR: MONGO_URI password does not match MONGO_APP_PASSWORD. If password has special chars, URL-encode it in MONGO_URI.")
 ' "$ENV_FILE"
 
 echo "[check] endpoint ports"

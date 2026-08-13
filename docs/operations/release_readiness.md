@@ -37,11 +37,13 @@ test therefore means the release gate is incomplete, not successful.
 ## Scheduled operational rehearsal
 
 The `bootstrap-and-ingest-check` workflow runs manually and once each month. It
-starts the stage topology with disposable storage, bootstraps a center, ingests
-the controlled DNA bundle, verifies the sample workflow, creates a compressed
-MongoDB archive, restores that archive with replacement semantics, and verifies
-the sample workflow again. This rehearsal complements the per-change unit tests
-for log compression, retention deletion, and failed-maintenance auditing.
+starts an isolated disposable MongoDB replica set, initializes it through the
+direct database bootstrap command, starts the stage application topology,
+ingests the controlled DNA bundle, verifies the sample workflow, creates a
+compressed MongoDB archive, restores that archive with replacement semantics,
+and verifies the sample workflow again. This rehearsal complements the
+per-change unit tests for log compression, retention deletion, and
+failed-maintenance auditing.
 
 The scheduled run is operational evidence, not a substitute for restoring a
 backup from the target center before promotion. Record the center-specific

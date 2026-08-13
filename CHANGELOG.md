@@ -67,7 +67,10 @@ incremental changes on the development branch.
 - Removed the legacy schema JSON files, retired install scripts, ad hoc reported-variant backfill, historical gene-database builder, and tracked migration implementations. The ignored `migration_scripts/` workspace now contains only its policy README.
 - Removed the split Tailwind runtime and legacy template CSS pipeline. Production now serves one prebuilt Vite application; development uses the Vite watcher without container restart loops.
 - Removed ObjectId-based sample navigation, legacy sample/configuration aliases, duplicate database-version keys, old transcript-canonical collection behavior, and compatibility query fallbacks.
-- Removed the broken Compose `first-run` service that referenced a nonexistent script. `scripts/center_first_run.sh` is the single documented first-deployment orchestrator.
+- Removed the Compose first-run service and all-in-one deployment orchestrator.
+  First deployment now provisions MongoDB independently, runs
+  `scripts/bootstrap_database.py` directly against an empty database, then
+  starts the application services and imports clinical configuration explicitly.
 - Removed internal integration, health, and maintenance plumbing from the supported OpenAPI client contract while retaining secured runtime endpoints.
 
 ### Security and quality

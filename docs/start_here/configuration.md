@@ -128,6 +128,18 @@ Some environment variables select configuration rather than duplicate it:
 `center/collections.toml`, and `BAM_DB` selects the BAM-service table. The
 physical collection names themselves remain TOML values.
 
+!!! warning "HTTPS session cookies"
+
+    Session cookies are HTTPS-only whenever the request uses HTTPS. Coyote3
+    reads `X-Forwarded-Proto` when it is deployed behind a reverse proxy. Plain
+    HTTP remains available only as a local-development fallback and emits an
+    API runtime warning. There is no environment variable that can weaken this
+    policy in a deployed HTTPS environment.
+
+Built-in Mongo-backed knowledgebases are always registered. Their collections
+may be empty when a center has not loaded reference data, but repository
+registration is not configurable through an environment variable.
+
 | Variable | Required | Expected Value | Purpose |
 | --- | --- | --- | --- |
 | `ENV_NAME` | Yes | `development`, `testing`, `staging`, or `production` | Selects runtime behavior and labels audit/log context. |
@@ -135,25 +147,29 @@ physical collection names themselves remain TOML values.
 | `BAM_DB` | Yes | MongoDB database name | BAM-service database used for sample BAM lookups. |
 | `ORGANIZATION_NAME` | Yes | Center/service display name | Used on login, public, contact, and support pages. |
 | `LOCAL_TIME_ZONE` | Yes | IANA timezone such as `Europe/Stockholm` | Local display timezone for browser-rendered dates and container-local schedules. Database timestamps remain UTC. |
-| `SECRET_KEY` | Yes | High-entropy secret | Signs application security state. |
-| `INTERNAL_API_TOKEN` | Yes | High-entropy token | Authenticates trusted service-to-service internal API calls. |
-| `API_SESSION_SALT` | Yes | High-entropy salt | Derives stored browser API session hashes. |
-| `PASSWORD_TOKEN_SALT` | Yes | High-entropy salt | Derives invite and password-reset action token hashes. |
+| `SECRET_KEY` | Yes | High-entropy secret | Signs invite and password-reset action tokens. Browser sessions are opaque, server-stored tokens and do not use this value. |
+| `INTERNAL_API_TOKEN` | Yes | High-entropy token | Authenticates trusted service-to-service internal API calls through the internal-token header. |
+| `PASSWORD_TOKEN_SALT` | Yes | High-entropy salt | Separates invite and password-reset token signing from other application signing operations. |
 | `COYOTE3_PORT` | Yes | Host port | One exposed nginx entrypoint for UI, API, public pages, and docs. |
 | `SCRIPT_NAME` | Yes | Empty string or `/prefix` | Public URL mount prefix used by browser routing and generated links. |
 | `PUBLIC_BASE_URL` | Link-generating deployments | Public origin without `SCRIPT_NAME` | Origin used for links generated outside an active browser request, such as password reset email links. |
 | `CORS_ORIGINS` | Production | Comma-separated origins | Allowed browser origins for API calls. |
 | `COYOTE3_CONTAINER_MEM_LIMIT` | No | Compose memory value such as `2g` | Per-container memory limit. |
 | `COYOTE3_CONTAINER_CPU_LIMIT` | No | Compose CPU value such as `2.0` | Per-container CPU limit. |
-| `MONGO_ROOT_USERNAME` | With compose Mongo | Username | Optional compose-managed Mongo root account. |
-| `MONGO_ROOT_PASSWORD` | With compose Mongo | Secret password | Optional compose-managed Mongo root password. |
-| `MONGO_APP_USER` | With compose Mongo | Username | Application Mongo user created by compose Mongo init. |
-| `MONGO_APP_PASSWORD` | With compose Mongo | Secret password | Application Mongo password. |
+| `MONGO_ROOT_USERNAME` | Self-hosted MongoDB | Username | MongoDB administrative username used only for database deployment and maintenance. |
+| `MONGO_ROOT_PASSWORD` | Self-hosted MongoDB | Secret password | MongoDB administrative password. |
+| `MONGO_APP_USER` | Self-hosted MongoDB | Username | Application MongoDB username created during first database initialization. |
+| `MONGO_APP_PASSWORD` | Self-hosted MongoDB | Secret password | Application MongoDB password. |
 | `MONGO_URI` | Yes | MongoDB URI | API and worker MongoDB connection string. |
-| `COYOTE3_MONGO_DATA_HOST_ROOT` | With compose Mongo | Absolute host path | Persistent host directory bind-mounted at `/data/db`. It is unused when MongoDB is external. |
-| `COYOTE3_MONGO_BACKUP_HOST_ROOT` | With compose Mongo | Absolute host path | Host backup directory bind-mounted at `/backup`. It is unused when MongoDB is external. |
-| `CACHE_ENABLED` | No | `1` or `0` | Enables Redis-backed application cache use. |
-| `CACHE_REQUIRED` | No | `1` or `0` | Makes cache connection failure fatal at startup when enabled. |
+| `COYOTE3_MONGO_DATA_HOST_ROOT` | Self-hosted MongoDB | Absolute host path | Persistent host directory bind-mounted at `/data/db`. |
+| `COYOTE3_MONGO_BACKUP_HOST_ROOT` | Self-hosted MongoDB | Absolute host path | Host backup directory bind-mounted at `/backup`. |
+| `COYOTE3_MONGO_KEYFILE_HOST_PATH` | Self-hosted MongoDB | Absolute host path | Replica-set keyfile used for member authentication. |
+| `COYOTE3_MONGO_NETWORK` | Optional Docker MongoDB | Docker network name | Network owned by the independently deployed MongoDB stack. Application services do not join it. |
+| `MONGO_REPLICA_SET_NAME` | Self-hosted MongoDB | Replica-set identifier | Persistent MongoDB replica-set name, normally `coyote3-rs`. |
+| `MONGO_REPLICA_MEMBER_HOST` | Self-hosted MongoDB | `host:port` | Stable member address stored in replica-set metadata. It must resolve from both MongoDB and application containers. |
+| `COYOTE3_MONGO_PORT` | Optional Docker MongoDB | Host port | Host port published by the independently deployed MongoDB container. It is not used by the application when `MONGO_URI` targets another MongoDB service. |
+| `COYOTE3_MONGO_BIND_ADDRESS` | Optional Docker MongoDB | Host IP address | Host interface used when publishing MongoDB's port. The application still connects only through `MONGO_URI`. |
+| `CACHE_REQUIRED` | No | `1` or `0` | Requires Redis at startup when `1` (default). Set `0` only to allow an intentional degraded no-op cache when Redis is unavailable. |
 | `CACHE_REDIS_CONNECT_TIMEOUT` | No | Seconds | Redis connection timeout. |
 | `CACHE_REDIS_SOCKET_TIMEOUT` | No | Seconds | Redis socket timeout. |
 | `DASHBOARD_SUMMARY_CACHE_TTL_SECONDS` | No | Seconds | Hot-cache lifetime for dashboard summaries. |
@@ -161,12 +177,10 @@ physical collection names themselves remain TOML values.
 | `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS` | No | Seconds | Persistent dashboard snapshot retention. |
 | `API_WORKERS` | No | Positive integer | Uvicorn worker process count for non-dev stacks. |
 | `APP_DNS` | No | DNS server IP | Optional Docker DNS override for restricted center networks. |
-| `SESSION_COOKIE_SECURE` | Production | `1` or `0` | Marks API session cookies HTTPS-only. |
 | `API_SESSION_COOKIE_NAME` | Yes | Cookie name | Browser API session cookie name, unique per mounted environment. |
 | `API_SESSION_TTL_SECONDS` | No | Seconds | Browser API session lifetime. |
 | `API_SESSION_COOKIE_SAMESITE` | No | `lax`, `strict`, or `none` | Browser session cookie SameSite policy. |
 | `AUDIT_RETENTION_DAYS` | No | Days | Audit event retention window. |
-| `LOG_SERVICE_NAME` | No | Service label | Structured log service name. |
 | `LOG_FILE_ENABLED` | No | `1` or `0` | Enables on-disk JSONL logs in addition to stdout. |
 | `LOG_RETENTION_DAYS` | No | Days | Disk log retention window. |
 | `LOG_GZIP_AFTER_DAYS` | No | Days | Age after which nightly maintenance gzips old logs. |
@@ -174,8 +188,6 @@ physical collection names themselves remain TOML values.
 | `COYOTE3_LOGS_HOST_ROOT` | Yes | Absolute host path | Shared host log directory bind-mounted at `/app/logs` in the API, worker, and beat containers. |
 | `NOTIFICATION_RETENTION_DAYS` | No | Days | Notification retention window. |
 | `COYOTE3_DATA_HOST_ROOT` | Yes | Host path | Host data root mounted into containers at `/data`. |
-| `CELERY_DEFAULT_QUEUE` | No | Queue name | Default Celery queue. |
-| `CELERY_INGEST_QUEUE` | No | Queue name | Queue used for ingest tasks. |
 | `CELERY_LOG_LEVEL` | No | Logging level | Celery worker log level. |
 | `CELERY_WORKER_CONCURRENCY` | No | Positive integer | Celery worker process concurrency. |
 | `CELERY_TASK_TIME_LIMIT` | No | Seconds | Hard Celery task timeout. |
@@ -199,11 +211,8 @@ physical collection names themselves remain TOML values.
 | `LDAP_USER_DN` | LDAP deployments | Relative distinguished name | User subtree below base DN. |
 | `GENS_URI` | No | URL | Optional Gens integration. |
 | `IGV_URI` | No | URL | Optional IGV integration. |
-| `KNOWLEDGEBASE_PLUGINS` | No | Comma-separated list | Optional Mongo-backed knowledgebase handlers. Supported values: `all`, `civic`, `iarc_tp53`, `brca`, `oncokb`, `cosmic`, `hgnc`. |
-| `ONCOKB_BASE_URL` | No | URL | Public OncoKB API base URL. |
 | `ONCOKB_PUBLIC_LOOKUPS_ENABLED` | No | `1` or `0` | Enables public OncoKB detail lookups and the administrator-triggered HGNC-backed reference refresh. |
 | `ONCOKB_REQUEST_TIMEOUT_SECONDS` | No | Seconds | Timeout for all public OncoKB requests, including the reference refresh. |
-| `CLINPGX_BASE_URL` | No | URL | Public ClinPGx API base URL. |
 | `CLINPGX_PUBLIC_LOOKUPS_ENABLED` | No | `1` or `0` | Enables ClinPGx lookup buttons. |
 | `CLINPGX_REQUEST_TIMEOUT_SECONDS` | No | Seconds | ClinPGx request timeout. |
 | `SMTP_HOST` | Mail deployments | Hostname | SMTP relay host. |
@@ -221,6 +230,14 @@ physical collection names themselves remain TOML values.
 | `WEB_RATE_LIMIT_ENABLED` | No | `1` or `0` | Enables public web-route rate limiting. |
 | `WEB_RATE_LIMIT_REQUESTS_PER_MINUTE` | No | Positive integer | Web route rate limit threshold. |
 | `WEB_RATE_LIMIT_WINDOW_SECONDS` | No | Seconds | Web route rate limit window. |
+
+### Fixed application defaults
+
+The following values are application contracts and are intentionally not
+included in the center environment file: the API log service label (`api`),
+the Celery queues (`default` and `ingest`), and the public API roots for
+OncoKB and ClinPGx. They are defined in the application configuration so every
+deployment uses the same supported service behavior.
 
 !!! tip "Generating secrets"
 

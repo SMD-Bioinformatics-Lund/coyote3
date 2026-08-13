@@ -9,9 +9,13 @@ from pathlib import Path
 
 import mongomock
 
-from scripts.bootstrap_local_admin import (
+from scripts.bootstrap_database import (
+    DEFAULT_RBAC_DIR,
+    DEFAULT_REFERENCE_DIR,
+    _build_seed_documents,
     _deployment_is_initialized,
-    _load_bootstrap_rbac,
+    _initialize_governance,
+    _insert_if_empty,
     _superuser_exists,
 )
 from scripts.sync_rbac_catalog import synchronize_rbac_catalog
@@ -203,9 +207,14 @@ def test_sync_rbac_catalog_inserts_missing_bundled_role_without_removing_custom_
 
 def test_application_bootstrap_catalog_contains_canonical_permissions_and_roles():
     """The repository ships the complete first-deployment governance catalog."""
-    permission_docs, role_docs = _load_bootstrap_rbac(
-        ROOT_DIR / "api" / "config" / "bootstrap" / "rbac"
+    payload = _build_seed_documents(
+        rbac_dir=DEFAULT_RBAC_DIR,
+        reference_dir=DEFAULT_REFERENCE_DIR,
+        demo_center_dir=None,
+        actor="bootstrap.test",
     )
+    permission_docs = payload["permissions"]
+    role_docs = payload["roles"]
     permission_ids = {str(doc["permission_id"]) for doc in permission_docs}
     roles = {str(doc["role_id"]): doc for doc in role_docs}
 
@@ -248,6 +257,36 @@ def test_first_deployment_bootstrap_detects_empty_partial_and_complete_state():
 
     database.users.insert_one({"username": "root", "roles": ["superuser"]})
     assert _superuser_exists(database) is True
+
+
+def test_database_bootstrap_prepares_rbac_and_reference_data_without_demo_center():
+    payload = _build_seed_documents(
+        rbac_dir=DEFAULT_RBAC_DIR,
+        reference_dir=DEFAULT_REFERENCE_DIR,
+        demo_center_dir=None,
+        actor="bootstrap.test",
+    )
+
+    assert {"permissions", "roles", "hgnc_genes", "vep_metadata"} <= set(payload)
+    assert "asp_configs" not in payload
+    assert len(payload["hgnc_genes"]) > 1
+    assert len(payload["vep_metadata"]) > 0
+
+
+def test_database_bootstrap_writes_only_empty_baseline_collections():
+    database = mongomock.MongoClient()["coyote3_test"]
+    seed = {
+        "permissions": [{"permission_id": "sample:view"}],
+        "roles": [{"role_id": "superuser", "permissions": ["sample:view"]}],
+        "hgnc_genes": [{"hgnc_id": "HGNC:1"}],
+    }
+    user_document = {"username": "admin", "roles": ["superuser"]}
+
+    assert _initialize_governance(database, seed=seed, user_document=user_document) == "loaded"
+    assert _insert_if_empty(database, "hgnc_genes", seed["hgnc_genes"]) == "loaded"
+    assert _insert_if_empty(database, "hgnc_genes", [{"hgnc_id": "HGNC:2"}]) == "skipped"
+    assert database["hgnc_genes"].count_documents({}) == 1
+    assert _initialize_governance(database, seed=seed, user_document=user_document) == "skipped"
 
 
 def test_seed_payload_utils_count_and_payload(tmp_path):
@@ -469,7 +508,6 @@ def test_env_secret_validation_accepts_local_auth_without_ldap_secret(tmp_path):
             (
                 "SECRET_KEY=secret-value",
                 "INTERNAL_API_TOKEN=internal-token",
-                "API_SESSION_SALT=session-salt",
                 "PASSWORD_TOKEN_SALT=password-salt",
                 "CORS_ORIGINS=https://coyote3.example.org",
                 "MONGO_URI=mongodb://mongo:27017/coyote3",
@@ -499,7 +537,6 @@ def test_env_secret_validation_requires_password_token_salt(tmp_path):
             (
                 "SECRET_KEY=secret-value",
                 "INTERNAL_API_TOKEN=internal-token",
-                "API_SESSION_SALT=session-salt",
                 "CORS_ORIGINS=https://coyote3.example.org",
                 "MONGO_URI=mongodb://mongo:27017/coyote3",
             )
@@ -554,11 +591,8 @@ def test_ingest_spec_file_check_uses_configured_file_key_catalog(tmp_path):
     assert f"cnvprofile: {missing_profile}" in result.stderr
 
 
-def test_first_run_and_preflight_scripts_do_not_use_retired_environment_port_names():
-    combined = "\n".join(
-        (ROOT_DIR / path).read_text(encoding="utf-8")
-        for path in ("scripts/center_first_run.sh", "scripts/center_preflight.sh")
-    )
+def test_preflight_script_does_not_use_retired_environment_port_names():
+    combined = (ROOT_DIR / "scripts/center_preflight.sh").read_text(encoding="utf-8")
     for retired_key in (
         "COYOTE3_STAGE_PORT",
         "COYOTE3_DEV_PORT",
@@ -592,14 +626,17 @@ def test_quality_workflow_uses_cost_bounded_current_branch_validation():
     assert not (ROOT_DIR / ".github/workflows/changelog-reminder.yml").exists()
 
 
-def test_manual_composed_workflow_uses_current_proxy_and_mongo_profile():
+def test_manual_composed_workflow_uses_current_proxy_and_independent_mongodb_stack():
     workflow = (ROOT_DIR / ".github/workflows/bootstrap-and-ingest-check.yml").read_text(
         encoding="utf-8"
     )
 
     assert "workflow_dispatch:" in workflow
-    assert "--with-mongo" in workflow
-    assert "--profile with-mongo" in workflow
+    assert "docker-compose.mongo.yml" in workflow
+    assert "Start disposable MongoDB replica set" in workflow
+    assert "MONGO_REPLICA_SET_NAME=coyote3-rs" in workflow
+    assert "--with-mongo" not in workflow
+    assert "--profile with-mongo" not in workflow
     assert "COYOTE3_PORT:" in workflow
     assert "SCRIPT_NAME:" in workflow
     assert "${COYOTE3_PORT}${SCRIPT_NAME}/api/v1/health" in workflow

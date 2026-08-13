@@ -23,11 +23,21 @@ Compose variables for image names and build metadata. Do not store
 
 ## Deployment Commands
 
-These commands use the MongoDB instance specified by `MONGO_URI`. For a
-self-contained environment that should run the Compose-managed MongoDB service
-instead, add `--with-mongo` immediately after
-`./scripts/compose-with-version.sh`. Do not add it when `MONGO_URI` targets a
-local, managed, or other external MongoDB instance.
+These commands use the MongoDB instance specified by `MONGO_URI`. The
+self-hosted MongoDB stack is started independently before the application
+stack; managed MongoDB services remain supported through their own connection
+string. See [MongoDB deployment and recovery](mongodb_deployment_and_recovery.md).
+
+## MongoDB baseline
+
+Coyote3 requires MongoDB 8.2 or a later compatible supported release. The
+Compose-managed service and the archive utilities use the pinned `mongo:8.2`
+image. External MongoDB deployments must meet the same baseline.
+
+MongoDB is a stateful clinical dependency. Use a pinned release line rather
+than a floating image tag, apply the vendor's documented upgrade path for an
+existing deployment, and validate a backup restore before changing the server
+major version.
 
 ## Frontend Asset Lifecycle
 
@@ -98,7 +108,7 @@ curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}/api/v1/internal
 
 - **Environment Identity**: Production deployment is blocked without a valid `.coyote3_env`.
 - **Immutable Versioning**: Use of floating `local` tags is prohibited in production; the compose wrapper injects the version from `api/version.py` for all image resolutions.
-- **Durable Volume Protection**: Destructive volume operations (`down -v`) are blocked in production unless `COYOTE3_ALLOW_PROD_VOLUME_PRUNE=1` is set.
+- **Durable Data Protection**: The deployment wrapper rejects destructive volume operations (`down -v`) in every environment. Normal teardown stops and removes containers only; it never removes Compose volumes or the host-mounted MongoDB data directory.
 - **Cache Persistence**: Redis instances are pinned to specific versioned images (`7.4.3`) to prevent state corruption during floating tag updates.
 
 ## Upgrades

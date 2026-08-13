@@ -1,0 +1,75 @@
+name: coyote3-mongodb
+
+# Optional independent MongoDB deployment. The Coyote3 application never
+# manages this stack; configure MONGO_URI with an endpoint that application
+# containers can reach.
+services:
+  coyote3_mongo:
+    container_name: coyote3_mongo_${ENV_NAME:?ENV_NAME is required}
+    image: mongo:8.2
+    command:
+      - mongod
+      - --replSet
+      - ${MONGO_REPLICA_SET_NAME:?MONGO_REPLICA_SET_NAME must be set}
+      - --bind_ip_all
+      - --keyFile
+      - /etc/mongo-keyfile/keyfile
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME must be set}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set}
+      COYOTE3_DB: ${COYOTE3_DB:?COYOTE3_DB must be set}
+      BAM_DB: ${BAM_DB:?BAM_DB must be set}
+      MONGO_APP_USER: ${MONGO_APP_USER:?MONGO_APP_USER must be set}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?MONGO_APP_PASSWORD must be set}
+    ports:
+      - "${COYOTE3_MONGO_BIND_ADDRESS:-127.0.0.1}:${COYOTE3_MONGO_PORT:-27017}:27017"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - "${COYOTE3_MONGO_DATA_HOST_ROOT:?COYOTE3_MONGO_DATA_HOST_ROOT must be set}:/data/db"
+      - "${COYOTE3_MONGO_BACKUP_HOST_ROOT:?COYOTE3_MONGO_BACKUP_HOST_ROOT must be set}:/backup"
+      - "${COYOTE3_MONGO_KEYFILE_HOST_PATH:?COYOTE3_MONGO_KEYFILE_HOST_PATH must be set}:/etc/mongo-keyfile/keyfile:ro"
+      - ./mongo-init/create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --quiet --host 127.0.0.1 --username "$${MONGO_INITDB_ROOT_USERNAME}"
+          --password "$${MONGO_INITDB_ROOT_PASSWORD}" --authenticationDatabase admin
+          --eval 'db.adminCommand({ping: 1}).ok' | grep 1
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    stop_grace_period: 120s
+    restart: unless-stopped
+    networks:
+      coyote3-mongo-net:
+        aliases:
+          - coyote3_mongo
+
+  coyote3_mongo_init:
+    container_name: coyote3_mongo_init_${ENV_NAME:?ENV_NAME is required}
+    image: mongo:8.2
+    environment:
+      MONGO_SERVICE_HOST: coyote3_mongo
+      MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME must be set}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set}
+      MONGO_REPLICA_SET_NAME: ${MONGO_REPLICA_SET_NAME:?MONGO_REPLICA_SET_NAME must be set}
+      MONGO_REPLICA_MEMBER_HOST: ${MONGO_REPLICA_MEMBER_HOST:?MONGO_REPLICA_MEMBER_HOST must be set}
+    volumes:
+      - ./mongo-init/init-replica-set.sh:/opt/coyote3/init-replica-set.sh:ro
+    entrypoint: ["/bin/sh", "/opt/coyote3/init-replica-set.sh"]
+    depends_on:
+      coyote3_mongo:
+        condition: service_healthy
+    restart: "no"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - coyote3-mongo-net
+
+networks:
+  coyote3-mongo-net:
+    name: ${COYOTE3_MONGO_NETWORK:?COYOTE3_MONGO_NETWORK must be set}
+    external: true

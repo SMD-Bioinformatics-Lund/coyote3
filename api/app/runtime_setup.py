@@ -38,7 +38,7 @@ def create_runtime_context(testing: bool = False, development: bool = False) -> 
     config_obj = _select_config(testing=testing, development=development)
     conf = _config_dict(config_obj)
     configure_json_logging(
-        service_name=str(conf.get("LOG_SERVICE_NAME") or "api"),
+        service_name="api",
         level=str(conf.get("LOG_LEVEL") or "INFO"),
         log_root=str(conf.get("LOGS", "logs/api")),
         file_enabled=bool(conf.get("LOG_FILE_ENABLED", True)),

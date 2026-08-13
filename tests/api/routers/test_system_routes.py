@@ -7,10 +7,27 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
+from starlette.requests import Request
 
 from api.interfaces.http.operations import auth as auth_router
 from api.interfaces.http.operations import health as health_router
 from tests.fixtures.api import mock_collections as fx
+
+
+def _http_request(*, scheme: str = "http", forwarded_scheme: str | None = None) -> Request:
+    """Build a minimal browser request for direct authentication-route tests."""
+    headers = [] if not forwarded_scheme else [(b"x-forwarded-proto", forwarded_scheme.encode())]
+    return Request(
+        {
+            "type": "http",
+            "scheme": scheme,
+            "headers": headers,
+            "server": ("testserver", 443 if scheme == "https" else 80),
+            "path": "/api/v1/auth/sessions",
+            "raw_path": b"/api/v1/auth/sessions",
+            "query_string": b"",
+        }
+    )
 
 
 def test_health_returns_ok():
@@ -39,7 +56,8 @@ def test_auth_login_reports_unconfigured_enabled_ldap(monkeypatch):
         auth_router.create_auth_session(
             auth_router.ApiAuthLoginRequest(
                 username="user@example.org", password="secret", provider="ldap"
-            )
+            ),
+            _http_request(),
         )
 
     assert exc.value.status_code == 503
@@ -77,7 +95,8 @@ def test_auth_login_rejects_invalid_credentials(monkeypatch):
 
     with pytest.raises(HTTPException) as exc:
         auth_router.create_auth_session(
-            auth_router.ApiAuthLoginRequest(username="u", password="p", provider="local")
+            auth_router.ApiAuthLoginRequest(username="u", password="p", provider="local"),
+            _http_request(),
         )
 
     assert exc.value.status_code == 401
@@ -115,11 +134,12 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
         raising=False,
     )
     monkeypatch.setattr(auth_router, "get_api_session_cookie_name", lambda: "api_session")
-    monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda: True)
+    monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda **_kwargs: True)
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
 
     response = auth_router.create_auth_session(
-        auth_router.ApiAuthLoginRequest(username=" tester ", password="p", provider="local")
+        auth_router.ApiAuthLoginRequest(username=" tester ", password="p", provider="local"),
+        _http_request(scheme="https"),
     )
 
     assert response.status_code == 201
@@ -157,11 +177,12 @@ def test_create_auth_session_returns_201(monkeypatch):
         raising=False,
     )
     monkeypatch.setattr(auth_router, "get_api_session_cookie_name", lambda: "api_session")
-    monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda: True)
+    monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda **_kwargs: True)
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
 
     response = auth_router.create_auth_session(
-        auth_router.ApiAuthLoginRequest(username=" tester ", password="p", provider="local")
+        auth_router.ApiAuthLoginRequest(username=" tester ", password="p", provider="local"),
+        _http_request(scheme="https"),
     )
 
     assert response.status_code == 201
@@ -199,11 +220,12 @@ def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
         raising=False,
     )
     monkeypatch.setattr(auth_router, "get_api_session_cookie_name", lambda: "api_session")
-    monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda: True)
+    monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda **_kwargs: True)
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
 
     response = auth_router.create_auth_session(
-        auth_router.ApiAuthLoginRequest(username="tester", password="p", provider="local")
+        auth_router.ApiAuthLoginRequest(username="tester", password="p", provider="local"),
+        _http_request(scheme="https"),
     )
 
     assert response.status_code == 201

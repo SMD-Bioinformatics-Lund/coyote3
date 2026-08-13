@@ -56,11 +56,11 @@ Recommendation:
 ## Redis runtime policy
 
 - All compose stacks pin Redis to `redis:7.4.3`.
-- Redis is a shared cache dependency for API/UI and should be treated as required
-  in production-grade deployments (`CACHE_REQUIRED=1`).
-- If a center intentionally runs in degraded mode (`CACHE_REQUIRED=0`), cache
-  operations become no-op on Redis outages; functionality should still work but
-  with lower performance.
+- Redis is a shared cache dependency for API/UI and is required by default
+  (`CACHE_REQUIRED=1`).
+- A center can deliberately choose degraded mode (`CACHE_REQUIRED=0`); cache
+  operations then become no-op on Redis outages and functionality continues with
+  lower performance.
 
 ## Environment naming map
 
@@ -85,7 +85,8 @@ Recommended:
 
 - `MONGO_ROOT_*`: bootstrap/admin operations
 - `MONGO_APP_*`: application runtime access (least privilege)
-- Compose mongo-init creates `MONGO_APP_*` only on first startup of an empty Mongo volume
+- For the optional supplied Docker MongoDB stack, mongo-init creates
+  `MONGO_APP_*` only on first startup of an empty Mongo data directory
 - If volume already exists, create/rotate app user with `mongosh` using an admin-capable URI:
 
 Example (existing volume/user rotation):
@@ -102,10 +103,9 @@ mongosh "<admin-mongo-uri>" --eval '
 '
 ```
 
-Compose-managed MongoDB is internal to the Docker network and is not published
-on a host port. Use an external/admin MongoDB URI for host-side maintenance, or
-run maintenance from a container that can reach the Mongo service on the compose
-network.
+The supplied Docker MongoDB deployment is reachable through its dedicated
+network and is bound to loopback only for host-side maintenance. In local mode,
+the external MongoDB deployment owns its own exposure and maintenance policy.
 
 ## Secrets handling
 

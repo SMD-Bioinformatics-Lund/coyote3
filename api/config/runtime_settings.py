@@ -12,7 +12,7 @@ from urllib.parse import urlparse, urlunparse
 
 from dotenv import load_dotenv
 
-from api.config.application_metadata import CODEBASE_LINKS
+from api.config.application_metadata import CODEBASE_LINKS, PUBLIC_KNOWLEDGEBASE_API_URLS
 from api.config.loaders.collections import load_collection_mapping
 from api.config.loaders.contact import load_contact_config, normalize_url_prefix
 from api.config.paths import (
@@ -80,8 +80,7 @@ class CacheSettings:
     CACHE_DEFAULT_TIMEOUT = 300  # 300 secs, 5 minutes
     CACHE_KEY_PREFIX = "coyote3_cache"
     CACHE_TYPE = "RedisCache"
-    CACHE_ENABLED = _environment_bool("CACHE_ENABLED", True)
-    CACHE_REQUIRED = _environment_bool("CACHE_REQUIRED", False)
+    CACHE_REQUIRED = _environment_bool("CACHE_REQUIRED", True)
     CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL", "")
     CACHE_REDIS_CONNECT_TIMEOUT = float(os.getenv("CACHE_REDIS_CONNECT_TIMEOUT", "1.0"))
     CACHE_REDIS_SOCKET_TIMEOUT = float(os.getenv("CACHE_REDIS_SOCKET_TIMEOUT", "1.0"))
@@ -106,7 +105,6 @@ class HttpSecuritySettings:
     ]
     API_SESSION_COOKIE_NAME = os.getenv("API_SESSION_COOKIE_NAME", "coyote3_api_session")
     API_SESSION_TTL_SECONDS = int(os.getenv("API_SESSION_TTL_SECONDS", str(12 * 60 * 60)))
-    API_SESSION_SALT = os.getenv("API_SESSION_SALT", "coyote3-api-session-v1")
     API_SESSION_COOKIE_SAMESITE = os.getenv("API_SESSION_COOKIE_SAMESITE", "lax")
 
 
@@ -114,7 +112,7 @@ class OperationsSettings:
     """Audit, logging, notification, and request-rate settings."""
 
     AUDIT_RETENTION_DAYS = int(os.getenv("AUDIT_RETENTION_DAYS", "730"))
-    LOG_SERVICE_NAME = os.getenv("LOG_SERVICE_NAME", "api")
+    LOG_SERVICE_NAME = "api"
     LOG_FILE_ENABLED = os.getenv("LOG_FILE_ENABLED", "1") == "1"
     LOG_RETENTION_DAYS = int(os.getenv("LOG_RETENTION_DAYS", "30"))
     LOG_GZIP_AFTER_DAYS = int(os.getenv("LOG_GZIP_AFTER_DAYS", "1"))
@@ -134,10 +132,10 @@ class KnowledgebaseSettings:
     """Public knowledgebase integration settings."""
 
     PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "")
-    ONCOKB_BASE_URL = os.getenv("ONCOKB_BASE_URL", "https://public.api.oncokb.org/api/v1")
+    ONCOKB_BASE_URL = PUBLIC_KNOWLEDGEBASE_API_URLS["oncokb"]
     ONCOKB_PUBLIC_LOOKUPS_ENABLED = os.getenv("ONCOKB_PUBLIC_LOOKUPS_ENABLED", "1") == "1"
     ONCOKB_REQUEST_TIMEOUT_SECONDS = float(os.getenv("ONCOKB_REQUEST_TIMEOUT_SECONDS", "3.0"))
-    CLINPGX_BASE_URL = os.getenv("CLINPGX_BASE_URL", "https://api.clinpgx.org/v1")
+    CLINPGX_BASE_URL = PUBLIC_KNOWLEDGEBASE_API_URLS["clinpgx"]
     CLINPGX_PUBLIC_LOOKUPS_ENABLED = os.getenv("CLINPGX_PUBLIC_LOOKUPS_ENABLED", "1") == "1"
     CLINPGX_REQUEST_TIMEOUT_SECONDS = float(os.getenv("CLINPGX_REQUEST_TIMEOUT_SECONDS", "3.0"))
 
@@ -205,8 +203,8 @@ class CelerySettings:
 
     CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "")
     CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "")
-    CELERY_DEFAULT_QUEUE = os.getenv("CELERY_DEFAULT_QUEUE", "default")
-    CELERY_INGEST_QUEUE = os.getenv("CELERY_INGEST_QUEUE", "ingest")
+    CELERY_DEFAULT_QUEUE = "default"
+    CELERY_INGEST_QUEUE = "ingest"
     CELERY_TASK_TIME_LIMIT = int(os.getenv("CELERY_TASK_TIME_LIMIT", "7200"))
     CELERY_TASK_SOFT_TIME_LIMIT = int(os.getenv("CELERY_TASK_SOFT_TIME_LIMIT", "6900"))
     CELERY_RESULT_EXPIRES = int(os.getenv("CELERY_RESULT_EXPIRES", "86400"))
@@ -302,7 +300,6 @@ class ProductionConfig(DefaultConfig):
         """Require critical secrets for production startup."""
         _require_env("SECRET_KEY", "production")
         _require_env("INTERNAL_API_TOKEN", "production")
-        _require_env("API_SESSION_SALT", "production")
         _require_env("PASSWORD_TOKEN_SALT", "production")
 
 
@@ -354,8 +351,9 @@ class TestConfig(DefaultConfig):
     LOGIN_DISABLED = True
     DEBUG: bool = True
 
-    # Disable Redis cache in tests — avoids 10s DNS timeout for unreachable hosts.
+    # Tests do not need Redis; permit the explicit no-op fallback.
     CACHE_REDIS_URL = ""
+    CACHE_REQUIRED = False
 
 
 class StageConfig(DefaultConfig):
@@ -380,5 +378,4 @@ class StageConfig(DefaultConfig):
         """Require critical secrets for staging startup."""
         _require_env("SECRET_KEY", "staging")
         _require_env("INTERNAL_API_TOKEN", "staging")
-        _require_env("API_SESSION_SALT", "staging")
         _require_env("PASSWORD_TOKEN_SALT", "staging")

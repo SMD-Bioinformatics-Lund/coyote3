@@ -65,7 +65,6 @@ queue. Workers are defined in the Compose stacks as `coyote3_worker`,
 
 Runtime settings:
 
-- `CELERY_INGEST_QUEUE`: Queue used for ingest work. Defaults to `ingest`.
 - `CELERY_WORKER_CONCURRENCY`: Worker concurrency. Defaults to `2`.
 - `/data/coyote3/ingest_staging`: Fixed durable server-side staging root for async upload files.
 
@@ -172,18 +171,13 @@ parsing or writing a sample bundle when the next beat tick fires, the newer task
 returns `skipped` with `reason=already_running` and does not touch any manifest
 files.
 
-## Compose Mongo profile
+## MongoDB dependency
 
-The Compose Mongo service is optional. By default, API and worker containers use
-the configured `MONGO_URI`, which can point at a local or managed MongoDB. Start
-the bundled Mongo only when needed:
-
-```bash
-docker compose -f deploy/compose/docker-compose.dev.yml --profile with-mongo up -d
-```
-
-Without `--profile with-mongo`, only Redis, API, frontend/docs, Celery worker,
-and Celery beat are included in the stack.
+API and worker containers use only the configured `MONGO_URI`. The database is
+provisioned independently of the application stack and must be reachable from
+the API and worker containers.
+See [MongoDB deployment and recovery](../operations/mongodb_deployment_and_recovery.md).
+See [MongoDB deployment and recovery](../operations/mongodb_deployment_and_recovery.md).
 
 ## Route commands (full examples)
 
@@ -203,34 +197,38 @@ ${PYTHON_BIN:-python} scripts/api_login.py \
   --print-token
 ```
 
-One-shot ordered seeding (required + optional baseline collections):
+For a new empty database, run the direct bootstrap command before starting the
+application services:
 
 ```bash
-scripts/bootstrap_center_collections.sh \
-  --api-base-url "${BASE_URL}" \
-  --bearer-token "${API_BEARER_TOKEN}" \
-  --seed-file api/config/bootstrap/demo_center \
-  --reference-seed-data api/config/bootstrap/rbac \
-  --reference-seed-data api/config/bootstrap/reference \
-  --with-optional
+.venv/bin/python scripts/bootstrap_database.py \
+  --mongo-uri "$MONGO_URI" \
+  --db "$COYOTE3_DB" \
+  --username "admin.coyote3" \
+  --email "admin@your-center.org" \
+  --password "<GENERATED_ADMIN_PASSWORD>"
 ```
 
 Behavior:
 
-- Default mode retries a failed collection seed once with `ignore_duplicates=true`.
-- Add `--skip-existing` to always seed in duplicate-tolerant mode.
-- Add `--strict-no-retry` to fail immediately on first error.
+- It creates the first local superuser and loads `permissions`, `roles`,
+  `hgnc_genes`, and `vep_metadata` only into empty collections.
+- It rejects a partially initialized governance database rather than merging
+  uncertain state.
+- Add `--with-demo-center` only to load the repository's synthetic ASP, ASPC,
+  and ISGL demonstration documents in a nonclinical environment.
 
 Seed source policy for a new deployment:
 
 - The application-owned RBAC catalog is `api/config/bootstrap/rbac`. It installs
   every bundled permission policy and built-in role only during explicit
-  first-run bootstrap or explicit upgrade synchronization.
+  direct bootstrap or explicit upgrade synchronization.
 - `api/config/bootstrap/demo_center` provides synthetic ASP, ASPC, and ISGL
   records for installation verification. Replace these with reviewed center
   definitions before clinical use.
-- HGNC, VEP metadata, and other reference collections are center-supplied data;
-  they are not copied from test fixtures during a production bootstrap.
+- HGNC and VEP metadata are bundled release snapshots. The bootstrap command
+  loads them only when the target collection is empty; it never takes data from
+  test fixtures.
 - Keep center seed changes deterministic and version-controlled in the center's
   private deployment configuration.
 - `asp_configs` documents are contract-driven and must carry typed `filters`,
@@ -593,23 +591,18 @@ not authorize arbitrary collection ingestion.
 
 Use this order for a clean deployment at a new center.
 
-1. Create Mongo infrastructure users.
-   - Root/admin user (`MONGO_ROOT_*`) and app user (`MONGO_APP_*`).
-   - Compose init scripts create app user only on first boot of an empty Mongo volume.
-   - For existing volumes, use `mongosh` with an admin-capable URI to create/rotate the app user (see [Environments and Secrets](../operations/environments_and_secrets.md)).
-2. Seed mandatory shared collections.
-   - `hgnc_genes`
-   - `permissions`
-   - `roles`
-   - `vep_metadata`
-3. Bootstrap mandatory runtime collections.
-   - first superuser via `scripts/bootstrap_local_admin.py` (writes user audit metadata)
-   - `asp_configs`
-   - `assay_specific_panels`
-4. Optionally seed filtering and annotation knowledgebase collections.
-   - `insilico_genelists`
-   - `civic_genes`, `civic_variants`, `oncokb_genes`, `oncokb_actionable`, `brcaexchange`, `iarc_tp53`, `cosmic`, `hpaexpr`
-5. Ingest sample data.
+1. Provision the MongoDB application user outside Coyote3.
+2. Run `scripts/bootstrap_database.py` against the empty application database.
+   - It creates the first superuser and loads `permissions`, `roles`,
+     `hgnc_genes`, and `vep_metadata` when those collections are empty.
+   - Add `--with-demo-center` only for the synthetic ASP, ASPC, and ISGL
+     demonstration configuration.
+3. Start Coyote3 services.
+4. Import approved center ASP, ASPC, and ISGL configuration.
+5. Optionally import filtering and annotation knowledgebase collections.
+   - `civic_genes`, `civic_variants`, `oncokb_genes`, `oncokb_actionable`,
+     `brcaexchange`, `iarc_tp53`, `cosmic`, `hpaexpr`
+6. Ingest sample data.
    - `POST /api/v1/internal/ingest/sample-bundle` for fresh sample + analysis data
    - `POST /api/v1/internal/ingest/sample-bundle/upload` for fresh sample + uploaded data files
    - use a complete sample bundle with `update_existing=true` to replace an existing sample's declared analysis data
@@ -621,21 +614,10 @@ Use collection endpoints to seed reference/config data with schema validation.
 - Single: `POST /api/v1/internal/ingest/collection`
 - Bulk: `POST /api/v1/internal/ingest/collection/bulk`
 
-Recommended ordered commands for a new deployment:
-
-1. `permissions` via `/collection` or `/collection/bulk`
-2. `roles` via `/collection` or `/collection/bulk`
-3. `hgnc_genes` via `/collection/bulk`
-4. `vep_metadata` via `/collection/bulk`
-5. first superuser via `scripts/bootstrap_local_admin.py`
-6. `asp_configs` via `/collection` or `/collection/bulk`
-7. `assay_specific_panels` via `/collection` or `/collection/bulk`
-8. optional `insilico_genelists` and annotation knowledgebase collections
-
-Note:
-
-- `scripts/bootstrap_center_collections.sh` intentionally skips `users`.
-- If needed, seed additional `users` later via collection endpoints or admin user management UI/API.
+Use these endpoints after the direct first-deployment bootstrap for controlled
+center-owned configuration or optional knowledgebase imports. Do not use them
+to recreate the bundled governance and reference baseline on a populated
+database. Create additional users through the administrative UI/API.
 
 ## Minimum required dataset (baseline)
 
@@ -645,7 +627,7 @@ Use this as the minimum deployment contract:
 | --- | --- | --- |
 | `permissions` | `permission_id` | RBAC policy definitions |
 | `roles` | `role_id`, `level`, `permissions[]` | RBAC role resolution |
-| `users` | `username`, `email`, `roles[]`, `environments[]` | Login + authorization subject (first superuser should be created by `bootstrap_local_admin.py`) |
+| `users` | `username`, `email`, `roles[]`, `environments[]` | Login + authorization subject (the first superuser is created by `bootstrap_database.py`) |
 | `asp_configs` | `aspc_id`, `asp_id`, `subpanel_id`, `environment`, `asp_group`, `asp_category`, `analysis_types[]`, `display_name`, `filters{...}`, `reporting{...}`, `is_active`, `version` | Assay+subpanel+environment runtime config |
 | `assay_specific_panels` | `asp_id`, `assay_name`, `asp_group`, `is_active` | Assay metadata/UI wiring |
 | `insilico_genelists` | `isgl_id`, `diagnosis`, `assays[]`, `assay_groups[]`, `genes[]`, `is_active` | Panel/list filtering logic |
@@ -782,7 +764,7 @@ Core collections typically seeded first:
 
 - `permissions`
 - `roles`
-- first local superuser via `scripts/bootstrap_local_admin.py`
+- first local superuser via `scripts/bootstrap_database.py`
 - `asp_configs`
 - `assay_specific_panels`
 - `insilico_genelists`

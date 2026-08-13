@@ -19,7 +19,7 @@ from pymongo.errors import OperationFailure
 
 from api.infra.knowledgebase.clinpgx_public import ClinPgxPublicRepository
 from api.infra.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
-from api.infra.knowledgebase.plugins import enabled_knowledgebase_plugins
+from api.infra.knowledgebase.plugins import BUILTIN_KNOWLEDGEBASE_REPOSITORIES
 from api.infra.mongo.repositories.anno_vep import AnnoVepRepository
 from api.infra.mongo.repositories.annotations import AnnotationsRepository
 from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
@@ -202,7 +202,7 @@ class MongoAdapter:
         self.index_setup_conflicts: list[dict[str, str]] = []
         for repository_attr, repository_cls, _index_name in CORE_REPOSITORIES:
             setattr(self, repository_attr, repository_cls(self))
-        for plugin in enabled_knowledgebase_plugins(self.app.config):
+        for plugin in BUILTIN_KNOWLEDGEBASE_REPOSITORIES:
             setattr(self, plugin.repository_attr, plugin.repository_cls(self))
         if ensure_indexes:
             self.ensure_repository_indexes()
@@ -211,7 +211,7 @@ class MongoAdapter:
         """Yield registered repository names and instances in deterministic order."""
         for repository_attr, _repository_cls, index_name in CORE_REPOSITORIES:
             yield index_name, getattr(self, repository_attr)
-        for plugin in enabled_knowledgebase_plugins(self.app.config):
+        for plugin in BUILTIN_KNOWLEDGEBASE_REPOSITORIES:
             yield plugin.index_name, getattr(self, plugin.repository_attr)
 
     def ensure_repository_indexes(self) -> None:

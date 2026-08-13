@@ -67,8 +67,6 @@ services:
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
-      - CACHE_ENABLED=1
-      - CACHE_REQUIRED=1
       - CACHE_REDIS_URL=redis://coyote3_redis_stage:6379/0
       - TZ=${LOCAL_TIME_ZONE:-UTC}
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
@@ -108,15 +106,12 @@ services:
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
-      - CACHE_ENABLED=1
-      - CACHE_REQUIRED=1
       - CACHE_REDIS_URL=redis://coyote3_redis_stage:6379/0
       - TZ=${LOCAL_TIME_ZONE:-UTC}
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
       - CELERY_BROKER_URL=redis://coyote3_redis_stage:6379/0
       - CELERY_RESULT_BACKEND=redis://coyote3_redis_stage:6379/0
-      - CELERY_INGEST_QUEUE=${CELERY_INGEST_QUEUE:-ingest}
     restart: on-failure:5
     dns:
       - ${APP_DNS:-1.1.1.1}
@@ -132,7 +127,7 @@ services:
       - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
       - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
       - "/fs1:/fs1"
-    command: "celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=${CELERY_INGEST_QUEUE:-ingest},default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}"
+    command: "celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest,default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}"
     depends_on:
       coyote3_redis_stage:
         condition: service_started
@@ -146,15 +141,12 @@ services:
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
-      - CACHE_ENABLED=1
-      - CACHE_REQUIRED=1
       - CACHE_REDIS_URL=redis://coyote3_redis_stage:6379/0
       - TZ=${LOCAL_TIME_ZONE:-UTC}
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
       - CELERY_BROKER_URL=redis://coyote3_redis_stage:6379/0
       - CELERY_RESULT_BACKEND=redis://coyote3_redis_stage:6379/0
-      - CELERY_INGEST_QUEUE=${CELERY_INGEST_QUEUE:-ingest}
     restart: on-failure:5
     dns:
       - ${APP_DNS:-1.1.1.1}
@@ -188,40 +180,6 @@ services:
       - coyote3-stage-net
     restart: on-failure:5
     privileged: true
-
-  # Optional local Mongo. Enable with --profile with-mongo.
-  coyote3_stage_mongo:
-    <<: *runtime-defaults
-    container_name: coyote3_stage_mongo_${COYOTE3_VERSION:-local}
-    image: mongo:7.0
-    profiles: ["with-mongo"]
-    command: ["--bind_ip_all"]
-    env_file:
-      - ../../.coyote3_stage_env
-    restart: on-failure:5
-    stop_grace_period: 120s
-    networks:
-      - coyote3-stage-net
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-coyote3_root}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-CHANGE_ME_STAGE_ROOT_PASSWORD}
-      - COYOTE3_DB=${COYOTE3_DB:-coyote3}
-      - MONGO_APP_USER=${MONGO_APP_USER:-coyote3_app}
-      - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD:-CHANGE_ME_STAGE_APP_PASSWORD}
-    volumes:
-      - "${COYOTE3_MONGO_DATA_HOST_ROOT:?COYOTE3_MONGO_DATA_HOST_ROOT must be set}:/data/db"
-      - "${COYOTE3_MONGO_BACKUP_HOST_ROOT:?COYOTE3_MONGO_BACKUP_HOST_ROOT must be set}:/backup"
-      - ./mongo-init/create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "mongosh \"mongodb://$$MONGO_INITDB_ROOT_USERNAME:$$MONGO_INITDB_ROOT_PASSWORD@127.0.0.1:27017/admin?authSource=admin\" --quiet --eval \"db.getSiblingDB('$$COYOTE3_DB').runCommand({ usersInfo: '$$MONGO_APP_USER' }).users.length\" | grep 1 >/dev/null",
-        ]
-      interval: 5s
-      timeout: 3s
-      retries: 40
-      start_period: 10s
 
   coyote3_stage_proxy:
     <<: *runtime-defaults
