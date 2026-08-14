@@ -7,6 +7,8 @@ repos:
     rev: v5.0.0
     hooks:
     -   id: check-yaml
+        # Docker Compose merge directives such as !reset are not standard YAML tags.
+        exclude: ^deploy/compose/docker-compose\.dev\.yml$
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
     -   id: check-toml
