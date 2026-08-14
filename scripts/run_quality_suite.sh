@@ -42,9 +42,14 @@ npm --prefix frontend run test:e2e
 echo "[quality] Strict documentation build"
 "$PYTHON_BIN" -m mkdocs build --strict --site-dir /tmp/coyote3-docs-quality-build
 
-if [[ -n "${COMPOSE_FILE:-}" ]]; then
-  echo "[quality] Compose configuration: ${COMPOSE_FILE}"
-  docker compose -f "$COMPOSE_FILE" config --quiet
+if [[ -n "${COMPOSE_FILES:-${COMPOSE_FILE:-}}" ]]; then
+  read -r -a compose_files <<< "${COMPOSE_FILES:-${COMPOSE_FILE}}"
+  compose_args=()
+  for compose_file in "${compose_files[@]}"; do
+    compose_args+=("-f" "$compose_file")
+  done
+  echo "[quality] Compose configuration: ${compose_files[*]}"
+  docker compose --env-file "${COMPOSE_ENV_FILE:-deploy/env/example.env}" "${compose_args[@]}" config --quiet
 fi
 
 echo "[quality] All checks passed"

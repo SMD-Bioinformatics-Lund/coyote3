@@ -27,6 +27,7 @@ Run preflight against the exact files used for deployment:
 ```bash
 PYTHON_BIN=.venv/bin/python scripts/center_preflight.sh \
   --env-file .coyote3_validation_env \
+  --compose-file deploy/compose/docker-compose.yml \
   --compose-file deploy/compose/docker-compose.stage.yml
 ```
 

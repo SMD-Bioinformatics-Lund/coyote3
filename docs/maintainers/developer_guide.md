@@ -34,14 +34,14 @@ The environment-aware orchestration layer must be validated before any configura
 
 ```bash
 # Verify production orchestration schema
-docker compose --env-file .coyote3_env -f deploy/compose/docker-compose.yml config -q
+./scripts/compose-with-version.sh --env-file .coyote3_env -f deploy/compose/docker-compose.yml config -q
 
 # Verify staging orchestration schema
-docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml config -q
+./scripts/compose-with-version.sh --env-file .coyote3_stage_env -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml config -q
 
 # Verify development and testing schemas
-docker compose --env-file .coyote3_dev_env -f deploy/compose/docker-compose.dev.yml config -q
-docker compose --env-file .coyote3_test_env -f deploy/compose/docker-compose.test.yml config -q
+./scripts/compose-with-version.sh --env-file .coyote3_dev_env -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml config -q
+./scripts/compose-with-version.sh --env-file .coyote3_test_env -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.test.yml config -q
 ```
 
 ## Documentation Lifecycle
@@ -65,7 +65,11 @@ The platform emits structured log telemetry utilizing standardized prefixes for 
 
 Engineers can probe localized telemetry using the following diagnostic command:
 ```bash
-docker logs coyote3_api_local 2>&1 | rg "auth_metric|mail_metric"
+./scripts/compose-with-version.sh \
+  --env-file .coyote3_dev_env \
+  -f deploy/compose/docker-compose.yml \
+  -f deploy/compose/docker-compose.dev.yml \
+  logs api 2>&1 | rg "auth_metric|mail_metric"
 ```
 
 ## Standard Release Protocol

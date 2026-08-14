@@ -60,8 +60,7 @@ Scope note:
 
 The async routes perform the same API authentication and authorization checks as
 the synchronous internal ingest routes, then enqueue work on the Celery `ingest`
-queue. Workers are defined in the Compose stacks as `coyote3_worker`,
-`coyote3_dev_worker`, `coyote3_stage_worker`, and `coyote3_test_worker`.
+queue. Every Compose environment uses the stable `worker` service key.
 
 Runtime settings:
 
@@ -120,8 +119,7 @@ This is the supported browser workflow for manual operator-triggered ingestion.
 
 ## Folder watcher ingest
 
-Compose also defines a Celery beat scheduler (`coyote3_beat`,
-`coyote3_dev_beat`, `coyote3_stage_beat`, and `coyote3_test_beat`). When
+Compose also defines the stable `beat` scheduler service. When
 `COYOTE3_INGEST_WATCH_ENABLED=1`, beat periodically enqueues
 `api.tasks.ingest.ingest_watch_directory_once`, which scans
 the fixed `/data/coyote3/copied_sample_files/yaml` directory for `coyote3.yaml`.

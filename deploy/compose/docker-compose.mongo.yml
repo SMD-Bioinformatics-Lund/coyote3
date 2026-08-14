@@ -1,11 +1,10 @@
-name: coyote3-mongodb
+name: coyote3_mongodb_${ENV_NAME:?ENV_NAME is required}
 
 # Optional independent MongoDB deployment. The Coyote3 application never
 # manages this stack; configure MONGO_URI with an endpoint that application
 # containers can reach.
 services:
-  coyote3_mongo:
-    container_name: coyote3_mongo_${ENV_NAME:?ENV_NAME is required}
+  mongo:
     image: mongo:8.2
     command:
       - mongod
@@ -48,11 +47,10 @@ services:
         aliases:
           - coyote3_mongo
 
-  coyote3_mongo_init:
-    container_name: coyote3_mongo_init_${ENV_NAME:?ENV_NAME is required}
+  mongo_init:
     image: mongo:8.2
     environment:
-      MONGO_SERVICE_HOST: coyote3_mongo
+      MONGO_SERVICE_HOST: mongo
       MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME must be set}
       MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set}
       MONGO_REPLICA_SET_NAME: ${MONGO_REPLICA_SET_NAME:?MONGO_REPLICA_SET_NAME must be set}
@@ -61,7 +59,7 @@ services:
       - ./mongo-init/init-replica-set.sh:/opt/coyote3/init-replica-set.sh:ro
     entrypoint: ["/bin/sh", "/opt/coyote3/init-replica-set.sh"]
     depends_on:
-      coyote3_mongo:
+      mongo:
         condition: service_healthy
     restart: "no"
     extra_hosts:

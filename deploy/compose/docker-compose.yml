@@ -1,19 +1,115 @@
-name: coyote3-prod
-# usage:
-# COYOTE3_VERSION is read from api/version.py (example):
-#   export COYOTE3_VERSION="$(python3 api/version.py)"
-# docker compose -f deploy/compose/docker-compose.yml up -d
-# docker compose -f deploy/compose/docker-compose.yml down
+name: coyote3_prod
+
 x-runtime-defaults: &runtime-defaults
   mem_limit: ${COYOTE3_CONTAINER_MEM_LIMIT:-2g}
   cpus: ${COYOTE3_CONTAINER_CPU_LIMIT:-2.0}
+  restart: on-failure:5
+  networks: [coyote3]
+
+x-app-environment: &app-environment
+  ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
+  MONGO_URI: ${MONGO_URI:?MONGO_URI is required}
+  COYOTE3_DB: ${COYOTE3_DB:?COYOTE3_DB is required}
+  BAM_DB: ${BAM_DB:?BAM_DB is required}
+  SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+  INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?INTERNAL_API_TOKEN is required}
+  PASSWORD_TOKEN_SALT: ${PASSWORD_TOKEN_SALT:?PASSWORD_TOKEN_SALT is required}
+  CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS is required}
+  SCRIPT_NAME: ${SCRIPT_NAME:-}
+  PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?PUBLIC_BASE_URL is required}
+  ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
+  LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
+  TZ: ${LOCAL_TIME_ZONE:-UTC}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  LOG_FILE_ENABLED: ${LOG_FILE_ENABLED:-1}
+  LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-30}
+  LOG_GZIP_AFTER_DAYS: ${LOG_GZIP_AFTER_DAYS:-1}
+  AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-730}
+  NOTIFICATION_RETENTION_DAYS: ${NOTIFICATION_RETENTION_DAYS:-180}
+  CACHE_REQUIRED: ${CACHE_REQUIRED:-1}
+  CACHE_REDIS_URL: redis://redis:6379/0
+  CACHE_REDIS_CONNECT_TIMEOUT: ${CACHE_REDIS_CONNECT_TIMEOUT:-1.0}
+  CACHE_REDIS_SOCKET_TIMEOUT: ${CACHE_REDIS_SOCKET_TIMEOUT:-1.0}
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_RESULT_BACKEND: redis://redis:6379/0
+  CELERY_LOG_LEVEL: ${CELERY_LOG_LEVEL:-INFO}
+  CELERY_WORKER_CONCURRENCY: ${CELERY_WORKER_CONCURRENCY:-2}
+  CELERY_TASK_TIME_LIMIT: ${CELERY_TASK_TIME_LIMIT:-7200}
+  CELERY_TASK_SOFT_TIME_LIMIT: ${CELERY_TASK_SOFT_TIME_LIMIT:-6900}
+  CELERY_RESULT_EXPIRES: ${CELERY_RESULT_EXPIRES:-86400}
+  CELERY_WORKER_PREFETCH_MULTIPLIER: ${CELERY_WORKER_PREFETCH_MULTIPLIER:-1}
+  COYOTE3_MAINTENANCE_HOUR: ${COYOTE3_MAINTENANCE_HOUR:-2}
+  COYOTE3_INGEST_WATCH_ENABLED: ${COYOTE3_INGEST_WATCH_ENABLED:-0}
+  COYOTE3_INGEST_WATCH_FILENAME: ${COYOTE3_INGEST_WATCH_FILENAME:-coyote3.yaml}
+  COYOTE3_INGEST_DONE_SUFFIX: ${COYOTE3_INGEST_DONE_SUFFIX:-.done}
+  COYOTE3_INGEST_FAILED_SUFFIX: ${COYOTE3_INGEST_FAILED_SUFFIX:-.failed}
+  COYOTE3_INGEST_WATCH_INTERVAL_SECONDS: ${COYOTE3_INGEST_WATCH_INTERVAL_SECONDS:-30}
+  COYOTE3_INGEST_WATCH_UPDATE_EXISTING: ${COYOTE3_INGEST_WATCH_UPDATE_EXISTING:-0}
+  COYOTE3_INGEST_WATCH_INCREMENT: ${COYOTE3_INGEST_WATCH_INCREMENT:-0}
+  AUTHENTICATION_PROVIDERS: ${AUTHENTICATION_PROVIDERS:-local,ldap}
+  LDAP_HOST: ${LDAP_HOST:-}
+  LDAP_BASE_DN: ${LDAP_BASE_DN:-}
+  LDAP_USER_LOGIN_ATTR: ${LDAP_USER_LOGIN_ATTR:-mail}
+  LDAP_BINDDN: ${LDAP_BINDDN:-}
+  LDAP_SECRET: ${LDAP_SECRET:-}
+  LDAP_USER_DN: ${LDAP_USER_DN:-ou=people}
+  GENS_URI: ${GENS_URI:-}
+  IGV_URI: ${IGV_URI:-}
+  ONCOKB_PUBLIC_LOOKUPS_ENABLED: ${ONCOKB_PUBLIC_LOOKUPS_ENABLED:-1}
+  ONCOKB_REQUEST_TIMEOUT_SECONDS: ${ONCOKB_REQUEST_TIMEOUT_SECONDS:-3.0}
+  CLINPGX_PUBLIC_LOOKUPS_ENABLED: ${CLINPGX_PUBLIC_LOOKUPS_ENABLED:-1}
+  CLINPGX_REQUEST_TIMEOUT_SECONDS: ${CLINPGX_REQUEST_TIMEOUT_SECONDS:-3.0}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_USE_TLS: ${SMTP_USE_TLS:-1}
+  SMTP_USE_SSL: ${SMTP_USE_SSL:-0}
+  SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@coyote3.local}
+  SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Coyote3}
+  PASSWORD_TOKEN_TTL_SECONDS: ${PASSWORD_TOKEN_TTL_SECONDS:-3600}
+  API_SESSION_COOKIE_NAME: ${API_SESSION_COOKIE_NAME:-coyote3_api_session}
+  API_SESSION_TTL_SECONDS: ${API_SESSION_TTL_SECONDS:-43200}
+  API_SESSION_COOKIE_SAMESITE: ${API_SESSION_COOKIE_SAMESITE:-lax}
+  API_RATE_LIMIT_ENABLED: ${API_RATE_LIMIT_ENABLED:-1}
+  API_RATE_LIMIT_REQUESTS_PER_MINUTE: ${API_RATE_LIMIT_REQUESTS_PER_MINUTE:-600}
+  API_RATE_LIMIT_WINDOW_SECONDS: ${API_RATE_LIMIT_WINDOW_SECONDS:-60}
+  API_CSRF_ENABLED: ${API_CSRF_ENABLED:-1}
+  WEB_RATE_LIMIT_ENABLED: ${WEB_RATE_LIMIT_ENABLED:-1}
+  WEB_RATE_LIMIT_REQUESTS_PER_MINUTE: ${WEB_RATE_LIMIT_REQUESTS_PER_MINUTE:-300}
+  WEB_RATE_LIMIT_WINDOW_SECONDS: ${WEB_RATE_LIMIT_WINDOW_SECONDS:-60}
+  DASHBOARD_SUMMARY_CACHE_TTL_SECONDS: ${DASHBOARD_SUMMARY_CACHE_TTL_SECONDS:-60}
+  DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS: ${DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS:-300}
+  DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS: ${DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS:-604800}
+  REPORTS_BASE_PATH: ${REPORTS_BASE_PATH:-/data/coyote3/reports}
+  MONGO_MAX_POOL_SIZE: ${MONGO_MAX_POOL_SIZE:-100}
+  MONGO_MIN_POOL_SIZE: ${MONGO_MIN_POOL_SIZE:-0}
+  MONGO_CONNECT_TIMEOUT_MS: ${MONGO_CONNECT_TIMEOUT_MS:-10000}
+  MONGO_SERVER_SELECTION_TIMEOUT_MS: ${MONGO_SERVER_SELECTION_TIMEOUT_MS:-30000}
+  MONGO_WAIT_QUEUE_TIMEOUT_MS: ${MONGO_WAIT_QUEUE_TIMEOUT_MS:-10000}
+  MONGO_READ_CONCERN_LEVEL: ${MONGO_READ_CONCERN_LEVEL:-majority}
+  MONGO_WRITE_CONCERN_W: ${MONGO_WRITE_CONCERN_W:-majority}
+  MONGO_WRITE_CONCERN_JOURNAL: ${MONGO_WRITE_CONCERN_JOURNAL:-1}
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUNBUFFERED: "1"
+  GIT_COMMIT: ${GIT_COMMIT:-unknown}
+  BUILD_TIME: ${BUILD_TIME:-unknown}
+
+x-api-image: &api-image
+  image: coyote3-api:${COYOTE3_VERSION:?COYOTE3_VERSION is required}
+
+x-app-volumes: &app-volumes
+  - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
+  - /access:/access
+  - /media:/media
+  - ${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT is required}:/data
+  - ${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}
+  - /fs1:/fs1
 
 services:
-  # UI container: React presentation layer. Calls coyote3_api through nginx.
-  coyote3_frontend:
+  frontend:
     <<: *runtime-defaults
-    container_name: coyote3_frontend_${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
-    image: coyote3-frontend:${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
+    image: coyote3-frontend:${COYOTE3_VERSION:?COYOTE3_VERSION is required}
     build:
       context: ../..
       dockerfile: docker/Dockerfile.frontend
@@ -23,76 +119,33 @@ services:
         LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
         GENS_URI: ${GENS_URI:-}
         IGV_URI: ${IGV_URI:-}
-    env_file:
-      - ../../.coyote3_env
     environment:
-      - TZ=${LOCAL_TIME_ZONE:-UTC}
-    restart: on-failure:5
-    dns:
-      - ${APP_DNS:-1.1.1.1}
-      - 8.8.8.8
-    networks:
-      - coyote3-net
+      TZ: ${LOCAL_TIME_ZONE:-UTC}
     depends_on:
-      coyote3_api:
-        condition: service_healthy
+      api: {condition: service_healthy}
 
-  # Standalone docs container (MkDocs static site) for troubleshooting when app services are degraded.
-  coyote3_docs:
+  docs:
     <<: *runtime-defaults
-    container_name: coyote3_docs_${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
-    image: coyote3-docs:${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
+    image: coyote3-docs:${COYOTE3_VERSION:?COYOTE3_VERSION is required}
     build:
       context: ../..
       dockerfile: docker/Dockerfile.docs
-      network: host
-    restart: on-failure:5
-    dns:
-      - ${APP_DNS:-1.1.1.1}
-      - 8.8.8.8
-    networks:
-      - coyote3-net
 
-  # API container: FastAPI business/policy/data layer.
-  coyote3_api:
-    <<: *runtime-defaults
-    container_name: coyote3_api_${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
-    image: coyote3-api:${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
+  api:
+    <<: [*runtime-defaults, *api-image]
     build:
       context: ../..
       dockerfile: docker/Dockerfile
       target: coyote3_api
-      network: host
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
         COYOTE3_UID: ${COYOTE3_UID:-10001}
         COYOTE3_GID: ${COYOTE3_GID:-10001}
-    env_file:
-      - ../../.coyote3_env
-    environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      - CACHE_REDIS_URL=redis://coyote3_redis:6379/0
-      - TZ=${LOCAL_TIME_ZONE:-UTC}
-      - GIT_COMMIT=${GIT_COMMIT:-unknown}
-      - BUILD_TIME=${BUILD_TIME:-unknown}
-    restart: on-failure:5
-    dns:
-      - ${APP_DNS:-1.1.1.1}
-      - 8.8.8.8
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - coyote3-net
-    volumes:
-      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
-      - "/access:/access"
-      - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
-      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
-      - "/fs1:/fs1"
-    command: "python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --workers ${API_WORKERS:-1}"
+    environment: *app-environment
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes: *app-volumes
+    command: python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --workers ${API_WORKERS:-1}
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=2).read()\""]
       interval: 5s
@@ -100,130 +153,47 @@ services:
       retries: 20
       start_period: 10s
     depends_on:
-      - coyote3_redis
+      redis: {condition: service_started}
 
-  coyote3_worker:
-    <<: *runtime-defaults
-    container_name: coyote3_worker_${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
-    image: coyote3-api:${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
-    env_file:
-      - ../../.coyote3_env
-    environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      - CACHE_REDIS_URL=redis://coyote3_redis:6379/0
-      - TZ=${LOCAL_TIME_ZONE:-UTC}
-      - GIT_COMMIT=${GIT_COMMIT:-unknown}
-      - BUILD_TIME=${BUILD_TIME:-unknown}
-      - CELERY_BROKER_URL=redis://coyote3_redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://coyote3_redis:6379/0
-    restart: on-failure:5
-    dns:
-      - ${APP_DNS:-1.1.1.1}
-      - 8.8.8.8
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - coyote3-net
-    volumes:
-      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
-      - "/access:/access"
-      - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
-      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
-      - "/fs1:/fs1"
-    command: "celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest,default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}"
-    healthcheck:
-      test: ["CMD-SHELL", "celery -A api.celery_app:celery_app inspect ping --destination celery@$$HOSTNAME --timeout 3 | grep -q pong"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
+  worker:
+    <<: [*runtime-defaults, *api-image]
+    environment: *app-environment
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes: *app-volumes
+    command: celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest,default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
     depends_on:
-      - coyote3_redis
+      redis: {condition: service_started}
 
-  coyote3_beat:
-    <<: *runtime-defaults
-    container_name: coyote3_beat_${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
-    image: coyote3-api:${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
-    env_file:
-      - ../../.coyote3_env
-    environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      - CACHE_REDIS_URL=redis://coyote3_redis:6379/0
-      - TZ=${LOCAL_TIME_ZONE:-UTC}
-      - GIT_COMMIT=${GIT_COMMIT:-unknown}
-      - BUILD_TIME=${BUILD_TIME:-unknown}
-      - CELERY_BROKER_URL=redis://coyote3_redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://coyote3_redis:6379/0
-    restart: on-failure:5
-    dns:
-      - ${APP_DNS:-1.1.1.1}
-      - 8.8.8.8
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - coyote3-net
-    volumes:
-      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
-      - "/access:/access"
-      - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
-      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
-      - "/fs1:/fs1"
-    command: "celery -A api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO} --pidfile=/tmp/celerybeat.pid"
-    healthcheck:
-      test: ["CMD-SHELL", "test -s /tmp/celerybeat.pid && kill -0 $$(cat /tmp/celerybeat.pid)"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
+  beat:
+    <<: [*runtime-defaults, *api-image]
+    environment: *app-environment
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes: *app-volumes
+    command: celery -A api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO} --pidfile=/tmp/celerybeat.pid
     depends_on:
-      - coyote3_redis
+      redis: {condition: service_started}
 
-  # Shared infrastructure dependency.
-  coyote3_redis:
+  redis:
     <<: *runtime-defaults
-    container_name: coyote3_redis_${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
     image: redis:7.4.3
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-    dns:
-      - ${APP_DNS:-1.1.1.1}
-      - 8.8.8.8
-    networks:
-      - coyote3-net
-    restart: on-failure:5
-    privileged: true
 
-  # Reverse proxy that exposes one external endpoint for web/api/docs.
-  coyote3_proxy:
+  proxy:
     <<: *runtime-defaults
-    container_name: coyote3_proxy_${COYOTE3_VERSION:?COYOTE3_VERSION is required for prod}
     image: nginx:1.27-alpine
-    ports:
-      - "${COYOTE3_PORT:-5815}:8088"
+    ports: ["${COYOTE3_PORT:-5815}:8088"]
     command: ["sh", "-c", "sh /etc/nginx/render-config.sh && nginx -g 'daemon off;'"]
-    env_file:
-      - ../../.coyote3_env
     environment:
-      - COYOTE3_NGINX_FRONTEND_UPSTREAM=http://coyote3_frontend:3000
-      - COYOTE3_NGINX_API_UPSTREAM=http://coyote3_api:8001
-      - COYOTE3_NGINX_DOCS_UPSTREAM=http://coyote3_docs:8080
+      SCRIPT_NAME: ${SCRIPT_NAME:-}
+      COYOTE3_NGINX_FRONTEND_UPSTREAM: http://frontend:3000
+      COYOTE3_NGINX_API_UPSTREAM: http://api:8001
+      COYOTE3_NGINX_DOCS_UPSTREAM: http://docs:8080
     volumes:
       - ./nginx/render-config.sh:/etc/nginx/render-config.sh:ro
-    networks:
-      - coyote3-net
     depends_on:
-      coyote3_frontend:
-        condition: service_started
-      coyote3_api:
-        condition: service_healthy
-      coyote3_docs:
-        condition: service_started
-    restart: on-failure:5
+      frontend: {condition: service_started}
+      api: {condition: service_healthy}
+      docs: {condition: service_started}
 
 networks:
-  coyote3-net:
+  coyote3:
     driver: bridge

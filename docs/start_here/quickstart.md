@@ -87,7 +87,7 @@ The application stack brings up:
 ```bash
 ./scripts/compose-with-version.sh \
   --env-file .coyote3_dev_env \
-  -f deploy/compose/docker-compose.dev.yml \
+  -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml \
   up -d --build
 ```
 
@@ -122,7 +122,7 @@ configured session cookie and may also be sent as
 When the development session is complete, stop the environment:
 
 ```bash
-./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.yml down
+./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml down
 ```
 
 ### Next Steps

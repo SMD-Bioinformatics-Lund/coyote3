@@ -19,7 +19,11 @@ Checks:
 Quick probe:
 
 ```bash
-docker logs coyote3_api_${COYOTE3_VERSION:-local} 2>&1 | rg "dashboard|cache|redis"
+./scripts/compose-with-version.sh \
+  --env-file .coyote3_dev_env \
+  -f deploy/compose/docker-compose.yml \
+  -f deploy/compose/docker-compose.dev.yml \
+  logs api 2>&1 | rg "dashboard|cache|redis"
 ```
 
 ## Login failure for mixed auth users

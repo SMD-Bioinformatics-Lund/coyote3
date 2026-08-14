@@ -1,228 +1,45 @@
-name: coyote3-test
-# usage:
-#   cp deploy/env/example.env .coyote3_test_env
-#   ./scripts/compose-with-version.sh --env-file .coyote3_test_env \
-#     -f deploy/compose/docker-compose.test.yml --profile tests up -d --build
-x-runtime-defaults: &runtime-defaults
-  mem_limit: ${COYOTE3_CONTAINER_MEM_LIMIT:-2g}
-  cpus: ${COYOTE3_CONTAINER_CPU_LIMIT:-2.0}
+name: coyote3_test
 
 services:
-  coyote3_test_api:
-    <<: *runtime-defaults
-    container_name: coyote3_test_api_${COYOTE3_VERSION:-local}
-    image: coyote3-api:${COYOTE3_VERSION:-local}-test
-    build:
-      context: ../..
-      dockerfile: docker/Dockerfile.dev
-      target: coyote3_dev_api
-      network: host
-      args:
-        GIT_COMMIT: ${GIT_COMMIT:-unknown}
-        BUILD_TIME: ${BUILD_TIME:-unknown}
-    env_file:
-      - ../../.coyote3_test_env
-    environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      - CACHE_REDIS_URL=redis://coyote3_redis_test:6379/0
-      - TZ=${LOCAL_TIME_ZONE:-UTC}
-      - GIT_COMMIT=${GIT_COMMIT:-unknown}
-      - BUILD_TIME=${BUILD_TIME:-unknown}
-    command: "python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --workers ${API_WORKERS:-2}"
-    healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=2).read()\""]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 10s
-    networks:
-      - coyote3-test-net
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
-      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
-      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
-    depends_on:
-      coyote3_redis_test:
-        condition: service_started
-
-  coyote3_test_worker:
-    <<: *runtime-defaults
-    container_name: coyote3_test_worker_${COYOTE3_VERSION:-local}
-    image: coyote3-api:${COYOTE3_VERSION:-local}-test
-    build:
-      context: ../..
-      dockerfile: docker/Dockerfile.dev
-      target: coyote3_dev_api
-      network: host
-      args:
-        GIT_COMMIT: ${GIT_COMMIT:-unknown}
-        BUILD_TIME: ${BUILD_TIME:-unknown}
-    env_file:
-      - ../../.coyote3_test_env
-    environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      - CACHE_REDIS_URL=redis://coyote3_redis_test:6379/0
-      - TZ=${LOCAL_TIME_ZONE:-UTC}
-      - GIT_COMMIT=${GIT_COMMIT:-unknown}
-      - BUILD_TIME=${BUILD_TIME:-unknown}
-      - CELERY_BROKER_URL=redis://coyote3_redis_test:6379/0
-      - CELERY_RESULT_BACKEND=redis://coyote3_redis_test:6379/0
-    command: "celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest,default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}"
-    networks:
-      - coyote3-test-net
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
-      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
-      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
-    depends_on:
-      coyote3_redis_test:
-        condition: service_started
-
-  coyote3_test_beat:
-    <<: *runtime-defaults
-    container_name: coyote3_test_beat_${COYOTE3_VERSION:-local}
-    image: coyote3-api:${COYOTE3_VERSION:-local}-test
-    build:
-      context: ../..
-      dockerfile: docker/Dockerfile.dev
-      target: coyote3_dev_api
-      network: host
-      args:
-        GIT_COMMIT: ${GIT_COMMIT:-unknown}
-        BUILD_TIME: ${BUILD_TIME:-unknown}
-    env_file:
-      - ../../.coyote3_test_env
-    environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      - CACHE_REDIS_URL=redis://coyote3_redis_test:6379/0
-      - TZ=${LOCAL_TIME_ZONE:-UTC}
-      - GIT_COMMIT=${GIT_COMMIT:-unknown}
-      - BUILD_TIME=${BUILD_TIME:-unknown}
-      - CELERY_BROKER_URL=redis://coyote3_redis_test:6379/0
-      - CELERY_RESULT_BACKEND=redis://coyote3_redis_test:6379/0
-    command: "celery -A api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO}"
-    networks:
-      - coyote3-test-net
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
-      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
-      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
-    depends_on:
-      coyote3_redis_test:
-        condition: service_started
-
-  coyote3_test_frontend:
-    <<: *runtime-defaults
-    container_name: coyote3_test_frontend_${COYOTE3_VERSION:-local}
+  frontend:
     image: coyote3-frontend:${COYOTE3_VERSION:-local}-test
-    profiles: ["with-ui"]
-    build:
-      context: ../..
-      dockerfile: docker/Dockerfile.frontend
-      args:
-        SCRIPT_NAME: ${SCRIPT_NAME:-}
-        ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
-        LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
-        GENS_URI: ${GENS_URI:-}
-        IGV_URI: ${IGV_URI:-}
-    env_file:
-      - ../../.coyote3_test_env
-    environment:
-      - TZ=${LOCAL_TIME_ZONE:-UTC}
-    networks:
-      - coyote3-test-net
-    depends_on:
-      coyote3_test_api:
-        condition: service_healthy
-
-  coyote3_test_docs:
-    <<: *runtime-defaults
-    container_name: coyote3_test_docs_${COYOTE3_VERSION:-local}
+    profiles: [with-ui]
+  docs:
     image: coyote3-docs:${COYOTE3_VERSION:-local}-test
-    profiles: ["with-ui"]
+    profiles: [with-ui]
+  api:
+    image: coyote3-api:${COYOTE3_VERSION:-local}-test
     build:
-      context: ../..
-      dockerfile: docker/Dockerfile.docs
-      network: host
-      args:
-        GIT_COMMIT: ${GIT_COMMIT:-unknown}
-        BUILD_TIME: ${BUILD_TIME:-unknown}
-    restart: on-failure:5
-    networks:
-      - coyote3-test-net
-
-  coyote3_test_runner:
-    <<: *runtime-defaults
-    container_name: coyote3_test_runner_${COYOTE3_VERSION:-local}
+      dockerfile: docker/Dockerfile.dev
+      target: coyote3_dev_api
+  worker:
+    image: coyote3-api:${COYOTE3_VERSION:-local}-test
+    build:
+      dockerfile: docker/Dockerfile.dev
+      target: coyote3_dev_api
+  beat:
+    image: coyote3-api:${COYOTE3_VERSION:-local}-test
+    build:
+      dockerfile: docker/Dockerfile.dev
+      target: coyote3_dev_api
+  proxy:
+    profiles: [with-ui]
+    ports: ["${COYOTE3_PORT:-6811}:8088"]
+  test_runner:
     image: coyote3-all:${COYOTE3_VERSION:-local}-test
-    profiles: ["tests"]
+    profiles: [tests]
     build:
       context: ../..
       dockerfile: docker/Dockerfile.dev
       target: coyote3_dev_all
-      network: host
-      args:
-        GIT_COMMIT: ${GIT_COMMIT:-unknown}
-        BUILD_TIME: ${BUILD_TIME:-unknown}
-    env_file:
-      - ../../.coyote3_test_env
     environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      - TZ=${LOCAL_TIME_ZONE:-UTC}
-    command: "bash -lc 'PYTHONPATH=. pytest -q'"
-    networks:
-      - coyote3-test-net
+      ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
+      MONGO_URI: ${MONGO_URI:?MONGO_URI is required}
+      COYOTE3_DB: ${COYOTE3_DB:?COYOTE3_DB is required}
+      BAM_DB: ${BAM_DB:?BAM_DB is required}
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    command: bash -lc 'PYTHONPATH=. pytest -q'
+    networks: [coyote3]
     depends_on:
-      coyote3_test_api:
-        condition: service_healthy
-
-  coyote3_redis_test:
-    <<: *runtime-defaults
-    container_name: coyote3_redis_test_${COYOTE3_VERSION:-local}
-    image: redis:7.4.3
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-    networks:
-      - coyote3-test-net
-    restart: on-failure:5
-
-  coyote3_test_proxy:
-    <<: *runtime-defaults
-    container_name: coyote3_test_proxy_${COYOTE3_VERSION:-local}
-    image: nginx:1.27-alpine
-    profiles: ["with-ui"]
-    ports:
-      - "${COYOTE3_PORT:-6811}:8088"
-    command: ["sh", "-c", "sh /etc/nginx/render-config.sh && nginx -g 'daemon off;'"]
-    env_file:
-      - ../../.coyote3_test_env
-    environment:
-      - COYOTE3_NGINX_FRONTEND_UPSTREAM=http://coyote3_test_frontend:3000
-      - COYOTE3_NGINX_API_UPSTREAM=http://coyote3_test_api:8001
-      - COYOTE3_NGINX_DOCS_UPSTREAM=http://coyote3_test_docs:8080
-    volumes:
-      - ./nginx/render-config.sh:/etc/nginx/render-config.sh:ro
-    networks:
-      - coyote3-test-net
-    depends_on:
-      coyote3_test_frontend:
-        condition: service_started
-      coyote3_test_api:
-        condition: service_healthy
-      coyote3_test_docs:
-        condition: service_started
-    restart: on-failure:5
-
-networks:
-  coyote3-test-net:
-    driver: bridge
+      api: {condition: service_healthy}

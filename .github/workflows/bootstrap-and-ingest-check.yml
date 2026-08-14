@@ -99,12 +99,12 @@ jobs:
         run: |
           docker compose \
             --env-file .coyote3_stage_env \
-            -f deploy/compose/docker-compose.stage.yml \
-            build coyote3_stage_api
+            -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
+            build api
           docker compose \
             --env-file .coyote3_stage_env \
-            -f deploy/compose/docker-compose.stage.yml \
-            run --rm --no-deps coyote3_stage_api \
+            -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
+            run --rm --no-deps api \
             python scripts/bootstrap_database.py \
               --mongo-uri "${MONGO_URI}" \
               --db "${COYOTE3_DB}" \
@@ -118,7 +118,7 @@ jobs:
         run: |
           ./scripts/compose-with-version.sh \
             --env-file .coyote3_stage_env \
-            -f deploy/compose/docker-compose.stage.yml \
+            -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             up -d --build
 
       - name: Wait for proxied API health
@@ -138,8 +138,8 @@ jobs:
         run: |
           docker compose \
             --env-file .coyote3_stage_env \
-            -f deploy/compose/docker-compose.stage.yml \
-            exec -T coyote3_stage_api \
+            -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
+            exec -T api \
             scripts/center_check.sh \
               --api-base-url http://127.0.0.1:8001 \
               --username "${ADMIN_USERNAME}" \
@@ -204,7 +204,7 @@ jobs:
         run: |
           docker compose \
             --env-file .coyote3_stage_env \
-            -f deploy/compose/docker-compose.stage.yml \
+            -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             logs --no-color > bootstrap_and_ingest_logs.txt 2>&1 || true
           docker compose \
             --env-file .coyote3_stage_env \
@@ -212,7 +212,7 @@ jobs:
             logs --no-color >> bootstrap_and_ingest_logs.txt 2>&1 || true
           docker compose \
             --env-file .coyote3_stage_env \
-            -f deploy/compose/docker-compose.stage.yml \
+            -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             down || true
           docker compose \
             --env-file .coyote3_stage_env \

@@ -1,250 +1,54 @@
-name: coyote3-dev
-# usage:
-# COYOTE3_VERSION is read from api/version.py (example):
-#   export COYOTE3_VERSION="$(python3 api/version.py)"
-# docker compose -f deploy/compose/docker-compose.dev.yml up -d
-# docker compose -f deploy/compose/docker-compose.dev.yml down
-x-runtime-defaults: &runtime-defaults
-  mem_limit: ${COYOTE3_CONTAINER_MEM_LIMIT:-2g}
-  cpus: ${COYOTE3_CONTAINER_CPU_LIMIT:-2.0}
+name: coyote3_dev
 
 services:
-  # UI container: React/Vite development server with file watching and HMR.
   frontend:
-    <<: *runtime-defaults
-    container_name: coyote3_dev_frontend_${COYOTE3_VERSION:-local}
-    image: node:20-alpine
+    image: node:22-alpine
     working_dir: /app
     command: sh -c "npm install && npm run dev -- --port 3000 --host 0.0.0.0"
-    env_file:
-      - ../../.coyote3_dev_env
     environment:
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
-    restart: on-failure:5
-    dns:
-      - ${APP_DNS:-1.1.1.1}
-      - 8.8.8.8
-    networks:
-      - coyote3-dev-net
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
     volumes:
-      - "../../frontend:/app"
-      - "frontend_node_modules:/app/node_modules"
-    depends_on:
-      coyote3_dev_api:
-        condition: service_healthy
+      - ../../frontend:/app
+      - frontend_node_modules:/app/node_modules
 
-  coyote3_dev_docs:
-    <<: *runtime-defaults
-    container_name: coyote3_dev_docs_${COYOTE3_VERSION:-local}
+  docs:
     image: coyote3-docs:${COYOTE3_VERSION:-local}-dev
-    build:
-      context: ../..
-      dockerfile: docker/Dockerfile.docs
-      network: host
-    restart: on-failure:5
-    dns:
-      - ${APP_DNS:-1.1.1.1}
-      - 8.8.8.8
-    networks:
-      - coyote3-dev-net
     volumes:
-      - "../../site:/usr/share/nginx/html:ro"
+      - ../../site:/usr/share/nginx/html:ro
 
-  # API container: FastAPI business/policy/data layer.
-  coyote3_dev_api:
-    <<: *runtime-defaults
-    container_name: coyote3_dev_api_${COYOTE3_VERSION:-local}
+  api:
     image: coyote3-api:${COYOTE3_VERSION:-local}-dev
     build:
-      context: ../..
       dockerfile: docker/Dockerfile.dev
       target: coyote3_dev_api
-      network: host
-      args:
-        GIT_COMMIT: ${GIT_COMMIT:-unknown}
-        BUILD_TIME: ${BUILD_TIME:-unknown}
-    env_file:
-      - ../../.coyote3_dev_env
-    environment:
-      - ENV_NAME=${ENV_NAME:-development}
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      - CACHE_REDIS_URL=redis://coyote3_redis_dev:6379/0
-      - TZ=${LOCAL_TIME_ZONE:-UTC}
-      - GIT_COMMIT=${GIT_COMMIT:-unknown}
-      - BUILD_TIME=${BUILD_TIME:-unknown}
-    restart: on-failure:5
-    dns:
-      - ${APP_DNS:-1.1.1.1}
-      - 8.8.8.8
-    extra_hosts:
-      - "mtlucmds1.lund.skane.se:172.17.0.1"
-      - "host.docker.internal:host-gateway"
-    networks:
-      - coyote3-dev-net
-    volumes:
-      - "../../.git:/app/.git"
-      - "../../api:/app/api"
-      - "../../clinical_reporting_rules:/app/clinical_reporting_rules:ro"
-      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
-      - "../../docs:/app/docs"
-      - "../../CHANGELOG.md:/app/CHANGELOG.md"
-      - "../../README.md:/app/README.md"
-      - "../../LICENSE.txt:/app/LICENSE.txt"
-      - "../../NOTICE.txt:/app/NOTICE.txt"
-      - "/access:/access"
-      - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
-      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
-      - "/fs1:/fs1"
-    command: "python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/api"
-    healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=2).read()\""]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 10s
-    depends_on:
-      coyote3_redis_dev:
-        condition: service_started
+    volumes: &dev-app-volumes
+      - ../../.git:/app/.git:ro
+      - ../../api:/app/api
+      - ../../clinical_reporting_rules:/app/clinical_reporting_rules:ro
+      - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
+      - ../../docs:/app/docs
+      - ../../CHANGELOG.md:/app/CHANGELOG.md:ro
+      - ../../README.md:/app/README.md:ro
+      - ../../LICENSE.txt:/app/LICENSE.txt:ro
+      - ../../NOTICE.txt:/app/NOTICE.txt:ro
+      - /access:/access
+      - /media:/media
+      - ${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT is required}:/data
+      - ${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}
+      - /fs1:/fs1
+    command: python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/api
 
-  coyote3_dev_worker:
-    <<: *runtime-defaults
-    container_name: coyote3_dev_worker_${COYOTE3_VERSION:-local}
+  worker:
     image: coyote3-api:${COYOTE3_VERSION:-local}-dev
-    env_file:
-      - ../../.coyote3_dev_env
-    environment:
-      - ENV_NAME=${ENV_NAME:-development}
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      - CACHE_REDIS_URL=redis://coyote3_redis_dev:6379/0
-      - TZ=${LOCAL_TIME_ZONE:-UTC}
-      - GIT_COMMIT=${GIT_COMMIT:-unknown}
-      - BUILD_TIME=${BUILD_TIME:-unknown}
-      - CELERY_BROKER_URL=redis://coyote3_redis_dev:6379/0
-      - CELERY_RESULT_BACKEND=redis://coyote3_redis_dev:6379/0
-    restart: on-failure:5
-    dns:
-      - ${APP_DNS:-1.1.1.1}
-      - 8.8.8.8
-    extra_hosts:
-      - "mtlucmds1.lund.skane.se:172.17.0.1"
-      - "host.docker.internal:host-gateway"
-    networks:
-      - coyote3-dev-net
-    volumes:
-      - "../../.git:/app/.git"
-      - "../../api:/app/api"
-      - "../../clinical_reporting_rules:/app/clinical_reporting_rules:ro"
-      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
-      - "../../docs:/app/docs"
-      - "../../CHANGELOG.md:/app/CHANGELOG.md"
-      - "../../README.md:/app/README.md"
-      - "../../LICENSE.txt:/app/LICENSE.txt"
-      - "../../NOTICE.txt:/app/NOTICE.txt"
-      - "/access:/access"
-      - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
-      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
-      - "/fs1:/fs1"
-    command: "celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest,default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}"
-    depends_on:
-      coyote3_redis_dev:
-        condition: service_started
+    volumes: *dev-app-volumes
 
-  coyote3_dev_beat:
-    <<: *runtime-defaults
-    container_name: coyote3_dev_beat_${COYOTE3_VERSION:-local}
+  beat:
     image: coyote3-api:${COYOTE3_VERSION:-local}-dev
-    env_file:
-      - ../../.coyote3_dev_env
-    environment:
-      - ENV_NAME=${ENV_NAME:-development}
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      - CACHE_REDIS_URL=redis://coyote3_redis_dev:6379/0
-      - TZ=${LOCAL_TIME_ZONE:-UTC}
-      - GIT_COMMIT=${GIT_COMMIT:-unknown}
-      - BUILD_TIME=${BUILD_TIME:-unknown}
-      - CELERY_BROKER_URL=redis://coyote3_redis_dev:6379/0
-      - CELERY_RESULT_BACKEND=redis://coyote3_redis_dev:6379/0
-    restart: on-failure:5
-    dns:
-      - ${APP_DNS:-1.1.1.1}
-      - 8.8.8.8
-    extra_hosts:
-      - "mtlucmds1.lund.skane.se:172.17.0.1"
-      - "host.docker.internal:host-gateway"
-    networks:
-      - coyote3-dev-net
-    volumes:
-      - "../../.git:/app/.git"
-      - "../../api:/app/api"
-      - "../../clinical_reporting_rules:/app/clinical_reporting_rules:ro"
-      - "${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT must be set}:/app/logs"
-      - "../../docs:/app/docs"
-      - "../../CHANGELOG.md:/app/CHANGELOG.md"
-      - "../../README.md:/app/README.md"
-      - "../../LICENSE.txt:/app/LICENSE.txt"
-      - "../../NOTICE.txt:/app/NOTICE.txt"
-      - "/access:/access"
-      - "/media:/media"
-      - "${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT must be set}:/data"
-      - "${COYOTE3_DATA_HOST_ROOT}:${COYOTE3_DATA_HOST_ROOT}"
-      - "/fs1:/fs1"
-    command: "celery -A api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO}"
-    depends_on:
-      coyote3_redis_dev:
-        condition: service_started
+    volumes: *dev-app-volumes
 
-
-  # Shared infrastructure dependency.
-  coyote3_redis_dev:
-    <<: *runtime-defaults
-    container_name: coyote3_redis_dev_${COYOTE3_VERSION:-local}
-    image: redis:7.4.3
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-    dns:
-      - ${APP_DNS:-1.1.1.1}
-      - 8.8.8.8
-    networks:
-      - coyote3-dev-net
-    restart: on-failure:5
-    privileged: true
-
-  coyote3_dev_proxy:
-    <<: *runtime-defaults
-    container_name: coyote3_dev_proxy_${COYOTE3_VERSION:-local}
-    image: nginx:1.27-alpine
-    ports:
-      - "${COYOTE3_PORT:-6801}:8088"
-    command: ["sh", "-c", "sh /etc/nginx/render-config.sh && nginx -g 'daemon off;'"]
-    env_file:
-      - ../../.coyote3_dev_env
-    environment:
-      - COYOTE3_NGINX_FRONTEND_UPSTREAM=http://frontend:3000
-      - COYOTE3_NGINX_API_UPSTREAM=http://coyote3_dev_api:8001
-      - COYOTE3_NGINX_DOCS_UPSTREAM=http://coyote3_dev_docs:8080
-    volumes:
-      - ./nginx/render-config.sh:/etc/nginx/render-config.sh:ro
-    networks:
-      - coyote3-dev-net
-    depends_on:
-      frontend:
-        condition: service_started
-      coyote3_dev_api:
-        condition: service_healthy
-      coyote3_dev_docs:
-        condition: service_started
-    restart: on-failure:5
-
-networks:
-  coyote3-dev-net:
-    driver: bridge
+  proxy:
+    ports: ["${COYOTE3_PORT:-6801}:8088"]
 
 volumes:
   frontend_node_modules:
-    name: coyote3-frontend-node-modules

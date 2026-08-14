@@ -37,7 +37,8 @@ PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
 
 # Include rendered Compose validation when checking a deployment profile.
 PYTHON_BIN=.venv/bin/python \
-COMPOSE_FILE=deploy/compose/docker-compose.dev.yml \
+COMPOSE_FILES="deploy/compose/docker-compose.yml deploy/compose/docker-compose.dev.yml" \
+COMPOSE_ENV_FILE=deploy/env/example.env \
 bash scripts/run_quality_suite.sh
 ```
 

@@ -72,21 +72,38 @@ Production deployments require the production environment file and explicit vers
 
 ### Staging And Development
 
-Non-production environments use their own compose files and env files.
+All environments use `docker-compose.yml` as the service contract. Development,
+staging, and test files are overlays that change only the behavior required by
+that environment. Always provide the base file first and the overlay second.
+The environment filename is supplied with `--env-file`; Compose files do not
+contain a local filename and therefore work with any operator-selected name.
 
 ```bash
 # Staging deployment
 ./scripts/compose-with-version.sh \
   --env-file .coyote3_stage_env \
-  -f deploy/compose/docker-compose.stage.yml \
+  -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
   up -d --build
 
 # Development deployment
 ./scripts/compose-with-version.sh \
   --env-file .coyote3_dev_env \
-  -f deploy/compose/docker-compose.dev.yml \
+  -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml \
   up -d --build
 ```
+
+The CLI environment file supplies values used while Compose renders the model.
+The base file explicitly forwards application settings through each service's
+`environment` mapping, so the API, worker, and scheduler receive the same
+validated values without mounting or naming the host env file inside a
+container.
+
+Service keys are stable in every environment: `frontend`, `docs`, `api`,
+`worker`, `beat`, `redis`, and `proxy`. Compose project names identify the
+environment. For example, the development overlay produces uniform names such
+as `coyote3_dev-api-1` and `coyote3_dev-redis-1`. Avoid explicit
+`container_name` declarations: Compose-managed names prevent collisions and
+retain support for service scaling.
 
 ## Post-Deployment Checks
 

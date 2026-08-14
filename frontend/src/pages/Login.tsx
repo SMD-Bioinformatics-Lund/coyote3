@@ -194,7 +194,7 @@ export function Login() {
               <Input
                 id="username"
                 type={provider === "ldap" ? "email" : "text"}
-                placeholder={provider === "ldap" ? "name@domain.com" : ""}
+                placeholder={provider === "ldap" ? "john.doe@domain.com" : "john.doe"}
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 required
@@ -244,7 +244,7 @@ export function Login() {
 
           <p className="text-sm text-muted-foreground mt-5">
             {provider === "ldap"
-              ? `Use your organization credentials. Your access comes from your local user profile.`
+              ? `Use your organization credentials.`
               : `Use your existing local account.`}
           </p>
           <div className="paper-inset mt-5 rounded-xl p-3.5 text-sm">

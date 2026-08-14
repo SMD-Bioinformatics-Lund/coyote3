@@ -84,8 +84,8 @@ services do not join the MongoDB network.
 set -a
 . ./.coyote3_env
 set +a
-docker compose --env-file .coyote3_env -f deploy/compose/docker-compose.mongo.yml logs coyote3_mongo_init
-docker compose --env-file .coyote3_env -f deploy/compose/docker-compose.mongo.yml exec coyote3_mongo \
+docker compose --env-file .coyote3_env -f deploy/compose/docker-compose.mongo.yml logs mongo_init
+docker compose --env-file .coyote3_env -f deploy/compose/docker-compose.mongo.yml exec mongo \
   mongosh --username "$MONGO_ROOT_USERNAME" --password "$MONGO_ROOT_PASSWORD" \
   --authenticationDatabase admin --quiet --eval 'rs.status().members.map(m => ({host: m.name, state: m.stateStr}))'
 ```

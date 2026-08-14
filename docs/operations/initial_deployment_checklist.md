@@ -69,11 +69,12 @@ Validate the environment and Compose definition, then start the services.
 ```bash
 scripts/center_preflight.sh \
   --env-file .coyote3_stage_env \
+  --compose-file deploy/compose/docker-compose.yml \
   --compose-file deploy/compose/docker-compose.stage.yml
 
 ./scripts/compose-with-version.sh \
   --env-file .coyote3_stage_env \
-  -f deploy/compose/docker-compose.stage.yml \
+  -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
   up -d --build
 ```
 
@@ -87,7 +88,7 @@ Use the externally exposed URL, including `SCRIPT_NAME` when configured.
 ```bash
 curl -fsS "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT}${SCRIPT_NAME}/api/v1/health"
 docker compose --env-file .coyote3_stage_env \
-  -f deploy/compose/docker-compose.stage.yml ps
+  -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml ps
 ```
 
 Sign in using the account created in step 2. Create additional users through

@@ -6,17 +6,18 @@ usage() {
 Validate a center deployment setup before starting application services.
 
 Usage:
-  scripts/center_preflight.sh --env-file <path> --compose-file <path> [--seed-file <path>] [--yaml-file <path>] [--reference-seed-data <path>]...
+  scripts/center_preflight.sh --env-file <path> --compose-file <base> [--compose-file <overlay>] [--seed-file <path>] [--yaml-file <path>] [--reference-seed-data <path>]...
 
 Example:
   scripts/center_preflight.sh \
     --env-file .coyote3_stage_env \
+    --compose-file deploy/compose/docker-compose.yml \
     --compose-file deploy/compose/docker-compose.stage.yml
 USAGE
 }
 
 ENV_FILE=""
-COMPOSE_FILE=""
+COMPOSE_FILES=()
 SEED_FILE=""
 YAML_FILE=""
 REFERENCE_SEED_DATA=()
@@ -24,7 +25,7 @@ REFERENCE_SEED_DATA=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --env-file) ENV_FILE="$2"; shift 2 ;;
-    --compose-file) COMPOSE_FILE="$2"; shift 2 ;;
+    --compose-file) COMPOSE_FILES+=("$2"); shift 2 ;;
     --seed-file) SEED_FILE="$2"; shift 2 ;;
     --yaml-file) YAML_FILE="$2"; shift 2 ;;
     --reference-seed-data) REFERENCE_SEED_DATA+=("$2"); shift 2 ;;
@@ -33,7 +34,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$ENV_FILE" || -z "$COMPOSE_FILE" ]]; then
+if [[ -z "$ENV_FILE" || ${#COMPOSE_FILES[@]} -eq 0 ]]; then
   echo "ERROR: --env-file and --compose-file are required" >&2
   usage
   exit 2
@@ -44,10 +45,14 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 2
 fi
 
-if [[ ! -f "$COMPOSE_FILE" ]]; then
-  echo "ERROR: compose file not found: $COMPOSE_FILE" >&2
-  exit 2
-fi
+COMPOSE_ARGS=()
+for compose_file in "${COMPOSE_FILES[@]}"; do
+  if [[ ! -f "$compose_file" ]]; then
+    echo "ERROR: compose file not found: $compose_file" >&2
+    exit 2
+  fi
+  COMPOSE_ARGS+=("-f" "$compose_file")
+done
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "ERROR: docker is not installed" >&2
@@ -59,11 +64,14 @@ if ! docker compose version >/dev/null 2>&1; then
   exit 2
 fi
 
+COYOTE3_VERSION="$(python3 api/version.py)"
+export COYOTE3_VERSION
+
 echo "[check] validating secrets in env file"
 bash scripts/validate_env_secrets.sh --env-file "$ENV_FILE"
 
 echo "[check] validating compose render"
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" config -q
+docker compose --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" config -q
 
 echo "[check] mandatory keys"
 for key in MONGO_URI COYOTE3_DB BAM_DB SECRET_KEY INTERNAL_API_TOKEN PASSWORD_TOKEN_SALT CORS_ORIGINS; do

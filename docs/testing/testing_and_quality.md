@@ -162,7 +162,8 @@ To validate rendered Docker Compose configuration as part of the same gate:
 
 ```bash
 PYTHON_BIN=.venv/bin/python \
-COMPOSE_FILE=deploy/compose/docker-compose.dev.yml \
+COMPOSE_FILES="deploy/compose/docker-compose.yml deploy/compose/docker-compose.dev.yml" \
+COMPOSE_ENV_FILE=deploy/env/example.env \
 bash scripts/run_quality_suite.sh
 ```
 
@@ -187,7 +188,8 @@ GitHub Actions. Add Compose rendering when deployment files changed:
 
 ```bash
 PYTHON_BIN=.venv/bin/python \
-COMPOSE_FILE=deploy/compose/docker-compose.dev.yml \
+COMPOSE_FILES="deploy/compose/docker-compose.yml deploy/compose/docker-compose.dev.yml" \
+COMPOSE_ENV_FILE=deploy/env/example.env \
 bash scripts/run_quality_suite.sh
 ```
 

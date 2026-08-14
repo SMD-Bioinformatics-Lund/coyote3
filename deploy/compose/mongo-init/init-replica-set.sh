@@ -13,7 +13,7 @@ fi
 
 run_mongosh() {
   mongosh \
-    --host "${MONGO_SERVICE_HOST:-coyote3_mongo}" \
+    --host "${MONGO_SERVICE_HOST:-mongo}" \
     --username "$MONGO_ROOT_USERNAME" \
     --password "$MONGO_ROOT_PASSWORD" \
     --authenticationDatabase admin \

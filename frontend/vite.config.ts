@@ -11,7 +11,7 @@ function normalizeScriptName(value?: string) {
 }
 
 const scriptName = normalizeScriptName(process.env.SCRIPT_NAME)
-const apiTarget = process.env.COYOTE3_API_INTERNAL_URL || 'http://coyote3_dev_api:8001'
+const apiTarget = process.env.COYOTE3_API_INTERNAL_URL || 'http://api:8001'
 const organizationName = process.env.ORGANIZATION_NAME || 'Coyote3'
 const localTimeZone = process.env.LOCAL_TIME_ZONE || process.env.TZ || 'UTC'
 const stripScriptName = (requestPath: string) =>

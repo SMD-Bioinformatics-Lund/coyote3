@@ -100,7 +100,7 @@ Start the development stack:
 ```bash
 ./scripts/compose-with-version.sh \
   --env-file .coyote3_dev_env \
-  -f deploy/compose/docker-compose.dev.yml \
+  -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml \
   up -d --build
 ```
 
