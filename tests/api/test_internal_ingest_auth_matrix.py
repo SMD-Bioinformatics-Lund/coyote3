@@ -63,6 +63,7 @@ class _Upload:
     def __init__(self, *, filename: str, content: bytes):
         self.filename = filename
         self._handle = io.BytesIO(content)
+        self.file = self._handle
         self.closed = False
 
     async def read(self, size: int = -1):
@@ -293,8 +294,7 @@ def test_internal_ingest_async_sample_bundle_enqueues_yaml_payload(monkeypatch):
     }
 
 
-@pytest.mark.asyncio
-async def test_internal_ingest_async_sample_bundle_upload_stages_files(monkeypatch, tmp_path):
+def test_internal_ingest_async_sample_bundle_upload_stages_files(monkeypatch, tmp_path):
     """Async upload ingest stages uploaded files durably before enqueueing."""
     captured: dict[str, object] = {}
 
@@ -321,7 +321,7 @@ async def test_internal_ingest_async_sample_bundle_upload_stages_files(monkeypat
         _assay_file_policy=lambda **_: ({"vcf_files"}, {"vcf_files"}),
     )
 
-    response = await internal_router.enqueue_ingest_sample_bundle_upload_internal(
+    response = internal_router.enqueue_ingest_sample_bundle_upload_internal(
         yaml_file=yaml_upload,
         data_files=[data_upload],
         update_existing=False,

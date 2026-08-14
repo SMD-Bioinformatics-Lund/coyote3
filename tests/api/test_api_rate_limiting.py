@@ -13,6 +13,17 @@ from api.app import middleware
 from api.security.access import ApiUser
 
 
+class _CounterBackend:
+    """Provide deterministic distributed-counter semantics without Redis."""
+
+    def __init__(self) -> None:
+        self.counts: dict[str, int] = {}
+
+    def increment_window(self, key: str, *, window_seconds: int) -> tuple[int, int]:
+        self.counts[key] = self.counts.get(key, 0) + 1
+        return self.counts[key], window_seconds
+
+
 @pytest.fixture(autouse=True)
 def _enabled_application_modules(monkeypatch: pytest.MonkeyPatch):
     """Keep module-governed routes enabled unless a test overrides the service."""
@@ -24,6 +35,8 @@ def _enabled_application_modules(monkeypatch: pytest.MonkeyPatch):
             return True
 
     monkeypatch.setattr(service_dependencies, "get_app_controls_service", lambda: _Controls())
+    middleware.runtime_app.cache = _CounterBackend()
+    middleware.runtime_app.config["API_CSRF_ENABLED"] = False
 
 
 def _user() -> ApiUser:

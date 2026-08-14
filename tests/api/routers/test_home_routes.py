@@ -333,7 +333,7 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
     monkeypatch.setattr(
         sample_catalog_service_module,
         "get_formatted_assay_config",
-        lambda sample_doc: {"filters": dict(sample_doc.get("filters") or {})},
+        lambda sample_doc, **_kwargs: {"filters": dict(sample_doc.get("filters") or {})},
     )
     monkeypatch.setattr(
         service.assay_panel_repository,
@@ -418,7 +418,7 @@ def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
     monkeypatch.setattr(
         sample_catalog_service_module,
         "get_formatted_assay_config",
-        lambda sample_doc: {"filters": {"somatic": {"snv": {"snvlists": ["gl1"]}}}},
+        lambda sample_doc, **_kwargs: {"filters": {"somatic": {"snv": {"snvlists": ["gl1"]}}}},
     )
     monkeypatch.setattr(
         service.assay_panel_repository,
@@ -443,7 +443,7 @@ def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
     )
     monkeypatch.setattr(service.gene_list_repository, "get_isgl_for_scope", lambda **kwargs: [])
     service.sample_repository = SimpleNamespace(
-        reset_sample_settings=lambda sample_id, filters, aspc=None: None,
+        reset_sample_settings=lambda sample_id, filters, **_kwargs: None,
         get_sample=lambda sample_id: {
             **sample,
             "_id": sample_id,

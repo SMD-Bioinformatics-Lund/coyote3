@@ -29,6 +29,10 @@ def _enable_application_modules(monkeypatch: pytest.MonkeyPatch) -> None:
         "get_app_controls_service",
         lambda: _EnabledModuleControls(),
     )
+    middleware.runtime_app.config["API_RATE_LIMIT_ENABLED"] = False
+    middleware.runtime_app.config["API_CSRF_ENABLED"] = False
+    middleware._API_LIMITER = None
+    middleware._API_LIMITER_CFG = None
 
 
 def _user(level: int = 9) -> ApiUser:

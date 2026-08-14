@@ -119,6 +119,7 @@ class OperationsSettings:
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     NOTIFICATION_RETENTION_DAYS = int(os.getenv("NOTIFICATION_RETENTION_DAYS", "180"))
     API_RATE_LIMIT_ENABLED = os.getenv("API_RATE_LIMIT_ENABLED", "1") == "1"
+    API_CSRF_ENABLED = _environment_bool("API_CSRF_ENABLED", True)
     API_RATE_LIMIT_REQUESTS_PER_MINUTE = int(os.getenv("API_RATE_LIMIT_REQUESTS_PER_MINUTE", "600"))
     API_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("API_RATE_LIMIT_WINDOW_SECONDS", "60"))
     PASSWORD_TOKEN_SALT = os.getenv("PASSWORD_TOKEN_SALT", "")
@@ -157,8 +158,16 @@ class PersistenceSettings:
     """MongoDB connection and configured collection-mapping settings."""
 
     _MONGO_URI_ENV: str = os.getenv("MONGO_URI", "").strip()
-    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3")
-    BAM_DB = os.getenv("BAM_DB", "BAM_Service")
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "").strip()
+    BAM_DB = os.getenv("BAM_DB", "").strip()
+    MONGO_MAX_POOL_SIZE = int(os.getenv("MONGO_MAX_POOL_SIZE", "100"))
+    MONGO_MIN_POOL_SIZE = int(os.getenv("MONGO_MIN_POOL_SIZE", "0"))
+    MONGO_CONNECT_TIMEOUT_MS = int(os.getenv("MONGO_CONNECT_TIMEOUT_MS", "10000"))
+    MONGO_SERVER_SELECTION_TIMEOUT_MS = int(os.getenv("MONGO_SERVER_SELECTION_TIMEOUT_MS", "30000"))
+    MONGO_WAIT_QUEUE_TIMEOUT_MS = int(os.getenv("MONGO_WAIT_QUEUE_TIMEOUT_MS", "10000"))
+    MONGO_READ_CONCERN_LEVEL = os.getenv("MONGO_READ_CONCERN_LEVEL", "majority")
+    MONGO_WRITE_CONCERN_W = os.getenv("MONGO_WRITE_CONCERN_W", "majority")
+    MONGO_WRITE_CONCERN_JOURNAL = _environment_bool("MONGO_WRITE_CONCERN_JOURNAL", True)
     _PATH_DB_COLLECTIONS_CONFIG = COLLECTIONS_CONFIG_PATH
 
     @property
@@ -313,8 +322,8 @@ class DevelopmentConfig(DefaultConfig):
     the development setup.
     """
 
-    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3")
-    BAM_DB = os.getenv("BAM_DB", "BAM_Service")
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "").strip()
+    BAM_DB = os.getenv("BAM_DB", "").strip()
 
     CACHE_DEFAULT_TIMEOUT = 1  # 300 secs, 5 minutes
 
@@ -336,8 +345,8 @@ class TestConfig(DefaultConfig):
     in the future.
     """
 
-    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3_test")
-    BAM_DB = os.getenv("BAM_DB", "BAM_Service")
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "").strip()
+    BAM_DB = os.getenv("BAM_DB", "").strip()
 
     LOGS = "logs/test"
     PRODUCTION = False
@@ -354,13 +363,15 @@ class TestConfig(DefaultConfig):
     # Tests do not need Redis; permit the explicit no-op fallback.
     CACHE_REDIS_URL = ""
     CACHE_REQUIRED = False
+    API_RATE_LIMIT_ENABLED = False
+    API_CSRF_ENABLED = False
 
 
 class StageConfig(DefaultConfig):
     """Staging configuration."""
 
-    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3")
-    BAM_DB = os.getenv("BAM_DB", "BAM_Service")
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "").strip()
+    BAM_DB = os.getenv("BAM_DB", "").strip()
 
     LOGS = "logs/stage"
     PRODUCTION = True

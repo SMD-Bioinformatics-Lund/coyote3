@@ -50,7 +50,10 @@ def test_refresh_records_counts_for_a_successful_global_hgnc_refresh(monkeypatch
     service = oncokb_refresh.PublicOncoKbRefreshService(
         cache_repository=object(),
         hgnc_repository=object(),
-        config={"ONCOKB_PUBLIC_LOOKUPS_ENABLED": True},
+        config={
+            "ONCOKB_PUBLIC_LOOKUPS_ENABLED": True,
+            "ONCOKB_BASE_URL": "https://public.api.oncokb.org/api/v1",
+        },
         audit_service=SimpleNamespace(record=lambda *args, **kwargs: events.append((args, kwargs))),
     )
 
@@ -90,7 +93,7 @@ def test_refresh_audits_failure_without_recording_external_error_text(monkeypatc
     service = oncokb_refresh.PublicOncoKbRefreshService(
         cache_repository=object(),
         hgnc_repository=object(),
-        config={},
+        config={"ONCOKB_BASE_URL": "https://public.api.oncokb.org/api/v1"},
         audit_service=SimpleNamespace(record=lambda *args, **kwargs: events.append((args, kwargs))),
     )
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from io import BytesIO
 from types import SimpleNamespace
 
@@ -23,11 +22,12 @@ def _admin_user():
 
 
 class _FakeUpload:
-    """Minimal async upload stub for internal upload-route tests."""
+    """Minimal upload stub for internal upload-route tests."""
 
     def __init__(self, filename: str, payload: bytes):
         self.filename = filename
         self._buffer = BytesIO(payload)
+        self.file = self._buffer
 
     async def read(self, size: int = -1) -> bytes:
         return self._buffer.read(size)
@@ -478,15 +478,13 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
         ),
     ]
 
-    response = asyncio.run(
-        internal.ingest_sample_bundle_upload_internal(
-            yaml_file=yaml_upload,
-            data_files=files,
-            update_existing=False,
-            increment=True,
-            user=_admin_user(),
-            ingest_service=ingest_service,
-        )
+    response = internal.ingest_sample_bundle_upload_internal(
+        yaml_file=yaml_upload,
+        data_files=files,
+        update_existing=False,
+        increment=True,
+        user=_admin_user(),
+        ingest_service=ingest_service,
     )
     assert response["status"] == "ok"
     payload = calls["payload"]
@@ -525,15 +523,13 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
 
     yaml_upload = _FakeUpload(filename="ingest.yaml", payload=b"name: UPLOAD_SAMPLE")
     with pytest.raises(HTTPException) as exc_info:
-        asyncio.run(
-            internal.ingest_sample_bundle_upload_internal(
-                yaml_file=yaml_upload,
-                data_files=[],
-                update_existing=False,
-                increment=True,
-                user=_admin_user(),
-                ingest_service=ingest_service,
-            )
+        internal.ingest_sample_bundle_upload_internal(
+            yaml_file=yaml_upload,
+            data_files=[],
+            update_existing=False,
+            increment=True,
+            user=_admin_user(),
+            ingest_service=ingest_service,
         )
     assert exc_info.value.status_code == 400
     assert "Missing files for YAML references" in str(exc_info.value)
@@ -585,15 +581,13 @@ def test_ingest_sample_bundle_upload_internal_ignores_missing_optional_file(monk
     yaml_upload = _FakeUpload(filename="ingest.yaml", payload=b"name: UPLOAD_SAMPLE")
     files = [_FakeUpload(filename="required.vcf", payload=b"##fileformat=VCFv4.2\n")]
 
-    response = asyncio.run(
-        internal.ingest_sample_bundle_upload_internal(
-            yaml_file=yaml_upload,
-            data_files=files,
-            update_existing=False,
-            increment=True,
-            user=_admin_user(),
-            ingest_service=ingest_service,
-        )
+    response = internal.ingest_sample_bundle_upload_internal(
+        yaml_file=yaml_upload,
+        data_files=files,
+        update_existing=False,
+        increment=True,
+        user=_admin_user(),
+        ingest_service=ingest_service,
     )
 
     assert response["status"] == "ok"
@@ -623,15 +617,13 @@ def test_ingest_collection_upload_internal_insert(monkeypatch):
         filename="users.json",
         payload=b'{"username":"analyst1","email":"analyst@example.org"}',
     )
-    response = asyncio.run(
-        internal.ingest_collection_upload_internal(
-            collection="users",
-            mode="insert",
-            documents_file=upload,
-            match_json=None,
-            user=_admin_user(),
-            ingest_service=ingest_service,
-        )
+    response = internal.ingest_collection_upload_internal(
+        collection="users",
+        mode="insert",
+        documents_file=upload,
+        match_json=None,
+        user=_admin_user(),
+        ingest_service=ingest_service,
     )
     assert response["status"] == "ok"
     assert response["collection"] == "users"
@@ -659,15 +651,13 @@ def test_ingest_collection_upload_internal_bulk(monkeypatch):
         filename="roles.json",
         payload=b'[{"role_id":"viewer","level":10},{"role_id":"analyst","level":20}]',
     )
-    response = asyncio.run(
-        internal.ingest_collection_upload_internal(
-            collection="roles",
-            mode="bulk",
-            documents_file=upload,
-            match_json=None,
-            user=_admin_user(),
-            ingest_service=ingest_service,
-        )
+    response = internal.ingest_collection_upload_internal(
+        collection="roles",
+        mode="bulk",
+        documents_file=upload,
+        match_json=None,
+        user=_admin_user(),
+        ingest_service=ingest_service,
     )
     assert response["status"] == "ok"
     assert response["collection"] == "roles"
@@ -688,15 +678,13 @@ def test_ingest_collection_upload_internal_upsert_requires_match_json(monkeypatc
         payload=b'{"permission_id":"sample:edit:own","name":"Edit sample"}',
     )
     with pytest.raises(HTTPException) as exc_info:
-        asyncio.run(
-            internal.ingest_collection_upload_internal(
-                collection="permissions",
-                mode="upsert",
-                documents_file=upload,
-                match_json=None,
-                user=_admin_user(),
-                ingest_service=_ingest_service_stub(),
-            )
+        internal.ingest_collection_upload_internal(
+            collection="permissions",
+            mode="upsert",
+            documents_file=upload,
+            match_json=None,
+            user=_admin_user(),
+            ingest_service=_ingest_service_stub(),
         )
     assert exc_info.value.status_code == 400
     assert "match_json" in str(exc_info.value)

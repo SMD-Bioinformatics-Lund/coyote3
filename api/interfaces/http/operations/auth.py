@@ -29,16 +29,17 @@ from api.contracts.auth import (
     ApiSessionDeleteResponse,
     ApiStatusResponse,
 )
-from api.contracts.system import AuthLoginEnvelope, AuthUserEnvelope, WhoamiPayload
+from api.contracts.system import AuthLoginEnvelope, WhoamiPayload
 from api.interfaces.http.tags import TAG_AUTH
 from api.security.access import (
     ApiUser,
-    create_api_session_token,
+    create_api_session,
     delete_api_session_token,
     get_api_session_cookie_name,
     get_api_session_cookie_samesite,
     get_api_session_cookie_secure,
     get_api_session_ttl_seconds,
+    get_request_api_session,
     require_access,
     serialize_api_user,
 )
@@ -68,7 +69,7 @@ def _available_auth_providers() -> list[str]:
 
 
 @router.get("/api/v1/auth/whoami", response_model=WhoamiPayload)
-def whoami(user: ApiUser = Depends(require_access())):
+def whoami(request: Request, user: ApiUser = Depends(require_access())):
     """Retrieve the current authenticated user's identity payload.
 
     Provides the active session's identity context, including username, assigned role,
@@ -90,6 +91,7 @@ def whoami(user: ApiUser = Depends(require_access())):
         "role": user.role,
         "access_level": user.access_level,
         "permissions": sorted(user.permissions),
+        "csrf_token": get_request_api_session(request).csrf_token,
     }
 
 
@@ -150,7 +152,7 @@ def _login_response(payload: ApiAuthLoginRequest, request: Request | None = None
             status_code=500, detail={"status": 500, "error": "User identity missing"}
         )
     update_user_last_login(identity_username)
-    session_token = create_api_session_token(identity_username, provider=provider)
+    session = create_api_session(identity_username, provider=provider)
     from api.app.deps.services import get_audit_service
 
     audit = get_audit_service()
@@ -170,6 +172,7 @@ def _login_response(payload: ApiAuthLoginRequest, request: Request | None = None
             {
                 "status": "ok",
                 "user": build_user_session_payload(user_doc),
+                "csrf_token": session.csrf_token,
             }
         ),
     )
@@ -186,7 +189,7 @@ def _login_response(payload: ApiAuthLoginRequest, request: Request | None = None
 
     response.set_cookie(
         key=get_api_session_cookie_name(),
-        value=session_token,
+        value=session.token,
         httponly=True,
         secure=secure_cookie,
         samesite=get_api_session_cookie_samesite(),
@@ -312,10 +315,10 @@ def delete_auth_session(request: Request = None):
 
 @router.get(
     "/api/v1/auth/session",
-    response_model=AuthUserEnvelope,
+    response_model=AuthLoginEnvelope,
     summary="Get current authenticated session",
 )
-def auth_session(user: ApiUser = Depends(require_access())):
+def auth_session(request: Request, user: ApiUser = Depends(require_access())):
     """Retrieve the payload of the active authenticated session.
 
     Validates the requester's active session token and exposes the parsed
@@ -325,9 +328,16 @@ def auth_session(user: ApiUser = Depends(require_access())):
         user (ApiUser): The active user automatically resolved through the session token.
 
     Returns:
-        AuthUserEnvelope: A standard envelope containing the serialized API user profile representation.
+        AuthLoginEnvelope: The active user profile and browser CSRF token.
     """
-    return util.common.convert_to_serializable({"status": "ok", "user": serialize_api_user(user)})
+    session = get_request_api_session(request)
+    return util.common.convert_to_serializable(
+        {
+            "status": "ok",
+            "user": serialize_api_user(user),
+            "csrf_token": session.csrf_token,
+        }
+    )
 
 
 @router.patch("/api/v1/auth/profile", response_model=ApiProfileUpdateResponse)

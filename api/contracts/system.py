@@ -21,6 +21,7 @@ class WhoamiPayload(BaseModel):
     role: str
     access_level: int
     permissions: list[str]
+    csrf_token: str
 
 
 class AuthUserEnvelope(BaseModel):
@@ -33,4 +34,4 @@ class AuthUserEnvelope(BaseModel):
 class AuthLoginEnvelope(AuthUserEnvelope):
     """Provide the auth login envelope type."""
 
-    pass
+    csrf_token: str

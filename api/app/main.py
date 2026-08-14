@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from api.app.http import api_error, get_formatted_assay_config
 from api.app.lifecycle import create_lifespan, register_route_modules
-from api.app.middleware import build_authentication_middleware
+from api.app.middleware import build_authentication_middleware, build_security_headers_middleware
 from api.app.openapi import apply_openapi_security_schema
 from api.app.runtime_state import app as runtime_app
 from api.config import configure_process_env, get_runtime_mode_flags
@@ -155,6 +155,7 @@ def create_api_app() -> FastAPI:
             development=mode_flags["development"],
         )
     )
+    app.middleware("http")(build_security_headers_middleware())
     app.add_exception_handler(Exception, unhandled_exception_handler)
     app.openapi = lambda: apply_openapi_security_schema(app)
     for registration in ROUTERS:

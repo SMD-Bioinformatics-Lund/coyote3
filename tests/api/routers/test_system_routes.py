@@ -30,6 +30,21 @@ def _http_request(*, scheme: str = "http", forwarded_scheme: str | None = None) 
     )
 
 
+def _cookie_request(cookie: str) -> Request:
+    """Build a minimal authenticated browser request."""
+    return Request(
+        {
+            "type": "http",
+            "scheme": "https",
+            "headers": [(b"cookie", cookie.encode())],
+            "server": ("testserver", 443),
+            "path": "/api/v1/auth/session",
+            "raw_path": b"/api/v1/auth/session",
+            "query_string": b"",
+        }
+    )
+
+
 def test_health_returns_ok():
     """Test health returns ok.
 
@@ -67,7 +82,7 @@ def test_auth_login_reports_unconfigured_enabled_ldap(monkeypatch):
     )
 
 
-def test_whoami_sorts_permission_list():
+def test_whoami_sorts_permission_list(monkeypatch):
     """Test whoami sorts permission lists.
 
     Returns:
@@ -76,9 +91,15 @@ def test_whoami_sorts_permission_list():
     user = fx.api_user()
     user.permissions = ["b", "a"]
 
-    payload = auth_router.whoami(user=user)
+    monkeypatch.setattr(
+        auth_router,
+        "get_request_api_session",
+        lambda _request: SimpleNamespace(csrf_token="csrf-test-token"),
+    )
+    payload = auth_router.whoami(request=SimpleNamespace(), user=user)
 
     assert payload["permissions"] == ["a", "b"]
+    assert payload["csrf_token"] == "csrf-test-token"
     assert "denied_permissions" not in payload
 
 
@@ -122,7 +143,11 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
         lambda user_id: calls.setdefault("updated_user", user_id),
     )
     monkeypatch.setattr(
-        auth_router, "create_api_session_token", lambda user_id, **_kwargs: f"session-{user_id}"
+        auth_router,
+        "create_api_session",
+        lambda user_id, **_kwargs: SimpleNamespace(
+            token=f"session-{user_id}", csrf_token="csrf-token"
+        ),
     )
     monkeypatch.setattr(
         auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"}
@@ -165,7 +190,11 @@ def test_create_auth_session_returns_201(monkeypatch):
     monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p, **_kwargs: user_doc)
     monkeypatch.setattr(auth_router, "update_user_last_login", lambda user_id: None)
     monkeypatch.setattr(
-        auth_router, "create_api_session_token", lambda user_id, **_kwargs: f"session-{user_id}"
+        auth_router,
+        "create_api_session",
+        lambda user_id, **_kwargs: SimpleNamespace(
+            token=f"session-{user_id}", csrf_token="csrf-token"
+        ),
     )
     monkeypatch.setattr(
         auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"}
@@ -208,7 +237,11 @@ def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
         lambda user_id: calls.setdefault("updated_user", user_id),
     )
     monkeypatch.setattr(
-        auth_router, "create_api_session_token", lambda user_id, **_kwargs: f"session-{user_id}"
+        auth_router,
+        "create_api_session",
+        lambda user_id, **_kwargs: SimpleNamespace(
+            token=f"session-{user_id}", csrf_token="csrf-token"
+        ),
     )
     monkeypatch.setattr(
         auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"}
@@ -268,10 +301,18 @@ def test_auth_session_serializes_user(monkeypatch):
         raising=False,
     )
 
-    payload = auth_router.auth_session(user=fx.api_user())
+    monkeypatch.setattr(
+        auth_router,
+        "get_request_api_session",
+        lambda _request: SimpleNamespace(csrf_token="csrf-token"),
+    )
+    payload = auth_router.auth_session(
+        request=_cookie_request("api_session=session-token"), user=fx.api_user()
+    )
 
     assert payload["status"] == "ok"
     assert payload["user"]["username"] == "tester"
+    assert payload["csrf_token"] == "csrf-token"
 
 
 def test_change_password_rejects_weak_password():

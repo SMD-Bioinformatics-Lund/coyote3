@@ -26,8 +26,13 @@ from api.infra.observability.logging import (
     reset_request_context,
 )
 from api.infra.observability.prometheus_metrics import observe_request, record_rate_limited
-from api.infra.rate_limit import FixedWindowRateLimiter
-from api.security.access import is_public_api_path, resolve_request_user
+from api.infra.rate_limit import RedisFixedWindowRateLimiter
+from api.security.access import (
+    is_public_api_path,
+    requires_csrf_validation,
+    resolve_request_user,
+    validate_request_csrf,
+)
 from api.security.audit_events import emit_mutation_event, emit_request_event, request_ip
 
 _API_RATE_LIMIT_EXCLUDED_PATHS = frozenset(
@@ -45,11 +50,11 @@ _API_ACCESS_LOG_EXCLUDED_PATHS = frozenset(
         "/api/v1/internal/metrics",
     }
 )
-_API_LIMITER: FixedWindowRateLimiter | None = None
-_API_LIMITER_CFG: tuple[int, int] | None = None
+_API_LIMITER: RedisFixedWindowRateLimiter | None = None
+_API_LIMITER_CFG: tuple[int, int, int] | None = None
 
 
-def _get_api_limiter() -> FixedWindowRateLimiter | None:
+def _get_api_limiter() -> RedisFixedWindowRateLimiter | None:
     global _API_LIMITER, _API_LIMITER_CFG
     enabled = bool(runtime_app.config.get("API_RATE_LIMIT_ENABLED", True))
     if not enabled:
@@ -58,9 +63,14 @@ def _get_api_limiter() -> FixedWindowRateLimiter | None:
         return None
     limit = int(runtime_app.config.get("API_RATE_LIMIT_REQUESTS_PER_MINUTE", 600))
     window_seconds = int(runtime_app.config.get("API_RATE_LIMIT_WINDOW_SECONDS", 60))
-    cfg = (limit, window_seconds)
+    backend = runtime_app.cache
+    if backend is None:
+        raise RuntimeError("Redis cache must be initialized before API rate limiting")
+    cfg = (limit, window_seconds, id(backend))
     if _API_LIMITER is None or _API_LIMITER_CFG != cfg:
-        _API_LIMITER = FixedWindowRateLimiter(limit=limit, window_seconds=window_seconds)
+        _API_LIMITER = RedisFixedWindowRateLimiter(
+            backend=backend, limit=limit, window_seconds=window_seconds
+        )
         _API_LIMITER_CFG = cfg
     return _API_LIMITER
 
@@ -105,7 +115,19 @@ def build_authentication_middleware(
                         if _early_user is not None
                         else f"{ip}|{request.method}"
                     )
-                    allowed, retry_after = limiter.check(_rate_limit_identity)
+                    try:
+                        allowed, retry_after = limiter.check(_rate_limit_identity)
+                    except Exception:
+                        runtime_app.logger.exception("api_rate_limit_backend_unavailable")
+                        return JSONResponse(
+                            status_code=503,
+                            content={
+                                "status": 503,
+                                "error": "Request protection service is unavailable",
+                                "details": "Retry the request shortly.",
+                            },
+                            headers={"Retry-After": "5", "X-Request-ID": request_id},
+                        )
                     if not allowed:
                         duration_ms = (time.perf_counter() - start) * 1000.0
                         record_rate_limited(path=path)
@@ -140,6 +162,22 @@ def build_authentication_middleware(
                         request=request, request_id=request_id, start=start
                     )
                     return response
+
+                if (
+                    bool(runtime_app.config.get("API_CSRF_ENABLED", True))
+                    and authenticated_user is not None
+                    and requires_csrf_validation(request.method, path)
+                    and not validate_request_csrf(request)
+                ):
+                    return JSONResponse(
+                        status_code=403,
+                        content={
+                            "status": 403,
+                            "error": "CSRF validation failed",
+                            "details": "Refresh the page and retry the action.",
+                        },
+                        headers={"X-Request-ID": request_id},
+                    )
 
                 governed_modules = modules_for_api_path(path)
                 if governed_modules:
@@ -251,6 +289,34 @@ def build_authentication_middleware(
             reset_request_context(context_token)
 
     return api_authentication_middleware
+
+
+def build_security_headers_middleware():
+    """Build browser security headers for API and documentation responses."""
+
+    async def security_headers_middleware(request: Request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault(
+            "Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()"
+        )
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+            "form-action 'self'; img-src 'self' data: blob: https:; font-src 'self' data:; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "script-src 'self' https://cdn.jsdelivr.net; connect-src 'self'",
+        )
+        forwarded = request.headers.get("X-Forwarded-Proto", "").split(",", 1)[0].strip()
+        if forwarded == "https" or request.url.scheme == "https":
+            response.headers.setdefault(
+                "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+            )
+        return response
+
+    return security_headers_middleware
 
 
 def _unauthorized_response(*, request: Request, request_id: str, start: float) -> JSONResponse:

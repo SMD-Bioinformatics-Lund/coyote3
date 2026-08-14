@@ -62,6 +62,12 @@ class _FakeRedis:
         self._values[key] = value
         return True
 
+    def eval(self, _script: str, _key_count: int, key: str, ttl: int):
+        """Emulate the atomic fixed-window counter result."""
+        count = int(self._values.get(key, b"0")) + 1
+        self._values[key] = str(count).encode()
+        return [count, ttl]
+
 
 def test_cache_backend_degrades_when_not_required_and_url_is_missing():
     """An explicitly non-required cache degrades to a no-op when unavailable."""
@@ -195,3 +201,11 @@ def test_redis_cache_backend_roundtrip(monkeypatch: pytest.MonkeyPatch):
     assert backend.get("sample-key") is None
     assert backend.set("sample-key", {"k": 1}, timeout=10) is True
     assert backend.get("sample-key") == {"k": 1}
+    assert backend.increment_window("quota", window_seconds=30) == (1, 30)
+    assert backend.increment_window("quota", window_seconds=30) == (2, 30)
+
+
+def test_disabled_cache_rejects_distributed_counters():
+    """Rate limiting must fail closed when no distributed backend exists."""
+    with pytest.raises(RuntimeError, match="Redis is required"):
+        DisabledCacheBackend().increment_window("quota", window_seconds=60)

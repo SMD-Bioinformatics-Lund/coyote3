@@ -158,6 +158,8 @@ def test_create_runtime_context_initializes_dependencies(monkeypatch: pytest.Mon
         LOG_FILE_ENABLED=False,
         LOG_LEVEL="INFO",
         LOGS="logs/api",
+        COYOTE3_DB="coyote3_test",
+        BAM_DB="bam_test",
     )
     monkeypatch.setattr(runtime_setup, "_select_config", lambda **_kwargs: config)
     monkeypatch.setattr(runtime_setup, "configure_json_logging", lambda **_kwargs: None)
@@ -176,6 +178,26 @@ def test_create_runtime_context_initializes_dependencies(monkeypatch: pytest.Mon
     assert result.config["ENV_NAME"] == "testing"
     assert calls == ["cache", "store", "util"]
     assert phases == ["cache", "database_and_indexes", "total"]
+
+
+@pytest.mark.parametrize("missing_key", ["COYOTE3_DB", "BAM_DB"])
+def test_create_runtime_context_requires_explicit_database_names(
+    monkeypatch: pytest.MonkeyPatch, missing_key: str
+) -> None:
+    config_values = {
+        "ENV_NAME": "testing",
+        "COYOTE3_DB": "coyote3_test",
+        "BAM_DB": "bam_test",
+    }
+    config_values[missing_key] = ""
+    monkeypatch.setattr(
+        runtime_setup,
+        "_select_config",
+        lambda **_kwargs: SimpleNamespace(**config_values),
+    )
+
+    with pytest.raises(RuntimeError, match=missing_key):
+        runtime_setup.create_runtime_context(testing=True)
 
 
 def test_index_conflict_is_recorded_without_stopping_startup(

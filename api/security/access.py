@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 from collections.abc import Generator
 from dataclasses import dataclass
 
@@ -51,6 +52,14 @@ PUBLIC_API_EXACT_PATHS = {
 PUBLIC_API_PREFIX_PATHS = (
     "/api/v1/public/",
     "/api/v1/internal/",
+)
+
+CSRF_EXEMPT_MUTATIONS = frozenset(
+    {
+        ("POST", "/api/v1/auth/sessions"),
+        ("POST", "/api/v1/auth/password/reset/request"),
+        ("POST", "/api/v1/auth/password/reset/confirm"),
+    }
 )
 
 
@@ -128,6 +137,14 @@ def is_public_api_path(path: str) -> bool:
     if path.startswith("/api/v1/common/gene/") and path.endswith("/info"):
         return True
     return False
+
+
+def requires_csrf_validation(method: str, path: str) -> bool:
+    """Return whether a state-changing request must carry a CSRF token."""
+    normalized_method = str(method or "GET").upper()
+    if normalized_method not in {"POST", "PUT", "PATCH", "DELETE"}:
+        return False
+    return (normalized_method, path) not in CSRF_EXEMPT_MUTATIONS
 
 
 def _http_exception_message(exc: HTTPException) -> str:
@@ -211,14 +228,14 @@ def get_api_session_cookie_samesite() -> str:
     return settings_session_cookie_samesite(runtime_app.config)
 
 
-def create_api_session_token(username: str, *, provider: str | None = None) -> str:
-    """Create an opaque Mongo-backed API session token for a user.
+def create_api_session(username: str, *, provider: str | None = None):
+    """Create and return a Mongo-backed API session for a user.
 
     Args:
         username: Username to embed in the token.
 
     Returns:
-        str: Opaque session token.
+        ApiSession: Opaque session credentials and authenticated user.
     """
     user_doc = get_user_repository().user_with_id(str(username).strip().lower())
     if not user_doc or not user_doc.get("is_active", True):
@@ -226,7 +243,7 @@ def create_api_session_token(username: str, *, provider: str | None = None) -> s
     user = api_user_from_user_doc(user_doc)
     session_provider = provider or (user.auth_type[0] if user.auth_type else "ldap")
     session = get_api_session_repository().create(user, provider=session_provider)
-    return session.token
+    return session
 
 
 def delete_api_session_token(token: str | None) -> None:
@@ -316,6 +333,19 @@ def _extract_api_session_token(request: Request) -> str | None:
     return request.cookies.get(get_api_session_cookie_name())
 
 
+def _get_cached_api_session(request: Request, token: str | None):
+    """Load an API session once and reuse it for the current request."""
+    if not token:
+        return None
+    cached_token = getattr(request.state, "api_session_token", None)
+    if cached_token == token and hasattr(request.state, "api_session"):
+        return request.state.api_session
+    session = get_api_session_repository().get(token)
+    request.state.api_session_token = token
+    request.state.api_session = session
+    return session
+
+
 def _decode_session_user(request: Request) -> ApiUser:
     """Decode and validate the authenticated API user.
 
@@ -327,7 +357,7 @@ def _decode_session_user(request: Request) -> ApiUser:
     """
     api_token = _extract_api_session_token(request)
     if api_token:
-        session = get_api_session_repository().get(api_token)
+        session = _get_cached_api_session(request, api_token)
         if session is None:
             raise _api_error(401, "Login required")
         return session.user
@@ -389,6 +419,32 @@ def resolve_request_user(request: Request) -> ApiUser | None:
         return _decode_session_user(request)
     except HTTPException:
         return None
+
+
+def validate_request_csrf(request: Request) -> bool:
+    """Validate the CSRF token for cookie-authenticated state changes.
+
+    Bearer-authenticated API clients are not vulnerable to ambient cookie
+    submission and therefore do not require this browser-specific token.
+    """
+    auth_header = (request.headers.get("Authorization") or "").strip()
+    if auth_header.lower().startswith("bearer "):
+        return True
+    token = request.cookies.get(get_api_session_cookie_name())
+    if not token:
+        return False
+    session = _get_cached_api_session(request, token)
+    supplied = str(request.headers.get("X-CSRF-Token") or "")
+    return bool(session and supplied and secrets.compare_digest(session.csrf_token, supplied))
+
+
+def get_request_api_session(request: Request):
+    """Resolve the server-side session associated with the request cookie."""
+    token = request.cookies.get(get_api_session_cookie_name())
+    session = _get_cached_api_session(request, token)
+    if session is None:
+        raise _api_error(401, "Login required")
+    return session
 
 
 def require_access(permission: str | None = None):

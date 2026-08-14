@@ -256,11 +256,11 @@ def ingest_sample_bundle_internal(
     return util.common.convert_to_serializable(result)
 
 
-async def _save_upload(upload: UploadFile, destination: Path) -> str:
+def _save_upload(upload: UploadFile, destination: Path) -> str:
     digest = sha256()
     with destination.open("wb") as handle:
         while True:
-            chunk = await upload.read(1024 * 1024)
+            chunk = upload.file.read(1024 * 1024)
             if not chunk:
                 break
             handle.write(chunk)
@@ -272,7 +272,7 @@ async def _save_upload(upload: UploadFile, destination: Path) -> str:
     "/api/v1/internal/ingest/sample-bundle/upload",
     response_model=InternalIngestSampleBundlePayload,
 )
-async def ingest_sample_bundle_upload_internal(
+def ingest_sample_bundle_upload_internal(
     yaml_file: UploadFile = File(...),
     data_files: list[UploadFile] = File(default_factory=list),
     update_existing: bool = Form(False),
@@ -294,7 +294,7 @@ async def ingest_sample_bundle_upload_internal(
     upload_refs: list[UploadFile] = [yaml_file, *data_files]
     try:
         _enforce_sample_ingest_permission(user)
-        yaml_bytes = await yaml_file.read()
+        yaml_bytes = yaml_file.file.read()
         yaml_content = yaml_bytes.decode("utf-8")
         source_payload = ingest_service.parse_yaml_payload(yaml_content)
         expected_keys, required_keys = ingest_service._assay_file_policy(
@@ -317,7 +317,7 @@ async def ingest_sample_bundle_upload_internal(
             while destination.exists():
                 destination = staging_dir / f"{destination.stem}_{suffix}{destination.suffix}"
                 suffix += 1
-            checksum = await _save_upload(upload, destination)
+            checksum = _save_upload(upload, destination)
             uploaded_sha256_by_path[str(destination)] = checksum
 
             uploads_by_exact[original_name] = str(destination)
@@ -405,7 +405,7 @@ async def ingest_sample_bundle_upload_internal(
     finally:
         for upload in upload_refs:
             try:
-                await upload.close()
+                upload.file.close()
             except Exception:
                 pass
         shutil.rmtree(staging_dir, ignore_errors=True)
@@ -462,7 +462,7 @@ def enqueue_ingest_sample_bundle_internal(
     response_model=InternalTaskSubmitPayload,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def enqueue_ingest_sample_bundle_upload_internal(
+def enqueue_ingest_sample_bundle_upload_internal(
     yaml_file: UploadFile = File(...),
     data_files: list[UploadFile] = File(default_factory=list),
     update_existing: bool = Form(False),
@@ -487,7 +487,7 @@ async def enqueue_ingest_sample_bundle_upload_internal(
     task_enqueued = False
     try:
         _enforce_sample_ingest_permission(user)
-        yaml_bytes = await yaml_file.read()
+        yaml_bytes = yaml_file.file.read()
         yaml_content = yaml_bytes.decode("utf-8")
         source_payload = ingest_service.parse_yaml_payload(yaml_content)
         expected_keys, required_keys = ingest_service._assay_file_policy(
@@ -510,7 +510,7 @@ async def enqueue_ingest_sample_bundle_upload_internal(
             while destination.exists():
                 destination = staging_dir / f"{destination.stem}_{suffix}{destination.suffix}"
                 suffix += 1
-            checksum = await _save_upload(upload, destination)
+            checksum = _save_upload(upload, destination)
             uploaded_sha256_by_path[str(destination)] = checksum
 
             uploads_by_exact[original_name] = str(destination)
@@ -600,7 +600,7 @@ async def enqueue_ingest_sample_bundle_upload_internal(
     finally:
         for upload in upload_refs:
             try:
-                await upload.close()
+                upload.file.close()
             except Exception:
                 pass
         if not task_enqueued:
@@ -754,7 +754,7 @@ def enqueue_upsert_collection_document_internal(
     "/api/v1/internal/ingest/collection/upload",
     response_model=InternalCollectionUploadPayload,
 )
-async def ingest_collection_upload_internal(
+def ingest_collection_upload_internal(
     collection: str = Form(...),
     mode: str = Form("insert"),
     documents_file: UploadFile = File(...),
@@ -777,7 +777,7 @@ async def ingest_collection_upload_internal(
         )
 
     try:
-        bytes_payload = await documents_file.read()
+        bytes_payload = documents_file.file.read()
         parsed = _parse_uploaded_collection_payload(documents_file.filename, bytes_payload)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise HTTPException(
@@ -786,7 +786,7 @@ async def ingest_collection_upload_internal(
         ) from exc
     finally:
         try:
-            await documents_file.close()
+            documents_file.file.close()
         except Exception:
             pass
 

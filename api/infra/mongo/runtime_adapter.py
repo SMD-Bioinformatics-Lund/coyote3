@@ -16,6 +16,8 @@ from typing import Any
 
 import pymongo
 from pymongo.errors import OperationFailure
+from pymongo.read_concern import ReadConcern
+from pymongo.write_concern import WriteConcern
 
 from api.infra.knowledgebase.clinpgx_public import ClinPgxPublicRepository
 from api.infra.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
@@ -117,8 +119,8 @@ class MongoAdapter:
         Args:
             app: Runtime object containing the API configuration.
         """
-        self.client = self._get_mongoclient(app.config["MONGO_URI"])
         self.app = app
+        self.client = self._get_mongoclient(app.config["MONGO_URI"])
         self._setup_dbs(self.client)
         self.setup()
         self._setup_repositories(ensure_indexes=False)
@@ -143,7 +145,16 @@ class MongoAdapter:
         Returns:
          pymongo.MongoClient: A MongoDB client instance connected to the specified URI.
         """
-        return pymongo.MongoClient(mongo_uri)
+        return pymongo.MongoClient(
+            mongo_uri,
+            maxPoolSize=int(self.app.config.get("MONGO_MAX_POOL_SIZE", 100)),
+            minPoolSize=int(self.app.config.get("MONGO_MIN_POOL_SIZE", 0)),
+            connectTimeoutMS=int(self.app.config.get("MONGO_CONNECT_TIMEOUT_MS", 10_000)),
+            serverSelectionTimeoutMS=int(
+                self.app.config.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", 30_000)
+            ),
+            waitQueueTimeoutMS=int(self.app.config.get("MONGO_WAIT_QUEUE_TIMEOUT_MS", 10_000)),
+        )
 
     def _setup_dbs(self, client: pymongo.MongoClient) -> None:
         """
@@ -157,8 +168,21 @@ class MongoAdapter:
             bam_db: The BAM service database, initialized using the `BAM_DB` from the app's config.
         """
         # No, set the db names from config:
-        self.coyote_db = client[self.app.config["COYOTE3_DB"]]
-        self.bam_db = client[self.app.config["BAM_DB"]]
+        read_concern = ReadConcern(
+            level=str(self.app.config.get("MONGO_READ_CONCERN_LEVEL", "majority"))
+        )
+        configured_w = self.app.config.get("MONGO_WRITE_CONCERN_W", "majority")
+        write_w = int(configured_w) if str(configured_w).isdigit() else configured_w
+        write_concern = WriteConcern(
+            w=write_w,
+            j=bool(self.app.config.get("MONGO_WRITE_CONCERN_JOURNAL", True)),
+        )
+        self.coyote_db = client.get_database(self.app.config["COYOTE3_DB"]).with_options(
+            read_concern=read_concern, write_concern=write_concern
+        )
+        self.bam_db = client.get_database(self.app.config["BAM_DB"]).with_options(
+            read_concern=read_concern, write_concern=write_concern
+        )
 
     def setup(self) -> None:
         """
