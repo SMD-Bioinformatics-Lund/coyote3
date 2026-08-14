@@ -39,10 +39,28 @@ server {
 
     client_max_body_size 200m;
 
+    # Apply browser security policy at the public reverse proxy so it covers
+    # the React shell, static assets, documentation, and API responses.
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
+    add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self'; worker-src 'self' blob:; frame-src 'self' blob:" always;
+
+    set \$forwarded_proto \$http_x_forwarded_proto;
+    if (\$forwarded_proto = "") {
+        set \$forwarded_proto \$scheme;
+    }
+    set \$strict_transport_security "";
+    if (\$forwarded_proto = "https") {
+        set \$strict_transport_security "max-age=31536000; includeSubDomains";
+    }
+    add_header Strict-Transport-Security \$strict_transport_security always;
+
     proxy_set_header Host \$host;
     proxy_set_header X-Real-IP \$remote_addr;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_set_header X-Forwarded-Proto \$forwarded_proto;
     proxy_http_version 1.1;
     proxy_read_timeout 120s;
 EOF

@@ -35,8 +35,10 @@ def main() -> int:
         help="Path to ClinPGx genes zip export.",
     )
     parser.add_argument("--mongo-uri", default=os.getenv("MONGO_URI", "mongodb://localhost:27017"))
-    parser.add_argument("--db", default=os.getenv("COYOTE3_DB", "coyote3_dev"))
+    parser.add_argument("--db", default=os.getenv("COYOTE3_DB", ""))
     args = parser.parse_args()
+    if not args.db:
+        parser.error("--db or COYOTE3_DB is required")
 
     zip_path = Path(args.zip)
     if not zip_path.exists():

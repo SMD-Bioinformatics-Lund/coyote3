@@ -161,7 +161,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--mongo-uri", default=os.getenv("MONGO_URI", ""))
     parser.add_argument("--db", default=os.getenv("COYOTE3_DB", ""))
-    parser.add_argument("--bam-db", default=os.getenv("BAM_DB", "BAM_Service"))
+    parser.add_argument("--bam-db", default=os.getenv("BAM_DB", ""))
     parser.add_argument("--seed-data-dir", default=str(DEFAULT_SEED_DATA_DIR))
     return parser.parse_args()
 
@@ -171,6 +171,8 @@ def main() -> int:
     args = parse_args()
     if not args.mongo_uri or not args.db:
         raise SystemExit("--mongo-uri/MONGO_URI and --db/COYOTE3_DB are required")
+    if not args.bam_db:
+        raise SystemExit("--bam-db/BAM_DB is required")
 
     seed_dir = Path(args.seed_data_dir).expanduser().resolve()
     permission_docs = _load_ndjson(seed_dir / "permissions.seed.ndjson")

@@ -66,7 +66,7 @@ echo "[check] validating compose render"
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" config -q
 
 echo "[check] mandatory keys"
-for key in COYOTE3_DB MONGO_URI SECRET_KEY INTERNAL_API_TOKEN PASSWORD_TOKEN_SALT CORS_ORIGINS; do
+for key in MONGO_URI COYOTE3_DB BAM_DB SECRET_KEY INTERNAL_API_TOKEN PASSWORD_TOKEN_SALT CORS_ORIGINS; do
   if ! grep -qE "^${key}=" "$ENV_FILE"; then
     echo "ERROR: missing key in env file: $key" >&2
     exit 1
@@ -110,9 +110,13 @@ with open(env_file, "r", encoding="utf-8") as fh:
         data[k.strip()] = v.strip().strip("'"'"'\"")
 
 db = data.get("COYOTE3_DB", "")
+if not db:
+    raise SystemExit("ERROR: COYOTE3_DB must be set")
+if not data.get("BAM_DB", ""):
+    raise SystemExit("ERROR: BAM_DB must be set")
 uri = data.get("MONGO_URI", "")
-if not db or not uri:
-    raise SystemExit("ERROR: COYOTE3_DB and MONGO_URI must be set")
+if not uri:
+    raise SystemExit("ERROR: MONGO_URI must be set")
 
 parsed = urlparse(uri)
 uri_db = parsed.path.lstrip("/")
@@ -134,6 +138,65 @@ if grep -qE '^COYOTE3_PORT=' "$ENV_FILE"; then
     exit 1
   fi
 fi
+
+echo "[check] runtime mount ownership and permissions"
+"$PYTHON_BIN" -c '
+import os
+import stat
+import sys
+
+env_file = sys.argv[1]
+data = {}
+with open(env_file, "r", encoding="utf-8") as fh:
+    for raw in fh:
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        data[key.strip()] = value.strip().strip("\"\047")
+
+uid = int(data.get("COYOTE3_UID", "10001"))
+gid = int(data.get("COYOTE3_GID", "10001"))
+
+def has_access(path, *, write):
+    current = os.path.abspath(path)
+    if not os.path.isdir(current):
+        raise SystemExit(f"ERROR: configured host directory does not exist: {current}")
+    target = os.stat(current)
+    if target.st_uid == uid:
+        required = stat.S_IXUSR | (stat.S_IWUSR if write else stat.S_IRUSR)
+    elif target.st_gid == gid:
+        required = stat.S_IXGRP | (stat.S_IWGRP if write else stat.S_IRGRP)
+    else:
+        required = stat.S_IXOTH | (stat.S_IWOTH if write else stat.S_IROTH)
+    if (target.st_mode & required) != required:
+        operation = "write and traverse" if write else "read and traverse"
+        raise SystemExit(
+            f"ERROR: container uid:gid {uid}:{gid} cannot {operation} {current}; "
+            "set ownership or mode before deployment"
+        )
+
+    parent = current
+    while parent != "/":
+        parent = os.path.dirname(parent)
+        parent_stat = os.stat(parent)
+        if parent_stat.st_uid == uid:
+            executable = bool(parent_stat.st_mode & stat.S_IXUSR)
+        elif parent_stat.st_gid == gid:
+            executable = bool(parent_stat.st_mode & stat.S_IXGRP)
+        else:
+            executable = bool(parent_stat.st_mode & stat.S_IXOTH)
+        if not executable:
+            raise SystemExit(
+                f"ERROR: container uid:gid {uid}:{gid} cannot traverse parent directory {parent}"
+            )
+
+for key in ("COYOTE3_DATA_HOST_ROOT", "COYOTE3_LOGS_HOST_ROOT"):
+    value = data.get(key, "")
+    if not value:
+        raise SystemExit(f"ERROR: missing host path in env file: {key}")
+    has_access(value, write=True)
+' "$ENV_FILE"
 
 if [[ -n "$SEED_FILE" ]]; then
   if [[ ! -e "$SEED_FILE" ]]; then

@@ -148,6 +148,10 @@ jobs:
         if: steps.scope.outputs.backend == 'true'
         run: PYTHONPATH=. mypy
 
+      - name: Audit Python runtime dependencies
+        if: steps.scope.outputs.backend == 'true'
+        run: pip-audit -r requirements.txt
+
       - name: Full backend tests and unified coverage
         if: steps.scope.outputs.backend == 'true'
         run: >-
@@ -207,6 +211,11 @@ jobs:
         working-directory: frontend
         run: npm ci --ignore-scripts
 
+      - name: Audit frontend runtime dependencies
+        if: steps.scope.outputs.frontend == 'true'
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Frontend lint, unit coverage, and production build
         if: steps.scope.outputs.frontend == 'true'
         working-directory: frontend
@@ -248,3 +257,28 @@ jobs:
             frontend/coverage/coverage-summary.json
           if-no-files-found: warn
           retention-days: 7
+
+  container-scan:
+    if: >-
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+      github.event.pull_request.draft == false &&
+      contains(github.event.pull_request.labels.*.name, 'security-scan'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build API image for scanning
+        run: docker build -f docker/Dockerfile --target coyote3_api -t coyote3-api:scan .
+
+      - name: Scan API image
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: coyote3-api:scan
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: 1

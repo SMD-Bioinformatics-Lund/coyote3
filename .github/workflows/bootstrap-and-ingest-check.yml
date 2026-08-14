@@ -2,10 +2,10 @@ name: bootstrap-and-ingest-check
 
 on:
   workflow_dispatch:
+  pull_request:
+    types: [labeled]
   schedule:
-    # Monthly full-stack verification keeps runner use predictable for the
-    # repository while still exercising bootstrap and ingest outside PR CI.
-    - cron: "17 3 1 * *"
+    - cron: "17 3 * * 1"
 
 permissions:
   contents: read
@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   bootstrap-and-ingest:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'full-stack-validation'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -44,6 +45,9 @@ jobs:
             "$RUNNER_TEMP/coyote3/logs" \
             "$RUNNER_TEMP/coyote3/mongo-data" \
             "$RUNNER_TEMP/coyote3/mongo-backups"
+          sudo chown -R 10001:10001 \
+            "$RUNNER_TEMP/coyote3/data" \
+            "$RUNNER_TEMP/coyote3/logs"
           openssl rand -base64 756 > "$RUNNER_TEMP/coyote3/mongo-keyfile"
           chmod 0400 "$RUNNER_TEMP/coyote3/mongo-keyfile"
           sudo chown 999:999 "$RUNNER_TEMP/coyote3/mongo-keyfile"
@@ -55,7 +59,6 @@ jobs:
           LOCAL_TIME_ZONE=UTC
           SECRET_KEY=ci-test-secret-key
           INTERNAL_API_TOKEN=ci-test-internal-token
-          API_SESSION_SALT=ci-stage-session-salt
           PASSWORD_TOKEN_SALT=ci-stage-password-token-salt
           COYOTE3_PORT=${COYOTE3_PORT}
           SCRIPT_NAME=${SCRIPT_NAME}
@@ -76,10 +79,8 @@ jobs:
           COYOTE3_MONGO_BIND_ADDRESS=0.0.0.0
           MONGO_REPLICA_SET_NAME=coyote3-rs
           MONGO_REPLICA_MEMBER_HOST=host.docker.internal:27017
-          CACHE_ENABLED=1
           CACHE_REQUIRED=1
           API_WORKERS=1
-          SESSION_COOKIE_SECURE=0
           API_SESSION_COOKIE_NAME=coyote3_ci_api_session
           AUTHENTICATION_PROVIDERS=local
           COYOTE3_INGEST_WATCH_ENABLED=0
@@ -148,13 +149,11 @@ jobs:
       - name: Verify composed sample workflow
         run: |-
           api_url="http://localhost:${COYOTE3_PORT}${SCRIPT_NAME}/api/v1"
-          token_json="$(curl -fsS -X POST "${api_url}/auth/login" \
+          curl -fsS -c /tmp/coyote3-ci-cookies -X POST "${api_url}/auth/sessions" \
             -H 'Content-Type: application/json' \
-            -d "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}")"
-          bearer_token="$(echo "$token_json" | python3 -c \
-            'import json,sys; print(json.load(sys.stdin)["session_token"])')"
+            -d "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\",\"provider\":\"local\"}" >/dev/null
           samples_json="$(curl -fsS "${api_url}/samples" \
-            -H "Authorization: Bearer ${bearer_token}")"
+            -b /tmp/coyote3-ci-cookies)"
           ready="$(echo "$samples_json" | python3 -c \
             'import json,sys; d=json.load(sys.stdin); \
              rows=d if isinstance(d,list) else d.get("items",d.get("samples",[])); \
@@ -186,13 +185,11 @@ jobs:
       - name: Verify sample workflow after restore
         run: |-
           api_url="http://localhost:${COYOTE3_PORT}${SCRIPT_NAME}/api/v1"
-          token_json="$(curl -fsS -X POST "${api_url}/auth/login" \
+          curl -fsS -c /tmp/coyote3-ci-cookies -X POST "${api_url}/auth/sessions" \
             -H 'Content-Type: application/json' \
-            -d "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}")"
-          bearer_token="$(echo "$token_json" | python3 -c \
-            'import json,sys; print(json.load(sys.stdin)["session_token"])')"
+            -d "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\",\"provider\":\"local\"}" >/dev/null
           samples_json="$(curl -fsS "${api_url}/samples" \
-            -H "Authorization: Bearer ${bearer_token}")"
+            -b /tmp/coyote3-ci-cookies)"
           ready="$(echo "$samples_json" | python3 -c \
             'import json,sys; d=json.load(sys.stdin); \
              rows=d if isinstance(d,list) else d.get("items",d.get("samples",[])); \
