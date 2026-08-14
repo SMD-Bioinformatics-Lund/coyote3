@@ -28,21 +28,7 @@
         "HGVSc": "c.2573T>G",
         "HGVSp": "p.Leu858Arg"
       },
-      "selected_CSQ_criteria": "canonical+mane",
-      "CSQ": [
-        {
-          "Feature": "ENST00000288602",
-          "HGNC_ID": "HGNC:3236",
-          "SYMBOL": "EGFR",
-          "Consequence": [
-            "missense_variant"
-          ],
-          "IMPACT": "MODERATE",
-          "VARIANT_CLASS": "SNV",
-          "HGVSc": "c.2573T>G",
-          "HGVSp": "p.Leu858Arg"
-        }
-      ]
+      "selected_CSQ_criteria": "refseq_mane_select"
     },
     "GT": [
       {

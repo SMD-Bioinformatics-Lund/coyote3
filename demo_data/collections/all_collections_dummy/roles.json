@@ -1,0 +1,17 @@
+[
+  {
+    "role_id": "admin",
+    "name": "admin",
+    "label": "Administrator",
+    "description": "Synthetic administrator role used by the demo fixture.",
+    "color": "#b85c4a",
+    "level": 99999,
+    "is_active": true,
+    "permissions": ["sample:view"],
+    "version": 1,
+    "created_by": "system",
+    "created_on": "2026-01-01T10:00:00+00:00",
+    "updated_by": null,
+    "updated_on": null
+  }
+]

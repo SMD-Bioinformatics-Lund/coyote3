@@ -232,15 +232,16 @@ class CivicVariantsDoc(_DocBase):
 class CosmicDoc(_DocBase):
     id: str
 
-    chr: int
+    chr: str
     start: int
     end: int
 
     cnt: Dict[str, int]
 
-    @field_validator("chr")
+    @field_validator("chr", mode="before")
     @classmethod
     def validate_chr(cls, v):
+        v = str(v).strip().upper().removeprefix("CHR")
         allowed = {str(i) for i in range(1, 23)} | {"X", "Y", "MT", "M"}
         if v not in allowed:
             raise ValueError(f"Invalid chromosome: {v}")

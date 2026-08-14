@@ -1,12 +1,17 @@
 [
   {
     "variant": "7_140453136_A_T",
+    "hgvsp": "p.Leu858Arg",
+    "hgvsc": "c.2573T>G",
+    "genomic": "7_140453136_A_T",
+    "genomic_hash": "4aa9ac62e43950e3daaa4a54c1a6bd4e",
     "gene": "EGFR",
     "assay": "hematology",
     "subpanel": "core",
     "author": "demo.user",
     "nomenclature": "p",
-    "transcript": "ENST00000288602",
+    "transcript": "NM_005228.5",
+    "time_created": "2026-01-01T10:00:00+00:00",
     "class": 2
   }
 ]

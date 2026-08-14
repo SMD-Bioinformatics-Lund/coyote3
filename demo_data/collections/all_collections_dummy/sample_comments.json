@@ -1,0 +1,10 @@
+[
+  {
+    "sample_oid": "sample_oid_seed",
+    "sample_name": "demo_dna_sample",
+    "author": "demo.user",
+    "text": "Synthetic sample-level interpretation note.",
+    "hidden": false,
+    "time_created": "2026-01-01T10:00:00+00:00"
+  }
+]

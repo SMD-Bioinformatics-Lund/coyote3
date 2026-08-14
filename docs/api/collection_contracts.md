@@ -284,7 +284,7 @@ Optional keys:
 
 Required keys:
 - `id` (str)
-- `chr` (int)
+- `chr` (str)
 - `start` (int)
 - `end` (int)
 - `cnt` (Dict[str, int])

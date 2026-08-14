@@ -1,0 +1,26 @@
+[
+  {
+    "simple_id": "7_140453136_A_T",
+    "simple_id_hash": "4aa9ac62e43950e3daaa4a54c1a6bd4e",
+    "vep_version": "103",
+    "variant_class": "SNV",
+    "CSQ": [
+      {
+        "Feature": "NM_005228.5",
+        "HGNC_ID": "HGNC:3236",
+        "SYMBOL": "EGFR",
+        "HGVSc": "c.2573T>G",
+        "HGVSp": "p.Leu858Arg",
+        "Consequence": ["missense_variant"],
+        "IMPACT": "MODERATE",
+        "EXON": "21/28",
+        "BIOTYPE": "protein_coding",
+        "MANE_SELECT": "NM_005228.5",
+        "SIFT": "deleterious(0.01)",
+        "PolyPhen": "probably_damaging(0.99)",
+        "CADD_PHRED": 35.0,
+        "VARIANT_CLASS": "SNV"
+      }
+    ]
+  }
+]

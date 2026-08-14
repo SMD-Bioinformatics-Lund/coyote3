@@ -1,0 +1,29 @@
+[
+  {
+    "control_id": "default",
+    "celery": {
+      "enabled": true,
+      "sample_ingest_enabled": true,
+      "collection_writes_enabled": true,
+      "maintenance_enabled": true
+    },
+    "retention": {
+      "audit_events_days": 730,
+      "notification_days": 180,
+      "disk_log_days": 30,
+      "gzip_disk_logs_after_days": 1
+    },
+    "modules": {
+      "dna_analysis_enabled": true,
+      "rna_analysis_enabled": true,
+      "reports_enabled": true,
+      "variant_search_enabled": true,
+      "knowledgebases_enabled": true,
+      "ingest_workspace_enabled": true,
+      "assay_catalog_enabled": true
+    },
+    "created_on": "2026-01-01T10:00:00+00:00",
+    "updated_by": "system",
+    "updated_on": "2026-01-01T10:00:00+00:00"
+  }
+]

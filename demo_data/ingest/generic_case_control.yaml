@@ -1,31 +1,46 @@
 ---
-subpanel: 'hematology-myeloid'
-name: 'seed_case'
-clarity_case_id: 'seed_case_clarity'
-clarity_control_id: 'seed_control_clarity'
-clarity_case_pool_id: 'seed_pool'
-clarity_control_pool_id: 'seed_pool'
+name: demo_dna_sample
+asp_id: assay_1
+subpanel_id: base
+environment: production
 genome_build: 38
+database_versions:
+  assembly: GRCh38.p13
+  vep: "103"
+case_id: demo_case
+control_id: demo_control
 sample_no: 2
-case_id: 'seed_case'
-control_id: 'seed_control'
-profile: 'production'
-assay: 'hema_GMSv1'
-sequencing_scope: 'panel'
-omics_layer: 'DNA'
-sequencing_technology: 'Illumina'
-pipeline: 'SomaticPanelPipeline'
-pipeline_version: 3.1.14
-case_ffpe: false
-case_sequencing_run: 'seed_run'
-case_reads: 49039064
-case_purity: null
-control_ffpe: false
-control_sequencing_run: 'seed_run'
-control_reads: 45889968
-control_purity: null
 paired: true
-vcf_files: demo_data/ingest/generic_case_control.final.filtered.vcf
-cnv: demo_data/ingest/generic_case_control.cnvs.merged.json
-cnvprofile: demo_data/ingest/generic_case_control.modeled.png
-cov: demo_data/ingest/generic_case_control.cov.json
+sequencing_scope: panel
+omics_layer: dna
+platform: illumina
+read_mode: PE
+pipeline: SomaticPanelPipeline
+pipeline_version: 3.1.14
+analysis_intents:
+  - somatic
+case:
+  id: demo_case
+  clarity_id: demo_case_clarity
+  clarity_pool_id: demo_case_pool
+  ffpe: false
+  sequencing_run: demo_run
+  reads: 49039064
+  purity: null
+control:
+  id: demo_control
+  clarity_id: demo_control_clarity
+  clarity_pool_id: demo_control_pool
+  ffpe: false
+  sequencing_run: demo_run
+  reads: 45889968
+  purity: null
+files:
+  vcf_files:
+    path: demo_data/ingest/generic_case_control.final.filtered.vcf
+  cnv:
+    path: demo_data/ingest/generic_case_control.cnvs.merged.json
+  cnvprofile:
+    path: demo_data/ingest/generic_case_control.modeled.png
+  cov:
+    path: demo_data/ingest/generic_case_control.cov.json

@@ -1,0 +1,23 @@
+[
+  {
+    "pharmgkb_accession_id": "PA7360",
+    "ncbi_gene_id": 1956,
+    "hgnc_id": "HGNC:3236",
+    "ensembl_id": "ENSG00000146648",
+    "name": "epidermal growth factor receptor",
+    "symbol": "EGFR",
+    "alternate_names": [],
+    "alternate_symbols": ["ERBB1"],
+    "is_vip": false,
+    "has_variant_annotation": true,
+    "has_cpic_dosing_guideline": false,
+    "cross_references": ["HGNC:3236"],
+    "chromosome": "7",
+    "grch38_start": 55019017,
+    "grch38_stop": 55211628,
+    "source": "ClinPGx",
+    "source_file": "synthetic-demo.tsv",
+    "public_api": true,
+    "last_seen_at": "2026-01-01T10:00:00+00:00"
+  }
+]

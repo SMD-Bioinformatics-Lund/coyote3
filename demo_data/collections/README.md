@@ -1,7 +1,7 @@
-# DB Dummy Fixture
+# Demo collection fixtures
 
-`all_collections_dummy/` contains one `*.json` file per collection with
-representative documents for Mongo collections used by the app.
+`all_collections_dummy/` contains one non-empty `*.json` file for every MongoDB
+collection registered by the application contract registry.
 
 These documents are synthetic examples for contract, integration, and UI
 validation. They are not imported by the production first-deployment workflow.
@@ -11,6 +11,7 @@ Purpose:
 - provide a single, reusable source for integration and contract tests,
 - keep example data privacy-safe and generic,
 - exercise nested document structures expected by ingestion and runtime code.
+- detect contract-registry drift when a collection is added, removed, or renamed.
 
 Contract rules:
 
@@ -24,3 +25,6 @@ Contract rules:
 - Per-collection required/optional keys are generated from Pydantic contracts into
   `docs/api/collection_contracts.md` via:
   - `PYTHONPATH=. ${PYTHON_BIN:-python} scripts/export_collection_contracts_doc.py`
+- Small-variant records contain only the selected consequence needed for the
+  clinical table. Complete transcript consequences are stored in `anno_vep`,
+  keyed by variant identity and VEP version.

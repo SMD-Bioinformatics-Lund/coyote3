@@ -1,0 +1,16 @@
+[
+  {
+    "permission_id": "sample:view",
+    "label": "View samples",
+    "category": "Sample Management",
+    "description": "View samples available to the current account.",
+    "tags": ["sample", "view"],
+    "system_managed": true,
+    "is_active": true,
+    "version": 1,
+    "created_by": "system",
+    "created_on": "2026-01-01T10:00:00+00:00",
+    "updated_by": null,
+    "updated_on": null
+  }
+]
