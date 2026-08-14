@@ -6,6 +6,12 @@ Use this procedure for a new Coyote3 installation. Database provisioning,
 database bootstrap, application deployment, and clinical data ingest are
 separate deliberate operations.
 
+!!! info
+    The complete operator procedure, including production installation,
+    acceptance, backup, subsequent deployment, and rollback, is maintained in
+    [Production deployment](../start_here/production_deployment.md). This page
+    is a concise operational checklist.
+
 ## Before you begin
 
 - Prepare an environment file from `deploy/env/example.env`.
@@ -54,10 +60,11 @@ ingest any sample.
   --password "<GENERATED_ADMIN_PASSWORD>"
 ```
 
-It creates the first local `superuser` and loads empty `permissions`, `roles`,
-`hgnc_genes`, and `vep_metadata` collections. A partially initialized
-governance database is rejected rather than modified. A database that already
-has a superuser is reported and left unchanged.
+It creates the first local `superuser` and loads the bundled `permissions`,
+`roles`, `hgnc_genes`, and `vep_metadata` records into their empty
+collections. A partially initialized governance database is rejected rather
+than modified. A database that already has a superuser is reported and left
+unchanged.
 
 For a nonclinical local demonstration, add `--with-demo-center`. This loads
 only the synthetic ASP, ASPC, and ISGL documents. It does not ingest a sample.
@@ -67,14 +74,13 @@ only the synthetic ASP, ASPC, and ISGL documents. It does not ingest a sample.
 Validate the environment and Compose definition, then start the services.
 
 ```bash
-scripts/center_preflight.sh \
-  --env-file .coyote3_stage_env \
-  --compose-file deploy/compose/docker-compose.yml \
-  --compose-file deploy/compose/docker-compose.stage.yml
+bash scripts/center_preflight.sh \
+  --env-file .coyote3_env \
+  --compose-file deploy/compose/docker-compose.yml
 
 ./scripts/compose-with-version.sh \
-  --env-file .coyote3_stage_env \
-  -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
+  --env-file .coyote3_env \
+  -f deploy/compose/docker-compose.yml \
   up -d --build
 ```
 
@@ -86,9 +92,10 @@ and documentation services. It does not provision or seed MongoDB.
 Use the externally exposed URL, including `SCRIPT_NAME` when configured.
 
 ```bash
-curl -fsS "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT}${SCRIPT_NAME}/api/v1/health"
-docker compose --env-file .coyote3_stage_env \
-  -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml ps
+APP_URL="${PUBLIC_BASE_URL%/}${SCRIPT_NAME}"
+curl -fsS "$APP_URL/api/v1/health"
+docker compose --env-file .coyote3_env \
+  -f deploy/compose/docker-compose.yml ps
 ```
 
 Sign in using the account created in step 2. Create additional users through

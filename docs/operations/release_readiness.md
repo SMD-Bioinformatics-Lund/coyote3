@@ -9,6 +9,7 @@ their commands.
 | Area | Required evidence | Procedure |
 |---|---|---|
 | Automated quality | Backend, frontend, contracts, typing, and strict documentation pass | [Test strategy and quality gates](../testing/testing_and_quality.md) |
+| Disposable deployment | Empty MongoDB bootstrap, production service startup, live watch-folder ingest, clinical workflow checks, and teardown pass on an isolated local environment | [Local disposable full-stack validation](../testing/disposable_full_stack_validation.md) |
 | Clinical browser workflow | Public routes, login, one controlled DNA sample, one controlled RNA sample, report preview, and application controls pass through the deployed reverse proxy | [Browser and release validation](../testing/browser_and_release_validation.md) |
 | Target-center acceptance | Authentication providers, representative DNA/RNA ingestion, reverse proxy, and isolated backup restoration pass with center-owned evidence | [Target-center acceptance](target_center_acceptance.md) |
 | Deployment | Center preflight succeeds using the target environment and compose file | [Initial deployment checklist](initial_deployment_checklist.md) |

@@ -14,7 +14,9 @@ server installed on the host.
 
 ## Docker deployment model
 
-The repository provides `deploy/compose/docker-compose.mongo.yml` for a self-hosted MongoDB 8.2 instance. It creates a dedicated Docker network and starts a single-member replica set.
+The repository provides `deploy/compose/docker-compose.mongo.yml` for a
+self-hosted MongoDB 8.2 instance. It joins an operator-created dedicated
+Docker network and starts a single-member replica set.
 
 The first member is a normal MongoDB primary, not a high-availability cluster. It provides replica-set semantics needed for consistent oplog backups and gives a controlled path to add secondaries later.
 

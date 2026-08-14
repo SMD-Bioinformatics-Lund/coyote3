@@ -170,8 +170,10 @@ bash scripts/run_quality_suite.sh
 !!! tip "Browser validation"
 
     This command verifies source and build behavior. Before promotion, follow
-    the separate [Browser And Release Validation](browser_and_release_validation.md)
-    procedure against a deployed environment and approved synthetic fixtures.
+    the [Local disposable full-stack validation](disposable_full_stack_validation.md)
+    procedure against an empty isolated database, followed by the separate
+    [Browser and release validation](browser_and_release_validation.md)
+    procedure against the intended deployment and approved synthetic fixtures.
 
 ## Running GitHub checks locally
 

@@ -21,6 +21,7 @@ nav:
   - Getting Started:
       - Quickstart: start_here/quickstart.md
       - Configuration: start_here/configuration.md
+      - Production deployment: start_here/production_deployment.md
       - Local Development: start_here/local_development.md
   - User Manual:
       - Clinical Workflow: user_guide/clinical_workflow_guide.md
@@ -99,6 +100,7 @@ nav:
       - Troubleshooting: developer/troubleshooting_guide.md
   - Testing:
       - Test Strategy and Quality Gates: testing/testing_and_quality.md
+      - Local Disposable Full-stack Validation: testing/disposable_full_stack_validation.md
       - Browser and Release Validation: testing/browser_and_release_validation.md
       - Test Data and Fixtures: testing/test_data_and_fixtures.md
   - Project:

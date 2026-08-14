@@ -4,6 +4,10 @@
 
 This guide covers deployment and routine upgrade work for Coyote3.
 
+For the complete step-by-step production procedure, begin with
+[Production deployment](../start_here/production_deployment.md). This page is
+the deployment command and architecture reference.
+
 !!! important "Upgrading from v3.x?"
     v4.0.0 is a full-stack replacement of the Flask application. Routine
     container swap instructions do not apply. Follow the dedicated
@@ -59,7 +63,7 @@ are compiled as part of the Vite bundle; there is no separate Tailwind process.
 image because it changes the generated browser bundle. Do not place secrets in
 these values.
 
-### Production Deployment
+### Production deployment
 
 Production deployments require the production environment file and explicit versioning.
 
@@ -70,7 +74,7 @@ Production deployments require the production environment file and explicit vers
   up -d --build
 ```
 
-### Staging And Development
+### Staging and development
 
 All environments use `docker-compose.yml` as the service contract. Development,
 staging, and test files are overlays that change only the behavior required by
@@ -105,23 +109,32 @@ as `coyote3_dev-api-1` and `coyote3_dev-redis-1`. Avoid explicit
 `container_name` declarations: Compose-managed names prevent collisions and
 retain support for service scaling.
 
-## Post-Deployment Checks
+## Post-deployment checks
 
 Check service health after each deployment:
 
 ```bash
+set -a
+. ./.coyote3_env
+set +a
+
+APP_URL="${PUBLIC_BASE_URL%/}${SCRIPT_NAME}"
+
 # Check container status
-./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml ps
+./scripts/compose-with-version.sh \
+  --env-file .coyote3_env \
+  -f deploy/compose/docker-compose.yml \
+  ps
 
 # Check API health
-curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}/api/v1/health"
+curl -f "$APP_URL/api/v1/health"
 
-# Check internal metrics
-curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}/api/v1/internal/metrics" \
+# Check protected internal metrics through the deployment prefix
+curl -f "$APP_URL/api/v1/internal/metrics" \
   -H "X-Internal-Token: ${INTERNAL_API_TOKEN}"
 ```
 
-## Safety Guardrails
+## Safety guardrails
 
 - **Environment Identity**: Production deployment is blocked without a valid `.coyote3_env`.
 - **Immutable Versioning**: Use of floating `local` tags is prohibited in production; the compose wrapper injects the version from `api/version.py` for all image resolutions.
@@ -134,7 +147,7 @@ For upgrades:
 
 1. **Verification**: Validate environment schema and compose integrity using `validate_env_secrets.sh`.
 2. **Execution**: Update the containerized services with `compose-with-version.sh`.
-3. **Synchronization**: If an ingestion contract modification has occurred, execute collection synchronization via the `/api/v1/internal/ingest` endpoints.
+3. **Maintenance**: Run only the RBAC, index, or stored-data procedure named by the release notes.
 4. **Validation**: Execute the established health and functional verification suite.
 
 ## Rollback Strategy

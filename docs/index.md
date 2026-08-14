@@ -6,7 +6,10 @@ review findings, prepare a report, and preserve the resulting audit record.
 
 !!! info "Start here"
 
-    New installations should begin with the [Quickstart](start_here/quickstart.md).
+    New production installations should follow
+    [Production deployment](start_here/production_deployment.md). Developers
+    evaluating Coyote3 locally should begin with the
+    [Quickstart](start_here/quickstart.md).
     Clinical and technical readers who need an end-to-end explanation can use
     the [Application Manual](product/complete_application_manual.md).
 
@@ -45,6 +48,7 @@ The platform separates browser, API, background, and persistence responsibilitie
 | Goal | Start here |
 | --- | --- |
 | Run Coyote3 locally | [Quickstart](start_here/quickstart.md) |
+| Install or update production | [Production deployment](start_here/production_deployment.md) |
 | Review a DNA or RNA sample | [Clinical Workflow](user_guide/clinical_workflow_guide.md) |
 | Understand ASP, ASPC, ISGL, and samples | [Core Concepts](product/core_concepts.md) |
 | Prepare a center deployment | [Center Deployment](operations/center_deployment_guide.md) |
