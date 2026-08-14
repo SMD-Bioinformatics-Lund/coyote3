@@ -23,7 +23,7 @@ describe("Login page", () => {
   it("loads providers, switches authentication mode, and signs in", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(response({ providers: ["local", "ldap", "unsupported"] }))
-      .mockResolvedValueOnce(response({ status: "ok" }))
+      .mockResolvedValueOnce(response({ status: "ok", csrf_token: "csrf-token" }))
     vi.stubGlobal("fetch", fetchMock)
     const user = userEvent.setup()
     renderWithRouter(<Login />, "/login")

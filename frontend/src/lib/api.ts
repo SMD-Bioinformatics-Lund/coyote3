@@ -38,6 +38,12 @@ export type ApiResponse<T> = {
 
 type ApiBody = BodyInit | Record<string, unknown> | unknown[] | null | undefined
 
+let csrfToken: string | null = null
+
+export function setCsrfToken(token: string | null | undefined) {
+  csrfToken = token || null
+}
+
 export function responsePayload<T>(data: ApiSuccessEnvelope<T> | T): T {
   if (data && typeof data === "object" && "payload" in data) {
     return (data as ApiSuccessEnvelope<T>).payload as T
@@ -70,17 +76,18 @@ function encodeBody(body: ApiBody): BodyInit | undefined {
 async function request<T = any>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   const url = apiPath(endpoint)
   const isFormData = options.body instanceof FormData
-  const headers = isFormData
-    ? { ...options.headers }
-    : {
-        "Content-Type": "application/json",
-        ...options.headers,
-      }
+  const method = (options.method ?? "GET").toUpperCase()
+  const headers = new Headers(options.headers)
+  if (!isFormData && !headers.has("Content-Type")) headers.set("Content-Type", "application/json")
+  if (csrfToken && !["GET", "HEAD", "OPTIONS"].includes(method)) {
+    headers.set("X-CSRF-Token", csrfToken)
+  }
 
   const response = await fetch(url, { ...options, headers })
 
   // Global 401 interceptor
   if (response.status === 401 && window.location.pathname !== appPath("/login")) {
+    setCsrfToken(null)
     window.location.href = appPath("/login")
     throw new Error("Unauthorized")
   }
@@ -100,6 +107,13 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
     throw new ApiClientError(errorMessage, response.status, endpoint)
   }
 
+  if (
+    (endpoint === "/auth/sessions" || endpoint === "/auth/session" || endpoint === "/auth/whoami")
+    && data?.csrf_token
+  ) {
+    setCsrfToken(data.csrf_token)
+  }
+  if (endpoint === "/auth/sessions/current" && method === "DELETE") setCsrfToken(null)
   return { data: data as T, status: response.status }
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ComponentType } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type ComponentType } from "react"
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -504,7 +504,7 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
   const effectiveMode: AdminFormMode = systemPermission && mode === "edit" ? "view" : mode
   const supportsConfigurationTransfer = ["asp", "aspc", "genelists"].includes(spec.key)
 
-  const stageImport = (source: unknown) => {
+  const stageImport = useCallback((source: unknown) => {
     if (!source || typeof source !== "object" || Array.isArray(source)) {
       setEditorError("The selected file must contain one JSON configuration object.")
       return
@@ -521,7 +521,7 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
     setHasImportedValues(false)
     setPendingImport({ document: imported, aspcCategory: importedAspcCategory })
     setEditorError("")
-  }
+  }, [spec.key])
 
   const handleImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -557,7 +557,7 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
       initialCopyApplied.current = true
     }
     setValues(formStateFromSpec(form, mode === "edit" || mode === "view" ? doc : null))
-  }, [aspcCategory, contextQuery.isFetching, doc, form, hasImportedValues, location.state, mode, pendingImport])
+  }, [aspcCategory, contextQuery.isFetching, doc, form, hasImportedValues, location.state, mode, pendingImport, stageImport])
 
   const saveMutation = useMutation({
     mutationFn: (payload: any) => {

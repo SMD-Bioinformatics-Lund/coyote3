@@ -8,6 +8,7 @@ import { Eye, EyeOff, Loader2, Cloud } from "lucide-react"
 import { useTheme } from "next-themes"
 import { apiPath, appPath } from "@/lib/runtime-paths"
 import { runtimeConfig } from "@/lib/runtime-config"
+import { setCsrfToken } from "@/lib/api"
 
 export function Login() {
   const navigate = useNavigate()
@@ -63,6 +64,8 @@ export function Login() {
         return
       }
 
+      const data = await res.json().catch(() => ({})) as { csrf_token?: string }
+      setCsrfToken(data.csrf_token)
       navigate("/")
     } catch (err: any) {
       setError(err.message || "Sign in failed")

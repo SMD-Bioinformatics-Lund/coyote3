@@ -9,6 +9,7 @@ import {
   api,
   responseItems,
   responsePayload,
+  setCsrfToken,
   unwrapItems,
   unwrapPayload,
 } from "./api"
@@ -22,6 +23,7 @@ describe("typed API client", () => {
     notifyMock.mockReset()
     vi.stubGlobal("window", { location: { pathname: "/samples", href: "/samples" } })
     vi.stubGlobal("fetch", vi.fn())
+    setCsrfToken(null)
   })
 
   it("unwraps payload and list envelopes while retaining direct values", () => {
@@ -43,15 +45,10 @@ describe("typed API client", () => {
       data: { payload: { id: 1 } },
       status: 200,
     })
-    expect(fetch).toHaveBeenNthCalledWith(
-      1,
-      "/api/v1/records",
-      expect.objectContaining({
-        method: "POST",
-        body: '{"name":"test"}',
-        headers: expect.objectContaining({ "Content-Type": "application/json" }),
-      }),
-    )
+    const [url, options] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe("/api/v1/records")
+    expect(options).toEqual(expect.objectContaining({ method: "POST", body: '{"name":"test"}' }))
+    expect(new Headers(options?.headers).get("Content-Type")).toBe("application/json")
     await expect(api.delete("/records/1")).resolves.toEqual({ data: {}, status: 204 })
   })
 
@@ -64,7 +61,21 @@ describe("typed API client", () => {
 
     const options = vi.mocked(fetch).mock.calls[0][1] as RequestInit
     expect(options.body).toBe(form)
-    expect(options.headers).toEqual({})
+    expect(new Headers(options.headers).has("Content-Type")).toBe(false)
+  })
+
+  it("keeps the CSRF token in memory and sends it only on mutations", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(response("{}"))
+      .mockResolvedValueOnce(response("{}"))
+    setCsrfToken("csrf-token")
+
+    await api.get("/records")
+    await api.patch("/records/1", { name: "updated" })
+
+    expect(new Headers(vi.mocked(fetch).mock.calls[0][1]?.headers).has("X-CSRF-Token")).toBe(false)
+    expect(new Headers(vi.mocked(fetch).mock.calls[1][1]?.headers).get("X-CSRF-Token")).toBe("csrf-token")
+    expect(sessionStorage.length).toBe(0)
   })
 
   it.each([

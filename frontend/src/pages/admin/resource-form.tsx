@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { Activity, Save, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { accentColor } from "@/lib/badge-colors"
@@ -33,12 +33,18 @@ export function CheckboxGroup({
   const conditionalValue = conditional ? Boolean(formValues?.[conditional.field]) : false
   const dependent = field.options_by_field
   const dependentOptions = optionsForDependency(field, formValues)
-  const options = dependentOptions
-    ? dependentOptions
-    : conditional
-      ? (conditionalValue ? conditional.truthy || [] : conditional.falsy || [])
-      : field.options || []
-  const allowed = new Set(options.map(optionValue).filter(Boolean))
+  const options = useMemo(
+    () => dependentOptions
+      ? dependentOptions
+      : conditional
+        ? (conditionalValue ? conditional.truthy || [] : conditional.falsy || [])
+        : field.options || [],
+    [conditional, conditionalValue, dependentOptions, field.options],
+  )
+  const allowed = useMemo(
+    () => new Set(options.map(optionValue).filter(Boolean)),
+    [options],
+  )
   const visibleSelected = new Set([...selected].filter((item) => allowed.has(item)))
   const hasDependentValue = dependent
     ? normalizeList(formValues?.[dependent.field]).length > 0
@@ -49,7 +55,7 @@ export function CheckboxGroup({
     const current = normalizeList(value)
     const next = current.filter((item) => allowed.has(item))
     if (next.length !== current.length) onChange(next)
-  }, [dependent, formValues, onChange, value, [...allowed].join("\u0000")])
+  }, [allowed, dependent, formValues, onChange, value])
   if (!options.length) {
     if (dependent) {
       return (
