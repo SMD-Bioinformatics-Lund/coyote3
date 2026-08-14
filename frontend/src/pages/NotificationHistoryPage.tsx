@@ -61,17 +61,17 @@ export function NotificationHistoryPage() {
                         {notification.tone}
                       </span>
                       {notification.source && (
-                        <span className="truncate text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                        <span className="truncate text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {notification.source}
                         </span>
                       )}
                       {notification.category && (
-                        <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-black uppercase text-muted-foreground">
+                        <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
                           {notification.category}
                         </span>
                       )}
                     </div>
-                    <h2 className="mt-2 text-sm font-black text-foreground">{notification.title}</h2>
+                    <h2 className="mt-2 text-sm font-semibold text-foreground">{notification.title}</h2>
                     {notification.message && (
                       <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{notification.message}</p>
                     )}

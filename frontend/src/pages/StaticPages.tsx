@@ -32,32 +32,24 @@ export function ContactPage() {
           <AppLoader label="Loading contact information" />
         ) : null}
 
-        <section className="content-section mb-4 flex flex-wrap items-start justify-between gap-4 p-4">
-          <div className="flex items-center gap-3">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
+          <section className="content-section flex items-start gap-3 p-4">
             <div className="rounded-lg bg-primary/10 p-2 text-primary"><LifeBuoy className="h-5 w-5" /></div>
             <div>
-              <h2 className="text-lg font-bold">{orgName}</h2>
-              <p className="text-sm text-muted-foreground">
-                {organization.description || "Clinical genomics interpretation and reporting support."}
+              <h2 className="text-base font-semibold">Choose the appropriate support channel</h2>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
+                Contact the clinical team for interpretation and report questions, the sample team for incoming material and sequencing, or platform support for access and operational incidents.
               </p>
-              {organization.department ? (
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {organization.department}
-                </p>
-              ) : null}
             </div>
-          </div>
-          <Link to="/about" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
-            <Building2 className="h-4 w-4" />
-            About Coyote3
-          </Link>
-        </section>
+          </section>
+          <HoursCard hours={hours} />
+        </div>
 
         <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.45fr)]">
           <section className="content-section p-4">
             <div className="mb-3 flex items-center gap-2">
               <Mail className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-black uppercase tracking-wide text-muted-foreground">Support Channels</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Support Channels</h3>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {contacts.length ? contacts.map((contact, index) => (
@@ -69,10 +61,14 @@ export function ContactPage() {
           </section>
 
           <aside className="space-y-3">
-            <SupportCard support={support} contacts={contacts} />
-            <HoursCard hours={hours} />
+            <OrganizationCard organization={organization} fallbackName={orgName} />
+            <SupportCard support={support} />
             <AddressCard organization={organization} />
             <UsefulLinksCard links={links} />
+            <Link to="/about" className="content-section flex items-center gap-2 p-4 text-sm font-semibold text-link hover:bg-muted">
+              <Building2 className="h-4 w-4" />
+              About Coyote3 and this deployment
+            </Link>
           </aside>
         </div>
       </section>
@@ -88,10 +84,7 @@ export function AboutPage() {
   })
 
   const organization = data?.organization || {}
-  const contacts = data?.contacts || []
-  const hours = data?.hours || []
   const links = data?.links || []
-  const support = data?.support || {}
   const codebase = data?.codebase || {}
   const application = data?.application || {}
   const software = data?.software || {}
@@ -110,19 +103,14 @@ export function AboutPage() {
       description={`Application, reference, version, and support information for ${orgName}.`}
     >
       <section className="space-y-4">
-        <section className="content-section mb-5 flex flex-wrap items-start justify-between gap-4 p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2 text-primary"><Building2 className="h-5 w-5" /></div>
+        <section className="content-section mb-5 flex flex-wrap items-start justify-between gap-4 p-5">
+          <div className="flex max-w-3xl items-start gap-3">
+            <div className="rounded-lg bg-primary/10 p-2 text-primary"><Workflow className="h-5 w-5" /></div>
             <div>
-              <h2 className="text-lg font-bold">{orgName}</h2>
-              <p className="text-sm text-muted-foreground">
-                {organization.description || application.description || "Clinical genomics interpretation and reporting workspace."}
+              <h2 className="text-lg font-semibold">Clinical interpretation and reporting workspace</h2>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                {application.description || "Coyote3 brings assay-aware review, variant interpretation, knowledgebase context, and traceable report generation into one application."}
               </p>
-              {organization.department ? (
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {organization.department}
-                </p>
-              ) : null}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -156,7 +144,7 @@ export function AboutPage() {
           <InfoCard icon={GitBranch} label="Application Version" value={application.version || "-"} hint={application.environment ? `Environment: ${application.environment}` : undefined} />
           <InfoCard icon={Database} label="Primary Database" value={databases.primary || "-"} hint={databases.bam_service ? `BAM service: ${databases.bam_service}` : undefined} />
           <InfoCard icon={FileText} label="VEP Metadata" value={references.vep_metadata?.length ? `${references.vep_metadata.length} version${references.vep_metadata.length === 1 ? "" : "s"}` : "None recorded"} hint="Observed in the VEP metadata collection." />
-          <InfoCard icon={LifeBuoy} label="Support Channels" value={contacts.length ? `${contacts.length} configured` : "None configured"} hint="Contact information is maintained in the center contact configuration." />
+          <InfoCard icon={Building2} label="Deployment" value={orgName} hint={organization.department || "Center-managed Coyote3 deployment"} />
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
@@ -164,7 +152,7 @@ export function AboutPage() {
             <section className="content-section p-4">
               <div className="mb-3 flex items-center gap-2">
                 <Database className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-black uppercase tracking-wide text-muted-foreground">Reference and Software Versions</h3>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Reference and Software Versions</h3>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <VersionBlock title="Analysis Pipelines" values={pipelines} empty="No pipeline versions observed in loaded samples." />
@@ -179,13 +167,11 @@ export function AboutPage() {
           </div>
 
           <aside className="space-y-3">
-            <SupportCard support={support} contacts={contacts} />
-            <HoursCard hours={hours} />
             {aboutLinks.length ? (
               <section className="content-section p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <ExternalLink className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-black uppercase tracking-wide text-muted-foreground">Useful Links</h3>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Useful Links</h3>
                 </div>
                 <div className="space-y-2">
                   {aboutLinks.map((link) => (
@@ -194,7 +180,19 @@ export function AboutPage() {
                 </div>
               </section>
             ) : null}
-            <AddressCard organization={organization} />
+            <section className="content-section p-4">
+              <div className="flex items-start gap-3">
+                <div className="rounded-lg bg-primary/10 p-2 text-primary"><LifeBuoy className="h-4 w-4" /></div>
+                <div>
+                  <h3 className="text-sm font-semibold">Need help?</h3>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">Support contacts, service hours, and escalation information are maintained on the Contact page.</p>
+                  <Link to="/contact" className="link-text mt-2 inline-flex items-center gap-2 text-sm font-semibold">
+                    Open contact and support
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+              </div>
+            </section>
           </aside>
         </div>
       </section>
@@ -235,7 +233,7 @@ function ContactCard({ contact }: { contact: ContactChannel }) {
   const people = contact.people || (contact.email ? [{ email: contact.email }] : [])
   return (
     <article className="content-item p-4">
-      <p className="text-sm font-bold text-foreground">{contact.label}</p>
+      <p className="text-sm font-semibold text-foreground">{contact.label}</p>
       {contact.role ? <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{contact.role}</p> : null}
       {contact.description ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{contact.description}</p> : null}
       <div className="mt-4 space-y-2 text-sm">
@@ -256,13 +254,11 @@ function ContactCard({ contact }: { contact: ContactChannel }) {
   )
 }
 
-function SupportCard({ support, contacts }: { support: Record<string, string>; contacts: ContactChannel[] }) {
-  const configuredChannels = contacts.filter((contact) => (contact.people || []).length > 0 || contact.email)
-  const configuredPeople = configuredChannels.flatMap((contact) => contact.people || (contact.email ? [{ email: contact.email }] : []))
-  if (!support.primary_email && !support.urgent_phone && !configuredPeople.length) return null
+function SupportCard({ support }: { support: Record<string, string> }) {
+  if (!support.primary_email && !support.urgent_phone) return null
   return (
     <div className="content-section p-4">
-      <p className="text-sm font-bold">Support</p>
+      <p className="text-sm font-semibold">Central support</p>
       <div className="mt-3 space-y-2 text-sm">
         {support.primary_email ? (
           <a className="link-text flex items-center gap-2 font-semibold" href={`mailto:${support.primary_email}`}>
@@ -276,25 +272,23 @@ function SupportCard({ support, contacts }: { support: Record<string, string>; c
             {support.urgent_phone}
           </a>
         ) : null}
-        {!support.primary_email && configuredPeople.length ? (
-          <div className="space-y-2">
-            {configuredChannels.map((channel) => (
-              <div key={channel.label}>
-                <p className="text-xs font-semibold text-muted-foreground">{channel.label}</p>
-                <div className="mt-1 space-y-1">
-                  {(channel.people || (channel.email ? [{ email: channel.email }] : [])).map((person) => (
-                    <a key={person.email} className="link-text flex items-start gap-2 font-semibold" href={`mailto:${person.email}`}>
-                      <Mail className="mt-0.5 h-4 w-4 shrink-0" />
-                      <span>{person.name || person.email}</span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
       </div>
     </div>
+  )
+}
+
+function OrganizationCard({ organization, fallbackName }: { organization: Record<string, string>; fallbackName: string }) {
+  return (
+    <section className="content-section p-4">
+      <div className="flex items-start gap-3">
+        <div className="rounded-lg bg-primary/10 p-2 text-primary"><Building2 className="h-4 w-4" /></div>
+        <div>
+          <h3 className="text-sm font-semibold">{fallbackName}</h3>
+          {organization.department ? <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{organization.department}</p> : null}
+          {organization.description ? <p className="mt-2 text-sm leading-6 text-muted-foreground">{organization.description}</p> : null}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -302,7 +296,7 @@ function HoursCard({ hours }: { hours: Array<Record<string, string>> }) {
   if (!hours.length) return null
   return (
     <div className="content-section p-4">
-      <p className="text-sm font-bold">Service Hours</p>
+      <p className="text-sm font-semibold">Service Hours</p>
       <dl className="mt-3 space-y-2 text-sm">
         {hours.map((item) => (
           <div key={`${item.label}-${item.value}`} className="grid grid-cols-[110px_1fr] gap-3">
@@ -329,7 +323,7 @@ function UsefulLinksCard({ links }: { links: LinkLike[] }) {
   if (!links.length) return null
   return (
     <div className="content-section p-4">
-      <p className="text-sm font-bold">Useful Links</p>
+      <p className="text-sm font-semibold">Useful Links</p>
       <div className="mt-3 space-y-2">
         {links.map((link) => <ResourceLink key={`${link.label}-${link.url}`} link={link} />)}
       </div>
@@ -366,9 +360,9 @@ function InfoCard({ icon: Icon, label, value, hint }: { icon: any; label: string
     <article className="content-item p-4">
       <div className="mb-3 flex items-center gap-2">
         <div className="rounded-lg bg-primary/10 p-2 text-primary"><Icon className="h-4 w-4" /></div>
-        <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
       </div>
-      <p className="break-words text-sm font-bold text-foreground">{value}</p>
+      <p className="break-words text-sm font-semibold text-foreground">{value}</p>
       {hint ? <p className="mt-1 break-words text-xs text-muted-foreground">{hint}</p> : null}
     </article>
   )
@@ -381,7 +375,7 @@ function VersionBlock({ title, values, empty }: { title: string; values: any; em
   })
   return (
     <div className="content-item p-3">
-      <p className="mb-2 text-xs font-black uppercase tracking-wide text-muted-foreground">{title}</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
       {entries.length ? (
         <dl className="space-y-2 text-sm">
           {entries.map(([key, value]) => (

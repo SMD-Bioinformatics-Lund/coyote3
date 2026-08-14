@@ -38,6 +38,7 @@ vi.mock("@/lib/notifications", () => ({
 }))
 
 import { AdminResourceEditorPage, AdminResourcePage } from "./AdminResourcePage"
+import { adminCell } from "./admin/resource-list"
 
 function renderResource(resource: string, children?: ReactNode) {
   const queryClient = new QueryClient({
@@ -539,5 +540,17 @@ describe("AdminResourcePage", () => {
     expect(await screen.findByText("Role validation failed")).toBeVisible()
     expect(mocks.error).toHaveBeenCalled()
     expect(screen.queryByText("Resource list")).not.toBeInTheDocument()
+  })
+})
+
+describe("admin resource table typography", () => {
+  it("emphasizes only the primary identifier among ordinary scalar values", () => {
+    const { rerender } = render(adminCell("aspc_id", { aspc_id: "hema_gmsv1_base_production" }, { primaryIdentifier: true }))
+
+    expect(screen.getByText("hema_gmsv1_base_production")).toHaveClass("font-semibold")
+
+    rerender(adminCell("asp_id", { asp_id: "hema_gmsv1" }))
+    expect(screen.getByText("hema_gmsv1")).toHaveClass("font-normal")
+    expect(screen.getByText("hema_gmsv1")).not.toHaveClass("font-semibold")
   })
 })

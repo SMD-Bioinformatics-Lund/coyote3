@@ -86,7 +86,7 @@ export function CheckboxGroup({
     return (
       <div className="space-y-3 rounded-xl border border-border bg-background/60 p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-bold uppercase text-muted-foreground">{visibleSelected.size} selected</span>
+          <span className="text-xs font-semibold uppercase text-muted-foreground">{visibleSelected.size} selected</span>
           <button
             type="button"
             disabled={disabled || visibleSelected.size === 0}
@@ -99,7 +99,7 @@ export function CheckboxGroup({
         {(Object.entries(groupedOptions) as Array<[string, any[]]>).map(([category, categoryOptions]) => (
           <section key={category} className="rounded-lg border border-border bg-card/75 p-3">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <h4 className="text-xs font-black uppercase tracking-wide text-foreground">{category}</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-foreground">{category}</h4>
               <span className="rounded-full bg-muted px-2 py-0.5 text-[0.72rem] font-bold leading-5 text-muted-foreground">
                 {categoryOptions.filter((option) => visibleSelected.has(optionValue(option))).length}/{categoryOptions.length}
               </span>
@@ -270,7 +270,7 @@ export function StructuredObjectField({
         && (!group.requires_intent || normalizeList(group.requires_intent).some((item) => selectedIntents.has(item.toLowerCase())))
       )).map((group) => (
         <div key={group.title} className="space-y-2">
-          <h4 className="text-xs font-bold uppercase text-muted-foreground">{group.title}</h4>
+          <h4 className="text-xs font-semibold uppercase text-muted-foreground">{group.title}</h4>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {group.fields.filter((nested: any) => (
               (!nested.requires_analysis || normalizeList(nested.requires_analysis).some((item) => selectedAnalyses.has(item.toUpperCase())))
@@ -497,7 +497,7 @@ export function AdminManagedForm({
     <section className="surface-panel p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-lg font-bold">{mode === "create" ? "Create" : mode === "view" ? "View" : "Edit"} {spec.title}</h2>
+          <h2 className="text-lg font-semibold">{mode === "create" ? "Create" : mode === "view" ? "View" : "Edit"} {spec.title}</h2>
           <p className="text-sm text-muted-foreground">
             {mode === "view" ? "Read-only view generated from the backend-managed schema contract." : "Form generated from the backend-managed schema contract."}
           </p>
@@ -528,7 +528,7 @@ export function AdminManagedForm({
           if (!sectionFields.length) return null
           return (
             <div key={sectionName} className="rounded-xl border border-border bg-card/70 p-3">
-              <h3 className="mb-3 text-sm font-black uppercase tracking-wide text-foreground">{sectionName.replaceAll("_", " ")}</h3>
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground">{sectionName.replaceAll("_", " ")}</h3>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {sectionFields.map((name) => {
                   const field = form.fields[name]

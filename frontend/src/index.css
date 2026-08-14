@@ -1014,7 +1014,7 @@
     @apply border border-border px-2 py-1 text-left;
   }
   .markdown-body th {
-    @apply bg-muted font-bold;
+    @apply bg-muted font-medium;
   }
   .markdown-body hr {
     @apply my-3 border-border;

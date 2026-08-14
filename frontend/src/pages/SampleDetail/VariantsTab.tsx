@@ -207,7 +207,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
       meta: { headerClassName: "w-16", cellClassName: "w-16" },
       cell: ({ row }) => {
         const raw = row.original.variant_class || "-"
-        return <span className="text-[11px] uppercase font-bold" title={raw}>{compactVariantClass(raw)}</span>
+        return <span className="text-[11px] font-bold uppercase" title={raw}>{compactVariantClass(raw)}</span>
       }
     },
     {
@@ -215,7 +215,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
       header: "Indel Size",
       accessorFn: (row) => row.INFO?.SVLEN || "-",
       meta: { headerClassName: "w-16", cellClassName: "w-16" },
-      cell: ({ row }) => <span className="text-[11px] font-mono text-muted-foreground">{row.original.INFO?.SVLEN || "-"}</span>
+      cell: ({ row }) => <span className="font-mono text-[11px] text-muted-foreground">{row.original.INFO?.SVLEN || "-"}</span>
     },
     {
       id: "consequence",

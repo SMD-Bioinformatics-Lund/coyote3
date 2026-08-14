@@ -122,7 +122,7 @@ export function ReportsPage() {
       <section className="surface-panel p-4">
         <form onSubmit={submit} className="grid gap-3 md:grid-cols-[minmax(20rem,1fr)_12rem_12rem_auto] md:items-end">
           <label className="relative space-y-1.5">
-            <span className="text-xs font-bold uppercase text-muted-foreground">Sample ID</span>
+            <span className="text-xs font-semibold uppercase text-muted-foreground">Sample ID</span>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <input
@@ -159,7 +159,7 @@ export function ReportsPage() {
             )}
           </label>
           <label className="space-y-1.5">
-            <span className="text-xs font-bold uppercase text-muted-foreground">Report type</span>
+            <span className="text-xs font-semibold uppercase text-muted-foreground">Report type</span>
             <select
               value={reportType}
               onChange={(event) => updateReportType(event.target.value as ReportType)}
@@ -242,7 +242,7 @@ export function ReportsPage() {
           </section>
           <aside className="space-y-3">
             <section className="surface-panel p-3">
-              <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">Snapshot Rows</h2>
+              <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Snapshot Rows</h2>
               <DataTable columns={snapshotColumns} data={snapshotRows} filename={`${sampleId}_${reportType}_snapshot.csv`} />
             </section>
           </aside>

@@ -129,8 +129,8 @@ export function AppTooltip({
       {children}
       {position && (
         <TooltipSurface position={position} className={tooltipToneClass(tone)}>
-          <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">{context}</span>
-          <span className="block text-xs font-bold text-popover-foreground">{label || content}</span>
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide opacity-80">{context}</span>
+          <span className="block text-xs font-semibold text-popover-foreground">{label || content}</span>
           {label && label !== content ? (
             <span className="mt-1 block text-[11px] leading-relaxed text-popover-foreground/75">{content}</span>
           ) : null}

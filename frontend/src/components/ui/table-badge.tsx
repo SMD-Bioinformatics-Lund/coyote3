@@ -3,15 +3,18 @@ import type { HTMLAttributes, ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
 export const tableBadgeClassName =
-  "inline-flex min-h-5 min-w-5 max-w-full shrink-0 items-center justify-center rounded-md border px-2 py-0.5 text-[0.68rem] font-bold leading-none shadow-sm"
+  "type-badge inline-flex min-h-5 min-w-5 max-w-full shrink-0 items-center justify-center rounded-md border px-2 py-0.5 shadow-sm"
 
-type TableBadgeProps = HTMLAttributes<HTMLElement> & {
+export type TableBadgeProps = HTMLAttributes<HTMLElement> & {
   as?: "span" | "a"
   children: ReactNode
   href?: string
   rel?: string
   target?: string
 }
+
+export const infoBadgeClassName =
+  "h-[1.125rem] min-h-[1.125rem] min-w-4 rounded px-1.5 py-0 text-[0.625rem] font-semibold leading-none shadow-none"
 
 /** Compact badge geometry shared by clinical and administrative data tables. */
 export function TableBadge({
@@ -31,4 +34,9 @@ export function TableBadge({
       {children}
     </Component>
   )
+}
+
+/** Extra-compact marker used in the INFO column of clinical finding tables. */
+export function InfoBadge({ className, ...props }: TableBadgeProps) {
+  return <TableBadge className={cn(infoBadgeClassName, className)} {...props} />
 }

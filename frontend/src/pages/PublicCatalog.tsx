@@ -116,7 +116,7 @@ export function PublicCatalog() {
       ) : (
         <div className="grid gap-4 xl:grid-cols-[22rem_1fr]">
           <div className="glass-card space-y-3 p-3">
-            <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+            <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
               <ListTree className="h-4 w-4" />
               Modalities
             </h2>
@@ -173,7 +173,7 @@ export function PublicCatalog() {
             <section className="glass-card p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="text-xl font-bold">{right.title || right.label || "Assay Catalog"}</h2>
+                  <h2 className="text-xl font-semibold">{right.title || right.label || "Assay Catalog"}</h2>
                   {right.subheading && <p className="mt-1 text-sm font-semibold text-primary">{right.subheading}</p>}
                   {right.description && <HtmlText html={right.description} className="mt-2 max-w-5xl text-sm leading-relaxed text-muted-foreground" />}
                 </div>
@@ -189,13 +189,13 @@ export function PublicCatalog() {
 
               <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                 <CatalogField label="Input material">
-                  <BadgeList values={right.input_material} empty="Not configured" />
+                  <BadgeList values={right.input_material} empty="No Info" />
                 </CatalogField>
                 <CatalogField label="TAT">
                   <span className="font-semibold">{formatScalar(right.tat)}</span>
                 </CatalogField>
                 <CatalogField label="Sample types">
-                  <BadgeList values={right.sample_modes} empty="Not configured" />
+                  <BadgeList values={right.sample_modes} empty="No Info" />
                 </CatalogField>
                 <CatalogField label="Genes">
                   <span className="font-black text-primary">{data?.stats?.total ?? 0}</span>
@@ -208,27 +208,27 @@ export function PublicCatalog() {
 
               <div className="mt-3 grid gap-2 md:grid-cols-2">
                 <CatalogField label="Available analysis">
-                  <BadgeList values={right.analysis} empty="Not configured" tone="primary" />
+                  <BadgeList values={right.analysis} empty="No Info" tone="primary" />
                 </CatalogField>
                 <CatalogField label="Reporting sections">
-                  <BadgeList values={right.report_sections} empty="Not configured" tone="secondary" />
+                  <BadgeList values={right.report_sections} empty="No Info" tone="secondary" />
                 </CatalogField>
               </div>
 
               {(right.clinical_indications?.length || right.limitations || right.public_notes || right.asp) && (
                 <div className="mt-3 grid gap-2 lg:grid-cols-3">
                   <CatalogField label="Clinical indications">
-                    <BadgeList values={right.clinical_indications} empty="Not configured" tone="success" />
+                    <BadgeList values={right.clinical_indications} empty="No Info" tone="success" />
                   </CatalogField>
                   <CatalogField label="Limitations">
-                    <HtmlText html={right.limitations || "Not configured"} className="text-sm leading-relaxed text-foreground" />
+                    <HtmlText html={right.limitations || "No Info"} className="text-sm leading-relaxed text-foreground" />
                   </CatalogField>
                   <CatalogField label="Technical assay details">
                     <div className="flex flex-wrap gap-1.5">
                       {right.asp?.platform && <CatalogBadge label="Platform" value={right.asp.platform} />}
                       {right.asp?.read_mode && <CatalogBadge label="Read mode" value={right.asp.read_mode} />}
                       {right.asp?.read_length && <CatalogBadge label="Read length" value={right.asp.read_length} />}
-                      {!right.asp?.platform && !right.asp?.read_mode && !right.asp?.read_length && <span className="text-sm text-muted-foreground">Not configured</span>}
+                      {!right.asp?.platform && !right.asp?.read_mode && !right.asp?.read_length && <span className="text-sm text-muted-foreground">No Info</span>}
                     </div>
                   </CatalogField>
                 </div>
@@ -250,8 +250,8 @@ export function PublicCatalog() {
                 <section className="mt-4 border-t border-border pt-4">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">Selected gene list</p>
-                      <h3 className="mt-1 text-base font-bold text-foreground">{selectedGeneList.label || selectedGeneList.key}</h3>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Selected gene list</p>
+                      <h3 className="mt-1 text-base font-semibold text-foreground">{selectedGeneList.label || selectedGeneList.key}</h3>
                     </div>
                     {selectedGeneList.tat && <CatalogBadge label="TAT" value={selectedGeneList.tat} />}
                   </div>
@@ -296,7 +296,7 @@ function HtmlText({ html, className }: { html: unknown; className?: string }) {
 function CatalogField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="rounded-lg border border-border bg-muted/30 p-3">
-      <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
       {children}
     </div>
   )
@@ -626,25 +626,25 @@ function AssayMatrixTable({
     <div className="glass-card border-border/50 p-3">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="rounded-lg border border-border bg-muted/60 px-2.5 py-1.5 text-xs font-black text-foreground shadow-sm">
+          <span className="rounded-lg border border-border bg-muted/60 px-2.5 py-1.5 text-xs font-semibold text-foreground shadow-sm">
             {genes.length} genes
           </span>
           <div className="min-w-0">
-            <h2 className="text-base font-black text-foreground">Assay Catalog - Gene Coverage Matrix</h2>
-            <p className="text-xs font-semibold text-muted-foreground">
+            <h2 className="text-base font-semibold text-foreground">Assay Catalog - Gene Coverage Matrix</h2>
+            <p className="text-xs font-normal text-muted-foreground">
               {columns.length} visible catalog column(s)
               {appliedGeneSearch ? ` for "${appliedGeneSearch}"` : ""}
             </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
-          <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+          <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             Rows
             <select
               value={perPage}
               disabled={Boolean(appliedGeneSearch)}
               onChange={(event) => onPerPageChange(Number(event.target.value))}
-              className="h-8 rounded-lg border border-input bg-background px-2 text-xs font-semibold text-foreground disabled:opacity-50"
+              className="h-8 rounded-lg border border-input bg-background px-2 text-xs font-normal text-foreground disabled:opacity-50"
             >
               {[50, 100, 200, 500].map((value) => <option key={value} value={value}>{value}</option>)}
             </select>
@@ -657,7 +657,7 @@ function AssayMatrixTable({
           >
             Previous
           </button>
-          <span className="text-xs font-semibold text-muted-foreground">Page {page}</span>
+          <span className="text-xs font-normal text-muted-foreground">Page {page}</span>
           <button
             type="button"
             disabled={!hasNext}
@@ -671,12 +671,12 @@ function AssayMatrixTable({
 
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <form onSubmit={onGeneSearchSubmit} className="flex min-w-[18rem] max-w-[34rem] flex-1 flex-wrap items-end gap-2">
-          <label className="grid min-w-[14rem] flex-1 gap-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+          <label className="grid min-w-[14rem] flex-1 gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             Gene search
             <input
               value={geneSearch}
               onChange={(event) => onGeneSearchChange(event.target.value)}
-              className="h-8 rounded-lg border border-input bg-background px-2.5 text-xs font-semibold normal-case tracking-normal text-foreground"
+              className="h-8 rounded-lg border border-input bg-background px-2.5 text-xs font-normal normal-case tracking-normal text-foreground"
               placeholder="TP53"
             />
           </label>
@@ -697,12 +697,12 @@ function AssayMatrixTable({
           ["assayGroup", "Section"],
           ["list", "Gene list"],
         ].map(([key, label]) => (
-          <label key={key} className="grid gap-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+          <label key={key} className="grid gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             {label}
             <select
               value={filters[key] || ""}
               onChange={(event) => updateFilter(key, event.target.value)}
-              className="h-8 rounded-lg border border-input bg-background px-2 text-xs font-semibold normal-case tracking-normal text-foreground"
+              className="h-8 rounded-lg border border-input bg-background px-2 text-xs font-normal normal-case tracking-normal text-foreground"
             >
               <option value="">All</option>
               {(filterOptions[key] || []).map((option) => (
@@ -721,16 +721,16 @@ function AssayMatrixTable({
               <col key={col.key} className="w-32" />
             ))}
           </colgroup>
-          <thead className="sticky top-0 z-20 border-b-2 border-border text-[11px] font-black uppercase tracking-wide text-foreground shadow-sm">
+          <thead className="type-table-header sticky top-0 z-20 border-b-2 border-border text-foreground shadow-sm">
             <tr>
-              <th rowSpan={3} className="sticky left-0 z-30 border-b-2 border-r border-border matrix-head-list px-3 py-1.5 text-center align-middle text-xs font-black uppercase text-foreground">
+              <th rowSpan={3} className="sticky left-0 z-30 border-b-2 border-r border-border matrix-head-list px-3 py-1.5 text-center align-middle text-xs font-medium uppercase text-foreground">
                 Gene
               </th>
               {headerSpans.mod.map((span, index) => (
                 <th
                   key={span.key}
                   colSpan={span.span}
-                  className="matrix-head-mod border-b border-r border-border px-3 py-2.5 text-center align-middle text-xs font-black uppercase tracking-wider text-primary last:border-r-0"
+                  className="matrix-head-mod border-b border-r border-border px-3 py-2.5 text-center align-middle text-xs font-medium uppercase tracking-wider text-primary last:border-r-0"
                   style={index > 0 ? matrixBoundaryStyle("matrix-section") : undefined}
                 >
                   <span className="inline-block max-w-full truncate">
@@ -744,7 +744,7 @@ function AssayMatrixTable({
                 <th
                   key={span.key}
                   colSpan={span.span}
-                  className="matrix-head-group border-b border-r border-border px-3 py-2 text-center align-middle text-[11px] font-black uppercase tracking-wider text-foreground last:border-r-0"
+                  className="matrix-head-group border-b border-r border-border px-3 py-2 text-center align-middle text-foreground last:border-r-0"
                   style={index > 0 ? matrixBoundaryStyle("matrix-group") : undefined}
                 >
                   <span className="inline-block max-w-full truncate">
@@ -759,7 +759,7 @@ function AssayMatrixTable({
                 return (
                   <th
                     key={col.key}
-                    className="matrix-head-list border-b-2 border-r border-border px-2 py-1.5 text-center align-middle text-[10px] font-black uppercase text-foreground last:border-r-0"
+                    className="matrix-head-list border-b-2 border-r border-border px-2 py-1.5 text-center align-middle text-[10px] font-medium uppercase text-foreground last:border-r-0"
                     title={col.isgl_key}
                     style={matrixBoundaryStyle(boundary)}
                   >
@@ -772,7 +772,7 @@ function AssayMatrixTable({
           <tbody>
             {genes.map((gene) => (
               <tr key={gene} className="bg-[var(--paper-raised)] transition-colors duration-75 hover:bg-primary/10 dark:hover:bg-primary/20">
-                <th className="sticky left-0 z-10 border-b border-r border-border/40 bg-card px-3 py-1 text-sm font-black">
+                <th className="sticky left-0 z-10 border-b border-r border-border/40 bg-card px-3 py-1 text-sm font-semibold">
                   <Link
                     to={`/public/gene/${encodeURIComponent(gene)}/info`}
                     className="link-text transition-colors duration-100"
@@ -801,7 +801,7 @@ function AssayMatrixTable({
         </table>
         </div>
       </div>
-      <div className="mt-2 text-right text-xs font-semibold text-muted-foreground">
+      <div className="mt-2 text-right text-xs font-normal text-muted-foreground">
         Showing {genes.length} of {total} gene(s) across {columns.length} visible catalog column(s)
         {appliedGeneSearch ? ` for "${appliedGeneSearch}"` : ""}
       </div>

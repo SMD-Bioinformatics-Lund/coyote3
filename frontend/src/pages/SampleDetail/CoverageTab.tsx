@@ -93,7 +93,7 @@ function CoverageGeneView({
   const renderRows = (rows: any[], region: "CDS" | "probe") => (
     <div className="max-h-72 overflow-auto rounded-lg border border-border bg-background/70">
       <table className="w-full text-left text-xs">
-        <thead className="sticky top-0 bg-muted text-[10px] uppercase tracking-wider text-muted-foreground">
+        <thead className="sticky top-0 bg-muted text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           <tr>
             {region === "CDS" && <th className="px-2 py-1">Exon</th>}
             <th className="px-2 py-1">Coordinates</th>
@@ -145,7 +145,7 @@ function CoverageGeneView({
   const renderAllFeatureRows = (rows: any[], region: "exon" | "CDS" | "probe") => (
     <div className="max-h-96 overflow-auto rounded-lg border border-border bg-background/70">
       <table className="w-full text-left text-xs">
-        <thead className="sticky top-0 bg-muted text-[10px] uppercase tracking-wider text-muted-foreground">
+        <thead className="sticky top-0 bg-muted text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           <tr>
             <th className="px-2 py-1">Feature</th>
             <th className="px-2 py-1">Coordinates</th>
@@ -208,7 +208,7 @@ function CoverageGeneView({
     <section className="glass-card p-3">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
         <div>
-          <h3 className="text-sm font-black uppercase tracking-wide">Gene: {gene} @ {cutoff}X</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-wide">Gene: {gene} @ {cutoff}X</h3>
           <p className="text-xs text-muted-foreground">
             Transcript {metric(safeStart)}-{metric(safeEnd)} • {cds.length} CDS • {probes.length} probes
           </p>
@@ -340,7 +340,7 @@ function CoverageGeneView({
       <div className="glass-card mt-3 border-panel/20 p-3">
         <div className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3">
           <div>
-            <h4 className="text-sm font-black uppercase tracking-wide">Complete Gene Information</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wide">Complete Gene Information</h4>
             <p className="text-xs text-muted-foreground">
               Full transcript, exon, CDS, and probe details from the coverage payload.
             </p>
@@ -383,16 +383,16 @@ function CoverageGeneView({
         {infoTab === "transcript" && (
           <div className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Coordinates</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Coordinates</p>
               <p className="font-mono font-semibold">{transcript.chr || transcript.chrom || "-"}:{metric(transcript.start)}-{metric(transcript.end)}</p>
             </div>
             <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Length</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Length</p>
               <p className="font-mono font-semibold">{metric(regionLength(transcript))} bp</p>
             </div>
             {transcriptRows.map(([key, value]) => (
               <div key={key} className="rounded-lg border border-border bg-background/70 px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{key.replaceAll("_", " ")}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{key.replaceAll("_", " ")}</p>
                 <p className="break-words font-mono text-xs font-semibold">{String(value)}</p>
               </div>
             ))}

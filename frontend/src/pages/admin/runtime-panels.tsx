@@ -44,7 +44,7 @@ export function EffectiveStatePanel({
   return (
     <div className="rounded-lg border border-border bg-background/70 p-3">
       <div className="mb-2">
-        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{title}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
       <div className="flex flex-wrap gap-1.5">
@@ -78,7 +78,7 @@ export function RuntimeMetric({ label, value, description }: { label: string; va
   return (
     <div className="rounded-lg border border-border bg-background/70 p-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
         <InfoHint title={label} description={description} />
       </div>
       <p className="mt-1 text-lg font-black tabular-nums text-foreground">{value}</p>
@@ -129,7 +129,7 @@ export function RuntimeExecutionSummary({
     <div className={`mb-3 flex items-start gap-2 rounded-lg border p-3 ${content.cls}`}>
       <Activity className="mt-0.5 h-4 w-4 shrink-0" />
       <div>
-        <p className="text-sm font-bold">{content.title}</p>
+        <p className="text-sm font-semibold">{content.title}</p>
         <p className="text-xs opacity-90">{content.detail}</p>
       </div>
     </div>
@@ -140,7 +140,7 @@ export function WorkerRuntimePanel({ workers }: { workers: NonNullable<AppContro
   return (
     <div className="rounded-lg border border-border bg-background/70 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Worker details</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Worker details</p>
         <span className="text-xs text-muted-foreground">{workers?.length || 0} responding</span>
       </div>
       {workers?.length ? (
@@ -176,7 +176,7 @@ export function BeatRuntimePanel({ entries }: { entries: NonNullable<AppControls
   return (
     <div className="rounded-lg border border-border bg-background/70 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Periodic schedules</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Periodic schedules</p>
         <InfoHint title="Periodic schedules" description="Schedules configured in the application image. Their presence does not prove that the separate Beat process is online." />
       </div>
       {entries?.length ? (
@@ -198,7 +198,7 @@ export function QueueRuntimePanel({ consumers }: { consumers: Record<string, str
   const entries = Object.entries(consumers)
   return (
     <div className="rounded-lg border border-border bg-background/70 p-3">
-      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Queue consumers</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Queue consumers</p>
       {entries.length ? (
         <div className="grid gap-2">
           {entries.map(([queue, workers]) => (
@@ -222,7 +222,7 @@ export function TaskRuntimePanel({
 }) {
   return (
     <div className="rounded-lg border border-border bg-background/70 p-3">
-      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Task activity and capabilities</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Task activity and capabilities</p>
       {tasks?.length ? (
         <div className="mb-3 grid gap-2">
           {tasks.map((task, index) => (
@@ -263,7 +263,7 @@ export function ControlSection({ title, description, icon, children }: { title: 
       <div className="mb-3 flex items-start gap-2">
         <div className="rounded-lg bg-primary/10 p-2 text-primary">{icon}</div>
         <div>
-          <h2 className="text-base font-bold">{title}</h2>
+          <h2 className="text-base font-semibold">{title}</h2>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
       </div>

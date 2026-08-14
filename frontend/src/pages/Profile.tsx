@@ -140,7 +140,7 @@ export function Profile() {
               </div>
             </dl>
             <section className="mt-4 rounded-lg border border-border bg-background/70 p-3">
-              <h3 className="mb-3 text-xs font-black uppercase tracking-wide text-muted-foreground">Editable profile</h3>
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Editable profile</h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 {([
                   ["firstname", "First name"],
@@ -158,7 +158,7 @@ export function Profile() {
               <ScopeCard title="Assay groups" icon={ShieldCheck} values={assayGroups} empty="No assay group scope" />
             </div>
             <section className="mt-4 rounded-lg border border-border bg-background/70 p-3">
-              <h3 className="mb-2 text-xs font-black uppercase tracking-wide text-muted-foreground">Effective permissions</h3>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Effective permissions</h3>
               {permissions.length ? (
                 <div className="flex max-h-48 flex-wrap gap-1.5 overflow-auto pr-1">
                   {permissions.map((permission: string) => (
@@ -176,7 +176,7 @@ export function Profile() {
           <section className="glass-card p-4">
             <div className="mb-4 flex items-center gap-2">
               <KeyRound className="h-5 w-5 text-primary" />
-              <h2 className="font-bold">Change Password</h2>
+              <h2 className="font-semibold">Change Password</h2>
             </div>
             <div className="space-y-3">
               {!canChangePassword && (
@@ -239,7 +239,7 @@ function ScopeCard({ title, icon: Icon, values, empty }: { title: string; icon: 
     <div className="rounded-lg border border-border bg-background/70 p-3">
       <div className="mb-2 flex items-center gap-2">
         <Icon className="h-4 w-4 text-primary" />
-        <h3 className="text-xs font-black uppercase tracking-wide text-muted-foreground">{title}</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {values.length ? values.map((value) => (

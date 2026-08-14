@@ -2,7 +2,7 @@
 
 import { useState, type FocusEvent, type MouseEvent, type ReactNode } from "react"
 import { TooltipSurface } from "@/components/ui/app-tooltip"
-import { TableBadge } from "@/components/ui/table-badge"
+import { InfoBadge } from "@/components/ui/table-badge"
 import { cn } from "@/lib/utils"
 
 type TooltipPosition = { left: number; top: number }
@@ -43,7 +43,7 @@ export function VariantTooltipBadge({
     onBlur: () => setPosition(null),
   }
   const content = textBadge ? (
-    <TableBadge
+    <InfoBadge
       as={href ? "a" : "span"}
       href={href}
       target={href ? "_blank" : undefined}
@@ -54,7 +54,7 @@ export function VariantTooltipBadge({
       {...handlers}
     >
       {children}
-    </TableBadge>
+    </InfoBadge>
   ) : (
     <span className={badgeClass} aria-label={ariaLabel} tabIndex={0} {...handlers}>
       {children}
@@ -66,7 +66,7 @@ export function VariantTooltipBadge({
       {content}
       {position && (
         <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
-          <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">{contextLabel}</span>
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide opacity-80">{contextLabel}</span>
           <span className="block font-bold text-foreground">{label}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{description}</span>
         </TooltipSurface>

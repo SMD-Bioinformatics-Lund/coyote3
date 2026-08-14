@@ -189,7 +189,7 @@ function ExpressionPanel({ rows, sampleId }: { rows: ExpressionRow[]; sampleId: 
     <section className="surface-card flex min-h-0 flex-col overflow-hidden" aria-label="Expression of selected genes">
       <div className="surface-card-header flex-wrap gap-2">
         <div>
-          <h3 className="flex items-center gap-2 text-sm font-black"><Dna className="size-4" /> Expression of Selected Genes</h3>
+          <h3 className="flex items-center gap-2 text-sm font-semibold"><Dna className="size-4" /> Expression of Selected Genes</h3>
           <p className="text-xs text-muted-foreground">TPM and z-scores compared with the configured reference cohort.</p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5" aria-label="Z-score legend">
@@ -235,7 +235,7 @@ function ClassificationPanel({ rows, sampleId }: { rows: ClassificationRow[]; sa
     <section className="surface-card flex min-h-0 flex-col overflow-hidden" aria-label="Expression-based classification">
       <div className="surface-card-header">
         <div>
-          <h3 className="flex items-center gap-2 text-sm font-black"><BarChart3 className="size-4" /> Expression-Based Classification</h3>
+          <h3 className="flex items-center gap-2 text-sm font-semibold"><BarChart3 className="size-4" /> Expression-Based Classification</h3>
           <p className="text-xs text-muted-foreground">Classifier scores are ranked from highest to lowest.</p>
         </div>
       </div>

@@ -247,7 +247,7 @@ export function ReportsTab({
           <section className="glass-card p-4">
             <div className="mb-3 flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
-              <h4 className="font-bold">{data?.sample?.name || sampleId} {reportType.toUpperCase()} report</h4>
+              <h4 className="font-semibold">{data?.sample?.name || sampleId} {reportType.toUpperCase()} report</h4>
               <span
                 className={`rounded-full px-2 py-1 text-xs font-semibold ${
                   templateStatus?.status === "ready"
@@ -275,7 +275,7 @@ export function ReportsTab({
           <section className="glass-card p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <Eye className="h-5 w-5 text-primary" />
-              <h4 className="font-bold">Rendered report preview</h4>
+              <h4 className="font-semibold">Rendered report preview</h4>
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground">
                 Temporary until saved
               </span>
@@ -295,7 +295,7 @@ export function ReportsTab({
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="font-bold">Confirm report save</h4>
+                <h4 className="font-semibold">Confirm report save</h4>
                 <p className="mt-1 text-sm text-muted-foreground">
                   This saves the current backend-rendered preview as HTML and PDF, and persists the
                   reported-variant snapshot rows for this report.

@@ -172,7 +172,7 @@ export function VariantDetail() {
         }
         chips={
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">Called by</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Called by</span>
             <CallerBadges value={callers} />
           </div>
         }
@@ -266,7 +266,7 @@ export function VariantDetail() {
               <DetailCard title="Sample Genotype" tone="success">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
-                    <thead className="bg-muted/50 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <thead className="bg-muted/50 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       <tr>
                         <th className="px-3 py-1">Type</th>
                         <th className="px-3 py-1">VAF</th>
@@ -365,13 +365,13 @@ export function VariantDetail() {
                   <DetailMetricTable metrics={oncokbPublicGeneMetrics(data.oncokb_gene)} dense />
                   {data.oncokb_gene?.gene_summary ? (
                     <div className="mt-2 rounded-lg border border-border/70 bg-card/60 p-3">
-                      <p className="text-[11px] font-black uppercase tracking-wide text-muted-foreground">Gene summary</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Gene summary</p>
                       <p className="mt-1 text-sm leading-relaxed text-foreground">{data.oncokb_gene.gene_summary}</p>
                     </div>
                   ) : null}
                   {data.oncokb_gene?.background ? (
                     <div className="mt-2 rounded-lg border border-border/70 bg-card/60 p-3">
-                      <p className="text-[11px] font-black uppercase tracking-wide text-muted-foreground">Background</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Background</p>
                       <p className="mt-1 text-sm leading-relaxed text-foreground">{data.oncokb_gene.background}</p>
                     </div>
                   ) : null}
@@ -454,13 +454,13 @@ export function VariantDetail() {
                       <DetailMetricTable metrics={clinpgxApiSummary(clinpgxPublic.data)} dense />
                       {clinpgxPublic.data.response?.vip?.summary ? (
                         <div className="rounded-lg border border-border/70 bg-card/60 p-3">
-                          <p className="text-[11px] font-black uppercase tracking-wide text-muted-foreground">VIP summary</p>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">VIP summary</p>
                           <p className="mt-1 text-sm leading-relaxed text-foreground">{clinpgxPublic.data.response.vip.summary}</p>
                         </div>
                       ) : null}
                       <div className="grid gap-3 xl:grid-cols-2">
                         <div>
-                          <h5 className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-muted-foreground">Guidelines</h5>
+                          <h5 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Guidelines</h5>
                           <DetailDataTable
                             rows={clinpgxEvidenceRows(clinpgxPublic.data, "guidelines")}
                             columns={clinpgxEvidenceColumns("annotation")}
@@ -468,7 +468,7 @@ export function VariantDetail() {
                           />
                         </div>
                         <div>
-                          <h5 className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-muted-foreground">Drug labels</h5>
+                          <h5 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Drug labels</h5>
                           <DetailDataTable
                             rows={clinpgxEvidenceRows(clinpgxPublic.data, "labels")}
                             columns={clinpgxEvidenceColumns("annotation")}
@@ -476,7 +476,7 @@ export function VariantDetail() {
                           />
                         </div>
                         <div>
-                          <h5 className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-muted-foreground">Top connected drugs</h5>
+                          <h5 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Top connected drugs</h5>
                           <DetailDataTable
                             rows={clinpgxEvidenceRows(clinpgxPublic.data, "top_chemicals")}
                             columns={clinpgxEvidenceColumns("object")}
@@ -484,7 +484,7 @@ export function VariantDetail() {
                           />
                         </div>
                         <div>
-                          <h5 className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-muted-foreground">Pathways</h5>
+                          <h5 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pathways</h5>
                           <DetailDataTable
                             rows={clinpgxEvidenceRows(clinpgxPublic.data, "pathways")}
                             columns={clinpgxEvidenceColumns("object")}
@@ -493,7 +493,7 @@ export function VariantDetail() {
                         </div>
                       </div>
                       <div>
-                        <h5 className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-muted-foreground">Variant annotation examples</h5>
+                        <h5 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Variant annotation examples</h5>
                         <DetailDataTable
                           rows={clinpgxEvidenceRows(clinpgxPublic.data, "variant_annotations")}
                           columns={clinpgxEvidenceColumns("annotation")}

@@ -111,7 +111,7 @@ export function AdminHub() {
         <AppLoader label="Loading administration access" />
       ) : visibleResources.length === 0 && visibleUtilities.length === 0 ? (
         <section className="surface-panel p-5">
-          <h2 className="text-base font-bold">Administration access is not assigned</h2>
+          <h2 className="text-base font-semibold">Administration access is not assigned</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Your roles do not include permission to view an administrative resource.
           </p>
@@ -128,7 +128,7 @@ export function AdminHub() {
               <div className="mb-2 inline-flex rounded-lg bg-primary/10 p-2 text-primary">
                 <Icon className="h-4 w-4" />
               </div>
-              <h2 className="font-bold">{spec.title}</h2>
+              <h2 className="font-semibold">{spec.title}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{spec.description}</p>
             </Link>
           )
@@ -142,7 +142,7 @@ export function AdminHub() {
             <div className="mb-2 inline-flex rounded-lg bg-primary/10 p-2 text-primary">
               <module.icon className="h-4 w-4" />
             </div>
-            <h2 className="font-bold">{module.title}</h2>
+            <h2 className="font-semibold">{module.title}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{module.description}</p>
           </Link>
         ))}
@@ -258,7 +258,10 @@ export function AdminResourcePage() {
       id: field,
       header: titleize(field),
       accessorFn: (row) => adminExportValue(field, row),
-      cell: ({ row }) => adminCell(field, row.original, { roleColors: data?.roles || {} }),
+      cell: ({ row }) => adminCell(field, row.original, {
+        roleColors: data?.roles || {},
+        primaryIdentifier: field === spec.idKeys[0],
+      }),
       meta: {
         exportValue: (row: any) => adminExportValue(field, row),
         cellClassName: field === "permissions" ? "min-w-64" : undefined,
@@ -422,7 +425,7 @@ export function AdminResourcePage() {
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="text-base font-black">Confirm {pendingAction.action}</h2>
+                <h2 className="text-base font-semibold">Confirm {pendingAction.action}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {pendingAction.action === "delete"
                     ? `Delete ${spec.title.toLowerCase()} ${pendingAction.name}? This removes the active resource from the admin workflow.`
@@ -689,7 +692,7 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
             <section className="surface-panel flex items-start gap-3 p-3">
               <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <div>
-                <h2 className="text-sm font-bold">System permission</h2>
+                <h2 className="text-sm font-semibold">System permission</h2>
                 <p className="text-xs text-muted-foreground">
                   This definition is shipped with Coyote3 and cannot be edited, deactivated, or deleted. Assign or remove it through role policies.
                 </p>
@@ -699,7 +702,7 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
           {spec.key === "aspc" && mode === "create" && (
             <div className="surface-panel flex items-center justify-between gap-3 p-3">
               <div>
-                <h2 className="text-sm font-bold uppercase">Assay Configuration Type</h2>
+                <h2 className="text-sm font-semibold uppercase">Assay Configuration Type</h2>
                 <p className="text-xs text-muted-foreground">Choose the schema before filling the create form.</p>
               </div>
               <div className="inline-flex rounded-lg border border-border bg-background p-1">

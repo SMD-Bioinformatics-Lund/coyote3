@@ -112,7 +112,7 @@ function FilterInput({
 }) {
   return (
     <label className="space-y-1">
-      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
       <input
         type="number"
         step={step}
@@ -127,7 +127,7 @@ function FilterInput({
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="rounded-lg border border-border bg-background/55 p-2.5">
-      <h4 className="mb-2 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-foreground">
+      <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-foreground">
         <Filter className="h-3.5 w-3.5 text-primary" />
         {title}
       </h4>
@@ -206,7 +206,7 @@ function FusionDescriptionList({
         if (!terms.length) return null
         return (
           <fieldset key={key} className="space-y-1.5">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
             <p className="text-[10px] leading-4 text-muted-foreground">{description}</p>
             <div className="space-y-1">
               {terms.map((term) => (
@@ -222,7 +222,7 @@ function FusionDescriptionList({
                     className="shrink-0 rounded border-border text-primary focus:ring-primary"
                   />
                   <span
-                    className={`${badgeClass} inline-flex min-h-5 min-w-0 items-center rounded-md border px-2 text-[0.68rem] font-bold`}
+                    className={`${badgeClass} type-badge inline-flex min-h-5 min-w-0 items-center rounded-md border px-2`}
                   >
                     {term}
                   </span>
@@ -336,7 +336,7 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
         <button onClick={() => setIsCollapsed(false)} className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground" title="Expand filters">
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <span className="mt-8 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
+        <span className="mt-8 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
           {intent} {activeTab} filters
         </span>
       </aside>
@@ -347,8 +347,8 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
     <aside className="flex h-full w-60 shrink-0 flex-col overflow-hidden rounded-lg border border-primary/10 bg-card/95 shadow-sm transition-[width] duration-150 ease-out">
       <div className="flex items-center justify-between border-b border-primary/10 bg-gradient-to-r from-dna/10 via-card/80 to-rna/10 px-3 py-2">
         <div>
-          <h3 className="text-sm font-black">Filters</h3>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{intent} {activeTab}</p>
+          <h3 className="text-sm font-semibold">Filters</h3>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{intent} {activeTab}</p>
           {sample?.current_aspc_key && (
             <p className="mt-0.5 text-[10px] text-muted-foreground">
               ASPC: <span className="font-semibold text-foreground">{sample.current_aspc_key}</span>

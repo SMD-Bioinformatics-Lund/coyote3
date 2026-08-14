@@ -121,7 +121,7 @@ export function Dashboard() {
           <div className="dashboard-snapshot-card p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Analysis progress</p>
+                <p className="type-label text-muted-foreground">Analysis progress</p>
                 <p className="mt-1 text-xl font-semibold leading-tight text-foreground">
                   {fmt(data?.analysed_samples)} <span className="text-sm font-medium text-muted-foreground">of {fmt(data?.total_samples)} analysed</span>
                 </p>
@@ -131,20 +131,20 @@ export function Dashboard() {
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
               <div className="h-full rounded-full bg-pass" style={{ width: `${Math.min(100, Number(data?.total_samples) > 0 ? (Number(data?.analysed_samples || 0) / Number(data?.total_samples)) * 100 : 0)}%` }} />
             </div>
-            <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+            <div className="type-meta mt-2 flex items-center justify-between text-muted-foreground">
               <span>{percent(userScope.analysed_rate_percent ?? quality.analysed_rate_percent)} complete in your visible scope</span>
               <span className="font-semibold text-foreground">{fmt(userScope.pending_samples ?? data?.pending_samples)} awaiting review</span>
             </div>
           </div>
           <div className="dashboard-snapshot-card p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">My visible samples</p>
+            <p className="type-label text-muted-foreground">My visible samples</p>
             <p className="mt-1 text-xl font-semibold leading-tight text-foreground">{fmt(userScope.total_samples ?? data?.total_samples)}</p>
-            <p className="mt-2 text-xs text-muted-foreground">Available through your roles, assays, and environments.</p>
+            <p className="type-meta mt-2 text-muted-foreground">Available through your roles, assays, and environments.</p>
           </div>
           <div className="dashboard-snapshot-card p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Finding inventory</p>
+            <p className="type-label text-muted-foreground">Finding inventory</p>
             <p className="mt-1 text-xl font-semibold leading-tight text-foreground">{fmt(findingTotal)}</p>
-            <p className="mt-2 text-xs text-muted-foreground">{fmt(vStats.unique_variants)} unique small variants across visible samples.</p>
+            <p className="type-meta mt-2 text-muted-foreground">{fmt(vStats.unique_variants)} unique small variants across visible samples.</p>
           </div>
         </div>
       </SurfacePanel>
@@ -162,23 +162,23 @@ export function Dashboard() {
               return (
                 <div key={assay} className="dashboard-subcard p-2.5">
                   <div className="mb-2 flex justify-between">
-                    <h3 className="text-[11px] font-bold uppercase">{assay}</h3>
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">{stats.analysed}/{stats.total}</span>
+                    <h3 className="type-label">{assay}</h3>
+                    <span className="type-badge rounded-full bg-primary/10 px-2 py-0.5 text-primary">{stats.analysed}/{stats.total}</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div className="h-full rounded-full bg-primary/80" style={{ width: `${percent}%` }} />
                   </div>
-                  <p className="mt-2 text-right text-[11px] text-muted-foreground">Pending {stats.pending}</p>
+                  <p className="type-meta mt-2 text-right text-muted-foreground">Pending {stats.pending}</p>
                 </div>
               )
             })}
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Sample Profiles</h3>
+              <h3 className="type-label text-muted-foreground">Sample Profiles</h3>
               {profileData.length ? profileData.map((item, index) => (
                 <div key={item.name} className="dashboard-subcard p-2">
-                  <div className="flex justify-between text-[11px] font-bold uppercase">
+                  <div className="type-meta flex justify-between uppercase">
                     <span>{item.name}</span>
                     <span>{fmt(item.value)}</span>
                   </div>
@@ -203,11 +203,11 @@ export function Dashboard() {
               <Link key={sample.id || sample.name} to={sampleDetailPath(sample, sample.id)} className="dashboard-subcard group flex items-center justify-between gap-3 p-2.5 hover:border-primary/40 hover:bg-primary/5">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-sm font-black text-primary">{sample.name || sample.id}</p>
-                    <span className="rounded-md bg-dna/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-dna">{sample.omics_layer || "dna"}</span>
-                    <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">{sample.ingest_status || "unknown"}</span>
+                    <p className="truncate text-sm font-semibold text-primary">{sample.name || sample.id}</p>
+                    <span className="type-badge rounded-md bg-dna/10 px-1.5 py-0.5 uppercase text-dna">{sample.omics_layer || "dna"}</span>
+                    <span className="type-badge rounded-md bg-muted px-1.5 py-0.5 uppercase text-muted-foreground">{sample.ingest_status || "unknown"}</span>
                   </div>
-                  <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                  <p className="type-meta mt-0.5 truncate text-muted-foreground">
                     {sample.asp_id || "-"} {sample.subpanel_id ? `• ${sample.subpanel_id}` : ""} • {humanDate(sample.time_added)}
                   </p>
                 </div>
@@ -238,12 +238,12 @@ export function Dashboard() {
               <div key={title} className="dashboard-subcard p-2.5">
                 <div className="mb-2 flex items-center gap-2">
                   <Icon className="h-4 w-4 text-primary" />
-                  <h3 className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{title}</h3>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
                 </div>
                 <div className="space-y-1.5">
                   {rows.length ? rows.map((item: any, index: number) => (
                     <div key={item.name} className="space-y-1">
-                      <div className="flex justify-between gap-3 text-[11px] font-bold uppercase">
+                      <div className="flex justify-between gap-3 text-[11px] font-medium uppercase">
                         <span className="truncate">{item.name || "unknown"}</span>
                         <span>{fmt(item.value)}</span>
                       </div>
@@ -273,7 +273,7 @@ export function Dashboard() {
               <Metric title="Tier 4" value={vStats.tier4} sub="Usually not reportable" />
             </div>
             <div className="dashboard-subcard min-h-48 p-2">
-              <h3 className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Tier Distribution</h3>
+              <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Tier Distribution</h3>
               {tierChartData.length ? (
                 <div className="h-44">
                   <Suspense fallback={<ChartFallback />}>
@@ -283,11 +283,11 @@ export function Dashboard() {
               ) : <p className="text-xs text-muted-foreground">No tier data available.</p>}
             </div>
             <div className="dashboard-subcard min-h-48 p-2">
-              <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Small Variant Classes</h3>
+              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Small Variant Classes</h3>
               <div className="space-y-2">
                 {variantClassData.length ? variantClassData.slice(0, 6).map((item, index) => (
                   <div key={item.name} className="space-y-1">
-                    <div className="flex justify-between gap-3 text-[11px] font-bold uppercase">
+                    <div className="flex justify-between gap-3 text-[11px] font-medium uppercase">
                       <span className="truncate">{item.name || "unknown"}</span>
                       <span>{fmt(item.value)}</span>
                     </div>
@@ -311,7 +311,7 @@ export function Dashboard() {
               </Suspense>
             ) : (
               <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 text-center">
-                <p className="text-sm font-black text-foreground">No active panel gene counts available</p>
+                <p className="text-sm font-semibold text-foreground">No active panel gene counts available</p>
                 <p className="mt-1 max-w-md text-xs text-muted-foreground">
                   Active ASP documents need populated covered_genes or germline_genes arrays before the coverage chart can be drawn.
                 </p>
@@ -349,8 +349,8 @@ export function Dashboard() {
           <div className="grid grid-cols-2 gap-2 xl:h-[280px] xl:auto-rows-fr">
             {capacityEntries.length ? capacityEntries.map(([key, value], index) => (
               <div key={key} className="dashboard-subcard p-2.5">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{key.replaceAll("_", " ")}</p>
-                <p className="mt-1 text-base font-black" style={{ color: chartColors[index % chartColors.length] }}>{fmt(value)}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{key.replaceAll("_", " ")}</p>
+                <p className="mt-1 text-base font-semibold" style={{ color: chartColors[index % chartColors.length] }}>{fmt(value)}</p>
               </div>
             )) : <p className="text-xs text-muted-foreground">No capacity data available.</p>}
           </div>
@@ -367,23 +367,23 @@ export function Dashboard() {
           </div>
           <div className="dashboard-subcard p-2.5">
             <div className="mb-2 flex items-center justify-between gap-3">
-              <h3 className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Top Assay ISGL Associations</h3>
-              <Link to="/public/catalog" className="link-text text-[11px] font-bold">Open catalog</Link>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Top Assay ISGL Associations</h3>
+              <Link to="/public/catalog" className="link-text text-[11px] font-medium">Open catalog</Link>
             </div>
             <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
               {isglAssociationRows.length ? isglAssociationRows.slice(0, 6).map((row: any) => (
                 <div key={row.assay_id || row.display_name} className="dashboard-subcard p-2">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-xs font-black text-foreground">{row.display_name || row.assay_id}</p>
-                      <p className="mt-0.5 truncate text-[10px] font-bold uppercase text-muted-foreground">{row.asp_group || "unassigned"}</p>
+                      <p className="truncate text-xs font-semibold text-foreground">{row.display_name || row.assay_id}</p>
+                      <p className="mt-0.5 truncate text-[10px] font-medium uppercase text-muted-foreground">{row.asp_group || "unassigned"}</p>
                     </div>
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-black text-primary">{fmt(row.isgl_total)}</span>
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">{fmt(row.isgl_total)}</span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="rounded-md bg-pass/10 px-1.5 py-0.5 text-[10px] font-bold text-pass">{fmt(row.public_count)} public</span>
-                    <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">{fmt(row.private_count)} private</span>
-                    <span className="rounded-md bg-warn/10 px-1.5 py-0.5 text-[10px] font-bold text-warn">{fmt(row.adhoc_count)} ad-hoc</span>
+                    <span className="rounded-md bg-pass/10 px-1.5 py-0.5 text-[10px] font-medium text-pass">{fmt(row.public_count)} public</span>
+                    <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">{fmt(row.private_count)} private</span>
+                    <span className="rounded-md bg-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-warn">{fmt(row.adhoc_count)} ad-hoc</span>
                   </div>
                 </div>
               )) : <p className="text-xs text-muted-foreground">No assay-to-ISGL associations configured.</p>}

@@ -73,7 +73,7 @@ export function FindingHero({
             {statValue ? (
               <div className="flex flex-col items-start md:items-end">
                 {statLabel && (
-                  <span className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                  <span className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {statLabel}
                   </span>
                 )}

@@ -267,9 +267,9 @@ export function CommentsPanel({
     <section className="glass-card p-2.5">
       <div className="mb-2 flex items-center gap-2">
         <MessageSquare className="h-4 w-4 text-tier2" />
-        <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{title}</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
         {showList && (
-          <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">{comments.length}</span>
+          <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{comments.length}</span>
         )}
       </div>
 
@@ -411,7 +411,7 @@ export function CommentsPanel({
         </div>
         {showLivePreview && text && mode === "edit" && (
           <div className="rounded-lg border border-border bg-card p-2">
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Preview</p>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Preview</p>
             <MarkdownText text={text} />
           </div>
         )}

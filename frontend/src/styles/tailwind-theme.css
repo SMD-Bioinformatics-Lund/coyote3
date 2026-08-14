@@ -141,6 +141,86 @@
   --color-unknown: #6b7280;
 }
 
+/*
+ * Semantic typography roles. Repeated interface text should use these roles
+ * instead of choosing font size and weight independently in each page.
+ */
+@utility type-page-eyebrow {
+  font-size: 0.65rem;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+@utility type-page-title {
+  font-family: var(--font-heading);
+  font-size: 1.625rem;
+  line-height: 1.15;
+  font-weight: 480;
+  letter-spacing: 0;
+}
+
+@utility type-card-title {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+@utility type-section-title {
+  font-size: 0.80rem;
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+@utility type-table-header {
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+@utility type-label {
+  font-size: 0.65rem;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+@utility type-body {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+@utility type-body-sm {
+  font-size: 0.77rem;
+  line-height: 1.45;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+@utility type-meta {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+@utility type-badge {
+  font-size: 0.6875rem;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
 :root {
   --background: oklch(0.938 0.002 255);
   --foreground: oklch(0.2 0.005 255);

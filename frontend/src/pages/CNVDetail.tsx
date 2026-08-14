@@ -116,7 +116,7 @@ export function CNVDetail() {
         }
         chips={
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">Called by</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Called by</span>
             <CallerBadges value={callers} />
           </div>
         }

@@ -20,9 +20,9 @@ export function SurfacePanel({
         <div className="surface-panel-heading flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             {title && (
-              <h2 className="text-sm font-semibold tracking-normal text-foreground">{title}</h2>
+              <h2 className="type-card-title text-foreground">{title}</h2>
             )}
-            {description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}
+            {description && <p className="type-body-sm mt-1 text-muted-foreground">{description}</p>}
           </div>
           {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
         </div>
@@ -45,9 +45,9 @@ export function MetricCard({
 }) {
   return (
     <div className={cn("metric-card p-4", className)}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{title}</p>
-      <p className="mt-1 text-xl font-semibold leading-tight tracking-normal text-foreground">{value}</p>
-      {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
+      <p className="type-label text-muted-foreground">{title}</p>
+      <p className="mt-1 text-xl font-semibold leading-tight text-foreground">{value}</p>
+      {sub && <p className="type-meta mt-1 text-muted-foreground">{sub}</p>}
     </div>
   )
 }

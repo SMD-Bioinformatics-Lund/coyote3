@@ -255,7 +255,7 @@ export function AdminControlsPage() {
           <section className="surface-panel p-3 xl:col-span-2">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-base font-bold">Public OncoKB reference refresh</h2>
+                <h2 className="text-base font-semibold">Public OncoKB reference refresh</h2>
                 <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
                   Queues one background refresh of the public cancer-gene and curated-gene catalogues. The worker matches every remote record against approved, previous, and alias symbols in the local HGNC collection before updating shared reference records.
                 </p>
@@ -266,7 +266,7 @@ export function AdminControlsPage() {
           <section className="surface-panel !overflow-visible p-3 xl:col-span-2">
             <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-base font-bold">Observed Runtime State</h2>
+                <h2 className="text-base font-semibold">Observed Runtime State</h2>
                 <p className="text-sm text-muted-foreground">Live Celery process, queue, schedule, and repository health reported by the API runtime.</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {runtime.observed_at ? `Observed ${humanRelativeDate(runtime.observed_at)} (${fullDateTime(runtime.observed_at)}).` : "Observation time was not reported."}
@@ -334,7 +334,7 @@ export function AdminControlsPage() {
 
           <section className="surface-panel !overflow-visible p-3 xl:col-span-2">
             <div className="mb-3">
-              <h2 className="text-base font-bold">Retention Policies</h2>
+              <h2 className="text-base font-semibold">Retention Policies</h2>
               <p className="text-sm text-muted-foreground">All values are days. Audit retention also updates the expiry horizon used when new audit events are written.</p>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -497,7 +497,7 @@ export function AdminAuditPage() {
         const resource = row.original.resource?.name || row.original.resource?.id
         return (
           <div>
-            <span className="block text-sm font-bold capitalize">{row.original.resource?.type?.replaceAll("_", " ") || "-"}</span>
+            <span className="block text-sm font-semibold capitalize">{row.original.resource?.type?.replaceAll("_", " ") || "-"}</span>
             <span className="block max-w-48 truncate font-mono text-[11px] text-muted-foreground" title={resource || ""}>{resource || "-"}</span>
           </div>
         )
@@ -582,7 +582,7 @@ export function AdminAuditPage() {
               className={`flex items-center justify-between rounded-xl border p-3 text-left transition-colors duration-100 ${severityClass[level]} ${severity === level ? "ring-2 ring-current ring-offset-2 ring-offset-background" : ""}`}
             >
               <span>
-                <span className="block text-xs font-bold uppercase tracking-wide">{level}</span>
+                <span className="block text-xs font-semibold uppercase tracking-wide">{level}</span>
                 <span className="mt-0.5 block text-xl font-black tabular-nums">{severityCounts[level]}</span>
               </span>
               <Icon className="h-5 w-5" />
@@ -766,7 +766,7 @@ export function AdminIngestPage() {
           </div>
           <div className="space-y-3">
             <label className="block space-y-1">
-              <span className="text-xs font-bold uppercase text-muted-foreground">YAML manifest</span>
+              <span className="text-xs font-semibold uppercase text-muted-foreground">YAML manifest</span>
               <input
                 type="file"
                 accept=".yaml,.yml"
@@ -775,7 +775,7 @@ export function AdminIngestPage() {
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold uppercase text-muted-foreground">Referenced data files</span>
+              <span className="text-xs font-semibold uppercase text-muted-foreground">Referenced data files</span>
               <input
                 type="file"
                 multiple
@@ -812,7 +812,7 @@ export function AdminIngestPage() {
           {taskId ? (
             <div className="space-y-3">
               <div className="rounded-xl border border-border bg-background/70 p-3">
-                <p className="text-xs font-bold uppercase text-muted-foreground">Task ID</p>
+                <p className="text-xs font-semibold uppercase text-muted-foreground">Task ID</p>
                 <p className="break-all font-mono text-sm">{taskId}</p>
               </div>
               {taskStatus.isLoading ? (
@@ -854,7 +854,7 @@ export function AdminIngestPage() {
 function TaskMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-border bg-background/70 p-3">
-      <p className="text-[11px] font-bold uppercase text-muted-foreground">{label}</p>
+      <p className="text-[11px] font-semibold uppercase text-muted-foreground">{label}</p>
       <p className="mt-1 text-sm font-black">{value}</p>
     </div>
   )

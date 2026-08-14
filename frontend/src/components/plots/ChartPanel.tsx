@@ -28,7 +28,7 @@ export function ChartPanel({
     <section className="chart-panel flex h-full min-h-0 flex-col overflow-hidden rounded-lg p-2.5">
       <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="text-[11px] font-black uppercase tracking-wide text-foreground">{title}</h3>
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-foreground">{title}</h3>
           {description && <p className="mt-0.5 text-[11px] text-muted-foreground">{description}</p>}
         </div>
         <div className="flex items-center gap-1">

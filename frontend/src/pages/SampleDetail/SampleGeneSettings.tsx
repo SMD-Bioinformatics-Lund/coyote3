@@ -13,7 +13,7 @@ function geneInputCount(value: string) {
 export function SettingsCard({ title, tone: _tone, children, className = "" }: { title: string; tone: string; children: ReactNode; className?: string }) {
   return (
     <section className={`glass-card p-3 ${className}`}>
-      <h2 className="mb-2.5 text-xs font-black uppercase tracking-wide text-foreground">{title}</h2>
+      <h2 className="type-section-title mb-2.5 text-foreground">{title}</h2>
       {children}
     </section>
   )
@@ -184,7 +184,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
         <div className="rounded-xl border border-border bg-background/70 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground">Selectable lists</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Selectable lists</h3>
               <p className="mt-1 text-xs text-muted-foreground">
                 {genelists.isLoading ? "Loading available lists..." : `${selectedIds.length} of ${items.length} selected`}
               </p>
@@ -218,7 +218,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
               <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-lg">
                 <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
                   <div>
-                    <h3 className="text-sm font-black uppercase tracking-wide text-foreground">Choose {target.toUpperCase()} ISGLs</h3>
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Choose {target.toUpperCase()} ISGLs</h3>
                     <p className="mt-0.5 text-xs text-muted-foreground">{selectedIds.length} selected from {items.length} available lists</p>
                   </div>
                   <button
@@ -274,7 +274,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
                             className="mt-0.5 h-4 w-4"
                           />
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-bold text-foreground">{item.name || id}</span>
+                            <span className="block truncate text-sm font-semibold text-foreground">{item.name || id}</span>
                             <span className="mt-0.5 block text-xs text-muted-foreground">
                               {item.gene_count ?? 0} genes{item.version ? `, v${item.version}` : ""}{item.diagnosis ? `, ${item.diagnosis}` : ""}
                             </span>
@@ -313,7 +313,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
 
         <div className="rounded-xl border border-border bg-background/70 p-3">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground">Ad-hoc genes</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ad-hoc genes</h3>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -350,7 +350,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
         </div>
 
         <div className="rounded-xl border border-border bg-background/70 p-3">
-          <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground">Effective genes</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Effective genes</h3>
           <p className="mt-1 text-xs text-muted-foreground">
             {effective.length} effective gene(s), {effectiveGenes.data?.asp_covered_genes_count ?? 0} covered by assay panel.
           </p>

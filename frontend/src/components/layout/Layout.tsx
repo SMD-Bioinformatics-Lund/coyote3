@@ -10,6 +10,7 @@ import { apiPath, appPath } from "@/lib/runtime-paths"
 import { runtimeConfig } from "@/lib/runtime-config"
 import { useNotifications } from "@/components/notifications/use-notifications"
 import { GlobalLoadingIndicator } from "@/components/layout/AppLoader"
+import { BrandWordmark } from "@/components/layout/BrandWordmark"
 import { ADMIN_ENTRY_PERMISSIONS, hasAnyPermission, type CurrentUserAccess } from "@/lib/access-control"
 import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 
@@ -266,25 +267,23 @@ export function Layout() {
       {backgroundFetches > 0 && <GlobalLoadingIndicator />}
       <div className="app-chrome-bg pointer-events-none absolute inset-0 z-0" />
       <header className="z-30 h-16 flex-shrink-0 rounded-none border-x-0 border-t-0 border-b border-[var(--chrome-border)] [background:var(--chrome-top)] text-[var(--chrome-foreground)] shadow-sm">
-        <div className="flex h-full w-full items-center justify-between gap-4 px-4">
-          {!publicOnlyMode && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsCollapsed((collapsed) => !collapsed)}
-              className="h-10 w-10 shrink-0 rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] text-[var(--chrome-muted-foreground)] hover:bg-[var(--chrome-control-hover)] hover:text-[var(--chrome-foreground)]"
-              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {isCollapsed ? <PanelRightClose className="h-10 w-10" /> : <PanelLeftClose className="h-10 w-10" />}
-            </Button>
-          )}
-          <Link to="/" className="flex shrink-0 items-center gap-3">
-            <div className="rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] p-1">
-              <img src={appPath("/logo.png")} alt="Coyote3" className="h-7 w-10 shrink-0 brightness-0 invert" />
+        <div className="flex h-full w-full items-center justify-between gap-4 px-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsCollapsed((collapsed) => !collapsed)}
+            className="h-8 w-8 shrink-0 rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] text-[var(--chrome-muted-foreground)] hover:bg-[var(--chrome-control-hover)] hover:text-[var(--chrome-foreground)]"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? <PanelRightClose className="h-8 w-8" /> : <PanelLeftClose className="h-8 w-8" />}
+          </Button>
+          <Link to="/" className="flex shrink-0 items-center gap-y-3 gap-x-1.5">
+            <div className="py-1">
+              <img src={appPath("/logo.png")} alt="Coyote3" className="h-7 w-11 shrink-0 brightness-0 invert" />
             </div>
             <div className="hidden sm:flex flex-col leading-tight">
-              <span className="text-lg font-black tracking-wider text-[var(--chrome-foreground)]">COYOT3</span>
+              <BrandWordmark className="text-[var(--chrome-foreground)]" />
             </div>
           </Link>
 
@@ -311,7 +310,7 @@ export function Layout() {
               <div className="paper-menu absolute left-0 top-full z-50 mt-2 w-[min(720px,calc(100vw-2rem))] rounded-lg p-3">
                 <div className="mb-3 flex items-center justify-between gap-3 border-b border-border pb-2">
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-wider text-primary">{activeAssayCategory}</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">{activeAssayCategory}</p>
                     <p className="text-xs text-muted-foreground">Filter samples by assay family and assay group.</p>
                   </div>
                   <Link
@@ -325,7 +324,7 @@ export function Layout() {
                 <div className="grid gap-3 md:grid-cols-3">
                   {Object.entries(assayTree[activeAssayCategory] || {}).map(([family, groups]) => (
                     <div key={family} className="paper-inset rounded-lg p-2">
-                      <h3 className="mb-2 rounded-md bg-muted/70 px-2 py-1 text-[11px] font-black uppercase tracking-wider text-foreground">
+                      <h3 className="mb-2 rounded-md bg-muted/70 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-foreground">
                         {family}
                       </h3>
                       <div className="space-y-1">
@@ -384,7 +383,7 @@ export function Layout() {
             {publicOnlyMode ? (
               <Link
                 to="/login"
-                className="inline-flex h-10 items-center rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] px-3 text-sm font-bold text-[var(--chrome-foreground)] hover:bg-[var(--chrome-control-hover)]"
+                className="inline-flex h-10 items-center rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] px-3 text-sm font-medium text-[var(--chrome-foreground)] hover:bg-[var(--chrome-control-hover)]"
               >
                 Sign in
               </Link>
@@ -406,10 +405,10 @@ export function Layout() {
 
               {isUserMenuOpen && (
                 <div className="paper-menu absolute right-0 top-full z-50 mt-2 w-60 rounded-lg py-1">
-              <Link to="/profile" className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
+              <Link to="/profile" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
                     <User className="mr-3 h-4 w-4 text-primary" /> Profile
                   </Link>
-                  <Link to="/notifications" className="flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
+                  <Link to="/notifications" className="flex items-center justify-between px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
                     <span className="flex items-center">
                       <Bell className="mr-3 h-4 w-4 text-primary" /> Notifications
                     </span>
@@ -420,10 +419,10 @@ export function Layout() {
                     )}
                   </Link>
                   <div className="my-1 border-t border-border/50"></div>
-                  <Link to="/about" className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
+                  <Link to="/about" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
                     <FileQuestion className="mr-3 h-4 w-4 text-primary" /> About Coyote3
                   </Link>
-                  <Link to="/contact" className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
+                  <Link to="/contact" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
                     <LifeBuoy className="mr-3 h-4 w-4 text-primary" /> Contact
                   </Link>
                   {issueMenuLinks.map((link) => (
@@ -432,14 +431,14 @@ export function Layout() {
                       href={publicHref(link.url)}
                       target={isExternalHref(link.url) ? "_blank" : undefined}
                       rel={isExternalHref(link.url) ? "noreferrer" : undefined}
-                      className="flex items-center px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/80"
+                      className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80"
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       <link.icon className="mr-3 h-4 w-4 text-primary" /> {link.label}
                     </a>
                   ))}
                   <div className="my-1 border-t border-border/50"></div>
-                  <button onClick={handleLogout} className="flex w-full items-center px-4 py-2.5 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10">
+                  <button onClick={handleLogout} className="flex w-full items-center px-4 py-2.5 text-left text-sm font-normal text-destructive transition-colors hover:bg-destructive/10">
                     <LogOut className="mr-3 h-4 w-4" /> Logout
                   </button>
                 </div>
@@ -462,7 +461,7 @@ export function Layout() {
               {navigationSections.map((section, sectionIndex) => (
                 <div key={section.label} className="space-y-1">
                   {!isCollapsed ? (
-                    <div className="px-2 pt-1 text-[10px] font-black uppercase tracking-wider text-[var(--chrome-muted-foreground)]">
+                    <div className="px-2 pt-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--chrome-muted-foreground)]">
                       {section.label}
                     </div>
                   ) : sectionIndex > 0 ? (
@@ -498,26 +497,28 @@ export function Layout() {
 
           <div className="border-t border-[var(--chrome-border)] p-2">
             <div className={cn("flex items-center gap-2", isCollapsed ? "flex-col justify-center" : "flex-col items-stretch")}>
-              <div
-                className={cn(
-                  "flex items-center gap-2 rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] text-[var(--chrome-foreground)]",
-                  isCollapsed ? "h-9 w-9 justify-center" : "px-2.5 py-2",
-                )}
-                title={isCollapsed ? `${userDisplayName} (${user?.role || "Guest"})` : undefined}
-              >
-                <span className="brand-gradient-fill flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-primary-foreground">
-                  {userInitial}
-                </span>
-                {!isCollapsed && (
-                  <span className="min-w-0 leading-tight">
-                    <span className="block truncate text-xs font-bold">{userDisplayName}</span>
-                    <span className="block truncate text-[10px] font-semibold text-[var(--chrome-muted-foreground)]">{user?.role || "Guest"}</span>
+              {user && (
+                <div
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] text-[var(--chrome-foreground)]",
+                    isCollapsed ? "h-9 w-9 justify-center" : "px-2.5 py-2",
+                  )}
+                  title={isCollapsed ? `${userDisplayName} (${user.role || "Guest"})` : undefined}
+                >
+                  <span className="brand-gradient-fill flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-primary-foreground">
+                    {userInitial}
                   </span>
-                )}
-              </div>
+                  {!isCollapsed && (
+                    <span className="min-w-0 leading-tight">
+                      <span className="block truncate text-xs font-medium">{userDisplayName}</span>
+                      <span className="block truncate text-[10px] font-medium text-[var(--chrome-muted-foreground)]">{user.role || "Guest"}</span>
+                    </span>
+                  )}
+                </div>
+              )}
               <div
                 className={cn(
-                  "text-[10px] font-bold uppercase tracking-wider text-[var(--chrome-muted-foreground)]",
+                  "text-[10px] font-semibold uppercase tracking-wider text-[var(--chrome-muted-foreground)]",
                   isCollapsed ? "max-w-8 text-center [writing-mode:vertical-rl]" : "px-2 pb-1"
                 )}
                 title={appVersion}

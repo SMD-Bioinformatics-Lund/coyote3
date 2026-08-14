@@ -71,7 +71,7 @@ export function TierBadge({ tier, className }: { tier: unknown; className?: stri
       <TableBadge
         tabIndex={0}
         className={cn(
-          "cursor-help rounded-full px-1.5 text-[0.68rem] text-white outline-none ring-offset-background transition-all duration-100 hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-ring/35 focus:ring-2 focus:ring-ring/40",
+          "cursor-help rounded-full px-1.5 text-white outline-none ring-offset-background transition-all duration-100 hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-ring/35 focus:ring-2 focus:ring-ring/40",
           color,
           className,
         )}
@@ -80,7 +80,7 @@ export function TierBadge({ tier, className }: { tier: unknown; className?: stri
       </TableBadge>
       {position && (
         <TooltipSurface position={position} className={tooltipSeverityClass(meta.severity)}>
-          <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide opacity-80">
             Tier {meta.roman}
           </span>
           <span className="block font-bold text-foreground">{meta.short}</span>
@@ -459,7 +459,7 @@ function FilterFlagBadge({
       <TableBadge
         tabIndex={0}
         className={cn(
-          "max-w-[128px] cursor-help truncate font-black uppercase outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
+          "max-w-[128px] cursor-help truncate uppercase outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
           badgeSeverityClass(severity),
         )}
       >
@@ -467,7 +467,7 @@ function FilterFlagBadge({
       </TableBadge>
       {position && (
         <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
-          <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide opacity-80">
             {severityLabel(severity)} filter
           </span>
           <span className="block break-words font-mono font-bold text-foreground">{flag}</span>
@@ -551,7 +551,7 @@ export function ImpactBadge({ value }: { value: unknown }) {
       <TableBadge
         tabIndex={0}
         className={cn(
-          "cursor-help font-black uppercase outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
+          "cursor-help uppercase outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
           impactClass(value),
         )}
       >
@@ -559,7 +559,7 @@ export function ImpactBadge({ value }: { value: unknown }) {
       </TableBadge>
       {position && (
         <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
-          <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">VEP impact</span>
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide opacity-80">VEP impact</span>
           <span className="block font-bold text-foreground">{impact}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{impactDescription(value)}</span>
         </TooltipSurface>
@@ -654,7 +654,7 @@ export function PredictionBadge({ value }: { value: unknown }) {
       </TableBadge>
       {position && (
         <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
-          <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">Protein prediction</span>
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide opacity-80">Protein prediction</span>
           <span className="block font-bold text-foreground">{predictionLabel(value)}</span>
           <span className="mt-1 block break-words font-mono text-[11px] font-semibold text-foreground/85">{String(value)}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{predictionDescription(value)}</span>
@@ -723,7 +723,7 @@ function ConsequenceBadge({
           position={position}
           className={impact ? tooltipSeverityClass(severity) : "border-border text-popover-foreground"}
         >
-          <span className="mb-1 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-wide opacity-80">
+          <span className="mb-1 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide opacity-80">
             <span>VEP consequence</span>
             {impact && <ImpactBadge value={impact} />}
           </span>

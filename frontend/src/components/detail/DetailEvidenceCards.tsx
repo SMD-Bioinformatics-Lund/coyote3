@@ -36,7 +36,7 @@ export function DetailMetricTable({
         <tbody className="divide-y divide-border/60">
           {visible.map((metric) => (
             <tr key={metric.label} className="bg-background/45 align-top">
-              <th className={cn("w-36 px-3 font-bold uppercase tracking-wide text-muted-foreground", dense ? "py-0.5" : "py-1")}>
+              <th className={cn("w-36 px-3 font-medium uppercase tracking-wide text-muted-foreground", dense ? "py-0.5" : "py-1")}>
                 {metric.label}
               </th>
               <td className={cn("px-3 font-semibold text-foreground", dense ? "py-0.5" : "py-1", metric.monospace && "font-mono")}>
@@ -78,7 +78,7 @@ export function DetailDataTable<T>({
   return (
     <div className="overflow-x-auto rounded-lg border border-border/70">
       <table className="w-full min-w-max border-separate border-spacing-0 text-left text-sm">
-        <thead className="bg-muted text-[11px] font-black uppercase tracking-wide text-foreground dark:bg-muted/70">
+        <thead className="type-table-header bg-muted text-foreground dark:bg-muted/70">
           <tr>
             {columns.map((column) => (
               <th key={column.key} className={cn("border-b-2 border-r border-border px-2.5 py-1 last:border-r-0", column.className)}>
@@ -119,7 +119,7 @@ export function EvidenceBadge({
   }[tone]
 
   return (
-    <span className={cn("inline-flex rounded-md px-2 py-0.5 text-[11px] font-black uppercase tracking-wide", toneClass)}>
+    <span className={cn("inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide", toneClass)}>
       {children}
     </span>
   )

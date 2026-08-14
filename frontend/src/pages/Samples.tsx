@@ -334,7 +334,7 @@ export function Samples() {
         {/* Filters Summary */}
         {(category || assay || group || searchStr || showAllProfiles) && (
           <div className="glass-card flex items-center gap-2 text-sm text-muted-foreground px-5 py-3">
-            <span className="font-bold uppercase tracking-wider text-xs mr-2">Active Filters</span>
+            <span className="mr-2 text-xs font-semibold uppercase tracking-wider">Active Filters</span>
             <Badge variant="secondary" className="uppercase bg-primary/10 text-primary hover:bg-primary/20 rounded-md">{showAllProfiles ? "all profiles" : DEFAULT_ENVIRONMENT}</Badge>
             {searchStr && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 rounded-md">Search: {searchStr}</Badge>}
             {category && <Badge variant="secondary" className="uppercase bg-primary/20 text-primary hover:bg-primary/30 rounded-md">{category}</Badge>}

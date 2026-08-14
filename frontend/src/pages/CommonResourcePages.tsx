@@ -76,7 +76,7 @@ function formatCoordinate(value: unknown) {
 function InfoTile({ label, value, mono = false }: { label: string; value: unknown; mono?: boolean }) {
   return (
     <div className="rounded-lg border border-border bg-background/70 p-3">
-      <dt className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">{label}</dt>
+      <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</dt>
       <dd className={`mt-1 break-words text-sm font-semibold ${mono ? "font-mono" : ""}`}>{display(value)}</dd>
     </div>
   )
@@ -98,7 +98,7 @@ function ChipList({ values, empty = "None recorded" }: { values: unknown; empty?
 
 function SectionTitle({ icon: Icon, children }: { icon: any; children: string }) {
   return (
-    <h2 className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-muted-foreground">
+    <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
       <Icon className="h-4 w-4 text-primary" />
       {children}
     </h2>
@@ -240,15 +240,15 @@ export function GeneInfoPage() {
               <SectionTitle icon={Tags}>Aliases</SectionTitle>
               <div className="space-y-3">
                 <div>
-                  <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Alias symbols</p>
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Alias symbols</p>
                   <ChipList values={aliases} />
                 </div>
                 <div>
-                  <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Previous symbols</p>
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Previous symbols</p>
                   <ChipList values={previousSymbols} />
                 </div>
                 <div>
-                  <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Previous names</p>
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Previous names</p>
                   <ChipList values={previousNames} />
                 </div>
               </div>
@@ -271,15 +271,15 @@ export function GeneInfoPage() {
             <SectionTitle icon={Dna}>Transcripts</SectionTitle>
             <div className="space-y-3">
               <div>
-                <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">MANE select</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">MANE select</p>
                 <ChipList values={mane} empty="No MANE select transcript recorded" />
               </div>
               <div>
-                <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">MANE plus clinical</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">MANE plus clinical</p>
                 <ChipList values={manePlusClinical} empty="No MANE plus clinical transcript recorded" />
               </div>
               <div>
-                <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">RefSeq accessions</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">RefSeq accessions</p>
                 <ChipList values={refseq} empty="No RefSeq accessions recorded" />
               </div>
             </div>
@@ -289,7 +289,7 @@ export function GeneInfoPage() {
             <SectionTitle icon={Database}>Clinical And Database References</SectionTitle>
             <div className="grid gap-3 md:grid-cols-2">
               <div>
-                <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">OMIM</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">OMIM</p>
                 <div className="flex flex-wrap gap-1.5">
                   {omimIds.length ? omimIds.map((id) => (
                     <a key={id} href={omimEntryUrl(id)} target="_blank" rel="noreferrer" className="rounded-md border border-border bg-muted px-2 py-1 text-xs font-semibold hover:bg-primary hover:text-primary-foreground">
@@ -299,15 +299,15 @@ export function GeneInfoPage() {
                 </div>
               </div>
               <div>
-                <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">COSMIC</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">COSMIC</p>
                 <ChipList values={cosmicIds} empty="No COSMIC identifiers recorded" />
               </div>
               <div>
-                <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Gene type</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Gene type</p>
                 <ChipList values={gene.gene_type} empty="No gene type recorded" />
               </div>
               <div>
-                <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Special references</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Special references</p>
                 <ChipList values={[gene.imgt, gene.lncrnadb, gene.lncipedia].filter(Boolean)} empty="No special references recorded" />
               </div>
             </div>
@@ -424,21 +424,21 @@ export function PublicAspGenesPage() {
 
             <div className="mt-4 grid gap-3 lg:grid-cols-4">
               <div className="rounded-lg border border-border bg-background/70 p-3">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Input material</p>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Input material</p>
                 <BadgeList values={catalog.input_material} tone="material" />
               </div>
               <div className="rounded-lg border border-border bg-background/70 p-3">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Sample types</p>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Sample types</p>
                 <BadgeList values={catalog.sample_modes} tone="sample" />
               </div>
               <InfoTile label="Turnaround time" value={catalog.tat} />
               <InfoTile label="Covered genes" value={stats.covered_total ?? rows.length} />
               <div className="rounded-lg border border-border bg-background/70 p-3">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Analysis</p>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Analysis</p>
                 <BadgeList values={catalog.analysis} tone="analysis" />
               </div>
               <div className="rounded-lg border border-border bg-background/70 p-3">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Report sections</p>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Report sections</p>
                 <BadgeList values={catalog.report_sections} />
               </div>
               <InfoTile label="Germline genes" value={stats.germline_total ?? data?.germline_gene_symbols?.length ?? 0} />
@@ -449,19 +449,19 @@ export function PublicAspGenesPage() {
               <div className="mt-4 grid gap-3 lg:grid-cols-3">
                 {catalog.clinical_indications?.length > 0 && (
                   <div className="rounded-lg border border-border bg-background/70 p-3">
-                    <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Clinical indications</p>
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Clinical indications</p>
                     <BadgeList values={catalog.clinical_indications} />
                   </div>
                 )}
                 {catalog.limitations && (
                   <div className="rounded-lg border border-border bg-background/70 p-3">
-                    <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Limitations</p>
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Limitations</p>
                     <HtmlText value={catalog.limitations} />
                   </div>
                 )}
                 {catalog.public_notes && (
                   <div className="rounded-lg border border-border bg-background/70 p-3">
-                    <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Notes</p>
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Notes</p>
                     <HtmlText value={catalog.public_notes} />
                   </div>
                 )}
@@ -477,7 +477,7 @@ export function PublicAspGenesPage() {
                   <div key={list.key || list.label} className="rounded-lg border border-border bg-background/70 p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="text-sm font-black">{list.label || list.key}</h3>
+                        <h3 className="text-sm font-semibold">{list.label || list.key}</h3>
                         {list.key && <p className="font-mono text-[11px] font-semibold text-muted-foreground">{list.key}</p>}
                       </div>
                       {list.tat && (

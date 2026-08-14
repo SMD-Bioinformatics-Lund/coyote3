@@ -60,7 +60,7 @@ export function ConfirmationDialog({
             <AlertTriangle className="size-4" aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <h2 id={titleId} className="text-sm font-bold text-foreground">{title}</h2>
+            <h2 id={titleId} className="text-sm font-semibold text-foreground">{title}</h2>
             <div id={descriptionId} className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
               {description}
             </div>

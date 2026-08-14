@@ -190,7 +190,7 @@ export function TieredVariantSearch() {
                   {Object.entries(sample.report_oids || {}).map(([reportId, reportNum]) => (
                     <Link key={reportId} to={`${sampleDetailPath(sample, sampleId)}/reports/${reportId}`}>
                       <TableBadge
-                        className="border-tier2 bg-tier2 font-black text-white hover:bg-tier2/90"
+                        className="border-tier2 bg-tier2 text-white hover:bg-tier2/90"
                         title={`Report ${String(reportNum || reportId)}`}
                       >
                         {String(reportNum || reportId)}
@@ -307,14 +307,14 @@ export function TieredVariantSearch() {
               <table className="w-full min-w-[42rem] border-collapse text-xs">
                 <thead className="bg-muted/45 text-left uppercase text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-2 font-black">Assay</th>
-                    <th className="w-full min-w-48 px-4 py-2 font-black">Distribution</th>
+                    <th className="px-4 py-2 font-medium">Assay</th>
+                    <th className="w-full min-w-48 px-4 py-2 font-medium">Distribution</th>
                     {[1, 2, 3, 4].map((tier) => (
-                      <th key={tier} className={`w-16 px-3 py-2 text-right font-black ${tierTextClasses[tier]}`}>
+                      <th key={tier} className={`w-16 px-3 py-2 text-right font-medium ${tierTextClasses[tier]}`}>
                         Tier {tier}
                       </th>
                     ))}
-                    <th className="w-16 px-4 py-2 text-right font-black">Total</th>
+                    <th className="w-16 px-4 py-2 text-right font-medium">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">

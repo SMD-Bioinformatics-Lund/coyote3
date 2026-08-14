@@ -343,11 +343,15 @@ export function adminFields(resourceKey: string, rows: any[]) {
   return selected
 }
 
-export function adminCell(field: string, row: any, context?: { roleColors?: Record<string, string> }) {
+export function adminCell(
+  field: string,
+  row: any,
+  context?: { roleColors?: Record<string, string>; primaryIdentifier?: boolean },
+) {
   const value = row?.[field]
   if (["created_on", "updated_on", "last_login", "time_added", "created_at", "updated_at"].includes(field)) {
     return (
-      <span className="text-sm font-medium" title={fullDateTime(value, "")}>
+      <span className="text-sm font-normal" title={fullDateTime(value, "")}>
         {humanRelativeDate(value)}
       </span>
     )
@@ -437,7 +441,13 @@ export function adminCell(field: string, row: any, context?: { roleColors?: Reco
   if (typeof value === "boolean") return <StatusBadge value={value} />
   if (value && typeof value === "object") return <span className="text-sm text-muted-foreground">{Array.isArray(value) ? compactList(value) : "Configured"}</span>
   return (
-    <span className="block max-w-[24rem] truncate text-sm font-medium" title={valueLabel(value)}>
+    <span
+      className={cn(
+        "block max-w-[24rem] truncate text-sm",
+        context?.primaryIdentifier ? "font-semibold text-foreground" : "font-normal",
+      )}
+      title={valueLabel(value)}
+    >
       {valueLabel(value) || "-"}
     </span>
   )

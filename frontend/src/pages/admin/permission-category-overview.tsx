@@ -11,7 +11,7 @@ export function PermissionCategoryOverview({ rows, canEdit }: { rows: any[]; can
     <section className="glass-card p-4">
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="text-base font-black">Permission Categories</h2>
+          <h2 className="text-base font-semibold">Permission Categories</h2>
           <p className="text-sm text-muted-foreground">All loaded policies grouped by category for quick review.</p>
         </div>
         <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
@@ -22,7 +22,7 @@ export function PermissionCategoryOverview({ rows, canEdit }: { rows: any[]; can
         {(Object.entries(grouped) as Array<[string, any[]]>).map(([category, items]) => (
           <section key={category} className="rounded-lg border border-border bg-background/70 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <h3 className="text-xs font-black uppercase tracking-wide">{category}</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide">{category}</h3>
               <span className="rounded-full bg-muted px-2 py-0.5 text-[0.72rem] font-bold leading-5 text-muted-foreground">{items.length}</span>
             </div>
             <div className="flex flex-wrap gap-1.5">

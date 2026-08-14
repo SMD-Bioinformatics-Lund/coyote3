@@ -74,7 +74,7 @@ export function AdminNotificationBroadcastPage() {
         <section className="surface-panel space-y-4 p-4">
           <div className="flex items-center gap-2">
             <span className="rounded-lg bg-primary/10 p-2 text-primary"><Megaphone className="h-4 w-4" /></span>
-            <div><h2 className="font-bold">Message</h2><p className="text-sm text-muted-foreground">The title and message are retained in each recipient's notification inbox.</p></div>
+            <div><h2 className="font-semibold">Message</h2><p className="text-sm text-muted-foreground">The title and message are retained in each recipient's notification inbox.</p></div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5"><Label htmlFor="notification-category">Category</Label><select id="notification-category" className="paper-inset h-9 w-full rounded-lg px-2.5 text-sm" value={category} onChange={(event) => setCategory(event.target.value as Category)}><option value="application">Application</option><option value="feature">Feature</option><option value="maintenance">Maintenance</option><option value="security">Security</option><option value="warning">Warning</option></select></div>
@@ -85,7 +85,7 @@ export function AdminNotificationBroadcastPage() {
         </section>
 
         <section className="surface-panel p-4">
-          <h2 className="font-bold">Recipients</h2>
+          <h2 className="font-semibold">Recipients</h2>
           <p className="mt-1 text-sm text-muted-foreground">Only active accounts can receive a selected-user broadcast.</p>
           <div className="mt-3 grid grid-cols-3 rounded-lg border border-border bg-muted p-1">
             {(["all", "roles", "selected"] as Audience[]).map((option) => <button key={option} type="button" onClick={() => setAudience(option)} className={`rounded-md px-3 py-2 text-xs font-bold ${audience === option ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{option === "all" ? "All users" : option === "roles" ? "By role" : "Individuals"}</button>)}

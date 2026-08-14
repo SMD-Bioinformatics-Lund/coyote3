@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
+import { BrandWordmark } from "@/components/layout/BrandWordmark"
 import { Eye, EyeOff, Loader2, Cloud } from "lucide-react"
 import { useTheme } from "next-themes"
 import { apiPath, appPath } from "@/lib/runtime-paths"
@@ -137,9 +138,9 @@ export function Login() {
           <img
             src={appPath("/logo.png")}
             alt={organizationName}
-            className="w-10 h-8 dark:invert"
+            className="w-11 h-7 dark:invert"
           />
-          <span className="text-3xl tracking-wider font-bold">COYOT3</span>
+          <BrandWordmark />
         </div>
         <ThemeToggle />
       </header>

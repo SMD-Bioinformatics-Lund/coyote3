@@ -164,7 +164,7 @@ export function TieredVariantContext() {
 
       <div className="grid gap-3 lg:grid-cols-5">
         <section className="surface-panel p-3 lg:col-span-3">
-          <h2 className="text-xs font-black uppercase tracking-wide text-muted-foreground">Match Summary</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Match Summary</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-border bg-background/70 p-3">
               <div className="text-xs text-muted-foreground">Matches</div>
@@ -181,7 +181,7 @@ export function TieredVariantContext() {
         </section>
 
         <section className="surface-panel p-3 lg:col-span-2">
-          <h2 className="text-xs font-black uppercase tracking-wide text-muted-foreground">Variant Identity</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Variant Identity</h2>
           <dl className="mt-3 grid gap-2 text-xs">
             <div className="rounded-lg bg-background/70 p-2">
               <dt className="text-muted-foreground">Tier</dt>

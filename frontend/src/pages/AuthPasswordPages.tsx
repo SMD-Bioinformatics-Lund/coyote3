@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
+import { BrandWordmark } from "@/components/layout/BrandWordmark"
 import { appPath } from "@/lib/runtime-paths"
 
 function AuthShell({
@@ -22,7 +23,7 @@ function AuthShell({
       <header className="login-header relative z-10">
         <Link to="/login" className="inline-flex min-w-max items-center gap-2.5">
           <img src={appPath("/logo.png")} alt="Coyote3" className="h-8 w-10 dark:invert" />
-          <span className="text-3xl font-bold tracking-[-0.035em]">COYOT3</span>
+          <BrandWordmark />
         </Link>
         <ThemeToggle />
       </header>

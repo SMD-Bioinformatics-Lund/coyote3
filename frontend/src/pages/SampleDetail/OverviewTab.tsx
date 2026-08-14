@@ -49,7 +49,7 @@ function StatusPill({ children, tone = "muted" }: { children: ReactNode; tone?: 
     red: "badge-danger",
     muted: "badge-neutral",
   }
-  return <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${tones[tone]}`}>{children}</span>
+  return <span className={`type-badge inline-flex min-h-5 items-center rounded-md border px-2 py-0.5 ${tones[tone]}`}>{children}</span>
 }
 
 function biomarkerTooltipPosition(event: MouseEvent | FocusEvent) {
@@ -104,7 +104,7 @@ function BiomarkerBadge({ label, value, details }: { label: string; value: unkno
       </span>
       {position && (
         <TooltipSurface position={position} className="border-sand-300/80 text-sand-950 dark:border-sand-400/30 dark:text-sand-100">
-          <span className="mb-1 block text-[10px] font-black uppercase tracking-wide opacity-80">Sample biomarker</span>
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide opacity-80">Sample biomarker</span>
           <span className="block font-bold text-foreground">{label}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{biomarkerDescription(label)}</span>
           {details ? <span className="mt-1 block font-mono text-[11px] font-semibold text-foreground/85">{details}</span> : null}
@@ -161,22 +161,36 @@ function SettingsHero({ sample }: { sample: any }) {
   const status = String(sample?.ingest_status || "").toLowerCase()
   const statusTone = status === "ready" ? "blue" : status === "failed" ? "red" : status === "pending" ? "muted" : "muted"
   return (
-    <section className="glass-card p-3">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Sample</div>
-          <h1 className="mt-1 flex flex-wrap items-center gap-2 break-all text-xl font-black text-foreground">
+    <section className="glass-card px-4 py-3.5">
+      <div className="min-w-0">
+        <p className="type-label text-muted-foreground">Sample</p>
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 className="min-w-0 break-words text-xl font-semibold leading-tight text-foreground">
             {sample?.name || sample?.case_id || sample?._id || "-"}
+          </h1>
+          <div className="flex flex-wrap items-center gap-1.5" aria-label="Sample status">
             <StatusPill tone={sample?.paired ? "green" : "yellow"}>{sample?.paired ? "Paired" : "Unpaired"}</StatusPill>
             {sample?.ingest_status && <StatusPill tone={statusTone}>{sample.ingest_status}</StatusPill>}
             {sample?.archived && <StatusPill tone="red">Archived</StatusPill>}
             <StatusPill tone={sampleReported(sample) ? "blue" : "yellow"}>{sampleReported(sample) ? "Reported" : "Unreported"}</StatusPill>
-          </h1>
-          <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-muted-foreground">
-            {sample?.case_id && <StatusPill>Case: {sample.case_id}</StatusPill>}
-            {sample?.time_added && <StatusPill>Added {formatDate(sample.time_added)}</StatusPill>}
           </div>
         </div>
+        {(sample?.case_id || sample?.time_added) && (
+          <dl className="type-meta mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground">
+            {sample?.case_id && (
+              <div className="flex items-baseline gap-1.5">
+                <dt className="font-medium">Case</dt>
+                <dd>{sample.case_id}</dd>
+              </div>
+            )}
+            {sample?.time_added && (
+              <div className="flex items-baseline gap-1.5">
+                <dt className="font-medium">Added</dt>
+                <dd>{formatDate(sample.time_added)}</dd>
+              </div>
+            )}
+          </dl>
+        )}
       </div>
     </section>
   )
@@ -282,8 +296,8 @@ export function PanelSummary({ sample, context }: { sample: any; context?: any }
         className="flex w-full items-center justify-between gap-3 border-b border-border/70 bg-muted/45 px-4 py-3 text-left transition-colors duration-100 hover:bg-primary/8 dark:bg-muted/25 dark:hover:bg-primary/12"
       >
         <div className="min-w-0">
-          <h2 className="text-sm font-black uppercase tracking-wide text-foreground">{title}</h2>
-          <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+          <h2 className="type-section-title text-foreground">{title}</h2>
+          <p className="type-meta mt-0.5 text-muted-foreground">
             {entries.length ? `${entries.length} selected list${entries.length === 1 ? "" : "s"}` : emptyText}
           </p>
         </div>
@@ -537,11 +551,11 @@ function AnalysisStatusStrip({ sample, context }: { sample: any; context?: any }
           return (
             <div key={item.key} className="rounded-xl border border-border bg-background/70 p-2">
               <div className="flex items-start justify-between gap-2">
-                <h3 className="text-[11px] font-black uppercase tracking-wide text-foreground">{item.label}</h3>
+                <h3 className="type-label text-foreground">{item.label}</h3>
                 <StatusPill tone={tone}>{item.present ? "Ready" : "Missing"}</StatusPill>
               </div>
-              <p className="mt-2 text-xs font-semibold text-muted-foreground">{rawText}</p>
-              <p className="text-xs text-muted-foreground">{filteredText}</p>
+              <p className="type-meta mt-2 text-foreground/80">{rawText}</p>
+              <p className="type-meta text-muted-foreground">{filteredText}</p>
             </div>
           )
         })}
@@ -638,7 +652,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full min-w-[38rem] border-separate border-spacing-0 text-xs">
               <thead>
-                <tr className="bg-muted/65 text-left text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+                <tr className="bg-muted/65 text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                   <th className="w-28 px-3 py-1">Field</th>
                   <th className="border-l border-pass/25 bg-pass/8 px-3 py-1 text-pass">Case</th>
                   <th className="border-l border-tier3/25 bg-tier3/8 px-3 py-1 text-tier3">Control</th>
@@ -655,7 +669,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
                   ["Purity", sample?.case?.purity, sample?.control?.purity],
                 ].map(([label, caseValue, controlValue]) => (
                   <tr key={String(label)} className="border-t border-border/40">
-                    <th scope="row" className="border-t border-border/40 bg-muted/35 px-3 py-1 text-left text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</th>
+                    <th scope="row" className="border-t border-border/40 bg-muted/35 px-3 py-1 text-left font-semibold uppercase text-muted-foreground">{label}</th>
                     <td className="border-l border-t border-pass/20 bg-pass/5 px-3 py-1 font-semibold text-foreground">{displayValue(caseValue)}</td>
                     <td className="border-l border-t border-tier3/20 bg-tier3/5 px-3 py-1 font-semibold text-foreground">{sample?.paired ? displayValue(controlValue) : "Not paired"}</td>
                   </tr>
@@ -706,7 +720,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
               const label = report?.report_name || report?.file || report?.report_id || `Report ${index + 1}`
               return (
                 <div key={String(reportId)} className="rounded-xl border border-border bg-background/70 p-3">
-                  <p className="break-all text-sm font-bold">{label}</p>
+                  <p className="break-all text-sm font-semibold">{label}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{formatDate(report?.created_at || report?.time_created || report?.date)}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Link to={`/samples/${sample?.name || sampleId}/reports/${reportId}`} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">
@@ -727,51 +741,51 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
         <SampleGeneSettings sampleId={sampleId} sample={sample} />
 
         <SettingsCard title="Gene Filters" tone="border-t-slate-400" className="xl:col-span-2">
-          <div className="space-y-4 text-sm">
+          <div className="divide-y divide-border/60">
             {omics === "dna" && (
-              <div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-green-700 dark:text-green-300">Selected SNV ISGLs</h3>
-                <div className="mt-2 flex flex-wrap gap-2">
+              <section className="py-3 first:pt-0">
+                <h3 className="type-label text-green-700 dark:text-green-300">Selected SNV ISGLs</h3>
+                <div className="type-body-sm mt-2 flex flex-wrap gap-2">
                   {(snvFilters.snvlists || []).length ? snvFilters.snvlists.map((name: string) => <StatusPill key={name} tone="green">{name}</StatusPill>) : <p className="text-muted-foreground">No ISGLs selected for this sample.</p>}
                 </div>
-              </div>
+              </section>
             )}
             {omics === "dna" && (
-              <div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-warn">Selected CNV ISGLs</h3>
-                <div className="mt-2 flex flex-wrap gap-2">
+              <section className="py-3">
+                <h3 className="type-label text-warn">Selected CNV ISGLs</h3>
+                <div className="type-body-sm mt-2 flex flex-wrap gap-2">
                   {(cnvFilters.cnvlists || []).length ? cnvFilters.cnvlists.map((name: string) => <StatusPill key={name} tone="yellow">{name}</StatusPill>) : <p className="text-muted-foreground">No CNV ISGLs selected for this sample.</p>}
                 </div>
-              </div>
+              </section>
             )}
             {omics === "rna" && (
-              <div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-tier4">Selected Fusion Lists</h3>
-                <div className="mt-2 flex flex-wrap gap-2">
+              <section className="py-3 first:pt-0">
+                <h3 className="type-label text-tier4">Selected Fusion Lists</h3>
+                <div className="type-body-sm mt-2 flex flex-wrap gap-2">
                   {(fusionFilters.fusionlists || []).length ? fusionFilters.fusionlists.map((name: string) => <StatusPill key={name} tone="green">{name}</StatusPill>) : <p className="text-muted-foreground">No fusion lists selected for this sample.</p>}
                 </div>
-              </div>
+              </section>
             )}
             {omics === "dna" && (
-              <div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-tier3">Selected DNA Fusion / Translocation ISGLs</h3>
-                <div className="mt-2 flex flex-wrap gap-2">
+              <section className="py-3">
+                <h3 className="type-label text-tier3">Selected DNA Fusion / Translocation ISGLs</h3>
+                <div className="type-body-sm mt-2 flex flex-wrap gap-2">
                   {(translocationFilters.fusionlists || []).length ? translocationFilters.fusionlists.map((name: string) => <StatusPill key={name} tone="blue">{name}</StatusPill>) : <p className="text-muted-foreground">No DNA fusion or translocation ISGLs selected for this sample.</p>}
                 </div>
-              </div>
+              </section>
             )}
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-tier3">Sample Ad-Hoc Genes</h3>
+            <section className="py-3 last:pb-0">
+              <h3 className="type-label text-tier3">Sample Ad-Hoc Genes</h3>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 {Object.keys(adhoc).length ? Object.entries(adhoc).map(([scope, entry]: [string, any]) => (
                   <div key={scope} className="rounded-xl border border-border bg-background/70 p-2">
-                    <p className="text-xs font-bold uppercase text-muted-foreground">{scope}</p>
-                    <p className="text-sm font-semibold">{entry?.label || "Ad Hoc"}</p>
-                    <p className="text-xs text-muted-foreground">{(entry?.genes || []).length} gene(s)</p>
+                    <p className="type-label text-muted-foreground">{scope}</p>
+                    <p className="type-body-sm mt-0.5 text-foreground">{entry?.label || "Ad Hoc"}</p>
+                    <p className="type-meta text-muted-foreground">{(entry?.genes || []).length} gene(s)</p>
                   </div>
-                )) : <p className="text-muted-foreground">No ad-hoc genes configured.</p>}
+                )) : <p className="type-body-sm text-muted-foreground">No ad-hoc genes configured.</p>}
               </div>
-            </div>
+            </section>
           </div>
         </SettingsCard>
 
@@ -779,12 +793,12 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
           <div className="space-y-3">
             {filterGroups.length ? filterGroups.map((group) => (
               <section key={group.key} aria-labelledby={`filter-group-${group.key}`} className="rounded-xl border border-border bg-background/55 p-2.5">
-                <h3 id={`filter-group-${group.key}`} className="mb-2 text-xs font-black uppercase tracking-wide text-foreground">{group.label}</h3>
+                <h3 id={`filter-group-${group.key}`} className="type-label mb-2 text-foreground">{group.label}</h3>
                 <dl className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {group.rows.map(([label, rowValue]) => (
                     <div key={label} className="rounded-lg bg-card px-2.5 py-2 shadow-sm">
-                      <dt className="text-xs text-muted-foreground">{label}</dt>
-                      <dd className="break-words font-semibold">{displayValue(rowValue)}</dd>
+                      <dt className="type-meta text-muted-foreground">{label}</dt>
+                      <dd className="type-body-sm mt-0.5 break-words text-foreground">{displayValue(rowValue)}</dd>
                     </div>
                   ))}
                 </dl>

@@ -13,6 +13,7 @@ import { Search, ArrowDownToLine, ArrowUpDown, ArrowUp, ArrowDown } from "lucide
 import { shortCount } from "@/lib/detail-formatters"
 import { cn } from "@/lib/utils"
 import { csvCellText } from "@/lib/csv-export"
+import { TableBadge } from "@/components/ui/table-badge"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -185,9 +186,6 @@ export function DataTable<TData, TValue>({
       {/* Table Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 px-1.5 pb-3 pt-1">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <div className="paper-inset rounded-lg px-2.5 py-1.5 text-xs font-black text-foreground">
-            {shortCount(returnedCount)} {rowLabel}
-          </div>
           {!hideSearch && (
             <div className="search-field relative w-56 rounded-xl sm:w-64">
               <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/75" />
@@ -206,6 +204,9 @@ export function DataTable<TData, TValue>({
               />
             </div>
           )}
+          <TableBadge className="border-border bg-muted/70 font-semibold text-foreground shadow-none">
+            {shortCount(returnedCount)} {rowLabel}
+          </TableBadge>
           {renderToolbar && renderToolbar(table)}
         </div>
         {!hideExport && (
@@ -227,7 +228,7 @@ export function DataTable<TData, TValue>({
       <div className="paper-surface overflow-hidden rounded-lg [contain:paint]">
         <div className="overflow-x-auto">
           <table className="w-full table-auto border-separate border-spacing-0 text-left text-[0.84rem] tabular-nums">
-            <thead className="border-b-2 border-border bg-[var(--header-surface)] text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground">
+            <thead className="type-table-header border-b-2 border-border bg-[var(--header-surface)] text-foreground">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {

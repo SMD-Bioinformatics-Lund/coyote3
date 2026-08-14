@@ -170,9 +170,16 @@ describe("Layout", () => {
     renderLayout("/public/catalog")
 
     expect(await screen.findByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login")
+    const toggle = screen.getByRole("button", { name: "Expand sidebar" })
+    expect(toggle).toBeVisible()
     expect(screen.getByTitle("Public: Catalog")).toBeVisible()
     expect(screen.queryByLabelText("Notifications")).not.toBeInTheDocument()
     expect(screen.queryByTitle("Workspace: Samples")).not.toBeInTheDocument()
+    expect(screen.queryByText("Loading...")).not.toBeInTheDocument()
+
+    fireEvent.click(toggle)
+    expect(screen.getByText("Public")).toBeVisible()
+    expect(screen.queryByText("Guest")).not.toBeInTheDocument()
     expect(api.get).not.toHaveBeenCalledWith("/samples/navigation-counts")
   })
 
