@@ -48,7 +48,7 @@ ingest any sample.
 ```bash
 .venv/bin/python scripts/bootstrap_database.py \
   --mongo-uri "$MONGO_URI" \
-  --db "${COYOTE3_DB:-coyote3}" \
+  --db "${COYOTE3_DB:?COYOTE3_DB must be set}" \
   --username "admin.coyote3" \
   --email "admin@your-center.org" \
   --password "<GENERATED_ADMIN_PASSWORD>"

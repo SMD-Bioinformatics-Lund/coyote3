@@ -172,6 +172,41 @@ bash scripts/run_quality_suite.sh
     the separate [Browser And Release Validation](browser_and_release_validation.md)
     procedure against a deployed environment and approved synthetic fixtures.
 
+## Running GitHub checks locally
+
+The preferred local equivalent of the `quality` workflow is the repository
+quality script:
+
+```bash
+PYTHON_BIN=.venv/bin/python bash scripts/run_quality_suite.sh
+```
+
+It runs the same backend tests, coverage gates, type boundary, contract checks,
+frontend lint/unit/browser/build checks, and strict documentation build used by
+GitHub Actions. Add Compose rendering when deployment files changed:
+
+```bash
+PYTHON_BIN=.venv/bin/python \
+COMPOSE_FILE=deploy/compose/docker-compose.dev.yml \
+bash scripts/run_quality_suite.sh
+```
+
+Use [`act`](https://github.com/nektos/act) only when the GitHub runner wrapper
+itself must be tested locally:
+
+```bash
+act workflow_dispatch \
+  -W .github/workflows/quality.yml \
+  -j lint-and-test
+```
+
+`act` requires Docker and downloads a runner image. It approximates GitHub's
+hosted runner but does not replace the repository quality script or the actual
+GitHub check. The composed bootstrap-and-ingest workflow depends on Docker
+networking and service lifecycle behavior; run it with GitHub's manual
+`workflow_dispatch` or reproduce its documented target-center steps rather
+than treating an `act` run as release evidence.
+
 ## Coverage Verification and Quality Gates
 
 Coverage checks enforce minimum thresholds for key logic families.
@@ -260,8 +295,9 @@ not repeat backend, frontend, or documentation suites. Repositories upgrading
 from an earlier configuration should remove the retired
 `CHANGELOG Reminder / changelog` check from branch protection.
 
-The `bootstrap-and-ingest-check` workflow is intentionally manual. It builds a
-complete stage stack with a disposable MongoDB profile, validates the
+The `bootstrap-and-ingest-check` workflow runs weekly, on manual dispatch, and
+when a pull request is labeled `full-stack-validation`. It builds a complete
+stage stack with a disposable MongoDB profile, validates the
 `SCRIPT_NAME` reverse-proxy path, creates the initial account, imports baseline
 collections, ingests the approved synthetic bundle, and verifies the ready
 sample through the running API. Its container logs are uploaded only on

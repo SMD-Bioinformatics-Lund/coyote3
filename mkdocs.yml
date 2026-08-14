@@ -51,6 +51,7 @@ nav:
       - Permissions and Access: developer/permissions_naming.md
   - Deployment and Operations:
       - Release Readiness: operations/release_readiness.md
+      - Target-center Acceptance: operations/target_center_acceptance.md
       - Center Deployment: operations/center_deployment_guide.md
       - Initial Deployment Checklist: operations/initial_deployment_checklist.md
       - Upgrade from v3.x: operations/upgrade_from_v3.md
@@ -70,6 +71,7 @@ nav:
   - API Reference:
       - API Organization: api/api_organization.md
       - Authentication: api/authentication.md
+      - Versioning and Compatibility: api/versioning_and_compatibility.md
       - Routes and Workflows: api/reference_and_workflows.md
       - Ingestion API: api/ingestion_api.md
       - Sample YAML Manifest: api/sample_yaml.md
@@ -86,6 +88,7 @@ nav:
       - Architecture Decisions:
           - Authentication Provider Resolution: architecture/adr_0001_auth_provider_resolution.md
           - Local Password Lifecycle: architecture/adr_0002_local_user_password_lifecycle_and_mail_fallback.md
+          - Synchronous HTTP and MongoDB: architecture/adr_0003_sync_http_and_mongodb_execution.md
   - Development:
       - Engineering Guide: maintainers/developer_guide.md
       - Add a Domain or Collection: developer/adding_a_domain.md

@@ -34,6 +34,31 @@ Allow request or return structured denial
 3. Internal token gate for selected system-to-system routes
 4. Environment secret hardening (prod/dev strict behavior)
 
+Cookie-authenticated mutation requests also require the per-session CSRF token
+returned by the login response. The React API client keeps this token in
+memory for the current page lifecycle and sends it as `X-CSRF-Token` for
+`POST`, `PUT`, `PATCH`, and `DELETE`. Reloading the application obtains the
+token again from the authenticated session endpoint; it is not persisted in
+browser storage. Bearer clients are exempt because bearer credentials are not
+attached automatically by a browser. A missing or mismatched token is rejected
+before the route handler runs.
+
+Session resolution is cached on the FastAPI request state. Authentication,
+CSRF validation, and route dependencies therefore share one session lookup for
+the request instead of independently reading and updating the session record.
+
+Request quotas use an atomic Redis fixed-window counter. All API workers share
+the same counter, so adding Uvicorn workers does not multiply the configured
+limit. If request protection is enabled and Redis cannot update the counter,
+the API fails closed with `503` rather than silently disabling the quota.
+
+Browser responses include CSP, frame, MIME-sniffing, referrer, permissions, and
+HTTPS transport headers. The public reverse proxy applies the policy to the
+React application, documentation, and API responses. The API also applies its
+own policy when reached directly in an internal deployment. The CSP permits the
+jsDelivr assets used by the local FastAPI documentation while keeping scripts,
+forms, frames, and connections restricted to their supported origins.
+
 Roles, permissions, environments, assay groups, assays, and `superuser`
 visibility are resolved in the API security layer before request handlers run.
 

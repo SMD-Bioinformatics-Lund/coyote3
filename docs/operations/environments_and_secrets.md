@@ -93,10 +93,10 @@ Example (existing volume/user rotation):
 
 ```bash
 mongosh "<admin-mongo-uri>" --eval '
-  db = db.getSiblingDB("'"${COYOTE3_DB:-coyote3}"'");
+  db = db.getSiblingDB("'"${COYOTE3_DB:?COYOTE3_DB must be set}"'");
   var user = "'"${MONGO_APP_USER}"'";
   var pwd  = "'"${MONGO_APP_PASSWORD}"'";
-  var roles = [{role: "readWrite", db: "'"${COYOTE3_DB:-coyote3}"'"}];
+  var roles = [{role: "readWrite", db: "'"${COYOTE3_DB:?COYOTE3_DB must be set}"'"}];
   var info = db.getUser(user);
   if (info) { db.updateUser(user, {pwd: pwd, roles: roles}); print("updated"); }
   else       { db.createUser({user: user, pwd: pwd, roles: roles}); print("created"); }

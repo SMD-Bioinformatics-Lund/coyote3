@@ -174,6 +174,7 @@ selected within the description group are alternatives; the description group
 is combined with caller, effect, and read-support groups using AND. One call
 must satisfy every active call-level group. Matching is case-insensitive and
 respects comma-delimited token boundaries.
+
 ### DNA translocation
 
 Active `sample.filters.somatic.translocation.fusionlists` and ad-hoc

@@ -136,6 +136,20 @@ exact confirmation of the index name. This makes retirement a deliberate
 operation rather than an API-startup side effect. Preserve before-and-after
 command output with the release or maintenance evidence.
 
+## MongoDB client sizing and durability
+
+Each API and Celery process owns a PyMongo connection pool. The upper-bound
+connection estimate is therefore the configured maximum pool size multiplied
+by the number of API workers and Celery processes; it is not one shared pool
+for the deployment. Start with the documented defaults, compare that estimate
+with the replica set's connection capacity, and tune only from measured queue
+waits and database utilization.
+
+Production defaults use `majority` read concern, `majority` write concern, and
+journal acknowledgement. These settings favor acknowledged clinical writes
+over the lower latency of primary-only acknowledgement. Changing them requires
+a documented database-operator review and recovery test.
+
 ### Capacity Baseline
 
 Capture a read-only capacity snapshot before a release, a large ingest change,

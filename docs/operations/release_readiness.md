@@ -10,6 +10,7 @@ their commands.
 |---|---|---|
 | Automated quality | Backend, frontend, contracts, typing, and strict documentation pass | [Test strategy and quality gates](../testing/testing_and_quality.md) |
 | Clinical browser workflow | Public routes, login, one controlled DNA sample, one controlled RNA sample, report preview, and application controls pass through the deployed reverse proxy | [Browser and release validation](../testing/browser_and_release_validation.md) |
+| Target-center acceptance | Authentication providers, representative DNA/RNA ingestion, reverse proxy, and isolated backup restoration pass with center-owned evidence | [Target-center acceptance](target_center_acceptance.md) |
 | Deployment | Center preflight succeeds using the target environment and compose file | [Initial deployment checklist](initial_deployment_checklist.md) |
 | Data protection | Backup completes and a restore has been rehearsed for the release environment | [Backup and recovery](backup_restore_and_snapshots.md) |
 | Operations | Health, metrics, worker state, ingest timing, query timing, retention, and log rotation are observable | [Observability and alerts](observability_slos_and_alerts.md) |
@@ -36,7 +37,8 @@ test therefore means the release gate is incomplete, not successful.
 
 ## Scheduled operational rehearsal
 
-The `bootstrap-and-ingest-check` workflow runs manually and once each month. It
+The `bootstrap-and-ingest-check` workflow runs manually, when a pull request is
+labeled `full-stack-validation`, and every Monday at 03:17 UTC. It
 starts an isolated disposable MongoDB replica set, initializes it through the
 direct database bootstrap command, starts the stage application topology,
 ingests the controlled DNA bundle, verifies the sample workflow, creates a

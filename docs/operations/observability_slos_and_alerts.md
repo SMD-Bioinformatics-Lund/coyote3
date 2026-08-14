@@ -1,6 +1,17 @@
 # Observability SLOs and Alerts
 
-This guide turns Coyote3 auth/mail telemetry into practical SLO dashboards and alert rules.
+This guide turns Coyote3 API, authentication, mail, task, ingest, and maintenance
+telemetry into practical service-level dashboards and alert rules.
+
+## API process model
+
+The supported container configuration runs one Uvicorn process per API
+container. The internal Prometheus counters are held in process memory, so this
+keeps each metrics endpoint complete for its container. A center that scales to
+multiple API containers must scrape every instance and aggregate by service in
+Prometheus. Increasing `API_WORKERS` inside one container would expose only the
+worker reached by a metrics request and is therefore not a supported monitoring
+topology.
 
 ## Available Telemetry Signals
 

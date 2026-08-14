@@ -132,7 +132,7 @@ transcript remains stable for display. The compound index on
 
     Existing records must be backfilled or re-ingested before consequence
     filtering is enabled for them. The local, ignored migration tool
-    `migration_scripts/backfill_variant_consequence_terms.py` derives values
+    Fresh v4 ingestion derives `consequence_terms` from the parsed VEP records
     only from the matching `anno_vep` record for the sample's VEP version. It
     leaves a row untouched when that evidence is absent and reports it for
     review; it does not infer terms from the selected transcript.
