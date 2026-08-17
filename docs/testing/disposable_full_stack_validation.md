@@ -229,8 +229,15 @@ docker compose \
   -p "$VALIDATION_MONGO_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.mongo.yml \
-  up -d
+  up -d mongo mongo_init
 ```
+
+This is the disposable MongoDB container command used by this procedure. The
+`mongo` service starts the MongoDB 8.2 server with its isolated bind-mounted
+data directory. The one-shot `mongo_init` service initializes the
+single-member replica set and then exits. It is normal for `mongo_init` to
+show `Exited (0)` after initialization; the `mongo` service must remain
+running and healthy.
 
 Wait for its health check through the Compose service name. This avoids
 depending on a generated container name:
@@ -248,6 +255,24 @@ until docker compose \
   sleep 2
 done
 ```
+
+Optionally verify the database from a separate, short-lived MongoDB tools
+container. This confirms that another container can reach the replica set over
+the same external Docker network and does not require `mongosh` on the host:
+
+```bash
+docker run --rm \
+  --network "$VALIDATION_MONGO_NETWORK" \
+  --add-host host.docker.internal:host-gateway \
+  mongo:8.2 \
+  mongosh --quiet \
+    "mongodb://coyote3_root:$VALIDATION_MONGO_ROOT_PASSWORD@coyote3_mongo:27017/admin?authSource=admin&replicaSet=coyote3-validation-rs" \
+    --eval 'quit(db.adminCommand({ping: 1}).ok ? 0 : 1)'
+```
+
+The tools container is removed automatically after the command. It does not
+run another database server and does not mount or modify the MongoDB data
+directory beyond issuing the authenticated `ping` command.
 
 ## 5. Build the production application images
 
