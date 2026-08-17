@@ -126,20 +126,22 @@ analysis sections, intent profiles, and default gene-list selections. It does
 not accept arbitrary MongoDB query fragments. The domain query builder owns
 the fixed predicate shape and the limited set of validated clinical exceptions.
 
-For `paired` and `case_only`, the ordinary SNV query is built from the resolved
-sample filters. These basic rules apply the selected intent, case VAF, depth,
-alternate-read count, population-frequency ceiling, VEP consequence selection,
-and effective SNV gene scope; `paired` also applies the control rule. The
-released query policy selects the supported evidence model and adds narrowly
-scoped clinical exceptions where the ordinary rules are insufficient.
-`exception_only` is deliberately different: it has no general admission
-branch and returns only findings matching an approved `admit` exception.
+For SNV, the ordinary query is built from the resolved sample filters and the
+selected `paired`, `case_only`, or `exception_only` evidence model. CNV, DNA
+translocation, and RNA fusion each retain their own ordinary ASPC-driven query
+and consume only the exceptions in their matching policy namespace. PGX also
+has a separate typed namespace, reserved for its future persisted finding
+query. Rules never cross analysis boundaries.
 
 | Concern | Source | Purpose |
 | --- | --- | --- |
 | Basic SNV filter values | `samples.filters.<intent>.snv`, initially seeded from the recorded ASPC revision | Supplies VAF, depth, alternate-read, control-frequency, population-frequency, consequence, ISGL, and ad-hoc gene values for this sample. |
 | Baseline evidence model | `[snv]` and optional `[snv.assay_group_policies]` | Determines whether the basic values are evaluated as `paired`, `case_only`, or `exception_only` evidence. |
 | Additional clinical rules | `[[snv.exceptions]]` | Extends a consequence route, admits a specifically approved finding under an exception-only policy, or excludes a precisely matched finding. |
+| CNV exceptions | `[[cnv.exceptions]]` | Adds a typed CNV admission or exclusion using CNV genes, callers, effects, chromosome, or size. |
+| DNA translocation exceptions | `[[translocation.exceptions]]` | Extends or excludes the DNA translocation gene scope using genes, pairs, structural types, or chromosomes. |
+| RNA fusion exceptions | `[[fusion.exceptions]]` | Adds or removes RNA fusions using partners, callers, effects, or evidence-description tokens. |
+| PGX policy boundary | `[pgx]` | Prevents PGX rules from being encoded as SNV rules; execution begins only with a released persisted PGX finding workflow. |
 
 Therefore, most findings are governed entirely by the basic SNV filters. A
 query-policy exception affects a finding only when its intent, assay scope,
@@ -151,7 +153,7 @@ and every configured match condition apply.
 | Review configuration | Sample's recorded ASPC revision | enabled analysis types, somatic/germline filter defaults, reporting sections | arbitrary data-store predicates |
 | Per-sample review state | `samples.filters` | reviewer-selected ISGLs, ad-hoc genes, and permitted threshold changes | assay-group policy |
 | Versioned annotation metadata | VEP metadata referenced by `sample.database_versions.vep` | expansion of UI consequence groups to VEP terms | query threshold values |
-| Clinical query policy | `api/config/center/clinical_query_policy.toml` plus domain-core Python | released baseline evidence models, population-frequency sources, and typed clinical exceptions | raw MongoDB fields, operators, or arbitrary query fragments |
+| Clinical query policy | `api/config/center/clinical_query_policy.toml` plus domain-core Python | released SNV evidence models and analysis-specific typed exceptions | raw MongoDB fields, operators, arbitrary query fragments, or cross-analysis keys |
 
 This design prevents an administrative form from broadening a clinical query by
 storing raw operators in MongoDB. A change to query semantics requires code
@@ -218,7 +220,7 @@ complete transcript set at ingest and stored on the compact variant row. This
 keeps filtering independent of a reviewer changing the selected display
 transcript.
 
-### Released SNV Policies And Exceptions
+### Released SNV policies and exceptions
 
 `clinical_query_policy.toml` is a released clinical configuration asset. It is
 reviewed and deployed with the application, but it is intentionally not stored
@@ -247,7 +249,7 @@ conditions but removes the matching subset after baseline and admission rules
 are applied. A scope with no matching `admit` rule produces an intentionally
 empty result set; it never falls back to an unfiltered query.
 
-#### Adding A Scoped Exception
+#### Adding a scoped exception
 
 An exception can be limited to one or more `assay_groups`, `asp_ids`, or
 `subpanel_ids`, and can target a gene, indexed consequence term, VCF filter value,
@@ -293,13 +295,15 @@ typed policy vocabulary; no example represents raw MongoDB syntax.
 | No selected list | The target-specific ISGL selector and ad-hoc genes are empty. | The query uses `ASP.covered_genes`; when that field is empty, no gene predicate is added. |
 | Selected CNV or fusion list | A compatible ISGL ID is persisted in `filters.somatic.cnv.cnvlists` or `filters.somatic.fusion.fusionlists`. | Only that target-specific list narrows the result. An SNV list never narrows CNV or fusion results. |
 
-### Authorable SNV query-policy blocks
+### Analysis-specific query-policy blocks
 
-The only authorable SNV query-policy document is
+The only authorable clinical query-policy document is
 `api/config/center/clinical_query_policy.toml`. It does **not** contain sample
 documents, ASPC filters, selected ISGLs, UI tabs, or request parameters. Those
-values are persisted and resolved at runtime. The policy file supplies only
-the released baseline policy and narrowly typed exception branches.
+values are persisted and resolved at runtime. The policy file supplies the SNV
+evidence model and narrowly typed, analysis-specific exception branches under
+`snv`, `cnv`, `translocation`, `fusion`, and `pgx`. A rule written under one
+namespace cannot affect another analysis.
 
 !!! important "Use the configuration reference when editing this file"
 
@@ -341,6 +345,14 @@ population_frequency_fields = [
   "thousandG_frequency",
 ]
 
+[cnv]
+
+[translocation]
+
+[fusion]
+
+[pgx]
+
 # Extends only the consequence branch. Baseline case, control, and population
 # evidence still applies.
 [[snv.exceptions]]
@@ -381,7 +393,8 @@ solid = "case_only"
 This example changes only how somatic SNV evidence is combined for the
 `solid` assay group. It does not create thresholds and does not alter CNV,
 fusion, translocation, expression, classification, coverage, or reporting
-queries.
+queries. CNV, translocation, and fusion exceptions must be declared in their
+own namespaces as documented in the center configuration reference.
 
 | Policy block | What it authorizes | Resulting query behavior |
 | --- | --- | --- |
@@ -405,14 +418,17 @@ consequence gate. An `exception_only` policy evaluates only its matching
 ordering is fixed in code; TOML order never changes which findings are
 returned.
 
-!!! important "What the policy file cannot configure"
+!!! important "Policy exceptions do not replace ASPC configuration"
 
     ASPC `analysis_types` determine which sample workspace tabs are available.
     `samples.filters` determines thresholds, selected ISGLs, ad-hoc genes, and
-    review-state controls for an individual sample. RNA fusion, expression,
-    classification, coverage, CNV, translocation, and PGX availability are not
-    configured by `clinical_query_policy.toml`. Do not add those structures to
-    this file.
+    review-state controls for an individual sample. The query-policy file can
+    add only the documented typed admissions and exclusions for SNV, CNV, DNA
+    translocation, and RNA fusion. It cannot enable an analysis, define an ASPC
+    threshold, select a gene list, configure expression, classification, or
+    coverage retrieval, or supply raw MongoDB predicates. The `pgx` namespace
+    is validated but remains non-executable until the application has a
+    persisted PGX finding workflow.
 
 For configuration changes, use the linked center reference as the source of
 truth rather than deriving syntax from the abbreviated examples on this page.
@@ -426,11 +442,11 @@ truth rather than deriving syntax from the abbreviated examples on this page.
 
 ### CNV, Translocation, and Fusion Queries
 
-| Analysis | Filter source | Retrieval behavior | Post-query processing |
+| Analysis | Filter and policy source | Retrieval behavior | Post-query processing |
 | --- | --- | --- | --- |
-| CNV | `filters.somatic.cnv` plus selected CNV ISGLs | Uses two evidence branches. Ratio-based calls use strict loss/gain and minimum/maximum size boundaries; a ratio above `3` retains a high-level amplification beyond the size ceiling. Ratio-less structural calls are retained when `SR` or `PR` evidence is present, so callers such as Manta are not removed by segment-ratio rules. Optional CNV gene scope is applied independently of SNV lists. Targeted-panel review excludes `NORMAL` records; WGS/TumWGS review includes them. | configured gain/loss effect selection, structural evidence retention, WGS normal-call scope, and gene organisation are applied before search, sort, and pagination |
-| DNA fusion/translocation | `filters.somatic.translocation` plus independently selected fusion-compatible ISGLs | Retrieves records for the sample, then applies the resolved DNA structural gene scope. A selected list or ad-hoc scope is used first; otherwise the query falls back to `ASP.covered_genes`; an empty ASP coverage list leaves the result unrestricted. | gene matching, text search, multi-column sorting, pagination, annotation and review-state enrichment |
-| RNA fusion | `filters.somatic.fusion` plus selected fusion ISGLs | RNA-only. Applies configured supporting-read/pair thresholds, selected effects, selected callers, known/Mitelman list markers, and optional fusion-gene scope. The Arriba caller intentionally has no spanning-pair predicate. | global annotation enrichment, text search, multi-column sorting, pagination, and report summary preparation |
+| CNV | `filters.somatic.cnv`, selected CNV ISGLs, and `[[cnv.exceptions]]` | Uses two evidence branches. Ratio-based calls use strict loss/gain and minimum/maximum size boundaries; a ratio above `3` retains a high-level amplification beyond the size ceiling. Ratio-less structural calls are retained when `SR` or `PR` evidence is present, so callers such as Manta are not removed by segment-ratio rules. Optional CNV gene scope is applied independently of SNV lists. Targeted-panel review excludes `NORMAL` records; WGS/TumWGS review includes them. A scoped `admit` exception extends this ordinary query; a scoped `exclude` exception is subtracted last. | configured gain/loss effect selection, structural evidence retention, WGS normal-call scope, policy exclusions, and gene organisation are applied before search, sort, and pagination |
+| DNA fusion/translocation | `filters.somatic.translocation`, independently selected fusion-compatible ISGLs, and `[[translocation.exceptions]]` | Retrieves records for the sample, then applies the resolved DNA structural gene scope. A selected list or ad-hoc scope is used first; otherwise the query falls back to `ASP.covered_genes`; an empty ASP coverage list leaves the result unrestricted. Admissions can add reviewed genes or exact partner pairs to a restricted scope; exclusions remove matching genes, pairs, structural types, or chromosomes. | gene and pair matching, policy exclusions, text search, multi-column sorting, pagination, annotation, and review-state enrichment |
+| RNA fusion | `filters.somatic.fusion`, selected fusion ISGLs, and `[[fusion.exceptions]]` | RNA-only. Applies configured supporting-read/pair thresholds, selected effects, selected callers, known/Mitelman list markers, and optional fusion-gene scope. The Arriba caller intentionally has no spanning-pair predicate. Admissions extend the ordinary query with a typed partner, pair, caller, effect, or description rule; exclusions are subtracted last. | global annotation enrichment, policy exclusions, text search, multi-column sorting, pagination, and report summary preparation |
 
 DNA translocation records do not currently have validated cross-caller numeric
 thresholds equivalent to RNA spanning-read filters. The old production query

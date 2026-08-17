@@ -1,9 +1,32 @@
 """Unit tests for ASPC-driven CNV/fusion/translocation query strategy."""
 
+from api.config.clinical_query_policy import FindingQueryException, FindingQueryPolicy
 from api.domain.core.dna.cnvqueries import build_cnv_query, include_normal_cnvs
 from api.domain.core.dna.dna_filters import cnvtype_variant
+from api.domain.core.dna.translocqueries import (
+    build_transloc_query,
+    filter_translocations_by_genes,
+)
 from api.domain.core.dna.varqueries import build_pos_genes_filter
 from api.domain.core.rna.fusion_query_builder import build_fusion_query
+
+
+def _finding_policy(*rules: FindingQueryException) -> FindingQueryPolicy:
+    return FindingQueryPolicy(exceptions=rules)
+
+
+def _finding_rule(
+    *, rule_id: str, mode: str, criteria: dict, assay_groups: tuple[str, ...] = ("solid",)
+) -> FindingQueryException:
+    return FindingQueryException(
+        rule_id=rule_id,
+        mode=mode,
+        intents=("somatic",),
+        assay_groups=assay_groups,
+        asp_ids=(),
+        subpanel_ids=(),
+        criteria=criteria,
+    )
 
 
 def test_build_cnv_query_applies_base_guards() -> None:
@@ -155,6 +178,49 @@ def test_build_cnv_query_keeps_normal_calls_for_wgs() -> None:
     assert include_normal_cnvs({"sequencing_scope": "wgs"}) is True
     assert include_normal_cnvs({}, {"asp_group": "tumwgs"}) is True
     assert include_normal_cnvs({"sequencing_scope": "panel"}, {"asp_group": "solid"}) is False
+
+
+def test_cnv_policy_admission_extends_the_normal_filter_query() -> None:
+    policy = _finding_policy(
+        _finding_rule(rule_id="retain_egfr", mode="admit", criteria={"genes": ("EGFR",)})
+    )
+    query = build_cnv_query(
+        "SAMPLE_1",
+        {
+            "assay_group": "solid",
+            "cnv_loss_cutoff": -0.3,
+            "cnv_gain_cutoff": 0.3,
+            "min_cnv_size": 1000,
+            "max_cnv_size": 10000,
+        },
+        policy=policy,
+    )
+
+    assert query["$and"][0]["$or"][1] == {
+        "$or": [
+            {"genes.gene": {"$in": ["EGFR"]}},
+            {"panel_gene": {"$in": ["EGFR"]}},
+        ]
+    }
+
+
+def test_cnv_policy_is_ignored_outside_its_assay_scope() -> None:
+    policy = _finding_policy(
+        _finding_rule(rule_id="retain_egfr", mode="admit", criteria={"genes": ("EGFR",)})
+    )
+    query = build_cnv_query(
+        "SAMPLE_1",
+        {
+            "assay_group": "hematology",
+            "cnv_loss_cutoff": -0.3,
+            "cnv_gain_cutoff": 0.3,
+            "min_cnv_size": 1000,
+            "max_cnv_size": 10000,
+        },
+        policy=policy,
+    )
+
+    assert "EGFR" not in str(query)
 
 
 def test_cnv_effect_filter_retains_untyped_structural_read_calls() -> None:
@@ -382,3 +448,60 @@ def test_build_fusion_query_normalizes_caller_aliases_before_matching() -> None:
         {"caller": "fusioncatcher"},
         {"caller": "starfusion"},
     ]
+
+
+def test_fusion_policy_admission_uses_gene_pairs_without_changing_the_baseline() -> None:
+    policy = _finding_policy(
+        _finding_rule(
+            rule_id="retain_kmt2a_aff1",
+            mode="admit",
+            criteria={"gene_pairs": ("KMT2A--AFF1",)},
+        )
+    )
+    query = build_fusion_query(
+        "solid",
+        {
+            "id": "SAMPLE_1",
+            "asp_id": "rna_fusion",
+            "subpanel_id": "base",
+            "min_spanning_reads": 10,
+        },
+        policy=policy,
+    )
+
+    admission = query["$or"][1]
+    assert {"gene1": "KMT2A", "gene2": "AFF1"} in admission["$or"]
+    assert {"gene1": "AFF1", "gene2": "KMT2A"} in admission["$or"]
+
+
+def test_translocation_policy_extends_gene_scope_and_then_excludes_matches() -> None:
+    policy = _finding_policy(
+        _finding_rule(
+            rule_id="retain_bcr_abl1",
+            mode="admit",
+            criteria={"gene_pairs": ("ABL1--BCR",)},
+        ),
+        _finding_rule(
+            rule_id="remove_artifact",
+            mode="exclude",
+            criteria={"genes": ("ARTIFACT",)},
+        ),
+    )
+    rows = [
+        {"_id": "panel", "INFO": {"SVTYPE": "BND", "ANN": [{"Gene_Name": "TP53&ALK"}]}},
+        {"_id": "admitted", "INFO": {"SVTYPE": "BND", "ANN": [{"Gene_Name": "BCR&ABL1"}]}},
+        {"_id": "excluded", "INFO": {"SVTYPE": "BND", "ANN": [{"Gene_Name": "TP53&ARTIFACT"}]}},
+    ]
+    settings = {"assay_group": "solid", "intent": "somatic"}
+
+    query = build_transloc_query("SAMPLE_1", settings, policy=policy)
+    filtered = filter_translocations_by_genes(
+        rows,
+        filter_genes=["TP53"],
+        restricted=True,
+        settings=settings,
+        policy=policy,
+    )
+
+    assert "ARTIFACT" in str(query)
+    assert [row["_id"] for row in filtered] == ["panel", "admitted"]

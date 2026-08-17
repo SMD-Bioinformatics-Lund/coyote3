@@ -1,4 +1,4 @@
-# Released SNV query policy. This file never contains MongoDB query syntax.
+# Released analysis-specific query policy. This file never contains MongoDB query syntax.
 # Add clinical exceptions only through the typed fields documented in
 # docs/product/aspc_driven_query_strategy.md.
 
@@ -11,6 +11,17 @@ population_frequency_fields = [
   "exac_frequency",
   "thousandG_frequency",
 ]
+
+# Analysis-specific policy namespaces. Their exception arrays are empty until
+# a reviewed rule is released for that finding type. A rule in one namespace
+# can never alter another analysis query.
+[cnv]
+
+[translocation]
+
+[fusion]
+
+[pgx]
 
 [[snv.exceptions]]
 id = "flt3_svtype"

@@ -51,7 +51,7 @@ as a clinical/configuration change rather than hidden in application code.
 | --- | --- | --- | --- |
 | `center/contact.toml` | TOML | [Contact table](../operations/center_configuration_files.md#contacttoml) | Center-owned organization, support, service-hour, and repeatable contact-card content. |
 | `center/clinical_vocabulary.toml` | TOML | [Vocabulary table](../operations/center_configuration_files.md#clinical_vocabularytoml) | Center-owned authentication providers, sample-manifest file keys, required family inputs, and analysis-to-file bindings. Assay groups and sequencing-platform capabilities are fixed software workflow identifiers. |
-| `center/clinical_query_policy.toml` | TOML | [Query-policy table](../operations/center_configuration_files.md#clinical_query_policytoml) | Released SNV evidence models, population-frequency fields, and restricted clinical exception scopes. |
+| `center/clinical_query_policy.toml` | TOML | [Query-policy table](../operations/center_configuration_files.md#clinical_query_policytoml) | Released SNV evidence models plus independent typed CNV, translocation, fusion, and PGX exception scopes. |
 | `center/collections.toml` | TOML | [Collection table](../operations/center_configuration_files.md#collectionstoml) | Database and collection names used by the persistence adapter. |
 | `center/assay_catalog.yaml` | YAML | [Catalog table](../operations/center_configuration_files.md#assay_catalogyaml) | Public assay-catalog narrative fields that do not belong in clinical records. |
 | `center/filter_flag_metadata.yaml` | YAML | [Flag table](../operations/center_configuration_files.md#filter_flag_metadatayaml) | Human-facing variant flag labels, severity, and tooltip descriptions. |

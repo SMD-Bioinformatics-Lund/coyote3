@@ -200,6 +200,7 @@ class DnaStructuralService:
         sample_filters: dict,
         filter_genes: list[str],
         assay_panel: dict | None = None,
+        assay_group: str | None = None,
     ) -> list[dict]:
         """Load CNVs for a sample using the active filters.
 
@@ -216,6 +217,12 @@ class DnaStructuralService:
             filters={
                 **sample_filters,
                 "filter_genes": filter_genes,
+                "assay_group": assay_group
+                or (assay_panel or {}).get("asp_group")
+                or sample.get("asp_group"),
+                "asp_id": sample.get("asp_id"),
+                "subpanel_id": sample.get("subpanel_id"),
+                "intent": "somatic",
             },
             include_normal=include_normal_cnvs(sample, assay_panel),
         )
@@ -272,6 +279,7 @@ class DnaStructuralService:
             sample_filters=cnv_filters,
             filter_genes=filter_genes,
             assay_panel=assay_panel_doc,
+            assay_group=assay_config.get("asp_group"),
         )
         query_params = getattr(request, "query_params", {}) or {}
         search_query = str(query_params.get("q", "")).strip()
@@ -433,15 +441,23 @@ class DnaStructuralService:
             target="translocation",
         )
 
+        policy_settings = {
+            **translocation_filters,
+            "assay_group": assay_config.get("asp_group"),
+            "asp_id": sample.get("asp_id"),
+            "subpanel_id": sample.get("subpanel_id"),
+            "intent": "somatic",
+        }
         translocs = list(
             self.translocation_repository.get_sample_translocations(
-                build_transloc_query(str(sample["_id"]), translocation_filters)
+                build_transloc_query(str(sample["_id"]), policy_settings)
             )
         )
         translocs = filter_translocations_by_genes(
             translocs,
             filter_genes=filter_genes,
             restricted=restricted,
+            settings=policy_settings,
         )
         query_params = getattr(request, "query_params", {}) or {}
         search_query = str(query_params.get("q", "")).strip()

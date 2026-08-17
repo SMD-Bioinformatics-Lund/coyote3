@@ -253,6 +253,8 @@ class RnaService:
             sample_id=str(sample["_id"]),
             sample_filters=sample_filters,
             filter_context=filter_context,
+            asp_id=str(sample.get("asp_id") or ""),
+            subpanel_id=str(sample.get("subpanel_id") or "base"),
         )
         fusions = list(self.fusion_repository.get_sample_fusions(query))
         fusions, tiered_fusions = add_global_annotations(

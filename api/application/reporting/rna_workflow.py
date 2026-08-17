@@ -203,6 +203,10 @@ class RNAWorkflowService:
         sample_id: str,
         sample_filters: dict,
         filter_context: dict,
+        *,
+        asp_id: str,
+        subpanel_id: str,
+        intent: str = "somatic",
     ) -> dict:
         """Build the fusion query from canonicalized filter state."""
         return build_fusion_query(
@@ -217,6 +221,9 @@ class RNAWorkflowService:
                 "checked_fusionlists": filter_context["checked_fusionlists"],
                 "filter_genes": filter_context["filter_genes"],
                 "restrict_to_genes": filter_context["restrict_to_genes"],
+                "asp_id": asp_id,
+                "subpanel_id": subpanel_id,
+                "intent": intent,
             },
         )
 

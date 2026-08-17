@@ -1,11 +1,61 @@
 import re
 from typing import Any, Dict
 
+from api.config.clinical_query_policy import (
+    CLINICAL_QUERY_POLICY,
+    FindingQueryException,
+    FindingQueryPolicy,
+)
 from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.domain.core.workflows.filter_normalization import coerce_nonnegative_int
 
 
-def build_fusion_query(assay_group: str, settings: Dict[str, Any]) -> Dict[str, Any]:
+def _fusion_exception_clause(exception: FindingQueryException) -> Dict[str, Any]:
+    """Translate a validated RNA-fusion rule into stored fusion fields."""
+    criteria = exception.criteria
+    clauses: list[Dict[str, Any]] = []
+    if criteria.get("genes"):
+        genes = list(criteria["genes"])
+        clauses.append({"$or": [{"gene1": {"$in": genes}}, {"gene2": {"$in": genes}}]})
+    if criteria.get("gene_pairs"):
+        pairs = []
+        for value in criteria["gene_pairs"]:
+            gene1, separator, gene2 = str(value).partition("--")
+            if separator:
+                pairs.extend(
+                    [
+                        {"gene1": gene1.upper(), "gene2": gene2.upper()},
+                        {"gene1": gene2.upper(), "gene2": gene1.upper()},
+                    ]
+                )
+        if pairs:
+            clauses.append({"$or": pairs})
+    call_match: Dict[str, Any] = {}
+    if criteria.get("callers"):
+        call_match["caller"] = {"$in": list(criteria["callers"])}
+    if criteria.get("effects"):
+        call_match["effect"] = {"$in": list(criteria["effects"])}
+    if criteria.get("descriptions"):
+        call_match["$or"] = [
+            {
+                "desc": {
+                    "$regex": rf"(?:^|,\s*){re.escape(value)}(?:\s*,|$)",
+                    "$options": "i",
+                }
+            }
+            for value in criteria["descriptions"]
+        ]
+    if call_match:
+        clauses.append({"calls": {"$elemMatch": call_match}})
+    return clauses[0] if len(clauses) == 1 else {"$and": clauses}
+
+
+def build_fusion_query(
+    assay_group: str,
+    settings: Dict[str, Any],
+    *,
+    policy: FindingQueryPolicy = CLINICAL_QUERY_POLICY.fusion,
+) -> Dict[str, Any]:
     """
     Build a query to retrieve fusion data for a given RNA sample.
 
@@ -84,4 +134,30 @@ def build_fusion_query(assay_group: str, settings: Dict[str, Any]) -> Dict[str, 
     elif filter_genes:
         query["$or"] = [{"gene1": {"$in": filter_genes}}, {"gene2": {"$in": filter_genes}}]
 
-    return query
+    scope = {
+        "assay_group": str(assay_group or "").strip().lower(),
+        "asp_id": str(settings.get("asp_id") or "").strip().lower(),
+        "subpanel_id": str(settings.get("subpanel_id") or "base").strip().lower(),
+        "intent": str(settings.get("intent") or "somatic").strip().lower(),
+    }
+    admissions = [
+        _fusion_exception_clause(exception)
+        for exception in policy.exceptions_for(**scope, mode="admit")
+    ]
+    exclusions = [
+        _fusion_exception_clause(exception)
+        for exception in policy.exceptions_for(**scope, mode="exclude")
+    ]
+    baseline = {key: value for key, value in query.items() if key != "SAMPLE_ID"}
+    final_clauses: list[Dict[str, Any]] = []
+    if admissions and baseline:
+        final_clauses.append({"$or": [baseline, *admissions]})
+    elif baseline:
+        final_clauses.append(baseline)
+    if exclusions:
+        final_clauses.append({"$nor": exclusions})
+    if not final_clauses:
+        return {"SAMPLE_ID": settings["id"]}
+    if len(final_clauses) == 1:
+        return {"SAMPLE_ID": settings["id"], **final_clauses[0]}
+    return {"SAMPLE_ID": settings["id"], "$and": final_clauses}

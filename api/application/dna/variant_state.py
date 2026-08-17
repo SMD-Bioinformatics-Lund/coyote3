@@ -9,12 +9,24 @@ from api.domain.core.dna.dna_filters import cnv_organizegenes, cnvtype_variant, 
 
 
 def load_cnvs_for_sample(
-    service, *, sample: dict, sample_filters: dict, filter_genes: list[str]
+    service,
+    *,
+    sample: dict,
+    sample_filters: dict,
+    filter_genes: list[str],
+    assay_group: str | None = None,
 ) -> list[dict]:
     """Load CNVs for a sample using the active filters."""
     cnv_query = build_cnv_query(
         str(sample["_id"]),
-        filters={**sample_filters, "filter_genes": filter_genes},
+        filters={
+            **sample_filters,
+            "filter_genes": filter_genes,
+            "assay_group": assay_group or sample.get("asp_group"),
+            "asp_id": sample.get("asp_id"),
+            "subpanel_id": sample.get("subpanel_id"),
+            "intent": "somatic",
+        },
         include_normal=include_normal_cnvs(sample),
     )
     cnvs = list(service.copy_number_variant_repository.get_sample_cnvs(cnv_query))

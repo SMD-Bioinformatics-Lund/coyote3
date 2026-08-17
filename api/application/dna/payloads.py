@@ -306,6 +306,7 @@ def _build_display_and_summary_sections(
     cnv_filter_genes: list[str],
     translocation_filter_genes: list[str],
     translocation_restricted: bool,
+    assay_group: str,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Build display and summary section dictionaries for report payloads."""
     display_sections_data: dict[str, Any] = {"snvs": deepcopy(variants)}
@@ -316,6 +317,7 @@ def _build_display_and_summary_sections(
             sample=sample,
             sample_filters=cnv_filters,
             filter_genes=cnv_filter_genes,
+            assay_group=assay_group,
         )
         display_sections_data["cnvs"] = deepcopy(cnvs)
         summary_sections_data["cnvs"] = [cnv for cnv in cnvs if cnv.get("interesting")]
@@ -328,14 +330,19 @@ def _build_display_and_summary_sections(
         summary_sections_data["biomarkers"] = biomarkers
 
     if "TRANSLOCATION" in analysis_sections:
-        transloc_query = build_transloc_query(
-            str(sample["_id"]),
-        )
+        policy_settings = {
+            "assay_group": assay_group,
+            "asp_id": sample.get("asp_id"),
+            "subpanel_id": sample.get("subpanel_id"),
+            "intent": "somatic",
+        }
+        transloc_query = build_transloc_query(str(sample["_id"]), policy_settings)
         translocs = list(service.translocation_repository.get_sample_translocations(transloc_query))
         display_sections_data["translocs"] = filter_translocations_by_genes(
             translocs,
             filter_genes=translocation_filter_genes,
             restricted=translocation_restricted,
+            settings=policy_settings,
         )
 
     if "FUSION" in analysis_sections:
@@ -573,6 +580,7 @@ def list_variants_payload(
             cnv_filter_genes=cnv_filter_genes,
             translocation_filter_genes=translocation_filter_genes,
             translocation_restricted=translocation_restricted,
+            assay_group=assay_group,
         )
         ai_text = generate_summary_text_fn(
             sample_ids,

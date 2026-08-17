@@ -33,7 +33,7 @@ api/config/
   center/
     contact.toml                # public center identity and support contacts
     clinical_vocabulary.toml    # center vocabulary and sample-file bindings
-    clinical_query_policy.toml  # released SNV evidence and exception policy
+    clinical_query_policy.toml  # released analysis-specific query policy
     collections.toml            # Mongo database/collection mapping
     assay_catalog.yaml          # public assay-catalog narrative overlay
     filter_flag_metadata.yaml   # human-facing VCF filter badge metadata
@@ -125,11 +125,12 @@ startup.
 
 ## `clinical_query_policy.toml`
 
-This file controls the released DNA SNV retrieval policy. It is constrained
-configuration, not a free-form MongoDB query file: the application validates
-all values at startup and converts only documented fields into predicates.
-Clinical owners can add a reviewed ASP-, subpanel-, gene-, coordinate-, or
-variant-specific exception without modifying query-builder code.
+This file controls released finding-retrieval policy. It has independent
+namespaces for `snv`, `cnv`, `translocation`, `fusion`, and `pgx`. It is
+constrained configuration, not a free-form MongoDB query file: the application
+validates all values at startup and converts only documented fields into the
+stored contract for that analysis. A key accepted by one namespace is rejected
+in every namespace where it has no defined meaning.
 
 This policy is resolved alongside the basic SNV filters stored under
 `samples.filters.<intent>.snv`. The sample filters supply the actual VAF,
@@ -140,14 +141,24 @@ intentionally omits the general threshold/consequence admission branch and
 admits only findings matching an approved `admit` exception. The policy file
 therefore selects the evidence model; it never duplicates threshold values.
 
-### File Format
+SNV has a configurable baseline evidence model because paired, case-only, and
+exception-only SNV review use materially different genotype evidence. CNV,
+translocation, and fusion keep their ordinary ASPC filter behavior and support
+typed `admit` and `exclude` exceptions. PGX has its own validated namespace so
+PGX policy cannot be placed under SNV; it becomes executable when a persisted
+PGX finding query is introduced.
 
-The file has one `[snv]` table, an optional `[snv.assay_group_policies]`
-table, and zero or more `[[snv.exceptions]]` entries. These are the only legal
-block headings in this file. Unknown blocks and unknown keys are rejected at
-startup.
+### File format
 
-#### TOML Block Grammar
+The file requires one table for each supported namespace. `[snv]` contains its
+baseline settings and may contain `[[snv.exceptions]]`. `[cnv]`,
+`[translocation]`, `[fusion]`, and `[pgx]` may each contain an analysis-specific
+`exceptions` array. An empty table explicitly states that the released policy
+has no additional rules for that analysis. Unknown or missing top-level blocks,
+unknown child keys, and keys copied from another analysis are rejected during
+application startup.
+
+#### TOML block grammar
 
 TOML uses single and double square brackets for different data structures:
 
@@ -157,6 +168,10 @@ TOML uses single and double square brackets for different data structures:
 | `[snv.assay_group_policies]` | Named child table | Zero or one | Maps a supported assay-group identifier to a somatic policy override. |
 | `[[snv.exceptions]]` | Array element | Zero or more | Appends one independent exception object to `snv.exceptions`. Double brackets are required because the policy may contain multiple exceptions. |
 | `[snv.exceptions.info_equals]` | Named child table of the current exception | Zero or one per exception | Adds exact INFO-field comparisons to the immediately preceding `[[snv.exceptions]]` entry. It uses single brackets because it is one mapping inside that exception, not another exception. |
+| `[cnv]` and `[[cnv.exceptions]]` | Named table and repeatable child entries | One table; zero or more entries | Owns CNV-only admissions and exclusions. |
+| `[translocation]` and `[[translocation.exceptions]]` | Named table and repeatable child entries | One table; zero or more entries | Owns DNA translocation-only admissions and exclusions. |
+| `[fusion]` and `[[fusion.exceptions]]` | Named table and repeatable child entries | One table; zero or more entries | Owns RNA fusion-only admissions and exclusions. |
+| `[pgx]` and `[[pgx.exceptions]]` | Named table and repeatable child entries | One table; zero or more entries | Reserves PGX-only typed policy. It does not alter SNV retrieval. |
 
 For example, the following creates two exceptions. The `info_equals` mapping
 belongs only to `germline_myeloid_marker`. The second `[[snv.exceptions]]`
@@ -443,20 +458,164 @@ filter_values = ["LOWQUAL"]
 In this example, only a TERT finding with the `LOWQUAL` filter is removed. A
 different gene, or a TERT finding without that filter, remains eligible.
 
-### Safe Authoring Protocol
+### Analysis-specific exception blocks
 
-1. Start from the standard baseline policy. Use `extend_consequence` when the
+CNV, translocation, fusion, and PGX rules use the same scope keys but have
+different match vocabularies. Every rule requires `id`, `mode`, and at least
+one match key. The only modes are:
+
+| Mode | Meaning |
+| --- | --- |
+| `admit` | Adds a narrow alternative to the ordinary query or effective gene scope for that analysis. When the ordinary query is already unrestricted, an admission cannot broaden it further. |
+| `exclude` | Removes a matching finding after the ordinary query and applicable admissions have been combined. |
+
+These modes are deliberately simpler than SNV modes. `extend_consequence` is
+an SNV-only operation because CNV, translocation, fusion, and PGX do not use
+the SNV VEP consequence gate.
+
+The shared scope keys are:
+
+| Key | Required | Allowed format | Meaning |
+| --- | --- | --- | --- |
+| `id` | Yes | Unique letters, numbers, `_`, or `-` | Stable rule identifier within that analysis namespace. IDs need not be unique across different namespaces. |
+| `mode` | Yes | `admit` or `exclude` | Selects alternative admission or final removal. |
+| `intents` | No | `somatic`, `germline` | Restricts the rule to a review intent. Germline execution remains limited by the application capability for the analysis. |
+| `assay_groups` | No | Supported normalized assay-group IDs | Restricts the rule to one or more assay groups. |
+| `asp_ids` | No | Existing normalized ASP IDs | Restricts the rule to one or more design panels. |
+| `subpanel_ids` | No | Existing normalized subpanel IDs | Restricts the rule to named in-silico scopes; use `base` for the base ASPC scope. |
+
+Values inside one scope or match array are alternatives. Different populated
+keys in the same rule are combined with AND. Separate applicable `admit` rules
+are alternative OR branches. A match against any applicable `exclude` rule
+removes the finding last. Declaration order has no query meaning and there is
+no `priority` key.
+
+#### CNV keys
+
+Use `[[cnv.exceptions]]` only for CNV records. The ordinary CNV query continues
+to use the sample's CNV loss/gain, size, evidence, normal-call, and target-specific
+gene-scope configuration.
+
+| Match key | Format | Stored meaning |
+| --- | --- | --- |
+| `genes` | HGNC symbols, normalized uppercase | Matches `genes.gene` or `panel_gene`. |
+| `callers` | Caller IDs, normalized lowercase | Matches a member of the stored `callers` array. |
+| `effects` | CNV type IDs, normalized uppercase | Matches stored `type`, for example `AMP`, `GAIN`, `LOSS`, or `DEL`. |
+| `chromosomes` | Stored chromosome labels, normalized uppercase | Matches stored `chr`. |
+| `size_min` | Non-negative integer | Inclusive minimum stored CNV `size`. |
+| `size_max` | Non-negative integer not below `size_min` | Inclusive maximum stored CNV `size`. |
+
+```toml
+[[cnv.exceptions]]
+id = "solid_retain_egfr_amplification"
+mode = "admit"
+intents = ["somatic"]
+asp_ids = ["solid_gmsv3"]
+genes = ["EGFR"]
+effects = ["AMP"]
+size_min = 1000
+```
+
+This rule admits only an EGFR amplification of at least 1,000 bases in the
+named ASP scope. It does not modify SNV, fusion, or translocation results.
+
+#### DNA translocation keys
+
+Use `[[translocation.exceptions]]` for DNA structural translocation records.
+Admissions extend the independently resolved translocation gene scope;
+exclusions are applied after that scope.
+
+| Match key | Format | Stored meaning |
+| --- | --- | --- |
+| `genes` | HGNC symbols, normalized uppercase | Matches either complete gene token in the translocation annotation. |
+| `gene_pairs` | Two symbols separated by `--`, for example `BCR--ABL1` | Matches either orientation of the exact two-gene pair. |
+| `svtypes` | Structural type IDs, normalized uppercase | Matches `INFO.SVTYPE`. |
+| `chromosomes` | Stored chromosome labels, normalized uppercase | Matches stored `CHROM`. |
+
+```toml
+[[translocation.exceptions]]
+id = "hematology_bcr_abl1"
+mode = "admit"
+intents = ["somatic"]
+assay_groups = ["hematology"]
+gene_pairs = ["BCR--ABL1"]
+svtypes = ["BND"]
+```
+
+#### RNA fusion keys
+
+Use `[[fusion.exceptions]]` for RNA fusion records. The ordinary fusion query
+continues to apply the sample's spanning-read, spanning-pair, caller, effect,
+description, and target-specific gene filters.
+
+| Match key | Format | Stored meaning |
+| --- | --- | --- |
+| `genes` | HGNC symbols, normalized uppercase | Matches `gene1` or `gene2`. |
+| `gene_pairs` | Two symbols separated by `--` | Matches either partner orientation. |
+| `callers` | Canonical caller IDs, normalized lowercase | Matches `calls[].caller`. |
+| `effects` | Fusion effect IDs, normalized lowercase | Matches `calls[].effect`, for example `in-frame`. |
+| `descriptions` | Complete evidence tokens, normalized lowercase | Matches a complete comma-delimited `calls[].desc` token, not a substring. |
+
+```toml
+[[fusion.exceptions]]
+id = "wts_retain_kmt2a_aff1"
+mode = "admit"
+intents = ["somatic"]
+assay_groups = ["wts"]
+gene_pairs = ["KMT2A--AFF1"]
+callers = ["fusioncatcher"]
+descriptions = ["known", "oncogene"]
+```
+
+The fields in this one rule are AND conditions. The fusion must have the named
+pair and one stored call satisfying the configured caller and either listed
+description token.
+
+#### PGX keys
+
+`[pgx]` is independent from SNV because pharmacogenomic findings use diplotype,
+phenotype, and medication concepts rather than SNV genotype thresholds.
+
+| Match key | Format | Intended PGX meaning |
+| --- | --- | --- |
+| `genes` | HGNC symbols, normalized uppercase | PGX gene symbol. |
+| `diplotypes` | Exact case-preserved values | Called diplotype, for example `*1/*2`. |
+| `phenotypes` | Normalized lowercase values | Interpreted metabolizer or response phenotype. |
+| `medications` | Normalized lowercase values | Medication associated with the PGX finding. |
+
+```toml
+[pgx]
+
+# Add entries only when the persisted PGX finding query is released.
+# [[pgx.exceptions]]
+# id = "cyp2c19_intermediate_metabolizer"
+# mode = "admit"
+# genes = ["CYP2C19"]
+# diplotypes = ["*1/*2"]
+# phenotypes = ["intermediate metabolizer"]
+```
+
+The loader validates this namespace now so PGX policy cannot be misplaced
+under `[snv]`. The current application does not yet expose a persisted PGX
+finding table, so deployed PGX exceptions must remain empty until that query
+workflow is implemented and tested.
+
+### Safe authoring protocol
+
+1. Start from the standard analysis baseline. For SNV, use
+   `extend_consequence` when the
    normal case, control, depth, VAF, and population-frequency gates must remain
    mandatory.
 2. Use the narrowest applicable scope: add `asp_ids` and `subpanel_ids` before
    adding a broad `assay_groups` scope.
-3. Add the narrowest biological match key that captures the approved finding:
-   `simple_ids` for one identity, `genes` plus `consequence_terms` for a
-   gene-level rule, or chromosome/position bounds for a genomic interval.
-4. Use `admit` only with an `exception_only` policy and only after explicit
-   clinical approval. It does not inherit baseline evidence gates. Use
-   `exclude` only for a reviewed exclusion; it applies after the baseline and
-   every inclusion branch.
+3. Use match keys from the selected analysis only. For SNV, use `simple_ids`
+   for one identity or `genes` plus `consequence_terms` for a gene-level rule.
+   For structural findings, prefer an exact `gene_pairs` rule over a broad gene
+   rule when the approved decision concerns one pair.
+4. In SNV, use `admit` only with an `exception_only` baseline. In CNV,
+   translocation, and fusion, `admit` is an explicit alternative to the normal
+   analysis filter. Use `exclude` only for a reviewed removal; it applies after
+   the baseline and every admission branch.
 5. Add a representative fixture and expected result count to the release
    review. Restart API, worker, and beat together after deployment.
 

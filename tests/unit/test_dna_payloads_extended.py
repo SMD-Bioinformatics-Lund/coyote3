@@ -161,7 +161,7 @@ def test_display_and_summary_sections_load_each_enabled_analysis(monkeypatch) ->
     monkeypatch.setattr(
         payloads,
         "build_transloc_query",
-        lambda sample_id: {"sample_id": sample_id},
+        lambda sample_id, settings: {"sample_id": sample_id, "settings": settings},
     )
     monkeypatch.setattr(
         payloads,
@@ -194,6 +194,7 @@ def test_display_and_summary_sections_load_each_enabled_analysis(monkeypatch) ->
         cnv_filter_genes=["MYC"],
         translocation_filter_genes=["NTRK1"],
         translocation_restricted=True,
+        assay_group="solid",
     )
     assert display["snvs"] == [{"_id": "snv-1"}]
     assert summary["snvs"] == [{"_id": "snv-tiered"}]

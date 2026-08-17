@@ -373,6 +373,8 @@ def test_rna_workflow_build_context_and_query(monkeypatch):
         "sample-1",
         {"min_spanning_reads": 2, "min_spanning_pairs": 3},
         context,
+        asp_id="rna_panel",
+        subpanel_id="base",
     )
 
     assert context["fusion_effect_form_keys"] == ["inframe"]
@@ -380,6 +382,7 @@ def test_rna_workflow_build_context_and_query(monkeypatch):
     assert query == {"ok": True}
     assert calls["query"][0] == "hema"
     assert calls["query"][1]["id"] == "sample-1"
+    assert calls["query"][1]["asp_id"] == "rna_panel"
 
 
 def test_rna_snapshot_rows_and_report_payload(monkeypatch):

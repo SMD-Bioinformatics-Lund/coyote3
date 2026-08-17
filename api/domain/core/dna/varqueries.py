@@ -5,7 +5,11 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from api.config.clinical_query_policy import SNV_QUERY_POLICY, SnvQueryException, SnvQueryPolicy
+from api.config.clinical_query_policy import (
+    CLINICAL_QUERY_POLICY,
+    SnvQueryException,
+    SnvQueryPolicy,
+)
 
 
 def _case_clause(settings: dict[str, Any]) -> dict[str, Any]:
@@ -179,7 +183,7 @@ def build_query(
     settings: dict[str, Any],
     *,
     intent: str = "somatic",
-    policy: SnvQueryPolicy = SNV_QUERY_POLICY,
+    policy: SnvQueryPolicy = CLINICAL_QUERY_POLICY.snv,
 ) -> dict[str, Any]:
     """Build an intent-specific SNV query from filters and released policy.
 

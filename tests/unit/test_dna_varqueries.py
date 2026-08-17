@@ -6,9 +6,24 @@ from dataclasses import replace
 
 import pytest
 
-from api.config.clinical_query_policy import SNV_QUERY_POLICY, load_snv_query_policy
+from api.config.clinical_query_policy import (
+    CLINICAL_QUERY_POLICY,
+    load_clinical_query_policy,
+)
 from api.domain.core.dna.dna_filters import get_filter_conseq_terms
 from api.domain.core.dna.varqueries import build_query
+
+SNV_QUERY_POLICY = CLINICAL_QUERY_POLICY.snv
+
+
+def _load_snv_policy(path):
+    """Complete focused SNV fixtures with the other required analysis namespaces."""
+    text = path.read_text(encoding="utf-8")
+    path.write_text(
+        f"{text}\n\n[cnv]\n\n[translocation]\n\n[fusion]\n\n[pgx]\n",
+        encoding="utf-8",
+    )
+    return load_clinical_query_policy(path).snv
 
 
 def _contains_mapping(value: object, expected: dict) -> bool:
@@ -129,7 +144,7 @@ population_frequency_fields = ["gnomad_frequency"]
 """.strip(),
         encoding="utf-8",
     )
-    policy = load_snv_query_policy(policy_path)
+    policy = _load_snv_policy(policy_path)
 
     query = build_query("hematology", _settings(), intent="germline", policy=policy)
 
@@ -150,7 +165,7 @@ unrecognized = true
     )
 
     with pytest.raises(RuntimeError, match="unsupported key"):
-        load_snv_query_policy(policy_path)
+        _load_snv_policy(policy_path)
 
 
 def test_policy_rejects_query_exception_priority(tmp_path) -> None:
@@ -172,7 +187,7 @@ genes = ["TP53"]
     )
 
     with pytest.raises(RuntimeError, match="unsupported key"):
-        load_snv_query_policy(policy_path)
+        _load_snv_policy(policy_path)
 
 
 def test_exclusion_exception_removes_matching_findings_after_baseline(tmp_path) -> None:
@@ -194,7 +209,7 @@ filter_values = ["LOWQUAL"]
 """.strip(),
         encoding="utf-8",
     )
-    policy = load_snv_query_policy(policy_path)
+    policy = _load_snv_policy(policy_path)
 
     query = build_query("solid", _settings(), policy=policy)
 
@@ -245,8 +260,8 @@ genes = ["TP53"]
         encoding="utf-8",
     )
 
-    first_query = build_query("hematology", _settings(), policy=load_snv_query_policy(first_path))
-    second_query = build_query("hematology", _settings(), policy=load_snv_query_policy(second_path))
+    first_query = build_query("hematology", _settings(), policy=_load_snv_policy(first_path))
+    second_query = build_query("hematology", _settings(), policy=_load_snv_policy(second_path))
 
     assert _logical_normal_form(first_query) == _logical_normal_form(second_query)
 
@@ -270,3 +285,74 @@ def test_clinical_consequence_groups_resolve_from_versioned_metadata_groups() ->
         "missense_variant",
         "coding_sequence_variant",
     ]
+
+
+def test_complete_policy_requires_every_analysis_namespace(tmp_path) -> None:
+    policy_path = tmp_path / "policy.toml"
+    policy_path.write_text(
+        """
+[snv]
+default_somatic_policy = "paired"
+default_germline_policy = "exception_only"
+population_frequency_fields = ["gnomad_frequency"]
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="missing required block"):
+        load_clinical_query_policy(policy_path)
+
+
+def test_analysis_namespace_rejects_keys_from_another_finding_type(tmp_path) -> None:
+    policy_path = tmp_path / "policy.toml"
+    policy_path.write_text(
+        """
+[snv]
+default_somatic_policy = "paired"
+default_germline_policy = "exception_only"
+population_frequency_fields = ["gnomad_frequency"]
+[cnv]
+[[cnv.exceptions]]
+id = "invalid_cnv_rule"
+mode = "admit"
+consequence_terms = ["missense_variant"]
+[translocation]
+[fusion]
+[pgx]
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="unsupported key.*consequence_terms"):
+        load_clinical_query_policy(policy_path)
+
+
+def test_pgx_policy_has_its_own_typed_vocabulary(tmp_path) -> None:
+    policy_path = tmp_path / "policy.toml"
+    policy_path.write_text(
+        """
+[snv]
+default_somatic_policy = "paired"
+default_germline_policy = "exception_only"
+population_frequency_fields = ["gnomad_frequency"]
+[cnv]
+[translocation]
+[fusion]
+[pgx]
+[[pgx.exceptions]]
+id = "retain_cyp2c19"
+mode = "admit"
+genes = ["CYP2C19"]
+diplotypes = ["*1/*2"]
+""".strip(),
+        encoding="utf-8",
+    )
+
+    policy = load_clinical_query_policy(policy_path)
+
+    assert policy.pgx.exceptions[0].criteria == {
+        "diplotypes": ("*1/*2",),
+        "genes": ("CYP2C19",),
+        "medications": (),
+        "phenotypes": (),
+    }

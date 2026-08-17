@@ -1,4 +1,4 @@
-"""Load the constrained, center-owned clinical SNV query policy.
+"""Load the constrained, center-owned clinical finding query policy.
 
 The policy is deliberately declarative.  It selects one of the supported
 baseline evidence models and defines narrowly typed clinical admission
@@ -17,7 +17,8 @@ from typing import Any
 from api.config.paths import CLINICAL_QUERY_POLICY_PATH
 
 _POLICY_MODES = frozenset({"paired", "case_only", "exception_only"})
-_EXCEPTION_MODES = frozenset({"extend_consequence", "admit", "exclude"})
+_SNV_EXCEPTION_MODES = frozenset({"extend_consequence", "admit", "exclude"})
+_FINDING_EXCEPTION_MODES = frozenset({"admit", "exclude"})
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _SNV_POLICY_KEYS = frozenset(
     {
@@ -48,6 +49,18 @@ _EXCEPTION_KEYS = frozenset(
         "alt_regex",
     }
 )
+_SCOPE_KEYS = frozenset({"id", "mode", "intents", "assay_groups", "asp_ids", "subpanel_ids"})
+_ANALYSIS_POLICY_KEYS = frozenset({"exceptions"})
+_CNV_EXCEPTION_KEYS = _SCOPE_KEYS | frozenset(
+    {"genes", "callers", "effects", "chromosomes", "size_min", "size_max"}
+)
+_TRANSLOCATION_EXCEPTION_KEYS = _SCOPE_KEYS | frozenset(
+    {"genes", "gene_pairs", "svtypes", "chromosomes"}
+)
+_FUSION_EXCEPTION_KEYS = _SCOPE_KEYS | frozenset(
+    {"genes", "gene_pairs", "callers", "effects", "descriptions"}
+)
+_PGX_EXCEPTION_KEYS = _SCOPE_KEYS | frozenset({"genes", "diplotypes", "phenotypes", "medications"})
 
 
 def _strings(
@@ -165,6 +178,60 @@ class SnvQueryPolicy:
         )
 
 
+@dataclass(frozen=True)
+class FindingQueryException:
+    """A scoped inclusion or exclusion rule for one non-SNV finding type."""
+
+    rule_id: str
+    mode: str
+    intents: tuple[str, ...]
+    assay_groups: tuple[str, ...]
+    asp_ids: tuple[str, ...]
+    subpanel_ids: tuple[str, ...]
+    criteria: dict[str, Any]
+
+    def applies_to(self, *, assay_group: str, asp_id: str, subpanel_id: str, intent: str) -> bool:
+        return (
+            (not self.intents or intent in self.intents)
+            and (not self.assay_groups or assay_group in self.assay_groups)
+            and (not self.asp_ids or asp_id in self.asp_ids)
+            and (not self.subpanel_ids or subpanel_id in self.subpanel_ids)
+        )
+
+
+@dataclass(frozen=True)
+class FindingQueryPolicy:
+    """Validated rules for one non-SNV analysis domain."""
+
+    exceptions: tuple[FindingQueryException, ...]
+
+    def exceptions_for(
+        self, *, assay_group: str, asp_id: str, subpanel_id: str, intent: str, mode: str
+    ) -> tuple[FindingQueryException, ...]:
+        return tuple(
+            exception
+            for exception in self.exceptions
+            if exception.mode == mode
+            and exception.applies_to(
+                assay_group=assay_group,
+                asp_id=asp_id,
+                subpanel_id=subpanel_id,
+                intent=intent,
+            )
+        )
+
+
+@dataclass(frozen=True)
+class ClinicalQueryPolicy:
+    """Complete released policy, partitioned by analysis type."""
+
+    snv: SnvQueryPolicy
+    cnv: FindingQueryPolicy
+    translocation: FindingQueryPolicy
+    fusion: FindingQueryPolicy
+    pgx: FindingQueryPolicy
+
+
 def _policy_mode(value: Any, *, key: str) -> str:
     mode = str(value or "").strip().lower()
     if mode not in _POLICY_MODES:
@@ -185,9 +252,9 @@ def _exception(raw: Any, *, index: int) -> SnvQueryException:
         )
     rule_id = _identifiers([raw.get("id")], key=f"snv.exceptions[{index}].id")[0]
     mode = str(raw.get("mode") or "").strip().lower()
-    if mode not in _EXCEPTION_MODES:
+    if mode not in _SNV_EXCEPTION_MODES:
         raise RuntimeError(
-            f"snv.exceptions[{index}].mode must be one of: {', '.join(sorted(_EXCEPTION_MODES))}"
+            f"snv.exceptions[{index}].mode must be one of: {', '.join(sorted(_SNV_EXCEPTION_MODES))}"
         )
     intents = _identifiers(raw.get("intents"), key=f"snv.exceptions[{index}].intents")
     invalid_intents = set(intents) - {"somatic", "germline"}
@@ -269,14 +336,104 @@ def _exception(raw: Any, *, index: int) -> SnvQueryException:
     return result
 
 
-def load_snv_query_policy(path: str | Path = CLINICAL_QUERY_POLICY_PATH) -> SnvQueryPolicy:
-    """Load the center-owned, safe SNV query-policy configuration."""
-    path_obj = Path(path)
-    if not path_obj.exists():
-        raise RuntimeError(f"clinical query policy configuration does not exist: {path_obj}")
-    with path_obj.open("rb") as handle:
-        raw = tomllib.load(handle)
-    snv = raw.get("snv")
+def _finding_exception(
+    raw: Any,
+    *,
+    analysis: str,
+    index: int,
+    allowed_keys: frozenset[str],
+) -> FindingQueryException:
+    """Validate one analysis-specific rule without accepting MongoDB syntax."""
+    prefix = f"{analysis}.exceptions[{index}]"
+    if not isinstance(raw, dict):
+        raise RuntimeError(f"{prefix} must be a table")
+    unexpected = set(raw) - allowed_keys
+    if unexpected:
+        raise RuntimeError(f"{prefix} contains unsupported key(s): {', '.join(sorted(unexpected))}")
+    rule_id = _identifiers([raw.get("id")], key=f"{prefix}.id")[0]
+    mode = str(raw.get("mode") or "").strip().lower()
+    if mode not in _FINDING_EXCEPTION_MODES:
+        raise RuntimeError(
+            f"{prefix}.mode must be one of: {', '.join(sorted(_FINDING_EXCEPTION_MODES))}"
+        )
+    intents = _identifiers(raw.get("intents"), key=f"{prefix}.intents")
+    if set(intents) - {"somatic", "germline"}:
+        raise RuntimeError(f"{prefix}.intents contains unsupported values")
+
+    criteria: dict[str, Any] = {}
+    uppercase_keys = {"genes", "gene_pairs", "chromosomes", "svtypes"}
+    if analysis == "cnv":
+        uppercase_keys.add("effects")
+    lowercase_keys = {
+        "callers",
+        "descriptions",
+        "phenotypes",
+        "medications",
+    }
+    if analysis == "fusion":
+        lowercase_keys.add("effects")
+    string_keys = allowed_keys - _SCOPE_KEYS - {"size_min", "size_max"}
+    for key in sorted(string_keys):
+        criteria[key] = _strings(
+            raw.get(key),
+            key=f"{prefix}.{key}",
+            uppercase=key in uppercase_keys,
+            lowercase=key in lowercase_keys,
+        )
+    for key in ("size_min", "size_max"):
+        if key not in allowed_keys:
+            continue
+        value = raw.get(key)
+        if value is not None:
+            try:
+                value = int(value)
+            except (TypeError, ValueError) as error:
+                raise RuntimeError(f"{prefix}.{key} must be an integer") from error
+            if value < 0:
+                raise RuntimeError(f"{prefix}.{key} must be non-negative")
+        criteria[key] = value
+    if criteria.get("size_min") is not None and criteria.get("size_max") is not None:
+        if criteria["size_min"] > criteria["size_max"]:
+            raise RuntimeError(f"{prefix}.size_min must not exceed size_max")
+    if not any(value is not None and value != () for value in criteria.values()):
+        raise RuntimeError(f"{prefix} must define at least one match criterion")
+    return FindingQueryException(
+        rule_id=rule_id,
+        mode=mode,
+        intents=intents,
+        assay_groups=_identifiers(raw.get("assay_groups"), key=f"{prefix}.assay_groups"),
+        asp_ids=_identifiers(raw.get("asp_ids"), key=f"{prefix}.asp_ids"),
+        subpanel_ids=_identifiers(raw.get("subpanel_ids"), key=f"{prefix}.subpanel_ids"),
+        criteria=criteria,
+    )
+
+
+def _finding_policy(raw: Any, *, analysis: str, allowed_keys: frozenset[str]) -> FindingQueryPolicy:
+    if not isinstance(raw, dict):
+        raise RuntimeError(f"clinical query policy requires a [{analysis}] table")
+    unexpected = set(raw) - _ANALYSIS_POLICY_KEYS
+    if unexpected:
+        raise RuntimeError(
+            f"{analysis} contains unsupported key(s): {', '.join(sorted(unexpected))}"
+        )
+    raw_exceptions = raw.get("exceptions") or []
+    if not isinstance(raw_exceptions, list):
+        raise RuntimeError(f"{analysis}.exceptions must be an array of tables")
+    exceptions = tuple(
+        _finding_exception(
+            item,
+            analysis=analysis,
+            index=index,
+            allowed_keys=allowed_keys,
+        )
+        for index, item in enumerate(raw_exceptions)
+    )
+    if len({item.rule_id for item in exceptions}) != len(exceptions):
+        raise RuntimeError(f"{analysis}.exceptions ids must be unique")
+    return FindingQueryPolicy(exceptions=exceptions)
+
+
+def _parse_snv_policy(snv: Any) -> SnvQueryPolicy:
     if not isinstance(snv, dict):
         raise RuntimeError("clinical query policy requires an [snv] table")
     unexpected = set(snv) - _SNV_POLICY_KEYS
@@ -314,4 +471,39 @@ def load_snv_query_policy(path: str | Path = CLINICAL_QUERY_POLICY_PATH) -> SnvQ
     )
 
 
-SNV_QUERY_POLICY = load_snv_query_policy()
+def load_clinical_query_policy(
+    path: str | Path = CLINICAL_QUERY_POLICY_PATH,
+) -> ClinicalQueryPolicy:
+    """Load and validate the complete analysis-partitioned query policy."""
+    path_obj = Path(path)
+    if not path_obj.exists():
+        raise RuntimeError(f"clinical query policy configuration does not exist: {path_obj}")
+    with path_obj.open("rb") as handle:
+        raw = tomllib.load(handle)
+    expected = {"snv", "cnv", "translocation", "fusion", "pgx"}
+    unexpected = set(raw) - expected
+    if unexpected:
+        raise RuntimeError(
+            "clinical query policy contains unsupported block(s): " + ", ".join(sorted(unexpected))
+        )
+    missing = expected - set(raw)
+    if missing:
+        raise RuntimeError(
+            "clinical query policy is missing required block(s): " + ", ".join(sorted(missing))
+        )
+    return ClinicalQueryPolicy(
+        snv=_parse_snv_policy(raw["snv"]),
+        cnv=_finding_policy(raw["cnv"], analysis="cnv", allowed_keys=_CNV_EXCEPTION_KEYS),
+        translocation=_finding_policy(
+            raw["translocation"],
+            analysis="translocation",
+            allowed_keys=_TRANSLOCATION_EXCEPTION_KEYS,
+        ),
+        fusion=_finding_policy(
+            raw["fusion"], analysis="fusion", allowed_keys=_FUSION_EXCEPTION_KEYS
+        ),
+        pgx=_finding_policy(raw["pgx"], analysis="pgx", allowed_keys=_PGX_EXCEPTION_KEYS),
+    )
+
+
+CLINICAL_QUERY_POLICY = load_clinical_query_policy()

@@ -353,13 +353,18 @@ def _resolve_translocation_filter_genes(
 
 
 def _filter_translocations_for_report(
-    rows: list[dict], *, filter_genes: list[str], restricted: bool
+    rows: list[dict],
+    *,
+    filter_genes: list[str],
+    restricted: bool,
+    settings: dict[str, Any],
 ) -> list[dict]:
     """Apply report eligibility and DNA structural gene scope to findings."""
     return filter_translocations_by_genes(
         _exclude_nonreportable_review_states(rows),
         filter_genes=filter_genes,
         restricted=restricted,
+        settings=settings,
     )
 
 
@@ -699,6 +704,12 @@ def build_dna_report_payload(
             interesting_translocations,
             filter_genes=translocation_filter_genes,
             restricted=translocation_scope_restricted,
+            settings={
+                "assay_group": assay_group,
+                "asp_id": sample.get("asp_id"),
+                "subpanel_id": sample.get("subpanel_id"),
+                "intent": "somatic",
+            },
         )
         rule_sections_data["translocs"] = report_sections_data["translocs"]
 
