@@ -53,6 +53,21 @@ _API_ACCESS_LOG_EXCLUDED_PATHS = frozenset(
 _API_LIMITER: RedisFixedWindowRateLimiter | None = None
 _API_LIMITER_CFG: tuple[int, int, int] | None = None
 
+_API_CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+    "form-action 'self'; img-src 'self' data: blob: https:; font-src 'self' data:; "
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "script-src 'self' https://cdn.jsdelivr.net; connect-src 'self'"
+)
+_OPENAPI_UI_CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+    "form-action 'self'; img-src 'self' data: blob: https:; "
+    "font-src 'self' data: https://cdn.jsdelivr.net; "
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self'"
+)
+_OPENAPI_UI_PATHS = frozenset({"/api/v1/docs", "/api/v1/redoc"})
+
 
 def _get_api_limiter() -> RedisFixedWindowRateLimiter | None:
     global _API_LIMITER, _API_LIMITER_CFG
@@ -302,13 +317,12 @@ def build_security_headers_middleware():
         response.headers.setdefault(
             "Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()"
         )
-        response.headers.setdefault(
-            "Content-Security-Policy",
-            "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
-            "form-action 'self'; img-src 'self' data: blob: https:; font-src 'self' data:; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-            "script-src 'self' https://cdn.jsdelivr.net; connect-src 'self'",
+        content_security_policy = (
+            _OPENAPI_UI_CONTENT_SECURITY_POLICY
+            if request.url.path in _OPENAPI_UI_PATHS
+            else _API_CONTENT_SECURITY_POLICY
         )
+        response.headers.setdefault("Content-Security-Policy", content_security_policy)
         forwarded = request.headers.get("X-Forwarded-Proto", "").split(",", 1)[0].strip()
         if forwarded == "https" or request.url.scheme == "https":
             response.headers.setdefault(

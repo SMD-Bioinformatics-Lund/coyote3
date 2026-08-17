@@ -12,14 +12,19 @@ from api.app.middleware import build_security_headers_middleware
 from api.security import access
 
 
-def _request(*, method: str = "GET", headers: list[tuple[bytes, bytes]] | None = None) -> Request:
+def _request(
+    *,
+    method: str = "GET",
+    path: str = "/api/v1/samples",
+    headers: list[tuple[bytes, bytes]] | None = None,
+) -> Request:
     return Request(
         {
             "type": "http",
             "method": method,
             "scheme": "https",
-            "path": "/api/v1/samples",
-            "raw_path": b"/api/v1/samples",
+            "path": path,
+            "raw_path": path.encode(),
             "query_string": b"",
             "headers": headers or [],
             "client": ("127.0.0.1", 1234),
@@ -39,6 +44,22 @@ async def test_security_headers_cover_browser_and_swagger_assets():
     assert response.headers["X-Frame-Options"] == "DENY"
     assert response.headers["Strict-Transport-Security"].startswith("max-age=")
     assert "cdn.jsdelivr.net" in response.headers["Content-Security-Policy"]
+    assert "script-src 'self' 'unsafe-inline'" not in response.headers["Content-Security-Policy"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("path", ["/api/v1/docs", "/api/v1/redoc"])
+async def test_openapi_ui_security_policy_allows_its_inline_bootstrap(path: str):
+    middleware = build_security_headers_middleware()
+
+    async def downstream(_request: Request) -> Response:
+        return Response()
+
+    response = await middleware(_request(path=path), downstream)
+
+    policy = response.headers["Content-Security-Policy"]
+    assert "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net" in policy
+    assert "font-src 'self' data: https://cdn.jsdelivr.net" in policy
 
 
 def test_csrf_accepts_bearer_and_matches_cookie_session(monkeypatch: pytest.MonkeyPatch):
