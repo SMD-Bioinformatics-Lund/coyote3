@@ -177,6 +177,8 @@ def test_rule_source_has_a_stable_static_scope():
     source = compiler.load(source_path)
 
     assert source.rule_set.rule_set_id == "solid_gmsv3__endometrie"
+    assert source.rule_set.name == "Solid DNA GMSv3 endometrie report text"
+    assert source.rule_set.version == 1
     assert source.analyses["BIOMARKER"].enabled is False
 
 
@@ -187,6 +189,17 @@ def test_unknown_fact_is_rejected(tmp_path):
     path.write_text(source, encoding="utf-8")
 
     with pytest.raises(ValueError, match="Unsupported clinical rule fact"):
+        ClinicalRuleCompiler().load(path)
+
+
+def test_rule_source_requires_authored_name_and_version(tmp_path):
+    source = (RULES_ROOT / "hema_gmsv1" / "base.yaml").read_text(encoding="utf-8")
+    source = source.replace("  name: Hematology GMSv1 base report text\n", "", 1)
+    source = source.replace("  version: 1\n", "", 1)
+    path = tmp_path / "unversioned.yaml"
+    path.write_text(source, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="rule_set.name"):
         ClinicalRuleCompiler().load(path)
 
 
@@ -585,6 +598,8 @@ def test_service_uses_base_yaml_when_the_selected_subpanel_has_no_file():
     )
 
     assert result.source.rule_set_id == "hema_gmsv1__base"
+    assert result.source.report_text_name == "Hematology GMSv1 base report text"
+    assert result.source.report_text_version == 1
 
 
 def test_disabled_yaml_analysis_does_not_emit_text_even_when_the_aspc_allows_it():

@@ -70,6 +70,26 @@ genes shared by the applied scope and ASP add the germline statement. This
 preserves the established report wording while deriving the current list and
 gene count from the effective configuration.
 
+### DNA introduction example
+
+The introduction is assembled from typed facts; it is not copied from one
+record as a finished paragraph. The following example shows the inputs and
+the condition that controls each addition.
+
+| Source | Example value | Condition | Contribution to the introduction |
+| --- | --- | --- | --- |
+| `ASPC.reporting.general_report_summary` | `DNA har extraherats ... GMS-HEM v1.1 sekvenseringspanel.` | Always required by `dna_report_intro`. | The approved assay method and panel baseline. |
+| `sample.paired` | `true` | The sample has a paired control. | The approved control-material sentence is appended. |
+| Selected SNV ISGL | Display name `HEMATOLOGY_MYELOID`; `197` genes | One or more SNV ISGLs are selected for the sample. | `Analysen omfattar genlistan: HEMATOLOGY_MYELOID som innefattar 197 gener.` |
+| `ASP.germline_genes` and selected ISGL germline genes | Both contain `CEBPA` | The intersection of the two germline-gene sets is non-empty. | The approved germline statement, for example `För CEBPA undersöks även konstitutionella mutationer.` |
+
+For this example, the final introduction contains the ASPC baseline followed
+by the paired-control sentence, the selected SNV gene-list sentence, and the
+CEBPA germline statement in that order. If the sample is unpaired, no SNV
+ISGL is selected, or the two germline-gene sets do not overlap, only the
+corresponding optional sentence is omitted; the configured baseline remains
+unchanged.
+
 ## Analysis Gates
 
 The YAML `analyses` mapping uses the same analysis identifiers as ASPC
@@ -119,6 +139,8 @@ Each YAML file follows this exact schema.
 
 ```yaml
 rule_set:
+  name: Hematology GMSv1 base report text
+  version: 1
   analyte: dna
   asp_id: hema_gmsv1
   subpanel_id: base
@@ -165,6 +187,8 @@ analyses:
 
 | Field | Required | Allowed values / format | Meaning |
 | --- | --- | --- | --- |
+| `rule_set.name` | Yes | Human-readable text, 1-160 characters | Immutable display name for this report-text source. It is recorded with every saved report that uses the source. |
+| `rule_set.version` | Yes | Positive integer | Release number for this exact YAML source. Increment it whenever approved report wording or rule behavior changes in this file. |
 | `rule_set.analyte` | Yes | `dna`, `rna` | Must match the sample/ASPC analyte. |
 | `rule_set.asp_id` | Yes | Existing ASP identifier | Must match the source directory name. |
 | `rule_set.subpanel_id` | Yes | `base` or existing subpanel identifier | Must match the YAML file name. |
@@ -195,6 +219,24 @@ Conditions are AND-combined. Each condition has the following form:
   operator: eq
   value: TP53
 ```
+
+!!! important
+    A rule does not support a general `OR` group between different conditions.
+    This is deliberate. Clinical rules are evaluated in priority order and a
+    matching rule can stop later rules in the same family. Allowing nested
+    `AND`/`OR` expressions without a separately designed precedence model
+    would make it difficult to determine which approved sentence won and why.
+
+    Use `in`, `not_in`, or `overlaps` when the alternatives concern the same
+    fact. For example, `finding.tier in [1, 2]` means Tier I **or** Tier II.
+    Do not duplicate a rule merely to simulate an alternative across different
+    facts, such as `finding.gene == TP53 OR asp.accredited == true`. That can
+    create overlapping matches and unclear `stop` behavior. Add a reviewed
+    condition-group capability to the rule contract, evaluator, validation,
+    documentation, and exact-output tests before authoring that type of rule.
+
+    Negation is supported without an `OR` group: use `ne`, `not_in`, or
+    `exists: false` as appropriate.
 
 | Key | Meaning |
 | --- | --- |
@@ -356,6 +398,39 @@ prepared finding fact. For a `finding_text` rule, evaluation repeats once per
 prepared finding. For `result_text` and `summary_text`, `finding` is empty and
 must not be used.
 
+### Worked evaluation example
+
+The following example shows how one prepared DNA report context becomes
+rendered text. It uses the existing `hema_gmsv1/base.yaml` rule pattern rather
+than introducing a second authoring model.
+
+**Prepared facts**
+
+```yaml
+asp:
+  accredited: true
+aggregates:
+  has_tiered_snvs: false
+```
+
+**Matching rules**
+
+| Evaluation phase | Rule | Why it matches | Result |
+| --- | --- | --- | --- |
+| `result_text` | `hema_GMSv1_report_introduction` | Its `when` list is empty. | The configured DNA introduction is rendered through `dna_report_intro`. |
+| `result_text` | `hema_GMSv1_no_somatic_snv` | `aggregates.has_tiered_snvs` is `false`. | `Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats.` |
+| `summary_text` | `hema_GMSv1_accredited_conclusion` | `asp.accredited` is `true`. | The approved accredited conclusion is rendered. |
+
+The unaccredited conclusion and the positive tiered-SNV rule do not match.
+The saved report records the matching rule identifiers alongside the rendered
+report and its configuration snapshot.
+
+This is also the precedence model for a more specific rule. If a
+`finding_text` rule at priority `20` and a general `finding_text` rule at
+priority `70` both match a finding, the priority-`20` rule is evaluated first.
+With `stop: true`, the general rule is not rendered for that finding. With
+`stop: false`, both sentences are rendered in priority order.
+
 ### Adding a new template capability
 
 Adding a new root, field, filter, or helper is an application change, not a
@@ -422,9 +497,17 @@ priority `20`, because it belongs to another family.
 ## Report Provenance And Historical Review
 
 When a report is saved, its collection document records the rendered report,
-the ASPC snapshot, filter snapshot, static rule-set identity, source path,
-canonical content hash, and matched rule IDs. Historical reports therefore
-remain explainable after a later application release changes a YAML file.
+the ASPC snapshot, filter snapshot, static rule-set identity, report-text
+name, report-text version, source path, canonical content hash, and matched
+rule IDs. Historical reports therefore remain explainable after a later
+application release changes a YAML file.
+
+The rule provenance is saved at `clinical_rule_source`. Its `source` block
+contains `rule_set_id`, `report_text_name`, `report_text_version`,
+`source_path`, and `content_hash`; `matched_rule_ids` records the evaluated
+rules that contributed text to the report. The stable `rule_set_id` remains
+`<asp_id>__<subpanel_id>` and is not changed when a report-text version is
+incremented.
 
 The YAML file is not stored in MongoDB. The report snapshot captures the
 clinical result that was issued, while application source control remains the

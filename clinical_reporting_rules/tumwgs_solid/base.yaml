@@ -1,4 +1,6 @@
 rule_set:
+  name: TumWGS Solid base report text
+  version: 1
   analyte: dna
   asp_id: tumwgs_solid
   subpanel_id: base

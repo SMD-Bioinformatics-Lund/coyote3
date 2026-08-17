@@ -131,22 +131,87 @@ all values at startup and converts only documented fields into predicates.
 Clinical owners can add a reviewed ASP-, subpanel-, gene-, coordinate-, or
 variant-specific exception without modifying query-builder code.
 
+This policy is resolved alongside the basic SNV filters stored under
+`samples.filters.<intent>.snv`. The sample filters supply the actual VAF,
+depth, alternate-read, control-frequency, population-frequency, consequence,
+ISGL, and ad-hoc gene values. `paired` and `case_only` apply those basic
+values and may extend or exclude a narrow subset. `exception_only`
+intentionally omits the general threshold/consequence admission branch and
+admits only findings matching an approved `admit` exception. The policy file
+therefore selects the evidence model; it never duplicates threshold values.
+
 ### File Format
 
 The file has one `[snv]` table, an optional `[snv.assay_group_policies]`
-table, and zero or more `[[snv.exceptions]]` tables. Values listed in brackets
-are TOML arrays. A list is an **OR** within that one key; different populated
-keys on the same exception are **AND** conditions. Scope keys decide where the
-exception can apply. Match keys decide which findings it can admit.
+table, and zero or more `[[snv.exceptions]]` entries. These are the only legal
+block headings in this file. Unknown blocks and unknown keys are rejected at
+startup.
+
+#### TOML Block Grammar
+
+TOML uses single and double square brackets for different data structures:
+
+| Syntax | Data structure | Cardinality | Purpose in this file |
+| --- | --- | --- | --- |
+| `[snv]` | Named table | Exactly one | Defines the default somatic policy, default germline policy, and indexed population-frequency fields. |
+| `[snv.assay_group_policies]` | Named child table | Zero or one | Maps a supported assay-group identifier to a somatic policy override. |
+| `[[snv.exceptions]]` | Array element | Zero or more | Appends one independent exception object to `snv.exceptions`. Double brackets are required because the policy may contain multiple exceptions. |
+| `[snv.exceptions.info_equals]` | Named child table of the current exception | Zero or one per exception | Adds exact INFO-field comparisons to the immediately preceding `[[snv.exceptions]]` entry. It uses single brackets because it is one mapping inside that exception, not another exception. |
+
+For example, the following creates two exceptions. The `info_equals` mapping
+belongs only to `germline_myeloid_marker`. The second `[[snv.exceptions]]`
+line starts a new array element and therefore closes the first exception:
+
+```toml
+[[snv.exceptions]]
+id = "germline_myeloid_marker"
+mode = "admit"
+intents = ["germline"]
+
+[snv.exceptions.info_equals]
+MYELOID_GERMLINE = 1
+
+[[snv.exceptions]]
+id = "solid_lowqual_exclusion"
+mode = "exclude"
+intents = ["somatic"]
+assay_groups = ["solid"]
+filter_values = ["LOWQUAL"]
+```
+
+Keep `[snv.exceptions.info_equals]` directly below its owning exception and
+before the next `[[snv.exceptions]]` entry. Writing
+`[[snv.exceptions.info_equals]]` would describe an array of mappings and is
+not supported by the application contract.
+
+#### Condition Composition
+
+Scope fields first decide whether an exception applies to the current request.
+Match fields then identify findings. The combination rules are fixed and do
+not depend on declaration order:
+
+| Situation | Combination rule | Example |
+| --- | --- | --- |
+| Values within `intents`, `assay_groups`, `asp_ids`, or `subpanel_ids` | **OR** within that field | `assay_groups = ["solid", "hematology"]` permits either group. |
+| Different populated scope fields | **AND** | `intents = ["somatic"]` plus `asp_ids = ["solid_gmsv3"]` requires both. |
+| Values within `genes`, `consequence_terms`, `filter_values`, `chromosomes`, or `simple_ids` | **OR** within that match field | `genes = ["TERT", "TP53"]` matches either gene. |
+| Different populated match fields | **AND** | `genes = ["TERT"]` plus `filter_values = ["LOWQUAL"]` matches only low-quality TERT findings. |
+| `info_fields_present` values | **AND** | `info_fields_present = ["SVTYPE", "END"]` requires both INFO fields to exist. |
+| Entries in `[snv.exceptions.info_equals]` | **AND** | Two entries require both exact INFO comparisons to pass. |
+| `position_min` and `position_max` | **AND**, inclusive | With both values, `POS` must be inside the closed interval. Either bound may be used alone. |
+| `alt_regex` with any other match field | **AND** | A FLT3 rule with `alt_regex` requires both the gene and ALT pattern. |
+| Separate `[[snv.exceptions]]` entries with an inclusion mode | **OR**, additive | A finding may enter through any applicable inclusion exception. |
+| Separate `exclude` entries | Remove on any match | A finding matching any applicable exclusion is removed after inclusion is evaluated. |
+
+At least one match field is mandatory. Scope fields alone are not sufficient:
+an exception restricted to `solid` still needs a gene, consequence, identity,
+coordinate, INFO, FILTER, or ALT condition.
 
 ```toml
 [snv]
 default_somatic_policy = "paired"
 default_germline_policy = "exception_only"
 population_frequency_fields = ["gnomad_frequency", "gnomad_max"]
-
-[snv.assay_group_policies]
-generic_case_only = "case_only"
 
 [[snv.exceptions]]
 id = "endometrial_specific_variant"
@@ -157,6 +222,18 @@ subpanel_ids = ["endometrie"]
 simple_ids = ["17_7674220_C_T"]
 consequence_terms = ["missense_variant"]
 ```
+
+When a clinically approved assay group must use a different somatic evidence
+model, add the optional override separately:
+
+```toml
+[snv.assay_group_policies]
+solid = "case_only"
+```
+
+Omit the table when every somatic assay group uses
+`default_somatic_policy`. The released application configuration currently
+uses the default for all supported assay groups.
 
 ### Baseline Keys
 
@@ -196,6 +273,47 @@ MongoDB expressions.
 | `snv.exceptions[].info_fields_present` | No | Array of strings | Stored VCF INFO identifiers using letters, numbers, `_`, or `-` | Match key. Requires each named `INFO.<field>` to exist. Field casing is preserved. |
 | `[snv.exceptions.info_equals]` | No | Nested TOML table belonging to the preceding exception | INFO identifier to scalar value mapping | Match key. Requires every listed `INFO.<field>` to equal the supplied TOML value exactly. |
 | `snv.exceptions[].alt_regex` | No | String | Valid Python regular expression | Match key. Requires ALT to match the released expression. Escape backslashes for TOML, for example `"\\w{10,200}"`. |
+
+### Policy and Mode Compatibility
+
+The baseline policy determines which inclusion modes are executable. The
+loader validates that every mode name is known, while the query builder uses
+only the modes that belong to the selected evidence model:
+
+| Resolved baseline policy | Baseline evidence | Effective inclusion exception | Final exclusion |
+| --- | --- | --- | --- |
+| `paired` | Case thresholds, paired-control rule, configured population-frequency fields, selected consequence terms, and gene scope | `extend_consequence` | `exclude` |
+| `case_only` | Case or untyped-genotype thresholds, configured population-frequency fields, selected consequence terms, and gene scope; no paired-control predicate | `extend_consequence` | `exclude` |
+| `exception_only` | No general threshold/consequence admission branch | `admit` | `exclude` |
+
+An `admit` exception has no effect under `paired` or `case_only`.
+An `extend_consequence` exception has no effect under `exception_only`.
+Although these combinations are syntactically valid, they are not useful and
+should fail clinical review. `exclude` is compatible with every baseline and
+is always applied after the inclusion query has been assembled.
+
+`[snv.assay_group_policies]` affects somatic retrieval only. Germline retrieval
+always uses `default_germline_policy`. The override table keys are normalized,
+software-supported assay-group identifiers; the values are one of `paired`,
+`case_only`, or `exception_only`.
+
+#### Keys Compatible Within One Exception
+
+All scope keys are compatible with all match keys. All match keys can also be
+combined with one another because they become AND predicates. Use combinations
+that describe one coherent clinical rule:
+
+| Combination | Supported | Guidance |
+| --- | --- | --- |
+| `genes` + `consequence_terms` | Yes | Preferred for a gene-specific extension to the accepted consequence set. |
+| `genes` + `filter_values` | Yes | Matches the named gene only when one declared VCF FILTER value is present. |
+| `chromosomes` + position bounds | Yes | Defines a genomic interval; normally use one chromosome with its bounds. |
+| `simple_ids` + other identity fields | Yes | Usually redundant. `simple_ids` is already an exact variant identity, so add another field only when the extra restriction is intentional. |
+| `info_fields_present` + `info_equals` | Yes | Useful when one INFO field must exist and another must equal a value. An `info_equals` entry already implies presence for that same field. |
+| `alt_regex` + `genes` or coordinates | Yes | Narrows an ALT pattern to a clinically reviewed locus. Prefer a narrow scope over a global regex. |
+| Scope keys without a match key | No | Rejected because it could admit or exclude an entire assay/request scope. |
+| Raw MongoDB keys or operators | No | Rejected. Only the typed fields in the exception-key table are accepted. |
+| `priority`, templates, report sections, or UI fields | No | They belong to other contracts and are not query-policy syntax. |
 
 There is deliberately no `priority` key for query exceptions. The resulting
 exception predicates are additive `$or` branches; their order cannot change

@@ -1,4 +1,6 @@
 rule_set:
+  name: TumWGS Hematology base report text
+  version: 1
   analyte: dna
   asp_id: tumwgs_hema
   subpanel_id: base

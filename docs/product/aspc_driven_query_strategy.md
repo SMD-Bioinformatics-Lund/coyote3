@@ -43,6 +43,10 @@ analytical workflows are enabled. A tab is rendered only when all of the followi
 | Translocations | `TRANSLOCATION` | DNA sample with `files.transloc` or a translocation count | DNA structural-variant workflow | `GET /samples/{sample_name}/translocations` |
 | Coverage | `COVERAGE` | DNA sample with `files.cov` or coverage state | Quality workflow, not a variant intent | `GET /samples/{sample_name}/coverage` |
 | Fusions | `FUSION` | RNA sample with `files.fusion_files` or a fusion count | RNA fusion workflow | `GET /samples/{sample_name}/fusions` |
+| Expression | `EXPRESSION` | RNA sample with `files.expression_path` or expression state | Appears in the shared **Expression & Classification** tab | `GET /samples/{sample_name}/rna-analysis` |
+| Classification | `CLASSIFICATION` | RNA sample with `files.classification_path` or classification state | Appears in the shared **Expression & Classification** tab | `GET /samples/{sample_name}/rna-analysis` |
+| RNA quality | `QC` | RNA sample with an RNA quality resource or quality state | Returned with the shared RNA-analysis payload; it has no separate workspace tab | `GET /samples/{sample_name}/rna-analysis` when the shared tab is available |
+| PGX | `PGX` | Not applicable to the current sample-review workspace | PGX configuration can be recorded, but a PGX review tab, query workflow, and report section are not implemented | No sample-workspace endpoint is requested |
 
 `Overview` and `Reports` are workspace tabs rather than analysis-type tabs.
 They remain available as part of the sample workflow. A DNA sample never
@@ -54,8 +58,22 @@ sample; it does not attempt to interpret DNA filter profiles as RNA filters.
     Hidden tabs are not mounted in the React tree. This prevents background
     requests for analyses that are unavailable for the sample. A sample page
     opened on the overview tab therefore does not query SNVs, CNVs,
-    translocations, coverage, or fusions until the user opens the relevant
-    available tab.
+    translocations, coverage, fusions, expression, classification, or RNA
+    quality until the user opens the relevant available tab.
+
+!!! info "RNA expression and classification share one workspace"
+    The shared RNA tab is shown when either `EXPRESSION` or `CLASSIFICATION`
+    is enabled and the corresponding result is present. It can therefore show
+    expression only, classification only, or both. A missing tab means the
+    sample does not have an enabled and ingested RNA analysis; it does not mean
+    that an enabled analysis returned zero rows.
+
+!!! note "PGX is not yet a sample-review workflow"
+    `PGX` is a valid configuration analysis type, but it currently has no
+    sample-detail tab, filter form, table query, or report renderer. Enabling
+    it in an ASPC does not cause the client to request a PGX endpoint. This is
+    deliberately explicit so configuration does not imply an implemented
+    clinical workflow.
 
 ### Intent-specific SNV review
 
@@ -108,6 +126,25 @@ analysis sections, intent profiles, and default gene-list selections. It does
 not accept arbitrary MongoDB query fragments. The domain query builder owns
 the fixed predicate shape and the limited set of validated clinical exceptions.
 
+For `paired` and `case_only`, the ordinary SNV query is built from the resolved
+sample filters. These basic rules apply the selected intent, case VAF, depth,
+alternate-read count, population-frequency ceiling, VEP consequence selection,
+and effective SNV gene scope; `paired` also applies the control rule. The
+released query policy selects the supported evidence model and adds narrowly
+scoped clinical exceptions where the ordinary rules are insufficient.
+`exception_only` is deliberately different: it has no general admission
+branch and returns only findings matching an approved `admit` exception.
+
+| Concern | Source | Purpose |
+| --- | --- | --- |
+| Basic SNV filter values | `samples.filters.<intent>.snv`, initially seeded from the recorded ASPC revision | Supplies VAF, depth, alternate-read, control-frequency, population-frequency, consequence, ISGL, and ad-hoc gene values for this sample. |
+| Baseline evidence model | `[snv]` and optional `[snv.assay_group_policies]` | Determines whether the basic values are evaluated as `paired`, `case_only`, or `exception_only` evidence. |
+| Additional clinical rules | `[[snv.exceptions]]` | Extends a consequence route, admits a specifically approved finding under an exception-only policy, or excludes a precisely matched finding. |
+
+Therefore, most findings are governed entirely by the basic SNV filters. A
+query-policy exception affects a finding only when its intent, assay scope,
+and every configured match condition apply.
+
 | Layer | Source | Controls | Does not control |
 | --- | --- | --- | --- |
 | Assay identity | ASP and sample | `asp_id`, assay group, omics layer, covered scope | MongoDB operators or ad-hoc exceptions |
@@ -137,6 +174,24 @@ saved filters. The resulting inputs are shown below.
 | `vep_consequences` | selected profile plus versioned VEP metadata | UI groups are expanded to stored VEP consequence terms |
 | selected SNV ISGLs and ad-hoc genes | `filters.<intent>.snv` | optional gene or explicit-position scope |
 | `fp`, `irrelevant` | request-level review controls | further restrict results to the requested review status |
+
+### Review Visibility and Report Eligibility
+
+Clinical review and report preparation have different purposes. A reviewer
+must be able to inspect findings previously marked false positive or
+irrelevant, including the reason for that decision. A clinical report must not
+silently include either class of finding.
+
+| Finding state | Clinical-analysis tables | Report preparation |
+| --- | --- | --- |
+| `fp = true` | Visible by default. Selecting the false-positive review control adds an explicit status predicate; clearing it returns the normal review set. | Excluded before report rows, summaries, and reporting-text rules are prepared. |
+| `irrelevant = true` | Visible by default. Selecting the irrelevant review control adds an explicit status predicate; clearing it returns the normal review set. | Excluded before report rows, summaries, and reporting-text rules are prepared. |
+| Neither state | Visible when it satisfies the analytical query. | Remains eligible for the report only when it also meets that report workflow's classification, tier, blacklist, and section rules. |
+
+This separation is intentional: `fp` and `irrelevant` are review states, not
+default analytical exclusion predicates. The report workflow applies its
+exclusion before invoking the reporting rules engine, so a YAML template never
+receives false-positive or irrelevant findings as reportable evidence.
 
 ### SNV Baseline Semantics
 
@@ -224,9 +279,143 @@ diagnostic output, not clinical or query behavior. This differs from
 reporting-text rules, where priority determines which matching template is
 rendered first.
 
-The full field-by-field TOML authoring contract, allowed values, inclusion and
-exclusion examples, and safe change protocol are in
-[Center Configuration Reference](../operations/center_configuration_files.md#clinical_query_policytoml).
+### Worked query examples
+
+These examples describe the resulting query behavior. They use the released
+typed policy vocabulary; no example represents raw MongoDB syntax.
+
+| Scenario | Configuration and request state | Result |
+| --- | --- | --- |
+| Standard paired somatic SNV review | The resolved policy is `paired`; the sample has a case genotype, a passing paired control when one is stored, and numeric configured population frequencies at or below `max_popfreq`. | The finding is eligible only when its depth, alternate reads, case VAF, population frequencies, and indexed consequence term all pass. |
+| Approved alternative consequence | A somatic `solid` sample matches an `extend_consequence` exception for `TERT` with `regulatory_region_variant`. | The added consequence term is accepted, but all ordinary case, control, depth, VAF, and population-frequency gates still apply. |
+| Germline exception-only review | The requested intent is `germline`; the policy is `exception_only`; an `admit` exception matches `INFO.MYELOID_GERMLINE = 1`. | The matching finding is admitted through the released germline rule. Findings without a matching `admit` rule are not returned. |
+| Reviewed exclusion | A finding first meets the baseline or an admission branch, then matches an `exclude` exception such as a scoped `LOWQUAL` rule. | The finding is removed after the inclusion branches are combined. Other findings remain eligible. |
+| No selected list | The target-specific ISGL selector and ad-hoc genes are empty. | The query uses `ASP.covered_genes`; when that field is empty, no gene predicate is added. |
+| Selected CNV or fusion list | A compatible ISGL ID is persisted in `filters.somatic.cnv.cnvlists` or `filters.somatic.fusion.fusionlists`. | Only that target-specific list narrows the result. An SNV list never narrows CNV or fusion results. |
+
+### Authorable SNV query-policy blocks
+
+The only authorable SNV query-policy document is
+`api/config/center/clinical_query_policy.toml`. It does **not** contain sample
+documents, ASPC filters, selected ISGLs, UI tabs, or request parameters. Those
+values are persisted and resolved at runtime. The policy file supplies only
+the released baseline policy and narrowly typed exception branches.
+
+!!! important "Use the configuration reference when editing this file"
+
+    This strategy guide explains how the query policy affects retrieval. The
+    authoritative authoring contract is the
+    [Center Configuration Reference](../operations/center_configuration_files.md#clinical_query_policytoml).
+    Consult that reference before changing the TOML file. It defines every
+    permitted block heading and key, required fields, allowed values, bracket
+    syntax, condition-combination rules, compatible policy and exception
+    modes, validation failures, complete examples, and the safe release
+    protocol.
+
+TOML block punctuation is part of the contract. `[snv]` and
+`[snv.assay_group_policies]` are single named tables. Each
+`[[snv.exceptions]]` declaration appends one independent exception to an
+array, which is why it uses double brackets. A following
+`[snv.exceptions.info_equals]` table is a single nested mapping attached to
+that exception; it must appear before the next `[[snv.exceptions]]` entry.
+
+Within an exception, separate scope and match keys are combined with AND.
+Most arrays mean OR within that field, such as either listed gene or either
+listed consequence. `info_fields_present` is intentionally stricter: every
+listed INFO field must exist. Every entry in `info_equals` must also match.
+Separate inclusion exceptions are additive OR branches, while a match against
+any applicable `exclude` exception removes the finding last.
+
+The following is a complete, valid policy shape. The exception identifiers and
+clinical scopes are examples; they must be replaced with clinically approved
+content before release.
+
+```toml
+[snv]
+default_somatic_policy = "paired"
+default_germline_policy = "exception_only"
+population_frequency_fields = [
+  "gnomad_frequency",
+  "gnomad_max",
+  "exac_frequency",
+  "thousandG_frequency",
+]
+
+# Extends only the consequence branch. Baseline case, control, and population
+# evidence still applies.
+[[snv.exceptions]]
+id = "hematology_flt3_svtype"
+mode = "extend_consequence"
+intents = ["somatic"]
+assay_groups = ["hematology", "myeloid"]
+genes = ["FLT3"]
+info_fields_present = ["SVTYPE"]
+
+# Alternative admission for the exception-only germline policy.
+[[snv.exceptions]]
+id = "germline_myeloid_marker"
+mode = "admit"
+intents = ["germline"]
+
+[snv.exceptions.info_equals]
+MYELOID_GERMLINE = 1
+
+# Final exclusion after baseline and admission branches have been combined.
+[[snv.exceptions]]
+id = "solid_lowqual_exclusion"
+mode = "exclude"
+intents = ["somatic"]
+assay_groups = ["solid"]
+filter_values = ["LOWQUAL"]
+```
+
+An assay-group override is optional and is written as a separate table. The
+following demonstrates the syntax; add such an override only when the assay
+group has a reviewed evidence model that differs from the default:
+
+```toml
+[snv.assay_group_policies]
+solid = "case_only"
+```
+
+This example changes only how somatic SNV evidence is combined for the
+`solid` assay group. It does not create thresholds and does not alter CNV,
+fusion, translocation, expression, classification, coverage, or reporting
+queries.
+
+| Policy block | What it authorizes | Resulting query behavior |
+| --- | --- | --- |
+| `[snv]` | The baseline somatic and germline policies plus stored population-frequency fields. | A somatic request uses `paired` unless an assay-group override applies. A germline request has no results unless an `admit` branch matches, because its policy is `exception_only`. |
+| `[snv.assay_group_policies]` | A different baseline for one normalized, software-defined assay group. | A `case_only` override omits paired-control evaluation for that group's somatic SNVs; case evidence, population-frequency, consequence, and gene-scope gates still apply. When the table is absent, every somatic assay group uses `default_somatic_policy`. |
+| `mode = "extend_consequence"` | One additional clinically approved consequence route. | The FLT3 branch accepts its approved condition in the consequence part of the baseline without relaxing VAF, depth, alternate-read, control, or population-frequency checks. |
+| `mode = "admit"` | An explicit alternative inclusion route. | The germline marker is included only when `INFO.MYELOID_GERMLINE` equals `1`. It is not a fallback to an unfiltered germline query. |
+| `mode = "exclude"` | A final, scoped removal rule. | A solid somatic finding with `LOWQUAL` is removed even when it previously matched the baseline or an `admit` branch. |
+
+The exception mode must match the resolved baseline policy. `paired` and
+`case_only` use `extend_consequence`; `exception_only` uses `admit`; all three
+use `exclude`. An `admit` entry under a paired or case-only request, or an
+`extend_consequence` entry under an exception-only request, is valid TOML but
+does not participate in that query. The configuration review must therefore
+verify both syntax and policy compatibility.
+
+At evaluation time, `paired` and `case_only` policies evaluate their baseline
+evidence model and may add matching `extend_consequence` branches to its
+consequence gate. An `exception_only` policy evaluates only its matching
+`admit` branches. Any matching `exclude` branch is subtracted last. This
+ordering is fixed in code; TOML order never changes which findings are
+returned.
+
+!!! important "What the policy file cannot configure"
+
+    ASPC `analysis_types` determine which sample workspace tabs are available.
+    `samples.filters` determines thresholds, selected ISGLs, ad-hoc genes, and
+    review-state controls for an individual sample. RNA fusion, expression,
+    classification, coverage, CNV, translocation, and PGX availability are not
+    configured by `clinical_query_policy.toml`. Do not add those structures to
+    this file.
+
+For configuration changes, use the linked center reference as the source of
+truth rather than deriving syntax from the abbreviated examples on this page.
 
 !!! caution "Clinical review requirement"
 

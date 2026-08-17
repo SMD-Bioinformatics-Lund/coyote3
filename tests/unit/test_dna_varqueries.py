@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from api.config.clinical_query_policy import SNV_QUERY_POLICY, load_snv_query_policy
@@ -73,8 +75,9 @@ def test_paired_query_checks_every_configured_population_frequency_source() -> N
     assert _contains_mapping(query, {"GT": {"$not": {"$elemMatch": {"type": "control"}}}})
 
 
-def test_generic_case_only_omits_control_but_retains_population_frequency_checks() -> None:
-    query = build_query("generic_case_only", _settings())
+def test_case_only_policy_omits_control_but_retains_population_frequency_checks() -> None:
+    policy = replace(SNV_QUERY_POLICY, assay_group_policies={"hematology": "case_only"})
+    query = build_query("hematology", _settings(), policy=policy)
     query_text = str(query)
 
     assert "'type': 'control'" not in query_text

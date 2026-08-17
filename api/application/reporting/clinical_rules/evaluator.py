@@ -89,6 +89,8 @@ class ClinicalRuleEvaluator:
         """Evaluate ordered rules and return rendered sections plus trace."""
         source_ref = ClinicalRuleSourceRef(
             rule_set_id=source.rule_set.rule_set_id,
+            report_text_name=source.rule_set.name,
+            report_text_version=source.rule_set.version,
             source_path=str(source_path),
             content_hash=content_hash,
         )

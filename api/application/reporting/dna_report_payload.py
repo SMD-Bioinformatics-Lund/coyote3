@@ -355,12 +355,17 @@ def _resolve_translocation_filter_genes(
 def _filter_translocations_for_report(
     rows: list[dict], *, filter_genes: list[str], restricted: bool
 ) -> list[dict]:
-    """Apply the DNA fusion/translocation gene scope to report findings."""
+    """Apply report eligibility and DNA structural gene scope to findings."""
     return filter_translocations_by_genes(
-        rows,
+        _exclude_nonreportable_review_states(rows),
         filter_genes=filter_genes,
         restricted=restricted,
     )
+
+
+def _exclude_nonreportable_review_states(rows: list[dict]) -> list[dict]:
+    """Keep review-state exclusions consistent across every DNA report section."""
+    return [row for row in rows if not row.get("fp") and not row.get("irrelevant")]
 
 
 def _filter_cnvs_for_report(
@@ -371,7 +376,7 @@ def _filter_cnvs_for_report(
     restricted: bool,
 ) -> list[dict]:
     """Apply CNV effect and gene-list filters to report-included CNVs."""
-    filtered_cnvs = list(cnvs)
+    filtered_cnvs = _exclude_nonreportable_review_states(cnvs)
     cnv_filters = merged_dna_cnv_filters(sample_filters)
     filter_cnveffects = create_cnveffectlist(cnv_filters.get("cnveffects", []))
     if filter_cnveffects:

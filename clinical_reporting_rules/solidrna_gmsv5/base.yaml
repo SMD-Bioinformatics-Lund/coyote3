@@ -1,4 +1,6 @@
 rule_set:
+  name: Solid RNA GMSv5 base report text
+  version: 1
   analyte: rna
   asp_id: solidrna_gmsv5
   subpanel_id: base

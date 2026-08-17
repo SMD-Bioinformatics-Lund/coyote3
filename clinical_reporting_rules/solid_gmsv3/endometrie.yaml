@@ -1,4 +1,6 @@
 rule_set:
+  name: Solid DNA GMSv3 endometrie report text
+  version: 1
   analyte: dna
   asp_id: solid_gmsv3
   subpanel_id: endometrie

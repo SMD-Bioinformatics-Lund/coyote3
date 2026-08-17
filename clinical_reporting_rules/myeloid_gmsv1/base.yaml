@@ -1,4 +1,6 @@
 rule_set:
+  name: Myeloid GMSv1 base report text
+  version: 1
   analyte: dna
   asp_id: myeloid_gmsv1
   subpanel_id: base

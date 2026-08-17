@@ -112,18 +112,28 @@ class ClinicalRuleAnalysisBlock(BaseModel):
 
 
 class ClinicalRuleSetMetadata(BaseModel):
-    """Stable static scope for one ASP and optional subpanel."""
+    """Stable static scope and authored release metadata for one rule source."""
 
     model_config = ConfigDict(extra="forbid")
 
     analyte: Literal["dna", "rna"]
     asp_id: str
     subpanel_id: str = "base"
+    name: str = Field(min_length=1, max_length=160)
+    version: int = Field(ge=1)
 
     @field_validator("asp_id", "subpanel_id", mode="before")
     @classmethod
     def _validate_identity(cls, value: str) -> str:
         return normalize_clinical_identifier(value, label="rule-set identity")
+
+    @field_validator("name")
+    @classmethod
+    def _validate_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("rule-set name cannot be empty")
+        return value
 
     @property
     def rule_set_id(self) -> str:
@@ -184,6 +194,8 @@ class ClinicalRuleSourceRef(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     rule_set_id: str
+    report_text_name: str
+    report_text_version: int = Field(ge=1)
     source_path: str
     content_hash: str
 

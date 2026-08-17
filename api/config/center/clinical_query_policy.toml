@@ -12,9 +12,6 @@ population_frequency_fields = [
   "thousandG_frequency",
 ]
 
-[snv.assay_group_policies]
-generic_case_only = "case_only"
-
 [[snv.exceptions]]
 id = "flt3_svtype"
 mode = "extend_consequence"

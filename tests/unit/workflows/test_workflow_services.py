@@ -187,7 +187,7 @@ def test_dna_report_payload_requires_sample_database_vep_version():
         )
 
 
-def test_dna_report_payload_filters_reported_cnvs_by_selected_cnv_list():
+def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cnv_list():
     template_name, context, snapshot_rows = dna_workflow.build_dna_report_payload(
         sample={
             "_id": "s1",
@@ -249,8 +249,18 @@ def test_dna_report_payload_filters_reported_cnvs_by_selected_cnv_list():
         sample_repository=SimpleNamespace(get_latest_sample_comment=lambda sample_id: None),
         copy_number_variant_repository=SimpleNamespace(
             get_interesting_sample_cnvs=lambda sample_id: [
-                {"_id": "cnv1", "genes": [{"gene": "TP53", "class": 1}], "ratio": 0.7},
+                {
+                    "_id": "cnv1",
+                    "genes": [{"gene": "TP53", "class": 1}],
+                    "ratio": 0.7,
+                    "fp": True,
+                },
                 {"_id": "cnv2", "genes": [{"gene": "EGFR", "class": 1}], "ratio": 0.8},
+                {
+                    "_id": "cnv3",
+                    "genes": [{"gene": "TP53", "class": 1}],
+                    "ratio": 0.9,
+                },
             ]
         ),
         biomarker_repository=SimpleNamespace(get_sample_biomarkers=lambda sample_id: []),
@@ -266,7 +276,7 @@ def test_dna_report_payload_filters_reported_cnvs_by_selected_cnv_list():
 
     assert template_name == "dna_report.html"
     assert snapshot_rows == []
-    assert [cnv["_id"] for cnv in context["report_sections_data"]["cnvs"]] == ["cnv1"]
+    assert [cnv["_id"] for cnv in context["report_sections_data"]["cnvs"]] == ["cnv3"]
 
 
 def test_rna_workflow_merge_and_persist_filters(monkeypatch):

@@ -1,4 +1,6 @@
 rule_set:
+  name: Fusion base report text
+  version: 1
   analyte: rna
   asp_id: fusion
   subpanel_id: base

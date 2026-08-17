@@ -1,4 +1,6 @@
 rule_set:
+  name: Hematology GMSv1 base report text
+  version: 1
   analyte: dna
   asp_id: hema_gmsv1
   subpanel_id: base
