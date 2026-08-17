@@ -82,6 +82,11 @@ export VALIDATION_OVERRIDE_FILE="$VALIDATION_ROOT/storage.override.yml"
 export VALIDATION_APP_PROJECT="coyote3_validation_app"
 export VALIDATION_MONGO_PROJECT="coyote3_validation_mongo"
 export VALIDATION_MONGO_NETWORK="coyote3-validation-mongo-net"
+export VALIDATION_APP_NETWORK="coyote3-validation-app-net"
+export VALIDATION_APP_SUBNET="172.29.120.0/28"
+export VALIDATION_APP_GATEWAY="172.29.120.1"
+export VALIDATION_MONGO_SUBNET="172.29.120.16/29"
+export VALIDATION_MONGO_GATEWAY="172.29.120.17"
 export VALIDATION_APP_PORT="6816"
 export VALIDATION_MONGO_PORT="27182"
 
@@ -157,6 +162,9 @@ MONGO_APP_USER=coyote3_app
 MONGO_APP_PASSWORD=$VALIDATION_MONGO_APP_PASSWORD
 MONGO_URI=mongodb://coyote3_app:$VALIDATION_MONGO_APP_PASSWORD@host.docker.internal:$VALIDATION_MONGO_PORT/coyote3_validation?authSource=coyote3_validation&replicaSet=coyote3-validation-rs
 COYOTE3_MONGO_NETWORK=$VALIDATION_MONGO_NETWORK
+COYOTE3_MONGO_NETWORK_SUBNET=$VALIDATION_MONGO_SUBNET
+COYOTE3_MONGO_NETWORK_GATEWAY=$VALIDATION_MONGO_GATEWAY
+COYOTE3_APP_NETWORK=$VALIDATION_APP_NETWORK
 COYOTE3_MONGO_PORT=$VALIDATION_MONGO_PORT
 COYOTE3_MONGO_BIND_ADDRESS=127.0.0.1
 MONGO_REPLICA_SET_NAME=coyote3-validation-rs
@@ -220,10 +228,23 @@ scripts/validate_env_secrets.sh --env-file "$VALIDATION_ENV_FILE"
 
 ## 4. Start the disposable MongoDB replica set
 
-Create the external network explicitly, then start MongoDB:
+Create the external application and MongoDB networks explicitly, then start
+MongoDB:
 
 ```bash
-docker network create "$VALIDATION_MONGO_NETWORK"
+docker network create \
+  --driver bridge \
+  --subnet "$VALIDATION_MONGO_SUBNET" \
+  --ip-range "$VALIDATION_MONGO_SUBNET" \
+  --gateway "$VALIDATION_MONGO_GATEWAY" \
+  "$VALIDATION_MONGO_NETWORK"
+
+docker network create \
+  --driver bridge \
+  --subnet "$VALIDATION_APP_SUBNET" \
+  --ip-range "$VALIDATION_APP_SUBNET" \
+  --gateway "$VALIDATION_APP_GATEWAY" \
+  "$VALIDATION_APP_NETWORK"
 
 docker compose \
   -p "$VALIDATION_MONGO_PROJECT" \
@@ -231,6 +252,12 @@ docker compose \
   -f deploy/compose/docker-compose.mongo.yml \
   up -d mongo mongo_init
 ```
+
+The `/29` MongoDB pool provides approximately five assignable addresses. The
+separate `/28` application pool provides approximately 13 assignable addresses
+for the API, worker, beat, Redis, frontend, documentation, proxy, and temporary
+validation containers. Change both exported ranges before creation if either
+overlaps a host, VPN, center, Kubernetes, or existing Docker network.
 
 This is the disposable MongoDB container command used by this procedure. The
 `mongo` service starts the MongoDB 8.2 server with its isolated bind-mounted
@@ -525,6 +552,7 @@ docker compose \
   down --remove-orphans
 
 docker network rm "$VALIDATION_MONGO_NETWORK"
+docker network rm "$VALIDATION_APP_NETWORK"
 ```
 
 Do not use `down -v`. Coyote3's version-aware wrapper rejects that option, and

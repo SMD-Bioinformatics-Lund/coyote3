@@ -40,6 +40,6 @@ services:
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
     command: bash -lc 'PYTHONPATH=. pytest -q'
-    networks: [coyote3]
+    networks: [app]
     depends_on:
       api: {condition: service_healthy}

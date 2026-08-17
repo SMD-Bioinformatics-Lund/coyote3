@@ -4,7 +4,7 @@ x-runtime-defaults: &runtime-defaults
   mem_limit: ${COYOTE3_CONTAINER_MEM_LIMIT:-2g}
   cpus: ${COYOTE3_CONTAINER_CPU_LIMIT:-2.0}
   restart: on-failure:5
-  networks: [coyote3]
+  networks: [app]
 
 x-app-environment: &app-environment
   ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
@@ -195,5 +195,6 @@ services:
       docs: {condition: service_started}
 
 networks:
-  coyote3:
-    driver: bridge
+  app:
+    name: ${COYOTE3_APP_NETWORK:?COYOTE3_APP_NETWORK is required}
+    external: true

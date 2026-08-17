@@ -66,5 +66,6 @@ def test_preflight_requires_explicit_database_names() -> None:
     script = (REPOSITORY_ROOT / "scripts/center_preflight.sh").read_text(encoding="utf-8")
 
     assert "for key in MONGO_URI COYOTE3_DB BAM_DB SECRET_KEY" in script
+    assert "CORS_ORIGINS COYOTE3_APP_NETWORK" in script
     assert 'data.get("COYOTE3_DB", "")' in script
     assert "ERROR: BAM_DB must be set" in script

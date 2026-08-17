@@ -80,9 +80,31 @@ collection-import procedure.
 
 The application stack brings up:
 
-- web
-- API
-- Redis
+- frontend;
+- documentation;
+- API;
+- Celery worker;
+- Celery beat scheduler;
+- Redis; and
+- reverse proxy.
+
+Create the external application network named in the environment file before
+starting the services:
+
+```bash
+set -a
+. ./.coyote3_dev_env
+set +a
+docker network create \
+  --driver bridge \
+  --subnet 172.29.110.32/28 \
+  --ip-range 172.29.110.32/28 \
+  --gateway 172.29.110.33 \
+  "$COYOTE3_APP_NETWORK"
+```
+
+Select another non-overlapping private subnet when this range is already routed
+on the host. Compose uses the existing network and does not create or own it.
 
 ```bash
 ./scripts/compose-with-version.sh \

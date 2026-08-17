@@ -43,6 +43,8 @@ The official MongoDB image runs its database process as UID `999`. Confirm the r
 | Key | Meaning | Self-hosted value |
 | --- | --- | --- |
 | `COYOTE3_MONGO_NETWORK` | Dedicated Docker network for the independent MongoDB stack only. | `coyote3-mongo-net` |
+| `COYOTE3_MONGO_NETWORK_SUBNET` | Private CIDR used when provisioning the MongoDB network. | `172.29.100.0/29`, or another non-overlapping `/29` or larger pool. |
+| `COYOTE3_MONGO_NETWORK_GATEWAY` | Gateway address inside the MongoDB network. | `172.29.100.1`, or the first host address in the selected subnet. |
 | `MONGO_REPLICA_SET_NAME` | Immutable name of the replica set. | `coyote3-rs` |
 | `MONGO_REPLICA_MEMBER_HOST` | Member address published in replica-set metadata. | A stable hostname and port reachable from both MongoDB and application containers, such as `mongo.example.internal:27017`. |
 | `MONGO_URI` | Application connection string. | Uses the same reachable host, database name, `authSource`, and `replicaSet`. |
@@ -60,11 +62,21 @@ does not create one. The application stack does not join that network.
 set -a
 . ./.coyote3_env
 set +a
-docker network create "$COYOTE3_MONGO_NETWORK"
+docker network create \
+  --driver bridge \
+  --subnet "$COYOTE3_MONGO_NETWORK_SUBNET" \
+  --ip-range "$COYOTE3_MONGO_NETWORK_SUBNET" \
+  --gateway "$COYOTE3_MONGO_NETWORK_GATEWAY" \
+  "$COYOTE3_MONGO_NETWORK"
 docker compose --env-file .coyote3_env \
   -f deploy/compose/docker-compose.mongo.yml \
   up -d
 ```
+
+A `/29` network provides enough addresses for the MongoDB member, replica-set
+initializer, and short-lived backup or restore tools. Choose a non-overlapping
+private subnet approved for the deployment host. Additional replica-set members
+may require a larger pool.
 
 6. Set `MONGO_URI` to a URI reachable from the application containers, then
 start the application stack. For a database on the same Docker host, use an

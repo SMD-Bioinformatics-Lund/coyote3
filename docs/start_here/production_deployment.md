@@ -118,7 +118,22 @@ UID and GID `10001`.
 ```bash
 sudo install -d -o 10001 -g 10001 -m 0750 "$COYOTE3_DATA_HOST_ROOT"
 sudo install -d -o 10001 -g 10001 -m 0750 "$COYOTE3_LOGS_HOST_ROOT"
+docker network create \
+  --driver bridge \
+  --subnet 172.29.110.0/28 \
+  --ip-range 172.29.110.0/28 \
+  --gateway 172.29.110.1 \
+  "$COYOTE3_APP_NETWORK"
 ```
+
+The application Compose stack treats this as an external network and will not
+create it. Use a distinct name for each deployment, such as
+`coyote3-prod-app-net`, `coyote3-stage-app-net`, or `coyote3-dev-app-net`.
+The example `/28` pool reserves 16 addresses and provides approximately 13
+assignable container addresses for the current seven services and limited
+replicas. Select a different RFC 1918 subnet when this range overlaps center
+infrastructure. Use a larger pool when the deployment will run many API or
+worker replicas.
 
 Create and mount any center data roots used by pipeline manifests. A path
 stored in a sample manifest must resolve to the same data inside the worker
@@ -142,12 +157,22 @@ openssl rand -base64 756 | sudo tee "$COYOTE3_MONGO_KEYFILE_HOST_PATH" >/dev/nul
 sudo chown 999:999 "$COYOTE3_MONGO_KEYFILE_HOST_PATH"
 sudo chmod 0400 "$COYOTE3_MONGO_KEYFILE_HOST_PATH"
 
-docker network create "$COYOTE3_MONGO_NETWORK"
+docker network create \
+  --driver bridge \
+  --subnet "$COYOTE3_MONGO_NETWORK_SUBNET" \
+  --ip-range "$COYOTE3_MONGO_NETWORK_SUBNET" \
+  --gateway "$COYOTE3_MONGO_NETWORK_GATEWAY" \
+  "$COYOTE3_MONGO_NETWORK"
 docker compose \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.mongo.yml \
   up -d
 ```
+
+The `/29` MongoDB pool reserves eight addresses and provides approximately five
+assignable container addresses. It accommodates the MongoDB member, the
+one-shot replica-set initializer, and temporary backup or restore containers.
+Use a larger dedicated pool before adding multiple replica-set members.
 
 Set the MongoDB root credentials, host paths, network, replica-set name, and
 application `MONGO_URI` in `.coyote3_env` before running this command. The

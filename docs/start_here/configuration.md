@@ -178,6 +178,7 @@ registration is not configurable through an environment variable.
 | `CORS_ORIGINS` | Production | Comma-separated origins | Allowed browser origins for API calls. |
 | `COYOTE3_CONTAINER_MEM_LIMIT` | No | Compose memory value; default `2g` | Per-container memory limit. |
 | `COYOTE3_CONTAINER_CPU_LIMIT` | No | Compose CPU value; default `2.0` | Per-container CPU limit. |
+| `COYOTE3_APP_NETWORK` | Yes | Existing Docker network name | External network shared by the UI, API, worker, scheduler, Redis, documentation, and reverse proxy. Compose requires this network and never creates it. Use one network per deployment environment. |
 | `MONGO_ROOT_USERNAME` | Self-hosted MongoDB | Username | MongoDB administrative username used only for database deployment and maintenance. |
 | `MONGO_ROOT_PASSWORD` | Self-hosted MongoDB | Secret password | MongoDB administrative password. |
 | `MONGO_APP_USER` | Self-hosted MongoDB | Username | Application MongoDB username created during first database initialization. |
@@ -195,6 +196,8 @@ registration is not configurable through an environment variable.
 | `COYOTE3_MONGO_BACKUP_HOST_ROOT` | Self-hosted MongoDB | Absolute host path | Host backup directory bind-mounted at `/backup`. |
 | `COYOTE3_MONGO_KEYFILE_HOST_PATH` | Self-hosted MongoDB | Absolute host path | Replica-set keyfile used for member authentication. |
 | `COYOTE3_MONGO_NETWORK` | Optional Docker MongoDB | Docker network name | Network owned by the independently deployed MongoDB stack. Application services do not join it. |
+| `COYOTE3_MONGO_NETWORK_SUBNET` | Optional Docker MongoDB | Non-overlapping private CIDR; recommended `/29` | Address pool used to provision the independent MongoDB network. A `/29` normally provides five assignable container addresses. |
+| `COYOTE3_MONGO_NETWORK_GATEWAY` | Optional Docker MongoDB | Address inside `COYOTE3_MONGO_NETWORK_SUBNET` | Gateway passed to `docker network create` for the independent MongoDB network. |
 | `MONGO_REPLICA_SET_NAME` | Self-hosted MongoDB | Replica-set identifier | Persistent MongoDB replica-set name, normally `coyote3-rs`. |
 | `MONGO_REPLICA_MEMBER_HOST` | Self-hosted MongoDB | `host:port` | Stable member address stored in replica-set metadata. It must resolve from both MongoDB and application containers. |
 | `COYOTE3_MONGO_PORT` | Optional Docker MongoDB | Host port | Host port published by the independently deployed MongoDB container. It is not used by the application when `MONGO_URI` targets another MongoDB service. |

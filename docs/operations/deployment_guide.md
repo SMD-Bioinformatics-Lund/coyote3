@@ -66,6 +66,24 @@ these values.
 ### Production deployment
 
 Production deployments require the production environment file and explicit versioning.
+The network named by `COYOTE3_APP_NETWORK` must exist before any application
+environment is started. The following `/28` example reserves 16 addresses and
+provides approximately 13 assignable container addresses after Docker reserves
+the network, gateway, and broadcast addresses. This covers the seven application
+services and leaves room for limited worker or API scaling:
+
+```bash
+docker network create \
+  --driver bridge \
+  --subnet 172.29.110.0/28 \
+  --ip-range 172.29.110.0/28 \
+  --gateway 172.29.110.1 \
+  coyote3-prod-app-net
+```
+
+Choose a private subnet that does not overlap the host, VPN, center, Kubernetes,
+or existing Docker networks. The CIDR controls the allocation pool; services
+still communicate by Compose DNS names rather than fixed container IPs.
 
 ```bash
 ./scripts/compose-with-version.sh \
@@ -81,6 +99,35 @@ staging, and test files are overlays that change only the behavior required by
 that environment. Always provide the base file first and the overlay second.
 The environment filename is supplied with `--env-file`; Compose files do not
 contain a local filename and therefore work with any operator-selected name.
+Create each environment's configured network once before its first deployment,
+for example `coyote3-stage-app-net` or `coyote3-dev-app-net`.
+
+Example non-overlapping pools for environments hosted on the same machine are:
+
+| Environment | Network | Example subnet | Gateway |
+| --- | --- | --- | --- |
+| Production | `coyote3-prod-app-net` | `172.29.110.0/28` | `172.29.110.1` |
+| Staging | `coyote3-stage-app-net` | `172.29.110.16/28` | `172.29.110.17` |
+| Development | `coyote3-dev-app-net` | `172.29.110.32/28` | `172.29.110.33` |
+| Testing | `coyote3-test-app-net` | `172.29.110.48/28` | `172.29.110.49` |
+
+Create each required pool once. These commands may be run on a host that keeps
+all four environments isolated:
+
+```bash
+docker network create --driver bridge --subnet 172.29.110.0/28 \
+  --ip-range 172.29.110.0/28 --gateway 172.29.110.1 coyote3-prod-app-net
+docker network create --driver bridge --subnet 172.29.110.16/28 \
+  --ip-range 172.29.110.16/28 --gateway 172.29.110.17 coyote3-stage-app-net
+docker network create --driver bridge --subnet 172.29.110.32/28 \
+  --ip-range 172.29.110.32/28 --gateway 172.29.110.33 coyote3-dev-app-net
+docker network create --driver bridge --subnet 172.29.110.48/28 \
+  --ip-range 172.29.110.48/28 --gateway 172.29.110.49 coyote3-test-app-net
+```
+
+Set `COYOTE3_APP_NETWORK` in each environment file to the corresponding name.
+Do not assign static container IPs; Compose DNS names such as `api`, `worker`,
+`redis`, and `frontend` are the stable service addresses.
 
 ```bash
 # Staging deployment

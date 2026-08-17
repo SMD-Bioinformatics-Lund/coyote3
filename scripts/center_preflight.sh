@@ -74,7 +74,7 @@ echo "[check] validating compose render"
 docker compose --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" config -q
 
 echo "[check] mandatory keys"
-for key in MONGO_URI COYOTE3_DB BAM_DB SECRET_KEY INTERNAL_API_TOKEN PASSWORD_TOKEN_SALT CORS_ORIGINS; do
+for key in MONGO_URI COYOTE3_DB BAM_DB SECRET_KEY INTERNAL_API_TOKEN PASSWORD_TOKEN_SALT CORS_ORIGINS COYOTE3_APP_NETWORK; do
   if ! grep -qE "^${key}=" "$ENV_FILE"; then
     echo "ERROR: missing key in env file: $key" >&2
     exit 1
