@@ -50,6 +50,28 @@ def test_report_validation_rejects_analyte_that_does_not_match_sample_modality()
     assert "RNA report endpoint" in str(exc_info.value.details)
 
 
+def test_dna_report_contract_failure_is_returned_as_validation_error(monkeypatch):
+    class FailingDnaWorkflow:
+        @staticmethod
+        def build_report_payload(**_kwargs):
+            raise ValueError("No clinical rule source exists for ASP 'assay_1'")
+
+    monkeypatch.setattr(reports, "get_dna_workflow_service", FailingDnaWorkflow)
+
+    with pytest.raises(AppError) as exc_info:
+        reports._build_preview_report(
+            "dna",
+            {"name": "demo_dna_sample"},
+            {"asp_id": "assay_1"},
+            save=False,
+            include_snapshot=True,
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.message == "DNA report data does not satisfy the reporting contract"
+    assert "No clinical rule source" in str(exc_info.value.details)
+
+
 def test_preview_report_success_includes_snapshot_when_requested(monkeypatch):
     """Test preview report success includes snapshot when requested.
 

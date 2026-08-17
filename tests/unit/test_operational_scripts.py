@@ -69,3 +69,23 @@ def test_preflight_requires_explicit_database_names() -> None:
     assert "CORS_ORIGINS COYOTE3_APP_NETWORK" in script
     assert 'data.get("COYOTE3_DB", "")' in script
     assert "ERROR: BAM_DB must be set" in script
+
+
+def test_center_check_forwards_an_explicit_authentication_provider() -> None:
+    script = (REPOSITORY_ROOT / "scripts/center_check.sh").read_text(encoding="utf-8")
+
+    assert 'PROVIDER="local"' in script
+    assert '--provider) PROVIDER="$2"; shift 2 ;;' in script
+    assert '--provider "$PROVIDER"' in script
+
+    invalid_result = _run_script("center_check.sh", "--provider", "unsupported")
+    assert invalid_result.returncode == 2
+    assert "--provider must be local or ldap" in invalid_result.stderr
+
+
+def test_api_images_include_center_check_runtime_dependencies() -> None:
+    for relative_path in ("docker/Dockerfile", "docker/Dockerfile.dev"):
+        dockerfile = (REPOSITORY_ROOT / relative_path).read_text(encoding="utf-8")
+        install_block = dockerfile.split("apt-get install -y --no-install-recommends", 1)[1]
+        install_block = install_block.split("&&", 1)[0]
+        assert "curl" in install_block.split()

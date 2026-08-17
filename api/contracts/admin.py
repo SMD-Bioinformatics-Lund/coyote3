@@ -211,6 +211,12 @@ class AdminSampleContextPayload(BaseModel):
     sample: dict[str, Any]
 
 
+class AdminSampleUpdatePayload(BaseModel):
+    """Represent a complete sample document submitted by the admin JSON editor."""
+
+    sample: dict[str, Any]
+
+
 class AdminSchemasPayload(BaseModel):
     """Represent registered document schema contracts for admin inspection."""
 

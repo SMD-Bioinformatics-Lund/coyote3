@@ -681,8 +681,9 @@ JavaScript fragment.
 ## `collections.toml`
 
 This file maps logical repository attributes to physical MongoDB collection
-names. Each top-level TOML table is one database name, for example
-`[coyote3_dev]` or `[BAM_Service]`.
+names. The `[primary]` table applies to the database selected by `COYOTE3_DB`;
+the `[bam]` table applies to the database selected by `BAM_DB`. Database names
+therefore remain deployment settings and do not need matching TOML tables.
 
 ### Mapping Contract
 
@@ -691,8 +692,8 @@ does not define a document schema and it does not move data.
 
 | TOML element | Required | Allowed value | Meaning |
 | --- | --- | --- | --- |
-| Application database table, for example `[coyote3_dev]` | Yes for every database used as `COYOTE3_DB` | Exact MongoDB database name | The mapping selected for the primary Coyote3 database. |
-| BAM database table, for example `[BAM_Service]` | Required when `BAM_DB` integration is enabled | Exact MongoDB database name | The mapping selected for BAM-service lookup data. |
+| `[primary]` | Yes | One TOML table | Collection mapping for the database named by `COYOTE3_DB`. |
+| `[bam]` | Yes | One TOML table | Collection mapping for the database named by `BAM_DB`. |
 | `*_collection` | Yes for every active logical repository | Non-empty MongoDB collection name, excluding the reserved `system.*` namespace | Physical destination for one logical repository. Keep the key fixed; change only its value when the center uses another collection name. |
 | `bam_samples` | Required when the selected BAM database is used | Non-empty MongoDB collection name | BAM-service sample lookup collection. |
 

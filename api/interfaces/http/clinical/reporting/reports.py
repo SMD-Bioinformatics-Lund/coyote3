@@ -89,14 +89,14 @@ def _build_preview_report(
     Returns:
         dict: Rendered report payload from the workflow layer.
     """
-    if analyte == "dna":
-        return get_dna_workflow_service().build_report_payload(
-            sample=sample,
-            assay_config=assay_config,
-            save=1 if save else 0,
-            include_snapshot=include_snapshot,
-        )
     try:
+        if analyte == "dna":
+            return get_dna_workflow_service().build_report_payload(
+                sample=sample,
+                assay_config=assay_config,
+                save=1 if save else 0,
+                include_snapshot=include_snapshot,
+            )
         return get_rna_workflow_service().build_report_payload(
             sample=sample,
             assay_config=assay_config,
@@ -106,7 +106,7 @@ def _build_preview_report(
     except (KeyError, ValueError) as exc:
         raise http.api_error(
             422,
-            "RNA report data does not satisfy the reporting contract",
+            f"{analyte.upper()} report data does not satisfy the reporting contract",
             str(exc),
             category="validation",
         ) from exc

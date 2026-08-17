@@ -120,6 +120,7 @@ services:
         GENS_URI: ${GENS_URI:-}
         IGV_URI: ${IGV_URI:-}
     environment:
+      SCRIPT_NAME: ${SCRIPT_NAME:-}
       TZ: ${LOCAL_TIME_ZONE:-UTC}
     depends_on:
       api: {condition: service_healthy}

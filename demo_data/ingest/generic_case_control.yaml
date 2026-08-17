@@ -1,46 +1,35 @@
 ---
 name: demo_dna_sample
-asp_id: assay_1
-subpanel_id: base
-environment: production
+assay: assay_1
+subpanel: base
+profile: production
 genome_build: 38
 database_versions:
   assembly: GRCh38.p13
   vep: "103"
 case_id: demo_case
 control_id: demo_control
+clarity_case_id: demo_case_clarity
+clarity_control_id: demo_control_clarity
+clarity_case_pool_id: demo_case_pool
+clarity_control_pool_id: demo_control_pool
 sample_no: 2
 paired: true
 sequencing_scope: panel
 omics_layer: dna
-platform: illumina
+sequencing_technology: Illumina
 read_mode: PE
 pipeline: SomaticPanelPipeline
 pipeline_version: 3.1.14
-analysis_intents:
-  - somatic
-case:
-  id: demo_case
-  clarity_id: demo_case_clarity
-  clarity_pool_id: demo_case_pool
-  ffpe: false
-  sequencing_run: demo_run
-  reads: 49039064
-  purity: null
-control:
-  id: demo_control
-  clarity_id: demo_control_clarity
-  clarity_pool_id: demo_control_pool
-  ffpe: false
-  sequencing_run: demo_run
-  reads: 45889968
-  purity: null
-files:
-  vcf_files:
-    path: demo_data/ingest/generic_case_control.final.filtered.vcf
-  cnv:
-    path: demo_data/ingest/generic_case_control.cnvs.merged.json
-  cnvprofile:
-    path: demo_data/ingest/generic_case_control.modeled.png
-  cov:
-    path: demo_data/ingest/generic_case_control.cov.json
+case_ffpe: false
+control_ffpe: false
+case_sequencing_run: demo_run
+control_sequencing_run: demo_run
+case_reads: 49039064
+control_reads: 45889968
+case_purity: null
+control_purity: null
+vcf_files: generic_case_control.final.filtered.vcf
+cnv: generic_case_control.cnvs.merged.json
+cnvprofile: generic_case_control.modeled.png
+cov: generic_case_control.cov.json

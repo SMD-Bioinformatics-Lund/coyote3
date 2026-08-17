@@ -328,7 +328,7 @@ Authentication provider behavior comes from `user.auth_type`, which is a list. L
 
 ## Admin Resource Model
 
-Admin pages are contract-driven, not DB-schema-driven. Managed forms are generated from backend-owned models and resource metadata. The UI should not expose raw JSON editors for normal resource editing.
+Admin pages are contract-driven, not DB-schema-driven. Managed forms are generated from backend-owned models and resource metadata. The UI does not expose raw JSON editors for normal resource editing. Admin Samples is an explicit operational exception: authorized administrators edit a complete document, but writes still pass through the sample service, `SamplesDoc` validation, route-controlled identity, permission checks, and audit middleware.
 
 Clinical configuration resources such as ASP, ASPC, and ISGL use immutable
 revision rotation. Each edit preserves the business identifier, increments the

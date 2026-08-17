@@ -686,7 +686,7 @@ Authentication provider behavior is controlled by `auth_type`, a list of allowed
 
 ## 20. Admin Workflows
 
-Admin pages should use forms built from application contracts, not raw JSON editors. List pages should show useful human columns and relative dates, not ObjectId-heavy tables.
+Administrative configuration pages use forms built from application contracts. The privileged Admin Samples workflow exposes the complete sample document because occasional operational correction requires fields that are not part of routine clinical forms. Its editor validates JSON syntax while typing and the API validates the complete sample contract before saving. List pages show useful human columns and relative dates rather than ObjectId-heavy tables.
 
 Admin areas include users, roles, permissions, ASP, ASPC, ISGL, assay catalog support, application controls, audit events, and notifications.
 

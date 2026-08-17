@@ -78,13 +78,13 @@ or screenshots.
 Run each controlled manifest through the deployed API:
 
 ```bash
-scripts/center_check.sh \
+bash scripts/center_check.sh \
   --api-base-url https://validation.example.org/coyote3 \
   --username "$COYOTE3_VALIDATION_USER" \
   --password "$COYOTE3_VALIDATION_PASSWORD" \
   --yaml-file /validation-data/dna/sample.coyote3.yaml
 
-scripts/center_check.sh \
+bash scripts/center_check.sh \
   --api-base-url https://validation.example.org/coyote3 \
   --username "$COYOTE3_VALIDATION_USER" \
   --password "$COYOTE3_VALIDATION_PASSWORD" \

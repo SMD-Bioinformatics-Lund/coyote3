@@ -242,7 +242,7 @@ The **Ingest** workspace allows administrators to queue validated sample bundles
 | --- | --- |
 | Page surfaces | Admin list, edit, view, and utility panels use the same restrained surfaces as clinical pages. |
 | Read-only view pages | View actions render the same structured form layout as edit pages, but fields are read-only. |
-| Forms | Normal admin workflows use typed forms, not JSON editors. |
+| Forms | Normal admin workflows use typed forms. Admin Samples provides a permission-gated JSON editor for complete sample-document correction, with live syntax checking and API contract validation. |
 | Permission selection | Permissions are grouped by category and shown as compact selectable rows with hover text for exact permission strings. |
 | Dates | Tables use human relative dates for recent events and concise absolute dates for older events. |
 | Notifications | Create, update, archive, delete, and error actions emit structured notifications. |

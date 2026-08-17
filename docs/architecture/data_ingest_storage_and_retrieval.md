@@ -37,12 +37,12 @@ The center-configurable mapping is in api/config/center/clinical_vocabulary.toml
 | DNA | biomarker / TMB | biomarkers | biomarkers | biomarkers |
 | DNA | coverage | cov | cov | panel_coverage |
 | DNA | CNV profile | cnvprofile | none | File metadata only |
-| DNA | PGx | pgx | none | File metadata only |
+| DNA | PGx | pgx | pgx | pgx |
 | RNA | fusion | fusion_files | fusions | fusions |
 | RNA | expression | expression_path | rna_expr | rna_expression |
 | RNA | classification | classification_path | rna_class | rna_classification |
 | RNA | QC | qc | rna_qc | rna_qc |
-| RNA | PGx | pgx | none | File metadata only |
+| RNA | PGx | pgx | pgx | pgx |
 
 Manifest names are center-configurable. Internal preload names are application contracts because they map to Pydantic models and repositories. The runtime checks this binding so a configured file cannot silently lose a persistence destination.
 
@@ -63,8 +63,9 @@ Before dependent records are written, ingest attaches canonical sample linkage a
 | rna_expression | sample | selected-gene TPM, reference values, and z-scores | SAMPLE_ID |
 | rna_classification | sample | classifier classes, scores, source metadata | SAMPLE_ID |
 | rna_qc | sample | RNA quality-control measurements | SAMPLE_ID |
+| pgx | sample or PGx result set | declared pharmacogenomic result payload; source arrays are retained under `records` | SAMPLE_ID |
 | reports | saved report | rendered content, configuration references, filters, report metadata | sample and report id |
-| reported_variants | report finding | frozen reportable finding snapshot | report and sample linkage |
+| reported_variants | report finding | frozen typed snapshot for an SNV, CNV, fusion, translocation, biomarker, or PGx result | report, sample, and `analysis_type` linkage |
 
 ### DNA small variants
 

@@ -70,7 +70,7 @@ class BiomarkerRepository(BaseRepository):
 
     def get_sample_biomarkers(self, sample_id: str, _normal: bool = False):
         """
-        Get biomarkers data for a sample excluding `_id`, `name`, and `SAMPLE_ID`.
+        Get biomarker data for a sample while retaining its report identity and name.
 
         This method queries the `biomarkers` collection in MongoDB to retrieve biomarker
         data for a specific sample. The returned data excludes the `_id`, `name`, and
@@ -86,9 +86,7 @@ class BiomarkerRepository(BaseRepository):
                                    in the `biomarkers` collection, excluding the
                                    specified fields.
         """
-        return self.get_collection().find(
-            {"SAMPLE_ID": sample_id}, {"_id": 0, "name": 0, "SAMPLE_ID": 0}
-        )
+        return self.get_collection().find({"SAMPLE_ID": sample_id}, {"SAMPLE_ID": 0})
 
     def delete_sample_biomarkers(self, sample_id: str) -> OperationResult:
         """

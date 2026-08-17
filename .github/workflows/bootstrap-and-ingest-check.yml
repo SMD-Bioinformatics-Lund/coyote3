@@ -140,7 +140,7 @@ jobs:
             --env-file .coyote3_stage_env \
             -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
             exec -T api \
-            scripts/center_check.sh \
+            bash scripts/center_check.sh \
               --api-base-url http://127.0.0.1:8001 \
               --username "${ADMIN_USERNAME}" \
               --password "${ADMIN_PASSWORD}" \

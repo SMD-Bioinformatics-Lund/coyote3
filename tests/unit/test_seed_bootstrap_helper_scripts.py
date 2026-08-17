@@ -591,6 +591,45 @@ def test_ingest_spec_file_check_uses_configured_file_key_catalog(tmp_path):
     assert f"cnvprofile: {missing_profile}" in result.stderr
 
 
+def test_ingest_spec_file_check_resolves_paths_from_manifest_directory(tmp_path):
+    (tmp_path / "synthetic.vcf").write_text("##fileformat=VCFv4.2\n", encoding="utf-8")
+    manifest_path = tmp_path / "sample.yaml"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "name": "SYNTHETIC_CASE_002",
+                "asp_id": "assay_1",
+                "subpanel_id": "base",
+                "environment": "testing",
+                "case_id": "SYNTHETIC_CASE_002",
+                "sample_no": 1,
+                "paired": False,
+                "sequencing_scope": "panel",
+                "omics_layer": "dna",
+                "platform": "illumina",
+                "pipeline": "SyntheticPipeline",
+                "pipeline_version": "1.0",
+                "vcf_files": "synthetic.vcf",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = _run_script(
+        ["scripts/validate_ingest_spec.py", "--yaml", str(manifest_path), "--check-files"]
+    )
+
+    assert result.returncode == 0
+    assert "[ok] ingest spec is valid" in result.stdout
+
+    listed = _run_script(
+        ["scripts/validate_ingest_spec.py", "--yaml", str(manifest_path), "--list-files"]
+    )
+
+    assert listed.returncode == 0
+    assert listed.stdout.strip() == str((tmp_path / "synthetic.vcf").resolve())
+
+
 def test_preflight_script_does_not_use_retired_environment_port_names():
     combined = (ROOT_DIR / "scripts/center_preflight.sh").read_text(encoding="utf-8")
     for retired_key in (
@@ -608,6 +647,23 @@ def test_production_compose_does_not_register_removed_first_run_service():
     compose = (ROOT_DIR / "deploy/compose/docker-compose.yml").read_text(encoding="utf-8")
     assert "coyote3_first_run:" not in compose
     assert "compose_first_run.sh" not in compose
+
+
+def test_production_frontend_receives_script_name_at_build_and_runtime():
+    compose = (ROOT_DIR / "deploy/compose/docker-compose.yml").read_text(encoding="utf-8")
+    frontend_service = compose.split("  frontend:\n", 1)[1].split("\n  docs:\n", 1)[0]
+
+    assert "args:\n        SCRIPT_NAME: ${SCRIPT_NAME:-}" in frontend_service
+    assert "environment:\n      SCRIPT_NAME: ${SCRIPT_NAME:-}" in frontend_service
+
+
+def test_frontend_nginx_handles_prefixed_shell_and_assets_without_directory_fallback():
+    renderer = (ROOT_DIR / "docker/nginx/render-frontend-config.sh").read_text(encoding="utf-8")
+
+    assert "location = ${script_name}/ {" in renderer
+    assert "try_files \\$uri @frontend_shell;" in renderer
+    assert "location @frontend_shell {" in renderer
+    assert "try_files \\$uri \\$uri/ /index.html;" not in renderer
 
 
 def test_quality_workflow_uses_cost_bounded_current_branch_validation():

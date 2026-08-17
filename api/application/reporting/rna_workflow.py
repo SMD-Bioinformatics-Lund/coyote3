@@ -13,6 +13,7 @@ from api.application.reporting.persistence import (
 from api.application.reporting.persistence import (
     prepare_report_output as prepare_shared_report_output,
 )
+from api.application.reporting.snapshot_rows import build_pgx_snapshot_rows, flatten_pgx_records
 from api.domain.common.assay_filters import (
     format_filters_from_form,
     get_sample_effective_genes,
@@ -61,6 +62,7 @@ class RNAWorkflowService:
             assay_panel_repository=store.assay_panel_repository,
             reported_variant_repository=store.reported_variant_repository,
             report_repository=store.report_repository,
+            pgx_repository=store.pgx_repository,
             clinical_rule_service=ClinicalRuleService.from_store(store),
         )
 
@@ -77,6 +79,7 @@ class RNAWorkflowService:
         assay_panel_repository,
         reported_variant_repository,
         report_repository,
+        pgx_repository=None,
         clinical_rule_service=None,
     ) -> None:
         """Create the workflow service with explicit injected repositories."""
@@ -90,6 +93,7 @@ class RNAWorkflowService:
         self.assay_panel_repository = assay_panel_repository
         self.reported_variant_repository = reported_variant_repository
         self.report_repository = report_repository
+        self.pgx_repository = pgx_repository
         self.clinical_rule_service = clinical_rule_service
 
     def next_report_num(self, sample_id: str) -> int:
@@ -400,6 +404,8 @@ class RNAWorkflowService:
 
             rows.append(
                 {
+                    "analysis_type": "FUSION",
+                    "finding_type": "fusion",
                     "var_oid": fus.get("_id"),
                     "simple_id": simple_id,
                     "tier": tier,
@@ -474,13 +480,22 @@ class RNAWorkflowService:
             for isgl_id, document in selected_list_docs.items()
         ]
         assay_panel = self.assay_panel_repository.get_asp(str(sample.get("asp_id") or "")) or {}
+        report_sections = {
+            str(value).strip().upper()
+            for value in reporting_config.get("report_sections", ["FUSION"])
+        }
+        pgx_records = flatten_pgx_records(
+            list(self.pgx_repository.get_sample_pgx(str(sample["_id"])) or [])
+            if "PGX" in report_sections and self.pgx_repository is not None
+            else []
+        )
         prepared_rule_context = prepare_report_context(
             sample=sample,
             asp=assay_panel,
             aspc=assay_config,
             analyte="rna",
             applied_gene_lists=applied_gene_lists,
-            report_sections_data={"fusions": reportable_fusions},
+            report_sections_data={"fusions": reportable_fusions, "pgx": pgx_records},
         )
         clinical_rule_evaluation = (
             self.clinical_rule_service.evaluate(
@@ -497,7 +512,9 @@ class RNAWorkflowService:
         template_context = {
             "asp_id": assay,
             "assay_config": assay_config,
+            "report_sections": report_sections,
             "fusions": reportable_fusions,
+            "pgx": pgx_records,
             "report_header": report_header,
             "sample": sample,
             "class_desc": TIER_DESC,
@@ -514,8 +531,10 @@ class RNAWorkflowService:
 
         if not include_snapshot:
             return "report_fusion.html", template_context, []
+        snapshot_rows = RNAWorkflowService._build_snapshot_rows(reportable_fusions)
+        snapshot_rows.extend(build_pgx_snapshot_rows(pgx_records))
         return (
             "report_fusion.html",
             template_context,
-            RNAWorkflowService._build_snapshot_rows(reportable_fusions),
+            snapshot_rows,
         )

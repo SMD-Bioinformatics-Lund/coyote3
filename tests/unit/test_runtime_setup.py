@@ -63,12 +63,20 @@ def test_select_config_uses_runtime_mode(
 
 
 def test_config_dict_keeps_uppercase_readable_values() -> None:
-    result = runtime_setup._config_dict(_Config())
+    class ValidConfig:
+        UPPER = "value"
+        lower = "ignored"
+
+    result = runtime_setup._config_dict(ValidConfig())
 
     assert result["UPPER"] == "value"
     assert "lower" not in result
-    assert "BROKEN" not in result
     assert result["SECRET_KEY_FALLBACKS"] == []
+
+
+def test_config_dict_does_not_hide_invalid_runtime_settings() -> None:
+    with pytest.raises(RuntimeError, match="unavailable"):
+        runtime_setup._config_dict(_Config())
 
 
 def test_init_cache_assigns_created_backend(monkeypatch: pytest.MonkeyPatch) -> None:

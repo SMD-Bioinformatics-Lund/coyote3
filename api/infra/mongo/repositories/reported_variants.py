@@ -3,15 +3,14 @@ ReportedVariantsRepository module for Coyote3
 =========================================
 
 This module defines the `ReportedVariantsRepository` class used for accessing and managing
-**reported variant tier snapshots** in MongoDB.
+**reported clinical finding snapshots** in MongoDB.
 
-A "reported variant" record represents a single variant that was included in a specific
-generated report for a specific sample, along with the tier/class **as it was at the
-time of report generation** (i.e., an immutable snapshot).
+A record represents one typed clinical finding included in a generated report
+for a sample, with its report-time interpretation (an immutable snapshot).
 
 Collection purpose
 ------------------
-- Persist per-report, per-sample, per-variant tier snapshots (audit-safe)
+- Persist per-report, per-sample typed finding snapshots (audit-safe)
 - Enable fast lookups for:
   - "Which variants were reported in report X for sample Y?"
   - "How many times was variant/simple_id reported, and at which tiers?"
@@ -160,11 +159,11 @@ def _reported_variant_search_query(
 # -------------------------------------------------------------------------
 class ReportedVariantsRepository(BaseRepository):
     """
-    MongoDB handler for reported variant snapshots.
+    MongoDB handler for typed report finding snapshots.
 
     The `ReportedVariantsRepository` provides a focused interface for interacting with the
     `reported_variants` collection. Each document in the collection corresponds to a
-    single variant reported in a specific report for a specific sample.
+    single finding reported in a specific report for a specific sample.
 
     Notes
     -----
@@ -199,13 +198,9 @@ class ReportedVariantsRepository(BaseRepository):
         """
         Upsert reported variant snapshot rows for a single report.
 
-        snapshot_rows should contain (at minimum):
-          - var_oid
-          - simple_id
-          - tier
-          - gene/transcript/hgvsp/hgvsc (optional but recommended)
-          - created_on
-          - annotation_oid (optional)
+        Each row must contain ``analysis_type``, ``simple_id``,
+        ``simple_id_hash``, and ``created_on``. Finding-specific fields remain
+        typed by the report workflow.
 
         This method writes only after the report is saved successfully.
         """
@@ -347,10 +342,14 @@ class ReportedVariantsRepository(BaseRepository):
             background=True,
         )
 
-        # Fast "open report": fetch all reported variants for a given sample+report
+        # Fast "open report": fetch typed findings for a given sample and report.
         col.create_index(
-            [("sample_oid", ASCENDING), ("report_oid", ASCENDING)],
-            name="ix_sample_report",
+            [
+                ("sample_oid", ASCENDING),
+                ("report_oid", ASCENDING),
+                ("analysis_type", ASCENDING),
+            ],
+            name="ix_sample_report_analysis_type",
             background=True,
         )
 

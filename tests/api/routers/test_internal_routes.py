@@ -459,8 +459,10 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
             "omics_layer": "dna",
             "pipeline": "pipeline",
             "pipeline_version": "v1",
-            "vcf_files": "generic_case_control.final.filtered.vcf",
-            "cnv": "generic_case_control.cnvs.merged.json",
+            "files": {
+                "vcf_files": {"path": "generic_case_control.final.filtered.vcf"},
+                "cnv": {"path": "generic_case_control.cnvs.merged.json"},
+            },
         },
         _assay_file_policy=lambda **_: ({"vcf_files", "cnv"}, {"vcf_files", "cnv"}),
         ingest_sample_bundle=_ingest,

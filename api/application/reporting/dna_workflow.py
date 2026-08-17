@@ -27,6 +27,7 @@ class DNAWorkflowService:
             copy_number_variant_repository=store.copy_number_variant_repository,
             biomarker_repository=store.biomarker_repository,
             translocation_repository=store.translocation_repository,
+            pgx_repository=store.pgx_repository,
             vep_metadata_repository=store.vep_metadata_repository,
             annotation_repository=store.annotation_repository,
             reported_variant_repository=store.reported_variant_repository,
@@ -49,6 +50,7 @@ class DNAWorkflowService:
         annotation_repository,
         reported_variant_repository,
         report_repository,
+        pgx_repository=None,
         clinical_rule_service=None,
     ) -> None:
         """Create the workflow service with explicit injected repositories."""
@@ -60,6 +62,7 @@ class DNAWorkflowService:
         self.copy_number_variant_repository = copy_number_variant_repository
         self.biomarker_repository = biomarker_repository
         self.translocation_repository = translocation_repository
+        self.pgx_repository = pgx_repository
         self.vep_metadata_repository = vep_metadata_repository
         self.annotation_repository = annotation_repository
         self.reported_variant_repository = reported_variant_repository
@@ -105,6 +108,7 @@ class DNAWorkflowService:
             copy_number_variant_repository=self.copy_number_variant_repository,
             biomarker_repository=self.biomarker_repository,
             translocation_repository=self.translocation_repository,
+            pgx_repository=self.pgx_repository,
             vep_metadata_repository=self.vep_metadata_repository,
             annotation_repository=self.annotation_repository,
             clinical_rule_service=self.clinical_rule_service,

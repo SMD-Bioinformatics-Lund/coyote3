@@ -1115,6 +1115,7 @@ def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
     expr = tmp_path / "expr.json"
     cls = tmp_path / "class.json"
     qc = tmp_path / "qc.json"
+    pgx = tmp_path / "pgx.json"
 
     for p in [vcf, transloc]:
         p.write_text("x", encoding="utf-8")
@@ -1158,6 +1159,10 @@ def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
     expr.write_text(json.dumps({"a": 1}), encoding="utf-8")
     cls.write_text(json.dumps({"c": 1}), encoding="utf-8")
     qc.write_text(json.dumps({"q": 1}), encoding="utf-8")
+    pgx.write_text(
+        json.dumps([{"gene": "CYP2C19", "phenotype": "Intermediate metabolizer"}]),
+        encoding="utf-8",
+    )
 
     parser = ingest.DnaIngestParser()
     monkeypatch.setattr(parser, "_parse_snvs_only", lambda _: [{"CHROM": "1"}])
@@ -1170,10 +1175,12 @@ def test_dna_and_rna_parser_parse(tmp_path, monkeypatch):
             "biomarkers": str(bio),
             "transloc": str(transloc),
             "cov": str(cov),
+            "pgx": str(pgx),
             "name": "S1",
         }
     )
-    assert "snvs" in out and "cnvs" in out and "cov" in out and "transloc" in out
+    assert {"snvs", "cnvs", "cov", "transloc", "pgx"} <= set(out)
+    assert out["pgx"] == {"records": [{"gene": "CYP2C19", "phenotype": "Intermediate metabolizer"}]}
 
     rna = ingest.RnaIngestParser.parse(
         {

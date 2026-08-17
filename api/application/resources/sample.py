@@ -14,6 +14,7 @@ from api.application.accounts.common import (
     utc_now,
 )
 from api.application.admin.sample_deletion import delete_all_sample_traces
+from api.application.resources.helpers import _validated_doc
 from api.domain.common.errors import api_error
 from api.infra.observability.operations import measured_operation
 
@@ -35,6 +36,7 @@ class ResourceSampleService:
             translocation_repository=store.translocation_repository,
             fusion_repository=store.fusion_repository,
             biomarker_repository=store.biomarker_repository,
+            pgx_repository=store.pgx_repository,
             rna_expression_repository=store.rna_expression_repository,
             rna_classification_repository=store.rna_classification_repository,
             rna_quality_repository=store.rna_quality_repository,
@@ -55,6 +57,7 @@ class ResourceSampleService:
         translocation_repository: Any,
         fusion_repository: Any,
         biomarker_repository: Any,
+        pgx_repository: Any,
         rna_expression_repository: Any,
         rna_classification_repository: Any,
         rna_quality_repository: Any,
@@ -72,6 +75,7 @@ class ResourceSampleService:
         self.translocation_repository = translocation_repository
         self.fusion_repository = fusion_repository
         self.biomarker_repository = biomarker_repository
+        self.pgx_repository = pgx_repository
         self.rna_expression_repository = rna_expression_repository
         self.rna_classification_repository = rna_classification_repository
         self.rna_quality_repository = rna_quality_repository
@@ -178,6 +182,7 @@ class ResourceSampleService:
             raise api_error(400, "Missing sample payload")
         updated_sample["updated_on"] = utc_now()
         updated_sample["updated_by"] = current_actor(actor_username)
+        updated_sample = _validated_doc("samples", updated_sample)
         updated_sample = _restore_object_ids(updated_sample)
         updated_sample["_id"] = sample_obj
         self.sample_repository.update_sample(sample_obj, updated_sample)
@@ -201,6 +206,7 @@ class ResourceSampleService:
             translocation_repository=self.translocation_repository,
             fusion_repository=self.fusion_repository,
             biomarker_repository=self.biomarker_repository,
+            pgx_repository=self.pgx_repository,
             rna_expression_repository=self.rna_expression_repository,
             rna_classification_repository=self.rna_classification_repository,
             rna_quality_repository=self.rna_quality_repository,

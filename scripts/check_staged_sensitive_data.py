@@ -72,7 +72,7 @@ ENV_SECRET_ASSIGNMENT = re.compile(
     re.MULTILINE,
 )
 SAMPLE_FIELD = re.compile(
-    r"^\s*(?:name|sample_id|case_id|control_id|clarity_case_id|clarity_control_id)\s*:\s*['\"]?([^'\"\s#]+)",
+    r"^\s*(?:name|sample_id|case_id|control_id|clarity_id|clarity_pool_id|clarity_case_id|clarity_control_id)\s*:\s*['\"]?([^'\"\s#]+)",
     re.MULTILINE | re.IGNORECASE,
 )
 

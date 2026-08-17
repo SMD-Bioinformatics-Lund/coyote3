@@ -35,13 +35,14 @@ def test_center_contact_and_collection_configuration_loads():
         script_name="/coyote3",
     )
     collections = load_collection_mapping(
-        primary_database="coyote3_dev",
-        bam_database="BAM_Service",
+        primary_database="arbitrary_center_database",
+        bam_database="arbitrary_bam_database",
     )
 
     assert contact["organization"]["name"] == "Test center"
     assert contact["contacts"]
-    assert collections["coyote3_dev"]["samples_collection"] == "samples"
+    assert collections["arbitrary_center_database"]["samples_collection"] == "samples"
+    assert collections["arbitrary_bam_database"]["bam_samples"] == "samples"
 
 
 def test_assay_catalog_machine_identifiers_use_underscores():

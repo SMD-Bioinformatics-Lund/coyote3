@@ -1,35 +1,26 @@
 ---
 name: demo_rna_sample
-asp_id: assay_rna_1
-subpanel_id: base
-environment: production
+assay: assay_rna_1
+subpanel: base
+profile: production
 genome_build: 38
 case_id: demo_rna_case
 control_id: null
+clarity_case_id: demo_rna_case_clarity
+clarity_case_pool_id: demo_rna_pool
 sample_no: 1
 paired: false
 sequencing_scope: wts
 omics_layer: rna
-platform: illumina
+sequencing_technology: Illumina
 read_mode: PE
 pipeline: RnaFusionPipeline
 pipeline_version: 1.0.0
-analysis_intents:
-  - somatic
-case:
-  id: demo_rna_case
-  clarity_id: demo_rna_case_clarity
-  clarity_pool_id: demo_rna_pool
-  ffpe: false
-  sequencing_run: demo_rna_run
-  reads: 1000000
-  purity: null
-files:
-  fusion_files:
-    path: demo_data/collections/all_collections_dummy/fusions.json
-  expression_path:
-    path: demo_data/collections/all_collections_dummy/rna_expression.json
-  classification_path:
-    path: demo_data/collections/all_collections_dummy/rna_classification.json
-  qc:
-    path: demo_data/collections/all_collections_dummy/rna_qc.json
+case_ffpe: false
+case_sequencing_run: demo_rna_run
+case_reads: 1000000
+case_purity: null
+fusion_files: ../collections/all_collections_dummy/fusions.json
+expression_path: ../collections/all_collections_dummy/rna_expression.json
+classification_path: ../collections/all_collections_dummy/rna_classification.json
+qc: ../collections/all_collections_dummy/rna_qc.json

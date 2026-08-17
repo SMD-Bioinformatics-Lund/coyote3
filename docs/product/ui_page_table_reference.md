@@ -404,19 +404,24 @@ The reports tab builds and previews clinical report content from current filters
 | --- | --- |
 | Preview controls | DNA/RNA selection, snapshot toggle, save report, and export/PDF actions where enabled. |
 | Report preview | Rendered clinical report preview using the configured report format. |
-| DNA snapshot table | Gene, variant identity, tier, and reviewed report text captured for DNA report findings. |
-| RNA fusion snapshot table | Fusion (`GENE1::GENE2`), selected breakpoints, effect, spanning pairs/reads, classification, and latest visible reviewed annotation. RNA reports do not use the DNA `Gene / Variant / Class / Text` snapshot layout. |
+| Small-variant snapshot | Gene, HGVS identity, tier, and reviewed report text. Somatic and germline rows retain their analysis intent. |
+| CNV snapshot | Genes, genomic region, size, gain/loss type, ratio, and callers. |
+| DNA fusion/translocation snapshot | Partner genes, breakpoint, HGVS, and selected structural consequence. |
+| RNA fusion snapshot | Fusion (`GENE1::GENE2`), selected breakpoints, effect, spanning pairs/reads, classification, and latest visible reviewed annotation. |
+| Biomarker snapshot | Biomarker name and the structured result included in the report. |
+| PGx snapshot | Gene, pharmacogenomic result, and retained structured result details. |
 | Report context | Collapsible technical context used for the report snapshot. |
 
 The rendered RNA report uses the sample's recorded ASPC revision's `reporting.report_header`,
 `report_method`, and `report_description`. Its result table contains `Fusion`
 and `Klassificering`; the detailed section adds effect, breakpoints, spanning
 reads, spanning pairs, longest anchor, classification, and reviewed comment.
-Only the same reportable fusion set shown in the snapshot is passed to the
-renderer. The table consumes the RNA snapshot contract directly; it does not
-fall back to DNA snapshot fields such as `gene`, `variant`, `hgvsc`, or
-`hgvsp`. Missing canonical fusion fields therefore surface as report contract
-errors instead of producing a partially populated preview.
+Each snapshot section uses columns specific to its finding type. Only findings
+selected by the corresponding report workflow are shown. For example, the RNA
+fusion table consumes the RNA snapshot contract directly and does not fall
+back to DNA small-variant fields. Missing canonical fusion fields therefore
+surface as report contract errors instead of producing a partially populated
+preview.
 
 !!! warning "Temporary snapshot"
 
@@ -561,7 +566,7 @@ Routes:
 * `/admin/ingest`
 * `/admin/ui-routes`
 
-Admin pages use forms and explicit contracts rather than JSON editors for normal workflows.
+Normal administration workflows use typed forms generated from explicit contracts. Admin Samples is the deliberate exception: users with global sample-edit permission can inspect or edit the complete sample document in a JSON editor. The editor checks JSON syntax continuously, while the API validates the document against the persisted sample contract before replacing it.
 
 | Page | Information shown |
 | --- | --- |
@@ -569,6 +574,7 @@ Admin pages use forms and explicit contracts rather than JSON editors for normal
 | Resource list | One search field, row count, informative columns, human updated dates, status badges, and view/edit/actions. |
 | View page | Same structure as edit page, but read-only. |
 | Create/edit page | Field-specific form controls, constants-backed select options, grouped permissions, and validation messages. |
+| Admin sample view/edit | Read-only or editable formatted JSON, live syntax status, formatting and reset controls, and server-side sample-contract validation. The route controls Mongo identity even if `_id` is changed in the editor. |
 | Audit events | Actor, event type, resource, method/path, severity, outcome, created time, request ID, and details. |
 | Application controls | Master background execution, complete sample-ingestion, generic collection-write, maintenance, application-module, and retention controls; observed worker/task/queue/schedule/module state; and the explicit HGNC-backed public OncoKB refresh. |
 | Ingest workspace | Watch-folder configuration, ingest task state, and manual ingest controls. |

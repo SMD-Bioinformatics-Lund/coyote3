@@ -18,6 +18,7 @@ from pydantic import ValidationError
 from api.app.container import util
 from api.app.deps.repositories import get_gene_list_repository, get_roles_repository
 from api.app.deps.services import get_internal_ingest_service
+from api.application.ingest.parsers import runtime_file_path
 from api.application.ingest.service import InternalIngestService
 from api.celery_app import celery_app
 from api.config.paths import INGEST_STAGING_DIR
@@ -268,6 +269,14 @@ def _save_upload(upload: UploadFile, destination: Path) -> str:
     return digest.hexdigest()
 
 
+def _remove_manifest_file_reference(payload: dict, key: str) -> None:
+    """Remove a file declaration from canonical and pipeline manifest shapes."""
+    payload.pop(key, None)
+    files = payload.get("files")
+    if isinstance(files, dict):
+        files.pop(key, None)
+
+
 @router.post(
     "/api/v1/internal/ingest/sample-bundle/upload",
     response_model=InternalIngestSampleBundlePayload,
@@ -333,11 +342,11 @@ def ingest_sample_bundle_upload_internal(
         missing: list[str] = []
         ambiguous: list[str] = []
         for key in SAMPLE_SOURCE_PATH_KEYS:
-            raw_value = source_payload.get(key)
-            if not isinstance(raw_value, str) or not raw_value.strip():
+            raw_value = runtime_file_path(source_payload, key)
+            if not raw_value or not raw_value.strip():
                 continue
             if key not in expected_keys:
-                source_payload.pop(key, None)
+                _remove_manifest_file_reference(source_payload, key)
                 continue
             path_value = raw_value.strip()
             resolved = uploads_by_exact.get(path_value)
@@ -354,7 +363,7 @@ def ingest_sample_bundle_upload_internal(
                     if key in required_keys:
                         missing.append(f"{key}:{path_value}")
                     else:
-                        source_payload.pop(key, None)
+                        _remove_manifest_file_reference(source_payload, key)
                 continue
             runtime_files[key] = resolved
 

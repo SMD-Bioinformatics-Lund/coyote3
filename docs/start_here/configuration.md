@@ -145,10 +145,10 @@ canonical `deploy/env/example.env` template. TOML and YAML keys are **not**
 environment variables and are documented in the linked center-configuration
 tables above.
 
-Some environment variables select configuration rather than duplicate it:
-`COYOTE3_DB` selects the matching application-database table in
-`center/collections.toml`, and `BAM_DB` selects the BAM-service table. The
-physical collection names themselves remain TOML values.
+Some environment variables select database instances rather than duplicate
+collection configuration. `COYOTE3_DB` is bound to the `[primary]` mapping in
+`center/collections.toml`, and `BAM_DB` is bound to `[bam]`. The physical
+collection names themselves remain TOML values.
 
 !!! warning "HTTPS session cookies"
 

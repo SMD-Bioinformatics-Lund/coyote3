@@ -51,7 +51,7 @@ def persist_report_and_snapshot(
     rule_provenance: dict | None = None,
 ) -> tuple[str, str]:
     """
-    Persist report HTML + report metadata + reported-variants snapshot rows.
+    Persist report HTML, report metadata, and typed report-finding snapshot rows.
     Returns created report_oid and PDF file path.
     """
     if not util.common.write_report(html, report_file):

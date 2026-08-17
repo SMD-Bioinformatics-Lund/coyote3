@@ -59,6 +59,7 @@ class MongoStore:
     assay_panel_repository: Any
     bam_record_repository: Any
     biomarker_repository: Any
+    pgx_repository: Any
     blacklist_repository: Any
     brca_repository: Any
     clinpgx_public_repository: Any
@@ -94,6 +95,7 @@ class MongoStore:
         "assay_panel_repository",
         "bam_record_repository",
         "biomarker_repository",
+        "pgx_repository",
         "blacklist_repository",
         "brca_repository",
         "clinpgx_public_repository",
@@ -138,6 +140,7 @@ class MongoStore:
         self.assay_panel_repository = _LazyRepositoryProxy()
         self.bam_record_repository = _LazyRepositoryProxy()
         self.biomarker_repository = _LazyRepositoryProxy()
+        self.pgx_repository = _LazyRepositoryProxy()
         self.blacklist_repository = _LazyRepositoryProxy()
         self.brca_repository = _LazyRepositoryProxy()
         self.clinpgx_public_repository = _LazyRepositoryProxy()

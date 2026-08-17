@@ -119,10 +119,7 @@ def _config_dict(config_obj) -> dict[str, Any]:
     for name in dir(config_obj):
         if not name.isupper():
             continue
-        try:
-            out[name] = getattr(config_obj, name)
-        except Exception:
-            continue
+        out[name] = getattr(config_obj, name)
     out.setdefault("SECRET_KEY_FALLBACKS", [])
     return out
 

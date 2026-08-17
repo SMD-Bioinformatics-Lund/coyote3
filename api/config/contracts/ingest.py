@@ -27,14 +27,14 @@ ANALYSIS_PRELOAD_CONTRACT = AnalysisPreloadContract(
             "COVERAGE": "cov",
             "FUSION": "transloc",
             "TMB": "biomarkers",
-            "PGX": None,
+            "PGX": "pgx",
         },
         "rna": {
             "FUSION": "fusions",
             "EXPRESSION": "rna_expr",
             "CLASSIFICATION": "rna_class",
             "QC": "rna_qc",
-            "PGX": None,
+            "PGX": "pgx",
         },
     }
 )

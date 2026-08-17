@@ -12,7 +12,7 @@ The core rule is:
 
 > A report preview is temporary and filter-derived. A saved report is immutable
 > clinical evidence: HTML/PDF artifacts plus database metadata and per-variant
-> snapshot rows.
+> typed finding snapshot rows.
 
 ## High-Level Flow
 
@@ -33,7 +33,8 @@ The core rule is:
 8. The user confirms Save.
 9. The backend reruns the same report workflow in save mode, renders HTML,
    renders PDF from the same HTML, saves report metadata, marks the sample as
-   reported, and persists per-variant snapshot rows in `reported_variants`.
+   reported, and persists one typed snapshot row for every included report
+   finding in `reported_variants`.
 10. Future searches, variant detail pages, dashboards, and audit workflows read
    the immutable report metadata and reported-variant snapshots.
 
@@ -176,7 +177,7 @@ Saved outputs:
 - HTML report file on disk
 - PDF report file on disk
 - one `reports` document
-- many `reported_variants` documents, one per reportable variant snapshot
+- many `reported_variants` documents, one per reportable finding snapshot
 - sample flags updated to show that the sample has a saved report
 
 ## Report Artifact Rules
@@ -212,6 +213,7 @@ sections include:
 - `TRANSLOCATION`
 - `FUSION`
 - `BIOMARKER`
+- `PGX`
 
 The report can show only sections enabled for that assay configuration.
 
@@ -336,7 +338,23 @@ RNA report sections use the RNA report context shape, not the DNA
 ## Snapshot Rows
 
 Snapshot rows are transient until save. They are built during preview for UI
-review and during save for persistence.
+review and during save for persistence. A row is created only when its analysis
+is present in `reporting.report_sections` and the finding passes that analysis'
+report selection. The preview groups rows by `analysis_type`; a saved report
+persists the same typed rows under its report identifier.
+
+| `analysis_type` | `finding_type` | Snapshot identity and report-time fields |
+| --- | --- | --- |
+| `SNV` | `small_variant` | genomic `simple_id`, intent, gene, transcript, HGVS.c, HGVS.p, tier, annotation links, and active sample-comment link |
+| `CNV` | `copy_number_variant` | prefixed CNV identity, genes, region, size, gain/loss type, ratio, callers, and compact source values |
+| `TRANSLOCATION` | `structural_variant` | prefixed structural identity, partner genes, breakpoint, selected HGVS/effect, and compact breakpoint values |
+| `FUSION` | `fusion` | prefixed fusion identity, partner genes, breakpoints, effect, spanning support, tier, and reviewed annotation text |
+| `BIOMARKER` | `biomarker` | prefixed biomarker identity, name, display result, and complete structured result values |
+| `PGX` | `pharmacogenomic_result` | prefixed PGx identity, gene, result/phenotype/diplotype, and complete structured result values |
+
+The type prefix prevents identities from different analyses colliding within
+one report. For example, CNV and biomarker rows cannot collide with an SNV
+genomic identity even when they mention the same gene.
 
 For DNA SNVs, each snapshot row contains the reportable identity and
 classification state at report creation time:
@@ -356,9 +374,12 @@ classification state at report creation time:
 - `variant`
 - `created_on`
 
-The snapshot is intentionally smaller than the full variant document. Full
-variant payload remains in the source variant collection. The snapshot stores
-the immutable evidence needed to answer report-history questions.
+The snapshot is intentionally smaller than the source finding document. Full
+payloads remain in their analysis collections. `finding_data` retains the
+small structured subset needed to understand a non-SNV result without copying
+the mutable source document wholesale. CNV profile images, coverage plots, and
+other rendered artifacts remain in the report HTML/PDF and sample file
+metadata; they are not finding rows.
 
 ## Collections Written On Save
 
@@ -417,7 +438,7 @@ Many documents can be written per saved report.
 
 Purpose:
 
-- immutable per-report variant evidence
+- immutable per-report finding evidence
 - cross-sample lookup
 - report-history lookup
 - tier distribution analytics
@@ -433,6 +454,8 @@ Important fields:
   "report_id": "report_id_placeholder",
   "report_num": 1,
   "created_by": "username",
+  "analysis_type": "SNV",
+  "finding_type": "small_variant",
   "var_oid": "ObjectId",
   "annotation_oid": "ObjectId",
   "annotation_text_oid": "ObjectId",
@@ -454,6 +477,7 @@ Indexes:
 
 - unique `sample_oid`, `report_oid`, `simple_id`
 - `sample_oid`, `report_oid`
+- `sample_oid`, `report_oid`, `analysis_type`
 - `gene`, `simple_id_hash`, `simple_id`
 - `simple_id_hash`, `simple_id`, `tier`
 - `gene`, `hgvsp`, `tier`
@@ -484,9 +508,10 @@ the latest report pointer and status flags for list views and dashboards.
 The `reported_variants` collection gives the application a clinical report
 history index without repeatedly scanning raw variants or parsing report files.
 
-It answers questions such as:
+The collection name is retained as an established database contract, but the
+documents represent all report finding types. It answers questions such as:
 
-- Has this variant been reported before?
+- Has this variant, structural event, biomarker, or PGx result been reported before?
 - In which samples was it reported?
 - At what tier was it reported?
 - Which report included it?
@@ -611,11 +636,8 @@ This design gives Coyote3:
 
 ## Current Implementation Notes
 
-- DNA report snapshots currently focus on SNV reported variants.
-- CNV, fusion, translocation, and biomarker report sections are rendered in the
-  report context when configured, but equivalent dedicated snapshot collections
-  or snapshot row schemas should be designed before treating them as immutable
-  cross-sample evidence in the same way as SNVs.
+- SNV, CNV, fusion, translocation, biomarker, and PGx findings share one typed,
+  report-scoped snapshot collection and are displayed in separate preview tables.
 - The renderer outputs clinical report HTML with embedded CSS. The internal
   rendering mechanism is not part of the product contract; the artifact format
   is.

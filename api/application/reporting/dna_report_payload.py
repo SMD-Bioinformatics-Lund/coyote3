@@ -12,6 +12,13 @@ from api.application.interpretation.annotation_enrichment import (
     add_global_annotations as shared_add_global_annotations,
 )
 from api.application.reporting.clinical_rules.preparation import prepare_report_context
+from api.application.reporting.snapshot_rows import (
+    build_biomarker_snapshot_rows,
+    build_cnv_snapshot_rows,
+    build_pgx_snapshot_rows,
+    build_translocation_snapshot_rows,
+    flatten_pgx_records,
+)
 from api.config.constants import primary_analysis_file_key
 from api.config.database_versions import sample_vep_version
 from api.domain.common.assay_filters import (
@@ -277,15 +284,11 @@ def _normalize_dna_report_sections(sections: list[str] | None) -> list[str]:
     """Normalize DNA report-section toggles to supported rendered sections."""
     raw = [str(value).strip().upper() for value in (sections or []) if str(value).strip()]
     normalized: list[str] = []
-    include_biomarker = False
     for value in raw:
-        if value in {"BIOMARKER", "TMB", "PGX"}:
-            include_biomarker = True
-            continue
+        if value == "TMB":
+            value = "BIOMARKER"
         if value not in normalized:
             normalized.append(value)
-    if include_biomarker:
-        normalized.append("BIOMARKER")
     return normalized
 
 
@@ -467,6 +470,8 @@ def _build_snapshot_rows(
         )
         snapshot_rows.append(
             {
+                "analysis_type": "SNV",
+                "finding_type": "small_variant",
                 "var_oid": v.get("_id"),
                 "annotation_oid": v.get("classification", {}).get("_id", None),
                 "annotation_text_oid": annotations_interesting_assay_specific.get("_id", None),
@@ -505,6 +510,7 @@ def build_dna_report_payload(
     translocation_repository,
     vep_metadata_repository,
     annotation_repository,
+    pgx_repository=None,
     clinical_rule_service=None,
 ) -> Tuple[str, Dict[str, Any], List[Dict[str, Any]]]:
     """
@@ -670,6 +676,8 @@ def build_dna_report_payload(
             ),
         )
         rule_sections_data["cnvs"] = report_sections_data["cnvs"]
+        if include_snapshot:
+            snapshot_rows.extend(build_cnv_snapshot_rows(report_sections_data["cnvs"]))
 
     if "CNV_PROFILE" in report_sections:
         report_sections_data["cnv_profile_base64"] = get_plot(
@@ -684,6 +692,8 @@ def build_dna_report_payload(
             biomarker_repository.get_sample_biomarkers(sample_id=str(sample["_id"])) or []
         )
         rule_sections_data["biomarkers"] = report_sections_data["biomarkers"]
+        if include_snapshot:
+            snapshot_rows.extend(build_biomarker_snapshot_rows(report_sections_data["biomarkers"]))
 
     if "TRANSLOCATION" in report_sections:
         translocation_filter_genes, translocation_scope_restricted = (
@@ -712,10 +722,24 @@ def build_dna_report_payload(
             },
         )
         rule_sections_data["translocs"] = report_sections_data["translocs"]
+        if include_snapshot:
+            snapshot_rows.extend(
+                build_translocation_snapshot_rows(report_sections_data["translocs"])
+            )
 
     if "FUSION" in report_sections:
         report_sections_data["fusions"] = []
         rule_sections_data["fusions"] = report_sections_data["fusions"]
+
+    if "PGX" in report_sections:
+        report_sections_data["pgx"] = flatten_pgx_records(
+            list(pgx_repository.get_sample_pgx(str(sample["_id"])) or [])
+            if pgx_repository is not None
+            else []
+        )
+        rule_sections_data["pgx"] = report_sections_data["pgx"]
+        if include_snapshot:
+            snapshot_rows.extend(build_pgx_snapshot_rows(report_sections_data["pgx"]))
 
     assay_config["reporting"]["report_header"] = get_report_header(
         assay_group,

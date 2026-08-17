@@ -15,20 +15,21 @@ def load_collection_mapping(
     bam_database: str,
     config_path: str | Path = COLLECTIONS_CONFIG_PATH,
 ) -> dict[str, dict[str, str]]:
-    """Load mappings for the configured application and BAM-service databases."""
+    """Load logical mappings and bind them to the configured database names."""
     path_obj = Path(config_path)
     if not path_obj.exists():
         raise RuntimeError(f"Collections configuration does not exist: {path_obj}")
     with path_obj.open("rb") as handle:
         raw: dict[str, Any] = tomllib.load(handle)
 
-    required = (primary_database, bam_database)
-    missing = [database for database in required if database not in raw]
+    logical_sections = {"primary": primary_database, "bam": bam_database}
+    missing = [section for section in logical_sections if section not in raw]
     if missing:
         raise ValueError(
-            f"Database(s) {', '.join(missing)} are missing from collections configuration: {path_obj}"
+            f"Logical section(s) {', '.join(missing)} are missing from collections "
+            f"configuration: {path_obj}"
         )
     return {
-        database: {str(key): str(value) for key, value in dict(raw[database]).items()}
-        for database in required
+        database: {str(key): str(value) for key, value in dict(raw[section]).items()}
+        for section, database in logical_sections.items()
     }

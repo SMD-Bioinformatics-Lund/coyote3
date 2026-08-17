@@ -64,16 +64,32 @@ def test_assay_panel_fixture_includes_required_files() -> None:
 
 
 def test_demo_ingest_manifests_use_the_canonical_sample_contract() -> None:
-    retired_keys = {"assay", "subpanel", "profile", "sequencing_technology"}
+    from api.application.ingest.collection_writes import parse_yaml_payload
 
     for manifest_path in (
         Path("demo_data/ingest/generic_case_control.yaml"),
         Path("demo_data/ingest/generic_rna_sample.yaml"),
     ):
-        payload = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+        yaml_content = manifest_path.read_text(encoding="utf-8")
+        payload = yaml.safe_load(yaml_content)
 
         assert isinstance(payload, dict)
-        assert not retired_keys.intersection(payload)
-        assert isinstance(payload.get("files"), dict)
-        assert isinstance(payload.get("case"), dict)
-        SamplesDoc.model_validate(payload)
+        assert {"assay", "subpanel", "profile", "sequencing_technology"}.issubset(payload)
+        assert not {"asp_id", "subpanel_id", "environment", "platform"}.intersection(payload)
+        assert "files" not in payload
+        assert "case" not in payload
+        assert payload.get("case_id")
+        assert payload.get("clarity_case_id")
+        SamplesDoc.model_validate(parse_yaml_payload(yaml_content))
+
+
+def test_demo_dna_ingest_bundle_paths_resolve_from_manifest_directory() -> None:
+    manifest_path = Path("demo_data/ingest/generic_case_control.yaml")
+    payload = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+
+    assert isinstance(payload, dict)
+    for file_key in ("vcf_files", "cnv", "cnvprofile", "cov"):
+        declared_path = payload.get(file_key)
+        assert isinstance(declared_path, str)
+        assert not Path(declared_path).is_absolute()
+        assert (manifest_path.parent / declared_path).is_file()

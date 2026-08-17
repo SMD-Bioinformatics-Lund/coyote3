@@ -5,6 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { Activity, AlertTriangle, CopyPlus, Database, Dna, Download, Edit, Eye, FileUp, KeyRound, ListTree, LockKeyhole, MailPlus, Megaphone, Plus, Power, Search, Settings2, Shield, ShieldCheck, SlidersHorizontal, Trash2, Upload, UsersRound } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
+import { JsonDocumentEditor } from "@/components/admin/JsonDocumentEditor"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
@@ -490,7 +491,7 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
   const isSamples = spec.key === "samples"
   const contextQuery = useQuery({
     queryKey: ["admin-resource-context", spec.key, mode, id, aspcCategory],
-    enabled: allowed && !isSamples,
+    enabled: allowed && (!isSamples || mode !== "create"),
     retry: false,
     queryFn: () => {
       if (mode === "create") {
@@ -564,6 +565,7 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
 
   const saveMutation = useMutation({
     mutationFn: (payload: any) => {
+      if (isSamples) return api.put(`${spec.endpoint}/${encodeURIComponent(id)}`, { sample: payload })
       const bodyKey = ["asp", "aspc", "genelists"].includes(spec.key) ? "config" : "form_data"
       const body = { [bodyKey]: payload }
       if (mode === "create") return api.post(spec.endpoint, body)
@@ -590,7 +592,8 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
     },
   })
 
-  const title = `${effectiveMode === "create" ? "Create" : effectiveMode === "view" ? "View" : "Edit"} ${spec.title}`
+  const editorResourceTitle = isSamples ? "Sample JSON document" : spec.title
+  const title = `${effectiveMode === "create" ? "Create" : effectiveMode === "view" ? "View" : "Edit"} ${editorResourceTitle}`
 
   return (
     <PageShell
@@ -665,18 +668,18 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
             Your roles do not include <code>{requiredPermission}</code>.
           </p>
         </section>
-      ) : isSamples ? (
+      ) : isSamples && mode === "create" ? (
         <section className="surface-panel p-4">
-          <h2 className="text-lg font-bold">Sample Admin Editing</h2>
+          <h2 className="text-lg font-semibold">Samples are created through ingestion</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sample edits use dedicated sample workflows. This generic admin area supports sample view and delete only.
+            Submit a validated DNA or RNA manifest through the ingest workspace to create a sample.
           </p>
         </section>
       ) : contextQuery.isLoading ? (
         <section className="surface-panel flex justify-center p-10">
           <AppLoader label="Loading admin form" />
         </section>
-      ) : contextQuery.error || !form ? (
+      ) : contextQuery.error || (!isSamples && !form) || (isSamples && !doc) ? (
         <section className="surface-panel p-4">
           <h2 className="text-lg font-bold">Unable to load form</h2>
           <p className="mt-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
@@ -686,6 +689,18 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
             A 403 means the backend denied access to this workflow. A 404 means the requested record was not found; for users, reopen edit from the Users table so the username business key is used.
           </p>
         </section>
+      ) : isSamples ? (
+        <JsonDocumentEditor
+          document={doc as Record<string, unknown>}
+          readOnly={effectiveMode === "view"}
+          isSaving={saveMutation.isPending}
+          serverError={editorError}
+          onCancel={() => navigate(`/admin/${spec.key}`)}
+          onSave={(sampleDocument) => {
+            setEditorError("")
+            saveMutation.mutate(sampleDocument)
+          }}
+        />
       ) : (
         <>
           {systemPermission && (
@@ -722,7 +737,7 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
           <AdminManagedForm
             mode={effectiveMode}
             spec={spec}
-            form={form}
+            form={form as FormSpec}
             values={values}
             setValues={setValues}
             isSaving={saveMutation.isPending}
@@ -731,7 +746,7 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
             onSave={() => {
               if (effectiveMode === "view") return
               setEditorError("")
-              saveMutation.mutate(submitPayload(form, values, effectiveMode))
+              saveMutation.mutate(submitPayload(form as FormSpec, values, effectiveMode))
             }}
           />
         </>

@@ -6,14 +6,15 @@ usage() {
 Run an end-to-end center check against a running Coyote3 API.
 
 Usage:
-  scripts/center_check.sh \
+  bash scripts/center_check.sh \
     --api-base-url <url> \
     (--bearer-token <token> | --username <user> --password <pass>) \
+    [--provider <local|ldap>] \
     --yaml-file <path> \
     [--skip-file-check]
 
 Example:
-  scripts/center_check.sh \
+  bash scripts/center_check.sh \
     --api-base-url http://localhost:6816 \
     --username "admin@your-center.org" \
     --password "CHANGE_ME" \
@@ -25,6 +26,7 @@ API_BASE_URL=""
 BEARER_TOKEN=""
 USERNAME=""
 PASSWORD=""
+PROVIDER="local"
 YAML_FILE=""
 SKIP_FILE_CHECK=0
 PYTHON_BIN="${PYTHON_BIN:-}"
@@ -35,12 +37,18 @@ while [[ $# -gt 0 ]]; do
     --bearer-token) BEARER_TOKEN="$2"; shift 2 ;;
     --username) USERNAME="$2"; shift 2 ;;
     --password) PASSWORD="$2"; shift 2 ;;
+    --provider) PROVIDER="$2"; shift 2 ;;
     --yaml-file) YAML_FILE="$2"; shift 2 ;;
     --skip-file-check) SKIP_FILE_CHECK=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; usage; exit 2 ;;
   esac
 done
+
+if [[ "$PROVIDER" != "local" && "$PROVIDER" != "ldap" ]]; then
+  echo "ERROR: --provider must be local or ldap" >&2
+  exit 2
+fi
 
 if [[ -z "$API_BASE_URL" || -z "$YAML_FILE" ]]; then
   echo "ERROR: --api-base-url and --yaml-file are required" >&2
@@ -71,6 +79,7 @@ if [[ -z "$BEARER_TOKEN" ]]; then
     --mode password \
     --username "$USERNAME" \
     --password "$PASSWORD" \
+    --provider "$PROVIDER" \
     --print-token)"
   BEARER_TOKEN="$("$PYTHON_BIN" -c '
 import json
@@ -100,44 +109,11 @@ else
 fi
 
 echo "[step] collect data files referenced by YAML"
-mapfile -t UPLOAD_FILES < <("$PYTHON_BIN" -c '
-import sys
-from pathlib import Path
-import yaml
-
-yaml_path = Path(sys.argv[1]).resolve()
-payload = yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
-keys = (
-    "vcf_files",
-    "cnv",
-    "cnvprofile",
-    "cov",
-    "transloc",
-    "biomarkers",
-    "fusion_files",
-    "expression_path",
-    "classification_path",
-    "qc",
+mapfile -t UPLOAD_FILES < <(
+  PYTHONPATH=. "$PYTHON_BIN" scripts/validate_ingest_spec.py \
+    --yaml "$YAML_FILE" \
+    --list-files
 )
-seen: set[str] = set()
-for key in keys:
-    value = payload.get(key)
-    if not isinstance(value, str) or not value.strip():
-        continue
-    src = Path(value.strip())
-    if not src.is_absolute():
-        rel_candidates = [
-            (yaml_path.parent / src).resolve(),
-            (Path.cwd() / src).resolve(),
-        ]
-        src = next((p for p in rel_candidates if p.exists()), rel_candidates[0])
-    if not src.exists():
-        continue
-    text = str(src)
-    if text not in seen:
-        seen.add(text)
-        print(text)
-' "$YAML_FILE")
 
 echo "[step] submit ingest sample-bundle upload"
 CURL_ARGS=(

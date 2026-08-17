@@ -11,6 +11,7 @@ from api.contracts.admin import (
     AdminChangePayload,
     AdminSampleContextPayload,
     AdminSamplesListPayload,
+    AdminSampleUpdatePayload,
 )
 from api.interfaces.http.tags import TAG_ADMIN_ASSAYS
 from api.security.access import ApiUser, require_access
@@ -80,7 +81,7 @@ def admin_sample_context_read(
 def update_sample_change(
     request: Request,
     sample_id: str,
-    payload: dict = Body(default_factory=dict),
+    payload: AdminSampleUpdatePayload = Body(...),
     user: ApiUser = Depends(require_access(permission="sample:edit:global")),
     service: ResourceSampleService = Depends(get_admin_sample_service),
 ):
@@ -95,7 +96,11 @@ def update_sample_change(
     Returns:
         dict: Mutation response payload.
     """
-    result = service.update(sample_id=sample_id, payload=payload, actor_username=user.username)
+    result = service.update(
+        sample_id=sample_id,
+        payload=payload.model_dump(),
+        actor_username=user.username,
+    )
     request.state.audit_resource = {
         "type": "sample",
         "id": result.get("meta", {}).get("sample_oid") or result.get("resource_id"),

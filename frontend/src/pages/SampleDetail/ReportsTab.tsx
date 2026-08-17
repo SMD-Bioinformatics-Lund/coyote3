@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 
 type ReportType = "dna" | "rna"
 
-const dnaSnapshotColumns: ColumnDef<any, any>[] = [
+const snvSnapshotColumns: ColumnDef<any, any>[] = [
   {
     id: "gene",
     header: "Gene",
@@ -86,6 +86,81 @@ const rnaSnapshotColumns: ColumnDef<any, any>[] = [
     ),
   },
 ]
+
+const cnvSnapshotColumns: ColumnDef<any, any>[] = [
+  {
+    id: "genes",
+    header: "Genes",
+    accessorFn: (row) => row.gene || row.genes?.join(", ") || "-",
+    cell: ({ row }) => <span className="font-semibold text-link">{String(row.getValue("genes"))}</span>,
+  },
+  { id: "region", header: "Region", accessorFn: (row) => row.region || "-" },
+  { id: "size", header: "Size", accessorFn: (row) => row.size ?? "-" },
+  { id: "type", header: "Type", accessorFn: (row) => row.cnv_type || row.finding_data?.type || "-" },
+  { id: "ratio", header: "Ratio", accessorFn: (row) => row.ratio ?? row.finding_data?.ratio ?? "-" },
+  {
+    id: "callers",
+    header: "Callers",
+    accessorFn: (row) => Array.from(new Set(row.callers || [])).join(", ") || "-",
+  },
+]
+
+const translocationSnapshotColumns: ColumnDef<any, any>[] = [
+  { id: "gene1", header: "Gene 1", accessorFn: (row) => row.gene_1 || "-" },
+  { id: "gene2", header: "Gene 2", accessorFn: (row) => row.gene_2 || "-" },
+  { id: "breakpoint", header: "Breakpoint", accessorFn: (row) => row.breakpoint || "-" },
+  { id: "hgvsc", header: "HGVS.c", accessorFn: (row) => row.hgvsc || "-" },
+  { id: "hgvsp", header: "HGVS.p", accessorFn: (row) => row.hgvsp || "-" },
+  { id: "effect", header: "Effect", accessorFn: (row) => row.effect || "-" },
+]
+
+const biomarkerSnapshotColumns: ColumnDef<any, any>[] = [
+  { id: "biomarker", header: "Biomarker", accessorFn: (row) => row.biomarker || "-" },
+  {
+    id: "result",
+    header: "Result",
+    accessorFn: (row) => row.result || JSON.stringify(row.finding_data || {}),
+    cell: ({ row }) => (
+      <span className="block max-w-[54rem] truncate" title={String(row.getValue("result"))}>
+        {String(row.getValue("result") || "-")}
+      </span>
+    ),
+  },
+]
+
+const pgxSnapshotColumns: ColumnDef<any, any>[] = [
+  { id: "gene", header: "Gene", accessorFn: (row) => row.gene || "-" },
+  {
+    id: "result",
+    header: "Result",
+    accessorFn: (row) => row.pgx_result || row.finding_data?.result || row.finding_data?.phenotype || row.finding_data?.diplotype || "-",
+  },
+  {
+    id: "details",
+    header: "Details",
+    accessorFn: (row) => JSON.stringify(row.finding_data || {}),
+    cell: ({ row }) => (
+      <span className="block max-w-[54rem] truncate" title={String(row.getValue("details"))}>
+        {String(row.getValue("details") || "-")}
+      </span>
+    ),
+  },
+]
+
+const snapshotSections = [
+  { type: "SNV", label: "Small variants", columns: snvSnapshotColumns },
+  { type: "CNV", label: "Copy-number variants", columns: cnvSnapshotColumns },
+  { type: "TRANSLOCATION", label: "DNA fusions and translocations", columns: translocationSnapshotColumns },
+  { type: "FUSION", label: "RNA fusions", columns: rnaSnapshotColumns },
+  { type: "BIOMARKER", label: "Biomarkers", columns: biomarkerSnapshotColumns },
+  { type: "PGX", label: "Pharmacogenomics", columns: pgxSnapshotColumns },
+] as const
+
+function snapshotAnalysisType(row: any, reportType: ReportType): string {
+  const explicitType = String(row?.analysis_type || "").trim().toUpperCase()
+  if (explicitType) return explicitType
+  return reportType === "rna" ? "FUSION" : "SNV"
+}
 
 export function ReportsTab({
   sampleId,
@@ -172,7 +247,13 @@ export function ReportsTab({
   })
 
   const templateStatus = data?.meta?.template_status
-  const snapshotColumns = reportType === "rna" ? rnaSnapshotColumns : dnaSnapshotColumns
+  const snapshotRows = data?.report?.snapshot_rows || []
+  const visibleSnapshotSections = snapshotSections
+    .map((section) => ({
+      ...section,
+      rows: snapshotRows.filter((row: any) => snapshotAnalysisType(row, reportType) === section.type),
+    }))
+    .filter((section) => section.rows.length > 0)
   const hasRenderedHtml = Boolean(templateStatus?.has_html && data?.report?.html)
   const templateStatusMessage = templateStatus?.message || "Report preview has not been rendered yet."
 
@@ -266,11 +347,29 @@ export function ReportsTab({
                 {templateStatusMessage}
               </div>
             )}
-            <DataTable
-              columns={snapshotColumns}
-              data={data?.report?.snapshot_rows || []}
-              filename={`${sampleId}_${reportType}_snapshot.csv`}
-            />
+            {visibleSnapshotSections.length > 0 ? (
+              <div className="divide-y divide-border">
+                {visibleSnapshotSections.map((section) => (
+                  <div key={section.type} className="py-4 first:pt-0 last:pb-0">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <h5 className="font-semibold">{section.label}</h5>
+                      <span className="rounded-full bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground">
+                        {section.rows.length} finding(s)
+                      </span>
+                    </div>
+                    <DataTable
+                      columns={section.columns as ColumnDef<any, any>[]}
+                      data={section.rows}
+                      filename={`${sampleId}_${reportType}_${section.type.toLowerCase()}_snapshot.csv`}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                No reportable findings are included in this snapshot.
+              </div>
+            )}
           </section>
           <section className="glass-card p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -298,7 +397,7 @@ export function ReportsTab({
                 <h4 className="font-semibold">Confirm report save</h4>
                 <p className="mt-1 text-sm text-muted-foreground">
                   This saves the current backend-rendered preview as HTML and PDF, and persists the
-                  reported-variant snapshot rows for this report.
+                  reported finding snapshot rows for this report.
                 </p>
               </div>
               <button

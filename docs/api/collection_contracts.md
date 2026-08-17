@@ -564,6 +564,14 @@ Optional keys:
 - `updated_by` (str | None)
 - `updated_on` (datetime.datetime | None)
 
+## `pgx`
+
+Required keys:
+- `SAMPLE_ID` (str)
+
+Optional keys:
+- None
+
 ## `reported_variants`
 
 Required keys:
@@ -571,24 +579,26 @@ Required keys:
 - `sample_name` (str)
 - `report_oid` (Any)
 - `sample_oid` (Any)
-- `var_oid` (Any)
-- `annotation_oid` (Any)
-- `annotation_text_oid` (Any)
-- `sample_comment_oid` (Any)
+- `analysis_type` (str)
 - `simple_id` (str)
 - `simple_id_hash` (str)
-- `gene` (str)
-- `transcript` (str)
-- `hgvsc` (str)
-- `hgvsp` (str)
-- `variant` (str)
-- `var_type` (str)
-- `tier` (int)
 - `created_by` (str)
 - `created_on` (datetime)
 
 Optional keys:
-- None
+- `finding_type` (str | None)
+- `var_oid` (Any | None)
+- `annotation_oid` (Any | None)
+- `annotation_text_oid` (Any | None)
+- `sample_comment_oid` (Any | None)
+- `gene` (str | None)
+- `transcript` (str | None)
+- `hgvsc` (str | None)
+- `hgvsp` (str | None)
+- `variant` (str | None)
+- `var_type` (str | None)
+- `tier` (int | None)
+- `finding_data` (dict[str, Any])
 
 ## `reports`
 

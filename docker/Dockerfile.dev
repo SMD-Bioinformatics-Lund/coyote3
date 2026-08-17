@@ -13,6 +13,7 @@ ENV GIT_COMMIT=${GIT_COMMIT}
 ENV BUILD_TIME=${BUILD_TIME}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
     libxml2-dev libxslt1-dev zlib1g-dev libsasl2-dev libldap2-dev \
     build-essential libssl-dev libffi-dev libjpeg-dev libpq-dev \
     liblcms2-dev libblas-dev libatlas-base-dev libglib2.0-dev \

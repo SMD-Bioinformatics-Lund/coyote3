@@ -38,6 +38,7 @@ def _rna_workflow(
     fusion_repository=None,
     annotation_repository=None,
     assay_panel_repository=None,
+    pgx_repository=None,
     reported_variant_repository=None,
     report_repository=None,
 ) -> rna_workflow.RNAWorkflowService:
@@ -51,6 +52,7 @@ def _rna_workflow(
         fusion_repository=fusion_repository or stub,
         annotation_repository=annotation_repository or stub,
         assay_panel_repository=assay_panel_repository or stub,
+        pgx_repository=pgx_repository,
         reported_variant_repository=reported_variant_repository or stub,
         report_repository=report_repository or stub,
         clinical_rule_service=None,
@@ -272,10 +274,13 @@ def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cn
             get_variant_class_translations=lambda version: {},
         ),
         annotation_repository=SimpleNamespace(),
+        include_snapshot=True,
     )
 
     assert template_name == "dna_report.html"
-    assert snapshot_rows == []
+    assert len(snapshot_rows) == 1
+    assert snapshot_rows[0]["analysis_type"] == "CNV"
+    assert snapshot_rows[0]["var_oid"] == "cnv3"
     assert [cnv["_id"] for cnv in context["report_sections_data"]["cnvs"]] == ["cnv3"]
 
 
@@ -445,6 +450,7 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
     assert rows[0]["spanning_pairs"] == 8
     assert rows[0]["spanning_reads"] == 13
     assert rows[0]["classification"] == 2
+    assert rows[0]["analysis_type"] == "FUSION"
     assert rows[0]["text"] == "Reviewed fusion"
 
     template, context, snapshot_rows = workflow.build_report_payload(

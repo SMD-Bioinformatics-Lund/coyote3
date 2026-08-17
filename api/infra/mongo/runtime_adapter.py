@@ -38,6 +38,7 @@ from api.infra.mongo.repositories.gene_lists import ISGLRepository
 from api.infra.mongo.repositories.grouped_coverage import GroupCoverageRepository
 from api.infra.mongo.repositories.notifications import NotificationsRepository
 from api.infra.mongo.repositories.permissions import PermissionsRepository
+from api.infra.mongo.repositories.pgx import PgxRepository
 from api.infra.mongo.repositories.reported_variants import ReportedVariantsRepository
 from api.infra.mongo.repositories.reports import ReportRepository
 from api.infra.mongo.repositories.rna_classification import RNAClassificationRepository
@@ -67,6 +68,7 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("user_repository", UsersRepository, "users"),
     ("fusion_repository", FusionsRepository, "fusions"),
     ("biomarker_repository", BiomarkerRepository, "biomarkers"),
+    ("pgx_repository", PgxRepository, "pgx"),
     ("coverage_repository", CoverageRepository, "coverage"),
     ("grouped_coverage_repository", GroupCoverageRepository, "groupcov"),
     ("assay_configuration_repository", ASPConfigRepository, "aspc"),

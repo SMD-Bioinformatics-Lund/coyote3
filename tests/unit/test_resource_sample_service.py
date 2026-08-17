@@ -70,6 +70,7 @@ def build_service() -> tuple[ResourceSampleService, SampleRepository, list[objec
             "translocs",
             "fusions",
             "biomarkers",
+            "pgx",
             "rna_expression",
             "rna_classification",
             "rna_quality",
@@ -87,16 +88,39 @@ def build_service() -> tuple[ResourceSampleService, SampleRepository, list[objec
         translocation_repository=dependencies[3],
         fusion_repository=dependencies[4],
         biomarker_repository=dependencies[5],
-        rna_expression_repository=dependencies[6],
-        rna_classification_repository=dependencies[7],
-        rna_quality_repository=dependencies[8],
-        sample_comment_repository=dependencies[9],
-        report_repository=dependencies[10],
-        reported_variant_repository=dependencies[11],
-        oncokb_public_cache_repository=dependencies[12],
+        pgx_repository=dependencies[6],
+        rna_expression_repository=dependencies[7],
+        rna_classification_repository=dependencies[8],
+        rna_quality_repository=dependencies[9],
+        sample_comment_repository=dependencies[10],
+        report_repository=dependencies[11],
+        reported_variant_repository=dependencies[12],
+        oncokb_public_cache_repository=dependencies[13],
         assay_panel_repository=AssayPanelRepository(),
     )
     return service, sample_repository, dependencies
+
+
+def valid_sample_document(**overrides: object) -> dict[str, object]:
+    """Return a complete synthetic DNA sample accepted by the persisted contract."""
+    document: dict[str, object] = {
+        "_id": "507f191e810c19729de860ea",
+        "name": "synthetic-sample",
+        "asp_id": "assay",
+        "subpanel_id": "base",
+        "environment": "production",
+        "case_id": "synthetic-case",
+        "sample_no": 1,
+        "paired": False,
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
+        "pipeline": "SyntheticPanelPipeline",
+        "pipeline_version": "1.0.0",
+        "files": {"vcf_files": {"path": "/synthetic/sample.vcf"}},
+        "case": {"id": "synthetic-case", "ffpe": False},
+    }
+    document.update(overrides)
+    return document
 
 
 def test_from_store_wires_all_repositories() -> None:
@@ -110,6 +134,7 @@ def test_from_store_wires_all_repositories() -> None:
             "translocation_repository",
             "fusion_repository",
             "biomarker_repository",
+            "pgx_repository",
             "rna_expression_repository",
             "rna_classification_repository",
             "rna_quality_repository",
@@ -202,13 +227,7 @@ def test_update_normalizes_copy_without_mutating_request(monkeypatch: pytest.Mon
         "api.application.resources.sample.current_actor", lambda actor: f"actor:{actor}"
     )
     nested_id = "507f1f77bcf86cd799439011"
-    request = {
-        "sample": {
-            "_id": "507f191e810c19729de860ea",
-            "name": "renamed",
-            "nested": {"_id": nested_id},
-        }
-    }
+    request = {"sample": valid_sample_document(name="renamed", nested={"_id": nested_id})}
     original = deepcopy(request)
 
     result = service.update(sample_id="sample-oid", payload=request, actor_username="admin")
@@ -217,13 +236,12 @@ def test_update_normalizes_copy_without_mutating_request(monkeypatch: pytest.Mon
     assert repository.updated is not None
     sample_id, updated = repository.updated
     assert sample_id == "sample-oid"
-    assert updated == {
-        "_id": "sample-oid",
-        "name": "renamed",
-        "nested": {"_id": ObjectId(nested_id)},
-        "updated_on": timestamp,
-        "updated_by": "actor:admin",
-    }
+    assert updated["_id"] == "sample-oid"
+    assert updated["name"] == "renamed"
+    assert updated["nested"] == {"_id": ObjectId(nested_id)}
+    assert updated["updated_on"] == timestamp
+    assert updated["updated_by"] == "actor:admin"
+    assert updated["files"]["vcf_files"]["path"] == "/synthetic/sample.vcf"
     assert result["meta"]["sample_name"] == "renamed"
     assert result["meta"]["sample_oid"] == "sample-oid"
 
@@ -238,6 +256,15 @@ def test_update_rejects_unknown_sample_and_missing_document() -> None:
     with pytest.raises(AppError) as missing_payload:
         service.update(sample_id="sample-oid", payload={}, actor_username="admin")
     assert missing_payload.value.status_code == 400
+
+    with pytest.raises(AppError) as invalid_document:
+        service.update(
+            sample_id="sample-oid",
+            payload={"sample": {"name": "incomplete"}},
+            actor_username="admin",
+        )
+    assert invalid_document.value.status_code == 400
+    assert "Invalid samples payload" in invalid_document.value.message
 
 
 def test_delete_delegates_all_repositories_and_returns_summary(
@@ -263,13 +290,14 @@ def test_delete_delegates_all_repositories_and_returns_summary(
         translocation_repository=dependencies[3],
         fusion_repository=dependencies[4],
         biomarker_repository=dependencies[5],
-        rna_expression_repository=dependencies[6],
-        rna_classification_repository=dependencies[7],
-        rna_quality_repository=dependencies[8],
-        sample_comment_repository=dependencies[9],
-        report_repository=dependencies[10],
-        reported_variant_repository=dependencies[11],
-        oncokb_public_cache_repository=dependencies[12],
+        pgx_repository=dependencies[6],
+        rna_expression_repository=dependencies[7],
+        rna_classification_repository=dependencies[8],
+        rna_quality_repository=dependencies[9],
+        sample_comment_repository=dependencies[10],
+        report_repository=dependencies[11],
+        reported_variant_repository=dependencies[12],
+        oncokb_public_cache_repository=dependencies[13],
     )
     assert result["meta"]["sample_name"] == "synthetic-sample"
     assert result["meta"]["sample_oid"] == "sample-oid"

@@ -19,6 +19,7 @@ from api.contracts.schemas.dna import (
     CnvsDoc,
     GroupCoverageDoc,
     PanelCovDoc,
+    PgxDoc,
     ReportedVariantsDoc,
     TranslocationsDoc,
     VariantsDoc,
@@ -56,6 +57,7 @@ COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "cnvs": TypeAdapter(CnvsDoc),
     "translocations": TypeAdapter(TranslocationsDoc),
     "biomarkers": TypeAdapter(BiomarkersDoc),
+    "pgx": TypeAdapter(PgxDoc),
     "panel_coverage": TypeAdapter(PanelCovDoc),
     "fusions": TypeAdapter(FusionsDoc),
     "rna_expression": TypeAdapter(RnaExpressionDoc),
@@ -95,6 +97,7 @@ INGEST_DEPENDENT_COLLECTIONS: dict[str, str] = {
     "snvs": "variants",
     "cnvs": "cnvs",
     "biomarkers": "biomarkers",
+    "pgx": "pgx",
     "transloc": "translocations",
     "cov": "panel_coverage",
     "fusions": "fusions",
@@ -104,7 +107,7 @@ INGEST_DEPENDENT_COLLECTIONS: dict[str, str] = {
 }
 
 INGEST_SINGLE_DOCUMENT_KEYS: frozenset[str] = frozenset(
-    {"biomarkers", "cov", "rna_expr", "rna_class", "rna_qc"}
+    {"biomarkers", "pgx", "cov", "rna_expr", "rna_class", "rna_qc"}
 )
 
 

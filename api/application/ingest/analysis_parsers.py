@@ -31,6 +31,17 @@ from .parsers import (
 )
 
 
+def _normalize_pgx_document(payload: Any) -> dict[str, Any]:
+    """Preserve one sample-scoped PGX payload regardless of its JSON root shape."""
+    if isinstance(payload, dict):
+        return payload
+    if isinstance(payload, list):
+        if not all(isinstance(item, dict) for item in payload):
+            raise ValueError("PGX JSON arrays must contain objects")
+        return {"records": payload}
+    raise ValueError("PGX JSON must decode to an object or an array of objects")
+
+
 class DnaIngestParser:
     """Parse DNA ingest payloads by reading VCF, CNV, biomarker, and coverage files."""
 
@@ -105,7 +116,7 @@ class DnaIngestParser:
         if pgx_path:
             require_exists("PGX data", pgx_path)
             with open(pgx_path, "r", encoding="utf-8") as handle:
-                preload["pgx"] = json.load(handle)
+                preload["pgx"] = _normalize_pgx_document(json.load(handle))
 
         return preload
 
@@ -347,6 +358,6 @@ class RnaIngestParser:
         if pgx_path:
             require_exists("PGX data", pgx_path)
             with open(pgx_path, "r", encoding="utf-8") as handle:
-                preload["pgx"] = json.load(handle)
+                preload["pgx"] = _normalize_pgx_document(json.load(handle))
 
         return preload

@@ -63,10 +63,11 @@ Important behavior:
 - Optional expected files may be omitted. If an optional expected file path is present, Coyote3 treats it as declared data and the sample will not be marked ready unless that file is parsed and written successfully.
 - If `filters` is missing, ingest may seed `samples.filters` from ASPC defaults.
 
-New manifests should use the nested `files` object documented in
-[API / Sample YAML Guide](sample_yaml.md#pipeline-file-declaration-format). Each entry is
-stored under `samples.files.<key>` with `path`, optional checksum metadata, and
-optional file-size metadata.
+Pipeline manifests declare file paths as flat top-level keys, as documented in
+[API / Sample YAML Guide](sample_yaml.md#pipeline-file-declaration-format).
+Ingestion converts each declaration into `samples.files.<key>`, where the
+stored record contains the source `path` and any available checksum or file-size
+metadata.
 
 See [API / Sample YAML Guide](sample_yaml.md) for the full manifest contract.
 

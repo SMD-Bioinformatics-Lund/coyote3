@@ -26,9 +26,17 @@ server {
         try_files /index.html =404;
     }
 
+    location = ${script_name}/ {
+        try_files /index.html =404;
+    }
+
     location ${script_name}/ {
         rewrite ^${script_name}/(.*)\$ /\$1 break;
-        try_files \$uri \$uri/ /index.html;
+        try_files \$uri @frontend_shell;
+    }
+
+    location @frontend_shell {
+        try_files /index.html =404;
     }
 
     location / {

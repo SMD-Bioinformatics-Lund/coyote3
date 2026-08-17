@@ -287,6 +287,47 @@ describe("sample analysis table tabs", () => {
     )
   })
 
+  it("groups every included clinical finding type into its own snapshot table", async () => {
+    mocks.get.mockResolvedValue({ data: {
+      sample: { name: "MULTI_REPORT" },
+      meta: { snapshot_count: 6, template_status: { status: "ready", has_html: true } },
+      report: {
+        html: "Rendered multi-analysis report",
+        snapshot_rows: [
+          { analysis_type: "SNV", gene: "TP53", variant: "p.Arg175His", tier: 1 },
+          { analysis_type: "CNV", gene: "EGFR", region: "7:100-300", cnv_type: "gain" },
+          { analysis_type: "TRANSLOCATION", gene_1: "KMT2A", gene_2: "AFF1", breakpoint: "11:1" },
+          { analysis_type: "FUSION", fusion: "BCR::ABL1", breakpoint_1: "22:1", breakpoint_2: "9:2" },
+          { analysis_type: "BIOMARKER", biomarker: "TMB", result: "12.4 mut/Mb" },
+          { analysis_type: "PGX", gene: "CYP2C19", pgx_result: "Intermediate metabolizer" },
+        ],
+      },
+    } })
+
+    mount(<ReportsTab sampleId="MULTI_REPORT" />, "/samples/MULTI_REPORT?tab=reports")
+
+    expect(await screen.findByText("Rendered multi-analysis report")).toBeVisible()
+    for (const section of [
+      "Small variants",
+      "Copy-number variants",
+      "DNA fusions and translocations",
+      "RNA fusions",
+      "Biomarkers",
+      "Pharmacogenomics",
+    ]) {
+      expect(screen.getByText(section)).toBeVisible()
+    }
+    expect(mocks.dataTable).toHaveBeenCalledTimes(6)
+    expect(mocks.dataTable.mock.calls.map(([props]) => props.filename)).toEqual([
+      "MULTI_REPORT_dna_snv_snapshot.csv",
+      "MULTI_REPORT_dna_cnv_snapshot.csv",
+      "MULTI_REPORT_dna_translocation_snapshot.csv",
+      "MULTI_REPORT_dna_fusion_snapshot.csv",
+      "MULTI_REPORT_dna_biomarker_snapshot.csv",
+      "MULTI_REPORT_dna_pgx_snapshot.csv",
+    ])
+  })
+
   it("uses the fixed RNA report workflow for an RNA sample", async () => {
     mocks.get.mockResolvedValue({ data: {
       sample: { name: "RNA_REPORT", omics_layer: "rna" },

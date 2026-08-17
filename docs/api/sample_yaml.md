@@ -160,22 +160,26 @@ These keys are common to DNA and RNA sample bundles.
 | `filters` | Ignored | DNA, RNA | Pipelines must not author clinical filters. Ingest replaces this with the resolved ASPC filter profile. |
 | `analysis_intents` | Ignored | DNA, RNA | Pipelines must not author somatic/germline scope. Ingest obtains it from the resolved ASPC. |
 
-Optional case/control metadata fields:
+Pipeline manifests keep case and control metadata flat. Every metadata key is
+prefixed with `case_` or `control_`; Clarity fields retain the established
+pipeline spelling `clarity_case_*` and `clarity_control_*`. Ingestion groups
+these values into `samples.case` and `samples.control`. The nested database
+shape is not an accepted model for authoring a raw pipeline manifest.
 
-| Key | Applies to | Meaning |
-| --- | --- | --- |
-| `clarity_case_id` | DNA, RNA | Case sample Clarity/LIMS identifier. |
-| `clarity_control_id` | Paired DNA/RNA | Control sample Clarity/LIMS identifier. |
-| `clarity_case_pool_id` | DNA, RNA | Case pool identifier. |
-| `clarity_control_pool_id` | Paired DNA/RNA | Control pool identifier. |
-| `case_ffpe` | DNA, RNA | Whether the case sample is FFPE material. |
-| `control_ffpe` | Paired DNA/RNA | Whether the control sample is FFPE material. |
-| `case_sequencing_run` | DNA, RNA | Sequencing run identifier for the case sample. |
-| `control_sequencing_run` | Paired DNA/RNA | Sequencing run identifier for the control sample. |
-| `case_reads` | DNA, RNA | Number of reads for the case sample. |
-| `control_reads` | Paired DNA/RNA | Number of reads for the control sample. |
-| `case_purity` | DNA | Optional tumor purity estimate between `0` and `1`. |
-| `control_purity` | Paired DNA | Optional control purity estimate, normally empty. |
+| Raw manifest key | Required | Applies to | Stored field | Meaning |
+| --- | --- | --- | --- | --- |
+| `clarity_case_id` | Recommended | DNA, RNA | `samples.case.clarity_id` | Clarity/LIMS identifier for the case. |
+| `clarity_control_id` | Paired only | DNA, RNA | `samples.control.clarity_id` | Clarity/LIMS identifier for the control. |
+| `clarity_case_pool_id` | Recommended | DNA, RNA | `samples.case.clarity_pool_id` | Clarity/LIMS pool identifier for the case. |
+| `clarity_control_pool_id` | Paired only | DNA, RNA | `samples.control.clarity_pool_id` | Clarity/LIMS pool identifier for the control. |
+| `case_ffpe` | Recommended | DNA, RNA | `samples.case.ffpe` | Whether the case material is FFPE. |
+| `control_ffpe` | Paired only | DNA, RNA | `samples.control.ffpe` | Whether the control material is FFPE. |
+| `case_sequencing_run` | Recommended | DNA, RNA | `samples.case.sequencing_run` | Sequencing run identifier for the case. |
+| `control_sequencing_run` | Paired only | DNA, RNA | `samples.control.sequencing_run` | Sequencing run identifier for the control. |
+| `case_reads` | Recommended | DNA, RNA | `samples.case.reads` | Read count for the case. |
+| `control_reads` | Paired only | DNA, RNA | `samples.control.reads` | Read count for the control. |
+| `case_purity` | No | DNA | `samples.case.purity` | Optional tumor purity estimate. |
+| `control_purity` | No | DNA | `samples.control.purity` | Optional control purity value when supplied by the pipeline. |
 
 ## Pipeline file declaration format
 
@@ -257,10 +261,6 @@ Pipeline-format example:
 ```yaml
 subpanel: "hematology-myeloid"
 name: "seed_case"
-clarity_case_id: "seed_case_clarity"
-clarity_control_id: "seed_control_clarity"
-clarity_case_pool_id: "seed_pool"
-clarity_control_pool_id: "seed_pool"
 genome_build: 38
 sample_no: 2
 case_id: "seed_case"
@@ -272,15 +272,19 @@ omics_layer: "DNA"
 sequencing_technology: "Illumina"
 pipeline: "SomaticPanelPipeline"
 pipeline_version: "3.1.14"
-case_ffpe: false
-case_sequencing_run: "seed_run"
-case_reads: 49039064
-case_purity: null
-control_ffpe: false
-control_sequencing_run: "seed_run"
-control_reads: 45889968
-control_purity: null
 paired: true
+clarity_case_id: "seed_case_clarity"
+clarity_control_id: "seed_control_clarity"
+clarity_case_pool_id: "seed_pool"
+clarity_control_pool_id: "seed_pool"
+case_ffpe: false
+control_ffpe: false
+case_sequencing_run: "seed_run"
+control_sequencing_run: "seed_run"
+case_reads: 49039064
+control_reads: 45889968
+case_purity: null
+control_purity: null
 vcf_files: "/srv/coyote3-data/coyote3/incoming/seed_case.vcf"
 cnv: "/srv/coyote3-data/coyote3/incoming/seed_case.cnvs.json"
 cnvprofile: "/srv/coyote3-data/coyote3/incoming/seed_case.profile.png"
@@ -333,9 +337,12 @@ omics_layer: "RNA"
 sequencing_technology: "Illumina"
 pipeline: "RnaFusionPipeline"
 pipeline_version: "1.4.0"
+clarity_case_id: "RNA_DEMO_CLARITY"
+clarity_case_pool_id: "RNA_DEMO_POOL"
 case_ffpe: false
 case_sequencing_run: "RUN_RNA_001"
 case_reads: 58200431
+case_purity: null
 fusion_files: "/srv/coyote3-data/coyote3/incoming/rna_demo.fusions.json"
 expression_path: "/srv/coyote3-data/coyote3/incoming/rna_demo.expression.json"
 classification_path: "/srv/coyote3-data/coyote3/incoming/rna_demo.classification.json"

@@ -1,7 +1,7 @@
 # Local disposable full-stack validation
 
 This procedure creates a complete temporary Coyote3 deployment on a local
-workstation. It is an operator-run local test that follows the production
+workstation. It is an operator-run local test that follows the center
 deployment sequence:
 
 1. create the MongoDB service;
@@ -13,7 +13,7 @@ deployment sequence:
 6. collect evidence; and
 7. stop and remove the disposable environment.
 
-The procedure uses the production application topology from
+The procedure uses the immutable application topology from
 `deploy/compose/docker-compose.yml` without a development, test, or stage
 overlay. MongoDB runs from `deploy/compose/docker-compose.mongo.yml`, using the
 same MongoDB 8.2 single-member replica-set configuration documented for a new
@@ -31,12 +31,17 @@ temporary host paths rather than different application code.
 The disposable environment verifies the application below the external TLS
 termination boundary.
 
-| Production concern | Disposable equivalent |
+Always create a new `VALIDATION_ROOT` for a new rehearsal. MongoDB persists the
+replica-set member address in its database files. A directory initialized by an
+older version of this procedure with a different member address must not be
+reused; complete the cleanup section and restart at step 1.
+
+| Deployment concern | Disposable equivalent |
 | --- | --- |
 | MongoDB 8.2 replica set | Temporary MongoDB 8.2 single-member replica set |
 | Persistent host paths | Isolated paths under a new `/tmp/coyote3-validation.*` directory |
 | Explicit first deployment | `bootstrap_database.py` against an empty database |
-| Production application services | Production base Compose file and production image targets |
+| Immutable application services | Base Compose file and immutable image targets |
 | Reverse-proxy prefix | A unique `SCRIPT_NAME` served through the bundled proxy |
 | Background ingest | Celery worker and scheduled watch-folder scan |
 | Center data | Repository-owned synthetic DNA bundle |
@@ -68,7 +73,11 @@ python3 --version
 
 Use ports that are not assigned to another local service. The explicit Compose
 project names keep the test containers separate from an installed Coyote3
-environment.
+environment. Every Compose command in this procedure passes one of these names
+with `-p`. This overrides the base Compose project name, producing container
+names such as `coyote3_testing_app-api-1` and
+`coyote3_testing_mongo-mongo-1`; it does not create containers with production,
+development, or staging project names.
 
 ## 1. Create the isolated workspace
 
@@ -79,8 +88,8 @@ procedure:
 export VALIDATION_ROOT="$(mktemp -d /tmp/coyote3-validation.XXXXXX)"
 export VALIDATION_ENV_FILE="$VALIDATION_ROOT/coyote3.env"
 export VALIDATION_OVERRIDE_FILE="$VALIDATION_ROOT/storage.override.yml"
-export VALIDATION_APP_PROJECT="coyote3_validation_app"
-export VALIDATION_MONGO_PROJECT="coyote3_validation_mongo"
+export VALIDATION_APP_PROJECT="coyote3_testing_app"
+export VALIDATION_MONGO_PROJECT="coyote3_testing_mongo"
 export VALIDATION_MONGO_NETWORK="coyote3-validation-mongo-net"
 export VALIDATION_APP_NETWORK="coyote3-validation-app-net"
 export VALIDATION_APP_SUBNET="172.29.120.0/28"
@@ -89,6 +98,7 @@ export VALIDATION_MONGO_SUBNET="172.29.120.16/29"
 export VALIDATION_MONGO_GATEWAY="172.29.120.17"
 export VALIDATION_APP_PORT="6816"
 export VALIDATION_MONGO_PORT="27182"
+export COYOTE3_VERSION="$(python3 api/version.py)"
 
 mkdir -p \
   "$VALIDATION_ROOT/data/coyote3/copied_sample_files/yaml" \
@@ -160,15 +170,13 @@ MONGO_ROOT_USERNAME=coyote3_root
 MONGO_ROOT_PASSWORD=$VALIDATION_MONGO_ROOT_PASSWORD
 MONGO_APP_USER=coyote3_app
 MONGO_APP_PASSWORD=$VALIDATION_MONGO_APP_PASSWORD
-MONGO_URI=mongodb://coyote3_app:$VALIDATION_MONGO_APP_PASSWORD@host.docker.internal:$VALIDATION_MONGO_PORT/coyote3_validation?authSource=coyote3_validation&replicaSet=coyote3-validation-rs
+MONGO_URI=mongodb://coyote3_app:$VALIDATION_MONGO_APP_PASSWORD@coyote3_mongo:27017/coyote3_validation?authSource=coyote3_validation&replicaSet=coyote3-validation-rs
 COYOTE3_MONGO_NETWORK=$VALIDATION_MONGO_NETWORK
-COYOTE3_MONGO_NETWORK_SUBNET=$VALIDATION_MONGO_SUBNET
-COYOTE3_MONGO_NETWORK_GATEWAY=$VALIDATION_MONGO_GATEWAY
 COYOTE3_APP_NETWORK=$VALIDATION_APP_NETWORK
 COYOTE3_MONGO_PORT=$VALIDATION_MONGO_PORT
 COYOTE3_MONGO_BIND_ADDRESS=127.0.0.1
 MONGO_REPLICA_SET_NAME=coyote3-validation-rs
-MONGO_REPLICA_MEMBER_HOST=host.docker.internal:$VALIDATION_MONGO_PORT
+MONGO_REPLICA_MEMBER_HOST=coyote3_mongo:27017
 
 COYOTE3_DATA_HOST_ROOT=$VALIDATION_ROOT/data
 COYOTE3_LOGS_HOST_ROOT=$VALIDATION_ROOT/logs
@@ -197,9 +205,9 @@ Public knowledgebase calls are disabled so the rehearsal is deterministic and
 does not depend on internet access. This does not disable the local
 knowledgebase collections loaded by database bootstrap.
 
-Create a local storage override so the production `/access`, `/media`, and
+Create a local storage override so the deployment `/access`, `/media`, and
 `/fs1` container mounts cannot expose corresponding host directories. Compose
-merges these entries by container target and retains all other production
+merges these entries by container target and retains all other deployment
 service settings:
 
 ```bash
@@ -213,10 +221,19 @@ services:
       - $VALIDATION_ROOT/data:/data
       - $VALIDATION_ROOT/data:$VALIDATION_ROOT/data
       - $VALIDATION_ROOT/fs1:/fs1
+    networks: &validation_app_networks
+      - app
+      - validation-mongo
   worker:
     volumes: *validation_app_volumes
+    networks: *validation_app_networks
   beat:
     volumes: *validation_app_volumes
+    networks: *validation_app_networks
+networks:
+  validation-mongo:
+    name: $VALIDATION_MONGO_NETWORK
+    external: true
 EOF
 ```
 
@@ -228,8 +245,10 @@ scripts/validate_env_secrets.sh --env-file "$VALIDATION_ENV_FILE"
 
 ## 4. Start the disposable MongoDB replica set
 
-Create the external application and MongoDB networks explicitly, then start
-MongoDB:
+Create the external application and MongoDB networks explicitly. The `down`
+command removes stale containers from the named disposable Compose project
+before MongoDB is recreated. It does not remove the bind-mounted database
+directory:
 
 ```bash
 docker network create \
@@ -250,7 +269,13 @@ docker compose \
   -p "$VALIDATION_MONGO_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.mongo.yml \
-  up -d mongo mongo_init
+  down --remove-orphans
+
+docker compose \
+  -p "$VALIDATION_MONGO_PROJECT" \
+  --env-file "$VALIDATION_ENV_FILE" \
+  -f deploy/compose/docker-compose.mongo.yml \
+  up -d --force-recreate mongo
 ```
 
 The `/29` MongoDB pool provides approximately five assignable addresses. The
@@ -259,18 +284,34 @@ for the API, worker, beat, Redis, frontend, documentation, proxy, and temporary
 validation containers. Change both exported ranges before creation if either
 overlaps a host, VPN, center, Kubernetes, or existing Docker network.
 
-This is the disposable MongoDB container command used by this procedure. The
-`mongo` service starts the MongoDB 8.2 server with its isolated bind-mounted
-data directory. The one-shot `mongo_init` service initializes the
-single-member replica set and then exits. It is normal for `mongo_init` to
-show `Exited (0)` after initialization; the `mongo` service must remain
-running and healthy.
+This starts MongoDB 8.2 with its isolated bind-mounted data directory. The
+host port is bound to loopback for optional host-side administration. Coyote3
+containers use the `coyote3_mongo` network alias and do not pass through a
+published host port.
+
+Confirm that Compose attached MongoDB to the pre-created external network.
+This check catches stale or detached Docker endpoints before replica-set
+initialization:
+
+```bash
+export VALIDATION_MONGO_CONTAINER_ID="$(docker compose \
+  -p "$VALIDATION_MONGO_PROJECT" \
+  --env-file "$VALIDATION_ENV_FILE" \
+  -f deploy/compose/docker-compose.mongo.yml \
+  ps -q mongo)"
+
+test -n "$VALIDATION_MONGO_CONTAINER_ID"
+docker inspect "$VALIDATION_MONGO_CONTAINER_ID" \
+  --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{println}}{{end}}' \
+  | grep -Fx "$VALIDATION_MONGO_NETWORK"
+```
 
 Wait for its health check through the Compose service name. This avoids
 depending on a generated container name:
 
 ```bash
-until docker compose \
+for attempt in $(seq 1 60); do
+  if docker compose \
   -p "$VALIDATION_MONGO_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.mongo.yml \
@@ -278,30 +319,55 @@ until docker compose \
     --username coyote3_root \
     --password "$VALIDATION_MONGO_ROOT_PASSWORD" \
     --authenticationDatabase admin \
-    --eval 'quit(db.adminCommand({ping: 1}).ok ? 0 : 1)' >/dev/null 2>&1; do
+    --eval 'quit(db.adminCommand({ping: 1}).ok ? 0 : 1)' >/dev/null 2>&1; then
+    break
+  fi
+  [ "$attempt" -lt 60 ] || { echo "MongoDB did not become ready" >&2; exit 1; }
   sleep 2
 done
 ```
 
+Initialize the single-member replica set as a foreground one-shot operation:
+
+```bash
+docker compose \
+  -p "$VALIDATION_MONGO_PROJECT" \
+  --env-file "$VALIDATION_ENV_FILE" \
+  -f deploy/compose/docker-compose.mongo.yml \
+  run --rm --no-deps mongo_init
+```
+
+The command must finish with `[ok] replica set is writable`. The temporary
+initializer container is removed automatically; only the `mongo` service
+remains running.
+
 Optionally verify the database from a separate, short-lived MongoDB tools
-container. This confirms that another container can reach the replica set over
-the same external Docker network and does not require `mongosh` on the host:
+container. This confirms that another container can reach the MongoDB member
+over the same external Docker network and does not require `mongosh` on the
+host:
 
 ```bash
 docker run --rm \
   --network "$VALIDATION_MONGO_NETWORK" \
-  --add-host host.docker.internal:host-gateway \
   mongo:8.2 \
   mongosh --quiet \
     "mongodb://coyote3_root:$VALIDATION_MONGO_ROOT_PASSWORD@coyote3_mongo:27017/admin?authSource=admin&replicaSet=coyote3-validation-rs" \
-    --eval 'quit(db.adminCommand({ping: 1}).ok ? 0 : 1)'
+    --eval 'const hello=db.hello(); printjson({ping:db.adminCommand({ping:1}).ok, replicaSet:hello.setName, writablePrimary:hello.isWritablePrimary}); quit(hello.isWritablePrimary ? 0 : 1)'
 ```
 
 The tools container is removed automatically after the command. It does not
 run another database server and does not mount or modify the MongoDB data
-directory beyond issuing the authenticated `ping` command.
+directory beyond issuing authenticated status commands. A successful result
+prints `ping: 1`, the configured replica-set name, and
+`writablePrimary: true`.
 
-## 5. Build the production application images
+The API, worker, and beat are attached to both isolated validation networks by
+the generated override. They reach the replica-set member at
+`coyote3_mongo:27017`; frontend, documentation, proxy, and Redis remain only on
+the application network. The MongoDB host port stays bound to `127.0.0.1`, so
+it is not exposed on external host interfaces.
+
+## 5. Build the immutable application images
 
 Use the version-aware wrapper so image tags always use `api/version.py`:
 
@@ -314,8 +380,13 @@ scripts/compose-with-version.sh \
   build
 ```
 
-This builds the production frontend, API, and documentation images. It does
-not use the development frontend server or source-code bind mounts.
+This builds immutable frontend, API, and documentation artifacts from the same
+Docker targets used for a release. The deployment remains a disposable testing
+environment because
+its configuration, credentials, ports, database, networks, and storage roots
+are isolated from production. The test intentionally avoids the development
+frontend server and source-code bind mounts so it validates the packaged
+application that a center would deploy.
 
 ## 6. Bootstrap the empty database
 
@@ -350,7 +421,7 @@ governed database. A second successful bootstrap is not expected.
 
 ## 7. Start the complete application stack
 
-Start the same service families used by production:
+Start the complete immutable service stack:
 
 ```bash
 scripts/compose-with-version.sh \
@@ -394,29 +465,54 @@ curl -fsS "$VALIDATION_PUBLIC_URL/api/v1/docs" >/dev/null
 
 ## 8. Submit a live watch-folder ingest
 
-Copy the synthetic DNA manifest into the mounted watch directory using the
-configured watch filename:
+Create one sample bundle through the running worker, which owns the mounted
+watch directory. Copy every declared resource first and copy the manifest last
+under the configured watch filename. Copying the manifest last prevents the
+scheduled scanner from observing an incomplete bundle.
 
 ```bash
-cp demo_data/ingest/generic_case_control.yaml \
-  "$VALIDATION_ROOT/data/coyote3/copied_sample_files/yaml/coyote3.yaml"
+export VALIDATION_WORKER_CONTAINER_ID="$(docker compose \
+  -p "$VALIDATION_APP_PROJECT" \
+  --env-file "$VALIDATION_ENV_FILE" \
+  -f deploy/compose/docker-compose.yml \
+  -f "$VALIDATION_OVERRIDE_FILE" \
+  ps -q worker)"
+
+test -n "$VALIDATION_WORKER_CONTAINER_ID"
+
+VALIDATION_DNA_BUNDLE="/data/coyote3/copied_sample_files/yaml/demo_dna_sample"
+docker exec "$VALIDATION_WORKER_CONTAINER_ID" \
+  mkdir -p "$VALIDATION_DNA_BUNDLE"
+
+for resource in \
+  demo_data/ingest/generic_case_control.final.filtered.vcf \
+  demo_data/ingest/generic_case_control.cnvs.merged.json \
+  demo_data/ingest/generic_case_control.modeled.png \
+  demo_data/ingest/generic_case_control.cov.json; do
+  docker cp "$resource" \
+    "$VALIDATION_WORKER_CONTAINER_ID:$VALIDATION_DNA_BUNDLE/$(basename "$resource")"
+done
+
+docker cp demo_data/ingest/generic_case_control.yaml \
+  "$VALIDATION_WORKER_CONTAINER_ID:$VALIDATION_DNA_BUNDLE/coyote3.yaml"
 ```
 
-The manifest references files packaged in the API image. The worker discovers
-the manifest through the mounted watch directory, validates every declared
-file, writes the complete sample bundle, and renames the manifest only after
-the transaction succeeds.
+The manifest contains bundle-relative file paths. The worker resolves those
+paths from the manifest directory, validates every declared file, writes the
+complete sample bundle, and renames the manifest only after the transaction
+succeeds. Runtime ingest must not depend on repository files packaged into an
+application image.
 
 Wait for the completion marker:
 
 ```bash
 for attempt in $(seq 1 90); do
-  if find "$VALIDATION_ROOT/data/coyote3/copied_sample_files/yaml" \
+  if docker exec "$VALIDATION_WORKER_CONTAINER_ID" find "$VALIDATION_DNA_BUNDLE" \
       -maxdepth 1 -name 'coyote3.yaml*.done' -print -quit | grep -q .; then
     echo "Watch-folder ingest completed"
     break
   fi
-  if find "$VALIDATION_ROOT/data/coyote3/copied_sample_files/yaml" \
+  if docker exec "$VALIDATION_WORKER_CONTAINER_ID" find "$VALIDATION_DNA_BUNDLE" \
       -maxdepth 1 -name 'coyote3.yaml*.failed' -print -quit | grep -q .; then
     echo "Watch-folder ingest failed" >&2
     exit 1
@@ -490,12 +586,18 @@ scripts/compose-with-version.sh \
   -f deploy/compose/docker-compose.yml \
   -f "$VALIDATION_OVERRIDE_FILE" \
   exec -T api \
-  scripts/center_check.sh \
+  bash scripts/center_check.sh \
     --api-base-url http://127.0.0.1:8001 \
     --username coyote3.admin \
     --password "$VALIDATION_ADMIN_PASSWORD" \
+    --provider local \
     --yaml-file demo_data/ingest/generic_case_control.yaml
 ```
+
+The disposable bootstrap creates `coyote3.admin` as a local account, so this
+check uses the `local` authentication provider explicitly. Use
+`--provider ldap` only when validating a configured LDAP account in a
+deployment where LDAP connectivity is part of the test scope.
 
 Skip this optional step when the same sample already exists and update is
 disabled. The watch-folder result remains the required live-ingest evidence.
@@ -571,7 +673,9 @@ rm -rf -- "$VALIDATION_ROOT"
 unset VALIDATION_ROOT VALIDATION_ENV_FILE VALIDATION_OVERRIDE_FILE
 unset VALIDATION_APP_PROJECT
 unset VALIDATION_MONGO_PROJECT VALIDATION_MONGO_NETWORK
+unset VALIDATION_MONGO_CONTAINER_ID VALIDATION_WORKER_CONTAINER_ID
 unset VALIDATION_APP_PORT VALIDATION_MONGO_PORT VALIDATION_PUBLIC_URL
+unset COYOTE3_VERSION
 unset VALIDATION_MONGO_ROOT_PASSWORD VALIDATION_MONGO_APP_PASSWORD
 unset VALIDATION_SECRET_KEY VALIDATION_INTERNAL_TOKEN
 unset VALIDATION_PASSWORD_SALT VALIDATION_ADMIN_PASSWORD

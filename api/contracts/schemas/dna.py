@@ -440,42 +440,46 @@ class BiomarkersDoc(_DocBase):
         return self
 
 
+class PgxDoc(_DocBase):
+    """Sample-scoped PGX payload preserved from the declared ingest result."""
+
+    SAMPLE_ID: str
+
+
 class ReportedVariantsDoc(_DocBase):
     report_id: str
     sample_name: str
 
     report_oid: Any
     sample_oid: Any
-    var_oid: Any
-    annotation_oid: Any
-    annotation_text_oid: Any
-    sample_comment_oid: Any
+    analysis_type: str
+    finding_type: str | None = None
+    var_oid: Any | None = None
+    annotation_oid: Any | None = None
+    annotation_text_oid: Any | None = None
+    sample_comment_oid: Any | None = None
 
     simple_id: str
     simple_id_hash: str
 
-    gene: str
-    transcript: str
-    hgvsc: str
-    hgvsp: str
-    variant: str
+    gene: str | None = None
+    transcript: str | None = None
+    hgvsc: str | None = None
+    hgvsp: str | None = None
+    variant: str | None = None
 
-    var_type: str
-    tier: int
+    var_type: str | None = None
+    tier: int | None = None
+    finding_data: dict[str, Any] = Field(default_factory=dict)
 
     created_by: str
     created_on: datetime
 
-    @field_validator("*", mode="before")
-    @classmethod
-    def no_nulls_allowed(cls, v, info):
-        if v is None:
-            raise ValueError(f"{info.field_name} cannot be null")
-        return v
-
     @field_validator("tier")
     @classmethod
     def validate_tier(cls, v):
+        if v is None:
+            return v
         if v not in {1, 2, 3, 4}:
             raise ValueError("tier must be between 1–4")
         return v
@@ -483,6 +487,8 @@ class ReportedVariantsDoc(_DocBase):
     @field_validator("var_type")
     @classmethod
     def validate_var_type(cls, v):
+        if v is None:
+            return v
         allowed = {"SNV", "INDEL", "CNV", "FUSION"}
         if v not in allowed:
             raise ValueError(f"var_type must be one of {allowed}")

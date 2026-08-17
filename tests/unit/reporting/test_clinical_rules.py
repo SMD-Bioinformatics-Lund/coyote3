@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -147,6 +148,7 @@ def test_all_repository_rule_sources_compile():
     sources = [compiler.load(path) for path in compiler.discover(RULES_ROOT)]
 
     assert {source.rule_set.rule_set_id for source in sources} == {
+        "assay_1__base",
         "rna_fusion__base",
         "fusion__base",
         "hema_gmsv1__base",
@@ -157,6 +159,74 @@ def test_all_repository_rule_sources_compile():
         "tumwgs_hema__base",
         "tumwgs_solid__base",
     }
+
+
+def test_active_demo_reporting_configs_have_complete_static_rule_sources():
+    compiler = ClinicalRuleCompiler()
+    service = ClinicalRuleService()
+    config_path = (
+        Path(__file__).resolve().parents[3]
+        / "api"
+        / "config"
+        / "bootstrap"
+        / "demo_center"
+        / "asp_configs.json"
+    )
+    configs = json.loads(config_path.read_text(encoding="utf-8"))
+
+    for config in configs:
+        report_sections = set(config.get("reporting", {}).get("report_sections", []))
+        if not config.get("is_active") or not report_sections:
+            continue
+        source_path = service._source_paths(
+            asp_id=config["asp_id"],
+            subpanel_id=config["subpanel_id"],
+        )[0]
+        source = compiler.load(source_path)
+
+        assert source.rule_set.analyte == config["asp_category"]
+        assert report_sections <= set(source.analyses)
+
+
+def test_demo_dna_report_rules_resolve_and_render_without_tiered_findings():
+    context_payload = _context().model_dump(mode="python")
+    context_payload["sample"]["asp_id"] = "assay_1"
+    context_payload["asp"] = {"asp_id": "assay_1", "asp_group": "hematology"}
+    context_payload["aspc"].update(
+        {
+            "aspc_id": "assay_1_base_production",
+            "asp_id": "assay_1",
+            "reporting": {
+                "general_report_summary": "Demo DNA report summary.",
+                "report_sections": ["SNV", "CNV"],
+            },
+        }
+    )
+    context_payload["findings"] = []
+    context_payload["aggregates"].update(
+        {
+            "finding_count": 0,
+            "snv_count": 0,
+            "tier_1_count": 0,
+            "tier_2_count": 0,
+            "tier_3_count": 0,
+            "tier_summaries": [],
+            "has_tiered_snvs": False,
+            "has_reportable_findings": False,
+        }
+    )
+    context = PreparedReportContext.model_validate(context_payload)
+
+    result = ClinicalRuleService().evaluate(
+        aspc=context.aspc.model_dump(mode="python"),
+        context=context,
+    )
+
+    assert result.source.rule_set_id == "assay_1__base"
+    assert result.source.report_text_version == 1
+    assert result.sections["Reportable SNVs and small INDELs"] == [
+        "No reportable somatic mutations were detected in the analyzed genes."
+    ]
 
 
 def test_repository_path_must_match_assay_and_subpanel_scope(tmp_path):

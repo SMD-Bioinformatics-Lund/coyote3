@@ -416,6 +416,44 @@ DNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
   </table>
 {% endif %}
 
+{% if "BIOMARKER" in report_sections %}
+  {% set biomarkers = report_sections_data.biomarkers %}
+  <span class="report_header">Kliniskt relevanta biomarkörer</span>
+  <table class="variant_table">
+    <tr><th>Biomarkör</th><th>Resultat</th></tr>
+    {% for biomarker in biomarkers %}
+      <tr>
+        <td>{{ biomarker.name or biomarker.biomarker or "Biomarkör" }}</td>
+        <td>
+          {% for key, value in biomarker.items() %}
+            {% if key not in ["_id", "SAMPLE_ID", "name", "biomarker"] %}
+              <b>{{ key }}</b>: {{ value }}{% if not loop.last %}<br>{% endif %}
+            {% endif %}
+          {% endfor %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td>Inga rapporterbara biomarkörresultat</td><td></td></tr>
+    {% endfor %}
+  </table>
+{% endif %}
+
+{% if "PGX" in report_sections %}
+  {% set pgx_results = report_sections_data.pgx %}
+  <span class="report_header">Farmakogenomiska resultat</span>
+  <table class="variant_table">
+    <tr><th>Gen</th><th>Resultat</th></tr>
+    {% for result in pgx_results %}
+      <tr>
+        <td>{{ result.gene or result.symbol or result.hugo_symbol or "-" }}</td>
+        <td>{{ result.result or result.phenotype or result.diplotype or result.records or "-" }}</td>
+      </tr>
+    {% else %}
+      <tr><td>Inga rapporterbara farmakogenomiska resultat</td><td></td></tr>
+    {% endfor %}
+  </table>
+{% endif %}
+
 <span class="report_header">Slutsats</span>
 <div class="conclusion">
   <div class="results_summary">
@@ -571,6 +609,21 @@ RNA_REPORT_TEMPLATE = r"""{% extends "report_layout.html" %}
     <tr><td>Inga detekterade fusioner</td><td></td></tr>
   {% endfor %}
 </table>
+
+{% if "PGX" in report_sections %}
+  <span class="report_header">Farmakogenomiska resultat</span>
+  <table class="variant_table">
+    <tr><th>Gen</th><th>Resultat</th></tr>
+    {% for result in pgx %}
+      <tr>
+        <td>{{ result.gene or result.symbol or result.hugo_symbol or "-" }}</td>
+        <td>{{ result.result or result.phenotype or result.diplotype or result.records or "-" }}</td>
+      </tr>
+    {% else %}
+      <tr><td>Inga rapporterbara farmakogenomiska resultat</td><td></td></tr>
+    {% endfor %}
+  </table>
+{% endif %}
 
 <span class="report_header">Slutsats</span>
 <div class="conclusion">

@@ -541,6 +541,44 @@ describe("AdminResourcePage", () => {
     expect(mocks.error).toHaveBeenCalled()
     expect(screen.queryByText("Resource list")).not.toBeInTheDocument()
   })
+
+  it("edits sample documents as JSON and blocks invalid syntax", async () => {
+    const sample = {
+      _id: "507f191e810c19729de860ea",
+      name: "SYNTHETIC_001",
+      asp_id: "assay_1",
+      environment: "production",
+    }
+    mocks.get.mockResolvedValue({ data: { sample } })
+    const user = userEvent.setup()
+    renderEditor("samples", "edit", "507f191e810c19729de860ea")
+
+    const editor = await screen.findByRole("textbox", { name: "Sample JSON" })
+    expect(screen.getByText("Valid JSON object")).toBeVisible()
+    expect(screen.getByRole("button", { name: "Save sample" })).toBeDisabled()
+
+    fireEvent.change(editor, { target: { value: '{\n  "name": "SYNTHETIC_001",\n}' } })
+    expect(screen.queryByText("Valid JSON object")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Save sample" })).toBeDisabled()
+
+    const editedSample = { ...sample, environment: "testing" }
+    fireEvent.change(editor, { target: { value: JSON.stringify(editedSample) } })
+    expect(screen.getByText("Valid JSON object")).toBeVisible()
+    await user.click(screen.getByRole("button", { name: "Save sample" }))
+
+    await waitFor(() => expect(mocks.put).toHaveBeenCalledWith(
+      "/resources/samples/507f191e810c19729de860ea",
+      { sample: editedSample },
+    ))
+  })
+
+  it("renders the sample JSON document read-only in view mode", async () => {
+    mocks.get.mockResolvedValue({ data: { sample: { _id: "sample-id", name: "SYNTHETIC_001" } } })
+    renderEditor("samples", "view", "sample-id")
+
+    expect(await screen.findByRole("textbox", { name: "Sample JSON" })).toHaveAttribute("readonly")
+    expect(screen.queryByRole("button", { name: "Save sample" })).not.toBeInTheDocument()
+  })
 })
 
 describe("admin resource table typography", () => {
