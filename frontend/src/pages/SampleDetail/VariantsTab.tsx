@@ -174,8 +174,8 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
         const csq = row.original.INFO?.selected_CSQ || {}
         return (
           <div className="flex w-52 flex-col leading-tight">
-            <ExpandableText text={csq.HGVSc || "-"} maxLength={28} className="font-mono text-[11px] leading-tight text-muted-foreground" />
-            <ExpandableText text={csq.HGVSp && csq.HGVSp !== "-" ? csq.HGVSp : "-"} maxLength={28} className="font-mono text-[11px] font-semibold leading-tight text-foreground" />
+            <ExpandableText text={csq.HGVSc || "-"} maxLength={28} className="text-[11px] leading-tight text-muted-foreground" />
+            <ExpandableText text={csq.HGVSp && csq.HGVSp !== "-" ? csq.HGVSp : "-"} maxLength={28} className="text-[11px] font-semibold leading-tight text-foreground" />
           </div>
         )
       }
@@ -215,7 +215,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
       header: "Indel Size",
       accessorFn: (row) => row.INFO?.SVLEN || "-",
       meta: { headerClassName: "w-16", cellClassName: "w-16" },
-      cell: ({ row }) => <span className="font-mono text-[11px] text-muted-foreground">{row.original.INFO?.SVLEN || "-"}</span>
+      cell: ({ row }) => <span className="text-[11px] text-muted-foreground">{row.original.INFO?.SVLEN || "-"}</span>
     },
     {
       id: "consequence",
@@ -245,7 +245,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
       meta: { headerClassName: "w-20", cellClassName: "w-20" },
       cell: ({ row }) => {
         const freq = row.original.gnomad_frequency
-        return <span className="font-mono text-[11px]">{freq ? (freq * 100).toFixed(3) : "-"}</span>
+        return <span className="text-[11px]">{freq ? (freq * 100).toFixed(3) : "-"}</span>
       }
     },
     {
@@ -278,11 +278,11 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
         const igvUrl = igvLoadUrl(sampleId, loc)
         return (
           igvUrl ? (
-            <a href={igvUrl} target="_blank" rel="noreferrer" className="inline-block rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground shadow-sm transition-colors hover:bg-muted/80 hover:text-foreground dark:bg-muted/60">
+            <a href={igvUrl} target="_blank" rel="noreferrer" className="inline-block rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground shadow-sm transition-colors hover:bg-muted/80 hover:text-foreground dark:bg-muted/60">
               {loc}
             </a>
           ) : (
-            <span className="inline-block rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{loc}</span>
+            <span className="inline-block rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">{loc}</span>
           )
         )
       }
@@ -315,8 +315,8 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
         const caseGt = row.original.GT?.find((gt: any) => gt.type === "case")
         return (
           <div className="flex items-center gap-1 text-[11px]" title={caseGt ? `Case ${(caseGt.AF * 100).toFixed(1)}% (${caseGt.VD}/${caseGt.DP})` : "Case -"}>
-            <span className="font-mono font-bold">{caseGt ? `${(caseGt.AF * 100).toFixed(1)}%` : "-"}</span>
-            <span className="font-mono text-muted-foreground">{caseGt ? `(${caseGt.VD}/${caseGt.DP})` : "-"}</span>
+            <span className="font-bold">{caseGt ? `${(caseGt.AF * 100).toFixed(1)}%` : "-"}</span>
+            <span className="text-muted-foreground">{caseGt ? `(${caseGt.VD}/${caseGt.DP})` : "-"}</span>
           </div>
         )
       }
@@ -341,8 +341,8 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
           const ctrlGt = row.original.GT?.find((gt: any) => gt.type === "control")
           return (
             <div className="flex items-center gap-1 text-[11px]" title={ctrlGt ? `Control ${(ctrlGt.AF * 100).toFixed(1)}% (${ctrlGt.VD}/${ctrlGt.DP})` : "Control -"}>
-              <span className="font-mono font-semibold text-foreground/70">{ctrlGt ? `${(ctrlGt.AF * 100).toFixed(1)}%` : "-"}</span>
-              <span className="font-mono text-muted-foreground">{ctrlGt ? `(${ctrlGt.VD}/${ctrlGt.DP})` : "-"}</span>
+              <span className="font-semibold text-foreground/70">{ctrlGt ? `${(ctrlGt.AF * 100).toFixed(1)}%` : "-"}</span>
+              <span className="text-muted-foreground">{ctrlGt ? `(${ctrlGt.VD}/${ctrlGt.DP})` : "-"}</span>
             </div>
           )
         }

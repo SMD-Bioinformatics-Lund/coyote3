@@ -227,7 +227,7 @@ export function DataTable<TData, TValue>({
       {/* Table Area */}
       <div className="paper-surface overflow-hidden rounded-lg [contain:paint]">
         <div className="overflow-x-auto">
-          <table className="w-full table-auto border-separate border-spacing-0 text-left text-[0.84rem] tabular-nums">
+          <table className="w-full table-auto border-separate border-spacing-0 text-left text-[0.84rem] type-numeric">
             <thead className="type-table-header border-b-2 border-border bg-[var(--header-surface)] text-foreground">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
@@ -328,7 +328,7 @@ export function DataTable<TData, TValue>({
           <select
             value={perPage ?? 50}
             onChange={(event) => onPerPageChange(Number(event.target.value))}
-            className="paper-inset rounded-lg px-2 py-1 text-xs font-bold text-foreground outline-none focus:ring-3 focus:ring-ring/30"
+            className="paper-inset rounded-lg px-2 py-1 text-xs font-semibold text-foreground outline-none focus:ring-3 focus:ring-ring/30"
           >
             {[25, 50, 100, 200].map((value) => (
               <option key={value} value={value}>
@@ -343,16 +343,16 @@ export function DataTable<TData, TValue>({
               type="button"
               disabled={!hasPrevious}
               onClick={() => onPageChange?.(Math.max(1, page - 1))}
-              className="paper-inset rounded-lg px-2.5 py-1 font-bold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
+              className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
             >
               Previous
             </button>
-            <span className="px-1 font-bold text-foreground">Page {page}</span>
+            <span className="px-1 font-semibold text-foreground">Page {page}</span>
             <button
               type="button"
               disabled={!hasNext}
               onClick={() => onPageChange?.(page + 1)}
-              className="paper-inset rounded-lg px-2.5 py-1 font-bold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
+              className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
             >
               Next
             </button>
@@ -362,7 +362,7 @@ export function DataTable<TData, TValue>({
           <button
             type="button"
             onClick={() => setRenderLimit((current) => current + RENDER_BATCH_SIZE)}
-            className="paper-inset rounded-lg px-2.5 py-1 font-bold text-foreground hover:border-primary/30 hover:bg-muted"
+            className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted"
           >
             Show more
           </button>

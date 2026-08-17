@@ -644,7 +644,7 @@ function AssayMatrixTable({
               value={perPage}
               disabled={Boolean(appliedGeneSearch)}
               onChange={(event) => onPerPageChange(Number(event.target.value))}
-              className="h-8 rounded-lg border border-input bg-background px-2 text-xs font-normal text-foreground disabled:opacity-50"
+              className="h-8 rounded-lg border border-input bg-background px-2 text-xs font-semibold text-foreground disabled:opacity-50"
             >
               {[50, 100, 200, 500].map((value) => <option key={value} value={value}>{value}</option>)}
             </select>
@@ -653,16 +653,16 @@ function AssayMatrixTable({
             type="button"
             disabled={!hasPrevious}
             onClick={() => onPageChange(Math.max(1, page - 1))}
-            className="h-8 rounded-lg border border-border px-3 text-xs font-bold hover:bg-muted disabled:opacity-50"
+            className="h-8 rounded-lg border border-border px-3 text-xs font-semibold hover:bg-muted disabled:opacity-50"
           >
             Previous
           </button>
-          <span className="text-xs font-normal text-muted-foreground">Page {page}</span>
+          <span className="text-xs font-semibold text-muted-foreground">Page {page}</span>
           <button
             type="button"
             disabled={!hasNext}
             onClick={() => onPageChange(page + 1)}
-            className="h-8 rounded-lg border border-border px-3 text-xs font-bold hover:bg-muted disabled:opacity-50"
+            className="h-8 rounded-lg border border-border px-3 text-xs font-semibold hover:bg-muted disabled:opacity-50"
           >
             Next
           </button>
@@ -714,7 +714,7 @@ function AssayMatrixTable({
       </div>
       <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm [contain:paint]">
         <div className="overflow-x-auto">
-        <table className="w-full min-w-max table-fixed border-separate border-spacing-0 text-left text-sm tabular-nums">
+        <table className="w-full min-w-max table-fixed border-separate border-spacing-0 text-left text-sm type-numeric">
           <colgroup>
             <col className="w-44" />
             {columns.map((col) => (

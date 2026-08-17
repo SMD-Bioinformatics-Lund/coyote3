@@ -173,7 +173,7 @@ export function FusionDetail() {
                 <DetailFieldGrid>
                   <DetailField label="Gene 1">{genes[0] || fusion?.gene1 || "-"}</DetailField>
                   <DetailField label="Gene 2">{genes[1] || fusion?.gene2 || "-"}</DetailField>
-                  <DetailField label="Breakpoints" valueClassName="font-mono">{fusionBreakpoint(selectedCall)}</DetailField>
+                  <DetailField label="Breakpoints" valueClassName="">{fusionBreakpoint(selectedCall)}</DetailField>
                   <DetailField label="Effect"><FusionEffectBadge effect={selectedCall?.effect || fusion?.frame} /></DetailField>
                   <DetailField label="Caller"><FusionCallerBadges callers={selectedCall?.caller || fusionCallers(fusion)} /></DetailField>
                   <DetailField label="Evidence"><FusionEvidenceBadges description={selectedCall?.desc || fusion?.desc} metadata={data.fusion_annotation_metadata} /></DetailField>
@@ -206,7 +206,7 @@ export function FusionDetail() {
                   { key: "selected", header: "", render: (row: any, index) => row.selected ? <EvidenceBadge tone="success">Selected</EvidenceBadge> : <button className="rounded-md border border-border bg-background px-2 py-1 text-[10px] font-bold text-primary hover:bg-primary/10 disabled:opacity-50" disabled={pickCall.isPending} onClick={() => pickCall.mutate(index)}>Pick</button> },
                   { key: "gene1", header: "Gene 1", render: () => genes[0] || fusion?.gene1 || "-" },
                   { key: "gene2", header: "Gene 2", render: () => genes[1] || fusion?.gene2 || "-" },
-                  { key: "breakpoints", header: "Breakpoints", render: (row: any) => <span className="font-mono">{fusionBreakpoint(row)}</span> },
+                  { key: "breakpoints", header: "Breakpoints", render: (row: any) => <span className="">{fusionBreakpoint(row)}</span> },
                   { key: "effect", header: "Effect", render: (row: any) => <FusionEffectBadge effect={row.effect} /> },
                   { key: "spanpairs", header: "Span pairs", render: (row: any) => displayValue(row.spanpairs) },
                   { key: "spanreads", header: "Span reads", render: (row: any) => displayValue(row.spanreads) },

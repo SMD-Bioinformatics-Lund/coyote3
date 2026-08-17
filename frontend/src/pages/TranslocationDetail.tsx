@@ -171,9 +171,9 @@ export function TranslocationDetail() {
               <DetailCard title="Translocation Properties">
                 <DetailFieldGrid>
                   <DetailField label="Genes">{genes.join(" - ") || "-"}</DetailField>
-                  <DetailField label="Position" valueClassName="font-mono text-primary/80">{position}</DetailField>
+                  <DetailField label="Position" valueClassName="text-primary/80">{position}</DetailField>
                   <DetailField label="Type" valueClassName="uppercase">{translocation?.INFO?.SVTYPE || "-"}</DetailField>
-                  <DetailField label="Quality" valueClassName="font-mono">{translocation?.QUAL ?? "-"}</DetailField>
+                  <DetailField label="Quality" valueClassName="">{translocation?.QUAL ?? "-"}</DetailField>
                   <DetailField label="Callers">{translocation?.INFO?.variant_callers || translocation?.callers || "-"}</DetailField>
                   <DetailField label="Unique reads">{translocation?.INFO?.UNIQUE_READS || translocation?.unique_reads || "-"}</DetailField>
                   <DetailField label="Status"><StatusBadges finding={translocation} /></DetailField>
@@ -202,7 +202,7 @@ export function TranslocationDetail() {
                 columns={[
                   { key: "selected", header: "", render: (row: any) => row === annotation ? <EvidenceBadge tone="success">Selected</EvidenceBadge> : null },
                   { key: "gene", header: "Genes", render: (row: any) => displayValue(row.Gene_Name || row.SYMBOL) },
-                  { key: "feature", header: "Transcript", render: (row: any) => <span className="font-mono">{row.Feature_ID || row.Feature || "-"}</span> },
+                  { key: "feature", header: "Transcript", render: (row: any) => <span className="">{row.Feature_ID || row.Feature || "-"}</span> },
                   { key: "protein", header: "Protein", render: (row: any) => row.HGVS_p || row.HGVSp || "-" },
                   { key: "cdna", header: "cDNA", render: (row: any) => row.HGVS_c || row.HGVSc || "-" },
                   { key: "consequence", header: "Consequence", render: (row: any) => translatedConsequence(row, data.vep_conseq_translations) },

@@ -77,7 +77,7 @@ function InfoTile({ label, value, mono = false }: { label: string; value: unknow
   return (
     <div className="rounded-lg border border-border bg-background/70 p-3">
       <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</dt>
-      <dd className={`mt-1 break-words text-sm font-semibold ${mono ? "font-mono" : ""}`}>{display(value)}</dd>
+      <dd className={`mt-1 break-words text-sm font-semibold ${mono ? "" : ""}`}>{display(value)}</dd>
     </div>
   )
 }
@@ -183,7 +183,7 @@ export function GeneInfoPage() {
     start_site: value?.start_site,
   }))
   const transcriptColumns: ColumnDef<any, any>[] = [
-    { id: "transcript", header: "Transcript", accessorKey: "transcript", cell: ({ row }) => <span className="font-mono text-xs font-bold">{row.original.transcript}</span> },
+    { id: "transcript", header: "Transcript", accessorKey: "transcript", cell: ({ row }) => <span className="text-xs font-bold">{row.original.transcript}</span> },
     { id: "start", header: "Start", accessorFn: (row) => formatCoordinate(row.start) },
     { id: "end", header: "End", accessorFn: (row) => formatCoordinate(row.end) },
     { id: "length", header: "Length", accessorFn: (row) => formatCoordinate(row.length) },
@@ -478,7 +478,7 @@ export function PublicAspGenesPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <h3 className="text-sm font-semibold">{list.label || list.key}</h3>
-                        {list.key && <p className="font-mono text-[11px] font-semibold text-muted-foreground">{list.key}</p>}
+                        {list.key && <p className="text-[11px] font-semibold text-muted-foreground">{list.key}</p>}
                       </div>
                       {list.tat && (
                         <span className="rounded-full border border-border bg-muted px-2 py-1 text-[10px] font-black uppercase text-muted-foreground">

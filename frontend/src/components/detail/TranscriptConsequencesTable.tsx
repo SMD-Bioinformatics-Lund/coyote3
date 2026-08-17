@@ -142,14 +142,14 @@ export function TranscriptConsequencesTable({
           header: "Transcript",
           render: (row) => (
             <span className="block min-w-44">
-              <span className="font-mono">{String(row.Feature || "-")}</span>
+              <span className="">{String(row.Feature || "-")}</span>
               <TranscriptTagBadges row={row} />
             </span>
           ),
         },
         { key: "canonical", header: "Canonical", render: (row) => <CanonicalTranscriptBadge row={row} /> },
-        { key: "hgvsc", header: "cDNA", render: (row) => <ExpandableText text={String(row.HGVSc || "-")} maxLength={28} className="font-mono" /> },
-        { key: "hgvsp", header: "Protein", render: (row) => <ExpandableText text={String(row.HGVSp || "-")} maxLength={28} className="font-mono" /> },
+        { key: "hgvsc", header: "cDNA", render: (row) => <ExpandableText text={String(row.HGVSc || "-")} maxLength={28} className="" /> },
+        { key: "hgvsp", header: "Protein", render: (row) => <ExpandableText text={String(row.HGVSp || "-")} maxLength={28} className="" /> },
         {
           key: "consequence",
           header: "Consequence",

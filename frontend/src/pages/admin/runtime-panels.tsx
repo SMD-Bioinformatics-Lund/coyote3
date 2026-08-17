@@ -81,7 +81,7 @@ export function RuntimeMetric({ label, value, description }: { label: string; va
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
         <InfoHint title={label} description={description} />
       </div>
-      <p className="mt-1 text-lg font-black tabular-nums text-foreground">{value}</p>
+      <p className="mt-1 text-lg font-black type-numeric text-foreground">{value}</p>
     </div>
   )
 }
@@ -148,7 +148,7 @@ export function WorkerRuntimePanel({ workers }: { workers: NonNullable<AppContro
           {workers.map((worker) => (
             <div key={worker.name} className="rounded-lg border border-border bg-card p-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-mono text-xs font-bold text-foreground">{worker.name}</span>
+                <span className="text-xs font-bold text-foreground">{worker.name}</span>
                 <span className="rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[11px] font-bold uppercase text-success">{worker.status || "online"}</span>
               </div>
               <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground sm:grid-cols-4">
@@ -184,7 +184,7 @@ export function BeatRuntimePanel({ entries }: { entries: NonNullable<AppControls
           {entries.map((entry) => (
             <div key={entry.name} className="rounded-lg border border-border bg-card p-2.5">
               <p className="text-sm font-semibold text-foreground">{entry.name}</p>
-              <p className="mt-0.5 font-mono text-xs text-muted-foreground">{entry.task || "Task not reported"}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{entry.task || "Task not reported"}</p>
               <p className="mt-1 text-xs text-muted-foreground">Schedule: {entry.schedule || "not reported"}</p>
             </div>
           ))}
@@ -203,7 +203,7 @@ export function QueueRuntimePanel({ consumers }: { consumers: Record<string, str
         <div className="grid gap-2">
           {entries.map(([queue, workers]) => (
             <div key={queue} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-2.5 py-2">
-              <span className="font-mono text-xs font-bold text-foreground">{queue}</span>
+              <span className="text-xs font-bold text-foreground">{queue}</span>
               <span className="text-xs text-muted-foreground">{workers.join(", ")}</span>
             </div>
           ))}
@@ -228,7 +228,7 @@ export function TaskRuntimePanel({
           {tasks.map((task, index) => (
             <div key={`${task.state}-${task.task_id || task.task_name || index}`} className="rounded-lg border border-border bg-card p-2.5 text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-mono font-bold text-foreground">{task.task_name || "Unnamed task"}</span>
+                <span className="font-bold text-foreground">{task.task_name || "Unnamed task"}</span>
                 <span className="rounded-full border border-border bg-muted px-2 py-0.5 font-bold uppercase text-muted-foreground">{task.state}</span>
               </div>
               <p className="mt-1 text-muted-foreground">Worker {task.worker || "-"} · Queue {task.queue || "-"} · ID {task.task_id || "-"}</p>
@@ -239,7 +239,7 @@ export function TaskRuntimePanel({
       <details>
         <summary className="cursor-pointer text-xs font-semibold text-link">Show {registeredTasks.length} registered task names</summary>
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {registeredTasks.map((task) => <span key={task} className="rounded-md border border-border bg-card px-2 py-1 font-mono text-[11px] text-muted-foreground">{task}</span>)}
+          {registeredTasks.map((task) => <span key={task} className="rounded-md border border-border bg-card px-2 py-1 text-[11px] text-muted-foreground">{task}</span>)}
         </div>
       </details>
     </div>

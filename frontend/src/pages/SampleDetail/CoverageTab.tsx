@@ -105,10 +105,10 @@ function CoverageGeneView({
         <tbody>
           {rows.map((row, index) => (
             <tr key={`${coord(row)}-${index}`} className="border-t border-border/40">
-              {region === "CDS" && <td className="px-2 py-1 font-mono">{row.nbr || row.exon || "-"}</td>}
-              <td className="px-2 py-1 font-mono">{coord(row)}</td>
-              <td className="px-2 py-1 font-mono font-bold text-fail">{coverageNumber(row).toFixed(2)}X</td>
-              <td className="px-2 py-1 font-mono">{metric(regionLength(row))}</td>
+              {region === "CDS" && <td className="px-2 py-1 ">{row.nbr || row.exon || "-"}</td>}
+              <td className="px-2 py-1 ">{coord(row)}</td>
+              <td className="px-2 py-1 font-bold text-fail">{coverageNumber(row).toFixed(2)}X</td>
+              <td className="px-2 py-1 ">{metric(regionLength(row))}</td>
               <td className="px-2 py-1">
                 <button
                   onClick={() => blacklist.mutate({ row, region })}
@@ -166,10 +166,10 @@ function CoverageGeneView({
               : row.exon_nr || "-"
             return (
               <tr key={`${region}-${coord(row)}-${index}`} className="border-t border-border/40">
-                <td className="px-2 py-1 font-mono">{featureLabel}</td>
-                <td className="px-2 py-1 font-mono">{coord(row)}</td>
-                <td className="px-2 py-1 font-mono">{metric(regionLength(row))}</td>
-                <td className={`px-2 py-1 font-mono font-bold ${isLow ? "text-fail" : "text-pass"}`}>
+                <td className="px-2 py-1 ">{featureLabel}</td>
+                <td className="px-2 py-1 ">{coord(row)}</td>
+                <td className="px-2 py-1 ">{metric(regionLength(row))}</td>
+                <td className={`px-2 py-1 font-bold ${isLow ? "text-fail" : "text-pass"}`}>
                   {Number.isFinite(cov) ? `${cov.toFixed(2)}X` : "N/A"}
                 </td>
                 <td className="px-2 py-1">
@@ -177,7 +177,7 @@ function CoverageGeneView({
                     {Number.isFinite(cov) ? (isLow ? "Low" : "Pass") : "No design"}
                   </span>
                 </td>
-                {region === "probe" && <td className="px-2 py-1 font-mono">{overlapping}</td>}
+                {region === "probe" && <td className="px-2 py-1 ">{overlapping}</td>}
                 <td className="px-2 py-1">
                   {(region === "CDS" || region === "probe") && (
                     <button
@@ -384,16 +384,16 @@ function CoverageGeneView({
           <div className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Coordinates</p>
-              <p className="font-mono font-semibold">{transcript.chr || transcript.chrom || "-"}:{metric(transcript.start)}-{metric(transcript.end)}</p>
+              <p className="font-semibold">{transcript.chr || transcript.chrom || "-"}:{metric(transcript.start)}-{metric(transcript.end)}</p>
             </div>
             <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Length</p>
-              <p className="font-mono font-semibold">{metric(regionLength(transcript))} bp</p>
+              <p className="font-semibold">{metric(regionLength(transcript))} bp</p>
             </div>
             {transcriptRows.map(([key, value]) => (
               <div key={key} className="rounded-lg border border-border bg-background/70 px-3 py-2">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{key.replaceAll("_", " ")}</p>
-                <p className="break-words font-mono text-xs font-semibold">{String(value)}</p>
+                <p className="break-words text-xs font-semibold">{String(value)}</p>
               </div>
             ))}
             {!transcriptRows.length && <p className="text-sm text-muted-foreground">No transcript metadata available.</p>}
@@ -457,25 +457,25 @@ export function CoverageTab({ sampleId }: { sampleId: string }) {
       id: "region",
       header: "Region",
       accessorFn: (row) => row.region || row.nbr || "-",
-      cell: ({ row }) => <span className="font-mono text-xs">{row.original.region || row.original.nbr || "-"}</span>,
+      cell: ({ row }) => <span className="text-xs">{row.original.region || row.original.nbr || "-"}</span>,
     },
     {
       id: "chrom",
       header: "Chrom",
       accessorFn: (row) => row.chrom || row.chr || "-",
-      cell: ({ row }) => <span className="font-mono text-xs">{row.original.chrom || row.original.chr || "-"}</span>,
+      cell: ({ row }) => <span className="text-xs">{row.original.chrom || row.original.chr || "-"}</span>,
     },
     {
       id: "start",
       header: "Start",
       accessorFn: (row) => Number(row.start || 0),
-      cell: ({ row }) => <span className="font-mono text-xs">{metric(row.original.start)}</span>,
+      cell: ({ row }) => <span className="text-xs">{metric(row.original.start)}</span>,
     },
     {
       id: "end",
       header: "End",
       accessorFn: (row) => Number(row.end || 0),
-      cell: ({ row }) => <span className="font-mono text-xs">{metric(row.original.end)}</span>,
+      cell: ({ row }) => <span className="text-xs">{metric(row.original.end)}</span>,
     },
     {
       id: "coverage",
@@ -484,7 +484,7 @@ export function CoverageTab({ sampleId }: { sampleId: string }) {
       cell: ({ row }) => {
         const value = Number(row.original.cov)
         return (
-          <span className={`font-mono text-xs font-bold ${Number.isFinite(value) && value < cutoff ? "text-fail" : "text-pass"}`}>
+          <span className={`text-xs font-bold ${Number.isFinite(value) && value < cutoff ? "text-fail" : "text-pass"}`}>
             {Number.isFinite(value) ? value.toFixed(1) : "-"}
           </span>
         )
@@ -555,7 +555,7 @@ export function CoverageTab({ sampleId }: { sampleId: string }) {
                     <span className="block truncate text-xs font-black">{item.gene}</span>
                     <span className="text-[10px] text-muted-foreground">{item.count} low region(s)</span>
                   </span>
-                  <span className="rounded-md bg-fail/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-fail">
+                  <span className="rounded-md bg-fail/10 px-1.5 py-0.5 text-[10px] font-bold text-fail">
                     {Number.isFinite(item.min) ? `${item.min.toFixed(1)}X` : "-"}
                   </span>
                 </button>

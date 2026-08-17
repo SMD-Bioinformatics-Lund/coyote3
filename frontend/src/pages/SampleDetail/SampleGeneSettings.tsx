@@ -344,7 +344,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
           <textarea
             value={adhocGenes}
             onChange={(event) => setAdhocGenes(event.target.value)}
-            className="min-h-28 w-full rounded-lg border border-input bg-background p-3 font-mono text-xs outline-none focus:ring-2 focus:ring-primary/40"
+            className="min-h-28 w-full rounded-lg border border-input bg-background p-3 text-xs outline-none focus:ring-2 focus:ring-primary/40"
             placeholder="One gene per line, or separated by spaces/commas"
           />
         </div>

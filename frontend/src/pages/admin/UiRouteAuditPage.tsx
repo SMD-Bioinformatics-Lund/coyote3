@@ -23,7 +23,7 @@ const columns: ColumnDef<UiRouteAudit, any>[] = [
   {
     accessorKey: "path",
     header: "Route",
-    cell: ({ row }) => <span className="font-mono text-[11px] font-bold text-primary">{row.original.path}</span>,
+    cell: ({ row }) => <span className="text-[11px] font-bold text-primary">{row.original.path}</span>,
   },
   {
     accessorKey: "page",
@@ -47,7 +47,7 @@ const columns: ColumnDef<UiRouteAudit, any>[] = [
       <div className="flex max-w-[460px] flex-wrap gap-1">
         {row.original.api.length ? (
           row.original.api.map((item) => (
-            <Badge key={item} variant="outline" className="max-w-full truncate font-mono text-[10px]">
+            <Badge key={item} variant="outline" className="max-w-full truncate text-[10px]">
               {item}
             </Badge>
           ))

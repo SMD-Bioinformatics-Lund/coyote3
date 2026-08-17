@@ -24,7 +24,7 @@ const dnaSnapshotColumns: ColumnDef<any, any>[] = [
     id: "variant",
     header: "Variant",
     accessorFn: (row) => row.variant || row.hgvs || row.variant_name || row.breakpoint || "-",
-    cell: ({ row }) => <span className="font-mono text-xs">{String(row.getValue("variant"))}</span>,
+    cell: ({ row }) => <span className="text-xs">{String(row.getValue("variant"))}</span>,
   },
   {
     id: "classification",
@@ -51,7 +51,7 @@ const rnaSnapshotColumns: ColumnDef<any, any>[] = [
     id: "breakpoints",
     header: "Breakpoints",
     accessorFn: (row) => [row.breakpoint_1, row.breakpoint_2].filter(Boolean).join(" / ") || "-",
-    cell: ({ row }) => <span className="font-mono text-xs">{String(row.getValue("breakpoints"))}</span>,
+    cell: ({ row }) => <span className="text-xs">{String(row.getValue("breakpoints"))}</span>,
   },
   {
     id: "effect",

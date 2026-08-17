@@ -127,7 +127,7 @@ export function TieredVariantSearch() {
           <ExpandableText
             text={String(row.getValue("variant") || "-")}
             maxLength={34}
-            className="text-xs font-mono text-foreground"
+            className="text-xs text-foreground"
           />
         </div>
       ),
@@ -285,7 +285,7 @@ export function TieredVariantSearch() {
             {[1, 2, 3, 4].map((tier) => (
               <div key={tier} className={`rounded-lg border border-border p-3 ${tierHeaderClasses[tier]}`}>
                 <span className="font-bold">Tier {tier}</span>
-                <span className="float-right font-mono">{data.tier_stats.total[`tier${tier}`] || 0}</span>
+                <span className="float-right ">{data.tier_stats.total[`tier${tier}`] || 0}</span>
               </div>
             ))}
           </div>
@@ -341,11 +341,11 @@ export function TieredVariantSearch() {
                         </div>
                       </td>
                       {[1, 2, 3, 4].map((tier) => (
-                        <td key={tier} className={`px-3 py-2.5 text-right font-bold tabular-nums ${tierTextClasses[tier]}`}>
+                        <td key={tier} className={`px-3 py-2.5 text-right font-bold type-numeric ${tierTextClasses[tier]}`}>
                           {shortCount(tierCount(stats, tier))}
                         </td>
                       ))}
-                      <td className="px-4 py-2.5 text-right text-sm font-black tabular-nums text-foreground" title={`${total} total variants`}>
+                      <td className="px-4 py-2.5 text-right text-sm font-black type-numeric text-foreground" title={`${total} total variants`}>
                         {shortCount(total)}
                       </td>
                     </tr>

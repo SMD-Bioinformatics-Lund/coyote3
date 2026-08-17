@@ -457,7 +457,7 @@
     @apply min-w-0 break-words text-sm font-semibold text-foreground;
   }
   .detail-stat-positive {
-    @apply font-mono text-xl font-black text-tier4;
+    @apply text-xl font-black text-tier4;
   }
   .soft-chip {
     @apply inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary;
@@ -998,7 +998,7 @@
     @apply my-2 border-l-4 border-primary/30 bg-muted/50 py-1 pl-3 text-muted-foreground;
   }
   .markdown-body code {
-    @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.92em];
+    @apply rounded bg-muted px-1 py-0.5 text-[0.92em];
   }
   .markdown-body pre {
     @apply my-2 overflow-x-auto rounded-lg bg-muted p-3;

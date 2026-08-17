@@ -204,16 +204,16 @@ export function VariantDetail() {
                       showOncoKbBadge={false}
                     />
                   </DetailField>
-                  <DetailField label="Canonical transcript" valueClassName="font-mono text-primary/80">{csq.Feature}</DetailField>
+                  <DetailField label="Canonical transcript" valueClassName="text-primary/80">{csq.Feature}</DetailField>
                   <DetailField label="Consequence">
                     <ConsequenceBadges value={csq.Consequence} translations={data.vep_conseq_translations} />
                   </DetailField>
                   <DetailField label="Impact"><ImpactBadge value={csq.IMPACT} /></DetailField>
                   <DetailField label="Variant class">{data.vep_var_class_translations?.[variant?.variant_class]?.display_name || variant?.variant_class || csq.VARIANT_CLASS || "-"}</DetailField>
-                  <DetailField label="Position" valueClassName="font-mono">{variantLocation(variant)}</DetailField>
+                  <DetailField label="Position" valueClassName="">{variantLocation(variant)}</DetailField>
                   <DetailField label="Filter flags"><FilterFlagBadges value={variant?.FILTER} metadata={filterFlagMetadata} /></DetailField>
-                  <DetailField label="cDNA"><ExpandableText text={csq.HGVSc || "-"} maxLength={24} className="font-mono" /></DetailField>
-                  <DetailField label="Protein"><ExpandableText text={csq.HGVSp || "-"} maxLength={24} className="font-mono" /></DetailField>
+                  <DetailField label="cDNA"><ExpandableText text={csq.HGVSc || "-"} maxLength={24} className="" /></DetailField>
+                  <DetailField label="Protein"><ExpandableText text={csq.HGVSp || "-"} maxLength={24} className="" /></DetailField>
                   <DetailField label="Exon / Intron">{csq.EXON || csq.INTRON || "-"}</DetailField>
                   <DetailField label="Indel size">{variant?.INFO?.SVLEN || variant?.indel_size || "-"}</DetailField>
                 </DetailFieldGrid>
@@ -278,9 +278,9 @@ export function VariantDetail() {
                       {variant?.GT?.map((gt: any, i: number) => (
                         <tr key={i}>
                           <td className="px-3 py-1 capitalize font-semibold">{gt.type}</td>
-                          <td className="px-3 py-1 font-mono">{(gt.AF * 100).toFixed(1)}%</td>
-                          <td className="px-3 py-1 font-mono">{gt.VD}</td>
-                          <td className="px-3 py-1 font-mono">{gt.DP}</td>
+                          <td className="px-3 py-1 ">{(gt.AF * 100).toFixed(1)}%</td>
+                          <td className="px-3 py-1 ">{gt.VD}</td>
+                          <td className="px-3 py-1 ">{gt.DP}</td>
                         </tr>
                       ))}
                     </tbody>

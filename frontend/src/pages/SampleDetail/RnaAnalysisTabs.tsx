@@ -108,7 +108,7 @@ function SignedScoreBar({ value, extent }: { value: number; extent: number }) {
           className={`absolute inset-y-0 ${value >= 0 ? "left-1/2" : "right-1/2"} ${presentation.barClass}`}
           style={{ width: `${width}%` }}
         />
-        <span className="relative z-10 flex h-full items-center justify-center text-[0.72rem] font-bold tabular-nums">
+        <span className="relative z-10 flex h-full items-center justify-center text-[0.72rem] font-bold type-numeric">
           {value.toFixed(2)}
         </span>
       </div>
@@ -140,7 +140,7 @@ function ClassificationScore({ row }: { row: ClassificationRow }) {
         tabIndex={0}
       >
         <span className="absolute inset-y-0 left-0 bg-tier3/65" style={{ width: `${percent}%` }} />
-        <span className="relative z-10 flex h-full items-center justify-center text-[0.72rem] font-bold tabular-nums">
+        <span className="relative z-10 flex h-full items-center justify-center text-[0.72rem] font-bold type-numeric">
           {score.toFixed(2)}
         </span>
       </div>
@@ -168,13 +168,13 @@ function ExpressionPanel({ rows, sampleId }: { rows: ExpressionRow[]; sampleId: 
       id: "tpm",
       header: "TPM",
       accessorFn: (row) => Number(row.sample_expression || 0),
-      cell: ({ getValue }) => <span className="tabular-nums">{Number(getValue()).toFixed(2)}</span>,
+      cell: ({ getValue }) => <span className="type-numeric">{Number(getValue()).toFixed(2)}</span>,
     },
     {
       id: "reference_mean",
       header: "Reference mean",
       accessorFn: (row) => Number(row.reference_mean || 0),
-      cell: ({ getValue }) => <span className="tabular-nums">{Number(getValue()).toFixed(2)}</span>,
+      cell: ({ getValue }) => <span className="type-numeric">{Number(getValue()).toFixed(2)}</span>,
     },
     {
       id: "z_score",

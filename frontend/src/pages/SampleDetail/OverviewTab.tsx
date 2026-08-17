@@ -107,7 +107,7 @@ function BiomarkerBadge({ label, value, details }: { label: string; value: unkno
           <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide opacity-80">Sample biomarker</span>
           <span className="block font-bold text-foreground">{label}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{biomarkerDescription(label)}</span>
-          {details ? <span className="mt-1 block font-mono text-[11px] font-semibold text-foreground/85">{details}</span> : null}
+          {details ? <span className="mt-1 block text-[11px] font-semibold text-foreground/85">{details}</span> : null}
         </TooltipSurface>
       )}
     </span>

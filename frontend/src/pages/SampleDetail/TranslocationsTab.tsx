@@ -111,7 +111,7 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
       cell: ({ row }) => {
         const position = translocationPositionLabel(row.original)
         return (
-          <span className="font-mono text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {position}
           </span>
         )
@@ -144,8 +144,8 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
         const hgvs = translocationHgvs(ann)
         return (
           <div className="flex w-full max-w-80 flex-col leading-tight">
-            <ExpandableText text={hgvs.coding || "-"} maxLength={42} className="text-xs font-mono text-muted-foreground" />
-            <ExpandableText text={hgvs.protein || "-"} maxLength={42} className="text-xs font-mono font-semibold" />
+            <ExpandableText text={hgvs.coding || "-"} maxLength={42} className="text-xs text-muted-foreground" />
+            <ExpandableText text={hgvs.protein || "-"} maxLength={42} className="text-xs font-semibold" />
           </div>
         )
       }

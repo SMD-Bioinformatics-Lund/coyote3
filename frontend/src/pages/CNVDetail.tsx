@@ -174,11 +174,11 @@ export function CNVDetail() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <DetailCard title="CNV Properties">
                 <DetailFieldGrid>
-                  <DetailField label="Region" valueClassName="font-mono">{region}</DetailField>
-                  <DetailField label="Size" valueClassName="font-mono text-primary/80">{cnvSize(cnv)}</DetailField>
+                  <DetailField label="Region" valueClassName="">{region}</DetailField>
+                  <DetailField label="Size" valueClassName="text-primary/80">{cnvSize(cnv)}</DetailField>
                   <DetailField label="Type" valueClassName="uppercase">{type || "-"}</DetailField>
-                  <DetailField label="Ratio (log2)" valueClassName="font-mono">{Number.isFinite(Number(cnv?.ratio)) ? Number(cnv?.ratio).toFixed(4) : "-"}</DetailField>
-                  <DetailField label="Copy Number" valueClassName="font-mono text-tier4">{copyNumber(cnv)}</DetailField>
+                  <DetailField label="Ratio (log2)" valueClassName="">{Number.isFinite(Number(cnv?.ratio)) ? Number(cnv?.ratio).toFixed(4) : "-"}</DetailField>
+                  <DetailField label="Copy Number" valueClassName="text-tier4">{copyNumber(cnv)}</DetailField>
                   <DetailField label="Status">
                     <StatusBadges finding={cnv} />
                   </DetailField>
@@ -240,7 +240,7 @@ export function CNVDetail() {
                 {Object.keys(cnv || {}).filter(k => k.startsWith('AFRQ_')).map(k => (
                   <div key={k} className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground uppercase">{k.split('_')[1]}</span>
-                    <span className="font-mono font-bold">{percentValue(cnv[k], 1)}</span>
+                    <span className="font-bold">{percentValue(cnv[k], 1)}</span>
                   </div>
                 ))}
                 {!Object.keys(cnv || {}).some(k => k.startsWith('AFRQ_')) && (

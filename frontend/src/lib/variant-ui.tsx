@@ -470,7 +470,7 @@ function FilterFlagBadge({
           <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide opacity-80">
             {severityLabel(severity)} filter
           </span>
-          <span className="block break-words font-mono font-bold text-foreground">{flag}</span>
+          <span className="block break-words font-bold text-foreground">{flag}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{description}</span>
         </TooltipSurface>
       )}
@@ -656,7 +656,7 @@ export function PredictionBadge({ value }: { value: unknown }) {
         <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
           <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide opacity-80">Protein prediction</span>
           <span className="block font-bold text-foreground">{predictionLabel(value)}</span>
-          <span className="mt-1 block break-words font-mono text-[11px] font-semibold text-foreground/85">{String(value)}</span>
+          <span className="mt-1 block break-words text-[11px] font-semibold text-foreground/85">{String(value)}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{predictionDescription(value)}</span>
         </TooltipSurface>
       )}
@@ -727,7 +727,7 @@ function ConsequenceBadge({
             <span>VEP consequence</span>
             {impact && <ImpactBadge value={impact} />}
           </span>
-          <span className="block font-mono font-bold text-foreground">{term}</span>
+          <span className="block font-bold text-foreground">{term}</span>
           <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{description}</span>
         </TooltipSurface>
       )}

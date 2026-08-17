@@ -453,7 +453,7 @@ export function AdminAuditPage() {
       cell: ({ row }) => (
         <div className="max-w-md">
           <div className="font-semibold text-foreground">{row.original.message || "-"}</div>
-          <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">{row.original.event_type || "-"}</div>
+          <div className="mt-0.5 text-[11px] text-muted-foreground">{row.original.event_type || "-"}</div>
           <div className="mt-1 flex flex-wrap gap-1">
             {(row.original.tags || []).slice(0, 4).map((tag) => (
               <span key={tag} className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{tag}</span>
@@ -481,7 +481,7 @@ export function AdminAuditPage() {
                 {roles.map((role) => <span key={role} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">{role}</span>)}
               </div>
             )}
-            {row.original.source?.client_ip && <span className="block font-mono text-[11px] text-muted-foreground">{row.original.source.client_ip}</span>}
+            {row.original.source?.client_ip && <span className="block text-[11px] text-muted-foreground">{row.original.source.client_ip}</span>}
           </div>
         )
       },
@@ -498,7 +498,7 @@ export function AdminAuditPage() {
         return (
           <div>
             <span className="block text-sm font-semibold capitalize">{row.original.resource?.type?.replaceAll("_", " ") || "-"}</span>
-            <span className="block max-w-48 truncate font-mono text-[11px] text-muted-foreground" title={resource || ""}>{resource || "-"}</span>
+            <span className="block max-w-48 truncate text-[11px] text-muted-foreground" title={resource || ""}>{resource || "-"}</span>
           </div>
         )
       },
@@ -583,7 +583,7 @@ export function AdminAuditPage() {
             >
               <span>
                 <span className="block text-xs font-semibold uppercase tracking-wide">{level}</span>
-                <span className="mt-0.5 block text-xl font-black tabular-nums">{severityCounts[level]}</span>
+                <span className="mt-0.5 block text-xl font-black type-numeric">{severityCounts[level]}</span>
               </span>
               <Icon className="h-5 w-5" />
             </button>
@@ -712,7 +712,7 @@ function Detail({ label, value }: { label: string; value: string | null | undefi
   return (
     <div className="grid grid-cols-[5rem_1fr] gap-2">
       <span className="text-muted-foreground">{label}</span>
-      <span className="break-all font-mono">{value}</span>
+      <span className="break-all ">{value}</span>
     </div>
   )
 }
@@ -813,7 +813,7 @@ export function AdminIngestPage() {
             <div className="space-y-3">
               <div className="rounded-xl border border-border bg-background/70 p-3">
                 <p className="text-xs font-semibold uppercase text-muted-foreground">Task ID</p>
-                <p className="break-all font-mono text-sm">{taskId}</p>
+                <p className="break-all text-sm">{taskId}</p>
               </div>
               {taskStatus.isLoading ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground"><Activity className="h-4 w-4 animate-spin" /> Checking worker state...</div>

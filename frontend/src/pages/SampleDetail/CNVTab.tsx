@@ -161,7 +161,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
         const region = `${cnv.chr}:${cnv.start}-${cnv.end}`
         return (
           <div className="flex flex-col gap-0.5 leading-tight">
-            <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded w-max">{region}</span>
+            <span className="text-xs bg-muted px-1.5 py-0.5 rounded w-max">{region}</span>
             <span className="text-xs text-muted-foreground">{Math.abs(cnv.size).toLocaleString()} bp</span>
           </div>
         )
@@ -185,7 +185,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
         const isGain = ratio > 0
         return (
           <div className="flex items-center gap-2 leading-tight">
-            <span className={`font-mono font-bold ${isGain ? "text-fail" : "text-tier3"}`}>
+            <span className={`font-bold ${isGain ? "text-fail" : "text-tier3"}`}>
               {copyNumber.toFixed(2)}
             </span>
             <span className="text-[11px] text-muted-foreground">({ratio.toFixed(2)})</span>
@@ -200,14 +200,14 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
       enableSorting: false,
       cell: ({ row }) => {
         const adjusted = purityAdjustedCopyNumber(row.original, sample.purity)
-        return <span className="font-mono text-xs font-medium text-muted-foreground">{adjusted === null ? "-" : adjusted.toFixed(2)}</span>
+        return <span className="text-xs font-medium text-muted-foreground">{adjusted === null ? "-" : adjusted.toFixed(2)}</span>
       }
     },
     {
       id: "sr",
       header: "SR (ref/alt)",
       accessorFn: (row) => structuralReadEvidence(row),
-      cell: ({ row }) => <span className="font-mono text-xs font-medium text-muted-foreground">{structuralReadEvidence(row.original)}</span>,
+      cell: ({ row }) => <span className="text-xs font-medium text-muted-foreground">{structuralReadEvidence(row.original)}</span>,
     },
     {
       id: "status",
@@ -301,7 +301,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
           <ImageIcon className="size-4" /> CNV Profile
         </h4>
         <div className="flex items-center gap-2">
-          <span className="text-xs tabular-nums text-muted-foreground">{profileRotation}°</span>
+          <span className="text-xs type-numeric text-muted-foreground">{profileRotation}°</span>
           <Button
             type="button"
             variant="outline"

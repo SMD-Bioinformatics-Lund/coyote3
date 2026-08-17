@@ -126,13 +126,13 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
       id: "spanpairs",
       header: "Spanning pairs",
       accessorFn: (row) => selectedFusionCall(row)?.spanpairs || row.supporting_reads?.span || 0,
-      cell: ({ row }) => <span className="font-mono text-xs">{selectedFusionCall(row.original)?.spanpairs || row.original.supporting_reads?.span || "-"}</span>
+      cell: ({ row }) => <span className="text-xs">{selectedFusionCall(row.original)?.spanpairs || row.original.supporting_reads?.span || "-"}</span>
     },
     {
       id: "unique_spanpairs",
       header: "Unique spanning reads",
       accessorFn: (row) => selectedFusionCall(row)?.spanreads || row.supporting_reads?.split || 0,
-      cell: ({ row }) => <span className="font-mono text-xs">{selectedFusionCall(row.original)?.spanreads || row.original.supporting_reads?.split || "-"}</span>
+      cell: ({ row }) => <span className="text-xs">{selectedFusionCall(row.original)?.spanreads || row.original.supporting_reads?.split || "-"}</span>
     },
     {
       id: "fusion_points",
@@ -148,7 +148,7 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
         return (
           <div className="flex flex-col gap-0.5 text-[11px] leading-tight">
             {breakpoints.map((bp: string, i: number) => (
-              <span key={i} className="font-mono bg-muted/50 px-1.5 py-0.5 rounded w-max">{bp}</span>
+              <span key={i} className="bg-muted/50 px-1.5 py-0.5 rounded w-max">{bp}</span>
             ))}
           </div>
         )

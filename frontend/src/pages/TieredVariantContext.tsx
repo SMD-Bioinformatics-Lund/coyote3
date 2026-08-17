@@ -122,7 +122,7 @@ export function TieredVariantContext() {
       header: "HGVS",
       accessorFn: (row) => [row.hgvsp, row.hgvsc].filter(Boolean).join(" ") || row.variant || "-",
       cell: ({ row }) => (
-        <div className="flex max-w-md flex-col gap-0.5 font-mono text-xs">
+        <div className="flex max-w-md flex-col gap-0.5 text-xs">
           <span className="break-all font-semibold">{displayValue(row.original.hgvsp)}</span>
           <span className="break-all text-muted-foreground">{displayValue(row.original.hgvsc)}</span>
         </div>
@@ -189,19 +189,19 @@ export function TieredVariantContext() {
             </div>
             <div className="rounded-lg bg-background/70 p-2">
               <dt className="text-muted-foreground">simple_id</dt>
-              <dd className="break-all font-mono">{displayValue(variant.simple_id)}</dd>
+              <dd className="break-all ">{displayValue(variant.simple_id)}</dd>
             </div>
             <div className="rounded-lg bg-background/70 p-2">
               <dt className="text-muted-foreground">simple_id_hash</dt>
-              <dd className="break-all font-mono">{displayValue(variant.simple_id_hash)}</dd>
+              <dd className="break-all ">{displayValue(variant.simple_id_hash)}</dd>
             </div>
             <div className="rounded-lg bg-background/70 p-2">
               <dt className="text-muted-foreground">HGVSc</dt>
-              <dd className="break-all font-mono">{displayValue(csq.HGVSc)}</dd>
+              <dd className="break-all ">{displayValue(csq.HGVSc)}</dd>
             </div>
             <div className="rounded-lg bg-background/70 p-2">
               <dt className="text-muted-foreground">HGVSp</dt>
-              <dd className="break-all font-mono">{displayValue(csq.HGVSp)}</dd>
+              <dd className="break-all ">{displayValue(csq.HGVSp)}</dd>
             </div>
           </dl>
         </section>
