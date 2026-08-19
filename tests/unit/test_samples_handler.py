@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import mongomock
@@ -52,6 +53,44 @@ def test_get_samples_returns_only_ready_docs() -> None:
     )
 
     assert [row["name"] for row in rows] == ["ready-live"]
+
+
+def test_get_samples_filters_by_added_utc_range() -> None:
+    boundary = datetime(2026, 8, 19, 0, 0, tzinfo=timezone.utc)
+    handler = _handler_with_docs(
+        {
+            "name": "before-range",
+            "environment": "production",
+            "ingest_status": "ready",
+            "reported": False,
+            "time_added": boundary - timedelta(seconds=1),
+        },
+        {
+            "name": "inside-range",
+            "environment": "production",
+            "ingest_status": "ready",
+            "reported": False,
+            "time_added": boundary + timedelta(hours=2),
+        },
+        {
+            "name": "at-exclusive-end",
+            "environment": "production",
+            "ingest_status": "ready",
+            "reported": False,
+            "time_added": boundary + timedelta(days=1),
+        },
+    )
+
+    rows = handler.get_samples(
+        user_assays=None,
+        user_envs=["production"],
+        report=False,
+        added_from=boundary,
+        added_until=boundary + timedelta(days=1),
+        use_cache=False,
+    )
+
+    assert [row["name"] for row in rows] == ["inside-range"]
 
 
 def test_search_samples_for_admin_returns_only_ready_docs_by_default() -> None:

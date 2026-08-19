@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
 
@@ -194,6 +195,8 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         panel_tech: str | None,
         assay_group: str | None,
         limit_done_samples: int | None,
+        added_from: datetime | None = None,
+        added_until: datetime | None = None,
     ) -> dict[str, Any]:
         """Return the sample list payload for the catalog view.
 
@@ -264,6 +267,8 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
                 offset=0 if search_applied else done_offset,
                 use_cache=True,
                 reload=False,
+                added_from=added_from,
+                added_until=added_until,
             )
             or []
         )
@@ -282,6 +287,8 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
                 offset=0 if search_applied else live_offset,
                 use_cache=True,
                 reload=False,
+                added_from=added_from,
+                added_until=added_until,
             )
             or []
         )
@@ -310,6 +317,8 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
             "panel_type": panel_type,
             "panel_tech": panel_tech,
             "assay_group": assay_group,
+            "added_from": added_from,
+            "added_until": added_until,
         }
 
     def navigation_counts_payload(self, *, user, profile_scope: str) -> dict[str, Any]:

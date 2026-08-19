@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import mimetypes
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Body, Depends, Query
@@ -70,6 +71,8 @@ def list_samples_read(
     panel_tech: str | None = None,
     assay_group: str | None = None,
     limit_done_samples: int | None = None,
+    added_from: datetime | None = None,
+    added_until: datetime | None = None,
     user: ApiUser = Depends(require_access()),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
@@ -77,6 +80,13 @@ def list_samples_read(
     _ = sample_view
     live_per_page = live_per_page or per_page
     done_per_page = done_per_page or per_page
+    if added_from and added_until and added_until <= added_from:
+        raise api_error(
+            400,
+            "Invalid sample date range",
+            "added_until must be later than added_from.",
+            category="validation",
+        )
     return util.common.convert_to_serializable(
         service.samples_payload(
             user=user,
@@ -94,6 +104,8 @@ def list_samples_read(
             panel_tech=panel_tech,
             assay_group=assay_group,
             limit_done_samples=limit_done_samples,
+            added_from=added_from,
+            added_until=added_until,
         )
     )
 

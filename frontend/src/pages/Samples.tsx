@@ -6,7 +6,7 @@ import { api } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { TableBadge } from "@/components/ui/table-badge"
 import { Button } from "@/components/ui/button"
-import { FileText, ArrowRight, Dna, Search as SearchIcon } from "lucide-react"
+import { FileText, ArrowRight, CalendarDays, Dna, Search as SearchIcon } from "lucide-react"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Input } from "@/components/ui/input"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -20,6 +20,19 @@ import { useUrlTableState } from "@/hooks/useUrlTableState"
 import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
 
 type SampleTab = "live" | "reported"
+type DateRangePreset = "all" | "today" | "1d" | "3d" | "7d" | "30d" | "custom"
+
+const DATE_RANGE_OPTIONS: Array<{ value: DateRangePreset; label: string }> = [
+  { value: "all", label: "All dates" },
+  { value: "today", label: "Today" },
+  { value: "1d", label: "Last 24 hours" },
+  { value: "3d", label: "Last 3 days" },
+  { value: "7d", label: "Last 7 days" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "custom", label: "Custom range" },
+]
+
+const SAMPLE_LIMIT_OPTIONS = [25, 50, 100, 200]
 
 const BOOLEAN_ANALYSIS_LABELS: Record<string, string> = {
   cov: "Cov",
@@ -36,19 +49,49 @@ const BOOLEAN_ANALYSIS_LABELS: Record<string, string> = {
 function countBadges(sample: any) {
   const counts = sample?.data_counts || {}
   const numericBadges = [
-    counts.snvs !== undefined ? { label: "SNV", value: shortCount(counts.snvs), className: "border-primary/30 bg-primary/10 text-primary" } : null,
-    counts.cnvs !== undefined ? { label: "CNV", value: shortCount(counts.cnvs), className: "border-tier3/30 bg-tier3/10 text-tier3" } : null,
-    counts.fusions !== undefined ? { label: "Fusion", value: shortCount(counts.fusions), className: "border-rna/30 bg-rna/10 text-rna" } : null,
-    counts.translocations !== undefined ? { label: "SV", value: shortCount(counts.translocations), className: "border-tier2/30 bg-tier2/10 text-tier2" } : null,
+    counts.snvs !== undefined ? { label: "SNV", value: shortCount(counts.snvs), className: "matte-badge-pass" } : null,
+    counts.cnvs !== undefined ? { label: "CNV", value: shortCount(counts.cnvs), className: "matte-badge-pass" } : null,
+    counts.fusions !== undefined ? { label: "Fusion", value: shortCount(counts.fusions), className: "matte-badge-pass" } : null,
+    counts.translocations !== undefined ? { label: "SV", value: shortCount(counts.translocations), className: "matte-badge-pass" } : null,
   ].filter(Boolean)
   const booleanBadges = Object.entries(counts)
-    .filter(([, value]) => value === true)
-    .map(([key]) => ({
+    .filter(([, value]) => typeof value === "boolean")
+    .map(([key, value]) => ({
       label: BOOLEAN_ANALYSIS_LABELS[key] || key.replaceAll("_", " ").toUpperCase(),
-      className: "matte-badge-pass",
+      className: value ? "matte-badge-pass" : "matte-badge-fail",
     }))
 
   return [...numericBadges, ...booleanBadges]
+}
+
+function localDateBoundary(value: string, nextDay = false) {
+  const [year, month, day] = value.split("-").map(Number)
+  if (!year || !month || !day) return null
+  const boundary = new Date(year, month - 1, day + (nextDay ? 1 : 0))
+  return Number.isNaN(boundary.getTime()) ? null : boundary.toISOString()
+}
+
+function resolveDateRange(preset: DateRangePreset, customFrom: string, customUntil: string) {
+  if (preset === "all") return { addedFrom: null, addedUntil: null }
+  if (preset === "custom") {
+    return {
+      addedFrom: customFrom ? localDateBoundary(customFrom) : null,
+      addedUntil: customUntil ? localDateBoundary(customUntil, true) : null,
+    }
+  }
+
+  const now = new Date()
+  if (preset === "today") {
+    return {
+      addedFrom: new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString(),
+      addedUntil: null,
+    }
+  }
+  const days = Number.parseInt(preset, 10)
+  return {
+    addedFrom: new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString(),
+    addedUntil: null,
+  }
 }
 
 function sampleFindingTotal(sample: any) {
@@ -72,6 +115,18 @@ export function Samples() {
   const profileScope = searchParams.get("profile_scope") === "all" ? "all" : DEFAULT_ENVIRONMENT
   const activeTab: SampleTab = searchParams.get("sample_tab") === "reported" ? "reported" : "live"
   const searchStr = searchParams.get("search_str") || ""
+  const rawDateRange = searchParams.get("date_range") || "all"
+  const dateRange: DateRangePreset = DATE_RANGE_OPTIONS.some(({ value }) => value === rawDateRange)
+    ? rawDateRange as DateRangePreset
+    : "all"
+  const customDateFrom = searchParams.get("date_from") || ""
+  const customDateUntil = searchParams.get("date_until") || ""
+  const requestedLimit = Number(searchParams.get("sample_limit") || 50)
+  const sampleLimit = SAMPLE_LIMIT_OPTIONS.includes(requestedLimit) ? requestedLimit : 50
+  const { addedFrom, addedUntil } = useMemo(
+    () => resolveDateRange(dateRange, customDateFrom, customDateUntil),
+    [dateRange, customDateFrom, customDateUntil],
+  )
   const {
     sorting,
     setSorting,
@@ -81,7 +136,7 @@ export function Samples() {
   const [searchInput, setSearchInput] = useState(searchStr)
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['samples', category, panelTech, assay, group, profileScope, searchStr],
+    queryKey: ['samples', category, panelTech, assay, group, profileScope, searchStr, addedFrom, addedUntil, sampleLimit],
     queryFn: () => {
       const params = new URLSearchParams()
       if (category) params.set("panel_type", category)
@@ -90,6 +145,10 @@ export function Samples() {
       if (group) params.set("assay_group", group)
       params.set("profile_scope", profileScope)
       if (searchStr) params.set("search_str", searchStr)
+      if (addedFrom) params.set("added_from", addedFrom)
+      if (addedUntil) params.set("added_until", addedUntil)
+      params.set("live_per_page", String(sampleLimit))
+      params.set("done_per_page", String(sampleLimit))
 
       return api.get(`/samples?${params.toString()}`).then(res => res.data)
     }
@@ -106,6 +165,12 @@ export function Samples() {
     const newParams = new URLSearchParams(searchParams)
     if (nextTab === "reported") newParams.set("sample_tab", "reported")
     else newParams.delete("sample_tab")
+    setSearchParams(newParams)
+  }
+  const updateSampleFilter = (key: string, value: string, defaultValue = "") => {
+    const newParams = new URLSearchParams(searchParams)
+    if (!value || value === defaultValue) newParams.delete(key)
+    else newParams.set(key, value)
     setSearchParams(newParams)
   }
   const columns = useMemo<ColumnDef<any, any>[]>(() => [
@@ -155,17 +220,17 @@ export function Samples() {
     },
     {
       id: "environment",
-      header: "Environment",
+      header: "Profile",
       accessorFn: (sample) => sample.environment || "",
       cell: ({ row }) => (
         <TableBadge className={`${valueBadgeClass(row.original.environment || "")} uppercase`}>
-          {row.original.environment || "-"}
+          {row.original.environment[0] || "-"}
         </TableBadge>
       ),
     },
     {
       id: "asp_id",
-      header: "ASP",
+      header: "Assay",
       accessorFn: (sample) => sample.asp_id || "",
       cell: ({ row }) => <span className="font-semibold">{row.original.asp_id || "-"}</span>,
     },
@@ -184,27 +249,12 @@ export function Samples() {
           className={
             row.original.ingest_status === "ready"
               ? "border-pass/30 bg-pass/15 text-pass hover:bg-pass/20"
-              : "border-warn/30 bg-warn/15 text-warn hover:bg-warn/20"
+              : "matte-badge-fail"
           }
         >
           {row.original.ingest_status || "-"}
         </TableBadge>
       ),
-    },
-    {
-      id: "report",
-      header: "Report",
-      accessorFn: (sample) => sampleReported(sample) ? 1 : 0,
-      cell: ({ row }) => (
-        <TableBadge
-          className={sampleReported(row.original) ? "border-primary/30 bg-primary/10 text-primary" : "border-warn/30 bg-warn/10 text-warn"}
-        >
-          {sampleReported(row.original) ? "reported" : "unreported"}
-        </TableBadge>
-      ),
-      meta: {
-        exportValue: (sample: any) => sampleReported(sample) ? "reported" : "unreported",
-      },
     },
     {
       id: "counts",
@@ -332,7 +382,7 @@ export function Samples() {
       >
 
         {/* Filters Summary */}
-        {(category || assay || group || searchStr || showAllProfiles) && (
+        {(category || assay || group || searchStr || showAllProfiles || dateRange !== "all") && (
           <div className="glass-card flex items-center gap-2 text-sm text-muted-foreground px-5 py-3">
             <span className="mr-2 text-xs font-semibold uppercase tracking-wider">Active Filters</span>
             <Badge variant="secondary" className="uppercase bg-primary/10 text-primary hover:bg-primary/20 rounded-md">{showAllProfiles ? "all profiles" : DEFAULT_ENVIRONMENT}</Badge>
@@ -341,11 +391,51 @@ export function Samples() {
             {panelTech && <Badge variant="secondary" className="uppercase bg-primary/20 text-primary hover:bg-primary/30 rounded-md">{panelTech}</Badge>}
             {assay && <Badge variant="secondary" className="uppercase bg-primary/20 text-primary hover:bg-primary/30 rounded-md">{assay}</Badge>}
             {group && <Badge variant="secondary" className="uppercase bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md shadow-sm">{group}</Badge>}
+            {dateRange !== "all" && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 rounded-md">{DATE_RANGE_OPTIONS.find(({ value }) => value === dateRange)?.label}</Badge>}
             <Link to="/samples" className="text-xs font-bold text-destructive hover:underline ml-auto bg-destructive/10 px-3 py-1 rounded-md" onClick={() => setSearchInput("")}>Clear All</Link>
           </div>
         )}
 
         <div className="glass-card border-border/50 p-4">
+          <div className="mb-3 flex flex-wrap items-end gap-3 border-b border-border/60 pb-3" aria-label="Sample date and limit filters">
+            <div className="space-y-1">
+              <label htmlFor="sample-date-range" className="block text-[11px] font-semibold text-muted-foreground">Date added</label>
+              <div className="relative">
+                <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <select
+                  id="sample-date-range"
+                  className="paper-inset h-9 min-w-[165px] rounded-lg pl-9 pr-8 text-sm font-medium"
+                  value={dateRange}
+                  onChange={(event) => updateSampleFilter("date_range", event.target.value, "all")}
+                >
+                  {DATE_RANGE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </div>
+            </div>
+            {dateRange === "custom" && (
+              <>
+                <div className="space-y-1">
+                  <label htmlFor="sample-date-from" className="block text-[11px] font-semibold text-muted-foreground">From</label>
+                  <Input id="sample-date-from" type="date" className="h-9 w-[155px]" value={customDateFrom} onChange={(event) => updateSampleFilter("date_from", event.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="sample-date-until" className="block text-[11px] font-semibold text-muted-foreground">Until</label>
+                  <Input id="sample-date-until" type="date" className="h-9 w-[155px]" value={customDateUntil} onChange={(event) => updateSampleFilter("date_until", event.target.value)} />
+                </div>
+              </>
+            )}
+            <div className="space-y-1">
+              <label htmlFor="sample-row-limit" className="block text-[11px] font-semibold text-muted-foreground">Maximum rows</label>
+              <select
+                id="sample-row-limit"
+                className="paper-inset h-9 min-w-[105px] rounded-lg px-3 text-sm font-medium"
+                value={sampleLimit}
+                onChange={(event) => updateSampleFilter("sample_limit", event.target.value, "50")}
+              >
+                {SAMPLE_LIMIT_OPTIONS.map((limit) => <option key={limit} value={limit}>{limit}</option>)}
+              </select>
+            </div>
+          </div>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
             <SegmentedControl
               ariaLabel="Sample state"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -29,6 +30,8 @@ class HomeSamplesPayload(BaseModel):
     panel_type: str | None = None
     panel_tech: str | None = None
     assay_group: str | None = None
+    added_from: datetime | None = None
+    added_until: datetime | None = None
 
 
 class HomeItemsPayload(BaseModel):

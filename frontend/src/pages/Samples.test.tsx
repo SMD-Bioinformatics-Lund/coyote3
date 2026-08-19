@@ -25,7 +25,7 @@ const samples = {
       subpanel_id: "hem",
       ingest_status: "ready",
       time_added: "2026-08-01T10:00:00Z",
-      data_counts: { snvs: 2100, cnvs: 3, cov: true },
+      data_counts: { snvs: 2100, cnvs: 3, cov: true, biomarkers: false },
     },
     {
       name: "RNA_CASE_001",
@@ -73,6 +73,10 @@ describe("Samples page", () => {
     expect(screen.getByText("SNV 2.1K")).toBeInTheDocument()
     expect(screen.getByText("CNV 3")).toBeInTheDocument()
     expect(screen.getByText("Cov")).toBeInTheDocument()
+    expect(screen.getByText("SNV 2.1K")).toHaveClass("matte-badge-pass")
+    expect(screen.getByText("CNV 3")).toHaveClass("matte-badge-pass")
+    expect(screen.getByText("Cov")).toHaveClass("matte-badge-pass")
+    expect(screen.getByText("Biomarkers")).toHaveClass("matte-badge-fail")
     expect(screen.getByText("Fusion 3.6K")).toBeInTheDocument()
     expect(screen.getByText("Expr")).toBeInTheDocument()
     expect(screen.getByText("Class")).toBeInTheDocument()
@@ -104,6 +108,23 @@ describe("Samples page", () => {
     expect(await screen.findByText("Search: CASE_001")).toBeInTheDocument()
     await user.click(screen.getByRole("link", { name: "Clear All" }))
     await waitFor(() => expect(screen.queryByText("Search: CASE_001")).not.toBeInTheDocument())
+  })
+
+  it("keeps date presets, custom dates, and row limits in URL-backed controls", async () => {
+    const user = userEvent.setup()
+    renderWithRouter(<Samples />, "/samples")
+
+    await user.selectOptions(screen.getByLabelText("Date added"), "custom")
+    expect(screen.getByLabelText("From")).toBeInTheDocument()
+    expect(screen.getByLabelText("Until")).toBeInTheDocument()
+    await user.type(screen.getByLabelText("From"), "2026-08-01")
+    await user.type(screen.getByLabelText("Until"), "2026-08-03")
+    await user.selectOptions(screen.getByLabelText("Maximum rows"), "100")
+
+    expect(screen.getByLabelText("From")).toHaveValue("2026-08-01")
+    expect(screen.getByLabelText("Until")).toHaveValue("2026-08-03")
+    expect(screen.getByLabelText("Maximum rows")).toHaveValue("100")
+    expect(screen.getAllByText("Custom range")).toHaveLength(2)
   })
 
   it("shows loading, failure, and empty states", () => {

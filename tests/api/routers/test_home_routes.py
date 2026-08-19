@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -66,6 +67,8 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
     monkeypatch.setattr(service.sample_repository, "get_samples", _get_samples)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
+    added_from = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    added_until = datetime(2026, 8, 4, tzinfo=timezone.utc)
     payload = samples.list_samples_read(
         status="live",
         search_mode="both",
@@ -77,6 +80,8 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
         live_per_page=1,
         done_per_page=1,
         profile_scope="production",
+        added_from=added_from,
+        added_until=added_until,
         user=user,
         service=service,
     )
@@ -91,6 +96,8 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
     assert payload["has_next_live"] is True
     assert payload["has_next_done"] is True
     assert all(call["offset"] == 1 for call in calls)
+    assert all(call["added_from"] == added_from for call in calls)
+    assert all(call["added_until"] == added_until for call in calls)
 
 
 def test_home_samples_read_always_fetches_both_tables(monkeypatch):

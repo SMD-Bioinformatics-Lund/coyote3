@@ -36,7 +36,7 @@ def generate_sample_cache_key(**kwargs: Any) -> str:
         kwargs["user_groups"] = sorted(kwargs["user_groups"])
     for key, value in kwargs.items():
         if isinstance(value, datetime):
-            kwargs[key] = value.date().isoformat()
+            kwargs[key] = value.isoformat()
         elif not isinstance(value, (str, int, float, bool, type(None), list, dict)):
             kwargs[key] = str(value)
     raw_key = json.dumps(kwargs, sort_keys=True, separators=(",", ":"))

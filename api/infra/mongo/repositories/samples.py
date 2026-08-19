@@ -80,6 +80,8 @@ class SampleRepository(BaseRepository):
         limit=None,
         offset: int = 0,
         time_limit=None,
+        added_from=None,
+        added_until=None,
     ):
         """
         Query samples based on user groups, report status, search string, and optional time limit.
@@ -117,6 +119,14 @@ class SampleRepository(BaseRepository):
             # avoiding regex metacharacter abuse/ReDoS patterns.
             query["name"] = {"$regex": re.escape(search_str)}
 
+        if added_from is not None or added_until is not None:
+            added_range: dict[str, Any] = {}
+            if added_from is not None:
+                added_range["$gte"] = added_from
+            if added_until is not None:
+                added_range["$lt"] = added_until
+            query["time_added"] = added_range
+
         app_obj = self.adapter.app
         getattr(app_obj, "home_logger", app_obj.logger).debug(f"Sample query: {query}")
 
@@ -137,6 +147,8 @@ class SampleRepository(BaseRepository):
         limit: int = None,
         offset: int = 0,
         time_limit=None,
+        added_from=None,
+        added_until=None,
         use_cache: bool = True,
         cache_timeout: int = 120,
         reload: bool = False,
@@ -173,6 +185,8 @@ class SampleRepository(BaseRepository):
             limit=limit,
             offset=offset,
             time_limit=time_limit,
+            added_from=added_from,
+            added_until=added_until,
             cache_timeout=cache_timeout,
             reload=reload,
         )
@@ -208,6 +222,8 @@ class SampleRepository(BaseRepository):
             limit=limit,
             offset=offset,
             time_limit=time_limit,
+            added_from=added_from,
+            added_until=added_until,
         )
 
         if use_cache and cache is not None:

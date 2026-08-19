@@ -148,7 +148,9 @@ The dashboard is the operational entry point. It summarizes work that a reviewer
 
 Route: `/samples`
 
-The Samples page lists loaded samples visible to the user. It starts in production scope and can be switched to all permitted profiles.
+The Samples page lists loaded samples visible to the user. It starts in production scope and can be switched to all permitted profiles. The date control can show all samples, samples added today, or rolling 24-hour, 3-day, 7-day, and 30-day windows. A custom range accepts inclusive local calendar dates; the browser converts those boundaries to UTC before querying the API. The row-limit control restricts each live or reported result set to 25, 50, 100, or 200 samples.
+
+Date, profile, live/reported, assay, search, and row-limit selections are kept in the URL. Refreshing the page or sharing the URL therefore preserves the worklist view without retaining a second copy of the result set in browser memory.
 
 | Column | Data shown | Badges and symbols |
 | --- | --- | --- |
@@ -160,11 +162,13 @@ The Samples page lists loaded samples visible to the user. It starts in producti
 | Profile | Sample profile/environment. | Profile badge such as production/prod |
 | Assay | Assay panel identifier. | Plain text |
 | Subpanel | ASPC/subpanel context. | Plain text |
-| Analysis | Ingest/analysis status. | `ready`, warning, or pending-style badge |
+| Analysis | Ingest/analysis status. | Green `ready`; red failed, partial, or unavailable state |
 | Report | Reported state. | `reported` or `unreported` badge |
-| Counts | Short data counts by analysis type. | `SNV`, `CNV`, `Fusion`, `SV`, `Cov` badges |
+| Counts | Short data counts and explicitly recorded resource states by analysis type. | Green `SNV`, `CNV`, `Fusion`, `SV`, `Cov`, biomarker, expression, classification, and QC badges when loaded; red when a recorded resource state is false |
 | Added | Human relative added time. | Full timestamp in tooltip |
 | Actions | Opens the sample. | Arrow/detail button |
+
+An analysis that is not applicable to a sample is omitted rather than shown as failed. Red data badges are reserved for resources explicitly recorded as failed, unavailable, partial, or not loaded.
 
 ## Sample Detail
 
