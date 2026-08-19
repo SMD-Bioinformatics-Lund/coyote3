@@ -205,7 +205,7 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
   ]
 
   return (
-    <div className="glass-card flex flex-col overflow-hidden py-2">
+    <div className="glass-card flex flex-col overflow-hidden p-3">
       <DataTable
         columns={columns}
         data={translocations}

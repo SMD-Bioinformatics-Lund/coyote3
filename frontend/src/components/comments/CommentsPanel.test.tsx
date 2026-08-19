@@ -96,4 +96,27 @@ describe("CommentsPanel", () => {
     await user.click(screen.getByRole("button", { name: "Unhide" }))
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith("/samples/CASE_1/comments/c1/hidden", {}))
   })
+
+  it("keeps hidden comments inactive while preserving the explicit restore action", async () => {
+    const user = userEvent.setup()
+    const onUseAsDraft = vi.fn()
+    renderPanel(
+      <CommentsPanel
+        sampleId="CASE_1"
+        comments={[{ _id: "c1", text: "Hidden clinical note", hidden: true }]}
+        onUseAsDraft={onUseAsDraft}
+      />,
+    )
+
+    const hiddenComment = screen.getByRole("button", { name: "Hidden clinical note" })
+    expect(hiddenComment).toBeDisabled()
+    expect(hiddenComment).not.toHaveAttribute("title")
+
+    await user.click(hiddenComment)
+    expect(screen.getByRole("textbox")).toHaveValue("")
+    expect(onUseAsDraft).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole("button", { name: "Unhide" }))
+    await waitFor(() => expect(api.delete).toHaveBeenCalledWith("/samples/CASE_1/comments/c1/hidden", {}))
+  })
 })

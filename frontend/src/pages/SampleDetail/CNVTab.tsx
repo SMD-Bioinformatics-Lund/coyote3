@@ -259,7 +259,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
   ]
 
   const tablePane = (
-    <div className="glass-card flex w-full min-w-0 flex-col overflow-hidden py-2">
+    <div className="glass-card flex w-full min-w-0 flex-col overflow-hidden p-3">
           <DataTable
             columns={columns}
             data={cnvs}
@@ -314,7 +314,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
           </Button>
         </div>
       </div>
-      <div className="flex min-h-72 flex-col bg-muted/10 py-3">
+      <div className="flex min-h-72 flex-col bg-muted/10 p-3">
         <RotatableImage
           key={cnvProfileName}
           src={apiPath(`/samples/${sampleId}/plots/${cnvProfileName}`)}

@@ -376,7 +376,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
   ]
 
   return (
-    <div className="glass-card flex flex-col overflow-hidden py-2">
+    <div className="glass-card flex flex-col overflow-hidden p-3">
       <DataTable
         columns={columns}
         data={variants || []}

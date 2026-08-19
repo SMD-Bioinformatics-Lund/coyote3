@@ -284,15 +284,20 @@ export function CommentsPanel({
             </div>
             <button
               type="button"
+              disabled={Boolean(comment.hidden)}
               onClick={() => {
+                if (comment.hidden) return
                 const commentText = comment.text || comment.comment || ""
                 setText(commentText)
                 onUseAsDraft?.(commentText)
                 setMode("edit")
                 window.setTimeout(() => textareaRef.current?.focus(), 0)
               }}
-              className="block w-full text-left"
-              title="Load this comment into the editor"
+              className={comment.hidden
+                ? "block w-full cursor-default text-left"
+                : "block w-full text-left"
+              }
+              title={comment.hidden ? undefined : "Load this comment into the editor"}
             >
               <MarkdownText text={comment.text || comment.comment || ""} />
             </button>

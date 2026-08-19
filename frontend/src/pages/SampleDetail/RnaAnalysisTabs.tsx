@@ -186,10 +186,10 @@ function ExpressionPanel({ rows, sampleId }: { rows: ExpressionRow[]; sampleId: 
   ]
 
   return (
-    <section className="surface-card flex min-h-0 flex-col overflow-hidden" aria-label="Expression of selected genes">
-      <div className="surface-card-header flex-wrap gap-2">
+    <section className="glass-card flex w-full min-w-0 flex-col overflow-hidden" aria-label="Expression of selected genes">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/50 p-3">
         <div>
-          <h3 className="flex items-center gap-2 text-sm font-semibold"><Dna className="size-4" /> Expression of Selected Genes</h3>
+          <h4 className="flex items-center gap-2 text-sm font-semibold"><Dna className="size-4" /> Expression of Selected Genes</h4>
           <p className="text-xs text-muted-foreground">TPM and z-scores compared with the configured reference cohort.</p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5" aria-label="Z-score legend">
@@ -199,7 +199,7 @@ function ExpressionPanel({ rows, sampleId }: { rows: ExpressionRow[]; sampleId: 
           <span className="badge badge-danger">Z &lt;= -3 decrease</span>
         </div>
       </div>
-      <div className="min-w-0 p-2">
+      <div className="flex min-h-72 min-w-0 flex-col bg-muted/10 p-3">
         <DataTable
           columns={columns}
           data={rows}
@@ -232,14 +232,14 @@ function ClassificationPanel({ rows, sampleId }: { rows: ClassificationRow[]; sa
   ]
 
   return (
-    <section className="surface-card flex min-h-0 flex-col overflow-hidden" aria-label="Expression-based classification">
-      <div className="surface-card-header">
+    <section className="glass-card flex w-full min-w-0 flex-col overflow-hidden" aria-label="Expression-based classification">
+      <div className="flex items-center justify-between border-b border-border/50 bg-muted/50 p-3">
         <div>
-          <h3 className="flex items-center gap-2 text-sm font-semibold"><BarChart3 className="size-4" /> Expression-Based Classification</h3>
+          <h4 className="flex items-center gap-2 text-sm font-semibold"><BarChart3 className="size-4" /> Expression-Based Classification</h4>
           <p className="text-xs text-muted-foreground">Classifier scores are ranked from highest to lowest.</p>
         </div>
       </div>
-      <div className="min-w-0 p-2">
+      <div className="flex min-h-72 min-w-0 flex-col bg-muted/10 p-3">
         <DataTable
           columns={columns}
           data={orderedRows}
@@ -267,18 +267,20 @@ export function RnaAnalysisTab({ sampleId }: { sampleId: string }) {
   if (!expressionPanel && !classificationPanel) {
     return <AnalysisState isLoading={false} error={null} empty="No expression or expression-based classification result was ingested for this sample." />
   }
-  if (!expressionPanel) return classificationPanel
-  if (!classificationPanel) return expressionPanel
 
   return (
-    <ResizableSplitPane
-      primary={expressionPanel}
-      secondary={classificationPanel}
-      storageKey="coyote3:rna-analysis-split"
-      initialPrimarySize={62}
-      minPrimarySize={42}
-      maxPrimarySize={76}
-      separatorLabel="Resize expression and classification panes"
-    />
+    <div className="flex flex-col space-y-4 pb-4">
+      {expressionPanel && classificationPanel ? (
+        <ResizableSplitPane
+          primary={expressionPanel}
+          secondary={classificationPanel}
+          storageKey="coyote3:rna-analysis-split"
+          initialPrimarySize={65}
+          minPrimarySize={35}
+          maxPrimarySize={80}
+          separatorLabel="Resize expression and classification panes"
+        />
+      ) : expressionPanel || classificationPanel}
+    </div>
   )
 }

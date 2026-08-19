@@ -93,7 +93,10 @@ export function SampleDetail() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['sample', id],
-    queryFn: () => api.get(`/samples/${id}/edit-context`).then(res => res.data)
+    queryFn: () => api.get(`/samples/${id}/edit-context`).then(res => res.data),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   })
   const sample = data?.sample || {}
   const sampleRouteKey = sampleUrlKey(sample, id)
@@ -183,8 +186,8 @@ export function SampleDetail() {
         <div className="mt-3 flex gap-3">
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
-            <div className="glass-panel rounded-xl overflow-hidden p-2 lg:p-3">
-              <div className="mb-3 overflow-x-auto whitespace-nowrap scrollbar-none pb-1">
+            <div className="rounded-xl overflow-hidden py-1 lg:py-2">
+              <div className="mb-3 glass-panel overflow-x-auto whitespace-nowrap scrollbar-none p-1">
                 <SegmentedControl
                   ariaLabel="Sample analysis views"
                   className="min-w-max"
