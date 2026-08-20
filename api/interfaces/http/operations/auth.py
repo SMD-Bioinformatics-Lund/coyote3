@@ -28,6 +28,8 @@ from api.contracts.auth import (
     ApiProfileUpdateResponse,
     ApiSessionDeleteResponse,
     ApiStatusResponse,
+    ApiUiSettingsUpdateRequest,
+    ApiUiSettingsUpdateResponse,
 )
 from api.contracts.system import AuthLoginEnvelope, WhoamiPayload
 from api.interfaces.http.tags import TAG_AUTH
@@ -91,6 +93,7 @@ def whoami(request: Request, user: ApiUser = Depends(require_access())):
         "role": user.role,
         "access_level": user.access_level,
         "permissions": sorted(user.permissions),
+        "ui_settings": dict(user.ui_settings),
         "csrf_token": get_request_api_session(request).csrf_token,
     }
 
@@ -349,6 +352,25 @@ def update_current_profile(
     """Update safe identity fields for the authenticated account."""
     return util.common.convert_to_serializable(
         service.update_own_profile(username=user.username, payload=payload.model_dump())
+    )
+
+
+@router.patch(
+    "/api/v1/users/me/ui-settings",
+    response_model=ApiUiSettingsUpdateResponse,
+    summary="Update current user interface settings",
+)
+def update_current_ui_settings(
+    payload: ApiUiSettingsUpdateRequest,
+    user: ApiUser = Depends(require_access()),
+    service: UserManagementService = Depends(get_admin_user_service),
+):
+    """Persist validated interface preferences for the authenticated account."""
+    return util.common.convert_to_serializable(
+        service.update_own_ui_settings(
+            username=user.username,
+            payload=payload.model_dump(exclude_unset=True),
+        )
     )
 
 

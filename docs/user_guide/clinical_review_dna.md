@@ -1,6 +1,6 @@
 # User Guide: DNA Clinical Review
 
-The DNA review workspace is the main clinical area for reviewing sample findings, assigning tiers, writing comments, and preparing report previews. The page is driven by the sample ASPC, so only analysis tabs enabled for that sample's assay, subpanel, and environment are shown.
+The DNA review workspace is the main clinical area for reviewing sample findings, assigning tiers, writing comments, and preparing report previews. The page is driven by the sample ASPC, so only analyses enabled for that sample's assay, subpanel, and environment are shown.
 
 !!! info "Detailed UI reference"
 
@@ -8,18 +8,21 @@ The DNA review workspace is the main clinical area for reviewing sample findings
 
 ## Review Workspace
 
-The sample detail page is organized around a persistent sample header and analysis tabs.
+The sample detail page is organized around a persistent sample header and a selectable analysis layout. **Classic** places the enabled finding tables on one Findings page so SNVs, CNVs, and structural findings can be compared without changing tabs. **Modern** gives each enabled analysis its own tab. The choice applies to both DNA and RNA samples and is retained with the user's account.
 
 | Area | Purpose |
 | --- | --- |
 | Sample header | Shows sample name, assay, profile, ingest status, and available biomarker badges. |
 | Overview | Shows sample settings, case/control context, files/QC, biomarkers, and gene settings. |
-| Small Variants | SNV/indel table with filtering, tiering, bulk actions, and detail links. |
+| Findings | Combined presentation of enabled clinical finding sections when Classic is selected. |
+| Small Variants | SNV/indel table with filtering, tiering, bulk actions, and detail links. Shown as a separate tab in Modern. |
 | CNVs | Copy-number event table and CNV detail workflow. |
 | Fusions | Fusion finding table and fusion detail workflow. |
 | Translocations | Structural rearrangement table and detail workflow. |
 | Coverage | Gene, exon, and probe coverage context. |
 | Reports | Temporary report preview and save/export workflow. |
+
+In Classic, use the **Filters** button beside a finding section to open the right filter panel and connect it to that section. Select the same button again to collapse that section's filter panel. When collapsed, the right rail keeps a separate vertical tab visible for every filterable finding section; selecting one opens that section's controls. Filter choices and table state remain analysis-specific; selecting the CNV filter panel does not apply SNV filters to CNVs.
 
 !!! caution "Raw payloads"
 
@@ -38,7 +41,8 @@ The Small Variants table is the primary DNA review table for SNVs and indels.
 | Exon/Intron | Selected transcript exon and intron values. |
 | Type | Compact variant class such as `SNV`, `DEL`, `INS`, `INDEL`, or `SUB`. |
 | Consequence | VEP consequence badges. Hover shows VEP metadata and impact. |
-| PopFreq (%) | Public population frequency as a percentage. |
+| PopFreq (%) | Public population frequency as a percentage, displayed with up to six decimal places. A recorded zero is shown as `0`; unavailable values are shown as `-`. |
+| Hotspot | Indicates existing hotspot metadata attached to the variant. Hover shows the available source and identifiers. When several COSMIC identifiers occur for one source, the latest identifier is shown. The same marker appears on the variant detail page. The future hotspot-list contract and filtering behavior are not defined yet. |
 | Tier | Current clinical tier. Clicking an assigned tier opens reported-variant context when available. |
 | Chr:Pos | Neutral chromosome coordinate link for IGV. |
 | Flags | Configured filter flag badges from the VCF `FILTER` field. |

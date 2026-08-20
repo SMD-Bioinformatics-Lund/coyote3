@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link, useSearchParams } from "react-router-dom"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -10,14 +10,22 @@ import { FileText, ArrowRight, CalendarDays, Dna, Search as SearchIcon } from "l
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Input } from "@/components/ui/input"
 import { AppLoader } from "@/components/layout/AppLoader"
+import { LayoutDiscoveryBanner } from "@/components/layout/LayoutDiscoveryBanner"
 import { PageShell } from "@/components/layout/PageShell"
 import { fullDateTime, humanRelativeDate, shortCount } from "@/lib/detail-formatters"
 import { sampleDetailPath } from "@/lib/sample-routing"
-import { sampleReported, sampleSubpanel } from "@/lib/sample-shape"
+import { sampleSubpanel } from "@/lib/sample-shape"
 import { DataTable } from "@/components/data-table/DataTable"
 import { valueBadgeClass } from "@/lib/badge-colors"
 import { useUrlTableState } from "@/hooks/useUrlTableState"
 import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
+import { useCurrentUserAccess } from "@/lib/access-control"
+import {
+  sampleListLayoutForUser,
+  sampleListModernViewTriedForUser,
+  useUpdateUiSettings,
+  type SampleListLayout,
+} from "@/lib/user-settings"
 
 type SampleTab = "live" | "reported"
 type DateRangePreset = "all" | "today" | "1d" | "3d" | "7d" | "30d" | "custom"
@@ -106,6 +114,8 @@ function sampleFindingTotal(sample: any) {
 
 export function Samples() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const currentUserQuery = useCurrentUserAccess()
+  const updateUiSettings = useUpdateUiSettings()
 
   // Extract filters from URL
   const category = searchParams.get("panel_type") || searchParams.get("category")
@@ -123,6 +133,8 @@ export function Samples() {
   const customDateUntil = searchParams.get("date_until") || ""
   const requestedLimit = Number(searchParams.get("sample_limit") || 50)
   const sampleLimit = SAMPLE_LIMIT_OPTIONS.includes(requestedLimit) ? requestedLimit : 50
+  const sampleListLayout = sampleListLayoutForUser(currentUserQuery.data)
+  const modernViewTried = sampleListModernViewTriedForUser(currentUserQuery.data)
   const { addedFrom, addedUntil } = useMemo(
     () => resolveDateRange(dateRange, customDateFrom, customDateUntil),
     [dateRange, customDateFrom, customDateUntil],
@@ -134,6 +146,13 @@ export function Samples() {
   } = useUrlTableState({ prefix: "samples" })
 
   const [searchInput, setSearchInput] = useState(searchStr)
+  const [customDateFromDraft, setCustomDateFromDraft] = useState(customDateFrom)
+  const [customDateUntilDraft, setCustomDateUntilDraft] = useState(customDateUntil)
+
+  useEffect(() => {
+    setCustomDateFromDraft(customDateFrom)
+    setCustomDateUntilDraft(customDateUntil)
+  }, [customDateFrom, customDateUntil])
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['samples', category, panelTech, assay, group, profileScope, searchStr, addedFrom, addedUntil, sampleLimit],
@@ -167,12 +186,30 @@ export function Samples() {
     else newParams.delete("sample_tab")
     setSearchParams(newParams)
   }
+  const setSampleListLayout = (layout: SampleListLayout) => {
+    if (layout === sampleListLayout || updateUiSettings.isPending) return
+    updateUiSettings.mutate({
+      sample_list_layout: layout,
+      ...(layout === "modern" ? { sample_list_modern_view_tried: true } : {}),
+    })
+  }
   const updateSampleFilter = (key: string, value: string, defaultValue = "") => {
     const newParams = new URLSearchParams(searchParams)
     if (!value || value === defaultValue) newParams.delete(key)
     else newParams.set(key, value)
     setSearchParams(newParams)
   }
+  const applyCustomDateRange = () => {
+    const newParams = new URLSearchParams(searchParams)
+    if (customDateFromDraft) newParams.set("date_from", customDateFromDraft)
+    else newParams.delete("date_from")
+    if (customDateUntilDraft) newParams.set("date_until", customDateUntilDraft)
+    else newParams.delete("date_until")
+    setSearchParams(newParams)
+  }
+  const customDateRangeInvalid = Boolean(
+    customDateFromDraft && customDateUntilDraft && customDateFromDraft > customDateUntilDraft,
+  )
   const columns = useMemo<ColumnDef<any, any>[]>(() => [
     {
       id: "sample",
@@ -181,7 +218,7 @@ export function Samples() {
       cell: ({ row }) => {
         const sample = row.original
         return (
-          <Link to={sampleDetailPath(sample)} className="link-text flex items-center gap-2 font-bold">
+          <Link to={sampleDetailPath(sample)} className="link-text flex items-center gap-2 font-medium">
             <div className="rounded-lg bg-primary/10 p-1.5 text-primary shadow-sm transition-colors duration-100 group-hover:bg-primary/15">
               <FileText className="h-4 w-4" />
             </div>
@@ -198,7 +235,7 @@ export function Samples() {
       id: "case_id",
       header: "Case ID",
       accessorFn: (sample) => sample.case_id || sample.case?.id || "",
-      cell: ({ row }) => <span className="font-semibold">{row.original.case_id || row.original.case?.id || "-"}</span>,
+      cell: ({ row }) => <span className="font-medium">{row.original.case_id || row.original.case?.id || "-"}</span>,
     },
     {
       id: "case_clarity",
@@ -210,7 +247,7 @@ export function Samples() {
       id: "control",
       header: "Control",
       accessorFn: (sample) => sample.control_id || sample.control?.id || "",
-      cell: ({ row }) => <span className="font-semibold">{row.original.control_id || row.original.control?.id || "-"}</span>,
+      cell: ({ row }) => <span className="font-medium">{row.original.control_id || row.original.control?.id || "-"}</span>,
     },
     {
       id: "control_clarity",
@@ -232,13 +269,28 @@ export function Samples() {
       id: "asp_id",
       header: "Assay",
       accessorFn: (sample) => sample.asp_id || "",
-      cell: ({ row }) => <span className="font-semibold">{row.original.asp_id || "-"}</span>,
+      cell: ({ row }) => <span className="font-medium">{row.original.asp_id || "-"}</span>,
     },
     {
       id: "subpanel",
       header: "Subpanel",
       accessorFn: (sample) => sampleSubpanel(sample) || "",
       cell: ({ row }) => <span className="font-medium text-muted-foreground">{sampleSubpanel(row.original) || "-"}</span>,
+    },
+    {
+      id: "pipeline",
+      header: "Pipeline",
+      accessorFn: (sample) =>
+        [sample.pipeline, sample.pipeline_version].filter(Boolean).join(" "),
+      cell: ({ row }) => {
+        const { pipeline, pipeline_version: version } = row.original
+
+        return (
+          <span className="font-medium text-muted-foreground">
+            {pipeline ? `${pipeline}${version ? ` (${version})` : ""}` : "-"}
+          </span>
+        )
+      },
     },
     {
       id: "analysis",
@@ -249,7 +301,7 @@ export function Samples() {
           className={
             row.original.ingest_status === "ready"
               ? "border-pass/30 bg-pass/15 text-pass hover:bg-pass/20"
-              : "matte-badge-fail"
+              : "border-border bg-muted text-muted-foreground"
           }
         >
           {row.original.ingest_status || "-"}
@@ -257,8 +309,8 @@ export function Samples() {
       ),
     },
     {
-      id: "counts",
-      header: "Counts",
+      id: "data",
+      header: "Data",
       accessorFn: sampleFindingTotal,
       cell: ({ row }) => {
         const badges = countBadges(row.original)
@@ -322,6 +374,30 @@ export function Samples() {
   const liveSamples = data?.live_samples || []
   const reportedSamples = data?.done_samples || []
   const samples = activeTab === "reported" ? reportedSamples : liveSamples
+
+  const renderSampleTable = (rows: any[], state: SampleTab) => (
+    <DataTable
+      columns={columns}
+      data={rows}
+      filename={`${state}_samples.csv`}
+      rowLabel="samples"
+      totalCount={rows.length}
+      hideSearch
+      stateKey={`samples.${state}`}
+      sortingState={sorting}
+      onSortingChange={(value) => {
+        setSorting(value)
+        updateTableSearchParams({ sorting: value })
+      }}
+      getRowClassName={() => "group"}
+      renderToolbar={() => rows.length === 0 ? (
+        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+          <Dna className="h-4 w-4 text-muted-foreground/50" />
+          No samples found.
+        </div>
+      ) : null}
+    />
+  )
 
   if (isLoading) {
     return <AppLoader label="Loading samples" />
@@ -416,12 +492,34 @@ export function Samples() {
               <>
                 <div className="space-y-1">
                   <label htmlFor="sample-date-from" className="block text-[11px] font-semibold text-muted-foreground">From</label>
-                  <Input id="sample-date-from" type="date" className="h-9 w-[155px]" value={customDateFrom} onChange={(event) => updateSampleFilter("date_from", event.target.value)} />
+                  <Input
+                    id="sample-date-from"
+                    type="date"
+                    className="h-9 w-[155px]"
+                    value={customDateFromDraft}
+                    onChange={(event) => setCustomDateFromDraft(event.target.value)}
+                  />
                 </div>
                 <div className="space-y-1">
                   <label htmlFor="sample-date-until" className="block text-[11px] font-semibold text-muted-foreground">Until</label>
-                  <Input id="sample-date-until" type="date" className="h-9 w-[155px]" value={customDateUntil} onChange={(event) => updateSampleFilter("date_until", event.target.value)} />
+                  <Input
+                    id="sample-date-until"
+                    type="date"
+                    className="h-9 w-[155px]"
+                    value={customDateUntilDraft}
+                    onChange={(event) => setCustomDateUntilDraft(event.target.value)}
+                    aria-invalid={customDateRangeInvalid || undefined}
+                  />
                 </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-9"
+                  disabled={customDateRangeInvalid}
+                  onClick={applyCustomDateRange}
+                >
+                  Apply dates
+                </Button>
               </>
             )}
             <div className="space-y-1">
@@ -435,44 +533,73 @@ export function Samples() {
                 {SAMPLE_LIMIT_OPTIONS.map((limit) => <option key={limit} value={limit}>{limit}</option>)}
               </select>
             </div>
+            <div className="ml-auto space-y-1">
+              <span className="block text-[11px] font-semibold text-muted-foreground">Layout</span>
+              <SegmentedControl
+                ariaLabel="Sample list layout"
+                value={sampleListLayout}
+                onValueChange={(value) => setSampleListLayout(value as SampleListLayout)}
+                items={[
+                  { value: "classic", label: "Classic" },
+                  { value: "modern", label: "Modern" },
+                ]}
+              />
+            </div>
+            {customDateRangeInvalid && (
+              <p className="w-full text-xs font-medium text-destructive" role="alert">
+                The From date must be before or equal to the Until date.
+              </p>
+            )}
           </div>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
-            <SegmentedControl
-              ariaLabel="Sample state"
-              value={activeTab}
-              onValueChange={setSampleTab}
-              items={[
-                { value: "live", label: <>Live samples <span className="ml-1.5 rounded-full bg-background/75 px-1.5 py-0.5 text-[10px] text-foreground">{shortCount(liveSamples.length)}</span></> },
-                { value: "reported", label: <>Reported samples <span className="ml-1.5 rounded-full bg-background/75 px-1.5 py-0.5 text-[10px] text-foreground">{shortCount(reportedSamples.length)}</span></> },
-              ]}
-            />
-            <p className="text-xs font-semibold text-muted-foreground">
-              {activeTab === "reported"
-                ? "Samples with saved clinical reports."
-                : "Samples awaiting review or active analysis."}
-            </p>
-          </div>
-          <DataTable
-            columns={columns}
-            data={samples}
-            filename={`${activeTab}_samples.csv`}
-            rowLabel="samples"
-            totalCount={samples.length}
-            hideSearch
-            stateKey={`samples.${activeTab}`}
-            sortingState={sorting}
-            onSortingChange={(value) => {
-              setSorting(value)
-              updateTableSearchParams({ sorting: value })
-            }}
-            getRowClassName={() => "group"}
-            renderToolbar={() => samples.length === 0 ? (
-              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                <Dna className="h-4 w-4 text-muted-foreground/50" />
-                No samples found.
+          {sampleListLayout === "classic" && !modernViewTried && (
+            <div className="mb-3">
+              <LayoutDiscoveryBanner onTryModern={() => setSampleListLayout("modern")} />
+            </div>
+          )}
+          {sampleListLayout === "modern" ? (
+            <>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+                <SegmentedControl
+                  ariaLabel="Sample state"
+                  value={activeTab}
+                  onValueChange={setSampleTab}
+                  items={[
+                    { value: "live", label: <>Live samples <span className="ml-1.5 rounded-full bg-background/75 px-1.5 py-0.5 text-[10px] text-foreground">{shortCount(liveSamples.length)}</span></> },
+                    { value: "reported", label: <>Reported samples <span className="ml-1.5 rounded-full bg-background/75 px-1.5 py-0.5 text-[10px] text-foreground">{shortCount(reportedSamples.length)}</span></> },
+                  ]}
+                />
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {activeTab === "reported"
+                    ? "Samples with saved clinical reports."
+                    : "Samples awaiting review or active analysis."}
+                </p>
               </div>
-            ) : null}
-          />
+              {renderSampleTable(samples, activeTab)}
+            </>
+          ) : (
+            <div className="space-y-5">
+              <section aria-labelledby="live-samples-heading">
+                <div className="mb-2 flex items-center justify-between border-b border-border/60 pb-2">
+                  <div>
+                    <h2 id="live-samples-heading" className="text-sm font-semibold">Live samples</h2>
+                    <p className="text-xs text-muted-foreground">Samples awaiting review or active analysis.</p>
+                  </div>
+                  <Badge variant="secondary">{shortCount(liveSamples.length)}</Badge>
+                </div>
+                {renderSampleTable(liveSamples, "live")}
+              </section>
+              <section aria-labelledby="reported-samples-heading">
+                <div className="mb-2 flex items-center justify-between border-b border-border/60 pb-2">
+                  <div>
+                    <h2 id="reported-samples-heading" className="text-sm font-semibold">Reported samples</h2>
+                    <p className="text-xs text-muted-foreground">Samples with saved clinical reports.</p>
+                  </div>
+                  <Badge variant="secondary">{shortCount(reportedSamples.length)}</Badge>
+                </div>
+                {renderSampleTable(reportedSamples, "reported")}
+              </section>
+            </div>
+          )}
         </div>
       </PageShell>
     </div>

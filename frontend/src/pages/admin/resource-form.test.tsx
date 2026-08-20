@@ -147,5 +147,44 @@ describe("Resource Form UI", () => {
       const input = screen.getByRole("textbox")
       expect(input).toBeDisabled()
     })
+
+    it("renders and updates structured user interface settings", () => {
+      const onChange = vi.fn()
+      const field: FormField = { data_type: "json", display_type: "user-settings" }
+      render(
+        <FormControl
+          name="ui_settings"
+          field={field}
+          value={{ analysis_layout: "classic", sample_list_layout: "modern" }}
+          mode="edit"
+          onChange={onChange}
+        />
+      )
+
+      expect(screen.getByRole("tablist", { name: "Analysis workspace layout" })).toBeVisible()
+      expect(screen.getByRole("tablist", { name: "Samples worklist layout" })).toBeVisible()
+      fireEvent.click(screen.getAllByRole("tab", { name: "Modern" })[0])
+
+      expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
+        analysis_layout: "modern",
+        sample_list_layout: "modern",
+        analysis_modern_view_tried: true,
+      }))
+    })
+
+    it("makes structured user settings read-only in view mode", () => {
+      const field: FormField = { data_type: "json", display_type: "user-settings" }
+      render(
+        <FormControl
+          name="ui_settings"
+          field={field}
+          value={{ analysis_layout: "classic", sample_list_layout: "classic" }}
+          mode="view"
+          onChange={vi.fn()}
+        />
+      )
+
+      screen.getAllByRole("tab").forEach((tab) => expect(tab).toBeDisabled())
+    })
   })
 })

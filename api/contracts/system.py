@@ -21,6 +21,7 @@ class WhoamiPayload(BaseModel):
     role: str
     access_level: int
     permissions: list[str]
+    ui_settings: dict[str, str | bool]
     csrf_token: str
 
 

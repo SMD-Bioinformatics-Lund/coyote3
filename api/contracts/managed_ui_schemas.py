@@ -751,6 +751,11 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "version": {"readonly": True},
     },
     "user": {
+        "ui_settings": {
+            "label": "Interface layouts",
+            "display_type": "user-settings",
+            "help": "Presentation preferences stored for this user and restored on later sessions.",
+        },
         "auth_type": {"display_type": "checkbox-group", "options": list(AUTH_TYPE_OPTIONS)},
         "roles": {"display_type": "checkbox-group"},
         "username": {"readonly_mode": ["edit"]},
@@ -923,6 +928,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
         ("auth", ["auth_type", "password", "must_change_password"]),
         ("role_access", ["roles"]),
         ("scope", ["environments", "asp_groups", "asp_ids"]),
+        ("user settings", ["ui_settings"]),
         ("status", ["is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],

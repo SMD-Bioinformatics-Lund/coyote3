@@ -56,6 +56,12 @@ const dashboardData = {
     pending_samples: 3,
     analysed_rate_percent: 57.1,
     recent_samples: [{ name: "DNA_CASE_001", asp_id: "hema_gmsv1", subpanel_id: "hem", omics_layer: "dna", ingest_status: "ready", time_added: "2026-08-01T10:00:00Z" }],
+    sample_stats: {
+      pipelines: [
+        { name: "SomaticPanelPipeline", version: "3.2.0", count: 5, analysed: 3, ready: 5 },
+        { name: "RnaFusionPipeline", version: null, count: 2, analysed: 1, ready: 2 },
+      ],
+    },
   },
 }
 
@@ -80,6 +86,11 @@ describe("Dashboard page", () => {
     expect(screen.getByText("hema_gmsv1")).toBeInTheDocument()
     expect(await screen.findByText("Tier chart rendered")).toBeInTheDocument()
     expect(screen.getByText("Active panels")).toBeInTheDocument()
+    expect(screen.getByText("Pipelines")).toBeInTheDocument()
+    expect(screen.getByText("SomaticPanelPipeline")).toBeInTheDocument()
+    expect(screen.getByText("Version 3.2.0")).toBeInTheDocument()
+    expect(screen.getByText("3 of 5 analysed")).toBeInTheDocument()
+    expect(screen.getByText("Version not recorded")).toBeInTheDocument()
     expect(screen.queryByText("No active panel gene counts available")).not.toBeInTheDocument()
   })
 
@@ -127,6 +138,7 @@ describe("Dashboard page", () => {
     expect(screen.getByText("No progress data available.")).toBeInTheDocument()
     expect(screen.getByText("No profile data.")).toBeInTheDocument()
     expect(screen.getByText("No recent visible samples.")).toBeInTheDocument()
+    expect(screen.getByText("No pipeline data available.")).toBeInTheDocument()
   })
 
   it("shows loading and API error states", () => {

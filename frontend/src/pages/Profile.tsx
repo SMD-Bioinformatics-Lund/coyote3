@@ -4,10 +4,13 @@ import { Activity, BadgeCheck, Dna, KeyRound, Mail, ShieldCheck, User } from "lu
 import { api } from "@/lib/api"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
+import { UserUiSettingsControls } from "@/components/users/UserUiSettingsControls"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
+import { useUpdateUiSettings } from "@/lib/user-settings"
 
 export function Profile() {
   const queryClient = useQueryClient()
+  const updateUiSettings = useUpdateUiSettings()
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [message, setMessage] = useState("")
@@ -68,7 +71,7 @@ export function Profile() {
     <PageShell
       eyebrow="Account"
       title="Profile"
-      description="View your active session and manage your local account password."
+      description="View your active session and manage your profile, interface settings, and local password."
     >
       {isLoading ? (
         <AppLoader label="Loading profile" />
@@ -151,6 +154,17 @@ export function Profile() {
               </div>
               <button type="button" onClick={() => updateProfile.mutate()} disabled={updateProfile.isPending} className="mt-3 inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">Save profile</button>
               <p className="mt-2 text-xs text-muted-foreground">Roles, assay scope, authentication providers, account status, email, username, and passwords are managed through their dedicated administrative or security workflows.</p>
+            </section>
+            <section className="mt-4 rounded-lg border border-border bg-background/70 p-3">
+              <div className="mb-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">User settings</h3>
+                <p className="mt-1 text-xs text-muted-foreground">Layout choices are saved to your account and restored on future sessions.</p>
+              </div>
+              <UserUiSettingsControls
+                value={user.ui_settings}
+                disabled={updateUiSettings.isPending}
+                onChange={(settings) => updateUiSettings.mutate(settings)}
+              />
             </section>
             <div className="mt-4 grid gap-3 lg:grid-cols-3">
               <ScopeCard title="Profiles" icon={BadgeCheck} values={environments} empty="No profile scope" />

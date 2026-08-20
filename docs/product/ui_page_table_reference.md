@@ -134,6 +134,7 @@ The dashboard is the operational entry point. It summarizes work that a reviewer
 | Variant review | SNV, CNV, fusion, translocation, false-positive, blacklist, pathogenic, VUS, and tier distribution summaries. |
 | Workflow queues | Ingest status, report readiness, and review state summaries. |
 | Sample profiles | Production and non-production profile distribution. |
+| Pipeline distribution | Visible samples grouped by their recorded pipeline and pipeline version, with analysed progress per group. |
 | Recent samples | Latest loaded samples with assay, subpanel, status, counts, and relative added time. |
 | Panel gene coverage | Covered and germline gene assignments for active targeted DNA and RNA panels. WGS and WTS definitions are intentionally excluded. |
 | Panel portfolio | Active targeted-panel count, represented assay groups, accreditation count, and covered/germline gene assignments. |
@@ -150,6 +151,10 @@ Route: `/samples`
 
 The Samples page lists loaded samples visible to the user. It starts in production scope and can be switched to all permitted profiles. The date control can show all samples, samples added today, or rolling 24-hour, 3-day, 7-day, and 30-day windows. A custom range accepts inclusive local calendar dates; the browser converts those boundaries to UTC before querying the API. The row-limit control restricts each live or reported result set to 25, 50, 100, or 200 samples.
 
+The default **Classic** layout shows the live and reported worklists on the same page. **Modern** provides a focused worklist with separate Live samples and Reported samples tabs. The choice is stored in `users.ui_settings.sample_list_layout` as `classic` or `modern`. An informational banner offers Modern until the user selects that layout for the first time. That acknowledgement is stored in `sample_list_modern_view_tried`, so returning to Classic does not restore the banner.
+
+Both layout preferences are available from the authenticated user's **Profile** page. Administrators with user-view or user-edit access can inspect or update the same preferences in the **Users** resource under **User settings**. These controls update the structured `ui_settings` object; administrators do not need to edit JSON.
+
 Date, profile, live/reported, assay, search, and row-limit selections are kept in the URL. Refreshing the page or sharing the URL therefore preserves the worklist view without retaining a second copy of the result set in browser memory.
 
 | Column | Data shown | Badges and symbols |
@@ -162,19 +167,28 @@ Date, profile, live/reported, assay, search, and row-limit selections are kept i
 | Profile | Sample profile/environment. | Profile badge such as production/prod |
 | Assay | Assay panel identifier. | Plain text |
 | Subpanel | ASPC/subpanel context. | Plain text |
-| Analysis | Ingest/analysis status. | Green `ready`; red failed, partial, or unavailable state |
+| Analysis | Committed sample ingest status. Standard worklists contain only samples in the green `ready` state. | Green `ready` badge |
 | Report | Reported state. | `reported` or `unreported` badge |
 | Counts | Short data counts and explicitly recorded resource states by analysis type. | Green `SNV`, `CNV`, `Fusion`, `SV`, `Cov`, biomarker, expression, classification, and QC badges when loaded; red when a recorded resource state is false |
 | Added | Human relative added time. | Full timestamp in tooltip |
 | Actions | Opens the sample. | Arrow/detail button |
 
-An analysis that is not applicable to a sample is omitted rather than shown as failed. Red data badges are reserved for resources explicitly recorded as failed, unavailable, partial, or not loaded.
+An analysis that is not applicable to a sample is omitted rather than shown as failed. A bundle remains `loading` only while its dependent records are being committed and is excluded from standard worklists. If ingest fails, the staged sample and dependent records are removed; the failure is recorded in ingest operations and audit events. Red data badges are reserved for resources explicitly recorded as failed, unavailable, partial, or not loaded.
 
 ## Sample Detail
 
 Route: `/samples/:id`
 
-The sample detail page is the main review workspace. Tabs are shown from the ASPC revision recorded on the sample, so a sample only shows analysis areas enabled when that configuration was applied. The selected tab is represented by the `tab` URL parameter; refresh, browser history, and return navigation therefore restore the same review area. Tab availability is validated only after the sample context has loaded.
+The sample detail page is the main review workspace. Analysis areas are shown from the ASPC revision recorded on the sample, so a sample only exposes analyses enabled when that configuration was applied. The current location is represented by the `tab` URL parameter; refresh, browser history, and return navigation therefore restore the same review area. Availability is validated only after the sample context has loaded.
+
+The **Analysis layout** control provides two account-wide presentation modes:
+
+| Layout | Behavior |
+| --- | --- |
+| Classic | Presents the enabled clinical finding sections together under **Findings**. DNA can include somatic SNVs, germline SNVs, CNVs, and translocations. RNA can include fusions and the expression/classification section. Each section keeps its own table state and query. Selecting **Filters** opens that section's controls; selecting it again collapses them. The collapsed right rail shows one persistent tab for every available filterable analysis, and selecting a rail tab opens that analysis's controls. |
+| Modern | Presents each enabled analysis as an individual tab. This is useful when a reviewer wants the maximum horizontal and vertical space for one table. |
+
+Classic is the default. The selected value is stored once as `ui_settings.analysis_layout`, using `classic` or `modern`, in the authenticated user's document. It applies to both DNA and RNA workspaces and is restored on later sessions. An informational banner offers Modern until it has been selected once. The `analysis_modern_view_tried` acknowledgement keeps the banner dismissed after the user returns to Classic. Changing the layout does not modify the sample, ASPC, filters, findings, or report state. Coverage and Reports remain separate tabs in either layout because they are supporting workflows rather than finding tables.
 
 ### Sample Header
 
@@ -195,9 +209,9 @@ The overview tab mirrors the sample settings and sample-level context needed bef
 
     Normal clinical views should not expose raw JSON payloads. Raw inspectors belong only in explicit diagnostics or developer/admin debug screens.
 
-### Small Variants Tab
+### Small Variants
 
-Route: `/samples/:id` with Small Variants tab
+Route: `/samples/:id` in the Small Variants tab or the corresponding Findings section
 
 | Column | Data shown | Badges and symbols |
 | --- | --- | --- |
@@ -210,7 +224,8 @@ Route: `/samples/:id` with Small Variants tab
 | Type | Compact variant class. | `SNV`, `DEL`, `INS`, `INDEL`, `SUB` |
 | Indel Size | SVLEN/indel size when present. | `-` when unavailable |
 | Consequence | VEP selected consequence terms. | Impact-colored consequence badges |
-| PopFreq (%) | Public population frequency as percent. | Monospace number |
+| PopFreq (%) | Public population frequency as percent, displayed with up to six decimal places. | Monospace number; `0` is retained and missing data is `-` |
+| Hotspot | Existing hotspot metadata attached to the variant. | Amber hotspot icon with source and identifier details on hover; `-` when unavailable. When a source contains multiple COSMIC identifiers, only its latest identifier is displayed. |
 | Tier | Current classification tier. | Tier badge; opens reported context when available |
 | Chr:Pos | Chromosome coordinate. | Neutral coordinate link for IGV |
 | Flags | Filter flags from VCF/filter metadata. | PASS/WARN/FAIL/PON/LOD badges |

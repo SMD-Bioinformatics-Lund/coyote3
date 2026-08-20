@@ -1,7 +1,7 @@
 import { AlertCircle, Ban, Bookmark, MessageSquare, ShieldCheck, XCircle, XSquare } from "lucide-react"
 import { useState, type ReactNode } from "react"
 import { TooltipSurface } from "@/components/ui/app-tooltip"
-import { TableBadge } from "@/components/ui/table-badge"
+import { clinicalBadgeClassName, TableBadge, tierBadgeClassName } from "@/components/ui/table-badge"
 import {
   badgeSeverityClass,
   inlineTooltipPosition,
@@ -71,7 +71,8 @@ export function TierBadge({ tier, className }: { tier: unknown; className?: stri
       <TableBadge
         tabIndex={0}
         className={cn(
-          "cursor-help rounded-full px-1.5 text-white outline-none ring-offset-background transition-all duration-100 hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-ring/35 focus:ring-2 focus:ring-ring/40",
+          "cursor-help text-white outline-none ring-offset-background transition-all duration-100 hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-ring/35 focus:ring-2 focus:ring-ring/40",
+          tierBadgeClassName,
           color,
           className,
         )}
@@ -360,6 +361,7 @@ export function InfoTooltipBadge({
       href={href}
       ariaLabel={ariaLabel || label}
       textBadge
+      textBadgeSize="clinical"
       contextLabel={contextLabel}
       className={className}
     >
@@ -460,6 +462,7 @@ function FilterFlagBadge({
         tabIndex={0}
         className={cn(
           "max-w-[128px] cursor-help truncate uppercase outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
+          clinicalBadgeClassName,
           badgeSeverityClass(severity),
         )}
       >
@@ -712,6 +715,7 @@ function ConsequenceBadge({
         tabIndex={0}
         className={cn(
           "cursor-help lowercase outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
+          clinicalBadgeClassName,
           wide ? "max-w-[280px] whitespace-normal break-words" : "max-w-[108px] truncate",
           impact ? badgeSeverityClass(severity) : "border-border bg-muted text-foreground",
         )}

@@ -14,7 +14,13 @@ export type TableBadgeProps = HTMLAttributes<HTMLElement> & {
 }
 
 export const infoBadgeClassName =
-  "h-[1.125rem] min-h-[1.125rem] min-w-4 rounded px-1.5 py-0 text-[0.625rem] font-semibold leading-none shadow-none"
+  "h-3 min-h-3 min-w-2.5 rounded-[0.15rem] px-0.5 py-0 text-[0.4375rem] font-semibold leading-none shadow-none"
+
+export const clinicalBadgeClassName =
+  "min-h-[1.125rem] min-w-[1.125rem] px-1.5 py-0 text-[0.65625rem] leading-none shadow-none"
+
+export const tierBadgeClassName =
+  "h-7 min-h-7 min-w-7 rounded-full px-1.5 py-0 text-xs font-semibold leading-none shadow-sm"
 
 /** Compact badge geometry shared by clinical and administrative data tables. */
 export function TableBadge({

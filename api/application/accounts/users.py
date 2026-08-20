@@ -366,6 +366,36 @@ class UserManagementService:
             },
         }
 
+    def update_own_ui_settings(self, *, username: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """Update validated presentation preferences for the current account."""
+        user_doc = self.user_repository.user_with_id(username)
+        if not user_doc:
+            raise api_error(404, "User not found")
+        supported_settings = {
+            "analysis_layout",
+            "sample_list_layout",
+            "analysis_modern_view_tried",
+            "sample_list_modern_view_tried",
+        }
+        unexpected = sorted(set(payload) - supported_settings)
+        if unexpected:
+            raise api_error(400, f"UI setting(s) are not supported: {', '.join(unexpected)}")
+        if not payload:
+            raise api_error(400, "At least one UI setting is required")
+        updated_user = dict(user_doc)
+        ui_settings = dict(user_doc.get("ui_settings") or {})
+        ui_settings.update(payload)
+        updated_user["ui_settings"] = ui_settings
+        updated_user["version"] = int(user_doc.get("version", 1) or 1) + 1
+        updated_user["updated_by"] = str(username).strip().lower()
+        updated_user["updated_on"] = utc_now()
+        try:
+            updated_user = normalize_collection_document(self._spec.collection, updated_user)
+        except Exception as exc:
+            raise api_error(400, f"Invalid UI settings payload: {exc}") from exc
+        self.user_repository.update_user(username, updated_user)
+        return {"status": "ok", "ui_settings": dict(updated_user["ui_settings"])}
+
     def send_local_user_invite(self, *, user_id: str, actor_username: str) -> dict[str, Any]:
         """Issue and email a local-user set-password invite."""
         user_doc = self.user_repository.user_with_id(user_id)

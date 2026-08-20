@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import secrets
 from collections.abc import Generator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from fastapi import HTTPException, Request
 
@@ -84,6 +84,14 @@ class ApiUser:
     firstname: str = ""
     lastname: str = ""
     job_title: str = ""
+    ui_settings: dict[str, str | bool] = field(
+        default_factory=lambda: {
+            "analysis_layout": "classic",
+            "sample_list_layout": "classic",
+            "analysis_modern_view_tried": False,
+            "sample_list_modern_view_tried": False,
+        }
+    )
 
     @property
     def is_superuser(self) -> bool:
@@ -283,6 +291,13 @@ def api_user_from_user_doc(user_doc: dict) -> ApiUser:
             getattr(user_model, "auth_type", [DEFAULT_AUTH_PROVIDER]) or [DEFAULT_AUTH_PROVIDER]
         ),
         must_change_password=bool(getattr(user_model, "must_change_password", False)),
+        ui_settings={
+            "analysis_layout": "classic",
+            "sample_list_layout": "classic",
+            "analysis_modern_view_tried": False,
+            "sample_list_modern_view_tried": False,
+            **dict(user_doc.get("ui_settings") or {}),
+        },
     )
 
 
@@ -307,6 +322,7 @@ def serialize_api_user(user: ApiUser) -> dict:
         "role": user.role,
         "access_level": user.access_level,
         "permissions": sorted(user.permissions),
+        "ui_settings": dict(user.ui_settings),
         "asp_ids": sorted(user.asp_ids),
         "asp_groups": sorted(user.asp_groups),
         "envs": sorted(user.envs),

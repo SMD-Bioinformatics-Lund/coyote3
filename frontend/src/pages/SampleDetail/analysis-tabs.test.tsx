@@ -85,6 +85,7 @@ import { FusionsTab } from "./FusionsTab"
 import { ReportsTab } from "./ReportsTab"
 import { TranslocationsTab } from "./TranslocationsTab"
 import { VariantsTab } from "./VariantsTab"
+import { formatPopulationFrequency, variantHotspotEntries } from "@/lib/variant-table-format"
 
 function mount(ui: ReactElement, route: string) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -244,6 +245,17 @@ describe("sample analysis table tabs", () => {
     expect(screen.getAllByText("TP53").length).toBeGreaterThan(0)
     expect(screen.getByText("NM_000546.6")).toBeVisible()
     expect(screen.getByText("Table with undefined rows")).toBeVisible()
+    const geneSearch = screen.getByRole("searchbox", { name: "Search low-coverage genes" })
+    fireEvent.change(geneSearch, { target: { value: "BRCA" } })
+    expect(screen.getByText("No low-coverage genes match BRCA.")).toBeVisible()
+    fireEvent.change(geneSearch, { target: { value: "TP53" } })
+    expect(screen.getByText("1 of 1 gene(s) below 500X")).toBeVisible()
+    const plotViewport = screen.getByRole("region", { name: "TP53 coverage plot viewport" })
+    const plot = screen.getByRole("img", { name: "TP53 coverage plot" })
+    expect(plotViewport).toHaveClass("overflow-x-auto", "max-w-full")
+    expect(plot).toHaveAttribute("width", "980")
+    fireEvent.click(screen.getByRole("button", { name: "Zoom in" }))
+    expect(plot).toHaveAttribute("width", "1225")
     expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_COV/coverage?cov_cutoff=500")
     expect(mocks.dataTable).toHaveBeenLastCalledWith(expect.objectContaining({
       data: expect.arrayContaining([expect.objectContaining({ gene: "TP53", region: "exon_4", cov: 120 })]),
@@ -251,13 +263,16 @@ describe("sample analysis table tabs", () => {
     }))
   })
 
-  it("re-queries coverage when the cutoff changes and shows API errors", async () => {
+  it("re-queries coverage when the saved warning threshold changes and shows API errors", async () => {
     mocks.get.mockResolvedValueOnce({ data: { cov_table: {}, coverage: { genes: {} } } })
       .mockRejectedValueOnce(new Error("Coverage unavailable"))
-    mount(<CoverageTab sampleId="DNA_COV" />, "/samples/DNA_COV?tab=coverage")
+    const { rerender } = mount(
+      <CoverageTab sampleId="DNA_COV" sample={{ filters: { somatic: { coverage: { warn_cov: 500 } } } }} />,
+      "/samples/DNA_COV?tab=coverage",
+    )
     await screen.findByText("No low-covered genes for the current cutoff and selected gene lists.")
 
-    fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "250" } })
+    rerender(<CoverageTab sampleId="DNA_COV" sample={{ filters: { somatic: { coverage: { warn_cov: 250 } } } }} />)
     expect(await screen.findByText("Coverage unavailable")).toBeVisible()
     expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_COV/coverage?cov_cutoff=250")
   })
@@ -452,5 +467,36 @@ describe("sample analysis table tabs", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
     expect(mocks.mutateAsync).not.toHaveBeenCalled()
     expect(screen.queryByRole("heading", { name: "Confirm bulk action" })).not.toBeInTheDocument()
+  })
+})
+
+describe("small-variant table formatting", () => {
+  it("formats population frequency percentages with at most six decimal places", () => {
+    expect(formatPopulationFrequency(0.00601)).toBe("0.601")
+    expect(formatPopulationFrequency(0.000001234567)).toBe("0.000123")
+    expect(formatPopulationFrequency(0)).toBe("0")
+    expect(formatPopulationFrequency(null)).toBe("-")
+  })
+
+  it("normalizes existing hotspot metadata without defining a future list contract", () => {
+    expect(variantHotspotEntries({
+      hotspots: [{ lu: ["HS1", "HS1", "HS2"] }],
+      INFO: { HOTSPOT: ["lu", "co"] },
+    })).toEqual([
+      { source: "lu", identifiers: ["HS1", "HS2"] },
+      { source: "co", identifiers: [] },
+    ])
+  })
+
+  it("keeps only the latest COSMIC identifier within each hotspot source", () => {
+    expect(variantHotspotEntries({
+      hotspots: [
+        { lu: ["HS1", "COSM6240", "COSV51794834", "COSV66102297"] },
+        { co: ["COSM12&COSM91"] },
+      ],
+    })).toEqual([
+      { source: "lu", identifiers: ["HS1", "COSV66102297"] },
+      { source: "co", identifiers: ["COSM91"] },
+    ])
   })
 })

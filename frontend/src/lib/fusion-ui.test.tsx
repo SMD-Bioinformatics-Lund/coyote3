@@ -14,11 +14,13 @@ describe("Fusion UI", () => {
     })
 
     it("renders unique normalized callers", () => {
-      render(<FusionCallerBadges callers="arriba,StarFusion,Arriba" />)
+      const { container } = render(<FusionCallerBadges callers="arriba,StarFusion,Arriba" />)
       expect(screen.getByText("arriba")).toBeInTheDocument()
       expect(screen.getByText("starfusion")).toBeInTheDocument()
       // should deduplicate "arriba"
       expect(screen.getAllByText("arriba")).toHaveLength(1)
+      expect(container.querySelector(".text-\\[0\\.65625rem\\]")).toBeInTheDocument()
+      expect(container.querySelector(".text-\\[0\\.4375rem\\]")).not.toBeInTheDocument()
     })
   })
 
@@ -33,6 +35,7 @@ describe("Fusion UI", () => {
       expect(screen.getByText("in-frame")).toBeInTheDocument()
       // Test the pass severity mapped to color-ok
       expect(container.querySelector('.matte-badge-pass')).toBeInTheDocument()
+      expect(container.querySelector(".text-\\[0\\.65625rem\\]")).toBeInTheDocument()
     })
 
     it("renders out-of-frame with fail severity", () => {
@@ -70,9 +73,10 @@ describe("Fusion UI", () => {
 
       expect(screen.getByText("polya")).toBeInTheDocument()
       // polya and unknown both get neutral in different forms, but let's check for polya text
+      expect(container.querySelector(".text-\\[0\\.65625rem\\]")).toBeInTheDocument()
     })
 
-    it("truncates more than 3 badges", () => {
+    it("renders every evidence tag as an individual badge", () => {
       render(
         <FusionEvidenceBadges
           description="a, b, c, d, e"
@@ -82,8 +86,9 @@ describe("Fusion UI", () => {
       expect(screen.getByText("a")).toBeInTheDocument()
       expect(screen.getByText("b")).toBeInTheDocument()
       expect(screen.getByText("c")).toBeInTheDocument()
-      expect(screen.queryByText("d")).not.toBeInTheDocument()
-      expect(screen.getByText("+2")).toBeInTheDocument()
+      expect(screen.getByText("d")).toBeInTheDocument()
+      expect(screen.getByText("e")).toBeInTheDocument()
+      expect(screen.queryByText("+2")).not.toBeInTheDocument()
     })
   })
 })

@@ -51,6 +51,7 @@ const detailPayload = {
     FILTER: ["PASS"],
     variant_class: "SNV",
     callers: ["freebayes"],
+    hotspots: [{ lu: ["HS1", "COSV51794834", "COSV66102297"] }],
     GT: [{ type: "case", AF: 0.123, AO: 123, DP: 1000 }],
     INFO: {
       selected_CSQ: {
@@ -142,6 +143,7 @@ describe("VariantDetail", () => {
     expect(screen.getByText("17:76736896 T>C")).toBeVisible()
     expect(screen.getByText("Latest tier 2")).toBeVisible()
     expect(screen.getByText("Actions for CASE_001")).toBeVisible()
+    expect(screen.getByLabelText("Known hotspot")).toBeVisible()
   })
 
   it("persists a selected alternate transcript and refreshes the detail", async () => {

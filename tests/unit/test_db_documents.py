@@ -239,6 +239,7 @@ def test_samples_doc_keeps_filters_unset_until_initialized():
         }
     )
     assert dna_doc.filters is None
+    assert dna_doc.ingest_status == "loading"
     assert isinstance(dna_doc.case, SampleCaseControlDoc)
     assert "filters" not in dna_doc.model_dump(exclude_none=True)
 
@@ -259,6 +260,50 @@ def test_samples_doc_keeps_filters_unset_until_initialized():
     )
     assert rna_doc.filters is None
     assert isinstance(rna_doc.case, SampleCaseControlDoc)
+
+
+def test_samples_doc_accepts_only_persisted_ingest_states():
+    payload = {
+        "name": "S1",
+        "asp_id": "assay_1",
+        "subpanel_id": "base",
+        "environment": "production",
+        "case_id": "seed_case",
+        "sample_no": 1,
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
+        "pipeline": "SomaticPanelPipeline",
+        "pipeline_version": "1.0.0",
+        "files": {"vcf_files": {"path": "x"}},
+        "ingest_status": "ready",
+    }
+
+    assert SamplesDoc.model_validate(payload).ingest_status == "ready"
+
+    payload["ingest_status"] = "failed"
+    with pytest.raises(ValueError, match="ingest_status"):
+        SamplesDoc.model_validate(payload)
+
+
+def test_samples_doc_omits_unknown_pipeline_version_placeholders():
+    payload = {
+        "name": "S1",
+        "asp_id": "assay_1",
+        "subpanel_id": "base",
+        "environment": "production",
+        "case_id": "seed_case",
+        "sample_no": 1,
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
+        "pipeline": "SomaticPanelPipeline",
+        "pipeline_version": "not provided",
+        "files": {"vcf_files": {"path": "x"}},
+    }
+
+    sample = SamplesDoc.model_validate(payload)
+
+    assert sample.pipeline_version is None
+    assert "pipeline_version" not in sample.model_dump(exclude_none=True)
 
 
 def test_sample_database_versions_use_only_canonical_nested_keys():
@@ -375,6 +420,27 @@ def test_users_doc_rejects_non_canonical_username_characters():
         )
 
 
+def test_users_doc_validates_one_global_analysis_layout_preference():
+    """User analysis layout is global and limited to the supported presentation modes."""
+    payload = {
+        "email": "tester@example.com",
+        "username": "tester",
+        "firstname": "Test",
+        "lastname": "User",
+        "fullname": "Test User",
+        "job_title": "Scientist",
+    }
+
+    assert UsersDoc.model_validate(payload).ui_settings.analysis_layout == "classic"
+    assert UsersDoc.model_validate(payload).ui_settings.sample_list_layout == "classic"
+    assert UsersDoc.model_validate(payload).ui_settings.analysis_modern_view_tried is False
+    assert UsersDoc.model_validate(payload).ui_settings.sample_list_modern_view_tried is False
+    with pytest.raises(ValueError, match="analysis_layout must be one of"):
+        UsersDoc.model_validate({**payload, "ui_settings": {"analysis_layout": "dna_tabs"}})
+    with pytest.raises(ValueError, match="sample_list_layout must be one of"):
+        UsersDoc.model_validate({**payload, "ui_settings": {"sample_list_layout": "combined"}})
+
+
 def test_app_controls_doc_accepts_persisted_created_timestamp():
     """Persisted app controls should validate after Mongo adds created_on."""
     doc = AppControlsDoc.model_validate(
@@ -402,6 +468,8 @@ def test_managed_user_form_exposes_environment_options_and_username_readonly_on_
         "validation",
     ]
     assert form["fields"]["username"]["readonly_mode"] == ["edit"]
+    assert form["fields"]["ui_settings"]["display_type"] == "user-settings"
+    assert form["sections"]["user settings"] == ["ui_settings"]
 
 
 def test_managed_role_form_exposes_runtime_color_picker():

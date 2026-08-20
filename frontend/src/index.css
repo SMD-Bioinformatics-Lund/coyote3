@@ -964,7 +964,7 @@
 
   .resizable-split-primary,
   .resizable-split-secondary {
-    @apply w-full;
+    @apply flex w-full;
   }
 
   .resizable-split-handle {

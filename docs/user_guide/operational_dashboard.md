@@ -40,6 +40,11 @@ The composition section summarizes the visible sample population by:
 - environment; and
 - paired or unpaired state.
 
+It also groups samples by observed pipeline name and version. Each pipeline row
+shows its sample count and the proportion already analysed. A missing version is
+shown explicitly as **Version not recorded**; it is not replaced with a version
+from another sample or from application configuration.
+
 These values describe workload composition. They do not replace sample-level
 quality review.
 
@@ -102,6 +107,7 @@ and gene-list reference.
 | Dashboard value | Source | Meaning |
 | --- | --- | --- |
 | Sample workload and composition | `samples` aggregates | Ready, analysed, pending, profile, omics, scope, and pairing counts visible to the user. |
+| Pipeline distribution | `samples.pipeline` and `samples.pipeline_version` aggregates | Visible sample counts and analysed progress for each observed pipeline version. |
 | Finding inventory | Finding collection aggregates | Persisted small variants, CNVs, fusions, and translocations. |
 | Tier distribution | `reported_variants` aggregates | Findings stored in clinical report snapshots, grouped by tier. |
 | False-positive and blacklist counts | Finding and blacklist aggregates | Persisted curation and technical-artifact identities. |

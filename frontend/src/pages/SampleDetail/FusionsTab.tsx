@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import type { ReactNode } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { api } from "@/lib/api"
 import { AlertTriangle, ExternalLink } from "lucide-react"
@@ -23,6 +24,7 @@ import {
 } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { findingBulkActionOptions } from "@/lib/finding-actions"
+import { tieredVariantSearchPath } from "@/lib/variant-routing"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import {
   CLINICAL_TABLE_CACHE_MS,
@@ -30,10 +32,11 @@ import {
   useClinicalTableState,
 } from "@/hooks/useClinicalTableState"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
+import { AnalysisTableCard } from "./AnalysisTableCard"
 
 const fusionBulkActions = findingBulkActionOptions("fusion")
 
-export function FusionsTab({ sampleId }: { sampleId: string }) {
+export function FusionsTab({ sampleId, header }: { sampleId: string; header?: ReactNode }) {
   const bulkAction = useBulkFindingAction(sampleId, "fusion")
   const access = useCurrentUserAccess()
   const canManage = hasPermission(access.data, "fusion:manage")
@@ -68,6 +71,7 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
   const fusionCount = Number(data?.meta?.count ?? fusions.length)
   const hasNext = Boolean(data?.meta?.has_next)
   const hasPrevious = Boolean(data?.meta?.has_previous)
+  const assayGroup = String(data?.assay_group || "").trim()
 
   const columns: ColumnDef<any, any>[] = [
     {
@@ -94,8 +98,16 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
     {
       id: "badges",
       header: "Info",
-      meta: { exportValue: statusLabels, headerClassName: "w-24 min-w-24 max-w-24", cellClassName: "w-24 min-w-24 max-w-24" },
+      meta: {
+        exportValue: statusLabels,
+        headerClassName: "w-[4.5rem] min-w-[4.5rem] max-w-[4.5rem]",
+        cellClassName: "w-[4.5rem] min-w-[4.5rem] max-w-[4.5rem]",
+      },
       accessorFn: (row) => statusLabels(row),
+      enableSorting: false,
+      size: 72,
+      minSize: 72,
+      maxSize: 72,
       cell: ({ row }) => <StatusBadges finding={row.original} />,
     },
     {
@@ -104,7 +116,15 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
       accessorFn: (row) => fusionGenes(row)[0] || "-",
       cell: ({ row }) => {
         const genes = fusionGenes(row.original)
-        return <span className="font-bold text-primary hover:underline cursor-pointer">{genes[0] || "-"}</span>
+        const gene = genes[0]
+        return gene ? (
+          <Link
+            to={tieredVariantSearchPath(gene, assayGroup)}
+            className="type-table-value-emphasis link-text"
+          >
+            {gene}
+          </Link>
+        ) : <span className="type-table-value">-</span>
       }
     },
     {
@@ -113,7 +133,15 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
       accessorFn: (row) => fusionGenes(row)[1] || "-",
       cell: ({ row }) => {
         const genes = fusionGenes(row.original)
-        return <span className="font-bold text-primary hover:underline cursor-pointer">{genes[1] || "-"}</span>
+        const gene = genes[1]
+        return gene ? (
+          <Link
+            to={tieredVariantSearchPath(gene, assayGroup)}
+            className="type-table-value-emphasis link-text"
+          >
+            {gene}
+          </Link>
+        ) : <span className="type-table-value">-</span>
       }
     },
     {
@@ -126,13 +154,13 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
       id: "spanpairs",
       header: "Spanning pairs",
       accessorFn: (row) => selectedFusionCall(row)?.spanpairs || row.supporting_reads?.span || 0,
-      cell: ({ row }) => <span className="text-xs">{selectedFusionCall(row.original)?.spanpairs || row.original.supporting_reads?.span || "-"}</span>
+      cell: ({ row }) => <span className="type-table-value">{selectedFusionCall(row.original)?.spanpairs || row.original.supporting_reads?.span || "-"}</span>
     },
     {
       id: "unique_spanpairs",
       header: "Unique spanning reads",
       accessorFn: (row) => selectedFusionCall(row)?.spanreads || row.supporting_reads?.split || 0,
-      cell: ({ row }) => <span className="text-xs">{selectedFusionCall(row.original)?.spanreads || row.original.supporting_reads?.split || "-"}</span>
+      cell: ({ row }) => <span className="type-table-value">{selectedFusionCall(row.original)?.spanreads || row.original.supporting_reads?.split || "-"}</span>
     },
     {
       id: "fusion_points",
@@ -146,7 +174,7 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
         const bps = [call?.breakpoint1, call?.breakpoint2].filter(Boolean)
         const breakpoints = bps.length ? bps : row.original.breakpoints || []
         return (
-          <div className="flex flex-col gap-0.5 text-[11px] leading-tight">
+          <div className="type-table-value flex flex-col gap-0.5 leading-tight">
             {breakpoints.map((bp: string, i: number) => (
               <span key={i} className="bg-muted/50 px-1.5 py-0.5 rounded w-max">{bp}</span>
             ))}
@@ -216,7 +244,7 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
   ]
 
   return (
-    <div className="glass-card flex flex-col overflow-hidden p-2">
+    <AnalysisTableCard header={header} className="p-2">
       <DataTable
         columns={columns}
         data={fusions}
@@ -248,6 +276,6 @@ export function FusionsTab({ sampleId }: { sampleId: string }) {
           />
         )}
       />
-    </div>
+    </AnalysisTableCard>
   )
 }

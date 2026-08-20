@@ -5,13 +5,33 @@ import { renderWithRouter } from "@/test/render"
 
 const mocks = vi.hoisted(() => ({
   context: {} as Record<string, unknown>,
+  analysisLayout: "modern" as "classic" | "modern",
+  analysisModernViewTried: false,
+  updateUiSettings: vi.fn(),
 }))
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: ({ queryKey, enabled }: { queryKey: unknown[]; enabled?: boolean }) => {
     if (queryKey[0] === "sample") return { data: mocks.context, isLoading: false, error: null }
+    if (queryKey[0] === "whoami") {
+      return {
+        data: {
+          ui_settings: {
+            analysis_layout: mocks.analysisLayout,
+            analysis_modern_view_tried: mocks.analysisModernViewTried,
+          },
+        },
+      }
+    }
     return { data: enabled === false ? undefined : { suggested_text: "Suggested" }, isLoading: false, error: null }
   },
+  useMutation: () => ({ mutate: mocks.updateUiSettings, isPending: false }),
+  useQueryClient: () => ({
+    cancelQueries: vi.fn(),
+    getQueryData: vi.fn(),
+    setQueryData: vi.fn(),
+    invalidateQueries: vi.fn(),
+  }),
 }))
 
 vi.mock("./OverviewTab", () => ({
@@ -28,7 +48,35 @@ vi.mock("./CoverageTab", () => ({ CoverageTab: () => <div>Coverage content</div>
 vi.mock("./RnaAnalysisTabs", () => ({
   RnaAnalysisTab: () => <div>Expression and classification content</div>,
 }))
-vi.mock("./FiltersSidebar", () => ({ FiltersSidebar: ({ intent }: { intent: string }) => <div>Filters {intent}</div> }))
+vi.mock("./FindingsTab", () => ({
+  FindingsTab: ({
+    sections,
+    onSelectFilterSection,
+  }: {
+    sections: Array<{ label: string }>
+    onSelectFilterSection: (section: "cnvs") => void
+  }) => (
+    <div>
+      Findings: {sections.map((section) => section.label).join(", ")}
+      <button type="button" onClick={() => onSelectFilterSection("cnvs")}>Open CNV filters</button>
+    </div>
+  ),
+}))
+vi.mock("./FiltersSidebar", () => ({
+  FiltersSidebar: ({
+    intent,
+    activeTab,
+    toggleRequest,
+  }: {
+    intent: string
+    activeTab: string
+    toggleRequest: { sequence: number; section: string } | null
+  }) => (
+    <div>
+      Filters {intent} {activeTab} request {toggleRequest?.sequence ?? 0} section {toggleRequest?.section ?? "none"}
+    </div>
+  ),
+}))
 vi.mock("@/components/comments/CommentsPanel", () => ({ CommentsPanel: () => <div>Comments</div> }))
 
 import { SampleDetail } from "./index"
@@ -53,6 +101,9 @@ function sampleContext(overrides: Record<string, unknown> = {}) {
 describe("SampleDetail", () => {
   beforeEach(() => {
     mocks.context = sampleContext()
+    mocks.analysisLayout = "modern"
+    mocks.analysisModernViewTried = false
+    mocks.updateUiSettings.mockReset()
   })
 
   it("shows only analysis tabs supported by the sample resources and ASPC", () => {
@@ -67,14 +118,54 @@ describe("SampleDetail", () => {
     expect(screen.queryByRole("tab", { name: "Translocations" })).not.toBeInTheDocument()
   })
 
+  it("combines enabled analyses in the persisted classic layout", () => {
+    mocks.analysisLayout = "classic"
+    renderWithRouter(<SampleDetail />, "/samples/DNA_001?tab=findings")
+
+    expect(screen.getByRole("tab", { name: "Findings" })).toHaveAttribute("aria-selected", "true")
+    expect(screen.queryByRole("tab", { name: "Somatic SNVs" })).not.toBeInTheDocument()
+    expect(screen.getByText("Findings: Somatic SNVs, Germline SNVs, CNVs")).toBeVisible()
+  })
+
+  it("offers modern until the modern analysis layout has been tried", () => {
+    mocks.analysisLayout = "classic"
+    renderWithRouter(<SampleDetail />, "/samples/DNA_001?tab=findings")
+
+    expect(screen.getByText("Try the modern layout")).toBeVisible()
+    fireEvent.click(screen.getByRole("button", { name: "Try modern" }))
+
+    expect(mocks.updateUiSettings).toHaveBeenCalledWith({
+      analysis_layout: "modern",
+      analysis_modern_view_tried: true,
+    })
+  })
+
+  it("keeps the analysis layout banner dismissed after returning to classic", () => {
+    mocks.analysisLayout = "classic"
+    mocks.analysisModernViewTried = true
+    renderWithRouter(<SampleDetail />, "/samples/DNA_001?tab=findings")
+
+    expect(screen.queryByText("Prefer a focused view?")).not.toBeInTheDocument()
+  })
+
+  it("selects and opens the requested section filters from the findings view", () => {
+    mocks.analysisLayout = "classic"
+    renderWithRouter(<SampleDetail />, "/samples/DNA_001?tab=findings")
+
+    expect(screen.getByText("Filters somatic snvs request 0 section none")).toBeVisible()
+    fireEvent.click(screen.getByRole("button", { name: "Open CNV filters" }))
+
+    expect(screen.getByText("Filters somatic cnvs request 1 section cnvs")).toBeVisible()
+  })
+
   it("switches between somatic and germline views without mixing intent", () => {
     renderWithRouter(<SampleDetail />, "/samples/DNA_001?tab=snvs")
     expect(screen.getByText("somatic variants")).toBeVisible()
-    expect(screen.getByText("Filters somatic")).toBeVisible()
+    expect(screen.getByText("Filters somatic snvs request 0 section none")).toBeVisible()
 
     fireEvent.click(screen.getByRole("tab", { name: "Germline SNVs" }))
     expect(screen.getByText("germline variants")).toBeVisible()
-    expect(screen.getByText("Filters germline")).toBeVisible()
+    expect(screen.getByText("Filters germline germline-snvs request 0 section none")).toBeVisible()
   })
 
   it("does not expose germline or coverage tabs when intent and resources are absent", () => {
@@ -84,6 +175,14 @@ describe("SampleDetail", () => {
     expect(screen.getByRole("tab", { name: "Somatic SNVs" })).toBeVisible()
     expect(screen.queryByRole("tab", { name: "Germline SNVs" })).not.toBeInTheDocument()
     expect(screen.queryByRole("tab", { name: "Coverage" })).not.toBeInTheDocument()
+  })
+
+  it("omits gene-panel context from the coverage view", () => {
+    renderWithRouter(<SampleDetail />, "/samples/DNA_001?tab=coverage")
+
+    expect(screen.getByText("Coverage content")).toBeVisible()
+    expect(screen.getByText("Filters somatic coverage request 0 section none")).toBeVisible()
+    expect(screen.queryByText("Panel summary")).not.toBeInTheDocument()
   })
 
   it("shows RNA fusion analysis without DNA-only analysis tabs", () => {

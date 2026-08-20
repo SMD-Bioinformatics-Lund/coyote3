@@ -9,6 +9,12 @@ export type CurrentUserAccess = {
   role: string
   access_level: number
   permissions: string[]
+  ui_settings?: {
+    analysis_layout?: "classic" | "modern"
+    sample_list_layout?: "classic" | "modern"
+    analysis_modern_view_tried?: boolean
+    sample_list_modern_view_tried?: boolean
+  }
 }
 
 export const ADMIN_UTILITY_PERMISSIONS = {

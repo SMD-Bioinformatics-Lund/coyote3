@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
+import type { ReactNode } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { api } from "@/lib/api"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import { DataTable } from "@/components/data-table/DataTable"
-import { AppTooltip } from "@/components/ui/app-tooltip"
 import { BulkActionDropdown } from "@/components/data-table/BulkActionDropdown"
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -21,6 +21,10 @@ import {
   CLINICAL_TABLE_STALE_MS,
   useClinicalTableState,
 } from "@/hooks/useClinicalTableState"
+import { AnalysisTableCard } from "./AnalysisTableCard"
+import { HotspotIndicator } from "@/components/detail/HotspotIndicator"
+import { AppTooltip } from "@/components/ui/app-tooltip"
+import { formatPopulationFrequency, hotspotExportValue } from "@/lib/variant-table-format"
 
 const variantBulkActions = findingBulkActionOptions("small_variant")
 
@@ -40,7 +44,15 @@ function compactVariantClass(value: unknown) {
   return variantClassShort[key] || key.toUpperCase() || "-"
 }
 
-export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "somatic" | "germline" }) {
+export function VariantsTab({
+  sampleId,
+  intent,
+  header,
+}: {
+  sampleId: string
+  intent: "somatic" | "germline"
+  header?: ReactNode
+}) {
   const bulkAction = useBulkFindingAction(sampleId, "small_variant")
   const location = useLocation()
   const tabId = intent === "germline" ? "germline-snvs" : "snvs"
@@ -124,11 +136,15 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
       id: "badges",
       header: "Info",
       accessorFn: (row) => statusLabels(row),
-      meta: { exportValue: statusLabels, headerClassName: "w-24 min-w-24 max-w-24", cellClassName: "w-24 min-w-24 max-w-24" },
+      meta: {
+        exportValue: statusLabels,
+        headerClassName: "w-[4.5rem] min-w-[4.5rem] max-w-[4.5rem]",
+        cellClassName: "w-[4.5rem] min-w-[4.5rem] max-w-[4.5rem]",
+      },
       enableSorting: false,
-      size: 88,
-      minSize: 82,
-      maxSize: 96,
+      size: 72,
+      minSize: 72,
+      maxSize: 72,
       cell: ({ row }) => {
         const symbol = row.original.INFO?.selected_CSQ?.SYMBOL
         return (
@@ -174,8 +190,8 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
         const csq = row.original.INFO?.selected_CSQ || {}
         return (
           <div className="flex w-52 flex-col leading-tight">
-            <ExpandableText text={csq.HGVSc || "-"} maxLength={28} className="text-[11px] leading-tight text-muted-foreground" />
-            <ExpandableText text={csq.HGVSp && csq.HGVSp !== "-" ? csq.HGVSp : "-"} maxLength={28} className="text-[11px] font-semibold leading-tight text-foreground" />
+            <ExpandableText text={csq.HGVSc || "-"} maxLength={28} className="type-table-value leading-tight text-muted-foreground" />
+            <ExpandableText text={csq.HGVSp && csq.HGVSp !== "-" ? csq.HGVSp : "-"} maxLength={28} className="type-table-value-emphasis leading-tight text-foreground" />
           </div>
         )
       }
@@ -187,7 +203,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
       meta: { headerClassName: "w-14", cellClassName: "w-14" },
       cell: ({ row }) => {
         const exon = row.original.INFO?.selected_CSQ?.EXON
-        return <span className="text-[11px]">{exon || "-"}</span>
+        return <span className="type-table-value">{exon || "-"}</span>
       }
     },
     {
@@ -197,7 +213,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
       meta: { headerClassName: "w-14", cellClassName: "w-14" },
       cell: ({ row }) => {
         const intron = row.original.INFO?.selected_CSQ?.INTRON
-        return <span className="text-[11px]">{intron || "-"}</span>
+        return <span className="type-table-value">{intron || "-"}</span>
       }
     },
     {
@@ -207,7 +223,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
       meta: { headerClassName: "w-16", cellClassName: "w-16" },
       cell: ({ row }) => {
         const raw = row.original.variant_class || "-"
-        return <span className="text-[11px] font-bold uppercase" title={raw}>{compactVariantClass(raw)}</span>
+        return <span className="type-table-value-emphasis uppercase" title={raw}>{compactVariantClass(raw)}</span>
       }
     },
     {
@@ -215,7 +231,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
       header: "Indel Size",
       accessorFn: (row) => row.INFO?.SVLEN || "-",
       meta: { headerClassName: "w-16", cellClassName: "w-16" },
-      cell: ({ row }) => <span className="text-[11px] text-muted-foreground">{row.original.INFO?.SVLEN || "-"}</span>
+      cell: ({ row }) => <span className="type-table-value text-muted-foreground">{row.original.INFO?.SVLEN || "-"}</span>
     },
     {
       id: "consequence",
@@ -241,12 +257,24 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
     {
       id: "popfreq",
       header: "PopFreq (%)",
-      accessorFn: (row) => row.gnomad_frequency || 0,
+      accessorFn: (row) => row.gnomad_frequency ?? null,
       meta: { headerClassName: "w-20", cellClassName: "w-20" },
       cell: ({ row }) => {
         const freq = row.original.gnomad_frequency
-        return <span className="text-[11px]">{freq ? (freq * 100).toFixed(3) : "-"}</span>
+        return <span className="type-table-value type-numeric">{formatPopulationFrequency(freq)}</span>
       }
+    },
+    {
+      id: "hotspot",
+      header: "Hotspot",
+      accessorFn: hotspotExportValue,
+      enableSorting: false,
+      meta: {
+        exportValue: hotspotExportValue,
+        headerClassName: "w-20 min-w-20",
+        cellClassName: "w-20 min-w-20",
+      },
+      cell: ({ row }) => <HotspotIndicator variant={row.original} />,
     },
     {
       id: "tier",
@@ -278,11 +306,11 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
         const igvUrl = igvLoadUrl(sampleId, loc)
         return (
           igvUrl ? (
-            <a href={igvUrl} target="_blank" rel="noreferrer" className="inline-block rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground shadow-sm transition-colors hover:bg-muted/80 hover:text-foreground dark:bg-muted/60">
+            <a href={igvUrl} target="_blank" rel="noreferrer" className="type-table-value inline-block rounded border border-border bg-muted px-1.5 py-0.5 text-muted-foreground shadow-sm transition-colors hover:bg-muted/80 hover:text-foreground dark:bg-muted/60">
               {loc}
             </a>
           ) : (
-            <span className="inline-block rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">{loc}</span>
+            <span className="type-table-value inline-block rounded border border-border bg-muted px-1.5 py-0.5 text-muted-foreground">{loc}</span>
           )
         )
       }
@@ -314,8 +342,8 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
       cell: ({ row }) => {
         const caseGt = row.original.GT?.find((gt: any) => gt.type === "case")
         return (
-          <div className="flex items-center gap-1 text-[11px]" title={caseGt ? `Case ${(caseGt.AF * 100).toFixed(1)}% (${caseGt.VD}/${caseGt.DP})` : "Case -"}>
-            <span className="font-bold">{caseGt ? `${(caseGt.AF * 100).toFixed(1)}%` : "-"}</span>
+          <div className="type-table-value flex items-center gap-1" title={caseGt ? `Case ${(caseGt.AF * 100).toFixed(1)}% (${caseGt.VD}/${caseGt.DP})` : "Case -"}>
+            <span className="font-medium">{caseGt ? `${(caseGt.AF * 100).toFixed(1)}%` : "-"}</span>
             <span className="text-muted-foreground">{caseGt ? `(${caseGt.VD}/${caseGt.DP})` : "-"}</span>
           </div>
         )
@@ -340,8 +368,8 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
         cell: ({ row }: any) => {
           const ctrlGt = row.original.GT?.find((gt: any) => gt.type === "control")
           return (
-            <div className="flex items-center gap-1 text-[11px]" title={ctrlGt ? `Control ${(ctrlGt.AF * 100).toFixed(1)}% (${ctrlGt.VD}/${ctrlGt.DP})` : "Control -"}>
-              <span className="font-semibold text-foreground/70">{ctrlGt ? `${(ctrlGt.AF * 100).toFixed(1)}%` : "-"}</span>
+            <div className="type-table-value flex items-center gap-1" title={ctrlGt ? `Control ${(ctrlGt.AF * 100).toFixed(1)}% (${ctrlGt.VD}/${ctrlGt.DP})` : "Control -"}>
+              <span className="font-medium text-foreground/80">{ctrlGt ? `${(ctrlGt.AF * 100).toFixed(1)}%` : "-"}</span>
               <span className="text-muted-foreground">{ctrlGt ? `(${ctrlGt.VD}/${ctrlGt.DP})` : "-"}</span>
             </div>
           )
@@ -376,7 +404,7 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
   ]
 
   return (
-    <div className="glass-card flex flex-col overflow-hidden p-3">
+    <AnalysisTableCard header={header}>
       <DataTable
         columns={columns}
         data={variants || []}
@@ -413,6 +441,6 @@ export function VariantsTab({ sampleId, intent }: { sampleId: string; intent: "s
             />
         )}
       />
-    </div>
+    </AnalysisTableCard>
   )
 }

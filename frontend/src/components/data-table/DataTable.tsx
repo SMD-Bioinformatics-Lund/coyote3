@@ -227,7 +227,7 @@ export function DataTable<TData, TValue>({
       {/* Table Area */}
       <div className="paper-surface overflow-hidden rounded-lg [contain:paint]">
         <div className="overflow-x-auto">
-          <table className="w-full table-auto border-separate border-spacing-0 text-left text-[0.84rem] type-numeric">
+          <table className="type-table-cell w-full table-auto border-separate border-spacing-0 text-left type-numeric">
             <thead className="type-table-header border-b-2 border-border bg-[var(--header-surface)] text-foreground">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>

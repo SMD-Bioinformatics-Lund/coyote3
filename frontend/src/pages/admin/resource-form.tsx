@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react"
 import { Activity, Save, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { accentColor } from "@/lib/badge-colors"
+import { UserUiSettingsControls } from "@/components/users/UserUiSettingsControls"
 import type { AdminFormMode, AdminResourceSpec, FormField, FormSpec } from "@/pages/admin/resource-specs"
 import {
   coerceFieldValue,
@@ -348,6 +349,18 @@ export function FormControl({
   const label = fieldLabel(name, field)
   const commonClass = "w-full rounded-lg border border-input bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
 
+  if (field.display_type === "user-settings") {
+    return (
+      <div className={cn("space-y-1", compact ? "text-xs" : "text-sm")}>
+        <span className="flex items-center gap-1 font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </span>
+        <UserUiSettingsControls value={value} onChange={onChange} disabled={readOnly} />
+        {field.help && <span className="block text-xs font-normal normal-case tracking-normal text-muted-foreground">{field.help}</span>}
+      </div>
+    )
+  }
+
   let control
   if (field.display_type === "checkbox") {
     const checked = Boolean(value)
@@ -532,7 +545,7 @@ export function AdminManagedForm({
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {sectionFields.map((name) => {
                   const field = form.fields[name]
-                  const wide = ["textarea", "checkbox-group", "jsoneditor", "jsoneditor-or-upload", "filters-structured", "reporting-structured", "catalog-structured"].includes(field.display_type || "") || field.data_type === "json"
+                  const wide = ["textarea", "checkbox-group", "jsoneditor", "jsoneditor-or-upload", "filters-structured", "reporting-structured", "catalog-structured", "user-settings"].includes(field.display_type || "") || field.data_type === "json"
                   return (
                     <div key={name} className={cn(wide && "md:col-span-2 xl:col-span-3")}>
                       <FormControl

@@ -27,6 +27,7 @@ import {
 } from "@/components/detail/FindingDetailLayout"
 import { Button } from "@/components/ui/button"
 import { TranscriptConsequencesTable } from "@/components/detail/TranscriptConsequencesTable"
+import { HotspotIndicator } from "@/components/detail/HotspotIndicator"
 import {
   clinpgxApiSummary,
   clinpgxEvidenceColumns,
@@ -210,6 +211,7 @@ export function VariantDetail() {
                   </DetailField>
                   <DetailField label="Impact"><ImpactBadge value={csq.IMPACT} /></DetailField>
                   <DetailField label="Variant class">{data.vep_var_class_translations?.[variant?.variant_class]?.display_name || variant?.variant_class || csq.VARIANT_CLASS || "-"}</DetailField>
+                  <DetailField label="Hotspot"><HotspotIndicator variant={variant} showLabel /></DetailField>
                   <DetailField label="Position" valueClassName="">{variantLocation(variant)}</DetailField>
                   <DetailField label="Filter flags"><FilterFlagBadges value={variant?.FILTER} metadata={filterFlagMetadata} /></DetailField>
                   <DetailField label="cDNA"><ExpandableText text={csq.HGVSc || "-"} maxLength={24} className="" /></DetailField>

@@ -94,7 +94,7 @@ navigation behavior.
 | Browser contract | Protected behavior |
 | --- | --- |
 | Authentication routes | Provider display, failed sign-in, and password-reset feedback. |
-| Sample analysis tabs | ASPC analysis selection, sample modality, intent visibility, and deferred endpoint requests. |
+| Sample analysis layouts | ASPC analysis selection, sample modality, intent visibility, combined Findings composition, tab presentation, and deferred endpoint requests. |
 | Primary application workflows | Dashboard composition, live/reported sample state, disabled-module routing, matrix search, profile persistence, and notification broadcasting. |
 | Route registry contracts | Every declared UI route identifies its backend dependencies and empty/error behavior. |
 

@@ -99,8 +99,33 @@ def test_whoami_sorts_permission_list(monkeypatch):
     payload = auth_router.whoami(request=SimpleNamespace(), user=user)
 
     assert payload["permissions"] == ["a", "b"]
+    assert payload["ui_settings"] == {
+        "analysis_layout": "classic",
+        "sample_list_layout": "classic",
+        "analysis_modern_view_tried": False,
+        "sample_list_modern_view_tried": False,
+    }
     assert payload["csrf_token"] == "csrf-test-token"
     assert "denied_permissions" not in payload
+
+
+def test_current_user_can_update_analysis_layout():
+    """The self-service settings route delegates a validated global layout value."""
+    user = fx.api_user()
+    service = SimpleNamespace(
+        update_own_ui_settings=lambda **kwargs: {
+            "status": "ok",
+            "ui_settings": {"analysis_layout": kwargs["payload"]["analysis_layout"]},
+        }
+    )
+
+    payload = auth_router.update_current_ui_settings(
+        auth_router.ApiUiSettingsUpdateRequest(analysis_layout="modern"),
+        user=user,
+        service=service,
+    )
+
+    assert payload == {"status": "ok", "ui_settings": {"analysis_layout": "modern"}}
 
 
 def test_auth_login_rejects_invalid_credentials(monkeypatch):

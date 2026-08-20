@@ -8,10 +8,28 @@ const queryState = vi.hoisted(() => ({
   data: undefined as any,
   isLoading: false,
   error: null as Error | null,
+  user: {
+    ui_settings: {
+      analysis_layout: "classic",
+      sample_list_layout: "classic",
+      analysis_modern_view_tried: false,
+      sample_list_modern_view_tried: false,
+    },
+  } as any,
+  mutate: vi.fn(),
 }))
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => queryState,
+  useQuery: ({ queryKey }: { queryKey: unknown[] }) => queryKey[0] === "whoami"
+    ? { data: queryState.user, isLoading: false, error: null }
+    : queryState,
+  useMutation: () => ({ mutate: queryState.mutate, isPending: false }),
+  useQueryClient: () => ({
+    cancelQueries: vi.fn(),
+    getQueryData: vi.fn(),
+    setQueryData: vi.fn(),
+    invalidateQueries: vi.fn(),
+  }),
 }))
 
 const samples = {
@@ -63,6 +81,15 @@ describe("Samples page", () => {
     queryState.data = samples
     queryState.isLoading = false
     queryState.error = null
+    queryState.user = {
+      ui_settings: {
+        analysis_layout: "classic",
+        sample_list_layout: "classic",
+        analysis_modern_view_tried: false,
+        sample_list_modern_view_tried: false,
+      },
+    }
+    queryState.mutate.mockReset()
   })
 
   it("renders live clinical samples and compact count badges", () => {
@@ -76,7 +103,9 @@ describe("Samples page", () => {
     expect(screen.getByText("SNV 2.1K")).toHaveClass("matte-badge-pass")
     expect(screen.getByText("CNV 3")).toHaveClass("matte-badge-pass")
     expect(screen.getByText("Cov")).toHaveClass("matte-badge-pass")
-    expect(screen.getByText("Biomarkers")).toHaveClass("matte-badge-fail")
+    const biomarkerBadges = screen.getAllByText("Biomarkers")
+    expect(biomarkerBadges.some((badge) => badge.classList.contains("matte-badge-fail"))).toBe(true)
+    expect(biomarkerBadges.some((badge) => badge.classList.contains("matte-badge-pass"))).toBe(true)
     expect(screen.getByText("Fusion 3.6K")).toBeInTheDocument()
     expect(screen.getByText("Expr")).toBeInTheDocument()
     expect(screen.getByText("Class")).toBeInTheDocument()
@@ -84,17 +113,53 @@ describe("Samples page", () => {
     expect(screen.queryByText("RNA EXPR")).not.toBeInTheDocument()
     expect(screen.queryByText("RNA CLASS")).not.toBeInTheDocument()
     expect(screen.queryByText("RNA QC")).not.toBeInTheDocument()
-    expect(screen.queryByText("DNA_REPORTED_001")).not.toBeInTheDocument()
+    expect(screen.getByText("DNA_REPORTED_001")).toBeInTheDocument()
+    expect(screen.getByText("Try the modern layout")).toBeInTheDocument()
   })
 
   it("switches to reported samples and preserves the state in the URL", async () => {
     const user = userEvent.setup()
+    queryState.user = {
+      ui_settings: {
+        analysis_layout: "classic",
+        sample_list_layout: "modern",
+        analysis_modern_view_tried: false,
+        sample_list_modern_view_tried: true,
+      },
+    }
     renderWithRouter(<Samples />, "/samples")
 
     await user.click(screen.getByRole("tab", { name: /Reported samples/ }))
     expect(await screen.findByText("DNA_REPORTED_001")).toBeInTheDocument()
-    expect(screen.getByText("reported")).toBeInTheDocument()
+    expect(screen.getByText("Samples with saved clinical reports.")).toBeInTheDocument()
     expect(screen.queryByText("DNA_CASE_001")).not.toBeInTheDocument()
+  })
+
+  it("offers modern once and records the sample-list acknowledgement", async () => {
+    const user = userEvent.setup()
+    renderWithRouter(<Samples />, "/samples")
+
+    await user.click(screen.getByRole("button", { name: "Try modern" }))
+
+    expect(queryState.mutate).toHaveBeenCalledWith({
+      sample_list_layout: "modern",
+      sample_list_modern_view_tried: true,
+    })
+  })
+
+  it("keeps the discovery banner dismissed after returning to classic", () => {
+    queryState.user = {
+      ui_settings: {
+        analysis_layout: "classic",
+        sample_list_layout: "classic",
+        analysis_modern_view_tried: false,
+        sample_list_modern_view_tried: true,
+      },
+    }
+
+    renderWithRouter(<Samples />, "/samples")
+
+    expect(screen.queryByText("Try the modern layout")).not.toBeInTheDocument()
   })
 
   it("submits and clears URL-backed search filters", async () => {
@@ -119,12 +184,26 @@ describe("Samples page", () => {
     expect(screen.getByLabelText("Until")).toBeInTheDocument()
     await user.type(screen.getByLabelText("From"), "2026-08-01")
     await user.type(screen.getByLabelText("Until"), "2026-08-03")
+    await user.click(screen.getByRole("button", { name: "Apply dates" }))
     await user.selectOptions(screen.getByLabelText("Maximum rows"), "100")
 
     expect(screen.getByLabelText("From")).toHaveValue("2026-08-01")
     expect(screen.getByLabelText("Until")).toHaveValue("2026-08-03")
     expect(screen.getByLabelText("Maximum rows")).toHaveValue("100")
     expect(screen.getAllByText("Custom range")).toHaveLength(2)
+  })
+
+  it("keeps invalid custom date drafts open without applying them", async () => {
+    const user = userEvent.setup()
+    renderWithRouter(<Samples />, "/samples?date_range=custom")
+
+    await user.type(screen.getByLabelText("From"), "2026-08-03")
+    await user.type(screen.getByLabelText("Until"), "2026-08-01")
+
+    expect(screen.getByRole("alert")).toHaveTextContent("The From date must be before or equal to the Until date.")
+    expect(screen.getByRole("button", { name: "Apply dates" })).toBeDisabled()
+    expect(screen.getByLabelText("From")).toHaveValue("2026-08-03")
+    expect(screen.getByLabelText("Until")).toHaveValue("2026-08-01")
   })
 
   it("shows loading, failure, and empty states", () => {
@@ -143,6 +222,6 @@ describe("Samples page", () => {
     queryState.error = null
     queryState.data = { live_samples: [], done_samples: [] }
     renderWithRouter(<Samples />)
-    expect(screen.getByText("No samples found.")).toBeInTheDocument()
+    expect(screen.getAllByText("No samples found.")).toHaveLength(2)
   })
 })

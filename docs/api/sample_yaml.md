@@ -154,7 +154,7 @@ These keys are common to DNA and RNA sample bundles.
 | `sequencing_technology` | Recommended | DNA, RNA | Pipeline platform label, for example `Illumina`, `Nanopore`, or `PacBio`. Ingest normalizes it to internal `platform`; the ASP platform compatibility check then applies. |
 | `read_mode` | Conditional | DNA, RNA | Platform-supported read mode, such as `PE` or `SE`; omit when the selected platform does not use read mode. |
 | `pipeline` | Yes | DNA, RNA | Upstream pipeline name. |
-| `pipeline_version` | Yes | DNA, RNA | Upstream pipeline version. Store as a string when possible. |
+| `pipeline_version` | No | DNA, RNA | Upstream pipeline version. Store a known version as a string. Omit the key when the version is unknown; placeholder values such as `not provided` are normalized to an absent value and are not stored in the sample document. |
 | `database_versions` | No | DNA, RNA | Optional canonical version override/supplement. For DNA VCF ingest, recognised values are extracted from the VCF header first; supplied manifest values then replace only matching extracted keys. |
 | `<file_key>` | Supported | DNA, RNA | Flat pipeline file declaration, for example `vcf_files: /srv/coyote3-data/coyote3/incoming/case.vcf`. Each key must be valid for the selected omics layer and allowed by the ASP. Ingest stores it in canonical sample file metadata. |
 | `filters` | Ignored | DNA, RNA | Pipelines must not author clinical filters. Ingest replaces this with the resolved ASPC filter profile. |

@@ -893,6 +893,7 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
         rna_expression_repository=SimpleNamespace(),
         rna_classification_repository=SimpleNamespace(),
         rna_quality_repository=SimpleNamespace(),
+        pgx_repository=SimpleNamespace(),
         sample_comment_repository=SimpleNamespace(),
         report_repository=SimpleNamespace(),
         reported_variant_repository=SimpleNamespace(),
@@ -961,6 +962,7 @@ def _resource_sample_service(repo: _AdminRepoStub) -> ResourceSampleService:
         rna_expression_repository=store.rna_expression_repository,
         rna_classification_repository=store.rna_classification_repository,
         rna_quality_repository=store.rna_quality_repository,
+        pgx_repository=store.pgx_repository,
         sample_comment_repository=store.sample_comment_repository,
         report_repository=store.report_repository,
         reported_variant_repository=store.reported_variant_repository,
@@ -1147,6 +1149,32 @@ def test_user_can_update_only_safe_own_profile_fields():
         service.update_own_profile(
             username="tester",
             payload={"roles": ["superuser"]},
+        )
+
+
+def test_user_can_update_only_validated_ui_settings():
+    """Self-service UI settings persist independently of identity and authorization."""
+    repo = _AdminRepoStub()
+    service = _user_service(repo)
+
+    payload = service.update_own_ui_settings(
+        username="tester",
+        payload={"analysis_layout": "modern", "analysis_modern_view_tried": True},
+    )
+
+    assert payload["ui_settings"] == {
+        "analysis_layout": "modern",
+        "sample_list_layout": "classic",
+        "analysis_modern_view_tried": True,
+        "sample_list_modern_view_tried": False,
+    }
+    assert repo.updated_user[1]["roles"] == ["admin"]
+    assert repo.updated_user[1]["ui_settings"] == payload["ui_settings"]
+
+    with pytest.raises(AppError, match="not supported"):
+        service.update_own_ui_settings(
+            username="tester",
+            payload={"theme": "dark"},
         )
 
 
@@ -1483,7 +1511,22 @@ def test_admin_sample_service_update_restores_ids(monkeypatch):
     )
     payload = service.update(
         sample_id="S1",
-        payload={"sample": {"name": "CASE_1", "field": "value"}},
+        payload={
+            "sample": {
+                "name": "CASE_1",
+                "asp_id": "hema_gmsv1",
+                "subpanel_id": "base",
+                "environment": "production",
+                "case_id": "CASE_1",
+                "sample_no": 1,
+                "sequencing_scope": "panel",
+                "omics_layer": "dna",
+                "pipeline": "test_pipeline",
+                "pipeline_version": "1.0",
+                "files": {"vcf_files": {"path": "/data/test.vcf"}},
+                "field": "value",
+            }
+        },
         actor_username="actor@example.com",
     )
 

@@ -39,6 +39,15 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
                     "omics_layers": {"dna": 6},
                     "sequencing_scopes": {"tumor": 5},
                     "pair_count": {"paired": 2, "unpaired": 0, "unknown": 0},
+                    "pipelines": [
+                        {
+                            "name": "SomaticPanelPipeline",
+                            "version": "3.2.0",
+                            "count": 3,
+                            "analysed": 2,
+                            "ready": 3,
+                        }
+                    ],
                 },
             }
         ),
@@ -122,6 +131,15 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
     assert payload["variant_stats"]["tier1_or_2"] == 3
     assert payload["variant_stats"]["vus"] == 3
     assert payload["sample_stats"]["profiles"]["prod"] == 7
+    assert payload["user_scope_summary"]["sample_stats"]["pipelines"] == [
+        {
+            "name": "SomaticPanelPipeline",
+            "version": "3.2.0",
+            "count": 3,
+            "analysed": 2,
+            "ready": 3,
+        }
+    ]
     assert payload["tier_stats"]["total"]["tier3"] == 3
     assert payload["quality_stats"]["analysed_rate_percent"] == 80.0
     assert payload["admin_insights"]["counts"]["users_total"] == 11

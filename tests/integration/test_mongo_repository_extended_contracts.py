@@ -820,6 +820,24 @@ def test_samples_repository_lifecycle_scope_counts_versions_and_delegates(monkey
     assert repository.get_all_sample_counts(True) == 1
     assert repository.get_all_sample_counts(False) == 2
     assert repository.user_sample_counts_by_assay(assays=["hema_gmsv1"]) == {"hema_gmsv1": 1}
+    pipeline_stats = repository.get_dashboard_sample_rollup()["sample_stats"]["pipelines"]
+    assert pipeline_stats == [
+        {
+            "count": 1,
+            "analysed": 1,
+            "ready": 1,
+            "name": "SomaticPanelPipeline",
+            "version": "3.2",
+        },
+        {
+            "count": 1,
+            "analysed": 0,
+            "ready": 1,
+            "name": "SomaticPanelPipeline",
+            "version": "4.0",
+        },
+        {"count": 1, "analysed": 0, "ready": 0, "name": "unknown", "version": None},
+    ]
     assert repository.get_assay_specific_sample_stats(["hema_gmsv1"])["hema_gmsv1"] == {
         "total": 1,
         "analysed": 0,

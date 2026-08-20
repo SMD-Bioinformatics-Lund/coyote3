@@ -26,11 +26,11 @@ describe("TableBadge", () => {
     render(<InfoBadge>OKB</InfoBadge>)
 
     expect(screen.getByText("OKB")).toHaveClass(
-      "h-[1.125rem]",
-      "min-h-[1.125rem]",
-      "min-w-4",
-      "px-1.5",
-      "text-[0.625rem]",
+      "h-3",
+      "min-h-3",
+      "min-w-2.5",
+      "px-0.5",
+      "text-[0.4375rem]",
       "shadow-none",
     )
   })

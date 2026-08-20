@@ -49,13 +49,23 @@ const dnaSomaticAndGermlineContext: SampleContext = {
   analysis_sections: ["SNV"],
 }
 
-async function installApiFixtures(page: Page, context: SampleContext) {
+async function installApiFixtures(
+  page: Page,
+  context: SampleContext,
+  analysisLayout: "classic" | "modern" = "modern",
+) {
   await page.route("**/api/v1/**", async (route) => {
     const path = new URL(route.request().url()).pathname
     const emptyPage = { meta: { count: 0, page: 1, per_page: 50, has_next: false, has_previous: false } }
 
     if (path === "/api/v1/auth/whoami") {
-      await route.fulfill({ json: { username: "clinical.user", role: "user" } })
+      await route.fulfill({
+        json: {
+          username: "clinical.user",
+          role: "user",
+          ui_settings: { analysis_layout: analysisLayout },
+        },
+      })
       return
     }
     if (path === "/api/v1/public/assay-catalog/context") {
@@ -190,4 +200,38 @@ test("analysis request failures remain on the selected tab", async ({ page }) =>
   await expect(page.getByRole("tab", { name: "CNVs" })).toHaveAttribute("aria-selected", "true")
   await expect(page.getByText("Error loading CNVs")).toBeVisible()
   await expect(page).toHaveURL(/samples\/DNA_001\?tab=cnvs/)
+})
+
+test("combined layout presents enabled finding sections on one page", async ({ page }) => {
+  await installApiFixtures(page, dnaContext, "classic")
+  const requests = sampleAnalysisRequests(page, "DNA_001")
+
+  await page.goto("/samples/DNA_001")
+  await expect(page.getByRole("tab", { name: "Findings" })).toBeVisible()
+  await expect(page.getByRole("tab", { name: "Somatic SNVs" })).toHaveCount(0)
+
+  await page.getByRole("tab", { name: "Findings" }).click()
+
+  await expect(page.getByRole("heading", { name: "Somatic SNVs" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "CNVs" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Translocations" })).toBeVisible()
+  const snvCard = page
+    .getByRole("heading", { name: "Somatic SNVs" })
+    .locator("xpath=ancestor::*[@data-testid='analysis-table-card']")
+  await expect(snvCard.getByPlaceholder("Search variants, genes, HGVS, flags...")).toBeVisible()
+  await expect.poll(() => requests.some((path) => path.endsWith("/small-variants"))).toBe(true)
+  await expect.poll(() => requests.some((path) => path.endsWith("/cnvs"))).toBe(true)
+  await expect.poll(() => requests.some((path) => path.endsWith("/translocations"))).toBe(true)
+
+  const cnvSectionHeader = page.getByRole("heading", { name: "CNVs" }).locator("xpath=..")
+  await cnvSectionHeader.getByRole("button", { name: "Filters" }).click()
+  await expect(page.getByText("CNV Thresholds")).toBeVisible()
+  await cnvSectionHeader.getByRole("button", { name: "Filters" }).click()
+  await expect(page.getByText("CNV Thresholds")).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Show Somatic SNVs filters" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Show CNVs filters" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Show Translocations filters" })).toBeVisible()
+
+  await page.getByRole("button", { name: "Show Translocations filters" }).click()
+  await expect(page.getByText("Fusion/Translocation Gene Lists")).toBeVisible()
 })

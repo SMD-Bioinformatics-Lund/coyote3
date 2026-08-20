@@ -59,6 +59,7 @@ export function TooltipSurface({
 export function AppTooltip({
   children,
   content,
+  details,
   label,
   context = "More information",
   tone = "info",
@@ -66,6 +67,7 @@ export function AppTooltip({
 }: {
   children: ReactNode
   content: string
+  details?: ReactNode
   label?: string
   context?: string
   tone?: TooltipTone
@@ -134,6 +136,7 @@ export function AppTooltip({
           {label && label !== content ? (
             <span className="mt-1 block text-[11px] leading-relaxed text-popover-foreground/75">{content}</span>
           ) : null}
+          {details}
         </TooltipSurface>
       )}
     </span>

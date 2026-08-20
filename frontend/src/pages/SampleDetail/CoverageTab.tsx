@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, Search } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
 import { AppLoader } from "@/components/layout/AppLoader"
+import { Input } from "@/components/ui/input"
 import { shortCount } from "@/lib/detail-formatters"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
+import { sampleFilterSection } from "@/lib/sample-shape"
 
 function flattenCoverageTable(covTable: any) {
   return Object.entries(covTable || {}).flatMap(([gene, regions]: [string, any]) =>
@@ -205,7 +207,7 @@ function CoverageGeneView({
   )
 
   return (
-    <section className="glass-card p-3">
+    <section className="glass-card min-w-0 p-3">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-wide">Gene: {gene} @ {cutoff}X</h3>
@@ -228,8 +230,19 @@ function CoverageGeneView({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-background p-2">
-        <svg width={width} height={height} role="img" aria-label={`${gene} coverage plot`}>
+      <div
+        className="max-w-full overflow-x-auto overscroll-x-contain rounded-lg border border-border bg-background p-2"
+        role="region"
+        aria-label={`${gene} coverage plot viewport`}
+        tabIndex={0}
+      >
+        <svg
+          className="block max-w-none shrink-0"
+          width={width}
+          height={height}
+          role="img"
+          aria-label={`${gene} coverage plot`}
+        >
           <text x={margin.left} y={20} className="fill-foreground text-[14px] font-bold">
             {gene}
           </text>
@@ -348,19 +361,19 @@ function CoverageGeneView({
           <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
             <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
               <p className="font-bold uppercase text-muted-foreground">Exons</p>
-              <p className="text-lg font-black">{exons.length}</p>
+              <p className="text-lg font-semibold">{exons.length}</p>
             </div>
             <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
               <p className="font-bold uppercase text-muted-foreground">CDS</p>
-              <p className="text-lg font-black">{cds.length}</p>
+              <p className="text-lg font-semibold">{cds.length}</p>
             </div>
             <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
               <p className="font-bold uppercase text-muted-foreground">Probes</p>
-              <p className="text-lg font-black">{probes.length}</p>
+              <p className="text-lg font-semibold">{probes.length}</p>
             </div>
             <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
               <p className="font-bold uppercase text-muted-foreground">Min / Avg</p>
-              <p className="text-sm font-black">
+              <p className="text-sm font-semibold">
                 {Number.isFinite(minCoverage) ? minCoverage.toFixed(1) : "-"} / {Number.isFinite(avgCoverage) ? avgCoverage.toFixed(1) : "-"}X
               </p>
             </div>
@@ -407,9 +420,11 @@ function CoverageGeneView({
   )
 }
 
-export function CoverageTab({ sampleId }: { sampleId: string }) {
-  const [cutoff, setCutoff] = useState(500)
+export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: any }) {
+  const configuredCutoff = Number(sampleFilterSection(sample, "coverage").warn_cov)
+  const cutoff = Number.isFinite(configuredCutoff) && configuredCutoff > 0 ? configuredCutoff : 500
   const [selectedGene, setSelectedGene] = useState<string | null>(null)
+  const [geneSearch, setGeneSearch] = useState("")
   const { data, isLoading, error } = useQuery({
     queryKey: ["sample-coverage", sampleId, cutoff],
     queryFn: () => api.get(`/samples/${sampleId}/coverage?cov_cutoff=${cutoff}`).then((res) => res.data),
@@ -427,6 +442,11 @@ export function CoverageTab({ sampleId }: { sampleId: string }) {
       return { gene, count: geneRows.length, min }
     })
   }, [geneNames, rows])
+  const filteredGeneSummaries = useMemo(() => {
+    const query = geneSearch.trim().toLowerCase()
+    if (!query) return geneSummaries
+    return geneSummaries.filter((item) => item.gene.toLowerCase().includes(query))
+  }, [geneSearch, geneSummaries])
   const selectedGeneData = selectedGene ? data?.coverage?.genes?.[selectedGene] : null
   const selectedRows = selectedGene ? rows.filter((row) => row.gene === selectedGene) : rows
 
@@ -516,18 +536,6 @@ export function CoverageTab({ sampleId }: { sampleId: string }) {
       <SurfacePanel
         title="Coverage"
         description="Low-covered genes, exon/CDS/probe coverage, and blacklist controls for the active sample gene lists."
-        actions={
-          <label className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-            Cutoff
-            <input
-              type="number"
-              min={1}
-              value={cutoff}
-              onChange={(event) => setCutoff(Number(event.target.value) || 1)}
-              className="w-20 rounded-lg border border-input bg-background px-2 py-1 text-xs font-semibold text-foreground"
-            />
-          </label>
-        }
       >
         <div className="grid gap-2 sm:grid-cols-3">
           <MetricCard title="Low regions" value={shortCount(rows.length)} />
@@ -536,11 +544,29 @@ export function CoverageTab({ sampleId }: { sampleId: string }) {
         </div>
       </SurfacePanel>
 
-      <div className="coverage-split-layout flex flex-col gap-3 md:flex-row">
-        <aside className="coverage-sidebar space-y-3">
-          <SurfacePanel title="Low-Coverage Genes" description={`${geneNames.length} gene(s) below ${cutoff}X`}>
+      <div className="coverage-split-layout flex min-w-0 flex-col gap-3 md:flex-row">
+        <aside className="coverage-sidebar min-w-0 space-y-3">
+          <SurfacePanel
+            title="Low-Coverage Genes"
+            description={geneSearch.trim()
+              ? `${filteredGeneSummaries.length} of ${geneNames.length} gene(s) below ${cutoff}X`
+              : `${geneNames.length} gene(s) below ${cutoff}X`}
+            actions={
+              <div className="relative w-full sm:w-48">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="search"
+                  value={geneSearch}
+                  onChange={(event) => setGeneSearch(event.target.value)}
+                  placeholder="Search genes..."
+                  aria-label="Search low-coverage genes"
+                  className="h-8 pl-8 text-xs"
+                />
+              </div>
+            }
+          >
             <div className="max-h-[28rem] space-y-1 overflow-y-auto pr-1">
-              {geneSummaries.map((item) => (
+              {filteredGeneSummaries.map((item) => (
                 <button
                   key={item.gene}
                   type="button"
@@ -552,7 +578,7 @@ export function CoverageTab({ sampleId }: { sampleId: string }) {
                   }`}
                 >
                   <span className="min-w-0">
-                    <span className="block truncate text-xs font-black">{item.gene}</span>
+                    <span className="block truncate text-xs font-medium">{item.gene}</span>
                     <span className="text-[10px] text-muted-foreground">{item.count} low region(s)</span>
                   </span>
                   <span className="rounded-md bg-fail/10 px-1.5 py-0.5 text-[10px] font-bold text-fail">
@@ -565,6 +591,11 @@ export function CoverageTab({ sampleId }: { sampleId: string }) {
                   No low-covered genes for the current cutoff and selected gene lists.
                 </p>
               )}
+              {geneSummaries.length > 0 && !filteredGeneSummaries.length && (
+                <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
+                  No low-coverage genes match {geneSearch.trim()}.
+                </p>
+              )}
             </div>
           </SurfacePanel>
 
@@ -573,7 +604,7 @@ export function CoverageTab({ sampleId }: { sampleId: string }) {
           </SurfacePanel>
         </aside>
 
-        <div className="coverage-main flex-1 space-y-3">
+        <div className="coverage-main min-w-0 flex-1 space-y-3">
           {selectedGene && selectedGeneData ? (
             <CoverageGeneView gene={selectedGene} geneData={selectedGeneData} cutoff={cutoff} smpGrp={data?.smp_grp || ""} />
           ) : (

@@ -73,4 +73,39 @@ describe("Profile", () => {
     expect(screen.getByLabelText("Current password")).toBeDisabled()
     expect(screen.getByRole("button", { name: "Update password" })).toBeDisabled()
   })
+
+  it("shows and saves the current user's interface settings", async () => {
+    mocks.patch.mockResolvedValue({
+      data: {
+        status: "ok",
+        ui_settings: {
+          analysis_layout: "modern",
+          sample_list_layout: "classic",
+          analysis_modern_view_tried: true,
+          sample_list_modern_view_tried: false,
+        },
+      },
+    })
+    mount({
+      username: "layout.user",
+      auth_type: ["local"],
+      ui_settings: {
+        analysis_layout: "classic",
+        sample_list_layout: "classic",
+        analysis_modern_view_tried: false,
+        sample_list_modern_view_tried: false,
+      },
+    })
+
+    expect(await screen.findByText("User settings")).toBeVisible()
+    fireEvent.click(screen.getAllByRole("tab", { name: "Modern" })[0])
+
+    await waitFor(() => expect(mocks.patch).toHaveBeenCalledWith(
+      "/users/me/ui-settings",
+      expect.objectContaining({
+        analysis_layout: "modern",
+        analysis_modern_view_tried: true,
+      }),
+    ))
+  })
 })

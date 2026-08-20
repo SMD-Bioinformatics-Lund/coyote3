@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate, useParams, Link, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
@@ -16,9 +16,18 @@ import { RnaAnalysisTab } from "./RnaAnalysisTabs"
 import { FiltersSidebar } from "./FiltersSidebar"
 import { CommentsPanel } from "@/components/comments/CommentsPanel"
 import { AppLoader } from "@/components/layout/AppLoader"
+import { LayoutDiscoveryBanner } from "@/components/layout/LayoutDiscoveryBanner"
 import { hasSampleFile } from "@/lib/sample-shape"
 import { sampleUrlKey } from "@/lib/sample-routing"
 import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
+import { useCurrentUserAccess } from "@/lib/access-control"
+import {
+  analysisLayoutForUser,
+  analysisModernViewTriedForUser,
+  useUpdateUiSettings,
+  type AnalysisLayout,
+} from "@/lib/user-settings"
+import { FindingsTab, type FindingSectionId } from "./FindingsTab"
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -31,6 +40,23 @@ const TABS = [
   { id: "coverage", label: "Coverage", analysis: "COVERAGE" },
   { id: "reports", label: "Reports" }
 ]
+
+const FINDING_TAB_IDS = new Set([
+  "snvs",
+  "germline-snvs",
+  "cnvs",
+  "fusions",
+  "rna-analysis",
+  "translocations",
+])
+
+const FILTERABLE_FINDING_TAB_IDS = new Set([
+  "snvs",
+  "germline-snvs",
+  "cnvs",
+  "fusions",
+  "translocations",
+])
 
 function visibleTabs(sample: any, context: any, modules?: any) {
   const configured = new Set((context?.analysis_sections || []).map((item: string) => String(item).toUpperCase()))
@@ -90,6 +116,12 @@ export function SampleDetail() {
   const requestedTab = searchParams.get("tab") || "overview"
   const requestedIntent = searchParams.get("intent") === "germline" ? "germline" : "somatic"
   const modulesQuery = useApplicationModules()
+  const currentUserQuery = useCurrentUserAccess()
+  const updateUiSettings = useUpdateUiSettings()
+  const [filterToggleRequest, setFilterToggleRequest] = useState<{
+    sequence: number
+    section: FindingSectionId
+  } | null>(null)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['sample', id],
@@ -103,13 +135,38 @@ export function SampleDetail() {
   const sampleReportType: "dna" | "rna" =
     String(sample?.omics_layer || "").toLowerCase() === "rna" ? "rna" : "dna"
   const tabs = useMemo(() => visibleTabs(data?.sample || {}, data, modulesQuery.data), [data, modulesQuery.data])
+  const analysisLayout = analysisLayoutForUser(currentUserQuery.data)
+  const modernViewTried = analysisModernViewTriedForUser(currentUserQuery.data)
+  const findingSections = useMemo(
+    () => tabs.filter((tab) => FINDING_TAB_IDS.has(tab.id)),
+    [tabs],
+  )
+  const navigationTabs = useMemo(() => {
+    if (analysisLayout === "modern") return tabs
+    const compactTabs = tabs.filter((tab) => ["overview", "coverage", "reports"].includes(tab.id))
+    if (findingSections.length > 0) {
+      compactTabs.splice(1, 0, { id: "findings", label: "Findings" })
+    }
+    return compactTabs
+  }, [analysisLayout, findingSections.length, tabs])
   const canonicalRequestedTab = requestedTab === "snvs" && requestedIntent === "germline"
     ? "germline-snvs"
     : ["expression", "classification"].includes(requestedTab) ? "rna-analysis" : requestedTab
-  const activeTab = tabs.some((tab) => tab.id === canonicalRequestedTab) ? canonicalRequestedTab : "overview"
-  const activeIntent = activeTab === "germline-snvs" ? "germline" : "somatic"
-  const showComments = ["snvs", "germline-snvs", "cnvs", "fusions", "translocations"].includes(activeTab)
-  const showFilters = ["snvs", "germline-snvs", "cnvs", "fusions", "translocations"].includes(activeTab)
+  const requestedFindingTab = FINDING_TAB_IDS.has(canonicalRequestedTab) ? canonicalRequestedTab : null
+  const activeTab = analysisLayout === "classic" && requestedFindingTab
+    ? "findings"
+    : navigationTabs.some((tab) => tab.id === canonicalRequestedTab) ? canonicalRequestedTab : "overview"
+  const requestedFilterSection = searchParams.get("finding_filter") || requestedFindingTab
+  const firstFilterableFinding = findingSections.find((tab) => FILTERABLE_FINDING_TAB_IDS.has(tab.id))?.id || null
+  const activeFindingFilter = analysisLayout === "classic" && activeTab === "findings"
+    ? findingSections.some((tab) => tab.id === requestedFilterSection && FILTERABLE_FINDING_TAB_IDS.has(tab.id))
+      ? requestedFilterSection
+      : firstFilterableFinding
+    : null
+  const filterTab = activeTab === "findings" ? activeFindingFilter : activeTab
+  const activeIntent = filterTab === "germline-snvs" ? "germline" : "somatic"
+  const showComments = activeTab === "findings" || ["snvs", "germline-snvs", "cnvs", "fusions", "translocations"].includes(activeTab)
+  const showFilters = Boolean(activeFindingFilter) || ["snvs", "germline-snvs", "cnvs", "fusions", "translocations", "coverage"].includes(activeTab)
   const suggestionPath = String(sample?.omics_layer || "").toLowerCase() === "rna"
     ? `/samples/${sampleRouteKey}/fusions/comment-suggestion`
     : `/samples/${sampleRouteKey}/small-variants/comment-suggestion`
@@ -131,13 +188,13 @@ export function SampleDetail() {
     }
   }, [id, navigate, sample?.name, searchParams])
   useEffect(() => {
-    if (!data || tabs.some((tab) => tab.id === canonicalRequestedTab)) return
+    if (!data || navigationTabs.some((tab) => tab.id === canonicalRequestedTab) || (analysisLayout === "classic" && requestedFindingTab)) return
     setSearchParams((current) => {
       const params = new URLSearchParams(current)
       params.delete("tab")
       return params
     }, { replace: true })
-  }, [canonicalRequestedTab, data, setSearchParams, tabs])
+  }, [analysisLayout, canonicalRequestedTab, data, navigationTabs, requestedFindingTab, setSearchParams])
 
   const selectTab = (tabId: string) => {
     setSearchParams((current) => {
@@ -146,6 +203,45 @@ export function SampleDetail() {
       else params.set("tab", tabId)
       if (tabId === "germline-snvs") params.set("intent", "germline")
       else params.delete("intent")
+      if (tabId !== "findings") params.delete("finding_filter")
+      return params
+    }, { replace: true })
+  }
+
+  const selectFindingFilter = (tabId: FindingSectionId) => {
+    setFilterToggleRequest((request) => ({
+      sequence: (request?.sequence ?? 0) + 1,
+      section: tabId,
+    }))
+    setSearchParams((current) => {
+      const params = new URLSearchParams(current)
+      params.set("tab", "findings")
+      params.set("finding_filter", tabId)
+      params.delete("intent")
+      return params
+    }, { replace: true })
+  }
+
+  const selectAnalysisLayout = (layout: AnalysisLayout) => {
+    if (layout === analysisLayout || updateUiSettings.isPending) return
+    updateUiSettings.mutate({
+      analysis_layout: layout,
+      ...(layout === "modern" ? { analysis_modern_view_tried: true } : {}),
+    })
+    setSearchParams((current) => {
+      const params = new URLSearchParams(current)
+      if (layout === "classic" && FINDING_TAB_IDS.has(activeTab)) {
+        params.set("tab", "findings")
+        params.set("finding_filter", activeTab)
+        params.delete("intent")
+      } else if (layout === "modern" && activeTab === "findings") {
+        const target = activeFindingFilter || findingSections[0]?.id || "overview"
+        if (target === "overview") params.delete("tab")
+        else params.set("tab", target)
+        if (target === "germline-snvs") params.set("intent", "germline")
+        else params.delete("intent")
+        params.delete("finding_filter")
+      }
       return params
     }, { replace: true })
   }
@@ -178,7 +274,7 @@ export function SampleDetail() {
             <p className="text-muted-foreground font-medium uppercase tracking-widest text-xs mt-1">
               {sample.asp_id} • {sample.environment} • {sample.ingest_status}
             </p>
-            <BiomarkerRow context={data} />
+            <BiomarkerRow context={data} sample={sample} />
           </div>
           </div>
         </div>
@@ -187,18 +283,38 @@ export function SampleDetail() {
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
             <div className="rounded-xl overflow-hidden py-1 lg:py-2">
-              <div className="mb-3 glass-panel overflow-x-auto whitespace-nowrap scrollbar-none p-1">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 glass-panel p-1">
+                <div className="overflow-x-auto whitespace-nowrap scrollbar-none">
+                  <SegmentedControl
+                    ariaLabel="Sample analysis views"
+                    className="min-w-max"
+                    value={activeTab}
+                    onValueChange={selectTab}
+                    items={navigationTabs.map((tab) => ({ value: tab.id, label: tab.label }))}
+                  />
+                </div>
                 <SegmentedControl
-                  ariaLabel="Sample analysis views"
-                  className="min-w-max"
-                  value={activeTab}
-                  onValueChange={selectTab}
-                  items={tabs.map((tab) => ({ value: tab.id, label: tab.label }))}
+                  ariaLabel="Analysis layout"
+                  className="min-w-[190px]"
+                  value={analysisLayout}
+                  onValueChange={selectAnalysisLayout}
+                  items={[
+                    { value: "classic", label: "Classic" },
+                    { value: "modern", label: "Modern" },
+                  ]}
                 />
               </div>
 
+              {analysisLayout === "classic" && !modernViewTried && (
+                <div className="mb-3">
+                  <LayoutDiscoveryBanner onTryModern={() => selectAnalysisLayout("modern")} />
+                </div>
+              )}
+
               <div className="space-y-3">
-                {activeTab !== "overview" && <PanelSummary sample={sample} context={data} />}
+                {activeTab !== "overview" && activeTab !== "coverage" && (
+                  <PanelSummary sample={sample} context={data} />
+                )}
 
                 {activeTab === "overview" && (
                   <OverviewTab sampleId={sampleRouteKey} sample={sample} context={data} />
@@ -207,11 +323,19 @@ export function SampleDetail() {
                 {activeTab === "germline-snvs" && (
                   <VariantsTab sampleId={sampleRouteKey} intent="germline" />
                 )}
+                {activeTab === "findings" && (
+                  <FindingsTab
+                    sampleId={sampleRouteKey}
+                    sections={findingSections as Array<{ id: FindingSectionId; label: string }>}
+                    activeFilterSection={activeFindingFilter as FindingSectionId | null}
+                    onSelectFilterSection={selectFindingFilter}
+                  />
+                )}
                 {activeTab === "cnvs" && <CNVTab sampleId={sampleRouteKey} />}
                 {activeTab === "fusions" && <FusionsTab sampleId={sampleRouteKey} />}
                 {activeTab === "rna-analysis" && <RnaAnalysisTab sampleId={sampleRouteKey} />}
                 {activeTab === "translocations" && <TranslocationsTab sampleId={sampleRouteKey} />}
-                {activeTab === "coverage" && <CoverageTab sampleId={sampleRouteKey} />}
+                {activeTab === "coverage" && <CoverageTab sampleId={sampleRouteKey} sample={sample} />}
                 {activeTab === "reports" && (
                   <ReportsTab sampleId={sampleRouteKey} reportType={sampleReportType} />
                 )}
@@ -232,7 +356,22 @@ export function SampleDetail() {
           </div>
 
           {showFilters && (
-            <FiltersSidebar sampleId={sampleRouteKey} sample={sample} context={data} activeTab={activeTab} intent={activeIntent} />
+            <FiltersSidebar
+              sampleId={sampleRouteKey}
+              sample={sample}
+              context={data}
+              activeTab={filterTab || "overview"}
+              intent={activeIntent}
+              availableSections={activeTab === "findings"
+                ? findingSections
+                  .filter((tab) => FILTERABLE_FINDING_TAB_IDS.has(tab.id))
+                  .map((tab) => ({ id: tab.id, label: tab.label }))
+                : []}
+              onSelectSection={activeTab === "findings"
+                ? (section) => selectFindingFilter(section as FindingSectionId)
+                : undefined}
+              toggleRequest={filterToggleRequest}
+            />
           )}
         </div>
       </div>

@@ -642,6 +642,38 @@ class SampleRepository(BaseRepository):
                         {"$group": {"_id": "$ingest_status", "count": {"$sum": 1}}},
                         {"$project": {"_id": 0, "key": "$_id", "count": 1}},
                     ],
+                    "pipelines": [
+                        {
+                            "$group": {
+                                "_id": {
+                                    "name": "$pipeline",
+                                    "version": "$pipeline_version",
+                                },
+                                "count": {"$sum": 1},
+                                "analysed": {"$sum": {"$cond": ["$reported", 1, 0]}},
+                                "ready": {
+                                    "$sum": {
+                                        "$cond": [
+                                            {"$eq": ["$ingest_status", "ready"]},
+                                            1,
+                                            0,
+                                        ]
+                                    }
+                                },
+                            }
+                        },
+                        {
+                            "$project": {
+                                "_id": 0,
+                                "name": {"$ifNull": ["$_id.name", "unknown"]},
+                                "version": {"$ifNull": ["$_id.version", None]},
+                                "count": 1,
+                                "analysed": 1,
+                                "ready": 1,
+                            }
+                        },
+                        {"$sort": {"count": -1, "name": 1, "version": 1}},
+                    ],
                     "recent_samples": [
                         {"$sort": {"time_added": -1, "_id": -1}},
                         {"$limit": 5},
@@ -723,6 +755,7 @@ class SampleRepository(BaseRepository):
                 "sequencing_scopes": _kv_to_dict(facet_doc.get("sequencing_scopes", []) or []),
                 "pair_count": pair_counts,
                 "ingest_statuses": _kv_to_dict(facet_doc.get("ingest_statuses", []) or []),
+                "pipelines": list(facet_doc.get("pipelines", []) or []),
             },
             "recent_samples": list(facet_doc.get("recent_samples", []) or []),
         }

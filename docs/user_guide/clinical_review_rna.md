@@ -1,7 +1,7 @@
 # RNA Clinical Review
 
 Use the RNA sample workspace to review the analyses enabled by the sample's
-recorded ASPC revision. Coyote3 shows only the tabs that apply to the sample and for which
+recorded ASPC revision. Coyote3 shows only the analysis areas that apply to the sample and for which
 the required data is available. An RNA sample therefore does not display DNA
 SNV, CNV, translocation, or coverage tabs unless a future assay contract
 explicitly supports them.
@@ -11,16 +11,20 @@ explicitly supports them.
 1. Open **Samples**.
 2. Select an RNA sample.
 3. Review the sample and analysis status on **Overview**.
-4. Open **Fusions** when fusion analysis is enabled.
+4. Review **Fusions** under Findings in Classic, or open the **Fusions** tab in Modern.
 5. Open **Reports** to review or create the RNA report when reporting is
    enabled.
 
-The available tabs are derived from the recorded ASPC revision's analysis types, ingested
+The available analysis areas are derived from the recorded ASPC revision's analysis types, ingested
 resources, application module controls, and the user's permissions.
+
+Classic places Fusions and Expression & Classification together on the
+Findings page when both are enabled. Modern presents them separately in tabs. The
+same account preference controls DNA and RNA workspaces.
 
 !!! info "Analysis availability"
 
-    A missing tab normally means that the analysis is not enabled for that
+    A missing analysis area normally means that the analysis is not enabled for that
     sample; it does not indicate an empty result set.
 
 ## Fusion Table

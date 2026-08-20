@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import type { ReactNode } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { api } from "@/lib/api"
 import { AlertTriangle, ExternalLink } from "lucide-react"
@@ -33,10 +34,11 @@ import {
   CLINICAL_TABLE_STALE_MS,
   useClinicalTableState,
 } from "@/hooks/useClinicalTableState"
+import { AnalysisTableCard } from "./AnalysisTableCard"
 
 const translocationBulkActions = findingBulkActionOptions("translocation")
 
-export function TranslocationsTab({ sampleId }: { sampleId: string }) {
+export function TranslocationsTab({ sampleId, header }: { sampleId: string; header?: ReactNode }) {
   const bulkAction = useBulkFindingAction(sampleId, "translocation")
   const location = useLocation()
   const {
@@ -111,7 +113,7 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
       cell: ({ row }) => {
         const position = translocationPositionLabel(row.original)
         return (
-          <span className="text-xs text-muted-foreground">
+          <span className="type-table-value text-muted-foreground">
             {position}
           </span>
         )
@@ -144,8 +146,8 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
         const hgvs = translocationHgvs(ann)
         return (
           <div className="flex w-full max-w-80 flex-col leading-tight">
-            <ExpandableText text={hgvs.coding || "-"} maxLength={42} className="text-xs text-muted-foreground" />
-            <ExpandableText text={hgvs.protein || "-"} maxLength={42} className="text-xs font-semibold" />
+            <ExpandableText text={hgvs.coding || "-"} maxLength={42} className="type-table-value text-muted-foreground" />
+            <ExpandableText text={hgvs.protein || "-"} maxLength={42} className="type-table-value-emphasis" />
           </div>
         )
       }
@@ -154,7 +156,7 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
       id: "panel",
       header: "Panel",
       accessorFn: translocationPanelStatus,
-      cell: ({ row }) => <span className="text-xs text-muted-foreground">{translocationPanelStatus(row.original)}</span>
+      cell: ({ row }) => <span className="type-table-value text-muted-foreground">{translocationPanelStatus(row.original)}</span>
     },
     {
       id: "tier",
@@ -205,7 +207,7 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
   ]
 
   return (
-    <div className="glass-card flex flex-col overflow-hidden p-3">
+    <AnalysisTableCard header={header}>
       <DataTable
         columns={columns}
         data={translocations}
@@ -239,6 +241,6 @@ export function TranslocationsTab({ sampleId }: { sampleId: string }) {
             />
         )}
       />
-    </div>
+    </AnalysisTableCard>
   )
 }

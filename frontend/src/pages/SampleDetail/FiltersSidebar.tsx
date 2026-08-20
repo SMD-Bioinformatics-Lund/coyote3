@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { ChevronLeft, ChevronRight, Filter, RefreshCw, RotateCcw, Save } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
@@ -13,6 +13,15 @@ interface FiltersSidebarProps {
   context?: any
   activeTab?: string
   intent?: "somatic" | "germline"
+  availableSections?: Array<{
+    id: string
+    label: string
+  }>
+  onSelectSection?: (section: string) => void
+  toggleRequest?: {
+    sequence: number
+    section: string
+  } | null
 }
 
 const consequences = [
@@ -88,6 +97,7 @@ function activeTableQueryKey(activeTab: string, sampleId: string) {
     cnvs: "sample-cnvs",
     fusions: "sample-fusions",
     translocations: "sample-translocations",
+    coverage: "sample-coverage",
   }
   const key = tableKeys[activeTab]
   return key ? [key, sampleId] : null
@@ -236,8 +246,19 @@ function FusionDescriptionList({
   )
 }
 
-export function FiltersSidebar({ sampleId, sample, context, activeTab = "overview", intent = "somatic" }: FiltersSidebarProps) {
+export function FiltersSidebar({
+  sampleId,
+  sample,
+  context,
+  activeTab = "overview",
+  intent = "somatic",
+  availableSections = [],
+  onSelectSection,
+  toggleRequest = null,
+}: FiltersSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(true)
+  const previousToggleSequence = useRef(toggleRequest?.sequence ?? 0)
+  const previousToggleSection = useRef<string | null>(null)
   const activeSection = activeFilterSectionForTab(activeTab)
   const sampleName = String(sample?.name || sample?.case_id || sampleId)
   const [filters, setFilters] = useState(activeSection ? sampleFilterSection(sample, activeSection, intent) : {})
@@ -246,6 +267,14 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
   useEffect(() => {
     setFilters(activeSection ? sampleFilterSection(sample, activeSection, intent) : {})
   }, [activeSection, sample, intent])
+
+  useEffect(() => {
+    if (!toggleRequest || toggleRequest.sequence === previousToggleSequence.current) return
+    previousToggleSequence.current = toggleRequest.sequence
+    const repeatedSection = previousToggleSection.current === toggleRequest.section
+    previousToggleSection.current = toggleRequest.section
+    setIsCollapsed((collapsed) => repeatedSection ? !collapsed : false)
+  }, [toggleRequest])
 
   const listOptions = useMemo(() => {
     const all = [
@@ -329,16 +358,45 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
   const setValue = (key: string, value: any) => setFilters((current: any) => ({ ...current, [key]: value }))
   const values = (key: string) => Array.isArray(filters[key]) ? filters[key].map(String) : []
   const consequenceValues = Array.isArray(filters.vep_consequences) ? filters.vep_consequences.map(String) : []
+  const collapsedSections = availableSections.length > 0
+    ? availableSections
+    : [{ id: activeTab, label: `${intent} ${activeTab}` }]
 
   if (isCollapsed) {
     return (
       <aside className="flex h-full w-8 shrink-0 flex-col items-center rounded-lg border border-primary/10 bg-card/95 py-2 shadow-sm transition-[width] duration-150 ease-out">
-        <button onClick={() => setIsCollapsed(false)} className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground" title="Expand filters">
+        <button
+          type="button"
+          onClick={() => setIsCollapsed(false)}
+          className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          title="Expand filters"
+          aria-label="Expand filters"
+        >
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <span className="mt-8 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
-          {intent} {activeTab} filters
-        </span>
+        <nav aria-label="Finding filters" className="mt-2 flex min-h-0 w-full flex-1 flex-col gap-0 overflow-y-auto px-1">
+          {collapsedSections.map((section) => {
+            const isActive = section.id === activeTab
+            return (
+              <button
+                key={section.id}
+                type="button"
+                aria-label={`Show ${section.label} filters`}
+                aria-pressed={isActive}
+                onClick={() => onSelectSection ? onSelectSection(section.id) : setIsCollapsed(false)}
+                className={`flex min-h-16 w-full items-center justify-center rounded-md border px-1 py-2 text-[9px] font-semibold uppercase tracking-[0.12em] transition-colors ${
+                  isActive
+                    ? "border-primary/35 bg-primary/10 text-primary"
+                    : "border-transparent text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <span style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
+                  {section.label}
+                </span>
+              </button>
+            )
+          })}
+        </nav>
       </aside>
     )
   }
@@ -436,6 +494,24 @@ export function FiltersSidebar({ sampleId, sample, context, activeTab = "overvie
               <CheckboxList options={cnvEffects.map(([id, label]) => ({ id, label }))} values={values("cnveffects")} onChange={(next) => setValue("cnveffects", next)} />
             </Section>
           </>
+        )}
+
+        {activeTab === "coverage" && (
+          <Section title="Coverage Thresholds">
+            <FilterInput
+              label="Warning coverage"
+              value={filters.warn_cov}
+              onChange={(value) => setValue("warn_cov", value)}
+            />
+            <FilterInput
+              label="Error coverage"
+              value={filters.error_cov}
+              onChange={(value) => setValue("error_cov", value)}
+            />
+            <p className="text-[11px] leading-4 text-muted-foreground">
+              Regions below the warning threshold appear in the Coverage review. The error threshold identifies the most severe low-coverage regions.
+            </p>
+          </Section>
         )}
 
         {activeTab === "fusions" && (

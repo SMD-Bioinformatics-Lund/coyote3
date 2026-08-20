@@ -328,7 +328,7 @@ class DashboardService:
         """
         scope_assays = self.resolve_scope_assays(user=user)
         scope_key = self._summary_scope_key(user=user, scope_assays=scope_assays)
-        cache_key = f"dashboard:summary:v6:{self._cache_version_token()}:{scope_key}"
+        cache_key = f"dashboard:summary:v7:{self._cache_version_token()}:{scope_key}"
         cache_ttl = self._cache_ttl_seconds()
         snapshot_max_age = self._snapshot_max_age_seconds()
 

@@ -95,6 +95,31 @@ describe("sample overview presentation", () => {
     expect(screen.getByText("Total: 100; Somatic: 12")).toBeVisible()
   })
 
+  it("renders case purity as a percentage summary", async () => {
+    const user = userEvent.setup()
+    wrapper(<BiomarkerRow sample={sample} />)
+    expect(screen.getByText("Purity:")).toBeVisible()
+    expect(screen.getByText("72%")).toBeVisible()
+    await user.hover(screen.getByText("Purity:"))
+    expect(screen.getByText(/Estimated tumor purity/)).toBeVisible()
+  })
+
+  it("renders the FFPE summary only for FFPE case material", async () => {
+    const user = userEvent.setup()
+    const { rerender } = wrapper(<BiomarkerRow sample={{ ...sample, case: { ...sample.case, ffpe: true } }} />)
+    expect(screen.getByText("FFPE:")).toBeVisible()
+    expect(screen.getByText("Yes")).toBeVisible()
+    await user.hover(screen.getByText("FFPE:"))
+    expect(screen.getByText(/formalin-fixed, paraffin-embedded/)).toBeVisible()
+
+    rerender(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter><BiomarkerRow sample={sample} /></MemoryRouter>
+      </QueryClientProvider>,
+    )
+    expect(screen.queryByText("FFPE:")).not.toBeInTheDocument()
+  })
+
   it("summarizes selected panels and expands gene-level coverage", async () => {
     const user = userEvent.setup()
     wrapper(<PanelSummary sample={sample} context={context} />)
@@ -188,7 +213,7 @@ describe("sample overview presentation", () => {
     expect(within(table).getByRole("columnheader", { name: "Control" })).toBeVisible()
     expect(within(table).getByText("CLARITY_CASE")).toBeVisible()
     expect(within(table).getByText("CLARITY_CONTROL")).toBeVisible()
-    expect(within(table).getByText("0.72")).toBeVisible()
+    expect(within(table).getByText("72%")).toBeVisible()
   })
 
   it("links saved reports to their view and download endpoints", () => {

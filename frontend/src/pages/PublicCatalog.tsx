@@ -574,6 +574,18 @@ function matrixBoundaryStyle(boundary: string) {
   return undefined
 }
 
+function matrixColumnWidth(label: unknown) {
+  const words = String(label || "-")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  const longestWordLength = Math.max(3, ...words.map((word) => word.length))
+
+  // Matrix cells contain only a check mark or dash. Size each column for its
+  // longest header word, then let multi-word labels wrap at their spaces.
+  return `${Math.min(116, Math.max(82, longestWordLength * 6 + 18))}px`
+}
+
 function AssayMatrixTable({
   columns,
   filters,
@@ -718,7 +730,10 @@ function AssayMatrixTable({
           <colgroup>
             <col className="w-44" />
             {columns.map((col) => (
-              <col key={col.key} className="w-32" />
+              <col
+                key={col.key}
+                style={{ width: matrixColumnWidth(col.isgl_label || col.isgl_key) }}
+              />
             ))}
           </colgroup>
           <thead className="type-table-header sticky top-0 z-20 border-b-2 border-border text-foreground shadow-sm">
@@ -759,11 +774,13 @@ function AssayMatrixTable({
                 return (
                   <th
                     key={col.key}
-                    className="matrix-head-list border-b-2 border-r border-border px-2 py-1.5 text-center align-middle text-[10px] font-medium uppercase text-foreground last:border-r-0"
+                    className="matrix-head-list border-b-2 border-r border-border px-1.5 py-1.5 text-center align-middle text-[10px] font-medium uppercase text-foreground last:border-r-0"
                     title={col.isgl_key}
                     style={matrixBoundaryStyle(boundary)}
                   >
-                    <span className="block truncate whitespace-normal leading-tight">{col.isgl_label || col.isgl_key}</span>
+                    <span className="block whitespace-normal break-normal leading-tight [hyphens:none] [overflow-wrap:normal]">
+                      {col.isgl_label || col.isgl_key}
+                    </span>
                   </th>
                 )
               })}
@@ -785,7 +802,7 @@ function AssayMatrixTable({
                   return (
                     <td
                       key={`${gene}:${col.key}`}
-                      className="h-7 border-b border-r border-border/40 px-2 py-1 text-center last:border-r-0"
+                      className="h-7 border-b border-r border-border/40 px-1.5 py-1 text-center last:border-r-0"
                     >
                       {present ? (
                         <Check className="mx-auto h-4 w-4 rounded-full text-pass" strokeWidth={2.4} />

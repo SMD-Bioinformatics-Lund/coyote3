@@ -6,7 +6,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-from pydantic import Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from api.config.constants import (
     DEFAULT_AUTH_PROVIDER,
@@ -16,6 +16,33 @@ from api.config.constants import (
     normalize_permission_category,
 )
 from api.contracts.schemas.base import _StrictDocBase
+
+
+class UserUiSettingsDoc(BaseModel):
+    """Persisted presentation preferences for one user."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    analysis_layout: str = "classic"
+    sample_list_layout: str = "classic"
+    analysis_modern_view_tried: bool = False
+    sample_list_modern_view_tried: bool = False
+
+    @field_validator("analysis_layout")
+    @classmethod
+    def _validate_analysis_layout(cls, value: str) -> str:
+        normalized = str(value or "").strip().lower()
+        if normalized not in {"classic", "modern"}:
+            raise ValueError("analysis_layout must be one of: classic, modern")
+        return normalized
+
+    @field_validator("sample_list_layout")
+    @classmethod
+    def _validate_sample_list_layout(cls, value: str) -> str:
+        normalized = str(value or "").strip().lower()
+        if normalized not in {"classic", "modern"}:
+            raise ValueError("sample_list_layout must be one of: classic, modern")
+        return normalized
 
 
 class UsersDoc(_StrictDocBase):
@@ -39,6 +66,7 @@ class UsersDoc(_StrictDocBase):
     environments: list[str] = Field(default_factory=list)
     asp_ids: list[str] = Field(default_factory=list)
     asp_groups: list[str] = Field(default_factory=list)
+    ui_settings: UserUiSettingsDoc = Field(default_factory=UserUiSettingsDoc)
     is_active: bool = True
     version: int = 1
     created_by: str | None = None

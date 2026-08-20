@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import type { ReactNode } from "react"
 import type { ColumnDef } from "@tanstack/react-table"
 import { AlertTriangle, BarChart3, Dna } from "lucide-react"
 
@@ -50,7 +51,7 @@ function AnalysisState({
       </div>
     )
   }
-  return <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">{empty}</p>
+  return <p className="rounded-lg border border-dashed border-border p-2 gap-2 text-xs text-muted-foreground">{empty}</p>
 }
 
 function zScorePresentation(value: number) {
@@ -148,7 +149,7 @@ function ClassificationScore({ row }: { row: ClassificationRow }) {
   )
 }
 
-function ExpressionPanel({ rows, sampleId }: { rows: ExpressionRow[]; sampleId: string }) {
+function ExpressionPanel({ rows, sampleId, header }: { rows: ExpressionRow[]; sampleId: string; header?: ReactNode }) {
   const extent = Math.max(2, ...rows.map((row) => Math.abs(Number(row.z || 0))))
   const columns: ColumnDef<ExpressionRow, any>[] = [
     {
@@ -187,6 +188,11 @@ function ExpressionPanel({ rows, sampleId }: { rows: ExpressionRow[]; sampleId: 
 
   return (
     <section className="glass-card flex w-full min-w-0 flex-col overflow-hidden" aria-label="Expression of selected genes">
+      {header ? (
+        <div className="flex min-h-9 shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2">
+          {header}
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/50 p-3">
         <div>
           <h4 className="flex items-center gap-2 text-sm font-semibold"><Dna className="size-4" /> Expression of Selected Genes</h4>
@@ -213,7 +219,7 @@ function ExpressionPanel({ rows, sampleId }: { rows: ExpressionRow[]; sampleId: 
   )
 }
 
-function ClassificationPanel({ rows, sampleId }: { rows: ClassificationRow[]; sampleId: string }) {
+function ClassificationPanel({ rows, sampleId, header }: { rows: ClassificationRow[]; sampleId: string; header?: ReactNode }) {
   const orderedRows = [...rows].sort((left, right) => Number(right.score || 0) - Number(left.score || 0))
   const columns: ColumnDef<ClassificationRow, any>[] = [
     {
@@ -233,6 +239,11 @@ function ClassificationPanel({ rows, sampleId }: { rows: ClassificationRow[]; sa
 
   return (
     <section className="glass-card flex w-full min-w-0 flex-col overflow-hidden" aria-label="Expression-based classification">
+      {header ? (
+        <div className="flex min-h-9 shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2">
+          {header}
+        </div>
+      ) : null}
       <div className="flex items-center justify-between border-b border-border/50 bg-muted/50 p-3">
         <div>
           <h4 className="flex items-center gap-2 text-sm font-semibold"><BarChart3 className="size-4" /> Expression-Based Classification</h4>
@@ -253,7 +264,7 @@ function ClassificationPanel({ rows, sampleId }: { rows: ClassificationRow[]; sa
   )
 }
 
-export function RnaAnalysisTab({ sampleId }: { sampleId: string }) {
+export function RnaAnalysisTab({ sampleId, header }: { sampleId: string; header?: ReactNode }) {
   const query = useRnaAnalysis(sampleId)
   if (query.isLoading || query.error) {
     return <AnalysisState isLoading={query.isLoading} error={query.error} empty="No RNA analysis result was ingested for this sample." />
@@ -261,8 +272,12 @@ export function RnaAnalysisTab({ sampleId }: { sampleId: string }) {
 
   const expressionRows = (query.data?.expression?.sample || []) as ExpressionRow[]
   const classificationRows = (query.data?.classification?.classifier_results || []) as ClassificationRow[]
-  const expressionPanel = expressionRows.length ? <ExpressionPanel rows={expressionRows} sampleId={sampleId} /> : null
-  const classificationPanel = classificationRows.length ? <ClassificationPanel rows={classificationRows} sampleId={sampleId} /> : null
+  const expressionPanel = expressionRows.length
+    ? <ExpressionPanel rows={expressionRows} sampleId={sampleId} header={header} />
+    : null
+  const classificationPanel = classificationRows.length
+    ? <ClassificationPanel rows={classificationRows} sampleId={sampleId} header={expressionRows.length ? undefined : header} />
+    : null
 
   if (!expressionPanel && !classificationPanel) {
     return <AnalysisState isLoading={false} error={null} empty="No expression or expression-based classification result was ingested for this sample." />

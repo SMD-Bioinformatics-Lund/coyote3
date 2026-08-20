@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link, useLocation } from "react-router-dom"
 import { api } from "@/lib/api"
@@ -25,6 +25,7 @@ import {
   CLINICAL_TABLE_STALE_MS,
   useClinicalTableState,
 } from "@/hooks/useClinicalTableState"
+import { AnalysisTableCard } from "./AnalysisTableCard"
 
 const cnvBulkActions = findingBulkActionOptions("cnv")
 
@@ -69,7 +70,7 @@ function artefactExportValue(cnv: any): string {
     .join(" | ")
 }
 
-export function CNVTab({ sampleId }: { sampleId: string }) {
+export function CNVTab({ sampleId, header }: { sampleId: string; header?: ReactNode }) {
   const bulkAction = useBulkFindingAction(sampleId, "cnv")
   const location = useLocation()
   const [profileRotation, setProfileRotation] = useState(0)
@@ -140,11 +141,11 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
         const otherGenesCount = genesList.length - primaryGenes.length
         return (
           <div className="leading-tight">
-            <div className="max-w-[120px] wrap-break-word font-bold text-primary" title={primaryGenes.join(', ')}>
+            <div className="max-w-[120px] wrap-break-word font-semibold text-primary" title={primaryGenes.join(', ')}>
               {primaryGenes.join(', ') || "-"}
             </div>
             {otherGenesCount > 0 && (
-              <div className="text-[11px] leading-tight text-muted-foreground">
+              <div className="type-table-value leading-tight text-muted-foreground">
                 + {otherGenesCount} other genes
               </div>
             )}
@@ -161,8 +162,8 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
         const region = `${cnv.chr}:${cnv.start}-${cnv.end}`
         return (
           <div className="flex flex-col gap-0.5 leading-tight">
-            <span className="text-xs bg-muted px-1.5 py-0.5 rounded w-max">{region}</span>
-            <span className="text-xs text-muted-foreground">{Math.abs(cnv.size).toLocaleString()} bp</span>
+            <span className="type-table-value w-max rounded bg-muted px-1.5 py-0.5">{region}</span>
+            <span className="type-table-value text-muted-foreground">{Math.abs(cnv.size).toLocaleString()} bp</span>
           </div>
         )
       }
@@ -185,10 +186,10 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
         const isGain = ratio > 0
         return (
           <div className="flex items-center gap-2 leading-tight">
-            <span className={`font-bold ${isGain ? "text-fail" : "text-tier3"}`}>
+            <span className={`type-table-value-emphasis ${isGain ? "text-fail" : "text-tier3"}`}>
               {copyNumber.toFixed(2)}
             </span>
-            <span className="text-[11px] text-muted-foreground">({ratio.toFixed(2)})</span>
+            <span className="type-table-value text-muted-foreground">({ratio.toFixed(2)})</span>
           </div>
         )
       }
@@ -200,14 +201,14 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
       enableSorting: false,
       cell: ({ row }) => {
         const adjusted = purityAdjustedCopyNumber(row.original, sample.purity)
-        return <span className="text-xs font-medium text-muted-foreground">{adjusted === null ? "-" : adjusted.toFixed(2)}</span>
+        return <span className="type-table-value text-muted-foreground">{adjusted === null ? "-" : adjusted.toFixed(2)}</span>
       }
     },
     {
       id: "sr",
       header: "SR (ref/alt)",
       accessorFn: (row) => structuralReadEvidence(row),
-      cell: ({ row }) => <span className="text-xs font-medium text-muted-foreground">{structuralReadEvidence(row.original)}</span>,
+      cell: ({ row }) => <span className="type-table-value text-muted-foreground">{structuralReadEvidence(row.original)}</span>,
     },
     {
       id: "status",
@@ -259,7 +260,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
   ]
 
   const tablePane = (
-    <div className="glass-card flex w-full min-w-0 flex-col overflow-hidden p-3">
+    <AnalysisTableCard header={header}>
           <DataTable
             columns={columns}
             data={cnvs}
@@ -291,11 +292,11 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
               />
             )}
           />
-    </div>
+    </AnalysisTableCard>
   )
 
   const profilePane = hasCnvImage ? (
-    <div className="glass-card flex w-full min-w-0 flex-col overflow-hidden">
+    <div className="glass-card flex h-full w-full min-w-0 flex-col overflow-hidden">
       <div className="flex items-center justify-between border-b border-border/50 bg-muted/50 p-3">
         <h4 className="flex items-center gap-2 text-sm font-semibold">
           <ImageIcon className="size-4" /> CNV Profile
@@ -314,7 +315,7 @@ export function CNVTab({ sampleId }: { sampleId: string }) {
           </Button>
         </div>
       </div>
-      <div className="flex min-h-72 flex-col bg-muted/10 p-3">
+      <div className="flex min-h-72 flex-1 flex-col bg-muted/10 p-3">
         <RotatableImage
           key={cnvProfileName}
           src={apiPath(`/samples/${sampleId}/plots/${cnvProfileName}`)}

@@ -27,6 +27,10 @@ The analysis page has three working areas:
 | Left navigation | Application navigation grouped into clinical, public, operational, and administrative areas. |
 | Right filter panel | Filters for the active analysis tab. It is collapsed until filter editing is needed. |
 
+The **Analysis layout** selector controls how finding tables are presented. **Classic**, the default, shows all enabled finding sections together; use the **Filters** button on a section to open the right panel with that section's controls. Select the same button again to collapse it, or select another section's button to switch the open panel. **Modern** opens one enabled analysis at a time in tabs. This preference is saved to the user account and is reused for both DNA and RNA samples.
+
+An informational banner offers **Modern** until the user selects it for the first time. After the user has tried it, the banner remains dismissed even when the user returns to Classic. The Samples worklist tracks its own layout and first-use banner independently.
+
 ---
 
 ## 3. Mastering Analytical Filters

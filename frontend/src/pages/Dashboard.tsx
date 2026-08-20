@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { Suspense, lazy } from "react"
 import { api } from "@/lib/api"
-import { Activity, AlertTriangle, ArrowRight, CheckCircle2, Clock, Users } from "lucide-react"
+import { Activity, AlertTriangle, ArrowRight, CheckCircle2, Clock, GitBranch, Users } from "lucide-react"
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -83,6 +83,7 @@ export function Dashboard() {
   const userScope = data?.user_scope_summary || {}
   const scopeStats = userScope.sample_stats || {}
   const recentSamples = (userScope.recent_samples || []).slice(0, 5)
+  const pipelineData = Array.isArray(scopeStats.pipelines) ? scopeStats.pipelines : []
 
   const geneChartData = buildPanelGeneChartData(geneGroups)
   const hasGeneChartData = geneChartData.some((item) => item.Covered > 0 || item.Germline > 0)
@@ -255,6 +256,44 @@ export function Dashboard() {
                 </div>
               </div>
             ))}
+            <div className="dashboard-subcard p-2.5">
+              <div className="mb-2 flex items-center gap-2">
+                <GitBranch className="h-4 w-4 text-primary" />
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pipelines</h3>
+              </div>
+              <div className="space-y-2">
+                {pipelineData.length ? pipelineData.slice(0, 6).map((item: any, index: number) => {
+                  const count = Number(item.count || 0)
+                  const analysed = Number(item.analysed || 0)
+                  const pipelineName = String(item.name || "unknown")
+                  const version = String(item.version || "").trim()
+                  return (
+                    <div key={`${pipelineName}:${version || "unversioned"}`} className="space-y-1">
+                      <div className="flex items-start justify-between gap-3 text-[11px]">
+                        <div className="min-w-0">
+                          <span className="block truncate font-medium text-foreground">{pipelineName}</span>
+                          <span className="block truncate text-[10px] text-muted-foreground">{version ? `Version ${version}` : "Version not recorded"}</span>
+                        </div>
+                        <span className="shrink-0 font-semibold text-foreground">{fmt(count)}</span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${count > 0 ? Math.min(100, (analysed / count) * 100) : 0}%`,
+                            background: chartColors[index % chartColors.length],
+                          }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{fmt(analysed)} of {fmt(count)} analysed</p>
+                    </div>
+                  )
+                }) : <p className="text-xs text-muted-foreground">No pipeline data available.</p>}
+                {pipelineData.length > 6 ? (
+                  <p className="text-[10px] text-muted-foreground">{pipelineData.length - 6} additional pipeline version(s)</p>
+                ) : null}
+              </div>
+            </div>
           </div>
         </SurfacePanel>
 

@@ -51,7 +51,7 @@ export function FusionEffectBadge({ effect }: { effect: unknown }) {
       description={fusionEffectDescription(value)}
       severity={severity}
       contextLabel="Caller-reported fusion effect"
-      className="h-auto min-h-5 max-w-full whitespace-normal text-left leading-tight"
+      className="h-auto max-w-full whitespace-normal text-left leading-tight"
     >
       {value}
     </InfoTooltipBadge>
@@ -102,7 +102,7 @@ function fusionEvidenceMetadata(value: string, metadata: FusionAnnotationMetadat
   }
 }
 
-/** Display selected-call evidence tags while preserving the complete raw description. */
+/** Display every selected-call evidence tag with its configured clinical context. */
 export function FusionEvidenceBadges({
   description,
   metadata = {},
@@ -113,10 +113,9 @@ export function FusionEvidenceBadges({
   const raw = String(description || "").trim()
   if (!raw) return <span className="text-muted-foreground">-</span>
   const values = raw.split(",").map((value) => value.trim()).filter(Boolean)
-  const visible = values.slice(0, 3)
   return (
     <div className="flex max-w-full flex-wrap gap-1" aria-label={`Fusion evidence: ${raw}`}>
-      {visible.map((value, index) => {
+      {values.map((value, index) => {
         const badgeMetadata = fusionEvidenceMetadata(value, metadata)
         return (
           <InfoTooltipBadge
@@ -130,16 +129,6 @@ export function FusionEvidenceBadges({
           </InfoTooltipBadge>
         )
       })}
-      {values.length > visible.length && (
-        <InfoTooltipBadge
-          label={`${values.length - visible.length} additional evidence tags`}
-          description={values.slice(visible.length).join(", ")}
-          severity="neutral"
-          contextLabel="Fusion evidence"
-        >
-          +{values.length - visible.length}
-        </InfoTooltipBadge>
-      )}
     </div>
   )
 }

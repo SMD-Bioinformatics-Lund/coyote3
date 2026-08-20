@@ -297,9 +297,18 @@ The sample document stores sample identity, paired/single-sample state, assay co
 
 ## 9. Sample UI
 
-The sample page is ASPC-aware. It should display only the analysis tabs enabled for that sample context.
+The sample page is ASPC-aware. It displays only analyses enabled for that sample context.
 
-Typical tabs include:
+The user can select one account-wide analysis layout:
+
+- **Classic** is the default and groups the enabled clinical finding tables on one Findings page.
+- **Modern** gives each enabled analysis a separate tab.
+
+The preference is stored as `users.ui_settings.analysis_layout` with the value `classic` or `modern`. It is not split by DNA and RNA. Coverage and reporting remain separate workflow tabs in both layouts. A first-use banner offers Modern until the user selects it once; `users.ui_settings.analysis_modern_view_tried` records that acknowledgement.
+
+The Samples worklist follows the same principle with an independent preference. `users.ui_settings.sample_list_layout` is `classic` by default and may be changed to `modern`. Classic displays live and reported samples together, while Modern focuses on one worklist at a time. `users.ui_settings.sample_list_modern_view_tried` keeps the first-use banner dismissed after Modern has been tried.
+
+Typical analysis areas include:
 
 - Overview
 - Small Variants

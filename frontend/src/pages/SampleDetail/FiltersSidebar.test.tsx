@@ -34,6 +34,7 @@ const sample = {
         snvlists: ["heme"],
       },
       cnv: { min_cnv_size: 5000, cnvlists: ["heme_cnv"], cnveffects: ["gain"] },
+      coverage: { warn_cov: 500, error_cov: 100 },
       translocation: { fusionlists: ["fusion_core"] },
       fusion: {
         min_spanning_pairs: 2,
@@ -118,8 +119,74 @@ describe("FiltersSidebar", () => {
 
   it("starts collapsed and exposes the active intent and table", () => {
     renderSidebar()
-    expect(screen.getByText("somatic snvs filters")).toBeVisible()
+    expect(screen.getByRole("button", { name: "Show somatic snvs filters" })).toBeVisible()
     expect(screen.queryByText("Small Variant Thresholds")).not.toBeInTheDocument()
+  })
+
+  it("keeps every available finding filter visible in the collapsed rail", async () => {
+    const user = userEvent.setup()
+    const onSelectSection = vi.fn()
+    renderSidebar({
+      availableSections: [
+        { id: "snvs", label: "Somatic SNVs" },
+        { id: "cnvs", label: "CNVs" },
+        { id: "translocations", label: "Translocations" },
+      ],
+      onSelectSection,
+    })
+
+    expect(screen.getByRole("button", { name: "Show Somatic SNVs filters" })).toBeVisible()
+    expect(screen.getByRole("button", { name: "Show CNVs filters" })).toBeVisible()
+    expect(screen.getByRole("button", { name: "Show Translocations filters" })).toBeVisible()
+
+    await user.click(screen.getByRole("button", { name: "Show CNVs filters" }))
+    expect(onSelectSection).toHaveBeenCalledWith("cnvs")
+  })
+
+  it("toggles repeated section requests and opens a newly selected section", () => {
+    const { rerender, queryClient } = renderSidebar()
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <FiltersSidebar
+          sampleId="CASE_001"
+          sample={sample}
+          context={context}
+          activeTab="snvs"
+          toggleRequest={{ sequence: 1, section: "snvs" }}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.getByText("Small Variant Thresholds")).toBeVisible()
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <FiltersSidebar
+          sampleId="CASE_001"
+          sample={sample}
+          context={context}
+          activeTab="snvs"
+          toggleRequest={{ sequence: 2, section: "snvs" }}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.queryByText("Small Variant Thresholds")).not.toBeInTheDocument()
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <FiltersSidebar
+          sampleId="CASE_001"
+          sample={sample}
+          context={context}
+          activeTab="cnvs"
+          toggleRequest={{ sequence: 3, section: "cnvs" }}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.getByText("CNV Thresholds")).toBeVisible()
   })
 
   it("shows somatic SNV controls, configured gene lists, and selected consequences", async () => {
@@ -141,6 +208,28 @@ describe("FiltersSidebar", () => {
 
     expect(screen.getByLabelText("Min depth")).toHaveValue(30)
     expect(screen.queryByLabelText("Max normal VAF")).not.toBeInTheDocument()
+  })
+
+  it("shows and persists Coverage warning and error thresholds", async () => {
+    const user = userEvent.setup()
+    renderSidebar({ activeTab: "coverage" })
+    await expand(user)
+
+    expect(screen.getByLabelText("Warning coverage")).toHaveValue(500)
+    expect(screen.getByLabelText("Error coverage")).toHaveValue(100)
+
+    const warning = screen.getByLabelText("Warning coverage")
+    await user.clear(warning)
+    await user.type(warning, "300")
+    await user.click(screen.getByRole("button", { name: "Apply" }))
+
+    await waitFor(() => expect(mocks.put).toHaveBeenCalledWith("/samples/CASE_001/filters", {
+      filters: expect.objectContaining({
+        somatic: expect.objectContaining({
+          coverage: { warn_cov: 300, error_cov: 100 },
+        }),
+      }),
+    }))
   })
 
   it("merges edited values into the active intent and refreshes sample queries", async () => {

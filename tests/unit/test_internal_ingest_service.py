@@ -313,6 +313,7 @@ def test_sample_meta_omits_unknown_ffpe_and_uses_contract_default():
     }
 
     validated = ingest.SamplesDoc.model_validate(payload).model_dump(exclude_none=True)
+    assert "pipeline_version" not in validated
     meta = ingest.build_sample_meta_dict(validated)
 
     assert meta["case"] == {"id": "RNA1"}

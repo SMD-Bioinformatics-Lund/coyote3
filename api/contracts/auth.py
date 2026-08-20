@@ -75,6 +75,21 @@ class ApiProfileUpdateResponse(ApiStatusResponse):
     user: dict
 
 
+class ApiUiSettingsUpdateRequest(BaseModel):
+    """Validated presentation preferences for the authenticated user."""
+
+    analysis_layout: str | None = Field(default=None, pattern="^(classic|modern)$")
+    sample_list_layout: str | None = Field(default=None, pattern="^(classic|modern)$")
+    analysis_modern_view_tried: bool | None = None
+    sample_list_modern_view_tried: bool | None = None
+
+
+class ApiUiSettingsUpdateResponse(ApiStatusResponse):
+    """Updated current-user presentation preferences."""
+
+    ui_settings: dict[str, str | bool]
+
+
 class ApiPasswordResetRequest(BaseModel):
     """Represent a password reset request payload."""
 

@@ -133,12 +133,13 @@ class SamplesDoc(_DocBase):
     read_mode: str | None = None
     read_technology: str | None = None
     pipeline: str
-    pipeline_version: str
+    pipeline_version: str | None = None
     files: dict[str, SampleFileDoc] = Field(default_factory=dict)
     analysis_intents: list[str] = Field(default_factory=lambda: ["somatic"])
     filters: SampleDnaFiltersDoc | SampleRnaFiltersDoc | None = None
     case: SampleCaseControlDoc = Field(default_factory=SampleCaseControlDoc)
     control: SampleCaseControlDoc | None = None
+    ingest_status: Literal["loading", "ready"] = "loading"
     reported: bool = False
     latest_report_id: Any | None = None
     latest_report_on: datetime | None = None
@@ -210,6 +211,16 @@ class SamplesDoc(_DocBase):
     def _normalize_database_versions(cls, value: Any) -> dict[str, str]:
         return normalize_database_versions(value)
 
+    @field_validator("pipeline_version", mode="before")
+    @classmethod
+    def _normalize_pipeline_version(cls, value: Any) -> str | None:
+        if value is None:
+            return None
+        text = str(value).strip()
+        if not text or text.lower().replace("_", " ").replace("-", " ") == "not provided":
+            return None
+        return text
+
     @field_validator("analysis_intents", mode="before")
     @classmethod
     def _normalize_analysis_intents(cls, value: Any) -> list[str]:
@@ -226,9 +237,7 @@ class SamplesDoc(_DocBase):
             raise ValueError("analysis_intents may contain only somatic and germline")
         return normalized
 
-    @field_validator(
-        "case_id", "control_id", "name", "asp_id", "pipeline", "pipeline_version", mode="before"
-    )
+    @field_validator("case_id", "control_id", "name", "asp_id", "pipeline", mode="before")
     @classmethod
     def _strip_strings(cls, value: Any) -> Any:
         if isinstance(value, str):

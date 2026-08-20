@@ -226,7 +226,7 @@ DNA fusion/translocation scope
 The usual flow from ingest to reporting is:
 
 1. **Ingest Verification**: input payloads are parsed and validated against backend contracts.
-2. **Atomic Ingestion**: The system stages the sample anchor as `loading`, persists dependent evidence documents, and only then marks the sample `ready`. On failure, the create flow rolls back staged evidence and removes the sample anchor; when Mongo transaction support is available, the same flow also runs inside a transaction boundary.
+2. **Atomic Ingestion**: The system stages the sample anchor as `loading`, persists dependent evidence documents, and only then marks the sample `ready`. These are the only valid persisted sample ingest states. On failure, the create flow rolls back staged evidence and removes the sample anchor; the failure is recorded in ingest operations and audit events rather than as a failed sample document. When Mongo transaction support is available, the same flow also runs inside a transaction boundary.
 3. **Data Assembly**: on read, the API combines sample evidence with the matching environment configuration.
 4. **Interpretation**: classifications, comments, and actions are written to the live annotation stores.
 5. **Report Finalization**: The system reads the joined interpretation context and persists an immutable report snapshot in `reported_variants`.

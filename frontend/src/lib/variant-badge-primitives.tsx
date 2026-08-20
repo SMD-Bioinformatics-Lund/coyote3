@@ -2,7 +2,11 @@
 
 import { useState, type FocusEvent, type MouseEvent, type ReactNode } from "react"
 import { TooltipSurface } from "@/components/ui/app-tooltip"
-import { InfoBadge } from "@/components/ui/table-badge"
+import {
+  clinicalBadgeClassName,
+  InfoBadge,
+  TableBadge,
+} from "@/components/ui/table-badge"
 import { cn } from "@/lib/utils"
 
 type TooltipPosition = { left: number; top: number }
@@ -15,6 +19,7 @@ export function VariantTooltipBadge({
   href,
   ariaLabel,
   textBadge = false,
+  textBadgeSize = "info",
   className,
   contextLabel = "Finding marker",
 }: {
@@ -25,6 +30,7 @@ export function VariantTooltipBadge({
   href?: string
   ariaLabel: string
   textBadge?: boolean
+  textBadgeSize?: "info" | "clinical"
   className?: string
   contextLabel?: string
 }) {
@@ -42,19 +48,20 @@ export function VariantTooltipBadge({
     onFocus: (event: FocusEvent<HTMLElement>) => setPosition(verticalTooltipPosition(event)),
     onBlur: () => setPosition(null),
   }
+  const TextBadge = textBadgeSize === "clinical" ? TableBadge : InfoBadge
   const content = textBadge ? (
-    <InfoBadge
+    <TextBadge
       as={href ? "a" : "span"}
       href={href}
       target={href ? "_blank" : undefined}
       rel={href ? "noreferrer" : undefined}
-      className={badgeClass}
+      className={cn(textBadgeSize === "clinical" && clinicalBadgeClassName, badgeClass)}
       aria-label={ariaLabel}
       tabIndex={0}
       {...handlers}
     >
       {children}
-    </InfoBadge>
+    </TextBadge>
   ) : (
     <span className={badgeClass} aria-label={ariaLabel} tabIndex={0} {...handlers}>
       {children}
