@@ -70,6 +70,16 @@ class SampleRepository(BaseRepository):
             name="asp_id_1_environment_1_time_added_-1",
             background=True,
         )
+        col.create_index(
+            [
+                ("ingest_status", 1),
+                ("omics_layer", 1),
+                ("asp_id", 1),
+                ("environment", 1),
+            ],
+            name="ingest_status_1_omics_layer_1_asp_id_1_environment_1",
+            background=True,
+        )
 
     def _query_samples(
         self,
@@ -264,6 +274,32 @@ class SampleRepository(BaseRepository):
             ]
         )
         return {str(row.get("_id")): int(row.get("count") or 0) for row in rows if row.get("_id")}
+
+    def get_gene_cohort_samples(
+        self,
+        *,
+        asp_ids: list[str] | None,
+        environments: list[str] | None,
+    ) -> list[dict[str, Any]]:
+        """Return ready samples with only fields needed for gene cohort denominators."""
+        query: dict[str, Any] = {"ingest_status": "ready", "omics_layer": "dna"}
+        if asp_ids is not None:
+            query["asp_id"] = {"$in": asp_ids}
+        if environments is not None:
+            query["environment"] = {"$in": environments}
+        projection = {
+            "name": 1,
+            "asp_id": 1,
+            "subpanel_id": 1,
+            "environment": 1,
+            "sex": 1,
+            "filters": 1,
+            "analysis_intents": 1,
+            "omics_layer": 1,
+            "reported": 1,
+            "latest_report_id": 1,
+        }
+        return list(self.get_collection().find(query, projection))
 
     def get_sample(self, sample_key: str) -> dict:
         """

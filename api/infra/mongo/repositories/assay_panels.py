@@ -441,6 +441,24 @@ class ASPRepository(BaseRepository):
             return [], []
         return doc.get("covered_genes", []), doc.get("germline_genes", [])
 
+    def get_asps_for_gene_scope(self, asp_ids: list[str] | None = None) -> dict[str, dict]:
+        """Return active ASP metadata required to determine whether a gene was profiled."""
+        query: dict = {"is_active": True}
+        if asp_ids is not None:
+            query["asp_id"] = {"$in": asp_ids}
+        projection = {
+            "asp_id": 1,
+            "display_name": 1,
+            "asp_group": 1,
+            "asp_category": 1,
+            "covered_genes": 1,
+        }
+        return {
+            str(doc["asp_id"]): doc
+            for doc in self.get_collection().find(query, projection)
+            if doc.get("asp_id")
+        }
+
     def get_asp_group_mappings(self) -> dict:
         """
         Retrieves a dictionary mapping assay IDs to their respective assay groups.

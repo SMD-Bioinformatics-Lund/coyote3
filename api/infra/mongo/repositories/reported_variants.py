@@ -412,6 +412,93 @@ class ReportedVariantsRepository(BaseRepository):
             name="ix_assay_tier",
             background=True,
         )
+        col.create_index(
+            [
+                ("gene", ASCENDING),
+                ("report_oid", ASCENDING),
+                ("tier", ASCENDING),
+                ("assay", ASCENDING),
+            ],
+            name="ix_gene_report_tier_assay",
+            background=True,
+        )
+        col.create_index(
+            [
+                ("gene", ASCENDING),
+                ("sample_oid", ASCENDING),
+                ("tier", ASCENDING),
+                ("assay", ASCENDING),
+            ],
+            name="ix_gene_sample_tier_assay",
+            background=True,
+        )
+        col.create_index(
+            [
+                ("gene", ASCENDING),
+                ("sample_name", ASCENDING),
+                ("tier", ASCENDING),
+                ("assay", ASCENDING),
+            ],
+            name="ix_gene_sample_name_tier_assay",
+            background=True,
+        )
+
+    def get_gene_cohort_findings(
+        self,
+        *,
+        gene: str,
+        asp_ids: list[str] | None,
+        report_oids: list[Any] | None = None,
+        sample_oids: list[Any] | None = None,
+        sample_names: list[str] | None = None,
+        limit: int = 10_000,
+    ) -> list[dict[str, Any]]:
+        """Return bounded report snapshots for exact reports or profiled samples."""
+        query: dict[str, Any] = {
+            "gene": gene,
+            "tier": {"$in": [1, 2, 3, 4]},
+        }
+        if report_oids is not None:
+            if not report_oids:
+                return []
+            query["report_oid"] = {"$in": report_oids}
+        else:
+            sample_scope = []
+            if sample_oids:
+                sample_scope.append({"sample_oid": {"$in": sample_oids}})
+            if sample_names:
+                sample_scope.append({"sample_name": {"$in": sample_names}})
+            if not sample_scope:
+                return []
+            query["$or"] = sample_scope
+        if asp_ids is not None:
+            query["assay"] = {"$in": asp_ids}
+        projection = {
+            "sample_name": 1,
+            "sample_oid": 1,
+            "report_id": 1,
+            "report_oid": 1,
+            "report_num": 1,
+            "assay": 1,
+            "assay_group": 1,
+            "subpanel": 1,
+            "analysis_type": 1,
+            "tier": 1,
+            "gene": 1,
+            "variant": 1,
+            "hgvsp": 1,
+            "hgvsc": 1,
+            "simple_id": 1,
+            "simple_id_hash": 1,
+            "created_on": 1,
+            "time_created": 1,
+        }
+        return list(
+            self.get_collection()
+            .find(query, projection)
+            .sort([("created_on", DESCENDING), ("time_created", DESCENDING)])
+            .limit(limit)
+        )
 
     def get_dashboard_tier_stats(self) -> dict:
         """

@@ -31,6 +31,7 @@ const PublicCatalog = lazy(() => import("./pages/PublicCatalog").then((module) =
 const PublicCatalogMatrix = lazy(() => import("./pages/PublicCatalog").then((module) => ({ default: module.PublicCatalogMatrix })))
 const TieredVariantContext = lazy(() => import("./pages/TieredVariantContext").then((module) => ({ default: module.TieredVariantContext })))
 const TieredVariantSearch = lazy(() => import("./pages/TieredVariantSearch").then((module) => ({ default: module.TieredVariantSearch })))
+const GeneCohortExplorer = lazy(() => import("./pages/GeneCohortExplorer").then((module) => ({ default: module.GeneCohortExplorer })))
 const Profile = lazy(() => import("./pages/Profile").then((module) => ({ default: module.Profile })))
 const ContactPage = lazy(() => import("./pages/StaticPages").then((module) => ({ default: module.ContactPage })))
 const AboutPage = lazy(() => import("./pages/StaticPages").then((module) => ({ default: module.AboutPage })))
@@ -116,6 +117,7 @@ export default function App() {
             <Route path="/samples/:id/reports/:reportId" element={withModule(<SavedReportPage />, "reports")} />
             <Route path="/variants" element={withModule(<TieredVariantSearch />, "variant_search")} />
             <Route path="/variants/search" element={withModule(<TieredVariantSearch />, "variant_search")} />
+            <Route path="/variants/gene-cohort" element={withModule(<GeneCohortExplorer />, "variant_search")} />
             <Route path="/variants/reported/:variantId/:tier" element={withModule(<TieredVariantContext />, "variant_search")} />
             <Route path="/reports" element={withModule(<ReportsPage />, "reports")} />
             <Route path="/notifications" element={withRouteLoader(<NotificationHistoryPage />)} />

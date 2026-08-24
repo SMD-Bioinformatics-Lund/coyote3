@@ -204,7 +204,7 @@ describe("variant UI semantics", () => {
     expect(screen.getByText("treated as out-of-frame", { exact: false })).toBeInTheDocument()
   })
 
-  it("renders bounded fusion evidence badges while retaining all raw tags", () => {
+  it("renders every fusion evidence tag with its configured semantic color", () => {
     render(
       <FusionEvidenceBadges
         description="oncogene,cancer,t1,reciprocal,m7"
@@ -212,9 +212,11 @@ describe("variant UI semantics", () => {
       />,
     )
     expect(screen.getByText("oncogene")).toBeInTheDocument()
-    expect(screen.getByText("+2")).toBeInTheDocument()
-    fireEvent.focus(screen.getByText("+2"))
-    expect(screen.getByText("reciprocal, m7")).toBeInTheDocument()
+    expect(screen.getByText("cancer")).toBeInTheDocument()
+    expect(screen.getByText("t1")).toBeInTheDocument()
+    expect(screen.getByText("reciprocal")).toBeInTheDocument()
+    expect(screen.getByText("m7")).toBeInTheDocument()
+    expect(screen.queryByText("+2")).not.toBeInTheDocument()
   })
 
   it("uses VEP translations for consequence display and tooltip content", () => {

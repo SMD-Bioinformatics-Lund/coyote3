@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query
 
 from api.app.container import util
@@ -9,6 +11,7 @@ from api.app.deps.services import get_common_query_service
 from api.app.runtime_state import app as runtime_app
 from api.application.common.query_service import CommonQueryService
 from api.contracts.common import (
+    CommonGeneCohortPayload,
     CommonGeneInfoPayload,
     CommonTieredVariantContextPayload,
     CommonTieredVariantSearchPayload,
@@ -69,6 +72,36 @@ def common_gene_info_read(
 ):
     """Return metadata for a gene identifier or HGNC symbol."""
     return util.common.convert_to_serializable(service.gene_info_payload(gene_id))
+
+
+@router.get(
+    "/api/v1/common/gene/{gene_id}/cohort-summary",
+    response_model=CommonGeneCohortPayload,
+    summary="Get access-scoped cohort statistics for a tiered gene",
+)
+def common_gene_cohort_read(
+    gene_id: str,
+    include_history: Annotated[
+        bool,
+        Query(
+            description=(
+                "Include mutations from all saved report versions. Repeated occurrences of "
+                "the same mutation in the same sample are counted once."
+            )
+        ),
+    ] = False,
+    user: ApiUser = Depends(require_access(permission="gene.annotation:view")),
+    service: CommonQueryService = Depends(get_common_query_service),
+):
+    """Return prevalence and recurrent mutations for samples visible to the user."""
+    return util.common.convert_to_serializable(
+        service.gene_cohort_payload(
+            gene_id=gene_id,
+            visible_asp_ids=None if user.is_superuser else list(user.asp_ids),
+            visible_environments=None if user.is_superuser else list(user.envs),
+            include_history=include_history,
+        )
+    )
 
 
 @router.get(

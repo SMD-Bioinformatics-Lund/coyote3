@@ -35,6 +35,84 @@ class CommonTieredVariantSearchPayload(BaseModel):
     assay_choices: list[str]
 
 
+class GeneCohortBreakdown(BaseModel):
+    """Represent a prevalence numerator and denominator."""
+
+    profiled_samples: int
+    finding_samples: int
+    prevalence_percent: float | None = None
+
+
+class GeneCohortSummary(GeneCohortBreakdown):
+    """Represent top-level gene cohort counts."""
+
+    reported_observations: int
+    unique_variants: int
+
+
+class GeneCohortDenominator(BaseModel):
+    """Describe how the profiled-sample denominator was derived."""
+
+    method: str
+    report_scope: str
+    ready_samples_considered: int
+    samples_excluded_outside_gene_scope: int
+    unrestricted_asp_scope_counts_as_profiled: bool
+    duplicate_report_observations_removed: int = 0
+
+
+class GeneCohortAssay(GeneCohortBreakdown):
+    """Represent prevalence within one assay panel."""
+
+    asp_id: str
+    display_name: str
+    asp_group: str | None = None
+
+
+class GeneCohortSex(GeneCohortBreakdown):
+    """Represent prevalence within one sample-level sex group."""
+
+    sex: str
+
+
+class GeneCohortMutation(BaseModel):
+    """Represent one recurrent reported mutation identity."""
+
+    identity: str
+    hgvsp: str | None = None
+    hgvsc: str | None = None
+    sample_count: int
+    observation_count: int
+    tiers: list[int]
+
+
+class GeneCohortSample(BaseModel):
+    """Represent a sample contributing a reported gene finding."""
+
+    sample_name: str
+    asp_id: str | None = None
+    subpanel_id: str | None = None
+    environment: str | None = None
+    sex: str | None = None
+    tiers: list[int]
+    variants: list[str]
+
+
+class CommonGeneCohortPayload(BaseModel):
+    """Represent access-scoped cohort statistics for one gene."""
+
+    query: dict[str, Any]
+    gene: dict[str, Any] | None = None
+    summary: GeneCohortSummary
+    denominator: GeneCohortDenominator
+    tier_counts: dict[str, int]
+    assays: list[GeneCohortAssay]
+    sex_distribution: list[GeneCohortSex]
+    recurrent_variants: list[GeneCohortMutation]
+    samples: list[GeneCohortSample]
+    truncated: bool = False
+
+
 class KnowledgebaseGenePayload(BaseModel):
     """Represent aggregated gene-level knowledgebase context."""
 

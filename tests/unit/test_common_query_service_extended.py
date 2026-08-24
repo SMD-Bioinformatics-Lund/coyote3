@@ -122,6 +122,7 @@ def _service(**overrides) -> CommonQueryService:
                 else None
             )
         ),
+        "gene_list_repository": SimpleNamespace(get_isgl_by_ids=lambda ids: {}),
     }
     values.update(overrides)
     return CommonQueryService(**values)
@@ -136,6 +137,7 @@ def test_from_store_copies_required_and_optional_repositories() -> None:
         assay_panel_repository=object(),
         annotation_repository=object(),
         sample_repository=object(),
+        gene_list_repository=object(),
         bam_record_repository=object(),
     )
     service = CommonQueryService.from_store(store)
@@ -314,3 +316,242 @@ def test_tiered_search_without_search_uses_all_assays_and_skips_stats() -> None:
     assert service.annotation_repository.stats_calls == []
     assert service.annotation_repository.search["asp_ids"] is None
     assert "text" not in result["docs"][-1]
+
+
+def test_gene_cohort_uses_effective_scope_latest_report_and_visible_samples() -> None:
+    samples = [
+        {
+            "name": "S1",
+            "asp_id": "panel_a",
+            "environment": "production",
+            "omics_layer": "dna",
+            "analysis_intents": ["somatic"],
+            "sex": "female",
+            "latest_report_id": "new-oid",
+            "filters": {"somatic": {"snv": {"snvlists": ["focused"]}}},
+        },
+        {
+            "name": "S2",
+            "asp_id": "panel_a",
+            "environment": "production",
+            "omics_layer": "dna",
+            "analysis_intents": ["somatic"],
+            "sex": "male",
+            "filters": {"somatic": {"snv": {"snvlists": []}}},
+        },
+        {
+            "name": "S3",
+            "asp_id": "genome",
+            "environment": "production",
+            "omics_layer": "dna",
+            "analysis_intents": ["somatic"],
+            "latest_report_id": "r3-oid",
+            "filters": {},
+        },
+        {
+            "name": "RNA1",
+            "asp_id": "rna_panel",
+            "environment": "production",
+            "omics_layer": "rna",
+            "filters": {},
+        },
+    ]
+    findings = [
+        {
+            "sample_name": "S1",
+            "report_id": "new",
+            "report_oid": "new-oid",
+            "report_num": 2,
+            "created_on": "2026-02-01",
+            "gene": "TP53",
+            "tier": 2,
+            "hgvsp": "p.Arg175His",
+            "simple_id": "17_2_G_A",
+        },
+        {
+            "sample_name": "S3",
+            "report_id": "r3",
+            "report_oid": "r3-oid",
+            "report_num": 1,
+            "created_on": "2026-03-01",
+            "gene": "TP53",
+            "tier": 2,
+            "hgvsp": "p.Arg175His",
+            "simple_id": "17_2_G_A",
+        },
+    ]
+    service = _service(
+        sample_repository=SimpleNamespace(get_gene_cohort_samples=lambda **kwargs: samples),
+        assay_panel_repository=SimpleNamespace(
+            get_asps_for_gene_scope=lambda asp_ids: {
+                "panel_a": {
+                    "asp_id": "panel_a",
+                    "display_name": "Panel A",
+                    "asp_group": "solid",
+                    "covered_genes": ["TP53", "KRAS"],
+                },
+                "genome": {
+                    "asp_id": "genome",
+                    "display_name": "Genome",
+                    "asp_group": "tumwgs",
+                    "covered_genes": [],
+                },
+            }
+        ),
+        gene_list_repository=SimpleNamespace(
+            get_isgl_by_ids=lambda ids: {
+                "focused": {
+                    "is_active": True,
+                    "list_type": ["snv"],
+                    "genes": ["TP53"],
+                }
+            }
+        ),
+        reported_variant_repository=SimpleNamespace(
+            get_gene_cohort_findings=lambda **kwargs: [
+                row for row in findings if row.get("report_oid") in kwargs["report_oids"]
+            ]
+        ),
+    )
+
+    result = service.gene_cohort_payload(
+        gene_id="TP53",
+        visible_asp_ids=["panel_a", "genome"],
+        visible_environments=["production"],
+    )
+
+    assert result["summary"] == {
+        "profiled_samples": 3,
+        "finding_samples": 2,
+        "prevalence_percent": 66.67,
+        "reported_observations": 2,
+        "unique_variants": 1,
+    }
+    assert result["tier_counts"] == {"1": 0, "2": 2, "3": 0, "4": 0}
+    assert result["recurrent_variants"][0]["sample_count"] == 2
+    assert result["recurrent_variants"][0]["hgvsp"] == "p.Arg175His"
+    assert {row["sex"] for row in result["sex_distribution"]} == {
+        "female",
+        "male",
+        "not_recorded",
+    }
+    assert result["denominator"]["samples_excluded_outside_gene_scope"] == 1
+    assert result["denominator"]["report_scope"] == "latest"
+    assert result["denominator"]["duplicate_report_observations_removed"] == 0
+
+
+def test_gene_cohort_history_counts_each_sample_mutation_once() -> None:
+    sample = {
+        "_id": "sample-1",
+        "name": "S1",
+        "asp_id": "panel",
+        "environment": "production",
+        "omics_layer": "dna",
+        "analysis_intents": ["somatic"],
+        "filters": {"somatic": {"snv": {"snvlists": []}}},
+        "latest_report_id": "latest-report",
+    }
+    findings = [
+        {
+            "sample_oid": "sample-1",
+            "sample_name": "S1",
+            "report_oid": "new-report",
+            "gene": "TP53",
+            "tier": 2,
+            "hgvsp": "p.Arg175His",
+            "simple_id": "17_2_G_A",
+            "created_on": "2026-03-01",
+        },
+        {
+            "sample_oid": "sample-1",
+            "sample_name": "S1",
+            "report_oid": "old-report",
+            "gene": "TP53",
+            "tier": 1,
+            "hgvsp": "p.Arg175His",
+            "simple_id": "17_2_G_A",
+            "created_on": "2026-02-01",
+        },
+        {
+            "sample_oid": "sample-1",
+            "sample_name": "S1",
+            "report_oid": "old-report",
+            "gene": "TP53",
+            "tier": 3,
+            "hgvsp": "p.Arg248Gln",
+            "simple_id": "17_3_C_T",
+            "created_on": "2026-02-01",
+        },
+    ]
+    captured = {}
+
+    def historical_findings(**kwargs):
+        captured.update(kwargs)
+        return findings
+
+    service = _service(
+        sample_repository=SimpleNamespace(get_gene_cohort_samples=lambda **kwargs: [sample]),
+        assay_panel_repository=SimpleNamespace(
+            get_asps_for_gene_scope=lambda asp_ids: {
+                "panel": {
+                    "asp_id": "panel",
+                    "display_name": "Panel",
+                    "asp_group": "solid",
+                    "covered_genes": ["TP53"],
+                }
+            }
+        ),
+        gene_list_repository=SimpleNamespace(get_isgl_by_ids=lambda ids: {}),
+        reported_variant_repository=SimpleNamespace(get_gene_cohort_findings=historical_findings),
+    )
+
+    result = service.gene_cohort_payload(
+        gene_id="TP53",
+        visible_asp_ids=None,
+        visible_environments=None,
+        include_history=True,
+    )
+
+    assert captured["report_oids"] is None
+    assert captured["sample_oids"] == ["sample-1"]
+    assert captured["sample_names"] == ["S1"]
+    assert result["summary"] == {
+        "profiled_samples": 1,
+        "finding_samples": 1,
+        "prevalence_percent": 100.0,
+        "reported_observations": 2,
+        "unique_variants": 2,
+    }
+    assert result["tier_counts"] == {"1": 0, "2": 1, "3": 1, "4": 0}
+    assert result["denominator"]["report_scope"] == "historical"
+    assert result["denominator"]["duplicate_report_observations_removed"] == 1
+
+
+def test_gene_cohort_excludes_selected_list_without_gene() -> None:
+    sample = {
+        "name": "S1",
+        "asp_id": "panel",
+        "environment": "production",
+        "omics_layer": "dna",
+        "analysis_intents": ["somatic"],
+        "filters": {"somatic": {"snv": {"snvlists": ["other"]}}},
+    }
+    service = _service(
+        sample_repository=SimpleNamespace(get_gene_cohort_samples=lambda **kwargs: [sample]),
+        assay_panel_repository=SimpleNamespace(
+            get_asps_for_gene_scope=lambda asp_ids: {
+                "panel": {"asp_id": "panel", "covered_genes": ["TP53", "KRAS"]}
+            }
+        ),
+        gene_list_repository=SimpleNamespace(
+            get_isgl_by_ids=lambda ids: {
+                "other": {"is_active": True, "list_type": ["snv"], "genes": ["KRAS"]}
+            }
+        ),
+        reported_variant_repository=SimpleNamespace(get_gene_cohort_findings=lambda **kwargs: []),
+    )
+    result = service.gene_cohort_payload(
+        gene_id="TP53", visible_asp_ids=None, visible_environments=None
+    )
+    assert result["summary"]["profiled_samples"] == 0
+    assert result["denominator"]["samples_excluded_outside_gene_scope"] == 1

@@ -118,6 +118,13 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     dataUsed: ["tiered variant rows", "sample and variant references"],
   },
   {
+    path: "/variants/gene-cohort",
+    page: "GeneCohortExplorer",
+    area: "clinical",
+    api: ["GET /common/gene/:gene/cohort-summary"],
+    dataUsed: ["profiled sample denominator", "latest reported gene findings", "assay prevalence", "sex distribution", "recurrent mutations"],
+  },
+  {
     path: "/variants",
     page: "TieredVariantSearch",
     area: "clinical",

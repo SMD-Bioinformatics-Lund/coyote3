@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react"
 import { Outlet, Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { useIsFetching, useQuery } from "@tanstack/react-query"
 import { ThemeToggle } from "./theme-toggle"
-import { ArrowUp, Bell, BookOpen, Bug, FileQuestion, LayoutDashboard, Dna, Database, FileText, LifeBuoy, Settings, User, ChevronDown, LogOut, Search, PanelLeftClose, PanelRightClose, Lightbulb } from "lucide-react"
+import { ArrowUp, BarChart3, Bell, BookOpen, Bug, FileQuestion, LayoutDashboard, Dna, Database, FileText, LifeBuoy, Settings, User, ChevronDown, LogOut, Search, PanelLeftClose, PanelRightClose, Lightbulb } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
@@ -153,6 +153,7 @@ export function Layout() {
           { name: "Home", href: "/", icon: LayoutDashboard },
           { name: "Samples", href: "/samples", icon: Dna },
           ...(moduleIsEnabled(modules, "variant_search") ? [{ name: "Variant Search", href: "/variants/search", icon: Search }] : []),
+          ...(moduleIsEnabled(modules, "variant_search") ? [{ name: "Gene Cohorts", href: "/variants/gene-cohort", icon: BarChart3 }] : []),
           ...(moduleIsEnabled(modules, "reports") ? [{ name: "Reports", href: "/reports", icon: FileText }] : []),
         ],
       },

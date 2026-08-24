@@ -512,6 +512,70 @@ This page searches reported tiered variant annotations across samples.
 | Annotation | Stored annotation text, merged with class context when applicable. |
 | Samples | Samples and report links where this reported variant appears. |
 
+## Gene Cohort Explorer
+
+Route: `/variants/gene-cohort`
+
+The Gene Cohort Explorer provides a gene-centered summary across samples the
+current user is permitted to access. It complements the tiered variant search;
+it does not replace or change the existing result table.
+
+| Area | Information shown |
+| --- | --- |
+| Gene identity | Resolved HGNC symbol and HGNC identifier. Previous symbols and aliases resolve to the approved symbol. |
+| Include historical reports | Changes the numerator from the latest report to all saved report versions. Repeated occurrences of the same mutation in the same sample are counted once. |
+| Profiled samples | Ready DNA samples in which the gene was eligible for SNV review. |
+| Finding prevalence | Samples whose reports in the selected latest or historical scope contain a tiered mutation in the gene, divided by profiled samples. |
+| Cohort visual summary | Exportable plots for assay prevalence, tier composition, sex-stratified prevalence, and the ten most recurrent mutations. |
+| Assay prevalence | The same numerator and denominator grouped by ASP. |
+| Tier distribution | Tier I-IV observations from the selected report scope after sample-mutation deduplication. |
+| Sex distribution | Prevalence grouped by the sample-level `sex` value. Missing values remain visible as **Not recorded**. |
+| Recurrent mutations | Distinct genomic or HGVS mutation identities ordered by affected sample count. |
+| Samples | Linked sample workspaces, assay context, sex, tiers, and reported mutation labels. |
+
+Each cohort plot can be downloaded as PNG or SVG for presentation and review,
+or as CSV for independent inspection of the plotted values. Export filenames
+contain the normalized gene symbol and either `latest_reports` or
+`historical_reports`, matching the selected report scope. The plots provide a
+fast visual summary; the tables below them remain the detailed evidence view.
+
+### Profiled-sample denominator
+
+The denominator is derived per sample. A selected SNV ISGL defines the gene
+scope when one is applied. Otherwise, the active ASP `covered_genes` list is
+used. An ASP with an empty covered-gene scope is treated as unrestricted, as in
+a genome-wide analysis. RNA samples and samples outside the user's assay or
+environment access are excluded.
+
+The numerator uses only `reported_variants` rows linked to the
+`latest_report_id` stored on each sample. An older report cannot increase the
+count when the mutation is absent from the current report. A profiled sample
+without a saved report remains in the denominator and contributes nothing to
+the numerator.
+
+Selecting **Include historical reports** queries all saved report versions for
+the same eligible and access-controlled sample cohort. A mutation reported in
+several versions of one sample report contributes one observation, not one
+observation per report. Mutation identity uses the stored genomic `simple_id`
+when available and then HGVS identity. The newest occurrence supplies the tier
+shown in tier and sample summaries. A mutation removed from the latest report
+therefore appears only in the historical view. The profiled-sample denominator
+does not change when report history is enabled.
+
+The request uses one projected sample query followed by set-based ASP, ISGL,
+and reported-finding queries. Compound indexes cover the ready DNA sample scope
+and the gene/report/tier lookup, so the service does not issue one query per
+sample. Reported observations and returned sample details are bounded. The page
+shows a truncation warning if either response limit is reached; figures from a
+truncated result must not be used as complete cohort statistics.
+
+!!! important "Clinical interpretation"
+
+    This value is an application cohort prevalence, not population incidence.
+    It depends on access scope, available samples, applied gene lists, assay
+    coverage, and saved clinical reports. Compare assay and sex groups only when
+    their sample counts and selection context are suitable for that comparison.
+
 ## Reports Page And Saved Reports
 
 Routes:

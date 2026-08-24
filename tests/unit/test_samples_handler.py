@@ -55,6 +55,75 @@ def test_get_samples_returns_only_ready_docs() -> None:
     assert [row["name"] for row in rows] == ["ready-live"]
 
 
+def test_get_samples_does_not_restrict_the_omics_layer() -> None:
+    handler = _handler_with_docs(
+        {
+            "name": "ready-dna",
+            "environment": "production",
+            "ingest_status": "ready",
+            "reported": False,
+            "omics_layer": "dna",
+        },
+        {
+            "name": "ready-rna",
+            "environment": "production",
+            "ingest_status": "ready",
+            "reported": False,
+            "omics_layer": "rna",
+        },
+    )
+
+    rows = handler.get_samples(
+        user_assays=None,
+        user_envs=["production"],
+        report=False,
+        use_cache=False,
+    )
+
+    assert {row["name"] for row in rows} == {"ready-dna", "ready-rna"}
+
+
+def test_gene_cohort_samples_are_ready_dna_samples_in_user_scope() -> None:
+    handler = _handler_with_docs(
+        {
+            "name": "eligible-dna",
+            "asp_id": "solid_gmsv3",
+            "environment": "production",
+            "ingest_status": "ready",
+            "omics_layer": "dna",
+            "latest_report_id": "report-1",
+        },
+        {
+            "name": "other-environment",
+            "asp_id": "solid_gmsv3",
+            "environment": "testing",
+            "ingest_status": "ready",
+            "omics_layer": "dna",
+        },
+        {
+            "name": "rna-sample",
+            "asp_id": "solid_gmsv3",
+            "environment": "production",
+            "ingest_status": "ready",
+            "omics_layer": "rna",
+        },
+        {
+            "name": "loading-dna",
+            "asp_id": "solid_gmsv3",
+            "environment": "production",
+            "ingest_status": "loading",
+            "omics_layer": "dna",
+        },
+    )
+
+    rows = handler.get_gene_cohort_samples(
+        asp_ids=["solid_gmsv3"],
+        environments=["production"],
+    )
+
+    assert [row["name"] for row in rows] == ["eligible-dna"]
+
+
 def test_get_samples_filters_by_added_utc_range() -> None:
     boundary = datetime(2026, 8, 19, 0, 0, tzinfo=timezone.utc)
     handler = _handler_with_docs(

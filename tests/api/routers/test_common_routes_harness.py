@@ -32,6 +32,7 @@ def test_common_gene_info_read_numeric_path_with_fake_store(monkeypatch):
         assay_panel_repository=SimpleNamespace(),
         annotation_repository=SimpleNamespace(),
         sample_repository=SimpleNamespace(),
+        gene_list_repository=SimpleNamespace(get_isgl_by_ids=lambda ids: {}),
     )
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
@@ -57,6 +58,7 @@ def test_common_gene_info_read_resolves_previous_symbol(monkeypatch):
         assay_panel_repository=SimpleNamespace(),
         annotation_repository=SimpleNamespace(),
         sample_repository=SimpleNamespace(),
+        gene_list_repository=SimpleNamespace(get_isgl_by_ids=lambda ids: {}),
     )
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
 
@@ -94,6 +96,7 @@ def test_common_tiered_variant_context_read_with_fake_store(monkeypatch):
         assay_panel_repository=SimpleNamespace(),
         annotation_repository=SimpleNamespace(),
         sample_repository=SimpleNamespace(),
+        gene_list_repository=SimpleNamespace(get_isgl_by_ids=lambda ids: {}),
     )
     monkeypatch.setattr(
         "api.application.common.query_service.enrich_reported_variant_docs", lambda docs, **_: docs

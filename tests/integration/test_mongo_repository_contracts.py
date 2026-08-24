@@ -89,7 +89,9 @@ def test_sample_repository_indexes_pagination_sorting_and_literal_search() -> No
 
     assert [row["name"] for row in page] == ["CASE[1]"]
     assert [row["name"] for row in literal] == ["CASE[1]"]
-    assert "name_1" in adapter.samples_collection.index_information()
+    indexes = adapter.samples_collection.index_information()
+    assert "name_1" in indexes
+    assert "ingest_status_1_omics_layer_1_asp_id_1_environment_1" in indexes
 
 
 def test_sample_repository_update_and_missing_document_semantics(monkeypatch) -> None:

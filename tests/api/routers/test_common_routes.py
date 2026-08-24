@@ -39,6 +39,7 @@ def _knowledgebase_service() -> common.CommonQueryService:
         assay_panel_repository=SimpleNamespace(get_all_asp_groups=lambda: []),
         annotation_repository=SimpleNamespace(),
         sample_repository=SimpleNamespace(),
+        gene_list_repository=SimpleNamespace(get_isgl_by_ids=lambda ids: {}),
         oncokb_public_cache_repository=SimpleNamespace(
             get_gene_record=lambda gene: {"gene": gene, "public_api": True}
         ),
@@ -76,6 +77,68 @@ def test_common_gene_info_read_by_symbol(monkeypatch):
 
     payload = common.common_gene_info_read("TP53", service=service)
     assert payload["gene"]["symbol"] == "TP53"
+
+
+def test_common_gene_cohort_read_applies_user_scope(monkeypatch):
+    captured = {}
+    service = SimpleNamespace(
+        gene_cohort_payload=lambda **kwargs: (
+            captured.update(kwargs)
+            or {
+                "query": {},
+                "gene": None,
+                "summary": {},
+                "denominator": {},
+                "tier_counts": {},
+                "assays": [],
+                "sex_distribution": [],
+                "recurrent_variants": [],
+                "samples": [],
+                "truncated": False,
+            }
+        )
+    )
+    monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
+    user = fx.api_user()
+    user.roles = ["user"]
+    user.role = "user"
+    user.asp_ids = ["solid_gmsv3"]
+    user.envs = ["production"]
+    common.common_gene_cohort_read("TP53", user=user, service=service)
+    assert captured == {
+        "gene_id": "TP53",
+        "visible_asp_ids": ["solid_gmsv3"],
+        "visible_environments": ["production"],
+        "include_history": False,
+    }
+
+
+def test_common_gene_cohort_read_can_include_report_history(monkeypatch):
+    captured = {}
+    service = SimpleNamespace(
+        gene_cohort_payload=lambda **kwargs: (
+            captured.update(kwargs)
+            or {
+                "query": {},
+                "gene": None,
+                "summary": {},
+                "denominator": {},
+                "tier_counts": {},
+                "assays": [],
+                "sex_distribution": [],
+                "recurrent_variants": [],
+                "samples": [],
+                "truncated": False,
+            }
+        )
+    )
+    monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
+
+    common.common_gene_cohort_read(
+        "TP53", include_history=True, user=fx.api_user(), service=service
+    )
+
+    assert captured["include_history"] is True
 
 
 def test_knowledgebase_gene_read_returns_external_sources(monkeypatch):

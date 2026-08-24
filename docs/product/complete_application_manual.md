@@ -557,6 +557,22 @@ Variant search uses annotation and reported-finding data to locate relevant vari
 
 Search output should include gene, variant/HGVS, class/tier, merged class text where available, assay-wise counts, sample/report links, and compact evidence text.
 
+The separate **Gene Cohort Explorer** summarizes one gene across the current
+user's accessible ready DNA samples. It reports assay-specific prevalence, tier
+distribution, sex distribution when sample sex is available, recurrent
+mutations, and linked sample evidence. Its denominator follows the effective
+SNV gene scope: selected SNV ISGLs first, then ASP covered genes, with an empty
+ASP scope treated as unrestricted. Findings come only from each sample's latest
+saved report snapshot by default. Reviewers can include all historical report
+versions; repeated occurrences of the same mutation in the same sample are then
+counted once, using the newest occurrence for tier summaries. This makes both
+views reproducible without presenting either as population incidence.
+The page presents assay prevalence, tier composition, sex-stratified
+prevalence, and recurrent mutations as plots before the detailed evidence
+tables. Every plot supports PNG and SVG export, while CSV export contains the
+exact values used to draw it. Plot exports follow the selected latest-report or
+historical-report scope.
+
 Knowledgebase markers are rendered in compact row-status badges, not as extra
 wide table columns and not beside the gene text in dense variant tables. OncoKB
 uses `OKB` for public cancer-gene membership and `Rx` for historical local

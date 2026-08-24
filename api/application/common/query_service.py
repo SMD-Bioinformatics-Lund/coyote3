@@ -7,7 +7,9 @@ from typing import Any
 
 from api.application.interpretation.report_summary import enrich_reported_variant_docs
 from api.config.application_metadata import oncokb_gene_url
+from api.domain.common.assay_filters import get_sample_effective_genes
 from api.domain.common.errors import api_error
+from api.domain.common.sample_filters import normalize_sample_filters
 from api.domain.core.dna.variant_identity import (
     build_simple_id_hash_from_simple_id,
     normalize_simple_id,
@@ -29,6 +31,7 @@ class CommonQueryService:
             assay_panel_repository=store.assay_panel_repository,
             annotation_repository=store.annotation_repository,
             sample_repository=store.sample_repository,
+            gene_list_repository=store.gene_list_repository,
             oncokb_public_cache_repository=getattr(store, "oncokb_public_cache_repository", None),
             clinpgx_public_repository=getattr(store, "clinpgx_public_repository", None),
             civic_repository=getattr(store, "civic_repository", None),
@@ -47,6 +50,7 @@ class CommonQueryService:
         assay_panel_repository: Any,
         annotation_repository: Any,
         sample_repository: Any,
+        gene_list_repository: Any,
         oncokb_public_cache_repository: Any | None = None,
         clinpgx_public_repository: Any | None = None,
         civic_repository: Any | None = None,
@@ -62,6 +66,7 @@ class CommonQueryService:
         self.assay_panel_repository = assay_panel_repository
         self.annotation_repository = annotation_repository
         self.sample_repository = sample_repository
+        self.gene_list_repository = gene_list_repository
         self.oncokb_public_cache_repository = oncokb_public_cache_repository
         self.clinpgx_public_repository = clinpgx_public_repository
         self.civic_repository = civic_repository
@@ -452,6 +457,295 @@ class CommonQueryService:
             "tier_stats": tier_stats,
             "assays": assays,
             "assay_choices": assay_choices,
+        }
+
+    @staticmethod
+    def _snv_list_ids_by_intent(sample: dict[str, Any]) -> dict[str, list[str]]:
+        """Return selected SNV list IDs grouped by analysis intent."""
+        filters = normalize_sample_filters(
+            sample.get("filters"),
+            omics_layer=str(sample.get("omics_layer") or "dna"),
+            analysis_intents=sample.get("analysis_intents"),
+            canonical=True,
+        )
+        values: dict[str, list[str]] = {}
+        for intent in ("somatic", "germline"):
+            section = (filters.get(intent) or {}).get("snv") or {}
+            values[intent] = list(
+                dict.fromkeys(str(value) for value in section.get("snvlists", []) if str(value))
+            )
+        return values
+
+    @measured_operation("query.gene_cohort")
+    def gene_cohort_payload(
+        self,
+        *,
+        gene_id: str,
+        visible_asp_ids: list[str] | None,
+        visible_environments: list[str] | None,
+        include_history: bool = False,
+        finding_limit: int = 10_000,
+    ) -> dict[str, Any]:
+        """Build prevalence and recurrent-finding statistics for one gene."""
+        gene, query = self._resolve_gene(gene_id)
+        symbol = str(query.get("resolved_symbol") or "").strip().upper()
+        if not symbol:
+            raise api_error(400, "A gene symbol or HGNC identifier is required")
+
+        samples = self.sample_repository.get_gene_cohort_samples(
+            asp_ids=visible_asp_ids,
+            environments=visible_environments,
+        )
+        asp_map = self.assay_panel_repository.get_asps_for_gene_scope(visible_asp_ids)
+        selected_ids = list(
+            dict.fromkeys(
+                list_id
+                for sample in samples
+                for list_ids in self._snv_list_ids_by_intent(sample).values()
+                for list_id in list_ids
+            )
+        )
+        isgl_map = self.gene_list_repository.get_isgl_by_ids(selected_ids)
+
+        profiled_samples: list[dict[str, Any]] = []
+        excluded_samples = 0
+        for sample in samples:
+            asp = asp_map.get(str(sample.get("asp_id") or ""))
+            if not asp or str(sample.get("omics_layer") or "dna").lower() != "dna":
+                excluded_samples += 1
+                continue
+            list_ids_by_intent = self._snv_list_ids_by_intent(sample)
+            has_selected_lists = any(list_ids_by_intent.values())
+            effective_genes: set[str] = set()
+            for intent, list_ids in list_ids_by_intent.items():
+                if not list_ids:
+                    continue
+                selected_lists = {
+                    list_id: isgl_map[list_id] for list_id in list_ids if list_id in isgl_map
+                }
+                _scope_details, intent_genes = get_sample_effective_genes(
+                    sample,
+                    asp,
+                    selected_lists,
+                    target="snv",
+                    intent=intent,
+                )
+                effective_genes.update(str(value).upper() for value in intent_genes)
+            if not has_selected_lists:
+                effective_genes.update(
+                    str(value).upper() for value in (asp.get("covered_genes") or [])
+                )
+            if has_selected_lists and not effective_genes:
+                excluded_samples += 1
+                continue
+            if effective_genes and symbol not in effective_genes:
+                excluded_samples += 1
+                continue
+            profiled_samples.append(sample)
+
+        profiled_names = {
+            str(sample.get("name")) for sample in profiled_samples if sample.get("name")
+        }
+        latest_report_oids = [
+            sample["latest_report_id"]
+            for sample in profiled_samples
+            if sample.get("latest_report_id") is not None
+        ]
+        query_scope = {
+            "report_oids": None if include_history else latest_report_oids,
+            "sample_oids": (
+                [sample["_id"] for sample in profiled_samples if sample.get("_id") is not None]
+                if include_history
+                else None
+            ),
+            "sample_names": sorted(profiled_names) if include_history else None,
+        }
+        raw_findings = self.reported_variant_repository.get_gene_cohort_findings(
+            gene=symbol,
+            asp_ids=visible_asp_ids,
+            limit=finding_limit,
+            **query_scope,
+        )
+        sample_name_by_oid = {
+            str(sample["_id"]): str(sample["name"])
+            for sample in profiled_samples
+            if sample.get("_id") is not None and sample.get("name")
+        }
+        scoped_findings = []
+        for row in raw_findings:
+            sample_name = str(row.get("sample_name") or "")
+            if not sample_name and row.get("sample_oid") is not None:
+                sample_name = sample_name_by_oid.get(str(row["sample_oid"]), "")
+            if sample_name not in profiled_names:
+                continue
+            normalized_row = dict(row)
+            normalized_row["sample_name"] = sample_name
+            scoped_findings.append(normalized_row)
+
+        duplicate_report_observations_removed = 0
+        findings = scoped_findings
+        if include_history:
+            deduplicated = []
+            seen_sample_mutations: set[tuple[str, str]] = set()
+            for row in scoped_findings:
+                identity = str(
+                    row.get("simple_id")
+                    or row.get("simple_id_hash")
+                    or row.get("hgvsp")
+                    or row.get("hgvsc")
+                    or row.get("variant")
+                    or row.get("_id")
+                    or "unknown"
+                )
+                key = (str(row.get("sample_name")), identity)
+                if key in seen_sample_mutations:
+                    duplicate_report_observations_removed += 1
+                    continue
+                seen_sample_mutations.add(key)
+                deduplicated.append(row)
+            findings = deduplicated
+        sample_map = {str(sample.get("name")): sample for sample in profiled_samples}
+        finding_sample_names = {str(row.get("sample_name")) for row in findings}
+
+        tier_counts = {str(tier): 0 for tier in range(1, 5)}
+        variant_map: dict[str, dict[str, Any]] = {}
+        sample_findings: dict[str, list[dict[str, Any]]] = {}
+        for row in findings:
+            tier = int(row.get("tier") or 0)
+            if tier in range(1, 5):
+                tier_counts[str(tier)] += 1
+            sample_name = str(row.get("sample_name"))
+            sample_findings.setdefault(sample_name, []).append(row)
+            identity = str(
+                row.get("simple_id")
+                or row.get("hgvsp")
+                or row.get("hgvsc")
+                or row.get("variant")
+                or "unknown"
+            )
+            entry = variant_map.setdefault(
+                identity,
+                {
+                    "identity": identity,
+                    "hgvsp": row.get("hgvsp"),
+                    "hgvsc": row.get("hgvsc"),
+                    "sample_names": set(),
+                    "tiers": set(),
+                    "observation_count": 0,
+                },
+            )
+            entry["sample_names"].add(sample_name)
+            entry["tiers"].add(tier)
+            entry["observation_count"] += 1
+
+        recurrent_variants = sorted(
+            (
+                {
+                    "identity": entry["identity"],
+                    "hgvsp": entry["hgvsp"],
+                    "hgvsc": entry["hgvsc"],
+                    "sample_count": len(entry["sample_names"]),
+                    "observation_count": entry["observation_count"],
+                    "tiers": sorted(entry["tiers"]),
+                }
+                for entry in variant_map.values()
+            ),
+            key=lambda entry: (
+                -entry["sample_count"],
+                -entry["observation_count"],
+                entry["identity"],
+            ),
+        )[:25]
+
+        def prevalence(numerator: int, denominator: int) -> float | None:
+            return round((numerator / denominator) * 100, 2) if denominator else None
+
+        assay_rows = []
+        for asp_id in sorted({str(sample.get("asp_id")) for sample in profiled_samples}):
+            assay_samples = [
+                sample for sample in profiled_samples if sample.get("asp_id") == asp_id
+            ]
+            assay_names = {str(sample.get("name")) for sample in assay_samples}
+            finding_count = len(assay_names & finding_sample_names)
+            asp = asp_map.get(asp_id, {})
+            assay_rows.append(
+                {
+                    "asp_id": asp_id,
+                    "display_name": asp.get("display_name") or asp_id,
+                    "asp_group": asp.get("asp_group"),
+                    "profiled_samples": len(assay_samples),
+                    "finding_samples": finding_count,
+                    "prevalence_percent": prevalence(finding_count, len(assay_samples)),
+                }
+            )
+
+        sex_rows = []
+        for sex in ("female", "male", "unknown", "not_recorded"):
+            sex_samples = [
+                sample
+                for sample in profiled_samples
+                if (str(sample.get("sex") or "not_recorded").lower() == sex)
+            ]
+            if not sex_samples:
+                continue
+            sex_names = {str(sample.get("name")) for sample in sex_samples}
+            count = len(sex_names & finding_sample_names)
+            sex_rows.append(
+                {
+                    "sex": sex,
+                    "profiled_samples": len(sex_samples),
+                    "finding_samples": count,
+                    "prevalence_percent": prevalence(count, len(sex_samples)),
+                }
+            )
+
+        sample_rows = []
+        for sample_name in sorted(finding_sample_names):
+            sample = sample_map.get(sample_name, {})
+            rows = sample_findings.get(sample_name, [])
+            sample_rows.append(
+                {
+                    "sample_name": sample_name,
+                    "asp_id": sample.get("asp_id"),
+                    "subpanel_id": sample.get("subpanel_id"),
+                    "environment": sample.get("environment"),
+                    "sex": sample.get("sex"),
+                    "tiers": sorted({int(row.get("tier")) for row in rows if row.get("tier")}),
+                    "variants": sorted(
+                        {
+                            str(row.get("hgvsp") or row.get("hgvsc") or row.get("simple_id") or "-")
+                            for row in rows
+                        }
+                    ),
+                }
+            )
+
+        denominator_count = len(profiled_samples)
+        finding_sample_count = len(finding_sample_names)
+        return {
+            "query": query,
+            "gene": gene,
+            "summary": {
+                "profiled_samples": denominator_count,
+                "finding_samples": finding_sample_count,
+                "prevalence_percent": prevalence(finding_sample_count, denominator_count),
+                "reported_observations": len(findings),
+                "unique_variants": len(variant_map),
+            },
+            "denominator": {
+                "method": "sample_snv_isgl_then_asp_covered_genes",
+                "report_scope": "historical" if include_history else "latest",
+                "ready_samples_considered": len(samples),
+                "samples_excluded_outside_gene_scope": excluded_samples,
+                "unrestricted_asp_scope_counts_as_profiled": True,
+                "duplicate_report_observations_removed": duplicate_report_observations_removed,
+            },
+            "tier_counts": tier_counts,
+            "assays": assay_rows,
+            "sex_distribution": sex_rows,
+            "recurrent_variants": recurrent_variants,
+            "samples": sample_rows[:200],
+            "truncated": len(raw_findings) >= finding_limit or len(sample_rows) > 200,
         }
 
 
