@@ -719,6 +719,7 @@ Optional keys:
 - `database_versions` (dict[str, str])
 - `control_id` (str | None)
 - `paired` (bool | None)
+- `sex` (Literal['female', 'male', 'unknown'] | None)
 - `platform` (str | None)
 - `read_mode` (str | None)
 - `read_technology` (str | None)

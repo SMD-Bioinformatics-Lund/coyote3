@@ -129,6 +129,7 @@ class SamplesDoc(_DocBase):
     paired: bool | None = False
     sequencing_scope: str
     omics_layer: Literal["dna", "rna"]
+    sex: Literal["female", "male", "unknown"] | None = None
     platform: str | None = None
     read_mode: str | None = None
     read_technology: str | None = None
@@ -176,6 +177,14 @@ class SamplesDoc(_DocBase):
         if isinstance(value, str):
             return value.strip().lower()
         return value
+
+    @field_validator("sex", mode="before")
+    @classmethod
+    def _normalize_sex(cls, value: Any) -> str | None:
+        if value is None:
+            return None
+        normalized = str(value).strip().lower()
+        return normalized or None
 
     @field_validator("asp_id", "subpanel_id", mode="before")
     @classmethod

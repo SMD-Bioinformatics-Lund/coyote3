@@ -17,6 +17,7 @@ sample_no: 2
 paired: true
 sequencing_scope: panel
 omics_layer: dna
+sex: female
 sequencing_technology: Illumina
 read_mode: PE
 pipeline: SomaticPanelPipeline

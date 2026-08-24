@@ -80,6 +80,7 @@ def test_demo_ingest_manifests_use_the_canonical_sample_contract() -> None:
         assert "case" not in payload
         assert payload.get("case_id")
         assert payload.get("clarity_case_id")
+        assert payload.get("sex") in {"female", "male", "unknown"}
         SamplesDoc.model_validate(parse_yaml_payload(yaml_content))
 
 

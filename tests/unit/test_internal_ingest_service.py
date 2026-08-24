@@ -272,6 +272,7 @@ def test_small_helpers_and_build_meta(tmp_path):
     meta = ingest.build_sample_meta_dict(
         {
             "name": "S1",
+            "sex": "female",
             "case_id": "C1",
             "control_id": "N1",
             "database_versions": {
@@ -286,6 +287,7 @@ def test_small_helpers_and_build_meta(tmp_path):
     )
     assert "increment" not in meta
     assert meta["database_versions"] == {"clinvar": "202402", "dbsnp": "154", "vep": "110"}
+    assert meta["sex"] == "female"
     assert meta["case"]["reads"] == 10
     assert meta["control"]["reads"] == 20
 

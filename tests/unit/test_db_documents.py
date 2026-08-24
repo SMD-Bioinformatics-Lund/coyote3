@@ -306,6 +306,31 @@ def test_samples_doc_omits_unknown_pipeline_version_placeholders():
     assert "pipeline_version" not in sample.model_dump(exclude_none=True)
 
 
+def test_samples_doc_normalizes_one_sample_level_sex_value():
+    payload = {
+        "name": "S1",
+        "asp_id": "assay_1",
+        "subpanel_id": "base",
+        "environment": "production",
+        "case_id": "seed_case",
+        "sample_no": 1,
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
+        "sex": " Female ",
+        "pipeline": "SomaticPanelPipeline",
+        "files": {"vcf_files": {"path": "x"}},
+    }
+
+    sample = SamplesDoc.model_validate(payload)
+
+    assert sample.sex == "female"
+    assert "sex" not in sample.case.model_dump(exclude_none=True)
+
+    payload["sex"] = "F"
+    with pytest.raises(ValueError, match="sex"):
+        SamplesDoc.model_validate(payload)
+
+
 def test_sample_database_versions_use_only_canonical_nested_keys():
     """Sample VEP metadata belongs only in database_versions.vep."""
     assert normalize_database_versions({"vep": "v103", "clinvar": 202008, "cosmic": "null"}) == {

@@ -17,6 +17,7 @@
     "sample_no": 2,
     "sequencing_scope": "panel",
     "omics_layer": "dna",
+    "sex": "female",
     "platform": "illumina",
     "read_technology": "short_read",
     "pipeline": "SomaticPanelPipeline",

@@ -12,6 +12,7 @@ sample_no: 1
 paired: false
 sequencing_scope: wts
 omics_layer: rna
+sex: female
 sequencing_technology: Illumina
 read_mode: PE
 pipeline: RnaFusionPipeline

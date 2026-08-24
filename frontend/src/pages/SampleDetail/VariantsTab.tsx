@@ -268,7 +268,6 @@ export function VariantsTab({
       id: "hotspot",
       header: "Hotspot",
       accessorFn: hotspotExportValue,
-      enableSorting: false,
       meta: {
         exportValue: hotspotExportValue,
         headerClassName: "w-20 min-w-20",

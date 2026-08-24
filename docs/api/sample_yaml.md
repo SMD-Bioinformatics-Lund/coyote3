@@ -151,6 +151,7 @@ These keys are common to DNA and RNA sample bundles.
 | `database_versions.vep` | No | DNA only | VEP metadata version. Normally extracted from the DNA VCF `##VEP=` header. RNA fusion inputs do not use VEP and must not declare a VEP version. |
 | `sequencing_scope` | Yes | DNA, RNA | Sequencing scope. Valid values are `panel`, `wgs`, or `wts`. |
 | `omics_layer` | Yes | DNA, RNA | `dna` or `rna` (case-insensitive input). This controls which file keys are legal. |
+| `sex` | No | DNA, RNA | Sample-level biological sex used for cohort summaries when available. Allowed values are `female`, `male`, and `unknown`. For paired case/control analysis, both specimens belong to the same individual, so the value is declared once at the top level and is not repeated as `case_sex` or `control_sex`. Omit the key when the source has no reliable value; ingest does not infer it. |
 | `sequencing_technology` | Recommended | DNA, RNA | Pipeline platform label, for example `Illumina`, `Nanopore`, or `PacBio`. Ingest normalizes it to internal `platform`; the ASP platform compatibility check then applies. |
 | `read_mode` | Conditional | DNA, RNA | Platform-supported read mode, such as `PE` or `SE`; omit when the selected platform does not use read mode. |
 | `pipeline` | Yes | DNA, RNA | Upstream pipeline name. |
@@ -269,6 +270,7 @@ profile: "production"
 assay: "hema_GMSv1"
 sequencing_scope: "panel"
 omics_layer: "DNA"
+sex: "female"
 sequencing_technology: "Illumina"
 pipeline: "SomaticPanelPipeline"
 pipeline_version: "3.1.14"
@@ -334,6 +336,7 @@ profile: "production"
 assay: "assay_rna_1"
 sequencing_scope: "wts"
 omics_layer: "RNA"
+sex: "female"
 sequencing_technology: "Illumina"
 pipeline: "RnaFusionPipeline"
 pipeline_version: "1.4.0"

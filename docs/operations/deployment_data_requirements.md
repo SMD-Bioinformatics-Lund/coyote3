@@ -86,10 +86,11 @@ Minimum DNA manifest fields:
 | `subpanel` | Pipeline subpanel identifier. Ingest maps this to `subpanel_id`; use `base` when no subpanel applies. |
 | `profile` | Pipeline environment/profile. Ingest maps this to `environment`, such as `production`, `development`, or a validation environment. |
 | `sequencing_technology` | Pipeline platform name. Ingest maps this to the canonical `platform` field, for example `illumina`. |
+| `sex` | Optional sample-level biological sex: `female`, `male`, or `unknown`. Declare it once; do not create separate case/control sex fields. |
 | `genome_build` | Reference genome build, normally `37` or `38`. |
-| `case` | Case sample metadata including id, clarity/pool fields when available, run, FFPE state, reads, and purity. |
-| `control` | Control sample metadata for paired samples. Omit only for unpaired samples. |
-| `files` | Analysis files keyed by configured file keys such as VCF, CNV JSON, CNV profile image, coverage JSON, translocation VCF, or biomarkers JSON. |
+| Case fields | Flat fields such as `case_id`, `clarity_case_id`, `clarity_case_pool_id`, `case_sequencing_run`, `case_ffpe`, `case_reads`, and `case_purity`. |
+| Control fields | The corresponding flat control fields for paired samples. Omit them for unpaired samples. |
+| Analysis files | Flat configured file keys such as `vcf_files`, `cnv`, `cnvprofile`, `cov`, `transloc`, or `biomarkers`. Do not author a nested `files` block. |
 
 !!! caution "Container-readable paths"
 

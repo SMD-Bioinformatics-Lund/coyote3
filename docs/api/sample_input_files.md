@@ -47,6 +47,8 @@ The sample YAML is the top-level ingest manifest.
 It is responsible for:
 
 - sample identity such as `name`, `case_id`, `control_id`
+- optional sample-level biological sex through `sex`; paired case and control
+  specimens share this value because they represent the same individual
 - pipeline assay and environment identity such as `assay` and `profile`, mapped
   at ingest to canonical `asp_id` and `environment`
 - omics-layer selection through `omics_layer`
@@ -58,6 +60,7 @@ Important behavior:
 
 - The manifest is validated first through `SamplesDoc`.
 - `omics_layer` controls which file keys are legal.
+- `sex`, when supplied, must be `female`, `male`, or `unknown`; it is not inferred.
 - ASP file policy rejects manifest file keys that are not listed in `assay_specific_panels.expected_files`; declared resources are never silently discarded.
 - Required ASP files must be present and readable before parsing starts.
 - Optional expected files may be omitted. If an optional expected file path is present, Coyote3 treats it as declared data and the sample will not be marked ready unless that file is parsed and written successfully.

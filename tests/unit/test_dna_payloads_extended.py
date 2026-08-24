@@ -87,12 +87,22 @@ def test_variant_sort_values_cover_supported_columns() -> None:
         "missense_variant, splice_region_variant"
     )
     assert payloads._variant_sort_value(variant, "popfreq") == 0.001
+    assert payloads._variant_sort_value(variant, "hotspot") == 0
     assert payloads._variant_sort_value(variant, "tier") == 2.0
     assert payloads._variant_sort_value(variant, "chrpos") == ((0, 17), 10.0)
     assert payloads._variant_sort_value(variant, "flags") == "pass, pon"
     assert payloads._variant_sort_value(variant, "case_vaf") == 0.25
     assert payloads._variant_sort_value(variant, "control_vaf") == 0.01
     assert payloads._variant_sort_value(variant, "unsupported") is None
+
+
+def test_variant_hotspot_sort_value_matches_displayed_hotspot_state() -> None:
+    variant = _selected_variant(hotspots=[{"lu": ["COSV66102297"]}])
+    assert payloads._variant_sort_value(variant, "hotspot") == 1
+
+    hydrated = _selected_variant()
+    hydrated["INFO"]["HOTSPOT"] = ["co"]
+    assert payloads._variant_sort_value(hydrated, "hotspot") == 1
 
 
 def test_variant_sort_handles_scalar_consequence_filter_and_tier() -> None:

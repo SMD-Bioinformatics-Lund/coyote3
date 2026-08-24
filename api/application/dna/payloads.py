@@ -128,6 +128,20 @@ def _variant_tier_sort_value(variant: dict[str, Any]) -> float | None:
     return None
 
 
+def _variant_hotspot_sort_value(variant: dict[str, Any]) -> int:
+    """Return whether a variant carries hotspot metadata shown in the table."""
+    for hotspot_group in variant.get("hotspots", []) or []:
+        if isinstance(hotspot_group, dict) and any(
+            str(source or "").strip() for source in hotspot_group
+        ):
+            return 1
+
+    hydrated_hotspots = (variant.get("INFO") or {}).get("HOTSPOT")
+    if isinstance(hydrated_hotspots, (list, tuple, set)):
+        return int(any(str(source or "").strip() for source in hydrated_hotspots))
+    return int(bool(str(hydrated_hotspots or "").strip()))
+
+
 def _variant_sort_value(variant: dict[str, Any], sort_by: str) -> Any:
     """Return the backend sort key for supported small-variant table columns."""
     selected_csq = _selected_csq(variant)
@@ -155,6 +169,7 @@ def _variant_sort_value(variant: dict[str, Any], sort_by: str) -> Any:
         "indel_size": lambda: _numeric_value(variant.get("INFO", {}).get("SVLEN")),
         "consequence": lambda: _sortable_text(consequence_text),
         "popfreq": lambda: _numeric_value(variant.get("gnomad_frequency")),
+        "hotspot": lambda: _variant_hotspot_sort_value(variant),
         "tier": lambda: _variant_tier_sort_value(variant),
         "chrpos": lambda: _chrpos_sort_value(variant),
         "flags": lambda: _sortable_text(filters_text),

@@ -189,6 +189,7 @@ Key fields include:
 | `current_aspc_version` | ASPC version recorded on the sample |
 | `aspc_resolution` | Requested and resolved configuration scope. A base fallback sets `used_base_configuration=true` and carries the visible warning text. |
 | `omics_layer` | DNA or RNA |
+| `sex` | Optional sample-level biological sex (`female`, `male`, or `unknown`) used by cohort summaries. It is not duplicated under case/control metadata. |
 | `platform` | Sequencing platform inherited from the resolved ASP, such as `illumina` or `pacbio` |
 | `read_mode` | Platform-supported read mode. It is currently applicable only to Illumina (`SE` or `PE`). |
 | `read_technology` | Immutable derived value: `short_read` for Illumina/Ion Torrent and `long_read` for PacBio/Nanopore. It is never entered independently. |
