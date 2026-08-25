@@ -189,7 +189,14 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
 
     report_oid, pdf_file = pipeline.persist_report_and_snapshot(
         sample_id="sample_oid_seed",
-        sample={"_id": "sample_oid_seed", "name": "seed_sample"},
+        sample={
+            "_id": "sample_oid_seed",
+            "name": "seed_sample",
+            "asp_id": "solid_gmsv3",
+            "asp_group": "solid",
+            "subpanel_id": "colon",
+            "environment": "production",
+        },
         report_num=2,
         report_id="seed_report",
         report_file=report_file,
@@ -205,6 +212,10 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
     assert calls["write"] == ("<html/>", report_file)
     assert calls["save_report"]["sample_id"] == "sample_oid_seed"
     assert calls["bulk_upsert"]["snapshot_rows"] == []
+    assert calls["bulk_upsert"]["assay"] == "solid_gmsv3"
+    assert calls["bulk_upsert"]["assay_group"] == "solid"
+    assert calls["bulk_upsert"]["subpanel"] == "colon"
+    assert calls["bulk_upsert"]["environment"] == "production"
 
 
 def test_persist_report_and_snapshot_raises_when_report_write_fails(monkeypatch):

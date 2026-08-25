@@ -2,6 +2,8 @@
 
 from datetime import datetime, timezone
 
+import pytest
+
 from api.application.reporting.snapshot_rows import (
     build_biomarker_snapshot_rows,
     build_cnv_snapshot_rows,
@@ -51,11 +53,17 @@ def test_builds_typed_cnv_biomarker_and_pgx_rows() -> None:
     assert cnv["gene"] == "EGFR"
     assert cnv["callers"] == ["cnvkit"]
     assert cnv["simple_id"].startswith("cnv:")
+    assert cnv["chromosome"] == "7"
+    assert "finding_data" not in cnv
     assert biomarker["analysis_type"] == "BIOMARKER"
     assert biomarker["biomarker"] == "TMB"
+    assert biomarker["result"] == {"value": 12.4, "unit": "mut/Mb"}
+    assert "finding_data" not in biomarker
     assert pgx["analysis_type"] == "PGX"
     assert pgx["gene"] == "CYP2C19"
     assert pgx["pgx_result"] == "Intermediate metabolizer"
+    assert pgx["diplotype"] == "*1/*2"
+    assert "finding_data" not in pgx
 
 
 def test_flattens_pgx_documents_without_losing_single_record_documents() -> None:
@@ -154,3 +162,23 @@ def test_reported_finding_contract_preserves_each_analysis_specific_payload() ->
     assert validated[3]["fusion"] == "KMT2A::AFF1"
     assert validated[4]["biomarker"] == "TMB"
     assert validated[5]["pgx_result"] == "Poor metabolizer"
+
+
+def test_reported_finding_contract_rejects_generic_or_unknown_payloads() -> None:
+    base = {
+        "analysis_type": "SNV",
+        "finding_type": "small_variant",
+        "report_id": "report-1",
+        "sample_name": "sample-1",
+        "report_oid": "report-oid",
+        "sample_oid": "sample-oid",
+        "simple_id": "snv:1:100:A:T",
+        "created_by": "reviewer",
+        "created_on": datetime.now(timezone.utc),
+    }
+
+    with pytest.raises(ValueError, match="finding_data is not part"):
+        ReportedVariantsDoc.model_validate({**base, "finding_data": {"opaque": True}})
+
+    with pytest.raises(ValueError, match="Extra inputs are not permitted"):
+        ReportedVariantsDoc.model_validate({**base, "uncontracted_payload": True})

@@ -28,7 +28,6 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         cls,
         store: Any,
         *,
-        reported_samples_search_limit: int = 50,
         reports_base_path: str = "",
     ) -> "SampleCatalogService":
         """Build the service from the runtime store."""
@@ -44,7 +43,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
             biomarker_repository=store.biomarker_repository,
             grouped_coverage_repository=store.grouped_coverage_repository,
             sample_comment_repository=store.sample_comment_repository,
-            reported_samples_search_limit=reported_samples_search_limit,
+            reported_variant_repository=store.reported_variant_repository,
             reports_base_path=reports_base_path,
         )
 
@@ -62,7 +61,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         biomarker_repository: Any,
         grouped_coverage_repository: Any,
         sample_comment_repository: Any | None = None,
-        reported_samples_search_limit: int = 50,
+        reported_variant_repository: Any | None = None,
         reports_base_path: str = "",
     ) -> None:
         """Create the service with explicit injected repositories."""
@@ -77,7 +76,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         self.biomarker_repository = biomarker_repository
         self.grouped_coverage_repository = grouped_coverage_repository
         self.sample_comment_repository = sample_comment_repository
-        self.reported_samples_search_limit = int(reported_samples_search_limit or 50)
+        self.reported_variant_repository = reported_variant_repository
         self.reports_base_path = str(reports_base_path or "")
 
     def _get_formatted_assay_config(
@@ -184,6 +183,8 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         status: str,
         search_str: str,
         search_mode: str,
+        live_sort: str,
+        reported_sort: str,
         page: int,
         per_page: int,
         live_page: int,
@@ -194,7 +195,6 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         panel_type: str | None,
         panel_tech: str | None,
         assay_group: str | None,
-        limit_done_samples: int | None,
         added_from: datetime | None = None,
         added_until: datetime | None = None,
     ) -> dict[str, Any]:
@@ -205,6 +205,8 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
             status: Requested sample status filter.
             search_str: Free-text search string.
             search_mode: Search mode selected by the client.
+            live_sort: Comma-separated live-sample sort fields and directions.
+            reported_sort: Comma-separated reported-sample sort fields and directions.
             page: Current combined page number.
             per_page: Combined page size.
             live_page: Current page for live samples.
@@ -215,14 +217,9 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
             panel_type: Optional panel-type filter.
             panel_tech: Optional panel-technology filter.
             assay_group: Optional assay-group filter.
-            limit_done_samples: Optional cap for completed samples.
-
         Returns:
             dict[str, Any]: Normalized sample catalog payload.
         """
-        if limit_done_samples is None:
-            limit_done_samples = self.reported_samples_search_limit
-
         if panel_type and panel_tech and assay_group:
             assay_list = user.asp_map.get(panel_type, {}).get(panel_tech, {}).get(assay_group, [])
             accessible_assays = (
@@ -245,56 +242,37 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
 
         live_offset = max(0, (live_page - 1) * per_live_page)
         done_offset = max(0, (done_page - 1) * per_done_page)
-        live_fetch_limit = per_live_page + 1
-        done_fetch_limit = per_done_page + 1
-        search_applied = bool((search_str or "").strip())
-
-        has_next_live = False
-        has_next_done = False
-
-        done_limit = None if search_applied else done_fetch_limit
-        if not search_applied and limit_done_samples:
-            done_limit = min(done_fetch_limit, limit_done_samples + 1)
-
-        done_samples = list(
-            self.sample_repository.get_samples(
-                user_assays=accessible_assays,
-                user_envs=query_envs,
-                status="done",
-                search_str=search_str,
-                report=True,
-                limit=done_limit,
-                offset=0 if search_applied else done_offset,
-                use_cache=True,
-                reload=False,
-                added_from=added_from,
-                added_until=added_until,
-            )
-            or []
+        done_page_result = self.sample_repository.get_samples_page(
+            user_assays=accessible_assays,
+            user_envs=query_envs,
+            status="done",
+            search_str=search_str,
+            sort=reported_sort,
+            report=True,
+            limit=per_done_page,
+            offset=done_offset,
+            added_from=added_from,
+            added_until=added_until,
         )
-        if not search_applied and len(done_samples) > per_done_page:
-            has_next_done = True
-            done_samples = done_samples[:per_done_page]
+        done_samples = list(done_page_result["items"])
+        done_total = int(done_page_result["total"])
 
-        live_samples = list(
-            self.sample_repository.get_samples(
-                user_assays=accessible_assays,
-                user_envs=query_envs,
-                status="live",
-                search_str=search_str,
-                report=False,
-                limit=None if search_applied else live_fetch_limit,
-                offset=0 if search_applied else live_offset,
-                use_cache=True,
-                reload=False,
-                added_from=added_from,
-                added_until=added_until,
-            )
-            or []
+        live_page_result = self.sample_repository.get_samples_page(
+            user_assays=accessible_assays,
+            user_envs=query_envs,
+            status="live",
+            search_str=search_str,
+            sort=live_sort,
+            report=False,
+            limit=per_live_page,
+            offset=live_offset,
+            added_from=added_from,
+            added_until=added_until,
         )
-        if not search_applied and len(live_samples) > per_live_page:
-            has_next_live = True
-            live_samples = live_samples[:per_live_page]
+        live_samples = list(live_page_result["items"])
+        live_total = int(live_page_result["total"])
+        has_next_done = done_offset + len(done_samples) < done_total
+        has_next_live = live_offset + len(live_samples) < live_total
 
         self._attach_biomarker_values([*live_samples, *done_samples])
 
@@ -304,6 +282,8 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         return {
             "live_samples": live_samples,
             "done_samples": done_samples,
+            "live_total": live_total,
+            "done_total": done_total,
             "status": status,
             "search_mode": search_mode,
             "sample_view": "all",

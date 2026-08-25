@@ -50,7 +50,7 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
     calls = []
     service = _sample_catalog_service()
 
-    def _get_samples(**kwargs):
+    def _get_samples_page(**kwargs):
         """Get samples.
 
         Args:
@@ -61,15 +61,13 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
         """
         calls.append(kwargs)
         if kwargs.get("report"):
-            return [{"_id": "d1", "reports": [{"time_created": 123}]}, {"_id": "d2"}]
-        return [{"_id": "l1"}, {"_id": "l2"}]
+            return {
+                "items": [{"_id": "d1", "reports": [{"time_created": 123}]}],
+                "total": 3,
+            }
+        return {"items": [{"_id": "l1"}], "total": 3}
 
-    monkeypatch.setattr(
-        sample_catalog_service_module,
-        "runtime_app",
-        type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})(),
-    )
-    monkeypatch.setattr(service.sample_repository, "get_samples", _get_samples)
+    monkeypatch.setattr(service.sample_repository, "get_samples_page", _get_samples_page)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
     added_from = datetime(2026, 8, 1, tzinfo=timezone.utc)
@@ -87,6 +85,8 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
         profile_scope="production",
         added_from=added_from,
         added_until=added_until,
+        live_sort="",
+        reported_sort="latest_reported:desc",
         user=user,
         service=service,
     )
@@ -97,12 +97,16 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
     assert payload["done_page"] == 2
     assert payload["live_per_page"] == 1
     assert payload["done_per_page"] == 1
+    assert payload["live_total"] == 3
+    assert payload["done_total"] == 3
     assert payload["profile_scope"] == "production"
     assert payload["has_next_live"] is True
     assert payload["has_next_done"] is True
     assert all(call["offset"] == 1 for call in calls)
     assert all(call["added_from"] == added_from for call in calls)
     assert all(call["added_until"] == added_until for call in calls)
+    assert next(call for call in calls if call["report"] is False)["sort"] == ""
+    assert next(call for call in calls if call["report"] is True)["sort"] == "latest_reported:desc"
 
 
 def test_home_samples_read_always_fetches_both_tables(monkeypatch):
@@ -118,7 +122,7 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
     calls = []
     service = _sample_catalog_service()
 
-    def _get_samples(**kwargs):
+    def _get_samples_page(**kwargs):
         """Get samples.
 
         Args:
@@ -128,14 +132,9 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
                 The  get samples result.
         """
         calls.append(kwargs)
-        return [{"_id": "d1", "reports": [{"time_created": 123}]}]
+        return {"items": [{"_id": "d1", "reports": [{"time_created": 123}]}], "total": 1}
 
-    monkeypatch.setattr(
-        sample_catalog_service_module,
-        "runtime_app",
-        type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})(),
-    )
-    monkeypatch.setattr(service.sample_repository, "get_samples", _get_samples)
+    monkeypatch.setattr(service.sample_repository, "get_samples_page", _get_samples_page)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = samples.list_samples_read(
@@ -149,6 +148,8 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
         live_per_page=30,
         done_per_page=30,
         profile_scope="all",
+        live_sort="",
+        reported_sort="",
         user=user,
         service=service,
     )
@@ -171,16 +172,11 @@ def test_home_samples_read_superuser_is_unscoped(monkeypatch):
     calls = []
     service = _sample_catalog_service()
 
-    def _get_samples(**kwargs):
+    def _get_samples_page(**kwargs):
         calls.append(kwargs)
-        return []
+        return {"items": [], "total": 0}
 
-    monkeypatch.setattr(
-        sample_catalog_service_module,
-        "runtime_app",
-        type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})(),
-    )
-    monkeypatch.setattr(service.sample_repository, "get_samples", _get_samples)
+    monkeypatch.setattr(service.sample_repository, "get_samples_page", _get_samples_page)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = samples.list_samples_read(
@@ -194,6 +190,8 @@ def test_home_samples_read_superuser_is_unscoped(monkeypatch):
         live_per_page=30,
         done_per_page=30,
         profile_scope="all",
+        live_sort="",
+        reported_sort="",
         user=user,
         service=service,
     )

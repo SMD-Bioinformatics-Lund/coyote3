@@ -67,8 +67,8 @@ def test_manifest_preload_bindings_follow_configured_file_keys():
     assert dna["cnv"] == "cnvs"
     assert rna["fusion_files"] == "fusions"
     assert rna["expression_path"] == "rna_expr"
-    assert non_database_manifest_file_keys("dna") == {"cnvprofile", "pgx"}
-    assert non_database_manifest_file_keys("rna") == {"pgx"}
+    assert non_database_manifest_file_keys("dna") == {"cnvprofile"}
+    assert non_database_manifest_file_keys("rna") == set()
     assert analysis_type_for_file_key("dna", "vcf_files") == "SNV"
     assert analysis_type_for_file_key("rna", "fusion_files") == "FUSION"
 

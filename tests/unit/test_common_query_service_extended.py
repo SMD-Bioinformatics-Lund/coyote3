@@ -550,6 +550,7 @@ def test_gene_cohort_history_counts_each_sample_mutation_once() -> None:
     assert captured["report_oids"] is None
     assert captured["sample_oids"] == ["sample-1"]
     assert captured["sample_names"] == ["S1"]
+    assert "asp_ids" not in captured
     assert result["summary"] == {
         "profiled_samples": 1,
         "finding_samples": 1,

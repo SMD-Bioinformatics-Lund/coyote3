@@ -294,6 +294,19 @@ class SampleCatalogMutationsMixin:
             report_sub_dir = assay_config.get("reporting", {}).get("report_path", "")
             filepath = f"{self.reports_base_path}/{report_sub_dir}/{report_name}"
 
+        findings: list[dict[str, Any]] = []
+        if self.reported_variant_repository is not None:
+            findings = self.reported_variant_repository.list_reported_variants(
+                {
+                    "sample_oid": sample.get("_id"),
+                    "report_oid": report.get("_id"),
+                }
+            )
+        analysis_counts: dict[str, int] = {}
+        for finding in findings:
+            analysis_type = str(finding.get("analysis_type") or "OTHER").upper()
+            analysis_counts[analysis_type] = analysis_counts.get(analysis_type, 0) + 1
+
         return {
             "sample_id": sample_id,
             "report_id": report_id,
@@ -301,6 +314,14 @@ class SampleCatalogMutationsMixin:
             "filepath": filepath,
             "pdf_report_name": pdf_report_name,
             "pdf_filepath": pdf_filepath,
+            "asp_id": report.get("asp_id"),
+            "subpanel_id": report.get("subpanel_id"),
+            "environment": report.get("environment"),
+            "author": report.get("author"),
+            "time_created": report.get("time_created"),
+            "finding_count": len(findings),
+            "analysis_counts": analysis_counts,
+            "findings": findings,
         }
 
     def add_sample_comment(self, *, sample_id: str, doc: dict[str, Any]) -> None:

@@ -90,6 +90,33 @@ def test_variant_info_accepts_selected_csq_fields():
     assert doc.INFO.selected_CSQ_criteria == "ncbi_mane_plus_clinical"
 
 
+def test_variant_contract_preserves_review_state() -> None:
+    """Small-variant curation flags are authoritative persisted fields."""
+    payload = {
+        "SAMPLE_ID": "S1",
+        "CHROM": "1",
+        "POS": 100,
+        "REF": "A",
+        "ALT": "G",
+        "ID": ".",
+        "INFO": {
+            "selected_CSQ": {"Feature": "ENST1", "SYMBOL": "TP53"},
+            "selected_CSQ_criteria": "first_available",
+        },
+        "simple_id": "1_100_A_G",
+        "simple_id_hash": hashlib.md5("1_100_A_G".encode("utf-8")).hexdigest(),
+        "fp": True,
+        "irrelevant": False,
+        "interesting": True,
+    }
+
+    dumped = VariantsDoc.model_validate(payload).model_dump(by_alias=True)
+
+    assert dumped["fp"] is True
+    assert dumped["irrelevant"] is False
+    assert dumped["interesting"] is True
+
+
 def test_variant_info_normalizes_variant_callers_string():
     """variant_callers pipe-separated string should normalize to list[str]."""
     payload = {

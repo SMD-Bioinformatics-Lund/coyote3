@@ -26,6 +26,7 @@ from typing import Any, Dict, List
 from pymongo import ASCENDING, DESCENDING, UpdateOne
 
 from api.contracts.operations import OperationResult
+from api.contracts.schemas.dna import ReportedVariantsDoc
 from api.domain.core.dna.variant_identity import build_simple_id_hash_from_simple_id
 from api.infra.mongo.repositories.base import BaseRepository
 
@@ -168,6 +169,10 @@ class ReportedVariantsRepository(BaseRepository):
         snapshot_rows: List[Dict[str, Any]],
         created_by: str,
         report_num: int | None = None,
+        assay: str | None = None,
+        assay_group: str | None = None,
+        subpanel: str | None = None,
+        environment: str | None = None,
     ) -> int:
         """
         Upsert reported variant snapshot rows for a single report.
@@ -199,6 +204,10 @@ class ReportedVariantsRepository(BaseRepository):
                 "report_oid": report_oid,
                 "report_id": report_id,
                 "report_num": report_num,
+                "assay": assay,
+                "assay_group": assay_group,
+                "subpanel": subpanel,
+                "environment": environment,
                 "created_by": created_by,
                 **r,  # r can include var_oid, tier, gene, etc.
             }
@@ -210,7 +219,13 @@ class ReportedVariantsRepository(BaseRepository):
             doc["report_oid"] = report_oid
             doc["report_id"] = report_id
             doc["report_num"] = report_num
+            doc["assay"] = assay
+            doc["assay_group"] = assay_group
+            doc["subpanel"] = subpanel
+            doc["environment"] = environment
             doc["created_by"] = created_by
+
+            ReportedVariantsDoc.model_validate(doc)
 
             ops.append(
                 UpdateOne(
@@ -235,6 +250,33 @@ class ReportedVariantsRepository(BaseRepository):
         List reported variant snapshot documents matching the given Mongo query.
         """
         return list(self.get_collection().find(query).sort("time_created", -1))
+
+    def summarize_reports(self, report_oids: list[Any]) -> dict[str, dict[str, Any]]:
+        """Return finding totals and analysis-type counts for report object ids."""
+        if not report_oids:
+            return {}
+        pipeline = [
+            {"$match": {"report_oid": {"$in": report_oids}}},
+            {
+                "$group": {
+                    "_id": {
+                        "report_oid": "$report_oid",
+                        "analysis_type": {"$ifNull": ["$analysis_type", "OTHER"]},
+                    },
+                    "count": {"$sum": 1},
+                }
+            },
+        ]
+        summaries: dict[str, dict[str, Any]] = {}
+        for row in self.get_collection().aggregate(pipeline):
+            key = row.get("_id") or {}
+            report_key = str(key.get("report_oid"))
+            analysis_type = str(key.get("analysis_type") or "OTHER").upper()
+            count = int(row.get("count") or 0)
+            summary = summaries.setdefault(report_key, {"finding_count": 0, "analysis_counts": {}})
+            summary["finding_count"] += count
+            summary["analysis_counts"][analysis_type] = count
+        return summaries
 
     def delete_sample_reported_variants(self, sample_oid) -> OperationResult:
         """Delete immutable report snapshots owned by a deleted sample."""
@@ -441,7 +483,6 @@ class ReportedVariantsRepository(BaseRepository):
         self,
         *,
         gene: str,
-        asp_ids: list[str] | None,
         report_oids: list[Any] | None = None,
         sample_oids: list[Any] | None = None,
         sample_names: list[str] | None = None,
@@ -472,8 +513,6 @@ class ReportedVariantsRepository(BaseRepository):
             if not sample_scope:
                 return []
             query_parts.append({"$or": sample_scope})
-        if asp_ids is not None:
-            query_parts.append({"assay": {"$in": asp_ids}})
         query: dict[str, Any] = {"$and": query_parts}
         projection = {
             "sample_name": 1,

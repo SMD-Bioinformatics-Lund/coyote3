@@ -107,6 +107,7 @@ def test_delete_all_sample_traces_removes_every_owned_document() -> None:
         "translocation_repository": ("translocations", "delete_sample_translocs"),
         "fusion_repository": ("fusions", "delete_sample_fusions"),
         "biomarker_repository": ("biomarkers", "delete_sample_biomarkers"),
+        "pgx_repository": ("pgx", "delete_sample_pgx"),
         "rna_expression_repository": ("rna_expression", "delete_sample_expression"),
         "rna_classification_repository": (
             "rna_classification",

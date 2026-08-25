@@ -15,6 +15,8 @@ class HomeSamplesPayload(BaseModel):
 
     live_samples: list[dict[str, Any]]
     done_samples: list[dict[str, Any]]
+    live_total: int = Field(default=0, ge=0)
+    done_total: int = Field(default=0, ge=0)
     status: str
     search_mode: str
     sample_view: str = "all"
@@ -96,3 +98,11 @@ class HomeReportContextPayload(BaseModel):
     filepath: str | None = None
     pdf_report_name: str | None = None
     pdf_filepath: str | None = None
+    asp_id: str | None = None
+    subpanel_id: str | None = None
+    environment: str | None = None
+    author: str | None = None
+    time_created: datetime | None = None
+    finding_count: int = 0
+    analysis_counts: dict[str, int] = Field(default_factory=dict)
+    findings: list[dict[str, Any]] = Field(default_factory=list)

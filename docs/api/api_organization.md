@@ -114,7 +114,7 @@ Clinical routes are grouped by the biological workflow that owns the data.
 | `clinical.dna.biomarkers` | Sample biomarker context. | `/api/v1/samples/{sample_id}/biomarkers` |
 | `clinical.dna.classifications` | Tiering and classification state shared by DNA findings. | `/api/v1/samples/{sample_id}/classifications` |
 | `clinical.rna.fusions` | RNA fusion finding review. | `/api/v1/samples/{sample_id}/fusions` |
-| `clinical.reporting.reports` | Temporary report snapshots, preview, save, HTML, and PDF artifacts. | `/api/v1/samples/{sample_id}/reports` |
+| `clinical.reporting.reports` | Access-scoped saved-report library plus sample-owned preview, save, HTML, and PDF artifacts. | `/api/v1/reports`, `/api/v1/samples/{sample_id}/reports` |
 
 !!! info "Export route ownership"
 

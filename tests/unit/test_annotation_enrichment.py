@@ -57,6 +57,26 @@ def test_global_annotations_treat_null_class_as_text_annotation():
     assert interesting["hematology"]["text"] == "review note"
 
 
+def test_global_annotations_accept_null_optional_hgvs_values():
+    repo = _AnnotationRepo([])
+    variant = {
+        "CHROM": "13",
+        "POS": 28023318,
+        "REF": "A",
+        "ALT": "T",
+        "INFO": {"selected_CSQ": {"SYMBOL": "FLT3", "HGVSp": None, "HGVSc": None}},
+    }
+
+    annotations, classification, other, interesting = AnnotationsRepository.get_global_annotations(
+        repo, variant, "hematology", "base"
+    )
+
+    assert annotations == []
+    assert classification == {"class": 999}
+    assert other == []
+    assert interesting == {}
+
+
 def test_add_alt_class_ignores_null_classification():
     class Repo:
         @staticmethod

@@ -6,13 +6,18 @@ from fastapi import APIRouter, Depends, Query, Response
 
 from api.app import http
 from api.app.container import util
-from api.app.deps.services import get_dna_workflow_service, get_rna_workflow_service
+from api.app.deps.services import (
+    get_dna_workflow_service,
+    get_report_library_service,
+    get_rna_workflow_service,
+)
 from api.app.runtime_state import app as runtime_app
 from api.app.runtime_state import current_username
 from api.application.reporting.report_builder import ReportAnalyte, ReportService
+from api.application.reporting.report_library import ReportLibraryService
 from api.application.reporting.report_renderer import render_pdf_bytes, render_report_html
 from api.config.security import to_bool
-from api.contracts.reports import ReportPreviewPayload, ReportSavePayload
+from api.contracts.reports import ReportLibraryPayload, ReportPreviewPayload, ReportSavePayload
 from api.interfaces.http.tags import TAG_REPORTING
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 
@@ -20,6 +25,24 @@ router = APIRouter(tags=[TAG_REPORTING])
 
 
 report_service = ReportService()
+
+
+@router.get(
+    "/api/v1/reports",
+    response_model=ReportLibraryPayload,
+    summary="List saved clinical reports",
+)
+def list_saved_reports(
+    search: str = Query(default=""),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=30, ge=1, le=200),
+    user: ApiUser = Depends(require_access(permission="report:view")),
+    service: ReportLibraryService = Depends(get_report_library_service),
+):
+    """Return saved report metadata and immutable finding snapshot counts."""
+    return util.common.convert_to_serializable(
+        service.list_payload(user=user, search=search, page=page, per_page=per_page)
+    )
 
 
 def _load_report_context(sample_id: str, user: ApiUser) -> tuple[dict, dict]:

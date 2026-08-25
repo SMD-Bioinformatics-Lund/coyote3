@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from api.application.dna import payloads
+from api.application.reporting.dna_report_payload import hotspot_variant
 from api.domain.core.exceptions import AppError
 
 
@@ -103,6 +104,20 @@ def test_variant_hotspot_sort_value_matches_displayed_hotspot_state() -> None:
     hydrated = _selected_variant()
     hydrated["INFO"]["HOTSPOT"] = ["co"]
     assert payloads._variant_sort_value(hydrated, "hotspot") == 1
+
+
+def test_hotspot_hydration_accepts_empty_records_and_is_idempotent() -> None:
+    without_hotspots = _selected_variant(hotspots=[])
+    with_hotspot = _selected_variant(
+        _id="variant-2",
+        hotspots=[{"lu": ["COSV66102297"], "co": [None], "other": "COSM1"}],
+    )
+
+    variants = hotspot_variant([without_hotspots, with_hotspot])
+    variants = hotspot_variant(variants)
+
+    assert variants[0]["INFO"].get("HOTSPOT") is None
+    assert variants[1]["INFO"]["HOTSPOT"] == ["lu", "other"]
 
 
 def test_variant_sort_handles_scalar_consequence_filter_and_tier() -> None:

@@ -77,15 +77,27 @@ def hotspot_variant(variants: list) -> list[dict]:
     """
     Return variants with HOTSPOT keys hydrated from hotspot payloads.
     """
-    hotspots = []
+    hydrated_variants = []
     for variant in variants:
-        hotspot_dict = variant.get("hotspots", [{}])[0]
-        if hotspot_dict:
-            for hotspot_key, hotspot_elem in hotspot_dict.items():
-                if any("COS" in elem for elem in hotspot_elem):
-                    variant.setdefault("INFO", {}).setdefault("HOTSPOT", []).append(hotspot_key)
-        hotspots.append(variant)
-    return hotspots
+        hotspot_records = variant.get("hotspots") or []
+        hotspot_dict = hotspot_records[0] if hotspot_records else {}
+        if isinstance(hotspot_dict, dict):
+            matched_hotspots = []
+            for hotspot_key, hotspot_elements in hotspot_dict.items():
+                elements = (
+                    hotspot_elements
+                    if isinstance(hotspot_elements, (list, tuple, set))
+                    else [hotspot_elements]
+                )
+                if any("COS" in str(element) for element in elements if element is not None):
+                    matched_hotspots.append(hotspot_key)
+            if matched_hotspots:
+                hydrated_hotspots = variant.setdefault("INFO", {}).setdefault("HOTSPOT", [])
+                hydrated_hotspots.extend(
+                    key for key in matched_hotspots if key not in hydrated_hotspots
+                )
+        hydrated_variants.append(variant)
+    return hydrated_variants
 
 
 def filter_variants_for_report(

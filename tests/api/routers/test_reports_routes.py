@@ -28,7 +28,7 @@ def _user(username: str = "tester", role: str = "admin") -> ApiUser:
         role=role,
         roles=[role],
         access_level=99,
-        permissions=["report:preview", "report:create"],
+        permissions=["report:preview", "report:create", "report:view"],
         asp_ids=["WGS"],
         asp_groups=["dna", "rna"],
         envs=["dev"],
@@ -48,6 +48,37 @@ def test_report_validation_rejects_analyte_that_does_not_match_sample_modality()
 
     assert exc_info.value.status_code == 422
     assert "RNA report endpoint" in str(exc_info.value.details)
+
+
+def test_list_saved_reports_returns_access_scoped_library(monkeypatch):
+    """Return the report-library service payload without invoking report generation."""
+
+    class StubService:
+        def list_payload(self, **kwargs):
+            assert kwargs["search"] == "TP53"
+            assert kwargs["page"] == 2
+            assert kwargs["per_page"] == 15
+            assert kwargs["user"].username == "tester"
+            return {
+                "reports": [],
+                "total": 16,
+                "page": 2,
+                "per_page": 15,
+                "has_next": False,
+            }
+
+    monkeypatch.setattr(reports.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = reports.list_saved_reports(
+        search="TP53",
+        page=2,
+        per_page=15,
+        user=_user(role="user"),
+        service=StubService(),
+    )
+
+    assert payload["total"] == 16
+    assert payload["reports"] == []
 
 
 def test_dna_report_contract_failure_is_returned_as_validation_error(monkeypatch):
@@ -298,6 +329,7 @@ def test_restful_report_routes_are_registered():
         The function result.
     """
     paths = {route.path for route in api_app.routes}
+    assert "/api/v1/reports" in paths
     assert "/api/v1/samples/{sample_id}/reports/{report_type}/preview" in paths
     assert "/api/v1/samples/{sample_id}/reports/{report_type}/preview/pdf" in paths
     assert "/api/v1/samples/{sample_id}/reports/{report_type}" in paths

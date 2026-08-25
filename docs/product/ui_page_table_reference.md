@@ -149,7 +149,9 @@ The dashboard is the operational entry point. It summarizes work that a reviewer
 
 Route: `/samples`
 
-The Samples page lists loaded samples visible to the user. It starts in production scope and can be switched to all permitted profiles. The date control can show all samples, samples added today, or rolling 24-hour, 3-day, 7-day, and 30-day windows. A custom range accepts inclusive local calendar dates; the browser converts those boundaries to UTC before querying the API. The row-limit control restricts each live or reported result set to 25, 50, 100, or 200 samples.
+The Samples page lists loaded samples visible to the user. It starts in production scope and can be switched to all permitted profiles. The date control can show all samples, samples added today, or rolling 24-hour, 3-day, 7-day, and 30-day windows. A custom range accepts inclusive local calendar dates; the browser converts those boundaries to UTC before querying the API. The **Maximum rows per page** control selects 25, 50, 100, or 200 rows without limiting the complete result set. Live and reported samples have independent page numbers.
+
+Search is evaluated by the API against the complete sample catalog available to the user before pagination. It matches sample, case, control, and case/control Clarity identifiers. The table total reports the exact number of matching samples, and **Previous** and **Next** navigate every matching page. Sorting is also applied by the API before pagination, including multi-column sorting.
 
 The default **Classic** layout shows the live and reported worklists on the same page. **Modern** provides a focused worklist with separate Live samples and Reported samples tabs. The choice is stored in `users.ui_settings.sample_list_layout` as `classic` or `modern`. An informational banner offers Modern until the user selects that layout for the first time. That acknowledgement is stored in `sample_list_modern_view_tried`, so returning to Classic does not restore the banner.
 
@@ -165,7 +167,7 @@ The layout preferences and default table page size are available from the authen
 | `analysis_modern_view_tried` | `true`, `false` | `false` | Records whether the analysis-layout introduction has been acknowledged. |
 | `sample_list_modern_view_tried` | `true`, `false` | `false` | Records whether the samples-layout introduction has been acknowledged. |
 
-Date, profile, live/reported, assay, search, and row-limit selections are kept in the URL. Refreshing the page or sharing the URL therefore preserves the worklist view without retaining a second copy of the result set in browser memory.
+Date, profile, live/reported, assay, search, rows-per-page, page, and sort selections are kept in the URL. Refreshing the page or sharing the URL therefore preserves the worklist view without retaining a second copy of the result set in browser memory.
 
 | Column | Data shown | Badges and symbols |
 | --- | --- | --- |
@@ -569,11 +571,23 @@ type-specific ISGL is selected, the active ASP `covered_genes` list is used. An
 ASP with an empty covered-gene scope is treated as unrestricted. Samples
 outside the user's assay or environment access are excluded.
 
-The numerator uses only `reported_variants` rows linked to the
-`latest_report_id` stored on each sample. An older report cannot increase the
-count when the mutation is absent from the current report. A profiled sample
-without a saved report remains in the denominator and contributes nothing to
-the numerator.
+The numerator is read from the `reported_variants` collection. It counts each
+eligible sample once when that sample has a Tier I-IV reported finding whose
+`gene`, `genes`, `gene1`, or `gene2` field matches the resolved gene. In the
+default view, the finding must belong to the report identified by the sample's
+`latest_report_id`. The `samples` collection supplies that report reference,
+the sample's ASP and environment, access scope, readiness, sex, and effective
+gene-filter context. ASP and ISGL documents are then used to determine whether
+the gene was profiled. A profiled sample without a saved report remains in the
+denominator and contributes nothing to the numerator.
+
+The cohort query reads the snapshot's explicit top-level identity and report
+context fields. It does not inspect a generic nested finding payload. Access
+and assay scope are established from the eligible sample set before snapshot
+lookup. The latest-report view then selects findings by exact `report_oid`;
+the historical view selects them by the eligible `sample_oid` and sample name.
+This prevents a valid historical snapshot from being excluded because a
+duplicated assay label is absent or differs from the sample's current metadata.
 
 Selecting **Include historical reports** queries all saved report versions for
 the same eligible and access-controlled sample cohort. A finding reported in
@@ -604,7 +618,26 @@ Routes:
 * `/reports`
 * `/samples/:id/reports/:reportId`
 
-The Reports page lists saved reports and provides access to saved clinical report output. A saved report contains its report snapshot, filter snapshot, ASPC identifier, report metadata, and reported finding references.
+The global Reports page is a read-only library. Reports are created only from
+the **Reports** area of a sample workspace, where the active sample,
+configuration, comments, and findings are available for clinical review. The
+global page cannot preview or create a new report.
+
+The library is newest first, paginated, searchable, and restricted by the
+current user's assay and environment access. Each row identifies the report,
+sample, assay context, author, creation time, and finding counts grouped by
+analysis type. Selecting a row opens the saved report together with the
+immutable `reported_variants` rows captured when that report was created.
+These rows can contain SNVs, CNVs, fusions, and translocations according to the
+report snapshot. The rendered HTML and downloadable artifact come from the
+corresponding document in `reports`; no current sample filtering or report
+generation is performed while viewing it.
+
+| Source | Information used |
+| --- | --- |
+| `reports` | Report ID, sample link, ASP/subpanel/environment, author, creation time, artifact paths, ASPC/filter snapshots, and reporting-rule provenance. |
+| `reported_variants` | Immutable typed findings linked by `report_oid`, including analysis type, nomenclature-aware identity, genes, tier, and report-time text. |
+| `samples` | Access-controlled sample lookup used when opening the report under its owning sample. |
 
 ## Assay Catalog
 

@@ -389,11 +389,28 @@ classification state at report creation time:
 - `created_on`
 
 The snapshot is intentionally smaller than the source finding document. Full
-payloads remain in their analysis collections. `finding_data` retains the
-small structured subset needed to understand a non-SNV result without copying
-the mutable source document wholesale. CNV profile images, coverage plots, and
-other rendered artifacts remain in the report HTML/PDF and sample file
-metadata; they are not finding rows.
+payloads remain in their analysis collections. The snapshot contract does not
+contain a generic payload field: every retained report-time value has a named,
+typed field. This keeps cohort queries indexable and prevents an unvalidated
+nested object from becoming a second finding schema.
+
+The shared report context is stored directly on every row: `report_id`,
+`report_num`, `report_oid`, `sample_name`, `sample_oid`, `assay`,
+`assay_group`, `subpanel`, `environment`, `analysis_type`, and
+`analysis_intent`. Analysis-specific values use the following fields:
+
+| Finding | Named snapshot fields |
+| --- | --- |
+| SNV/INDEL | `gene`, `genes`, `transcript`, `hgvsc`, `hgvsp`, `genomic`, `nomenclature`, `variant`, `var_type`, `tier`, and annotation/comment references |
+| CNV | `gene`, `genes`, `region`, `chromosome`, `start`, `end`, `size`, `cnv_type`, `ratio`, `nprobes`, and `callers` |
+| Fusion | `gene1`, `gene2`, `genes`, `fusion`, `breakpoint_1`, `breakpoint_2`, `effect`, `spanning_pairs`, `spanning_reads`, `longest_anchor`, `callers`, `classification`, and reviewed `text` |
+| Translocation | `gene1`, `gene2`, `genes`, `source_id`, `chromosome`, `position`, `ref`, `alt`, `breakpoint`, `hgvsc`, `hgvsp`, and `effect` |
+| Biomarker | `biomarker` and structured `result` |
+| PGx | `gene`, `pgx_result`, `diplotype`, `phenotype`, `activity_score`, and `recommendation` |
+
+Fields that do not apply to a finding type remain absent or null. CNV profile
+images, coverage plots, and other rendered artifacts remain in the report
+HTML/PDF and sample file metadata; they are not finding rows.
 
 ## Collections Written On Save
 

@@ -83,7 +83,7 @@ def test_get_samples_does_not_restrict_the_omics_layer() -> None:
     assert {row["name"] for row in rows} == {"ready-dna", "ready-rna"}
 
 
-def test_gene_cohort_samples_are_ready_dna_samples_in_user_scope() -> None:
+def test_gene_cohort_samples_are_ready_samples_in_user_scope() -> None:
     handler = _handler_with_docs(
         {
             "name": "eligible-dna",
@@ -121,7 +121,7 @@ def test_gene_cohort_samples_are_ready_dna_samples_in_user_scope() -> None:
         environments=["production"],
     )
 
-    assert [row["name"] for row in rows] == ["eligible-dna"]
+    assert [row["name"] for row in rows] == ["eligible-dna", "rna-sample"]
 
 
 def test_get_samples_filters_by_added_utc_range() -> None:

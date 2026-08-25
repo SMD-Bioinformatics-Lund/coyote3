@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -40,15 +39,15 @@ def build_cnv_snapshot_rows(cnvs: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "gene": ", ".join(genes),
                 "genes": genes,
                 "region": f"{cnv.get('chr')}:{cnv.get('start')}-{cnv.get('end')}",
+                "chromosome": cnv.get("chr"),
+                "start": cnv.get("start"),
+                "end": cnv.get("end"),
                 "size": cnv.get("size"),
                 "cnv_type": cnv.get("type"),
                 "ratio": cnv.get("ratio"),
+                "nprobes": cnv.get("nprobes"),
                 "callers": list(dict.fromkeys(cnv.get("callers") or [])),
                 "created_on": created_on,
-                "finding_data": {
-                    key: cnv.get(key)
-                    for key in ("chr", "start", "end", "size", "ratio", "type", "nprobes")
-                },
             }
         )
     return rows
@@ -91,18 +90,16 @@ def build_translocation_snapshot_rows(
                 "genes": genes,
                 "gene1": genes[0] if genes else None,
                 "gene2": genes[1] if len(genes) > 1 else None,
+                "source_id": translocation.get("ID"),
+                "chromosome": translocation.get("CHROM"),
+                "position": translocation.get("POS"),
+                "ref": translocation.get("REF"),
+                "alt": translocation.get("ALT"),
                 "breakpoint": f"{translocation.get('CHROM')}:{translocation.get('POS')}",
                 "hgvsc": selected.get("HGVSc"),
                 "hgvsp": selected.get("HGVSp"),
                 "effect": selected.get("Annotation"),
                 "created_on": created_on,
-                "finding_data": {
-                    "id": translocation.get("ID"),
-                    "chrom": translocation.get("CHROM"),
-                    "position": translocation.get("POS"),
-                    "ref": translocation.get("REF"),
-                    "alt": translocation.get("ALT"),
-                },
             }
         )
     return rows
@@ -130,8 +127,7 @@ def build_biomarker_snapshot_rows(
                 "simple_id": simple_id,
                 "simple_id_hash": simple_id_hash,
                 "biomarker": name,
-                "result": json.dumps(values, default=str, sort_keys=True),
-                "finding_data": values,
+                "result": values,
                 "created_on": created_on,
             }
         )
@@ -169,9 +165,10 @@ def build_pgx_snapshot_rows(pgx_records: list[dict[str, Any]]) -> list[dict[str,
                 "simple_id_hash": simple_id_hash,
                 "gene": gene,
                 "pgx_result": result,
-                "finding_data": {
-                    key: value for key, value in record.items() if key not in {"_id", "SAMPLE_ID"}
-                },
+                "diplotype": record.get("diplotype"),
+                "phenotype": record.get("phenotype"),
+                "activity_score": record.get("activity_score"),
+                "recommendation": record.get("recommendation"),
                 "created_on": created_on,
             }
         )

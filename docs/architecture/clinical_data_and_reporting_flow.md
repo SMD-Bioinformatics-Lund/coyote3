@@ -430,10 +430,18 @@ use different identity names:
 | `annotation` | Current reusable classification or annotation text | `genomic` and `genomic_hash` |
 | `reported_variants` | Immutable evidence captured when a report is saved | `simple_id` and `simple_id_hash` |
 
-The report snapshot contract retains flat query fields such as `gene`,
-`transcript`, `hgvsc`, `hgvsp`, and `variant`. Its typed `finding_data` object
-contains the report-time evidence needed to reproduce the saved report. It is
-not the retired annotation-level `variant_data` shape.
+The report snapshot contract retains explicit query fields such as `gene`,
+`genes`, `gene1`, `gene2`, `transcript`, `hgvsc`, `hgvsp`, `genomic`,
+`nomenclature`, and `variant`. Type-specific report values also use named
+fields, for example `cnv_type` and `ratio` for CNVs or `breakpoint_1` and
+`spanning_reads` for fusions. There is no generic `finding_data` or retired
+annotation-level `variant_data` object in this contract.
+
+The source collection remains authoritative for the complete finding payload.
+`reported_variants` is the immutable, compact record of what was included in a
+specific saved report, together with the report-time identity, tier, assay,
+subpanel, environment, and analysis context required for traceability and
+cohort queries.
 
 Runtime report-history searches use only these current flat snapshot fields.
 They do not inspect old `var_p`, `var_c`, `var_g`, or nested `variant_data`

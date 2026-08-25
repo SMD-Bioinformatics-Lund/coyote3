@@ -56,6 +56,7 @@ def test_sample_repository_indexes_pagination_sorting_and_literal_search() -> No
             },
             {
                 "name": "CASE.2",
+                "case": {"clarity_id": "MATCHING_CLARITY"},
                 "asp_id": "panel_a",
                 "environment": "production",
                 "ingest_status": "ready",
@@ -69,6 +70,16 @@ def test_sample_repository_indexes_pagination_sorting_and_literal_search() -> No
                 "ingest_status": "ready",
                 "reported": True,
                 "time_added": now + timedelta(hours=1),
+                "latest_report_on": now - timedelta(days=1),
+            },
+            {
+                "name": "REPORTED_RECENTLY",
+                "asp_id": "panel_b",
+                "environment": "testing",
+                "ingest_status": "ready",
+                "reported": True,
+                "time_added": now - timedelta(days=30),
+                "latest_report_on": now,
             },
         ]
     )
@@ -86,12 +97,61 @@ def test_sample_repository_indexes_pagination_sorting_and_literal_search() -> No
         search_str="[1]",
         use_cache=False,
     )
+    matching_page = repository.get_samples_page(
+        user_assays=["panel_a"],
+        user_envs=["production"],
+        status="live",
+        report=False,
+        search_str="case",
+        sort="sample:asc",
+        limit=1,
+        offset=1,
+    )
+    clarity_match = repository.get_samples_page(
+        user_assays=None,
+        user_envs=None,
+        status="live",
+        report=False,
+        search_str="matching_clarity",
+        sort="",
+        limit=50,
+    )
+    reported_default = repository.get_samples_page(
+        user_assays=None,
+        user_envs=None,
+        status="done",
+        report=True,
+        search_str="",
+        sort="",
+        limit=50,
+    )
+    reported_added = repository.get_samples_page(
+        user_assays=None,
+        user_envs=None,
+        status="done",
+        report=True,
+        search_str="",
+        sort="added:desc",
+        limit=50,
+    )
 
     assert [row["name"] for row in page] == ["CASE[1]"]
     assert [row["name"] for row in literal] == ["CASE[1]"]
+    assert matching_page["total"] == 2
+    assert [row["name"] for row in matching_page["items"]] == ["CASE[1]"]
+    assert [row["name"] for row in clarity_match["items"]] == ["CASE.2"]
+    assert [row["name"] for row in reported_default["items"]] == [
+        "REPORTED_RECENTLY",
+        "OTHER",
+    ]
+    assert [row["name"] for row in reported_added["items"]] == [
+        "OTHER",
+        "REPORTED_RECENTLY",
+    ]
     indexes = adapter.samples_collection.index_information()
     assert "name_1" in indexes
     assert "ingest_status_1_omics_layer_1_asp_id_1_environment_1" in indexes
+    assert "reported_1_latest_report_on_-1" in indexes
 
 
 def test_sample_repository_update_and_missing_document_semantics(monkeypatch) -> None:

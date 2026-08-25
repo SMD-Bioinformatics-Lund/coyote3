@@ -23,6 +23,21 @@ from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import generate_sample_cache_key
 from api.infra.samples_cache import invalidate_samples_cache, samples_cache_version
 
+SAMPLE_LIST_SORT_FIELDS: dict[str, str] = {
+    "sample": "name",
+    "case_id": "case_id",
+    "case_clarity": "case.clarity_id",
+    "control": "control_id",
+    "control_clarity": "control.clarity_id",
+    "environment": "environment",
+    "asp_id": "asp_id",
+    "subpanel": "subpanel_id",
+    "pipeline": "pipeline",
+    "analysis": "ingest_status",
+    "added": "time_added",
+    "latest_reported": "latest_report_on",
+}
+
 
 # -------------------------------------------------------------------------
 # Class Definition
@@ -59,6 +74,11 @@ class SampleRepository(BaseRepository):
         col.create_index([("environment", 1)], name="environment_1", background=True)
         col.create_index([("reported", 1)], name="reported_1", background=True)
         col.create_index([("time_added", -1)], name="time_added_-1", background=True)
+        col.create_index(
+            [("reported", 1), ("latest_report_on", -1)],
+            name="reported_1_latest_report_on_-1",
+            background=True,
+        )
         col.create_index([("paired", 1)], name="paired_1", background=True)
         col.create_index(
             [("asp_id", 1), ("environment", 1), ("reported", 1)],
@@ -80,6 +100,72 @@ class SampleRepository(BaseRepository):
             name="ingest_status_1_omics_layer_1_asp_id_1_environment_1",
             background=True,
         )
+
+    @staticmethod
+    def _build_samples_query(
+        *,
+        user_assays: list | None,
+        user_envs: list | None,
+        report: bool,
+        search_str: str,
+        time_limit=None,
+        added_from=None,
+        added_until=None,
+    ) -> dict[str, Any]:
+        """Build the shared sample-list filter used for rows and totals."""
+        query: dict[str, Any] = {"ingest_status": "ready"}
+        if user_assays is not None:
+            query["asp_id"] = {"$in": user_assays}
+        if user_envs is not None:
+            query["environment"] = {"$in": user_envs}
+
+        clauses: list[dict[str, Any]] = []
+        if report:
+            query["reported"] = True
+            if time_limit:
+                query["latest_report_on"] = {"$gt": time_limit}
+        else:
+            clauses.append(
+                {
+                    "$or": [
+                        {"reported": {"$exists": False}},
+                        {"reported": False},
+                    ]
+                }
+            )
+
+        normalized_search = (search_str or "").strip()
+        if normalized_search:
+            literal_match = {"$regex": re.escape(normalized_search), "$options": "i"}
+            clauses.append(
+                {
+                    "$or": [
+                        {field: literal_match}
+                        for field in (
+                            "name",
+                            "case_id",
+                            "control_id",
+                            "case.id",
+                            "case.clarity_id",
+                            "control.id",
+                            "control.clarity_id",
+                        )
+                    ]
+                }
+            )
+
+        if clauses:
+            query["$and"] = clauses
+
+        if added_from is not None or added_until is not None:
+            added_range: dict[str, Any] = {}
+            if added_from is not None:
+                added_range["$gte"] = added_from
+            if added_until is not None:
+                added_range["$lt"] = added_until
+            query["time_added"] = added_range
+
+        return query
 
     def _query_samples(
         self,
@@ -108,34 +194,15 @@ class SampleRepository(BaseRepository):
             - If `report` is False, filters samples with reported = False or not present.
             - If `search_str` is provided, filters samples by name using regex.
         """
-        query: dict[str, Any] = {"ingest_status": "ready"}
-        if user_assays is not None:
-            query["asp_id"] = {"$in": user_assays}
-        if user_envs is not None:
-            query["environment"] = {"$in": user_envs}
-
-        if report:
-            query["reported"] = True
-            if time_limit:
-                query["latest_report_on"] = {"$gt": time_limit}
-        else:
-            query["$or"] = [
-                {"reported": {"$exists": False}},
-                {"reported": False},
-            ]
-
-        if search_str:
-            # Escape user input so search behaves as literal substring match,
-            # avoiding regex metacharacter abuse/ReDoS patterns.
-            query["name"] = {"$regex": re.escape(search_str)}
-
-        if added_from is not None or added_until is not None:
-            added_range: dict[str, Any] = {}
-            if added_from is not None:
-                added_range["$gte"] = added_from
-            if added_until is not None:
-                added_range["$lt"] = added_until
-            query["time_added"] = added_range
+        query = self._build_samples_query(
+            user_assays=user_assays,
+            user_envs=user_envs,
+            report=report,
+            search_str=search_str,
+            time_limit=time_limit,
+            added_from=added_from,
+            added_until=added_until,
+        )
 
         app_obj = self.adapter.app
         getattr(app_obj, "home_logger", app_obj.logger).debug(f"Sample query: {query}")
@@ -146,6 +213,65 @@ class SampleRepository(BaseRepository):
         if limit:
             cursor = cursor.limit(limit)
         return list(cursor)
+
+    def get_samples_page(
+        self,
+        *,
+        user_assays: list | None,
+        user_envs: list | None,
+        status: str,
+        report: bool,
+        search_str: str,
+        sort: str,
+        limit: int,
+        offset: int = 0,
+        time_limit=None,
+        added_from=None,
+        added_until=None,
+    ) -> dict[str, Any]:
+        """Return one sample page and its exact filtered total in one query."""
+        query = self._build_samples_query(
+            user_assays=user_assays,
+            user_envs=user_envs,
+            report=report,
+            search_str=search_str,
+            time_limit=time_limit,
+            added_from=added_from,
+            added_until=added_until,
+        )
+        app_obj = self.adapter.app
+        getattr(app_obj, "home_logger", app_obj.logger).debug(
+            "Sample page query (%s): %s", status, query
+        )
+        sort_spec: dict[str, int] = {}
+        for item in (sort or "").split(","):
+            field_id, _, direction = item.partition(":")
+            mongo_field = SAMPLE_LIST_SORT_FIELDS.get(field_id.strip())
+            if mongo_field:
+                sort_spec[mongo_field] = -1 if direction.strip().lower() == "desc" else 1
+        if not sort_spec:
+            sort_spec["latest_report_on" if report else "time_added"] = -1
+        if "_id" not in sort_spec:
+            sort_spec["_id"] = -1
+
+        result = list(
+            self.get_collection().aggregate(
+                [
+                    {"$match": query},
+                    {"$sort": sort_spec},
+                    {
+                        "$facet": {
+                            "items": [{"$skip": max(0, offset)}, {"$limit": limit}],
+                            "count": [{"$count": "total"}],
+                        }
+                    },
+                ]
+            )
+        )
+        page = result[0] if result else {}
+        count_rows = page.get("count") or []
+        total = int(count_rows[0].get("total") or 0) if count_rows else 0
+        return {"items": list(page.get("items") or []), "total": total}
 
     def get_samples(
         self,

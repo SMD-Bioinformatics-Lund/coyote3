@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 
-from api.contracts.schemas.base import _DocBase, _StrictDocBase
+from api.contracts.schemas.base import _DocBase, _StrictCollectionDocBase, _StrictDocBase
 from api.contracts.schemas.normalizers import normalize_ampersand_terms
 
 
@@ -217,6 +217,9 @@ class VariantsDoc(_DocBase):
     dbsnp_id: str | None = None
     pubmed_ids: list[str] = Field(default_factory=list)
     hotspots: list[dict[str, list[str]]] = Field(default_factory=list)
+    fp: str | bool = ""
+    irrelevant: str | bool = ""
+    interesting: str | bool = ""
 
     @field_validator("consequence_terms", mode="before")
     @classmethod
@@ -452,13 +455,21 @@ class PgxDoc(_DocBase):
     SAMPLE_ID: str
 
 
-class ReportedVariantsDoc(_DocBase):
+class ReportedVariantsDoc(_StrictCollectionDocBase):
+    """Immutable, explicitly typed finding included in a saved report."""
+
     report_id: str
+    report_num: int | None = None
     sample_name: str
 
     report_oid: Any
     sample_oid: Any
+    assay: str | None = None
+    assay_group: str | None = None
+    subpanel: str | None = None
+    environment: str | None = None
     analysis_type: str
+    analysis_intent: str | None = None
     finding_type: str | None = None
     var_oid: Any | None = None
     annotation_oid: Any | None = None
@@ -481,10 +492,55 @@ class ReportedVariantsDoc(_DocBase):
 
     var_type: str | None = None
     tier: int | None = None
-    finding_data: dict[str, Any] = Field(default_factory=dict)
+
+    # Copy-number snapshot fields.
+    region: str | None = None
+    chromosome: str | None = None
+    start: int | None = None
+    end: int | None = None
+    size: int | None = None
+    cnv_type: str | None = None
+    ratio: float | None = None
+    nprobes: int | None = None
+
+    # Structural-variant and fusion snapshot fields.
+    source_id: str | None = None
+    position: int | None = None
+    ref: str | None = None
+    alt: str | None = None
+    breakpoint: str | None = None
+    breakpoint_1: str | None = None
+    breakpoint_2: str | None = None
+    fusion: str | None = None
+    effect: Any | None = None
+    spanning_pairs: int | None = None
+    spanning_reads: int | None = None
+    longest_anchor: int | None = None
+    callers: list[str] = Field(default_factory=list)
+    classification: int | None = None
+    text: str | None = None
+
+    # Biomarker and pharmacogenomic snapshot fields.
+    biomarker: str | None = None
+    result: Any | None = None
+    pgx_result: Any | None = None
+    diplotype: str | None = None
+    phenotype: str | None = None
+    activity_score: Any | None = None
+    recommendation: Any | None = None
 
     created_by: str
     created_on: datetime
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_generic_finding_payload(cls, value: Any) -> Any:
+        if isinstance(value, dict) and "finding_data" in value:
+            raise ValueError(
+                "finding_data is not part of the reported finding contract; "
+                "store report-time values in their named fields"
+            )
+        return value
 
     @field_validator("tier")
     @classmethod

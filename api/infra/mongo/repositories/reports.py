@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from bson.objectid import ObjectId
@@ -29,6 +30,11 @@ class ReportRepository(BaseRepository):
         )
         col.create_index(
             [("sample_name", 1), ("time_created", -1)], name="sample_name_time", background=True
+        )
+        col.create_index(
+            [("asp_id", 1), ("environment", 1), ("time_created", -1)],
+            name="asp_environment_time",
+            background=True,
         )
 
     @staticmethod
@@ -104,6 +110,49 @@ class ReportRepository(BaseRepository):
         return self.get_collection().find_one(
             {"sample_oid": self._object_id(sample.get("_id")), "report_id": report_id}
         )
+
+    def list_reports_page(
+        self,
+        *,
+        asp_ids: list[str] | None,
+        environments: list[str] | None,
+        search: str = "",
+        page: int = 1,
+        per_page: int = 30,
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Return a newest-first page of report metadata within an access scope."""
+        query_parts: list[dict[str, Any]] = []
+        if asp_ids is not None:
+            query_parts.append({"asp_id": {"$in": asp_ids}})
+        if environments is not None:
+            query_parts.append({"environment": {"$in": environments}})
+        normalized_search = str(search or "").strip()
+        if normalized_search:
+            expression = {"$regex": re.escape(normalized_search), "$options": "i"}
+            query_parts.append(
+                {
+                    "$or": [
+                        {"report_id": expression},
+                        {"report_name": expression},
+                        {"sample_name": expression},
+                        {"author": expression},
+                        {"asp_id": expression},
+                        {"subpanel_id": expression},
+                    ]
+                }
+            )
+        query: dict[str, Any] = {"$and": query_parts} if query_parts else {}
+        safe_page = max(1, int(page))
+        safe_per_page = max(1, min(200, int(per_page)))
+        collection = self.get_collection()
+        total = int(collection.count_documents(query))
+        rows = list(
+            collection.find(query)
+            .sort([("time_created", -1), ("_id", -1)])
+            .skip((safe_page - 1) * safe_per_page)
+            .limit(safe_per_page)
+        )
+        return rows, total
 
     def delete_sample_reports(self, sample_oid: str) -> OperationResult:
         """Delete report metadata owned by a sample."""

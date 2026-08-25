@@ -87,6 +87,10 @@ def persist_report_and_snapshot(
         report_oid=report_oid,
         report_id=report_id,
         report_num=report_num,
+        assay=sample.get("asp_id") or sample.get("assay"),
+        assay_group=sample.get("asp_group") or sample.get("assay_group"),
+        subpanel=sample.get("subpanel_id") or sample.get("subpanel"),
+        environment=sample.get("environment") or sample.get("profile"),
         snapshot_rows=snapshot_rows or [],
         created_by=created_by,
     )

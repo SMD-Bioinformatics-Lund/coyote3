@@ -101,7 +101,9 @@ Primary sample listings use independent server-side pagination for live and
 reported cohorts.
 
 - **State Partitioning**: Navigating one dataset does not reset the cursor of the parallel list.
-- **Metadata**: Response payloads provide `has_next` flags to control interface control visibility.
+- **Complete Search Scope**: Search criteria are applied to the complete accessible sample catalog before page boundaries are calculated.
+- **Stable Ordering**: Multi-column sorting is applied before pagination so each page belongs to one deterministic result order.
+- **Metadata**: Response payloads provide exact totals and `has_next` flags to control pagination and result counts.
 
 ### Finding Table Pagination
 

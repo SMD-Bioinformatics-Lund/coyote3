@@ -20,6 +20,22 @@ class SampleRepositoryProtocol(Protocol):
         reload: bool = False,
     ) -> Iterable[dict[str, Any]]: ...
 
+    def get_samples_page(
+        self,
+        *,
+        user_assays: list[str] | None,
+        user_envs: list[str] | None,
+        status: str,
+        report: bool,
+        search_str: str,
+        sort: str,
+        limit: int,
+        offset: int = 0,
+        time_limit: Any = None,
+        added_from: Any = None,
+        added_until: Any = None,
+    ) -> dict[str, Any]: ...
+
     def count_live_samples_by_asp(
         self,
         *,

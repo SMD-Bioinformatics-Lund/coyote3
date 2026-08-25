@@ -598,7 +598,6 @@ class CommonQueryService:
         }
         raw_findings = self.reported_variant_repository.get_gene_cohort_findings(
             gene=symbol,
-            asp_ids=visible_asp_ids,
             limit=finding_limit,
             **query_scope,
         )

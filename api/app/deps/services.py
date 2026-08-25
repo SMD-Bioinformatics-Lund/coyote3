@@ -24,6 +24,7 @@ from api.application.notifications.service import NotificationService
 from api.application.public.catalog import PublicCatalogService
 from api.application.reporting.dna_workflow import DNAWorkflowService
 from api.application.reporting.report_builder import ReportService
+from api.application.reporting.report_library import ReportLibraryService
 from api.application.reporting.rna_workflow import RNAWorkflowService
 from api.application.resources.asp import AspService
 from api.application.resources.aspc import AspcService
@@ -126,7 +127,6 @@ def get_sample_catalog_service() -> SampleCatalogService:
     """Return the sample-catalog service."""
     return SampleCatalogService.from_store(
         get_store(),
-        reported_samples_search_limit=runtime_app.config.get("REPORTED_SAMPLES_SEARCH_LIMIT", 50),
         reports_base_path=runtime_app.config.get("REPORTS_BASE_PATH", ""),
     )
 
@@ -145,6 +145,11 @@ def get_dna_structural_service() -> DnaStructuralService:
 def get_report_service() -> ReportService:
     """Return the report service."""
     return ReportService()
+
+
+def get_report_library_service() -> ReportLibraryService:
+    """Return the read-only saved report library service."""
+    return ReportLibraryService.from_store(get_store())
 
 
 def get_user_service() -> UserService:

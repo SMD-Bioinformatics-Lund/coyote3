@@ -344,8 +344,8 @@ class AnnotationsRepository(BaseRepository):
                 variant["CHROM"], variant["POS"], variant["REF"], variant["ALT"]
             )
         selected_CSQ = variant.get("INFO", {}).get("selected_CSQ", {})
-        hgvsp = unquote(selected_CSQ.get("HGVSp", ""))
-        hgvsc = unquote(selected_CSQ.get("HGVSc", ""))
+        hgvsp = unquote(str(selected_CSQ.get("HGVSp") or ""))
+        hgvsc = unquote(str(selected_CSQ.get("HGVSc") or ""))
         identity_clauses = _small_variant_identity_clauses(
             hgvsp=hgvsp,
             hgvsc=hgvsc,
