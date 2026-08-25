@@ -468,10 +468,15 @@ class ReportedVariantsDoc(_DocBase):
     simple_id: str
     simple_id_hash: str
 
+    genes: list[str] = Field(default_factory=list)
     gene: str | None = None
+    gene1: str | None = None
+    gene2: str | None = None
     transcript: str | None = None
     hgvsc: str | None = None
     hgvsp: str | None = None
+    genomic: str | None = None
+    nomenclature: str | None = None
     variant: str | None = None
 
     var_type: str | None = None
@@ -495,7 +500,7 @@ class ReportedVariantsDoc(_DocBase):
     def validate_var_type(cls, v):
         if v is None:
             return v
-        allowed = {"SNV", "INDEL", "CNV", "FUSION"}
+        allowed = {"SNV", "INDEL", "CNV", "FUSION", "TRANSLOCATION", "BIOMARKER", "PGX"}
         if v not in allowed:
             raise ValueError(f"var_type must be one of {allowed}")
         return v

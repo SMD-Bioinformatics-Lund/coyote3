@@ -46,6 +46,7 @@ def _reported_variant_search_query(
         "variant",
         "hgvsp",
         "hgvsc",
+        "genomic",
         "simple_id",
         "simple_id_hash",
     ]
@@ -54,6 +55,7 @@ def _reported_variant_search_query(
         query: dict[str, Any] = {
             "$or": [
                 {"gene": regex},
+                {"genes": regex},
                 {"gene1": regex},
                 {"gene2": regex},
             ]
@@ -82,8 +84,11 @@ def _reported_variant_search_query(
                 {"simple_id": regex},
                 {"simple_id_hash": regex},
                 {"variant": regex},
+                {"genomic": regex},
             ]
         }
+    elif mode == "nomenclature":
+        query = {"nomenclature": regex}
     elif mode == "variant":
         query = {"$or": [{field: regex} for field in variant_fields]}
     elif mode == "author":
@@ -94,6 +99,9 @@ def _reported_variant_search_query(
         query = {
             "$or": [
                 {"gene": regex},
+                {"genes": regex},
+                {"gene1": regex},
+                {"gene2": regex},
                 {"transcript": regex},
                 {"created_by": regex},
                 {"subpanel": regex},
@@ -298,6 +306,11 @@ class ReportedVariantsRepository(BaseRepository):
 
         # Prevent duplicates: same variant cannot be recorded twice in the same report
         col.create_index(
+            [("genes", ASCENDING), ("tier", ASCENDING)],
+            name="ix_genes_tier",
+            background=True,
+        )
+        col.create_index(
             [
                 ("sample_oid", ASCENDING),
                 ("report_oid", ASCENDING),
@@ -353,6 +366,21 @@ class ReportedVariantsRepository(BaseRepository):
         col.create_index(
             [("gene", ASCENDING), ("hgvsc", ASCENDING), ("tier", ASCENDING)],
             name="ix_gene_hgvsc_tier",
+            background=True,
+        )
+        col.create_index(
+            [("gene1", ASCENDING), ("tier", ASCENDING)],
+            name="ix_gene1_tier",
+            background=True,
+        )
+        col.create_index(
+            [("gene2", ASCENDING), ("tier", ASCENDING)],
+            name="ix_gene2_tier",
+            background=True,
+        )
+        col.create_index(
+            [("nomenclature", ASCENDING), ("analysis_type", ASCENDING), ("tier", ASCENDING)],
+            name="ix_nomenclature_analysis_type_tier",
             background=True,
         )
 
@@ -420,14 +448,21 @@ class ReportedVariantsRepository(BaseRepository):
         limit: int = 10_000,
     ) -> list[dict[str, Any]]:
         """Return bounded report snapshots for exact reports or profiled samples."""
-        query: dict[str, Any] = {
-            "gene": gene,
-            "tier": {"$in": [1, 2, 3, 4]},
-        }
+        query_parts: list[dict[str, Any]] = [
+            {
+                "$or": [
+                    {"gene": gene},
+                    {"genes": gene},
+                    {"gene1": gene},
+                    {"gene2": gene},
+                ]
+            },
+            {"tier": {"$in": [1, 2, 3, 4]}},
+        ]
         if report_oids is not None:
             if not report_oids:
                 return []
-            query["report_oid"] = {"$in": report_oids}
+            query_parts.append({"report_oid": {"$in": report_oids}})
         else:
             sample_scope = []
             if sample_oids:
@@ -436,9 +471,10 @@ class ReportedVariantsRepository(BaseRepository):
                 sample_scope.append({"sample_name": {"$in": sample_names}})
             if not sample_scope:
                 return []
-            query["$or"] = sample_scope
+            query_parts.append({"$or": sample_scope})
         if asp_ids is not None:
-            query["assay"] = {"$in": asp_ids}
+            query_parts.append({"assay": {"$in": asp_ids}})
+        query: dict[str, Any] = {"$and": query_parts}
         projection = {
             "sample_name": 1,
             "sample_oid": 1,
@@ -449,11 +485,18 @@ class ReportedVariantsRepository(BaseRepository):
             "assay_group": 1,
             "subpanel": 1,
             "analysis_type": 1,
+            "finding_type": 1,
+            "nomenclature": 1,
             "tier": 1,
             "gene": 1,
+            "genes": 1,
+            "gene1": 1,
+            "gene2": 1,
             "variant": 1,
             "hgvsp": 1,
             "hgvsc": 1,
+            "genomic": 1,
+            "transcript": 1,
             "simple_id": 1,
             "simple_id_hash": 1,
             "created_on": 1,

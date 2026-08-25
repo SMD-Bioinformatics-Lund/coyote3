@@ -613,22 +613,29 @@ The matrix should support paged gene rows, search for a specific gene, filters f
 
 ## 18. Search
 
-Variant search uses annotation and reported-finding data to locate relevant variants across samples. Search should support gene symbol and variant fields such as HGVSc and HGVSp when those are mapped in the annotation collection.
+Tiered finding search uses `annotation` and `reported_variants` to locate
+reported small variants, CNVs, fusions, and translocations across samples. It
+supports gene and partner-gene searches, nomenclature, HGVSp, HGVSc, genomic
+identity, typed finding identity, transcript, assay, subpanel, author, and
+annotation text.
 
-Search output should include gene, variant/HGVS, class/tier, merged class text where available, assay-wise counts, sample/report links, and compact evidence text.
+Search output includes analysis type, applicable genes, nomenclature-specific
+identity fields, class/tier, merged class text where available, assay-wise
+counts, sample/report links, and compact evidence text. Links use stored
+annotation, sample, and report identifiers rather than display-text matching.
 
 The separate **Gene Cohort Explorer** summarizes one gene across the current
-user's accessible ready DNA samples. It reports assay-specific prevalence, tier
-distribution, sex distribution when sample sex is available, recurrent
-mutations, and linked sample evidence. Its denominator follows the effective
-SNV gene scope: selected SNV ISGLs first, then ASP covered genes, with an empty
-ASP scope treated as unrestricted. Findings come only from each sample's latest
-saved report snapshot by default. Reviewers can include all historical report
-versions; repeated occurrences of the same mutation in the same sample are then
-counted once, using the newest occurrence for tier summaries. This makes both
-views reproducible without presenting either as population incidence.
+user's accessible ready DNA and RNA samples. It reports assay-specific
+prevalence, tier distribution, analysis-type composition, sex distribution,
+recurrent findings, and linked sample evidence. Its denominator follows each
+enabled analysis type's effective gene scope: the type-specific ISGL first,
+then ASP covered genes, with an empty ASP scope treated as unrestricted.
+Findings come only from each sample's latest saved report snapshot by default.
+Reviewers can include all historical report versions; repeated occurrences of
+the same typed finding in one sample are counted once by analysis type,
+nomenclature-aware identity, and genes. The newest occurrence supplies its tier.
 The page presents assay prevalence, tier composition, sex-stratified
-prevalence, and recurrent mutations as plots before the detailed evidence
+prevalence, analysis-type composition, and recurrent findings as plots before the detailed evidence
 tables. Every plot supports PNG and SVG export, while CSV export contains the
 exact values used to draw it. Plot exports follow the selected latest-report or
 historical-report scope.

@@ -482,11 +482,13 @@ def _build_snapshot_rows(
                 "analysis_intent": intent,
                 "simple_id": simple_id,
                 "simple_id_hash": simple_id_hash,
+                "nomenclature": v.get("classification", {}).get("nomenclature") or "p",
                 "tier": v.get("classification", {}).get("class"),
                 "gene": sel.get("SYMBOL") or (v.get("gene") or None),
                 "transcript": sel.get("Feature") or v.get("selected_csq_feature"),
                 "hgvsp": sel.get("HGVSp") or v.get("hgvsp"),
                 "hgvsc": sel.get("HGVSc") or v.get("hgvsc"),
+                "genomic": simple_id,
                 "variant": v.get("classification", {}).get("variant"),
                 "created_on": now_utc,
             }

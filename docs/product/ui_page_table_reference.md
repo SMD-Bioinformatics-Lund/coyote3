@@ -504,44 +504,56 @@ CSQ payload.
 
 Route: `/variants/search`
 
-This page searches reported tiered variant annotations across samples.
+This page searches reported tiered clinical findings across samples. It uses
+the typed annotation and `reported_variants` contracts, so one result set can
+contain small variants, CNVs, fusions, and translocations.
 
 | Control or column | Information shown |
 | --- | --- |
-| Search mode | Variant, gene symbol, HGVSp, HGVSc, genomic, transcript, subpanel, author, annotation text, or all fields. |
+| Search mode | Finding identity, gene symbol, HGVSp, HGVSc, genomic, transcript, nomenclature, subpanel, author, annotation text, or all fields. |
 | Include annotation text | Includes stored annotation/report text in the search query. |
 | Assays | Filters results by assay. |
 | Tier cards | Current result count by tier. |
 | Assay distribution | Tier count distribution by assay for the current search. |
 | Tier | Reported tier badge. |
-| Gene | Gene symbol for the reported finding. |
-| Variant | HGVS or compact variant string, expandable for long values. |
+| Type | Normalized analysis type: SNV, CNV, FUSION, or TRANSLOCATION. |
+| Gene(s) | One gene for SNV/CNV findings or both partner genes for fusions and translocations. |
+| Finding | Nomenclature-aware primary identity. Small variants prefer the matching HGVS field; CNVs, fusions, and translocations use their typed `variant` identity. |
+| Nomenclature | `p`, `c`, `g`, `cn`, `f`, or `t`, identifying which annotation contract applies. |
+| HGVSp, HGVSc, genomic, transcript | Small-variant identity fields. They remain empty where they are not applicable. |
 | Assay | Assay or assay group. |
 | Subpanel | Subpanel/diagnosis context. |
 | Author | User who created the annotation/classification. |
 | Annotation | Stored annotation text, merged with class context when applicable. |
-| Samples | Samples and report links where this reported variant appears. |
+| Samples | Samples and immutable report links where this reported finding appears. |
+
+Search results originate in `annotation`. Sample/report links are resolved
+through `reported_variants.annotation_oid`, `sample_oid`, and `report_oid`;
+`report_id` remains the report's logical identifier. Links are not inferred
+from display text. The snapshot preserves nomenclature, analysis type,
+applicable genes, and typed identity fields.
 
 ## Gene Cohort Explorer
 
 Route: `/variants/gene-cohort`
 
-The Gene Cohort Explorer provides a gene-centered summary across samples the
-current user is permitted to access. It complements the tiered variant search;
-it does not replace or change the existing result table.
+The Gene Cohort Explorer provides a gene-centered summary across DNA and RNA
+samples the current user is permitted to access. It combines reported small
+variants, CNVs, fusions, and translocations without replacing the tiered search.
 
 | Area | Information shown |
 | --- | --- |
 | Gene identity | Resolved HGNC symbol and HGNC identifier. Previous symbols and aliases resolve to the approved symbol. |
-| Include historical reports | Changes the numerator from the latest report to all saved report versions. Repeated occurrences of the same mutation in the same sample are counted once. |
-| Profiled samples | Ready DNA samples in which the gene was eligible for SNV review. |
-| Finding prevalence | Samples whose reports in the selected latest or historical scope contain a tiered mutation in the gene, divided by profiled samples. |
-| Cohort visual summary | Exportable plots for assay prevalence, tier composition, sex-stratified prevalence, and the ten most recurrent mutations. |
+| Include historical reports | Changes the numerator from the latest report to all saved report versions. Repeated occurrences of the same typed finding in the same sample are counted once. |
+| Profiled samples | Ready samples in which the gene was eligible for at least one enabled finding type. |
+| Finding prevalence | Samples whose reports contain a typed reported finding involving the gene, divided by profiled samples. |
+| Cohort visual summary | Exportable plots for assay prevalence, tier composition, analysis-type composition, sex-stratified prevalence, and the ten most recurrent findings. |
 | Assay prevalence | The same numerator and denominator grouped by ASP. |
-| Tier distribution | Tier I-IV observations from the selected report scope after sample-mutation deduplication. |
+| Tier distribution | Tier I-IV observations from the selected report scope after sample-and-finding deduplication. |
+| Analysis types | Observation counts for SNV, CNV, fusion, and translocation findings. |
 | Sex distribution | Prevalence grouped by the sample-level `sex` value. Missing values remain visible as **Not recorded**. |
-| Recurrent mutations | Distinct genomic or HGVS mutation identities ordered by affected sample count. |
-| Samples | Linked sample workspaces, assay context, sex, tiers, and reported mutation labels. |
+| Recurrent findings | Distinct nomenclature-aware identities ordered by affected sample count. |
+| Samples | Linked sample workspaces, assay context, sex, tiers, finding types, and reported finding labels. |
 
 Each cohort plot can be downloaded as PNG or SVG for presentation and review,
 or as CSV for independent inspection of the plotted values. Export filenames
@@ -551,11 +563,11 @@ fast visual summary; the tables below them remain the detailed evidence view.
 
 ### Profiled-sample denominator
 
-The denominator is derived per sample. A selected SNV ISGL defines the gene
-scope when one is applied. Otherwise, the active ASP `covered_genes` list is
-used. An ASP with an empty covered-gene scope is treated as unrestricted, as in
-a genome-wide analysis. RNA samples and samples outside the user's assay or
-environment access are excluded.
+The denominator is derived per sample and enabled analysis type. A selected
+SNV, CNV, or fusion/translocation ISGL defines that type's gene scope. If no
+type-specific ISGL is selected, the active ASP `covered_genes` list is used. An
+ASP with an empty covered-gene scope is treated as unrestricted. Samples
+outside the user's assay or environment access are excluded.
 
 The numerator uses only `reported_variants` rows linked to the
 `latest_report_id` stored on each sample. An older report cannot increase the
@@ -564,17 +576,16 @@ without a saved report remains in the denominator and contributes nothing to
 the numerator.
 
 Selecting **Include historical reports** queries all saved report versions for
-the same eligible and access-controlled sample cohort. A mutation reported in
-several versions of one sample report contributes one observation, not one
-observation per report. Mutation identity uses the stored genomic `simple_id`
-when available and then HGVS identity. The newest occurrence supplies the tier
-shown in tier and sample summaries. A mutation removed from the latest report
-therefore appears only in the historical view. The profiled-sample denominator
-does not change when report history is enabled.
+the same eligible and access-controlled sample cohort. A finding reported in
+several versions of one sample report contributes one observation, not one per
+report. Deduplication uses analysis type, nomenclature-aware identity, and
+involved genes. The newest occurrence supplies the tier shown in summaries. A
+finding removed from the latest report appears only in the historical view.
+The profiled-sample denominator does not change.
 
 The request uses one projected sample query followed by set-based ASP, ISGL,
-and reported-finding queries. Compound indexes cover the ready DNA sample scope
-and the gene/report/tier lookup, so the service does not issue one query per
+and reported-finding queries. Compound indexes cover the ready sample scope and
+the gene/report/tier lookup, so the service does not issue one query per
 sample. Reported observations and returned sample details are bounded. The page
 shows a truncation warning if either response limit is reached; figures from a
 truncated result must not be used as complete cohort statistics.

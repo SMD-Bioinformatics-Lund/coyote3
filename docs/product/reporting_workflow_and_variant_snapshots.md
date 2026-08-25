@@ -54,8 +54,22 @@ reporting layer expects the sample to contain enough metadata to resolve:
 - report status flags: `reported`, `latest_report_id`, `latest_report_on`
 
 The sample is not the long-term store for report rows. After a report is saved,
-clinical report metadata is stored in `reports`, and per-variant report evidence
+clinical report metadata is stored in `reports`, and per-finding report evidence
 is stored in `reported_variants`.
+
+Each snapshot row is typed by nomenclature and analysis type:
+
+| Nomenclature | Analysis type | Authoritative identity fields |
+| --- | --- | --- |
+| `p`, `c`, `g` | SNV | `variant`, `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, `gene`, and transcript when available |
+| `cn` | CNV | `variant` and `gene`/`genes` |
+| `f` | FUSION | `variant`, `gene1`, `gene2`, and `genes` |
+| `t` | TRANSLOCATION | `variant`, `gene1`, `gene2`, and `genes` |
+
+The row also stores `annotation_oid`, `sample_oid`, and `report_oid` as MongoDB
+references, plus the logical `report_id`. Search and cohort views use the OID
+references to join an annotation to the exact sample and immutable report in
+which it was used. They do not reconstruct links from HGVS text or gene names.
 
 ## ASPC And Filter Resolution
 
@@ -177,7 +191,7 @@ Saved outputs:
 - HTML report file on disk
 - PDF report file on disk
 - one `reports` document
-- many `reported_variants` documents, one per reportable finding snapshot
+- many `reported_variants` documents, one per reportable typed finding snapshot
 - sample flags updated to show that the sample has a saved report
 
 ## Report Artifact Rules

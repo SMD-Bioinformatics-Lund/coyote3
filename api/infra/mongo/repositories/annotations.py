@@ -78,6 +78,8 @@ def _annotation_search_query(
         query = {"$or": [{"hgvsc": regex}]}
     elif mode == "genomic":
         query = {"$or": [{"genomic": regex}, {"genomic_hash": regex}]}
+    elif mode == "nomenclature":
+        query = {"nomenclature": regex}
     elif mode == "variant":
         query = {"$or": [{field: regex} for field in variant_fields]}
     elif mode == "author":
@@ -771,16 +773,22 @@ class AnnotationsRepository(BaseRepository):
         # --- dedupe keys ---
         # total: dedupe across assays (avoid counting same variant multiple times)
         total_variant_key = {
+            "nomenclature": "$nomenclature",
             "variant": "$variant",
             "gene": "$gene",
+            "gene1": "$gene1",
+            "gene2": "$gene2",
             "transcript": "$transcript",
         }
 
         # by_assay: dedupe within assay (same variant can be re-tiered in same assay)
         per_assay_variant_key = {
             "assay": "$assay",
+            "nomenclature": "$nomenclature",
             "variant": "$variant",
             "gene": "$gene",
+            "gene1": "$gene1",
+            "gene2": "$gene2",
             "transcript": "$transcript",
         }
 

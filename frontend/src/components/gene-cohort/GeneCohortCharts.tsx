@@ -30,8 +30,9 @@ type SexBreakdown = Breakdown & {
   sex: string
 }
 
-type RecurrentMutation = {
+type RecurrentFinding = {
   identity: string
+  analysis_type: string
   hgvsp?: string
   hgvsc?: string
   sample_count: number
@@ -56,15 +57,17 @@ export function GeneCohortCharts({
   includeHistory,
   assays,
   tierCounts,
+  analysisTypeCounts,
   sexDistribution,
-  recurrentVariants,
+  recurrentFindings,
 }: {
   gene: string
   includeHistory: boolean
   assays: AssayBreakdown[]
   tierCounts: Record<string, number>
+  analysisTypeCounts: Record<string, number>
   sexDistribution: SexBreakdown[]
-  recurrentVariants: RecurrentMutation[]
+  recurrentFindings: RecurrentFinding[]
 }) {
   const reportScope = includeHistory ? "historical_reports" : "latest_reports"
   const filenamePrefix = `${gene.toLowerCase()}_${reportScope}`
@@ -86,9 +89,13 @@ export function GeneCohortCharts({
     finding_samples: row.finding_samples,
     profiled_samples: row.profiled_samples,
   }))
-  const recurrentData = recurrentVariants.slice(0, 10).map((row) => ({
-    mutation: row.hgvsp || row.hgvsc || row.identity,
-    genomic_identity: row.identity,
+  const analysisTypeData = Object.entries(analysisTypeCounts).map(([analysis_type, observations]) => ({
+    analysis_type,
+    observations,
+  }))
+  const recurrentData = recurrentFindings.slice(0, 10).map((row) => ({
+    finding: row.identity,
+    analysis_type: row.analysis_type,
     affected_samples: row.sample_count,
     observations: row.observation_count,
     tiers: row.tiers.join(" | "),
@@ -105,7 +112,7 @@ export function GeneCohortCharts({
       <div className="surface-panel-heading">
         <h2 id="cohort-visual-summary-heading" className="text-base font-semibold">Cohort visual summary</h2>
         <p className="type-caption text-muted-foreground">
-          Prevalence and reported mutation patterns for {gene}. Download controls export each plot or its underlying rows.
+          Prevalence and reported clinical finding patterns for {gene}. Download controls export each plot or its underlying rows.
         </p>
       </div>
 
@@ -134,7 +141,7 @@ export function GeneCohortCharts({
         <div className="h-[22rem] min-w-0">
           <ChartPanel
             title="Reported tier composition"
-            description="Distribution of deduplicated reported mutation observations."
+            description="Distribution of deduplicated reported finding observations."
             filename={`${filenamePrefix}_tier_distribution`}
             data={tierData}
           >
@@ -173,9 +180,9 @@ export function GeneCohortCharts({
 
         <div className="h-[22rem] min-w-0">
           <ChartPanel
-            title="Top recurrent mutations"
-            description="Up to ten mutation identities ranked by affected samples."
-            filename={`${filenamePrefix}_recurrent_mutations`}
+            title="Top recurrent findings"
+            description="Up to ten typed finding identities ranked by affected samples."
+            filename={`${filenamePrefix}_recurrent_findings`}
             data={recurrentData}
           >
             {recurrentData.length ? (
@@ -183,12 +190,33 @@ export function GeneCohortCharts({
                 <BarChart data={recurrentData} layout="vertical" margin={{ top: 8, right: 18, left: 18, bottom: 8 }}>
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" opacity={0.55} horizontal={false} />
                   <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
-                  <YAxis type="category" dataKey="mutation" width={126} tick={{ fontSize: 10, fill: "var(--foreground)" }} />
+                  <YAxis type="category" dataKey="finding" width={126} tick={{ fontSize: 10, fill: "var(--foreground)" }} />
                   <Tooltip cursor={{ fill: "var(--chart-tooltip-cursor)" }} contentStyle={tooltipStyle} />
                   <Bar dataKey="affected_samples" name="Affected samples" fill="var(--color-germline)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            ) : <p className="type-body grid h-full place-items-center text-muted-foreground">No recurrent mutations are available.</p>}
+            ) : <p className="type-body grid h-full place-items-center text-muted-foreground">No recurrent findings are available.</p>}
+          </ChartPanel>
+        </div>
+
+        <div className="h-[22rem] min-w-0 xl:col-span-2">
+          <ChartPanel
+            title="Findings by analysis type"
+            description="Deduplicated reported observations grouped as SNV, CNV, fusion, or translocation."
+            filename={`${filenamePrefix}_analysis_types`}
+            data={analysisTypeData}
+          >
+            {analysisTypeData.length ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={analysisTypeData} margin={{ top: 8, right: 18, left: 0, bottom: 8 }}>
+                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" opacity={0.55} vertical={false} />
+                  <XAxis dataKey="analysis_type" tick={{ fontSize: 10, fill: "var(--foreground)" }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+                  <Tooltip cursor={{ fill: "var(--chart-tooltip-cursor)" }} contentStyle={tooltipStyle} />
+                  <Bar dataKey="observations" name="Reported observations" fill="var(--color-panel)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : <p className="type-body grid h-full place-items-center text-muted-foreground">No finding types are available.</p>}
           </ChartPanel>
         </div>
       </div>

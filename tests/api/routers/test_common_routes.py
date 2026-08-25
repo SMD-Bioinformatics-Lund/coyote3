@@ -92,7 +92,7 @@ def test_common_gene_cohort_read_applies_user_scope(monkeypatch):
                 "tier_counts": {},
                 "assays": [],
                 "sex_distribution": [],
-                "recurrent_variants": [],
+                "recurrent_findings": [],
                 "samples": [],
                 "truncated": False,
             }
@@ -126,7 +126,7 @@ def test_common_gene_cohort_read_can_include_report_history(monkeypatch):
                 "tier_counts": {},
                 "assays": [],
                 "sex_distribution": [],
-                "recurrent_variants": [],
+                "recurrent_findings": [],
                 "samples": [],
                 "truncated": False,
             }

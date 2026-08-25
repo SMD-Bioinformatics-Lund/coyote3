@@ -282,7 +282,7 @@ class SampleRepository(BaseRepository):
         environments: list[str] | None,
     ) -> list[dict[str, Any]]:
         """Return ready samples with only fields needed for gene cohort denominators."""
-        query: dict[str, Any] = {"ingest_status": "ready", "omics_layer": "dna"}
+        query: dict[str, Any] = {"ingest_status": "ready"}
         if asp_ids is not None:
             query["asp_id"] = {"$in": asp_ids}
         if environments is not None:
@@ -298,6 +298,7 @@ class SampleRepository(BaseRepository):
             "omics_layer": 1,
             "reported": 1,
             "latest_report_id": 1,
+            "files": 1,
         }
         return list(self.get_collection().find(query, projection))
 

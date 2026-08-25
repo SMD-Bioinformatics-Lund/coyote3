@@ -24,7 +24,17 @@ function mount(route = "/variants/search") {
 }
 
 const response = {
-  docs: [{ _id: "A1", gene: "TP53", tier: 1 }],
+  docs: [{
+    _id: "A1",
+    analysis_type: "FUSION",
+    nomenclature: "f",
+    genes: ["KMT2A", "AFF1"],
+    gene1: "KMT2A",
+    gene2: "AFF1",
+    identity: "KMT2A::AFF1",
+    variant: "KMT2A::AFF1",
+    tier: 1,
+  }],
   assay_choices: ["hematology", "solid"],
   tier_stats: {
     total: { tier1: 10, tier2: 3, tier3: 2, tier4: 1 },
@@ -56,7 +66,7 @@ describe("TieredVariantSearch", () => {
   it("applies trimmed search criteria and selected assays only on submit", async () => {
     mount()
     await screen.findByText("Results: 1")
-    fireEvent.change(screen.getByPlaceholderText("Search gene, variant, annotation..."), { target: { value: "  BRAF  " } })
+    fireEvent.change(screen.getByPlaceholderText("Search gene, finding, annotation..."), { target: { value: "  BRAF  " } })
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "hgvsp" } })
     fireEvent.click(screen.getByLabelText("solid"))
     fireEvent.click(screen.getByRole("button", { name: "Search" }))
@@ -76,13 +86,39 @@ describe("TieredVariantSearch", () => {
     expect(within(details as HTMLElement).getByRole("rowheader", { name: "hematology" })).toBeInTheDocument()
   })
 
+  it("provides nomenclature-specific columns for typed clinical findings", async () => {
+    mount()
+    await screen.findByText("Results: 1")
+
+    const latestProps = mocks.table.mock.calls.at(-1)?.[0] as {
+      columns: Array<{ id?: string; header?: string }>
+      data: Array<Record<string, unknown>>
+    }
+    expect(latestProps.columns.map((column) => column.id)).toEqual(expect.arrayContaining([
+      "analysis_type",
+      "genes",
+      "identity",
+      "nomenclature",
+      "hgvsp",
+      "hgvsc",
+      "genomic",
+      "transcript",
+      "samples",
+    ]))
+    expect(latestProps.data[0]).toMatchObject({
+      analysis_type: "FUSION",
+      nomenclature: "f",
+      identity: "KMT2A::AFF1",
+    })
+  })
+
   it("clears all criteria and returns to variant mode", async () => {
     mount("/variants/search?search_str=TP53&search_mode=gene&assays=hematology&include_annotation_text=true")
     await screen.findByDisplayValue("TP53")
     await screen.findByText("Results: 1")
     fireEvent.click(screen.getByRole("button", { name: "Clear" }))
 
-    expect(screen.getByPlaceholderText("Search gene, variant, annotation...")).toHaveValue("")
+    expect(screen.getByPlaceholderText("Search gene, finding, annotation...")).toHaveValue("")
     expect(screen.getByRole("combobox")).toHaveValue("variant")
     expect(screen.getByLabelText("Include annotation text")).not.toBeChecked()
     await waitFor(() => expect(screen.getByRole("checkbox", { name: "hematology" })).not.toBeChecked())

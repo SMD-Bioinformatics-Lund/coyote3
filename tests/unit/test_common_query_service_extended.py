@@ -318,6 +318,41 @@ def test_tiered_search_without_search_uses_all_assays_and_skips_stats() -> None:
     assert "text" not in result["docs"][-1]
 
 
+def test_tiered_search_normalizes_fusion_identity_and_genes() -> None:
+    class FusionAnnotations(AnnotationRepository):
+        def find_variants_by_search_string(self, **kwargs):
+            self.search = kwargs
+            return [
+                {
+                    "_id": "fusion-annotation",
+                    "nomenclature": "f",
+                    "variant": "KMT2A::AFF1",
+                    "gene1": "KMT2A",
+                    "gene2": "AFF1",
+                    "class": 1,
+                }
+            ]
+
+    service = _service(
+        annotation_repository=FusionAnnotations(),
+        reported_variant_repository=SimpleNamespace(
+            find_reported_variants_by_search_string=lambda **kwargs: [],
+            list_reported_variants=lambda query: [],
+        ),
+    )
+    result = service.tiered_variant_search_payload(
+        search_str="KMT2A",
+        search_mode="gene",
+        include_annotation_text=False,
+        assays=None,
+        limit_entries=50,
+    )
+
+    assert result["docs"][0]["analysis_type"] == "FUSION"
+    assert result["docs"][0]["identity"] == "KMT2A::AFF1"
+    assert result["docs"][0]["genes"] == ["KMT2A", "AFF1"]
+
+
 def test_gene_cohort_uses_effective_scope_latest_report_and_visible_samples() -> None:
     samples = [
         {
@@ -425,11 +460,11 @@ def test_gene_cohort_uses_effective_scope_latest_report_and_visible_samples() ->
         "finding_samples": 2,
         "prevalence_percent": 66.67,
         "reported_observations": 2,
-        "unique_variants": 1,
+        "unique_findings": 1,
     }
     assert result["tier_counts"] == {"1": 0, "2": 2, "3": 0, "4": 0}
-    assert result["recurrent_variants"][0]["sample_count"] == 2
-    assert result["recurrent_variants"][0]["hgvsp"] == "p.Arg175His"
+    assert result["recurrent_findings"][0]["sample_count"] == 2
+    assert result["recurrent_findings"][0]["hgvsp"] == "p.Arg175His"
     assert {row["sex"] for row in result["sex_distribution"]} == {
         "female",
         "male",
@@ -520,11 +555,109 @@ def test_gene_cohort_history_counts_each_sample_mutation_once() -> None:
         "finding_samples": 1,
         "prevalence_percent": 100.0,
         "reported_observations": 2,
-        "unique_variants": 2,
+        "unique_findings": 2,
     }
     assert result["tier_counts"] == {"1": 0, "2": 1, "3": 1, "4": 0}
     assert result["denominator"]["report_scope"] == "historical"
     assert result["denominator"]["duplicate_report_observations_removed"] == 1
+
+
+def test_gene_cohort_combines_target_scoped_cnv_and_fusion_findings() -> None:
+    samples = [
+        {
+            "_id": "dna-1",
+            "name": "DNA1",
+            "asp_id": "dna_panel",
+            "environment": "production",
+            "omics_layer": "dna",
+            "analysis_intents": ["somatic"],
+            "latest_report_id": "dna-report",
+            "filters": {"somatic": {"cnv": {"cnvlists": ["tp53_cnv"]}}},
+        },
+        {
+            "_id": "rna-1",
+            "name": "RNA1",
+            "asp_id": "rna_panel",
+            "environment": "production",
+            "omics_layer": "rna",
+            "analysis_intents": ["somatic"],
+            "latest_report_id": "rna-report",
+            "filters": {"somatic": {"fusion": {"fusionlists": ["tp53_fusion"]}}},
+        },
+    ]
+    findings = [
+        {
+            "sample_name": "DNA1",
+            "report_oid": "dna-report",
+            "analysis_type": "CNV",
+            "nomenclature": "cn",
+            "variant": "17:7565097-7590856:loss",
+            "gene": "TP53",
+            "tier": 2,
+        },
+        {
+            "sample_name": "RNA1",
+            "report_oid": "rna-report",
+            "analysis_type": "FUSION",
+            "nomenclature": "f",
+            "variant": "TP53::ETV6",
+            "gene1": "TP53",
+            "gene2": "ETV6",
+            "tier": 1,
+        },
+    ]
+    service = _service(
+        sample_repository=SimpleNamespace(get_gene_cohort_samples=lambda **kwargs: samples),
+        assay_panel_repository=SimpleNamespace(
+            get_asps_for_gene_scope=lambda asp_ids: {
+                "dna_panel": {
+                    "asp_id": "dna_panel",
+                    "asp_family": "wgs",
+                    "covered_genes": [],
+                },
+                "rna_panel": {
+                    "asp_id": "rna_panel",
+                    "asp_family": "wts",
+                    "covered_genes": [],
+                },
+            }
+        ),
+        gene_list_repository=SimpleNamespace(
+            get_isgl_by_ids=lambda ids: {
+                "tp53_cnv": {
+                    "is_active": True,
+                    "list_type": ["cnv"],
+                    "genes": ["TP53"],
+                },
+                "tp53_fusion": {
+                    "is_active": True,
+                    "list_type": ["fusion"],
+                    "genes": ["TP53"],
+                },
+            }
+        ),
+        reported_variant_repository=SimpleNamespace(
+            get_gene_cohort_findings=lambda **kwargs: findings
+        ),
+    )
+
+    result = service.gene_cohort_payload(
+        gene_id="TP53",
+        visible_asp_ids=None,
+        visible_environments=["production"],
+    )
+
+    assert result["summary"]["profiled_samples"] == 2
+    assert result["summary"]["finding_samples"] == 2
+    assert result["analysis_type_counts"] == {"CNV": 1, "FUSION": 1}
+    assert {row["identity"] for row in result["recurrent_findings"]} == {
+        "17:7565097-7590856:loss",
+        "TP53::ETV6",
+    }
+    assert {row["analysis_type"] for row in result["recurrent_findings"]} == {
+        "CNV",
+        "FUSION",
+    }
 
 
 def test_gene_cohort_excludes_selected_list_without_gene() -> None:

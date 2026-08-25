@@ -168,7 +168,7 @@ def test_reported_variant_gene_search_uses_only_flat_snapshot_fields():
 
     assert query is not None
     fields = {next(iter(item)) for item in _first_or_clause(query)}
-    assert fields == {"gene", "gene1", "gene2"}
+    assert fields == {"gene", "genes", "gene1", "gene2"}
     assert {
         "$or": [{"assay": {"$in": ["hema_gmsv1"]}}, {"assay_group": {"$in": ["hema_gmsv1"]}}]
     } in _and_parts(query)

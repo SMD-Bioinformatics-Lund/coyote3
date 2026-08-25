@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { TableBadge } from "@/components/ui/table-badge"
 import { api } from "@/lib/api"
+import { valueBadgeClass } from "@/lib/badge-colors"
 import { sampleDetailPath } from "@/lib/sample-routing"
 import { cn } from "@/lib/utils"
 
@@ -24,7 +25,7 @@ type GeneCohortPayload = {
   gene?: Record<string, unknown> | null
   summary: CohortBreakdown & {
     reported_observations: number
-    unique_variants: number
+    unique_findings: number
   }
   denominator: {
     method: string
@@ -35,12 +36,21 @@ type GeneCohortPayload = {
     duplicate_report_observations_removed: number
   }
   tier_counts: Record<string, number>
+  analysis_type_counts: Record<string, number>
   assays: Array<CohortBreakdown & { asp_id: string; display_name: string; asp_group?: string }>
   sex_distribution: Array<CohortBreakdown & { sex: string }>
-  recurrent_variants: Array<{
+  recurrent_findings: Array<{
     identity: string
+    analysis_type: string
+    nomenclature?: string
+    genes: string[]
+    gene?: string
+    gene1?: string
+    gene2?: string
     hgvsp?: string
     hgvsc?: string
+    genomic?: string
+    transcript?: string
     sample_count: number
     observation_count: number
     tiers: number[]
@@ -52,7 +62,8 @@ type GeneCohortPayload = {
     environment?: string
     sex?: string
     tiers: number[]
-    variants: string[]
+    findings: string[]
+    finding_types: string[]
   }>
   truncated: boolean
 }
@@ -111,8 +122,8 @@ export function GeneCohortExplorer() {
     cohortQuery.data?.gene?.hgnc_id || cohortQuery.data?.gene?.HGNC_ID || ""
   )
   const recurrentRows = useMemo(
-    () => cohortQuery.data?.recurrent_variants || [],
-    [cohortQuery.data?.recurrent_variants],
+    () => cohortQuery.data?.recurrent_findings || [],
+    [cohortQuery.data?.recurrent_findings],
   )
 
   const submit = (event: FormEvent) => {
@@ -136,7 +147,7 @@ export function GeneCohortExplorer() {
     <PageShell
       eyebrow="Common"
       title="Gene Cohort Explorer"
-      description="Review reported mutation prevalence, recurrent findings, and assay distribution for one gene across samples visible to your account."
+      description="Review reported SNV, CNV, fusion, and translocation prevalence for one gene across samples visible to your account."
       actions={
         <div className="flex w-full flex-col items-end gap-2 md:w-auto">
           <form onSubmit={submit} className="flex w-full items-center gap-2 md:w-auto">
@@ -209,13 +220,13 @@ export function GeneCohortExplorer() {
                 label="Reported observations"
                 value={cohortQuery.data.summary.reported_observations}
                 detail={includeHistory
-                  ? "Distinct sample-mutation pairs across report history"
+                  ? "Distinct sample-finding pairs across report history"
                   : "Latest saved report per sample"}
               />
               <MetricCard
-                label="Unique mutations"
-                value={cohortQuery.data.summary.unique_variants}
-                detail="Distinct reported mutation identities"
+                label="Unique findings"
+                value={cohortQuery.data.summary.unique_findings}
+                detail="Distinct typed clinical finding identities"
               />
             </div>
           </section>
@@ -225,8 +236,9 @@ export function GeneCohortExplorer() {
             includeHistory={includeHistory}
             assays={cohortQuery.data.assays}
             tierCounts={cohortQuery.data.tier_counts}
+            analysisTypeCounts={cohortQuery.data.analysis_type_counts}
             sexDistribution={cohortQuery.data.sex_distribution}
-            recurrentVariants={recurrentRows}
+            recurrentFindings={recurrentRows}
           />
 
           <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(20rem,0.7fr)]">
@@ -271,7 +283,7 @@ export function GeneCohortExplorer() {
                 <h2 className="text-base font-semibold">Tier distribution</h2>
                 <p className="type-caption text-muted-foreground">
                   {includeHistory
-                    ? "Reported observations across report history, counted once per sample and mutation."
+                    ? "Reported observations across report history, counted once per sample and typed finding."
                     : "Reported observations in the latest sample reports."}
                 </p>
               </div>
@@ -304,25 +316,30 @@ export function GeneCohortExplorer() {
             <div className="surface-panel-heading flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" />
               <div>
-                <h2 className="text-base font-semibold">Recurrent mutations</h2>
-                <p className="type-caption text-muted-foreground">Distinct mutation identities ordered by the number of affected samples.</p>
+                <h2 className="text-base font-semibold">Recurrent findings</h2>
+                <p className="type-caption text-muted-foreground">Typed clinical findings ordered by the number of affected samples.</p>
               </div>
             </div>
             <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full text-left text-sm">
-                <thead><tr><th className="px-3 py-2">Mutation</th><th className="px-3 py-2">HGVSp</th><th className="px-3 py-2">HGVSc</th><th className="px-3 py-2">Tiers</th><th className="px-3 py-2 text-right">Samples</th><th className="px-3 py-2 text-right">Observations</th></tr></thead>
+                <thead><tr><th className="px-3 py-2">Type</th><th className="px-3 py-2">Gene(s)</th><th className="px-3 py-2">Finding</th><th className="px-3 py-2">Nomenclature</th><th className="px-3 py-2">HGVSp</th><th className="px-3 py-2">HGVSc</th><th className="px-3 py-2">Genomic</th><th className="px-3 py-2">Transcript</th><th className="px-3 py-2">Tiers</th><th className="px-3 py-2 text-right">Samples</th><th className="px-3 py-2 text-right">Observations</th></tr></thead>
                 <tbody>
                   {recurrentRows.map((row) => (
-                    <tr key={row.identity} className="border-t border-border">
+                    <tr key={`${row.analysis_type}:${row.identity}:${row.genes.join("|")}`} className="border-t border-border">
+                      <td className="px-3 py-2"><TableBadge className={valueBadgeClass(row.analysis_type)}>{row.analysis_type}</TableBadge></td>
+                      <td className="px-3 py-2 font-medium">{row.genes.join(" / ") || "-"}</td>
                       <td className="px-3 py-2 font-medium">{row.identity}</td>
+                      <td className="px-3 py-2">{row.nomenclature || "-"}</td>
                       <td className="px-3 py-2">{row.hgvsp || "-"}</td>
                       <td className="px-3 py-2 text-muted-foreground">{row.hgvsc || "-"}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{row.genomic || "-"}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{row.transcript || "-"}</td>
                       <td className="px-3 py-2"><div className="flex gap-1">{row.tiers.map((tier) => <TableBadge key={tier} className={cn("border-transparent", tierClasses[String(tier)])}>{tier}</TableBadge>)}</div></td>
                       <td className="px-3 py-2 text-right font-medium">{row.sample_count}</td>
                       <td className="px-3 py-2 text-right">{row.observation_count}</td>
                     </tr>
                   ))}
-                  {!recurrentRows.length && <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">No reported mutations were found.</td></tr>}
+                  {!recurrentRows.length && <tr><td colSpan={11} className="px-3 py-8 text-center text-muted-foreground">No reported findings were found.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -335,7 +352,7 @@ export function GeneCohortExplorer() {
             </div>
             <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full text-left text-sm">
-                <thead><tr><th className="px-3 py-2">Sample</th><th className="px-3 py-2">Assay</th><th className="px-3 py-2">Subpanel</th><th className="px-3 py-2">Environment</th><th className="px-3 py-2">Sex</th><th className="px-3 py-2">Tiers</th><th className="px-3 py-2">Mutations</th></tr></thead>
+                <thead><tr><th className="px-3 py-2">Sample</th><th className="px-3 py-2">Assay</th><th className="px-3 py-2">Subpanel</th><th className="px-3 py-2">Environment</th><th className="px-3 py-2">Sex</th><th className="px-3 py-2">Types</th><th className="px-3 py-2">Tiers</th><th className="px-3 py-2">Findings</th></tr></thead>
                 <tbody>
                   {cohortQuery.data.samples.map((row) => (
                     <tr key={row.sample_name} className="border-t border-border">
@@ -344,11 +361,12 @@ export function GeneCohortExplorer() {
                       <td className="px-3 py-2 text-muted-foreground">{row.subpanel_id || "-"}</td>
                       <td className="px-3 py-2 text-muted-foreground">{row.environment || "-"}</td>
                       <td className="px-3 py-2">{row.sex ? humanSex(row.sex) : "Not recorded"}</td>
+                      <td className="px-3 py-2"><div className="flex flex-wrap gap-1">{row.finding_types.map((type) => <TableBadge key={type} className={valueBadgeClass(type)}>{type}</TableBadge>)}</div></td>
                       <td className="px-3 py-2"><div className="flex gap-1">{row.tiers.map((tier) => <TableBadge key={tier} className={cn("border-transparent", tierClasses[String(tier)])}>{tier}</TableBadge>)}</div></td>
-                      <td className="max-w-xl px-3 py-2 text-muted-foreground">{row.variants.join(", ") || "-"}</td>
+                      <td className="max-w-xl px-3 py-2 text-muted-foreground">{row.findings.join(", ") || "-"}</td>
                     </tr>
                   ))}
-                  {!cohortQuery.data.samples.length && <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">No samples have a reported finding for this gene.</td></tr>}
+                  {!cohortQuery.data.samples.length && <tr><td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">No samples have a reported finding for this gene.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -357,9 +375,9 @@ export function GeneCohortExplorer() {
           <section className="content-section p-4">
             <h2 className="text-sm font-semibold">How prevalence is calculated</h2>
             <p className="type-body mt-1 text-muted-foreground">
-              The denominator contains ready DNA samples visible to your account that profiled {gene}. A selected SNV gene list defines scope when present; otherwise the ASP covered-gene list is used. An ASP with no covered-gene restriction is treated as genome-wide. {includeHistory
-                ? `The numerator includes tiered ${gene} mutations from all saved report versions. The same mutation is counted once per sample, using its most recent reported occurrence for tier summaries.`
-                : `The numerator contains samples whose latest saved report includes a tiered mutation in ${gene}.`}
+              The denominator contains ready samples visible to your account that profiled {gene} for at least one enabled finding type. Each SNV, CNV, fusion, or translocation target uses its selected target-specific gene list, then the ASP covered-gene scope; an unrestricted ASP target is treated as profiling every gene. {includeHistory
+                ? `The numerator includes tiered ${gene} findings from all saved report versions. The same typed finding is counted once per sample, using its most recent reported occurrence for tier summaries.`
+                : `The numerator contains samples whose latest saved report includes a tiered finding involving ${gene} as gene, gene1, or gene2.`}
             </p>
             {includeHistory && cohortQuery.data.denominator.duplicate_report_observations_removed > 0 && (
               <p className="type-caption mt-2 text-muted-foreground">
@@ -368,7 +386,7 @@ export function GeneCohortExplorer() {
             )}
             {cohortQuery.data.denominator.samples_excluded_outside_gene_scope > 0 && (
               <p className="type-caption mt-2 text-muted-foreground">
-                {cohortQuery.data.denominator.samples_excluded_outside_gene_scope} ready sample(s) were outside the eligible gene or DNA scope.
+                {cohortQuery.data.denominator.samples_excluded_outside_gene_scope} ready sample(s) were outside the eligible target-specific gene scope.
               </p>
             )}
             {cohortQuery.data.truncated && <p className="mt-2 text-sm font-medium text-warning">The result reached its bounded response limit. Narrower access scope or operational review may be required for a complete export.</p>}

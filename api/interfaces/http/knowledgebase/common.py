@@ -85,15 +85,15 @@ def common_gene_cohort_read(
         bool,
         Query(
             description=(
-                "Include mutations from all saved report versions. Repeated occurrences of "
-                "the same mutation in the same sample are counted once."
+                "Include findings from all saved report versions. Repeated occurrences of "
+                "the same typed finding in the same sample are counted once."
             )
         ),
     ] = False,
     user: ApiUser = Depends(require_access(permission="gene.annotation:view")),
     service: CommonQueryService = Depends(get_common_query_service),
 ):
-    """Return prevalence and recurrent mutations for samples visible to the user."""
+    """Return prevalence and recurrent typed findings for visible samples."""
     return util.common.convert_to_serializable(
         service.gene_cohort_payload(
             gene_id=gene_id,

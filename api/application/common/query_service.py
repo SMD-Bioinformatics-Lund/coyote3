@@ -7,9 +7,19 @@ from typing import Any
 
 from api.application.interpretation.report_summary import enrich_reported_variant_docs
 from api.config.application_metadata import oncokb_gene_url
-from api.domain.common.assay_filters import get_sample_effective_genes
+from api.domain.common.assay_filters import (
+    get_sample_effective_genes,
+    has_sample_gene_restriction,
+)
 from api.domain.common.errors import api_error
 from api.domain.common.sample_filters import normalize_sample_filters
+from api.domain.core.clinical_finding import (
+    finding_analysis_type,
+    finding_dedup_key,
+    finding_display_fields,
+    finding_genes,
+    finding_identity,
+)
 from api.domain.core.dna.variant_identity import (
     build_simple_id_hash_from_simple_id,
     normalize_simple_id,
@@ -394,6 +404,7 @@ class CommonQueryService:
 
             merged_doc["reported_docs"] = reported_docs
             merged_doc["samples"] = sample_oids
+            merged_doc.update(finding_display_fields(merged_doc))
 
             if merged_doc.get("_id") not in associated_annotation_text_oids:
                 sample_tagged_docs.append(merged_doc)
@@ -439,6 +450,7 @@ class CommonQueryService:
                 },
                 "reported_docs": [reported_doc],
             }
+            merged_doc.update(finding_display_fields(merged_doc))
             if include_annotation_text and reported_doc.get("annotation_text_oid"):
                 merged_doc["text"] = self.annotation_repository.get_annotation_text_by_oid(
                     reported_doc.get("annotation_text_oid")
@@ -460,20 +472,36 @@ class CommonQueryService:
         }
 
     @staticmethod
-    def _snv_list_ids_by_intent(sample: dict[str, Any]) -> dict[str, list[str]]:
-        """Return selected SNV list IDs grouped by analysis intent."""
+    def _list_ids_by_target_and_intent(
+        sample: dict[str, Any],
+    ) -> dict[str, dict[str, list[str]]]:
+        """Return target-specific ISGL selections grouped by analysis intent."""
         filters = normalize_sample_filters(
             sample.get("filters"),
             omics_layer=str(sample.get("omics_layer") or "dna"),
             analysis_intents=sample.get("analysis_intents"),
             canonical=True,
         )
-        values: dict[str, list[str]] = {}
+        values: dict[str, dict[str, list[str]]] = {}
+        list_keys = {
+            "snv": "snvlists",
+            "cnv": "cnvlists",
+            "fusion": "fusionlists",
+            "translocation": "fusionlists",
+        }
         for intent in ("somatic", "germline"):
-            section = (filters.get(intent) or {}).get("snv") or {}
-            values[intent] = list(
-                dict.fromkeys(str(value) for value in section.get("snvlists", []) if str(value))
-            )
+            profile = filters.get(intent) or {}
+            values[intent] = {}
+            for target, list_key in list_keys.items():
+                if target not in profile:
+                    continue
+                section = profile.get(target) or {}
+                values[intent][target] = list(
+                    dict.fromkeys(str(value) for value in section.get(list_key, []) if str(value))
+                )
+        if not any(targets for targets in values.values()):
+            default_target = "fusion" if str(sample.get("omics_layer") or "dna") == "rna" else "snv"
+            values.setdefault("somatic", {})[default_target] = []
         return values
 
     @measured_operation("query.gene_cohort")
@@ -501,7 +529,8 @@ class CommonQueryService:
             dict.fromkeys(
                 list_id
                 for sample in samples
-                for list_ids in self._snv_list_ids_by_intent(sample).values()
+                for target_lists in self._list_ids_by_target_and_intent(sample).values()
+                for list_ids in target_lists.values()
                 for list_id in list_ids
             )
         )
@@ -511,34 +540,41 @@ class CommonQueryService:
         excluded_samples = 0
         for sample in samples:
             asp = asp_map.get(str(sample.get("asp_id") or ""))
-            if not asp or str(sample.get("omics_layer") or "dna").lower() != "dna":
+            if not asp:
                 excluded_samples += 1
                 continue
-            list_ids_by_intent = self._snv_list_ids_by_intent(sample)
-            has_selected_lists = any(list_ids_by_intent.values())
-            effective_genes: set[str] = set()
-            for intent, list_ids in list_ids_by_intent.items():
-                if not list_ids:
-                    continue
-                selected_lists = {
-                    list_id: isgl_map[list_id] for list_id in list_ids if list_id in isgl_map
-                }
-                _scope_details, intent_genes = get_sample_effective_genes(
-                    sample,
-                    asp,
-                    selected_lists,
-                    target="snv",
-                    intent=intent,
-                )
-                effective_genes.update(str(value).upper() for value in intent_genes)
-            if not has_selected_lists:
-                effective_genes.update(
-                    str(value).upper() for value in (asp.get("covered_genes") or [])
-                )
-            if has_selected_lists and not effective_genes:
-                excluded_samples += 1
-                continue
-            if effective_genes and symbol not in effective_genes:
+
+            target_lists_by_intent = self._list_ids_by_target_and_intent(sample)
+            gene_is_profiled = False
+            for intent, target_lists in target_lists_by_intent.items():
+                for target, list_ids in target_lists.items():
+                    selected_lists = {
+                        list_id: isgl_map[list_id] for list_id in list_ids if list_id in isgl_map
+                    }
+                    _scope_details, effective_genes = get_sample_effective_genes(
+                        sample,
+                        asp,
+                        selected_lists,
+                        target=target,
+                        intent=intent,
+                    )
+                    has_restriction = has_sample_gene_restriction(
+                        sample,
+                        asp,
+                        target=target,
+                        intent=intent,
+                    )
+                    normalized_genes = {
+                        str(value).strip().upper()
+                        for value in effective_genes
+                        if str(value).strip()
+                    }
+                    if not has_restriction or symbol in normalized_genes:
+                        gene_is_profiled = True
+                        break
+                if gene_is_profiled:
+                    break
+            if not gene_is_profiled:
                 excluded_samples += 1
                 continue
             profiled_samples.append(sample)
@@ -586,29 +622,21 @@ class CommonQueryService:
         findings = scoped_findings
         if include_history:
             deduplicated = []
-            seen_sample_mutations: set[tuple[str, str]] = set()
+            seen_sample_findings: set[tuple[Any, ...]] = set()
             for row in scoped_findings:
-                identity = str(
-                    row.get("simple_id")
-                    or row.get("simple_id_hash")
-                    or row.get("hgvsp")
-                    or row.get("hgvsc")
-                    or row.get("variant")
-                    or row.get("_id")
-                    or "unknown"
-                )
-                key = (str(row.get("sample_name")), identity)
-                if key in seen_sample_mutations:
+                key = (str(row.get("sample_name")), *finding_dedup_key(row))
+                if key in seen_sample_findings:
                     duplicate_report_observations_removed += 1
                     continue
-                seen_sample_mutations.add(key)
+                seen_sample_findings.add(key)
                 deduplicated.append(row)
             findings = deduplicated
         sample_map = {str(sample.get("name")): sample for sample in profiled_samples}
         finding_sample_names = {str(row.get("sample_name")) for row in findings}
 
         tier_counts = {str(tier): 0 for tier in range(1, 5)}
-        variant_map: dict[str, dict[str, Any]] = {}
+        analysis_type_counts: dict[str, int] = {}
+        variant_map: dict[tuple[str, str, tuple[str, ...]], dict[str, Any]] = {}
         sample_findings: dict[str, list[dict[str, Any]]] = {}
         for row in findings:
             tier = int(row.get("tier") or 0)
@@ -616,19 +644,25 @@ class CommonQueryService:
                 tier_counts[str(tier)] += 1
             sample_name = str(row.get("sample_name"))
             sample_findings.setdefault(sample_name, []).append(row)
-            identity = str(
-                row.get("simple_id")
-                or row.get("hgvsp")
-                or row.get("hgvsc")
-                or row.get("variant")
-                or "unknown"
-            )
+            analysis_type = finding_analysis_type(row)
+            analysis_type_counts[analysis_type] = analysis_type_counts.get(analysis_type, 0) + 1
+            identity = finding_identity(row)
+            genes = finding_genes(row)
+            dedup_key = finding_dedup_key(row)
             entry = variant_map.setdefault(
-                identity,
+                dedup_key,
                 {
                     "identity": identity,
+                    "analysis_type": analysis_type,
+                    "nomenclature": row.get("nomenclature"),
+                    "genes": genes,
+                    "gene": row.get("gene"),
+                    "gene1": row.get("gene1"),
+                    "gene2": row.get("gene2"),
                     "hgvsp": row.get("hgvsp"),
                     "hgvsc": row.get("hgvsc"),
+                    "genomic": row.get("genomic"),
+                    "transcript": row.get("transcript"),
                     "sample_names": set(),
                     "tiers": set(),
                     "observation_count": 0,
@@ -638,15 +672,23 @@ class CommonQueryService:
             entry["tiers"].add(tier)
             entry["observation_count"] += 1
 
-        recurrent_variants = sorted(
+        recurrent_findings = sorted(
             (
                 {
                     "identity": entry["identity"],
+                    "analysis_type": entry["analysis_type"],
+                    "nomenclature": entry["nomenclature"],
+                    "genes": entry["genes"],
+                    "gene": entry["gene"],
+                    "gene1": entry["gene1"],
+                    "gene2": entry["gene2"],
                     "hgvsp": entry["hgvsp"],
                     "hgvsc": entry["hgvsc"],
+                    "genomic": entry["genomic"],
+                    "transcript": entry["transcript"],
                     "sample_count": len(entry["sample_names"]),
                     "observation_count": entry["observation_count"],
-                    "tiers": sorted(entry["tiers"]),
+                    "tiers": sorted(tier for tier in entry["tiers"] if tier),
                 }
                 for entry in variant_map.values()
             ),
@@ -711,12 +753,8 @@ class CommonQueryService:
                     "environment": sample.get("environment"),
                     "sex": sample.get("sex"),
                     "tiers": sorted({int(row.get("tier")) for row in rows if row.get("tier")}),
-                    "variants": sorted(
-                        {
-                            str(row.get("hgvsp") or row.get("hgvsc") or row.get("simple_id") or "-")
-                            for row in rows
-                        }
-                    ),
+                    "findings": sorted({finding_identity(row) for row in rows}),
+                    "finding_types": sorted({finding_analysis_type(row) for row in rows}),
                 }
             )
 
@@ -730,10 +768,10 @@ class CommonQueryService:
                 "finding_samples": finding_sample_count,
                 "prevalence_percent": prevalence(finding_sample_count, denominator_count),
                 "reported_observations": len(findings),
-                "unique_variants": len(variant_map),
+                "unique_findings": len(variant_map),
             },
             "denominator": {
-                "method": "sample_snv_isgl_then_asp_covered_genes",
+                "method": "target_isgl_then_asp_covered_genes",
                 "report_scope": "historical" if include_history else "latest",
                 "ready_samples_considered": len(samples),
                 "samples_excluded_outside_gene_scope": excluded_samples,
@@ -741,9 +779,10 @@ class CommonQueryService:
                 "duplicate_report_observations_removed": duplicate_report_observations_removed,
             },
             "tier_counts": tier_counts,
+            "analysis_type_counts": dict(sorted(analysis_type_counts.items())),
             "assays": assay_rows,
             "sex_distribution": sex_rows,
-            "recurrent_variants": recurrent_variants,
+            "recurrent_findings": recurrent_findings,
             "samples": sample_rows[:200],
             "truncated": len(raw_findings) >= finding_limit or len(sample_rows) > 200,
         }

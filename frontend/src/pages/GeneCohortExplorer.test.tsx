@@ -27,7 +27,7 @@ const response = {
     finding_samples: 5,
     prevalence_percent: 25,
     reported_observations: 7,
-    unique_variants: 2,
+    unique_findings: 2,
   },
   denominator: {
     method: "sample_snv_isgl_then_asp_covered_genes",
@@ -38,6 +38,7 @@ const response = {
     duplicate_report_observations_removed: 0,
   },
   tier_counts: { "1": 2, "2": 3, "3": 2, "4": 0 },
+  analysis_type_counts: { SNV: 5, CNV: 1, FUSION: 1 },
   assays: [{
     asp_id: "solid_gmsv3",
     display_name: "Solid DNA GMSv3",
@@ -50,8 +51,11 @@ const response = {
     { sex: "female", profiled_samples: 12, finding_samples: 3, prevalence_percent: 25 },
     { sex: "male", profiled_samples: 8, finding_samples: 2, prevalence_percent: 25 },
   ],
-  recurrent_variants: [{
+  recurrent_findings: [{
     identity: "17_7675088_C_T",
+    analysis_type: "SNV",
+    nomenclature: "p",
+    genes: ["TP53"],
     hgvsp: "p.Arg175His",
     hgvsc: "c.524G>A",
     sample_count: 3,
@@ -65,7 +69,8 @@ const response = {
     environment: "production",
     sex: "female",
     tiers: [1],
-    variants: ["p.Arg175His"],
+    findings: ["p.Arg175His"],
+    finding_types: ["SNV"],
   }],
   truncated: false,
 }
@@ -97,13 +102,13 @@ describe("GeneCohortExplorer", () => {
     expect(screen.getByRole("link", { name: "SAMPLE_1" })).toHaveAttribute("href", "/samples/SAMPLE_1")
   })
 
-  it("shows a valid cohort with no reported mutation findings", async () => {
+  it("shows a valid cohort with no reported findings", async () => {
     mocks.get.mockResolvedValueOnce({
-      data: { ...response, summary: { ...response.summary, finding_samples: 0 }, recurrent_variants: [], samples: [] },
+      data: { ...response, summary: { ...response.summary, finding_samples: 0 }, recurrent_findings: [], samples: [] },
     })
     mount("/variants/gene-cohort?gene=KRAS")
 
-    expect(await screen.findByText("No reported mutations were found.")).toBeVisible()
+    expect(await screen.findByText("No reported findings were found.")).toBeVisible()
     expect(screen.getByText("No samples have a reported finding for this gene.")).toBeVisible()
   })
 

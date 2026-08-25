@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CommonGeneInfoPayload(BaseModel):
@@ -47,7 +47,7 @@ class GeneCohortSummary(GeneCohortBreakdown):
     """Represent top-level gene cohort counts."""
 
     reported_observations: int
-    unique_variants: int
+    unique_findings: int
 
 
 class GeneCohortDenominator(BaseModel):
@@ -75,12 +75,20 @@ class GeneCohortSex(GeneCohortBreakdown):
     sex: str
 
 
-class GeneCohortMutation(BaseModel):
-    """Represent one recurrent reported mutation identity."""
+class GeneCohortFinding(BaseModel):
+    """Represent one recurrent reported clinical-finding identity."""
 
     identity: str
+    analysis_type: str
+    nomenclature: str | None = None
+    genes: list[str] = Field(default_factory=list)
+    gene: str | None = None
+    gene1: str | None = None
+    gene2: str | None = None
     hgvsp: str | None = None
     hgvsc: str | None = None
+    genomic: str | None = None
+    transcript: str | None = None
     sample_count: int
     observation_count: int
     tiers: list[int]
@@ -95,7 +103,8 @@ class GeneCohortSample(BaseModel):
     environment: str | None = None
     sex: str | None = None
     tiers: list[int]
-    variants: list[str]
+    findings: list[str]
+    finding_types: list[str] = Field(default_factory=list)
 
 
 class CommonGeneCohortPayload(BaseModel):
@@ -106,9 +115,10 @@ class CommonGeneCohortPayload(BaseModel):
     summary: GeneCohortSummary
     denominator: GeneCohortDenominator
     tier_counts: dict[str, int]
+    analysis_type_counts: dict[str, int] = Field(default_factory=dict)
     assays: list[GeneCohortAssay]
     sex_distribution: list[GeneCohortSex]
-    recurrent_variants: list[GeneCohortMutation]
+    recurrent_findings: list[GeneCohortFinding]
     samples: list[GeneCohortSample]
     truncated: bool = False
 

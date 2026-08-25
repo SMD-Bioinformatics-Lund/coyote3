@@ -11,6 +11,7 @@ import { PageShell } from "@/components/layout/PageShell"
 import { TierBadge } from "@/lib/variant-ui"
 import { sampleDetailPath } from "@/lib/sample-routing"
 import { shortCount } from "@/lib/detail-formatters"
+import { valueBadgeClass } from "@/lib/badge-colors"
 import { ColumnDef } from "@tanstack/react-table"
 import { useUrlTableState } from "@/hooks/useUrlTableState"
 import { tieredVariantSearchState } from "@/lib/variant-routing"
@@ -112,25 +113,65 @@ export function TieredVariantSearch() {
       cell: ({ row }) => <TierBadge tier={row.getValue("tier")} />,
     },
     {
-      id: "gene",
-      header: "Gene",
-      accessorFn: (row) => row.gene || row.SYMBOL || row.variant_data?.gene || row.variant_data?.gene1 || "-",
-      cell: ({ row }) => <span className="font-bold text-primary">{String(row.getValue("gene"))}</span>,
+      id: "analysis_type",
+      header: "Type",
+      accessorFn: (row) => row.analysis_type || row.finding_type || "FINDING",
+      cell: ({ row }) => (
+        <TableBadge className={valueBadgeClass(String(row.getValue("analysis_type")))}>
+          {String(row.getValue("analysis_type"))}
+        </TableBadge>
+      ),
     },
     {
-      id: "variant",
-      header: "Variant",
-      accessorFn: (row) => row.variant || row.hgvs || row.HGVSp || row.HGVSc || "-",
+      id: "genes",
+      header: "Gene(s)",
+      accessorFn: (row) => (row.genes || [row.gene, row.gene1, row.gene2].filter(Boolean)).join(" / ") || "-",
+      cell: ({ row }) => <span className="font-semibold text-link">{String(row.getValue("genes"))}</span>,
+    },
+    {
+      id: "identity",
+      header: "Finding",
+      accessorFn: (row) => row.identity || row.variant || row.genomic || row.hgvsp || row.hgvsc || "-",
       meta: { headerClassName: "w-56 min-w-52", cellClassName: "w-56 min-w-52" },
       cell: ({ row }) => (
         <div className="w-52">
           <ExpandableText
-            text={String(row.getValue("variant") || "-")}
+            text={String(row.getValue("identity") || "-")}
             maxLength={34}
             className="text-xs text-foreground"
           />
         </div>
       ),
+    },
+    {
+      id: "nomenclature",
+      header: "Nomenclature",
+      accessorFn: (row) => row.nomenclature || "-",
+      cell: ({ row }) => <TableBadge className="badge-neutral">{String(row.getValue("nomenclature"))}</TableBadge>,
+    },
+    {
+      id: "hgvsp",
+      header: "HGVSp",
+      accessorFn: (row) => row.hgvsp || "-",
+      cell: ({ row }) => <span className="text-xs">{String(row.getValue("hgvsp"))}</span>,
+    },
+    {
+      id: "hgvsc",
+      header: "HGVSc",
+      accessorFn: (row) => row.hgvsc || "-",
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{String(row.getValue("hgvsc"))}</span>,
+    },
+    {
+      id: "genomic",
+      header: "Genomic",
+      accessorFn: (row) => row.genomic || "-",
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{String(row.getValue("genomic"))}</span>,
+    },
+    {
+      id: "transcript",
+      header: "Transcript",
+      accessorFn: (row) => row.transcript || "-",
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{String(row.getValue("transcript"))}</span>,
     },
     {
       id: "assay",
@@ -211,7 +252,7 @@ export function TieredVariantSearch() {
     <PageShell
       eyebrow="Common"
       title="Tiered Variant Search"
-      description="Search reported tiered variants and annotation text across samples and assays."
+      description="Search tiered SNVs, CNVs, fusions, translocations, and annotation text across reports and assays."
     >
       <div className="glass-card p-3">
         <form
@@ -226,7 +267,7 @@ export function TieredVariantSearch() {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search gene, variant, annotation..."
+              placeholder="Search gene, finding, annotation..."
               className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
             />
           </div>
@@ -235,11 +276,12 @@ export function TieredVariantSearch() {
             onChange={(event) => setMode(event.target.value)}
             className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
           >
-            <option value="variant">Variant (HGVSp / HGVSc / genomic)</option>
+            <option value="variant">Finding identity</option>
             <option value="gene">Gene symbol</option>
             <option value="hgvsp">HGVSp</option>
             <option value="hgvsc">HGVSc</option>
             <option value="genomic">Genomic</option>
+            <option value="nomenclature">Nomenclature (p / c / g / cn / f / t)</option>
             <option value="transcript">Transcript ID</option>
             <option value="subpanel">Subpanel</option>
             <option value="author">Author</option>
@@ -296,7 +338,7 @@ export function TieredVariantSearch() {
             <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-3 marker:hidden hover:bg-muted/30">
               <div>
                 <div className="text-xs font-black uppercase tracking-wider text-muted-foreground">Assay distribution</div>
-                <div className="text-xs text-muted-foreground">Unique tiered variants by assay for the current search.</div>
+                <div className="text-xs text-muted-foreground">Tiered clinical findings by assay for the current search.</div>
               </div>
               <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
                 <span>{assayStats.length} assay{assayStats.length === 1 ? "" : "s"}</span>
@@ -326,7 +368,7 @@ export function TieredVariantSearch() {
                       <td className="px-4 py-2.5">
                         <div
                           className="flex h-3 min-w-48 overflow-hidden rounded-full bg-muted"
-                          aria-label={`${assay}: ${total} tiered variants`}
+                          aria-label={`${assay}: ${total} tiered findings`}
                         >
                           {[1, 2, 3, 4].map((tier) => (
                             tierCount(stats, tier) > 0 && (
@@ -345,7 +387,7 @@ export function TieredVariantSearch() {
                           {shortCount(tierCount(stats, tier))}
                         </td>
                       ))}
-                      <td className="px-4 py-2.5 text-right text-sm font-black type-numeric text-foreground" title={`${total} total variants`}>
+                      <td className="px-4 py-2.5 text-right text-sm font-black type-numeric text-foreground" title={`${total} total findings`}>
                         {shortCount(total)}
                       </td>
                     </tr>
@@ -357,16 +399,16 @@ export function TieredVariantSearch() {
         )}
 
         {isLoading ? (
-          <AppLoader label="Loading variant search" />
+          <AppLoader label="Loading tiered finding search" />
         ) : error ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-            {error instanceof Error ? error.message : "Unable to search tiered variants"}
+            {error instanceof Error ? error.message : "Unable to search tiered findings"}
           </div>
         ) : (
           <DataTable
             columns={columns}
             data={data?.docs || []}
-            filename="tiered_variants.csv"
+            filename="tiered_findings.csv"
             stateKey="tiered_variants"
             sortingState={sorting}
             onSortingChange={(value) => {

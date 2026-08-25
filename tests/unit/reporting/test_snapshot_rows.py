@@ -91,8 +91,10 @@ def test_builds_typed_translocation_row_from_selected_annotation() -> None:
     )[0]
 
     assert row["analysis_type"] == "TRANSLOCATION"
-    assert row["gene_1"] == "KMT2A"
-    assert row["gene_2"] == "AFF1"
+    assert row["gene1"] == "KMT2A"
+    assert row["gene2"] == "AFF1"
+    assert row["nomenclature"] == "t"
+    assert row["variant"] == row["simple_id"]
     assert row["simple_id"].startswith("translocation:")
 
 

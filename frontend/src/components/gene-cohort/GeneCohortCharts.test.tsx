@@ -38,9 +38,11 @@ const props = {
     prevalence_percent: 25,
   }],
   tierCounts: { "1": 2, "2": 3, "3": 1, "4": 0 },
+  analysisTypeCounts: { SNV: 4, CNV: 1, FUSION: 1 },
   sexDistribution: [{ sex: "female", profiled_samples: 12, finding_samples: 3, prevalence_percent: 25 }],
-  recurrentVariants: [{
+    recurrentFindings: [{
     identity: "17_7675088_C_T",
+    analysis_type: "SNV",
     hgvsp: "p.Arg175His",
     hgvsc: "c.524G>A",
     sample_count: 3,
@@ -52,20 +54,21 @@ const props = {
 describe("GeneCohortCharts", () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it("renders four exportable cohort plots with exact plotted data", () => {
+  it("renders five exportable cohort plots with exact plotted data", () => {
     render(<GeneCohortCharts {...props} />)
 
     expect(screen.getByRole("region", { name: "Prevalence by assay" })).toBeVisible()
     expect(screen.getByRole("region", { name: "Reported tier composition" })).toBeVisible()
     expect(screen.getByRole("region", { name: "Prevalence by recorded sex" })).toBeVisible()
-    expect(screen.getByRole("region", { name: "Top recurrent mutations" })).toBeVisible()
+    expect(screen.getByRole("region", { name: "Top recurrent findings" })).toBeVisible()
+    expect(screen.getByRole("region", { name: "Findings by analysis type" })).toBeVisible()
     expect(mocks.chartPanel).toHaveBeenCalledWith(expect.objectContaining({
       filename: "tp53_latest_reports_assay_prevalence",
       data: [expect.objectContaining({ assay_id: "solid_gmsv3", prevalence_percent: 25 })],
     }))
     expect(mocks.chartPanel).toHaveBeenCalledWith(expect.objectContaining({
-      filename: "tp53_latest_reports_recurrent_mutations",
-      data: [expect.objectContaining({ mutation: "p.Arg175His", affected_samples: 3 })],
+      filename: "tp53_latest_reports_recurrent_findings",
+      data: [expect.objectContaining({ finding: "17_7675088_C_T", analysis_type: "SNV", affected_samples: 3 })],
     }))
   })
 
@@ -77,9 +80,9 @@ describe("GeneCohortCharts", () => {
   })
 
   it("shows clear empty states while retaining exportable empty datasets", () => {
-    render(<GeneCohortCharts {...props} assays={[]} sexDistribution={[]} recurrentVariants={[]} />)
+    render(<GeneCohortCharts {...props} assays={[]} sexDistribution={[]} recurrentFindings={[]} />)
     expect(screen.getByText("No assay prevalence is available.")).toBeVisible()
     expect(screen.getByText("No sex information is available.")).toBeVisible()
-    expect(screen.getByText("No recurrent mutations are available.")).toBeVisible()
+    expect(screen.getByText("No recurrent findings are available.")).toBeVisible()
   })
 })
