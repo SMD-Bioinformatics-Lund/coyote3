@@ -377,17 +377,14 @@ class SampleRepository(BaseRepository):
 
         return samples
 
-    def count_live_samples_by_asp(
+    def count_ready_samples_by_asp(
         self,
         *,
         user_assays: list[str] | None,
         user_envs: list[str] | None,
     ) -> dict[str, int]:
-        """Return ready, unreported sample counts grouped by assay panel ID."""
-        query: dict[str, Any] = {
-            "ingest_status": "ready",
-            "$or": [{"reported": {"$exists": False}}, {"reported": False}],
-        }
+        """Return ready sample counts grouped by assay panel ID."""
+        query: dict[str, Any] = {"ingest_status": "ready"}
         if user_assays is not None:
             query["asp_id"] = {"$in": user_assays}
         if user_envs is not None:

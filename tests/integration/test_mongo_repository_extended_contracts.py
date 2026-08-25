@@ -813,9 +813,12 @@ def test_samples_repository_lifecycle_scope_counts_versions_and_delegates(monkey
     assert repository.get_sample_name(str(live_id)) == "CASE_A"
     assert repository.get_sample_by_oid(live_id)["name"] == "CASE_A"
     assert [row["name"] for row in repository.get_samples_by_oids([live_id])] == ["CASE_A"]
-    assert repository.count_live_samples_by_asp(
+    assert repository.count_ready_samples_by_asp(
         user_assays=["hema_gmsv1"], user_envs=["production"]
     ) == {"hema_gmsv1": 1}
+    assert repository.count_ready_samples_by_asp(
+        user_assays=["solid_gmsv3"], user_envs=["testing"]
+    ) == {"solid_gmsv3": 1}
     assert repository.get_all_sample_counts() == 3
     assert repository.get_all_sample_counts(True) == 1
     assert repository.get_all_sample_counts(False) == 2

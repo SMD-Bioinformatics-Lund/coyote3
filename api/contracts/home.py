@@ -43,7 +43,7 @@ class HomeItemsPayload(BaseModel):
 
 
 class SampleNavigationCountsPayload(BaseModel):
-    """Represent visible live-sample counts grouped for assay navigation."""
+    """Represent visible ready-sample counts grouped for assay navigation."""
 
     counts: dict[str, int] = Field(default_factory=dict)
     profile_scope: str = DEFAULT_ENVIRONMENT

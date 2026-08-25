@@ -343,7 +343,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
             sample["biomarker_values"] = merged
 
     def navigation_counts_payload(self, *, user, profile_scope: str) -> dict[str, Any]:
-        """Return current-user live sample counts for the assay navigation tree."""
+        """Return current-user ready sample counts for the assay navigation tree."""
         normalized_scope = (profile_scope or "").strip().lower()
         use_all_profiles = normalized_scope == "all"
         if user.is_superuser:
@@ -362,7 +362,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         else:
             query_envs = list(user.envs)
 
-        by_asp = self.sample_repository.count_live_samples_by_asp(
+        by_asp = self.sample_repository.count_ready_samples_by_asp(
             user_assays=accessible_assays,
             user_envs=query_envs,
         )

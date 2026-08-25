@@ -13,6 +13,7 @@ import { GlobalLoadingIndicator } from "@/components/layout/AppLoader"
 import { BrandWordmark } from "@/components/layout/BrandWordmark"
 import { ADMIN_ENTRY_PERMISSIONS, hasAnyPermission, type CurrentUserAccess } from "@/lib/access-control"
 import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
+import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
 
 type PublicContactPayload = {
   support?: Record<string, string>
@@ -62,9 +63,12 @@ export function Layout() {
     enabled: moduleIsEnabled(modules, "assay_catalog"),
   })
 
+  const navigationProfileScope = searchParams.get("profile_scope") === "all" ? "all" : DEFAULT_ENVIRONMENT
   const { data: navigationCounts } = useQuery({
-    queryKey: ['sample-navigation-counts'],
-    queryFn: () => api.get<{ counts: Record<string, number> }>('/samples/navigation-counts').then(res => res.data),
+    queryKey: ['sample-navigation-counts', navigationProfileScope],
+    queryFn: () => api.get<{ counts: Record<string, number> }>(
+      `/samples/navigation-counts?profile_scope=${encodeURIComponent(navigationProfileScope)}`,
+    ).then(res => res.data),
     enabled: !isPublicRoute,
     staleTime: 10 * 1000,
     refetchInterval: 15 * 1000,

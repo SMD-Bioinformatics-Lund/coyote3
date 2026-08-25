@@ -75,7 +75,7 @@ function mockPrivateQueries(
     if (url === "/public/modules") return { data: { modules: {} } } as never
     if (url === "/auth/whoami") return { data: currentUser } as never
     if (url === "/public/assay-catalog/context") return { data: catalog } as never
-    if (url === "/samples/navigation-counts") {
+    if (url.startsWith("/samples/navigation-counts?")) {
       return {
         data: {
           counts: getNavigationCounts(),
@@ -134,12 +134,22 @@ describe("Layout", () => {
     expect(await screen.findByText("Filter samples by assay family and assay group.")).toBeVisible()
     const hematology = screen.getByTitle("DNA / panel / hematology")
     expect(hematology).toHaveTextContent("12")
+    expect(api.get).toHaveBeenCalledWith("/samples/navigation-counts?profile_scope=production")
     fireEvent.click(hematology)
 
     await waitFor(() => {
       expect(navigate).toHaveBeenCalledWith(
         "/samples?panel_type=dna&panel_tech=panel&assay_group=hematology",
       )
+    })
+  })
+
+  it("requests navigation counts for the selected profile scope", async () => {
+    mockPrivateQueries()
+    renderLayout("/samples?profile_scope=all")
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith("/samples/navigation-counts?profile_scope=all")
     })
   })
 

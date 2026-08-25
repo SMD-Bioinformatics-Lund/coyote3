@@ -36,7 +36,7 @@ class SampleRepositoryProtocol(Protocol):
         added_until: Any = None,
     ) -> dict[str, Any]: ...
 
-    def count_live_samples_by_asp(
+    def count_ready_samples_by_asp(
         self,
         *,
         user_assays: list[str] | None = None,
