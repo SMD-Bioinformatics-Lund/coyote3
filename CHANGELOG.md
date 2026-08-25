@@ -2,53 +2,19 @@
 
 ## v4.0.0 - 2026-08-10
 
-Version 4 is a full platform replacement of the Flask-based v3 application. It
-preserves the supported clinical workflows while establishing versioned data
-contracts, a modern browser interface, and production-oriented operations.
+Version 4 replaces the Flask/Jinja application with a production-oriented
+FastAPI and React platform while preserving its supported clinical workflows.
 
-### Added
-
-- FastAPI services and a typed React/Vite interface for DNA, RNA, reporting,
-  administration, public catalog, knowledgebase, and operational workflows.
-- Atomic manifest-driven ingestion, version-aware VEP/HGNC annotation,
-  ASPC-driven filtering, and YAML-based clinical report composition.
-- Database-backed roles and permissions, local and LDAP authentication,
-  user-targeted notifications, audit events, and application controls.
-- Redis/Celery runtime services, explicit MongoDB index management,
-  backup/restore tooling, deployment preflight checks, and target-center
-  acceptance procedures.
-
-### Changed
-
-- Replaced Flask, Jinja, and direct collection access with versioned Pydantic
-  contracts, application services, MongoDB repositories, and stable API routes.
-- Standardized ASP, ASPC, ISGL, sample, finding, report, permission, and audit
-  lifecycles, including immutable report context and versioned configurations.
-- Moved center-owned behavior to documented environment and TOML configuration;
-  public UI, API, documentation, and health routing now share one reverse-proxy
-  entrypoint and optional `SCRIPT_NAME` prefix.
-- Rebuilt clinical tables and detail pages with server-side filtering and sorting,
-  responsive navigation, accessible controls, local-time rendering, and shared
-  light/dark themes.
-- Added an account-level table page-size preference shared by clinical, admin,
-  sample, and public catalog tables.
-
-### Removed
-
-- Removed the Flask/Jinja application, legacy `coyote/` package, WSGI launchers,
-  old schema files, compatibility query paths, ObjectId-based sample URLs, and
-  tracked migration implementations.
-- Removed automatic first-run orchestration. Database provisioning, bootstrap,
-  application deployment, and clinical configuration import are explicit,
-  independently validated operator steps.
-
-### Security, quality, and documentation
-
-- Added CSRF protection, rate limiting, browser security headers, secret and
-  clinical-identifier guards, dependency/container scans, and audited mutations.
-- Added backend and frontend coverage gates, Playwright workflows, contract and
-  architecture checks, strict documentation builds, diagrams, and deployment,
-  recovery, clinical workflow, API, and configuration manuals.
+- Added typed DNA and RNA ingestion, analysis, reporting, administration, public
+  catalog, and cohort-review workflows.
+- Added versioned data contracts, ASPC-driven filtering, reference annotations,
+  YAML reporting rules, and immutable report snapshots.
+- Added database-backed access control, authentication, auditing, notifications,
+  background processing, and operational controls.
+- Added secure container deployment, backup and restore tooling, automated tests,
+  and complete operator and clinical documentation.
+- Removed the legacy Flask application, compatibility paths, and automatic
+  first-run orchestration.
 
 ## v3.1.23
 - Added typed DNA CSV export row models (`SNV`/`CNV`) and API-backed export context endpoints for stable, contract-driven CSV formatting.
