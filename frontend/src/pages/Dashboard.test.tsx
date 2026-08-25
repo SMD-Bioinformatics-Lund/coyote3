@@ -11,12 +11,6 @@ const queryState = vi.hoisted(() => ({
 }))
 
 vi.mock("@tanstack/react-query", () => ({ useQuery: () => queryState }))
-vi.mock("@/components/dashboard/DashboardCharts", () => ({
-  TierDistributionChart: () => <div>Tier chart rendered</div>,
-  GeneCoverageChart: ({ data }: { data: Array<{ name: string }> }) => <div>Gene chart rendered: {data.map((row) => row.name).join(", ")}</div>,
-  PanelAnalysisCapabilityChart: ({ data }: { data: Array<{ name: string }> }) => <div>Capability chart rendered: {data.map((row) => row.name).join(", ")}</div>,
-}))
-
 const dashboardData = {
   total_samples: 10,
   analysed_samples: 4,
@@ -84,13 +78,14 @@ describe("Dashboard page", () => {
     expect(screen.getByText("800 unique small variants across visible samples.")).toBeInTheDocument()
     expect(screen.getByText("DNA_CASE_001")).toBeInTheDocument()
     expect(screen.getByText("hema_gmsv1")).toBeInTheDocument()
-    expect(await screen.findByText("Tier chart rendered")).toBeInTheDocument()
+    expect(await screen.findByText("Tier distribution", {}, { timeout: 5000 })).toBeInTheDocument()
     expect(screen.getByText("Active panels")).toBeInTheDocument()
-    expect(screen.getByText("Pipelines")).toBeInTheDocument()
-    expect(screen.getByText("SomaticPanelPipeline")).toBeInTheDocument()
-    expect(screen.getByText("Version 3.2.0")).toBeInTheDocument()
-    expect(screen.getByText("3 of 5 analysed")).toBeInTheDocument()
-    expect(screen.getByText("Version not recorded")).toBeInTheDocument()
+    expect(screen.getByText("Ingest status")).toBeInTheDocument()
+    expect(screen.getByText("Omics")).toBeInTheDocument()
+    expect(screen.getByText("Sequencing scope")).toBeInTheDocument()
+    expect(screen.getByText("My profile scope")).toBeInTheDocument()
+    expect(screen.getByText("Pairing")).toBeInTheDocument()
+    expect(screen.getByText("Pipeline throughput")).toBeInTheDocument()
     expect(screen.queryByText("No active panel gene counts available")).not.toBeInTheDocument()
   })
 
@@ -131,13 +126,14 @@ describe("Dashboard page", () => {
     ])
   })
 
-  it("renders useful empty-state copy for sparse installations", () => {
+  it("renders useful empty-state copy for sparse installations", async () => {
     queryState.data = { variant_stats: {}, sample_stats: {}, user_scope_summary: {}, user_samples_stats: {} }
     renderWithRouter(<Dashboard />)
 
     expect(screen.getByText("No progress data available.")).toBeInTheDocument()
     expect(screen.getByText("No profile data.")).toBeInTheDocument()
     expect(screen.getByText("No recent visible samples.")).toBeInTheDocument()
+    expect(await screen.findAllByText("No data", {}, { timeout: 5000 })).toHaveLength(5)
     expect(screen.getByText("No pipeline data available.")).toBeInTheDocument()
   })
 

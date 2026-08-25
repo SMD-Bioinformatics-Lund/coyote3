@@ -71,9 +71,14 @@ const samples = {
       ingest_status: "ready",
       reported: true,
       time_added: "2026-07-30T10:00:00Z",
+      latest_report_on: "2026-08-02T12:30:00Z",
       data_counts: { snvs: 8, biomarkers: true },
     },
   ],
+  live_total: 2,
+  done_total: 1,
+  has_next_live: false,
+  has_next_done: false,
 }
 
 describe("Samples page", () => {
@@ -129,8 +134,11 @@ describe("Samples page", () => {
     }
     renderWithRouter(<Samples />, "/samples")
 
+    expect(screen.queryByRole("columnheader", { name: /Latest reported/ })).not.toBeInTheDocument()
     await user.click(screen.getByRole("tab", { name: /Reported samples/ }))
     expect(await screen.findByText("DNA_REPORTED_001")).toBeInTheDocument()
+    expect(screen.getByRole("columnheader", { name: /Latest reported/ })).toBeInTheDocument()
+    expect(screen.getByTitle(/Aug 2, 2026/)).toBeInTheDocument()
     expect(screen.getByText("Samples with saved clinical reports.")).toBeInTheDocument()
     expect(screen.queryByText("DNA_CASE_001")).not.toBeInTheDocument()
   })
@@ -168,7 +176,7 @@ describe("Samples page", () => {
 
     expect(screen.getByText("all profiles")).toBeInTheDocument()
     expect(screen.getAllByText("hema_gmsv1")).not.toHaveLength(0)
-    await user.type(screen.getByPlaceholderText("Search by Case ID..."), "CASE_001")
+    await user.type(screen.getByPlaceholderText("Search samples..."), "CASE_001")
     await user.click(screen.getByRole("button", { name: "Search" }))
     expect(await screen.findByText("Search: CASE_001")).toBeInTheDocument()
     await user.click(screen.getByRole("link", { name: "Clear All" }))
@@ -185,11 +193,11 @@ describe("Samples page", () => {
     await user.type(screen.getByLabelText("From"), "2026-08-01")
     await user.type(screen.getByLabelText("Until"), "2026-08-03")
     await user.click(screen.getByRole("button", { name: "Apply dates" }))
-    await user.selectOptions(screen.getByLabelText("Maximum rows"), "100")
+    await user.selectOptions(screen.getByLabelText("Maximum rows per page"), "100")
 
     expect(screen.getByLabelText("From")).toHaveValue("2026-08-01")
     expect(screen.getByLabelText("Until")).toHaveValue("2026-08-03")
-    expect(screen.getByLabelText("Maximum rows")).toHaveValue("100")
+    expect(screen.getByLabelText("Maximum rows per page")).toHaveValue("100")
     expect(screen.getAllByText("Custom range")).toHaveLength(2)
   })
 
@@ -220,8 +228,32 @@ describe("Samples page", () => {
     failed.unmount()
 
     queryState.error = null
-    queryState.data = { live_samples: [], done_samples: [] }
+    queryState.data = { live_samples: [], done_samples: [], live_total: 0, done_total: 0 }
     renderWithRouter(<Samples />)
     expect(screen.getAllByText("No samples found.")).toHaveLength(2)
+  })
+
+  it("paginates the complete matching result set", async () => {
+    const user = userEvent.setup()
+    queryState.user = {
+      ui_settings: {
+        analysis_layout: "classic",
+        sample_list_layout: "modern",
+        analysis_modern_view_tried: false,
+        sample_list_modern_view_tried: true,
+      },
+    }
+    queryState.data = {
+      ...samples,
+      live_total: 102,
+      has_next_live: true,
+    }
+
+    renderWithRouter(<Samples />, "/samples?search_str=CASE&sample_per_page=50")
+
+    expect(screen.getByText("Showing 1-2 of 102 samples")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Next" }))
+    expect(await screen.findByText("Page 2")).toBeInTheDocument()
+    expect(screen.getByText("Search: CASE")).toBeInTheDocument()
   })
 })

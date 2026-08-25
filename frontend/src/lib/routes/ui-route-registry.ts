@@ -142,8 +142,8 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/reports",
     page: "ReportsPage",
     area: "clinical",
-    api: ["GET /samples/:sampleId/reports/:reportType/preview", "POST /samples/:sampleId/reports/:reportType"],
-    dataUsed: ["report context rows", "snapshot rows", "report generation status"],
+    api: ["GET /reports"],
+    dataUsed: ["saved report metadata", "immutable reported-finding counts", "report access scope"],
   },
   {
     path: "/public",

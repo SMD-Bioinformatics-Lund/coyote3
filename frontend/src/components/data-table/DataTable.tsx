@@ -192,6 +192,8 @@ export function DataTable<TData, TValue>({
     if (columnId === "tier") return "w-14 min-w-14"
     return ""
   }
+  const visibleColumnCount = table.getVisibleLeafColumns().length
+  const tableMinimumWidth = `${Math.min(96, Math.max(42, visibleColumnCount * 6.5))}rem`
   const allFilteredRows = table.getPrePaginationRowModel().rows
   const visibleRows = table.getRowModel().rows
   const returnedCount = totalCount ?? allFilteredRows.length
@@ -266,9 +268,12 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Table Area */}
-      <div className="paper-surface overflow-hidden rounded-lg [contain:paint]">
-        <div className="overflow-x-auto">
-          <table className="type-table-cell w-full table-auto border-separate border-spacing-0 text-left type-numeric">
+      <div className="data-table-frame paper-surface min-w-0 max-w-full overflow-hidden rounded-lg [contain:paint]">
+        <div className="data-table-viewport max-w-full overflow-x-auto overscroll-x-contain">
+          <table
+            className="data-table-grid type-table-cell w-full table-auto border-separate border-spacing-0 text-left type-numeric"
+            style={{ minWidth: tableMinimumWidth }}
+          >
             <thead className="type-table-header border-b-2 border-border bg-[var(--header-surface)] text-foreground">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
@@ -285,6 +290,7 @@ export function DataTable<TData, TValue>({
                     return (
                       <th
                         key={header.id}
+                        data-column-id={header.column.id}
                         className={cn(
                             "whitespace-normal break-words border-b-2 border-r border-border px-2 py-1 align-bottom leading-tight last:border-r-0",
                           align === "center" ? "text-center" : "text-left",
@@ -335,6 +341,7 @@ export function DataTable<TData, TValue>({
                       return (
                         <td
                           key={cell.id}
+                          data-column-id={cell.column.id}
                           className={cn(
                             "border-b border-r border-border/40 px-2 py-1.5 align-middle last:border-r-0",
                             align === "center" ? "text-center" : "text-left",
@@ -358,87 +365,87 @@ export function DataTable<TData, TValue>({
             </tbody>
           </table>
         </div>
-      </div>
-      <div className="mt-2 flex min-h-11 items-center justify-end gap-2 border-t border-border/60 px-2 py-2.5 text-xs font-medium text-muted-foreground">
-        <span>
-          {serverPaginated
-            ? `Showing ${rangeStart}-${rangeEnd} of ${shortCount(returnedCount)} ${rowLabel}`
-            : paginated
-              ? `Showing ${clientPagination.pageIndex * clientPagination.pageSize + 1}-${Math.min((clientPagination.pageIndex + 1) * clientPagination.pageSize, allFilteredRows.length)} of ${allFilteredRows.length} row(s)`
-              : `Showing ${visibleRows.length} of ${allFilteredRows.length} row(s)`}
-        </span>
-        {serverPaginated && onPerPageChange && (
-          <select
-            value={effectivePageSize}
-            onChange={(event) => {
-              const nextPageSize = Number(event.target.value)
-              persistPageSize(nextPageSize)
-              onPerPageChange(nextPageSize)
-            }}
-            className="paper-inset rounded-lg px-2 py-1 text-xs font-semibold text-foreground outline-none focus:ring-3 focus:ring-ring/30"
-          >
-            {TABLE_PAGE_SIZE_OPTIONS.map((value) => (
-              <option key={value} value={value}>
-                {value} / page
-              </option>
-            ))}
-          </select>
-        )}
-        {serverPaginated && (
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              disabled={!hasPrevious}
-              onClick={() => onPageChange?.(Math.max(1, page - 1))}
-              className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              Previous
-            </button>
-            <span className="px-1 font-semibold text-foreground">Page {page}</span>
-            <button
-              type="button"
-              disabled={!hasNext}
-              onClick={() => onPageChange?.(page + 1)}
-              className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              Next
-            </button>
-          </div>
-        )}
-        {!serverPaginated && paginated && (
-          <>
+        <div className="data-table-footer flex min-h-11 flex-wrap items-center justify-end gap-2 border-t border-border/60 bg-card px-2 py-2 text-xs font-medium text-muted-foreground">
+          <span>
+            {serverPaginated
+              ? `Showing ${rangeStart}-${rangeEnd} of ${shortCount(returnedCount)} ${rowLabel}`
+              : paginated
+                ? `Showing ${clientPagination.pageIndex * clientPagination.pageSize + 1}-${Math.min((clientPagination.pageIndex + 1) * clientPagination.pageSize, allFilteredRows.length)} of ${allFilteredRows.length} row(s)`
+                : `Showing ${visibleRows.length} of ${allFilteredRows.length} row(s)`}
+          </span>
+          {serverPaginated && onPerPageChange && (
             <select
-              value={clientPagination.pageSize}
+              value={effectivePageSize}
               onChange={(event) => {
                 const nextPageSize = Number(event.target.value)
                 persistPageSize(nextPageSize)
-                setClientPagination({ pageIndex: 0, pageSize: nextPageSize })
+                onPerPageChange(nextPageSize)
               }}
               className="paper-inset rounded-lg px-2 py-1 text-xs font-semibold text-foreground outline-none focus:ring-3 focus:ring-ring/30"
             >
               {TABLE_PAGE_SIZE_OPTIONS.map((value) => (
-                <option key={value} value={value}>{value} / page</option>
+                <option key={value} value={value}>
+                  {value} / page
+                </option>
               ))}
             </select>
-            <button
-              type="button"
-              disabled={clientPage <= 1}
-              onClick={() => setClientPagination((current) => ({ ...current, pageIndex: Math.max(0, current.pageIndex - 1) }))}
-              className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              Previous
-            </button>
-            <span className="px-1 font-semibold text-foreground">Page {clientPage}</span>
-            <button
-              type="button"
-              disabled={clientPage >= clientPageCount}
-              onClick={() => setClientPagination((current) => ({ ...current, pageIndex: Math.min(clientPageCount - 1, current.pageIndex + 1) }))}
-              className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              Next
-            </button>
-          </>
-        )}
+          )}
+          {serverPaginated && (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={!hasPrevious}
+                onClick={() => onPageChange?.(Math.max(1, page - 1))}
+                className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                Previous
+              </button>
+              <span className="px-1 font-semibold text-foreground">Page {page}</span>
+              <button
+                type="button"
+                disabled={!hasNext}
+                onClick={() => onPageChange?.(page + 1)}
+                className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                Next
+              </button>
+            </div>
+          )}
+          {!serverPaginated && paginated && (
+            <>
+              <select
+                value={clientPagination.pageSize}
+                onChange={(event) => {
+                  const nextPageSize = Number(event.target.value)
+                  persistPageSize(nextPageSize)
+                  setClientPagination({ pageIndex: 0, pageSize: nextPageSize })
+                }}
+                className="paper-inset rounded-lg px-2 py-1 text-xs font-semibold text-foreground outline-none focus:ring-3 focus:ring-ring/30"
+              >
+                {TABLE_PAGE_SIZE_OPTIONS.map((value) => (
+                  <option key={value} value={value}>{value} / page</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={clientPage <= 1}
+                onClick={() => setClientPagination((current) => ({ ...current, pageIndex: Math.max(0, current.pageIndex - 1) }))}
+                className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                Previous
+              </button>
+              <span className="px-1 font-semibold text-foreground">Page {clientPage}</span>
+              <button
+                type="button"
+                disabled={clientPage >= clientPageCount}
+                onClick={() => setClientPagination((current) => ({ ...current, pageIndex: Math.min(clientPageCount - 1, current.pageIndex + 1) }))}
+                className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                Next
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

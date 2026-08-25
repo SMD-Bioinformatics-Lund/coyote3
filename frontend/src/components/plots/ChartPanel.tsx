@@ -26,27 +26,48 @@ export function ChartPanel({
 
   return (
     <section className="chart-panel flex h-full min-h-0 flex-col overflow-hidden rounded-lg p-2.5">
-      <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-        <div>
+      <div className="mb-2 flex min-w-0 flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
           <h3 className="text-[11px] font-semibold uppercase tracking-wide text-foreground">{title}</h3>
-          {description && <p className="mt-0.5 text-[11px] text-muted-foreground">{description}</p>}
+          {description && <p className="mt-0.5 break-words text-[11px] text-muted-foreground">{description}</p>}
         </div>
-        <div className="flex items-center gap-1">
-          <Button type="button" variant="outline" size="xs" title="Export chart PNG" onClick={() => exportChartAsPng(chartRef.current, `${safeName}.png`)}>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            title="Export chart PNG"
+            aria-label={`Export ${title} chart as PNG`}
+            onClick={() => exportChartAsPng(chartRef.current, `${safeName}.png`, { title, subtitle: description })}
+          >
             <ImageDown className="h-3.5 w-3.5" />
             PNG
           </Button>
-          <Button type="button" variant="outline" size="xs" title="Export chart SVG" onClick={() => exportChartAsSvg(chartRef.current, `${safeName}.svg`)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            title="Export chart SVG"
+            aria-label={`Export ${title} chart as SVG`}
+            onClick={() => exportChartAsSvg(chartRef.current, `${safeName}.svg`, { title, subtitle: description })}
+          >
             <Download className="h-3.5 w-3.5" />
             SVG
           </Button>
-          <Button type="button" variant="outline" size="xs" title="Export chart data CSV" onClick={() => exportRowsAsCsv(data, `${safeName}.csv`)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            title="Export chart data CSV"
+            aria-label={`Export ${title} chart data as CSV`}
+            onClick={() => exportRowsAsCsv(data, `${safeName}.csv`)}
+          >
             <FileDown className="h-3.5 w-3.5" />
             CSV
           </Button>
         </div>
       </div>
-      <div ref={chartRef} className="min-h-0 flex-1">
+      <div ref={chartRef} className="min-h-0 min-w-0 flex-1">
         {children}
       </div>
     </section>

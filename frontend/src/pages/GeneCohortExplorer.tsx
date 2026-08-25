@@ -375,9 +375,9 @@ export function GeneCohortExplorer() {
           <section className="content-section p-4">
             <h2 className="text-sm font-semibold">How prevalence is calculated</h2>
             <p className="type-body mt-1 text-muted-foreground">
-              The denominator contains ready samples visible to your account that profiled {gene} for at least one enabled finding type. Each SNV, CNV, fusion, or translocation target uses its selected target-specific gene list, then the ASP covered-gene scope; an unrestricted ASP target is treated as profiling every gene. {includeHistory
-                ? `The numerator includes tiered ${gene} findings from all saved report versions. The same typed finding is counted once per sample, using its most recent reported occurrence for tier summaries.`
-                : `The numerator contains samples whose latest saved report includes a tiered finding involving ${gene} as gene, gene1, or gene2.`}
+              Prevalence is the number of eligible samples with a reported Tier 1-4 finding involving {gene}, divided by the number of eligible samples that profiled {gene}, multiplied by 100. Eligible samples are ready and visible to your account. For each enabled SNV, CNV, fusion, or translocation target, the denominator uses the sample&apos;s selected target-specific gene list and then the ASP covered-gene scope; a target with no gene restriction is treated as profiling every gene. {includeHistory
+                ? `Findings are read from all saved report versions. Repeated occurrences of the same typed finding in multiple reports for one sample count once.`
+                : `Findings are read only from each sample's latest saved report.`}
             </p>
             {includeHistory && cohortQuery.data.denominator.duplicate_report_observations_removed > 0 && (
               <p className="type-caption mt-2 text-muted-foreground">

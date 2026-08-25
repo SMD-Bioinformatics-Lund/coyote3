@@ -45,6 +45,14 @@ const controlsPayload = {
       maintenance_enabled: true,
     },
     modules: { dna_analysis_enabled: true, reports_enabled: false, knowledgebases_enabled: true },
+    curation: {
+      tiering: {
+        small_variant_enabled: true,
+        cnv_enabled: false,
+        fusion_enabled: true,
+        translocation_enabled: false,
+      },
+    },
     retention: { audit_event_days: 730, notification_days: 180 },
     updated_by: "admin",
     updated_on: "2026-08-01T10:00:00Z",

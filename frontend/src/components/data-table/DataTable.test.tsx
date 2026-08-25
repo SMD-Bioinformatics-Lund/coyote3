@@ -155,4 +155,19 @@ describe("DataTable", () => {
     expect(within(screen.getByText("TP53").closest("tr") as HTMLElement).getByText("second")).toBeVisible()
     expect(screen.getByText("TP53").closest("tr")).toHaveClass("flagged")
   })
+
+  it("uses a shared wrapping table viewport with a density-based scroll threshold", () => {
+    const { container } = render(<DataTable columns={columns} data={data} hideExport />)
+    const frame = container.querySelector(".data-table-frame")
+    const viewport = container.querySelector(".data-table-viewport")
+    const footer = container.querySelector(".data-table-footer")
+    const table = container.querySelector(".data-table-grid")
+
+    expect(frame).toHaveClass("overflow-hidden", "rounded-lg")
+    expect(viewport).toHaveClass("overflow-x-auto")
+    expect(frame).toContainElement(viewport as HTMLElement)
+    expect(frame).toContainElement(footer as HTMLElement)
+    expect(table).toHaveStyle({ minWidth: "42rem" })
+    expect(screen.getByText("Gene").closest("th")).toHaveAttribute("data-column-id", "gene")
+  })
 })

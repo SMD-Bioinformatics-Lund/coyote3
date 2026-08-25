@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const mocks = vi.hoisted(() => ({ chartPanel: vi.fn(), bars: vi.fn(), cells: vi.fn() }))
+const mocks = vi.hoisted(() => ({ chartPanel: vi.fn(), bars: vi.fn(), bar: vi.fn(), cells: vi.fn(), tooltips: vi.fn() }))
 
 vi.mock("@/components/plots/ChartPanel", () => ({
   ChartPanel: (props: Record<string, unknown>) => {
@@ -13,18 +13,18 @@ vi.mock("@/components/plots/ChartPanel", () => ({
 vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   BarChart: ({ children, ...props }: { children: React.ReactNode }) => { mocks.bars(props); return <div>{children}</div> },
-  Bar: ({ dataKey }: { dataKey: string }) => <span>{dataKey}</span>,
+  Bar: (props: { dataKey: string }) => { mocks.bar(props); return <span>{props.dataKey}</span> },
   PieChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Pie: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Cell: (props: Record<string, unknown>) => { mocks.cells(props); return <span /> },
   CartesianGrid: () => null,
   Legend: () => null,
-  Tooltip: () => null,
+  Tooltip: (props: Record<string, unknown>) => { mocks.tooltips(props); return null },
   XAxis: () => null,
   YAxis: () => null,
 }))
 
-import { GeneCohortCharts } from "./GeneCohortCharts"
+import { GeneCohortCharts, PrevalenceTooltip } from "./GeneCohortCharts"
 
 const props = {
   gene: "TP53",
@@ -77,6 +77,38 @@ describe("GeneCohortCharts", () => {
     expect(mocks.chartPanel).toHaveBeenCalledWith(expect.objectContaining({
       filename: "tp53_historical_reports_tier_distribution",
     }))
+  })
+
+  it("uses stable item-level hover without animated chart artifacts", () => {
+    render(<GeneCohortCharts {...props} />)
+
+    expect(mocks.tooltips).toHaveBeenCalledWith(expect.objectContaining({
+      cursor: false,
+      isAnimationActive: false,
+      shared: false,
+    }))
+    expect(mocks.bar).toHaveBeenCalledWith(expect.objectContaining({
+      activeBar: false,
+      isAnimationActive: false,
+    }))
+  })
+
+  it("renders prevalence tooltip values and the underlying sample fraction", () => {
+    render(
+      <PrevalenceTooltip
+        active
+        payload={[{
+          graphicalItemId: "assay-prevalence",
+          name: "Prevalence",
+          value: 25,
+          payload: { ...props.assays[0], assay: "Solid DNA GMSv3" },
+        }]}
+      />,
+    )
+
+    expect(screen.getByText("Solid DNA GMSv3")).toBeVisible()
+    expect(screen.getByText("25.00% prevalence")).toBeVisible()
+    expect(screen.getByText("5 finding samples / 20 profiled samples")).toBeVisible()
   })
 
   it("shows clear empty states while retaining exportable empty datasets", () => {

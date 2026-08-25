@@ -19,8 +19,9 @@ describe("ChartPanel", () => {
     await user.click(screen.getByTitle("Export chart SVG"))
     await user.click(screen.getByTitle("Export chart data CSV"))
 
-    expect(exportChartAsPng).toHaveBeenCalledWith(expect.any(HTMLElement), "Gene_coverage_assay.png")
-    expect(exportChartAsSvg).toHaveBeenCalledWith(expect.any(HTMLElement), "Gene_coverage_assay.svg")
+    const exportMetadata = { title: "Gene coverage", subtitle: "Active definitions" }
+    expect(exportChartAsPng).toHaveBeenCalledWith(expect.any(HTMLElement), "Gene_coverage_assay.png", exportMetadata)
+    expect(exportChartAsSvg).toHaveBeenCalledWith(expect.any(HTMLElement), "Gene_coverage_assay.svg", exportMetadata)
     expect(exportRowsAsCsv).toHaveBeenCalledWith(data, "Gene_coverage_assay.csv")
   })
 })

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link, useSearchParams } from "react-router-dom"
-import type { ColumnDef } from "@tanstack/react-table"
+import type { ColumnDef, SortingState } from "@tanstack/react-table"
 import { api } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { TableBadge } from "@/components/ui/table-badge"
@@ -41,6 +41,9 @@ const DATE_RANGE_OPTIONS: Array<{ value: DateRangePreset; label: string }> = [
   { value: "30d", label: "Last 30 days" },
   { value: "custom", label: "Custom range" },
 ]
+
+const DEFAULT_LIVE_SORTING: SortingState = [{ id: "added", desc: true }]
+const DEFAULT_REPORTED_SORTING: SortingState = [{ id: "latest_reported", desc: true }]
 
 const BOOLEAN_ANALYSIS_LABELS: Record<string, string> = {
   cov: "Cov",
@@ -144,6 +147,16 @@ function resolveDateRange(preset: DateRangePreset, customFrom: string, customUnt
   }
 }
 
+function positivePage(value: string | null) {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
+}
+
+function resetSamplePagination(params: URLSearchParams) {
+  params.delete("live_page")
+  params.delete("reported_page")
+}
+
 function sampleFindingTotal(sample: any) {
   const counts = sample?.data_counts || {}
   return (
@@ -174,21 +187,26 @@ export function Samples() {
     : "all"
   const customDateFrom = searchParams.get("date_from") || ""
   const customDateUntil = searchParams.get("date_until") || ""
-  const requestedLimit = Number(searchParams.get("sample_limit") || preferredPageSize)
-  const sampleLimit = TABLE_PAGE_SIZE_OPTIONS.includes(requestedLimit as typeof TABLE_PAGE_SIZE_OPTIONS[number])
-    ? requestedLimit
+  const requestedPageSize = Number(searchParams.get("sample_per_page") || preferredPageSize)
+  const samplePageSize = TABLE_PAGE_SIZE_OPTIONS.includes(requestedPageSize as typeof TABLE_PAGE_SIZE_OPTIONS[number])
+    ? requestedPageSize
     : preferredPageSize
+  const livePage = positivePage(searchParams.get("live_page"))
+  const reportedPage = positivePage(searchParams.get("reported_page"))
   const sampleListLayout = sampleListLayoutForUser(currentUserQuery.data)
   const modernViewTried = sampleListModernViewTriedForUser(currentUserQuery.data)
   const { addedFrom, addedUntil } = useMemo(
     () => resolveDateRange(dateRange, customDateFrom, customDateUntil),
     [dateRange, customDateFrom, customDateUntil],
   )
-  const {
-    sorting,
-    setSorting,
-    updateTableSearchParams,
-  } = useUrlTableState({ prefix: "samples" })
+  const liveTableState = useUrlTableState({ prefix: "live" })
+  const reportedTableState = useUrlTableState({ prefix: "reported" })
+  const liveSorting = liveTableState.sorting.length ? liveTableState.sorting : DEFAULT_LIVE_SORTING
+  const reportedSorting = reportedTableState.sorting.length
+    ? reportedTableState.sorting
+    : DEFAULT_REPORTED_SORTING
+  const liveSortParam = liveTableState.sortParam || "added:desc"
+  const reportedSortParam = reportedTableState.sortParam || "latest_reported:desc"
 
   const [searchInput, setSearchInput] = useState(searchStr)
   const [customDateFromDraft, setCustomDateFromDraft] = useState(customDateFrom)
@@ -200,7 +218,7 @@ export function Samples() {
   }, [customDateFrom, customDateUntil])
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['samples', category, panelTech, assay, group, profileScope, searchStr, addedFrom, addedUntil, sampleLimit],
+    queryKey: ['samples', category, panelTech, assay, group, profileScope, searchStr, addedFrom, addedUntil, livePage, reportedPage, samplePageSize, liveSortParam, reportedSortParam],
     queryFn: () => {
       const params = new URLSearchParams()
       if (category) params.set("panel_type", category)
@@ -211,8 +229,12 @@ export function Samples() {
       if (searchStr) params.set("search_str", searchStr)
       if (addedFrom) params.set("added_from", addedFrom)
       if (addedUntil) params.set("added_until", addedUntil)
-      params.set("live_per_page", String(sampleLimit))
-      params.set("done_per_page", String(sampleLimit))
+      params.set("live_page", String(livePage))
+      params.set("done_page", String(reportedPage))
+      params.set("live_per_page", String(samplePageSize))
+      params.set("done_per_page", String(samplePageSize))
+      params.set("live_sort", liveSortParam)
+      params.set("reported_sort", reportedSortParam)
 
       return api.get(`/samples?${params.toString()}`).then(res => res.data)
     }
@@ -223,6 +245,7 @@ export function Samples() {
     const newParams = new URLSearchParams(searchParams)
     if (nextScope === "all") newParams.set("profile_scope", "all")
     else newParams.delete("profile_scope")
+    resetSamplePagination(newParams)
     setSearchParams(newParams)
   }
   const setSampleTab = (nextTab: SampleTab) => {
@@ -242,6 +265,7 @@ export function Samples() {
     const newParams = new URLSearchParams(searchParams)
     if (!value || value === defaultValue) newParams.delete(key)
     else newParams.set(key, value)
+    resetSamplePagination(newParams)
     setSearchParams(newParams)
   }
   const applyCustomDateRange = () => {
@@ -250,6 +274,14 @@ export function Samples() {
     else newParams.delete("date_from")
     if (customDateUntilDraft) newParams.set("date_until", customDateUntilDraft)
     else newParams.delete("date_until")
+    resetSamplePagination(newParams)
+    setSearchParams(newParams)
+  }
+  const setSamplePage = (state: SampleTab, pageNumber: number) => {
+    const newParams = new URLSearchParams(searchParams)
+    const key = state === "live" ? "live_page" : "reported_page"
+    if (pageNumber <= 1) newParams.delete(key)
+    else newParams.set(key, String(pageNumber))
     setSearchParams(newParams)
   }
   const customDateRangeInvalid = Boolean(
@@ -338,24 +370,9 @@ export function Samples() {
       },
     },
     {
-      id: "analysis",
-      header: "Analysis",
-      accessorFn: (sample) => sample.ingest_status || "",
-      cell: ({ row }) => (
-        <TableBadge
-          className={
-            row.original.ingest_status === "ready"
-              ? "border-pass/30 bg-pass/15 text-pass hover:bg-pass/20"
-              : "border-border bg-muted text-muted-foreground"
-          }
-        >
-          {row.original.ingest_status || "-"}
-        </TableBadge>
-      ),
-    },
-    {
       id: "data",
       header: "Data",
+      enableSorting: false,
       accessorFn: sampleFindingTotal,
       cell: ({ row }) => {
         const badges = countBadges(row.original)
@@ -400,6 +417,25 @@ export function Samples() {
       },
     },
     {
+      id: "latest_reported",
+      header: "Latest reported",
+      accessorFn: (sample) => sample.latest_report_on ? new Date(sample.latest_report_on).getTime() : 0,
+      cell: ({ row }) => (
+        <span
+          className="whitespace-nowrap font-medium text-muted-foreground"
+          title={fullDateTime(row.original.latest_report_on)}
+        >
+          {row.original.latest_report_on ? humanRelativeDate(row.original.latest_report_on) : "-"}
+        </span>
+      ),
+      meta: {
+        exportValue: (sample: any) => sample.latest_report_on
+          ? fullDateTime(sample.latest_report_on)
+          : "",
+        cellClassName: "whitespace-nowrap",
+      },
+    },
+    {
       id: "actions",
       header: "Actions",
       enableSorting: false,
@@ -416,8 +452,14 @@ export function Samples() {
       },
     },
   ], [])
-  const liveSamples = data?.live_samples || []
-  const reportedSamples = data?.done_samples || []
+  const liveColumns = useMemo(
+    () => columns.filter((column) => column.id !== "latest_reported"),
+    [columns],
+  )
+  const liveSamples = useMemo<any[]>(() => data?.live_samples ?? [], [data?.live_samples])
+  const reportedSamples = useMemo<any[]>(() => data?.done_samples ?? [], [data?.done_samples])
+  const liveTotal = Number(data?.live_total ?? liveSamples.length)
+  const reportedTotal = Number(data?.done_total ?? reportedSamples.length)
   const samples = activeTab === "reported" ? reportedSamples : liveSamples
   const sampleExportColumns = useMemo<CsvExportColumn<any>[]>(() => {
     const loadedSamples = [...liveSamples, ...reportedSamples]
@@ -459,23 +501,31 @@ export function Samples() {
         value: (sample: any) => exportScalar(sample?.biomarker_values?.[key]),
       })),
       { header: "Added", value: (sample) => fullDateTime(sample.time_added) },
+      { header: "Latest reported", value: (sample) => sample.latest_report_on ? fullDateTime(sample.latest_report_on) : "" },
     ]
   }, [liveSamples, reportedSamples])
 
   const renderSampleTable = (rows: any[], state: SampleTab) => (
     <DataTable
-      columns={columns}
+      columns={state === "reported" ? columns : liveColumns}
       data={rows}
       filename={`${state}_samples.csv`}
       exportColumns={sampleExportColumns}
       rowLabel="samples"
-      totalCount={rows.length}
+      totalCount={state === "live" ? liveTotal : reportedTotal}
+      page={state === "live" ? livePage : reportedPage}
+      perPage={samplePageSize}
+      hasNext={Boolean(state === "live" ? data?.has_next_live : data?.has_next_done)}
+      hasPrevious={(state === "live" ? livePage : reportedPage) > 1}
+      onPageChange={(nextPage) => setSamplePage(state, nextPage)}
       hideSearch
       stateKey={`samples.${state}`}
-      sortingState={sorting}
+      sortingState={state === "reported" ? reportedSorting : liveSorting}
+      manualSorting
       onSortingChange={(value) => {
-        setSorting(value)
-        updateTableSearchParams({ sorting: value })
+        const tableState = state === "reported" ? reportedTableState : liveTableState
+        tableState.setSorting(value)
+        tableState.updateTableSearchParams({ page: 1, sorting: value })
       }}
       getRowClassName={() => "group"}
       renderToolbar={() => rows.length === 0 ? (
@@ -525,6 +575,7 @@ export function Samples() {
                 const newParams = new URLSearchParams(searchParams)
                 if (searchInput) newParams.set("search_str", searchInput)
                 else newParams.delete("search_str")
+                resetSamplePagination(newParams)
                 setSearchParams(newParams)
               }}
               className="relative flex items-center gap-2"
@@ -533,7 +584,7 @@ export function Samples() {
                 <SearchIcon className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/75" />
                 <Input
                   type="text"
-                  placeholder="Search by Case ID..."
+                  placeholder="Search samples..."
                   className="w-[220px] rounded-xl pl-9 lg:w-[320px]"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
@@ -611,15 +662,15 @@ export function Samples() {
               </>
             )}
             <div className="space-y-1">
-              <label htmlFor="sample-row-limit" className="block text-[11px] font-semibold text-muted-foreground">Maximum rows</label>
+              <label htmlFor="sample-page-size" className="block text-[11px] font-semibold text-muted-foreground">Maximum rows per page</label>
               <select
-                id="sample-row-limit"
+                id="sample-page-size"
                 className="paper-inset h-9 min-w-[105px] rounded-lg px-3 text-sm font-medium"
-                value={sampleLimit}
+                value={samplePageSize}
                 onChange={(event) => {
                   const nextPageSize = Number(event.target.value)
                   persistPageSize(nextPageSize)
-                  updateSampleFilter("sample_limit", event.target.value, String(preferredPageSize))
+                  updateSampleFilter("sample_per_page", event.target.value, String(preferredPageSize))
                 }}
               >
                 {TABLE_PAGE_SIZE_OPTIONS.map((limit) => <option key={limit} value={limit}>{limit}</option>)}
@@ -656,8 +707,8 @@ export function Samples() {
                   value={activeTab}
                   onValueChange={setSampleTab}
                   items={[
-                    { value: "live", label: <>Live samples <span className="ml-1.5 rounded-full bg-background/75 px-1.5 py-0.5 text-[10px] text-foreground">{shortCount(liveSamples.length)}</span></> },
-                    { value: "reported", label: <>Reported samples <span className="ml-1.5 rounded-full bg-background/75 px-1.5 py-0.5 text-[10px] text-foreground">{shortCount(reportedSamples.length)}</span></> },
+                    { value: "live", label: <>Live samples <span className="ml-1.5 rounded-full bg-background/75 px-1.5 py-0.5 text-[10px] text-foreground">{shortCount(liveTotal)}</span></> },
+                    { value: "reported", label: <>Reported samples <span className="ml-1.5 rounded-full bg-background/75 px-1.5 py-0.5 text-[10px] text-foreground">{shortCount(reportedTotal)}</span></> },
                   ]}
                 />
                 <p className="text-xs font-semibold text-muted-foreground">
@@ -676,7 +727,7 @@ export function Samples() {
                     <h2 id="live-samples-heading" className="text-sm font-semibold">Live samples</h2>
                     <p className="text-xs text-muted-foreground">Samples awaiting review or active analysis.</p>
                   </div>
-                  <Badge variant="secondary">{shortCount(liveSamples.length)}</Badge>
+                  <Badge variant="secondary">{shortCount(liveTotal)}</Badge>
                 </div>
                 {renderSampleTable(liveSamples, "live")}
               </section>
@@ -686,7 +737,7 @@ export function Samples() {
                     <h2 id="reported-samples-heading" className="text-sm font-semibold">Reported samples</h2>
                     <p className="text-xs text-muted-foreground">Samples with saved clinical reports.</p>
                   </div>
-                  <Badge variant="secondary">{shortCount(reportedSamples.length)}</Badge>
+                  <Badge variant="secondary">{shortCount(reportedTotal)}</Badge>
                 </div>
                 {renderSampleTable(reportedSamples, "reported")}
               </section>

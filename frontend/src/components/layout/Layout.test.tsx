@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { focusManager, QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -64,7 +64,13 @@ function renderLayout(initialEntry = "/samples") {
   )
 }
 
-function mockPrivateQueries() {
+function mockPrivateQueries(
+  getNavigationCounts: () => Record<string, number> = () => ({
+    "dna:panel:hematology": 12,
+    "dna:wgs:tumwgs": 3,
+    "rna:wts:fusion": 4,
+  }),
+) {
   vi.mocked(api.get).mockImplementation(async (url: string) => {
     if (url === "/public/modules") return { data: { modules: {} } } as never
     if (url === "/auth/whoami") return { data: currentUser } as never
@@ -72,11 +78,7 @@ function mockPrivateQueries() {
     if (url === "/samples/navigation-counts") {
       return {
         data: {
-          counts: {
-            "dna:panel:hematology": 12,
-            "dna:wgs:tumwgs": 3,
-            "rna:wts:fusion": 4,
-          },
+          counts: getNavigationCounts(),
         },
       } as never
     }
@@ -139,6 +141,26 @@ describe("Layout", () => {
         "/samples?panel_type=dna&panel_tech=panel&assay_group=hematology",
       )
     })
+  })
+
+  it("refreshes assay counts when the application regains focus", async () => {
+    let hematologyCount = 12
+    mockPrivateQueries(() => ({
+      "dna:panel:hematology": hematologyCount,
+      "dna:wgs:tumwgs": 3,
+      "rna:wts:fusion": 4,
+    }))
+    renderLayout("/")
+
+    fireEvent.click(await screen.findByRole("button", { name: /dna/i }))
+    const hematology = await screen.findByTitle("DNA / panel / hematology")
+    expect(hematology).toHaveTextContent("12")
+
+    focusManager.setFocused(false)
+    hematologyCount = 19
+    focusManager.setFocused(true)
+
+    await waitFor(() => expect(hematology).toHaveTextContent("19"))
   })
 
   it("exposes profile and support links and logs the user out", async () => {

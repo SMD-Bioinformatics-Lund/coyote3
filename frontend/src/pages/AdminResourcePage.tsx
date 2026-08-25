@@ -203,6 +203,10 @@ export function AdminResourcePage() {
     },
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin-resource", spec.key] })
+      if (spec.key === "samples") {
+        queryClient.invalidateQueries({ queryKey: ["samples"] })
+        queryClient.invalidateQueries({ queryKey: ["sample-navigation-counts"] })
+      }
       setPendingAction(null)
       const displayName = mutationDisplayName(result, variables.name)
       const resourceId = mutationResourceId(result, variables.id)
@@ -574,6 +578,10 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-resource", spec.key] })
+      if (spec.key === "samples") {
+        queryClient.invalidateQueries({ queryKey: ["samples"] })
+        queryClient.invalidateQueries({ queryKey: ["sample-navigation-counts"] })
+      }
       const resourceName = String(values.name || values.username || values.email || values.role_id || values.permission_id || values.asp_id || values.aspc_id || values.isgl_id || id || spec.title)
       notifySuccess(
         `${spec.title} ${mode === "create" ? "created" : "updated"}`,

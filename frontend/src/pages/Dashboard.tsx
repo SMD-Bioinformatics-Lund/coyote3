@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { Suspense, lazy } from "react"
 import { api } from "@/lib/api"
-import { Activity, AlertTriangle, ArrowRight, CheckCircle2, Clock, GitBranch, Users } from "lucide-react"
+import { AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react"
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -16,6 +16,7 @@ const chartColors = ["var(--color-tier1)", "var(--color-tier2)", "var(--color-ti
 const TierDistributionChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.TierDistributionChart })))
 const GeneCoverageChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.GeneCoverageChart })))
 const PanelAnalysisCapabilityChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.PanelAnalysisCapabilityChart })))
+const SampleCompositionCharts = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.SampleCompositionCharts })))
 
 function fmt(value: unknown) {
   return shortCount(value)
@@ -30,10 +31,6 @@ function Metric({ title, value, sub }: { title: string; value: unknown; sub?: st
 function percent(value: unknown) {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? `${numeric.toFixed(numeric % 1 === 0 ? 0 : 1)}%` : "0%"
-}
-
-function miniBarWidth(value: number, values: number[]) {
-  return `${Math.min(100, (value / Math.max(...values, 1)) * 100)}%`
 }
 
 function humanDate(value: unknown) {
@@ -99,6 +96,13 @@ export function Dashboard() {
   const omicsData = Object.entries(sStats.omics_layers || {}).map(([name, value]) => ({ name, value: Number(value) }))
   const scopeData = Object.entries(sStats.sequencing_scopes || {}).map(([name, value]) => ({ name, value: Number(value) }))
   const pairingData = Object.entries(sStats.pair_count || {}).map(([name, value]) => ({ name, value: Number(value) }))
+  const compositionGroups = [
+    { name: "Ingest status", rows: statusData },
+    { name: "Omics", rows: omicsData },
+    { name: "Sequencing scope", rows: scopeData },
+    { name: "My profile scope", rows: Object.entries(scopeStats.profiles || {}).map(([name, value]) => ({ name, value: Number(value) })) },
+    { name: "Pairing", rows: pairingData },
+  ]
   const variantClassData = Object.entries(vStats.by_variant_class || {}).map(([name, value]) => ({ name, value: Number(value) })).sort((a, b) => b.value - a.value)
   const capacityEntries = Object.entries(capacity)
 
@@ -226,119 +230,65 @@ export function Dashboard() {
         </SurfacePanel>
       </div>
 
-      <div className="grid items-start gap-3 xl:grid-cols-[0.8fr_1.2fr]">
-        <SurfacePanel className="dashboard-panel dashboard-panel--amber" title="Sample Composition" description="Profiles, status, modality, and sequencing scope.">
-          <div className="grid gap-3 md:grid-cols-2">
-            {[
-              ["Ingest status", statusData, CheckCircle2],
-              ["Omics", omicsData, Activity],
-              ["Sequencing scope", scopeData, Users],
-              ["My profile scope", Object.entries(scopeStats.profiles || {}).map(([name, value]) => ({ name, value: Number(value) })), Clock],
-              ["Pairing", pairingData, Users],
-            ].map(([title, rows, Icon]: any, panelIndex) => (
-              <div key={title} className="dashboard-subcard p-2.5">
-                <div className="mb-2 flex items-center gap-2">
-                  <Icon className="h-4 w-4 text-primary" />
-                  <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
-                </div>
-                <div className="space-y-1.5">
-                  {rows.length ? rows.map((item: any, index: number) => (
+      <div className="grid items-stretch gap-3 2xl:grid-cols-[0.9fr_1.1fr]">
+        <SurfacePanel className="dashboard-panel dashboard-panel--amber h-full" title="Sample Composition" description="Profiles, status, modality, and sequencing scope.">
+          <Suspense fallback={<ChartFallback />}>
+            <SampleCompositionCharts groups={compositionGroups} pipelines={pipelineData} colors={chartColors} />
+          </Suspense>
+        </SurfacePanel>
+
+        <div className="flex min-h-0 min-w-0 flex-col gap-3">
+          <SurfacePanel className="dashboard-panel dashboard-panel--blue" title="Variant Review" description="Finding counts and classification quality indicators.">
+            <div className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,1.55fr)_minmax(16rem,0.8fr)_minmax(14rem,0.7fr)]">
+              <div className="grid grid-cols-2 gap-2 break-words md:grid-cols-4">
+                <Metric title="Small variants" value={vStats.snv || vStats.small_variants} sub={`${fmt(vStats.snps)} SNV/SNP class`} />
+                <Metric title="CNV" value={vStats.cnv || vStats.cnvs} />
+                <Metric title="Fusions" value={vStats.fusion || vStats.fusions} />
+                <Metric title="Translocations" value={vStats.translocation || vStats.translocations} />
+                <Metric title="Blacklisted" value={vStats.blacklisted} sub={`${quality.blacklist_rate_percent ?? 0}%`} />
+                <Metric title="False positives" value={vStats.fps || vStats.false_positives} sub={`${quality.fp_rate_percent ?? quality.false_positive_rate_percent ?? 0}%`} />
+                <Metric title="Tier 1/2" value={vStats.tier1_or_2 ?? vStats.pathogenic} sub="Report-priority findings" />
+                <Metric title="VUS" value={vStats.vus} />
+                <Metric title="Reported findings" value={vStats.reported_findings} sub="Saved report snapshots" />
+                <Metric title="Tier 4" value={vStats.tier4} sub="Usually not reportable" />
+              </div>
+              <div className="min-h-64 min-w-0">
+                {tierChartData.length ? (
+                  <div className="h-full min-h-64 min-w-0">
+                    <Suspense fallback={<ChartFallback />}>
+                      <TierDistributionChart data={tierChartData} colors={chartColors} />
+                    </Suspense>
+                  </div>
+                ) : <p className="text-xs text-muted-foreground">No tier data available.</p>}
+              </div>
+              <div className="dashboard-subcard min-h-48 p-2">
+                <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Small Variant Classes</h3>
+                <div className="space-y-2">
+                  {variantClassData.length ? variantClassData.slice(0, 6).map((item, index) => (
                     <div key={item.name} className="space-y-1">
                       <div className="flex justify-between gap-3 text-[11px] font-medium uppercase">
                         <span className="truncate">{item.name || "unknown"}</span>
                         <span>{fmt(item.value)}</span>
                       </div>
                       <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div className="h-full rounded-full" style={{ width: miniBarWidth(item.value, rows.map((row: any) => row.value)), background: chartColors[(panelIndex + index) % chartColors.length] }} />
+                        <div className="h-full rounded-full" style={{ width: `${Math.min(100, (item.value / Math.max(...variantClassData.map((row) => row.value), 1)) * 100)}%`, background: chartColors[index % chartColors.length] }} />
                       </div>
                     </div>
-                  )) : <p className="text-xs text-muted-foreground">No data.</p>}
+                  )) : <p className="text-xs text-muted-foreground">No class data available.</p>}
                 </div>
               </div>
-            ))}
-            <div className="dashboard-subcard p-2.5">
-              <div className="mb-2 flex items-center gap-2">
-                <GitBranch className="h-4 w-4 text-primary" />
-                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pipelines</h3>
-              </div>
-              <div className="space-y-2">
-                {pipelineData.length ? pipelineData.slice(0, 6).map((item: any, index: number) => {
-                  const count = Number(item.count || 0)
-                  const analysed = Number(item.analysed || 0)
-                  const pipelineName = String(item.name || "unknown")
-                  const version = String(item.version || "").trim()
-                  return (
-                    <div key={`${pipelineName}:${version || "unversioned"}`} className="space-y-1">
-                      <div className="flex items-start justify-between gap-3 text-[11px]">
-                        <div className="min-w-0">
-                          <span className="block truncate font-medium text-foreground">{pipelineName}</span>
-                          <span className="block truncate text-[10px] text-muted-foreground">{version ? `Version ${version}` : "Version not recorded"}</span>
-                        </div>
-                        <span className="shrink-0 font-semibold text-foreground">{fmt(count)}</span>
-                      </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${count > 0 ? Math.min(100, (analysed / count) * 100) : 0}%`,
-                            background: chartColors[index % chartColors.length],
-                          }}
-                        />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground">{fmt(analysed)} of {fmt(count)} analysed</p>
-                    </div>
-                  )
-                }) : <p className="text-xs text-muted-foreground">No pipeline data available.</p>}
-                {pipelineData.length > 6 ? (
-                  <p className="text-[10px] text-muted-foreground">{pipelineData.length - 6} additional pipeline version(s)</p>
-                ) : null}
-              </div>
             </div>
-          </div>
-        </SurfacePanel>
+          </SurfacePanel>
 
-        <SurfacePanel className="dashboard-panel dashboard-panel--blue" title="Variant Review" description="Finding counts and classification quality indicators.">
-          <div className="grid gap-3 lg:grid-cols-[1fr_15rem_14rem]">
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-              <Metric title="Small variants" value={vStats.snv || vStats.small_variants} sub={`${fmt(vStats.snps)} SNV/SNP class`} />
-              <Metric title="CNV" value={vStats.cnv || vStats.cnvs} />
-              <Metric title="Fusions" value={vStats.fusion || vStats.fusions} />
-              <Metric title="Translocations" value={vStats.translocation || vStats.translocations} />
-              <Metric title="Blacklisted" value={vStats.blacklisted} sub={`${quality.blacklist_rate_percent ?? 0}%`} />
-              <Metric title="False positives" value={vStats.fps || vStats.false_positives} sub={`${quality.fp_rate_percent ?? quality.false_positive_rate_percent ?? 0}%`} />
-              <Metric title="Tier 1/2" value={vStats.tier1_or_2 ?? vStats.pathogenic} sub="Report-priority findings" />
-              <Metric title="VUS" value={vStats.vus} />
-              <Metric title="Reported findings" value={vStats.reported_findings} sub="Saved report snapshots" />
-              <Metric title="Tier 4" value={vStats.tier4} sub="Usually not reportable" />
+          <SurfacePanel className="dashboard-panel dashboard-panel--rose flex min-h-0 flex-1 flex-col" title="Panel Portfolio" description="Active targeted-panel design inventory.">
+            <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-2 gap-2">
+              <Metric title="Active panels" value={panelPortfolio.active_panels} sub={`${fmt(panelPortfolio.accredited_panels)} accredited`} />
+              <Metric title="Assay groups" value={panelPortfolio.assay_groups} sub="Represented by active panels" />
+              <Metric title="Covered assignments" value={panelPortfolio.covered_gene_assignments} sub="Genes across panel definitions" />
+              <Metric title="Germline assignments" value={panelPortfolio.germline_gene_assignments} sub="Configured germline scope" />
             </div>
-            <div className="dashboard-subcard min-h-48 p-2">
-              <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Tier Distribution</h3>
-              {tierChartData.length ? (
-                <div className="h-44">
-                  <Suspense fallback={<ChartFallback />}>
-                    <TierDistributionChart data={tierChartData} colors={chartColors} />
-                  </Suspense>
-                </div>
-              ) : <p className="text-xs text-muted-foreground">No tier data available.</p>}
-            </div>
-            <div className="dashboard-subcard min-h-48 p-2">
-              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Small Variant Classes</h3>
-              <div className="space-y-2">
-                {variantClassData.length ? variantClassData.slice(0, 6).map((item, index) => (
-                  <div key={item.name} className="space-y-1">
-                    <div className="flex justify-between gap-3 text-[11px] font-medium uppercase">
-                      <span className="truncate">{item.name || "unknown"}</span>
-                      <span>{fmt(item.value)}</span>
-                    </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                      <div className="h-full rounded-full" style={{ width: miniBarWidth(item.value, variantClassData.map((row) => row.value)), background: chartColors[index % chartColors.length] }} />
-                    </div>
-                  </div>
-                )) : <p className="text-xs text-muted-foreground">No class data available.</p>}
-              </div>
-            </div>
-          </div>
-        </SurfacePanel>
+          </SurfacePanel>
+        </div>
       </div>
 
       <div className="grid items-stretch gap-3 xl:grid-cols-[1.35fr_0.65fr]">
@@ -359,33 +309,8 @@ export function Dashboard() {
           </div>
         </SurfacePanel>
 
-        <SurfacePanel className="dashboard-panel dashboard-panel--rose h-full" title="Panel Portfolio" description="Active targeted-panel design inventory.">
-          <div className="grid grid-cols-2 gap-2 xl:h-[320px] xl:auto-rows-fr">
-            <Metric title="Active panels" value={panelPortfolio.active_panels} sub={`${fmt(panelPortfolio.accredited_panels)} accredited`} />
-            <Metric title="Assay groups" value={panelPortfolio.assay_groups} sub="Represented by active panels" />
-            <Metric title="Covered assignments" value={panelPortfolio.covered_gene_assignments} sub="Genes across panel definitions" />
-            <Metric title="Germline assignments" value={panelPortfolio.germline_gene_assignments} sub="Configured germline scope" />
-          </div>
-        </SurfacePanel>
-      </div>
-
-      <div className="grid items-stretch gap-3 xl:grid-cols-[1.35fr_0.65fr]">
-        <SurfacePanel className="dashboard-panel dashboard-panel--blue h-full" title="Panel Analysis Capability" description="Enabled analysis and report sections across active targeted-panel configurations.">
-          <div className="h-[280px]">
-            {panelAnalysisCapabilityData.length ? (
-              <Suspense fallback={<ChartFallback />}>
-                <PanelAnalysisCapabilityChart data={panelAnalysisCapabilityData} />
-              </Suspense>
-            ) : (
-              <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border text-center text-xs text-muted-foreground">
-                No targeted-panel analysis capabilities are configured.
-              </div>
-            )}
-          </div>
-        </SurfacePanel>
-
         <SurfacePanel className="dashboard-panel dashboard-panel--amber h-full" title="Resource Capacity" description="Configured resources and reference inventory.">
-          <div className="grid grid-cols-2 gap-2 xl:h-[280px] xl:auto-rows-fr">
+          <div className="grid grid-cols-2 gap-2 xl:h-[320px] xl:auto-rows-fr">
             {capacityEntries.length ? capacityEntries.map(([key, value], index) => (
               <div key={key} className="dashboard-subcard p-2.5">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{key.replaceAll("_", " ")}</p>
@@ -395,6 +320,20 @@ export function Dashboard() {
           </div>
         </SurfacePanel>
       </div>
+
+      <SurfacePanel className="dashboard-panel dashboard-panel--blue">
+        <div className="h-[250px]">
+          {panelAnalysisCapabilityData.length ? (
+            <Suspense fallback={<ChartFallback />}>
+              <PanelAnalysisCapabilityChart data={panelAnalysisCapabilityData} />
+            </Suspense>
+          ) : (
+            <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border text-center text-xs text-muted-foreground">
+              No targeted-panel analysis capabilities are configured.
+            </div>
+          )}
+        </div>
+      </SurfacePanel>
 
       <SurfacePanel className="dashboard-panel dashboard-panel--amber" title="Clinical Configuration" description="Gene-list visibility and assay coverage for interpretation workflows.">
         <div className="grid gap-3 lg:grid-cols-[0.8fr_1.2fr]">

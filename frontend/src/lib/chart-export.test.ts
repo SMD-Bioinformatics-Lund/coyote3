@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { chartSvgElement, exportChartAsPng, exportChartAsSvg, exportRowsAsCsv, rowsToCsv } from "./chart-export"
+import { chartSvgElement, exportChartAsPng, exportChartAsSvg, exportRowsAsCsv, rowsToCsv, serializeChartSvg } from "./chart-export"
 
 class LoadableImage {
   decoding = ""
@@ -28,6 +28,17 @@ describe("chart export utilities", () => {
     expect(exportChartAsSvg(container, "empty.svg")).toBe(false)
   })
 
+  it("selects the main plot instead of an earlier Recharts legend symbol", () => {
+    const container = document.createElement("div")
+    container.innerHTML = [
+      '<svg class="recharts-surface" width="14" height="14" viewBox="0 0 32 32" aria-label="legend symbol" />',
+      '<svg class="recharts-surface" width="720" height="280" viewBox="0 0 720 280" aria-label="main plot"><text>TP53</text></svg>',
+    ].join("")
+
+    expect(chartSvgElement(container)?.getAttribute("aria-label")).toBe("main plot")
+    expect(serializeChartSvg(container)).toMatchObject({ width: 784, height: 344 })
+  })
+
   it("downloads CSV and SVG files", () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined)
     exportRowsAsCsv([{ gene: "TP53" }], "rows.csv")
@@ -35,6 +46,38 @@ describe("chart export utilities", () => {
     container.innerHTML = '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="2" /></svg>'
     expect(exportChartAsSvg(container, "chart.svg")).toBe(true)
     expect(click).toHaveBeenCalledTimes(2)
+  })
+
+  it("creates a standalone SVG with resolved dimensions, background, and presentation styles", () => {
+    const container = document.createElement("div")
+    container.style.backgroundColor = "rgb(240, 241, 242)"
+    container.innerHTML = '<svg viewBox="0 0 20 10"><text style="fill: rgb(12, 34, 56); font-size: 11px">TP53</text></svg>'
+    const prepared = serializeChartSvg(container, { title: "Gene findings", subtitle: "Reported cohort" })
+
+    expect(prepared).toMatchObject({ width: 84, height: 134, background: "rgb(240, 241, 242)" })
+    expect(prepared?.serialized).toContain('width="84"')
+    expect(prepared?.serialized).toContain('height="134"')
+    expect(prepared?.serialized).toContain("rgb(240, 241, 242)")
+    expect(prepared?.serialized).toContain("rgb(12, 34, 56)")
+    expect(prepared?.serialized).toContain("Gene findings")
+    expect(prepared?.serialized).toContain("Reported cohort")
+  })
+
+  it("adds a native wrapped legend below the chart", () => {
+    const container = document.createElement("div")
+    container.innerHTML = [
+      '<svg viewBox="0 0 240 100"><rect width="240" height="100" /></svg>',
+      '<ul class="recharts-default-legend">',
+      '<li class="recharts-legend-item" style="color: rgb(12, 98, 61)"><svg class="recharts-legend-icon" style="fill: rgb(12, 98, 61)"></svg><span>Somatic</span></li>',
+      '<li class="recharts-legend-item" style="color: rgb(157, 93, 24)"><svg class="recharts-legend-icon" style="fill: rgb(157, 93, 24)"></svg><span>Germline</span></li>',
+      '</ul>',
+    ].join("")
+
+    const prepared = serializeChartSvg(container, { title: "Findings" })
+    expect(prepared).toMatchObject({ width: 304, height: 242 })
+    expect(prepared?.serialized).toContain("Somatic")
+    expect(prepared?.serialized).toContain("Germline")
+    expect(prepared?.serialized).toContain('rx="2"')
   })
 
   it("exports a chart as a scaled PNG using the configured page background", async () => {
@@ -58,7 +101,7 @@ describe("chart export utilities", () => {
 
     await expect(exportChartAsPng(container, "chart.png")).resolves.toBe(true)
     expect(context.fillStyle).toBe("rgb(245 245 245)")
-    expect(context.fillRect).toHaveBeenCalledWith(0, 0, 21, 11)
+    expect(context.fillRect).toHaveBeenCalledWith(0, 0, 85, 75)
     expect(context.drawImage).toHaveBeenCalled()
     expect(click).toHaveBeenCalledOnce()
     vi.unstubAllGlobals()

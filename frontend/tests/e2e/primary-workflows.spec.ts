@@ -11,7 +11,13 @@ test("dashboard presents distinct workload and panel capability information", as
         pending_samples: 3,
         variant_stats: { small_variants: 1200, unique_variants: 900, cnvs: 14 },
         user_samples_stats: { hema_gmsv1: { total: 4, analysed: 2, pending: 2 } },
-        sample_stats: { profiles: { production: 8 } },
+        sample_stats: {
+          profiles: { production: 6, validation: 2 },
+          ingest_statuses: { ready: 7, processing: 1 },
+          omics_layers: { dna: 6, rna: 2 },
+          sequencing_scopes: { panel: 8 },
+          pair_count: { paired: 5, unpaired: 3 },
+        },
         tier_stats: { total: { tier1: 2, tier2: 3, tier3: 1, tier4: 0 } },
         quality_stats: { analysed_rate_percent: 62.5 },
         panel_gene_stats_grouped: {
@@ -22,7 +28,18 @@ test("dashboard presents distinct workload and panel capability information", as
           { analysis_type: "SNV", enabled: 2, reportable: 2 },
           { analysis_type: "CNV", enabled: 2, reportable: 1 },
         ],
-        user_scope_summary: { total_samples: 8, pending_samples: 3, recent_samples: [] },
+        user_scope_summary: {
+          total_samples: 8,
+          pending_samples: 3,
+          recent_samples: [],
+          sample_stats: {
+            profiles: { production: 6, validation: 2 },
+            pipelines: [
+              { name: "SomaticPanelPipeline", version: "3.2.0", count: 6, analysed: 4 },
+              { name: "RnaFusionPipeline", version: "2.1.0", count: 2, analysed: 1 },
+            ],
+          },
+        },
         capacity_counts: { users: 12, roles: 4 },
       },
     }
@@ -34,10 +51,48 @@ test("dashboard presents distinct workload and panel capability information", as
   await expect(page.getByText("Panel Analysis Capability")).toBeVisible()
   await expect(page.getByText("Panel Portfolio")).toBeVisible()
   await expect(page.getByText("Panel Review Workload")).toHaveCount(0)
+  await expect(page.getByText("Pipeline throughput")).toBeVisible()
+  await expect(page.getByRole("img", { name: /SomaticPanelPipeline 3\.2\.0: 4 analysed, 2 awaiting review/ })).toBeVisible()
+
+  const svgDownloadPromise = page.waitForEvent("download")
+  await page.getByRole("button", { name: "Export Gene coverage per assay chart as SVG" }).click()
+  const svgDownload = await svgDownloadPromise
+  const stream = await svgDownload.createReadStream()
+  const chunks: Buffer[] = []
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk))
+  const exportedSvg = Buffer.concat(chunks).toString("utf8")
+
+  expect(exportedSvg).toContain("Hematology GMSv1")
+  expect(exportedSvg).toContain('class="recharts-surface"')
+  expect(exportedSvg).not.toContain('class="lucide lucide-download')
+
+  const pngDownloadPromise = page.waitForEvent("download")
+  await page.getByRole("button", { name: "Export Gene coverage per assay chart as PNG" }).click()
+  const pngDownload = await pngDownloadPromise
+  const pngStream = await pngDownload.createReadStream()
+  const pngChunks: Buffer[] = []
+  for await (const chunk of pngStream) pngChunks.push(Buffer.from(chunk))
+  const exportedPng = Buffer.concat(pngChunks)
+
+  expect(exportedPng.subarray(1, 4).toString("ascii")).toBe("PNG")
+  expect(exportedPng.readUInt32BE(16)).toBeGreaterThan(500)
+  expect(exportedPng.readUInt32BE(20)).toBeGreaterThan(150)
 })
 
 test("samples switch between live and reported records without a reload", async ({ page }) => {
   await installApiFixtures(page, (path) => {
+    if (path === "/api/v1/auth/whoami") {
+      return {
+        json: {
+          username: "coyote3.admin",
+          role: "admin",
+          roles: ["superuser", "admin"],
+          access_level: 99_999,
+          permissions: [],
+          ui_settings: { sample_list_layout: "modern", sample_list_modern_view_tried: true },
+        },
+      }
+    }
     if (path !== "/api/v1/samples") return
     return {
       json: {

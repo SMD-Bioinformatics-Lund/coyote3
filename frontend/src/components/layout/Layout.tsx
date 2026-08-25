@@ -66,7 +66,11 @@ export function Layout() {
     queryKey: ['sample-navigation-counts'],
     queryFn: () => api.get<{ counts: Record<string, number> }>('/samples/navigation-counts').then(res => res.data),
     enabled: !isPublicRoute,
-    staleTime: 30 * 1000,
+    staleTime: 10 * 1000,
+    refetchInterval: 15 * 1000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: "always",
+    refetchOnReconnect: "always",
   })
 
   const { data: contactData } = useQuery({

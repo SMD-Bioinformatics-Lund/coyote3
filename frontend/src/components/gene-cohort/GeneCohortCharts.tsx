@@ -8,6 +8,7 @@ import {
   PieChart,
   ResponsiveContainer,
   Tooltip,
+  type TooltipContentProps,
   XAxis,
   YAxis,
 } from "recharts"
@@ -45,6 +46,46 @@ const tooltipStyle = {
   border: "1px solid var(--border)",
   background: "var(--popover)",
   color: "var(--popover-foreground)",
+}
+
+const stableTooltipProps = {
+  cursor: false,
+  isAnimationActive: false,
+  wrapperStyle: { pointerEvents: "none" as const, zIndex: 20 },
+}
+
+type PrevalenceTooltipRow = {
+  assay?: string
+  sex?: string
+  prevalence_percent?: number | null
+  finding_samples?: number
+  profiled_samples?: number
+}
+
+type PrevalenceTooltipProps = Pick<TooltipContentProps<number, string>, "active" | "payload">
+
+export function PrevalenceTooltip({ active, payload }: PrevalenceTooltipProps) {
+  if (!active || !payload?.length) return null
+
+  const row = payload[0]?.payload as PrevalenceTooltipRow | undefined
+  if (!row) return null
+
+  const label = row.assay || row.sex || "Cohort"
+  const prevalence = row.prevalence_percent
+  const findingSamples = row.finding_samples ?? 0
+  const profiledSamples = row.profiled_samples ?? 0
+
+  return (
+    <div className="pointer-events-none min-w-40 rounded-lg border border-border bg-popover px-3 py-2 text-popover-foreground shadow-lg">
+      <p className="text-sm font-semibold">{label}</p>
+      <p className="mt-1 text-sm">
+        {prevalence == null ? "Not calculable" : `${prevalence.toFixed(2)}% prevalence`}
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {findingSamples} finding sample{findingSamples === 1 ? "" : "s"} / {profiledSamples} profiled sample{profiledSamples === 1 ? "" : "s"}
+      </p>
+    </div>
+  )
 }
 
 function sexLabel(value: string) {
@@ -120,7 +161,7 @@ export function GeneCohortCharts({
         <div className="h-[22rem] min-w-0">
           <ChartPanel
             title="Prevalence by assay"
-            description="Percentage of profiled samples with a reported finding."
+            description="Unique samples with a reported finding divided by samples that profiled the gene."
             filename={`${filenamePrefix}_assay_prevalence`}
             data={assayData}
           >
@@ -130,8 +171,19 @@ export function GeneCohortCharts({
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" opacity={0.55} horizontal={false} />
                   <XAxis type="number" domain={[0, 100]} unit="%" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
                   <YAxis type="category" dataKey="assay" width={132} tick={{ fontSize: 10, fill: "var(--foreground)" }} />
-                  <Tooltip cursor={{ fill: "var(--chart-tooltip-cursor)" }} contentStyle={tooltipStyle} />
-                  <Bar dataKey="prevalence_percent" name="Prevalence" fill="var(--color-panel)" radius={[0, 4, 4, 0]} />
+                  <Tooltip
+                    {...stableTooltipProps}
+                    shared={false}
+                    content={({ active, payload }) => <PrevalenceTooltip active={active} payload={payload} />}
+                  />
+                  <Bar
+                    dataKey="prevalence_percent"
+                    name="Prevalence"
+                    fill="var(--color-panel)"
+                    radius={[0, 4, 4, 0]}
+                    activeBar={false}
+                    isAnimationActive={false}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             ) : <p className="type-body grid h-full place-items-center text-muted-foreground">No assay prevalence is available.</p>}
@@ -147,10 +199,10 @@ export function GeneCohortCharts({
           >
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={tierData} dataKey="observations" nameKey="tier" innerRadius={54} outerRadius={92} paddingAngle={3}>
+                <Pie data={tierData} dataKey="observations" nameKey="tier" innerRadius={54} outerRadius={92} paddingAngle={3} isAnimationActive={false}>
                   {tierData.map((row, index) => <Cell key={row.tier} fill={tierColors[index]} />)}
                 </Pie>
-                <Tooltip contentStyle={tooltipStyle} />
+                <Tooltip {...stableTooltipProps} contentStyle={tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>
@@ -170,8 +222,19 @@ export function GeneCohortCharts({
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" opacity={0.55} vertical={false} />
                   <XAxis dataKey="sex" tick={{ fontSize: 10, fill: "var(--foreground)" }} />
                   <YAxis domain={[0, 100]} unit="%" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
-                  <Tooltip cursor={{ fill: "var(--chart-tooltip-cursor)" }} contentStyle={tooltipStyle} />
-                  <Bar dataKey="prevalence_percent" name="Prevalence" fill="var(--color-pass)" radius={[4, 4, 0, 0]} />
+                  <Tooltip
+                    {...stableTooltipProps}
+                    shared={false}
+                    content={({ active, payload }) => <PrevalenceTooltip active={active} payload={payload} />}
+                  />
+                  <Bar
+                    dataKey="prevalence_percent"
+                    name="Prevalence"
+                    fill="var(--color-pass)"
+                    radius={[4, 4, 0, 0]}
+                    activeBar={false}
+                    isAnimationActive={false}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             ) : <p className="type-body grid h-full place-items-center text-muted-foreground">No sex information is available.</p>}
@@ -191,8 +254,8 @@ export function GeneCohortCharts({
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" opacity={0.55} horizontal={false} />
                   <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
                   <YAxis type="category" dataKey="finding" width={126} tick={{ fontSize: 10, fill: "var(--foreground)" }} />
-                  <Tooltip cursor={{ fill: "var(--chart-tooltip-cursor)" }} contentStyle={tooltipStyle} />
-                  <Bar dataKey="affected_samples" name="Affected samples" fill="var(--color-germline)" radius={[0, 4, 4, 0]} />
+                  <Tooltip {...stableTooltipProps} shared={false} contentStyle={tooltipStyle} />
+                  <Bar dataKey="affected_samples" name="Affected samples" fill="var(--color-germline)" radius={[0, 4, 4, 0]} activeBar={false} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             ) : <p className="type-body grid h-full place-items-center text-muted-foreground">No recurrent findings are available.</p>}
@@ -212,8 +275,8 @@ export function GeneCohortCharts({
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" opacity={0.55} vertical={false} />
                   <XAxis dataKey="analysis_type" tick={{ fontSize: 10, fill: "var(--foreground)" }} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
-                  <Tooltip cursor={{ fill: "var(--chart-tooltip-cursor)" }} contentStyle={tooltipStyle} />
-                  <Bar dataKey="observations" name="Reported observations" fill="var(--color-panel)" radius={[4, 4, 0, 0]} />
+                  <Tooltip {...stableTooltipProps} shared={false} contentStyle={tooltipStyle} />
+                  <Bar dataKey="observations" name="Reported observations" fill="var(--color-panel)" radius={[4, 4, 0, 0]} activeBar={false} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             ) : <p className="type-body grid h-full place-items-center text-muted-foreground">No finding types are available.</p>}

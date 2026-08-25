@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { Activity, AlertTriangle, Download, Eye, FileText, Save, ShieldCheck, X } from "lucide-react"
 import { api } from "@/lib/api"
@@ -12,6 +12,12 @@ import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { Button } from "@/components/ui/button"
 
 type ReportType = "dna" | "rna"
+
+function formatSnapshotValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "-"
+  if (typeof value === "string") return value
+  return JSON.stringify(value)
+}
 
 const snvSnapshotColumns: ColumnDef<any, any>[] = [
   {
@@ -96,8 +102,8 @@ const cnvSnapshotColumns: ColumnDef<any, any>[] = [
   },
   { id: "region", header: "Region", accessorFn: (row) => row.region || "-" },
   { id: "size", header: "Size", accessorFn: (row) => row.size ?? "-" },
-  { id: "type", header: "Type", accessorFn: (row) => row.cnv_type || row.finding_data?.type || "-" },
-  { id: "ratio", header: "Ratio", accessorFn: (row) => row.ratio ?? row.finding_data?.ratio ?? "-" },
+  { id: "type", header: "Type", accessorFn: (row) => row.cnv_type || "-" },
+  { id: "ratio", header: "Ratio", accessorFn: (row) => row.ratio ?? "-" },
   {
     id: "callers",
     header: "Callers",
@@ -106,8 +112,8 @@ const cnvSnapshotColumns: ColumnDef<any, any>[] = [
 ]
 
 const translocationSnapshotColumns: ColumnDef<any, any>[] = [
-  { id: "gene1", header: "Gene 1", accessorFn: (row) => row.gene_1 || "-" },
-  { id: "gene2", header: "Gene 2", accessorFn: (row) => row.gene_2 || "-" },
+  { id: "gene1", header: "Gene 1", accessorFn: (row) => row.gene1 || "-" },
+  { id: "gene2", header: "Gene 2", accessorFn: (row) => row.gene2 || "-" },
   { id: "breakpoint", header: "Breakpoint", accessorFn: (row) => row.breakpoint || "-" },
   { id: "hgvsc", header: "HGVS.c", accessorFn: (row) => row.hgvsc || "-" },
   { id: "hgvsp", header: "HGVS.p", accessorFn: (row) => row.hgvsp || "-" },
@@ -119,7 +125,7 @@ const biomarkerSnapshotColumns: ColumnDef<any, any>[] = [
   {
     id: "result",
     header: "Result",
-    accessorFn: (row) => row.result || JSON.stringify(row.finding_data || {}),
+    accessorFn: (row) => formatSnapshotValue(row.result),
     cell: ({ row }) => (
       <span className="block max-w-[54rem] truncate" title={String(row.getValue("result"))}>
         {String(row.getValue("result") || "-")}
@@ -133,12 +139,22 @@ const pgxSnapshotColumns: ColumnDef<any, any>[] = [
   {
     id: "result",
     header: "Result",
-    accessorFn: (row) => row.pgx_result || row.finding_data?.result || row.finding_data?.phenotype || row.finding_data?.diplotype || "-",
+    accessorFn: (row) => row.pgx_result || row.phenotype || row.diplotype || "-",
   },
   {
     id: "details",
     header: "Details",
-    accessorFn: (row) => JSON.stringify(row.finding_data || {}),
+    accessorFn: (row) =>
+      [
+        row.diplotype && `Diplotype: ${row.diplotype}`,
+        row.phenotype && `Phenotype: ${row.phenotype}`,
+        row.activity_score !== null && row.activity_score !== undefined
+          ? `Activity score: ${formatSnapshotValue(row.activity_score)}`
+          : null,
+        row.recommendation ? `Recommendation: ${formatSnapshotValue(row.recommendation)}` : null,
+      ]
+        .filter(Boolean)
+        .join("; ") || "-",
     cell: ({ row }) => (
       <span className="block max-w-[54rem] truncate" title={String(row.getValue("details"))}>
         {String(row.getValue("details") || "-")}
@@ -169,6 +185,7 @@ export function ReportsTab({
   sampleId: string
   reportType?: ReportType
 }) {
+  const queryClient = useQueryClient()
   const [selectedReportType, setSelectedReportType] = useState<ReportType>("dna")
   const reportType = fixedReportType ?? selectedReportType
   const [includeSnapshot, setIncludeSnapshot] = useState(true)
@@ -190,6 +207,8 @@ export function ReportsTab({
       const sampleName = data?.sample?.name || sampleId
       setConfirmOpen(false)
       refetch()
+      queryClient.invalidateQueries({ queryKey: ["samples"] })
+      queryClient.invalidateQueries({ queryKey: ["sample-navigation-counts"] })
       notifySuccess("Report saved", `${reportType.toUpperCase()} report was saved for ${sampleName}.`, "Reports", {
         type: "report",
         id: sampleId,
