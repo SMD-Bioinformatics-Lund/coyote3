@@ -7,6 +7,23 @@ import { ClassificationsCard, CommentsCard, DetailCard } from "./FindingDetailCa
 const { patch, notifySuccess } = vi.hoisted(() => ({ patch: vi.fn(), notifySuccess: vi.fn() }))
 vi.mock("@/lib/api", () => ({ api: { patch } }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess, notifyActionError: vi.fn() }))
+vi.mock("@/lib/app-module-state", () => ({
+  useApplicationModules: () => ({
+    data: {
+      modules: {},
+      curation: {
+        tiering: {
+          small_variant: true,
+          cnv: false,
+          fusion: true,
+          translocation: false,
+        },
+      },
+    },
+  }),
+  tieringIsEnabled: (payload: any, resourceType: string) =>
+    payload.curation.tiering[resourceType],
+}))
 
 function renderWithQuery(ui: React.ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
@@ -74,7 +91,7 @@ describe("finding detail cards", () => {
     patch.mockResolvedValueOnce({ ok: true })
     const user = userEvent.setup()
     const { rerender } = renderWithQuery(
-      <ClassificationsCard latest={{ tier: 4 }} sampleId="S1" resourceType="cnv" resourceId="C1" />,
+      <ClassificationsCard latest={{ tier: 4 }} sampleId="S1" resourceType="small_variant" resourceId="V1" />,
     )
     await user.click(screen.getByRole("button", { name: "Remove" }))
     await user.click(screen.getByRole("button", { name: "Remove classification" }))
@@ -86,5 +103,20 @@ describe("finding detail cards", () => {
     rerender(<QueryClientProvider client={new QueryClient()}><ClassificationsCard /></QueryClientProvider>)
     expect(screen.getByText("Not currently classified.")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Tier 1" })).not.toBeInTheDocument()
+  })
+
+  it("keeps a CNV classification visible while its tier mutations are disabled", () => {
+    renderWithQuery(
+      <ClassificationsCard
+        latest={{ tier: 2, reason: "Existing classification" }}
+        sampleId="S1"
+        resourceType="cnv"
+        resourceId="C1"
+      />,
+    )
+
+    expect(screen.getByText("Existing classification")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Tier 1" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument()
   })
 })

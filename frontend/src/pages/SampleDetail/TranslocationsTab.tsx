@@ -28,6 +28,7 @@ import {
 } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { findingBulkActionOptions } from "@/lib/finding-actions"
+import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import {
   CLINICAL_TABLE_CACHE_MS,
@@ -36,9 +37,11 @@ import {
 } from "@/hooks/useClinicalTableState"
 import { AnalysisTableCard } from "./AnalysisTableCard"
 
-const translocationBulkActions = findingBulkActionOptions("translocation")
-
 export function TranslocationsTab({ sampleId, header }: { sampleId: string; header?: ReactNode }) {
+  const controlsQuery = useApplicationModules()
+  const translocationBulkActions = findingBulkActionOptions("translocation", {
+    tieringEnabled: tieringIsEnabled(controlsQuery.data, "translocation"),
+  })
   const bulkAction = useBulkFindingAction(sampleId, "translocation")
   const location = useLocation()
   const {

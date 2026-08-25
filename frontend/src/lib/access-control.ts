@@ -14,6 +14,7 @@ export type CurrentUserAccess = {
     sample_list_layout?: "classic" | "modern"
     analysis_modern_view_tried?: boolean
     sample_list_modern_view_tried?: boolean
+    table_page_size?: number
   }
 }
 

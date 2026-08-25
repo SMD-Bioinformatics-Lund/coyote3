@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest"
 import {
   analysisLayoutForUser,
   analysisModernViewTriedForUser,
+  normalizeUserUiSettings,
   sampleListLayoutForUser,
   sampleListModernViewTriedForUser,
+  tablePageSizeForUser,
 } from "./user-settings"
 
 describe("analysisLayoutForUser", () => {
@@ -40,5 +42,12 @@ describe("analysisLayoutForUser", () => {
     expect(sampleListModernViewTriedForUser({
       ui_settings: { analysis_modern_view_tried: true },
     } as never)).toBe(false)
+  })
+
+  it("normalizes and resolves the persisted table page size", () => {
+    expect(normalizeUserUiSettings(undefined).table_page_size).toBe(50)
+    expect(tablePageSizeForUser(undefined)).toBe(50)
+    expect(tablePageSizeForUser({ ui_settings: { table_page_size: 100 } } as never)).toBe(100)
+    expect(tablePageSizeForUser({ ui_settings: { table_page_size: 500 } } as never)).toBe(50)
   })
 })

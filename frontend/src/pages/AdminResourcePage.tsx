@@ -11,6 +11,7 @@ import { PageShell } from "@/components/layout/PageShell"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { downloadJson } from "@/lib/json-download"
 import { cn } from "@/lib/utils"
+import { TABLE_PAGE_SIZE_OPTIONS } from "@/lib/user-settings"
 import {
   ADMIN_UTILITY_PERMISSIONS,
   hasPermission,
@@ -188,7 +189,7 @@ export function AdminResourcePage() {
       if (spec.key === "samples" && resourceFilters.asp_id) {
         params.set("asp_id", resourceFilters.asp_id)
       }
-      params.set("per_page", "100")
+      params.set("per_page", String(Math.max(...TABLE_PAGE_SIZE_OPTIONS)))
       return api.get(`${spec.endpoint}?${params.toString()}`).then((res) => res.data)
     },
     enabled: canList,

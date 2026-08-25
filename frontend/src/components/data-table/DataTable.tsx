@@ -6,6 +6,8 @@ import {
   getSortedRowModel,
   SortingState,
   getFilteredRowModel,
+  getPaginationRowModel,
+  type PaginationState,
   type OnChangeFn,
 } from "@tanstack/react-table"
 import { useEffect, useState, type ReactNode } from "react"
@@ -14,6 +16,13 @@ import { shortCount } from "@/lib/detail-formatters"
 import { cn } from "@/lib/utils"
 import { csvCellText } from "@/lib/csv-export"
 import { TableBadge } from "@/components/ui/table-badge"
+import { useTablePreferences } from "@/components/data-table/table-preferences"
+import { TABLE_PAGE_SIZE_OPTIONS } from "@/lib/user-settings"
+
+export interface CsvExportColumn<TData> {
+  header: string
+  value: (row: TData) => unknown
+}
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -39,9 +48,9 @@ interface DataTableProps<TData, TValue> {
   onSortingChange?: (sorting: SortingState) => void
   manualSorting?: boolean
   stateKey?: string
+  enablePagination?: boolean
+  exportColumns?: CsvExportColumn<TData>[]
 }
-
-const RENDER_BATCH_SIZE = 300
 
 export function DataTable<TData, TValue>({
   columns,
@@ -67,7 +76,12 @@ export function DataTable<TData, TValue>({
   onSortingChange,
   manualSorting = false,
   stateKey,
+  enablePagination = true,
+  exportColumns,
 }: DataTableProps<TData, TValue>) {
+  const { pageSize: preferredPageSize, setPageSize: persistPageSize } = useTablePreferences()
+  const serverPaginated = Boolean(onPageChange)
+  const effectivePageSize = perPage ?? preferredPageSize
   const tableStateKey = `coyote3.table.${stateKey || filename}`
   const [internalSorting, setInternalSorting] = useState<SortingState>(() => {
     if (typeof window === "undefined" || sortingState) return []
@@ -83,7 +97,10 @@ export function DataTable<TData, TValue>({
     return window.sessionStorage.getItem(`${tableStateKey}.search`) || ""
   })
   const [rowSelection, setRowSelection] = useState({})
-  const [renderLimit, setRenderLimit] = useState(RENDER_BATCH_SIZE)
+  const [clientPagination, setClientPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: effectivePageSize,
+  })
   const controlledSearch = typeof onSearchChange === "function"
   const displayedSearchValue = controlledSearch ? (searchValue ?? "") : (globalFilter ?? "")
   const sorting = sortingState ?? internalSorting
@@ -101,6 +118,7 @@ export function DataTable<TData, TValue>({
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    ...(!serverPaginated && enablePagination ? { getPaginationRowModel: getPaginationRowModel() } : {}),
     ...(manualSorting ? {} : { getSortedRowModel: getSortedRowModel() }),
     manualSorting,
     enableMultiSort: true,
@@ -108,14 +126,30 @@ export function DataTable<TData, TValue>({
     onSortingChange: handleSortingChange,
     onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
+    onPaginationChange: setClientPagination,
+    manualPagination: serverPaginated,
     state: {
       sorting,
       globalFilter: controlledSearch ? "" : globalFilter,
       rowSelection,
+      pagination: serverPaginated
+        ? { pageIndex: Math.max(0, page - 1), pageSize: effectivePageSize }
+        : clientPagination,
     },
   })
 
   const exportToCSV = () => {
+    if (exportColumns?.length) {
+      const headers = exportColumns.map(({ header }) => `"${header.replace(/"/g, '""')}"`).join(",")
+      const rows = table.getPrePaginationRowModel().rows.map(({ original }) =>
+        exportColumns.map(({ value }) => {
+          const strVal = csvCellText(value(original))
+          return `"${strVal.replace(/"/g, '""')}"`
+        }).join(",")
+      ).join("\n")
+      downloadCsv(`${headers}\n${rows}`, filename)
+      return
+    }
     const headers = table.getAllLeafColumns()
       .filter(col => col.id !== "actions" && col.id !== "select")
       .map(col => {
@@ -123,7 +157,7 @@ export function DataTable<TData, TValue>({
       })
       .join(",")
 
-    const rows = table.getRowModel().rows.map(row => {
+    const rows = table.getPrePaginationRowModel().rows.map(row => {
       return table.getAllLeafColumns()
         .filter(col => col.id !== "actions" && col.id !== "select")
         .map(col => {
@@ -137,12 +171,15 @@ export function DataTable<TData, TValue>({
         .join(",")
     }).join("\n")
 
-    const csvContent = `${headers}\n${rows}`
+    downloadCsv(`${headers}\n${rows}`, filename)
+  }
+
+  const downloadCsv = (csvContent: string, downloadFilename: string) => {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
     link.setAttribute("href", url)
-    link.setAttribute("download", filename)
+    link.setAttribute("download", downloadFilename)
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
@@ -155,20 +192,24 @@ export function DataTable<TData, TValue>({
     if (columnId === "tier") return "w-14 min-w-14"
     return ""
   }
-  const returnedCount = totalCount ?? data.length
-  const serverPaginated = Boolean(onPageChange)
-  const allRows = table.getRowModel().rows
-  const visibleRows = allRows.slice(0, renderLimit)
-  const hasMoreRows = visibleRows.length < allRows.length
-  const rangeStart = returnedCount === 0 ? 0 : (page - 1) * (perPage ?? allRows.length) + 1
+  const allFilteredRows = table.getPrePaginationRowModel().rows
+  const visibleRows = table.getRowModel().rows
+  const returnedCount = totalCount ?? allFilteredRows.length
+  const clientPage = clientPagination.pageIndex + 1
+  const clientPageCount = Math.max(1, Math.ceil(allFilteredRows.length / clientPagination.pageSize))
+  const paginated = serverPaginated || (enablePagination && allFilteredRows.length > clientPagination.pageSize)
+  const rangeStart = returnedCount === 0 ? 0 : (page - 1) * effectivePageSize + 1
   const rangeEnd = Math.min(
     returnedCount,
-    (page - 1) * (perPage ?? allRows.length) + visibleRows.length,
+    (page - 1) * effectivePageSize + visibleRows.length,
   )
 
   useEffect(() => {
-    setRenderLimit(RENDER_BATCH_SIZE)
-  }, [data.length, displayedSearchValue, sorting])
+    setClientPagination((current) => ({
+      pageIndex: 0,
+      pageSize: serverPaginated ? current.pageSize : preferredPageSize,
+    }))
+  }, [data.length, displayedSearchValue, preferredPageSize, serverPaginated, sorting])
 
   useEffect(() => {
     if (typeof window === "undefined" || sortingState) return
@@ -282,7 +323,7 @@ export function DataTable<TData, TValue>({
               ))}
             </thead>
             <tbody>
-              {allRows.length ? (
+              {visibleRows.length ? (
                 visibleRows.map((row) => (
                   <tr
                     key={row.id}
@@ -322,15 +363,21 @@ export function DataTable<TData, TValue>({
         <span>
           {serverPaginated
             ? `Showing ${rangeStart}-${rangeEnd} of ${shortCount(returnedCount)} ${rowLabel}`
-            : `Showing ${visibleRows.length} of ${allRows.length} row(s)`}
+            : paginated
+              ? `Showing ${clientPagination.pageIndex * clientPagination.pageSize + 1}-${Math.min((clientPagination.pageIndex + 1) * clientPagination.pageSize, allFilteredRows.length)} of ${allFilteredRows.length} row(s)`
+              : `Showing ${visibleRows.length} of ${allFilteredRows.length} row(s)`}
         </span>
         {serverPaginated && onPerPageChange && (
           <select
-            value={perPage ?? 50}
-            onChange={(event) => onPerPageChange(Number(event.target.value))}
+            value={effectivePageSize}
+            onChange={(event) => {
+              const nextPageSize = Number(event.target.value)
+              persistPageSize(nextPageSize)
+              onPerPageChange(nextPageSize)
+            }}
             className="paper-inset rounded-lg px-2 py-1 text-xs font-semibold text-foreground outline-none focus:ring-3 focus:ring-ring/30"
           >
-            {[25, 50, 100, 200].map((value) => (
+            {TABLE_PAGE_SIZE_OPTIONS.map((value) => (
               <option key={value} value={value}>
                 {value} / page
               </option>
@@ -358,14 +405,39 @@ export function DataTable<TData, TValue>({
             </button>
           </div>
         )}
-        {!serverPaginated && hasMoreRows && (
-          <button
-            type="button"
-            onClick={() => setRenderLimit((current) => current + RENDER_BATCH_SIZE)}
-            className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted"
-          >
-            Show more
-          </button>
+        {!serverPaginated && paginated && (
+          <>
+            <select
+              value={clientPagination.pageSize}
+              onChange={(event) => {
+                const nextPageSize = Number(event.target.value)
+                persistPageSize(nextPageSize)
+                setClientPagination({ pageIndex: 0, pageSize: nextPageSize })
+              }}
+              className="paper-inset rounded-lg px-2 py-1 text-xs font-semibold text-foreground outline-none focus:ring-3 focus:ring-ring/30"
+            >
+              {TABLE_PAGE_SIZE_OPTIONS.map((value) => (
+                <option key={value} value={value}>{value} / page</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={clientPage <= 1}
+              onClick={() => setClientPagination((current) => ({ ...current, pageIndex: Math.max(0, current.pageIndex - 1) }))}
+              className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              Previous
+            </button>
+            <span className="px-1 font-semibold text-foreground">Page {clientPage}</span>
+            <button
+              type="button"
+              disabled={clientPage >= clientPageCount}
+              onClick={() => setClientPagination((current) => ({ ...current, pageIndex: Math.min(clientPageCount - 1, current.pageIndex + 1) }))}
+              className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              Next
+            </button>
+          </>
         )}
       </div>
     </div>

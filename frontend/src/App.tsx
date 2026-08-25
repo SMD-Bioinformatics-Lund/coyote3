@@ -10,6 +10,7 @@ import { AdminPermissionBoundary } from "./components/admin/AdminPermissionBound
 import { ADMIN_UTILITY_PERMISSIONS } from "./lib/access-control"
 import type { ApplicationModuleKey } from "./lib/app-module-state"
 import { ApplicationModuleBoundary } from "./lib/app-modules"
+import { TablePreferencesProvider } from "./components/data-table/TablePreferencesProvider"
 
 const Dashboard = lazy(() => import("./pages/Dashboard").then((module) => ({ default: module.Dashboard })))
 const Samples = lazy(() => import("./pages/Samples").then((module) => ({ default: module.Samples })))
@@ -106,7 +107,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={withRouteLoader(<ForgotPassword />)} />
           <Route path="/reset-password" element={withRouteLoader(<ResetPassword />)} />
-          <Route element={<Layout />}>
+          <Route element={<TablePreferencesProvider><Layout /></TablePreferencesProvider>}>
             <Route path="/" element={withRouteLoader(<Dashboard />)} />
             <Route path="/samples" element={withRouteLoader(<Samples />)} />
             <Route path="/samples/:id" element={withRouteLoader(<SampleDetail />)} />

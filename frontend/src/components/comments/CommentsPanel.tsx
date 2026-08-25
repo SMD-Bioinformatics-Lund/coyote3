@@ -58,26 +58,33 @@ function resourceFormData(
 
   if (resourceType === "small_variant") {
     const csq = resource?.INFO?.selected_CSQ || {}
-    data.var_p = csq.HGVSp
-    data.var_c = csq.HGVSc
-    data.var_g = resource?.CHROM && resource?.POS ? `${resource.CHROM}:${resource.POS}:${resource.REF}/${resource.ALT}` : undefined
+    const genomic = resource?.simple_id
+      || (resource?.CHROM && resource?.POS ? `${resource.CHROM}_${resource.POS}_${resource.REF}_${resource.ALT}` : undefined)
+    data.nomenclature = csq.HGVSp ? "p" : csq.HGVSc ? "c" : "g"
+    data.variant = csq.HGVSp || csq.HGVSc || genomic
+    data.hgvsp = csq.HGVSp
+    data.hgvsc = csq.HGVSc
+    data.genomic = genomic
+    data.genomic_hash = resource?.simple_id_hash
     data.gene = csq.SYMBOL
     data.transcript = csq.Feature
   } else if (resourceType === "fusion") {
     const call = Array.isArray(resource?.calls) ? resource.calls.find((c: any) => c.selected) || resource.calls[0] : null
-    data.fusionpoints = [call?.breakpoint1, call?.breakpoint2].filter(Boolean).join("^") || resource?.breakpoints?.join("^")
+    data.nomenclature = "f"
+    data.variant = [call?.breakpoint1, call?.breakpoint2].filter(Boolean).join("^") || resource?.breakpoints?.join("^")
     const genes = typeof resource?.genes === "string" ? resource.genes.split("^") : resource?.genes || []
     data.gene1 = resource?.gene1 || genes[0]
     data.gene2 = resource?.gene2 || genes[1]
   } else if (resourceType === "translocation") {
-    data.translocpoints = resource?.CHROM && resource?.POS ? `${resource.CHROM}:${resource.POS}^${Array.isArray(resource?.ALT) ? resource.ALT[0] : resource?.ALT}` : undefined
+    data.nomenclature = "t"
+    data.variant = resource?.CHROM && resource?.POS ? `${resource.CHROM}:${resource.POS}^${Array.isArray(resource?.ALT) ? resource.ALT[0] : resource?.ALT}` : undefined
     const ann = resource?.INFO?.MANE_ANN || resource?.INFO?.ANN?.[0] || {}
     const genes = typeof ann.Gene_Name === "string" ? ann.Gene_Name.split("&") : resource?.genes || []
     data.gene1 = genes[0]
     data.gene2 = genes[1]
   } else if (resourceType === "cnv") {
-    data.cnvvar = `${resource?.chr}:${resource?.start}-${resource?.end}`
-    data.gene = resource?.genes?.[0]?.gene
+    data.nomenclature = "cn"
+    data.variant = `${resource?.chr}:${resource?.start}-${resource?.end}`
   }
 
   return data

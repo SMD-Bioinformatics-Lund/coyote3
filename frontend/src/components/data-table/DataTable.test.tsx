@@ -88,6 +88,25 @@ describe("DataTable", () => {
     expect(screen.getByText("Showing 3-4 of 12 rows")).toBeVisible()
   })
 
+  it("paginates local result sets without dropping rows from the result count", async () => {
+    const user = userEvent.setup()
+    const rows = Array.from({ length: 55 }, (_, index) => ({
+      gene: `GENE${index + 1}`,
+      tier: (index % 4) + 1,
+      note: `row ${index + 1}`,
+    }))
+    render(<DataTable columns={columns} data={rows} hideExport />)
+
+    expect(screen.getByText("GENE1")).toBeVisible()
+    expect(screen.queryByText("GENE51")).not.toBeInTheDocument()
+    expect(screen.getByText("Showing 1-50 of 55 row(s)")).toBeVisible()
+
+    await user.click(screen.getByRole("button", { name: "Next" }))
+    expect(screen.getByText("GENE51")).toBeVisible()
+    expect(screen.queryByText("GENE1")).not.toBeInTheDocument()
+    expect(screen.getByText("Showing 51-55 of 55 row(s)")).toBeVisible()
+  })
+
   it("exports visible values and excludes action columns", () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {})
     const exportColumns: ColumnDef<Row>[] = [
@@ -97,6 +116,27 @@ describe("DataTable", () => {
     render(<DataTable columns={exportColumns} data={data} filename="findings.csv" />)
     fireEvent.click(screen.getByRole("button", { name: "Export to CSV" }))
     expect(URL.createObjectURL).toHaveBeenCalledOnce()
+    expect(click).toHaveBeenCalledOnce()
+  })
+
+  it("uses explicit export columns and keeps missing values empty", async () => {
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {})
+    render(
+      <DataTable
+        columns={columns}
+        data={data}
+        filename="samples.csv"
+        exportColumns={[
+          { header: "Gene", value: (row) => row.gene },
+          { header: "Biomarker HRD.sum", value: () => "" },
+        ]}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "Export to CSV" }))
+
+    const blob = vi.mocked(URL.createObjectURL).mock.calls.at(-1)?.[0] as Blob
+    expect(await blob.text()).toBe('"Gene","Biomarker HRD.sum"\n"TP53",""\n"ABL1",""')
     expect(click).toHaveBeenCalledOnce()
   })
 

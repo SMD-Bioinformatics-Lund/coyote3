@@ -24,6 +24,7 @@ import {
 } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { findingBulkActionOptions } from "@/lib/finding-actions"
+import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 import { tieredVariantSearchPath } from "@/lib/variant-routing"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import {
@@ -34,9 +35,11 @@ import {
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { AnalysisTableCard } from "./AnalysisTableCard"
 
-const fusionBulkActions = findingBulkActionOptions("fusion")
-
 export function FusionsTab({ sampleId, header }: { sampleId: string; header?: ReactNode }) {
+  const controlsQuery = useApplicationModules()
+  const fusionBulkActions = findingBulkActionOptions("fusion", {
+    tieringEnabled: tieringIsEnabled(controlsQuery.data, "fusion"),
+  })
   const bulkAction = useBulkFindingAction(sampleId, "fusion")
   const access = useCurrentUserAccess()
   const canManage = hasPermission(access.data, "fusion:manage")

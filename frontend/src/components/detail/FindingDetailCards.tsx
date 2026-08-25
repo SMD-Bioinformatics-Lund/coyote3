@@ -7,6 +7,7 @@ import { FindingResourceType, findingQueryKeys } from "@/lib/finding-actions"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { fullDateTime } from "@/lib/detail-formatters"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 
 function timeLabel(value: unknown) {
   return fullDateTime(value, "")
@@ -79,6 +80,7 @@ export function ClassificationsCard({
   onUpdate?: () => void
 }) {
   const queryClient = useQueryClient()
+  const controlsQuery = useApplicationModules()
   const [pendingTierAction, setPendingTierAction] = useState<{ tier: number; apply: boolean } | null>(null)
   const tierMutation = useMutation({
     mutationFn: ({ tier, apply }: { tier: number; apply: boolean }) =>
@@ -107,7 +109,12 @@ export function ClassificationsCard({
     },
     onError: (error) => notifyActionError("Unable to update classification", error, "Classification"),
   })
-  const canMutate = Boolean(sampleId && resourceType && resourceId)
+  const canMutate = Boolean(
+    sampleId
+      && resourceType
+      && resourceId
+      && tieringIsEnabled(controlsQuery.data, resourceType),
+  )
   const automaticTextWillBeGenerated = Boolean(
     pendingTierAction?.apply
       && pendingTierAction.tier === 3

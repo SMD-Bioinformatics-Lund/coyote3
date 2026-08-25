@@ -63,7 +63,7 @@ const context = {
     { key: "vcf_files", analysis_type: "SNV", path: "/data/case.vcf", required: true, present: true, exists: true, size_bytes: 2048, data_count: 1421, availability: "available" },
     { key: "biomarkers", analysis_type: "BIOMARKER", required: false, present: false, exists: false, availability: "optional_missing" },
   ],
-  biomarkers: [{ MSIS: { perc: 0.12, tot: 100, som: 12 }, HRD: { sum: 21, tai: 6, hrd: 7, lst: 8 } }],
+  biomarkers: [{ MSIS: { per: 0.12, tot: 100, som: 12 }, HRD: { sum: 21, tai: 6, hrd: 7, lst: 8 } }],
   snv_genelist_options: [{ isgl_id: "heme", display_name: "Hematology", gene_count: 197 }],
   cnvlist_options: [{ isgl_id: "heme_cnv", display_name: "Hematology CNV", gene_count: 85 }],
   selected_gene_panels: {

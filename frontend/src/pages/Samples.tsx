@@ -15,14 +15,16 @@ import { PageShell } from "@/components/layout/PageShell"
 import { fullDateTime, humanRelativeDate, shortCount } from "@/lib/detail-formatters"
 import { sampleDetailPath } from "@/lib/sample-routing"
 import { sampleSubpanel } from "@/lib/sample-shape"
-import { DataTable } from "@/components/data-table/DataTable"
+import { DataTable, type CsvExportColumn } from "@/components/data-table/DataTable"
 import { valueBadgeClass } from "@/lib/badge-colors"
 import { useUrlTableState } from "@/hooks/useUrlTableState"
 import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
+import { useTablePreferences } from "@/components/data-table/table-preferences"
 import { useCurrentUserAccess } from "@/lib/access-control"
 import {
   sampleListLayoutForUser,
   sampleListModernViewTriedForUser,
+  TABLE_PAGE_SIZE_OPTIONS,
   useUpdateUiSettings,
   type SampleListLayout,
 } from "@/lib/user-settings"
@@ -40,8 +42,6 @@ const DATE_RANGE_OPTIONS: Array<{ value: DateRangePreset; label: string }> = [
   { value: "custom", label: "Custom range" },
 ]
 
-const SAMPLE_LIMIT_OPTIONS = [25, 50, 100, 200]
-
 const BOOLEAN_ANALYSIS_LABELS: Record<string, string> = {
   cov: "Cov",
   biomarkers: "Biomarkers",
@@ -52,6 +52,48 @@ const BOOLEAN_ANALYSIS_LABELS: Record<string, string> = {
   rna_class: "Class",
   rna_classification: "Class",
   rna_qc: "QC",
+}
+
+const STANDARD_DATA_EXPORT_COLUMNS = [
+  { key: "snvs", aliases: ["snvs"] },
+  { key: "cnvs", aliases: ["cnvs"] },
+  { key: "fusions", aliases: ["fusions"] },
+  { key: "transloc", aliases: ["transloc", "translocations"] },
+  { key: "cov", aliases: ["cov"] },
+  { key: "biomarkers", aliases: ["biomarkers"] },
+  { key: "pgx", aliases: ["pgx"] },
+  { key: "rna_expr", aliases: ["rna_expr", "rna_expression"] },
+  { key: "rna_class", aliases: ["rna_class", "rna_classification"] },
+  { key: "rna_qc", aliases: ["rna_qc", "qc"] },
+] as const
+
+const DATA_EXPORT_LABELS: Record<string, string> = {
+  snvs: "SNV count",
+  cnvs: "CNV count",
+  fusions: "Fusion count",
+  transloc: "Translocation count",
+  translocations: "Translocation count",
+  cov: "Coverage loaded",
+  biomarkers: "Biomarkers loaded",
+  pgx: "PGx loaded",
+  rna_expr: "Expression loaded",
+  rna_expression: "Expression loaded",
+  rna_class: "Classification loaded",
+  rna_classification: "Classification loaded",
+  rna_qc: "QC loaded",
+  qc: "QC loaded",
+}
+
+function exportScalar(value: unknown) {
+  if (typeof value === "boolean") return value ? "Yes" : "No"
+  return value ?? ""
+}
+
+function firstDefinedValue(record: Record<string, unknown>, keys: readonly string[]) {
+  for (const key of keys) {
+    if (record[key] !== undefined) return record[key]
+  }
+  return undefined
 }
 
 function countBadges(sample: any) {
@@ -116,6 +158,7 @@ export function Samples() {
   const [searchParams, setSearchParams] = useSearchParams()
   const currentUserQuery = useCurrentUserAccess()
   const updateUiSettings = useUpdateUiSettings()
+  const { pageSize: preferredPageSize, setPageSize: persistPageSize } = useTablePreferences()
 
   // Extract filters from URL
   const category = searchParams.get("panel_type") || searchParams.get("category")
@@ -131,8 +174,10 @@ export function Samples() {
     : "all"
   const customDateFrom = searchParams.get("date_from") || ""
   const customDateUntil = searchParams.get("date_until") || ""
-  const requestedLimit = Number(searchParams.get("sample_limit") || 50)
-  const sampleLimit = SAMPLE_LIMIT_OPTIONS.includes(requestedLimit) ? requestedLimit : 50
+  const requestedLimit = Number(searchParams.get("sample_limit") || preferredPageSize)
+  const sampleLimit = TABLE_PAGE_SIZE_OPTIONS.includes(requestedLimit as typeof TABLE_PAGE_SIZE_OPTIONS[number])
+    ? requestedLimit
+    : preferredPageSize
   const sampleListLayout = sampleListLayoutForUser(currentUserQuery.data)
   const modernViewTried = sampleListModernViewTriedForUser(currentUserQuery.data)
   const { addedFrom, addedUntil } = useMemo(
@@ -374,12 +419,55 @@ export function Samples() {
   const liveSamples = data?.live_samples || []
   const reportedSamples = data?.done_samples || []
   const samples = activeTab === "reported" ? reportedSamples : liveSamples
+  const sampleExportColumns = useMemo<CsvExportColumn<any>[]>(() => {
+    const loadedSamples = [...liveSamples, ...reportedSamples]
+    const knownDataKeys = new Set<string>(
+      STANDARD_DATA_EXPORT_COLUMNS.flatMap(({ aliases }) => [...aliases]),
+    )
+    const extraDataKeys = [...new Set(
+      loadedSamples.flatMap((sample: any) => Object.keys(sample?.data_counts || {})),
+    )].filter((key) => !knownDataKeys.has(key)).sort()
+    const biomarkerKeys = [...new Set(
+      loadedSamples.flatMap((sample: any) => Object.keys(sample?.biomarker_values || {})),
+    )].sort()
+
+    return [
+      { header: "Sample", value: (sample) => sample.name || sample.case_id || "" },
+      { header: "Case ID", value: (sample) => sample.case_id || sample.case?.id || "" },
+      { header: "Case Clarity", value: (sample) => sample.case?.clarity_id || "" },
+      { header: "Control ID", value: (sample) => sample.control_id || sample.control?.id || "" },
+      { header: "Control Clarity", value: (sample) => sample.control?.clarity_id || "" },
+      { header: "Profile", value: (sample) => sample.environment || "" },
+      { header: "Assay", value: (sample) => sample.asp_id || "" },
+      { header: "Subpanel", value: (sample) => sampleSubpanel(sample) || "" },
+      { header: "Pipeline", value: (sample) => sample.pipeline || "" },
+      { header: "Pipeline version", value: (sample) => sample.pipeline_version ?? "" },
+      { header: "Analysis status", value: (sample) => sample.ingest_status || "" },
+      { header: "Report status", value: (sample) => sample.reported ? "Reported" : "Unreported" },
+      ...STANDARD_DATA_EXPORT_COLUMNS.map(({ key, aliases }) => ({
+        header: DATA_EXPORT_LABELS[key],
+        value: (sample: any) => exportScalar(
+          firstDefinedValue(sample?.data_counts || {}, aliases),
+        ),
+      })),
+      ...extraDataKeys.map((key) => ({
+        header: DATA_EXPORT_LABELS[key] || key.replaceAll("_", " "),
+        value: (sample: any) => exportScalar(sample?.data_counts?.[key]),
+      })),
+      ...biomarkerKeys.map((key) => ({
+        header: `Biomarker ${key}`,
+        value: (sample: any) => exportScalar(sample?.biomarker_values?.[key]),
+      })),
+      { header: "Added", value: (sample) => fullDateTime(sample.time_added) },
+    ]
+  }, [liveSamples, reportedSamples])
 
   const renderSampleTable = (rows: any[], state: SampleTab) => (
     <DataTable
       columns={columns}
       data={rows}
       filename={`${state}_samples.csv`}
+      exportColumns={sampleExportColumns}
       rowLabel="samples"
       totalCount={rows.length}
       hideSearch
@@ -528,9 +616,13 @@ export function Samples() {
                 id="sample-row-limit"
                 className="paper-inset h-9 min-w-[105px] rounded-lg px-3 text-sm font-medium"
                 value={sampleLimit}
-                onChange={(event) => updateSampleFilter("sample_limit", event.target.value, "50")}
+                onChange={(event) => {
+                  const nextPageSize = Number(event.target.value)
+                  persistPageSize(nextPageSize)
+                  updateSampleFilter("sample_limit", event.target.value, String(preferredPageSize))
+                }}
               >
-                {SAMPLE_LIMIT_OPTIONS.map((limit) => <option key={limit} value={limit}>{limit}</option>)}
+                {TABLE_PAGE_SIZE_OPTIONS.map((limit) => <option key={limit} value={limit}>{limit}</option>)}
               </select>
             </div>
             <div className="ml-auto space-y-1">

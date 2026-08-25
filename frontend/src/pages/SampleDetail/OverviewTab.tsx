@@ -149,7 +149,7 @@ function formatPurityPercentage(value: unknown) {
 
 function msiBadge(marker: any, label: string, key: string): BiomarkerBadgeEntry | null {
   if (!marker || typeof marker !== "object") return null
-  const percentage = numericBiomarkerValue(marker.per ?? marker.perc)
+  const percentage = numericBiomarkerValue(marker.per)
   if (percentage === null) return null
   return {
     key,

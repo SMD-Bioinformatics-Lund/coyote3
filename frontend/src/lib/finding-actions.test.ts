@@ -49,6 +49,16 @@ describe("finding actions", () => {
     expect(cnvActions.some(({ value }) => value.startsWith("tier_"))).toBe(false)
   })
 
+  it("adds tier actions only when the resource switch enables them", () => {
+    expect(
+      findingBulkActionOptions("cnv", { tieringEnabled: true }),
+    ).toContainEqual({ value: "tier_1", label: "Classify as Tier 1" })
+    expect(
+      findingBulkActionOptions("translocation", { tieringEnabled: false })
+        .some(({ value }) => value.startsWith("tier_")),
+    ).toBe(false)
+  })
+
   it("ignores empty selections and applies or removes tiers in bulk", async () => {
     await expect(
       applyFindingAction({ sampleId: "sample-1", resourceType: "small_variant", action: "tier_3", resourceIds: [] }),

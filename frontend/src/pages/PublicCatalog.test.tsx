@@ -201,14 +201,14 @@ describe("PublicCatalogMatrix", () => {
 
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith(
-        "/public/assay-catalog-matrix/context?page=1&per_page=100&gene=TP53",
+        "/public/assay-catalog-matrix/context?page=1&per_page=50&gene=TP53",
       )
     })
     expect((await screen.findAllByText(/2 visible catalog column\(s\) for "TP53"/))[0]).toBeVisible()
 
     fireEvent.click(screen.getByRole("button", { name: "Clear" }))
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith("/public/assay-catalog-matrix/context?page=1&per_page=100")
+      expect(api.get).toHaveBeenCalledWith("/public/assay-catalog-matrix/context?page=1&per_page=50")
     })
   })
 
@@ -218,7 +218,7 @@ describe("PublicCatalogMatrix", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }))
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith("/public/assay-catalog-matrix/context?page=2&per_page=100")
+      expect(api.get).toHaveBeenCalledWith("/public/assay-catalog-matrix/context?page=2&per_page=50")
     })
 
     fireEvent.change(await screen.findByLabelText("Rows"), { target: { value: "200" } })

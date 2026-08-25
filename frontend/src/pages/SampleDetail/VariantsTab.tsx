@@ -13,6 +13,7 @@ import { ConsequenceBadges, FilterFlagBadges, StatusBadges, TierBadge } from "@/
 import { filterFlags, findingRowClass, statusLabels, tierValue } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { findingBulkActionOptions } from "@/lib/finding-actions"
+import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
 import { igvLoadUrl } from "@/lib/external-links"
 import { tieredVariantSearchPath } from "@/lib/variant-routing"
@@ -25,8 +26,6 @@ import { AnalysisTableCard } from "./AnalysisTableCard"
 import { HotspotIndicator } from "@/components/detail/HotspotIndicator"
 import { AppTooltip } from "@/components/ui/app-tooltip"
 import { formatPopulationFrequency, hotspotExportValue } from "@/lib/variant-table-format"
-
-const variantBulkActions = findingBulkActionOptions("small_variant")
 
 const variantClassShort: Record<string, string> = {
   SNV: "SNV",
@@ -53,6 +52,10 @@ export function VariantsTab({
   intent: "somatic" | "germline"
   header?: ReactNode
 }) {
+  const controlsQuery = useApplicationModules()
+  const variantBulkActions = findingBulkActionOptions("small_variant", {
+    tieringEnabled: tieringIsEnabled(controlsQuery.data, "small_variant"),
+  })
   const bulkAction = useBulkFindingAction(sampleId, "small_variant")
   const location = useLocation()
   const tabId = intent === "germline" ? "germline-snvs" : "snvs"

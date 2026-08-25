@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react"
 import { Link } from "react-router-dom"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Activity, Check, Download, Grid2X2, Info, ListTree, Search, X } from "lucide-react"
@@ -8,6 +8,8 @@ import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { ColumnDef } from "@tanstack/react-table"
 import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
+import { useTablePreferences } from "@/components/data-table/table-preferences"
+import { TABLE_PAGE_SIZE_OPTIONS } from "@/lib/user-settings"
 
 export function PublicCatalog() {
   const [selection, setSelection] = useState<{ mod?: string; cat?: string; isgl_key?: string }>({})
@@ -405,11 +407,16 @@ function BadgeList({
 }
 
 export function PublicCatalogMatrix() {
+  const { pageSize: preferredPageSize, setPageSize: persistPageSize } = useTablePreferences()
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(100)
+  const [perPage, setPerPage] = useState(preferredPageSize)
   const [geneSearch, setGeneSearch] = useState("")
   const [appliedGeneSearch, setAppliedGeneSearch] = useState("")
+  useEffect(() => {
+    setPerPage(preferredPageSize)
+    setPage(1)
+  }, [preferredPageSize])
   const { data, isLoading, error } = useQuery({
     queryKey: ["public-catalog-matrix", page, perPage, appliedGeneSearch],
     queryFn: () => {
@@ -514,6 +521,7 @@ export function PublicCatalogMatrix() {
           onGeneSearchClear={clearGeneSearch}
           onPageChange={setPage}
           onPerPageChange={(next) => {
+            persistPageSize(next)
             setPerPage(next)
             setPage(1)
           }}
@@ -658,7 +666,7 @@ function AssayMatrixTable({
               onChange={(event) => onPerPageChange(Number(event.target.value))}
               className="h-8 rounded-lg border border-input bg-background px-2 text-xs font-semibold text-foreground disabled:opacity-50"
             >
-              {[50, 100, 200, 500].map((value) => <option key={value} value={value}>{value}</option>)}
+              {TABLE_PAGE_SIZE_OPTIONS.map((value) => <option key={value} value={value}>{value}</option>)}
             </select>
           </label>
           <button

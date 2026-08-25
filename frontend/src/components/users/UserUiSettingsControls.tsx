@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { LayoutGrid, Rows3 } from "lucide-react"
+import { LayoutGrid, Rows3, TableProperties } from "lucide-react"
 
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import {
@@ -7,6 +7,7 @@ import {
   type AnalysisLayout,
   type SampleListLayout,
   type UserUiSettings,
+  TABLE_PAGE_SIZE_OPTIONS,
 } from "@/lib/user-settings"
 
 const LAYOUT_ITEMS = [
@@ -44,7 +45,7 @@ export function UserUiSettingsControls({
   }
 
   return (
-    <div className="grid gap-3 lg:grid-cols-2">
+    <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
       <SettingRow
         icon={LayoutGrid}
         title="Analysis workspace"
@@ -57,6 +58,26 @@ export function UserUiSettingsControls({
           items={LAYOUT_ITEMS.map((item) => ({ ...item, disabled }))}
           className="w-full sm:w-64"
         />
+      </SettingRow>
+      <SettingRow
+        icon={TableProperties}
+        title="Table page size"
+        description="Set the default number of rows shown in paginated tables."
+      >
+        <label className="grid gap-1">
+          <span className="sr-only">Rows per table page</span>
+          <select
+            aria-label="Rows per table page"
+            value={settings.table_page_size}
+            disabled={disabled}
+            onChange={(event) => onChange({ ...settings, table_page_size: Number(event.target.value) })}
+            className="paper-inset h-9 w-full rounded-lg px-3 text-sm font-medium text-foreground outline-none focus:ring-3 focus:ring-ring/30 sm:w-64"
+          >
+            {TABLE_PAGE_SIZE_OPTIONS.map((pageSize) => (
+              <option key={pageSize} value={pageSize}>{pageSize} rows</option>
+            ))}
+          </select>
+        </label>
       </SettingRow>
       <SettingRow
         icon={Rows3}

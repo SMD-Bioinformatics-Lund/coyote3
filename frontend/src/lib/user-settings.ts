@@ -6,6 +6,8 @@ import type { CurrentUserAccess } from "@/lib/access-control"
 export type AnalysisLayout = "classic" | "modern"
 export type SampleListLayout = "classic" | "modern"
 export type UserUiSettings = Required<NonNullable<CurrentUserAccess["ui_settings"]>>
+export const TABLE_PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const
+export const DEFAULT_TABLE_PAGE_SIZE = 50
 
 type AuthSession = {
   user?: CurrentUserAccess
@@ -20,7 +22,17 @@ export function normalizeUserUiSettings(
     sample_list_layout: value?.sample_list_layout === "modern" ? "modern" : "classic",
     analysis_modern_view_tried: Boolean(value?.analysis_modern_view_tried),
     sample_list_modern_view_tried: Boolean(value?.sample_list_modern_view_tried),
+    table_page_size: TABLE_PAGE_SIZE_OPTIONS.includes(value?.table_page_size as typeof TABLE_PAGE_SIZE_OPTIONS[number])
+      ? Number(value?.table_page_size)
+      : DEFAULT_TABLE_PAGE_SIZE,
   }
+}
+
+export function tablePageSizeForUser(user: CurrentUserAccess | null | undefined): number {
+  const value = user?.ui_settings?.table_page_size
+  return TABLE_PAGE_SIZE_OPTIONS.includes(value as typeof TABLE_PAGE_SIZE_OPTIONS[number])
+    ? Number(value)
+    : DEFAULT_TABLE_PAGE_SIZE
 }
 
 export function analysisLayoutForUser(user: CurrentUserAccess | null | undefined): AnalysisLayout {

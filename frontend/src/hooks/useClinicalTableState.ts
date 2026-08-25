@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import type { SortingState } from "@tanstack/react-table"
 import { useUrlTableState } from "@/hooks/useUrlTableState"
+import { useTablePreferences } from "@/components/data-table/table-preferences"
 
 export const CLINICAL_TABLE_STALE_MS = 2 * 60 * 1000
 export const CLINICAL_TABLE_CACHE_MS = 15 * 60 * 1000
@@ -17,7 +18,11 @@ export function useClinicalTableState({
   searchDebounceMs = 250,
   ...options
 }: UseClinicalTableStateOptions) {
-  const tableState = useUrlTableState(options)
+  const { pageSize } = useTablePreferences()
+  const tableState = useUrlTableState({
+    ...options,
+    defaultPerPage: options.defaultPerPage ?? pageSize,
+  })
   const [debouncedSearchText, setDebouncedSearchText] = useState("")
 
   useEffect(() => {

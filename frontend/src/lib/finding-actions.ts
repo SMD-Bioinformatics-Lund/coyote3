@@ -65,6 +65,13 @@ const TIER_ACTIONS: FindingAction[] = [
   "remove_tier_4",
 ]
 
+const DEFAULT_TIERING_ENABLED: Record<FindingResourceType, boolean> = {
+  small_variant: true,
+  cnv: false,
+  fusion: true,
+  translocation: false,
+}
+
 const REVIEW_ACTIONS: FindingAction[] = [
   "fp",
   "unfp",
@@ -76,14 +83,13 @@ const REVIEW_ACTIONS: FindingAction[] = [
 
 const FINDING_BULK_ACTIONS: Record<FindingResourceType, FindingAction[]> = {
   small_variant: [
-    ...TIER_ACTIONS,
     ...REVIEW_ACTIONS,
     "blacklist",
     "override_blacklist",
     "clear_override_blacklist",
   ],
   cnv: ["fp", "unfp", "interesting", "uninteresting", "noteworthy", "unnoteworthy"],
-  fusion: [...TIER_ACTIONS, ...REVIEW_ACTIONS, "blacklisted", "unblacklisted"],
+  fusion: [...REVIEW_ACTIONS, "blacklisted", "unblacklisted"],
   translocation: ["fp", "unfp", "interesting", "uninteresting"],
 }
 
@@ -100,9 +106,17 @@ const RESOURCE_ACTION_LABELS: Partial<
   },
 }
 
-export function findingBulkActionOptions(resourceType: FindingResourceType): FindingActionOption[] {
+export function findingBulkActionOptions(
+  resourceType: FindingResourceType,
+  options: { tieringEnabled?: boolean } = {},
+): FindingActionOption[] {
   const resourceLabels = RESOURCE_ACTION_LABELS[resourceType] || {}
-  return FINDING_BULK_ACTIONS[resourceType].map((value) => ({
+  const tieringEnabled = options.tieringEnabled
+    ?? DEFAULT_TIERING_ENABLED[resourceType]
+  const actions = tieringEnabled
+    ? [...TIER_ACTIONS, ...FINDING_BULK_ACTIONS[resourceType]]
+    : FINDING_BULK_ACTIONS[resourceType]
+  return actions.map((value) => ({
     value,
     label: resourceLabels[value] || FINDING_ACTION_LABELS[value],
   }))

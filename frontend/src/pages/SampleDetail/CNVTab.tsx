@@ -12,6 +12,7 @@ import { ColumnDef } from "@tanstack/react-table"
 import { findingRowClass, normalizedCallerList, statusLabels } from "@/lib/variant-helpers"
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { findingBulkActionOptions } from "@/lib/finding-actions"
+import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { sampleFileName, hasSampleFile } from "@/lib/sample-shape"
 import { apiPath } from "@/lib/runtime-paths"
@@ -26,8 +27,6 @@ import {
   useClinicalTableState,
 } from "@/hooks/useClinicalTableState"
 import { AnalysisTableCard } from "./AnalysisTableCard"
-
-const cnvBulkActions = findingBulkActionOptions("cnv")
 
 function cnvRatio(cnv: any): number | null {
   const raw = cnv?.ratio ?? cnv?.log2
@@ -71,6 +70,10 @@ function artefactExportValue(cnv: any): string {
 }
 
 export function CNVTab({ sampleId, header }: { sampleId: string; header?: ReactNode }) {
+  const controlsQuery = useApplicationModules()
+  const cnvBulkActions = findingBulkActionOptions("cnv", {
+    tieringEnabled: tieringIsEnabled(controlsQuery.data, "cnv"),
+  })
   const bulkAction = useBulkFindingAction(sampleId, "cnv")
   const location = useLocation()
   const [profileRotation, setProfileRotation] = useState(0)

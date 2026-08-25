@@ -1,5 +1,5 @@
 import { ReactNode, useMemo, useState } from "react"
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
 import {
   Activity,
@@ -14,6 +14,7 @@ import {
   Settings2,
   Siren,
   SlidersHorizontal,
+  Tags,
 } from "lucide-react"
 import { api } from "@/lib/api"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -25,6 +26,7 @@ import { Label } from "@/components/ui/label"
 import { DataTable } from "@/components/data-table/DataTable"
 import { fullDateTime, humanRelativeDate, localDate } from "@/lib/detail-formatters"
 import { appControlHelp } from "@/lib/app-control-metadata"
+import { APPLICATION_MODULES_QUERY_KEY } from "@/lib/app-module-state"
 import {
   ADMIN_UTILITY_PERMISSIONS,
   hasPermission,
@@ -93,6 +95,9 @@ type AppControls = {
   celery: Record<string, boolean>
   retention: Record<string, number>
   modules: Record<string, boolean>
+  curation: {
+    tiering: Record<string, boolean>
+  }
   updated_by?: string | null
   updated_on?: string | null
 }
@@ -146,6 +151,7 @@ type AppControlsRuntime = {
 }
 
 export function AdminControlsPage() {
+  const queryClient = useQueryClient()
   const accessQuery = useCurrentUserAccess()
   const canEdit = hasPermission(accessQuery.data, ADMIN_UTILITY_PERMISSIONS.controlsEdit)
   const canRunMaintenance = hasPermission(accessQuery.data, ADMIN_UTILITY_PERMISSIONS.maintenanceRun)
@@ -166,6 +172,7 @@ export function AdminControlsPage() {
     onSuccess: (data) => {
       setDraft(data.controls)
       controlsQuery.refetch()
+      queryClient.invalidateQueries({ queryKey: APPLICATION_MODULES_QUERY_KEY })
       notifySuccess("Application controls saved", "Runtime controls and retention settings were updated.", "Admin controls")
     },
     onError: (error) => notifyActionError("Unable to save application controls", error, "Admin controls"),
@@ -199,6 +206,18 @@ export function AdminControlsPage() {
     setDraft({
       ...base,
       retention: { ...base.retention, [key]: Number.isFinite(parsed) ? parsed : 0 },
+    })
+  }
+
+  const updateTiering = (key: string, value: boolean) => {
+    const base = controls || controlsQuery.data?.controls
+    if (!base) return
+    setDraft({
+      ...base,
+      curation: {
+        ...base.curation,
+        tiering: { ...base.curation.tiering, [key]: value },
+      },
     })
   }
 
@@ -249,6 +268,16 @@ export function AdminControlsPage() {
           >
             {Object.entries(controls.modules).map(([key, value]) => (
               <ControlToggle key={key} definition={appControlHelp(key)} checked={Boolean(value)} disabled={!canEdit} onChange={(checked) => updateBool("modules", key, checked)} />
+            ))}
+          </ControlSection>
+
+          <ControlSection
+            title="Clinical Curation"
+            description="Resource-level availability of Tier 1-4 mutation actions. Existing classifications remain visible when an action is disabled."
+            icon={<Tags className="h-4 w-4" />}
+          >
+            {Object.entries(controls.curation.tiering).map(([key, value]) => (
+              <ControlToggle key={key} definition={appControlHelp(key)} checked={Boolean(value)} disabled={!canEdit} onChange={(checked) => updateTiering(key, checked)} />
             ))}
           </ControlSection>
 
