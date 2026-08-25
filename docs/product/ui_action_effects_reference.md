@@ -104,10 +104,10 @@ Tiered variant search is a submitted search workflow. The user enters a query, c
 
 Supported tiered-variant search modes:
 
-- **Variant**: searches all flat annotation identities, including HGVSp, HGVSc, genomic, CNV, fusion, and translocation identities.
-- **HGVSp**: searches the flat protein identity and protein-primary annotation rows.
-- **HGVSc**: searches the flat coding-transcript identity and coding-primary annotation rows.
-- **Genomic**: searches `genomic`, `genomic_hash`, and genomic-primary annotation rows.
+- **Variant**: searches `variant` and every canonical flat small-variant identity (`hgvsp`, `hgvsc`, `genomic`, and `genomic_hash`). CNV, fusion, and translocation identities use the universal `variant` field.
+- **HGVSp**: searches the canonical flat `hgvsp` identity.
+- **HGVSc**: searches the canonical flat `hgvsc` identity.
+- **Genomic**: searches the canonical flat `genomic` and `genomic_hash` identities.
 - **Gene symbol**: searches annotation gene symbols case-insensitively.
 - **Transcript ID**: searches transcript identifiers.
 - **Subpanel**: searches clinical subpanel labels.

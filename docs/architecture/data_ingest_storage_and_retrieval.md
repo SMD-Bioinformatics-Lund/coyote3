@@ -81,6 +81,13 @@ row. The unstructured VCF `INFO.Annotation` value is discarded during DNA
 ingest because it has no defined consumer or clinical contract; it is not the
 structural-variant `ANN.Annotation` field.
 
+VEP `CLIN_SIG` is stored as an ordered list in both the selected variant CSQ
+and every `anno_vep.CSQ[]` transcript. A scalar such as
+`uncertain_significance&likely_pathogenic` becomes
+`["uncertain_significance", "likely_pathogenic"]`. Ingest accepts scalar or
+list input, splits ampersand-delimited terms, removes duplicates, and preserves
+first-seen order.
+
 The selected consequence is a display anchor only. It contains the values needed
 for the selected row, such as `Feature`, `SYMBOL`, `HGNC_ID`, HGVS, impact,
 prediction values, exon/intron, and consequence. It intentionally excludes
@@ -211,6 +218,12 @@ The API resolves the user-facing sample name to the canonical sample document. I
 
 Permissions and module availability checks precede reads. Query caching is keyed by sample, intent, filter state, page, and multi-column sort state. Curation or filter actions invalidate affected cached queries so the next table read reflects persisted data.
 
+The sample catalog CSV has a stable set of columns for supported analysis data
+counts and availability. It also loads biomarker documents for the exported
+sample rows in one bulk query and flattens their values into separate columns.
+Missing data remains an empty CSV cell, so every exported row has the same
+column structure.
+
 ## Gene scope
 
 The sample filter state stores applied ISGL identities. Each analysis consumes only its corresponding list type.
@@ -228,6 +241,15 @@ An ISGL can declare multiple list types and be selectable for several analyses. 
 ## Reporting, rollback, and deletion
 
 Review actions update the active analysis record and create their audit events. Reusable tiered annotations live in annotation; reported_variants records freeze the subset attached to a saved report. The report service receives filtered findings, biomarkers, coverage, applied gene lists, ASP, ASPC, and static report rules. It does not re-parse source files.
+
+Annotation persistence uses one flat, validated contract. Current finding
+fields are translated at the classification boundary, then only canonical
+`hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, gene, transcript, breakpoint, and
+review-context fields are stored and queried. The temporary `variant_data`
+service payload is not persisted. Retired annotation fields are accepted only
+by the migration utility and have no runtime read fallback. See
+[clinical data and reporting flow](clinical_data_and_reporting_flow.md#53-annotation-identity-and-matching)
+for the complete nomenclature shapes and matching protocol.
 
 A re-ingest snapshots dependent records that will be replaced. If a new write fails, the earlier records are restored. Administrative sample deletion removes sample-bound variants, CNVs, coverage, translocations, fusions, biomarkers, RNA expression, classification, QC, comments, reports, and reported-variant snapshots before deleting the sample. The deletion audit event keeps sample name and internal identifier as traceability metadata.
 

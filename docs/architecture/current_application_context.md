@@ -344,6 +344,7 @@ Controls include:
 
 - Celery task family gates
 - module visibility switches
+- finding-type tiering action switches
 - audit retention days
 - notification retention days
 - disk log retention days
@@ -353,6 +354,12 @@ The page also queues explicit public reference maintenance. The public OncoKB
 refresh is an HGNC-backed Celery task: it reads the complete local HGNC identity
 catalogue, fetches each public OncoKB catalogue endpoint once, and reconciles
 the two managed public OncoKB gene collections.
+
+Finding-type tiering controls are stored below `curation.tiering`. They govern
+which Tier 1-4 mutation controls the React application presents for small
+variants, CNVs, fusions, and translocations. They do not remove stored
+annotations or alter the backend classification API. This separates a
+center's current UI workflow from the persisted clinical identity contract.
 
 Disabling a Celery task family prevents new executions from doing work. It does not resize the worker pool or terminate tasks already running. Capacity is effectively returned as tasks stop being queued or return early.
 

@@ -153,7 +153,17 @@ The Samples page lists loaded samples visible to the user. It starts in producti
 
 The default **Classic** layout shows the live and reported worklists on the same page. **Modern** provides a focused worklist with separate Live samples and Reported samples tabs. The choice is stored in `users.ui_settings.sample_list_layout` as `classic` or `modern`. An informational banner offers Modern until the user selects that layout for the first time. That acknowledgement is stored in `sample_list_modern_view_tried`, so returning to Classic does not restore the banner.
 
-Both layout preferences are available from the authenticated user's **Profile** page. Administrators with user-view or user-edit access can inspect or update the same preferences in the **Users** resource under **User settings**. These controls update the structured `ui_settings` object; administrators do not need to edit JSON.
+The layout preferences and default table page size are available from the authenticated user's **Profile** page. Administrators with user-view or user-edit access can inspect or update the same preferences in the **Users** resource under **User settings**. These controls update the structured `ui_settings` object; administrators do not need to edit JSON.
+
+`users.ui_settings.table_page_size` controls the default page size for application tables. The supported values are `25`, `50`, `100`, and `200`; the default is `50`. Changing a page-size selector in a table also saves the new account preference. Local tables paginate their filtered rows in the browser, while clinical result tables request the selected page from the API. CSV export is not restricted to the visible browser page when the full filtered result is already available locally.
+
+| User setting | Allowed values | Default | Effect |
+| --- | --- | --- | --- |
+| `analysis_layout` | `classic`, `modern` | `classic` | Uses the combined Findings workspace or separate analysis tabs. |
+| `sample_list_layout` | `classic`, `modern` | `classic` | Uses the combined samples worklist or separate Live and Reported tabs. |
+| `table_page_size` | `25`, `50`, `100`, `200` | `50` | Sets the account-wide default number of rows per table page. |
+| `analysis_modern_view_tried` | `true`, `false` | `false` | Records whether the analysis-layout introduction has been acknowledged. |
+| `sample_list_modern_view_tried` | `true`, `false` | `false` | Records whether the samples-layout introduction has been acknowledged. |
 
 Date, profile, live/reported, assay, search, and row-limit selections are kept in the URL. Refreshing the page or sharing the URL therefore preserves the worklist view without retaining a second copy of the result set in browser memory.
 

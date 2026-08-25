@@ -30,6 +30,8 @@ contracts, a modern browser interface, and production-oriented operations.
 - Rebuilt clinical tables and detail pages with server-side filtering and sorting,
   responsive navigation, accessible controls, local-time rendering, and shared
   light/dark themes.
+- Added an account-level table page-size preference shared by clinical, admin,
+  sample, and public catalog tables.
 
 ### Removed
 

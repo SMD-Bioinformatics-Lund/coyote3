@@ -308,6 +308,8 @@ The preference is stored as `users.ui_settings.analysis_layout` with the value `
 
 The Samples worklist follows the same principle with an independent preference. `users.ui_settings.sample_list_layout` is `classic` by default and may be changed to `modern`. Classic displays live and reported samples together, while Modern focuses on one worklist at a time. `users.ui_settings.sample_list_modern_view_tried` keeps the first-use banner dismissed after Modern has been tried.
 
+The account-wide `users.ui_settings.table_page_size` preference sets the default table page size to `25`, `50`, `100`, or `200` rows. New accounts use `50`. The Profile page and administrative user editor expose the setting, and selecting a different page size in a table updates the same preference. Server-paginated clinical tables request only the selected page; local reference and administration tables paginate their already loaded rows without retaining duplicate copies of those rows.
+
 Typical analysis areas include:
 
 - Overview
@@ -462,14 +464,14 @@ identity used when adding or removing a classification, while flat secondary
 identity fields make the same finding directly searchable and linkable without
 reading nested source payloads.
 
-| Nomenclature | Primary representation | Flat identity field |
+| Nomenclature | Meaning of `variant` | Additional identity fields |
 | --- | --- | --- |
-| `p` | Protein HGVS | `hgvsp` |
-| `c` | Coding-transcript HGVS | `hgvsc` |
-| `g` | Canonical genomic identity | `genomic` |
-| `cn` | Copy-number region/event | `cnv` |
-| `f` | Fusion breakpoints | `fusion` |
-| `t` | Translocation breakpoints | `translocation` |
+| `p` | Protein HGVS | `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, `gene`; optional `transcript` |
+| `c` | Coding-transcript HGVS | `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, `gene`; optional `transcript` |
+| `g` | Canonical genomic identity | `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, `gene`; optional `transcript` |
+| `cn` | Copy-number region/event | None |
+| `f` | Fusion identity or breakpoints | `gene1`, `gene2` |
+| `t` | Translocation identity or breakpoints | `gene1`, `gene2` |
 
 A small-variant annotation can contain `hgvsp`, `hgvsc`, and `genomic` at the
 same time even though only one is the primary `variant`. `genomic` uses the
@@ -477,15 +479,73 @@ canonical `chrom_pos_ref_alt` form and `genomic_hash` stores its deterministic
 hash for indexed joins. Variant documents call the source fields `simple_id`
 and `simple_id_hash`; the annotation persistence boundary translates those
 names to `genomic` and `genomic_hash`. Annotation documents never duplicate
-the same identity under both names. Structural annotations use the applicable
-one of `cnv`, `fusion`, or `translocation`; unrelated identity fields are
-omitted rather than stored as empty values.
+the same identity under both names. CNV, fusion, and translocation annotations
+retain their finding identity only in the universal `variant` field.
+
+Annotation documents are nomenclature-specific. Every related identity key is
+present, while unrelated identity keys are absent:
+
+- `p`, `c`, and `g` documents contain `hgvsp`, `hgvsc`, `genomic`,
+  `genomic_hash`, and `gene`. They may also contain `transcript` when it is
+  available.
+- `cn` documents contain `variant`; they do not add another CNV identity or gene key.
+- `f` documents contain `variant`, `gene1`, and `gene2`.
+- `t` documents contain `variant`, `gene1`, and `gene2`.
+
+Related keys may contain `null` only when the retained source data does not
+provide an exact value. For example, a historical protein annotation may have
+`hgvsc: null` and `genomic: null` when its original variant record is no longer
+available. Coyote3 preserves that absence explicitly and never derives or
+guesses an HGVS expression. This is different from unrelated keys such as
+`fusion` on a protein annotation: unrelated keys are not stored at all.
+
+An annotation stores exactly one clinical payload. A classification document
+contains `class` and does not contain a `text` key. A free-text annotation
+contains `text` and does not contain a `class` key. Documents containing both
+payloads, or neither payload, are rejected by the collection contract.
+
+For example, a protein-level TP53 classification has this stable persisted
+shape:
+
+```json
+{
+  "variant": "p.Val157GlyfsTer24",
+  "hgvsp": "p.Val157GlyfsTer24",
+  "hgvsc": "c.469_470del",
+  "genomic": "17_7673800_AC_A",
+  "genomic_hash": "9f4f...",
+  "gene": "TP53",
+  "assay": "global",
+  "subpanel": "base",
+  "author": "reviewer",
+  "nomenclature": "p",
+  "transcript": "NM_000546.6",
+  "time_created": "2023-01-01T20:01:36.274Z",
+  "class": 1
+}
+```
+
+`variant` is the primary representation selected by `nomenclature`; it is not
+a second independent identity. When exact source evidence also provides HGVSc
+or genomic coordinates, those values populate `hgvsc`, `genomic`, and
+`genomic_hash` in the same document. A text annotation uses the same identity
+shape and stores its content in `text`; it does not contain `class`.
 
 Identity enrichment is applied at the annotation repository boundary for
 single writes, bulk tiering, and global comments. The finding loader supplies
 all known identities from the selected transcript and canonical genomic
 coordinates. Therefore choosing HGVSp as the displayed variant does not discard
 HGVSc or genomic linkage.
+
+Existing annotations are backfilled only from exact stored evidence. The
+primary `variant` is first copied to the field selected by `nomenclature`. For
+`p`, `c`, and `g` annotations, additional HGVS and genomic identities may then
+be joined from `variants` or the versioned `anno_vep` collection using the same
+gene, transcript, and primary identity. The join must resolve to one unique
+identity tuple. Ambiguous, unresolved, or conflicting identities remain `null`
+and are listed in the migration report; the application does not translate
+HGVS expressions or guess a transcript. `genomic_hash` is calculated only from
+the canonical `chrom_pos_ref_alt` genomic identity.
 
 Tiered variant search queries the flat identity fields first. Protein, coding,
 and genomic search modes can consequently find the same annotation through any
@@ -759,6 +819,16 @@ analysis, clinical reporting, tiered variant search, knowledgebases, the ingest
 workspace, and the assay catalog. Disabling one hides its navigation and route
 content and causes its API routes to return a structured HTTP `503` response.
 The switch retains stored data and does not cancel an in-flight request.
+
+Clinical curation controls independently govern whether Tier 1-4 mutation
+actions are offered for small variants, CNVs, fusions, and translocations.
+Small-variant and fusion tiering are enabled by default; CNV and translocation
+tiering are disabled by default. These settings are stored in the same
+`app_controls` document and are read through the public runtime-control
+endpoint, so a saved change takes effect without rebuilding the frontend.
+Disabling an action removes it from row actions, bulk actions, and finding
+detail controls. Existing classifications remain visible, and the backend
+classification contract remains available for controlled future use.
 
 Audit is intentionally absent from the module switches. Audit access is an
 RBAC-controlled oversight capability and must remain reachable when another

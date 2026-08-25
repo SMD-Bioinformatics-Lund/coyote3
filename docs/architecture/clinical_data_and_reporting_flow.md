@@ -350,27 +350,95 @@ different transcript.
 
 ### 5.3 Annotation identity and matching
 
-The current annotation repository builds these candidate identities:
+Every annotation stores the common review context (`variant`, `nomenclature`,
+`assay`, `subpanel`, `author`, and `time_created`) and only the identity fields
+that belong to its nomenclature:
 
-```text
-protein: selected_CSQ.HGVSp
-cDNA:    selected_CSQ.HGVSc
-genomic: CHROM:POS:REF/ALT
-gene:    selected_CSQ.SYMBOL
-```
+| Nomenclature | Required identity and context fields |
+| --- | --- |
+| `p`, `c`, `g` | `variant`, `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, and `gene`; `transcript` is included when available |
+| `cn` | `variant` only |
+| `f` | `variant`, `gene1`, and `gene2` |
+| `t` | `variant`, `gene1`, and `gene2` |
 
-Matching order is:
+All fields listed for a nomenclature are structurally present. A related field
+may be `null` when exact retained evidence cannot supply it. Unrelated identity
+fields are absent rather than stored as `null` placeholders. Small-variant
+identities come from the selected transcript consequence and the canonical
+`chrom_pos_ref_alt` variant identity. They are written together so a protein,
+coding, or genomic annotation can be found through any exact representation
+without reconstructing HGVS values later. CNV, fusion, and translocation
+identities remain in `variant`; they are not duplicated under `cnv`, `fusion`,
+or `translocation` fields.
 
-1. If HGVSp exists, query the same gene for matching protein, cDNA, or genomic
-   annotation rows.
-2. Otherwise, if HGVSc exists, query the same gene for matching cDNA or genomic
-   rows.
-3. Otherwise, query the same gene and genomic identity.
-4. For breakpoint findings, use the fusion identity
-   `breakpoint1^breakpoint2`.
+Matching is identity-equivalent rather than fallback-based:
+
+1. For a small variant, the query requires the same gene and matches any
+   available exact `hgvsp`, `hgvsc`, or `genomic` identity. These alternatives
+   are joined with `OR`; none has precedence over another.
+2. `genomic_hash` supports indexed identity and integrity checks but does not
+   replace the readable genomic identity in the annotation contract.
+3. For fusion and translocation findings, the query uses the canonical
+   breakpoint identity together with the applicable `gene1` and `gene2`
+   context.
 
 Matching rows are ordered by `time_created`. Iteration therefore leaves the
 newest applicable row as the current classification.
+
+#### Authoritative runtime flow
+
+The application has one annotation path:
+
+1. The current finding contract supplies the source identity. Small variants
+   use selected-CSQ `HGVSp` and `HGVSc` plus `simple_id`; structural findings
+   use their canonical breakpoint identity.
+2. The classification service carries that source identity in a transient
+   `variant_data` object. This object is service input and is never stored in
+   `annotation`.
+3. The annotation identity mapper converts the source names once:
+   `HGVSp` to `hgvsp`, `HGVSc` to `hgvsc`, and `simple_id` to `genomic`. It
+   derives `genomic_hash` from the normalized genomic identity.
+4. `AnnotationDoc` validates the nomenclature-specific shape, the required
+   fields, and the exclusive `class`-or-`text` rule.
+5. The repository writes the validated flat document.
+6. Search, classification lookup, text lookup, and deletion query only the
+   canonical flat annotation fields shown in the table above.
+
+Runtime code does not query retired annotation aliases such as `var_p`,
+`var_c`, `var_g`, `cnv`, `fusion`, `translocation`, nested `variant_data`, or
+annotation-level `HGVSp`, `HGVSc`, and `simple_id`. Historical shapes are
+understood only by the one-time migration utility. A deployment must migrate
+old rows before running the current application; runtime fallback is not a
+substitute for migration.
+
+MongoDB `_id` values are stored and queried as `ObjectId`, and `class` is
+stored and read as an integer. Runtime reads do not coerce historical string
+identifiers or string class values. The migration must normalize those values
+before the application is started.
+
+An annotation is either a classification or free text. Classification rows
+contain `class` and omit `text`; free-text rows contain `text` and omit
+`class`. The collection contract rejects rows containing both or neither.
+
+#### Live annotations and report snapshots
+
+`annotation` and `reported_variants` serve different purposes and therefore
+use different identity names:
+
+| Collection | Purpose | Genomic identity |
+| --- | --- | --- |
+| `annotation` | Current reusable classification or annotation text | `genomic` and `genomic_hash` |
+| `reported_variants` | Immutable evidence captured when a report is saved | `simple_id` and `simple_id_hash` |
+
+The report snapshot contract retains flat query fields such as `gene`,
+`transcript`, `hgvsc`, `hgvsp`, and `variant`. Its typed `finding_data` object
+contains the report-time evidence needed to reproduce the saved report. It is
+not the retired annotation-level `variant_data` shape.
+
+Runtime report-history searches use only these current flat snapshot fields.
+They do not inspect old `var_p`, `var_c`, `var_g`, or nested `variant_data`
+aliases. Existing report snapshots must therefore be normalized by migration
+before they are served by the current application.
 
 ### 5.4 Assay and subpanel context
 
