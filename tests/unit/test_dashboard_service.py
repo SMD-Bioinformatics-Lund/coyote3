@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
-from api.application.dashboard.analytics import DashboardService
+import pytest
+
+from api.application.dashboard.analytics import DashboardService, DashboardSnapshotUnavailable
 from api.domain.common.dashboard import (
     format_panel_gene_stats,
     panel_asp_ids,
@@ -112,6 +115,9 @@ class _DashboardBackendStub:
     def get_dashboard_tier_stats(self):
         return {"total": {"tier1": 10, "tier2": 5, "tier3": 3, "tier4": 1}}
 
+    def get_dashboard_classification_stats(self):
+        return {"total": {"tier1": 20, "tier2": 7, "tier3": 6, "tier4": 4}}
+
     def get_all_asps_unique_gene_count(self):
         return 1234
 
@@ -160,6 +166,7 @@ def _noop_handler(**methods):
         "get_total_fusion_count": lambda: 0,
         "get_unique_blacklist_count": lambda: 0,
         "get_dashboard_tier_stats": lambda: {},
+        "get_dashboard_classification_stats": lambda: {},
         "get_all_asps_unique_gene_count": lambda: 0,
         "get_all_asp_gene_counts": lambda: {},
         "get_dashboard_assay_association_rollup": lambda: {},
@@ -168,7 +175,23 @@ def _noop_handler(**methods):
     return SimpleNamespace(**defaults)
 
 
-def _dashboard_service(backend=None) -> DashboardService:
+class _DashboardMetricsStub:
+    def __init__(self, document=None) -> None:
+        self.document = document
+        self.writes: list[tuple[str, dict]] = []
+
+    def get_summary_snapshot(self, *, scope_key):  # noqa: ARG002
+        return self.document
+
+    def upsert_summary_snapshot(self, *, scope_key, payload):
+        self.writes.append((scope_key, payload))
+        self.document = {
+            "payload": payload,
+            "updated_at": datetime.now(timezone.utc),
+        }
+
+
+def _dashboard_service(backend=None, dashboard_metrics_repository=None) -> DashboardService:
     backend = backend or _DashboardBackendStub()
     return DashboardService(
         user_repository=_noop_handler(
@@ -209,10 +232,13 @@ def _dashboard_service(backend=None) -> DashboardService:
         blacklist_repository=_noop_handler(
             get_unique_blacklist_count=backend.get_unique_blacklist_count
         ),
+        annotation_repository=_noop_handler(
+            get_dashboard_classification_stats=backend.get_dashboard_classification_stats
+        ),
         reported_variant_repository=_noop_handler(
             get_dashboard_tier_stats=backend.get_dashboard_tier_stats
         ),
-        dashboard_metrics_repository=None,
+        dashboard_metrics_repository=dashboard_metrics_repository,
     )
 
 
@@ -270,7 +296,7 @@ def test_summary_payload_calculates_quality_rates(monkeypatch):
         raising=False,
     )
 
-    payload = service.summary_payload(user=user)
+    payload = service.refresh_summary_payload(user=user)
 
     assert payload["total_samples"] == 100
     assert payload["analysed_samples"] == 75
@@ -280,8 +306,10 @@ def test_summary_payload_calculates_quality_rates(monkeypatch):
     assert payload["variant_stats"]["fusion"] == 8
     assert payload["variant_stats"]["translocation"] == 12
     assert payload["variant_stats"]["reported_findings"] == 19
-    assert payload["variant_stats"]["pathogenic"] == 15
-    assert payload["variant_stats"]["vus"] == 3
+    assert payload["variant_stats"]["pathogenic"] == 27
+    assert payload["variant_stats"]["vus"] == 6
+    assert payload["variant_stats"]["tier4"] == 4
+    assert payload["variant_stats"]["reported_findings"] == 19
     assert payload["variant_stats"]["by_variant_class"]["INDEL"] == 300
     assert payload["assay_gene_stats_grouped"]["hematology"][0]["covered_genes_count"] == 42
     assert payload["assay_gene_stats_grouped"]["hematology"][0]["germline_genes_count"] == 7
@@ -302,6 +330,51 @@ def test_summary_payload_calculates_quality_rates(monkeypatch):
     assert payload["quality_stats"]["blacklist_rate_percent"] == 10.0
     assert payload["admin_insights"]["counts"]["users_total"] == 12
     assert payload["dashboard_meta"]["scope_assays"] == ["A1", "A2"]
+
+
+def test_summary_payload_reads_snapshot_without_running_aggregations(monkeypatch):
+    snapshot = {
+        "payload": {"total_samples": 7, "dashboard_meta": {}},
+        "updated_at": datetime.now(timezone.utc),
+    }
+    service = _dashboard_service(
+        backend=_DashboardBackendStub(),
+        dashboard_metrics_repository=_DashboardMetricsStub(snapshot),
+    )
+    monkeypatch.setattr(
+        service.sample_repository,
+        "get_dashboard_sample_rollup",
+        lambda **_kwargs: pytest.fail("dashboard GET must not aggregate MongoDB data"),
+    )
+    user = SimpleNamespace(id="u1", role="admin", roles=["superuser"], asp_ids=[], asp_groups=[])
+
+    payload = service.summary_payload(user=user)
+
+    assert payload["total_samples"] == 7
+    assert payload["dashboard_meta"]["snapshot_stale"] is False
+    assert payload["dashboard_meta"]["cache_source"] == "mongo_snapshot"
+
+
+def test_summary_payload_returns_stale_snapshot_and_rejects_missing_snapshot():
+    old_snapshot = {
+        "payload": {"total_samples": 7, "dashboard_meta": {}},
+        "updated_at": datetime.now(timezone.utc) - timedelta(minutes=10),
+        "dirty_since": datetime.now(timezone.utc),
+    }
+    user = SimpleNamespace(id="u1", role="admin", roles=["superuser"], asp_ids=[], asp_groups=[])
+    service = _dashboard_service(
+        backend=_DashboardBackendStub(),
+        dashboard_metrics_repository=_DashboardMetricsStub(old_snapshot),
+    )
+
+    assert service.summary_payload(user=user)["dashboard_meta"]["snapshot_stale"] is True
+
+    service = _dashboard_service(
+        backend=_DashboardBackendStub(),
+        dashboard_metrics_repository=_DashboardMetricsStub(),
+    )
+    with pytest.raises(DashboardSnapshotUnavailable):
+        service.summary_payload(user=user)
 
 
 def test_panel_gene_stats_exclude_wgs_and_wts_families():

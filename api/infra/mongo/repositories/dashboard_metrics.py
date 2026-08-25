@@ -14,7 +14,7 @@ from api.infra.mongo.repositories.base import BaseRepository
 class DashboardMetricsRepository(BaseRepository):
     """Manage persisted dashboard metric snapshots."""
 
-    SUMMARY_SNAPSHOT_VERSION = "v5"
+    SUMMARY_SNAPSHOT_VERSION = "v6"
 
     def __init__(self, adapter):
         super().__init__(adapter)
@@ -53,7 +53,7 @@ class DashboardMetricsRepository(BaseRepository):
         """Return a persisted dashboard summary snapshot document."""
         return self.get_collection().find_one(
             {"_id": f"dashboard_summary_{self.SUMMARY_SNAPSHOT_VERSION}:{scope_key}"},
-            {"payload": 1, "updated_at": 1},
+            {"payload": 1, "updated_at": 1, "dirty_since": 1},
         )
 
     def upsert_summary_snapshot(self, *, scope_key: str, payload: dict[str, Any]) -> None:
@@ -64,7 +64,8 @@ class DashboardMetricsRepository(BaseRepository):
                 "$set": {
                     "payload": dict(payload),
                     "updated_at": datetime.now(timezone.utc),
-                }
+                },
+                "$unset": {"dirty_since": ""},
             },
             upsert=True,
         )

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+from copy import deepcopy
+from datetime import datetime, timezone
 from typing import Any
 
 from api.domain.common.dashboard import (
@@ -18,6 +20,10 @@ from api.domain.core.repository_protocols import (
     VariantsRepositoryProtocol,
 )
 from api.infra.observability.operations import measured_operation
+
+
+class DashboardSnapshotUnavailable(RuntimeError):
+    """Raised when no background-generated dashboard snapshot exists yet."""
 
 
 class DashboardService:
@@ -40,6 +46,7 @@ class DashboardService:
             translocation_repository=store.translocation_repository,
             fusion_repository=store.fusion_repository,
             blacklist_repository=store.blacklist_repository,
+            annotation_repository=store.annotation_repository,
             reported_variant_repository=store.reported_variant_repository,
             dashboard_metrics_repository=store.dashboard_metrics_repository,
             cache_backend=cache_backend,
@@ -60,6 +67,7 @@ class DashboardService:
         translocation_repository: Any,
         fusion_repository: Any,
         blacklist_repository: Any,
+        annotation_repository: Any,
         reported_variant_repository: Any,
         dashboard_metrics_repository: Any | None,
         cache_backend: Any | None = None,
@@ -77,6 +85,7 @@ class DashboardService:
         self.translocation_repository = translocation_repository
         self.fusion_repository = fusion_repository
         self.blacklist_repository = blacklist_repository
+        self.annotation_repository = annotation_repository
         self.reported_variant_repository = reported_variant_repository
         self.dashboard_metrics_repository = dashboard_metrics_repository
         self.cache_backend = cache_backend
@@ -100,8 +109,13 @@ class DashboardService:
     def _summary_scope_key(*, user, scope_assays: list[str] | None) -> str:
         """Build stable scope key for dashboard summary cache/snapshots."""
         payload = {
-            "username": str(getattr(user, "username", "") or ""),
-            "role": str(getattr(user, "role", "") or ""),
+            "roles": sorted(
+                {
+                    str(value or "").strip().lower()
+                    for value in [getattr(user, "role", ""), *(getattr(user, "roles", []) or [])]
+                    if str(value or "").strip()
+                }
+            ),
             "assays": sorted(scope_assays) if isinstance(scope_assays, list) else None,
         }
         raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
@@ -115,13 +129,10 @@ class DashboardService:
         """Return persisted summary staleness threshold."""
         return int(self.config.get("DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS", 300) or 300)
 
-    def _read_dashboard_summary_snapshot(
-        self, *, scope_key: str, max_age_seconds: int
-    ) -> dict | None:
-        """Read persisted summary snapshot when fresh enough."""
+    def _read_dashboard_summary_snapshot(self, *, scope_key: str) -> dict | None:
+        """Read the latest persisted summary snapshot, including stale snapshots."""
         if self.dashboard_metrics_repository is None:
             return None
-        from datetime import datetime, timezone
 
         doc = self.dashboard_metrics_repository.get_summary_snapshot(scope_key=scope_key)
         if not isinstance(doc, dict):
@@ -132,10 +143,21 @@ class DashboardService:
             return None
         if updated_at.tzinfo is None:
             updated_at = updated_at.replace(tzinfo=timezone.utc)
-        age_seconds = (datetime.now(timezone.utc) - updated_at).total_seconds()
-        if age_seconds > int(max_age_seconds):
-            return None
-        return dict(payload)
+        age_seconds = max(0.0, (datetime.now(timezone.utc) - updated_at).total_seconds())
+        dirty_since = doc.get("dirty_since")
+        result = deepcopy(payload)
+        meta = result.setdefault("dashboard_meta", {})
+        meta.update(
+            {
+                "snapshot_updated_at": updated_at.isoformat(),
+                "snapshot_age_seconds": round(age_seconds, 1),
+                "snapshot_stale": bool(
+                    dirty_since is not None or age_seconds > self._snapshot_max_age_seconds()
+                ),
+                "snapshot_dirty": dirty_since is not None,
+            }
+        )
+        return result
 
     def _write_dashboard_summary_snapshot(self, *, scope_key: str, payload: dict) -> None:
         """Persist summary snapshot payload."""
@@ -144,6 +166,11 @@ class DashboardService:
         self.dashboard_metrics_repository.upsert_summary_snapshot(
             scope_key=scope_key, payload=payload
         )
+
+    def summary_scope_key(self, *, user) -> str:
+        """Return the persisted snapshot key for an authenticated user."""
+        scope_assays = self.resolve_scope_assays(user=user)
+        return self._summary_scope_key(user=user, scope_assays=scope_assays)
 
     @staticmethod
     def _set_cache_meta(payload: dict[str, Any], *, source: str, hit: bool) -> dict[str, Any]:
@@ -316,21 +343,22 @@ class DashboardService:
                 effective_assays.add(str(asp_id).strip())
         return sorted(effective_assays)
 
-    @measured_operation("query.dashboard_summary")
     def summary_payload(self, *, user) -> dict[str, Any]:
-        """Build the cached dashboard summary payload for a user.
+        """Return a background-generated dashboard summary without aggregating data.
 
         Args:
             user: Authenticated dashboard user.
 
         Returns:
-            dict[str, Any]: Dashboard summary payload with cache metadata.
+            dict[str, Any]: Persisted dashboard summary with freshness metadata.
+
+        Raises:
+            DashboardSnapshotUnavailable: No background snapshot exists for the user scope.
         """
         scope_assays = self.resolve_scope_assays(user=user)
         scope_key = self._summary_scope_key(user=user, scope_assays=scope_assays)
-        cache_key = f"dashboard:summary:v7:{self._cache_version_token()}:{scope_key}"
+        cache_key = f"dashboard:summary:v9:{self._cache_version_token()}:{scope_key}"
         cache_ttl = self._cache_ttl_seconds()
-        snapshot_max_age = self._snapshot_max_age_seconds()
 
         cache = self._cache_backend()
         if cache is not None:
@@ -338,13 +366,24 @@ class DashboardService:
             if isinstance(cached_payload, dict):
                 return self._set_cache_meta(dict(cached_payload), source="redis", hit=True)
 
-        snapshot_payload = self._read_dashboard_summary_snapshot(
-            scope_key=scope_key, max_age_seconds=snapshot_max_age
-        )
+        snapshot_payload = self._read_dashboard_summary_snapshot(scope_key=scope_key)
         if isinstance(snapshot_payload, dict):
             if cache is not None:
                 cache.set(cache_key, snapshot_payload, timeout=cache_ttl)
             return self._set_cache_meta(dict(snapshot_payload), source="mongo_snapshot", hit=False)
+
+        raise DashboardSnapshotUnavailable(
+            "Dashboard metrics are being prepared. Refresh the metrics now or try again shortly."
+        )
+
+    @measured_operation("query.dashboard_summary_refresh")
+    def refresh_summary_payload(self, *, user) -> dict[str, Any]:
+        """Recompute and persist the dashboard snapshot for one user scope."""
+        scope_assays = self.resolve_scope_assays(user=user)
+        scope_key = self._summary_scope_key(user=user, scope_assays=scope_assays)
+        cache_key = f"dashboard:summary:v9:{self._cache_version_token()}:{scope_key}"
+        cache_ttl = self._cache_ttl_seconds()
+        cache = self._cache_backend()
 
         sample_rollup_global = self.sample_repository.get_dashboard_sample_rollup(asp_ids=None)
         sample_rollup_scoped = self.sample_repository.get_dashboard_sample_rollup(
@@ -360,7 +399,8 @@ class DashboardService:
         unique_blacklisted_variants = int(
             self.blacklist_repository.get_unique_blacklist_count() or 0
         )
-        tier_stats = self.reported_variant_repository.get_dashboard_tier_stats()
+        tier_stats = self.annotation_repository.get_dashboard_classification_stats()
+        reported_tier_stats = self.reported_variant_repository.get_dashboard_tier_stats()
 
         total_samples_count = int(sample_rollup_global.get("total_samples", 0) or 0)
         analysed_samples_count = int(sample_rollup_global.get("analysed_samples", 0) or 0)
@@ -376,7 +416,18 @@ class DashboardService:
         tier2 = int(tier_total.get("tier2", tier_total.get("tier_2", 0)) or 0)
         tier3 = int(tier_total.get("tier3", tier_total.get("tier_3", 0)) or 0)
         tier4 = int(tier_total.get("tier4", tier_total.get("tier_4", 0)) or 0)
-        reported_findings = tier1 + tier2 + tier3 + tier4
+        reported_tier_total = (
+            reported_tier_stats.get("total", {}) if isinstance(reported_tier_stats, dict) else {}
+        )
+        reported_findings = sum(
+            int(
+                reported_tier_total.get(
+                    key, reported_tier_total.get(key.replace("tier", "tier_"), 0)
+                )
+                or 0
+            )
+            for key in ("tier1", "tier2", "tier3", "tier4")
+        )
 
         total_small_variants = int(variant_rollup.get("total_variants", 0) or 0)
         total_snv_like = int(
@@ -457,6 +508,7 @@ class DashboardService:
                 "sample_stats": sample_rollup_scoped.get("sample_stats", {}) or {},
             },
             "tier_stats": tier_stats,
+            "reported_tier_stats": reported_tier_stats,
             "quality_stats": {
                 "analysed_rate_percent": analysed_rate,
                 "fp_rate_percent": fp_rate,
@@ -471,8 +523,17 @@ class DashboardService:
         }
         if "superuser" in {str(role_id or "").strip().lower() for role_id in (user.roles or [])}:
             payload["admin_insights"] = self.build_admin_insights()
-        self._set_cache_meta(payload, source="recomputed", hit=False)
+        generated_at = datetime.now(timezone.utc)
+        payload["dashboard_meta"].update(
+            {
+                "snapshot_updated_at": generated_at.isoformat(),
+                "snapshot_age_seconds": 0.0,
+                "snapshot_stale": False,
+                "snapshot_dirty": False,
+            }
+        )
+        self._set_cache_meta(payload, source="background_refresh", hit=False)
+        self._write_dashboard_summary_snapshot(scope_key=scope_key, payload=payload)
         if cache is not None:
             cache.set(cache_key, payload, timeout=cache_ttl)
-        self._write_dashboard_summary_snapshot(scope_key=scope_key, payload=payload)
         return payload

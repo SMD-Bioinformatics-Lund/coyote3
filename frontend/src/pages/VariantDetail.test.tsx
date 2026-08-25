@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -81,7 +81,15 @@ const detailPayload = {
   ],
   annotations: [],
   other_classifications: [],
-  in_other_samples: [],
+  in_other_samples: [
+    {
+      sample_name: "OTHER_CASE",
+      assay: "hema_gmsv1",
+      assay_group: "hematology",
+      subpanel: "hem",
+      tier: 2,
+    },
+  ],
   pon: [],
   oncokb_gene: { oncokb_annotated: true, gene_type: "ONCOGENE" },
   clinpgx_gene: { pharmgkb_accession_id: "PA35699", is_vip: true },
@@ -144,6 +152,11 @@ describe("VariantDetail", () => {
     expect(screen.getByText("Latest tier 2")).toBeVisible()
     expect(screen.getByText("Actions for CASE_001")).toBeVisible()
     expect(screen.getByLabelText("Known hotspot")).toBeVisible()
+    expect(screen.getByText("OTHER_CASE")).toBeVisible()
+    expect(screen.getByRole("columnheader", { name: "Assay group" })).toBeVisible()
+    expect(screen.getByText("hematology")).toBeVisible()
+    expect(within(screen.getByText("OTHER_CASE").closest("tr")!).getByText("2")).toBeVisible()
+    expect(screen.queryByText("hema_gmsv1")).not.toBeInTheDocument()
   })
 
   it("persists a selected alternate transcript and refreshes the detail", async () => {

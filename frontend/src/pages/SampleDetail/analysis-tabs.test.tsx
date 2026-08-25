@@ -371,7 +371,7 @@ describe("sample analysis table tabs", () => {
     expect(screen.getByText("11:1 / 4:2")).toBeVisible()
     expect(screen.getByText("in-frame")).toBeVisible()
     expect(screen.getByText("8 / 13")).toBeVisible()
-    expect(screen.getByText("Tier 2")).toBeVisible()
+    expect(screen.getByText("2")).toBeVisible()
     expect(screen.getByText("Reviewed fusion")).toBeVisible()
     const reportTable = mocks.dataTable.mock.calls.at(-1)?.[0]
     expect(reportTable.columns.map((column: { id: string }) => column.id)).toEqual([

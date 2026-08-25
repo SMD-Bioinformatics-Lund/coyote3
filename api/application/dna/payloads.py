@@ -713,11 +713,39 @@ def variant_context_payload(
     subpanel = sample.get("subpanel_id")
 
     variant = service.blacklist_repository.add_blacklist_data([variant], assay_group)[0]
-    in_other = service.variant_repository.get_variant_in_other_samples(variant)
-    has_hidden_comments = service.variant_repository.hidden_var_comments(var_id)
     annotations, latest_classification, other_classifications, annotations_interesting = (
         service.annotation_repository.get_global_annotations(variant, assay_group, subpanel)
     )
+    assay_group_mappings = service.assay_panel_repository.get_asp_group_mappings()
+    tier_by_scope: dict[tuple[str, str | None], int | None] = {}
+
+    def classification_tier(classification: dict[str, Any] | None) -> int | None:
+        try:
+            tier = int((classification or {}).get("class"))
+        except (TypeError, ValueError):
+            return None
+        return tier if tier in {1, 2, 3, 4} else None
+
+    tier_by_scope[(assay_group, subpanel)] = classification_tier(latest_classification)
+    in_other = service.variant_repository.get_variant_in_other_samples(variant)
+    for match in in_other:
+        matched_assay = match.get("assay")
+        matched_group = assay_group_mappings.get(matched_assay)
+        matched_subpanel = match.get("subpanel")
+        match["assay_group"] = matched_group
+        if not matched_group:
+            continue
+        scope = (matched_group, matched_subpanel)
+        if scope not in tier_by_scope:
+            _, matched_classification, _, _ = service.annotation_repository.get_global_annotations(
+                variant,
+                matched_group,
+                matched_subpanel,
+            )
+            tier_by_scope[scope] = classification_tier(matched_classification)
+        match["tier"] = tier_by_scope[scope]
+
+    has_hidden_comments = service.variant_repository.hidden_var_comments(var_id)
     if not latest_classification or latest_classification.get("class") == 999:
         variant = add_alt_class_fn(variant, assay_group, subpanel)
     else:
@@ -843,5 +871,5 @@ def variant_context_payload(
         "vep_conseq_translations": service.vep_metadata_repository.get_conseq_translations(
             vep_version
         ),
-        "assay_group_mappings": service.assay_panel_repository.get_asp_group_mappings(),
+        "assay_group_mappings": assay_group_mappings,
     }

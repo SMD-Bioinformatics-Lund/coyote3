@@ -687,9 +687,9 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
 
         <SettingsCard title="Case and Control" tone="border-t-orange-400" className="xl:col-span-2">
           <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full min-w-[38rem] border-separate border-spacing-0 text-xs">
+            <table className="type-table-cell w-full min-w-[38rem] border-separate border-spacing-0">
               <thead>
-                <tr className="bg-muted/65 text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                <tr className="type-table-header bg-muted/65 text-left text-muted-foreground">
                   <th className="w-28 px-3 py-1">Field</th>
                   <th className="border-l border-pass/25 bg-pass/8 px-3 py-1 text-pass">Case</th>
                   <th className="border-l border-tier3/25 bg-tier3/8 px-3 py-1 text-tier3">Control</th>

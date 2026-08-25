@@ -32,7 +32,7 @@ export function DetailMetricTable({
 
   return (
     <div className="overflow-hidden rounded-lg border border-border/70">
-      <table className="w-full border-collapse text-left text-sm">
+      <table className="type-table-cell w-full border-collapse text-left">
         <tbody className="divide-y divide-border/60">
           {visible.map((metric) => (
             <tr key={metric.label} className="bg-background/45 align-top">
@@ -77,7 +77,7 @@ export function DetailDataTable<T>({
 
   return (
     <div className="overflow-x-auto rounded-lg border border-border/70">
-      <table className="w-full min-w-max border-separate border-spacing-0 text-left text-sm">
+      <table className="type-table-cell w-full min-w-max border-separate border-spacing-0 text-left">
         <thead className="type-table-header bg-muted text-foreground dark:bg-muted/70">
           <tr>
             {columns.map((column) => (

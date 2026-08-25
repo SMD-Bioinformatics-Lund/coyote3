@@ -1,15 +1,17 @@
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
-import { Suspense, lazy } from "react"
+import { Suspense, lazy, useEffect, useState } from "react"
 import { api } from "@/lib/api"
-import { AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react"
+import { AlertTriangle, ArrowRight, CheckCircle2, RefreshCw } from "lucide-react"
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
+import { Button } from "@/components/ui/button"
 import { buttonVariants } from "@/components/ui/button-variants"
 import { humanRelativeDate, localDate, shortCount } from "@/lib/detail-formatters"
 import { buildPanelAnalysisCapabilityData, buildPanelGeneChartData } from "@/lib/dashboard-data"
 import { sampleDetailPath } from "@/lib/sample-routing"
+import { notifyActionError, notifySuccess, notifyWarning } from "@/lib/notifications"
 import { cn } from "@/lib/utils"
 
 const chartColors = ["var(--color-tier1)", "var(--color-tier2)", "var(--color-tier3)", "var(--color-tier4)", "var(--color-dna)", "var(--color-rna)", "var(--color-panel)"]
@@ -48,10 +50,59 @@ function ChartFallback() {
 }
 
 export function Dashboard() {
-  const { data, isLoading, error } = useQuery({
+  const [refreshStartedAt, setRefreshStartedAt] = useState<number | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: () => api.get("/dashboard/summary").then((res) => res.data?.payload || res.data),
+    refetchInterval: 60_000,
   })
+  const refreshMutation = useMutation({
+    mutationFn: () => api.post("/dashboard/summary/refresh"),
+    onMutate: () => setRefreshStartedAt(Date.now()),
+    onError: (mutationError) => {
+      setRefreshStartedAt(null)
+      notifyActionError("Dashboard refresh could not be queued", mutationError, "Dashboard")
+    },
+  })
+  const refreshPending = refreshStartedAt !== null
+
+  useEffect(() => {
+    if (refreshStartedAt === null) return
+    const updatedAt = Date.parse(String(data?.dashboard_meta?.snapshot_updated_at || ""))
+    if (Number.isFinite(updatedAt) && updatedAt >= refreshStartedAt - 1000) {
+      setRefreshStartedAt(null)
+      notifySuccess("Dashboard metrics updated", "The latest background snapshot is now displayed.", "Dashboard")
+      return
+    }
+    const interval = window.setInterval(() => void refetch(), 2000)
+    const timeout = window.setTimeout(() => {
+      window.clearInterval(interval)
+      setRefreshStartedAt(null)
+      notifyWarning(
+        "Dashboard refresh is still running",
+        "The current snapshot remains available. Updated metrics will appear automatically when ready.",
+        "Dashboard",
+      )
+    }, 120000)
+    return () => {
+      window.clearInterval(interval)
+      window.clearTimeout(timeout)
+    }
+  }, [data?.dashboard_meta?.snapshot_updated_at, refetch, refreshStartedAt])
+
+  const refreshButton = (
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      disabled={refreshMutation.isPending || refreshPending}
+      onClick={() => refreshMutation.mutate()}
+      title="Queue a background refresh of dashboard metrics"
+    >
+      <RefreshCw className={cn("h-4 w-4", refreshPending && "animate-spin")} />
+      {refreshPending ? "Refreshing" : "Refresh metrics"}
+    </Button>
+  )
 
   if (isLoading) {
     return <AppLoader label="Loading dashboard" />
@@ -59,9 +110,12 @@ export function Dashboard() {
 
   if (error) {
     return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-        <AlertTriangle className="mr-2 inline h-4 w-4" />
-        {error instanceof Error ? error.message : "Failed to load dashboard"}
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        <span>
+          <AlertTriangle className="mr-2 inline h-4 w-4" />
+          {error instanceof Error ? error.message : "Failed to load dashboard"}
+        </span>
+        {refreshButton}
       </div>
     )
   }
@@ -114,12 +168,23 @@ export function Dashboard() {
       className="space-y-3"
       actions={
         <>
+          {refreshButton}
           <Link to="/samples" className={buttonVariants({ size: "sm" })}>Open samples</Link>
           <Link to="/variants/search" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "paper-raised-control")}>Variant search</Link>
           <Link to="/public/catalog" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "paper-raised-control")}>Catalog</Link>
         </>
       }
     >
+
+      {(data?.dashboard_meta?.snapshot_stale || refreshPending) && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
+          <span>
+            {refreshPending
+              ? "Dashboard metrics are refreshing in the background. The current snapshot remains available."
+              : `Showing the latest available snapshot from ${humanDate(data?.dashboard_meta?.snapshot_updated_at)} while updated metrics are prepared.`}
+          </span>
+        </div>
+      )}
 
       <SurfacePanel className="dashboard-panel" title="Operational Snapshot" description="Current clinical workload, analysis progress, and finding volume.">
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[1.45fr_1fr_1fr]">
@@ -246,11 +311,11 @@ export function Dashboard() {
                 <Metric title="Fusions" value={vStats.fusion || vStats.fusions} />
                 <Metric title="Translocations" value={vStats.translocation || vStats.translocations} />
                 <Metric title="Blacklisted" value={vStats.blacklisted} sub={`${quality.blacklist_rate_percent ?? 0}%`} />
-                <Metric title="False positives" value={vStats.fps || vStats.false_positives} sub={`${quality.fp_rate_percent ?? quality.false_positive_rate_percent ?? 0}%`} />
+                <Metric title="False positives" value={vStats.fps ?? vStats.false_positives} sub={`${quality.fp_rate_percent ?? quality.false_positive_rate_percent ?? 0}%`} />
                 <Metric title="Tier 1/2" value={vStats.tier1_or_2 ?? vStats.pathogenic} sub="Report-priority findings" />
-                <Metric title="VUS" value={vStats.vus} />
+                <Metric title="VUS (Tier 3)" value={vStats.vus} />
                 <Metric title="Reported findings" value={vStats.reported_findings} sub="Saved report snapshots" />
-                <Metric title="Tier 4" value={vStats.tier4} sub="Usually not reportable" />
+                <Metric title="Benign (Tier 4)" value={vStats.tier4} sub="Not included in reports" />
               </div>
               <div className="min-h-64 min-w-0">
                 {tierChartData.length ? (

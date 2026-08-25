@@ -41,6 +41,13 @@ celery_app.conf.beat_schedule = {
         "task": "api.tasks.maintenance.run_retention_maintenance",
         "schedule": crontab(hour=DefaultConfig.COYOTE3_MAINTENANCE_HOUR, minute=0),
     },
+    "coyote3-dashboard-metrics-refresh": {
+        "task": "api.tasks.maintenance.refresh_dashboard_metrics",
+        "schedule": max(
+            30,
+            DefaultConfig.DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS // 2,
+        ),
+    },
 }
 
 if DefaultConfig.COYOTE3_INGEST_WATCH_ENABLED:

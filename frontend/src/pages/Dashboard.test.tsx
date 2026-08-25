@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react"
+import { fireEvent, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { renderWithRouter } from "@/test/render"
 import { buildPanelAnalysisCapabilityData, buildPanelGeneChartData } from "@/lib/dashboard-data"
@@ -8,9 +8,22 @@ const queryState = vi.hoisted(() => ({
   data: undefined as any,
   isLoading: false,
   error: null as Error | null,
+  refetch: vi.fn(),
+}))
+const mutationState = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  isPending: false,
 }))
 
-vi.mock("@tanstack/react-query", () => ({ useQuery: () => queryState }))
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: () => queryState,
+  useMutation: () => mutationState,
+}))
+vi.mock("@/lib/notifications", () => ({
+  notifyActionError: vi.fn(),
+  notifySuccess: vi.fn(),
+  notifyWarning: vi.fn(),
+}))
 const dashboardData = {
   total_samples: 10,
   analysed_samples: 4,
@@ -45,6 +58,10 @@ const dashboardData = {
     { analysis_type: "SNV", enabled: 2, reportable: 2 },
     { analysis_type: "CNV", enabled: 2, reportable: 1 },
   ],
+  dashboard_meta: {
+    snapshot_updated_at: "2026-08-25T10:00:00Z",
+    snapshot_stale: false,
+  },
   user_scope_summary: {
     total_samples: 7,
     pending_samples: 3,
@@ -64,6 +81,9 @@ describe("Dashboard page", () => {
     queryState.data = dashboardData
     queryState.isLoading = false
     queryState.error = null
+    queryState.refetch.mockReset()
+    mutationState.mutate.mockReset()
+    mutationState.isPending = false
   })
 
   it("renders workload, inventory, recent samples, and chart-backed summaries", async () => {
@@ -147,5 +167,14 @@ describe("Dashboard page", () => {
     queryState.error = new Error("Summary request failed")
     renderWithRouter(<Dashboard />)
     expect(screen.getByText("Summary request failed")).toBeInTheDocument()
+  })
+
+  it("queues an explicit background refresh without replacing the current dashboard", () => {
+    renderWithRouter(<Dashboard />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh metrics" }))
+
+    expect(mutationState.mutate).toHaveBeenCalledOnce()
+    expect(screen.getByText("DNA_CASE_001")).toBeInTheDocument()
   })
 })

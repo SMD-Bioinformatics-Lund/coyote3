@@ -126,6 +126,10 @@ def build_fake_store() -> SimpleNamespace:
                 ),
                 "find_variants_by_search_string": lambda **kwargs: [],
                 "get_tier_stats_by_search": lambda **kwargs: {"total": {}, "by_assay": {}},
+                "get_dashboard_classification_stats": lambda: {
+                    "total": {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0},
+                    "by_assay": {},
+                },
                 "get_annotation_text_by_oid": lambda oid: {"_id": oid, "text": "note"},
             }
         ),

@@ -94,8 +94,8 @@ function CoverageGeneView({
 
   const renderRows = (rows: any[], region: "CDS" | "probe") => (
     <div className="max-h-72 overflow-auto rounded-lg border border-border bg-background/70">
-      <table className="w-full text-left text-xs">
-        <thead className="sticky top-0 bg-muted text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+      <table className="type-table-cell w-full text-left">
+        <thead className="type-table-header sticky top-0 bg-muted text-muted-foreground">
           <tr>
             {region === "CDS" && <th className="px-2 py-1">Exon</th>}
             <th className="px-2 py-1">Coordinates</th>
@@ -146,8 +146,8 @@ function CoverageGeneView({
 
   const renderAllFeatureRows = (rows: any[], region: "exon" | "CDS" | "probe") => (
     <div className="max-h-96 overflow-auto rounded-lg border border-border bg-background/70">
-      <table className="w-full text-left text-xs">
-        <thead className="sticky top-0 bg-muted text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+      <table className="type-table-cell w-full text-left">
+        <thead className="type-table-header sticky top-0 bg-muted text-muted-foreground">
           <tr>
             <th className="px-2 py-1">Feature</th>
             <th className="px-2 py-1">Coordinates</th>

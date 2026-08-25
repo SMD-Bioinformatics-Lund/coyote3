@@ -256,14 +256,25 @@ def _context_service(variant):
     return SimpleNamespace(
         variant_repository=SimpleNamespace(
             get_variant=lambda variant_id: variant,
-            get_variant_in_other_samples=lambda row: [{"sample": "other"}],
+            get_variant_in_other_samples=lambda row: [
+                {
+                    "sample_name": "OTHER_SAMPLE",
+                    "assay": "solid_gmsv3",
+                    "subpanel": "colon",
+                },
+                {
+                    "sample_name": "OTHER_HEMA_SAMPLE",
+                    "assay": "hema_gmsv1",
+                    "subpanel": "base",
+                },
+            ],
             hidden_var_comments=lambda variant_id: True,
         ),
         blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, group: rows),
         annotation_repository=SimpleNamespace(
             get_global_annotations=lambda row, group, subpanel: (
                 [{"text": "annotation"}],
-                {"class": 2},
+                {"class": 1 if group == "hematology" else 2},
                 [{"class": 3}],
                 True,
             )
@@ -292,7 +303,12 @@ def _context_service(variant):
             get_variant_class_translations=lambda version: {"version": version},
             get_conseq_translations=lambda version: {"version": version},
         ),
-        assay_panel_repository=SimpleNamespace(get_asp_group_mappings=lambda: {"solid": []}),
+        assay_panel_repository=SimpleNamespace(
+            get_asp_group_mappings=lambda: {
+                "solid_gmsv3": "solid",
+                "hema_gmsv1": "hematology",
+            }
+        ),
     )
 
 
@@ -343,6 +359,22 @@ def test_variant_context_builds_transcript_and_knowledgebase_payload() -> None:
     assert observed["sample_summary"]["name"] == "SAMPLE_1"
     assert observed["transcripts"] == [{"Feature": "NM_000546.6"}]
     assert observed["latest_classification"]["class"] == 2
+    assert observed["in_other_samples"] == [
+        {
+            "sample_name": "OTHER_SAMPLE",
+            "assay": "solid_gmsv3",
+            "subpanel": "colon",
+            "assay_group": "solid",
+            "tier": 2,
+        },
+        {
+            "sample_name": "OTHER_HEMA_SAMPLE",
+            "assay": "hema_gmsv1",
+            "subpanel": "base",
+            "assay_group": "hematology",
+            "tier": 1,
+        },
+    ]
     assert observed["oncokb_gene"] == {"public": "TP53"}
     assert observed["clinpgx_gene"] == {"pgx": "TP53"}
     assert observed["civic"]["description"] == "NOTHING_IN_HERE"

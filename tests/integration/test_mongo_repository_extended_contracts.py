@@ -8,6 +8,7 @@ import mongomock
 import pytest
 from bson import ObjectId
 
+from api.infra.mongo.repositories.annotations import AnnotationsRepository
 from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
 from api.infra.mongo.repositories.assay_panels import ASPRepository
 from api.infra.mongo.repositories.base import BaseRepository
@@ -924,8 +925,12 @@ def test_variants_repository_identity_cross_sample_mutations_metrics_and_stats(m
     repository = VariantsRepository(adapter)
     repository.ensure_indexes()
     monkeypatch.setattr(repository, "invalidate_dashboard_metrics_cache", lambda: None)
-    sample_a = adapter.samples_collection.insert_one({"name": "A", "asp_id": "hema"}).inserted_id
-    sample_b = adapter.samples_collection.insert_one({"name": "B", "asp_id": "solid"}).inserted_id
+    sample_a = adapter.samples_collection.insert_one(
+        {"name": "A", "asp_id": "hema", "subpanel_id": "base"}
+    ).inserted_id
+    sample_b = adapter.samples_collection.insert_one(
+        {"name": "B", "asp_id": "solid", "subpanel_id": "colon"}
+    ).inserted_id
     simple_id = "7_140453136_A_T"
     identity = repository._simple_id_identity_query(simple_id)
     variant_a = adapter.variants_collection.insert_one(
@@ -978,6 +983,8 @@ def test_variants_repository_identity_cross_sample_mutations_metrics_and_stats(m
     )
     other = repository.get_variant_in_other_samples(repository.get_variant(str(variant_a)))
     assert other[0]["sample_name"] == "B" and other[0]["fp"] is True
+    assert other[0]["assay"] == "solid"
+    assert other[0]["subpanel"] == "colon"
     assert len(repository.get_variants_by_identity(simple_id=simple_id, limit=1)) == 1
     assert (
         len(repository.get_variants_by_identity(simple_id=simple_id, sample_id=str(sample_a))) == 1
@@ -1050,10 +1057,58 @@ def test_variant_dashboard_metric_cache_persistence_and_expiry(monkeypatch) -> N
 
     adapter.app.cache.clear()
     adapter.coyote_db.dashboard_metrics.update_one(
-        {"_id": "variant_rollup_v3"},
+        {"_id": "variant_rollup_v4"},
         {"$set": {"updated_at": datetime.now(timezone.utc) - timedelta(days=2)}},
     )
     assert repository._read_persisted_metric("missing") is None
-    assert repository._read_persisted_metric("variant_rollup_v3", max_age_seconds=1) is None
+    assert repository._read_persisted_metric("variant_rollup_v4", max_age_seconds=1) is None
     repository.invalidate_dashboard_metrics_cache()
     assert adapter.coyote_db.dashboard_metrics.count_documents({}) == 0
+
+
+def test_annotation_dashboard_classification_stats_use_latest_identity() -> None:
+    adapter = _adapter()
+    repository = AnnotationsRepository(adapter)
+    created = datetime.now(timezone.utc)
+    identity = {
+        "nomenclature": "p",
+        "variant": "p.Val600Glu",
+        "gene": "BRAF",
+        "transcript": "NM_004333.6",
+        "assay": "solid",
+    }
+    repository.get_collection().insert_many(
+        [
+            {**identity, "class": 3, "time_created": created - timedelta(days=1)},
+            {**identity, "class": 2, "time_created": created},
+            {
+                "nomenclature": "p",
+                "variant": "p.Val617Phe",
+                "gene": "JAK2",
+                "transcript": "NM_004972.4",
+                "assay": "hematology",
+                "class": 1,
+                "time_created": created,
+            },
+            {
+                "nomenclature": "p",
+                "variant": "p.Arg175His",
+                "gene": "TP53",
+                "transcript": "NM_000546.6",
+                "assay": "solid",
+                "class": 4,
+                "time_created": created,
+            },
+        ]
+    )
+
+    stats = repository.get_dashboard_classification_stats()
+
+    assert stats["total"] == {"tier1": 1, "tier2": 1, "tier3": 0, "tier4": 1}
+    assert stats["by_assay"]["solid"] == {
+        "tier1": 0,
+        "tier2": 1,
+        "tier3": 0,
+        "tier4": 1,
+    }
+    assert stats["by_assay"]["hematology"]["tier1"] == 1

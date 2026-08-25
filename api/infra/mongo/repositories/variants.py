@@ -160,8 +160,10 @@ class VariantsRepository(BaseRepository):
                 "dashboard:variant_rollup:v1",
                 "dashboard:variant_rollup:v2",
                 "dashboard:variant_rollup:v3",
+                "dashboard:variant_rollup:v4",
                 "dashboard:variant_unique_quality:v1",
                 "dashboard:variant_unique_quality:v2",
+                "dashboard:variant_unique_quality:v3",
             ):
                 cache.set(cache_key, None, timeout=1)
         self._dashboard_metrics_collection().delete_many(
@@ -247,13 +249,13 @@ class VariantsRepository(BaseRepository):
         Retrieve the same variant from other samples using a fast 2-query method.
 
         This method identifies variants with the same `simple_id` but from different samples
-        and includes additional information such as `sample_name`, `groups`, and `GT`
-        (Genotype) for each variant.
+        and includes the canonical sample identity, assay scope, and genotype for
+        each match.
 
         Returns:
             list: A list of dictionaries, each containing details about the variant
-                and its associated sample, including `sample_name`, `groups`, `GT`,
-                and flags like `fp`, `interesting`, and `irrelevant`.
+                and its associated sample, including `sample_name`, `assay`,
+                `subpanel`, `GT`, and curation flags.
         """
         canonical_variant = ensure_variant_identity_fields(variant)
         current_sample_id = canonical_variant["SAMPLE_ID"]
@@ -291,23 +293,29 @@ class VariantsRepository(BaseRepository):
         # Collect only the sample ObjectIds we need
         sample_ids = {ObjectId(v["SAMPLE_ID"]) for v in variants}
 
-        # Step 3: Map sample_id -> canonical sample identity.
+        # Step 3: Map sample_id -> canonical sample identity and assay scope.
         sample_map = {
             str(s["_id"]): {
                 "sample_name": s.get("name", "unknown"),
-                "asp_id": s.get("asp_id", "unknown"),
+                "assay": s.get("asp_id"),
+                "subpanel": s.get("subpanel_id"),
             }
             for s in self.adapter.samples_collection.find(
                 {"_id": {"$in": list(sample_ids)}},
-                {"_id": 1, "name": 1, "asp_id": 1},
+                {"_id": 1, "name": 1, "asp_id": 1, "subpanel_id": 1},
             )
         }
 
         # Attach GT to each sample_info
         results = []
         for v in variants:
-            sid = v["SAMPLE_ID"]
-            info = sample_map.get(sid, {"sample_name": "unknown", "asp_id": "unknown"})
+            sid = str(v["SAMPLE_ID"])
+            info = dict(
+                sample_map.get(
+                    sid,
+                    {"sample_name": "unknown", "assay": None, "subpanel": None},
+                )
+            )
             info["GT"] = v.get("GT")
             info["fp"] = v.get("fp", False)  # Add fp status if available
             info["interesting"] = v.get("interesting", False)  # Add interesting status if available
@@ -682,7 +690,7 @@ class VariantsRepository(BaseRepository):
         """
         app_obj = self.adapter.app
         cache = getattr(app_obj, "cache", None)
-        cache_key = "dashboard:variant_unique_quality:v2"
+        cache_key = "dashboard:variant_unique_quality:v3"
         if cache is not None:
             cached = cache.get(cache_key)
             if isinstance(cached, dict):
@@ -691,7 +699,7 @@ class VariantsRepository(BaseRepository):
                     "unique_fp_variants": int(cached.get("unique_fp_variants", 0) or 0),
                 }
         persisted_metric = self._read_persisted_metric(
-            "variant_unique_quality_v2",
+            "variant_unique_quality_v3",
             max_age_seconds=int(
                 app_obj.config.get("DASHBOARD_UNIQUE_VARIANT_METRIC_MAX_AGE", 86400)
             ),
@@ -744,7 +752,7 @@ class VariantsRepository(BaseRepository):
             "unique_fp_variants": int(row.get("unique_fp_variants", 0) or 0),
             "source_total_variants": int(self.get_collection().estimated_document_count() or 0),
         }
-        self._write_persisted_metric("variant_unique_quality_v2", payload)
+        self._write_persisted_metric("variant_unique_quality_v3", payload)
         if cache is not None:
             timeout = int(app_obj.config.get("DASHBOARD_UNIQUE_VARIANT_CACHE_TTL", 1800))
             cache.set(cache_key, payload, timeout=timeout)
@@ -787,7 +795,7 @@ class VariantsRepository(BaseRepository):
         """
         app_obj = self.adapter.app
         cache = getattr(app_obj, "cache", None)
-        cache_key = "dashboard:variant_rollup:v3"
+        cache_key = "dashboard:variant_rollup:v4"
         if cache is not None:
             cached = cache.get(cache_key)
             if isinstance(cached, dict):
@@ -803,7 +811,7 @@ class VariantsRepository(BaseRepository):
                 }
 
         persisted_metric = self._read_persisted_metric(
-            "variant_rollup_v3",
+            "variant_rollup_v4",
             max_age_seconds=int(
                 app_obj.config.get("DASHBOARD_VARIANT_ROLLUP_METRIC_MAX_AGE", 86400)
             ),
@@ -854,7 +862,7 @@ class VariantsRepository(BaseRepository):
             "fps": int(col.count_documents({"fp": True}) or 0),
             "by_variant_class": by_variant_class,
         }
-        self._write_persisted_metric("variant_rollup_v3", payload)
+        self._write_persisted_metric("variant_rollup_v4", payload)
         if cache is not None:
             timeout = int(app_obj.config.get("DASHBOARD_VARIANT_ROLLUP_CACHE_TTL", 1800))
             cache.set(cache_key, payload, timeout=timeout)

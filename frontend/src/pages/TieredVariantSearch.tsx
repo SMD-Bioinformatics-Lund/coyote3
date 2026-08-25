@@ -346,8 +346,8 @@ export function TieredVariantSearch() {
               </div>
             </summary>
             <div className="overflow-x-auto border-t border-border">
-              <table className="w-full min-w-[42rem] border-collapse text-xs">
-                <thead className="bg-muted/45 text-left uppercase text-muted-foreground">
+              <table className="type-table-cell w-full min-w-[42rem] border-collapse">
+                <thead className="type-table-header bg-muted/45 text-left text-muted-foreground">
                   <tr>
                     <th className="px-4 py-2 font-medium">Assay</th>
                     <th className="w-full min-w-48 px-4 py-2 font-medium">Distribution</th>

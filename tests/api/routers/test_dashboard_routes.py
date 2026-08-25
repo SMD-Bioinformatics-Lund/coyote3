@@ -2,9 +2,46 @@
 
 from __future__ import annotations
 
+import pytest
+from fastapi import HTTPException
+
+from api.application.dashboard.analytics import DashboardSnapshotUnavailable
 from api.interfaces.http.operations import dashboard
 from tests.fixtures.api import mock_collections as fx
 from tests.unit.test_dashboard_service import _dashboard_service, _DashboardBackendStub
+
+
+def test_dashboard_summary_returns_503_when_background_snapshot_is_not_ready(monkeypatch):
+    service = _dashboard_service()
+    monkeypatch.setattr(
+        service,
+        "summary_payload",
+        lambda **_kwargs: (_ for _ in ()).throw(DashboardSnapshotUnavailable("not ready")),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        dashboard.dashboard_summary(user=fx.api_user(), service=service)
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "not ready"
+
+
+def test_dashboard_refresh_queues_background_task(monkeypatch):
+    queued: list[str] = []
+
+    class _Result:
+        id = "dashboard-task-1"
+
+    monkeypatch.setattr(
+        dashboard.refresh_dashboard_metrics,
+        "delay",
+        lambda *, username: queued.append(username) or _Result(),
+    )
+
+    payload = dashboard.refresh_dashboard_summary(user=fx.api_user())
+
+    assert payload == {"status": "queued", "task_id": "dashboard-task-1"}
+    assert queued == [fx.api_user().username]
 
 
 def test_dashboard_summary_aggregates_counts(monkeypatch):
@@ -79,6 +116,11 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
         lambda: {"total": {"tier1": 1, "tier2": 2, "tier3": 3, "tier4": 4}, "by_assay": {}},
     )
     monkeypatch.setattr(
+        service.annotation_repository,
+        "get_dashboard_classification_stats",
+        lambda: {"total": {"tier1": 4, "tier2": 5, "tier3": 6, "tier4": 7}, "by_assay": {}},
+    )
+    monkeypatch.setattr(
         service.assay_panel_repository, "get_all_asps_unique_gene_count", lambda: 250
     )
     monkeypatch.setattr(
@@ -117,7 +159,7 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
         lambda: {"assay_isgl_counts": []},
     )
 
-    payload = dashboard.dashboard_summary(user=fx.api_user(), service=service)
+    payload = service.refresh_summary_payload(user=fx.api_user())
 
     assert payload["total_samples"] == 10
     assert payload["analysed_samples"] == 8
@@ -128,8 +170,9 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
     assert payload["variant_stats"]["fusion"] == 3
     assert payload["variant_stats"]["translocation"] == 2
     assert payload["variant_stats"]["reported_findings"] == 10
-    assert payload["variant_stats"]["tier1_or_2"] == 3
-    assert payload["variant_stats"]["vus"] == 3
+    assert payload["variant_stats"]["tier1_or_2"] == 9
+    assert payload["variant_stats"]["vus"] == 6
+    assert payload["variant_stats"]["tier4"] == 7
     assert payload["sample_stats"]["profiles"]["prod"] == 7
     assert payload["user_scope_summary"]["sample_stats"]["pipelines"] == [
         {
@@ -140,7 +183,8 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
             "ready": 3,
         }
     ]
-    assert payload["tier_stats"]["total"]["tier3"] == 3
+    assert payload["tier_stats"]["total"]["tier3"] == 6
+    assert payload["reported_tier_stats"]["total"]["tier3"] == 3
     assert payload["quality_stats"]["analysed_rate_percent"] == 80.0
     assert payload["admin_insights"]["counts"]["users_total"] == 11
     assert payload["capacity_counts"]["roles_total"] == 4
@@ -244,7 +288,7 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
             "asp_groups": ["myeloid"],
         },
     )
-    payload = dashboard.dashboard_summary(user=user, service=service)
+    payload = service.refresh_summary_payload(user=user)
 
     scoped_assays = captured["calls"][1]
     assert captured["calls"][0] is None
@@ -342,7 +386,7 @@ def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
         "user_with_id",
         lambda _id: {"role": "admin", "assays": [], "assay_groups": []},
     )
-    payload = dashboard.dashboard_summary(user=user, service=service)
+    payload = service.refresh_summary_payload(user=user)
 
     assert captured["calls"] == [None, None]
     assert payload["admin_insights"]["counts"]["users_total"] == 1

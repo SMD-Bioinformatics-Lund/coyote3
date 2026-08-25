@@ -177,3 +177,42 @@ def test_public_oncokb_refresh_task_obeys_maintenance_gate(monkeypatch) -> None:
         "curated_genes_upserted": 8,
         "serialized": True,
     }
+
+
+def test_dashboard_refresh_task_deduplicates_equivalent_user_scopes(monkeypatch, tmp_path) -> None:
+    """Periodic refresh computes each distinct active access scope once."""
+    monkeypatch.setattr(maintenance, "_ensure_worker_runtime", lambda: None)
+    monkeypatch.setattr(maintenance, "task_family_enabled", lambda _family: True)
+    monkeypatch.setattr(
+        maintenance,
+        "DASHBOARD_REFRESH_LOCK_PATH",
+        str(tmp_path / "dashboard-refresh.lock"),
+    )
+    users = [
+        {"username": "one", "is_active": True},
+        {"username": "two", "is_active": True},
+        {"username": "inactive", "is_active": False},
+    ]
+    refreshed: list[str] = []
+    service = SimpleNamespace(
+        user_repository=SimpleNamespace(get_all_users=lambda: users),
+        summary_scope_key=lambda *, user: "shared" if user.username in {"one", "two"} else "other",
+        refresh_summary_payload=lambda *, user: refreshed.append(user.username) or {},
+    )
+    monkeypatch.setattr(maintenance, "get_dashboard_service", lambda: service)
+    monkeypatch.setattr(
+        maintenance,
+        "api_user_from_user_doc",
+        lambda doc: SimpleNamespace(username=doc["username"]),
+    )
+    monkeypatch.setattr(maintenance, "_serializable", lambda value: value)
+
+    result = maintenance.refresh_dashboard_metrics.run()
+
+    assert result == {
+        "status": "completed",
+        "refreshed": 1,
+        "skipped": 2,
+        "failures": [],
+    }
+    assert refreshed == ["one"]

@@ -6,7 +6,7 @@ import { ExpandableText } from "@/components/detail/ExpandableText"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { ClassificationsCard } from "@/components/detail/FindingDetailCards"
 import { CommentsPanel } from "@/components/comments/CommentsPanel"
-import { CallerBadges, ConsequenceBadges, FilterFlagBadges, ImpactBadge, PredictionBadge } from "@/lib/variant-ui"
+import { CallerBadges, ConsequenceBadges, FilterFlagBadges, ImpactBadge, PredictionBadge, TierBadge } from "@/lib/variant-ui"
 import {
   DetailDataTable,
   DetailMetricTable,
@@ -267,8 +267,8 @@ export function VariantDetail() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <DetailCard title="Sample Genotype" tone="success">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-muted/50 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <table className="type-table-cell w-full text-left">
+                    <thead className="type-table-header bg-muted/50 text-muted-foreground">
                       <tr>
                         <th className="px-3 py-1">Type</th>
                         <th className="px-3 py-1">VAF</th>
@@ -543,8 +543,8 @@ export function VariantDetail() {
                 empty="No matching variants found in other samples."
                 columns={[
                   { key: "sample", header: "Sample", render: (row: any) => row.sample_name || row.sample || row.SAMPLE || row.name || "-" },
-                  { key: "assay", header: "Assay", render: (row: any) => row.assay || row.assay_group || "-" },
-                  { key: "tier", header: "Tier", render: (row: any) => row.classification?.class || row.class || row.tier || "-" },
+                  { key: "assay_group", header: "Assay group", render: (row: any) => row.assay_group || "-" },
+                  { key: "tier", header: "Tier", render: (row: any) => <TierBadge tier={row.classification?.class ?? row.class ?? row.tier} /> },
                 ]}
               />
             </DetailCard>

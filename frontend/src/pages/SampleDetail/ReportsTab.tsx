@@ -10,6 +10,7 @@ import { ReportHtmlFrame } from "@/components/reports/ReportHtmlFrame"
 import { ColumnDef } from "@tanstack/react-table"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { Button } from "@/components/ui/button"
+import { TierBadge } from "@/lib/variant-ui"
 
 type ReportType = "dna" | "rna"
 
@@ -36,7 +37,7 @@ const snvSnapshotColumns: ColumnDef<any, any>[] = [
     id: "classification",
     header: "Class",
     accessorFn: (row) => row.class || row.tier || row.classification || "-",
-    cell: ({ row }) => <span className="text-xs font-semibold">{String(row.getValue("classification"))}</span>,
+    cell: ({ row }) => <TierBadge tier={row.getValue("classification")} />,
   },
   {
     id: "text",
@@ -73,10 +74,7 @@ const rnaSnapshotColumns: ColumnDef<any, any>[] = [
     id: "classification",
     header: "Classification",
     accessorFn: (row) => row.classification ?? "-",
-    cell: ({ row }) => {
-      const value = row.getValue("classification")
-      return <span className="text-xs font-semibold">{value === "-" ? value : `Tier ${value}`}</span>
-    },
+    cell: ({ row }) => <TierBadge tier={row.getValue("classification")} />,
   },
   {
     id: "text",

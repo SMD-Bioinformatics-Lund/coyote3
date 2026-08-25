@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, ScatterChart, Scatter } from "recharts"
 import { ChartPanel } from "@/components/plots/ChartPanel"
 import { shortCount } from "@/lib/detail-formatters"
 
@@ -203,6 +203,9 @@ export function GeneCoverageChart({
 }: {
   data: Array<{ name: string; Covered: number; Germline: number }>
 }) {
+  const covered = data.map((row) => ({ name: row.name, genes: row.Covered }))
+  const germline = data.map((row) => ({ name: row.name, genes: row.Germline }))
+
   return (
     <ChartPanel
       title="Gene coverage per assay"
@@ -212,15 +215,33 @@ export function GeneCoverageChart({
     >
       <div className="h-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 64 }}>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.22} />
-            <XAxis dataKey="name" angle={-30} textAnchor="end" height={72} tick={{ fontSize: 10 }} />
-            <YAxis tick={{ fontSize: 10 }} />
-            <Tooltip cursor={{ fill: "var(--chart-tooltip-cursor)" }} contentStyle={{ borderRadius: "10px", border: "1px solid var(--border)" }} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar dataKey="Covered" fill="var(--color-panel)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Germline" fill="var(--color-germline)" radius={[4, 4, 0, 0]} />
-          </BarChart>
+          <ScatterChart layout="vertical" margin={{ top: 12, right: 34, left: 16, bottom: 28 }}>
+            <CartesianGrid strokeDasharray="3 3" opacity={0.18} horizontal={false} />
+            <XAxis
+              type="number"
+              dataKey="genes"
+              name="Genes"
+              allowDecimals={false}
+              tick={{ fontSize: 10 }}
+              label={{ value: "Gene assignments", position: "insideBottom", offset: -16, fontSize: 10 }}
+            />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={148}
+              tick={{ fontSize: 10 }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <Tooltip
+              formatter={(value, name) => [shortCount(value), String(name)]}
+              contentStyle={{ borderRadius: "10px", border: "1px solid var(--border)", fontSize: 11 }}
+              cursor={{ stroke: "var(--border)", strokeDasharray: "3 3" }}
+            />
+            <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 11 }} />
+            <Scatter name="Covered genes" data={covered} fill="var(--color-panel)" isAnimationActive={false} />
+            <Scatter name="Germline genes" data={germline} fill="var(--color-germline)" isAnimationActive={false} />
+          </ScatterChart>
         </ResponsiveContainer>
       </div>
     </ChartPanel>
@@ -242,7 +263,7 @@ export function PanelAnalysisCapabilityChart({
       Enabled: enabled,
       Reportable: reportable,
       "Enabled only": enabled - reportable,
-      summary: `${reportable} / ${enabled}  ${percentage}%`,
+      percentage,
     }
   })
   const accessibleSummary = rows
@@ -257,43 +278,96 @@ export function PanelAnalysisCapabilityChart({
       data={data}
     >
       <div
-        className="h-full min-h-0"
+        className="h-full min-h-0 overflow-x-auto"
         role="img"
         aria-label={`Panel analysis capability. ${accessibleSummary}`}
       >
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={rows}
-            layout="vertical"
-            margin={{ top: 4, right: 104, left: 8, bottom: 4 }}
-            barCategoryGap="34%"
-          >
-            <CartesianGrid strokeDasharray="3 3" opacity={0.16} horizontal={false} />
-            <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10 }} />
-            <YAxis type="category" dataKey="name" width={112} tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-            <Tooltip
-              formatter={(value, name) => {
-                if (name === "Enabled only") return [value, "Enabled, not reportable"]
-                return [value, String(name)]
-              }}
-              labelFormatter={(name, payload) => {
-                const row = payload?.[0]?.payload as (typeof rows)[number] | undefined
-                return row ? `${name} · ${row.summary}` : String(name)
-              }}
-              cursor={{ fill: "var(--chart-tooltip-cursor)" }}
-              contentStyle={{ borderRadius: "10px", border: "1px solid var(--border)", fontSize: 11 }}
-            />
-            <Legend
-              verticalAlign="bottom"
-              formatter={(value) => value === "Enabled only" ? "Enabled, not reportable" : value}
-              wrapperStyle={{ fontSize: 11, lineHeight: "18px" }}
-            />
-            <Bar dataKey="Reportable" stackId="capability" fill="var(--color-pass)" radius={[5, 0, 0, 5]} isAnimationActive={false} />
-            <Bar dataKey="Enabled only" stackId="capability" fill="var(--color-panel)" radius={[0, 5, 5, 0]} isAnimationActive={false}>
-              <LabelList dataKey="summary" position="right" offset={10} fill="var(--foreground)" fontSize={10} fontWeight={600} />
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        <svg
+          viewBox="0 0 1120 190"
+          className="h-full min-h-[170px] w-full min-w-[840px]"
+          preserveAspectRatio="xMidYMid meet"
+          aria-hidden="true"
+        >
+          {rows.map((row, index) => {
+            const cellWidth = 1120 / Math.max(rows.length, 1)
+            const centerX = cellWidth * index + cellWidth / 2
+            const centerY = 78
+            const radius = 39
+            const circumference = 2 * Math.PI * radius
+            const progress = circumference * (row.percentage / 100)
+            const enabledOnly = row["Enabled only"]
+
+            return (
+              <g key={row.name}>
+                <title>{`${row.name}: ${row.Reportable} reportable of ${row.Enabled} enabled (${row.percentage}%). ${enabledOnly} enabled but not reportable.`}</title>
+                <text
+                  x={centerX}
+                  y="16"
+                  textAnchor="middle"
+                  fill="var(--foreground)"
+                  fontSize="11"
+                  fontWeight="600"
+                >
+                  {row.name.replaceAll("_", " ")}
+                </text>
+                <circle
+                  cx={centerX}
+                  cy={centerY}
+                  r={radius}
+                  fill="none"
+                  stroke="var(--muted)"
+                  strokeWidth="12"
+                />
+                <circle
+                  cx={centerX}
+                  cy={centerY}
+                  r={radius}
+                  fill="none"
+                  stroke="var(--color-pass)"
+                  strokeWidth="12"
+                  strokeLinecap="round"
+                  strokeDasharray={`${progress} ${circumference - progress}`}
+                  transform={`rotate(-90 ${centerX} ${centerY})`}
+                />
+                <text
+                  x={centerX}
+                  y={centerY - 1}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fill="var(--foreground)"
+                  fontSize="16"
+                  fontWeight="600"
+                >
+                  {row.Reportable}/{row.Enabled}
+                </text>
+                <text
+                  x={centerX}
+                  y={centerY + 18}
+                  textAnchor="middle"
+                  fill="var(--muted-foreground)"
+                  fontSize="10"
+                >
+                  {row.percentage}% reportable
+                </text>
+                <text
+                  x={centerX}
+                  y="145"
+                  textAnchor="middle"
+                  fill="var(--muted-foreground)"
+                  fontSize="10"
+                >
+                  {enabledOnly} enabled only
+                </text>
+              </g>
+            )
+          })}
+          <g transform="translate(398 176)">
+            <circle cx="0" cy="0" r="5" fill="var(--color-pass)" />
+            <text x="10" y="3.5" fill="var(--muted-foreground)" fontSize="10">Reportable</text>
+            <circle cx="128" cy="0" r="5" fill="var(--muted)" />
+            <text x="138" y="3.5" fill="var(--muted-foreground)" fontSize="10">Enabled, not reportable</text>
+          </g>
+        </svg>
       </div>
     </ChartPanel>
   )

@@ -23,6 +23,7 @@ class DashboardSummaryPayload(BaseModel):
     sample_stats: dict[str, Any]
     user_scope_summary: dict[str, Any] = Field(default_factory=dict)
     tier_stats: dict[str, Any] = Field(default_factory=dict)
+    reported_tier_stats: dict[str, Any] = Field(default_factory=dict)
     quality_stats: dict[str, Any] = Field(default_factory=dict)
     dashboard_meta: dict[str, Any] = Field(default_factory=dict)
     admin_insights: dict[str, Any] = Field(default_factory=dict)
@@ -35,3 +36,10 @@ class DashboardAdminInsightsPayload(BaseModel):
     """Represent flexible administrative dashboard insight payloads."""
 
     model_config = ConfigDict(extra="allow")
+
+
+class DashboardRefreshQueuedPayload(BaseModel):
+    """Represent an asynchronously queued dashboard metrics refresh."""
+
+    status: str
+    task_id: str

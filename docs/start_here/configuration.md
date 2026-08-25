@@ -205,9 +205,9 @@ registration is not configurable through an environment variable.
 | `CACHE_REQUIRED` | No | `1` or `0` | Requires Redis at startup when `1` (default). Set `0` only to allow an intentional degraded no-op cache when Redis is unavailable. |
 | `CACHE_REDIS_CONNECT_TIMEOUT` | No | Seconds | Redis connection timeout. |
 | `CACHE_REDIS_SOCKET_TIMEOUT` | No | Seconds | Redis socket timeout. |
-| `DASHBOARD_SUMMARY_CACHE_TTL_SECONDS` | No | Seconds; default `60` | Hot-cache lifetime for dashboard summaries. |
-| `DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS` | No | Seconds; default `300` | Maximum accepted dashboard snapshot age. |
-| `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS` | No | Seconds; default `604800` | Persistent dashboard snapshot retention. |
+| `DASHBOARD_SUMMARY_CACHE_TTL_SECONDS` | No | Seconds; default `60` | Redis lifetime for a dashboard snapshot already generated in the background. |
+| `DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS` | No | Seconds; default `300` | Freshness target for persisted dashboard metrics. Celery Beat schedules refreshes at half this interval, with a minimum interval of 30 seconds. |
+| `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS` | No | Seconds; default `604800` | MongoDB retention for persisted dashboard snapshots. Keep this longer than the freshness target so a stale snapshot remains available during a refresh or worker interruption. |
 | `API_WORKERS` | No | Positive integer; supported default `1` | Uvicorn process count per API container. The built-in Prometheus counters are process-local, so the supported deployment uses one process per container. Scale with additional API containers only when the external monitoring stack aggregates each instance separately. |
 | `APP_DNS` | No | DNS server IP | Optional Docker DNS override for restricted center networks. |
 | `API_SESSION_COOKIE_NAME` | No; default `coyote3_api_session` | Cookie name | Browser API session cookie name. Override it when multiple mounted environments share one browser origin. |

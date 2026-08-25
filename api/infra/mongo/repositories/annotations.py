@@ -23,6 +23,7 @@ from api.domain.core.annotation_identity import (
     enrich_annotation_identity,
 )
 from api.domain.core.dna.variant_identity import build_simple_id
+from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
 from api.infra.request_context import current_username
@@ -306,10 +307,13 @@ class AnnotationsRepository(BaseRepository):
             normalize_collection_document("annotation", enrich_annotation_identity(annotation))
             for annotation in deepcopy(annotations)
         ]
-        return OperationResult.from_insert_many(
+        result = OperationResult.from_insert_many(
             self.get_collection().insert_many(annotations_copy),
             requested_count=len(annotations_copy),
         )
+        if any(_annotation_class_value(item.get("class")) is not None for item in annotations_copy):
+            invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def get_global_annotations(self, variant: dict, assay_group: str, subpanel: str) -> tuple:
         """
@@ -519,7 +523,10 @@ class AnnotationsRepository(BaseRepository):
 
         document = enrich_annotation_identity(document, source=variant_data)
         document = normalize_collection_document("annotation", document)
-        return OperationResult.from_insert_one(self.get_collection().insert_one(document))
+        result = OperationResult.from_insert_one(self.get_collection().insert_one(document))
+        if _annotation_class_value(document.get("class")) is not None:
+            invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def delete_classified_variant(
         self,
@@ -565,7 +572,10 @@ class AnnotationsRepository(BaseRepository):
             delete_clause.append({"text": annotation_text})
 
         scoped_query = {**query, "$or": delete_clause}
-        return OperationResult.from_delete(self.get_collection().delete_many(scoped_query))
+        result = OperationResult.from_delete(self.get_collection().delete_many(scoped_query))
+        if result.deleted_count:
+            invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def get_gene_annotations(self, gene_name: str) -> list:
         """
@@ -885,3 +895,59 @@ class AnnotationsRepository(BaseRepository):
         by_assay = dict(by_assay)
 
         return {"total": total_stats, "by_assay": by_assay}
+
+    def get_dashboard_classification_stats(self) -> dict[str, Any]:
+        """Return latest current classifications for dashboard inventory.
+
+        A finding is counted once globally and once per assay. Reclassifications
+        replace earlier values by selecting the newest annotation for the same
+        canonical annotation identity.
+        """
+        match = {"class": {"$in": [1, 2, 3, 4]}}
+        identity = {
+            "nomenclature": "$nomenclature",
+            "variant": "$variant",
+            "gene": "$gene",
+            "gene1": "$gene1",
+            "gene2": "$gene2",
+            "transcript": "$transcript",
+        }
+
+        def tier_fields() -> dict[str, Any]:
+            return {
+                f"tier{tier}": {"$sum": {"$cond": [{"$eq": ["$class", tier]}, 1, 0]}}
+                for tier in range(1, 5)
+            }
+
+        total_pipeline = [
+            {"$match": match},
+            {"$sort": {"time_created": -1, "_id": -1}},
+            {"$group": {"_id": identity, "class": {"$first": "$class"}}},
+            {"$group": {"_id": None, **tier_fields()}},
+            {"$project": {"_id": 0, "tier1": 1, "tier2": 1, "tier3": 1, "tier4": 1}},
+        ]
+        total_rows = list(self.get_collection().aggregate(total_pipeline, allowDiskUse=True))
+        total = total_rows[0] if total_rows else {f"tier{tier}": 0 for tier in range(1, 5)}
+
+        by_assay_pipeline = [
+            {"$match": match},
+            {"$sort": {"time_created": -1, "_id": -1}},
+            {"$group": {"_id": {"assay": "$assay", **identity}, "class": {"$first": "$class"}}},
+            {"$group": {"_id": "$_id.assay", **tier_fields()}},
+            {
+                "$project": {
+                    "_id": 0,
+                    "assay": {"$ifNull": ["$_id", "Historic"]},
+                    "tier1": 1,
+                    "tier2": 1,
+                    "tier3": 1,
+                    "tier4": 1,
+                }
+            },
+            {"$sort": {"assay": 1}},
+        ]
+        by_assay = {
+            str(row.pop("assay")): row
+            for row in self.get_collection().aggregate(by_assay_pipeline, allowDiskUse=True)
+        }
+        return {"total": total, "by_assay": by_assay}

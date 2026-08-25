@@ -1,7 +1,15 @@
 import { render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const mocks = vi.hoisted(() => ({ chartPanel: vi.fn(), cells: vi.fn(), bars: vi.fn(), pie: vi.fn(), legend: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  chartPanel: vi.fn(),
+  cells: vi.fn(),
+  bars: vi.fn(),
+  pie: vi.fn(),
+  legend: vi.fn(),
+  scatterChart: vi.fn(),
+  scatters: vi.fn(),
+}))
 vi.mock("@/components/plots/ChartPanel", () => ({
   ChartPanel: (props: Record<string, unknown>) => {
     mocks.chartPanel(props)
@@ -15,6 +23,8 @@ vi.mock("recharts", () => ({
   Cell: (props: Record<string, unknown>) => { mocks.cells(props); return <span /> },
   BarChart: ({ children, ...props }: { children: React.ReactNode }) => { mocks.bars(props); return <div>{children}</div> },
   Bar: ({ dataKey }: { dataKey: string }) => <span>{dataKey}</span>,
+  ScatterChart: ({ children, ...props }: { children: React.ReactNode }) => { mocks.scatterChart(props); return <div>{children}</div> },
+  Scatter: (props: Record<string, unknown>) => { mocks.scatters(props); return <span>{String(props.name)}</span> },
   XAxis: () => null,
   YAxis: () => null,
   CartesianGrid: () => null,
@@ -48,13 +58,21 @@ describe("dashboard charts", () => {
     render(<GeneCoverageChart data={data} />)
 
     expect(screen.getByRole("region", { name: "Gene coverage per assay" })).toBeVisible()
-    expect(screen.getByText("Covered")).toBeVisible()
-    expect(screen.getByText("Germline")).toBeVisible()
+    expect(screen.getByText("Covered genes")).toBeVisible()
+    expect(screen.getByText("Germline genes")).toBeVisible()
     expect(mocks.chartPanel).toHaveBeenCalledWith(expect.objectContaining({
       filename: "gene_coverage_per_assay",
       data,
     }))
-    expect(mocks.bars).toHaveBeenCalledWith(expect.objectContaining({ data }))
+    expect(mocks.scatterChart).toHaveBeenCalledWith(expect.objectContaining({ layout: "vertical" }))
+    expect(mocks.scatters).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      name: "Covered genes",
+      data: [{ name: "Hematology", genes: 385 }],
+    }))
+    expect(mocks.scatters).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      name: "Germline genes",
+      data: [{ name: "Hematology", genes: 12 }],
+    }))
   })
 
   it("renders enabled and reportable panel capabilities as an exportable chart", () => {
@@ -63,15 +81,14 @@ describe("dashboard charts", () => {
 
     expect(screen.getByRole("region", { name: "Panel analysis capability" })).toBeVisible()
     expect(screen.getByText("Reportable")).toBeVisible()
-    expect(screen.getByText("Enabled only")).toBeVisible()
+    expect(screen.getByText("Enabled, not reportable")).toBeVisible()
+    expect(screen.getByText("2/3")).toBeVisible()
+    expect(screen.getByText("67% reportable")).toBeVisible()
+    expect(screen.getByText("1 enabled only")).toBeVisible()
     expect(screen.getByRole("img", { name: /SNV: 2 of 3 reportable, 67 percent/i })).toBeVisible()
     expect(mocks.chartPanel).toHaveBeenCalledWith(expect.objectContaining({
       filename: "panel_analysis_capability",
       data,
-    }))
-    expect(mocks.bars).toHaveBeenCalledWith(expect.objectContaining({
-      layout: "vertical",
-      data: [expect.objectContaining({ name: "SNV", Reportable: 2, "Enabled only": 1, summary: "2 / 3  67%" })],
     }))
   })
 

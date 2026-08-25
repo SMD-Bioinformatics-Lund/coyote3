@@ -12,6 +12,7 @@ import { TableBadge } from "@/components/ui/table-badge"
 import { api } from "@/lib/api"
 import { humanRelativeDate } from "@/lib/detail-formatters"
 import { apiPath } from "@/lib/runtime-paths"
+import { TierBadge } from "@/lib/variant-ui"
 
 type ReportFinding = Record<string, any>
 
@@ -92,6 +93,7 @@ export function SavedReportPage() {
       id: "tier",
       header: "Tier",
       accessorFn: (row) => row.tier ?? row.class ?? "-",
+      cell: ({ row }) => <TierBadge tier={row.getValue("tier")} />,
     },
     {
       id: "text",

@@ -12,7 +12,7 @@ import { TableBadge } from "@/components/ui/table-badge"
 import { api } from "@/lib/api"
 import { valueBadgeClass } from "@/lib/badge-colors"
 import { sampleDetailPath } from "@/lib/sample-routing"
-import { cn } from "@/lib/utils"
+import { TierBadge } from "@/lib/variant-ui"
 
 type CohortBreakdown = {
   profiled_samples: number
@@ -66,13 +66,6 @@ type GeneCohortPayload = {
     finding_types: string[]
   }>
   truncated: boolean
-}
-
-const tierClasses: Record<string, string> = {
-  "1": "bg-tier1 text-white",
-  "2": "bg-tier2 text-white",
-  "3": "bg-tier3 text-white",
-  "4": "bg-tier4 text-white",
 }
 
 function percent(value: number | null) {
@@ -248,8 +241,8 @@ export function GeneCohortExplorer() {
                 <p className="type-caption text-muted-foreground">Finding samples divided by samples profiled for {gene} in each assay.</p>
               </div>
               <div className="overflow-x-auto rounded-xl border border-border">
-                <table className="w-full text-left text-sm">
-                  <thead>
+                <table className="type-table-cell w-full text-left">
+                  <thead className="type-table-header">
                     <tr>
                       <th className="px-3 py-2">Assay</th>
                       <th className="px-3 py-2">Group</th>
@@ -290,7 +283,7 @@ export function GeneCohortExplorer() {
               <div className="grid grid-cols-2 gap-3">
                 {[1, 2, 3, 4].map((tier) => (
                   <div key={tier} className="content-item flex items-center justify-between p-3">
-                    <TableBadge className={cn("border-transparent", tierClasses[String(tier)])}>Tier {tier}</TableBadge>
+                    <div className="flex items-center gap-2"><TierBadge tier={tier} /><span className="type-caption text-muted-foreground">Tier {tier}</span></div>
                     <strong className="text-xl font-semibold">{cohortQuery.data.tier_counts[String(tier)] || 0}</strong>
                   </div>
                 ))}
@@ -321,8 +314,8 @@ export function GeneCohortExplorer() {
               </div>
             </div>
             <div className="overflow-x-auto rounded-xl border border-border">
-              <table className="w-full text-left text-sm">
-                <thead><tr><th className="px-3 py-2">Type</th><th className="px-3 py-2">Gene(s)</th><th className="px-3 py-2">Finding</th><th className="px-3 py-2">Nomenclature</th><th className="px-3 py-2">HGVSp</th><th className="px-3 py-2">HGVSc</th><th className="px-3 py-2">Genomic</th><th className="px-3 py-2">Transcript</th><th className="px-3 py-2">Tiers</th><th className="px-3 py-2 text-right">Samples</th><th className="px-3 py-2 text-right">Observations</th></tr></thead>
+              <table className="type-table-cell w-full text-left">
+                <thead className="type-table-header"><tr><th className="px-3 py-2">Type</th><th className="px-3 py-2">Gene(s)</th><th className="px-3 py-2">Finding</th><th className="px-3 py-2">Nomenclature</th><th className="px-3 py-2">HGVSp</th><th className="px-3 py-2">HGVSc</th><th className="px-3 py-2">Genomic</th><th className="px-3 py-2">Transcript</th><th className="px-3 py-2">Tiers</th><th className="px-3 py-2 text-right">Samples</th><th className="px-3 py-2 text-right">Observations</th></tr></thead>
                 <tbody>
                   {recurrentRows.map((row) => (
                     <tr key={`${row.analysis_type}:${row.identity}:${row.genes.join("|")}`} className="border-t border-border">
@@ -334,7 +327,7 @@ export function GeneCohortExplorer() {
                       <td className="px-3 py-2 text-muted-foreground">{row.hgvsc || "-"}</td>
                       <td className="px-3 py-2 text-muted-foreground">{row.genomic || "-"}</td>
                       <td className="px-3 py-2 text-muted-foreground">{row.transcript || "-"}</td>
-                      <td className="px-3 py-2"><div className="flex gap-1">{row.tiers.map((tier) => <TableBadge key={tier} className={cn("border-transparent", tierClasses[String(tier)])}>{tier}</TableBadge>)}</div></td>
+                      <td className="px-3 py-2"><div className="flex gap-1">{row.tiers.map((tier) => <TierBadge key={tier} tier={tier} />)}</div></td>
                       <td className="px-3 py-2 text-right font-medium">{row.sample_count}</td>
                       <td className="px-3 py-2 text-right">{row.observation_count}</td>
                     </tr>
@@ -351,8 +344,8 @@ export function GeneCohortExplorer() {
               <div><h2 className="text-base font-semibold">Samples with reported findings</h2><p className="type-caption text-muted-foreground">Samples are linked to their clinical workspace.</p></div>
             </div>
             <div className="overflow-x-auto rounded-xl border border-border">
-              <table className="w-full text-left text-sm">
-                <thead><tr><th className="px-3 py-2">Sample</th><th className="px-3 py-2">Assay</th><th className="px-3 py-2">Subpanel</th><th className="px-3 py-2">Environment</th><th className="px-3 py-2">Sex</th><th className="px-3 py-2">Types</th><th className="px-3 py-2">Tiers</th><th className="px-3 py-2">Findings</th></tr></thead>
+              <table className="type-table-cell w-full text-left">
+                <thead className="type-table-header"><tr><th className="px-3 py-2">Sample</th><th className="px-3 py-2">Assay</th><th className="px-3 py-2">Subpanel</th><th className="px-3 py-2">Environment</th><th className="px-3 py-2">Sex</th><th className="px-3 py-2">Types</th><th className="px-3 py-2">Tiers</th><th className="px-3 py-2">Findings</th></tr></thead>
                 <tbody>
                   {cohortQuery.data.samples.map((row) => (
                     <tr key={row.sample_name} className="border-t border-border">
@@ -362,7 +355,7 @@ export function GeneCohortExplorer() {
                       <td className="px-3 py-2 text-muted-foreground">{row.environment || "-"}</td>
                       <td className="px-3 py-2">{row.sex ? humanSex(row.sex) : "Not recorded"}</td>
                       <td className="px-3 py-2"><div className="flex flex-wrap gap-1">{row.finding_types.map((type) => <TableBadge key={type} className={valueBadgeClass(type)}>{type}</TableBadge>)}</div></td>
-                      <td className="px-3 py-2"><div className="flex gap-1">{row.tiers.map((tier) => <TableBadge key={tier} className={cn("border-transparent", tierClasses[String(tier)])}>{tier}</TableBadge>)}</div></td>
+                      <td className="px-3 py-2"><div className="flex gap-1">{row.tiers.map((tier) => <TierBadge key={tier} tier={tier} />)}</div></td>
                       <td className="max-w-xl px-3 py-2 text-muted-foreground">{row.findings.join(", ") || "-"}</td>
                     </tr>
                   ))}
