@@ -146,6 +146,15 @@ class SamplesDoc(_DocBase):
     latest_report_on: datetime | None = None
     time_added: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+    def to_persistence_document(self) -> dict[str, Any]:
+        """Return the canonical MongoDB representation of a sample.
+
+        Sample documents use a stable shape. Nullable metadata therefore remains
+        present as ``None``; omitting it would make "not recorded" indistinguishable
+        from an older document that predates the field.
+        """
+        return self.model_dump(by_alias=True, exclude_none=False)
+
     @model_validator(mode="before")
     @classmethod
     def _reject_retired_version_fields(cls, value: Any) -> Any:

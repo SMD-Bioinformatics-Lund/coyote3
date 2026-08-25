@@ -7,7 +7,10 @@ from collections import defaultdict
 
 from api.config.application_metadata import oncokb_gene_url
 from api.domain.common.reporting import TIER_SUMMARY_LABELS, nl_join, nl_num, utc_now
-from api.domain.core.annotation_identity import annotation_identity_fields
+from api.domain.core.annotation_identity import (
+    annotation_context_fields,
+    annotation_identity_fields,
+)
 from api.infra.mongo.persistence import new_object_id
 from api.infra.request_context import current_username
 
@@ -25,18 +28,11 @@ def process_gene_annotations(annotations: dict) -> dict:
     """
     annotations_dict = defaultdict(lambda: defaultdict(dict))
     for anno in annotations:
+        assub = f"{anno['assay']}:{anno['subpanel']}"
         if "class" in anno:
-            if "assay" in anno:
-                assub = anno["assay"] + ":" + anno["subpanel"]
-                annotations_dict[assub][anno["variant"]]["latest_class"] = anno
-            else:
-                annotations_dict["historic:None"][anno["variant"]]["latest_class"] = anno
+            annotations_dict[assub][anno["variant"]]["latest_class"] = anno
         if "text" in anno:
-            if "assay" in anno:
-                assub = anno["assay"] + ":" + anno["subpanel"]
-                annotations_dict[assub][anno["variant"]]["latest_text"] = anno
-            else:
-                annotations_dict["historic:None"][anno["variant"]]["latest_text"] = anno
+            annotations_dict[assub][anno["variant"]]["latest_text"] = anno
     return annotations_dict
 
 
@@ -95,12 +91,7 @@ def create_comment_doc(
             "assay": data.get("assay_group", None),
             "subpanel": data.get("subpanel", None),
         }
-        if nomenclature not in ["f", "t", "cn"]:
-            doc["gene"] = data.get("gene", None)
-            doc["transcript"] = data.get("transcript", None)
-        elif nomenclature in ["f", "t"]:
-            doc["gene1"] = data.get("gene1", None)
-            doc["gene2"] = data.get("gene2", None)
+        doc.update(annotation_context_fields(nomenclature=nomenclature, source=data))
         doc.update(
             annotation_identity_fields(
                 variant=variant,
@@ -440,7 +431,7 @@ def _biomarker_percentage(marker: dict | None) -> float:
     """Return MSI percentage from the current biomarker contract."""
     if not isinstance(marker, dict):
         return 0.0
-    value = marker.get("per", marker.get("perc", 0.0))
+    value = marker.get("per", 0.0)
     try:
         return float(value or 0.0)
     except (TypeError, ValueError):

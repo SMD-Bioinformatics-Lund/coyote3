@@ -16,40 +16,29 @@ from urllib.parse import unquote
 from bson import ObjectId
 
 from api.contracts.operations import OperationResult
+from api.contracts.schemas.registry import normalize_collection_document
 from api.domain.core.annotation_identity import (
     ANNOTATION_IDENTITY_FIELDS,
-    annotation_identity_fields,
+    annotation_context_fields,
     enrich_annotation_identity,
 )
 from api.domain.core.dna.variant_identity import build_simple_id
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
-from api.infra.request_context import current_user_is_superuser, current_username
+from api.infra.request_context import current_username
 
 
-def _oid_candidates(oid: object) -> list[object]:
-    """Return string/ObjectId candidates for mixed historical id storage."""
-    if oid is None:
-        return []
-    candidates: list[object] = [oid]
-    text = str(oid)
-    if text not in candidates:
-        candidates.append(text)
-    if ObjectId.is_valid(text):
-        object_id = ObjectId(text)
-        if object_id not in candidates:
-            candidates.append(object_id)
-    return candidates
+def _annotation_object_id(oid: object) -> ObjectId | None:
+    """Return the canonical MongoDB identifier for an annotation."""
+    if isinstance(oid, ObjectId):
+        return oid
+    text = str(oid or "").strip()
+    return ObjectId(text) if ObjectId.is_valid(text) else None
 
 
 def _annotation_class_value(value: Any) -> int | None:
-    """Return a numeric annotation class, or None when the row is not classified."""
-    if value is None:
-        return None
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
+    """Return a contract-valid annotation class."""
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
 def _annotation_search_query(
@@ -65,29 +54,13 @@ def _annotation_search_query(
 
     regex = {"$regex": search_str, "$options": "i"}
     mode = str(search_mode or "variant").lower()
-    variant_fields = [
+    variant_fields = (
         "variant",
         "hgvsp",
         "hgvsc",
         "genomic",
         "genomic_hash",
-        "cnv",
-        "fusion",
-        "translocation",
-        "var_p",
-        "var_c",
-        "var_g",
-        "HGVSp",
-        "HGVSc",
-        "variant_data.HGVSp",
-        "variant_data.HGVSc",
-        "variant_data.hgvsp",
-        "variant_data.hgvsc",
-        "variant_data.INFO.selected_CSQ.HGVSp",
-        "variant_data.INFO.selected_CSQ.HGVSc",
-        "variant_data.simple_id",
-        "variant_data.simple_id_hash",
-    ]
+    )
 
     if mode == "gene":
         query: dict[str, Any] = {
@@ -95,57 +68,16 @@ def _annotation_search_query(
                 {"gene": regex},
                 {"gene1": regex},
                 {"gene2": regex},
-                {"variant_data.gene": regex},
-                {"variant_data.gene1": regex},
-                {"variant_data.gene2": regex},
-                {"variant_data.SYMBOL": regex},
-                {"variant_data.INFO.selected_CSQ.SYMBOL": regex},
             ]
         }
     elif mode == "transcript":
-        query = {
-            "$or": [
-                {"transcript": regex},
-                {"variant_data.transcript": regex},
-                {"variant_data.INFO.selected_CSQ.Feature": regex},
-                {"variant_data.INFO.selected_CSQ.Feature_ID": regex},
-            ]
-        }
+        query = {"$or": [{"transcript": regex}]}
     elif mode == "hgvsp":
-        query = {
-            "$or": [
-                {"hgvsp": regex},
-                {"nomenclature": "p", "variant": regex},
-                {"var_p": regex},
-                {"HGVSp": regex},
-                {"variant_data.HGVSp": regex},
-                {"variant_data.hgvsp": regex},
-                {"variant_data.INFO.selected_CSQ.HGVSp": regex},
-            ]
-        }
+        query = {"$or": [{"hgvsp": regex}]}
     elif mode == "hgvsc":
-        query = {
-            "$or": [
-                {"hgvsc": regex},
-                {"nomenclature": "c", "variant": regex},
-                {"var_c": regex},
-                {"HGVSc": regex},
-                {"variant_data.HGVSc": regex},
-                {"variant_data.hgvsc": regex},
-                {"variant_data.INFO.selected_CSQ.HGVSc": regex},
-            ]
-        }
+        query = {"$or": [{"hgvsc": regex}]}
     elif mode == "genomic":
-        query = {
-            "$or": [
-                {"genomic": regex},
-                {"genomic_hash": regex},
-                {"nomenclature": "g", "variant": regex},
-                {"var_g": regex},
-                {"variant_data.simple_id": regex},
-                {"variant_data.simple_id_hash": regex},
-            ]
-        }
+        query = {"$or": [{"genomic": regex}, {"genomic_hash": regex}]}
     elif mode == "variant":
         query = {"$or": [{field: regex} for field in variant_fields]}
     elif mode == "author":
@@ -162,8 +94,8 @@ def _annotation_search_query(
                 {"author": regex},
                 {"subpanel": regex},
                 {"text": regex},
-                {"variant_data.INFO.selected_CSQ.SYMBOL": regex},
-                {"variant_data.INFO.selected_CSQ.Feature": regex},
+                {"gene1": regex},
+                {"gene2": regex},
                 *[{field: regex} for field in variant_fields],
             ]
         }
@@ -180,6 +112,33 @@ def _annotation_search_query(
     if len(query_parts) == 1:
         return query_parts[0]
     return {"$and": query_parts}
+
+
+def _text_values(value: Any) -> list[str]:
+    """Return unique non-empty identity values without guessing aliases."""
+    values = value if isinstance(value, (list, tuple, set)) else [value]
+    return list(
+        dict.fromkeys(
+            normalized for item in values if (normalized := unquote(str(item or "")).strip())
+        )
+    )
+
+
+def _small_variant_identity_clauses(
+    *, hgvsp: Any, hgvsc: Any, genomic: Any
+) -> list[dict[str, Any]]:
+    """Build exact matches against the canonical flat annotation identities."""
+    clauses: list[dict[str, Any]] = []
+    protein_values = _text_values(hgvsp)
+    coding_values = _text_values(hgvsc)
+    genomic_values = _text_values(genomic)
+    if protein_values:
+        clauses.append({"hgvsp": {"$in": protein_values}})
+    if coding_values:
+        clauses.append({"hgvsc": {"$in": coding_values}})
+    if genomic_values:
+        clauses.append({"genomic": {"$in": genomic_values}})
+    return clauses
 
 
 def _classification_text_lookup_query(annotation: dict[str, Any]) -> dict[str, Any] | None:
@@ -274,10 +233,10 @@ class AnnotationsRepository(BaseRepository):
         Returns:
             dict | None: The annotation document if found, otherwise None.
         """
-        candidates = _oid_candidates(oid)
-        if not candidates:
+        object_id = _annotation_object_id(oid)
+        if object_id is None:
             return None
-        return self.get_collection().find_one({"_id": {"$in": candidates}})
+        return self.get_collection().find_one({"_id": object_id})
 
     def get_annotation_text_by_oid(self, oid: str) -> str | None:
         """
@@ -292,10 +251,10 @@ class AnnotationsRepository(BaseRepository):
         Returns:
             str | None: The text of the annotation if found, otherwise None.
         """
-        candidates = _oid_candidates(oid)
-        if not candidates:
+        object_id = _annotation_object_id(oid)
+        if object_id is None:
             return None
-        annotation = self.get_collection().find_one({"_id": {"$in": candidates}}, {"text": 1})
+        annotation = self.get_collection().find_one({"_id": object_id}, {"text": 1})
         if annotation:
             return annotation.get("text", None)
         return None
@@ -313,7 +272,9 @@ class AnnotationsRepository(BaseRepository):
     def get_annotations_by_oids(self, oids: list[object]) -> list[dict]:
         """Return annotation documents for the requested object ids."""
         unique_oids = list(
-            dict.fromkeys(candidate for oid in oids for candidate in _oid_candidates(oid))
+            dict.fromkeys(
+                object_id for oid in oids if (object_id := _annotation_object_id(oid)) is not None
+            )
         )
         if not unique_oids:
             return []
@@ -340,7 +301,8 @@ class AnnotationsRepository(BaseRepository):
 
         # Create a deep copy to avoid modifying the original list
         annotations_copy = [
-            enrich_annotation_identity(annotation) for annotation in deepcopy(annotations)
+            normalize_collection_document("annotation", enrich_annotation_identity(annotation))
+            for annotation in deepcopy(annotations)
         ]
         return OperationResult.from_insert_many(
             self.get_collection().insert_many(annotations_copy),
@@ -374,94 +336,33 @@ class AnnotationsRepository(BaseRepository):
                 - annotations_interesting (dict): A dictionary of annotations
                   deemed interesting based on assay and subpanel.
         """
-        try:
-            genomic_location = (
-                f"{str(variant['CHROM'])}:{str(variant['POS'])}:{variant['REF']}/{variant['ALT']}"
-            )
+        genomic = ""
+        if all(key in variant for key in ("CHROM", "POS", "REF", "ALT")):
             genomic = build_simple_id(
                 variant["CHROM"], variant["POS"], variant["REF"], variant["ALT"]
             )
-        except KeyError:
-            genomic_location = ""
-            genomic = ""
         selected_CSQ = variant.get("INFO", {}).get("selected_CSQ", {})
         hgvsp = unquote(selected_CSQ.get("HGVSp", ""))
         hgvsc = unquote(selected_CSQ.get("HGVSc", ""))
+        identity_clauses = _small_variant_identity_clauses(
+            hgvsp=hgvsp,
+            hgvsc=hgvsc,
+            genomic=genomic,
+        )
 
-        if len(hgvsp) > 0 and genomic_location:
+        if selected_CSQ.get("SYMBOL") and identity_clauses:
             annotations = (
                 self.get_collection()
-                .find(
-                    {
-                        "gene": selected_CSQ["SYMBOL"],
-                        "$or": [
-                            {"hgvsp": hgvsp},
-                            {"hgvsc": hgvsc},
-                            {"genomic": genomic},
-                            {
-                                "nomenclature": "p",
-                                "variant": hgvsp,
-                            },
-                            {
-                                "nomenclature": "c",
-                                "variant": hgvsc,
-                            },
-                            {"nomenclature": "g", "variant": genomic_location},
-                        ],
-                    }
-                )
-                .sort("time_created", 1)
-            )
-
-        elif len(hgvsc) > 0 and genomic_location:
-            annotations = (
-                self.get_collection()
-                .find(
-                    {
-                        "gene": selected_CSQ["SYMBOL"],
-                        "$or": [
-                            {"hgvsc": hgvsc},
-                            {"genomic": genomic},
-                            {
-                                "nomenclature": "c",
-                                "variant": hgvsc,
-                            },
-                            {"nomenclature": "g", "variant": genomic_location},
-                        ],
-                    }
-                )
-                .sort("time_created", 1)
-            )
-        elif genomic_location:
-            annotations = (
-                self.get_collection()
-                .find(
-                    {
-                        "gene": selected_CSQ["SYMBOL"],
-                        "$or": [
-                            {"genomic": genomic},
-                            {"nomenclature": "g", "variant": genomic_location},
-                        ],
-                    }
-                )
+                .find({"gene": selected_CSQ["SYMBOL"], "$or": identity_clauses})
                 .sort("time_created", 1)
             )
         elif "breakpoint1" in variant and "breakpoint2" in variant:
-            annotations = (
-                self.get_collection()
-                .find(
-                    {
-                        "$or": [
-                            {"fusion": f"{variant['breakpoint1']}^{variant['breakpoint2']}"},
-                            {
-                                "nomenclature": "f",
-                                "variant": f"{variant['breakpoint1']}^{variant['breakpoint2']}",
-                            },
-                        ],
-                    }
-                )
-                .sort("time_created", 1)
-            )
+            fusion_query: dict[str, Any] = {
+                "nomenclature": "f",
+                "variant": f"{variant['breakpoint1']}^{variant['breakpoint2']}",
+            }
+            fusion_query.update(annotation_context_fields(nomenclature="f", source=variant))
+            annotations = self.get_collection().find(fusion_query).sort("time_created", 1)
         else:
             annotations = []
 
@@ -477,36 +378,27 @@ class AnnotationsRepository(BaseRepository):
             anno_class = _annotation_class_value(anno.get("class"))
             if anno_class is not None:
                 anno["class"] = anno_class
-                try:
-                    assay = anno["assay"]
-                    sub = anno["subpanel"]
-                    ass_sub = f"{assay}:{sub}"
-                    if assay_group == "solid":
-                        if assay == assay_group and sub == subpanel:
-                            latest_classification = anno
-                        else:
-                            latest_classification_other[ass_sub] = anno["class"]
+                assay = anno["assay"]
+                sub = anno["subpanel"]
+                ass_sub = f"{assay}:{sub}"
+                if assay_group == "solid":
+                    if assay == assay_group and sub == subpanel:
+                        latest_classification = anno
                     else:
-                        if assay == assay_group:
-                            latest_classification = anno
-                        else:
-                            latest_classification_other[ass_sub] = anno["class"]
-                except KeyError:
+                        latest_classification_other[ass_sub] = anno["class"]
+                elif assay == assay_group:
                     latest_classification = anno
-                    latest_classification_other["N/A"] = anno["class"]
+                else:
+                    latest_classification_other[ass_sub] = anno["class"]
             if "text" in anno:
-                try:
-                    assay = anno["assay"]
-                    sub = anno["subpanel"]
-                    ass_sub = f"{assay}:{sub}"
-                    if assay_group == "solid":
-                        if assay == assay_group and sub == subpanel:
-                            annotations_interesting[ass_sub] = anno
-                    elif assay == assay_group:
-                        annotations_interesting[assay] = anno
-                    annotations_arr.append(anno)
-                except KeyError:
-                    annotations_arr.append(anno)
+                assay = anno["assay"]
+                sub = anno["subpanel"]
+                ass_sub = f"{assay}:{sub}"
+                if assay_group == "solid" and assay == assay_group and sub == subpanel:
+                    annotations_interesting[ass_sub] = anno
+                elif assay == assay_group:
+                    annotations_interesting[assay] = anno
+                annotations_arr.append(anno)
 
         latest_other_arr = []
         for latest_assay in latest_classification_other:
@@ -543,39 +435,33 @@ class AnnotationsRepository(BaseRepository):
             list: A list of annotations that match the query criteria, sorted by the time they were created.
 
         """
-        transcripts = variant.get("transcripts", [])
-        transcript_patterns = [f"^{transcript}(\\..*)?$" for transcript in transcripts]
         genomic = variant.get("simple_id", "")
         hgvsp = variant.get("HGVSp", "")
         hgvsc = variant.get("HGVSc", "")
-        genes = variant.get("genes", "")
+        genes = _text_values(variant.get("genes", []))
         breakpoint1 = variant.get("breakpoint1", "")
         breakpoint2 = variant.get("breakpoint2", "")
 
         if genomic:
+            identity_clauses = _small_variant_identity_clauses(
+                hgvsp=hgvsp,
+                hgvsc=hgvsc,
+                genomic=genomic,
+            )
             query = {
                 "gene": {"$in": genes},
-                "transcript": {"$regex": "|".join(transcript_patterns)},
-                "$or": [
-                    {"hgvsp": {"$in": hgvsp}},
-                    {"hgvsc": {"$in": hgvsc}},
-                    {"genomic": genomic},
-                    {"nomenclature": "p", "variant": {"$in": hgvsp}},
-                    {"nomenclature": "c", "variant": {"$in": hgvsc}},
-                    {"nomenclature": "g", "variant": genomic},
-                ],
+                "$or": identity_clauses,
                 "assay": assay_group,
                 "class": {"$exists": True},
             }
         else:
             query = {
-                "$or": [
-                    {"fusion": f"{breakpoint1}^{breakpoint2}"},
-                    {"nomenclature": "f", "variant": f"{breakpoint1}^{breakpoint2}"},
-                ],
+                "nomenclature": "f",
+                "variant": f"{breakpoint1}^{breakpoint2}",
                 "assay": assay_group,
                 "class": {"$exists": True},
             }
+            query.update(annotation_context_fields(nomenclature="f", source=variant))
         if assay_group == "solid":
             query["subpanel"] = subpanel
 
@@ -627,20 +513,10 @@ class AnnotationsRepository(BaseRepository):
         else:
             document["class"] = class_num
 
-        if nomenclature != "f":
-            document["gene"] = variant_data.get("gene", None)
-            document["transcript"] = variant_data.get("transcript", None)
-        else:
-            document["gene1"] = variant_data.get("gene1", None)
-            document["gene2"] = variant_data.get("gene2", None)
+        document.update(annotation_context_fields(nomenclature=nomenclature, source=variant_data))
 
-        document.update(
-            annotation_identity_fields(
-                variant=variant,
-                nomenclature=nomenclature,
-                source=variant_data,
-            )
-        )
+        document = enrich_annotation_identity(document, source=variant_data)
+        document = normalize_collection_document("annotation", document)
         return OperationResult.from_insert_one(self.get_collection().insert_one(document))
 
     def delete_classified_variant(
@@ -650,14 +526,14 @@ class AnnotationsRepository(BaseRepository):
         variant_data: dict,
         class_num: int | None = None,
         annotation_text: str | None = None,
-    ) -> list | OperationResult:
+    ) -> OperationResult:
         """
         Delete a classified variant from the database.
 
         This method removes a classified variant document from the MongoDB collection
         based on the provided variant details, nomenclature, and assay information.
-        If the variant is not assigned to the current assay, it checks for historical
-        variants and may delete them if the user has admin privileges.
+        Deletion is limited to the exact assay, subpanel, nomenclature, and
+        finding context supplied by the current workflow.
 
         Args:
             variant (str): The variant identifier (e.g., genomic location or variant ID).
@@ -668,19 +544,15 @@ class AnnotationsRepository(BaseRepository):
                 - gene (str): The gene symbol (if applicable).
 
         Returns:
-            A list of matching documents or a structured write result for deletes.
+            A structured write result for the scoped deletion.
         """
         query = {
             "variant": variant,
             "assay": variant_data.get("assay_group", None),
-            "gene": variant_data.get("gene", None),
-            "gene1": variant_data.get("gene1", None),  # this is for fusion
-            "gene2": variant_data.get("gene2", None),  # this is for fusion
             "nomenclature": nomenclature,
             "subpanel": variant_data.get("subpanel", None),
+            **annotation_context_fields(nomenclature=nomenclature, source=variant_data),
         }
-        if nomenclature != "f":
-            query["transcript"] = variant_data.get("transcript", None)
 
         class_filter: dict = {"class": {"$exists": True}}
         if class_num is not None:
@@ -691,28 +563,7 @@ class AnnotationsRepository(BaseRepository):
             delete_clause.append({"text": annotation_text})
 
         scoped_query = {**query, "$or": delete_clause}
-        classified_docs = list(self.get_collection().find(scoped_query))
-        ## If variant has no match to current assay, it has an historical variant, i.e. not assigned to an assay. THIS IS DANGEROUS, maybe limit to admin?
-        if len(classified_docs) == 0 and current_user_is_superuser():
-            historic_query = {
-                "variant": variant,
-                "gene": variant_data.get("gene", None),
-                "gene1": variant_data.get("gene1", None),  # this is for fusion
-                "gene2": variant_data.get("gene2", None),  # this is for fusion
-                "nomenclature": nomenclature,
-                "$or": delete_clause,
-            }
-            if nomenclature != "f":
-                historic_query["transcript"] = variant_data.get("transcript", None)
-            delete_result = self.get_collection().find(
-                historic_query
-            )  # may be change it to delete later
-        else:
-            delete_result = OperationResult.from_delete(
-                self.get_collection().delete_many(scoped_query)
-            )
-
-        return delete_result
+        return OperationResult.from_delete(self.get_collection().delete_many(scoped_query))
 
     def get_gene_annotations(self, gene_name: str) -> list:
         """
@@ -746,7 +597,9 @@ class AnnotationsRepository(BaseRepository):
         Returns:
             Any: The result of the insert operation
         """
-        self.add_comment(enrich_annotation_identity(comment))
+        self.add_comment(
+            normalize_collection_document("annotation", enrich_annotation_identity(comment))
+        )
 
     def get_assay_classified_stats(self) -> tuple:
         """

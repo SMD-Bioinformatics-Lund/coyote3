@@ -35,17 +35,6 @@ class ReportRepository(BaseRepository):
     def _object_id(value: Any) -> ObjectId:
         return value if isinstance(value, ObjectId) else ObjectId(str(value))
 
-    @staticmethod
-    def report_class_description() -> list[str]:
-        """Return report class labels used by legacy report templates."""
-        return [
-            "None",
-            "Variant av stark klinisk signifikans",
-            "Variant av potentiell klinisk signifikans",
-            "Variant av oklar klinisk signifikans",
-            "Variant bedömd som benign eller sannolikt benign",
-        ]
-
     def next_report_num(self, sample_oid: str) -> int:
         latest = self.get_collection().find_one(
             {"sample_oid": self._object_id(sample_oid)},

@@ -37,7 +37,12 @@ class _DocBase(BaseModel):
 
 
 class _StrictDocBase(_DocBase):
-    """Strict base for collections where we want full key-level contract lock."""
+    """Strict base for embedded documents with a fixed key-level contract."""
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+
+class _StrictCollectionDocBase(_StrictDocBase):
+    """Strict base for top-level MongoDB collection documents."""
+
     id_: Any | None = Field(default=None, alias="_id")

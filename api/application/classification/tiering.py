@@ -186,7 +186,6 @@ class ResourceClassificationService:
                     **base_context,
                     "gene1": gene1,
                     "gene2": gene2,
-                    "fusion": f"{selected_call.get('breakpoint1', '')}^{selected_call.get('breakpoint2', '')}",
                 },
             }
 
@@ -194,22 +193,11 @@ class ResourceClassificationService:
             cnv = self.copy_number_variant_repository.get_cnv(str(resource_id))
             if not cnv or str(cnv.get("SAMPLE_ID")) != str(sample.get("_id")):
                 return None
-            genes = cnv.get("genes", [])
-            gene_label = None
-            if genes:
-                first_gene = genes[0]
-                gene_label = (
-                    first_gene.get("gene") if isinstance(first_gene, dict) else str(first_gene)
-                )
             return {
                 "variant": f"{cnv.get('chr')}:{cnv.get('start')}-{cnv.get('end')}",
                 "nomenclature": "cn",
                 "text": None,
-                "variant_data": {
-                    **base_context,
-                    "gene": gene_label,
-                    "cnv": f"{cnv.get('chr')}:{cnv.get('start')}-{cnv.get('end')}",
-                },
+                "variant_data": base_context,
             }
 
         if normalized_type == "translocation":
@@ -223,19 +211,22 @@ class ResourceClassificationService:
             annotations = (
                 [mane_annotation] if isinstance(mane_annotation, dict) else info.get("ANN", [])
             )
-            gene_label = None
+            gene1 = None
+            gene2 = None
             if annotations:
                 first_annotation = annotations[0]
                 gene_names = str(first_annotation.get("Gene_Name", "")).split("&")
-                gene_label = "-".join([gene for gene in gene_names if gene])
+                genes = [gene for gene in gene_names if gene]
+                gene1 = genes[0] if genes else None
+                gene2 = genes[1] if len(genes) > 1 else None
             return {
                 "variant": f"{transloc.get('CHROM')}:{transloc.get('POS')}^{transloc.get('ALT')}",
                 "nomenclature": "t",
                 "text": None,
                 "variant_data": {
                     **base_context,
-                    "gene": gene_label,
-                    "translocation": f"{transloc.get('CHROM')}:{transloc.get('POS')}^{transloc.get('ALT')}",
+                    "gene1": gene1,
+                    "gene2": gene2,
                 },
             }
 

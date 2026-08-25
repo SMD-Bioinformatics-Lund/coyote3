@@ -14,8 +14,9 @@ from api.contracts.managed_resources import managed_resource_spec
 from api.contracts.managed_ui_schemas import build_form_spec
 from api.contracts.schemas.app_controls import AppControlsDoc
 from api.contracts.schemas.assay import InsilicoGenelistsDoc
-from api.contracts.schemas.dna import CnvsDoc, VariantsDoc
+from api.contracts.schemas.dna import CnvsDoc, VariantCsqDoc, VariantsDoc
 from api.contracts.schemas.governance import RolesDoc, UsersDoc
+from api.contracts.schemas.reference import VepAnnoTranscriptDoc
 from api.contracts.schemas.registry import (
     normalize_collection_document,
     supported_collections,
@@ -132,6 +133,21 @@ def test_variant_consequence_terms_normalize_all_transcript_terms() -> None:
     doc = VariantsDoc.model_validate(payload)
 
     assert doc.consequence_terms == ["missense_variant", "splice_region_variant"]
+
+
+@pytest.mark.parametrize("model", [VariantCsqDoc, VepAnnoTranscriptDoc])
+def test_variant_clinical_significance_normalizes_to_distinct_terms(model) -> None:
+    """Persist CLIN_SIG as a list regardless of VEP's scalar or list representation."""
+    doc = model.model_validate(
+        {
+            "CLIN_SIG": [
+                "uncertain_significance&likely_pathogenic",
+                "likely_pathogenic",
+            ]
+        }
+    )
+
+    assert doc.CLIN_SIG == ["uncertain_significance", "likely_pathogenic"]
 
 
 def test_collection_validator_accepts_hgnc_genes_shape():
@@ -285,7 +301,7 @@ def test_samples_doc_accepts_only_persisted_ingest_states():
         SamplesDoc.model_validate(payload)
 
 
-def test_samples_doc_omits_unknown_pipeline_version_placeholders():
+def test_samples_doc_preserves_nullable_pipeline_version_for_persistence():
     payload = {
         "name": "S1",
         "asp_id": "assay_1",
@@ -304,6 +320,34 @@ def test_samples_doc_omits_unknown_pipeline_version_placeholders():
 
     assert sample.pipeline_version is None
     assert "pipeline_version" not in sample.model_dump(exclude_none=True)
+    assert "pipeline_version" in sample.to_persistence_document()
+    assert sample.to_persistence_document()["pipeline_version"] is None
+
+
+def test_sample_persistence_document_keeps_nullable_nested_metadata():
+    sample = SamplesDoc.model_validate(
+        {
+            "name": "S1",
+            "asp_id": "assay_1",
+            "subpanel_id": "base",
+            "environment": "production",
+            "case_id": "seed_case",
+            "sample_no": 1,
+            "sequencing_scope": "panel",
+            "omics_layer": "dna",
+            "pipeline": "SomaticPanelPipeline",
+            "files": {"vcf_files": {"path": "x"}},
+        }
+    )
+
+    document = sample.to_persistence_document()
+
+    assert document["pipeline_version"] is None
+    assert document["control"] is None
+    assert document["case"]["sequencing_run"] is None
+    assert document["case"]["reads"] is None
+    assert document["case"]["purity"] is None
+    assert document["files"]["vcf_files"]["checksum"] is None
 
 
 def test_samples_doc_normalizes_one_sample_level_sex_value():
@@ -460,10 +504,13 @@ def test_users_doc_validates_one_global_analysis_layout_preference():
     assert UsersDoc.model_validate(payload).ui_settings.sample_list_layout == "classic"
     assert UsersDoc.model_validate(payload).ui_settings.analysis_modern_view_tried is False
     assert UsersDoc.model_validate(payload).ui_settings.sample_list_modern_view_tried is False
+    assert UsersDoc.model_validate(payload).ui_settings.table_page_size == 50
     with pytest.raises(ValueError, match="analysis_layout must be one of"):
         UsersDoc.model_validate({**payload, "ui_settings": {"analysis_layout": "dna_tabs"}})
     with pytest.raises(ValueError, match="sample_list_layout must be one of"):
         UsersDoc.model_validate({**payload, "ui_settings": {"sample_list_layout": "combined"}})
+    with pytest.raises(ValueError, match="table_page_size must be one of"):
+        UsersDoc.model_validate({**payload, "ui_settings": {"table_page_size": 500}})
 
 
 def test_app_controls_doc_accepts_persisted_created_timestamp():

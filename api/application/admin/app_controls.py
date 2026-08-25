@@ -119,6 +119,14 @@ def default_app_controls(config: dict[str, Any] | None = None) -> AppControlsDoc
             "ingest_workspace_enabled": True,
             "assay_catalog_enabled": True,
         },
+        curation={
+            "tiering": {
+                "small_variant_enabled": True,
+                "cnv_enabled": False,
+                "fusion_enabled": True,
+                "translocation_enabled": False,
+            }
+        },
     )
     return controls
 
@@ -133,17 +141,17 @@ def merge_controls(defaults: AppControlsDoc, stored: dict[str, Any] | None) -> A
                 payload[section].update(
                     {key: value for key, value in stored_section.items() if key in payload[section]}
                 )
-        stored_celery = stored.get("celery") if isinstance(stored.get("celery"), dict) else {}
-        if "sample_ingest_enabled" not in stored_celery:
-            payload["celery"]["sample_ingest_enabled"] = bool(
-                stored_celery.get("ingest_bundle_enabled", True)
-                and stored_celery.get("ingest_dependents_enabled", True)
-            )
-        stored_modules = stored.get("modules") if isinstance(stored.get("modules"), dict) else {}
-        if "dna_analysis_enabled" not in stored_modules and "dna_enabled" in stored_modules:
-            payload["modules"]["dna_analysis_enabled"] = bool(stored_modules["dna_enabled"])
-        if "rna_analysis_enabled" not in stored_modules and "rna_enabled" in stored_modules:
-            payload["modules"]["rna_analysis_enabled"] = bool(stored_modules["rna_enabled"])
+        stored_curation = stored.get("curation")
+        if isinstance(stored_curation, dict):
+            stored_tiering = stored_curation.get("tiering")
+            if isinstance(stored_tiering, dict):
+                payload["curation"]["tiering"].update(
+                    {
+                        key: value
+                        for key, value in stored_tiering.items()
+                        if key in payload["curation"]["tiering"]
+                    }
+                )
         for key in ("created_on", "updated_by", "updated_on"):
             if stored.get(key) is not None:
                 payload[key] = stored[key]
@@ -365,6 +373,10 @@ class AppControlsService:
         for section in ("celery", "retention", "modules"):
             if isinstance(payload.get(section), dict):
                 incoming[section].update(payload[section])
+        if isinstance(payload.get("curation"), dict):
+            tiering = payload["curation"].get("tiering")
+            if isinstance(tiering, dict):
+                incoming["curation"]["tiering"].update(tiering)
         incoming["control_id"] = OPERATIONAL_COLLECTIONS.app_controls_document_id
         incoming["updated_by"] = getattr(actor, "username", None) or current_username()
         incoming["updated_on"] = datetime.now(timezone.utc)
@@ -405,16 +417,24 @@ class AppControlsService:
 
     def public_module_payload(self) -> dict[str, Any]:
         """Return non-sensitive effective module availability for route rendering."""
-        controls = self.get_controls().modules
+        controls = self.get_controls()
         return {
             "modules": {
                 module.key: {
-                    "enabled": bool(getattr(controls, module.control_field)),
+                    "enabled": bool(getattr(controls.modules, module.control_field)),
                     "label": module.label,
                     "description": module.description,
                 }
                 for module in APPLICATION_MODULES
-            }
+            },
+            "curation": {
+                "tiering": {
+                    "small_variant": controls.curation.tiering.small_variant_enabled,
+                    "cnv": controls.curation.tiering.cnv_enabled,
+                    "fusion": controls.curation.tiering.fusion_enabled,
+                    "translocation": controls.curation.tiering.translocation_enabled,
+                }
+            },
         }
 
     def cleanup_audit_events(self) -> dict[str, Any]:

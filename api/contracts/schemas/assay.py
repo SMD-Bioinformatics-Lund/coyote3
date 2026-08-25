@@ -28,7 +28,7 @@ from api.config.constants import (
     normalize_read_mode,
 )
 from api.config.sequencing import derived_read_technology, validate_platform_read_mode
-from api.contracts.schemas.base import _DocBase, _StrictDocBase
+from api.contracts.schemas.base import _DocBase, _StrictCollectionDocBase, _StrictDocBase
 from api.contracts.schemas.filter_profiles import DnaFilterProfilesDoc, RnaFilterProfilesDoc
 from api.domain.common.sample_filters import normalize_analysis_intents, normalize_sample_filters
 
@@ -105,7 +105,7 @@ class AspcCatalogDoc(_StrictDocBase):
         return {"is_public": True}
 
 
-class AspConfigDoc(_StrictDocBase):
+class AspConfigDoc(_StrictCollectionDocBase):
     aspc_id: str
     asp_id: str
     subpanel_id: str = SUBPANEL_BASE_ID
@@ -268,7 +268,7 @@ class AspConfigDoc(_StrictDocBase):
         return self
 
 
-class AssaySpecificPanelsDoc(_StrictDocBase):
+class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
     asp_id: str
     asp_group: str
     asp_family: str
@@ -409,7 +409,7 @@ class AssaySpecificPanelsDoc(_StrictDocBase):
         return len(self.germline_genes)
 
 
-class InsilicoGenelistsDoc(_StrictDocBase):
+class InsilicoGenelistsDoc(_StrictCollectionDocBase):
     """One-gene-per-entry list shared by SNV, CNV, and fusion filtering."""
 
     isgl_id: str
@@ -512,7 +512,7 @@ class InsilicoGenelistsDoc(_StrictDocBase):
         return len(self.germline_genes)
 
 
-class BlacklistDoc(_StrictDocBase):
+class BlacklistDoc(_StrictCollectionDocBase):
     pos: str
     assay_group: str | None = None
     in_normal_perc: float | None = None

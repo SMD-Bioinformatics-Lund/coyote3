@@ -376,6 +376,7 @@ class UserManagementService:
             "sample_list_layout",
             "analysis_modern_view_tried",
             "sample_list_modern_view_tried",
+            "table_page_size",
         }
         unexpected = sorted(set(payload) - supported_settings)
         if unexpected:

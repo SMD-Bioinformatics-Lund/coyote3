@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from api.application.interpretation import report_summary
 
 
@@ -12,20 +14,24 @@ def _snv(gene: str, tier: int, af: float, *, irrelevant: bool = False) -> dict:
     }
 
 
-def test_process_annotations_groups_current_and_historic_class_and_text() -> None:
+def test_process_annotations_groups_class_and_text_by_required_context() -> None:
     grouped = report_summary.process_gene_annotations(
         [
             {"class": 1, "assay": "hema", "subpanel": "hem", "variant": "v1"},
             {"text": "one", "assay": "hema", "subpanel": "hem", "variant": "v1"},
-            {"class": 2, "variant": "v2"},
-            {"text": "old", "variant": "v2"},
-            {"variant": "ignored"},
+            {"class": 2, "assay": "solid", "subpanel": "colon", "variant": "v2"},
+            {"text": "two", "assay": "solid", "subpanel": "colon", "variant": "v2"},
         ]
     )
     assert grouped["hema:hem"]["v1"]["latest_class"]["class"] == 1
     assert grouped["hema:hem"]["v1"]["latest_text"]["text"] == "one"
-    assert grouped["historic:None"]["v2"]["latest_class"]["class"] == 2
-    assert grouped["historic:None"]["v2"]["latest_text"]["text"] == "old"
+    assert grouped["solid:colon"]["v2"]["latest_class"]["class"] == 2
+    assert grouped["solid:colon"]["v2"]["latest_text"]["text"] == "two"
+
+
+def test_process_annotations_rejects_rows_without_required_context() -> None:
+    with pytest.raises(KeyError, match="assay"):
+        report_summary.process_gene_annotations([{"class": 2, "variant": "v2"}])
 
 
 def test_gene_annotation_text_handles_assay_wording_and_oncokb() -> None:
@@ -56,10 +62,13 @@ def test_global_structural_comment_shapes(monkeypatch) -> None:
         key="comment",
     )
     cnv = report_summary.create_comment_doc(
-        {"global": "global", "text": "gain"}, nomenclature="cn", variant="7_gain"
+        {"global": "global", "text": "gain", "gene": "EGFR"},
+        nomenclature="cn",
+        variant="7_gain",
     )
     assert fusion["gene1"] == "KMT2A" and fusion["gene2"] == "AFF1"
     assert "gene" not in fusion and "gene" not in cnv
+    assert "transcript" not in cnv
 
 
 def test_intro_covers_paired_lists_gene_counts_and_germline_scope() -> None:

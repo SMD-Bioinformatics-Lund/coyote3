@@ -296,6 +296,8 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
             has_next_live = True
             live_samples = live_samples[:per_live_page]
 
+        self._attach_biomarker_values([*live_samples, *done_samples])
+
         for sample in done_samples:
             sample["last_report_time_created"] = sample.get("latest_report_on") or 0
 
@@ -320,6 +322,45 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
             "added_from": added_from,
             "added_until": added_until,
         }
+
+    @staticmethod
+    def _flatten_biomarker_values(value: Any, *, prefix: str = "") -> dict[str, Any]:
+        """Flatten nested biomarker values into deterministic export columns."""
+        if not isinstance(value, dict):
+            return {prefix: value} if prefix else {}
+        flattened: dict[str, Any] = {}
+        for key in sorted(value):
+            if key in {"_id", "SAMPLE_ID", "biomarker_id", "name"}:
+                continue
+            child_prefix = f"{prefix}.{key}" if prefix else str(key)
+            child = value[key]
+            if isinstance(child, dict):
+                flattened.update(
+                    SampleCatalogService._flatten_biomarker_values(child, prefix=child_prefix)
+                )
+            else:
+                flattened[child_prefix] = child
+        return flattened
+
+    def _attach_biomarker_values(self, samples: list[dict[str, Any]]) -> None:
+        """Attach flat biomarker values to sample rows through one bulk repository call."""
+        bulk_getter = getattr(self.biomarker_repository, "get_samples_biomarkers", None)
+        if not callable(bulk_getter):
+            return
+        sample_ids = [str(sample.get("_id")) for sample in samples if sample.get("_id") is not None]
+        grouped = bulk_getter(sample_ids)
+        for sample in samples:
+            sample_id = str(sample.get("_id") or "")
+            merged: dict[str, Any] = {}
+            for document in grouped.get(sample_id, []):
+                values = self._flatten_biomarker_values(document)
+                for key, value in values.items():
+                    if key not in merged:
+                        merged[key] = value
+                        continue
+                    document_name = str(document.get("name") or "biomarker").strip()
+                    merged[f"{document_name}.{key}"] = value
+            sample["biomarker_values"] = merged
 
     def navigation_counts_payload(self, *, user, profile_scope: str) -> dict[str, Any]:
         """Return current-user live sample counts for the assay navigation tree."""

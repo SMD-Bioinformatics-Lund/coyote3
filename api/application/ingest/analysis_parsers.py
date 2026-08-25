@@ -17,7 +17,6 @@ from .parsers import (
     _build_transcript_vault_rows,
     _emulate_perl,
     _infer_cnv_type,
-    _normalize_biomarkers_doc,
     _normalize_callers_field,
     _normalize_cnv_ratio,
     _normalize_fusion_docs,
@@ -99,7 +98,7 @@ class DnaIngestParser:
         if biomarkers_path:
             require_exists("Biomarkers JSON", biomarkers_path)
             with open(biomarkers_path, "r", encoding="utf-8") as handle:
-                preload["biomarkers"] = _normalize_biomarkers_doc(json.load(handle))
+                preload["biomarkers"] = json.load(handle)
 
         transloc_path = runtime_file_path(args, primary_analysis_file_key("dna", "TRANSLOCATION"))
         if transloc_path:

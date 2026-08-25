@@ -26,8 +26,8 @@ def get_formatted_assay_config(
     """Resolve and format the assay configuration for a sample document.
 
     A sample with a stored ASPC revision always uses that exact revision.  Active
-    ASPC lookup is reserved for ingestion, legacy samples without a snapshot, and
-    an explicit user request to apply the latest configuration.
+    Active ASPC lookup is reserved for ingestion, samples that have not yet been
+    assigned a revision, and an explicit request to apply the latest configuration.
     """
     sample_name = str(sample.get("name") or sample.get("_id") or "unknown_sample").strip()
     raw_asp_id = sample.get("asp_id")

@@ -64,7 +64,7 @@ def _present_cache_fields(payload: dict[str, Any], fields: tuple[str, ...]) -> d
 
 
 class OncoKbPublicCacheRepository(BaseRepository):
-    """Persist public OncoKB gene-cache records and retain legacy cache access."""
+    """Persist public OncoKB variant and gene cache records."""
 
     def __init__(self, adapter):
         """Bind the variant-level public cache collection."""

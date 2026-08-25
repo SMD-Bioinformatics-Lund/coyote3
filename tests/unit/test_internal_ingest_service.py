@@ -1013,11 +1013,17 @@ def test_parse_transcripts_indexes_consequences_from_every_transcript() -> None:
     assert parsed[9] == ["missense_variant", "splice_region_variant", "intron_variant"]
 
 
-def test_normalize_historical_biomarkers_doc():
-    out = ingest_parsers._normalize_biomarkers_doc(
-        {"name": "S1", "MSIS": {"tot": 10, "som": 2, "perc": 20.0}}
+def test_parse_transcripts_normalizes_clinical_significance_terms() -> None:
+    parsed = ingest_parsers._parse_transcripts(
+        [
+            {
+                "Feature": "NM_000001.1",
+                "CLIN_SIG": "uncertain_significance&likely_pathogenic",
+            }
+        ]
     )
-    assert out["MSIS"] == {"tot": 10, "som": 2, "per": 20.0}
+
+    assert parsed[0][0]["CLIN_SIG"] == ["uncertain_significance", "likely_pathogenic"]
 
 
 def test_normalize_historical_transloc_doc():
@@ -1495,6 +1501,9 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
             _ = args, kwargs
             return {"name": "S1", "asp_id": "A", "case_id": "C", "sample_no": 1}
 
+        def to_persistence_document(self):
+            return self.model_dump()
+
     monkeypatch.setattr(ingest.SamplesDoc, "model_validate", lambda _: _Valid())
     monkeypatch.setattr(
         ingest, "build_sample_meta_dict", lambda _: {"asp_id": "A", "case_id": "C", "sample_no": 1}
@@ -1530,6 +1539,43 @@ def test_ingest_sample_bundle_create_and_insert_helpers(monkeypatch):
     assert zero["inserted_count"] == 0
 
 
+def test_ingest_sample_bundle_persists_meaningful_null_metadata(monkeypatch):
+    sample_col = _Col([])
+    stub = _store_stub()
+    stub.sample_repository = _Handler(sample_col)
+    service = _use_store(monkeypatch, stub, new_sample_id="507f1f77bcf86cd799439018")
+    monkeypatch.setattr(service, "_validate_payload_file_keys", lambda payload: payload)
+    monkeypatch.setattr(service, "_validate_declared_file_resources", lambda _payload: set())
+    monkeypatch.setattr(service, "_apply_resolved_aspc_snapshot", lambda payload: payload)
+    monkeypatch.setattr(service, "_parse_preload", lambda _: {"snvs": []})
+    monkeypatch.setattr(service, "_next_unique_name", lambda *_: "S2")
+    monkeypatch.setattr(service, "_write_dependents", lambda **_: {"snvs": 0})
+
+    result = service.ingest_sample_bundle(
+        {
+            "name": "S2",
+            "asp_id": "assay_1",
+            "subpanel_id": "base",
+            "environment": "production",
+            "case_id": "C2",
+            "sample_no": 1,
+            "paired": False,
+            "sequencing_scope": "panel",
+            "omics_layer": "dna",
+            "pipeline": "SomaticPanelPipeline",
+            "pipeline_version": "not provided",
+            "files": {"vcf_files": {"path": "x"}},
+        }
+    )
+
+    assert result["status"] == "ok"
+    inserted = sample_col.inserted_one[0]
+    assert inserted["pipeline_version"] is None
+    assert inserted["control"] is None
+    assert inserted["case"]["purity"] is None
+    assert inserted["files"]["vcf_files"]["checksum"] is None
+
+
 def test_ingest_sample_bundle_stages_loading_then_marks_ready(monkeypatch):
     sample_col = _Col([])
     stub = _store_stub()
@@ -1549,6 +1595,9 @@ def test_ingest_sample_bundle_stages_loading_then_marks_ready(monkeypatch):
         def model_dump(self, *args, **kwargs):
             _ = args, kwargs
             return dict(self.payload)
+
+        def to_persistence_document(self):
+            return self.model_dump()
 
     monkeypatch.setattr(ingest.SamplesDoc, "model_validate", lambda payload: _Valid(payload))
     monkeypatch.setattr(

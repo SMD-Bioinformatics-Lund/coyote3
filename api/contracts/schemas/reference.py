@@ -8,18 +8,20 @@ from typing import Any, Dict, Literal
 
 from pydantic import Field, field_validator, model_validator
 
-from api.contracts.schemas.base import _DocBase
+from api.contracts.schemas.base import _DocBase, _StrictCollectionDocBase
+from api.contracts.schemas.normalizers import normalize_ampersand_terms
+from api.domain.core.annotation_identity import (
+    NOMENCLATURE_FIELDS,
+    NOMENCLATURE_REQUIRED_FIELDS,
+)
 
 
-class AnnotationDoc(_DocBase):
+class AnnotationDoc(_StrictCollectionDocBase):
     variant: str
     hgvsp: str | None = None
     hgvsc: str | None = None
     genomic: str | None = None
     genomic_hash: str | None = None
-    cnv: str | None = None
-    fusion: str | None = None
-    translocation: str | None = None
     gene: str | None = None
     gene1: str | None = None
     gene2: str | None = None
@@ -33,12 +35,56 @@ class AnnotationDoc(_DocBase):
     class_: int | None = Field(default=None, alias="class")
     text: str | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_unrelated_identity_fields(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        nomenclature = str(value.get("nomenclature") or "").strip().lower()
+        allowed = NOMENCLATURE_FIELDS.get(nomenclature)
+        if allowed is None:
+            return value
+        identity_fields = set().union(*NOMENCLATURE_FIELDS.values())
+        identity_fields.update({"cnv", "fusion", "translocation"})
+        unrelated = sorted(field for field in value if field in identity_fields - allowed)
+        if unrelated:
+            raise ValueError(
+                f"nomenclature '{nomenclature}' does not allow: {', '.join(unrelated)}"
+            )
+        return value
+
     @model_validator(mode="after")
-    def validate_class_xor_text(self):
+    def validate_annotation_shape(self):
         if (self.class_ is None and self.text is None) or (
             self.class_ is not None and self.text is not None
         ):
             raise ValueError("Exactly one of 'class' or 'text' must be provided")
+
+        values = {
+            "variant": self.variant,
+            "hgvsp": self.hgvsp,
+            "hgvsc": self.hgvsc,
+            "genomic": self.genomic,
+            "genomic_hash": self.genomic_hash,
+            "gene": self.gene,
+            "gene1": self.gene1,
+            "gene2": self.gene2,
+            "transcript": self.transcript,
+        }
+        required = NOMENCLATURE_REQUIRED_FIELDS[self.nomenclature]
+        allowed = NOMENCLATURE_FIELDS[self.nomenclature]
+        missing = sorted(field for field in required if field not in self.model_fields_set)
+        if missing:
+            raise ValueError(
+                f"nomenclature '{self.nomenclature}' requires keys: {', '.join(missing)}"
+            )
+        unrelated = sorted(
+            field for field in values if field not in allowed and field in self.model_fields_set
+        )
+        if unrelated:
+            raise ValueError(
+                f"nomenclature '{self.nomenclature}' does not allow: {', '.join(unrelated)}"
+            )
         return self
 
 
@@ -62,17 +108,13 @@ class VepAnnoTranscriptDoc(_DocBase):
     SIFT: str | None = None
     PolyPhen: str | None = None
     CADD_PHRED: str | float | int | None = None
-    CLIN_SIG: str | None = None
+    CLIN_SIG: list[str] = Field(default_factory=list)
     VARIANT_CLASS: str | None = None
 
-    @field_validator("Consequence", mode="before")
+    @field_validator("Consequence", "CLIN_SIG", mode="before")
     @classmethod
-    def normalize_consequence(cls, value: Any) -> list[str]:
-        if value in (None, ""):
-            return []
-        if isinstance(value, str):
-            return [term for term in value.split("&") if term]
-        return value
+    def normalize_term_lists(cls, value: Any) -> list[str]:
+        return normalize_ampersand_terms(value)
 
 
 class AnnoVepDoc(_DocBase):

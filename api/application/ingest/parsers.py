@@ -7,6 +7,7 @@ from collections.abc import Callable
 from typing import Any
 
 from api.config.constants import TRANSCRIPT_SELECTION_ORDER
+from api.contracts.schemas.normalizers import normalize_ampersand_terms
 from api.contracts.schemas.samples import DNA_SAMPLE_FILE_KEYS, RNA_SAMPLE_FILE_KEYS
 from api.domain.core.dna.transcript_payloads import (
     canonicalize_selected_transcript_symbol,
@@ -298,11 +299,10 @@ def _infer_cnv_type(ratio: float | None) -> str | None:
 
 
 def _emulate_perl(var_dict: dict[str, Any]) -> dict[str, Any]:
-    """Mimic historical Perl CSQ field handling: split ampersand-delimited floats and take the max.
+    """Collapse ampersand-delimited numeric CSQ values to their maximum.
 
     For each transcript in INFO/CSQ, any string field containing ampersand-delimited
-    float values is collapsed to the numeric maximum, matching the behaviour of the
-    original Perl import script.
+        float values is collapsed to the numeric maximum.
 
     Args:
         var_dict: Parsed variant dict with INFO/CSQ list populated.
@@ -449,6 +449,7 @@ def _parse_transcripts(csq: list[dict[str, Any]]) -> tuple[Any, ...]:
             "VARIANT_CLASS",
         ):
             slim[key] = transcript.get(key)
+        slim["CLIN_SIG"] = normalize_ampersand_terms(transcript.get("CLIN_SIG"))
 
         raw_consequences = transcript.get("Consequence")
         if isinstance(raw_consequences, str):
@@ -621,20 +622,6 @@ def _select_csq(
                 selector_name,
             )
     raise RuntimeError("transcript selection order did not contain a matching fallback")
-
-
-def _normalize_biomarkers_doc(doc: Any) -> Any:
-    """Normalize historical biomarker JSON field names to the current contract."""
-    if not isinstance(doc, dict):
-        return doc
-    normalized = dict(doc)
-    for key in ("MSIS", "MSIP"):
-        marker = normalized.get(key)
-        if isinstance(marker, dict) and "per" not in marker and "perc" in marker:
-            marker = dict(marker)
-            marker["per"] = marker.pop("perc")
-            normalized[key] = marker
-    return normalized
 
 
 def _split_string_list(value: Any, separator: str = ";") -> list[str]:

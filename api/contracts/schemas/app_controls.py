@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
-from api.contracts.schemas.base import _StrictDocBase
+from api.contracts.schemas.base import _StrictCollectionDocBase
 
 
 class CeleryControlDoc(BaseModel):
@@ -48,13 +48,29 @@ class ModuleControlDoc(BaseModel):
     assay_catalog_enabled: bool = True
 
 
-class AppControlsDoc(_StrictDocBase):
+class TieringControlDoc(BaseModel):
+    """Runtime availability of tier mutations by finding resource."""
+
+    small_variant_enabled: bool = True
+    cnv_enabled: bool = False
+    fusion_enabled: bool = True
+    translocation_enabled: bool = False
+
+
+class CurationControlDoc(BaseModel):
+    """Runtime controls for clinical curation actions."""
+
+    tiering: TieringControlDoc = Field(default_factory=TieringControlDoc)
+
+
+class AppControlsDoc(_StrictCollectionDocBase):
     """Single active runtime-control document stored in MongoDB."""
 
     control_id: str = "default"
     celery: CeleryControlDoc = Field(default_factory=CeleryControlDoc)
     retention: RetentionControlDoc = Field(default_factory=RetentionControlDoc)
     modules: ModuleControlDoc = Field(default_factory=ModuleControlDoc)
+    curation: CurationControlDoc = Field(default_factory=CurationControlDoc)
     created_on: datetime | None = None
     updated_by: str | None = None
     updated_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

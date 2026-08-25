@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from api.application.public.catalog import PublicCatalogService
 from api.application.sample.catalog import SampleCatalogService
 
@@ -35,6 +37,39 @@ def test_file_rows_read_current_sample_files_shape(tmp_path):
     assert by_key["vcf_files"]["checksum"] == "sha256:seed"
     assert by_key["cnv"]["analysis_type"] == "CNV"
     assert by_key["cnv"]["availability"] == "optional_missing"
+
+
+def test_sample_catalog_attaches_flat_biomarkers_with_one_bulk_lookup():
+    calls: list[list[str]] = []
+
+    def get_samples_biomarkers(sample_ids: list[str]):
+        calls.append(sample_ids)
+        return {
+            "s1": [
+                {
+                    "SAMPLE_ID": "s1",
+                    "name": "demo-biomarker",
+                    "MSIS": {"tot": 120, "som": 6, "per": 5.0},
+                    "HRD": {"sum": 30},
+                }
+            ],
+            "s2": [],
+        }
+
+    service = object.__new__(SampleCatalogService)
+    service.biomarker_repository = SimpleNamespace(get_samples_biomarkers=get_samples_biomarkers)
+    samples = [{"_id": "s1"}, {"_id": "s2"}]
+
+    service._attach_biomarker_values(samples)
+
+    assert calls == [["s1", "s2"]]
+    assert samples[0]["biomarker_values"] == {
+        "HRD.sum": 30,
+        "MSIS.per": 5.0,
+        "MSIS.som": 6,
+        "MSIS.tot": 120,
+    }
+    assert samples[1]["biomarker_values"] == {}
 
 
 def test_public_catalog_merges_previous_symbol_without_unresolved_placeholder():

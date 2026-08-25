@@ -523,7 +523,7 @@ class InternalIngestService:
         )
         self._update_meta_fields(
             sample_id=sample_id,
-            payload_meta=build_sample_meta_dict(validated_merged.model_dump(exclude_none=True)),
+            payload_meta=build_sample_meta_dict(validated_merged.to_persistence_document()),
             block_fields={"asp_id"},
         )
         self._sample_collection().update_one(
@@ -616,7 +616,7 @@ class InternalIngestService:
                 meta["uploaded_file_checksums"] = uploaded_checksums
 
             final_sample = SamplesDoc.model_validate(meta)
-            document = final_sample.model_dump(exclude_none=True)
+            document = final_sample.to_persistence_document()
             if "_id" in document:
                 document["_id"] = self._provider_sample_id(str(document["_id"]))
 

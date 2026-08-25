@@ -88,6 +88,23 @@ class BiomarkerRepository(BaseRepository):
         """
         return self.get_collection().find({"SAMPLE_ID": sample_id}, {"SAMPLE_ID": 0})
 
+    def get_samples_biomarkers(self, sample_ids: list[str]) -> dict[str, list[dict]]:
+        """Return biomarker documents grouped by sample using one MongoDB query."""
+        normalized_ids = list(
+            dict.fromkeys(str(sample_id) for sample_id in sample_ids if sample_id)
+        )
+        grouped: dict[str, list[dict]] = {sample_id: [] for sample_id in normalized_ids}
+        if not normalized_ids:
+            return grouped
+        for document in self.get_collection().find(
+            {"SAMPLE_ID": {"$in": normalized_ids}},
+            {"_id": 0},
+        ):
+            sample_id = str(document.get("SAMPLE_ID") or "")
+            if sample_id in grouped:
+                grouped[sample_id].append(document)
+        return grouped
+
     def delete_sample_biomarkers(self, sample_id: str) -> OperationResult:
         """
         Delete biomarkers data for a sample.

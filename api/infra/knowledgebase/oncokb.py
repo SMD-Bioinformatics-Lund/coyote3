@@ -123,7 +123,7 @@ class OnkoKBRepository(BaseRepository):
         return {record.get("name"): record for record in records if record.get("name")}
 
     def get_oncokb_action_gene_records(self, genes: list[str]) -> dict[str, dict]:
-        """Return historical local actionable OncoKB records keyed by gene symbol."""
+        """Return local actionable OncoKB records keyed by gene symbol."""
         normalized = sorted({str(gene).strip() for gene in genes if str(gene).strip()})
         if not normalized:
             return {}

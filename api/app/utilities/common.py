@@ -22,7 +22,10 @@ from api.app.runtime_state import app, current_username
 from api.app.utilities import assay_filters, serialization
 from api.domain.common import assay_filters as domain_assay_filters
 from api.domain.common.reporting import nl_num as render_swedish_number
-from api.domain.core.annotation_identity import annotation_identity_fields
+from api.domain.core.annotation_identity import (
+    annotation_context_fields,
+    annotation_identity_fields,
+)
 from api.domain.core.dna.variant_identity import (
     build_simple_id,
     normalize_simple_id,
@@ -423,12 +426,7 @@ class CommonUtility:
         else:
             document["class"] = class_num
 
-        if nomenclature != "f":
-            document["gene"] = variant_data.get("gene", None)
-            document["transcript"] = variant_data.get("transcript", None)
-        else:
-            document["gene1"] = variant_data.get("gene1", None)
-            document["gene2"] = variant_data.get("gene2", None)
+        document.update(annotation_context_fields(nomenclature=nomenclature, source=variant_data))
 
         document.update(
             annotation_identity_fields(

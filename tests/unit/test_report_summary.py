@@ -32,9 +32,9 @@ def test_create_comment_doc_global_annotation_has_flat_variant_identities(monkey
             "subpanel": "base",
             "gene": "SRSF2",
             "transcript": "NM_003016.4",
-            "var_p": "p.Met89Val",
-            "var_c": "c.265A>G",
-            "var_g": "17:76736896:T/C",
+            "hgvsp": "p.Met89Val",
+            "hgvsc": "c.265A>G",
+            "genomic": "17:76736896:T/C",
         },
         nomenclature="p",
         variant="p.Met89Val",
@@ -51,10 +51,3 @@ def test_summarize_bio_uses_current_msi_percentage_key():
     text = report_summary.summarize_bio([{"MSIS": {"tot": 10, "som": 2, "per": 20.0}}])
 
     assert "20.0% mikrosatellitinstabilitet" in text
-
-
-def test_summarize_bio_accepts_historical_percentage_key():
-    """Existing rows with the historical `perc` field should not break sample loading."""
-    text = report_summary.summarize_bio([{"MSIP": {"tot": 10, "som": 2, "perc": 21.5}}])
-
-    assert "21.5% mikrosatellitinstabilitet" in text

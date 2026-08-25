@@ -17,7 +17,7 @@ from api.app.deps.repositories import (
 from api.app.deps.services import get_api_session_repository
 from api.app.runtime_state import app as runtime_app
 from api.app.runtime_state import reset_current_user, set_current_user
-from api.config.constants import DEFAULT_AUTH_PROVIDER
+from api.config.constants import DEFAULT_AUTH_PROVIDER, DEFAULT_TABLE_PAGE_SIZE
 from api.config.security import (
     get_api_session_cookie_name as settings_session_cookie_name,
 )
@@ -84,12 +84,13 @@ class ApiUser:
     firstname: str = ""
     lastname: str = ""
     job_title: str = ""
-    ui_settings: dict[str, str | bool] = field(
+    ui_settings: dict[str, str | bool | int] = field(
         default_factory=lambda: {
             "analysis_layout": "classic",
             "sample_list_layout": "classic",
             "analysis_modern_view_tried": False,
             "sample_list_modern_view_tried": False,
+            "table_page_size": DEFAULT_TABLE_PAGE_SIZE,
         }
     )
 
@@ -296,6 +297,7 @@ def api_user_from_user_doc(user_doc: dict) -> ApiUser:
             "sample_list_layout": "classic",
             "analysis_modern_view_tried": False,
             "sample_list_modern_view_tried": False,
+            "table_page_size": DEFAULT_TABLE_PAGE_SIZE,
             **dict(user_doc.get("ui_settings") or {}),
         },
     )

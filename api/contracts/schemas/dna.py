@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 from pydantic import AliasChoices, Field, field_validator, model_validator
 
 from api.contracts.schemas.base import _DocBase, _StrictDocBase
+from api.contracts.schemas.normalizers import normalize_ampersand_terms
 
 
 class DnaFiltersDoc(_StrictDocBase):
@@ -117,10 +118,15 @@ class VariantCsqDoc(_DocBase):
     STRAND: str | None = None
     IMPACT: str | None = None
     CADD_PHRED: str | None = None
-    CLIN_SIG: str | None = None
+    CLIN_SIG: list[str] = Field(default_factory=list)
     VARIANT_CLASS: str | None = None
     HGVSc: str | None = None
     HGVSp: str | None = None
+
+    @field_validator("Consequence", "CLIN_SIG", mode="before")
+    @classmethod
+    def _normalize_term_lists(cls, value: Any) -> list[str]:
+        return normalize_ampersand_terms(value)
 
 
 class VariantInfoDoc(_DocBase):

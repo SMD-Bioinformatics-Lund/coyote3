@@ -16,10 +16,6 @@ Collection purpose
   - "How many times was variant/simple_id reported, and at which tiers?"
   - "Which samples/reports included a given gene / HGVSp / HGVSc?"
 
-Compatibility
--------------
-Designed for MongoDB 3.4 and newer versions.
-
 """
 
 # -------------------------------------------------------------------------
@@ -52,15 +48,6 @@ def _reported_variant_search_query(
         "hgvsc",
         "simple_id",
         "simple_id_hash",
-        "var_g",
-        "var_p",
-        "var_c",
-        "variant_data.HGVSp",
-        "variant_data.HGVSc",
-        "variant_data.hgvsp",
-        "variant_data.hgvsc",
-        "variant_data.INFO.selected_CSQ.HGVSp",
-        "variant_data.INFO.selected_CSQ.HGVSc",
     ]
 
     if mode == "gene":
@@ -69,40 +56,24 @@ def _reported_variant_search_query(
                 {"gene": regex},
                 {"gene1": regex},
                 {"gene2": regex},
-                {"variant_data.gene": regex},
-                {"variant_data.gene1": regex},
-                {"variant_data.gene2": regex},
-                {"variant_data.SYMBOL": regex},
-                {"variant_data.INFO.selected_CSQ.SYMBOL": regex},
             ]
         }
     elif mode == "transcript":
         query = {
             "$or": [
                 {"transcript": regex},
-                {"variant_data.transcript": regex},
-                {"variant_data.INFO.selected_CSQ.Feature": regex},
-                {"variant_data.INFO.selected_CSQ.Feature_ID": regex},
             ]
         }
     elif mode == "hgvsp":
         query = {
             "$or": [
                 {"hgvsp": regex},
-                {"var_p": regex},
-                {"variant_data.HGVSp": regex},
-                {"variant_data.hgvsp": regex},
-                {"variant_data.INFO.selected_CSQ.HGVSp": regex},
             ]
         }
     elif mode == "hgvsc":
         query = {
             "$or": [
                 {"hgvsc": regex},
-                {"var_c": regex},
-                {"variant_data.HGVSc": regex},
-                {"variant_data.hgvsc": regex},
-                {"variant_data.INFO.selected_CSQ.HGVSc": regex},
             ]
         }
     elif mode == "genomic":
@@ -110,10 +81,7 @@ def _reported_variant_search_query(
             "$or": [
                 {"simple_id": regex},
                 {"simple_id_hash": regex},
-                {"var_g": regex},
                 {"variant": regex},
-                {"variant_data.simple_id": regex},
-                {"variant_data.simple_id_hash": regex},
             ]
         }
     elif mode == "variant":
@@ -129,8 +97,6 @@ def _reported_variant_search_query(
                 {"transcript": regex},
                 {"created_by": regex},
                 {"subpanel": regex},
-                {"variant_data.INFO.selected_CSQ.SYMBOL": regex},
-                {"variant_data.INFO.selected_CSQ.Feature": regex},
                 *[{field: regex} for field in variant_fields],
             ]
         }
@@ -319,7 +285,7 @@ class ReportedVariantsRepository(BaseRepository):
         Create required indexes for the reported_variants collection.
 
         Safe to call multiple times; MongoDB will keep existing indexes.
-        Compatible with MongoDB 3.4.
+        The operation is idempotent; MongoDB preserves matching indexes.
         """
         col = self.get_collection()
         col.create_index(

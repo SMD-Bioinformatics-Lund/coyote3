@@ -5,8 +5,13 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-DEFAULT_PAGE_SIZE = 50
-MAX_PAGE_SIZE = 200
+from api.config.constants import (
+    DEFAULT_TABLE_PAGE_SIZE,
+    TABLE_PAGE_SIZE_OPTIONS,
+)
+
+DEFAULT_PAGE_SIZE = DEFAULT_TABLE_PAGE_SIZE
+MAX_PAGE_SIZE = max(TABLE_PAGE_SIZE_OPTIONS)
 
 
 def request_pagination(request: Any, *, default: int = DEFAULT_PAGE_SIZE) -> tuple[int, int]:

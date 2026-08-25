@@ -42,13 +42,11 @@ Required keys:
 - `nomenclature` (Literal['p', 'g', 'c', 'f', 'cn', 't'])
 
 Optional keys:
+- `id_` (Any | None)
 - `hgvsp` (str | None)
 - `hgvsc` (str | None)
 - `genomic` (str | None)
 - `genomic_hash` (str | None)
-- `cnv` (str | None)
-- `fusion` (str | None)
-- `translocation` (str | None)
 - `gene` (str | None)
 - `gene1` (str | None)
 - `gene2` (str | None)
@@ -68,6 +66,7 @@ Optional keys:
 - `celery` (CeleryControlDoc)
 - `retention` (RetentionControlDoc)
 - `modules` (ModuleControlDoc)
+- `curation` (CurationControlDoc)
 - `created_on` (datetime.datetime | None)
 - `updated_by` (str | None)
 - `updated_on` (datetime)

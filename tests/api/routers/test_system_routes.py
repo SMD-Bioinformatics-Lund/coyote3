@@ -104,6 +104,7 @@ def test_whoami_sorts_permission_list(monkeypatch):
         "sample_list_layout": "classic",
         "analysis_modern_view_tried": False,
         "sample_list_modern_view_tried": False,
+        "table_page_size": 50,
     }
     assert payload["csrf_token"] == "csrf-test-token"
     assert "denied_permissions" not in payload

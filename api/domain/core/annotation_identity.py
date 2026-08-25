@@ -16,29 +16,45 @@ ANNOTATION_IDENTITY_FIELDS: tuple[str, ...] = (
     "hgvsc",
     "genomic",
     "genomic_hash",
-    "cnv",
-    "fusion",
-    "translocation",
 )
+
+ANNOTATION_CONTEXT_FIELDS: tuple[str, ...] = (
+    "gene",
+    "gene1",
+    "gene2",
+    "transcript",
+)
+
+NOMENCLATURE_FIELDS: dict[str, frozenset[str]] = {
+    "p": frozenset({"hgvsp", "hgvsc", "genomic", "genomic_hash", "gene", "transcript", "variant"}),
+    "c": frozenset({"hgvsp", "hgvsc", "genomic", "genomic_hash", "gene", "transcript", "variant"}),
+    "g": frozenset({"hgvsp", "hgvsc", "genomic", "genomic_hash", "gene", "transcript", "variant"}),
+    "cn": frozenset({"variant"}),
+    "f": frozenset({"gene1", "gene2", "variant"}),
+    "t": frozenset({"gene1", "gene2", "variant"}),
+}
+
+NOMENCLATURE_REQUIRED_FIELDS: dict[str, frozenset[str]] = {
+    "p": frozenset({"hgvsp", "hgvsc", "genomic", "genomic_hash", "gene", "variant"}),
+    "c": frozenset({"hgvsp", "hgvsc", "genomic", "genomic_hash", "gene", "variant"}),
+    "g": frozenset({"hgvsp", "hgvsc", "genomic", "genomic_hash", "gene", "variant"}),
+    "cn": frozenset({"variant"}),
+    "f": frozenset({"gene1", "gene2", "variant"}),
+    "t": frozenset({"gene1", "gene2", "variant"}),
+}
 
 NOMENCLATURE_IDENTITY_FIELD: dict[str, str] = {
     "p": "hgvsp",
     "c": "hgvsc",
     "g": "genomic",
-    "cn": "cnv",
-    "f": "fusion",
-    "t": "translocation",
 }
 
 _SOURCE_KEYS: dict[str, tuple[str, ...]] = {
-    "hgvsp": ("hgvsp", "HGVSp", "var_p"),
-    "hgvsc": ("hgvsc", "HGVSc", "var_c"),
+    "hgvsp": ("hgvsp", "HGVSp"),
+    "hgvsc": ("hgvsc", "HGVSc"),
     # Variant documents call this identity simple_id. Annotation documents
     # expose it as genomic so the persistence contract describes its meaning.
-    "genomic": ("simple_id", "genomic", "var_g"),
-    "cnv": ("cnv", "cnvvar"),
-    "fusion": ("fusion", "fusionpoints"),
-    "translocation": ("translocation", "translocpoints"),
+    "genomic": ("simple_id", "genomic"),
 }
 
 
@@ -107,9 +123,11 @@ def annotation_identity_fields(
     secondary, queryable representations of the same finding.
     """
     source = source or {}
+    allowed_fields = NOMENCLATURE_FIELDS.get(str(nomenclature or "").strip().lower(), frozenset())
     identities = {
         field: value
         for field in ANNOTATION_IDENTITY_FIELDS
+        if field in allowed_fields
         if field not in {"genomic", "genomic_hash"}
         if (value := _candidate(source, field)) is not None
     }
@@ -128,29 +146,76 @@ def annotation_identity_fields(
     return identities
 
 
-def enrich_annotation_identity(document: Mapping[str, Any]) -> dict[str, Any]:
-    """Return an annotation copy populated with canonical identity fields."""
+def annotation_context_fields(*, nomenclature: Any, source: Mapping[str, Any]) -> dict[str, str]:
+    """Return only the gene/transcript context valid for a nomenclature."""
+    normalized_nomenclature = str(nomenclature or "").strip().lower()
+    allowed_fields = NOMENCLATURE_FIELDS.get(normalized_nomenclature, frozenset())
+    return {
+        field: value
+        for field in ANNOTATION_CONTEXT_FIELDS
+        if field in allowed_fields
+        if (value := _text(source.get(field))) is not None
+    }
+
+
+def enrich_annotation_identity(
+    document: Mapping[str, Any],
+    *,
+    source: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Return an annotation containing only fields valid for its nomenclature.
+
+    ``document`` is the flat annotation being prepared for persistence.
+    ``source`` may contain the current finding payload used to derive equivalent
+    identities, but is never copied into the annotation document.
+    """
     enriched = dict(document)
     enriched.pop("simple_id", None)
     enriched.pop("simple_id_hash", None)
-    nested_source = document.get("variant_data")
-    source = {
-        **(dict(nested_source) if isinstance(nested_source, Mapping) else {}),
-        **document,
-    }
+    identity_source = {**dict(source or {}), **document}
     enriched.update(
         annotation_identity_fields(
             variant=document.get("variant"),
             nomenclature=document.get("nomenclature"),
-            source=source,
+            source=identity_source,
         )
     )
+    enriched.update(
+        annotation_context_fields(
+            nomenclature=document.get("nomenclature"),
+            source=identity_source,
+        )
+    )
+
+    nomenclature = str(document.get("nomenclature") or "").strip().lower()
+    allowed_fields = NOMENCLATURE_FIELDS.get(nomenclature, frozenset())
+    for field in (*ANNOTATION_IDENTITY_FIELDS, *ANNOTATION_CONTEXT_FIELDS):
+        if field not in allowed_fields:
+            enriched.pop(field, None)
+
+    # Required means structurally present. Historical annotations may not have
+    # enough retained evidence to recover every equivalent HGVS identity, in
+    # which case the related key remains explicitly null instead of being
+    # guessed or omitted.
+    for field in NOMENCLATURE_REQUIRED_FIELDS.get(nomenclature, frozenset()):
+        enriched.setdefault(field, None)
+
+    class_value = enriched.get("class")
+    text_value = enriched.get("text")
+    if class_value is not None and text_value is None:
+        enriched.pop("text", None)
+    elif text_value is not None and class_value is None:
+        enriched.pop("class", None)
     return enriched
 
 
 __all__ = [
     "ANNOTATION_IDENTITY_FIELDS",
+    "ANNOTATION_CONTEXT_FIELDS",
     "NOMENCLATURE_IDENTITY_FIELD",
+    "NOMENCLATURE_FIELDS",
+    "NOMENCLATURE_REQUIRED_FIELDS",
+    "annotation_context_fields",
     "annotation_identity_fields",
     "enrich_annotation_identity",
 ]

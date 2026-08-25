@@ -2,6 +2,8 @@
 
 from collections import defaultdict
 
+from api.domain.core.annotation_identity import NOMENCLATURE_FIELDS
+
 
 def format_pon(variant: dict) -> defaultdict:
     """
@@ -19,26 +21,12 @@ def format_pon(variant: dict) -> defaultdict:
 
 
 def get_variant_nomenclature(data: dict) -> tuple[str, str]:
-    """
-    Pick nomenclature+value using the existing key-priority order.
-    """
-    nomenclature = "p"
-    variant = ""
-
-    var_nomenclature = {
-        "var_p": "p",
-        "var_c": "c",
-        "var_g": "g",
-        "fusionpoints": "f",
-        "translocpoints": "t",
-        "cnvvar": "cn",
-    }
-
-    for key, value in var_nomenclature.items():
-        variant_value = data.get(key)
-        if variant_value:
-            nomenclature = value
-            variant = variant_value
-            break
-
+    """Return the explicit canonical annotation identity from an API payload."""
+    nomenclature = str(data.get("nomenclature") or "").strip().lower()
+    variant = str(data.get("variant") or "").strip()
+    if nomenclature not in NOMENCLATURE_FIELDS:
+        allowed = ", ".join(sorted(NOMENCLATURE_FIELDS))
+        raise ValueError(f"nomenclature must be one of: {allowed}")
+    if not variant:
+        raise ValueError("variant is required")
     return nomenclature, variant

@@ -24,7 +24,12 @@ def _sample_catalog_service() -> SampleCatalogService:
         copy_number_variant_repository=store.copy_number_variant_repository,
         fusion_repository=store.fusion_repository,
         translocation_repository=store.translocation_repository,
-        biomarker_repository=store.biomarker_repository,
+        biomarker_repository=SimpleNamespace(
+            get_sample_biomarkers=lambda sample_id: [],
+            get_samples_biomarkers=lambda sample_ids: {
+                str(sample_id): [] for sample_id in sample_ids
+            },
+        ),
         grouped_coverage_repository=store.grouped_coverage_repository,
         sample_comment_repository=SimpleNamespace(
             list_sample_comments=lambda sample_id: [],

@@ -255,13 +255,7 @@ def _nomenclature(form_data: dict) -> tuple[str, str]:
     Returns:
             The  nomenclature result.
     """
-    if form_data.get("fusionpoints"):
-        return "f", form_data["fusionpoints"]
-    if form_data.get("translocpoints"):
-        return "t", form_data["translocpoints"]
-    if form_data.get("cnvvar"):
-        return "cn", form_data["cnvvar"]
-    return "p", form_data["var_p"]
+    return form_data["nomenclature"], form_data["variant"]
 
 
 def _comment_doc(form_data: dict, *, nomenclature: str, variant: str) -> dict:
@@ -335,7 +329,7 @@ def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_r
     )
 
     resource = service.create_annotation(
-        form_data={"text": "note", "cnvvar": "7:10-20"},
+        form_data={"text": "note", "nomenclature": "cn", "variant": "7:10-20"},
         target_id="cnv-1",
         get_variant_nomenclature_fn=_nomenclature,
         create_comment_doc_fn=_comment_doc,
@@ -366,7 +360,7 @@ def test_resource_annotation_service_routes_translocation_comment_to_translocati
     )
 
     resource = service.create_annotation(
-        form_data={"text": "note", "translocpoints": "1:100^2:200"},
+        form_data={"text": "note", "nomenclature": "t", "variant": "1:100^2:200"},
         target_id="tl-1",
         get_variant_nomenclature_fn=_nomenclature,
         create_comment_doc_fn=_comment_doc,
@@ -409,9 +403,7 @@ def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatc
         "subpanel",
         "gene1",
         "gene2",
-        "fusion",
     }
-    assert docs[0]["variant_data"]["fusion"] == "2:100^2:200"
 
 
 def test_resource_classification_service_generates_text_only_for_tier_three_snvs():

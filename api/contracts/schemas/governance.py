@@ -10,12 +10,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from api.config.constants import (
     DEFAULT_AUTH_PROVIDER,
+    DEFAULT_TABLE_PAGE_SIZE,
+    TABLE_PAGE_SIZE_OPTIONS,
     normalize_asp_group,
     normalize_auth_types,
     normalize_environment,
     normalize_permission_category,
 )
-from api.contracts.schemas.base import _StrictDocBase
+from api.contracts.schemas.base import _StrictCollectionDocBase
 
 
 class UserUiSettingsDoc(BaseModel):
@@ -27,6 +29,7 @@ class UserUiSettingsDoc(BaseModel):
     sample_list_layout: str = "classic"
     analysis_modern_view_tried: bool = False
     sample_list_modern_view_tried: bool = False
+    table_page_size: int = DEFAULT_TABLE_PAGE_SIZE
 
     @field_validator("analysis_layout")
     @classmethod
@@ -44,8 +47,16 @@ class UserUiSettingsDoc(BaseModel):
             raise ValueError("sample_list_layout must be one of: classic, modern")
         return normalized
 
+    @field_validator("table_page_size")
+    @classmethod
+    def _validate_table_page_size(cls, value: int) -> int:
+        if value not in TABLE_PAGE_SIZE_OPTIONS:
+            allowed = ", ".join(str(option) for option in TABLE_PAGE_SIZE_OPTIONS)
+            raise ValueError(f"table_page_size must be one of: {allowed}")
+        return value
 
-class UsersDoc(_StrictDocBase):
+
+class UsersDoc(_StrictCollectionDocBase):
     email: str
     username: str
     firstname: str
@@ -143,7 +154,7 @@ class UsersDoc(_StrictDocBase):
         return normalized
 
 
-class RolesDoc(_StrictDocBase):
+class RolesDoc(_StrictCollectionDocBase):
     role_id: str
     name: str
     label: str
@@ -188,7 +199,7 @@ class RolesDoc(_StrictDocBase):
         raise ValueError("color must be a six-digit #RRGGBB value")
 
 
-class PermissionsDoc(_StrictDocBase):
+class PermissionsDoc(_StrictCollectionDocBase):
     permission_id: str
     label: str
     category: str

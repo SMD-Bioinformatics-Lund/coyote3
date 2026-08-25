@@ -9,10 +9,9 @@ from api.application.admin.app_controls import (
     AppControlsService,
     _task_summary,
     _worker_runtime_details,
-    default_app_controls,
-    merge_controls,
 )
 from api.config.contracts.application import OPERATIONAL_COLLECTIONS
+from api.contracts.public import PublicModulesPayload
 
 
 class _AppControlsCollection:
@@ -98,23 +97,6 @@ def test_app_controls_update_validates_existing_created_on_metadata():
     assert "created_on" not in collection.last_update["$set"]
 
 
-def test_merge_controls_migrates_legacy_ingest_and_analysis_switches():
-    controls = merge_controls(
-        default_app_controls({}),
-        {
-            "celery": {
-                "ingest_bundle_enabled": True,
-                "ingest_dependents_enabled": False,
-            },
-            "modules": {"dna_enabled": False, "rna_enabled": True},
-        },
-    )
-
-    assert controls.celery.sample_ingest_enabled is False
-    assert controls.modules.dna_analysis_enabled is False
-    assert controls.modules.rna_analysis_enabled is True
-
-
 def test_public_module_payload_exposes_only_module_availability_metadata():
     collection = _AppControlsCollection()
     collection.doc = {
@@ -128,6 +110,29 @@ def test_public_module_payload_exposes_only_module_availability_metadata():
     assert payload["modules"]["reports"]["enabled"] is False
     assert payload["modules"]["reports"]["label"] == "Clinical reporting"
     assert "control_field" not in payload["modules"]["reports"]
+    assert payload["curation"]["tiering"] == {
+        "small_variant": True,
+        "cnv": False,
+        "fusion": True,
+        "translocation": False,
+    }
+    validated = PublicModulesPayload.model_validate(payload).model_dump()
+    assert validated["curation"] == payload["curation"]
+
+
+def test_app_controls_persist_resource_tiering_switches():
+    collection = _AppControlsCollection()
+    service = AppControlsService(_Db(collection), config={})
+
+    result = service.update_controls(
+        {"curation": {"tiering": {"cnv_enabled": True, "fusion_enabled": False}}}
+    )
+
+    tiering = result["controls"]["curation"]["tiering"]
+    assert tiering["cnv_enabled"] is True
+    assert tiering["fusion_enabled"] is False
+    assert tiering["small_variant_enabled"] is True
+    assert collection.last_update["$set"]["curation"]["tiering"]["cnv_enabled"] is True
 
 
 def test_runtime_status_observes_active_tasks_before_worker_metadata(monkeypatch):

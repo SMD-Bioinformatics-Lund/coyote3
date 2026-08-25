@@ -125,7 +125,26 @@ def normalize_collection_document(collection: str, payload: dict[str, Any]) -> d
     if not adapter:
         raise ValueError(f"No DB document model registered for collection '{collection}'")
     parsed = adapter.validate_python(payload)
-    normalized = parsed.model_dump(by_alias=True, exclude_none=False)
+    normalized = parsed.model_dump(by_alias=True)
+    if collection == "annotation":
+        from api.domain.core.annotation_identity import (
+            ANNOTATION_CONTEXT_FIELDS,
+            ANNOTATION_IDENTITY_FIELDS,
+            NOMENCLATURE_FIELDS,
+            NOMENCLATURE_REQUIRED_FIELDS,
+        )
+
+        allowed = NOMENCLATURE_FIELDS[parsed.nomenclature]
+        required = NOMENCLATURE_REQUIRED_FIELDS[parsed.nomenclature]
+        for field in (*ANNOTATION_IDENTITY_FIELDS, *ANNOTATION_CONTEXT_FIELDS):
+            if field not in allowed:
+                normalized.pop(field, None)
+            elif field not in required and field not in parsed.model_fields_set:
+                normalized.pop(field, None)
+        if normalized.get("class") is not None:
+            normalized.pop("text", None)
+        else:
+            normalized.pop("class", None)
     if normalized.get("_id") is None:
         normalized.pop("_id", None)
     return normalized

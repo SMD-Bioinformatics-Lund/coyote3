@@ -42,10 +42,26 @@ class PublicModuleAvailability(BaseModel):
     enabled: bool
 
 
+class PublicTieringAvailability(BaseModel):
+    """Represent effective tier-mutation availability by finding type."""
+
+    small_variant: bool
+    cnv: bool
+    fusion: bool
+    translocation: bool
+
+
+class PublicCurationAvailability(BaseModel):
+    """Represent non-sensitive runtime controls for clinical curation."""
+
+    tiering: PublicTieringAvailability
+
+
 class PublicModulesPayload(BaseModel):
     """Represent public application-module availability."""
 
     modules: dict[str, PublicModuleAvailability]
+    curation: PublicCurationAvailability
 
 
 class PublicAssayCatalogMatrixPayload(BaseModel):
