@@ -18,94 +18,96 @@ markdown_extensions:
 
 nav:
   - Overview: index.md
-  - Getting Started:
+  - Getting started:
       - Quickstart: start_here/quickstart.md
       - Configuration: start_here/configuration.md
       - Production deployment: start_here/production_deployment.md
-      - Local Development: start_here/local_development.md
-  - User Manual:
-      - Clinical Workflow: user_guide/clinical_workflow_guide.md
-      - Operational Dashboard: user_guide/operational_dashboard.md
-      - Sample Management: user_guide/sample_management.md
-      - DNA Clinical Review: user_guide/clinical_review_dna.md
-      - RNA Clinical Review: user_guide/clinical_review_rna.md
-      - Coverage Review: user_guide/coverage_analytics.md
-      - Pages and Table Columns: product/ui_page_table_reference.md
-      - Interface Visual Reference: product/interface_visual_reference.md
-  - Clinical Concepts:
-      - Application Manual: product/complete_application_manual.md
-      - Core Concepts: product/core_concepts.md
-      - DNA and RNA Workflow: product/workflow_dna_rna.md
-      - Clinical Data and Reporting Flow: architecture/clinical_data_and_reporting_flow.md
-      - Query and Filter Strategy: product/aspc_driven_query_strategy.md
-      - Clinical Reporting Rules: product/clinical_reporting_rules.md
-      - Reporting and Snapshots: product/reporting_workflow_and_variant_snapshots.md
-      - Domain Reference: product/application_reference_by_domain.md
-      - UI Actions and Effects: product/ui_action_effects_reference.md
-      - Functional Matrix: product/ui_functionality_matrix.md
-      - OncoKB Integration: product/oncokb_integration.md
-      - ClinPGx Integration: product/clinpgx_integration.md
+      - Local development: start_here/local_development.md
+  - User manual:
+      - Complete user manual: user_guide/complete_user_manual.md
+      - Clinical workflow: user_guide/clinical_workflow_guide.md
+      - Operational dashboard: user_guide/operational_dashboard.md
+      - Sample management: user_guide/sample_management.md
+      - DNA clinical review: user_guide/clinical_review_dna.md
+      - RNA clinical review: user_guide/clinical_review_rna.md
+      - Coverage review: user_guide/coverage_analytics.md
+      - Pages and table columns: product/ui_page_table_reference.md
+      - Interface visual reference: product/interface_visual_reference.md
+  - Clinical concepts:
+      - System overview: product/complete_application_manual.md
+      - Core concepts: product/core_concepts.md
+      - DNA and RNA workflow: product/workflow_dna_rna.md
+      - Clinical data and reporting flow: architecture/clinical_data_and_reporting_flow.md
+      - Query and filter strategy: product/aspc_driven_query_strategy.md
+      - Clinical reporting rules: product/clinical_reporting_rules.md
+      - Reporting and snapshots: product/reporting_workflow_and_variant_snapshots.md
+      - Domain reference: product/application_reference_by_domain.md
+      - UI actions and effects: product/ui_action_effects_reference.md
+      - Functional matrix: product/ui_functionality_matrix.md
+      - OncoKB integration: product/oncokb_integration.md
+      - ClinPGx integration: product/clinpgx_integration.md
   - Administration:
-      - Management Guide: user_guide/management_guide.md
-      - UI Map and Navigation: product/ui_map_and_user_flows.md
-      - Configuration Identity and Audit: architecture/configuration_identity_and_audit.md
-      - Permissions and Access: developer/permissions_naming.md
-  - Deployment and Operations:
-      - Release Readiness: operations/release_readiness.md
-      - Target-center Acceptance: operations/target_center_acceptance.md
-      - Center Deployment: operations/center_deployment_guide.md
-      - Initial Deployment Checklist: operations/initial_deployment_checklist.md
+      - Management guide: user_guide/management_guide.md
+      - UI map and navigation: product/ui_map_and_user_flows.md
+      - Configuration identity and audit: architecture/configuration_identity_and_audit.md
+      - Permissions and access: developer/permissions_naming.md
+  - Deployment and operations:
+      - Release readiness: operations/release_readiness.md
+      - Target-center acceptance: operations/target_center_acceptance.md
+      - Center deployment: operations/center_deployment_guide.md
+      - Initial deployment checklist: operations/initial_deployment_checklist.md
       - Upgrade from v3.x: operations/upgrade_from_v3.md
-      - Center Configuration Files: operations/center_configuration_files.md
-      - Clinical Vocabulary: operations/clinical_vocabulary.md
-      - Environment and Secrets: operations/environments_and_secrets.md
-      - Data Requirements: operations/deployment_data_requirements.md
-      - Deployment Reference: operations/deployment_guide.md
-      - Minimum Production Baseline: operations/minimum_production_baseline.md
-      - Observability and Alerts: operations/observability_slos_and_alerts.md
-      - Audit and Logging: operations/audit-and-logging.md
-      - MongoDB Deployment and Recovery: operations/mongodb_deployment_and_recovery.md
-      - Backup and Recovery: operations/backup_restore_and_snapshots.md
-      - Maintenance and Quality: operations/maintenance_and_quality.md
-      - Repository Scripts: operations/script_reference.md
+      - Center configuration files: operations/center_configuration_files.md
+      - Clinical vocabulary: operations/clinical_vocabulary.md
+      - Environment and secrets: operations/environments_and_secrets.md
+      - Data requirements: operations/deployment_data_requirements.md
+      - Deployment reference: operations/deployment_guide.md
+      - Minimum production baseline: operations/minimum_production_baseline.md
+      - Observability and alerts: operations/observability_slos_and_alerts.md
+      - Audit and logging: operations/audit-and-logging.md
+      - MongoDB deployment and recovery: operations/mongodb_deployment_and_recovery.md
+      - Backup and recovery: operations/backup_restore_and_snapshots.md
+      - Maintenance and quality: operations/maintenance_and_quality.md
+      - Repository scripts: operations/script_reference.md
       - Troubleshooting: operations/troubleshooting.md
-  - API Reference:
-      - API Organization: api/api_organization.md
+  - API reference:
+      - API organization: api/api_organization.md
       - Authentication: api/authentication.md
-      - Versioning and Compatibility: api/versioning_and_compatibility.md
-      - Routes and Workflows: api/reference_and_workflows.md
+      - Versioning and compatibility: api/versioning_and_compatibility.md
+      - Routes and workflows: api/reference_and_workflows.md
       - Ingestion API: api/ingestion_api.md
-      - Sample YAML Manifest: api/sample_yaml.md
-      - Sample Input Files: api/sample_input_files.md
-      - Collection Permissions: api/collection_operations_and_permissions.md
-  - Generated Reference:
-      - Collection Contracts: api/collection_contracts.md
+      - Sample YAML manifest: api/sample_yaml.md
+      - Sample input files: api/sample_input_files.md
+      - Collection permissions: api/collection_operations_and_permissions.md
+  - Generated reference:
+      - Collection contracts: api/collection_contracts.md
   - Architecture:
-      - Application Architecture: architecture/current_application_context.md
-      - System Relationships: architecture/system_relationships.md
-      - Runtime Data Contracts: architecture/data_contracts.md
-      - Clinical Data Lifecycle: architecture/data_ingest_storage_and_retrieval.md
-      - Security Model: architecture/security_model.md
-      - Architecture Decisions:
-          - Authentication Provider Resolution: architecture/adr_0001_auth_provider_resolution.md
-          - Local Password Lifecycle: architecture/adr_0002_local_user_password_lifecycle_and_mail_fallback.md
+      - Application architecture: architecture/current_application_context.md
+      - System relationships: architecture/system_relationships.md
+      - Runtime data contracts: architecture/data_contracts.md
+      - Clinical data lifecycle: architecture/data_ingest_storage_and_retrieval.md
+      - Security model: architecture/security_model.md
+      - Architecture decisions:
+          - Authentication provider resolution: architecture/adr_0001_auth_provider_resolution.md
+          - Local password lifecycle: architecture/adr_0002_local_user_password_lifecycle_and_mail_fallback.md
           - Synchronous HTTP and MongoDB: architecture/adr_0003_sync_http_and_mongodb_execution.md
   - Development:
-      - Engineering Guide: maintainers/developer_guide.md
-      - Add a Domain or Collection: developer/adding_a_domain.md
-      - Schema Contracts and Versioning: developer/schema_contracts_and_versioning.md
-      - Plotting and Chart Export: frontend/plotting.md
-      - Action Dialogs: developer/ui_modals.md
-      - Refactoring Standards: maintainers/refactor_guidelines.md
+      - Complete developer manual: developer/complete_developer_manual.md
+      - Engineering commands: maintainers/developer_guide.md
+      - Add a domain or collection: developer/adding_a_domain.md
+      - Schema contracts and versioning: developer/schema_contracts_and_versioning.md
+      - Plotting and chart export: frontend/plotting.md
+      - Action dialogs: developer/ui_modals.md
+      - Refactoring standards: maintainers/refactor_guidelines.md
       - Troubleshooting: developer/troubleshooting_guide.md
   - Testing:
-      - Test Strategy and Quality Gates: testing/testing_and_quality.md
-      - Local Disposable Full-stack Validation: testing/disposable_full_stack_validation.md
-      - Browser and Release Validation: testing/browser_and_release_validation.md
-      - Test Data and Fixtures: testing/test_data_and_fixtures.md
+      - Test strategy and quality gates: testing/testing_and_quality.md
+      - Local disposable full-stack validation: testing/disposable_full_stack_validation.md
+      - Browser and release validation: testing/browser_and_release_validation.md
+      - Test data and fixtures: testing/test_data_and_fixtures.md
   - Project:
       - Governance: project/governance.md
       - Contributing: project/contributing.md
-      - Code of Conduct: project/code_of_conduct.md
+      - Code of conduct: project/code_of_conduct.md
       - License: project/license.md
-      - Maintainer Guide: maintainers/maintainer_guide.md
+      - Maintainer guide: maintainers/maintainer_guide.md

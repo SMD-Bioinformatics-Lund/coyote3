@@ -90,7 +90,7 @@ the edited resource key or business identifier.
 
 The following controls manipulate the Browser Document Object Model (DOM) without triggering persistent backend state changes:
 
-- **Hide False Positives**: Localized visibility toggle for finding filters.
+- **Hide false positives**: Browser-only visibility control for finding filters.
 - **Navigation Collapse**: Sidebar and menu layout changes.
 - **Pagination**: Local table paging within client-orchestrated datasets.
 - **Expand/Collapse**: User-driven text visibility for long descriptions.

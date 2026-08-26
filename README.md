@@ -150,15 +150,16 @@ Start with the [Configuration Guide](docs/start_here/configuration.md) and
 | Reader or task | Documentation |
 | --- | --- |
 | First local run | [Quickstart](docs/start_here/quickstart.md) |
+| Clinical use and administration | [Complete User Manual](docs/user_guide/complete_user_manual.md) |
 | Clinical review | [Clinical Workflow](docs/user_guide/clinical_workflow_guide.md) |
 | ASP, ASPC, ISGL, samples, and findings | [Core Concepts](docs/product/core_concepts.md) |
-| Complete application behavior | [Application Manual](docs/product/complete_application_manual.md) |
+| System relationships | [System Overview](docs/product/complete_application_manual.md) |
 | Center deployment | [Center Deployment Guide](docs/operations/center_deployment_guide.md) |
 | Environment and secrets | [Environment and Secrets](docs/operations/environments_and_secrets.md) |
 | Sample manifest and input contracts | [Sample YAML Manifest](docs/api/sample_yaml.md) and [Sample Input Files](docs/api/sample_input_files.md) |
 | API organization and authentication | [API Organization](docs/api/api_organization.md) and [Authentication](docs/api/authentication.md) |
 | Architecture | [Application Architecture](docs/architecture/current_application_context.md) |
-| Development | [Engineering Guide](docs/maintainers/developer_guide.md) |
+| Development | [Complete Developer Manual](docs/developer/complete_developer_manual.md) |
 | Testing and release checks | [Testing and Quality](docs/testing/testing_and_quality.md) |
 | Operational troubleshooting | [Troubleshooting](docs/operations/troubleshooting.md) |
 

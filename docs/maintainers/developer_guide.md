@@ -1,69 +1,55 @@
-# Engineering Operations Guide
+# Engineering command reference
 
-This guide provides the mandated procedures for common architectural maintenance, environment verification, and quality enforcement.
+Use this page for common development and release commands. The
+[complete developer manual](../developer/complete_developer_manual.md) explains
+the architecture, data flow, extension points, and development rules.
 
-## Local Quality Engineering Baseline
+## Local checks
 
-Engineers must maintain the following baseline within their localized virtual environment:
+Run commands from the repository root with the project virtual environment
+active.
 
-```bash
-# Run static analysis
-PYTHONPATH=. ruff check api tests scripts
+| Check | Command |
+| --- | --- |
+| Python lint | `PYTHONPATH=. ruff check api tests scripts` |
+| Python formatting | `ruff format --check api tests scripts` |
+| Python types | `PYTHONPATH=. mypy` |
+| Backend tests | `PYTHONPATH=. pytest -q` |
+| Frontend lint | `npm --prefix frontend run lint` |
+| Frontend unit tests | `npm --prefix frontend run test:unit` |
+| Frontend build | `npm --prefix frontend run build` |
+| Browser tests | `npm --prefix frontend run test:e2e` |
+| Markdown lint | `npm run docs:lint` |
+| Documentation build | `.venv/bin/python -m mkdocs build --strict` |
 
-# Execute localized unit and functional tests
-PYTHONPATH=. pytest -q
-```
+The strict mypy boundary is configured in `pyproject.toml`. Add a module only
+after it passes the existing strict settings. Do not weaken a type rule to make
+new code pass.
 
-## Static Type Verification
+## Compose validation
 
-For security-critical modules, the platform enforces strict type checking to
-prevent boundary errors and privilege escalation. The module list is owned by
-`[tool.mypy]` in `pyproject.toml`:
-
-```bash
-PYTHONPATH=. mypy
-```
-
-The strict boundary is intentionally expanded module by module. Do not add a
-module to the configured list until it passes strict mode, and do not relax a
-strict option to accommodate new untyped code.
-
-## Architectural Orchestration (Docker Compose)
-
-The environment-aware orchestration layer must be validated before any configuration changes are committed to the repository:
+Validate the resolved Compose model before changing deployment files.
 
 ```bash
-# Verify production orchestration schema
-./scripts/compose-with-version.sh --env-file .coyote3_env -f deploy/compose/docker-compose.yml config -q
+./scripts/compose-with-version.sh \
+  --env-file .coyote3_env \
+  -f deploy/compose/docker-compose.yml \
+  config -q
 
-# Verify staging orchestration schema
-./scripts/compose-with-version.sh --env-file .coyote3_stage_env -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml config -q
-
-# Verify development and testing schemas
-./scripts/compose-with-version.sh --env-file .coyote3_dev_env -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml config -q
-./scripts/compose-with-version.sh --env-file .coyote3_test_env -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.test.yml config -q
+./scripts/compose-with-version.sh \
+  --env-file .coyote3_dev_env \
+  -f deploy/compose/docker-compose.yml \
+  -f deploy/compose/docker-compose.dev.yml \
+  config -q
 ```
 
-## Documentation Lifecycle
+Use the equivalent environment file and override for staging or testing.
 
-Technical documentation resides within the standalone documentation container and is managed through a strict-mode build process:
+## Logs
 
-```bash
-# Synchronize documentation dependencies
-.venv/bin/python -m pip install -r requirements-docs.txt
+API logs are structured JSON. Authentication and mail outcomes use the
+`auth_metric` and `mail_metric` event names.
 
-# Execute strict-mode documentation verification
-.venv/bin/python -m mkdocs build --strict
-```
-
-## Observability and System Telemetry
-
-The platform emits structured log telemetry utilizing standardized prefixes for centralized dashboard ingestion:
-
-- `auth_metric`: Operational outcomes for authentication and identity resolution.
-- `mail_metric`: Transactional outcomes for SMTP delivery and token issuance.
-
-Engineers can probe localized telemetry using the following diagnostic command:
 ```bash
 ./scripts/compose-with-version.sh \
   --env-file .coyote3_dev_env \
@@ -72,12 +58,14 @@ Engineers can probe localized telemetry using the following diagnostic command:
   logs api 2>&1 | rg "auth_metric|mail_metric"
 ```
 
-## Standard Release Protocol
+## Before opening a pull request
 
-Every platform release must satisfy the following criteria:
-
-1. **Validation**: Pass 100% of the functional and integration test suite.
-2. **Orchestration**: Confirm that all Docker Compose configuration schemas are valid.
-3. **Manual Alignment**: Verify that the technical manuals built in strict-mode without warnings.
-4. **Security Audit**: Ensure that environment templates contain no active secrets or credentials.
-5. **Commit Atomic Preservation**: Segment changes into logical `feat`, `chore`, and `docs` commits.
+| Area | Required result |
+| --- | --- |
+| Behavior | Tests cover the success path, rejection path, and changed permission boundary. |
+| Contracts | Generated contract documentation matches the Pydantic schemas. |
+| Frontend | Lint, unit tests, build, and affected browser tests pass. |
+| Documentation | Markdown lint, link checks, and the strict MkDocs build pass. |
+| Deployment | Changed Compose combinations resolve successfully. |
+| Security | No credentials, clinical identifiers, or local environment files are staged. |
+| Commits | Each commit contains one coherent change. |

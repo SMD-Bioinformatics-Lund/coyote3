@@ -85,7 +85,8 @@ db.dashboard_metrics.getIndexes().filter(i => i.name === "updated_at_ttl_1")
 ```
 
 3. Ensure standard snapshot write transactions are actively appending the `updated_at` temporal field.
-4. Note that internal MongoDB TTL garbage collection routines execute asynchronously and lack strictly real-time millisecond guarantees.
+4. MongoDB removes expired TTL records asynchronously, so deletion may occur
+   after the configured expiry time.
 
 **Remediation Protocol:**
 

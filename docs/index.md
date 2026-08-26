@@ -10,8 +10,10 @@ review findings, prepare a report, and preserve the resulting audit record.
     [Production deployment](start_here/production_deployment.md). Developers
     evaluating Coyote3 locally should begin with the
     [Quickstart](start_here/quickstart.md).
-    Clinical and technical readers who need an end-to-end explanation can use
-    the [Application Manual](product/complete_application_manual.md).
+    Clinical users should use the
+    [complete user manual](user_guide/complete_user_manual.md). Developers and
+    maintainers should use the
+    [complete developer manual](developer/complete_developer_manual.md).
 
 ---
 
@@ -49,12 +51,13 @@ The platform separates browser, API, background, and persistence responsibilitie
 | --- | --- |
 | Run Coyote3 locally | [Quickstart](start_here/quickstart.md) |
 | Install or update production | [Production deployment](start_here/production_deployment.md) |
+| Use the application | [Complete user manual](user_guide/complete_user_manual.md) |
 | Review a DNA or RNA sample | [Clinical Workflow](user_guide/clinical_workflow_guide.md) |
 | Understand ASP, ASPC, ISGL, and samples | [Core Concepts](product/core_concepts.md) |
 | Prepare a center deployment | [Center Deployment](operations/center_deployment_guide.md) |
 | Configure environment and center files | [Configuration](start_here/configuration.md) |
 | Integrate with the API | [API Organization](api/api_organization.md) |
-| Develop or test the application | [Local Development](start_here/local_development.md) |
+| Develop or test the application | [Complete developer manual](developer/complete_developer_manual.md) |
 | Diagnose an operational problem | [Operational Troubleshooting](operations/troubleshooting.md) |
 
 ## Authoritative References

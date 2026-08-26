@@ -255,19 +255,19 @@ for clinically important boundaries.
 
 CI should run these checks:
 
-1. **Static Analysis**: Linting and formatting verification via the Ruff engine.
-2. **Functional Validation**: Execution of the complete localized test suite.
-3. **Boundary Verification**: Contract and schema consistency evaluation.
-4. **Documentation Accuracy**: Strict-mode build verification of operational manuals.
-5. **Compose Validation**: verification of Docker Compose configuration where relevant.
-6. **UI/API Contract Registry**: every literal API operation declared by the
+1. **Static analysis**: Ruff lint and formatting checks.
+2. **Tests**: Backend and frontend test suites.
+3. **Contract checks**: API and database schema consistency.
+4. **Documentation**: Markdown lint, link checks, and an MkDocs build with warnings treated as errors.
+5. **Compose validation**: Resolved Docker Compose configuration where relevant.
+6. **UI/API route registry**: Every literal API operation declared by the
    React route registry must resolve to a FastAPI route. This detects stale
    page contracts before manual browser validation.
-7. **Strict Type Boundary**: `mypy` strict mode covers authentication,
+7. **Strict type boundary**: `mypy` strict mode covers authentication,
    password, notification-email, and user-management modules. New modules are
    added to the configured boundary only after they pass strict mode; the
    boundary must not be weakened to admit a module.
-8. **Coverage Artifacts**: backend XML and frontend LCOV results are retained
+8. **Coverage artifacts**: Backend XML and frontend LCOV results are retained
    for seven days after default-branch and manually dispatched runs.
 
 ### GitHub Actions execution policy

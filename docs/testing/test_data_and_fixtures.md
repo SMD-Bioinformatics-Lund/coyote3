@@ -19,7 +19,9 @@ The `demo_data/ingest` repository contains strictly sanitized genomic artifacts 
 - Modeled visual assets (PNG) for reporting verification.
 - Validated YAML ingestion manifests.
 
-**Security Mandate**: All datasets maintained within the public repository must be purged of Protected Health Information (PHI) and clinical patient identifiers.
+**Repository rule**: Public test data must be synthetic or fully de-identified.
+It must not contain protected health information (PHI) or clinical patient
+identifiers.
 
 The pre-commit `sensitive-data` guard scans staged content before every commit.
 It blocks common credential formats, private environment and key files, known

@@ -1069,7 +1069,8 @@
 
 @media (min-width: 1280px) {
   .resizable-split-pane {
-    @apply flex-row items-stretch gap-4;
+    @apply flex-row items-stretch;
+    gap: clamp(0.25rem, 0.45vw, 0.5rem);
   }
 
   .resizable-split-primary {
@@ -1081,7 +1082,8 @@
   }
 
   .resizable-split-handle {
-    @apply relative flex w-9 shrink-0 touch-none cursor-col-resize items-center justify-center outline-none;
+    @apply relative flex shrink-0 touch-none cursor-col-resize items-center justify-center outline-none;
+    width: clamp(1.5rem, 1.45vw, 1.75rem);
   }
 
   .resizable-split-handle::before {
@@ -1090,7 +1092,9 @@
   }
 
   .resizable-split-handle > span {
-    @apply relative z-10 flex h-11 w-8 items-center justify-center rounded-xl text-muted-foreground;
+    @apply relative z-10 flex items-center justify-center rounded-xl text-muted-foreground;
+    width: clamp(1.35rem, 1.2vw, 1.6rem);
+    height: clamp(2rem, 2.15vw, 2.4rem);
     border: 1px solid var(--paper-edge);
     background: color-mix(in srgb, var(--paper-raised) 86%, transparent);
     backdrop-filter: blur(12px) saturate(1.05);
@@ -1114,7 +1118,8 @@
   }
 
   .resizable-split-handle svg {
-    @apply size-4;
+    width: clamp(0.7rem, 0.65vw, 0.82rem);
+    height: clamp(0.7rem, 0.65vw, 0.82rem);
   }
 }
 

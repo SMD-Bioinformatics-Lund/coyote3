@@ -13,9 +13,10 @@ Coyote3 is a clinical genomics review and reporting platform. It receives valida
 
 !!! info "Architecture reference"
 
-    For a workflow-first explanation across clinical, operational, and
-    engineering concerns, use the
-    [Complete Application Manual](../product/complete_application_manual.md).
+    For a concise end-to-end map, use the
+    [system overview](../product/complete_application_manual.md). For
+    implementation guidance, use the
+    [complete developer manual](../developer/complete_developer_manual.md).
 
 The application is organized around a few stable principles:
 
