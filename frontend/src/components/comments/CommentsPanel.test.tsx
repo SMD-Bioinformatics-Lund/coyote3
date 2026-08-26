@@ -8,6 +8,18 @@ import { CommentsPanel } from "./CommentsPanel"
 
 vi.mock("@/lib/api", () => ({ api: { post: vi.fn(), patch: vi.fn(), delete: vi.fn() } }))
 vi.mock("@/lib/notifications", () => ({ notifyActionError: vi.fn(), notifySuccess: vi.fn() }))
+const accessState = vi.hoisted(() => ({
+  permissions: [
+    "sample.comment:hide",
+    "sample.comment:unhide",
+    "variant.comment:hide",
+    "variant.comment:unhide",
+  ],
+}))
+vi.mock("@/lib/access-control", () => ({
+  useCurrentUserAccess: () => ({ data: { roles: [], permissions: accessState.permissions } }),
+  hasPermission: (user: { permissions?: string[] } | undefined, permission: string) => Boolean(user?.permissions?.includes(permission)),
+}))
 
 function renderPanel(node: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
@@ -16,6 +28,12 @@ function renderPanel(node: React.ReactElement) {
 
 describe("CommentsPanel", () => {
   beforeEach(() => {
+    accessState.permissions = [
+      "sample.comment:hide",
+      "sample.comment:unhide",
+      "variant.comment:hide",
+      "variant.comment:unhide",
+    ]
     vi.mocked(api.post).mockReset().mockResolvedValue({ data: {} } as never)
     vi.mocked(api.patch).mockReset().mockResolvedValue({ data: {} } as never)
     vi.mocked(api.delete).mockReset().mockResolvedValue({ data: {} } as never)
@@ -95,6 +113,7 @@ describe("CommentsPanel", () => {
         <CommentsPanel sampleId="CASE_1" comments={[{ _id: "c1", text: "Hidden note", hidden: true }]} showComposer={false} />
       </QueryClientProvider>,
     )
+    await user.click(screen.getByRole("button", { name: "Show hidden (1)" }))
     await user.click(screen.getByRole("button", { name: "Unhide" }))
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith("/samples/CASE_1/comments/c1/hidden", {}))
   })
@@ -110,6 +129,8 @@ describe("CommentsPanel", () => {
       />,
     )
 
+    expect(screen.queryByText("Hidden clinical note")).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Show hidden (1)" }))
     const hiddenComment = screen.getByRole("button", { name: "Hidden clinical note" })
     expect(hiddenComment).toBeDisabled()
     expect(hiddenComment).not.toHaveAttribute("title")
@@ -120,5 +141,23 @@ describe("CommentsPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Unhide" }))
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith("/samples/CASE_1/comments/c1/hidden", {}))
+  })
+
+  it("does not expose hidden comments or their visibility control without both permissions", () => {
+    accessState.permissions = ["sample.comment:hide"]
+    renderPanel(
+      <CommentsPanel
+        sampleId="CASE_1"
+        comments={[
+          { _id: "visible", text: "Active comment" },
+          { _id: "hidden", text: "Restricted hidden comment", hidden: true },
+        ]}
+        showComposer={false}
+      />,
+    )
+
+    expect(screen.getByText("Active comment")).toBeInTheDocument()
+    expect(screen.queryByText("Restricted hidden comment")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /show hidden/i })).not.toBeInTheDocument()
   })
 })

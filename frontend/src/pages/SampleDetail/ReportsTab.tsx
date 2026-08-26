@@ -4,6 +4,7 @@ import { Link } from "react-router-dom"
 import { Activity, AlertTriangle, Download, Eye, FileText, Save, ShieldCheck, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { apiPath } from "@/lib/runtime-paths"
+import { downloadBlob } from "@/lib/browser-download"
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { ReportHtmlFrame } from "@/components/reports/ReportHtmlFrame"
@@ -236,12 +237,7 @@ export function ReportsTab({
         throw new Error(message || `PDF request failed with ${response.status}`)
       }
       const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `${data?.sample?.name || sampleId}_${reportType}_preview.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
+      downloadBlob(blob, `${data?.sample?.name || sampleId}_${reportType}_preview.pdf`)
     },
     onSuccess: () => {
       const sampleName = data?.sample?.name || sampleId

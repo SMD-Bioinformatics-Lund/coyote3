@@ -6,7 +6,7 @@ import { api } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { TableBadge } from "@/components/ui/table-badge"
 import { Button } from "@/components/ui/button"
-import { FileText, ArrowRight, CalendarDays, Dna, Search as SearchIcon } from "lucide-react"
+import { FileText, Dna, Search as SearchIcon } from "lucide-react"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Input } from "@/components/ui/input"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -16,11 +16,20 @@ import { fullDateTime, humanRelativeDate, shortCount } from "@/lib/detail-format
 import { sampleDetailPath } from "@/lib/sample-routing"
 import { sampleSubpanel } from "@/lib/sample-shape"
 import { DataTable, type CsvExportColumn } from "@/components/data-table/DataTable"
+import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
 import { valueBadgeClass } from "@/lib/badge-colors"
 import { useUrlTableState } from "@/hooks/useUrlTableState"
 import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
 import { useTablePreferences } from "@/components/data-table/table-preferences"
 import { useCurrentUserAccess } from "@/lib/access-control"
+import {
+  DateRangeFilter,
+} from "@/components/filters/DateRangeFilter"
+import {
+  dateRangeLabel,
+  parseDateRangePreset,
+  resolveDateRange,
+} from "@/components/filters/date-range"
 import {
   sampleListLayoutForUser,
   sampleListModernViewTriedForUser,
@@ -30,17 +39,6 @@ import {
 } from "@/lib/user-settings"
 
 type SampleTab = "live" | "reported"
-type DateRangePreset = "all" | "today" | "1d" | "3d" | "7d" | "30d" | "custom"
-
-const DATE_RANGE_OPTIONS: Array<{ value: DateRangePreset; label: string }> = [
-  { value: "all", label: "All dates" },
-  { value: "today", label: "Today" },
-  { value: "1d", label: "Last 24 hours" },
-  { value: "3d", label: "Last 3 days" },
-  { value: "7d", label: "Last 7 days" },
-  { value: "30d", label: "Last 30 days" },
-  { value: "custom", label: "Custom range" },
-]
 
 const DEFAULT_LIVE_SORTING: SortingState = [{ id: "added", desc: true }]
 const DEFAULT_REPORTED_SORTING: SortingState = [{ id: "latest_reported", desc: true }]
@@ -117,36 +115,6 @@ function countBadges(sample: any) {
   return [...numericBadges, ...booleanBadges]
 }
 
-function localDateBoundary(value: string, nextDay = false) {
-  const [year, month, day] = value.split("-").map(Number)
-  if (!year || !month || !day) return null
-  const boundary = new Date(year, month - 1, day + (nextDay ? 1 : 0))
-  return Number.isNaN(boundary.getTime()) ? null : boundary.toISOString()
-}
-
-function resolveDateRange(preset: DateRangePreset, customFrom: string, customUntil: string) {
-  if (preset === "all") return { addedFrom: null, addedUntil: null }
-  if (preset === "custom") {
-    return {
-      addedFrom: customFrom ? localDateBoundary(customFrom) : null,
-      addedUntil: customUntil ? localDateBoundary(customUntil, true) : null,
-    }
-  }
-
-  const now = new Date()
-  if (preset === "today") {
-    return {
-      addedFrom: new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString(),
-      addedUntil: null,
-    }
-  }
-  const days = Number.parseInt(preset, 10)
-  return {
-    addedFrom: new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString(),
-    addedUntil: null,
-  }
-}
-
 function positivePage(value: string | null) {
   const parsed = Number(value)
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
@@ -181,10 +149,7 @@ export function Samples() {
   const profileScope = searchParams.get("profile_scope") === "all" ? "all" : DEFAULT_ENVIRONMENT
   const activeTab: SampleTab = searchParams.get("sample_tab") === "reported" ? "reported" : "live"
   const searchStr = searchParams.get("search_str") || ""
-  const rawDateRange = searchParams.get("date_range") || "all"
-  const dateRange: DateRangePreset = DATE_RANGE_OPTIONS.some(({ value }) => value === rawDateRange)
-    ? rawDateRange as DateRangePreset
-    : "all"
+  const dateRange = parseDateRangePreset(searchParams.get("date_range"))
   const customDateFrom = searchParams.get("date_from") || ""
   const customDateUntil = searchParams.get("date_until") || ""
   const requestedPageSize = Number(searchParams.get("sample_per_page") || preferredPageSize)
@@ -284,9 +249,6 @@ export function Samples() {
     else newParams.set(key, String(pageNumber))
     setSearchParams(newParams)
   }
-  const customDateRangeInvalid = Boolean(
-    customDateFromDraft && customDateUntilDraft && customDateFromDraft > customDateUntilDraft,
-  )
   const columns = useMemo<ColumnDef<any, any>[]>(() => [
     {
       id: "sample",
@@ -434,23 +396,7 @@ export function Samples() {
           : "",
         cellClassName: "whitespace-nowrap",
       },
-    },
-    {
-      id: "actions",
-      header: "Actions",
-      enableSorting: false,
-      cell: ({ row }) => (
-        <Link to={sampleDetailPath(row.original)}>
-          <Button variant="ghost" size="icon-xs" className="rounded-md shadow-sm hover:bg-primary hover:text-primary-foreground">
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </Link>
-      ),
-      meta: {
-        headerClassName: "text-center",
-        cellClassName: "text-center",
-      },
-    },
+    }
   ], [])
   const liveColumns = useMemo(
     () => columns.filter((column) => column.id !== "latest_reported"),
@@ -606,75 +552,34 @@ export function Samples() {
             {panelTech && <Badge variant="secondary" className="uppercase bg-primary/20 text-primary hover:bg-primary/30 rounded-md">{panelTech}</Badge>}
             {assay && <Badge variant="secondary" className="uppercase bg-primary/20 text-primary hover:bg-primary/30 rounded-md">{assay}</Badge>}
             {group && <Badge variant="secondary" className="uppercase bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md shadow-sm">{group}</Badge>}
-            {dateRange !== "all" && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 rounded-md">{DATE_RANGE_OPTIONS.find(({ value }) => value === dateRange)?.label}</Badge>}
+            {dateRange !== "all" && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 rounded-md">{dateRangeLabel(dateRange)}</Badge>}
             <Link to="/samples" className="text-xs font-bold text-destructive hover:underline ml-auto bg-destructive/10 px-3 py-1 rounded-md" onClick={() => setSearchInput("")}>Clear All</Link>
           </div>
         )}
 
         <div className="glass-card border-border/50 p-4">
           <div className="mb-3 flex flex-wrap items-end gap-3 border-b border-border/60 pb-3" aria-label="Sample date and limit filters">
-            <div className="space-y-1">
-              <label htmlFor="sample-date-range" className="block text-[11px] font-semibold text-muted-foreground">Date added</label>
-              <div className="relative">
-                <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <select
-                  id="sample-date-range"
-                  className="paper-inset h-9 min-w-[165px] rounded-lg pl-9 pr-8 text-sm font-medium"
-                  value={dateRange}
-                  onChange={(event) => updateSampleFilter("date_range", event.target.value, "all")}
-                >
-                  {DATE_RANGE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
-              </div>
-            </div>
-            {dateRange === "custom" && (
-              <>
-                <div className="space-y-1">
-                  <label htmlFor="sample-date-from" className="block text-[11px] font-semibold text-muted-foreground">From</label>
-                  <Input
-                    id="sample-date-from"
-                    type="date"
-                    className="h-9 w-[155px]"
-                    value={customDateFromDraft}
-                    onChange={(event) => setCustomDateFromDraft(event.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="sample-date-until" className="block text-[11px] font-semibold text-muted-foreground">Until</label>
-                  <Input
-                    id="sample-date-until"
-                    type="date"
-                    className="h-9 w-[155px]"
-                    value={customDateUntilDraft}
-                    onChange={(event) => setCustomDateUntilDraft(event.target.value)}
-                    aria-invalid={customDateRangeInvalid || undefined}
-                  />
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="h-9"
-                  disabled={customDateRangeInvalid}
-                  onClick={applyCustomDateRange}
-                >
-                  Apply dates
-                </Button>
-              </>
-            )}
+            <DateRangeFilter
+              idPrefix="sample-date"
+              preset={dateRange}
+              from={customDateFromDraft}
+              until={customDateUntilDraft}
+              onPresetChange={(preset) => updateSampleFilter("date_range", preset, "all")}
+              onFromChange={setCustomDateFromDraft}
+              onUntilChange={setCustomDateUntilDraft}
+              onApply={applyCustomDateRange}
+            />
             <div className="space-y-1">
               <label htmlFor="sample-page-size" className="block text-[11px] font-semibold text-muted-foreground">Maximum rows per page</label>
-              <select
+              <PageSizeSelect
                 id="sample-page-size"
-                className="paper-inset h-9 min-w-[105px] rounded-lg px-3 text-sm font-medium"
+                className="h-9 min-w-[105px] px-3 text-sm font-medium"
                 value={samplePageSize}
-                onChange={(event) => {
-                  const nextPageSize = Number(event.target.value)
+                onValueChange={(nextPageSize) => {
                   persistPageSize(nextPageSize)
-                  updateSampleFilter("sample_per_page", event.target.value, String(preferredPageSize))
+                  updateSampleFilter("sample_per_page", String(nextPageSize), String(preferredPageSize))
                 }}
-              >
-                {TABLE_PAGE_SIZE_OPTIONS.map((limit) => <option key={limit} value={limit}>{limit}</option>)}
-              </select>
+              />
             </div>
             <div className="ml-auto space-y-1">
               <span className="block text-[11px] font-semibold text-muted-foreground">Layout</span>
@@ -688,11 +593,6 @@ export function Samples() {
                 ]}
               />
             </div>
-            {customDateRangeInvalid && (
-              <p className="w-full text-xs font-medium text-destructive" role="alert">
-                The From date must be before or equal to the Until date.
-              </p>
-            )}
           </div>
           {sampleListLayout === "classic" && !modernViewTried && (
             <div className="mb-3">

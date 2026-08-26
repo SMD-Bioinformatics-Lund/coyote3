@@ -23,17 +23,10 @@ import {
 } from "lucide-react"
 import { api } from "@/lib/api"
 import { MarkdownText } from "@/components/comments/MarkdownText"
+import { CommentCard } from "@/components/comments/CommentCard"
 import { FindingResourceType } from "@/lib/finding-actions"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
-import { fullDateTime, humanRelativeDate } from "@/lib/detail-formatters"
-
-function dateLabel(value: unknown) {
-  return humanRelativeDate(value, "")
-}
-
-function fullDateLabel(value: unknown) {
-  return fullDateTime(value, "")
-}
+import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 
 const pathByResource: Record<FindingResourceType, string> = {
   small_variant: "small-variants",
@@ -164,14 +157,25 @@ export function CommentsPanel({
   const [global, setGlobal] = useState(false)
   const [mode, setMode] = useState<"edit" | "preview">("edit")
   const [isSuggestionLoading, setIsSuggestionLoading] = useState(false)
+  const [showHiddenComments, setShowHiddenComments] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const queryClient = useQueryClient()
+  const currentUserQuery = useCurrentUserAccess()
   const text = draftText ?? internalText
   const setText = onDraftChange ?? setInternalText
   const isDetailComposer = Boolean(resourceType && resource)
   const showSuggestion = enableSuggestion ?? !isDetailComposer
   const showLivePreview = livePreview ?? !isDetailComposer
   const showPreviewToggle = previewToggle ?? isDetailComposer
+  const permissionPrefix = resourceType ? "variant.comment" : "sample.comment"
+  const canHideComments = allowHide && hasPermission(currentUserQuery.data, `${permissionPrefix}:hide`)
+  const canUnhideComments = allowHide && hasPermission(currentUserQuery.data, `${permissionPrefix}:unhide`)
+  const canViewHiddenComments = canHideComments && canUnhideComments
+  const activeComments = comments.filter((comment) => !comment?.hidden)
+  const hiddenComments = comments.filter((comment) => Boolean(comment?.hidden))
+  const visibleComments = showHiddenComments && canViewHiddenComments
+    ? comments
+    : activeComments
 
   const invalidate = () => {
     queryKeys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }))
@@ -276,53 +280,46 @@ export function CommentsPanel({
         <MessageSquare className="h-4 w-4 text-tier2" />
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
         {showList && (
-          <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{comments.length}</span>
+          <div className="ml-auto flex items-center gap-2">
+            {canViewHiddenComments && hiddenComments.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowHiddenComments((current) => !current)}
+                className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-card px-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-pressed={showHiddenComments}
+              >
+                {showHiddenComments
+                  ? <EyeOff className="size-3.5" aria-hidden="true" />
+                  : <Eye className="size-3.5" aria-hidden="true" />}
+                {showHiddenComments ? "Hide hidden" : `Show hidden (${hiddenComments.length})`}
+              </button>
+            )}
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{activeComments.length}</span>
+          </div>
         )}
       </div>
 
-      {showList && <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
-        {comments.length ? comments.map((comment, index) => (
-          <div key={comment._id || index} className={`rounded-lg border border-border bg-background/70 p-2 ${comment.hidden ? "opacity-55" : ""}`}>
-            <div className="mb-1 flex items-center justify-between gap-2 text-xs">
-              <span className="font-bold">{comment.author || comment.user || "Unknown"}</span>
-              <span className="text-muted-foreground" title={fullDateLabel(comment.time_created || comment.created_at)}>
-                {dateLabel(comment.time_created || comment.created_at)}
-              </span>
-            </div>
-            <button
-              type="button"
-              disabled={Boolean(comment.hidden)}
-              onClick={() => {
-                if (comment.hidden) return
-                const commentText = comment.text || comment.comment || ""
-                setText(commentText)
-                onUseAsDraft?.(commentText)
-                setMode("edit")
-                window.setTimeout(() => textareaRef.current?.focus(), 0)
-              }}
-              className={comment.hidden
-                ? "block w-full cursor-default text-left"
-                : "block w-full text-left"
-              }
-              title={comment.hidden ? undefined : "Load this comment into the editor"}
-            >
-              <MarkdownText text={comment.text || comment.comment || ""} />
-            </button>
-            <div className="mt-2 flex flex-wrap gap-2">
-            {allowHide && comment._id && (
-              <button
-                onClick={() => toggleHidden.mutate({ commentId: String(comment._id), hidden: !comment.hidden })}
-                disabled={toggleHidden.isPending}
-                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-semibold hover:bg-muted"
-              >
-                {comment.hidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                {comment.hidden ? "Unhide" : "Hide"}
-              </button>
-            )}
-            </div>
-          </div>
+      {showList && <div className="max-h-160 space-y-2 overflow-y-auto p-1">
+        {visibleComments.length ? visibleComments.map((comment, index) => (
+          <CommentCard
+            key={comment._id || index}
+            comment={comment}
+            allowHide={comment.hidden ? canUnhideComments : canHideComments}
+            updating={toggleHidden.isPending}
+            onUseAsDraft={(commentText) => {
+              setText(commentText)
+              onUseAsDraft?.(commentText)
+              setMode("edit")
+              window.setTimeout(() => textareaRef.current?.focus(), 0)
+            }}
+            onToggleHidden={comment._id && (comment.hidden ? canUnhideComments : canHideComments)
+              ? () => toggleHidden.mutate({ commentId: String(comment._id), hidden: !comment.hidden })
+              : undefined}
+          />
         )) : (
-          <p className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">No comments available.</p>
+          <div className="flex min-h-20 items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 p-4 text-sm text-muted-foreground">
+            No comments available.
+          </div>
         )}
       </div>}
 

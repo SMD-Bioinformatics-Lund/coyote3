@@ -5,13 +5,9 @@ import { api } from "@/lib/api"
 import { TierBadge } from "@/lib/variant-ui"
 import { FindingResourceType, findingQueryKeys } from "@/lib/finding-actions"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
-import { fullDateTime } from "@/lib/detail-formatters"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state"
-
-function timeLabel(value: unknown) {
-  return fullDateTime(value, "")
-}
+import { CommentCard } from "@/components/comments/CommentCard"
 
 const tierButtonClasses: Record<number, string> = {
   1: "bg-tier1",
@@ -43,18 +39,13 @@ export function DetailCard({
 }
 
 export function CommentsCard({ comments = [], title = "Sample Comments" }: { comments?: any[]; title?: string }) {
+  const visibleComments = comments.filter((comment) => !comment?.hidden)
   return (
     <DetailCard title={title} icon={MessageSquare} tone="border-t-tier2">
-      {comments.length ? (
+      {visibleComments.length ? (
         <div className="space-y-2">
-          {comments.map((comment, index) => (
-            <div key={comment._id || index} className={`rounded-lg border border-border bg-background/70 p-3 text-sm ${comment.hidden ? "opacity-50" : ""}`}>
-              <div className="mb-1 flex justify-between gap-2 text-xs text-muted-foreground">
-                <span className="font-bold">{comment.author || comment.user || "Unknown"}</span>
-                <span>{timeLabel(comment.time_created || comment.created_at)}</span>
-              </div>
-              <p className="whitespace-pre-wrap text-sm">{comment.text || comment.comment || "-"}</p>
-            </div>
+          {visibleComments.map((comment, index) => (
+            <CommentCard key={comment._id || index} comment={comment} dateDisplay="full" allowHide={false} />
           ))}
         </div>
       ) : (

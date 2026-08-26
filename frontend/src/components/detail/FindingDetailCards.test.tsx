@@ -32,7 +32,7 @@ function renderWithQuery(ui: React.ReactNode) {
 }
 
 describe("finding detail cards", () => {
-  it("renders empty, visible, and hidden comments", () => {
+  it("renders active comments and excludes hidden comments", () => {
     const { rerender } = renderWithQuery(<CommentsCard />)
     expect(screen.getByText("No comments available.")).toBeInTheDocument()
     rerender(
@@ -44,7 +44,7 @@ describe("finding detail cards", () => {
       </QueryClientProvider>,
     )
     expect(screen.getByText("Visible note")).toBeInTheDocument()
-    expect(screen.getByText("Hidden note").closest("div.rounded-lg")).toHaveClass("opacity-50")
+    expect(screen.queryByText("Hidden note")).not.toBeInTheDocument()
   })
 
   it("renders a reusable card title and content", () => {

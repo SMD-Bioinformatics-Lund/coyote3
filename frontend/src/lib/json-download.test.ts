@@ -1,7 +1,12 @@
 import { downloadJson, withoutMongoIdentifiers } from "./json-download"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 describe("JSON download", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.useRealTimers()
+  })
+
   it("removes Mongo identifiers recursively without changing other fields", () => {
     expect(withoutMongoIdentifiers({
       _id: "root",
@@ -16,6 +21,7 @@ describe("JSON download", () => {
   })
 
   it("creates, clicks, and revokes a sanitized JSON download", async () => {
+    vi.useFakeTimers()
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined)
     const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test")
     const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined)
@@ -26,6 +32,8 @@ describe("JSON download", () => {
     const blob = create.mock.calls[0][0] as Blob
     expect(await blob.text()).toBe('{\n  "name": "S1"\n}\n')
     expect(click).toHaveBeenCalledOnce()
+    expect(revoke).not.toHaveBeenCalled()
+    vi.runAllTimers()
     expect(revoke).toHaveBeenCalledWith("blob:test")
   })
 })

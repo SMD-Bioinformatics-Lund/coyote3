@@ -116,22 +116,38 @@ export function VariantsTab({
   const columns: ColumnDef<any, any>[] = [
     {
       id: "select",
-      meta: { headerClassName: "text-center w-8", cellClassName: "text-center w-8" },
+      meta: {
+        headerClassName: "w-8 min-w-8 max-w-8",
+        cellClassName: "w-8 min-w-8 max-w-8",
+      },
       header: ({ table }) => (
-        <input
-          type="checkbox"
-          checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate" as any)}
-          onChange={table.getToggleAllPageRowsSelectedHandler()}
-          className="table-checkbox"
-        />
+        <div className="flex w-full items-center justify-center">
+          <input
+            type="checkbox"
+            checked={table.getIsAllPageRowsSelected()}
+            ref={(element) => {
+              if (element) {
+                element.indeterminate =
+                  table.getIsSomePageRowsSelected() &&
+                  !table.getIsAllPageRowsSelected()
+              }
+            }}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+            className="table-checkbox"
+            aria-label="Select all rows on this page"
+          />
+        </div>
       ),
       cell: ({ row }) => (
-        <input
-          type="checkbox"
-          checked={row.getIsSelected()}
-          onChange={row.getToggleSelectedHandler()}
-          className="table-checkbox"
-        />
+        <div className="flex w-full items-center justify-center">
+          <input
+            type="checkbox"
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+            className="table-checkbox"
+            aria-label="Select row"
+          />
+        </div>
       ),
       enableSorting: false,
     },
@@ -188,13 +204,13 @@ export function VariantsTab({
       id: "hgvs",
       header: "HGVS",
       accessorFn: (row) => `${row.INFO?.selected_CSQ?.HGVSc || ""} ${row.INFO?.selected_CSQ?.HGVSp || ""}`,
-      meta: { headerClassName: "w-56 min-w-52", cellClassName: "w-56 min-w-52" },
+      meta: { headerClassName: "w-44 min-w-36 max-w-48", cellClassName: "w-44 min-w-36 max-w-48" },
       cell: ({ row }) => {
         const csq = row.original.INFO?.selected_CSQ || {}
         return (
-          <div className="flex w-52 flex-col leading-tight">
-            <ExpandableText text={csq.HGVSc || "-"} maxLength={28} className="type-table-value leading-tight text-muted-foreground" />
-            <ExpandableText text={csq.HGVSp && csq.HGVSp !== "-" ? csq.HGVSp : "-"} maxLength={28} className="type-table-value-emphasis leading-tight text-foreground" />
+          <div className="flex min-w-0 flex-col leading-tight">
+            <ExpandableText text={csq.HGVSc || "-"} maxLength={32} className="type-table-value leading-tight text-muted-foreground" />
+            <ExpandableText text={csq.HGVSp && csq.HGVSp !== "-" ? csq.HGVSp : "-"} maxLength={32} className="type-table-value-emphasis leading-tight text-foreground" />
           </div>
         )
       }
@@ -203,7 +219,7 @@ export function VariantsTab({
       id: "exon",
       header: "Exon",
       accessorFn: (row) => row.INFO?.selected_CSQ?.EXON || "-",
-      meta: { headerClassName: "w-14", cellClassName: "w-14" },
+      meta: { headerClassName: "w-10 min-w-8 max-w-12", cellClassName: "w-10 min-w-8 max-w-12" },
       cell: ({ row }) => {
         const exon = row.original.INFO?.selected_CSQ?.EXON
         return <span className="type-table-value">{exon || "-"}</span>
@@ -213,7 +229,7 @@ export function VariantsTab({
       id: "intron",
       header: "Intron",
       accessorFn: (row) => row.INFO?.selected_CSQ?.INTRON || "-",
-      meta: { headerClassName: "w-14", cellClassName: "w-14" },
+      meta: { headerClassName: "w-12 min-w-10 max-w-14", cellClassName: "w-12 min-w-10 max-w-14" },
       cell: ({ row }) => {
         const intron = row.original.INFO?.selected_CSQ?.INTRON
         return <span className="type-table-value">{intron || "-"}</span>
@@ -239,7 +255,7 @@ export function VariantsTab({
     {
       id: "consequence",
       header: "Consequence",
-      meta: { headerClassName: "w-36 min-w-32", cellClassName: "w-36 min-w-32" },
+      meta: { headerClassName: "w-32 min-w-28 max-w-44", cellClassName: "w-32 min-w-28 max-w-44" },
       accessorFn: (row) => {
         const c = row.original.INFO?.selected_CSQ?.Consequence
         if (!c) return ""
@@ -261,27 +277,35 @@ export function VariantsTab({
       id: "popfreq",
       header: "PopFreq (%)",
       accessorFn: (row) => row.gnomad_frequency ?? null,
-      meta: { headerClassName: "w-20", cellClassName: "w-20" },
+      meta: { headerClassName: "w-16 min-w-16 max-w-20", cellClassName: "w-16 min-w-16 max-w-20" },
       cell: ({ row }) => {
         const freq = row.original.gnomad_frequency
-        return <span className="type-table-value type-numeric">{formatPopulationFrequency(freq)}</span>
+        return <span className="type-table-value type-numeric whitespace-nowrap">{formatPopulationFrequency(freq)}</span>
       }
     },
     {
       id: "hotspot",
-      header: "Hotspot",
+      header: () => (
+        <AppTooltip
+          context="Column"
+          label="Hotspot"
+          content="Indicates whether the variant matches a known clinically relevant hotspot."
+        >
+          <span className="cursor-help whitespace-nowrap">HS</span>
+        </AppTooltip>
+      ),
       accessorFn: hotspotExportValue,
       meta: {
         exportValue: hotspotExportValue,
-        headerClassName: "w-20 min-w-20",
-        cellClassName: "w-20 min-w-20",
+        headerClassName: "w-8 min-w-8 max-w-10",
+        cellClassName: "w-8 min-w-8 max-w-10",
       },
       cell: ({ row }) => <HotspotIndicator variant={row.original} />,
     },
     {
       id: "tier",
       accessorFn: tierValue,
-      meta: { exportValue: (row: any) => tierValue(row) === 999 ? "" : tierValue(row), headerClassName: "w-14 min-w-14", cellClassName: "w-14 min-w-14" },
+      meta: { exportValue: (row: any) => tierValue(row) === 999 ? "" : tierValue(row), headerClassName: "w-8 min-w-8 max-w-10", cellClassName: "w-8 min-w-8 max-w-10" },
       header: "Tier",
       size: 56,
       cell: ({ row }) => {
@@ -301,18 +325,18 @@ export function VariantsTab({
       id: "chrpos",
       header: "Chr:Pos",
       accessorFn: (row) => `${row.CHROM}:${row.POS}`,
-      meta: { headerClassName: "w-24 min-w-24", cellClassName: "w-24 min-w-24" },
+      meta: { headerClassName: "w-24 min-w-24 max-w-28", cellClassName: "w-24 min-w-24 max-w-28" },
       cell: ({ row }) => {
         const v = row.original
         const loc = `${v.CHROM}:${v.POS}`
         const igvUrl = igvLoadUrl(sampleId, loc)
         return (
           igvUrl ? (
-            <a href={igvUrl} target="_blank" rel="noreferrer" className="type-table-value inline-block rounded border border-border bg-muted px-1.5 py-0.5 text-muted-foreground shadow-sm transition-colors hover:bg-muted/80 hover:text-foreground dark:bg-muted/60">
+            <a href={igvUrl} target="_blank" rel="noreferrer" className="type-table-value inline-block whitespace-nowrap rounded border border-border bg-muted px-0.5 py-0 text-muted-foreground shadow-sm transition-colors hover:bg-muted/80 hover:text-foreground dark:bg-muted/60">
               {loc}
             </a>
           ) : (
-            <span className="type-table-value inline-block rounded border border-border bg-muted px-1.5 py-0.5 text-muted-foreground">{loc}</span>
+            <span className="type-table-value inline-block whitespace-nowrap rounded border border-border bg-muted px-0.5 py-0 text-muted-foreground">{loc}</span>
           )
         )
       }
@@ -321,21 +345,21 @@ export function VariantsTab({
       id: "flags",
       header: "Flags",
       accessorFn: (row) => filterFlags(row.FILTER).join(", "),
-      meta: { exportValue: (row: any) => filterFlags(row.FILTER).join(", "), headerClassName: "w-56 min-w-48", cellClassName: "w-56 min-w-48" },
+      meta: { exportValue: (row: any) => filterFlags(row.FILTER).join(", "), headerClassName: "w-36 min-w-28 max-w-48", cellClassName: "w-36 min-w-28 max-w-48" },
       cell: ({ row }) => {
         return <FilterFlagBadges value={row.original.FILTER} metadata={filterFlagMetadata} />
       }
     },
     {
       id: "case_vaf",
-      header: caseSample ? `Case (${caseSample})` : "Case",
+      header: caseSample ? `Case % (${caseSample})` : "Case %",
       accessorFn: (row) => {
         const caseGt = row.GT?.find((gt: any) => gt.type === "case")
         return caseGt ? caseGt.AF : 0
       },
       meta: {
-        headerClassName: "w-28 min-w-24",
-        cellClassName: "w-28 min-w-24",
+        headerClassName: "w-28 min-w-28 max-w-30",
+        cellClassName: "w-28 min-w-28 max-w-30",
         exportValue: (row: any) => {
           const gt = row.GT?.find((item: any) => item.type === "case")
           return gt ? `${(gt.AF * 100).toFixed(1)}% (${gt.VD}/${gt.DP})` : ""
@@ -344,8 +368,8 @@ export function VariantsTab({
       cell: ({ row }) => {
         const caseGt = row.original.GT?.find((gt: any) => gt.type === "case")
         return (
-          <div className="type-table-value flex items-center gap-1" title={caseGt ? `Case ${(caseGt.AF * 100).toFixed(1)}% (${caseGt.VD}/${caseGt.DP})` : "Case -"}>
-            <span className="font-medium">{caseGt ? `${(caseGt.AF * 100).toFixed(1)}%` : "-"}</span>
+          <div className="type-table-value flex items-center gap-1 whitespace-nowrap" title={caseGt ? `Case ${(caseGt.AF * 100).toFixed(1)} (${caseGt.VD}/${caseGt.DP})` : "Case -"}>
+            <span className="font-medium">{caseGt ? `${(caseGt.AF * 100).toFixed(1)}` : "-"}</span>
             <span className="text-muted-foreground">{caseGt ? `(${caseGt.VD}/${caseGt.DP})` : "-"}</span>
           </div>
         )
@@ -354,14 +378,14 @@ export function VariantsTab({
     ...(hasControlColumn ? [
       {
         id: "control_vaf",
-        header: controlSample ? `Control (${controlSample})` : "Control",
+        header: controlSample ? `Control % (${controlSample})` : "Control %",
         accessorFn: (row: any) => {
           const ctrlGt = row.GT?.find((gt: any) => gt.type === "control")
           return ctrlGt ? ctrlGt.AF : 0
         },
         meta: {
-          headerClassName: "w-28 min-w-24",
-          cellClassName: "w-28 min-w-24",
+          headerClassName: "w-28 min-w-28 max-w-30",
+          cellClassName: "w-28 min-w-28 max-w-30",
           exportValue: (row: any) => {
             const gt = row.GT?.find((item: any) => item.type === "control")
             return gt ? `${(gt.AF * 100).toFixed(1)}% (${gt.VD}/${gt.DP})` : ""
@@ -370,8 +394,8 @@ export function VariantsTab({
         cell: ({ row }: any) => {
           const ctrlGt = row.original.GT?.find((gt: any) => gt.type === "control")
           return (
-            <div className="type-table-value flex items-center gap-1" title={ctrlGt ? `Control ${(ctrlGt.AF * 100).toFixed(1)}% (${ctrlGt.VD}/${ctrlGt.DP})` : "Control -"}>
-              <span className="font-medium text-foreground/80">{ctrlGt ? `${(ctrlGt.AF * 100).toFixed(1)}%` : "-"}</span>
+            <div className="type-table-value flex items-center gap-1 whitespace-nowrap" title={ctrlGt ? `Control ${(ctrlGt.AF * 100).toFixed(1)}% (${ctrlGt.VD}/${ctrlGt.DP})` : "Control -"}>
+              <span className="font-medium text-foreground/80">{ctrlGt ? `${(ctrlGt.AF * 100).toFixed(1)}` : "-"}</span>
               <span className="text-muted-foreground">{ctrlGt ? `(${ctrlGt.VD}/${ctrlGt.DP})` : "-"}</span>
             </div>
           )
@@ -380,8 +404,8 @@ export function VariantsTab({
     ] : []),
     {
       id: "actions",
-      header: "Actions",
-      meta: { headerClassName: "w-14", cellClassName: "w-14" },
+      header: "",
+      meta: { headerClassName: "w-8 min-w-8 max-w-8", cellClassName: "w-8 min-w-8 max-w-8" },
       cell: ({ row }) => {
         return (
           <div className="flex items-center justify-start">

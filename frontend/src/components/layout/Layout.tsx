@@ -539,7 +539,7 @@ export function Layout() {
         </aside>
 
         <main ref={mainScrollRef} className="flex-1 overflow-y-auto">
-          <div className="w-full max-w-[2600px] px-4 py-3 2xl:px-6">
+          <div className="w-full max-w-[2600px] px-2 py-3 2xl:px-3">
             <Outlet />
           </div>
         </main>

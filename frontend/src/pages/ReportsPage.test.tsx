@@ -42,7 +42,7 @@ const payload = {
   ],
   total: 1,
   page: 1,
-  per_page: 30,
+  per_page: 50,
   has_next: false,
 }
 
@@ -58,7 +58,7 @@ describe("ReportsPage", () => {
     expect(screen.getByRole("heading", { name: "Saved Reports" })).toBeVisible()
     expect(screen.queryByRole("button", { name: /finalize/i })).not.toBeInTheDocument()
     expect(await screen.findByTestId("reports-table")).toHaveTextContent("1 reports")
-    expect(mocks.get).toHaveBeenCalledWith("/reports?page=1&per_page=30")
+    expect(mocks.get).toHaveBeenCalledWith("/reports?page=1&per_page=50")
     expect(mocks.table).toHaveBeenCalledWith(expect.objectContaining({
       data: payload.reports,
       totalCount: 1,

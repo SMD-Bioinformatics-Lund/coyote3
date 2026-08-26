@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
 import { DataTable } from "./DataTable"
+import { resolveTableDensity, resolveTableMinimumWidth } from "./table-density"
 import { csvCellText } from "@/lib/csv-export"
 
 type Row = { gene: string; tier: number; note: string }
@@ -20,6 +21,18 @@ const data: Row[] = [
 ]
 
 describe("DataTable", () => {
+  it("selects table density from both available width and column count", () => {
+    expect(resolveTableDensity(17, 1700)).toBe("compact")
+    expect(resolveTableDensity(17, 2200)).toBe("standard")
+    expect(resolveTableDensity(17, 2700)).toBe("relaxed")
+    expect(resolveTableDensity(14, 0)).toBe("compact")
+    expect(resolveTableDensity(9, 0)).toBe("standard")
+    expect(resolveTableDensity(5, 0)).toBe("relaxed")
+
+    expect(resolveTableMinimumWidth(17, "compact")).toBe("76.5rem")
+    expect(resolveTableMinimumWidth(3, "relaxed")).toBe("42rem")
+  })
+
   it("deduplicates list-valued CSV cells while preserving their order", () => {
     expect(csvCellText(["fusioncatcher", "FusionCatcher", "starfusion"])).toBe(
       "fusioncatcher | starfusion",
@@ -168,6 +181,8 @@ describe("DataTable", () => {
     expect(frame).toContainElement(viewport as HTMLElement)
     expect(frame).toContainElement(footer as HTMLElement)
     expect(table).toHaveStyle({ minWidth: "42rem" })
+    expect(table).toHaveAttribute("data-density", "relaxed")
+    expect(table).toHaveAttribute("data-column-count", "3")
     expect(screen.getByText("Gene").closest("th")).toHaveAttribute("data-column-id", "gene")
   })
 })

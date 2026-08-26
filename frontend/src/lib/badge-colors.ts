@@ -8,7 +8,7 @@ export const configuredValueClasses: Record<string, string> = {
   production: "matte-badge-production",
   development: "badge-info",
   testing: "badge-neutral",
-  validation: "badge-success",
+  validation: "badge-warning",
   hematology: "badge-danger",
   solid: "badge-warning",
   pgx: "badge-pgx",

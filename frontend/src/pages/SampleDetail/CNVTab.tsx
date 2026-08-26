@@ -13,7 +13,6 @@ import { findingRowClass, normalizedCallerList, statusLabels } from "@/lib/varia
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { findingBulkActionOptions } from "@/lib/finding-actions"
 import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state"
-import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import { sampleFileName, hasSampleFile } from "@/lib/sample-shape"
 import { apiPath } from "@/lib/runtime-paths"
 import { gensSampleUrl } from "@/lib/external-links"
@@ -231,27 +230,21 @@ export function CNVTab({ sampleId, header }: { sampleId: string; header?: ReactN
     },
     {
       id: "actions",
-      header: "Actions",
-      enableSorting: false,
+      header: "",
+      meta: { headerClassName: "w-8 min-w-8 max-w-8", cellClassName: "w-8 min-w-8 max-w-8" },
       cell: ({ row }) => {
         return (
-          <div className="flex items-center gap-1">
-            <VariantActionButtons
-              sampleId={sampleId}
-              resourceType="cnv"
-              variant={row.original}
-              compact
-            />
+          <div className="flex items-center justify-start">
             <AppTooltip
               context="Table action"
               label="View CNV details"
-              content="Open the complete copy-number finding, supporting evidence, comments, and review controls."
+              content="Open the complete CNV record, evidence, comments, and classification controls."
             >
               <Link
                 to={`/samples/${sampleId}/cnv/${row.original._id}`}
                 state={{ from: `${location.pathname}${location.search}` }}
                 aria-label="View CNV details"
-                className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-primary-foreground"
+                className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-white"
               >
                 <ExternalLink className="w-4 h-4" />
               </Link>

@@ -1,16 +1,15 @@
 import { useMutation } from "@tanstack/react-query"
 import { Activity, Download } from "lucide-react"
 import { api } from "@/lib/api"
+import { downloadText } from "@/lib/browser-download"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 
 function saveCsv(payload: any, fallbackFilename: string) {
-  const blob = new Blob([payload?.content || ""], { type: "text/csv;charset=utf-8" })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement("a")
-  link.href = url
-  link.download = payload?.filename || fallbackFilename
-  link.click()
-  URL.revokeObjectURL(url)
+  downloadText(
+    payload?.content || "",
+    payload?.filename || fallbackFilename,
+    "text/csv;charset=utf-8",
+  )
 }
 
 export function ServerCsvButton({

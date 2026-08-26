@@ -1,3 +1,5 @@
+import { downloadBlob } from "@/lib/browser-download"
+
 export type ChartDataRow = Record<string, unknown>
 
 export type ChartExportOptions = {
@@ -16,19 +18,6 @@ const EXPORT_SUBTITLE_HEIGHT = 20
 const EXPORT_HEADER_GAP = 16
 const EXPORT_LEGEND_GAP = 18
 const EXPORT_LEGEND_ROW_HEIGHT = 22
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement("a")
-  anchor.href = url
-  anchor.download = filename
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  // Keep the object URL alive until the browser has consumed the synthetic
-  // download click. Immediate revocation can cancel downloads in Chromium.
-  window.setTimeout(() => URL.revokeObjectURL(url), 0)
-}
 
 export function rowsToCsv(rows: ChartDataRow[]) {
   if (!rows.length) return ""

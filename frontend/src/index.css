@@ -294,28 +294,35 @@
   }
   .data-table-grid th,
   .data-table-grid td {
-    min-width: 0 !important;
-    max-width: none !important;
-    width: auto !important;
     white-space: normal;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
     word-break: normal;
   }
   .data-table-grid th[data-column-id="select"],
   .data-table-grid td[data-column-id="select"] {
-    width: 2.5rem !important;
+    width: 2.25rem !important;
+    min-width: 2.25rem !important;
+    max-width: 2.25rem !important;
   }
   .data-table-grid th[data-column-id="badges"],
   .data-table-grid td[data-column-id="badges"] {
-    width: 4rem !important;
+    width: 3.75rem !important;
+    min-width: 3.75rem !important;
+    max-width: 3.75rem !important;
   }
   .data-table-grid th[data-column-id="tier"],
   .data-table-grid td[data-column-id="tier"] {
     width: 3.75rem !important;
+    min-width: 3.75rem !important;
+    max-width: 3.75rem !important;
   }
-  .data-table-grid th[data-column-id="actions"],
-  .data-table-grid td[data-column-id="actions"] {
-    width: 6rem !important;
+  .data-table-grid td[data-column-id="popfreq"],
+  .data-table-grid td[data-column-id="hotspot"],
+  .data-table-grid td[data-column-id="tier"],
+  .data-table-grid td[data-column-id="chrpos"],
+  .data-table-grid td[data-column-id="case_vaf"],
+  .data-table-grid td[data-column-id="control_vaf"] {
+    white-space: nowrap;
   }
   .surface-panel-heading {
     margin-bottom: 0.9rem;

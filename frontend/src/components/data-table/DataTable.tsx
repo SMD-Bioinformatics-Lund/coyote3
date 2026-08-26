@@ -10,14 +10,16 @@ import {
   type PaginationState,
   type OnChangeFn,
 } from "@tanstack/react-table"
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Search, ArrowDownToLine, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { shortCount } from "@/lib/detail-formatters"
 import { cn } from "@/lib/utils"
 import { csvCellText } from "@/lib/csv-export"
 import { TableBadge } from "@/components/ui/table-badge"
 import { useTablePreferences } from "@/components/data-table/table-preferences"
-import { TABLE_PAGE_SIZE_OPTIONS } from "@/lib/user-settings"
+import { resolveTableDensity, resolveTableMinimumWidth } from "@/components/data-table/table-density"
+import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
+import { downloadText } from "@/lib/browser-download"
 
 export interface CsvExportColumn<TData> {
   header: string
@@ -79,6 +81,8 @@ export function DataTable<TData, TValue>({
   enablePagination = true,
   exportColumns,
 }: DataTableProps<TData, TValue>) {
+  const tableContainerRef = useRef<HTMLDivElement>(null)
+  const [tableContainerWidth, setTableContainerWidth] = useState(0)
   const { pageSize: preferredPageSize, setPageSize: persistPageSize } = useTablePreferences()
   const serverPaginated = Boolean(onPageChange)
   const effectivePageSize = perPage ?? preferredPageSize
@@ -175,25 +179,19 @@ export function DataTable<TData, TValue>({
   }
 
   const downloadCsv = (csvContent: string, downloadFilename: string) => {
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement("a")
-    const url = URL.createObjectURL(blob)
-    link.setAttribute("href", url)
-    link.setAttribute("download", downloadFilename)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    downloadText(csvContent, downloadFilename, "text/csv;charset=utf-8")
   }
 
-  const columnAlign = (columnId: string) => columnId === "tier" ? "center" : "left"
+  const columnAlign = (columnId: string) =>
+    columnId === "tier" || columnId === "select" ? "center" : "left"
   const defaultColumnClass = (columnId: string) => {
     if (columnId === "badges") return "w-14 min-w-14 max-w-14"
     if (columnId === "tier") return "w-14 min-w-14"
     return ""
   }
   const visibleColumnCount = table.getVisibleLeafColumns().length
-  const tableMinimumWidth = `${Math.min(96, Math.max(42, visibleColumnCount * 6.5))}rem`
+  const tableDensity = resolveTableDensity(visibleColumnCount, tableContainerWidth)
+  const tableMinimumWidth = resolveTableMinimumWidth(visibleColumnCount, tableDensity)
   const allFilteredRows = table.getPrePaginationRowModel().rows
   const visibleRows = table.getRowModel().rows
   const returnedCount = totalCount ?? allFilteredRows.length
@@ -205,6 +203,29 @@ export function DataTable<TData, TValue>({
     returnedCount,
     (page - 1) * effectivePageSize + visibleRows.length,
   )
+
+  useEffect(() => {
+    const container = tableContainerRef.current
+    if (!container) return
+
+    const updateWidth = (width?: number) => {
+      const nextWidth = Math.round(width ?? container.getBoundingClientRect().width)
+      setTableContainerWidth((current) => current === nextWidth ? current : nextWidth)
+    }
+    const handleWindowResize = () => updateWidth()
+    updateWidth()
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", handleWindowResize)
+      return () => window.removeEventListener("resize", handleWindowResize)
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      updateWidth(entries[0]?.contentRect.width)
+    })
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     setClientPagination((current) => ({
@@ -225,7 +246,7 @@ export function DataTable<TData, TValue>({
   }, [controlledSearch, globalFilter, tableStateKey])
 
   return (
-    <div className="flex min-w-0 flex-col">
+    <div ref={tableContainerRef} className="flex min-w-0 flex-col" data-table-density={tableDensity}>
       {/* Table Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 px-1.5 pb-3 pt-1">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -272,6 +293,8 @@ export function DataTable<TData, TValue>({
         <div className="data-table-viewport max-w-full overflow-x-auto overscroll-x-contain">
           <table
             className="data-table-grid type-table-cell w-full table-auto border-separate border-spacing-0 text-left type-numeric"
+            data-density={tableDensity}
+            data-column-count={visibleColumnCount}
             style={{ minWidth: tableMinimumWidth }}
           >
             <thead className="type-table-header border-b-2 border-border bg-[var(--header-surface)] text-foreground">
@@ -292,7 +315,8 @@ export function DataTable<TData, TValue>({
                         key={header.id}
                         data-column-id={header.column.id}
                         className={cn(
-                            "whitespace-normal break-words border-b-2 border-r border-border px-2 py-1 align-bottom leading-tight last:border-r-0",
+                          "whitespace-normal border-b-2 border-r border-border py-1 align-bottom leading-tight last:border-r-0",
+                          tableDensity === "compact" ? "px-1.5" : tableDensity === "standard" ? "px-2" : "px-3",
                           align === "center" ? "text-center" : "text-left",
                           defaultColumnClass(header.column.id),
                           meta?.headerClassName,
@@ -343,7 +367,8 @@ export function DataTable<TData, TValue>({
                           key={cell.id}
                           data-column-id={cell.column.id}
                           className={cn(
-                            "border-b border-r border-border/40 px-2 py-1.5 align-middle last:border-r-0",
+                            "border-b border-r border-border/40 py-1.5 align-middle last:border-r-0",
+                            tableDensity === "compact" ? "px-1.5" : tableDensity === "standard" ? "px-2" : "px-3",
                             align === "center" ? "text-center" : "text-left",
                             defaultColumnClass(cell.column.id),
                             meta?.cellClassName,
@@ -374,21 +399,14 @@ export function DataTable<TData, TValue>({
                 : `Showing ${visibleRows.length} of ${allFilteredRows.length} row(s)`}
           </span>
           {serverPaginated && onPerPageChange && (
-            <select
+            <PageSizeSelect
               value={effectivePageSize}
-              onChange={(event) => {
-                const nextPageSize = Number(event.target.value)
+              onValueChange={(nextPageSize) => {
                 persistPageSize(nextPageSize)
                 onPerPageChange(nextPageSize)
               }}
-              className="paper-inset rounded-lg px-2 py-1 text-xs font-semibold text-foreground outline-none focus:ring-3 focus:ring-ring/30"
-            >
-              {TABLE_PAGE_SIZE_OPTIONS.map((value) => (
-                <option key={value} value={value}>
-                  {value} / page
-                </option>
-              ))}
-            </select>
+              showPageSuffix
+            />
           )}
           {serverPaginated && (
             <div className="flex items-center gap-1">
@@ -413,19 +431,14 @@ export function DataTable<TData, TValue>({
           )}
           {!serverPaginated && paginated && (
             <>
-              <select
+              <PageSizeSelect
                 value={clientPagination.pageSize}
-                onChange={(event) => {
-                  const nextPageSize = Number(event.target.value)
+                onValueChange={(nextPageSize) => {
                   persistPageSize(nextPageSize)
                   setClientPagination({ pageIndex: 0, pageSize: nextPageSize })
                 }}
-                className="paper-inset rounded-lg px-2 py-1 text-xs font-semibold text-foreground outline-none focus:ring-3 focus:ring-ring/30"
-              >
-                {TABLE_PAGE_SIZE_OPTIONS.map((value) => (
-                  <option key={value} value={value}>{value} / page</option>
-                ))}
-              </select>
+                showPageSuffix
+              />
               <button
                 type="button"
                 disabled={clientPage <= 1}

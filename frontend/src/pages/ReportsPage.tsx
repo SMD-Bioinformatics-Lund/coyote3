@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
 import { Download, ExternalLink, FileText } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { DataTable } from "@/components/data-table/DataTable"
+import { useTablePreferences } from "@/components/data-table/table-preferences"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { TableBadge } from "@/components/ui/table-badge"
@@ -43,9 +44,15 @@ function findingSummary(row: ReportLibraryItem) {
 }
 
 export function ReportsPage() {
+  const { pageSize: preferredPageSize } = useTablePreferences()
   const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(30)
+  const [perPage, setPerPage] = useState(preferredPageSize)
   const [search, setSearch] = useState("")
+
+  useEffect(() => {
+    setPerPage(preferredPageSize)
+    setPage(1)
+  }, [preferredPageSize])
 
   const query = useQuery({
     queryKey: ["saved-report-library", page, perPage, search],

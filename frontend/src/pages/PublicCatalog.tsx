@@ -3,13 +3,14 @@ import { Link } from "react-router-dom"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Activity, Check, Download, Grid2X2, Info, ListTree, Search, X } from "lucide-react"
 import { api } from "@/lib/api"
+import { downloadText } from "@/lib/browser-download"
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { ColumnDef } from "@tanstack/react-table"
 import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
 import { useTablePreferences } from "@/components/data-table/table-preferences"
-import { TABLE_PAGE_SIZE_OPTIONS } from "@/lib/user-settings"
+import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
 
 export function PublicCatalog() {
   const [selection, setSelection] = useState<{ mod?: string; cat?: string; isgl_key?: string }>({})
@@ -32,13 +33,11 @@ export function PublicCatalog() {
       return api.get(`/public/assay-catalog/genes.csv/context?${csvParams.toString()}`).then((res) => res.data)
     },
     onSuccess: (payload) => {
-      const blob = new Blob([payload.content || ""], { type: "text/csv;charset=utf-8" })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = payload.filename || "assay_catalog_genes.csv"
-      link.click()
-      URL.revokeObjectURL(url)
+      downloadText(
+        payload.content || "",
+        payload.filename || "assay_catalog_genes.csv",
+        "text/csv;charset=utf-8",
+      )
     },
   })
 
@@ -660,14 +659,12 @@ function AssayMatrixTable({
         <div className="flex flex-wrap items-center justify-end gap-1.5">
           <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             Rows
-            <select
+            <PageSizeSelect
               value={perPage}
               disabled={Boolean(appliedGeneSearch)}
-              onChange={(event) => onPerPageChange(Number(event.target.value))}
+              onValueChange={onPerPageChange}
               className="h-8 rounded-lg border border-input bg-background px-2 text-xs font-semibold text-foreground disabled:opacity-50"
-            >
-              {TABLE_PAGE_SIZE_OPTIONS.map((value) => <option key={value} value={value}>{value}</option>)}
-            </select>
+            />
           </label>
           <button
             type="button"

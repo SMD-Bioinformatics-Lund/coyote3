@@ -29,7 +29,6 @@ import {
 import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { findingBulkActionOptions } from "@/lib/finding-actions"
 import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state"
-import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import {
   CLINICAL_TABLE_CACHE_MS,
   CLINICAL_TABLE_STALE_MS,
@@ -177,22 +176,15 @@ export function TranslocationsTab({ sampleId, header }: { sampleId: string; head
     },
     {
       id: "actions",
-      header: "Actions",
-      enableSorting: false,
+      header: "",
+      meta: { headerClassName: "w-8 min-w-8 max-w-8", cellClassName: "w-8 min-w-8 max-w-8" },
       cell: ({ row }) => {
         return (
-          <div className="flex items-center gap-1">
-            <VariantActionButtons
-              sampleId={sampleId}
-              resourceType="translocation"
-              variant={row.original}
-              compact
-              showActionLabel
-            />
+          <div className="flex items-center justify-start">
             <AppTooltip
               context="Table action"
               label="View translocation details"
-              content="Open the complete translocation record, transcript evidence, comments, and review controls."
+              content="Open the complete translocation record, evidence, comments, and classification controls."
             >
               <Link
                 to={`/samples/${sampleId}/translocation/${row.original._id}`}
@@ -206,7 +198,7 @@ export function TranslocationsTab({ sampleId, header }: { sampleId: string; head
           </div>
         )
       }
-    }
+    },
   ]
 
   return (

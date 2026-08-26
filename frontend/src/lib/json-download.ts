@@ -1,3 +1,5 @@
+import { downloadText } from "@/lib/browser-download"
+
 /** Download an application record without MongoDB implementation identifiers. */
 export function withoutMongoIdentifiers(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(withoutMongoIdentifiers)
@@ -11,13 +13,9 @@ export function withoutMongoIdentifiers(value: unknown): unknown {
 }
 
 export function downloadJson(filename: string, value: unknown): void {
-  const blob = new Blob([`${JSON.stringify(withoutMongoIdentifiers(value), null, 2)}\n`], {
-    type: "application/json",
-  })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement("a")
-  link.href = url
-  link.download = filename.endsWith(".json") ? filename : `${filename}.json`
-  link.click()
-  URL.revokeObjectURL(url)
+  downloadText(
+    `${JSON.stringify(withoutMongoIdentifiers(value), null, 2)}\n`,
+    filename.endsWith(".json") ? filename : `${filename}.json`,
+    "application/json",
+  )
 }
