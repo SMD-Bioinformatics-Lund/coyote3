@@ -157,7 +157,7 @@ export function Login() {
         </div>
 
         <section className="login-card">
-          <h2 className="text-2xl font-[750]">Welcome back</h2>
+          <h2 className="text-2xl font-bold">Welcome back</h2>
           <p className="text-muted-foreground mt-1 mb-4 text-sm">
             Sign in to continue.
           </p>

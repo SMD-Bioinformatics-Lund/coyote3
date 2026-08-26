@@ -71,7 +71,7 @@ export function ForgotPassword() {
       title="Reset local access"
       description="Request a password reset token for a local Coyote3 account."
     >
-      <h2 className="text-2xl font-[750]">Forgot password</h2>
+      <h2 className="text-2xl font-bold">Forgot password</h2>
       <p className="mb-6 mt-1.5 text-sm text-muted-foreground">
         Enter the username or email registered for your local account.
       </p>
@@ -130,7 +130,7 @@ export function ResetPassword() {
       title="Set a new password"
       description="Complete the local account password reset flow with the reset token."
     >
-      <h2 className="text-2xl font-[750]">Reset password</h2>
+      <h2 className="text-2xl font-bold">Reset password</h2>
       <p className="mb-6 mt-1.5 text-sm text-muted-foreground">
         Paste the token from the reset link if it was not included in the URL.
       </p>

@@ -7,7 +7,9 @@ import {
   DetailFieldGrid,
   FindingDetailShell,
   FindingError,
-  FindingHero,
+  DetailHero,
+  DetailHeroSubtitle,
+  FindingIdentityCard,
   FindingLoading,
   FindingMainGrid,
 } from "./FindingDetailLayout"
@@ -34,7 +36,7 @@ describe("finding detail layout", () => {
     render(
       <MemoryRouter>
         <FindingDetailShell>
-          <FindingHero
+          <DetailHero
             backTo="/samples/S1"
             title="TP53"
             subtitle="p.Arg175His"
@@ -70,11 +72,39 @@ describe("finding detail layout", () => {
   it("omits optional hero and aside regions", () => {
     render(
       <MemoryRouter>
-        <FindingHero backTo="/samples/S1" title="CNV" />
+        <DetailHero backTo="/samples/S1" title="CNV" />
         <FindingMainGrid main={<span>Main content</span>} />
       </MemoryRouter>,
     )
     expect(screen.getByText("Main content")).toBeInTheDocument()
     expect(screen.queryByText("Max VAF")).not.toBeInTheDocument()
+  })
+
+  it("renders the shared slim subtitle and sample badge", () => {
+    render(
+      <MemoryRouter>
+        <DetailHeroSubtitle sampleHref="/samples/S1" sampleName="S1">
+          p.Arg175His
+        </DetailHeroSubtitle>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText("p.Arg175His")).toHaveClass("detail-hero-subtitle")
+    expect(screen.getByRole("link", { name: "Sample S1" })).toHaveClass("detail-hero-sample-chip")
+  })
+
+  it("renders a shared identity summary with labelled fields", () => {
+    render(
+      <MemoryRouter>
+        <FindingIdentityCard title="CNV Identity">
+          <DetailField label="Region">7:100-1100</DetailField>
+          <DetailField label="Type">Gain</DetailField>
+        </FindingIdentityCard>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole("heading", { name: "CNV Identity" })).toBeVisible()
+    expect(screen.getByText("Region")).toBeVisible()
+    expect(screen.getByText("7:100-1100")).toBeVisible()
   })
 })

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { ExpandableText } from "@/components/detail/ExpandableText"
@@ -18,10 +18,11 @@ import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
 import {
   DetailCard,
   DetailField,
-  DetailFieldGrid,
   FindingDetailShell,
   FindingError,
-  FindingHero,
+  DetailHero,
+  DetailHeroSubtitle,
+  FindingIdentityCard,
   FindingLoading,
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
@@ -147,7 +148,7 @@ export function VariantDetail() {
 
   return (
     <FindingDetailShell>
-      <FindingHero
+      <DetailHero
         backTo={previousSampleHref}
         title={
           <span className="inline-flex items-center gap-2">
@@ -162,14 +163,11 @@ export function VariantDetail() {
           </span>
         }
         subtitle={
-          <div className="space-y-2">
-            <span className="block text-xl font-bold text-muted-foreground">
+          <DetailHeroSubtitle sampleHref={sampleHref} sampleName={sample?.name || id}>
+            <span>
               <ExpandableText text={titleVariantId} maxLength={30} className="inline-flex" />
             </span>
-            <Link to={sampleHref} className="inline-flex w-max rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
-              Sample {sample?.name || id}
-            </Link>
-          </div>
+          </DetailHeroSubtitle>
         }
         chips={
           <div className="flex flex-wrap items-center gap-2">
@@ -193,50 +191,49 @@ export function VariantDetail() {
         main={
           <>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <DetailCard title="Variant Identity">
-                <DetailFieldGrid>
-                  <DetailField label="Gene">
-                    <GeneWithOncoKbBadge
-                      gene={resolvedGene}
-                      displayGene={displayGene}
-                      resolvedGene={resolvedGene}
-                      hgncId={csq.HGNC_ID}
-                      record={data.oncokb_gene}
-                      showOncoKbBadge={false}
-                    />
-                  </DetailField>
-                  <DetailField label="Canonical transcript" valueClassName="text-primary/80">{csq.Feature}</DetailField>
-                  <DetailField label="Consequence">
-                    <ConsequenceBadges value={csq.Consequence} translations={data.vep_conseq_translations} />
-                  </DetailField>
-                  <DetailField label="Impact"><ImpactBadge value={csq.IMPACT} /></DetailField>
-                  <DetailField label="Variant class">{data.vep_var_class_translations?.[variant?.variant_class]?.display_name || variant?.variant_class || csq.VARIANT_CLASS || "-"}</DetailField>
-                  <DetailField label="Hotspot"><HotspotIndicator variant={variant} showLabel /></DetailField>
-                  <DetailField label="Position" valueClassName="">{variantLocation(variant)}</DetailField>
-                  <DetailField label="Filter flags"><FilterFlagBadges value={variant?.FILTER} metadata={filterFlagMetadata} /></DetailField>
-                  <DetailField label="cDNA"><ExpandableText text={csq.HGVSc || "-"} maxLength={24} className="" /></DetailField>
-                  <DetailField label="Protein"><ExpandableText text={csq.HGVSp || "-"} maxLength={24} className="" /></DetailField>
-                  <DetailField label="Exon / Intron">{csq.EXON || csq.INTRON || "-"}</DetailField>
-                  <DetailField label="Indel size">{variant?.INFO?.SVLEN || variant?.indel_size || "-"}</DetailField>
-                </DetailFieldGrid>
-              </DetailCard>
+              <FindingIdentityCard title="Variant Identity">
+                <DetailField label="Gene">
+                  <GeneWithOncoKbBadge
+                    gene={resolvedGene}
+                    displayGene={displayGene}
+                    resolvedGene={resolvedGene}
+                    hgncId={csq.HGNC_ID}
+                    record={data.oncokb_gene}
+                    showOncoKbBadge={false}
+                  />
+                </DetailField>
+                <DetailField label="Canonical transcript" valueClassName="text-primary/80">{csq.Feature}</DetailField>
+                <DetailField label="Consequence">
+                  <ConsequenceBadges value={csq.Consequence} translations={data.vep_conseq_translations} />
+                </DetailField>
+                <DetailField label="Impact"><ImpactBadge value={csq.IMPACT} /></DetailField>
+                <DetailField label="Variant class">{data.vep_var_class_translations?.[variant?.variant_class]?.display_name || variant?.variant_class || csq.VARIANT_CLASS || "-"}</DetailField>
+                <DetailField label="Hotspot"><HotspotIndicator variant={variant} showLabel /></DetailField>
+                <DetailField label="Position">{variantLocation(variant)}</DetailField>
+                <DetailField label="Filter flags"><FilterFlagBadges value={variant?.FILTER} metadata={filterFlagMetadata} /></DetailField>
+                <DetailField label="cDNA"><ExpandableText text={csq.HGVSc || "-"} maxLength={24} className="" /></DetailField>
+                <DetailField label="Protein"><ExpandableText text={csq.HGVSp || "-"} maxLength={24} className="" /></DetailField>
+                <DetailField label="Exon / Intron">{csq.EXON || csq.INTRON || "-"}</DetailField>
+                <DetailField label="Indel size">{variant?.INFO?.SVLEN || variant?.indel_size || "-"}</DetailField>
+              </FindingIdentityCard>
 
-            <div className="lg:col-span-2">
-              <CommentsPanel
-                sampleId={sampleRouteKey}
-                title="Add Comment Or Annotation"
-                resourceType="small_variant"
-                resource={variant}
-                comments={[]}
-                showList={false}
-                assayGroup={data.assay_group}
-                subpanel={data.subpanel}
-                queryKeys={[["variant", id, varId]]}
-                enableSuggestion={false}
-                livePreview={false}
-                draftText={commentDraft}
-                onDraftChange={setCommentDraft}
-              />
+              <div className="h-full lg:col-span-2">
+                <CommentsPanel
+                  sampleId={sampleRouteKey}
+                  title="Add Comment Or Annotation"
+                  resourceType="small_variant"
+                  resource={variant}
+                  comments={[]}
+                  showList={false}
+                  assayGroup={data.assay_group}
+                  subpanel={data.subpanel}
+                  queryKeys={[["variant", id, varId]]}
+                  enableSuggestion={false}
+                  livePreview={false}
+                  draftText={commentDraft}
+                  onDraftChange={setCommentDraft}
+                  fillHeight
+                />
               </div>
             </div>
 
@@ -280,7 +277,7 @@ export function VariantDetail() {
                       {variant?.GT?.map((gt: any, i: number) => (
                         <tr key={i}>
                           <td className="px-3 py-1 capitalize font-semibold">{gt.type}</td>
-                          <td className="px-3 py-1 ">{(gt.AF * 100).toFixed(1)}%</td>
+                          <td className="type-allele-frequency px-3 py-1">{(gt.AF * 100).toFixed(1)}%</td>
                           <td className="px-3 py-1 ">{gt.VD}</td>
                           <td className="px-3 py-1 ">{gt.DP}</td>
                         </tr>
@@ -544,6 +541,7 @@ export function VariantDetail() {
                 columns={[
                   { key: "sample", header: "Sample", render: (row: any) => row.sample_name || row.sample || row.SAMPLE || row.name || "-" },
                   { key: "assay_group", header: "Assay group", render: (row: any) => row.assay_group || "-" },
+                  { key: "vaf", header: "VAF", render: (row: any) => <span className="type-allele-frequency">{percentValue(row.vaf, 1)}</span> },
                   { key: "tier", header: "Tier", render: (row: any) => <TierBadge tier={row.classification?.class ?? row.class ?? row.tier} /> },
                 ]}
               />

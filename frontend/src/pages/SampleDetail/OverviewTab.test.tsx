@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), del
 vi.mock("@/lib/api", () => ({ api: mocks }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: vi.fn(), notifyActionError: vi.fn() }))
 
-import { BiomarkerRow, OverviewTab, PanelSummary } from "./OverviewTab"
+import { OverviewTab, PanelSummary } from "./OverviewTab"
 
 function wrapper(ui: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
@@ -84,42 +84,6 @@ describe("sample overview presentation", () => {
     mocks.delete.mockResolvedValue({ data: {} })
   })
 
-  it("renders only valid biomarker values with informative tooltips", async () => {
-    const user = userEvent.setup()
-    wrapper(<BiomarkerRow context={context} />)
-    expect(screen.getByText("MSI (Single):")).toBeVisible()
-    expect(screen.getByText("0.12%")).toBeVisible()
-    expect(screen.getByText("HRD:")).toBeVisible()
-    expect(screen.getByText("21")).toBeVisible()
-    await user.hover(screen.getByText("MSI (Single):"))
-    expect(screen.getByText("Total: 100; Somatic: 12")).toBeVisible()
-  })
-
-  it("renders case purity as a percentage summary", async () => {
-    const user = userEvent.setup()
-    wrapper(<BiomarkerRow sample={sample} />)
-    expect(screen.getByText("Purity:")).toBeVisible()
-    expect(screen.getByText("72%")).toBeVisible()
-    await user.hover(screen.getByText("Purity:"))
-    expect(screen.getByText(/Estimated tumor purity/)).toBeVisible()
-  })
-
-  it("renders the FFPE summary only for FFPE case material", async () => {
-    const user = userEvent.setup()
-    const { rerender } = wrapper(<BiomarkerRow sample={{ ...sample, case: { ...sample.case, ffpe: true } }} />)
-    expect(screen.getByText("FFPE:")).toBeVisible()
-    expect(screen.getByText("Yes")).toBeVisible()
-    await user.hover(screen.getByText("FFPE:"))
-    expect(screen.getByText(/formalin-fixed, paraffin-embedded/)).toBeVisible()
-
-    rerender(
-      <QueryClientProvider client={new QueryClient()}>
-        <MemoryRouter><BiomarkerRow sample={sample} /></MemoryRouter>
-      </QueryClientProvider>,
-    )
-    expect(screen.queryByText("FFPE:")).not.toBeInTheDocument()
-  })
-
   it("summarizes selected panels and expands gene-level coverage", async () => {
     const user = userEvent.setup()
     wrapper(<PanelSummary sample={sample} context={context} />)
@@ -133,9 +97,6 @@ describe("sample overview presentation", () => {
   it("shows the clinical sample summary, selected analyses, fallback warning, and files", async () => {
     wrapper(<OverviewTab sampleId="CASE_001" sample={sample} context={context} />)
 
-    expect(screen.getByRole("heading", { name: /^CASE_001/ })).toBeVisible()
-    expect(screen.getByText("Paired")).toBeVisible()
-    expect(screen.getByText("Unreported")).toBeVisible()
     expect(screen.getByText("1.4K raw")).toBeVisible()
     expect(screen.getByText("187 filtered")).toBeVisible()
     expect(screen.getByText("3 raw")).toBeVisible()
@@ -233,7 +194,6 @@ describe("sample overview presentation", () => {
       aspc_resolution: undefined,
     }
     wrapper(<OverviewTab sampleId="CASE_002" sample={unpaired} context={{ analysis_sections: ["snv"] }} />)
-    expect(screen.getByText("Unpaired")).toBeVisible()
     expect(screen.getByText("Missing")).toBeVisible()
     expect(screen.getAllByText("Not paired").length).toBeGreaterThan(1)
     expect(screen.queryByText("Base configuration in use.")).not.toBeInTheDocument()

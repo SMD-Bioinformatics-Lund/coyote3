@@ -97,7 +97,7 @@ describe("structural finding detail pages", () => {
 
     mount("/samples/DNA_002/translocation/T1", "/samples/:id/translocation/:varId", <TranslocationDetail />)
 
-    expect(await screen.findByText("Translocation Properties")).toBeVisible()
+    expect(await screen.findByText("Translocation Identity")).toBeVisible()
     expect(screen.getAllByText("KMT2A").length).toBeGreaterThan(0)
     expect(screen.getAllByText("ENST00000534358").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Transcript ablation").length).toBeGreaterThan(0)

@@ -35,9 +35,11 @@ vi.mock("@tanstack/react-query", () => ({
 }))
 
 vi.mock("./OverviewTab", () => ({
-  BiomarkerRow: () => <div>Biomarkers</div>,
   OverviewTab: () => <div>Overview content</div>,
   PanelSummary: () => <div>Panel summary</div>,
+}))
+vi.mock("./SampleDetailHero", () => ({
+  SampleDetailHero: ({ sample }: { sample: { name?: string } }) => <div>Sample hero {sample.name}</div>,
 }))
 vi.mock("./VariantsTab", () => ({ VariantsTab: ({ intent }: { intent: string }) => <div>{intent} variants</div> }))
 vi.mock("./CNVTab", () => ({ CNVTab: () => <div>CNV content</div> }))

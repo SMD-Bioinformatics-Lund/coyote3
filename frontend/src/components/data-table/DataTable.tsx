@@ -367,7 +367,8 @@ export function DataTable<TData, TValue>({
                           key={cell.id}
                           data-column-id={cell.column.id}
                           className={cn(
-                            "border-b border-border/55 py-1.5 align-middle",
+                            "border-b border-border/55 align-middle",
+                            tableDensity === "compact" ? "py-1" : "py-1.5",
                             tableDensity === "compact" ? "px-1.5" : tableDensity === "standard" ? "px-2" : "px-3",
                             align === "center" ? "text-center" : "text-left",
                             defaultColumnClass(cell.column.id),

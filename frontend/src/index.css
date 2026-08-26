@@ -48,6 +48,8 @@
     font-synthesis: none;
     font-kerning: normal;
     text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   .link-text {
     color: var(--link);
@@ -298,9 +300,6 @@
     overflow-wrap: break-word;
     word-break: normal;
   }
-  .data-table-grid tbody .font-bold {
-    font-weight: 600;
-  }
   .data-table-grid th[data-column-id="select"],
   .data-table-grid td[data-column-id="select"] {
     width: 2.25rem !important;
@@ -474,6 +473,15 @@
     background: var(--paper-surface);
     box-shadow: 0 1px 3px var(--paper-shadow);
   }
+  .detail-hero-subtitle {
+    @apply text-lg font-medium leading-snug text-muted-foreground;
+  }
+  .detail-hero-sample-chip {
+    @apply inline-flex w-max items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium leading-5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary;
+  }
+  .detail-hero-callers .type-badge {
+    @apply min-h-5 min-w-5 px-1.5 py-0 text-[0.6875rem] font-medium shadow-none;
+  }
   .detail-card,
   .detail-card-accent {
     @apply p-3;
@@ -494,13 +502,51 @@
     box-shadow: 0 1px 2px var(--paper-shadow);
   }
   .detail-section-title {
-    @apply mb-3 border-b border-border pb-2 text-sm font-black uppercase tracking-wide text-foreground;
+    @apply mb-3 border-b border-border pb-2 text-sm font-semibold uppercase tracking-wide text-foreground;
   }
   .detail-field-label {
     @apply mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted-foreground;
   }
   .detail-field-value {
     @apply min-w-0 break-words text-sm font-semibold text-foreground;
+  }
+  .detail-identity-card {
+    background:
+      linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--paper-raised) 97%, var(--primary)) 0%,
+        var(--paper-raised) 62%
+      );
+  }
+  .detail-identity-card .detail-section-title {
+    @apply mb-1 pb-2.5;
+  }
+  .detail-identity-icon {
+    @apply inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-primary;
+    border: 1px solid color-mix(in srgb, var(--paper-edge) 72%, var(--primary));
+    background: color-mix(in srgb, var(--paper-raised) 88%, var(--primary));
+  }
+  .detail-identity-card .detail-field-grid {
+    @apply gap-0 px-1;
+  }
+  .detail-identity-card .detail-field-grid > div {
+    @apply py-2.5;
+    border-bottom: 1px solid color-mix(in srgb, var(--paper-edge) 82%, transparent);
+  }
+  .detail-identity-card .detail-field-label {
+    @apply mb-1 text-[10px] font-semibold;
+  }
+  .detail-identity-card .detail-field-value {
+    @apply text-[0.9375rem] font-medium leading-snug;
+  }
+  @media (min-width: 640px) {
+    .detail-identity-card .detail-field-grid > div:nth-child(odd) {
+      @apply pr-3;
+    }
+    .detail-identity-card .detail-field-grid > div:nth-child(even) {
+      @apply pl-3;
+      border-left: 1px solid color-mix(in srgb, var(--paper-edge) 82%, transparent);
+    }
   }
   .detail-stat-positive {
     @apply text-xl font-black text-tier4;
@@ -875,7 +921,7 @@
   }
 
   .login-title {
-    @apply text-[clamp(2.5rem,5vw,4rem)] leading-[1.02] font-[760] tracking-[-0.055em];
+    @apply text-[clamp(2.5rem,5vw,4rem)] font-bold leading-[1.02] tracking-[-0.055em];
   }
 
   .login-description {

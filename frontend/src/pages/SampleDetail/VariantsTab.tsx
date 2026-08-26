@@ -208,9 +208,9 @@ export function VariantsTab({
       cell: ({ row }) => {
         const csq = row.original.INFO?.selected_CSQ || {}
         return (
-          <div className="flex min-w-0 flex-col leading-tight">
-            <ExpandableText text={csq.HGVSc || "-"} maxLength={32} className="type-table-value leading-tight text-muted-foreground" />
-            <ExpandableText text={csq.HGVSp && csq.HGVSp !== "-" ? csq.HGVSp : "-"} maxLength={32} className="type-table-value-emphasis leading-tight text-foreground" />
+          <div className="flex min-w-0 flex-col gap-0 leading-[1.2] text-foreground">
+            <ExpandableText text={csq.HGVSc || "-"} maxLength={32} className="type-table-value leading-[1.2] text-foreground/80" />
+            <ExpandableText text={csq.HGVSp && csq.HGVSp !== "-" ? csq.HGVSp : "-"} maxLength={32} className="type-table-value-emphasis leading-[1.2] text-foreground" />
           </div>
         )
       }
@@ -368,9 +368,9 @@ export function VariantsTab({
       cell: ({ row }) => {
         const caseGt = row.original.GT?.find((gt: any) => gt.type === "case")
         return (
-          <div className="type-table-value flex items-center gap-1 whitespace-nowrap" title={caseGt ? `Case ${(caseGt.AF * 100).toFixed(1)} (${caseGt.VD}/${caseGt.DP})` : "Case -"}>
-            <span>{caseGt ? `${(caseGt.AF * 100).toFixed(1)}` : "-"}</span>
-            <span className="text-muted-foreground">{caseGt ? `(${caseGt.VD}/${caseGt.DP})` : "-"}</span>
+          <div className="type-table-value flex items-center gap-1 whitespace-nowrap text-foreground" title={caseGt ? `Case ${(caseGt.AF * 100).toFixed(1)} (${caseGt.VD}/${caseGt.DP})` : "Case -"}>
+            <span className="type-allele-frequency">{caseGt ? `${(caseGt.AF * 100).toFixed(1)}` : "-"}</span>
+            <span className="font-normal text-foreground">{caseGt ? `(${caseGt.VD}/${caseGt.DP})` : "-"}</span>
           </div>
         )
       }
@@ -394,9 +394,9 @@ export function VariantsTab({
         cell: ({ row }: any) => {
           const ctrlGt = row.original.GT?.find((gt: any) => gt.type === "control")
           return (
-            <div className="type-table-value flex items-center gap-1 whitespace-nowrap" title={ctrlGt ? `Control ${(ctrlGt.AF * 100).toFixed(1)}% (${ctrlGt.VD}/${ctrlGt.DP})` : "Control -"}>
-              <span className="text-foreground">{ctrlGt ? `${(ctrlGt.AF * 100).toFixed(1)}` : "-"}</span>
-              <span className="text-muted-foreground">{ctrlGt ? `(${ctrlGt.VD}/${ctrlGt.DP})` : "-"}</span>
+            <div className="type-table-value flex items-center gap-1 whitespace-nowrap text-foreground" title={ctrlGt ? `Control ${(ctrlGt.AF * 100).toFixed(1)}% (${ctrlGt.VD}/${ctrlGt.DP})` : "Control -"}>
+              <span className="type-allele-frequency">{ctrlGt ? `${(ctrlGt.AF * 100).toFixed(1)}` : "-"}</span>
+              <span className="font-normal text-foreground">{ctrlGt ? `(${ctrlGt.VD}/${ctrlGt.DP})` : "-"}</span>
             </div>
           )
         }

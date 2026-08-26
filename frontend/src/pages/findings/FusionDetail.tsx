@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
@@ -19,10 +19,11 @@ import { displayValue } from "@/lib/detail-formatters"
 import {
   DetailCard,
   DetailField,
-  DetailFieldGrid,
   FindingDetailShell,
   FindingError,
-  FindingHero,
+  DetailHero,
+  DetailHeroSubtitle,
+  FindingIdentityCard,
   FindingLoading,
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
@@ -98,18 +99,15 @@ export function FusionDetail() {
 
   return (
     <FindingDetailShell>
-      <FindingHero
+      <DetailHero
         backTo={previousSampleHref}
         title={fusionName(fusion)}
         subtitle={
-          <div className="space-y-2">
-            <span className="block text-xl font-bold text-muted-foreground">
+          <DetailHeroSubtitle sampleHref={sampleHref} sampleName={sample?.name || id}>
+            <span>
               Fusion{selectedCall ? ` · ${fusionBreakpoint(selectedCall)}` : ""}
             </span>
-            <Link to={sampleHref} className="inline-flex w-max rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
-              Sample {sample?.name || id}
-            </Link>
-          </div>
+          </DetailHeroSubtitle>
         }
         chips={
           <div className="flex flex-wrap items-center gap-2">
@@ -132,19 +130,39 @@ export function FusionDetail() {
       <FindingMainGrid
         main={
           <>
-            <CommentsPanel
-              sampleId={sampleRouteKey}
-              title="Add Comment Or Annotation"
-              resourceType="fusion"
-              resource={fusion}
-              comments={[]}
-              showList={false}
-              assayGroup={data.assay_group}
-              subpanel={data.subpanel}
-              queryKeys={[["fusion", id, varId]]}
-              enableSuggestion={false}
-              livePreview={false}
-            />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <FindingIdentityCard title="Fusion Identity">
+                <DetailField label="Gene 1">{genes[0] || fusion?.gene1 || "-"}</DetailField>
+                <DetailField label="Gene 2">{genes[1] || fusion?.gene2 || "-"}</DetailField>
+                <DetailField label="Breakpoints">{fusionBreakpoint(selectedCall)}</DetailField>
+                <DetailField label="Effect"><FusionEffectBadge effect={selectedCall?.effect || fusion?.frame} /></DetailField>
+                <DetailField label="Caller"><FusionCallerBadges callers={selectedCall?.caller || fusionCallers(fusion)} /></DetailField>
+                <DetailField label="Evidence"><FusionEvidenceBadges description={selectedCall?.desc || fusion?.desc} metadata={data.fusion_annotation_metadata} /></DetailField>
+                <DetailField label="Status">
+                  <div className="flex flex-wrap gap-1">
+                    <StatusBadges finding={fusion} />
+                    {selectedCall?.selected && <EvidenceBadge tone="success">Selected</EvidenceBadge>}
+                  </div>
+                </DetailField>
+              </FindingIdentityCard>
+
+              <div className="h-full lg:col-span-2">
+                <CommentsPanel
+                  sampleId={sampleRouteKey}
+                  title="Add Comment Or Annotation"
+                  resourceType="fusion"
+                  resource={fusion}
+                  comments={[]}
+                  showList={false}
+                  assayGroup={data.assay_group}
+                  subpanel={data.subpanel}
+                  queryKeys={[["fusion", id, varId]]}
+                  enableSuggestion={false}
+                  livePreview={false}
+                  fillHeight
+                />
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <CommentsPanel
@@ -168,35 +186,16 @@ export function FusionDetail() {
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <DetailCard title="Selected Fusion Call">
-                <DetailFieldGrid>
-                  <DetailField label="Gene 1">{genes[0] || fusion?.gene1 || "-"}</DetailField>
-                  <DetailField label="Gene 2">{genes[1] || fusion?.gene2 || "-"}</DetailField>
-                  <DetailField label="Breakpoints" valueClassName="">{fusionBreakpoint(selectedCall)}</DetailField>
-                  <DetailField label="Effect"><FusionEffectBadge effect={selectedCall?.effect || fusion?.frame} /></DetailField>
-                  <DetailField label="Caller"><FusionCallerBadges callers={selectedCall?.caller || fusionCallers(fusion)} /></DetailField>
-                  <DetailField label="Evidence"><FusionEvidenceBadges description={selectedCall?.desc || fusion?.desc} metadata={data.fusion_annotation_metadata} /></DetailField>
-                  <DetailField label="Status">
-                    <div className="flex flex-wrap gap-1">
-                      <StatusBadges finding={fusion} />
-                      {selectedCall?.selected && <EvidenceBadge tone="success">Selected</EvidenceBadge>}
-                    </div>
-                  </DetailField>
-                </DetailFieldGrid>
-              </DetailCard>
-
-              <DetailCard title="Read Support" tone="success">
-                <DetailMetricTable
-                  metrics={[
-                    { label: "Spanning pairs", value: selectedCall?.spanpairs || fusion?.supporting_reads?.span, monospace: true },
-                    { label: "Spanning reads", value: selectedCall?.spanreads || fusion?.supporting_reads?.split, monospace: true },
-                    { label: "Longest anchor", value: selectedCall?.longestanchor, monospace: true },
-                  ]}
-                  dense
-                />
-              </DetailCard>
-            </div>
+            <DetailCard title="Read Support" tone="success">
+              <DetailMetricTable
+                metrics={[
+                  { label: "Spanning pairs", value: selectedCall?.spanpairs || fusion?.supporting_reads?.span, monospace: true },
+                  { label: "Spanning reads", value: selectedCall?.spanreads || fusion?.supporting_reads?.split, monospace: true },
+                  { label: "Longest anchor", value: selectedCall?.longestanchor, monospace: true },
+                ]}
+                dense
+              />
+            </DetailCard>
 
             <DetailCard title="Fusion Calls From Callers">
               <DetailDataTable

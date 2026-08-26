@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
@@ -15,10 +15,11 @@ import { ArtefactFrequencyBadges, CallerBadges, StatusBadges } from "@/lib/varia
 import {
   DetailCard,
   DetailField,
-  DetailFieldGrid,
   FindingDetailShell,
   FindingError,
-  FindingHero,
+  DetailHero,
+  DetailHeroSubtitle,
+  FindingIdentityCard,
   FindingLoading,
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
@@ -101,18 +102,15 @@ export function CNVDetail() {
 
   return (
     <FindingDetailShell>
-      <FindingHero
+      <DetailHero
         backTo={previousSampleHref}
         title={primaryGenes.length > 0 ? primaryGenes.join(', ') : "Intergenic CNV"}
         subtitle={
-          <div className="space-y-2">
-            <span className="block text-xl font-bold text-muted-foreground">
+          <DetailHeroSubtitle sampleHref={sampleHref} sampleName={sample?.name || id}>
+            <span>
               {type ? type.toUpperCase() : "CNV"} · {region}
             </span>
-            <Link to={sampleHref} className="inline-flex w-max rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
-              Sample {sample?.name || id}
-            </Link>
-          </div>
+          </DetailHeroSubtitle>
         }
         chips={
           <div className="flex flex-wrap items-center gap-2">
@@ -135,19 +133,34 @@ export function CNVDetail() {
       <FindingMainGrid
         main={
           <>
-            <CommentsPanel
-              sampleId={sampleRouteKey}
-              title="Add Comment Or Annotation"
-              resourceType="cnv"
-              resource={cnv}
-              comments={[]}
-              showList={false}
-              assayGroup={data.assay_group}
-              subpanel={data.subpanel}
-              queryKeys={[["cnv", id, varId]]}
-              enableSuggestion={false}
-              livePreview={false}
-            />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <FindingIdentityCard title="CNV Identity">
+                <DetailField label="Region">{region}</DetailField>
+                <DetailField label="Size" valueClassName="text-primary/80">{cnvSize(cnv)}</DetailField>
+                <DetailField label="Type" valueClassName="uppercase">{type || "-"}</DetailField>
+                <DetailField label="Ratio (log2)">{Number.isFinite(Number(cnv?.ratio)) ? Number(cnv?.ratio).toFixed(4) : "-"}</DetailField>
+                <DetailField label="Copy number" valueClassName="text-tier4">{copyNumber(cnv)}</DetailField>
+                <DetailField label="Status"><StatusBadges finding={cnv} /></DetailField>
+                <DetailField label="Artefact evidence"><ArtefactFrequencyBadges finding={cnv} /></DetailField>
+              </FindingIdentityCard>
+
+              <div className="h-full lg:col-span-2">
+                <CommentsPanel
+                  sampleId={sampleRouteKey}
+                  title="Add Comment Or Annotation"
+                  resourceType="cnv"
+                  resource={cnv}
+                  comments={[]}
+                  showList={false}
+                  assayGroup={data.assay_group}
+                  subpanel={data.subpanel}
+                  queryKeys={[["cnv", id, varId]]}
+                  enableSuggestion={false}
+                  livePreview={false}
+                  fillHeight
+                />
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <CommentsPanel
@@ -171,27 +184,9 @@ export function CNVDetail() {
               />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <DetailCard title="CNV Properties">
-                <DetailFieldGrid>
-                  <DetailField label="Region" valueClassName="">{region}</DetailField>
-                  <DetailField label="Size" valueClassName="text-primary/80">{cnvSize(cnv)}</DetailField>
-                  <DetailField label="Type" valueClassName="uppercase">{type || "-"}</DetailField>
-                  <DetailField label="Ratio (log2)" valueClassName="">{Number.isFinite(Number(cnv?.ratio)) ? Number(cnv?.ratio).toFixed(4) : "-"}</DetailField>
-                  <DetailField label="Copy Number" valueClassName="text-tier4">{copyNumber(cnv)}</DetailField>
-                  <DetailField label="Status">
-                    <StatusBadges finding={cnv} />
-                  </DetailField>
-                  <DetailField label="Artefact evidence">
-                    <ArtefactFrequencyBadges finding={cnv} />
-                  </DetailField>
-                </DetailFieldGrid>
-              </DetailCard>
-
-              <DetailCard title="Structural Evidence" tone="success">
-                <DetailMetricTable metrics={structuralEvidenceMetrics(cnv)} dense />
-              </DetailCard>
-            </div>
+            <DetailCard title="Structural Evidence" tone="success">
+              <DetailMetricTable metrics={structuralEvidenceMetrics(cnv)} dense />
+            </DetailCard>
 
             <DetailCard title="Panel Genes">
               <DetailDataTable

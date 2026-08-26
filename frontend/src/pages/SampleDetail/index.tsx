@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate, useParams, Link, useSearchParams } from "react-router-dom"
+import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
-import { ArrowLeft } from "lucide-react"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 
-import { BiomarkerRow, OverviewTab, PanelSummary } from "./OverviewTab"
+import { OverviewTab, PanelSummary } from "./OverviewTab"
+import { SampleDetailHero } from "./SampleDetailHero"
 import { VariantsTab } from "./VariantsTab"
 import { CNVTab } from "./CNVTab"
 import { FusionsTab } from "./FusionsTab"
@@ -262,22 +262,7 @@ export function SampleDetail() {
   return (
     <div className="flex h-full flex-col bg-muted/20">
       <div className="w-full max-w-[2600px] flex-1 space-y-3 pt-1">
-        <div className="detail-hero">
-          <div className="relative z-10 flex items-center gap-4">
-          <Link to="/samples" className="soft-icon-button p-2">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div className="min-w-0">
-            <h2 className="brand-gradient-text text-3xl font-bold tracking-tight">
-              {sample.name || sample.case_id || id}
-            </h2>
-            <p className="text-muted-foreground font-medium uppercase tracking-widest text-xs mt-1">
-              {sample.asp_id} • {sample.environment} • {sample.ingest_status}
-            </p>
-            <BiomarkerRow context={data} sample={sample} />
-          </div>
-          </div>
-        </div>
+        <SampleDetailHero sample={sample} context={data} />
 
         <div className="mt-3 flex gap-3">
           {/* Main Content Area */}

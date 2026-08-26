@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Link } from "react-router-dom"
 import { DetailDataTable, EvidenceBadge } from "@/components/detail/DetailEvidenceCards"
 import { ExpandableText } from "@/components/detail/ExpandableText"
-import { ConsequenceBadges, ImpactBadge, InfoTooltipBadge } from "@/lib/variant-ui"
+import { ConsequenceBadges, ImpactBadge, InfoTooltipBadge, TierBadge } from "@/lib/variant-ui"
 
 type TranscriptRow = Record<string, unknown>
 
@@ -148,8 +148,8 @@ export function TranscriptConsequencesTable({
           ),
         },
         { key: "canonical", header: "Canonical", render: (row) => <CanonicalTranscriptBadge row={row} /> },
-        { key: "hgvsc", header: "cDNA", render: (row) => <ExpandableText text={String(row.HGVSc || "-")} maxLength={28} className="" /> },
-        { key: "hgvsp", header: "Protein", render: (row) => <ExpandableText text={String(row.HGVSp || "-")} maxLength={28} className="" /> },
+        { key: "hgvsc", header: "cDNA", render: (row) => <ExpandableText text={String(row.HGVSc || "-")} maxLength={28} className="type-table-value leading-[1.2] text-foreground/80" /> },
+        { key: "hgvsp", header: "Protein", render: (row) => <ExpandableText text={String(row.HGVSp || "-")} maxLength={28} className="type-table-value-emphasis leading-[1.2] text-foreground" /> },
         {
           key: "consequence",
           header: "Consequence",
@@ -158,6 +158,7 @@ export function TranscriptConsequencesTable({
         },
         { key: "exon", header: "Exon/Intron", render: (row) => String(row.EXON || row.INTRON || "-") },
         { key: "impact", header: "Impact", render: (row) => <ImpactBadge value={row.IMPACT} /> },
+        { key: "tier", header: "Tier", render: (row) => <TierBadge tier={row.tier} /> },
         {
           key: "actions",
           header: "Actions",

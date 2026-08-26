@@ -27,6 +27,7 @@ import { CommentCard } from "@/components/comments/CommentCard"
 import { FindingResourceType } from "@/lib/finding-actions"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
+import { cn } from "@/lib/utils"
 
 const pathByResource: Record<FindingResourceType, string> = {
   small_variant: "small-variants",
@@ -131,6 +132,7 @@ export function CommentsPanel({
   draftText,
   onDraftChange,
   onUseAsDraft,
+  fillHeight = false,
 }: {
   sampleId: string
   comments?: any[]
@@ -152,6 +154,7 @@ export function CommentsPanel({
   draftText?: string
   onDraftChange?: (value: string) => void
   onUseAsDraft?: (value: string) => void
+  fillHeight?: boolean
 }) {
   const [internalText, setInternalText] = useState("")
   const [global, setGlobal] = useState(false)
@@ -275,7 +278,7 @@ export function CommentsPanel({
   ]
 
   return (
-    <section className="glass-card p-2.5">
+    <section className={cn("glass-card p-2.5", fillHeight && "flex h-full min-h-0 flex-col")}>
       <div className="mb-2 flex items-center gap-2">
         <MessageSquare className="h-4 w-4 text-tier2" />
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
@@ -323,7 +326,11 @@ export function CommentsPanel({
         )}
       </div>}
 
-      {showComposer && <div className={showList ? "mt-3 space-y-2 rounded-lg border border-border bg-background/60 p-2" : "space-y-2 rounded-lg border border-border bg-background/60 p-2"}>
+      {showComposer && <div className={cn(
+        "space-y-2 rounded-lg border border-border bg-background/60 p-2",
+        showList && "mt-3",
+        fillHeight && "flex min-h-0 flex-1 flex-col",
+      )}>
         <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-card/80 p-1">
           {toolbar.map((item) => (
             <button
@@ -395,10 +402,13 @@ export function CommentsPanel({
             value={text}
             onChange={(event) => setText(event.target.value)}
             placeholder="Write a markdown comment..."
-            className="min-h-52 w-full resize-y rounded-lg border border-input bg-background p-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+            className={cn(
+              "min-h-52 w-full resize-y rounded-lg border border-input bg-background p-2 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+              fillHeight && "flex-1",
+            )}
           />
         ) : (
-          <div className="min-h-52 rounded-lg border border-input bg-background p-3">
+          <div className={cn("min-h-52 rounded-lg border border-input bg-background p-3", fillHeight && "flex-1")}>
             {text.trim() ? <MarkdownText text={text} /> : <p className="text-sm text-muted-foreground">Nothing to preview.</p>}
           </div>
         )}

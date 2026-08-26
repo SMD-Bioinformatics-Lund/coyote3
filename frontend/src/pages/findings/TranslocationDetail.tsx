@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
@@ -17,10 +17,11 @@ import { displayValue, percentValue } from "@/lib/detail-formatters"
 import {
   DetailCard,
   DetailField,
-  DetailFieldGrid,
   FindingDetailShell,
   FindingError,
-  FindingHero,
+  DetailHero,
+  DetailHeroSubtitle,
+  FindingIdentityCard,
   FindingLoading,
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
@@ -97,18 +98,15 @@ export function TranslocationDetail() {
 
   return (
     <FindingDetailShell>
-      <FindingHero
+      <DetailHero
         backTo={previousSampleHref}
         title={genes.length > 0 ? genes.join(" - ") : "Unknown Translocation"}
         subtitle={
-          <div className="space-y-2">
-            <span className="block text-xl font-bold text-muted-foreground">
+          <DetailHeroSubtitle sampleHref={sampleHref} sampleName={sample?.name || id}>
+            <span>
               Translocation · {position}
             </span>
-            <Link to={sampleHref} className="inline-flex w-max rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
-              Sample {sample?.name || id}
-            </Link>
-          </div>
+          </DetailHeroSubtitle>
         }
         chips={
           <div className="flex flex-wrap items-center gap-2">
@@ -131,19 +129,34 @@ export function TranslocationDetail() {
       <FindingMainGrid
         main={
           <>
-            <CommentsPanel
-              sampleId={sampleRouteKey}
-              title="Add Comment Or Annotation"
-              resourceType="translocation"
-              resource={translocation}
-              comments={[]}
-              showList={false}
-              assayGroup={data.assay_group}
-              subpanel={data.subpanel}
-              queryKeys={[["translocation", id, varId]]}
-              enableSuggestion={false}
-              livePreview={false}
-            />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <FindingIdentityCard title="Translocation Identity">
+                <DetailField label="Genes">{genes.join(" - ") || "-"}</DetailField>
+                <DetailField label="Position" valueClassName="text-primary/80">{position}</DetailField>
+                <DetailField label="Type" valueClassName="uppercase">{translocation?.INFO?.SVTYPE || "-"}</DetailField>
+                <DetailField label="Quality">{translocation?.QUAL ?? "-"}</DetailField>
+                <DetailField label="Callers">{translocation?.INFO?.variant_callers || translocation?.callers || "-"}</DetailField>
+                <DetailField label="Unique reads">{translocation?.INFO?.UNIQUE_READS || translocation?.unique_reads || "-"}</DetailField>
+                <DetailField label="Status"><StatusBadges finding={translocation} /></DetailField>
+              </FindingIdentityCard>
+
+              <div className="h-full lg:col-span-2">
+                <CommentsPanel
+                  sampleId={sampleRouteKey}
+                  title="Add Comment Or Annotation"
+                  resourceType="translocation"
+                  resource={translocation}
+                  comments={[]}
+                  showList={false}
+                  assayGroup={data.assay_group}
+                  subpanel={data.subpanel}
+                  queryKeys={[["translocation", id, varId]]}
+                  enableSuggestion={false}
+                  livePreview={false}
+                  fillHeight
+                />
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <CommentsPanel
@@ -167,33 +180,19 @@ export function TranslocationDetail() {
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <DetailCard title="Translocation Properties">
-                <DetailFieldGrid>
-                  <DetailField label="Genes">{genes.join(" - ") || "-"}</DetailField>
-                  <DetailField label="Position" valueClassName="text-primary/80">{position}</DetailField>
-                  <DetailField label="Type" valueClassName="uppercase">{translocation?.INFO?.SVTYPE || "-"}</DetailField>
-                  <DetailField label="Quality" valueClassName="">{translocation?.QUAL ?? "-"}</DetailField>
-                  <DetailField label="Callers">{translocation?.INFO?.variant_callers || translocation?.callers || "-"}</DetailField>
-                  <DetailField label="Unique reads">{translocation?.INFO?.UNIQUE_READS || translocation?.unique_reads || "-"}</DetailField>
-                  <DetailField label="Status"><StatusBadges finding={translocation} /></DetailField>
-                </DetailFieldGrid>
-              </DetailCard>
-
-              <DetailCard title="Selected Annotation" tone="success">
-                <DetailMetricTable
-                  metrics={[
-                    { label: "Transcript", value: annotation?.Feature_ID || annotation?.Feature, monospace: true },
-                    { label: "Protein", value: annotation?.HGVS_p || annotation?.HGVSp, monospace: true },
-                    { label: "cDNA", value: annotation?.HGVS_c || annotation?.HGVSc, monospace: true },
-                    { label: "Consequence", value: translatedConsequence(annotation, data.vep_conseq_translations) },
-                    { label: "Exon rank", value: annotation?.Rank || annotation?.EXON || annotation?.INTRON },
-                    { label: "Biotype", value: annotation?.BioType || annotation?.BIOTYPE },
-                  ]}
-                  dense
-                />
-              </DetailCard>
-            </div>
+            <DetailCard title="Selected Annotation" tone="success">
+              <DetailMetricTable
+                metrics={[
+                  { label: "Transcript", value: annotation?.Feature_ID || annotation?.Feature, monospace: true },
+                  { label: "Protein", value: annotation?.HGVS_p || annotation?.HGVSp, monospace: true },
+                  { label: "cDNA", value: annotation?.HGVS_c || annotation?.HGVSc, monospace: true },
+                  { label: "Consequence", value: translatedConsequence(annotation, data.vep_conseq_translations) },
+                  { label: "Exon rank", value: annotation?.Rank || annotation?.EXON || annotation?.INTRON },
+                  { label: "Biotype", value: annotation?.BioType || annotation?.BIOTYPE },
+                ]}
+                dense
+              />
+            </DetailCard>
 
             <DetailCard title="Transcript Combinations">
               <DetailDataTable

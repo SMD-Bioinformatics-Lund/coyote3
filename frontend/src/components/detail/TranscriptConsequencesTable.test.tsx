@@ -37,6 +37,27 @@ describe("TranscriptConsequencesTable", () => {
     expect(consequence).not.toHaveClass("truncate")
   })
 
+  it("shows the latest tier for the exact alternate transcript", () => {
+    render(
+      <MemoryRouter>
+        <TranscriptConsequencesTable
+          rows={[{
+            SYMBOL: "TP53",
+            Feature: "NM_000546.6",
+            Consequence: "missense_variant",
+            tier: 2,
+          }]}
+          selectedFeature=""
+          selecting={false}
+          onSelectTranscript={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole("columnheader", { name: "Tier" })).toBeVisible()
+    expect(screen.getByText("2")).toBeVisible()
+  })
+
   it("marks the selected transcript and selects another transcript", () => {
     const onSelectTranscript = vi.fn()
     render(

@@ -77,6 +77,7 @@ const detailPayload = {
       transcript_tags: ["ensembl_mane_select"],
       is_canonical: true,
       canonical_source: "vep_canonical",
+      tier: 3,
     },
   ],
   annotations: [],
@@ -87,6 +88,7 @@ const detailPayload = {
       assay: "hema_gmsv1",
       assay_group: "hematology",
       subpanel: "hem",
+      vaf: 0.085,
       tier: 2,
     },
   ],
@@ -152,10 +154,15 @@ describe("VariantDetail", () => {
     expect(screen.getByText("Latest tier 2")).toBeVisible()
     expect(screen.getByText("Actions for CASE_001")).toBeVisible()
     expect(screen.getByLabelText("Known hotspot")).toBeVisible()
-    expect(screen.getByText("OTHER_CASE")).toBeVisible()
-    expect(screen.getByRole("columnheader", { name: "Assay group" })).toBeVisible()
+    const otherSampleRow = screen.getByText("OTHER_CASE").closest("tr")!
+    const otherSamplesTable = otherSampleRow.closest("table")!
+    expect(otherSampleRow).toBeVisible()
+    expect(within(otherSamplesTable).getByRole("columnheader", { name: "Assay group" })).toBeVisible()
+    expect(within(otherSamplesTable).getByRole("columnheader", { name: "VAF" })).toBeVisible()
     expect(screen.getByText("hematology")).toBeVisible()
-    expect(within(screen.getByText("OTHER_CASE").closest("tr")!).getByText("2")).toBeVisible()
+    expect(within(otherSampleRow).getByText("8.5%")).toBeVisible()
+    expect(within(otherSampleRow).getByText("2")).toBeVisible()
+    expect(within(screen.getByText("ENST00000359995").closest("tr")!).getByText("3")).toBeVisible()
     expect(screen.queryByText("hema_gmsv1")).not.toBeInTheDocument()
   })
 
