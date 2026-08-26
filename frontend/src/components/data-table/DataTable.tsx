@@ -297,7 +297,7 @@ export function DataTable<TData, TValue>({
             data-column-count={visibleColumnCount}
             style={{ minWidth: tableMinimumWidth }}
           >
-            <thead className="type-table-header border-b-2 border-border bg-[var(--header-surface)] text-foreground">
+            <thead className="type-table-header border-b-2 border-border bg-[var(--table-header-surface)] text-foreground">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
@@ -315,7 +315,7 @@ export function DataTable<TData, TValue>({
                         key={header.id}
                         data-column-id={header.column.id}
                         className={cn(
-                          "whitespace-normal border-b-2 border-r border-border py-1 align-bottom leading-tight last:border-r-0",
+                          "whitespace-normal border-b-2 border-border py-1 align-bottom leading-tight",
                           tableDensity === "compact" ? "px-1.5" : tableDensity === "standard" ? "px-2" : "px-3",
                           align === "center" ? "text-center" : "text-left",
                           defaultColumnClass(header.column.id),
@@ -367,7 +367,7 @@ export function DataTable<TData, TValue>({
                           key={cell.id}
                           data-column-id={cell.column.id}
                           className={cn(
-                            "border-b border-r border-border/40 py-1.5 align-middle last:border-r-0",
+                            "border-b border-border/55 py-1.5 align-middle",
                             tableDensity === "compact" ? "px-1.5" : tableDensity === "standard" ? "px-2" : "px-3",
                             align === "center" ? "text-center" : "text-left",
                             defaultColumnClass(cell.column.id),

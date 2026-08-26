@@ -11,9 +11,7 @@ export function findingRowClass(finding: any) {
   return isFlaggedFinding(finding)
     ? [
         "!bg-fail/5 text-muted-foreground hover:!bg-fail/10 dark:!bg-fail/10 dark:hover:!bg-fail/15",
-        "[&>*]:opacity-60 [&>*]:saturate-75 [&>*]:transition-opacity",
-        "[&>*:first-child]:opacity-85 [&>*:last-child]:opacity-90",
-        "[&_a]:opacity-80 [&_button]:opacity-80 [&_input]:opacity-90",
+        "[&_a]:text-muted-foreground [&_button]:text-muted-foreground",
       ].join(" ")
     : "hover:bg-primary/10 dark:hover:bg-primary/20"
 }

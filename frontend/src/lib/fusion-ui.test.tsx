@@ -19,7 +19,7 @@ describe("Fusion UI", () => {
       expect(screen.getByText("starfusion")).toBeInTheDocument()
       // should deduplicate "arriba"
       expect(screen.getAllByText("arriba")).toHaveLength(1)
-      expect(container.querySelector(".text-\\[0\\.65625rem\\]")).toBeInTheDocument()
+      expect(container.querySelector('[data-slot="table-badge"]')).toBeInTheDocument()
       expect(container.querySelector(".text-\\[0\\.4375rem\\]")).not.toBeInTheDocument()
     })
   })
@@ -35,7 +35,7 @@ describe("Fusion UI", () => {
       expect(screen.getByText("in-frame")).toBeInTheDocument()
       // Test the pass severity mapped to color-ok
       expect(container.querySelector('.matte-badge-pass')).toBeInTheDocument()
-      expect(container.querySelector(".text-\\[0\\.65625rem\\]")).toBeInTheDocument()
+      expect(container.querySelector('[data-slot="table-badge"]')).toBeInTheDocument()
     })
 
     it("renders out-of-frame with fail severity", () => {
@@ -73,7 +73,7 @@ describe("Fusion UI", () => {
 
       expect(screen.getByText("polya")).toBeInTheDocument()
       // polya and unknown both get neutral in different forms, but let's check for polya text
-      expect(container.querySelector(".text-\\[0\\.65625rem\\]")).toBeInTheDocument()
+      expect(container.querySelectorAll('[data-slot="table-badge"]')).toHaveLength(4)
     })
 
     it("renders every evidence tag as an individual badge", () => {

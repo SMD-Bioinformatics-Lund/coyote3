@@ -81,7 +81,7 @@ export function DetailDataTable<T>({
         <thead className="type-table-header bg-muted text-foreground dark:bg-muted/70">
           <tr>
             {columns.map((column) => (
-              <th key={column.key} className={cn("border-b-2 border-r border-border px-2.5 py-1 last:border-r-0", column.className)}>
+              <th key={column.key} className={cn("border-b-2 border-border px-2.5 py-1", column.className)}>
                 {column.header}
               </th>
             ))}
@@ -91,7 +91,7 @@ export function DetailDataTable<T>({
           {rows.map((row, index) => (
             <tr key={index} className="align-top odd:bg-background/35 even:bg-card/50 hover:bg-muted/35">
               {columns.map((column) => (
-                <td key={column.key} className={cn("border-b border-r border-border/40 px-2.5 py-1 last:border-r-0", column.className)}>
+                <td key={column.key} className={cn("border-b border-border/55 px-2.5 py-1", column.className)}>
                   {column.render(row, index)}
                 </td>
               ))}

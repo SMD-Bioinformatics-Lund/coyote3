@@ -9,7 +9,7 @@ describe("TableBadge", () => {
 
     const badge = screen.getByText("Ready")
     expect(badge).toHaveAttribute("data-slot", "table-badge")
-    expect(badge).toHaveClass("type-badge", "min-h-5", "rounded-md", "px-2", "py-0.5", "bg-pass/10")
+    expect(badge).toHaveClass("type-badge", "min-h-6", "rounded-md", "px-2", "py-0.5", "bg-pass/10")
   })
 
   it("can render an external link without changing badge geometry", () => {

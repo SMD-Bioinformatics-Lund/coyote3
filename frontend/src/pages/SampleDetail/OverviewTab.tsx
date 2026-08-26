@@ -691,8 +691,8 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
               <thead>
                 <tr className="type-table-header bg-muted/65 text-left text-muted-foreground">
                   <th className="w-28 px-3 py-1">Field</th>
-                  <th className="border-l border-pass/25 bg-pass/8 px-3 py-1 text-pass">Case</th>
-                  <th className="border-l border-tier3/25 bg-tier3/8 px-3 py-1 text-tier3">Control</th>
+                  <th className="bg-pass/8 px-3 py-1 text-pass">Case</th>
+                  <th className="bg-tier3/8 px-3 py-1 text-tier3">Control</th>
                 </tr>
               </thead>
               <tbody>
@@ -707,8 +707,8 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
                 ].map(([label, caseValue, controlValue]) => (
                   <tr key={String(label)} className="border-t border-border/40">
                     <th scope="row" className="border-t border-border/40 bg-muted/35 px-3 py-1 text-left font-semibold uppercase text-muted-foreground">{label}</th>
-                    <td className="border-l border-t border-pass/20 bg-pass/5 px-3 py-1 font-semibold text-foreground">{displayValue(caseValue)}</td>
-                    <td className="border-l border-t border-tier3/20 bg-tier3/5 px-3 py-1 font-semibold text-foreground">{sample?.paired ? displayValue(controlValue) : "Not paired"}</td>
+                    <td className="border-t border-border/55 bg-pass/5 px-3 py-1 font-normal text-foreground">{displayValue(caseValue)}</td>
+                    <td className="border-t border-border/55 bg-tier3/5 px-3 py-1 font-normal text-foreground">{sample?.paired ? displayValue(controlValue) : "Not paired"}</td>
                   </tr>
                 ))}
               </tbody>

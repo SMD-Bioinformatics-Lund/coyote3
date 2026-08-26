@@ -1,7 +1,12 @@
 import { AlertCircle, Ban, Bookmark, MessageSquare, ShieldCheck, XCircle, XSquare } from "lucide-react"
 import { useState, type ReactNode } from "react"
 import { TooltipSurface } from "@/components/ui/app-tooltip"
-import { clinicalBadgeClassName, TableBadge, tierBadgeClassName } from "@/components/ui/table-badge"
+import {
+  clinicalBadgeClassName,
+  consequenceBadgeClassName,
+  TableBadge,
+  tierBadgeClassName,
+} from "@/components/ui/table-badge"
 import {
   badgeSeverityClass,
   inlineTooltipPosition,
@@ -715,7 +720,7 @@ function ConsequenceBadge({
         tabIndex={0}
         className={cn(
           "cursor-help lowercase outline-none ring-offset-background transition-colors duration-100 focus:ring-2 focus:ring-ring/40",
-          clinicalBadgeClassName,
+          consequenceBadgeClassName,
           wide ? "max-w-[280px] whitespace-normal break-words" : "max-w-[108px] truncate",
           impact ? badgeSeverityClass(severity) : "border-border bg-muted text-foreground",
         )}

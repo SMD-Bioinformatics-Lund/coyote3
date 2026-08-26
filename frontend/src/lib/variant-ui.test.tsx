@@ -231,6 +231,7 @@ describe("variant UI semantics", () => {
     )
     expect(screen.getByText("Missense")).toBeInTheDocument()
     expect(screen.getByText("Intron")).toBeInTheDocument()
+    expect(screen.getByText("Missense")).toHaveClass("text-[0.8125rem]", "min-h-6")
     fireEvent.focus(screen.getByText("Missense"))
     expect(screen.getByText("missense_variant")).toBeInTheDocument()
     expect(screen.getByText("Protein sequence change.")).toBeInTheDocument()

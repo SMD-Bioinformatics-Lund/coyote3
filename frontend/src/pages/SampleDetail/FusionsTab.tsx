@@ -26,7 +26,6 @@ import { useBulkFindingAction } from "@/hooks/useFindingActions"
 import { findingBulkActionOptions } from "@/lib/finding-actions"
 import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 import { tieredVariantSearchPath } from "@/lib/variant-routing"
-import { VariantActionButtons } from "@/components/detail/VariantActionButtons"
 import {
   CLINICAL_TABLE_CACHE_MS,
   CLINICAL_TABLE_STALE_MS,
@@ -79,7 +78,7 @@ export function FusionsTab({ sampleId, header }: { sampleId: string; header?: Re
   const columns: ColumnDef<any, any>[] = [
     {
       id: "select",
-      meta: { headerClassName: "text-center w-8", cellClassName: "text-center w-8" },
+      meta: { headerClassName: "text-center w-8 border-r", cellClassName: "text-center w-8 border-r" },
       header: ({ table }) => (
         <input
           type="checkbox"
@@ -211,25 +210,15 @@ export function FusionsTab({ sampleId, header }: { sampleId: string; header?: Re
     },
     {
       id: "actions",
-      header: "Actions",
-      enableSorting: false,
+      header: "",
+      meta: { headerClassName: "w-8 min-w-8 max-w-8 pr-1", cellClassName: "w-8 min-w-8 max-w-8 pr-1" },
       cell: ({ row }) => {
         return (
-          <div className="flex items-center gap-1">
-            {canManage && (
-              <VariantActionButtons
-                sampleId={sampleId}
-                resourceType="fusion"
-                variant={row.original}
-                compact
-                showActionLabel
-                controls={["interesting"]}
-              />
-            )}
+          <div className="flex items-center justify-start">
             <AppTooltip
               context="Table action"
               label="View fusion details"
-              content="Open the complete fusion record, caller evidence, comments, and classification controls."
+              content="Open the complete fusion record, evidence, comments, and classification controls."
             >
               <Link
                 to={`/samples/${sampleId}/fusion/${row.original._id}`}

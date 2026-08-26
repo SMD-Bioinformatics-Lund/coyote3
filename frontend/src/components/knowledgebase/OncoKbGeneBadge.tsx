@@ -78,7 +78,7 @@ export function GeneWithOncoKbBadge({
     <span className={cn("inline-flex min-w-0 items-center gap-1.5", className)}>
       <Link
         to={geneTo || `/public/gene/${encodeURIComponent(String(geneHrefId || shownGene))}/info`}
-        className="link-text truncate font-bold"
+        className="link-text truncate font-medium"
         title={hasSymbolChange ? symbolTitle : String(shownGene)}
       >
         {shownGene}

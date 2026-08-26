@@ -114,7 +114,7 @@ export function CNVTab({ sampleId, header }: { sampleId: string; header?: ReactN
   const columns: ColumnDef<any, any>[] = [
     {
       id: "select",
-      meta: { headerClassName: "text-center w-8", cellClassName: "text-center w-8" },
+      meta: { headerClassName: "text-center w-8 border-r", cellClassName: "text-center w-8 border-r" },
       header: ({ table }) => (
         <input
           type="checkbox"
@@ -143,7 +143,7 @@ export function CNVTab({ sampleId, header }: { sampleId: string; header?: ReactN
         const otherGenesCount = genesList.length - primaryGenes.length
         return (
           <div className="leading-tight">
-            <div className="max-w-[120px] wrap-break-word font-semibold text-primary" title={primaryGenes.join(', ')}>
+            <div className="max-w-[120px] wrap-break-word font-medium text-primary" title={primaryGenes.join(', ')}>
               {primaryGenes.join(', ') || "-"}
             </div>
             {otherGenesCount > 0 && (
@@ -231,7 +231,7 @@ export function CNVTab({ sampleId, header }: { sampleId: string; header?: ReactN
     {
       id: "actions",
       header: "",
-      meta: { headerClassName: "w-8 min-w-8 max-w-8", cellClassName: "w-8 min-w-8 max-w-8" },
+      meta: { headerClassName: "w-8 min-w-8 max-w-8 pr-1", cellClassName: "w-8 min-w-8 max-w-8 pr-1" },
       cell: ({ row }) => {
         return (
           <div className="flex items-center justify-start">

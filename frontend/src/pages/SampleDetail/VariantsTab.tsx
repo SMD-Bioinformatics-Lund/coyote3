@@ -117,11 +117,11 @@ export function VariantsTab({
     {
       id: "select",
       meta: {
-        headerClassName: "w-8 min-w-8 max-w-8",
-        cellClassName: "w-8 min-w-8 max-w-8",
+        headerClassName: "w-8 min-w-8 max-w-8 border-r",
+        cellClassName: "w-8 min-w-8 max-w-8 border-r",
       },
       header: ({ table }) => (
-        <div className="flex w-full items-center justify-center">
+        <div className="flex w-full items-center justify-center ">
           <input
             type="checkbox"
             checked={table.getIsAllPageRowsSelected()}
@@ -369,7 +369,7 @@ export function VariantsTab({
         const caseGt = row.original.GT?.find((gt: any) => gt.type === "case")
         return (
           <div className="type-table-value flex items-center gap-1 whitespace-nowrap" title={caseGt ? `Case ${(caseGt.AF * 100).toFixed(1)} (${caseGt.VD}/${caseGt.DP})` : "Case -"}>
-            <span className="font-medium">{caseGt ? `${(caseGt.AF * 100).toFixed(1)}` : "-"}</span>
+            <span>{caseGt ? `${(caseGt.AF * 100).toFixed(1)}` : "-"}</span>
             <span className="text-muted-foreground">{caseGt ? `(${caseGt.VD}/${caseGt.DP})` : "-"}</span>
           </div>
         )
@@ -395,7 +395,7 @@ export function VariantsTab({
           const ctrlGt = row.original.GT?.find((gt: any) => gt.type === "control")
           return (
             <div className="type-table-value flex items-center gap-1 whitespace-nowrap" title={ctrlGt ? `Control ${(ctrlGt.AF * 100).toFixed(1)}% (${ctrlGt.VD}/${ctrlGt.DP})` : "Control -"}>
-              <span className="font-medium text-foreground/80">{ctrlGt ? `${(ctrlGt.AF * 100).toFixed(1)}` : "-"}</span>
+              <span className="text-foreground">{ctrlGt ? `${(ctrlGt.AF * 100).toFixed(1)}` : "-"}</span>
               <span className="text-muted-foreground">{ctrlGt ? `(${ctrlGt.VD}/${ctrlGt.DP})` : "-"}</span>
             </div>
           )
@@ -405,7 +405,7 @@ export function VariantsTab({
     {
       id: "actions",
       header: "",
-      meta: { headerClassName: "w-8 min-w-8 max-w-8", cellClassName: "w-8 min-w-8 max-w-8" },
+      meta: { headerClassName: "w-8 min-w-8 max-w-8 pr-1", cellClassName: "w-8 min-w-8 max-w-8 pr-1" },
       cell: ({ row }) => {
         return (
           <div className="flex items-center justify-start">

@@ -77,7 +77,7 @@ export function TranslocationsTab({ sampleId, header }: { sampleId: string; head
   const columns: ColumnDef<any, any>[] = [
     {
       id: "select",
-      meta: { headerClassName: "text-center w-8", cellClassName: "text-center w-8" },
+      meta: { headerClassName: "text-center w-8 border-r", cellClassName: "text-center w-8 border-r" },
       header: ({ table }) => (
         <input
           type="checkbox"
@@ -100,13 +100,13 @@ export function TranslocationsTab({ sampleId, header }: { sampleId: string; head
       id: "gene1",
       header: "Gene 1",
       accessorFn: (row) => translocationGenes(row)[0] || "-",
-      cell: ({ row }) => <span className="font-bold text-primary hover:underline cursor-pointer">{translocationGenes(row.original)[0] || "-"}</span>
+      cell: ({ row }) => <span className="font-medium text-primary hover:underline cursor-pointer">{translocationGenes(row.original)[0] || "-"}</span>
     },
     {
       id: "gene2",
       header: "Gene 2",
       accessorFn: (row) => translocationGenes(row)[1] || "-",
-      cell: ({ row }) => <span className="font-bold text-primary hover:underline cursor-pointer">{translocationGenes(row.original)[1] || "-"}</span>
+      cell: ({ row }) => <span className="font-medium text-primary hover:underline cursor-pointer">{translocationGenes(row.original)[1] || "-"}</span>
     },
     {
       id: "positions",
@@ -177,7 +177,7 @@ export function TranslocationsTab({ sampleId, header }: { sampleId: string; head
     {
       id: "actions",
       header: "",
-      meta: { headerClassName: "w-8 min-w-8 max-w-8", cellClassName: "w-8 min-w-8 max-w-8" },
+      meta: { headerClassName: "w-8 min-w-8 max-w-8 pr-1", cellClassName: "w-8 min-w-8 max-w-8 pr-1" },
       cell: ({ row }) => {
         return (
           <div className="flex items-center justify-start">

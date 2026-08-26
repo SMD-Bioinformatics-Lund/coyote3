@@ -33,7 +33,8 @@ describe("variant display normalization", () => {
     expect(statusLabels(finding)).toBe(
       "False positive | Blacklisted | Irrelevant | Interesting | Has comments",
     )
-    expect(findingRowClass(finding)).toContain("opacity-60")
+    expect(findingRowClass(finding)).not.toContain("opacity-")
+    expect(findingRowClass(finding)).toContain("text-muted-foreground")
     expect(isFlaggedFinding({ blacklist: {}, override_blacklist: true })).toBe(false)
     expect(findingRowClass({})).toContain("hover:bg-primary")
   })
