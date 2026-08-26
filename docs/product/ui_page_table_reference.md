@@ -478,11 +478,11 @@ Detail pages put the review decision, comments, and evidence around the finding.
 | Global annotations | Reusable annotations for the same biological finding across samples. Clicking an existing annotation can load it as a draft. |
 | Identity | Gene, transcript, HGVS, chromosome coordinate, variant class, and normalized HGNC context. |
 | Genotype/evidence | Case/control VAF, depth, read support, callers, and quality evidence. |
-| Transcript consequences | Selected and alternative transcripts, transcript provenance badges, canonical-source status, cDNA/protein notation, consequence, exon/intron, and impact. Alternate rows can be promoted to the primary display transcript when the selected transcript better represents the clinical review. |
+| Transcript consequences | Selected and alternative transcripts, transcript provenance badges, canonical-source status, cDNA/protein notation, consequence, exon/intron, impact, and the newest tier for the exact transcript in the current assay scope. Alternate rows can be promoted to the primary display transcript when the selected transcript better represents the clinical review. |
 | Prediction cards | SIFT, PolyPhen, and other configured prediction signals. |
 | PON evidence | Separate rows by PON tool/source. |
 | Knowledgebase | One consolidated card with collapsible sections for CIViC, BRCA Exchange, TP53/IARC, local OncoKB cancer gene/actionable evidence, public OncoKB lookup, and ClinPGx local/API context. ClinPGx local context stays compact; fetched API context can include VIP summary, guideline annotations, labels, top connected drugs, pathways, and variant annotation examples. |
-| Seen in other samples | Prior reported or observed samples that match the same finding. |
+| Seen in other samples | Other samples with the same genomic identity, with assay group, case VAF, and the newest tier resolved in each sample's assay scope. |
 
 !!! info "Transcript selection"
 

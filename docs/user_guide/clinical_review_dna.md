@@ -108,11 +108,11 @@ The variant detail page arranges decision-making cards around the finding.
 | Global annotations | Reusable annotations for the same finding across samples. Clicking an annotation can use it as a draft. |
 | Variant identity | Coordinate, class, transcript, HGVS, gene/HGNC context, and selected consequence. |
 | Genotype/evidence | Case/control VAF, depth, and caller evidence. |
-| Transcript consequences | Selected and alternate transcript rows with consequence and impact badges. |
+| Transcript consequences | Selected and alternate transcript rows with consequence, impact, and the newest tier assigned to that exact transcript in the current assay scope. |
 | Prediction and clinical signals | SIFT, PolyPhen, population frequency, germline risk, or other configured signals. |
 | PON evidence | Separate panel-of-normals rows per tool/source. |
 | Knowledgebase | A single collapsible evidence card for CIViC, BRCA Exchange, IARC TP53, local/public OncoKB, and ClinPGx local/API context. |
-| Seen in other samples | Prior sample/report contexts for the same finding. |
+| Seen in other samples | Other samples with the same genomic finding, including assay group, case VAF, and the newest tier in that sample's assay scope. |
 
 ## CNVs, Fusions, And Translocations
 
