@@ -22,7 +22,6 @@ from api.domain.core.dna.variant_identity import (
     ensure_variant_identity_fields,
     normalize_simple_id,
 )
-from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
 
 
@@ -169,7 +168,7 @@ class VariantsRepository(BaseRepository):
         self._dashboard_metrics_collection().delete_many(
             {"_id": {"$regex": r"^(variant_rollup|variant_unique_quality)_v[0-9]+$"}}
         )
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
 
     def _read_persisted_metric(
         self, metric_key: str, max_age_seconds: int | None = None

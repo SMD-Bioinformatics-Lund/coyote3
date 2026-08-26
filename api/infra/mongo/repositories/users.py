@@ -16,7 +16,6 @@ from datetime import datetime, timezone
 
 from api.config.constants import AUTH_PROVIDER_LOCAL, normalize_auth_types
 from api.contracts.operations import OperationResult
-from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
 
 
@@ -167,7 +166,7 @@ class UsersRepository(BaseRepository):
         )
         operation = OperationResult.from_update(result)
         if operation.modified_count:
-            invalidate_dashboard_summary_cache(self.adapter)
+            self.invalidate_dashboard_summary()
         return operation
 
     def user_exists(self, user_id=None, email=None, username=None) -> bool:
@@ -200,7 +199,7 @@ class UsersRepository(BaseRepository):
         payload = self.ensure_username(dict(user_data))
         result = self.get_collection().insert_one(payload)
         operation = OperationResult.from_insert_one(result)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def get_all_users(self) -> list:
@@ -404,7 +403,7 @@ class UsersRepository(BaseRepository):
         normalized = self._normalize_user_id(user_id)
         result = self.get_collection().delete_one(self._identity_query(normalized))
         operation = OperationResult.from_delete(result)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def update_user(self, user_id, user_data) -> OperationResult:
@@ -424,7 +423,7 @@ class UsersRepository(BaseRepository):
         payload["_id"] = existing["_id"]
         result = self.get_collection().replace_one({"_id": existing["_id"]}, payload)
         operation = OperationResult.from_update(result)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def update_user_last_login(self, user_id: str):
@@ -454,7 +453,7 @@ class UsersRepository(BaseRepository):
             self._identity_query(normalized),
             {"$set": {"is_active": active_status}},
         )
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return bool(getattr(result, "modified_count", 0) or getattr(result, "matched_count", 0))
 
     def set_password_action_token(

@@ -14,7 +14,6 @@ It is part of the MongoDB infrastructure layer.
 import re
 
 from api.contracts.operations import OperationResult
-from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
 
 
@@ -178,7 +177,7 @@ class RolesRepository(BaseRepository):
         """
         payload = self.ensure_role_id(dict(role_data))
         result = self.get_collection().insert_one(payload)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return OperationResult.from_insert_one(result)
 
     def update_role(self, role_id: str, role_data: dict) -> dict:
@@ -200,7 +199,7 @@ class RolesRepository(BaseRepository):
             self._role_lookup_query(role_id),
             {"$set": payload},
         )
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return self.get_role(role_id)
 
     def get_role(self, role_id: str) -> dict:
@@ -236,7 +235,7 @@ class RolesRepository(BaseRepository):
             {**self._role_lookup_query(role_id), "is_active": True},
             {"$set": {"is_active": False}},
         )
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return OperationResult.from_update(result)
 
     def toggle_role_active(self, role_id: str, active_status: bool) -> OperationResult:
@@ -257,7 +256,7 @@ class RolesRepository(BaseRepository):
             {"$set": {"is_active": active_status}},
         )
         operation = OperationResult.from_update(result)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def get_all_roles_plus_permissions(self) -> list:

@@ -16,7 +16,6 @@ import re
 
 from api.config.constants import normalize_clinical_identifier
 from api.contracts.operations import OperationResult
-from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
 
@@ -246,7 +245,7 @@ class ASPRepository(BaseRepository):
         operation = OperationResult.from_insert_one(
             self.get_collection().insert_one(self.ensure_asp_id(dict(data)))
         )
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def rotate_asp(
@@ -265,7 +264,7 @@ class ASPRepository(BaseRepository):
             new_document=self.ensure_asp_id(dict(asp_data)),
             retire_fields=retire_fields,
         )
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def toggle_asp_active(self, asp_id: str, active_status: bool) -> OperationResult:
@@ -296,7 +295,7 @@ class ASPRepository(BaseRepository):
                 {"$set": {"is_active": active_status}},
             )
         )
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def delete_panel(self, asp_id: str) -> OperationResult:
@@ -318,7 +317,7 @@ class ASPRepository(BaseRepository):
                 {"$set": {"is_active": False}},
             )
         )
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def get_all_asps_unique_gene_count(self) -> int:

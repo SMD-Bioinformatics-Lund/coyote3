@@ -23,7 +23,6 @@ from api.domain.core.annotation_identity import (
     enrich_annotation_identity,
 )
 from api.domain.core.dna.variant_identity import build_simple_id
-from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
 from api.infra.request_context import current_username
@@ -312,7 +311,7 @@ class AnnotationsRepository(BaseRepository):
             requested_count=len(annotations_copy),
         )
         if any(_annotation_class_value(item.get("class")) is not None for item in annotations_copy):
-            invalidate_dashboard_summary_cache(self.adapter)
+            self.invalidate_dashboard_summary()
         return result
 
     def get_global_annotations(self, variant: dict, assay_group: str, subpanel: str) -> tuple:
@@ -525,7 +524,7 @@ class AnnotationsRepository(BaseRepository):
         document = normalize_collection_document("annotation", document)
         result = OperationResult.from_insert_one(self.get_collection().insert_one(document))
         if _annotation_class_value(document.get("class")) is not None:
-            invalidate_dashboard_summary_cache(self.adapter)
+            self.invalidate_dashboard_summary()
         return result
 
     def delete_classified_variant(
@@ -574,7 +573,7 @@ class AnnotationsRepository(BaseRepository):
         scoped_query = {**query, "$or": delete_clause}
         result = OperationResult.from_delete(self.get_collection().delete_many(scoped_query))
         if result.deleted_count:
-            invalidate_dashboard_summary_cache(self.adapter)
+            self.invalidate_dashboard_summary()
         return result
 
     def get_gene_annotations(self, gene_name: str) -> list:

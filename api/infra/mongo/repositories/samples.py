@@ -18,7 +18,6 @@ from bson.objectid import ObjectId
 
 from api.config.constants import DEFAULT_ENVIRONMENT
 from api.contracts.operations import OperationResult
-from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import generate_sample_cache_key
 from api.infra.samples_cache import invalidate_samples_cache, samples_cache_version
@@ -564,7 +563,7 @@ class SampleRepository(BaseRepository):
             {"$set": update},
         )
         invalidate_samples_cache(self.adapter)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
 
     def update_sample_filters(
         self,
@@ -601,7 +600,7 @@ class SampleRepository(BaseRepository):
             {"$set": update},
         )
         invalidate_samples_cache(self.adapter)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
 
     def update_sample(self, sample_id: ObjectId, sample_doc: dict) -> OperationResult:
         """
@@ -609,7 +608,7 @@ class SampleRepository(BaseRepository):
         """
         result = self.get_collection().replace_one({"_id": sample_id}, sample_doc)
         invalidate_samples_cache(self.adapter)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return OperationResult.from_update(result)
 
     def add_sample_comment(self, sample_id: str, comment_doc: dict) -> None:
@@ -1041,7 +1040,7 @@ class SampleRepository(BaseRepository):
         result = self.get_collection().delete_one({"_id": ObjectId(sample_oid)})
         invalidate_samples_cache(self.adapter)
         operation = OperationResult.from_delete(result)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def save_report(

@@ -162,7 +162,7 @@ def test_sample_repository_update_and_missing_document_semantics(monkeypatch) ->
         "api.infra.mongo.repositories.samples.invalidate_samples_cache", lambda *_: None
     )
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.samples.invalidate_dashboard_summary_cache", lambda *_: None
+        "api.infra.mongo.repositories.base.invalidate_dashboard_summary_cache", lambda *_: None
     )
 
     result = repository.update_sample(sample_id, {"name": "CASE_A", "reported": True})

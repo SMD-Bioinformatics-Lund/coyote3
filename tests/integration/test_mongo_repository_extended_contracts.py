@@ -208,7 +208,7 @@ def test_roles_repository_search_colors_permissions_and_lifecycle(monkeypatch) -
     adapter = _adapter()
     repository = RolesRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.roles.invalidate_dashboard_summary_cache", lambda *_: None
+        "api.infra.mongo.repositories.base.invalidate_dashboard_summary_cache", lambda *_: None
     )
     repository.ensure_indexes()
     repository.create_role(
@@ -384,7 +384,7 @@ def test_asp_repository_business_keys_scope_genes_and_lifecycle(monkeypatch) -> 
     adapter = _adapter()
     repository = ASPRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.assay_panels.invalidate_dashboard_summary_cache",
+        "api.infra.mongo.repositories.base.invalidate_dashboard_summary_cache",
         lambda *_: None,
     )
     repository.create_panel(
@@ -463,7 +463,7 @@ def test_aspc_repository_business_keys_queries_and_lifecycle(monkeypatch) -> Non
     adapter = _adapter()
     repository = ASPConfigRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.assay_configurations.invalidate_dashboard_summary_cache",
+        "api.infra.mongo.repositories.base.invalidate_dashboard_summary_cache",
         lambda *_: None,
     )
     assert repository.build_aspc_id("HEMA_GMSV1", "Production", "Hem-Snabb") == (
@@ -539,7 +539,7 @@ def test_isgl_repository_scope_gene_selection_and_lifecycle(monkeypatch) -> None
     adapter = _adapter()
     repository = ISGLRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.gene_lists.invalidate_dashboard_summary_cache",
+        "api.infra.mongo.repositories.base.invalidate_dashboard_summary_cache",
         lambda *_: None,
     )
     repository.create_genelist(
@@ -631,7 +631,7 @@ def test_users_repository_identity_search_notifications_passwords_and_lifecycle(
     adapter = _adapter()
     repository = UsersRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.users.invalidate_dashboard_summary_cache", lambda *_: None
+        "api.infra.mongo.repositories.base.invalidate_dashboard_summary_cache", lambda *_: None
     )
     repository.ensure_indexes()
     repository.create_user(
@@ -755,7 +755,7 @@ def test_samples_repository_lifecycle_scope_counts_versions_and_delegates(monkey
         "api.infra.mongo.repositories.samples.invalidate_samples_cache", lambda *_: None
     )
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.samples.invalidate_dashboard_summary_cache", lambda *_: None
+        "api.infra.mongo.repositories.base.invalidate_dashboard_summary_cache", lambda *_: None
     )
     repository.ensure_indexes()
     now = datetime.now(timezone.utc)

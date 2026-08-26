@@ -18,6 +18,7 @@ import pymongo
 from bson.objectid import ObjectId
 
 from api.contracts.operations import OperationResult
+from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repository_utils import utc_now
 from api.infra.request_context import current_username
 
@@ -48,6 +49,12 @@ class BaseRepository:
         if self.repository_collection is not None:
             return self.repository_collection
         raise NotImplementedError("get_collection or set_collection must be implemented")
+
+    def invalidate_dashboard_summary(self) -> None:
+        """Invalidate dashboard metrics when this repository has a runtime adapter."""
+        adapter = getattr(self, "adapter", None)
+        if adapter is not None:
+            invalidate_dashboard_summary_cache(adapter)
 
     def hide_comment(self, var_id: str, comment_id: str) -> Any:
         """

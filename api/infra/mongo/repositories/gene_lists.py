@@ -15,7 +15,6 @@ import re
 
 from api.config.constants import normalize_clinical_identifier
 from api.contracts.operations import OperationResult
-from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
 
@@ -415,7 +414,7 @@ class ISGLRepository(BaseRepository):
         """
         result = self.get_collection().insert_one(self.ensure_isgl_id(dict(data)))
         operation = OperationResult.from_insert_one(result)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def rotate_isgl(
@@ -434,7 +433,7 @@ class ISGLRepository(BaseRepository):
             new_document=self.ensure_isgl_id(dict(updated_data)),
             retire_fields=retire_fields,
         )
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def toggle_isgl_active(self, isgl_id: str, active_status: bool) -> OperationResult:
@@ -464,7 +463,7 @@ class ISGLRepository(BaseRepository):
             {"$set": {"is_active": active_status}},
         )
         operation = OperationResult.from_update(result)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def delete_genelist(self, isgl_id: str) -> OperationResult:
@@ -485,7 +484,7 @@ class ISGLRepository(BaseRepository):
             {"$set": {"is_active": False}},
         )
         operation = OperationResult.from_update(result)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def get_subpanels_for_asp(

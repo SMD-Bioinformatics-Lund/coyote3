@@ -24,7 +24,6 @@ from api.config.constants import (
     validate_identifier,
 )
 from api.contracts.operations import OperationResult
-from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
 
@@ -358,7 +357,7 @@ class ASPConfigRepository(BaseRepository):
             new_document=self.ensure_aspc_id(dict(data)),
             retire_fields=retire_fields,
         )
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def create_assay_config(self, data: dict) -> OperationResult:
@@ -373,7 +372,7 @@ class ASPConfigRepository(BaseRepository):
         """
         result = self.get_collection().insert_one(self.ensure_aspc_id(dict(data)))
         operation = OperationResult.from_insert_one(result)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def delete_assay_config(self, assay_id: str) -> OperationResult:
@@ -391,7 +390,7 @@ class ASPConfigRepository(BaseRepository):
             {"$set": {"is_active": False}},
         )
         operation = OperationResult.from_update(result)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def toggle_aspc_active(self, aspc_id: str, active_status: bool) -> OperationResult:
@@ -418,7 +417,7 @@ class ASPConfigRepository(BaseRepository):
             {"$set": {"is_active": active_status}},
         )
         operation = OperationResult.from_update(result)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return operation
 
     def get_all_assay_names(self, is_active: bool | None = None) -> dict:

@@ -8,7 +8,6 @@ from typing import Any
 from bson.objectid import ObjectId
 
 from api.contracts.operations import OperationResult
-from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
 from api.infra.request_context import current_username
@@ -100,7 +99,7 @@ class ReportRepository(BaseRepository):
             },
         )
         invalidate_samples_cache(self.adapter)
-        invalidate_dashboard_summary_cache(self.adapter)
+        self.invalidate_dashboard_summary()
         return report_oid
 
     def get_report(self, sample_id: str, report_id: str) -> dict | None:
