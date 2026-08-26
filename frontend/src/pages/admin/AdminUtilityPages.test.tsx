@@ -25,7 +25,7 @@ vi.mock("@/lib/access-control", async (importOriginal) => {
 })
 
 import { AdminAuditPage, AdminControlsPage, AdminIngestPage } from "./AdminUtilityPages"
-import AdminSchemasPage from "./admin/AdminSchemasPage"
+import AdminSchemasPage from "./AdminSchemasPage"
 
 function renderPage(page: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })

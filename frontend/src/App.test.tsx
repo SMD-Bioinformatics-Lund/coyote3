@@ -11,19 +11,19 @@ vi.mock("./components/admin/AdminPermissionBoundary", () => ({
     <div data-testid="permission-boundary" data-permission={permission}>{children}</div>
   ),
 }))
-vi.mock("./pages/Login", () => ({ Login: () => <div>Login page</div> }))
+vi.mock("./pages/auth/Login", () => ({ Login: () => <div>Login page</div> }))
 vi.mock("./pages/Dashboard", () => ({ Dashboard: () => <div>Dashboard page</div> }))
 vi.mock("./pages/SampleDetail", () => ({ SampleDetail: () => {
   const { id } = useParams()
   return <div>Sample detail {id}</div>
 } }))
-vi.mock("./pages/AdminUtilityPages", () => ({
+vi.mock("./pages/admin/AdminUtilityPages", () => ({
   AdminAuditPage: () => <div>Audit page</div>,
   AdminControlsPage: () => <div>Controls page</div>,
   AdminIngestPage: () => <div>Ingest page</div>,
   AdminSchemasPage: () => <div>Schemas page</div>,
 }))
-vi.mock("./pages/StaticPages", () => ({
+vi.mock("./pages/static/StaticPages", () => ({
   AboutPage: () => <div>About page</div>,
   ContactPage: () => <div>Contact page</div>,
   NotFoundPage: () => <div>Not found page</div>,

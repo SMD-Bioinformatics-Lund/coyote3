@@ -37,8 +37,8 @@ vi.mock("@/lib/notifications", () => ({
   notifyActionError: mocks.error,
 }))
 
-import { AdminResourceEditorPage, AdminResourcePage } from "./AdminResourcePage"
-import { adminCell } from "./admin/resource-list"
+import { AdminResourceEditorPage, AdminResourcePage } from "./AdminResourcePages"
+import { adminCell } from "./resource-list"
 
 function renderResource(resource: string, children?: ReactNode) {
   const queryClient = new QueryClient({
