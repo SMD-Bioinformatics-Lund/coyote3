@@ -780,6 +780,19 @@ def variant_context_payload(
         )
     else:
         transcripts = annotate_transcript_provenance(raw_transcripts)
+    transcript_classifications = (
+        service.annotation_repository.get_latest_transcript_classifications(
+            variant,
+            transcripts,
+            assay_group,
+            subpanel,
+        )
+    )
+    for transcript in transcripts:
+        classification = transcript_classifications.get(str(transcript.get("Feature") or ""))
+        tier = classification_tier(classification)
+        if tier is not None:
+            transcript["tier"] = tier
     selected_csq = variant.get("INFO", {}).get("selected_CSQ", {})
     csq_terms = consequence_terms(selected_csq.get("Consequence"))
     variant_desc = "NOTHING_IN_HERE"

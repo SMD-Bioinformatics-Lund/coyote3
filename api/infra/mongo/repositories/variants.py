@@ -316,6 +316,7 @@ class VariantsRepository(BaseRepository):
                 )
             )
             info["GT"] = v.get("GT")
+            info["vaf"] = self._case_af_value(info)
             info["fp"] = v.get("fp", False)  # Add fp status if available
             info["interesting"] = v.get("interesting", False)  # Add interesting status if available
             info["irrelevant"] = v.get("irrelevant", False)  # Add irrelevant status if available

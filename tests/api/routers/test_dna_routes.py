@@ -374,6 +374,11 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
         "get_global_annotations",
         lambda variant, assay_group, subpanel: ({}, None, [], []),
     )
+    monkeypatch.setattr(
+        store.annotation_repository,
+        "get_latest_transcript_classifications",
+        lambda *args: {},
+    )
     monkeypatch.setattr(dna, "add_alt_class", lambda var, assay_group, subpanel: var)
     monkeypatch.setattr(store.expression_repository, "get_expression_data", lambda transcripts: {})
     monkeypatch.setattr(store.civic_repository, "get_civic_data", lambda variant, desc: {})

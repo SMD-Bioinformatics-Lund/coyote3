@@ -124,6 +124,7 @@ def build_fake_store() -> SimpleNamespace:
                     [],
                     [],
                 ),
+                "get_latest_transcript_classifications": lambda *args: {},
                 "find_variants_by_search_string": lambda **kwargs: [],
                 "get_tier_stats_by_search": lambda **kwargs: {"total": {}, "by_assay": {}},
                 "get_dashboard_classification_stats": lambda: {

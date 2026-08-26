@@ -222,6 +222,12 @@ class AnnotationsRepository(BaseRepository):
             name="nomenclature_variant_time_created",
             background=True,
         )
+        col.create_index(
+            [("transcript", 1), ("assay", 1), ("subpanel", 1), ("time_created", -1)],
+            name="transcript_assay_subpanel_time_created",
+            background=True,
+            sparse=True,
+        )
 
     def get_annotation_by_oid(self, oid: str) -> dict | None:
         """
@@ -422,6 +428,58 @@ class AnnotationsRepository(BaseRepository):
             latest_other_arr,
             annotations_interesting,
         )
+
+    def get_latest_transcript_classifications(
+        self,
+        variant: dict[str, Any],
+        transcripts: list[dict[str, Any]],
+        assay_group: str,
+        subpanel: str | None,
+    ) -> dict[str, dict[str, Any]]:
+        """Return the newest classification for each exact alternate transcript."""
+        genomic = variant.get("simple_id")
+        if not genomic and all(key in variant for key in ("CHROM", "POS", "REF", "ALT")):
+            genomic = build_simple_id(
+                variant["CHROM"], variant["POS"], variant["REF"], variant["ALT"]
+            )
+
+        transcript_clauses: list[dict[str, Any]] = []
+        for transcript in transcripts:
+            feature = str(transcript.get("Feature") or "").strip()
+            gene = str(transcript.get("SYMBOL") or "").strip()
+            identities = _small_variant_identity_clauses(
+                hgvsp=transcript.get("HGVSp"),
+                hgvsc=transcript.get("HGVSc"),
+                genomic=genomic,
+            )
+            if not feature or not gene or not identities:
+                continue
+            transcript_clauses.append(
+                {
+                    "transcript": feature,
+                    "gene": gene,
+                    "$or": identities,
+                }
+            )
+
+        if not transcript_clauses:
+            return {}
+
+        query: dict[str, Any] = {
+            "assay": assay_group,
+            "class": {"$in": [1, 2, 3, 4]},
+            "$or": transcript_clauses,
+        }
+        if assay_group == "solid":
+            query["subpanel"] = subpanel
+
+        latest_by_transcript: dict[str, dict[str, Any]] = {}
+        annotations = self.get_collection().find(query).sort([("time_created", -1), ("_id", -1)])
+        for annotation in annotations:
+            feature = str(annotation.get("transcript") or "").strip()
+            if feature and feature not in latest_by_transcript:
+                latest_by_transcript[feature] = annotation
+        return latest_by_transcript
 
     def get_additional_classifications(
         self, variant: dict, assay_group: str, subpanel: str

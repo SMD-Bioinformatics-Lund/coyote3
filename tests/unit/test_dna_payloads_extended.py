@@ -261,11 +261,13 @@ def _context_service(variant):
                     "sample_name": "OTHER_SAMPLE",
                     "assay": "solid_gmsv3",
                     "subpanel": "colon",
+                    "vaf": 0.125,
                 },
                 {
                     "sample_name": "OTHER_HEMA_SAMPLE",
                     "assay": "hema_gmsv1",
                     "subpanel": "base",
+                    "vaf": 0.04,
                 },
             ],
             hidden_var_comments=lambda variant_id: True,
@@ -277,7 +279,10 @@ def _context_service(variant):
                 {"class": 1 if group == "hematology" else 2},
                 [{"class": 3}],
                 True,
-            )
+            ),
+            get_latest_transcript_classifications=lambda row, transcripts, group, subpanel: {
+                "NM_000546.6": {"class": 3}
+            },
         ),
         expression_repository=SimpleNamespace(get_expression_data=lambda transcripts: transcripts),
         anno_vep_repository=SimpleNamespace(
@@ -357,13 +362,14 @@ def test_variant_context_builds_transcript_and_knowledgebase_payload() -> None:
         assay_config_getter=lambda value: {"asp_group": "solid"},
     )
     assert observed["sample_summary"]["name"] == "SAMPLE_1"
-    assert observed["transcripts"] == [{"Feature": "NM_000546.6"}]
+    assert observed["transcripts"] == [{"Feature": "NM_000546.6", "tier": 3}]
     assert observed["latest_classification"]["class"] == 2
     assert observed["in_other_samples"] == [
         {
             "sample_name": "OTHER_SAMPLE",
             "assay": "solid_gmsv3",
             "subpanel": "colon",
+            "vaf": 0.125,
             "assay_group": "solid",
             "tier": 2,
         },
@@ -371,6 +377,7 @@ def test_variant_context_builds_transcript_and_knowledgebase_payload() -> None:
             "sample_name": "OTHER_HEMA_SAMPLE",
             "assay": "hema_gmsv1",
             "subpanel": "base",
+            "vaf": 0.04,
             "assay_group": "hematology",
             "tier": 1,
         },

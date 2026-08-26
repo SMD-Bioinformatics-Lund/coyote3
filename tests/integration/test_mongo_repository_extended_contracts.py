@@ -985,6 +985,7 @@ def test_variants_repository_identity_cross_sample_mutations_metrics_and_stats(m
     assert other[0]["sample_name"] == "B" and other[0]["fp"] is True
     assert other[0]["assay"] == "solid"
     assert other[0]["subpanel"] == "colon"
+    assert other[0]["vaf"] == 0.7
     assert len(repository.get_variants_by_identity(simple_id=simple_id, limit=1)) == 1
     assert (
         len(repository.get_variants_by_identity(simple_id=simple_id, sample_id=str(sample_a))) == 1
@@ -1112,3 +1113,89 @@ def test_annotation_dashboard_classification_stats_use_latest_identity() -> None
         "tier4": 1,
     }
     assert stats["by_assay"]["hematology"]["tier1"] == 1
+
+
+def test_annotation_repository_returns_latest_tier_for_each_exact_transcript() -> None:
+    adapter = _adapter()
+    repository = AnnotationsRepository(adapter)
+    created = datetime.now(timezone.utc)
+    genomic = "17_7675088_A_G"
+    repository.get_collection().insert_many(
+        [
+            {
+                "nomenclature": "p",
+                "variant": "p.Arg175His",
+                "hgvsp": "p.Arg175His",
+                "hgvsc": "c.524G>A",
+                "genomic": genomic,
+                "gene": "TP53",
+                "transcript": "NM_000546.5",
+                "assay": "solid",
+                "subpanel": "colon",
+                "class": 3,
+                "time_created": created - timedelta(days=1),
+            },
+            {
+                "nomenclature": "p",
+                "variant": "p.Arg175His",
+                "hgvsp": "p.Arg175His",
+                "hgvsc": "c.524G>A",
+                "genomic": genomic,
+                "gene": "TP53",
+                "transcript": "NM_000546.5",
+                "assay": "solid",
+                "subpanel": "colon",
+                "class": 2,
+                "time_created": created,
+            },
+            {
+                "nomenclature": "p",
+                "variant": "p.Arg175His",
+                "hgvsp": "p.Arg175His",
+                "hgvsc": "c.524G>A",
+                "genomic": genomic,
+                "gene": "TP53",
+                "transcript": "NM_001126112.3",
+                "assay": "solid",
+                "subpanel": "colon",
+                "class": 4,
+                "time_created": created,
+            },
+            {
+                "nomenclature": "p",
+                "variant": "p.Arg175His",
+                "hgvsp": "p.Arg175His",
+                "hgvsc": "c.524G>A",
+                "genomic": genomic,
+                "gene": "TP53",
+                "transcript": "NM_000546.5",
+                "assay": "solid",
+                "subpanel": "breast",
+                "class": 1,
+                "time_created": created + timedelta(days=1),
+            },
+        ]
+    )
+
+    tiers = repository.get_latest_transcript_classifications(
+        {"simple_id": genomic},
+        [
+            {
+                "Feature": "NM_000546.5",
+                "SYMBOL": "TP53",
+                "HGVSc": "c.524G>A",
+                "HGVSp": "p.Arg175His",
+            },
+            {
+                "Feature": "NM_001126112.3",
+                "SYMBOL": "TP53",
+                "HGVSc": "c.524G>A",
+                "HGVSp": "p.Arg175His",
+            },
+        ],
+        "solid",
+        "colon",
+    )
+
+    assert tiers["NM_000546.5"]["class"] == 2
+    assert tiers["NM_001126112.3"]["class"] == 4
