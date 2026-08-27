@@ -184,5 +184,6 @@ describe("DataTable", () => {
     expect(table).toHaveAttribute("data-density", "relaxed")
     expect(table).toHaveAttribute("data-column-count", "3")
     expect(screen.getByText("Gene").closest("th")).toHaveAttribute("data-column-id", "gene")
+    expect(screen.getByText("TP53").closest("td")).toHaveClass("min-w-0", "overflow-hidden")
   })
 })

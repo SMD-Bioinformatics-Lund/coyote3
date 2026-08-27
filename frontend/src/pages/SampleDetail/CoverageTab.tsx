@@ -175,7 +175,7 @@ function CoverageGeneView({
                   {Number.isFinite(cov) ? `${cov.toFixed(2)}X` : "N/A"}
                 </td>
                 <td className="px-2 py-1">
-                  <span className={`rounded-md px-2 py-1 text-[10px] font-bold uppercase ${isLow ? "bg-fail/10 text-fail" : "bg-pass/10 text-pass"}`}>
+                  <span className={`rounded-md px-2 py-1 type-label font-bold uppercase ${isLow ? "bg-fail/10 text-fail" : "bg-pass/10 text-pass"}`}>
                     {Number.isFinite(cov) ? (isLow ? "Low" : "Pass") : "No design"}
                   </span>
                 </td>
@@ -243,26 +243,26 @@ function CoverageGeneView({
           role="img"
           aria-label={`${gene} coverage plot`}
         >
-          <text x={margin.left} y={20} className="fill-foreground text-[14px] font-bold">
+          <text x={margin.left} y={20} className="fill-foreground type-body font-bold">
             {gene}
           </text>
-          <text x={margin.left} y={38} className="fill-muted-foreground text-[11px]">
+          <text x={margin.left} y={38} className="fill-muted-foreground type-meta">
             {transcriptChr}:{metric(safeStart)}-{metric(safeEnd)} • {metric(transcriptLength)} bp • cutoff {cutoff}X
           </text>
-          <text x={Math.max(margin.left + 300, width - 260)} y={20} className="fill-muted-foreground text-[11px]">
+          <text x={Math.max(margin.left + 300, width - 260)} y={20} className="fill-muted-foreground type-meta">
             Exons {exons.length} • CDS {cds.length} • Probes {probes.length}
           </text>
-          <text x={Math.max(margin.left + 300, width - 260)} y={38} className="fill-muted-foreground text-[11px]">
+          <text x={Math.max(margin.left + 300, width - 260)} y={38} className="fill-muted-foreground type-meta">
             Min {Number.isFinite(minCoverage) ? minCoverage.toFixed(1) : "-"}X • Avg {Number.isFinite(avgCoverage) ? avgCoverage.toFixed(1) : "-"}X
           </text>
 
           <line x1={x(safeStart)} y1={144} x2={x(safeEnd)} y2={144} stroke="currentColor" strokeWidth="1" />
           <line x1={x(safeStart)} y1={136} x2={x(safeStart)} y2={152} stroke="currentColor" strokeWidth="1" />
           <line x1={x(safeEnd)} y1={136} x2={x(safeEnd)} y2={152} stroke="currentColor" strokeWidth="1" />
-          <text x={x(safeStart)} y={171} className="fill-muted-foreground text-[10px]" textAnchor="start">
+          <text x={x(safeStart)} y={171} className="fill-muted-foreground type-label" textAnchor="start">
             {metric(safeStart)}
           </text>
-          <text x={x(safeEnd)} y={171} className="fill-muted-foreground text-[10px]" textAnchor="end">
+          <text x={x(safeEnd)} y={171} className="fill-muted-foreground type-label" textAnchor="end">
             {metric(safeEnd)}
           </text>
 
@@ -276,7 +276,7 @@ function CoverageGeneView({
                   <title>{coord(row)} exon {label}, cov {Number(row.cov).toFixed(2)}X</title>
                 </rect>
                 {rectWidth > 18 && (
-                  <text x={rectX + rectWidth / 2} y={148} textAnchor="middle" className="fill-foreground text-[9px] font-bold">
+                  <text x={rectX + rectWidth / 2} y={148} textAnchor="middle" className="fill-foreground type-label font-bold">
                     {label}
                   </text>
                 )}
@@ -295,7 +295,7 @@ function CoverageGeneView({
                   <title>{coord(row)} exon {label}, cov {Number.isNaN(cov) ? "N/A" : cov.toFixed(2)}X</title>
                 </rect>
                 {rectWidth > 42 && (
-                  <text x={rectX + rectWidth / 2} y={130} textAnchor="middle" className={`${cov < cutoff ? "fill-fail" : "fill-pass"} text-[9px] font-bold`}>
+                  <text x={rectX + rectWidth / 2} y={130} textAnchor="middle" className={`${cov < cutoff ? "fill-fail" : "fill-pass"} type-label font-bold`}>
                     {Number.isNaN(cov) ? "N/A" : `${cov.toFixed(0)}X`}
                   </text>
                 )}
@@ -312,16 +312,16 @@ function CoverageGeneView({
                   <title>{coord(row)}, cov {Number.isNaN(cov) ? "N/A" : cov.toFixed(2)}X</title>
                 </rect>
                 {rectWidth > 44 && (
-                  <text x={rectX + rectWidth / 2} y={90} textAnchor="middle" className={`${cov < cutoff ? "fill-fail" : "fill-tier3"} text-[9px] font-bold`}>
+                  <text x={rectX + rectWidth / 2} y={90} textAnchor="middle" className={`${cov < cutoff ? "fill-fail" : "fill-tier3"} type-label font-bold`}>
                     {Number.isNaN(cov) ? "N/A" : `${cov.toFixed(0)}X`}
                   </text>
                 )}
               </g>
             )
           })}
-          <text x={10} y={108} className="fill-muted-foreground text-[11px]">Probes</text>
-          <text x={10} y={148} className="fill-muted-foreground text-[11px]">CDS/exons</text>
-          <text x={10} y={190} className="fill-muted-foreground text-[10px]">Hover regions for exact coordinates and coverage.</text>
+          <text x={10} y={108} className="fill-muted-foreground type-meta">Probes</text>
+          <text x={10} y={148} className="fill-muted-foreground type-meta">CDS/exons</text>
+          <text x={10} y={190} className="fill-muted-foreground type-label">Hover regions for exact coordinates and coverage.</text>
         </svg>
       </div>
 
@@ -396,16 +396,16 @@ function CoverageGeneView({
         {infoTab === "transcript" && (
           <div className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Coordinates</p>
+              <p className="type-label font-semibold uppercase tracking-wider text-muted-foreground">Coordinates</p>
               <p className="font-semibold">{transcript.chr || transcript.chrom || "-"}:{metric(transcript.start)}-{metric(transcript.end)}</p>
             </div>
             <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Length</p>
+              <p className="type-label font-semibold uppercase tracking-wider text-muted-foreground">Length</p>
               <p className="font-semibold">{metric(regionLength(transcript))} bp</p>
             </div>
             {transcriptRows.map(([key, value]) => (
               <div key={key} className="rounded-lg border border-border bg-background/70 px-3 py-2">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{key.replaceAll("_", " ")}</p>
+                <p className="type-label font-semibold uppercase tracking-wider text-muted-foreground">{key.replaceAll("_", " ")}</p>
                 <p className="break-words text-xs font-semibold">{String(value)}</p>
               </div>
             ))}
@@ -579,9 +579,9 @@ export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: a
                 >
                   <span className="min-w-0">
                     <span className="block truncate text-xs font-medium">{item.gene}</span>
-                    <span className="text-[10px] text-muted-foreground">{item.count} low region(s)</span>
+                    <span className="type-label text-muted-foreground">{item.count} low region(s)</span>
                   </span>
-                  <span className="rounded-md bg-fail/10 px-1.5 py-0.5 text-[10px] font-bold text-fail">
+                  <span className="rounded-md bg-fail/10 px-1.5 py-0.5 type-label font-bold text-fail">
                     {Number.isFinite(item.min) ? `${item.min.toFixed(1)}X` : "-"}
                   </span>
                 </button>

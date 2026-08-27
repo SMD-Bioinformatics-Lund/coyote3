@@ -19,8 +19,8 @@ import {
   DetailField,
   FindingDetailShell,
   FindingError,
-  DetailHero,
-  DetailHeroSubtitle,
+  FindingCallerMeta,
+  FindingDetailHero,
   FindingIdentityCard,
   FindingLoading,
   FindingMainGrid,
@@ -98,21 +98,16 @@ export function TranslocationDetail() {
 
   return (
     <FindingDetailShell>
-      <DetailHero
+      <FindingDetailHero
         backTo={previousSampleHref}
-        title={genes.length > 0 ? genes.join(" - ") : "Unknown Translocation"}
-        subtitle={
-          <DetailHeroSubtitle sampleHref={sampleHref} sampleName={sample?.name || id}>
-            <span>
-              Translocation · {position}
-            </span>
-          </DetailHeroSubtitle>
-        }
-        chips={
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Called by</span>
+        genes={genes}
+        identity={`Translocation · ${position}`}
+        sampleHref={sampleHref}
+        sampleName={sample?.name || id}
+        callers={
+          <FindingCallerMeta>
             <CallerBadges value={callers} />
-          </div>
+          </FindingCallerMeta>
         }
         actions={
           <VariantActionButtons

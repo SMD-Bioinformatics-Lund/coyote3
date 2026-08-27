@@ -164,9 +164,9 @@ export function PanelSummary({ sample, context }: { sample: any; context?: any }
                         : "border-genelist/30 bg-genelist/10 text-genelist hover:bg-genelist/10"
                   }`}
                 >
-                  <span className="font-black uppercase">{raw?.target || "GENE"}</span>
+                  <span className="font-semibold uppercase">{raw?.target || "GENE"}</span>
                   <span className="text-foreground">{name}</span>
-                  {raw?.adhoc ? <span className="rounded bg-primary/10 px-1 text-[10px] uppercase text-primary">Ad hoc</span> : null}
+                  {raw?.adhoc ? <span className="rounded bg-primary/10 px-1 type-label uppercase text-primary">Ad hoc</span> : null}
                   <span className="text-muted-foreground">
                     {Number(raw?.covered_count ?? covered.length)} / {Number(raw?.gene_count ?? genes.length)} covered
                   </span>
@@ -189,7 +189,7 @@ export function PanelSummary({ sample, context }: { sample: any; context?: any }
             return (
               <div key={`${raw?.target || "GENE"}-${raw?.id || name}`} className="rounded-lg border border-border/80 bg-background/70 p-3 shadow-sm">
                 <p className={raw?.is_active === false ? "text-sm font-bold text-warn" : "text-sm font-bold text-foreground"}>
-                  <span className="uppercase text-muted-foreground">{raw?.target || "GENE"}</span>: {name} {raw?.adhoc ? <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] uppercase text-primary">Ad hoc</span> : null}
+                  <span className="uppercase text-muted-foreground">{raw?.target || "GENE"}</span>: {name} {raw?.adhoc ? <span className="rounded bg-primary/10 px-1.5 py-0.5 type-label uppercase text-primary">Ad hoc</span> : null}
                   <span className="ml-2 text-muted-foreground">
                     {Number(raw?.covered_count ?? covered.length)} of {Number(raw?.gene_count ?? genes.length)} gene(s) covered
                   </span>
@@ -486,10 +486,10 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="type-table-cell w-full min-w-[38rem] border-separate border-spacing-0">
               <thead>
-                <tr className="type-table-header bg-muted/65 text-left text-muted-foreground">
-                  <th className="w-28 px-3 py-1">Field</th>
-                  <th className="bg-pass/8 px-3 py-1 text-pass">Case</th>
-                  <th className="bg-tier3/8 px-3 py-1 text-tier3">Control</th>
+                <tr className="type-table-header bg-muted/65 text-left">
+                  <th className="w-28 px-3 py-2 border-r-2 border-border">Field</th>
+                  <th className="bg-pass/8 px-3 py-2 text-pass border-r-2 border-border">Case</th>
+                  <th className="bg-tier3/8 px-3 py-2 text-tier3">Control</th>
                 </tr>
               </thead>
               <tbody>
@@ -503,9 +503,9 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
                   ["Purity", formatPurityPercentage(sample?.case?.purity), formatPurityPercentage(sample?.control?.purity)],
                 ].map(([label, caseValue, controlValue]) => (
                   <tr key={String(label)} className="border-t border-border/40">
-                    <th scope="row" className="border-t border-border/40 bg-muted/35 px-3 py-1 text-left font-semibold uppercase text-muted-foreground">{label}</th>
-                    <td className="border-t border-border/55 bg-pass/5 px-3 py-1 font-normal text-foreground">{displayValue(caseValue)}</td>
-                    <td className="border-t border-border/55 bg-tier3/5 px-3 py-1 font-normal text-foreground">{sample?.paired ? displayValue(controlValue) : "Not paired"}</td>
+                    <th scope="row" className="border-t border-r border-border text-sm bg-muted/35 px-3 py-1 text-left font-semibold capitalize">{label}</th>
+                    <td className="border-t border-r border-border bg-pass/5 px-3 py-1 text-sm font-normal text-foreground">{displayValue(caseValue)}</td>
+                    <td className="border-t border-border bg-tier3/5 px-3 py-1 text-sm font-normal text-foreground">{sample?.paired ? displayValue(controlValue) : "Not paired"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -528,11 +528,11 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
                       <StatusPill tone="green">{sampleArtifactCountLabel(file.analysis_type, file.data_count)}</StatusPill>
                     )}
                   </div>
-                  <p className={`mt-0.5 break-all text-[11px] ${file.path && file.exists === false ? "text-fail" : "text-muted-foreground"}`}>
+                  <p className={`mt-0.5 break-all type-meta ${file.path && file.exists === false ? "text-fail" : "text-muted-foreground"}`}>
                     {file.path || sampleArtifactPresentation(file.analysis_type).missingMessage}
                   </p>
                   {file.checksum && (
-                    <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                    <p className="mt-0.5 truncate type-label text-muted-foreground">
                       checksum {file.checksum}
                     </p>
                   )}
@@ -582,7 +582,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
           <div className="divide-y divide-border/60">
             {omics === "dna" && (
               <section className="py-3 first:pt-0">
-                <h3 className="type-label text-green-700 dark:text-green-300">Selected SNV ISGLs</h3>
+                <h3 className="type-label text-pass">Selected SNV ISGLs</h3>
                 <div className="type-body-sm mt-2 flex flex-wrap gap-2">
                   {(snvFilters.snvlists || []).length ? snvFilters.snvlists.map((name: string) => <StatusPill key={name} tone="green">{name}</StatusPill>) : <p className="text-muted-foreground">No ISGLs selected for this sample.</p>}
                 </div>
@@ -627,7 +627,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
           </div>
         </SettingsCard>
 
-        <SettingsCard title="Configured Filters" tone="border-t-blue-400" className="xl:col-span-2">
+        <SettingsCard title="Configured Filters" tone="border-t-blue-400" className="col-span-4">
           <div className="space-y-3">
             {filterGroups.length ? filterGroups.map((group) => (
               <section key={group.key} aria-labelledby={`filter-group-${group.key}`} className="rounded-xl border border-border bg-background/55 p-2.5">
@@ -649,7 +649,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
       {verificationSample && (
         <section className="paper-inset rounded-xl px-3 py-2">
           <h2 className="text-base font-semibold uppercase tracking-wide text-foreground">Verification Sample</h2>
-          <p className="mt-2 text-sm font-semibold text-yellow-700 dark:text-yellow-300">
+          <p className="type-body-sm mt-2 font-semibold text-warn">
             Verification sample used: {verificationSample}
           </p>
         </section>

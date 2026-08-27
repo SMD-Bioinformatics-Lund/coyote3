@@ -264,7 +264,7 @@ export function AdminResourcePage() {
           </div>
           {listFilterDefinitions.map((definition, index) => (
             <label key={definition.field} className="grid min-w-52 gap-1">
-              <span className="text-[0.68rem] font-bold uppercase text-muted-foreground">{definition.label}</span>
+              <span className="type-meta font-bold uppercase text-muted-foreground">{definition.label}</span>
               <select
                 value={resourceFilters[definition.field] || ""}
                 onChange={(event) => {
@@ -339,7 +339,7 @@ export function AdminResourcePage() {
                     disabled={mutate.isPending}
                     onClick={() => mutate.mutate(pendingAction)}
                     className={cn(
-                      "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-white disabled:opacity-50",
+                      "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50",
                       pendingAction.action === "delete" ? "bg-destructive" : "bg-primary"
                     )}
                   >

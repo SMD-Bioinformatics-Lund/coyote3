@@ -108,8 +108,8 @@ export function VariantKnowledgeBlock({ title, badges, defaultOpen = false, chil
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</span>
           {badges}
         </span>
-        <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground group-open:hidden">Expand</span>
-        <span className="hidden rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground group-open:inline">Collapse</span>
+        <span className="rounded-md bg-muted px-2 py-0.5 type-label font-semibold uppercase text-muted-foreground group-open:hidden">Expand</span>
+        <span className="hidden rounded-md bg-muted px-2 py-0.5 type-label font-semibold uppercase text-muted-foreground group-open:inline">Collapse</span>
       </summary>
       <div className="border-t border-border px-3 py-3">{children}</div>
     </details>

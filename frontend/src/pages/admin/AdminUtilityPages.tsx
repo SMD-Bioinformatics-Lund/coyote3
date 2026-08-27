@@ -485,10 +485,10 @@ export function AdminAuditPage() {
       cell: ({ row }) => (
         <div className="max-w-md">
           <div className="font-semibold text-foreground">{row.original.message || "-"}</div>
-          <div className="mt-0.5 text-[11px] text-muted-foreground">{row.original.event_type || "-"}</div>
+          <div className="mt-0.5 type-meta text-muted-foreground">{row.original.event_type || "-"}</div>
           <div className="mt-1 flex flex-wrap gap-1">
             {(row.original.tags || []).slice(0, 4).map((tag) => (
-              <span key={tag} className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{tag}</span>
+              <span key={tag} className="rounded bg-muted px-1.5 py-0.5 type-label text-muted-foreground">{tag}</span>
             ))}
           </div>
         </div>
@@ -510,10 +510,10 @@ export function AdminAuditPage() {
             <span className="block text-sm text-muted-foreground">{row.original.actor?.username || "-"}</span>
             {roles.length > 0 && (
               <div className="mt-1 flex flex-wrap gap-1">
-                {roles.map((role) => <span key={role} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">{role}</span>)}
+                {roles.map((role) => <span key={role} className="rounded-full bg-primary/10 px-2 py-0.5 type-label font-bold text-primary">{role}</span>)}
               </div>
             )}
-            {row.original.source?.client_ip && <span className="block text-[11px] text-muted-foreground">{row.original.source.client_ip}</span>}
+            {row.original.source?.client_ip && <span className="block type-meta text-muted-foreground">{row.original.source.client_ip}</span>}
           </div>
         )
       },
@@ -530,7 +530,7 @@ export function AdminAuditPage() {
         return (
           <div>
             <span className="block text-sm font-semibold capitalize">{row.original.resource?.type?.replaceAll("_", " ") || "-"}</span>
-            <span className="block max-w-48 truncate text-[11px] text-muted-foreground" title={resource || ""}>{resource || "-"}</span>
+            <span className="block max-w-48 truncate type-meta text-muted-foreground" title={resource || ""}>{resource || "-"}</span>
           </div>
         )
       },
@@ -559,7 +559,7 @@ export function AdminAuditPage() {
       cell: ({ row }) => (
         <details className="text-xs">
           <summary className="cursor-pointer text-primary">View details</summary>
-          <div className="mt-2 w-80 space-y-1 rounded-lg bg-muted/60 p-2 text-[11px]">
+          <div className="mt-2 w-80 space-y-1 rounded-lg bg-muted/60 p-2 type-meta">
             <Detail label="Request ID" value={row.original.source?.request_id} />
             <Detail label="Request" value={row.original.source?.method && row.original.source?.path ? `${row.original.source.method} ${row.original.source.path}` : null} />
             <Detail label="Resource name" value={row.original.resource?.name} />
@@ -615,7 +615,7 @@ export function AdminAuditPage() {
             >
               <span>
                 <span className="block text-xs font-semibold uppercase tracking-wide">{level}</span>
-                <span className="mt-0.5 block text-xl font-black type-numeric">{severityCounts[level]}</span>
+                <span className="mt-0.5 block text-xl font-semibold type-numeric">{severityCounts[level]}</span>
               </span>
               <Icon className="h-5 w-5" />
             </button>
@@ -882,8 +882,8 @@ export function AdminIngestPage() {
 function TaskMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-border bg-background/70 p-3">
-      <p className="text-[11px] font-semibold uppercase text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-black">{value}</p>
+      <p className="type-meta font-semibold uppercase text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-semibold">{value}</p>
     </div>
   )
 }

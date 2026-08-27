@@ -38,7 +38,7 @@ function AuthShell({
 
       <footer className="login-footer">
         <span>Coyote3 v4.0.0</span>
-        <span className="font-extrabold tracking-[0.08em] text-primary uppercase">DEVELOPMENT</span>
+        <span className="font-semibold tracking-[0.08em] text-primary uppercase">DEVELOPMENT</span>
         <span>Section for Molecular Diagnostics</span>
       </footer>
     </main>

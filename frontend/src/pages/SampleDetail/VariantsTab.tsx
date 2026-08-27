@@ -208,7 +208,7 @@ export function VariantsTab({
       cell: ({ row }) => {
         const csq = row.original.INFO?.selected_CSQ || {}
         return (
-          <div className="flex min-w-0 flex-col gap-0 leading-[1.2] text-foreground">
+          <div className="flex min-w-0 flex-col gap-0 leading-[1.2] text-foreground justify-items-center">
             <ExpandableText text={csq.HGVSc || "-"} maxLength={32} className="type-table-value leading-[1.2] text-foreground/80" />
             <ExpandableText text={csq.HGVSp && csq.HGVSp !== "-" ? csq.HGVSp : "-"} maxLength={32} className="type-table-value-emphasis leading-[1.2] text-foreground" />
           </div>
@@ -418,7 +418,7 @@ export function VariantsTab({
                 to={`/samples/${sampleId}/variant/${row.original._id}`}
                 state={{ from: `${location.pathname}${location.search}` }}
                 aria-label="View variant details"
-                className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-white"
+                className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-primary-foreground"
               >
                 <ExternalLink className="w-4 h-4" />
               </Link>

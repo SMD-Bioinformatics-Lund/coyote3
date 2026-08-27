@@ -147,7 +147,7 @@ describe("VariantDetail", () => {
     renderDetail()
 
     await waitFor(() => expect(screen.getByTestId("path")).toHaveTextContent("/samples/CASE_001/variant/variant-1"))
-    expect(await screen.findByRole("heading", { name: "SRSF2" })).toBeVisible()
+    expect((await screen.findAllByRole("link", { name: "SRSF2" }))[0]).toBeVisible()
     expect(screen.getAllByText("p.Met89Val").length).toBeGreaterThan(0)
     expect(screen.getAllByText("SRSF2").length).toBeGreaterThan(0)
     expect(screen.getByText("17:76736896 T>C")).toBeVisible()

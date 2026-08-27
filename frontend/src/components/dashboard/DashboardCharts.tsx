@@ -57,12 +57,12 @@ function CompositionDonut({ group, colors, colorOffset }: { group: CompositionGr
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
               <strong className="text-sm font-semibold text-foreground">{shortCount(total)}</strong>
-              <span className="text-[9px] uppercase text-muted-foreground">samples</span>
+              <span className="type-label uppercase text-muted-foreground">samples</span>
             </div>
           </div>
           <ul className="min-w-0 space-y-1.5">
             {rows.map((row, index) => (
-              <li key={row.name} className="flex min-w-0 items-center gap-1.5 text-[11px]">
+              <li key={row.name} className="flex min-w-0 items-center gap-1.5 type-meta">
                 <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: colors[(colorOffset + index) % colors.length] }} />
                 <span className="min-w-0 flex-1 truncate capitalize text-muted-foreground">{row.name || "unknown"}</span>
                 <strong className="shrink-0 font-semibold text-foreground">{shortCount(row.value)}</strong>
@@ -127,7 +127,7 @@ export function SampleCompositionCharts({
             <h3 className="type-label text-foreground">Pipeline throughput</h3>
             <p className="type-meta mt-0.5 text-muted-foreground">Analysis completion by pipeline and version.</p>
           </div>
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-3 type-label text-muted-foreground">
             <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-sm bg-pass" />Analysed</span>
             <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-sm bg-warning" />Awaiting review</span>
           </div>

@@ -57,16 +57,16 @@ export function NotificationHistoryPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-black uppercase", toneClass[notification.tone])}>
+                      <span className={cn("rounded-full border px-2 py-0.5 type-label font-semibold uppercase", toneClass[notification.tone])}>
                         {notification.tone}
                       </span>
                       {notification.source && (
-                        <span className="truncate text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <span className="truncate type-meta font-semibold uppercase tracking-wide text-muted-foreground">
                           {notification.source}
                         </span>
                       )}
                       {notification.category && (
-                        <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
+                        <span className="rounded-full border border-border bg-muted px-2 py-0.5 type-label font-semibold uppercase text-muted-foreground">
                           {notification.category}
                         </span>
                       )}
@@ -75,7 +75,7 @@ export function NotificationHistoryPage() {
                     {notification.message && (
                       <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{notification.message}</p>
                     )}
-                    <TimeDisplay value={notification.createdAt} mode="full" className="mt-2 text-[11px] font-medium text-muted-foreground" />
+                    <TimeDisplay value={notification.createdAt} mode="full" className="mt-2 type-meta font-medium text-muted-foreground" />
                   </div>
                   <Button variant="ghost" size="icon-sm" onClick={() => remove(notification.id)} title="Remove notification">
                     <Trash2 className="h-4 w-4" />

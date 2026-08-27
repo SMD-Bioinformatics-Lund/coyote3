@@ -16,6 +16,7 @@ export type TieredVariantSearchState = {
   mode: string
   includeText: boolean
   assays: string[]
+  nomenclatures: string[]
 }
 
 export function tieredVariantSearchPath(gene: unknown, assayGroup?: unknown) {
@@ -40,11 +41,15 @@ export function tieredVariantSearchState(params: URLSearchParams): TieredVariant
   const assays = Array.from(
     new Set(params.getAll("assays").map((value) => value.trim()).filter(Boolean)),
   )
+  const nomenclatures = Array.from(
+    new Set(params.getAll("nomenclatures").map((value) => value.trim()).filter(Boolean)),
+  )
 
   return {
     search,
     mode,
     includeText: params.get("include_annotation_text") === "true",
     assays,
+    nomenclatures,
   }
 }

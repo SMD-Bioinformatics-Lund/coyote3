@@ -30,7 +30,7 @@ describe("TableBadge", () => {
       "min-h-3",
       "min-w-2.5",
       "px-0.5",
-      "text-[0.4375rem]",
+      "type-info-badge",
       "shadow-none",
     )
   })

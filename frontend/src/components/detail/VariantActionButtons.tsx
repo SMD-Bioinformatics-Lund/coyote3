@@ -85,12 +85,13 @@ export function VariantActionButtons({
   }
 
   const buttonBase = compact
-    ? "paper-raised-control inline-flex h-6 w-6 items-center justify-center rounded-md border text-xs font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-100 disabled:opacity-50"
-    : "paper-raised-control inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-100 disabled:opacity-50"
+    ? "paper-raised-control inline-flex h-6 w-6 items-center justify-center rounded-md border text-xs font-semibold interaction-transition disabled:opacity-50"
+    : "paper-raised-control inline-flex h-9 items-center gap-2 rounded-lg border px-3 type-body-sm font-semibold interaction-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
   const labeledCompactAction = compact && showActionLabel
   const interestingButtonBase = labeledCompactAction
-    ? "paper-raised-control inline-flex h-6 items-center justify-center gap-1 rounded-md border px-1.5 text-[11px] font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-100 disabled:opacity-50"
+    ? "paper-raised-control inline-flex h-6 items-center justify-center gap-1 rounded-md border px-1.5 type-meta font-semibold interaction-transition disabled:opacity-50"
     : buttonBase
+  const iconClassName = compact ? "h-3.5 w-3.5" : "h-4 w-4"
 
   return (
     <div className={compact ? "flex items-center gap-1" : "flex flex-wrap items-center gap-1.5"}>
@@ -108,7 +109,7 @@ export function VariantActionButtons({
         className={`${buttonBase} ${isFp ? 'border-fail/40 bg-fail/15 text-fail' : 'border-border bg-background hover:bg-fail/10 hover:text-fail'}`}
         title="Toggle False Positive"
       >
-        <XCircle className="h-3.5 w-3.5" />
+        <XCircle className={iconClassName} />
         {!compact && "FP"}
       </button>}
       {supportsBlacklist && showsControl("blacklist") && (
@@ -120,7 +121,7 @@ export function VariantActionButtons({
               className={`${buttonBase} border-border bg-background hover:bg-fail/10 hover:text-fail`}
               title="Add to blacklist"
             >
-              <Ban className="h-3.5 w-3.5" />
+              <Ban className={iconClassName} />
               {!compact && "Add BL"}
             </button>
           )}
@@ -139,7 +140,7 @@ export function VariantActionButtons({
               className={`${buttonBase} ${isBlacklist ? 'border-validation/40 bg-validation/15 text-validation' : 'border-rna/35 bg-rna/10 text-rna hover:bg-rna/15'}`}
               title={isBlacklist ? "Override blacklist for this sample" : "Remove blacklist override"}
             >
-              <ShieldCheck className="h-3.5 w-3.5" />
+              <ShieldCheck className={iconClassName} />
               {!compact && (isBlacklist ? "Override BL" : "Clear BL Override")}
             </button>
           )}
@@ -158,7 +159,7 @@ export function VariantActionButtons({
               className={`${buttonBase} ${isBlacklisted ? 'border-fail/40 bg-fail/15 text-fail' : 'border-border bg-background hover:bg-fail/10 hover:text-fail'}`}
               title={isBlacklisted ? "Remove sample blacklist" : "Blacklist for this sample"}
             >
-              <Ban className="h-3.5 w-3.5" />
+              <Ban className={iconClassName} />
               {!compact && (isBlacklisted ? "Remove BL" : "Blacklist")}
             </button>
           )}
@@ -179,7 +180,7 @@ export function VariantActionButtons({
           className={`${buttonBase} ${isIrrelevant ? 'border-warn/40 bg-warn/15 text-warn' : 'border-border bg-background hover:bg-warn/10 hover:text-warn'}`}
         title="Toggle Irrelevant"
       >
-          <XSquare className="h-3.5 w-3.5" />
+          <XSquare className={iconClassName} />
           {!compact && "Ignore"}
         </button>
       )}
@@ -203,9 +204,9 @@ export function VariantActionButtons({
           title={!interestingControlsReport ? "Toggle interesting" : isInteresting ? "Exclude from report" : "Include in report"}
         >
           {!interestingControlsReport ? (
-            <AlertCircle className="h-3.5 w-3.5" />
+            <AlertCircle className={iconClassName} />
           ) : (
-            <FileCheck2 className="h-3.5 w-3.5" />
+            <FileCheck2 className={iconClassName} />
           )}
           {(!compact || labeledCompactAction) && (!interestingControlsReport ? "Interesting" : isInteresting ? "Exclude" : "Report")}
         </button>
@@ -223,13 +224,13 @@ export function VariantActionButtons({
           className={`${buttonBase} ${isNoteworthy ? 'border-tier2/40 bg-tier2/15 text-tier2' : 'border-border bg-background hover:bg-tier2/10 hover:text-tier2'}`}
           title="Toggle Noteworthy"
         >
-          <Bookmark className="h-3.5 w-3.5" />
+          <Bookmark className={iconClassName} />
           {!compact && (isNoteworthy ? "Unnote" : "Note")}
         </button>
       )}
       {showsControl("blacklist") && variant.override_blacklist && (
         <span className={compact ? "inline-flex h-6 w-6 items-center justify-center rounded-md border border-rna/30 bg-rna/10 text-xs font-bold text-rna" : "inline-flex items-center gap-1 rounded-lg border border-rna/30 bg-rna/10 px-2.5 py-1.5 text-xs font-bold text-rna"}>
-          <ShieldCheck className="h-3.5 w-3.5" />
+          <ShieldCheck className={iconClassName} />
           {!compact && "Override"}
         </span>
       )}

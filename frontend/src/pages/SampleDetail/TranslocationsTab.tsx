@@ -190,7 +190,7 @@ export function TranslocationsTab({ sampleId, header }: { sampleId: string; head
                 to={`/samples/${sampleId}/translocation/${row.original._id}`}
                 state={{ from: `${location.pathname}${location.search}` }}
                 aria-label="View translocation details"
-                className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-white"
+                className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-primary-foreground"
               >
                 <ExternalLink className="w-4 h-4" />
               </Link>

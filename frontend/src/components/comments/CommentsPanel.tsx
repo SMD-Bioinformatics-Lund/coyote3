@@ -167,6 +167,9 @@ export function CommentsPanel({
   const text = draftText ?? internalText
   const setText = onDraftChange ?? setInternalText
   const isDetailComposer = Boolean(resourceType && resource)
+  const selectedTranscript = resourceType === "small_variant"
+    ? String(resource?.INFO?.selected_CSQ?.Feature || "").trim()
+    : ""
   const showSuggestion = enableSuggestion ?? !isDetailComposer
   const showLivePreview = livePreview ?? !isDetailComposer
   const showPreviewToggle = previewToggle ?? isDetailComposer
@@ -307,6 +310,7 @@ export function CommentsPanel({
           <CommentCard
             key={comment._id || index}
             comment={comment}
+            selectedTranscript={selectedTranscript}
             allowHide={comment.hidden ? canUnhideComments : canHideComments}
             updating={toggleHidden.isPending}
             onUseAsDraft={(commentText) => {
@@ -430,7 +434,7 @@ export function CommentsPanel({
         </div>
         {showLivePreview && text && mode === "edit" && (
           <div className="rounded-lg border border-border bg-card p-2">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Preview</p>
+            <p className="mb-1 type-label font-semibold uppercase tracking-wider text-muted-foreground">Preview</p>
             <MarkdownText text={text} />
           </div>
         )}

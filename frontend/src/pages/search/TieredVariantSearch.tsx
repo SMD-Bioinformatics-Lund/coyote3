@@ -15,6 +15,7 @@ import { valueBadgeClass } from "@/lib/badge-colors"
 import { ColumnDef } from "@tanstack/react-table"
 import { useUrlTableState } from "@/hooks/useUrlTableState"
 import { tieredVariantSearchState } from "@/lib/variant-routing"
+import { NOMENCLATURE_CODES, nomenclatureLabel } from "@/lib/application-constants"
 
 const tierBarClasses = ["", "bg-tier1", "bg-tier2", "bg-tier3", "bg-tier4"]
 const tierTextClasses = ["", "text-tier1", "text-tier2", "text-tier3", "text-tier4"]
@@ -28,6 +29,71 @@ function totalTierCount(stats: Record<string, unknown>) {
   return [1, 2, 3, 4].reduce((total, tier) => total + tierCount(stats, tier), 0)
 }
 
+export function normalizeTieredSearch(value: string, mode: string) {
+  const normalized = value.trim()
+  if (mode === "gene") return normalized.toUpperCase()
+  if (mode === "subpanel") return normalized.toLowerCase()
+  return normalized
+}
+
+function findingVariantText(row: any) {
+  const isSmallVariant = ["p", "c", "g"].includes(String(row.nomenclature || "").toLowerCase())
+    || String(row.analysis_type || row.finding_type || "").toUpperCase() === "SNV"
+  if (!isSmallVariant) return row.variant || row.identity || row.hgvsp || row.hgvsc || "-"
+  return [row.hgvsc, row.hgvsp || row.variant].filter(Boolean).join("\n") || row.variant || "-"
+}
+
+function findingScopeValues(
+  row: any,
+  listKey: "assay_groups" | "subpanels",
+  sampleKey: "assay_group" | "subpanel_id",
+) {
+  const scalarKey = listKey === "assay_groups" ? "assay_group" : "subpanel"
+  return Array.from(new Set([
+    ...(Array.isArray(row[listKey]) ? row[listKey] : []),
+    row[scalarKey],
+    ...Object.values(row.samples || {}).map((sample: any) => sample?.[sampleKey]),
+  ].map((value) => String(value || "").trim()).filter(Boolean)))
+}
+
+export function TieredFindingSamplesCell({ samplesById }: { samplesById: Record<string, any> }) {
+  const [expanded, setExpanded] = useState(false)
+  const samples = (Object.values(samplesById || {}) as any[]).sort((left, right) =>
+    String(left.sample_name || left.name || "").localeCompare(String(right.sample_name || right.name || "")),
+  )
+  if (!samples.length) return <span className="text-muted-foreground">-</span>
+
+  const visible = expanded ? samples : samples.slice(0, 5)
+  return (
+    <div className="flex min-w-52 flex-col gap-1.5">
+      {visible.map((sample: any, index) => {
+        const sampleId = sample.name || sample.sample_name || sample.sample_id || sample._id || sample.id || sample.sample_oid
+        const sampleLabel = sample.sample_name || sample.name || "sample"
+        const latestReportNumber = sample.latest_report_num
+        return (
+          <Link
+            key={sampleId || index}
+            to={sampleDetailPath(sample, sampleId)}
+            className="link-text block truncate"
+            title={[sampleLabel, latestReportNumber != null ? `latest report ${latestReportNumber}` : null].filter(Boolean).join(": ")}
+          >
+            {sampleLabel}{latestReportNumber != null ? `: ${latestReportNumber}` : ""}
+          </Link>
+        )
+      })}
+      {samples.length > 5 && (
+        <button
+          type="button"
+          className="w-fit text-left type-meta text-link hover:underline"
+          onClick={() => setExpanded((current) => !current)}
+        >
+          {expanded ? "Show fewer" : `Show ${samples.length - 5} more`}
+        </button>
+      )}
+    </div>
+  )
+}
+
 export function TieredVariantSearch() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [initialSearchState] = useState(() => tieredVariantSearchState(searchParams))
@@ -39,6 +105,8 @@ export function TieredVariantSearch() {
   const [appliedIncludeText, setAppliedIncludeText] = useState(initialSearchState.includeText)
   const [selectedAssays, setSelectedAssays] = useState<string[]>(initialSearchState.assays)
   const [appliedAssays, setAppliedAssays] = useState<string[]>(initialSearchState.assays)
+  const [selectedNomenclatures, setSelectedNomenclatures] = useState<string[]>(initialSearchState.nomenclatures)
+  const [appliedNomenclatures, setAppliedNomenclatures] = useState<string[]>(initialSearchState.nomenclatures)
   const {
     sorting,
     setSorting,
@@ -46,17 +114,19 @@ export function TieredVariantSearch() {
   } = useUrlTableState({ prefix: "tiered_variants" })
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["tiered-variant-search", appliedSearch, appliedMode, appliedIncludeText, appliedAssays],
+    queryKey: ["tiered-variant-search", appliedSearch, appliedMode, appliedIncludeText, appliedAssays, appliedNomenclatures],
     queryFn: () => {
       const params = new URLSearchParams()
       if (appliedSearch) params.set("search_str", appliedSearch)
       params.set("search_mode", appliedMode)
       params.set("include_annotation_text", String(appliedIncludeText))
       appliedAssays.forEach((assay) => params.append("assays", assay))
+      appliedNomenclatures.forEach((value) => params.append("nomenclatures", value))
       return api.get(`/common/search/tiered_variants?${params.toString()}`).then((res) => res.data)
     },
   })
   const assayChoices = data?.assay_choices || []
+  const nomenclatureChoices = data?.nomenclature_choices || NOMENCLATURE_CODES
   const assayStats = useMemo(() => {
     const byAssay = data?.tier_stats?.by_assay || {}
     return Object.entries(byAssay)
@@ -70,20 +140,24 @@ export function TieredVariantSearch() {
   }, [data?.tier_stats?.by_assay])
 
   const submitSearch = () => {
-    const normalizedSearch = search.trim()
+    const normalizedSearch = normalizeTieredSearch(search, mode)
+    setSearch(normalizedSearch)
     setAppliedSearch(normalizedSearch)
     setAppliedMode(mode)
     setAppliedIncludeText(includeText)
     setAppliedAssays(selectedAssays)
+    setAppliedNomenclatures(selectedNomenclatures)
     const params = new URLSearchParams(searchParams)
     params.delete("search_str")
     params.delete("search_mode")
     params.delete("include_annotation_text")
     params.delete("assays")
+    params.delete("nomenclatures")
     if (normalizedSearch) params.set("search_str", normalizedSearch)
     params.set("search_mode", mode)
     if (includeText) params.set("include_annotation_text", "true")
     selectedAssays.forEach((assay) => params.append("assays", assay))
+    selectedNomenclatures.forEach((value) => params.append("nomenclatures", value))
     setSearchParams(params, { replace: true })
   }
 
@@ -92,15 +166,18 @@ export function TieredVariantSearch() {
     setMode("variant")
     setIncludeText(false)
     setSelectedAssays([])
+    setSelectedNomenclatures([])
     setAppliedSearch("")
     setAppliedMode("variant")
     setAppliedIncludeText(false)
     setAppliedAssays([])
+    setAppliedNomenclatures([])
     const params = new URLSearchParams(searchParams)
     params.delete("search_str")
     params.delete("search_mode")
     params.delete("include_annotation_text")
     params.delete("assays")
+    params.delete("nomenclatures")
     setSearchParams(params, { replace: true })
   }
 
@@ -126,20 +203,42 @@ export function TieredVariantSearch() {
       id: "genes",
       header: "Gene(s)",
       accessorFn: (row) => (row.genes || [row.gene, row.gene1, row.gene2].filter(Boolean)).join(" / ") || "-",
-      cell: ({ row }) => <span className="font-semibold text-link">{String(row.getValue("genes"))}</span>,
+      cell: ({ row }) => {
+        const genes = Array.from(new Set(
+          (row.original.genes || [row.original.gene, row.original.gene1, row.original.gene2])
+            .map((gene: unknown) => String(gene || "").trim())
+            .filter(Boolean),
+        )) as string[]
+        if (!genes.length) return <span className="text-muted-foreground">-</span>
+        return (
+          <div className="flex flex-wrap items-center gap-x-1">
+            {genes.map((gene, index) => (
+              <span key={gene} className="inline-flex items-center gap-x-1">
+                {index > 0 && <span className="text-muted-foreground">/</span>}
+                <Link to={`/public/gene/${encodeURIComponent(gene)}/info`} className="link-text font-semibold">
+                  {gene}
+                </Link>
+              </span>
+            ))}
+          </div>
+        )
+      },
     },
     {
-      id: "identity",
-      header: "Finding",
-      accessorFn: (row) => row.identity || row.variant || row.genomic || row.hgvsp || row.hgvsc || "-",
+      id: "variant",
+      header: "Variant",
+      accessorFn: findingVariantText,
       meta: { headerClassName: "w-56 min-w-52", cellClassName: "w-56 min-w-52" },
       cell: ({ row }) => (
-        <div className="w-52">
-          <ExpandableText
-            text={String(row.getValue("identity") || "-")}
-            maxLength={34}
-            className="text-xs text-foreground"
-          />
+        <div className="w-52 space-y-0.5">
+          {String(row.getValue("variant") || "-").split("\n").map((value, index) => (
+            <ExpandableText
+              key={`${value}-${index}`}
+              text={value}
+              maxLength={34}
+              className={index === 0 ? "type-meta text-muted-foreground" : "type-table-cell text-foreground"}
+            />
+          ))}
         </div>
       ),
     },
@@ -147,25 +246,13 @@ export function TieredVariantSearch() {
       id: "nomenclature",
       header: "Nomenclature",
       accessorFn: (row) => row.nomenclature || "-",
-      cell: ({ row }) => <TableBadge className="badge-neutral">{String(row.getValue("nomenclature"))}</TableBadge>,
-    },
-    {
-      id: "hgvsp",
-      header: "HGVSp",
-      accessorFn: (row) => row.hgvsp || "-",
-      cell: ({ row }) => <span className="text-xs">{String(row.getValue("hgvsp"))}</span>,
-    },
-    {
-      id: "hgvsc",
-      header: "HGVSc",
-      accessorFn: (row) => row.hgvsc || "-",
-      cell: ({ row }) => <span className="text-xs text-muted-foreground">{String(row.getValue("hgvsc"))}</span>,
+      cell: ({ row }) => <TableBadge className="badge-neutral">{nomenclatureLabel(row.getValue("nomenclature"))}</TableBadge>,
     },
     {
       id: "genomic",
       header: "Genomic",
       accessorFn: (row) => row.genomic || "-",
-      cell: ({ row }) => <span className="text-xs text-muted-foreground">{String(row.getValue("genomic"))}</span>,
+      cell: ({ row }) => <ExpandableText text={String(row.getValue("genomic"))} maxLength={32} className="type-meta text-muted-foreground" />,
     },
     {
       id: "transcript",
@@ -174,16 +261,28 @@ export function TieredVariantSearch() {
       cell: ({ row }) => <span className="text-xs text-muted-foreground">{String(row.getValue("transcript"))}</span>,
     },
     {
-      id: "assay",
-      header: "Assay",
-      accessorFn: (row) => row.assay || row.assay_group || row.variant_data?.assay_group || "-",
-      cell: ({ row }) => <span className="text-xs uppercase text-muted-foreground">{String(row.getValue("assay"))}</span>,
+      id: "assay_group",
+      header: "Assay group",
+      accessorFn: (row) => findingScopeValues(row, "assay_groups", "assay_group").join(", ") || "-",
+      cell: ({ row }) => (
+        <div className="flex flex-wrap gap-1">
+          {findingScopeValues(row.original, "assay_groups", "assay_group").map((value) => (
+            <TableBadge key={value} className={valueBadgeClass(value)}>{value}</TableBadge>
+          ))}
+        </div>
+      ),
     },
     {
       id: "subpanel",
       header: "Subpanel",
-      accessorFn: (row) => row.subpanel || row.diagnosis || "-",
-      cell: ({ row }) => <span className="text-xs text-muted-foreground">{String(row.getValue("subpanel"))}</span>,
+      accessorFn: (row) => findingScopeValues(row, "subpanels", "subpanel_id").join(", ") || "-",
+      cell: ({ row }) => (
+        <div className="flex flex-wrap gap-1">
+          {findingScopeValues(row.original, "subpanels", "subpanel_id").map((value) => (
+            <TableBadge key={value} className="badge-neutral">{value}</TableBadge>
+          ))}
+        </div>
+      ),
     },
     {
       id: "author",
@@ -210,41 +309,7 @@ export function TieredVariantSearch() {
       id: "samples",
       header: "Samples",
       accessorFn: (row) => row.samples || {},
-      cell: ({ row }) => {
-        const samples = Object.values(row.original.samples || {}) as any[]
-        if (!samples.length) return <span className="text-muted-foreground">-</span>
-        return (
-          <div className="flex max-w-sm flex-col gap-1">
-            {samples.slice(0, 5).map((sample: any, index) => {
-              const sampleId = sample.name || sample.sample_name || sample.sample_id || sample._id || sample.id || sample.sample_oid
-              const sampleLabel = sample.sample_name || sample.name || "sample"
-              return (
-                <div key={sampleId || index} className="flex flex-wrap items-center gap-1">
-                  <Link to={sampleDetailPath(sample, sampleId)}>
-                    <TableBadge
-                      className="border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 hover:underline"
-                      title={[sampleLabel, sample.asp_id, sample.subpanel_id, sample.environment].filter(Boolean).join(" / ")}
-                    >
-                      {sampleLabel}
-                    </TableBadge>
-                  </Link>
-                  {Object.entries(sample.report_oids || {}).map(([reportId, reportNum]) => (
-                    <Link key={reportId} to={`${sampleDetailPath(sample, sampleId)}/reports/${reportId}`}>
-                      <TableBadge
-                        className="border-tier2 bg-tier2 text-white hover:bg-tier2/90"
-                        title={`Report ${String(reportNum || reportId)}`}
-                      >
-                        {String(reportNum || reportId)}
-                      </TableBadge>
-                    </Link>
-                  ))}
-                </div>
-              )
-            })}
-            {samples.length > 5 && <span className="text-[10px] font-bold text-muted-foreground">+{samples.length - 5}</span>}
-          </div>
-        )
-      },
+      cell: ({ row }) => <TieredFindingSamplesCell samplesById={row.original.samples || {}} />,
     },
   ], [])
 
@@ -281,7 +346,6 @@ export function TieredVariantSearch() {
             <option value="hgvsp">HGVSp</option>
             <option value="hgvsc">HGVSc</option>
             <option value="genomic">Genomic</option>
-            <option value="nomenclature">Nomenclature (p / c / g / cn / f / t)</option>
             <option value="transcript">Transcript ID</option>
             <option value="subpanel">Subpanel</option>
             <option value="author">Author</option>
@@ -304,7 +368,7 @@ export function TieredVariantSearch() {
 
         {assayChoices.length > 0 && (
           <div className="mb-3 rounded-xl border border-border bg-background/70 p-3">
-            <div className="mb-2 text-xs font-black uppercase tracking-wider text-muted-foreground">Assays</div>
+            <div className="mb-2 type-label text-muted-foreground">Assay groups</div>
             <div className="flex flex-wrap gap-2">
               {assayChoices.map((assay: string) => (
                 <label key={assay} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/80 px-2.5 py-1.5 text-xs font-bold hover:bg-muted">
@@ -316,6 +380,26 @@ export function TieredVariantSearch() {
                     }}
                   />
                   {assay}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {nomenclatureChoices.length > 0 && (
+          <div className="mb-3 rounded-xl border border-border bg-background/70 p-3">
+            <div className="mb-2 type-label text-muted-foreground">Nomenclature</div>
+            <div className="flex flex-wrap gap-2">
+              {nomenclatureChoices.map((value: string) => (
+                <label key={value} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/80 px-2.5 py-1.5 type-body-sm hover:bg-surface-hover">
+                  <input
+                    type="checkbox"
+                    checked={selectedNomenclatures.includes(value)}
+                    onChange={(event) => setSelectedNomenclatures((current) => event.target.checked
+                      ? [...current, value]
+                      : current.filter((item) => item !== value))}
+                  />
+                  {nomenclatureLabel(value)}
                 </label>
               ))}
             </div>
@@ -337,7 +421,7 @@ export function TieredVariantSearch() {
           <details className="group mb-3 overflow-hidden rounded-xl border border-border bg-card">
             <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-3 marker:hidden hover:bg-muted/30">
               <div>
-                <div className="text-xs font-black uppercase tracking-wider text-muted-foreground">Assay distribution</div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Assay distribution</div>
                 <div className="text-xs text-muted-foreground">Tiered clinical findings by assay for the current search.</div>
               </div>
               <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
@@ -362,7 +446,7 @@ export function TieredVariantSearch() {
                 <tbody className="divide-y divide-border/60">
                   {assayStats.map(({ assay, stats, total }) => (
                     <tr key={assay} className="hover:bg-muted/25">
-                      <th scope="row" className="max-w-48 truncate px-4 py-2.5 text-left font-black uppercase text-foreground" title={assay}>
+                      <th scope="row" className="max-w-48 truncate px-4 py-2.5 text-left font-semibold uppercase text-foreground" title={assay}>
                         {assay}
                       </th>
                       <td className="px-4 py-2.5">
@@ -387,7 +471,7 @@ export function TieredVariantSearch() {
                           {shortCount(tierCount(stats, tier))}
                         </td>
                       ))}
-                      <td className="px-4 py-2.5 text-right text-sm font-black type-numeric text-foreground" title={`${total} total findings`}>
+                      <td className="px-4 py-2.5 text-right text-sm font-semibold type-numeric text-foreground" title={`${total} total findings`}>
                         {shortCount(total)}
                       </td>
                     </tr>

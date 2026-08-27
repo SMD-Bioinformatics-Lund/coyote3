@@ -40,24 +40,24 @@ export function HotspotIndicator({
         <div className="mt-2 space-y-2 border-t border-current/15 pt-2">
           {hotspots.map(({ source, identifiers }) => (
             <div key={source} className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
+              <span className="type-label font-semibold uppercase tracking-wide opacity-70">
                 {HOTSPOT_SOURCE_LABELS[source.toLowerCase()] || source}
               </span>
               <div className="flex min-w-0 flex-wrap gap-1">
                 {identifiers.length ? identifiers.map((identifier) => (
                   <span
                     key={identifier}
-                    className="rounded border border-current/20 bg-background/65 px-1.5 py-0.5 text-[10px] font-medium text-foreground"
+                    className="rounded border border-current/20 bg-background/65 px-1.5 py-0.5 type-label font-medium text-foreground"
                   >
                     {identifier}
                   </span>
                 )) : (
-                  <span className="text-[10px] text-popover-foreground/70">Source match</span>
+                  <span className="type-label text-popover-foreground/70">Source match</span>
                 )}
               </div>
             </div>
           ))}
-          <p className="text-[10px] leading-relaxed opacity-70">
+          <p className="type-label leading-relaxed opacity-70">
             Only the latest COSMIC identifier is shown for each source.
           </p>
         </div>

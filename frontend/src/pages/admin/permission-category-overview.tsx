@@ -23,7 +23,7 @@ export function PermissionCategoryOverview({ rows, canEdit }: { rows: any[]; can
           <section key={category} className="rounded-lg border border-border bg-background/70 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <h3 className="text-xs font-semibold uppercase tracking-wide">{category}</h3>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[0.72rem] font-bold leading-5 text-muted-foreground">{items.length}</span>
+              <span className="rounded-full bg-muted px-2 py-0.5 type-meta font-bold leading-5 text-muted-foreground">{items.length}</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {items.map((item) => (

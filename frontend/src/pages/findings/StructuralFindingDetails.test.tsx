@@ -46,7 +46,7 @@ describe("structural finding detail pages", () => {
 
     mount("/samples/DNA_001/cnv/CNV1", "/samples/:id/cnv/:varId", <CNVDetail />)
 
-    expect(await screen.findByRole("heading", { name: "EGFR" })).toBeVisible()
+    expect(await screen.findByRole("link", { name: "EGFR" })).toBeVisible()
     expect(screen.getByText("GAIN · 7:100-1100")).toBeVisible()
     expect(screen.getAllByText("4.00").length).toBeGreaterThan(0)
     expect(screen.getByLabelText("False positive")).toBeVisible()
@@ -71,7 +71,7 @@ describe("structural finding detail pages", () => {
 
     mount("/samples/RNA_001/fusion/F1", "/samples/:id/fusion/:varId", <FusionDetail />)
 
-    expect(await screen.findByRole("heading", { name: "BCR--ABL1" })).toBeVisible()
+    expect(await screen.findByRole("heading", { name: /^BCR--ABL1/ })).toBeVisible()
     expect(screen.getAllByText(/22:100 \| 9:200/).length).toBeGreaterThanOrEqual(2)
     expect(screen.getAllByText("arriba").length).toBeGreaterThanOrEqual(2)
     expect(screen.getAllByText("starfusion").length).toBeGreaterThanOrEqual(2)

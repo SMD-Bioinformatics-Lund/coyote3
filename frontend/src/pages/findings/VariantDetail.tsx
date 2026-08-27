@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useLocation, useNavigate, useParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { ExpandableText } from "@/components/detail/ExpandableText"
@@ -20,8 +20,8 @@ import {
   DetailField,
   FindingDetailShell,
   FindingError,
-  DetailHero,
-  DetailHeroSubtitle,
+  FindingCallerMeta,
+  FindingDetailHero,
   FindingIdentityCard,
   FindingLoading,
   FindingMainGrid,
@@ -42,7 +42,7 @@ import {
   VariantKnowledgeBlock,
 } from "@/components/detail/VariantKnowledgebase"
 import { notifyActionError } from "@/lib/notifications"
-import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
+import { sampleDetailPath, sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
 
 function variantLocation(variant: any) {
   if (!variant) return "-"
@@ -148,32 +148,16 @@ export function VariantDetail() {
 
   return (
     <FindingDetailShell>
-      <DetailHero
+      <FindingDetailHero
         backTo={previousSampleHref}
-        title={
-          <span className="inline-flex items-center gap-2">
-            <GeneWithOncoKbBadge
-              gene={resolvedGene}
-              displayGene={displayGene}
-              resolvedGene={resolvedGene}
-              hgncId={csq.HGNC_ID}
-              record={data.oncokb_gene}
-              showOncoKbBadge={false}
-            />
-          </span>
-        }
-        subtitle={
-          <DetailHeroSubtitle sampleHref={sampleHref} sampleName={sample?.name || id}>
-            <span>
-              <ExpandableText text={titleVariantId} maxLength={30} className="inline-flex" />
-            </span>
-          </DetailHeroSubtitle>
-        }
-        chips={
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Called by</span>
+        genes={[String(displayGene || resolvedGene || "")]}
+        identity={titleVariantId}
+        sampleHref={sampleHref}
+        sampleName={sample?.name || id}
+        callers={
+          <FindingCallerMeta>
             <CallerBadges value={callers} />
-          </div>
+          </FindingCallerMeta>
         }
         actions={
           <VariantActionButtons
@@ -364,13 +348,13 @@ export function VariantDetail() {
                   <DetailMetricTable metrics={oncokbPublicGeneMetrics(data.oncokb_gene)} dense />
                   {data.oncokb_gene?.gene_summary ? (
                     <div className="mt-2 rounded-lg border border-border/70 bg-card/60 p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Gene summary</p>
+                      <p className="type-meta font-semibold uppercase tracking-wide text-muted-foreground">Gene summary</p>
                       <p className="mt-1 text-sm leading-relaxed text-foreground">{data.oncokb_gene.gene_summary}</p>
                     </div>
                   ) : null}
                   {data.oncokb_gene?.background ? (
                     <div className="mt-2 rounded-lg border border-border/70 bg-card/60 p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Background</p>
+                      <p className="type-meta font-semibold uppercase tracking-wide text-muted-foreground">Background</p>
                       <p className="mt-1 text-sm leading-relaxed text-foreground">{data.oncokb_gene.background}</p>
                     </div>
                   ) : null}
@@ -394,7 +378,7 @@ export function VariantDetail() {
 
                 <VariantKnowledgeBlock title="OncoKB API">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="type-meta text-muted-foreground">
                       Public API lookup. Therapeutic data is excluded by public OncoKB access.
                     </p>
                     <Button
@@ -410,7 +394,7 @@ export function VariantDetail() {
                   {oncokbPublic.data ? (
                     <div className="mt-3">
                       <DetailMetricTable metrics={oncokbApiSummary(oncokbPublic.data)} dense />
-                      <p className="mt-2 text-[11px] text-muted-foreground">
+                      <p className="mt-2 type-meta text-muted-foreground">
                         Query: {oncokbPublic.data.query?.hgvsg || `${oncokbPublic.data.query?.gene?.hugoSymbol || ""} ${oncokbPublic.data.query?.alteration || ""}`.trim() || "-"} ({oncokbPublic.data.query?.referenceGenome || "-"})
                       </p>
                     </div>
@@ -429,12 +413,12 @@ export function VariantDetail() {
                 >
                   <DetailMetricTable metrics={clinpgxGeneMetrics(data.clinpgx_gene)} dense />
                   {data.clinpgx_gene?.alternate_symbols?.length ? (
-                    <p className="mt-2 text-[11px] text-muted-foreground">
+                    <p className="mt-2 type-meta text-muted-foreground">
                       Alternate symbols: {data.clinpgx_gene.alternate_symbols.join(", ")}
                     </p>
                   ) : null}
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-card/60 p-3">
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    <p className="mt-0.5 type-meta text-muted-foreground">
                       Public API lookup for PGx guidelines, labels, variant annotations, drugs, and pathways.
                     </p>
                     <Button
@@ -453,13 +437,13 @@ export function VariantDetail() {
                       <DetailMetricTable metrics={clinpgxApiSummary(clinpgxPublic.data)} dense />
                       {clinpgxPublic.data.response?.vip?.summary ? (
                         <div className="rounded-lg border border-border/70 bg-card/60 p-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">VIP summary</p>
+                          <p className="type-meta font-semibold uppercase tracking-wide text-muted-foreground">VIP summary</p>
                           <p className="mt-1 text-sm leading-relaxed text-foreground">{clinpgxPublic.data.response.vip.summary}</p>
                         </div>
                       ) : null}
                       <div className="grid gap-3 xl:grid-cols-2">
                         <div>
-                          <h5 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Guidelines</h5>
+                          <h5 className="mb-1.5 type-meta font-semibold uppercase tracking-wide text-muted-foreground">Guidelines</h5>
                           <DetailDataTable
                             rows={clinpgxEvidenceRows(clinpgxPublic.data, "guidelines")}
                             columns={clinpgxEvidenceColumns("annotation")}
@@ -467,7 +451,7 @@ export function VariantDetail() {
                           />
                         </div>
                         <div>
-                          <h5 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Drug labels</h5>
+                          <h5 className="mb-1.5 type-meta font-semibold uppercase tracking-wide text-muted-foreground">Drug labels</h5>
                           <DetailDataTable
                             rows={clinpgxEvidenceRows(clinpgxPublic.data, "labels")}
                             columns={clinpgxEvidenceColumns("annotation")}
@@ -475,7 +459,7 @@ export function VariantDetail() {
                           />
                         </div>
                         <div>
-                          <h5 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Top connected drugs</h5>
+                          <h5 className="mb-1.5 type-meta font-semibold uppercase tracking-wide text-muted-foreground">Top connected drugs</h5>
                           <DetailDataTable
                             rows={clinpgxEvidenceRows(clinpgxPublic.data, "top_chemicals")}
                             columns={clinpgxEvidenceColumns("object")}
@@ -483,7 +467,7 @@ export function VariantDetail() {
                           />
                         </div>
                         <div>
-                          <h5 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pathways</h5>
+                          <h5 className="mb-1.5 type-meta font-semibold uppercase tracking-wide text-muted-foreground">Pathways</h5>
                           <DetailDataTable
                             rows={clinpgxEvidenceRows(clinpgxPublic.data, "pathways")}
                             columns={clinpgxEvidenceColumns("object")}
@@ -492,14 +476,14 @@ export function VariantDetail() {
                         </div>
                       </div>
                       <div>
-                        <h5 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Variant annotation examples</h5>
+                        <h5 className="mb-1.5 type-meta font-semibold uppercase tracking-wide text-muted-foreground">Variant annotation examples</h5>
                         <DetailDataTable
                           rows={clinpgxEvidenceRows(clinpgxPublic.data, "variant_annotations")}
                           columns={clinpgxEvidenceColumns("annotation")}
                           empty="No variant annotations returned by ClinPGx."
                         />
                       </div>
-                      <p className="mt-2 text-[11px] text-muted-foreground">
+                      <p className="mt-2 type-meta text-muted-foreground">
                         Query: {clinpgxPublic.data.query?.clinpgx_id || clinpgxPublic.data.query?.symbol || "-"}
                       </p>
                     </div>
@@ -539,7 +523,18 @@ export function VariantDetail() {
                 rows={data.in_other_samples || data.in_other || []}
                 empty="No matching variants found in other samples."
                 columns={[
-                  { key: "sample", header: "Sample", render: (row: any) => row.sample_name || row.sample || row.SAMPLE || row.name || "-" },
+                  {
+                    key: "sample",
+                    header: "Sample",
+                    render: (row: any) => {
+                      const sampleName = row.sample_name || row.sample || row.SAMPLE || row.name
+                      return sampleName ? (
+                        <Link to={sampleDetailPath(row, sampleName)} className="link-text">
+                          {sampleName}
+                        </Link>
+                      ) : "-"
+                    },
+                  },
                   { key: "assay_group", header: "Assay group", render: (row: any) => row.assay_group || "-" },
                   { key: "vaf", header: "VAF", render: (row: any) => <span className="type-allele-frequency">{percentValue(row.vaf, 1)}</span> },
                   { key: "tier", header: "Tier", render: (row: any) => <TierBadge tier={row.classification?.class ?? row.class ?? row.tier} /> },

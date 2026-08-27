@@ -101,7 +101,7 @@ export function CheckboxGroup({
           <section key={category} className="rounded-lg border border-border bg-card/75 p-3">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-foreground">{category}</h4>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[0.72rem] font-bold leading-5 text-muted-foreground">
+              <span className="rounded-full bg-muted px-2 py-0.5 type-meta font-bold leading-5 text-muted-foreground">
                 {categoryOptions.filter((option) => visibleSelected.has(optionValue(option))).length}/{categoryOptions.length}
               </span>
             </div>
@@ -157,7 +157,7 @@ export function CheckboxGroup({
               />
               <span className="min-w-0">
                 <span className="block truncate font-semibold" title={label}>{label}</span>
-                {description && <span className="block truncate text-[10px] text-muted-foreground" title={description}>{description}</span>}
+                {description && <span className="block truncate type-label text-muted-foreground" title={description}>{description}</span>}
               </span>
             </label>
           )
@@ -524,7 +524,7 @@ export function AdminManagedForm({
               type="button"
               onClick={onSave}
               disabled={isSaving}
-              className="inline-flex items-center gap-2 rounded-lg bg-pass px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-pass px-3 py-2 text-sm font-semibold text-background disabled:opacity-50"
             >
               {isSaving ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Save

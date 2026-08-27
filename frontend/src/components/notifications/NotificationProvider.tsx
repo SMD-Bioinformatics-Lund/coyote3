@@ -252,14 +252,14 @@ function NotificationToast({
           {resourceChips.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {resourceChips.map((chip) => (
-                <span key={chip} className="rounded-md border border-border bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                <span key={chip} className="rounded-md border border-border bg-background/80 px-1.5 py-0.5 type-label font-semibold text-muted-foreground">
                   {chip}
                 </span>
               ))}
             </div>
           )}
           {notification.source && (
-            <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{notification.source}</p>
+            <p className="mt-2 type-label font-semibold uppercase tracking-wide text-muted-foreground">{notification.source}</p>
           )}
         </div>
       </div>

@@ -19,6 +19,7 @@ describe("tiered variant search routing", () => {
       mode: "gene",
       includeText: true,
       assays: ["solid"],
+      nomenclatures: [],
     })
   })
 })

@@ -37,7 +37,7 @@ export function VariantTooltipBadge({
   const [position, setPosition] = useState<TooltipPosition | null>(null)
   const badgeClass = cn(
     !textBadge && "h-5 w-5 rounded-full p-0",
-    "inline-flex cursor-help items-center justify-center border shadow-sm outline-none ring-offset-background transition-all duration-100 hover:-translate-y-0.5 hover:shadow-md focus:ring-2 focus:ring-ring/40",
+    "interaction-transition inline-flex cursor-help items-center justify-center border shadow-sm outline-none ring-offset-background hover:-translate-y-0.5 hover:shadow-md focus:ring-2 focus:ring-ring/40",
     badgeSeverityClass(severity),
     className,
   )
@@ -73,9 +73,9 @@ export function VariantTooltipBadge({
       {content}
       {position && (
         <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
-          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide opacity-80">{contextLabel}</span>
+          <span className="mb-1 block type-label font-semibold uppercase tracking-wide opacity-80">{contextLabel}</span>
           <span className="block font-bold text-foreground">{label}</span>
-          <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{description}</span>
+          <span className="mt-1 block type-meta leading-relaxed text-foreground/75">{description}</span>
         </TooltipSurface>
       )}
     </span>

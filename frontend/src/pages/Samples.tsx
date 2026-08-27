@@ -564,7 +564,7 @@ export function Samples() {
               onApply={applyCustomDateRange}
             />
             <div className="space-y-1">
-              <label htmlFor="sample-page-size" className="block text-[11px] font-semibold text-muted-foreground">Maximum rows per page</label>
+              <label htmlFor="sample-page-size" className="block type-meta font-semibold text-muted-foreground">Maximum rows per page</label>
               <PageSizeSelect
                 id="sample-page-size"
                 className="h-9 min-w-[105px] px-3 text-sm font-medium"
@@ -576,7 +576,7 @@ export function Samples() {
               />
             </div>
             <div className="ml-auto space-y-1">
-              <span className="block text-[11px] font-semibold text-muted-foreground">Layout</span>
+              <span className="block type-meta font-semibold text-muted-foreground">Layout</span>
               <SegmentedControl
                 ariaLabel="Sample list layout"
                 value={sampleListLayout}
@@ -601,8 +601,8 @@ export function Samples() {
                   value={activeTab}
                   onValueChange={setSampleTab}
                   items={[
-                    { value: "live", label: <>Live samples <span className="ml-1.5 rounded-full bg-background/75 px-1.5 py-0.5 text-[10px] text-foreground">{shortCount(liveTotal)}</span></> },
-                    { value: "reported", label: <>Reported samples <span className="ml-1.5 rounded-full bg-background/75 px-1.5 py-0.5 text-[10px] text-foreground">{shortCount(reportedTotal)}</span></> },
+                    { value: "live", label: <>Live samples <span className="ml-1.5 rounded-full bg-background/75 px-1.5 py-0.5 type-label text-foreground">{shortCount(liveTotal)}</span></> },
+                    { value: "reported", label: <>Reported samples <span className="ml-1.5 rounded-full bg-background/75 px-1.5 py-0.5 type-label text-foreground">{shortCount(reportedTotal)}</span></> },
                   ]}
                 />
                 <p className="text-xs font-semibold text-muted-foreground">

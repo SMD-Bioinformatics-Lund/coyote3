@@ -160,4 +160,26 @@ describe("CommentsPanel", () => {
     expect(screen.queryByText("Restricted hidden comment")).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /show hidden/i })).not.toBeInTheDocument()
   })
+
+  it("labels annotations authored for a different transcript", () => {
+    const resource = {
+      INFO: { selected_CSQ: { Feature: "NM_003016.4" } },
+    }
+
+    renderPanel(
+      <CommentsPanel
+        sampleId="CASE_1"
+        resourceType="small_variant"
+        resource={resource}
+        comments={[
+          { _id: "alternate", text: "Alternate transcript annotation", transcript: "NM_003016.3" },
+          { _id: "selected", text: "Selected transcript annotation", transcript: "NM_003016.4" },
+        ]}
+        showComposer={false}
+      />,
+    )
+
+    expect(screen.getByText("Transcript NM_003016.3")).toBeInTheDocument()
+    expect(screen.queryByText("Transcript NM_003016.4")).not.toBeInTheDocument()
+  })
 })

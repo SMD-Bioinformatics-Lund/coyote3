@@ -17,8 +17,8 @@ import {
   DetailField,
   FindingDetailShell,
   FindingError,
-  DetailHero,
-  DetailHeroSubtitle,
+  FindingCallerMeta,
+  FindingDetailHero,
   FindingIdentityCard,
   FindingLoading,
   FindingMainGrid,
@@ -102,21 +102,16 @@ export function CNVDetail() {
 
   return (
     <FindingDetailShell>
-      <DetailHero
+      <FindingDetailHero
         backTo={previousSampleHref}
-        title={primaryGenes.length > 0 ? primaryGenes.join(', ') : "Intergenic CNV"}
-        subtitle={
-          <DetailHeroSubtitle sampleHref={sampleHref} sampleName={sample?.name || id}>
-            <span>
-              {type ? type.toUpperCase() : "CNV"} · {region}
-            </span>
-          </DetailHeroSubtitle>
-        }
-        chips={
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Called by</span>
+        genes={primaryGenes}
+        identity={`${type ? type.toUpperCase() : "CNV"} · ${region}`}
+        sampleHref={sampleHref}
+        sampleName={sample?.name || id}
+        callers={
+          <FindingCallerMeta>
             <CallerBadges value={callers} />
-          </div>
+          </FindingCallerMeta>
         }
         actions={
           <VariantActionButtons

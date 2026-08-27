@@ -214,7 +214,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
           </div>
 
           {listPickerOpen && createPortal(
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/35 p-4">
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-foreground/35 p-4">
               <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-lg">
                 <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
                   <div>
@@ -328,7 +328,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
                 type="button"
                 onClick={() => saveAdhoc.mutate()}
                 disabled={isPending}
-                className="inline-flex items-center gap-2 rounded-lg bg-pass px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-pass px-3 py-1.5 text-xs font-semibold text-background disabled:opacity-50"
               >
                 {saveAdhoc.isPending ? <Activity className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 Save

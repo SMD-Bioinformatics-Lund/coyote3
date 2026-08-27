@@ -16,6 +16,7 @@ import { RnaAnalysisTab } from "./RnaAnalysisTabs"
 import { FiltersSidebar } from "./FiltersSidebar"
 import { CommentsPanel } from "@/components/comments/CommentsPanel"
 import { AppLoader } from "@/components/layout/AppLoader"
+import { PageFrame } from "@/components/layout/PageFrame"
 import { LayoutDiscoveryBanner } from "@/components/layout/LayoutDiscoveryBanner"
 import { hasSampleFile } from "@/lib/sample-shape"
 import { sampleUrlKey } from "@/lib/sample-routing"
@@ -260,11 +261,10 @@ export function SampleDetail() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-muted/20">
-      <div className="w-full max-w-[2600px] flex-1 space-y-3 pt-1">
-        <SampleDetailHero sample={sample} context={data} />
+    <PageFrame className="flex-1">
+      <SampleDetailHero sample={sample} context={data} />
 
-        <div className="mt-3 flex gap-3">
+      <div className="mt-3 flex gap-3">
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
             <div className="rounded-xl overflow-hidden py-1 lg:py-2">
@@ -358,8 +358,7 @@ export function SampleDetail() {
               toggleRequest={filterToggleRequest}
             />
           )}
-        </div>
       </div>
-    </div>
+    </PageFrame>
   )
 }

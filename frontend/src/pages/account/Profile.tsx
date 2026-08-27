@@ -176,7 +176,7 @@ export function Profile() {
               {permissions.length ? (
                 <div className="flex max-h-48 flex-wrap gap-1.5 overflow-auto pr-1">
                   {permissions.map((permission: string) => (
-                    <span key={permission} className="rounded-md border border-border bg-muted/40 px-2 py-1 text-[11px] font-semibold text-muted-foreground" title={permission}>
+                    <span key={permission} className="rounded-md border border-border bg-muted/40 px-2 py-1 type-meta font-semibold text-muted-foreground" title={permission}>
                       {permission.split(":").slice(0, 2).join(":")}
                     </span>
                   ))}
@@ -236,13 +236,13 @@ export function Profile() {
 }
 
 function RoleChip({ role }: { role: string }) {
-  return <span className="rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-black uppercase text-primary">{role}</span>
+  return <span className="rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 type-meta font-semibold uppercase text-primary">{role}</span>
 }
 
 function AuthChip({ value }: { value: string }) {
   const isLocal = value === "local"
   return (
-    <span className={isLocal ? "rounded-full border border-tier3/30 bg-tier3/10 px-2 py-0.5 text-[11px] font-black uppercase text-tier3" : "rounded-full border border-pass/30 bg-pass/10 px-2 py-0.5 text-[11px] font-black uppercase text-pass"}>
+    <span className={isLocal ? "rounded-full border border-tier3/30 bg-tier3/10 px-2 py-0.5 type-meta font-semibold uppercase text-tier3" : "rounded-full border border-pass/30 bg-pass/10 px-2 py-0.5 type-meta font-semibold uppercase text-pass"}>
       {value}
     </span>
   )
@@ -257,7 +257,7 @@ function ScopeCard({ title, icon: Icon, values, empty }: { title: string; icon: 
       </div>
       <div className="flex flex-wrap gap-1.5">
         {values.length ? values.map((value) => (
-          <span key={value} className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-bold uppercase text-muted-foreground">
+          <span key={value} className="rounded-md border border-border bg-muted/40 px-2 py-0.5 type-meta font-bold uppercase text-muted-foreground">
             {value}
           </span>
         )) : <span className="text-xs text-muted-foreground">{empty}</span>}

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { describe, expect, it } from "vitest"
 import {
@@ -9,6 +9,8 @@ import {
   FindingError,
   DetailHero,
   DetailHeroSubtitle,
+  FindingCallerMeta,
+  FindingDetailHero,
   FindingIdentityCard,
   FindingLoading,
   FindingMainGrid,
@@ -33,13 +35,13 @@ describe("finding detail layout", () => {
   })
 
   it("composes hero, main, aside, cards, and fields", () => {
-    render(
+    const { container } = render(
       <MemoryRouter>
         <FindingDetailShell>
           <DetailHero
             backTo="/samples/S1"
-            title="TP53"
-            subtitle="p.Arg175His"
+            eyebrow="hema_gmsv1 • production"
+            title="S1"
             chips={<span>Called by caller</span>}
             actions={<button type="button">Report</button>}
             statLabel="Max VAF"
@@ -60,13 +62,20 @@ describe("finding detail layout", () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole("heading", { name: "TP53" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "S1" })).toBeInTheDocument()
+    expect(screen.getByText("hema_gmsv1 • production")).toBeInTheDocument()
     expect(screen.getByText("Max VAF")).toBeInTheDocument()
     expect(screen.getByText("42%")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Identity" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Evidence" })).toBeInTheDocument()
     expect(screen.getByText("OncoKB")).toBeInTheDocument()
+    expect(container.firstElementChild).toHaveClass(
+      "page-shell-fluid",
+      "responsive-page-padding",
+      "responsive-section-gap",
+      "3xl:content-ultrawide",
+    )
   })
 
   it("omits optional hero and aside regions", () => {
@@ -91,6 +100,61 @@ describe("finding detail layout", () => {
 
     expect(screen.getByText("p.Arg175His")).toHaveClass("detail-hero-subtitle")
     expect(screen.getByRole("link", { name: "Sample S1" })).toHaveClass("detail-hero-sample-chip")
+  })
+
+  it("renders a branded gene eyebrow and expands a long finding identity", () => {
+    const identity = "p.Val1060delinsAspGluAspTerLongClinicalFindingIdentityThatRequiresExpansion"
+    render(
+      <MemoryRouter>
+        <FindingDetailHero
+          backTo="/samples/S1"
+          genes={["DNMT3A"]}
+          identity={identity}
+          sampleHref="/samples/S1"
+          sampleName="S1"
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole("link", { name: "DNMT3A" })).toHaveClass("brand-gradient-text")
+    expect(screen.getByRole("link", { name: "Sample S1" })).toBeVisible()
+    expect(screen.queryByText(identity)).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Show full value" }))
+    expect(screen.getByText(identity)).toBeVisible()
+  })
+
+  it("places compact caller provenance between the statistic and actions", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <FindingDetailHero
+          backTo="/samples/S1"
+          genes={["DNMT3A"]}
+          identity="p.Ser714Cys"
+          sampleHref="/samples/S1"
+          sampleName="S1"
+          statLabel="Max VAF"
+          statValue="22.1%"
+          callers={
+            <FindingCallerMeta>
+              <span className="type-badge">freebayes</span>
+            </FindingCallerMeta>
+          }
+          actions={<button type="button">Interesting</button>}
+        />
+      </MemoryRouter>,
+    )
+
+    const callerMeta = container.querySelector(".detail-hero-caller-meta")
+    expect(callerMeta).not.toBeNull()
+    expect(callerMeta).toHaveTextContent("Called by")
+    expect(callerMeta).toHaveTextContent("freebayes")
+
+    const rightRail = callerMeta?.parentElement
+    expect(rightRail?.children[0]).toHaveTextContent("Max VAF22.1%")
+    expect(rightRail?.children[1]).toBe(callerMeta)
+    expect(rightRail?.children[2]).toHaveTextContent("Interesting")
+    expect(screen.getByRole("link", { name: "Sample S1" }).parentElement).not.toHaveTextContent("Called by")
   })
 
   it("renders a shared identity summary with labelled fields", () => {

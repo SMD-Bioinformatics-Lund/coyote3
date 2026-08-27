@@ -117,7 +117,7 @@ export function ClassificationsCard({
       <div className="space-y-3">
         {canMutate && (
           <div className="rounded-lg border border-border bg-background/70 p-2">
-            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Set tier</div>
+            <div className="mb-2 type-label font-semibold uppercase tracking-wide text-muted-foreground">Set tier</div>
             <div className="flex flex-wrap gap-1.5">
               {[1, 2, 3, 4].map((tier) => (
                 <button
@@ -125,7 +125,7 @@ export function ClassificationsCard({
                   type="button"
                   onClick={() => setPendingTierAction({ tier, apply: true })}
                   disabled={tierMutation.isPending}
-                  className={`rounded-lg px-2.5 py-1.5 text-xs font-black text-white shadow-sm disabled:opacity-50 ${tierButtonClasses[tier]}`}
+                  className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm disabled:opacity-50 ${tierButtonClasses[tier]}`}
                 >
                   Tier {tier}
                 </button>
@@ -138,7 +138,7 @@ export function ClassificationsCard({
                     apply: false,
                   })}
                   disabled={tierMutation.isPending}
-                  className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-black text-muted-foreground hover:bg-muted disabled:opacity-50"
+                  className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted disabled:opacity-50"
                 >
                   Remove
                 </button>

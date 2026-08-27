@@ -12,7 +12,7 @@ vi.mock("@/components/data-table/DataTable", () => ({
   },
 }))
 
-import { TieredVariantSearch } from "./TieredVariantSearch"
+import { TieredFindingSamplesCell, TieredVariantSearch } from "./TieredVariantSearch"
 
 function mount(route = "/variants/search") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -76,6 +76,19 @@ describe("TieredVariantSearch", () => {
     )))
   })
 
+  it("normalizes exact gene searches before requesting results", async () => {
+    mount()
+    await screen.findByText("Results: 1")
+    fireEvent.change(screen.getByPlaceholderText("Search gene, finding, annotation..."), { target: { value: " tp53 " } })
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "gene" } })
+    fireEvent.click(screen.getByRole("button", { name: "Search" }))
+
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledWith(expect.stringContaining(
+      "search_str=TP53&search_mode=gene",
+    )))
+    expect(screen.getByPlaceholderText("Search gene, finding, annotation...")).toHaveValue("TP53")
+  })
+
   it("renders tier totals and a compact expandable assay table", async () => {
     mount()
     await screen.findByText("Results: 1")
@@ -97,12 +110,12 @@ describe("TieredVariantSearch", () => {
     expect(latestProps.columns.map((column) => column.id)).toEqual(expect.arrayContaining([
       "analysis_type",
       "genes",
-      "identity",
+      "variant",
       "nomenclature",
-      "hgvsp",
-      "hgvsc",
       "genomic",
       "transcript",
+      "assay_group",
+      "subpanel",
       "samples",
     ]))
     expect(latestProps.data[0]).toMatchObject({
@@ -110,6 +123,40 @@ describe("TieredVariantSearch", () => {
       nomenclature: "f",
       identity: "KMT2A::AFF1",
     })
+  })
+
+  it("renders descriptive nomenclature labels while retaining the stored codes", async () => {
+    mount()
+    await screen.findByText("Results: 1")
+
+    expect(screen.getByRole("checkbox", { name: "Protein (p)" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "cDNA (c)" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "Genomic (g)" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "Copy number (cn)" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "Fusion (f)" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "Translocation (t)" })).not.toBeChecked()
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Fusion (f)" }))
+    fireEvent.click(screen.getByRole("button", { name: "Search" }))
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledWith(expect.stringContaining("nomenclatures=f")))
+  })
+
+  it("shows five linked samples before expanding the remaining report references", () => {
+    const samples = Object.fromEntries(Array.from({ length: 7 }, (_, index) => [
+      `S${index + 1}`,
+      { sample_name: `S${index + 1}`, latest_report_num: index + 1 },
+    ]))
+    render(
+      <MemoryRouter>
+        <TieredFindingSamplesCell samplesById={samples} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getAllByRole("link")).toHaveLength(5)
+    expect(screen.getByRole("link", { name: "S1: 1" })).toHaveAttribute("href", "/samples/S1")
+    fireEvent.click(screen.getByRole("button", { name: "Show 2 more" }))
+    expect(screen.getAllByRole("link")).toHaveLength(7)
+    expect(screen.getByRole("button", { name: "Show fewer" })).toBeVisible()
   })
 
   it("clears all criteria and returns to variant mode", async () => {

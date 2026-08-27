@@ -109,7 +109,7 @@ function SignedScoreBar({ value, extent }: { value: number; extent: number }) {
           className={`absolute inset-y-0 ${value >= 0 ? "left-1/2" : "right-1/2"} ${presentation.barClass}`}
           style={{ width: `${width}%` }}
         />
-        <span className="relative z-10 flex h-full items-center justify-center text-[0.72rem] font-bold type-numeric">
+        <span className="relative z-10 flex h-full items-center justify-center type-meta font-bold type-numeric">
           {value.toFixed(2)}
         </span>
       </div>
@@ -141,7 +141,7 @@ function ClassificationScore({ row }: { row: ClassificationRow }) {
         tabIndex={0}
       >
         <span className="absolute inset-y-0 left-0 bg-tier3/65" style={{ width: `${percent}%` }} />
-        <span className="relative z-10 flex h-full items-center justify-center text-[0.72rem] font-bold type-numeric">
+        <span className="relative z-10 flex h-full items-center justify-center type-meta font-bold type-numeric">
           {score.toFixed(2)}
         </span>
       </div>
@@ -160,7 +160,7 @@ function ExpressionPanel({ rows, sampleId, header }: { rows: ExpressionRow[]; sa
         <div className="leading-tight">
           <span className="block font-bold text-foreground">{row.original.hgnc_symbol || row.original.ensembl_gene_id || "-"}</span>
           {row.original.hgnc_symbol && row.original.ensembl_gene_id ? (
-            <span className="block text-[0.7rem] text-muted-foreground">{row.original.ensembl_gene_id}</span>
+            <span className="block type-meta text-muted-foreground">{row.original.ensembl_gene_id}</span>
           ) : null}
         </div>
       ),

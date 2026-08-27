@@ -35,7 +35,7 @@ export function DateRangeFilter({
   return (
     <>
       <div className="space-y-1">
-        <label htmlFor={presetId} className="block text-[11px] font-semibold text-muted-foreground">{label}</label>
+        <label htmlFor={presetId} className="block type-meta font-semibold text-muted-foreground">{label}</label>
         <div className="relative">
           <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <select
@@ -51,7 +51,7 @@ export function DateRangeFilter({
       {preset === "custom" && (
         <>
           <div className="space-y-1">
-            <label htmlFor={fromId} className="block text-[11px] font-semibold text-muted-foreground">From</label>
+            <label htmlFor={fromId} className="block type-meta font-semibold text-muted-foreground">From</label>
             <Input
               id={fromId}
               type="date"
@@ -61,7 +61,7 @@ export function DateRangeFilter({
             />
           </div>
           <div className="space-y-1">
-            <label htmlFor={untilId} className="block text-[11px] font-semibold text-muted-foreground">Until</label>
+            <label htmlFor={untilId} className="block type-meta font-semibold text-muted-foreground">Until</label>
             <Input
               id={untilId}
               type="date"

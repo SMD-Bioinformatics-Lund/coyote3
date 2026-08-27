@@ -90,7 +90,7 @@ export function TieredVariantContext() {
         const reportId = row.original.report_id
         const label = row.original.report_num || reportId || row.original.report_oid || "-"
         return id && reportId ? (
-          <Link to={`${sampleDetailPath(samplePayload(row.original), id)}/reports/${reportId}`} className="rounded-md bg-tier2 px-2 py-0.5 text-xs font-black text-white hover:bg-tier2/90">
+          <Link to={`${sampleDetailPath(samplePayload(row.original), id)}/reports/${reportId}`} className="rounded-md bg-tier2 px-2 py-0.5 text-xs font-semibold text-background hover:bg-tier2/90">
             {String(label)}
           </Link>
         ) : <span>{String(label)}</span>
@@ -133,7 +133,7 @@ export function TieredVariantContext() {
         const id = sampleId(row.original)
         const varOid = row.original.var_oid || row.original.variant_oid
         return id && varOid ? (
-          <Link to={`${sampleDetailPath(samplePayload(row.original), id)}/variant/${varOid}`} className="inline-flex rounded-md bg-primary/10 p-1.5 text-primary hover:bg-primary hover:text-white">
+          <Link to={`${sampleDetailPath(samplePayload(row.original), id)}/variant/${varOid}`} className="inline-flex rounded-md bg-primary/10 p-1.5 text-primary hover:bg-primary hover:text-primary-foreground">
             <ExternalLink className="h-4 w-4" />
           </Link>
         ) : <span className="text-muted-foreground">-</span>
@@ -165,11 +165,11 @@ export function TieredVariantContext() {
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-border bg-background/70 p-3">
               <div className="text-xs text-muted-foreground">Matches</div>
-              <div className="text-2xl font-black">{docs.length}</div>
+              <div className="text-2xl font-semibold">{docs.length}</div>
             </div>
             <div className="rounded-xl border border-border bg-background/70 p-3">
               <div className="text-xs text-muted-foreground">Gene</div>
-              <div className="text-lg font-black">{displayValue(csq.SYMBOL)}</div>
+              <div className="text-lg font-semibold">{displayValue(csq.SYMBOL)}</div>
             </div>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">

@@ -137,7 +137,7 @@ export function PublicCatalog() {
                       {mod.description && (
                         <HtmlText
                           html={mod.description}
-                          className="mb-2 rounded-md bg-muted/45 px-2 py-1.5 text-[11px] leading-relaxed text-muted-foreground"
+                          className="mb-2 rounded-md bg-muted/45 px-2 py-1.5 type-meta leading-relaxed text-muted-foreground"
                         />
                       )}
                       {Object.entries(mod.categories || {}).map(([catKey, cat]: [string, any]) => (
@@ -154,7 +154,7 @@ export function PublicCatalog() {
                                 <button
                                   key={gl.key}
                                   onClick={() => setSelection({ mod: modKey, cat: catKey, isgl_key: gl.key })}
-                                  className={`mb-1 block w-full rounded-md px-2 py-1 text-left text-[11px] font-semibold hover:bg-muted ${selection.isgl_key === gl.key ? "bg-genelist/10 text-genelist" : "text-muted-foreground"}`}
+                                  className={`mb-1 block w-full rounded-md px-2 py-1 text-left type-meta font-semibold hover:bg-muted ${selection.isgl_key === gl.key ? "bg-genelist/10 text-genelist" : "text-muted-foreground"}`}
                                 >
                                   {gl.label || gl.key}
                                 </button>
@@ -199,7 +199,7 @@ export function PublicCatalog() {
                   <BadgeList values={right.sample_modes} empty="No Info" />
                 </CatalogField>
                 <CatalogField label="Genes">
-                  <span className="font-black text-primary">{data?.stats?.total ?? 0}</span>
+                  <span className="font-semibold text-primary">{data?.stats?.total ?? 0}</span>
                   <span className="ml-2 text-xs text-muted-foreground">
                     covered {data?.stats?.covered_total ?? 0}
                     {typeof data?.stats?.germline_total === "number" ? `, germline ${data.stats.germline_total}` : ""}
@@ -237,7 +237,7 @@ export function PublicCatalog() {
 
               {right.public_notes && (
                 <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
-                  <div className="mb-1 flex items-center gap-2 text-xs font-black uppercase tracking-wide text-primary">
+                  <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
                     <Info className="h-3.5 w-3.5" />
                     Notes
                   </div>
@@ -297,7 +297,7 @@ function HtmlText({ html, className }: { html: unknown; className?: string }) {
 function CatalogField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="rounded-lg border border-border bg-muted/30 p-3">
-      <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="mb-1.5 block type-label font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
       {children}
     </div>
   )
@@ -396,7 +396,7 @@ function BadgeList({
       {list.map((item) => (
         <span
           key={item}
-          className={`${toneClass} rounded-full border px-2 ${compact ? "py-0 text-[10px]" : "py-0.5 text-xs"} font-semibold`}
+          className={`${toneClass} rounded-full border px-2 ${compact ? "py-0 type-label" : "py-0.5 text-xs"} font-semibold`}
         >
           {item}
         </span>
@@ -657,7 +657,7 @@ function AssayMatrixTable({
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
-          <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <label className="flex items-center gap-2 type-label font-semibold uppercase tracking-wide text-muted-foreground">
             Rows
             <PageSizeSelect
               value={perPage}
@@ -688,7 +688,7 @@ function AssayMatrixTable({
 
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <form onSubmit={onGeneSearchSubmit} className="flex min-w-[18rem] max-w-[34rem] flex-1 flex-wrap items-end gap-2">
-          <label className="grid min-w-[14rem] flex-1 gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <label className="grid min-w-[14rem] flex-1 gap-1 type-label font-semibold uppercase tracking-wide text-muted-foreground">
             Gene search
             <input
               value={geneSearch}
@@ -714,7 +714,7 @@ function AssayMatrixTable({
           ["assayGroup", "Section"],
           ["list", "Gene list"],
         ].map(([key, label]) => (
-          <label key={key} className="grid gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <label key={key} className="grid gap-1 type-label font-semibold uppercase tracking-wide text-muted-foreground">
             {label}
             <select
               value={filters[key] || ""}
@@ -779,7 +779,7 @@ function AssayMatrixTable({
                 return (
                   <th
                     key={col.key}
-                    className="matrix-head-list border-b-2 border-r border-border px-1.5 py-1.5 text-center align-middle text-[10px] font-medium uppercase text-foreground last:border-r-0"
+                    className="matrix-head-list border-b-2 border-r border-border px-1.5 py-1.5 text-center align-middle type-label font-medium uppercase text-foreground last:border-r-0"
                     title={col.isgl_key}
                     style={matrixBoundaryStyle(boundary)}
                   >

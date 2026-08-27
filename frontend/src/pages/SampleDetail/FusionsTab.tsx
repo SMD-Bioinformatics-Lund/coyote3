@@ -224,7 +224,7 @@ export function FusionsTab({ sampleId, header }: { sampleId: string; header?: Re
                 to={`/samples/${sampleId}/fusion/${row.original._id}`}
                 state={{ from: `${location.pathname}${location.search}` }}
                 aria-label="View fusion details"
-                className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-white"
+                className="inline-block rounded-md bg-primary/10 p-0.5 text-primary shadow-sm transition-colors duration-100 hover:bg-primary hover:text-primary-foreground"
               >
                 <ExternalLink className="w-4 h-4" />
               </Link>

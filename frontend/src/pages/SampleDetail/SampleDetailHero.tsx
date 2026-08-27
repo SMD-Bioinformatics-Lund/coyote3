@@ -59,17 +59,17 @@ function MetricBadge({
     >
       <span
         tabIndex={0}
-        className="inline-flex cursor-help items-center gap-1 rounded-md border border-sand-300/70 bg-sand-100 px-1.5 py-0.5 text-[11px] font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-ring/40 dark:border-sand-400/25 dark:bg-sand-900/40"
+        className="inline-flex cursor-help items-center gap-1 rounded-md border border-sand-300/70 bg-sand-100 px-1.5 py-0.5 type-meta font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-ring/40 dark:border-sand-400/25 dark:bg-sand-900/40"
       >
         <span className="text-muted-foreground">{label}:</span>
         {value}
       </span>
       {position && (
         <TooltipSurface position={position} className="border-sand-300/80 text-sand-950 dark:border-sand-400/30 dark:text-sand-100">
-          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide opacity-80">Sample metric</span>
+          <span className="mb-1 block type-label font-semibold uppercase tracking-wide opacity-80">Sample metric</span>
           <span className="block font-semibold text-foreground">{label}</span>
-          <span className="mt-1 block text-[11px] leading-relaxed text-foreground/75">{metricDescription(label)}</span>
-          {details && <span className="mt-1 block text-[11px] font-medium text-foreground/85">{details}</span>}
+          <span className="mt-1 block type-meta leading-relaxed text-foreground/75">{metricDescription(label)}</span>
+          {details && <span className="mt-1 block type-meta font-medium text-foreground/85">{details}</span>}
         </TooltipSurface>
       )}
     </span>
@@ -164,15 +164,11 @@ export function SampleDetailHero({ sample, context }: { sample: any; context: an
     <DetailHero
       backTo="/samples"
       density="compact"
+      eyebrow={[sample?.asp_id, sample?.subpanel_id, sample?.environment].filter(Boolean).join(" • ")}
       title={sample?.name || sample?.case_id || sample?._id || "Sample"}
-      subtitle={
-        <p className="type-label text-muted-foreground">
-          {[sample?.asp_id, sample?.environment].filter(Boolean).join(" • ")}
-        </p>
-      }
       chips={metricBadges.length > 0 ? metricBadges : undefined}
       actions={
-        <div className="flex min-w-52 flex-col items-start gap-2 md:items-end">
+        <div className="flex min-w-52 flex-col items-end gap-2">
           <dl className="type-meta grid gap-1 text-muted-foreground md:text-right">
             {caseId && (
               <div className="flex gap-1.5 md:justify-end">
@@ -180,25 +176,39 @@ export function SampleDetailHero({ sample, context }: { sample: any; context: an
                 <dd>{caseId}</dd>
               </div>
             )}
+
             {controlId && (
               <div className="flex gap-1.5 md:justify-end">
                 <dt className="font-medium text-foreground">Control</dt>
                 <dd>{controlId}</dd>
               </div>
             )}
+
             {sample?.time_added && (
               <div className="flex gap-1.5 md:justify-end">
                 <dt className="font-medium text-foreground">Added</dt>
-                <dd><TimeDisplay value={sample.time_added} mode="full" /></dd>
+                <dd>
+                  <TimeDisplay value={sample.time_added} mode="full" />
+                </dd>
               </div>
             )}
           </dl>
+
           <div className="flex flex-wrap items-center gap-1.5 md:justify-end">
             <StatusBadge tone={sample?.paired ? "success" : "warning"}>
               {sample?.paired ? "Paired" : "Unpaired"}
             </StatusBadge>
-            {sample?.ingest_status && <StatusBadge tone={ingestStatusTone(status)}>{sample.ingest_status}</StatusBadge>}
-            {sample?.archived && <StatusBadge tone="danger">Archived</StatusBadge>}
+
+            {sample?.ingest_status && (
+              <StatusBadge tone={ingestStatusTone(status)}>
+                {sample.ingest_status}
+              </StatusBadge>
+            )}
+
+            {sample?.archived && (
+              <StatusBadge tone="danger">Archived</StatusBadge>
+            )}
+
             <StatusBadge tone={sampleReported(sample) ? "info" : "warning"}>
               {sampleReported(sample) ? "Reported" : "Unreported"}
             </StatusBadge>

@@ -21,8 +21,8 @@ import {
   DetailField,
   FindingDetailShell,
   FindingError,
-  DetailHero,
-  DetailHeroSubtitle,
+  FindingCallerMeta,
+  FindingDetailHero,
   FindingIdentityCard,
   FindingLoading,
   FindingMainGrid,
@@ -99,21 +99,16 @@ export function FusionDetail() {
 
   return (
     <FindingDetailShell>
-      <DetailHero
+      <FindingDetailHero
         backTo={previousSampleHref}
-        title={fusionName(fusion)}
-        subtitle={
-          <DetailHeroSubtitle sampleHref={sampleHref} sampleName={sample?.name || id}>
-            <span>
-              Fusion{selectedCall ? ` · ${fusionBreakpoint(selectedCall)}` : ""}
-            </span>
-          </DetailHeroSubtitle>
-        }
-        chips={
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Called by</span>
+        genes={genes}
+        identity={`${fusionName(fusion)}${selectedCall ? ` · ${fusionBreakpoint(selectedCall)}` : ""}`}
+        sampleHref={sampleHref}
+        sampleName={sample?.name || id}
+        callers={
+          <FindingCallerMeta>
             <FusionCallerBadges callers={fusionCallers(fusion)} />
-          </div>
+          </FindingCallerMeta>
         }
         actions={
           <VariantActionButtons
@@ -202,7 +197,7 @@ export function FusionDetail() {
                 rows={calls}
                 empty="No per-caller fusion calls available."
                 columns={[
-                  { key: "selected", header: "", render: (row: any, index) => row.selected ? <EvidenceBadge tone="success">Selected</EvidenceBadge> : <button className="rounded-md border border-border bg-background px-2 py-1 text-[10px] font-bold text-primary hover:bg-primary/10 disabled:opacity-50" disabled={pickCall.isPending} onClick={() => pickCall.mutate(index)}>Pick</button> },
+                  { key: "selected", header: "", render: (row: any, index) => row.selected ? <EvidenceBadge tone="success">Selected</EvidenceBadge> : <button className="rounded-md border border-border bg-background px-2 py-1 type-label font-bold text-primary hover:bg-primary/10 disabled:opacity-50" disabled={pickCall.isPending} onClick={() => pickCall.mutate(index)}>Pick</button> },
                   { key: "gene1", header: "Gene 1", render: () => genes[0] || fusion?.gene1 || "-" },
                   { key: "gene2", header: "Gene 2", render: () => genes[1] || fusion?.gene2 || "-" },
                   { key: "breakpoints", header: "Breakpoints", render: (row: any) => <span className="">{fusionBreakpoint(row)}</span> },

@@ -1,6 +1,7 @@
-import { Eye, EyeOff, Globe2, PencilLine, UserRound } from "lucide-react"
+import { Dna, Eye, EyeOff, Globe2, PencilLine, UserRound } from "lucide-react"
 
 import { MarkdownText } from "@/components/comments/MarkdownText"
+import { AppTooltip } from "@/components/ui/app-tooltip"
 import { TimeDisplay } from "@/components/ui/time-display"
 
 function commentText(comment: any) {
@@ -31,6 +32,7 @@ export function CommentCard({
   onToggleHidden,
   allowHide = true,
   updating = false,
+  selectedTranscript,
 }: {
   comment: any
   dateDisplay?: "relative" | "full"
@@ -38,12 +40,20 @@ export function CommentCard({
   onToggleHidden?: () => void
   allowHide?: boolean
   updating?: boolean
+  selectedTranscript?: string
 }) {
   const text = commentText(comment)
   const author = commentAuthor(comment)
   const initials = authorInitials(author)
   const hidden = Boolean(comment?.hidden)
   const createdAt = comment?.time_created || comment?.created_at
+  const commentTranscript = String(comment?.transcript || "").trim()
+  const currentTranscript = String(selectedTranscript || "").trim()
+  const hasDifferentTranscript = Boolean(
+    commentTranscript
+    && currentTranscript
+    && commentTranscript !== currentTranscript,
+  )
   const bodyClasses = [
     "group/comment-body block w-full rounded-md border px-3 py-2.5 text-left transition-colors",
     hidden
@@ -59,20 +69,32 @@ export function CommentCard({
       ].join(" ")}
     >
       <header className="mb-2.5 flex min-w-0 items-start gap-2.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-primary/15 bg-primary/8 text-[11px] font-semibold text-primary">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-primary/15 bg-primary/8 type-meta font-semibold text-primary">
           {initials || <UserRound className="size-4" aria-hidden="true" />}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="truncate text-sm font-semibold text-foreground">{author}</span>
             {isGlobalComment(comment) && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/10 px-1.5 py-0.5 text-[10px] font-medium text-info">
+              <span className="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/10 px-1.5 py-0.5 type-label font-medium text-info">
                 <Globe2 className="size-3" aria-hidden="true" />
                 Global
               </span>
             )}
+            {hasDifferentTranscript && (
+              <AppTooltip
+                context="Transcript-specific annotation"
+                label={`Authored for ${commentTranscript}`}
+                content={`This annotation belongs to transcript ${commentTranscript}. The currently selected transcript is ${currentTranscript}.`}
+              >
+                <span className="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/10 px-1.5 py-0.5 type-label font-medium text-info">
+                  <Dna className="size-3" aria-hidden="true" />
+                  Transcript {commentTranscript}
+                </span>
+              </AppTooltip>
+            )}
             {hidden && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-1.5 py-0.5 type-label font-medium text-muted-foreground">
                 <EyeOff className="size-3" aria-hidden="true" />
                 Hidden
               </span>
@@ -99,7 +121,7 @@ export function CommentCard({
         >
           <MarkdownText text={text || "-"} />
           {!hidden && (
-            <span aria-hidden="true" className="mt-2 flex items-center gap-1 border-t border-border/60 pt-2 text-[11px] font-medium text-muted-foreground opacity-0 transition-opacity group-hover/comment-body:opacity-100 group-focus-visible/comment-body:opacity-100">
+            <span aria-hidden="true" className="mt-2 flex items-center gap-1 border-t border-border/60 pt-2 type-meta font-medium text-muted-foreground opacity-0 transition-opacity group-hover/comment-body:opacity-100 group-focus-visible/comment-body:opacity-100">
               <PencilLine className="size-3" />
               Use as draft
             </span>

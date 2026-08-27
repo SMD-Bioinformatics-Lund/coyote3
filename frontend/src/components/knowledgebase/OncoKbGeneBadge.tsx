@@ -25,7 +25,7 @@ export function OncoKbGeneBadge({
       target="_blank"
       rel="noreferrer"
       className={cn(
-        "inline-flex h-5 items-center gap-1 rounded-full border border-tier3/35 bg-tier3/10 px-1.5 text-[10px] font-semibold uppercase leading-none text-tier3 shadow-sm transition-colors hover:bg-tier3/18",
+        "inline-flex h-5 items-center gap-1 rounded-full border border-tier3/35 bg-tier3/10 px-1.5 type-label font-semibold uppercase leading-none text-tier3 shadow-sm transition-colors hover:bg-tier3/18",
         className,
       )}
       title={summary}

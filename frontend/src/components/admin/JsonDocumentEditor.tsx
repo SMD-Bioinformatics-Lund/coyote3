@@ -116,7 +116,7 @@ export function JsonDocumentEditor({
           <pre
             ref={lineNumbersRef}
             aria-hidden="true"
-            className="w-14 shrink-0 overflow-hidden border-r border-border bg-muted/45 px-3 py-4 text-right font-[ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace] text-[13px] leading-6 text-muted-foreground"
+            className="w-14 shrink-0 overflow-hidden border-r border-border bg-muted/45 px-3 py-4 text-right font-[ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace] type-body-sm leading-6 text-muted-foreground"
           >
             {lineNumbers}
           </pre>
@@ -128,7 +128,7 @@ export function JsonDocumentEditor({
             onScroll={syncLineNumberScroll}
             readOnly={readOnly}
             spellCheck={false}
-            className="min-h-[60vh] min-w-0 flex-1 resize-y border-0 bg-transparent p-4 font-[ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace] text-[13px] leading-6 text-foreground outline-none read-only:cursor-default read-only:bg-muted/20"
+            className="min-h-[60vh] min-w-0 flex-1 resize-y border-0 bg-transparent p-4 font-[ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace] type-body-sm leading-6 text-foreground outline-none read-only:cursor-default read-only:bg-muted/20"
           />
           {!validation.valid && (
             <div

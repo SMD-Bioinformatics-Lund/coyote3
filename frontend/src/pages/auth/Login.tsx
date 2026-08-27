@@ -265,7 +265,7 @@ export function Login() {
 
       <footer className="login-footer">
         <span>Coyote3 {appVersion}</span>
-        <span className="font-extrabold tracking-[0.08em] text-primary uppercase">DEVELOPMENT</span>
+        <span className="font-semibold tracking-[0.08em] text-primary uppercase">DEVELOPMENT</span>
         <span className="login-organization-name">{organizationName}</span>
       </footer>
     </main>
