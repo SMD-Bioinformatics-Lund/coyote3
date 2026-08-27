@@ -306,11 +306,60 @@ This means later searches can answer which samples reported a gene/variant/tier 
 
 ## Comments And Annotations
 
-Sample-level comments belong in the `sample_comments` collection. Finding-level comments and annotations are shown on detail pages and may be local to a sample finding or global to the variant/finding identity, depending on the selected option.
+Comments and reusable annotations have separate ownership:
+
+| Content | Collection | Identity and scope |
+| --- | --- | --- |
+| Sample comment | `sample_comments` | One sample, referenced by `sample_oid` and `sample_name`. |
+| Finding comment | `finding_comments` | One finding in one sample, referenced by `sample_oid`, `finding_oid`, and `finding_type`. |
+| Global annotation | `annotation` | A reusable clinical statement matched through the canonical finding identity. |
+
+Small variants, CNVs, fusions, and translocations do not persist embedded
+`comments` arrays. Finding repositories load the matching `finding_comments`
+records and attach them to API payloads at the read boundary. List endpoints
+use one batch query for all findings on the page; they do not query once per
+row. This keeps the API response convenient for the UI without making the
+finding document the comment store.
+
+Each finding comment also records the finding identity that was current when
+the comment was written. Small-variant comments retain the gene, transcript,
+HGVSc, HGVSp, genomic identity, and genomic hash. Fusion and translocation
+comments retain both genes, while CNV comments retain their CNV identity. The
+finding reference controls ownership; the identity snapshot explains what the
+reviewer commented on without requiring mutable annotation metadata to remain
+unchanged. When a small-variant comment belongs to another transcript, the UI
+shows that transcript on the comment instead of presenting it as the currently
+selected transcript.
 
 Comments support Markdown rendering. Sample comments may show live preview while finding-detail comments use an explicit preview/edit flow to keep the detail page compact.
 
-Hidden/unhidden comment actions should be auditable and visible according to user permissions.
+Hiding a comment changes its visibility state in its owning comment collection.
+Hidden/unhidden actions are audited and visible according to user permissions.
+Deleting a sample also deletes all `finding_comments` records linked by sample
+identifier before the sample document is removed.
+
+### Moving legacy embedded comments
+
+Older finding documents may contain a `comments` array. Moving those comments
+to `finding_comments` is a guarded data migration, not a direct `$unset`.
+
+| Phase | Required behavior |
+| --- | --- |
+| Inventory | Read every embedded comment from `variants`, `cnvs`, `fusions`, and `translocations`. Resolve the owning sample and validate the comment text, author, identifier, visibility state, and timestamps. |
+| Write | Create one `finding_comments` record per source comment. Preserve the legacy comment `_id` when present and add `sample_oid`, `sample_name`, `finding_oid`, and `finding_type`. Re-running the write must produce the same records. |
+| Verify | Compare the expected and written record counts, then compare every destination record with its normalized source content and finding identity. Stop on missing samples, duplicate comment identifiers, conflicting destination records, invalid comments, count differences, or content differences. |
+| Remove | Re-read every inventoried source and confirm that its complete comment array still matches the inventory. Remove an embedded array only after all source and destination checks pass. The removal query also includes the original array so a concurrent source change cannot be discarded. |
+| Final check | Search all four finding collections for any remaining embedded `comments` field, then repeat the destination-content comparison. |
+
+An interrupted run is resumable. Destination records already written with the
+same content are accepted; conflicting records stop the run. Findings whose
+arrays were already removed are not rewritten. A database backup is required
+before applying the migration, and the read-only inventory must be reviewed
+before the write phase is enabled.
+
+After migration, `finding_comments` is the only persistence owner. API
+responses may still contain a `comments` field because repositories hydrate it
+at the read boundary; that field is not stored in a finding document.
 
 ## Access Control
 

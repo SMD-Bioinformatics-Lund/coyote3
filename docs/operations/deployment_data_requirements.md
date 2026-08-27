@@ -33,6 +33,7 @@ review, and reporting.
 | Findings | `variants`, `cnvs`, `fusions`, `translocations`, `biomarkers`, `panel_coverage` | Analysis-specific records loaded from the sample files. Only collections for enabled analyses need data for a given sample. |
 | Reports | `reports`, `reported_variants` | Saved report documents and reportable-finding snapshots. |
 | Sample comments | `sample_comments` | Sample-level comment and annotation history. |
+| Finding comments | `finding_comments` | Comments tied to one sample finding. Each record identifies its sample, finding, and finding type. |
 | Audit and sessions | `audit_events`, `api_sessions` | Security, mutation, and session records. |
 
 !!! tip "Collection names"

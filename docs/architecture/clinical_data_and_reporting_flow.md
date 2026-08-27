@@ -736,6 +736,7 @@ samples
     +-- translocations
     +-- biomarkers
     +-- sample_comments
+    +-- finding_comments
     +-- reports
             |
             +-- reported_variants
@@ -747,6 +748,11 @@ variants + annotation
 
 `samples` is the current operational state. `reports` and
 `reported_variants` preserve historical clinical output.
+
+`finding_comments` stores sample-specific review notes for small variants,
+CNVs, fusions, and translocations. Finding documents remain analysis records;
+their API representations are hydrated with comments when a detail page,
+report workflow, or paginated finding table needs them.
 
 ## 11. Traceability And Failure Semantics
 

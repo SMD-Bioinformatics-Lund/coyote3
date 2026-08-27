@@ -251,7 +251,7 @@ by the migration utility and have no runtime read fallback. See
 [clinical data and reporting flow](clinical_data_and_reporting_flow.md#53-annotation-identity-and-matching)
 for the complete nomenclature shapes and matching protocol.
 
-A re-ingest snapshots dependent records that will be replaced. If a new write fails, the earlier records are restored. Administrative sample deletion removes sample-bound variants, CNVs, coverage, translocations, fusions, biomarkers, RNA expression, classification, QC, comments, reports, and reported-variant snapshots before deleting the sample. The deletion audit event keeps sample name and internal identifier as traceability metadata.
+A re-ingest snapshots dependent records that will be replaced. If a new write fails, the earlier records are restored. Administrative sample deletion removes sample-bound variants, CNVs, coverage, translocations, fusions, biomarkers, RNA expression, classification, QC, sample comments, finding comments, reports, and reported-variant snapshots before deleting the sample. The deletion audit event keeps sample name and internal identifier as traceability metadata.
 
 ## Operational diagnosis
 
