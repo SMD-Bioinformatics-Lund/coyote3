@@ -24,6 +24,12 @@ type CohortBreakdown = {
   prevalence_percent: number | null;
 };
 
+type AssayCohortRow = CohortBreakdown & {
+  asp_id: string;
+  display_name: string;
+  asp_group?: string;
+};
+
 type RecurrentFinding = {
   identity: string;
   analysis_type: string;
@@ -76,7 +82,7 @@ type GeneCohortPayload = {
   };
   tier_counts: Record<string, number>;
   analysis_type_counts: Record<string, number>;
-  assays: Array<CohortBreakdown & { asp_id: string; display_name: string; asp_group?: string }>;
+  assays: AssayCohortRow[];
   sex_distribution: Array<CohortBreakdown & { sex: string }>;
   recurrent_findings: RecurrentFinding[];
   samples: CohortSample[];
@@ -172,6 +178,35 @@ export function GeneCohortExplorer() {
   const recurrentRows = useMemo(
     () => cohortQuery.data?.recurrent_findings || [],
     [cohortQuery.data?.recurrent_findings],
+  );
+  const assayColumns = useMemo<ColumnDef<AssayCohortRow>[]>(
+    () => [
+      {
+        accessorKey: "display_name",
+        header: "Assay",
+        cell: ({ row }) => <span className="font-medium">{row.original.display_name}</span>,
+      },
+      {
+        accessorKey: "asp_group",
+        header: "Group",
+        cell: ({ row }) => row.original.asp_group || "-",
+      },
+      { accessorKey: "finding_samples", header: "Findings" },
+      { accessorKey: "profiled_samples", header: "Profiled" },
+      {
+        accessorKey: "prevalence_percent",
+        header: "Prevalence",
+        cell: ({ row }) => (
+          <div className="grid min-w-40 grid-cols-[1fr_4.5rem] items-center gap-2">
+            <PrevalenceBar value={row.original.prevalence_percent} />
+            <span className="text-right font-medium">
+              {percent(row.original.prevalence_percent)}
+            </span>
+          </div>
+        ),
+      },
+    ],
+    [],
   );
   const recurrentColumns = useMemo<ColumnDef<RecurrentFinding>[]>(
     () => [
@@ -436,37 +471,15 @@ export function GeneCohortExplorer() {
                   Finding samples divided by samples profiled for {gene} in each assay.
                 </p>
               </div>
-              <div className="overflow-x-auto rounded-xl border border-border">
-                <table className="type-table-cell w-full text-left">
-                  <thead className="type-table-header">
-                    <tr>
-                      <th className="px-3 py-2">Assay</th>
-                      <th className="px-3 py-2">Group</th>
-                      <th className="px-3 py-2 text-right">Findings</th>
-                      <th className="px-3 py-2 text-right">Profiled</th>
-                      <th className="min-w-40 px-3 py-2">Prevalence</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cohortQuery.data.assays.map((row) => (
-                      <tr key={row.asp_id} className="border-t border-border">
-                        <td className="px-3 py-2 font-medium">{row.display_name}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{row.asp_group || "-"}</td>
-                        <td className="px-3 py-2 text-right">{row.finding_samples}</td>
-                        <td className="px-3 py-2 text-right">{row.profiled_samples}</td>
-                        <td className="px-3 py-2">
-                          <div className="grid grid-cols-[1fr_4.5rem] items-center gap-2">
-                            <PrevalenceBar value={row.prevalence_percent} />
-                            <span className="text-right font-medium">
-                              {percent(row.prevalence_percent)}
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                columns={assayColumns}
+                data={cohortQuery.data.assays}
+                stateKey="gene-cohort-assays"
+                rowLabel="assays"
+                searchPlaceholder="Search assays or groups..."
+                enablePagination={false}
+                hideExport
+              />
             </div>
 
             <div className="surface-panel p-4">
@@ -533,7 +546,7 @@ export function GeneCohortExplorer() {
                 data={recurrentRows}
                 stateKey="gene-cohort-recurrent"
                 rowLabel="findings"
-                hideSearch
+                searchPlaceholder="Search findings, genes, transcripts, or tiers..."
               />
             ) : (
               <p className="py-8 text-center text-muted-foreground">
@@ -558,7 +571,7 @@ export function GeneCohortExplorer() {
                 data={cohortQuery.data.samples}
                 stateKey="gene-cohort-samples"
                 rowLabel="samples"
-                hideSearch
+                searchPlaceholder="Search samples, assays, subpanels, or findings..."
               />
             ) : (
               <p className="py-8 text-center text-muted-foreground">

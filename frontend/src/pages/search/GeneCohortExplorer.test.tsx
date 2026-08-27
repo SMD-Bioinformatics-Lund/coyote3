@@ -91,6 +91,7 @@ const response = {
 describe("GeneCohortExplorer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.sessionStorage.clear();
     mocks.get.mockResolvedValue({ data: response });
   });
 
@@ -119,6 +120,13 @@ describe("GeneCohortExplorer", () => {
       "href",
       "/samples/SAMPLE_1",
     );
+    expect(screen.getByPlaceholderText("Search assays or groups...")).toBeVisible();
+    expect(
+      screen.getByPlaceholderText("Search findings, genes, transcripts, or tiers..."),
+    ).toBeVisible();
+    expect(
+      screen.getByPlaceholderText("Search samples, assays, subpanels, or findings..."),
+    ).toBeVisible();
   });
 
   it("paginates recurrent findings and reported samples independently", async () => {
