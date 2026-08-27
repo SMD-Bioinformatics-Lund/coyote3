@@ -22,16 +22,16 @@ def _normalize_permission_id(permission_id: Any) -> str:
     return str(permission_id or "").strip().lower()
 
 
-def _require_center_managed(permission: dict[str, Any]) -> None:
-    """Reject mutations of permission policies shipped with the application."""
+def _require_center_managed(permission: dict[str, Any], *, action: str) -> None:
+    """Reject definition changes and deletion for application permissions."""
     if bool(permission.get("system_managed", False)):
         raise api_error(
             409,
-            "System permission policies are read-only",
+            f"System permission policies cannot be {action}",
             (
                 f"Permission '{permission.get('permission_id')}' is supplied by Coyote3 and is "
-                "required by application authorization checks. Assign it through roles instead "
-                "of modifying it."
+                "required by application authorization checks. Its active state may be changed, "
+                "but its identifier and definition cannot be changed or deleted."
             ),
             category="conflict",
         )
@@ -166,7 +166,7 @@ class PermissionManagementService:
         permission = self.permissions_repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
-        _require_center_managed(permission)
+        _require_center_managed(permission, action="edited")
         form_data = payload.get("form_data", {}) or {}
         updated_permission = normalize_managed_form_payload(self._spec, form_data)
         actor = current_actor(actor_username)
@@ -206,7 +206,6 @@ class PermissionManagementService:
         permission = self.permissions_repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
-        _require_center_managed(permission)
         new_status = not bool(permission.get("is_active", True))
         self.permissions_repository.toggle_policy_active(permission_id, new_status)
         payload = change_payload(resource="permission", resource_id=permission_id, action="toggle")
@@ -225,7 +224,7 @@ class PermissionManagementService:
         permission = self.permissions_repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
-        _require_center_managed(permission)
+        _require_center_managed(permission, action="deleted")
         self.permissions_repository.delete_policy(permission_id)
         return change_payload(resource="permission", resource_id=permission_id, action="delete")
 

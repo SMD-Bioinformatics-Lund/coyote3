@@ -149,7 +149,7 @@ describe("AdminResourcePage", () => {
     await waitFor(() => expect(mocks.get).toHaveBeenLastCalledWith(expect.stringContaining("asp_id=hema_gmsv1")))
   })
 
-  it("groups permission policies and keeps system-managed policies read-only", async () => {
+  it("groups permission policies and limits system permissions to view and status actions", async () => {
     mocks.get.mockResolvedValue({
       data: {
         permission_policies: [
@@ -165,8 +165,25 @@ describe("AdminResourcePage", () => {
     expect(screen.getByRole("link", { name: "custom:review" })).toHaveAttribute("href", "/admin/permissions/custom%3Areview/edit")
     const systemRow = screen.getByTitle("sample:view").closest("tr")
     expect(systemRow).not.toBeNull()
-    expect(within(systemRow as HTMLElement).getByTitle(/System permission definitions/)).toBeVisible()
+    expect(within(systemRow as HTMLElement).getByTitle(/Its definition cannot be edited or deleted/)).toBeVisible()
+    expect(within(systemRow as HTMLElement).getByTitle("Toggle active")).toBeVisible()
+    expect(within(systemRow as HTMLElement).queryByTitle("Edit")).not.toBeInTheDocument()
     expect(within(systemRow as HTMLElement).queryByTitle("Delete")).not.toBeInTheDocument()
+  })
+
+  it("allows a system role to be maintained but not deleted", async () => {
+    mocks.get.mockResolvedValue({
+      data: {
+        roles: [{ role_id: "viewer", name: "Viewer", system_managed: true, is_active: true }],
+      },
+    })
+    renderResource("roles")
+
+    const row = (await screen.findByText("viewer")).closest("tr") as HTMLElement
+    expect(within(row).getByTitle("Edit")).toBeVisible()
+    expect(within(row).getByTitle("Toggle active")).toBeVisible()
+    expect(within(row).queryByTitle("Delete")).not.toBeInTheDocument()
+    expect(within(row).getByTitle(/This record can be edited or deactivated/)).toBeVisible()
   })
 
   it("requires confirmation before deleting a resource and reports success", async () => {

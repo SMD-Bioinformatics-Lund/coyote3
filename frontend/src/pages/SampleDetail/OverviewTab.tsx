@@ -5,7 +5,8 @@ import { AlertTriangle, ChevronDown, ChevronUp, RefreshCw } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
-import { fullDateTime, shortCount } from "@/lib/detail-formatters"
+import { shortCount } from "@/lib/detail-formatters"
+import { TimeDisplay } from "@/components/ui/time-display"
 import {
   sampleArtifactCountLabel,
   sampleArtifactPresentation,
@@ -20,10 +21,6 @@ function displayValue(value: unknown) {
   if (Array.isArray(value)) return value.length ? value.join(", ") : "None"
   if (typeof value === "number") return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(4)))
   return String(value)
-}
-
-function formatDate(value: unknown) {
-  return fullDateTime(value)
 }
 
 function formatFileSize(value: unknown) {
@@ -558,7 +555,11 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
               return (
                 <div key={String(reportId)} className="rounded-xl border border-border bg-background/70 p-3">
                   <p className="break-all text-sm font-semibold">{label}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{formatDate(report?.created_at || report?.time_created || report?.date)}</p>
+                  <TimeDisplay
+                    value={report?.created_at || report?.time_created || report?.date}
+                    mode="full"
+                    className="mt-1 text-xs text-muted-foreground"
+                  />
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Link to={`/samples/${sample?.name || sampleId}/reports/${reportId}`} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">
                       View

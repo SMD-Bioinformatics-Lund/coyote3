@@ -16,6 +16,7 @@ from api.application.accounts.common import (
     normalize_permission_ids,
     utc_now,
 )
+from api.application.common.protected_records import reject_system_managed_delete
 from api.config.constants import (
     AUTH_PROVIDER_LOCAL,
     DEFAULT_AUTH_PROVIDER,
@@ -216,6 +217,7 @@ class UserManagementService:
         if self.user_repository.user_exists(email=email):
             raise api_error(409, "Email already exists")
         user_data.setdefault("is_active", True)
+        user_data["system_managed"] = False
         user_data["email"] = email
         user_data["username"] = username
         user_data["auth_type"] = _normalize_allowed_auth_types(user_data.get("auth_type"))
@@ -302,6 +304,7 @@ class UserManagementService:
         updated_user["_id"] = user_doc.get("_id")
         updated_user["created_by"] = user_doc.get("created_by")
         updated_user["created_on"] = user_doc.get("created_on")
+        updated_user["system_managed"] = bool(user_doc.get("system_managed"))
         updated_user["email"] = lower(updated_user.get("email"))
         updated_user["username"] = str(user_doc.get("username") or user_id).strip().lower()
         try:
@@ -427,6 +430,7 @@ class UserManagementService:
         user_doc = self.user_repository.user_with_id(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
+        reject_system_managed_delete(user_doc, resource="user")
         if "superuser" in _normalize_role_ids(user_doc.get("roles")) and not actor_is_superuser:
             raise api_error(403, "Only a superuser may delete a superuser account")
         self.user_repository.delete_user(user_id)

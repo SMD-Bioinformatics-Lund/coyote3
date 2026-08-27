@@ -297,17 +297,17 @@ export function DataTable<TData, TValue>({
             data-column-count={visibleColumnCount}
             style={{ minWidth: tableMinimumWidth }}
           >
-            <thead className="type-table-header border-b-2 border-border bg-[var(--table-header-surface)] text-foreground">
+            <thead className="type-table-header border-b-2 border-border bg-[var(--table-header-surface)] text-foreground align-middle text-center">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     const align = columnAlign(header.column.id)
                     const meta = header.column.columnDef.meta as any
                     const sortedIcon = {
-                      asc: <ArrowUp className="h-3 w-3 shrink-0" />,
-                      desc: <ArrowDown className="h-3 w-3 shrink-0" />,
+                      asc: <ArrowUp className="h-2 w-2 shrink-0" />,
+                      desc: <ArrowDown className="h-2 w-2 shrink-0" />,
                     }[header.column.getIsSorted() as string] ?? (
-                      header.column.getCanSort() ? <ArrowUpDown className="h-3 w-3 shrink-0 opacity-30" /> : null
+                      header.column.getCanSort() ? <ArrowUpDown className="h-2 w-2 shrink-0 opacity-70" /> : null
                     )
                     const sortIndex = sorting.findIndex((item) => item.id === header.column.id)
                     return (
@@ -315,8 +315,8 @@ export function DataTable<TData, TValue>({
                         key={header.id}
                         data-column-id={header.column.id}
                         className={cn(
-                          "whitespace-normal border-b-2 border-border py-1 align-bottom leading-tight",
-                          tableDensity === "compact" ? "px-1.5" : tableDensity === "standard" ? "px-2" : "px-3",
+                          "whitespace-normal border-b-2 border-border py-1 align-middle text-center leading-tight",
+                          tableDensity === "compact" ? "px-1.5" : "responsive-table-cell-x",
                           align === "center" ? "text-center" : "text-left",
                           defaultColumnClass(header.column.id),
                           meta?.headerClassName,
@@ -368,8 +368,7 @@ export function DataTable<TData, TValue>({
                           data-column-id={cell.column.id}
                           className={cn(
                             "border-b border-border/55 align-middle",
-                            tableDensity === "compact" ? "py-1" : "py-1.5",
-                            tableDensity === "compact" ? "px-1.5" : tableDensity === "standard" ? "px-2" : "px-3",
+                            tableDensity === "compact" ? "px-1.5 py-1" : "responsive-table-cell-x responsive-table-cell-y",
                             align === "center" ? "text-center" : "text-left",
                             defaultColumnClass(cell.column.id),
                             meta?.cellClassName,

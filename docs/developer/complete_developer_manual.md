@@ -296,6 +296,23 @@ first deployment. System policies are locked from deletion. Routes and actions
 must enforce the specific permission at the API boundary; hiding a UI control
 is not authorization.
 
+The bootstrap NDJSON files are the release source for system permission and
+role definitions. MongoDB is the runtime source used for authorization. The
+bootstrap and catalog-sync scripts bridge those two responsibilities:
+
+| Stage | Source | Result |
+| --- | --- | --- |
+| First installation | `api/config/bootstrap/rbac/*.seed.ndjson` | Inserts the full system catalog into empty collections and creates the first local superuser from command-line credentials. |
+| Runtime | MongoDB `permissions`, `roles`, and `users` | Resolves active grants for each authenticated request. |
+| Upgrade | `scripts/sync_rbac_catalog.py` | Adds newly shipped permissions, marks bundled IDs as system-managed, and unions new grants into bundled roles without removing center-owned grants or roles. |
+| Documentation | `scripts/export_permissions_reference.py` | Generates the permission catalog from the same permission seed. |
+
+System permission definitions cannot be edited or deleted, but may be
+deactivated. Bundled roles, the bootstrap superuser, and demo clinical
+configuration cannot be deleted. Their editable fields and active state remain
+under the normal permission and validation rules. New records created through
+the API are always center-owned; clients cannot set `system_managed`.
+
 For a new protected action:
 
 1. define or reuse one precise permission in bootstrap data;
@@ -321,6 +338,12 @@ classification and must not be deleted by ordinary retention cleanup.
 `frontend/src/lib/routes` records module and API dependencies for audit and
 tests. A new page must define its success, empty, loading, forbidden, disabled,
 and failed behavior.
+
+The admin UI route audit reads this registry. It is current only when every
+route added to `App.tsx` is added to the registry with its module, permission,
+API dependency, and consumed payload fields. Contract tests compare the
+registry against both the React route tree and FastAPI's registered routes.
+Do not maintain a separate hand-written route list.
 
 Use the shared API client so session expiry, validation errors, gateway HTML,
 request IDs, and notifications are handled consistently. Use React Query for
@@ -491,6 +514,8 @@ Before requesting review:
 | Queries | [Query and filter strategy](../product/aspc_driven_query_strategy.md) |
 | Reporting | [Clinical reporting rules](../product/clinical_reporting_rules.md) |
 | Permissions | [Permission naming](permissions_naming.md) |
+| System permission IDs and descriptions | [System permission catalog](permission_catalog.md) |
+| First database installation | [First installation](../start_here/first_installation.md) |
 | Testing | [Testing and quality](../testing/testing_and_quality.md) |
 | Deployment | [Center deployment](../operations/center_deployment_guide.md) |
 | Operations | [Maintenance and quality](../operations/maintenance_and_quality.md) |

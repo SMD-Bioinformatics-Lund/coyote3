@@ -17,9 +17,9 @@ export function PageShell({
   children: ReactNode
 }) {
   return (
-    <div className={cn("w-full max-w-[2600px] space-y-5", className)}>
-      <div className="surface-panel p-5 text-left sm:p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className={cn("responsive-section-gap flex w-full max-w-[2600px] flex-col", className)}>
+      <div className="responsive-card-padding surface-panel text-left">
+        <div className="responsive-section-gap flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="min-w-0 text-left">
             {eyebrow && <p className="type-page-eyebrow mb-1 text-primary">{eyebrow}</p>}
             <h1 className="type-page-title text-foreground">{title}</h1>

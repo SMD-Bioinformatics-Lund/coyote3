@@ -1,8 +1,9 @@
 /* eslint-disable react/only-export-components -- shared admin renderers and value helpers are intentionally colocated */
 import { TableBadge } from "@/components/ui/table-badge"
+import { TimeDisplay } from "@/components/ui/time-display"
 import { cn } from "@/lib/utils"
 import { accentColor, configuredValueDescription, valueBadgeClass } from "@/lib/badge-colors"
-import { fullDateTime, humanRelativeDate, shortCount } from "@/lib/detail-formatters"
+import { fullDateTime, shortCount } from "@/lib/detail-formatters"
 import type { AdminResourceSpec, FormField, FormSpec, AdminFormMode } from "@/pages/admin/resource-specs"
 
 export function valueLabel(value: unknown) {
@@ -64,7 +65,7 @@ export function StatusBadge({ value }: { value: unknown }) {
   const active = value !== false
   return (
     <TableBadge className={cn(
-      "rounded-full font-black uppercase",
+      "rounded-full font-semibold uppercase",
       active
         ? "border-pass/40 bg-pass/10 text-pass"
         : "border-muted-foreground/30 bg-muted text-muted-foreground"
@@ -298,12 +299,12 @@ export function parseCellValue(value: string) {
 
 export function defaultAdminFields(resourceKey: string) {
   const fields: Record<string, string[]> = {
-    users: ["username", "fullname", "email", "roles", "auth_type", "is_active", "last_login", "updated_on"],
-    roles: ["role_id", "label", "level", "permissions", "is_active", "version", "updated_on"],
+    users: ["username", "fullname", "email", "roles", "auth_type", "system_managed", "is_active", "last_login", "updated_on"],
+    roles: ["role_id", "label", "level", "permissions", "system_managed", "is_active", "version", "updated_on"],
     permissions: ["permission_id", "label", "category", "description", "tags", "system_managed", "is_active", "version", "updated_on"],
-    asp: ["asp_id", "display_name", "asp_category", "asp_group", "asp_family", "platform", "is_active", "version", "updated_on"],
-    aspc: ["aspc_id", "asp_id", "subpanel_id", "environment", "asp_category", "analysis_types", "is_active", "version", "updated_on"],
-    genelists: ["isgl_id", "name", "list_type", "diagnosis", "asp_ids", "asp_groups", "is_public", "is_active", "version", "updated_on"],
+    asp: ["asp_id", "display_name", "asp_category", "asp_group", "asp_family", "platform", "system_managed", "is_active", "version", "updated_on"],
+    aspc: ["aspc_id", "asp_id", "subpanel_id", "environment", "asp_category", "analysis_types", "system_managed", "is_active", "version", "updated_on"],
+    genelists: ["isgl_id", "name", "list_type", "diagnosis", "asp_ids", "asp_groups", "is_public", "system_managed", "is_active", "version", "updated_on"],
     samples: [
       "name",
       "case_id",
@@ -350,11 +351,7 @@ export function adminCell(
 ) {
   const value = row?.[field]
   if (["created_on", "updated_on", "last_login", "time_added", "created_at", "updated_at"].includes(field)) {
-    return (
-      <span className="text-sm font-normal" title={fullDateTime(value, "")}>
-        {humanRelativeDate(value)}
-      </span>
-    )
+    return <TimeDisplay value={value} className="text-sm font-normal" />
   }
   if (field === "is_active") return <StatusBadge value={value} />
   if (field === "system_managed") {
@@ -364,8 +361,8 @@ export function adminCell(
         kind={value ? "status" : "neutral"}
         title={
           value
-            ? "Bundled application permission. Assign it through roles; its definition is read-only."
-            : "Center-created permission policy."
+            ? "Installed with Coyote3. This record cannot be deleted; deactivate it when it should no longer be used."
+            : "Created and managed by this center."
         }
       />
     )

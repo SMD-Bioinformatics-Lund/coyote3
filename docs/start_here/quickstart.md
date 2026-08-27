@@ -139,7 +139,7 @@ configured session cookie and may also be sent as
 
 ---
 
-## Cleaning Up
+## Cleaning up
 
 When the development session is complete, stop the environment:
 
@@ -147,7 +147,8 @@ When the development session is complete, stop the environment:
 ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml down
 ```
 
-### Next Steps
+### Next steps
 
 - Developers: [Local Development](local_development.md)
 - Operations: [Deployment Guide](../operations/deployment_guide.md)
+- New installations: [First installation](first_installation.md)

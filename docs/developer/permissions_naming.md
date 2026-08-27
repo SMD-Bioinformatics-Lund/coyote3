@@ -1,78 +1,104 @@
-# Permissions Naming and Access Control
+# Permissions and access control
 
-Coyote3 utilizes a structured, resource-oriented permission system for all API and UI access control. This model ensures granular security, parseable audit logs, and consistent cross-domain enforcement.
+Coyote3 permissions are exact, data-backed authorization identifiers. Permission definitions are stored in MongoDB, roles grant permissions, and users receive one or more roles. The API makes the authorization decision; the frontend uses the same identifiers to hide actions that the current user cannot perform.
 
-## Structure: `resource:action[:scope]`
+## Permission identifier format
 
-Permissions are defined as colon-separated segments following the `resource:action[:scope]` standard.
+An identifier uses `resource:action[:scope]`.
 
-### Segments
+| Segment | Meaning | Examples |
+| --- | --- | --- |
+| `resource` | Resource or workflow being protected. Nested resources use a dot. | `sample`, `variant.comment`, `assay.config` |
+| `action` | Operation that may be performed. | `view`, `list`, `create`, `edit`, `delete`, `manage` |
+| `scope` | Optional ownership or visibility boundary. | `own`, `global` |
 
-1.  **resource**: The singular, lowercase identifier for the target object. Sub-resources use dot-nesting (e.g., `variant.comment`).
-2.  **action**: A standardized verb indicating the requested operation.
-3.  **scope** (Optional): The visibility or ownership boundary. Omitted when scope is not applicable.
+Examples:
 
-### Standard Actions (Verbs)
+| Permission | Meaning |
+| --- | --- |
+| `sample:view` | Open a sample visible within the user's assigned scope. |
+| `sample:delete` | Delete a sample and its dependent clinical records. |
+| `variant.comment:add:own` | Add a sample-specific variant comment. |
+| `variant.comment:add:global` | Add an annotation shared across samples. |
+| `assay.config:edit` | Edit an ASPC definition. |
 
-| Action | Professional Definition |
-| :--- | :--- |
-| `view` | Read-only access to specific resource instances. |
-| `list` | Access to collection-level indices and summaries. |
-| `create` | Authority to initialize new resource instances. |
-| `edit` | Authority to mutate existing resource attributes. |
-| `delete` | Authority to permanently remove resource instances. |
-| `download` | Access to raw data exports (CSV, VCF, etc.). |
-| `manage` | Administrative oversight including flag overrides and state changes. |
-| `add` / `remove` | Relationship management (e.g., adding a comment to a variant). |
-| `hide` / `unhide` | Visibility control for shared annotations. |
+Identifiers are lowercase and matched exactly. There is no wildcard expansion: `sample:*` does not grant `sample:view`. This keeps route behavior and audit records unambiguous.
 
-### Standard Scopes
+## Storage and ownership
 
-*   **global**: Permission applies to all instances of the resource across the platform.
-*   **own**: Permission applies only to instances owned by or associated with the authenticated user.
+| Collection | Responsibility |
+| --- | --- |
+| `permissions` | Defines the available permission identifiers, labels, categories, descriptions, tags, and active state. |
+| `roles` | Groups permission identifiers into assignable access profiles. |
+| `users` | Assigns roles and assay, assay-group, and environment scope to an account. |
 
-## Enforcement Logic
+The bootstrap catalog contains every permission required by the shipped API and frontend. It also contains the standard roles used by a new installation. `scripts/bootstrap_database.py` loads these records only when the destination collections are empty. `scripts/sync_rbac_catalog.py` adds newly shipped definitions to an existing installation without replacing center-created roles or removing locally added role grants.
 
-Access control is enforced with one route-level model:
+The `system_managed` field records ownership:
 
-### API Layer (`require_access`)
+| Record | Edit definition | Activate or deactivate | Delete |
+| --- | ---: | ---: | ---: |
+| System permission | No | Yes | No |
+| System role | Yes | Yes | No |
+| Center-created permission | Yes | Yes | Yes |
+| Center-created role | Yes | Yes | Yes |
 
-The FastAPI `require_access` dependency accepts a route permission id and checks
-it through the Casbin-backed policy generated from active role and permission
-documents. Superusers bypass checks via an early return.
+Deactivating a system permission makes it unavailable to authorization checks. Do this only after verifying the affected routes in the UI route audit. System records remain protected from deletion so an upgrade can reliably refer to their business identifiers.
 
-Authorization is granted only when the configured checks pass:
+The complete shipped inventory is listed in the [system permission catalog](permission_catalog.md).
 
-1.  **Permission Match**: At least one assigned active role grants the exact permission required by the route.
-2.  **Attribute Scope**: When route/resource context is provided, assay, assay group, and environment scope must match the user's assignments.
-3.  **Superuser Bypass**: `superuser` bypasses permission and scope checks.
+## Enforcement path
 
-Routes declare permission ids only. Role hierarchy belongs in the role documents
-by assigning the appropriate permission set to each role.
+Protected FastAPI routes declare an exact permission through `require_access`:
 
 ```python
 @router.post("/api/v1/coverage/blacklist/entries")
 def create_coverage_blacklist_entry(
-    user: ApiUser = Depends(require_access(permission="coverage.blacklist:manage")),
+    user: ApiUser = Depends(
+        require_access(permission="coverage.blacklist:manage")
+    ),
 ):
-    # Authorized if one assigned active role grants coverage.blacklist:manage.
-    # Resource handlers may apply ABAC context for assay/profile/group scope.
+    ...
 ```
 
-### UI Layer
+Authorization follows this order:
 
-React UI components should use the session payload and route/resource metadata to
-hide unavailable actions, but the API remains authoritative. UI gating must never
-replace route-level enforcement.
+1. Resolve the authenticated user's active roles.
+2. Resolve active permissions granted by those roles.
+3. Require an exact match for the route permission.
+4. Apply assay, assay-group, and environment scope when the resource supplies that context.
+5. Record protected administrative and clinical mutations in the audit log.
 
-## Inventory Requirements
+The `superuser` role bypasses ordinary permission and resource-scope checks. Authentication, input validation, and audit recording still apply.
 
-*   **Case Sensitivity**: All permission strings are enforced in lowercase.
-*   **dot-nesting**: Sub-resources must use dots, never underscores (e.g., `sample.comment:add:global`).
-*   **Persistence**: Permissions are managed in the `permissions` collection and mapped to users via the `roles` collection.
-*   **No user overrides**: User documents do not carry permission allow/deny override fields. Assign or update roles instead.
-*   **Versioning**: Editing a role or permission updates that document in place, increments `version`, and writes an audit event. Managed documents do not embed deltas or version-history arrays. ASP, ASPC, and ISGL are maintained as one active first-version document per business key; their operational history is also recorded through audit events.
+Frontend checks improve navigation and prevent unavailable controls from being presented, but they are not a security boundary. A caller cannot gain access by constructing a request manually because the API repeats the authorization check.
 
-## Wildcard Support (Future)
+## UI route audit
 
-The `resource:action[:scope]` structure is designed to support wildcard resolution (e.g., `sample:*` or `sample:view:*`). New integrations must adhere to the structured naming so policy-based enforcement (ABAC) remains predictable.
+`frontend/src/lib/routes/ui-route-registry.ts` describes each React route, its application area, API dependencies, consumed fields, and expected empty and error states. The Administration > UI route audit page displays that registry.
+
+Automated contract tests verify that:
+
+- every route declared in `frontend/src/App.tsx` has a registry entry;
+- registry paths are unique and include page-level metadata;
+- concrete API dependencies named by the registry resolve to FastAPI routes.
+
+The registry documents and tests the frontend contract. It does not grant access; each route and endpoint still uses its assigned permission.
+
+## Adding a permission
+
+1. Choose a stable identifier that follows `resource:action[:scope]`.
+2. Add it to `api/config/bootstrap/rbac/permissions.seed.ndjson` with a clear label, category, description, and search tags.
+3. Require the exact identifier in the API route or application service that owns the operation.
+4. Add the identifier to the relevant system role definitions in `roles.seed.ndjson`.
+5. Add or update frontend gating for the corresponding route and controls.
+6. Update the UI route registry when a page or API dependency changes.
+7. Regenerate the permission reference and run RBAC, route-contract, and frontend tests.
+
+A permission inserted only into MongoDB has no effect until application code requires that identifier. Conversely, code must not require an identifier that is absent from the shipped catalog.
+
+Generate the reference after changing the catalog:
+
+```bash
+.venv/bin/python scripts/export_permissions_reference.py
+```

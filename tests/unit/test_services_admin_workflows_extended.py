@@ -447,7 +447,7 @@ def test_permission_context_and_delete_paths(monkeypatch):
     assert deleted["action"] == "delete"
 
 
-@pytest.mark.parametrize("operation", ["update", "toggle", "delete"])
+@pytest.mark.parametrize("operation", ["update", "delete"])
 def test_system_managed_permissions_reject_mutation(monkeypatch, operation):
     repo = _Repo()
     repo.get_permission = lambda permission_id: {
@@ -468,13 +468,26 @@ def test_system_managed_permissions_reject_mutation(monkeypatch, operation):
                 payload={"form_data": {"permission_id": "sample:view"}},
                 actor_username="actor",
             )
-        elif operation == "toggle":
-            service.toggle_permission(permission_id="sample:view")
         else:
             service.delete_permission(permission_id="sample:view")
 
     assert error.value.status_code == 409
-    assert "read-only" in error.value.message
+    assert "cannot be" in error.value.message
+
+
+def test_system_managed_permissions_can_be_deactivated(monkeypatch):
+    repo = _Repo()
+    repo.get_permission = lambda permission_id: {
+        "permission_id": permission_id,
+        "is_active": True,
+        "system_managed": True,
+    }
+    service = _permission_service(repo)
+
+    payload = service.toggle_permission(permission_id="sample:view")
+
+    assert payload["meta"]["is_active"] is False
+    assert repo.updated_permission == ("sample:view", False)
 
 
 def test_username_and_email_exists(monkeypatch):

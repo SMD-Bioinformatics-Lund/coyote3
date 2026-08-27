@@ -9,8 +9,8 @@ import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { ReportHtmlFrame } from "@/components/reports/ReportHtmlFrame"
 import { TableBadge } from "@/components/ui/table-badge"
+import { TimeDisplay } from "@/components/ui/time-display"
 import { api } from "@/lib/api"
-import { humanRelativeDate } from "@/lib/detail-formatters"
 import { apiPath } from "@/lib/runtime-paths"
 import { TierBadge } from "@/lib/variant-ui"
 
@@ -143,8 +143,9 @@ export function SavedReportPage() {
                     {context.asp_id || "-"} / {context.subpanel_id || "-"} / {context.environment || "-"}
                   </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Created by {context.author || "-"} {context.time_created ? humanRelativeDate(context.time_created) : ""}
+                <p className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+                  <span>Created by {context.author || "-"}</span>
+                  {context.time_created && <TimeDisplay value={context.time_created} />}
                 </p>
               </div>
               <DataTable

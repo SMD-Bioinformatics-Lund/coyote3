@@ -11,6 +11,7 @@ from api.application.accounts.common import (
     current_actor,
     utc_now,
 )
+from api.application.common.protected_records import reject_system_managed_delete
 from api.application.resources.helpers import _validated_doc
 from api.contracts.managed_resources import managed_resource_spec
 from api.domain.common.assay_filters import create_assay_group_map
@@ -182,6 +183,7 @@ class IsglService:
         if not config:
             raise api_error(400, "Missing genelist config payload")
         config.setdefault("is_active", True)
+        config["system_managed"] = False
         config.pop("subpanel_id", None)
         config["isgl_id"] = config.get("isgl_id") or config.get("name")
         if not config.get("isgl_id"):
@@ -225,6 +227,7 @@ class IsglService:
             raise api_error(400, "Missing genelist config payload")
         updated_doc = {**genelist, **updated}
         updated_doc["isgl_id"] = genelist.get("isgl_id", genelist_id)
+        updated_doc["system_managed"] = bool(genelist.get("system_managed"))
         updated_doc.pop("_id", None)
         updated_doc.pop("gene_count", None)
         updated_doc.pop("subpanel_id", None)
@@ -302,6 +305,7 @@ class IsglService:
         genelist = self.gene_list_repository.get_isgl(genelist_id)
         if not genelist:
             raise api_error(404, "Genelist not found")
+        reject_system_managed_delete(genelist, resource="gene list")
         self.gene_list_repository.delete_genelist(genelist_id)
         return change_payload(resource="genelist", resource_id=genelist_id, action="delete")
 

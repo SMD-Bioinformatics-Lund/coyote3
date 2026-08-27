@@ -12,6 +12,7 @@ from api.application.accounts.common import (
     current_actor,
     utc_now,
 )
+from api.application.common.protected_records import reject_system_managed_delete
 from api.application.reporting.clinical_rules.service import ClinicalRuleService
 from api.application.resources.helpers import (
     _normalize_asp_category,
@@ -456,6 +457,7 @@ class AspcService:
             raise api_error(400, "Selected ASP does not exist")
         category = _normalize_asp_category((panel or {}).get("asp_category"))
         config.setdefault("is_active", True)
+        config["system_managed"] = False
         config["asp_id"] = asp_id
         config["subpanel_id"] = str(config.get("subpanel_id") or SUBPANEL_BASE_ID).strip()
         config["asp_group"] = panel.get("asp_group")
@@ -515,6 +517,7 @@ class AspcService:
             raise api_error(400, "Missing assay config payload")
         updated_doc = {**assay_config, **updated_config}
         updated_doc["aspc_id"] = assay_config.get("aspc_id", assay_id)
+        updated_doc["system_managed"] = bool(assay_config.get("system_managed"))
         updated_doc.pop("_id", None)
         updated_doc["subpanel_id"] = str(updated_doc.get("subpanel_id") or SUBPANEL_BASE_ID).strip()
         actor = current_actor(actor_username)
@@ -596,6 +599,7 @@ class AspcService:
         assay_config = self.assay_configuration_repository.get_aspc_with_id(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
+        reject_system_managed_delete(assay_config, resource="assay configuration")
         self.assay_configuration_repository.delete_assay_config(assay_id)
         return change_payload(resource="aspc", resource_id=assay_id, action="delete")
 

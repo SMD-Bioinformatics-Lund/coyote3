@@ -3,7 +3,7 @@ import type { FocusEvent, MouseEvent, ReactNode } from "react"
 
 import { DetailHero } from "@/components/detail/FindingDetailLayout"
 import { TooltipSurface } from "@/components/ui/app-tooltip"
-import { fullDateTime } from "@/lib/detail-formatters"
+import { TimeDisplay } from "@/components/ui/time-display"
 import { sampleReported } from "@/lib/sample-shape"
 
 function displayValue(value: unknown) {
@@ -189,7 +189,7 @@ export function SampleDetailHero({ sample, context }: { sample: any; context: an
             {sample?.time_added && (
               <div className="flex gap-1.5 md:justify-end">
                 <dt className="font-medium text-foreground">Added</dt>
-                <dd>{fullDateTime(sample.time_added)}</dd>
+                <dd><TimeDisplay value={sample.time_added} mode="full" /></dd>
               </div>
             )}
           </dl>

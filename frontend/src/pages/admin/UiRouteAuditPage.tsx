@@ -23,18 +23,18 @@ const columns: ColumnDef<UiRouteAudit, any>[] = [
   {
     accessorKey: "path",
     header: "Route",
-    cell: ({ row }) => <span className="text-[11px] font-bold text-primary">{row.original.path}</span>,
+    cell: ({ row }) => <span className="text-xs font-medium text-link">{row.original.path}</span>,
   },
   {
     accessorKey: "page",
     header: "Page",
-    cell: ({ row }) => <span className="font-bold">{row.original.page}</span>,
+    cell: ({ row }) => <span className="font-medium">{row.original.page}</span>,
   },
   {
     accessorKey: "area",
     header: "Area",
     cell: ({ row }) => (
-      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase ${areaTone[row.original.area]}`}>
+      <span className={`rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${areaTone[row.original.area]}`}>
         {row.original.area}
       </span>
     ),
@@ -47,7 +47,7 @@ const columns: ColumnDef<UiRouteAudit, any>[] = [
       <div className="flex max-w-[460px] flex-wrap gap-1">
         {row.original.api.length ? (
           row.original.api.map((item) => (
-            <Badge key={item} variant="outline" className="max-w-full truncate text-[10px]">
+            <Badge key={item} variant="outline" className="max-w-full truncate text-xs font-normal">
               {item}
             </Badge>
           ))
@@ -73,8 +73,8 @@ const columns: ColumnDef<UiRouteAudit, any>[] = [
     accessorFn: (row) => `${routeEmptyState(row)} ${routeErrorState(row)}`,
     cell: ({ row }) => (
       <div className="max-w-[420px] space-y-1 text-xs leading-5 text-muted-foreground">
-        <p><span className="font-bold text-foreground">Empty:</span> {routeEmptyState(row.original)}</p>
-        <p><span className="font-bold text-foreground">Error:</span> {routeErrorState(row.original)}</p>
+        <p><span className="font-medium text-foreground">Empty:</span> {routeEmptyState(row.original)}</p>
+        <p><span className="font-medium text-foreground">Error:</span> {routeErrorState(row.original)}</p>
       </div>
     ),
   },
@@ -86,9 +86,9 @@ export function UiRouteAuditPage() {
     <PageShell
       eyebrow="Admin"
       title="UI Route & Data Audit"
-      description="Inventory of client routes, backing API calls, expected response fields, and required empty/error states. Use this as the checklist for route-by-route contract verification."
+      description="Registered client routes, their API dependencies, expected response fields, and defined empty and error states."
       actions={
-        <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-3 py-2 text-sm font-bold shadow-sm">
+        <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium shadow-sm">
           <ShieldCheck className="h-4 w-4 text-primary" />
           {apiBacked}/{uiRouteRegistry.length} API-backed
         </div>

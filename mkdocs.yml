@@ -20,6 +20,7 @@ nav:
   - Overview: index.md
   - Getting started:
       - Quickstart: start_here/quickstart.md
+      - First installation: start_here/first_installation.md
       - Configuration: start_here/configuration.md
       - Production deployment: start_here/production_deployment.md
       - Local development: start_here/local_development.md
@@ -51,6 +52,7 @@ nav:
       - UI map and navigation: product/ui_map_and_user_flows.md
       - Configuration identity and audit: architecture/configuration_identity_and_audit.md
       - Permissions and access: developer/permissions_naming.md
+      - System permission catalog: developer/permission_catalog.md
   - Deployment and operations:
       - Release readiness: operations/release_readiness.md
       - Target-center acceptance: operations/target_center_acceptance.md

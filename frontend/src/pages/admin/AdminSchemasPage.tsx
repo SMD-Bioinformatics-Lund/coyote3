@@ -36,7 +36,7 @@ export default function AdminSchemasPage() {
               <p className="text-sm text-muted-foreground">These contracts support QA and diagnostics. Managed resources are edited through their dedicated admin forms.</p>
             </div>
           </div>
-          <span className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold text-muted-foreground">{rows.length} contracts</span>
+          <span className="rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-muted-foreground">{rows.length} contracts</span>
         </div>
         {isLoading ? <AppLoader label="Loading schema contracts" /> : error ? (
           <div className="rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">{error instanceof Error ? error.message : "Unable to load schema contracts."}</div>
@@ -50,10 +50,10 @@ export default function AdminSchemasPage() {
                     <article key={contract.collection} className="glass-card rounded-lg p-3">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div><h4 className="text-sm font-semibold">{contract.title || contract.collection}</h4><p className="text-xs text-muted-foreground">{contract.collection}</p></div>
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">{(contract.properties || []).length} fields</span>
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{(contract.properties || []).length} fields</span>
                       </div>
-                      {(contract.required || []).length > 0 && <div className="mt-2 flex flex-wrap gap-1">{(contract.required || []).map((field) => <span key={field} className="rounded-md bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold text-destructive">{field}</span>)}</div>}
-                      <details className="mt-2"><summary className="cursor-pointer text-xs font-bold text-primary">Show field names</summary><div className="mt-2 flex max-h-28 flex-wrap gap-1 overflow-auto rounded-lg bg-muted/40 p-2">{(contract.properties || []).map((field) => <span key={field} className="rounded bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">{field}</span>)}</div></details>
+                      {(contract.required || []).length > 0 && <div className="mt-2 flex flex-wrap gap-1">{(contract.required || []).map((field) => <span key={field} className="rounded-md bg-destructive/10 px-1.5 py-0.5 text-xs font-semibold text-destructive">{field}</span>)}</div>}
+                      <details className="mt-2"><summary className="cursor-pointer text-xs font-semibold text-primary">Show field names</summary><div className="mt-2 flex max-h-28 flex-wrap gap-1 overflow-auto rounded-lg bg-muted/40 p-2">{(contract.properties || []).map((field) => <span key={field} className="rounded bg-background px-1.5 py-0.5 text-xs text-muted-foreground">{field}</span>)}</div></details>
                     </article>
                   ))}
                 </div>

@@ -8,7 +8,8 @@ import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
 import { buttonVariants } from "@/components/ui/button-variants"
-import { humanRelativeDate, localDate, shortCount } from "@/lib/detail-formatters"
+import { TimeDisplay } from "@/components/ui/time-display"
+import { shortCount } from "@/lib/detail-formatters"
 import { buildPanelAnalysisCapabilityData, buildPanelGeneChartData } from "@/lib/dashboard-data"
 import { sampleDetailPath } from "@/lib/sample-routing"
 import { notifyActionError, notifySuccess, notifyWarning } from "@/lib/notifications"
@@ -33,12 +34,6 @@ function Metric({ title, value, sub }: { title: string; value: unknown; sub?: st
 function percent(value: unknown) {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? `${numeric.toFixed(numeric % 1 === 0 ? 0 : 1)}%` : "0%"
-}
-
-function humanDate(value: unknown) {
-  const relative = humanRelativeDate(value, "")
-  if (relative && !relative.includes("mo ") && !relative.includes("yr ")) return relative
-  return localDate(value)
 }
 
 function ChartFallback() {
@@ -165,7 +160,7 @@ export function Dashboard() {
       eyebrow="Operations"
       title="Dashboard"
       description="Throughput, quality, tiering, assay scope, and resource health."
-      className="space-y-3"
+      className="gap-3"
       actions={
         <>
           {refreshButton}
@@ -178,11 +173,15 @@ export function Dashboard() {
 
       {(data?.dashboard_meta?.snapshot_stale || refreshPending) && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
-          <span>
-            {refreshPending
-              ? "Dashboard metrics are refreshing in the background. The current snapshot remains available."
-              : `Showing the latest available snapshot from ${humanDate(data?.dashboard_meta?.snapshot_updated_at)} while updated metrics are prepared.`}
-          </span>
+          {refreshPending ? (
+            <span>Dashboard metrics are refreshing in the background. The current snapshot remains available.</span>
+          ) : (
+            <span className="flex flex-wrap items-center gap-1">
+              <span>Showing the latest available snapshot from</span>
+              <TimeDisplay value={data?.dashboard_meta?.snapshot_updated_at} />
+              <span>while updated metrics are prepared.</span>
+            </span>
+          )}
         </div>
       )}
 
@@ -277,8 +276,12 @@ export function Dashboard() {
                     <span className="type-badge rounded-md bg-dna/10 px-1.5 py-0.5 uppercase text-dna">{sample.omics_layer || "dna"}</span>
                     <span className="type-badge rounded-md bg-muted px-1.5 py-0.5 uppercase text-muted-foreground">{sample.ingest_status || "unknown"}</span>
                   </div>
-                  <p className="type-meta mt-0.5 truncate text-muted-foreground">
-                    {sample.asp_id || "-"} {sample.subpanel_id ? `• ${sample.subpanel_id}` : ""} • {humanDate(sample.time_added)}
+                  <p className="type-meta mt-0.5 flex min-w-0 items-center gap-1 truncate text-muted-foreground">
+                    <span className="truncate">
+                      {sample.asp_id || "-"} {sample.subpanel_id ? `• ${sample.subpanel_id}` : ""}
+                    </span>
+                    <span aria-hidden="true">•</span>
+                    <TimeDisplay value={sample.time_added} className="shrink-0" />
                   </p>
                 </div>
                 <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />

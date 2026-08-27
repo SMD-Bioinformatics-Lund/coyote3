@@ -11,6 +11,7 @@ from api.application.accounts.common import (
     current_actor,
     utc_now,
 )
+from api.application.common.protected_records import reject_system_managed_delete
 from api.application.resources.helpers import _validated_doc
 from api.contracts.managed_resources import managed_resource_spec
 from api.domain.common.errors import api_error
@@ -92,6 +93,7 @@ class AspService:
         if not config:
             raise api_error(400, "Missing panel config payload")
         config.setdefault("is_active", True)
+        config["system_managed"] = False
         config["asp_id"] = config.get("asp_id")
         if not config.get("asp_id"):
             raise api_error(400, "Missing asp_id")
@@ -135,6 +137,7 @@ class AspService:
             raise api_error(400, "Missing panel config payload")
         updated_doc = {**panel, **updated}
         updated_doc["asp_id"] = panel.get("asp_id", panel_id)
+        updated_doc["system_managed"] = bool(panel.get("system_managed"))
         updated_doc.pop("_id", None)
         actor = current_actor(actor_username)
         now = utc_now()
@@ -201,6 +204,7 @@ class AspService:
         panel = self.assay_panel_repository.get_asp(panel_id)
         if not panel:
             raise api_error(404, "Panel not found")
+        reject_system_managed_delete(panel, resource="assay panel")
         self.assay_panel_repository.delete_panel(panel_id)
         return change_payload(resource="asp", resource_id=panel_id, action="delete")
 

@@ -590,7 +590,7 @@ function matrixColumnWidth(label: unknown) {
 
   // Matrix cells contain only a check mark or dash. Size each column for its
   // longest header word, then let multi-word labels wrap at their spaces.
-  return `${Math.min(116, Math.max(82, longestWordLength * 6 + 18))}px`
+  return `${Math.min(96, Math.max(48, longestWordLength * 5.4 + 14))}px`
 }
 
 function AssayMatrixTable({
@@ -807,7 +807,7 @@ function AssayMatrixTable({
                   return (
                     <td
                       key={`${gene}:${col.key}`}
-                      className="h-7 border-b border-r border-border/40 px-1.5 py-1 text-center last:border-r-0"
+                      className="h-7 border-b border-r border-border/40 px-0.5 py-1 text-center last:border-r-0"
                     >
                       {present ? (
                         <Check className="mx-auto h-4 w-4 rounded-full text-pass" strokeWidth={2.4} />

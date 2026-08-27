@@ -78,6 +78,7 @@ class UsersDoc(_StrictCollectionDocBase):
     asp_ids: list[str] = Field(default_factory=list)
     asp_groups: list[str] = Field(default_factory=list)
     ui_settings: UserUiSettingsDoc = Field(default_factory=UserUiSettingsDoc)
+    system_managed: bool = False
     is_active: bool = True
     version: int = 1
     created_by: str | None = None
@@ -161,6 +162,7 @@ class RolesDoc(_StrictCollectionDocBase):
     description: str | None = None
     color: str
     level: int | float
+    system_managed: bool = False
     is_active: bool = True
     permissions: list[str] = Field(default_factory=list)
     version: int = 1

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
+import type { LucideIcon } from "lucide-react"
 import { BookOpen, Bug, Building2, Database, ExternalLink, FileText, GitBranch, Home, LifeBuoy, Lightbulb, Mail, MapPin, MessageSquareWarning, Phone, Workflow } from "lucide-react"
 import { PageShell } from "@/components/layout/PageShell"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -47,10 +48,7 @@ export function ContactPage() {
 
         <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.45fr)]">
           <section className="content-section p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <Mail className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Support Channels</h3>
-            </div>
+            <SectionHeading icon={Mail} title="Support channels" />
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {contacts.length ? contacts.map((contact, index) => (
                 <ContactCard key={`${contact.label}-${index}`} contact={contact} />
@@ -150,10 +148,7 @@ export function AboutPage() {
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
           <div className="space-y-4">
             <section className="content-section p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <Database className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Reference and Software Versions</h3>
-              </div>
+              <SectionHeading icon={Database} title="Reference and software versions" />
               <div className="grid gap-3 md:grid-cols-2">
                 <VersionBlock title="Analysis Pipelines" values={pipelines} empty="No pipeline versions observed in loaded samples." />
                 <VersionBlock title="Sample Reference Databases" values={sampleReferenceVersions} empty="No sample database versions recorded yet." />
@@ -169,10 +164,7 @@ export function AboutPage() {
           <aside className="space-y-3">
             {aboutLinks.length ? (
               <section className="content-section p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <ExternalLink className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Useful Links</h3>
-                </div>
+                <SectionHeading icon={ExternalLink} title="Useful links" />
                 <div className="space-y-2">
                   {aboutLinks.map((link) => (
                     <ResourceLink key={`${link.label}-${link.url}`} link={link} />
@@ -234,7 +226,7 @@ function ContactCard({ contact }: { contact: ContactChannel }) {
   return (
     <article className="content-item p-4">
       <p className="text-sm font-semibold text-foreground">{contact.label}</p>
-      {contact.role ? <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{contact.role}</p> : null}
+      {contact.role ? <p className="mt-1 text-xs font-medium text-muted-foreground">{contact.role}</p> : null}
       {contact.description ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{contact.description}</p> : null}
       <div className="mt-4 space-y-2 text-sm">
         {people.map((person) => (
@@ -296,7 +288,7 @@ function HoursCard({ hours }: { hours: Array<Record<string, string>> }) {
   if (!hours.length) return null
   return (
     <div className="content-section p-4">
-      <p className="text-sm font-semibold">Service Hours</p>
+      <SectionHeading icon={Workflow} title="Service hours" />
       <dl className="mt-3 space-y-2 text-sm">
         {hours.map((item) => (
           <div key={`${item.label}-${item.value}`} className="grid grid-cols-[110px_1fr] gap-3">
@@ -313,7 +305,7 @@ function AddressCard({ organization }: { organization: Record<string, string> })
   if (!organization.address) return null
   return (
     <div className="content-section p-4 text-sm">
-      <p className="flex items-center gap-2 font-bold"><MapPin className="h-4 w-4 text-primary" /> Address</p>
+      <SectionHeading icon={MapPin} title="Address" />
       <p className="mt-2 whitespace-pre-line text-muted-foreground">{organization.address}</p>
     </div>
   )
@@ -323,7 +315,7 @@ function UsefulLinksCard({ links }: { links: LinkLike[] }) {
   if (!links.length) return null
   return (
     <div className="content-section p-4">
-      <p className="text-sm font-semibold">Useful Links</p>
+      <SectionHeading icon={ExternalLink} title="Useful links" />
       <div className="mt-3 space-y-2">
         {links.map((link) => <ResourceLink key={`${link.label}-${link.url}`} link={link} />)}
       </div>
@@ -360,7 +352,7 @@ function InfoCard({ icon: Icon, label, value, hint }: { icon: any; label: string
     <article className="content-item p-4">
       <div className="mb-3 flex items-center gap-2">
         <div className="rounded-lg bg-primary/10 p-2 text-primary"><Icon className="h-4 w-4" /></div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
       </div>
       <p className="break-words text-sm font-semibold text-foreground">{value}</p>
       {hint ? <p className="mt-1 break-words text-xs text-muted-foreground">{hint}</p> : null}
@@ -375,7 +367,7 @@ function VersionBlock({ title, values, empty }: { title: string; values: any; em
   })
   return (
     <div className="content-item p-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+      <p className="mb-2 text-sm font-semibold text-foreground">{title}</p>
       {entries.length ? (
         <dl className="space-y-2 text-sm">
           {entries.map(([key, value]) => (
@@ -398,6 +390,17 @@ function VersionBlock({ title, values, empty }: { title: string; values: any; em
 
 function humanLabel(value: string) {
   return value.replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function SectionHeading({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
+  return (
+    <div className="mb-3 flex items-center gap-2 border-b border-border/70 pb-2">
+      <span className="rounded-md bg-primary/10 p-1.5 text-primary">
+        <Icon className="h-4 w-4" />
+      </span>
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+    </div>
+  )
 }
 
 function buildAboutLinks(configuredLinks: LinkLike[], codebase: Record<string, string>) {

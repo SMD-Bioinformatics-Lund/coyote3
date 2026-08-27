@@ -23,8 +23,9 @@ import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { TimeDisplay } from "@/components/ui/time-display"
 import { DataTable } from "@/components/data-table/DataTable"
-import { fullDateTime, humanRelativeDate, localDate } from "@/lib/detail-formatters"
+import { fullDateTime, localDate } from "@/lib/detail-formatters"
 import { appControlHelp } from "@/lib/app-control-metadata"
 import { APPLICATION_MODULES_QUERY_KEY } from "@/lib/app-module-state"
 import {
@@ -297,9 +298,11 @@ export function AdminControlsPage() {
               <div>
                 <h2 className="text-base font-semibold">Observed Runtime State</h2>
                 <p className="text-sm text-muted-foreground">Live Celery process, queue, schedule, and repository health reported by the API runtime.</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {runtime.observed_at ? `Observed ${humanRelativeDate(runtime.observed_at)} (${fullDateTime(runtime.observed_at)}).` : "Observation time was not reported."}
-                  {` Automatically refreshed every 5 seconds; inspection timeout ${runtime.celery?.inspection_timeout_seconds ?? 1.5} seconds.`}
+                <p className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
+                  {runtime.observed_at
+                    ? <TimeDisplay value={runtime.observed_at} prefix="Observed" />
+                    : <span>Observation time was not reported.</span>}
+                  <span>Automatically refreshed every 5 seconds; inspection timeout {runtime.celery?.inspection_timeout_seconds ?? 1.5} seconds.</span>
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -379,7 +382,7 @@ export function AdminControlsPage() {
             </div>
             <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
               Last updated by <span className="font-semibold text-foreground">{controls.updated_by || "system defaults"}</span>
-              {controls.updated_on ? ` on ${fullDateTime(controls.updated_on)}` : ""}.
+              {controls.updated_on && <TimeDisplay value={controls.updated_on} mode="full" prefix="on " className="ml-1" />}.
             </div>
           </section>
         </div>
@@ -447,7 +450,7 @@ export function AdminAuditPage() {
       accessorFn: (event) => event.occurred_at ? new Date(event.occurred_at).getTime() : 0,
       cell: ({ row }) => (
         <span className="whitespace-nowrap">
-          <span className="block text-sm font-semibold">{relativeTime(row.original.occurred_at) || "-"}</span>
+          <TimeDisplay value={row.original.occurred_at} className="text-sm font-semibold" />
           <span className="block text-xs text-muted-foreground">
             {fullDateTime(row.original.occurred_at)}
           </span>
@@ -730,10 +733,6 @@ function severityValue(value: unknown): Severity {
 
 function severityRank(value: Severity) {
   return { info: 1, warning: 2, error: 3, critical: 4 }[value]
-}
-
-function relativeTime(value: unknown) {
-  return humanRelativeDate(value, "")
 }
 
 function Detail({ label, value }: { label: string; value: string | null | undefined }) {

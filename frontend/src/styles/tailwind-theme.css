@@ -34,6 +34,17 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+  --color-surface-selected: var(--surface-selected);
+  --color-row-hover: var(--row-hover);
+  --color-row-selected: var(--row-selected);
+  --color-disabled-background: var(--disabled-background);
+  --color-disabled-foreground: var(--disabled-foreground);
+  --color-disabled-border: var(--disabled-border);
+  --color-table-border: var(--table-border);
+  --color-table-border-strong: var(--table-border-strong);
+  --color-table-row-alt: var(--table-row-alt);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -144,7 +155,7 @@
  * instead of choosing font size and weight independently in each page.
  */
 @utility type-page-eyebrow {
-  font-size: 0.65rem;
+  font-size: clamp(0.60rem, 0.57rem + 0.12vw, 0.65rem);
   line-height: 1.25;
   @apply font-semibold;
   letter-spacing: 0;
@@ -152,14 +163,14 @@
 }
 
 @utility type-page-title {
-  font-size: 1.625rem;
+  font-size: clamp(1.25rem, 1.05rem + 0.8vw, 1.625rem);
   line-height: 1.15;
   @apply font-medium;
   letter-spacing: 0;
 }
 
 @utility type-card-title {
-  font-size: 0.95rem;
+  font-size: clamp(0.875rem, 0.84rem + 0.16vw, 0.95rem);
   line-height: 1.35;
   @apply font-semibold;
   letter-spacing: 0;
@@ -170,7 +181,7 @@
 }
 
 @utility type-section-title {
-  font-size: 0.80rem;
+  font-size: clamp(0.74rem, 0.71rem + 0.12vw, 0.80rem);
   line-height: 1.35;
   @apply font-semibold;
   letter-spacing: 0;
@@ -178,31 +189,34 @@
 }
 
 @utility type-table-header {
-  font-size: 0.6875rem;
-  line-height: 1.15;
-  @apply font-medium;
-  letter-spacing: 0;
-  text-transform: uppercase;
+  @apply font-semibold text-muted-foreground;
+
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
 }
 
 @utility type-table-cell {
+  @apply font-normal;
+
   font-size: 0.875rem;
   line-height: 1.35;
-  @apply font-normal;
   letter-spacing: 0;
 }
 
 @utility type-table-value {
+  @apply font-normal;
+
   font-size: 0.875rem;
   line-height: 1.35;
-  @apply font-normal;
   letter-spacing: 0;
 }
 
 @utility type-table-value-emphasis {
+  @apply font-semibold;
+
   font-size: 0.875rem;
   line-height: 1.25;
-  @apply font-medium;
   letter-spacing: 0;
 }
 
@@ -221,79 +235,208 @@
 }
 
 @utility type-body {
-  font-size: 0.8rem;
+  font-size: 0.80rem;
   line-height: 1.5;
   @apply font-normal;
   letter-spacing: 0;
 }
 
 @utility type-body-sm {
-  font-size: 0.77rem;
+  font-size: 0.75rem;
   line-height: 1.45;
   @apply font-normal;
   letter-spacing: 0;
 }
 
+@utility type-caption {
+  font-size: 0.70rem;
+  line-height: 1.4;
+  @apply font-normal;
+  letter-spacing: 0;
+}
+
 @utility type-meta {
-  font-size: 0.72rem;
+  font-size: 0.70rem;
   line-height: 1.35;
   @apply font-medium;
   letter-spacing: 0;
 }
 
 @utility type-badge {
-  font-size: 0.75rem;
+  font-size: 0.70rem;
   line-height: 1;
   @apply font-semibold;
   letter-spacing: 0;
 }
 
+
+/*
+ * Responsive density helpers.
+ * These keep shared UI surfaces compact on smaller screens without requiring
+ * every component to define its own typography and spacing rules.
+ */
+@utility responsive-page-padding {
+  padding-inline: clamp(0.75rem, 0.35rem + 1.6vw, 1.5rem);
+}
+
+@utility responsive-card-padding {
+  padding: clamp(0.75rem, 0.55rem + 0.8vw, 1rem);
+}
+
+@utility responsive-section-gap {
+  gap: clamp(0.75rem, 0.5rem + 1vw, 1.25rem);
+}
+
+@utility responsive-control-height {
+  min-height: clamp(2rem, 1.85rem + 0.35vw, 2.25rem);
+}
+
+@utility responsive-table-cell-x {
+  padding-inline: clamp(0.45rem, 0.30rem + 0.55vw, 0.75rem);
+}
+
+@utility responsive-table-cell-y {
+  padding-block: clamp(0.35rem, 0.27rem + 0.3vw, 0.5rem);
+}
+
+
+/* Shared interaction behavior */
+@utility theme-transition {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 140ms ease,
+    box-shadow 160ms ease;
+}
+
+@utility interaction-transition {
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease,
+    transform 100ms ease;
+}
+
+@utility focus-ring {
+  outline: none;
+  box-shadow:
+    0 0 0 1px var(--focus-ring),
+    0 0 0 4px var(--focus-ring-soft);
+}
+
+@utility touch-target {
+  min-height: 2rem;
+  min-width: 2rem;
+}
+
+@utility viewport-height {
+  min-height: 100dvh;
+}
+
+@utility shadow-surface-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+@utility shadow-surface-md {
+  box-shadow: var(--shadow-md);
+}
+
+@utility shadow-surface-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+@media (pointer: coarse) {
+  .touch-target {
+    min-height: 2.5rem;
+    min-width: 2.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 :root {
-  --background: oklch(0.905 0.003 255);
+  color-scheme: light;
+
+  --surface-hover: oklch(0.89 0.008 255);
+  --surface-active: oklch(0.865 0.012 275);
+  --surface-selected: oklch(0.88 0.018 285);
+  --row-hover: oklch(0.94 0.005 255);
+  --row-selected: oklch(0.91 0.016 285);
+
+  --focus-ring: oklch(0.52 0.12 302);
+  --focus-ring-soft: oklch(0.52 0.12 302 / 22%);
+
+  --disabled-background: oklch(0.91 0.003 255);
+  --disabled-foreground: oklch(0.54 0.006 255);
+  --disabled-border: oklch(0.82 0.006 255);
+
+  --table-border: oklch(0.82 0.006 255);
+  --table-border-strong: oklch(0.75 0.009 255);
+  --table-row-alt: oklch(0.945 0.003 255 / 55%);
+
+  --shadow-sm: 0 1px 2px rgb(40 50 70 / 5%);
+  --shadow-md:
+    0 2px 6px rgb(40 50 70 / 7%),
+    0 1px 2px rgb(40 50 70 / 5%);
+  --shadow-lg:
+    0 8px 24px rgb(40 50 70 / 10%),
+    0 2px 6px rgb(40 50 70 / 6%);
+
+  --background: oklch(0.925 0.003 255);
   --foreground: oklch(0.235 0.006 255);
-  --card: oklch(0.95 0.003 255);
+  --card: oklch(0.965 0.003 255);
   --card-foreground: oklch(0.235 0.006 255);
-  --popover: oklch(0.962 0.003 255);
+  --popover: oklch(0.975 0.003 255);
   --popover-foreground: oklch(0.235 0.006 255);
   --primary: oklch(0.45 0.105 302);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.89 0.005 255);
+  --secondary: oklch(0.905 0.005 255);
   --secondary-foreground: oklch(0.235 0.006 255);
-  --muted: oklch(0.885 0.004 255);
+  --muted: oklch(0.895 0.004 255);
   --muted-foreground: oklch(0.405 0.007 255);
-  --accent: oklch(0.865 0.016 255);
+  --accent: oklch(0.885 0.012 255);
   --accent-foreground: oklch(0.235 0.007 255);
   --destructive: oklch(0.55 0.15 25);
-  --border: oklch(0.77 0.008 255);
-  --input: oklch(0.875 0.006 255);
+  --border: oklch(0.79 0.007 255);
+  --input: oklch(0.895 0.006 255);
   --ring: oklch(0.45 0.105 302);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.9rem;
-  --sidebar: oklch(0.925 0.004 255);
+  --radius: clamp(0.65rem, 0.45rem + 0.45vw, 0.9rem);
+  --sidebar: oklch(0.94 0.004 255);
   --sidebar-foreground: oklch(0.235 0.006 255);
   --sidebar-primary: oklch(0.45 0.105 302);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.855 0.025 255);
+  --sidebar-accent: oklch(0.885 0.018 255);
   --sidebar-accent-foreground: oklch(0.235 0.008 255);
-  --sidebar-border: oklch(0.77 0.008 255);
+  --sidebar-border: oklch(0.79 0.007 255);
   --sidebar-ring: oklch(0.45 0.105 302);
   /* Physical-paper materials provide the shared surface hierarchy. */
-  --paper-surface: oklch(0.935 0.004 255);
-  --paper-raised: oklch(0.958 0.003 255);
-  --paper-inset: oklch(0.895 0.006 255);
-  --paper-edge: oklch(0.765 0.01 255);
-  --paper-layer: oklch(0.825 0.016 255);
-  --header-surface: oklch(0.86 0.014 255);
-  --table-header-surface: oklch(0.88 0.018 48);
-  --control-surface: oklch(0.875 0.014 255);
-  --matrix-mod-surface: oklch(0.89 0.012 255);
-  --matrix-group-surface: oklch(0.91 0.009 255);
-  --matrix-assay-surface: oklch(0.925 0.006 255);
-  --matrix-list-surface: oklch(0.945 0.003 255);
+  --paper-surface: oklch(0.945 0.004 255);
+  --paper-raised: oklch(0.973 0.003 255);
+  --paper-inset: oklch(0.905 0.006 255);
+  --paper-edge: oklch(0.79 0.009 255);
+  --paper-layer: oklch(0.845 0.012 255);
+  --header-surface: oklch(0.885 0.01 255);
+  --table-header-surface: oklch(0.86 0.012 280);
+  --control-surface: oklch(0.90 0.01 255);
+  --matrix-mod-surface: oklch(0.90 0.01 255);
+  --matrix-group-surface: oklch(0.92 0.008 255);
+  --matrix-assay-surface: oklch(0.94 0.006 255);
+  --matrix-list-surface: oklch(0.96 0.003 255);
   --paper-shadow: rgb(52 66 93 / 9%);
   --paper-shadow-deep: rgb(52 66 93 / 15%);
   --paper-highlight: rgb(255 255 255 / 48%);
@@ -331,10 +474,10 @@
   --chart-tooltip-cursor: rgb(92 79 148 / 9%);
   --login-cloud: #5e93ac;
   --accent-red: #a75c5c;
-  --accent-blue: #4f7d9f;
+  --accent-blue: var(--color-tier3);
   --accent-yellow: #aa8040;
   --accent-indigo: #6d6699;
-  --accent-green: #4d765b;
+  --accent-green: var(--color-pass);
   --accent-purple: #875f82;
   --accent-brown: #8b6849;
   --accent-gray: #64748b;
@@ -361,6 +504,33 @@
 }
 
 .dark {
+  color-scheme: dark;
+
+  --surface-hover: oklch(0.29 0.006 255);
+  --surface-active: oklch(0.32 0.012 285);
+  --surface-selected: oklch(0.325 0.02 290);
+  --row-hover: oklch(0.275 0.006 255);
+  --row-selected: oklch(0.30 0.018 290);
+
+  --focus-ring: oklch(0.70 0.105 302);
+  --focus-ring-soft: oklch(0.70 0.105 302 / 28%);
+
+  --disabled-background: oklch(0.235 0.004 255);
+  --disabled-foreground: oklch(0.58 0.006 255);
+  --disabled-border: oklch(0.39 0.006 255);
+
+  --table-border: oklch(0.39 0.006 255);
+  --table-border-strong: oklch(0.48 0.008 255);
+  --table-row-alt: oklch(0.245 0.004 255 / 55%);
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 22%);
+  --shadow-md:
+    0 3px 8px rgb(0 0 0 / 28%),
+    0 1px 2px rgb(0 0 0 / 20%);
+  --shadow-lg:
+    0 10px 28px rgb(0 0 0 / 38%),
+    0 3px 8px rgb(0 0 0 / 24%);
+
   --background: oklch(0.205 0.004 255);
   --foreground: oklch(0.925 0.004 255);
   --card: oklch(0.255 0.005 255);
@@ -398,7 +568,7 @@
   --paper-edge: oklch(0.48 0.006 255 / 76%);
   --paper-layer: oklch(0.3 0.006 255);
   --header-surface: oklch(0.315 0.007 255);
-  --table-header-surface: oklch(0.305 0.012 40);
+  --table-header-surface: oklch(0.315 0.012 285);
   --control-surface: oklch(0.27 0.005 255);
   --matrix-mod-surface: oklch(0.285 0.006 255);
   --matrix-group-surface: oklch(0.28 0.005 255);
@@ -478,4 +648,15 @@
   --color-panel: #7fa6ee;
   --color-wts: #c98992;
   --color-wgs: #6bb7a9;
+}
+
+
+::selection {
+  background: oklch(0.72 0.08 302 / 35%);
+  color: var(--foreground);
+}
+
+.dark ::selection {
+  background: oklch(0.64 0.09 302 / 42%);
+  color: var(--foreground);
 }

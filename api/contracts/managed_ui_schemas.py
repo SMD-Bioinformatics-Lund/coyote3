@@ -820,7 +820,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
             ],
         ),
         ("clinical gene scope", ["covered_genes", "germline_genes"]),
-        ("lifecycle", ["is_active"]),
+        ("lifecycle", ["system_managed", "is_active"]),
         (
             "system metadata",
             [
@@ -854,7 +854,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
         ("clinical reporting", ["reporting"]),
         ("public catalog", ["catalog"]),
         ("verification", ["verification_samples"]),
-        ("lifecycle", ["is_active"]),
+        ("lifecycle", ["system_managed", "is_active"]),
         (
             "system metadata",
             [
@@ -887,7 +887,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
         ("analytical filters", ["filters"]),
         ("clinical reporting", ["reporting"]),
         ("public catalog", ["catalog"]),
-        ("lifecycle", ["is_active"]),
+        ("lifecycle", ["system_managed", "is_active"]),
         (
             "system metadata",
             [
@@ -907,7 +907,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
         ("list identity", ["name", "displayname", "list_type", "diagnosis"]),
         ("clinical scope", ["asp_groups", "asp_ids"]),
         ("curated gene content", ["genes", "germline_genes"]),
-        ("availability", ["adhoc", "is_public", "is_active"]),
+        ("availability", ["adhoc", "is_public", "system_managed", "is_active"]),
         (
             "system metadata",
             [
@@ -929,13 +929,13 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
         ("role_access", ["roles"]),
         ("scope", ["environments", "asp_groups", "asp_ids"]),
         ("user settings", ["ui_settings"]),
-        ("status", ["is_active"]),
+        ("status", ["system_managed", "is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "role": [
         ("identity", ["name", "label", "description", "color", "level"]),
         ("permissions", ["permissions"]),
-        ("status", ["is_active"]),
+        ("status", ["system_managed", "is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "permission": [
@@ -1039,6 +1039,18 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
     for field_name, override in RESOURCE_FIELD_OVERRIDES.get(spec.key, {}).items():
         if field_name in fields:
             fields[field_name].update(deepcopy(override))
+
+    if "system_managed" in fields:
+        fields["system_managed"].update(
+            {
+                "readonly": True,
+                "hidden_mode": ["create"],
+                "help": (
+                    "Set by first-installation bootstrap. System-installed records "
+                    "can be deactivated where supported, but cannot be deleted."
+                ),
+            }
+        )
 
     sections = _section_payload(spec.key, fields)
 

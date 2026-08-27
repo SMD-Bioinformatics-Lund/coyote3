@@ -6,13 +6,14 @@ import { api } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { TableBadge } from "@/components/ui/table-badge"
 import { Button } from "@/components/ui/button"
+import { TimeDisplay } from "@/components/ui/time-display"
 import { FileText, Dna, Search as SearchIcon } from "lucide-react"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Input } from "@/components/ui/input"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { LayoutDiscoveryBanner } from "@/components/layout/LayoutDiscoveryBanner"
 import { PageShell } from "@/components/layout/PageShell"
-import { fullDateTime, humanRelativeDate, shortCount } from "@/lib/detail-formatters"
+import { fullDateTime, shortCount } from "@/lib/detail-formatters"
 import { sampleDetailPath } from "@/lib/sample-routing"
 import { sampleSubpanel } from "@/lib/sample-shape"
 import { DataTable, type CsvExportColumn } from "@/components/data-table/DataTable"
@@ -257,7 +258,7 @@ export function Samples() {
       cell: ({ row }) => {
         const sample = row.original
         return (
-          <Link to={sampleDetailPath(sample)} className="link-text flex items-center gap-2 font-medium">
+          <Link to={sampleDetailPath(sample)} className="link-text flex items-center gap-2 font-semibold">
             <div className="rounded-lg bg-primary/10 p-1.5 text-primary shadow-sm transition-colors duration-100 group-hover:bg-primary/15">
               <FileText className="h-4 w-4" />
             </div>
@@ -274,7 +275,7 @@ export function Samples() {
       id: "case_id",
       header: "Case ID",
       accessorFn: (sample) => sample.case_id || sample.case?.id || "",
-      cell: ({ row }) => <span className="font-medium">{row.original.case_id || row.original.case?.id || "-"}</span>,
+      cell: ({ row }) => <span className="font-semibold">{row.original.case_id || row.original.case?.id || "-"}</span>,
     },
     {
       id: "case_clarity",
@@ -286,7 +287,7 @@ export function Samples() {
       id: "control",
       header: "Control",
       accessorFn: (sample) => sample.control_id || sample.control?.id || "",
-      cell: ({ row }) => <span className="font-medium">{row.original.control_id || row.original.control?.id || "-"}</span>,
+      cell: ({ row }) => <span className="font-semibold">{row.original.control_id || row.original.control?.id || "-"}</span>,
     },
     {
       id: "control_clarity",
@@ -308,13 +309,13 @@ export function Samples() {
       id: "asp_id",
       header: "Assay",
       accessorFn: (sample) => sample.asp_id || "",
-      cell: ({ row }) => <span className="font-medium">{row.original.asp_id || "-"}</span>,
+      cell: ({ row }) => <span className="font-normal">{row.original.asp_id || "-"}</span>,
     },
     {
       id: "subpanel",
       header: "Subpanel",
       accessorFn: (sample) => sampleSubpanel(sample) || "",
-      cell: ({ row }) => <span className="font-medium text-muted-foreground">{sampleSubpanel(row.original) || "-"}</span>,
+      cell: ({ row }) => <span className="font-normal">{sampleSubpanel(row.original) || "-"}</span>,
     },
     {
       id: "pipeline",
@@ -325,7 +326,7 @@ export function Samples() {
         const { pipeline, pipeline_version: version } = row.original
 
         return (
-          <span className="font-medium text-muted-foreground">
+          <span className="font-normal">
             {pipeline ? `${pipeline}${version ? ` (${version})` : ""}` : "-"}
           </span>
         )
@@ -369,9 +370,7 @@ export function Samples() {
       header: "Added",
       accessorFn: (sample) => sample.time_added ? new Date(sample.time_added).getTime() : 0,
       cell: ({ row }) => (
-        <span className="whitespace-nowrap font-medium text-muted-foreground" title={fullDateTime(row.original.time_added)}>
-          {humanRelativeDate(row.original.time_added)}
-        </span>
+        <TimeDisplay value={row.original.time_added} className="font-normal" />
       ),
       meta: {
         exportValue: (sample: any) => fullDateTime(sample.time_added),
@@ -383,12 +382,7 @@ export function Samples() {
       header: "Latest reported",
       accessorFn: (sample) => sample.latest_report_on ? new Date(sample.latest_report_on).getTime() : 0,
       cell: ({ row }) => (
-        <span
-          className="whitespace-nowrap font-medium text-muted-foreground"
-          title={fullDateTime(row.original.latest_report_on)}
-        >
-          {row.original.latest_report_on ? humanRelativeDate(row.original.latest_report_on) : "-"}
-        </span>
+        <TimeDisplay value={row.original.latest_report_on} className="font-normal" />
       ),
       meta: {
         exportValue: (sample: any) => sample.latest_report_on

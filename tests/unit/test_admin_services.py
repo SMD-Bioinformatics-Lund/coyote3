@@ -1231,6 +1231,77 @@ def test_admin_role_service_delete_role_removes_existing_role(monkeypatch):
     assert repo.deleted_roles == ["admin"]
 
 
+def test_system_installed_role_cannot_be_deleted(monkeypatch):
+    repo = _AdminRepoStub()
+    _patch_admin_stores(monkeypatch, repo)
+    monkeypatch.setattr(
+        repo,
+        "get_role",
+        lambda role_id: {"role_id": role_id, "system_managed": True},
+    )
+
+    with pytest.raises(AppError, match="System-installed role cannot be deleted"):
+        _role_service(repo).delete_role(role_id="admin")
+
+    assert repo.deleted_roles == []
+
+
+def test_system_installed_user_cannot_be_deleted(monkeypatch):
+    repo = _AdminRepoStub()
+    monkeypatch.setattr(
+        repo,
+        "get_user",
+        lambda user_id: {"username": user_id, "roles": ["superuser"], "system_managed": True},
+    )
+
+    with pytest.raises(AppError, match="System-installed user cannot be deleted"):
+        _user_service(repo).delete_user(user_id="coyote3.admin", actor_is_superuser=True)
+
+    assert repo.deleted_users == []
+
+
+@pytest.mark.parametrize(
+    ("service_factory", "repository_method", "delete_call", "message"),
+    [
+        (
+            _asp_service,
+            "get_panel",
+            lambda service: service.delete(panel_id="demo_panel"),
+            "System-installed assay panel cannot be deleted",
+        ),
+        (
+            _aspc_service,
+            "get_assay_config",
+            lambda service: service.delete(assay_id="demo_panel_base_production"),
+            "System-installed assay configuration cannot be deleted",
+        ),
+        (
+            _isgl_service,
+            "get_genelist",
+            lambda service: service.delete(genelist_id="demo_genes"),
+            "System-installed gene list cannot be deleted",
+        ),
+    ],
+)
+def test_system_installed_clinical_configuration_cannot_be_deleted(
+    monkeypatch,
+    service_factory,
+    repository_method,
+    delete_call,
+    message,
+):
+    repo = _AdminRepoStub()
+    _patch_admin_stores(monkeypatch, repo)
+    monkeypatch.setattr(
+        repo,
+        repository_method,
+        lambda resource_id: {"_id": resource_id, "system_managed": True},
+    )
+
+    with pytest.raises(AppError, match=message):
+        delete_call(service_factory(repo))
+
+
 def test_admin_permission_service_groups_permissions(monkeypatch):
     """Test admin permission service groups permissions.
 

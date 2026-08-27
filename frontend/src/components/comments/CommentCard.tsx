@@ -1,7 +1,7 @@
-import { Clock3, Eye, EyeOff, Globe2, PencilLine, UserRound } from "lucide-react"
+import { Eye, EyeOff, Globe2, PencilLine, UserRound } from "lucide-react"
 
 import { MarkdownText } from "@/components/comments/MarkdownText"
-import { fullDateTime, humanRelativeDate } from "@/lib/detail-formatters"
+import { TimeDisplay } from "@/components/ui/time-display"
 
 function commentText(comment: any) {
   return String(comment?.text || comment?.comment || "")
@@ -44,8 +44,6 @@ export function CommentCard({
   const initials = authorInitials(author)
   const hidden = Boolean(comment?.hidden)
   const createdAt = comment?.time_created || comment?.created_at
-  const fullDate = fullDateTime(createdAt, "")
-  const visibleDate = dateDisplay === "full" ? fullDate : humanRelativeDate(createdAt, "")
   const bodyClasses = [
     "group/comment-body block w-full rounded-md border px-3 py-2.5 text-left transition-colors",
     hidden
@@ -80,11 +78,13 @@ export function CommentCard({
               </span>
             )}
           </div>
-          {visibleDate && (
-            <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground" title={fullDate || undefined}>
-              <Clock3 className="size-3" aria-hidden="true" />
-              {visibleDate}
-            </span>
+          {createdAt && (
+            <TimeDisplay
+              value={createdAt}
+              mode={dateDisplay}
+              fallback=""
+              className="mt-0.5 text-xs text-muted-foreground"
+            />
           )}
         </div>
       </header>

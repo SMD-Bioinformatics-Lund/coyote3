@@ -283,16 +283,16 @@ export function PanelAnalysisCapabilityChart({
         aria-label={`Panel analysis capability. ${accessibleSummary}`}
       >
         <svg
-          viewBox="0 0 1120 190"
-          className="h-full min-h-[170px] w-full min-w-[840px]"
+          viewBox="0 0 1120 210"
+          className="h-full min-h-[190px] w-full min-w-[840px]"
           preserveAspectRatio="xMidYMid meet"
           aria-hidden="true"
         >
           {rows.map((row, index) => {
             const cellWidth = 1120 / Math.max(rows.length, 1)
             const centerX = cellWidth * index + cellWidth / 2
-            const centerY = 78
-            const radius = 39
+            const centerY = 88
+            const radius = 46
             const circumference = 2 * Math.PI * radius
             const progress = circumference * (row.percentage / 100)
             const enabledOnly = row["Enabled only"]
@@ -302,7 +302,7 @@ export function PanelAnalysisCapabilityChart({
                 <title>{`${row.name}: ${row.Reportable} reportable of ${row.Enabled} enabled (${row.percentage}%). ${enabledOnly} enabled but not reportable.`}</title>
                 <text
                   x={centerX}
-                  y="16"
+                  y="17"
                   textAnchor="middle"
                   fill="var(--foreground)"
                   fontSize="11"
@@ -316,7 +316,7 @@ export function PanelAnalysisCapabilityChart({
                   r={radius}
                   fill="none"
                   stroke="var(--muted)"
-                  strokeWidth="12"
+                  strokeWidth="13"
                 />
                 <circle
                   cx={centerX}
@@ -324,7 +324,7 @@ export function PanelAnalysisCapabilityChart({
                   r={radius}
                   fill="none"
                   stroke="var(--color-pass)"
-                  strokeWidth="12"
+                  strokeWidth="13"
                   strokeLinecap="round"
                   strokeDasharray={`${progress} ${circumference - progress}`}
                   transform={`rotate(-90 ${centerX} ${centerY})`}
@@ -335,23 +335,23 @@ export function PanelAnalysisCapabilityChart({
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill="var(--foreground)"
-                  fontSize="16"
+                  fontSize="17"
                   fontWeight="600"
                 >
                   {row.Reportable}/{row.Enabled}
                 </text>
                 <text
                   x={centerX}
-                  y={centerY + 18}
+                  y={centerY + 19}
                   textAnchor="middle"
                   fill="var(--muted-foreground)"
-                  fontSize="10"
+                  fontSize="10.5"
                 >
                   {row.percentage}% reportable
                 </text>
                 <text
                   x={centerX}
-                  y="145"
+                  y="158"
                   textAnchor="middle"
                   fill="var(--muted-foreground)"
                   fontSize="10"
@@ -361,7 +361,7 @@ export function PanelAnalysisCapabilityChart({
               </g>
             )
           })}
-          <g transform="translate(398 176)">
+          <g transform="translate(398 195)">
             <circle cx="0" cy="0" r="5" fill="var(--color-pass)" />
             <text x="10" y="3.5" fill="var(--muted-foreground)" fontSize="10">Reportable</text>
             <circle cx="128" cy="0" r="5" fill="var(--muted)" />

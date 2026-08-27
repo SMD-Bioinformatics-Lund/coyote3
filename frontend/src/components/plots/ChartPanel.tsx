@@ -27,11 +27,11 @@ export function ChartPanel({
   return (
     <section className="chart-panel flex h-full min-h-0 flex-col overflow-hidden rounded-lg p-2.5">
       <div className="mb-2 flex min-w-0 flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-36 flex-1">
           <h3 className="text-[11px] font-semibold uppercase tracking-wide text-foreground">{title}</h3>
           {description && <p className="mt-0.5 break-words text-[11px] text-muted-foreground">{description}</p>}
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
           <Button
             type="button"
             variant="outline"

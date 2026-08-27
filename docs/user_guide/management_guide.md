@@ -1,14 +1,14 @@
-# Management Guide
+# Management guide
 
 The Management suite is designed for platform administrators, laboratory leads, and data managers to govern the Coyote3 environment. It covers identity management, clinical resource configuration, and system-wide audit oversight for users granted `audit_log:view`.
 
 ![Coyote3 administration workspace](../assets/screenshots/admin.png)
 
-## 1. User and Role Administration
+## 1. Users, roles, and permissions
 
 Manage the identities of clinical and technical staff authorized to access the platform.
 
-### User Management
+### User management
 
 *   **Creating Users**: Add staff by providing their official credentials and clinical profession.
 *   **Professional Profiles**: Assign roles such as "Clinician," "Bioinformatician," or "Quality Manager" to ensure audit trails reflect the correct clinical responsibility.
@@ -16,7 +16,7 @@ Manage the identities of clinical and technical staff authorized to access the p
 *   **Authentication Providers**: User accounts show one badge for each enabled provider. `LDAP` indicates center directory authentication by email. `Local` indicates Coyote3-managed password authentication by username. Accounts can carry both providers when a center needs a transition or fallback path.
 *   **Email Links**: Email addresses in user tables and read-only user views open the configured mail client through a `mailto:` link.
 
-### Role-Based Access Control (RBAC)
+### Role-based access control
 
 ![Role configuration](../assets/screenshots/roles.png)
 Coyote3 uses a granular role system where specific permissions are grouped into manageable roles.
@@ -58,6 +58,24 @@ reviewer` without granting full administration access.
 
 The UI hides routes and actions that are not granted. The API checks the same
 permission for every protected request and remains authoritative.
+
+### System-installed records
+
+The first database bootstrap installs the records required to operate and
+administer Coyote3. A **System** badge identifies these records in the admin
+tables. The protection applies to the record itself, not to every value stored
+in it.
+
+| Record | Installed content | What an administrator can change | Protected action |
+| --- | --- | --- | --- |
+| Permission policy | Every permission understood by the shipped API and UI. | Activate or deactivate it; assign or remove it through roles. | Rename, edit, and delete. |
+| Role | Standard clinical, operational, and administrative role baselines. | Edit grants and metadata; activate or deactivate it. | Delete. |
+| First superuser | One local account whose credentials are supplied to the bootstrap command. | Edit ordinary account fields and active state, subject to superuser safeguards. | Delete. |
+| Demo ASP, ASPC, and ISGL | Synthetic configuration installed only with `--with-demo-center`. | Edit and deactivate for disposable validation. | Delete. |
+
+Center-created users, roles, permission policies, ASPs, ASPCs, and ISGLs do
+not receive this protection. Avoid using the demo configuration for clinical
+work; create reviewed center configuration before ingesting clinical samples.
 
 | Resource | Read access | Mutation access |
 | --- | --- | --- |
@@ -125,7 +143,7 @@ receiving user-administration permissions:
 
 ---
 
-## 2. Resource Configuration (ASP / ASPC)
+## 2. Assay configuration
 
 The platform's analytical logic is driven by Assay Service Profiles (ASP), Assay Service Performance Configurations (ASPC), and In-Silico Gene Lists (ISGL).
 
@@ -183,7 +201,7 @@ same import mechanism without requiring an intermediate file download.
 
 ---
 
-## 3. Permissions Registry
+## 3. Permission policies
 
 For fine-grained security, Coyote3 utilizes a `resource:action[:scope]` permission string.
 
@@ -199,7 +217,7 @@ The Permissions table distinguishes two policy sources:
 
 | Source | Meaning | Allowed administration actions |
 | --- | --- | --- |
-| **System** | Shipped with Coyote3 and required by protected application operations. | View and assign through roles. The definition cannot be edited, deactivated, or deleted. |
+| **System** | Shipped with Coyote3 and required by protected application operations. | View, activate/deactivate, and assign through roles. The definition cannot be edited or deleted. |
 | **Custom** | Created by the deploying center for local integrations or center-owned workflows. | View, edit, activate/deactivate, delete, and assign through roles, subject to the caller's permissions. |
 
 System permission locking protects the contract between API operations and the
@@ -207,9 +225,9 @@ RBAC catalog. It does not force a permission onto a user. To grant or remove a
 capability, edit the relevant role and select or clear the permission there.
 
 The administration UI obtains permission definitions from MongoDB. It shows a
-lock marker instead of mutation actions for system policies. The API enforces
-the same rule, so a direct edit, status, or delete request also returns a
-conflict response.
+lock marker and omits edit and delete actions for system policies. The status
+control remains available. The API enforces the same lifecycle for direct
+requests.
 
 !!! info
     Application upgrades may introduce new system permissions. An operator runs
@@ -220,7 +238,7 @@ conflict response.
 
 ---
 
-## 4. System Ingestion and Audit
+## 4. Ingest and audit
 
 ![Administrative ingest workspace](../assets/screenshots/admin_ingest.png)
 
@@ -246,6 +264,25 @@ The **Ingest** workspace allows administrators to queue validated sample bundles
 | Permission selection | Permissions are grouped by category and shown as compact selectable rows with hover text for exact permission strings. |
 | Dates | Tables use human relative dates for recent events and concise absolute dates for older events. |
 | Notifications | Create, update, archive, delete, and error actions emit structured notifications. |
+
+### UI route audit
+
+The **UI Route Audit** page is an administrative inventory, not a second route
+configuration screen. It lists every application page registered by the
+frontend together with its module, required permission, API dependencies, and
+payload fields. Use it after an upgrade or configuration change to find:
+
+| Result | Meaning | Operator action |
+| --- | --- | --- |
+| Route available | The page is registered and its required API contract is present. | No action. |
+| Permission unavailable | The route names a permission missing from the active permission catalog. | Run the RBAC catalog sync and review the affected role grants. |
+| API dependency missing | The frontend references an endpoint absent from the running API. | Confirm that matching application versions were deployed. |
+| Module disabled | The page is valid but its application module is turned off. | Enable the module only when the center intends to offer that function. |
+
+The page reflects the route registry shipped with the running frontend. The
+repository test suite also compares that registry with `App.tsx` and the
+FastAPI route inventory, preventing unregistered pages and stale endpoint
+references from passing release checks.
 
 ## Broadcast Notifications
 

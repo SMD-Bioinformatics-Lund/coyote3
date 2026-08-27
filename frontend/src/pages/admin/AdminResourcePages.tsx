@@ -165,7 +165,8 @@ export function AdminResourcePage() {
       enableSorting: false,
       cell: ({ row }) => {
         const id = rowId(row.original, spec)
-        const systemPermission = spec.key === "permissions" && Boolean(row.original.system_managed)
+        const systemManaged = Boolean(row.original.system_managed)
+        const systemPermission = spec.key === "permissions" && systemManaged
         return (
           <div className="flex items-center gap-1">
             {canView && <Link
@@ -182,7 +183,7 @@ export function AdminResourcePage() {
             >
               <Edit className="h-4 w-4" />
             </Link>}
-            {spec.canToggle && canEdit && !systemPermission && (
+            {spec.canToggle && canEdit && (
               <button
                 onClick={() =>
                   setPendingAction({ action: "toggle", id, name: rowDisplayName(row.original, spec) })
@@ -204,7 +205,7 @@ export function AdminResourcePage() {
                 <MailPlus className="h-4 w-4" />
               </button>
             )}
-            {spec.canDelete && canDelete && !systemPermission && (
+            {spec.canDelete && canDelete && !systemManaged && (
               <button
                 onClick={() => setPendingAction({ action: "delete", id, name: rowDisplayName(row.original, spec) })}
                 disabled={mutate.isPending}
@@ -214,10 +215,12 @@ export function AdminResourcePage() {
                 <Trash2 className="h-4 w-4" />
               </button>
             )}
-            {systemPermission && (
+            {systemManaged && (
               <span
                 className="rounded-md p-1.5 text-muted-foreground"
-                title="System permission definitions are read-only and are assigned through roles."
+                title={systemPermission
+                  ? "Installed with Coyote3. Its definition cannot be edited or deleted; its active state can be changed."
+                  : "Installed with Coyote3. This record can be edited or deactivated, but it cannot be deleted."}
               >
                 <LockKeyhole className="h-4 w-4" />
               </span>
@@ -395,7 +398,8 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
 
   const form = contextQuery.data?.form as FormSpec | undefined
   const doc = resourceDocFromContext(contextQuery.data, spec)
-  const systemPermission = spec.key === "permissions" && Boolean(doc?.system_managed)
+  const systemManaged = Boolean(doc?.system_managed)
+  const systemPermission = spec.key === "permissions" && systemManaged
   const effectiveMode: AdminFormMode = systemPermission && mode === "edit" ? "view" : mode
   const supportsConfigurationTransfer = ["asp", "aspc", "genelists"].includes(spec.key)
 
@@ -604,7 +608,18 @@ export function AdminResourceEditorPage({ mode }: { mode: AdminFormMode }) {
               <div>
                 <h2 className="text-sm font-semibold">System permission</h2>
                 <p className="text-xs text-muted-foreground">
-                  This definition is shipped with Coyote3 and cannot be edited, deactivated, or deleted. Assign or remove it through role policies.
+                  This definition is shipped with Coyote3 and cannot be edited or deleted. Authorized administrators may deactivate it, and roles control who receives it.
+                </p>
+              </div>
+            </section>
+          )}
+          {systemManaged && !systemPermission && (
+            <section className="surface-panel flex items-start gap-3 p-3">
+              <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <div>
+                <h2 className="text-sm font-semibold">System-installed record</h2>
+                <p className="text-xs text-muted-foreground">
+                  This record is installed with Coyote3 and cannot be deleted. Authorized users may edit it or deactivate it through the normal managed workflow.
                 </p>
               </div>
             </section>

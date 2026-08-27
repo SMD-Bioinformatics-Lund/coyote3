@@ -38,7 +38,7 @@ GOVERNANCE_COLLECTIONS = ("users", "roles", "permissions")
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mongo-uri", required=True, help="MongoDB URI with readWrite access")
-    parser.add_argument("--db", default="coyote3", help="Application database name")
+    parser.add_argument("--db", required=True, help="Application database name")
     parser.add_argument("--username", required=True, help="First local superuser login name")
     parser.add_argument("--email", required=True, help="First local superuser email address")
     parser.add_argument("--password", required=True, help="First local superuser password")
@@ -107,6 +107,16 @@ def _build_seed_documents(
     lower_business_keys(payload)
     stamp_docs(payload, actor, datetime.now(timezone.utc).isoformat())
 
+    for collection in (
+        "permissions",
+        "roles",
+        "assay_specific_panels",
+        "asp_configs",
+        "insilico_genelists",
+    ):
+        for document in payload.get(collection, []):
+            document["system_managed"] = True
+
     normalized: dict[str, list[dict]] = {}
     for collection, documents in payload.items():
         normalized[collection] = [
@@ -133,6 +143,7 @@ def _make_superuser_document(args: argparse.Namespace, *, actor: str) -> dict:
             "auth_type": ["local"],
             "password": generate_password_hash(args.password, method="pbkdf2:sha256"),
             "roles": [role_id],
+            "system_managed": True,
             "is_active": True,
             "must_change_password": True,
             "environments": ["production", "development", "testing", "validation"],

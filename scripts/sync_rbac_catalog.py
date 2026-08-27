@@ -64,15 +64,12 @@ def synchronize_rbac_catalog(
             {"_id": 1, "system_managed": 1, "is_active": 1},
         )
         if existing is not None:
-            if not bool(existing.get("system_managed", False)) or not bool(
-                existing.get("is_active", True)
-            ):
+            if not bool(existing.get("system_managed", False)):
                 result = permissions.update_one(
                     {"_id": existing["_id"]},
                     {
                         "$set": {
                             "system_managed": True,
-                            "is_active": True,
                             "updated_by": actor,
                             "updated_on": now,
                         }
@@ -107,7 +104,10 @@ def synchronize_rbac_catalog(
         )
         if not role_id or not grants:
             continue
-        existing_role = roles.find_one({"role_id": role_id}, {"permissions": 1})
+        existing_role = roles.find_one(
+            {"role_id": role_id},
+            {"_id": 1, "permissions": 1, "system_managed": 1},
+        )
         if not existing_role:
             document = normalize_collection_document(
                 "roles",
@@ -115,6 +115,7 @@ def synchronize_rbac_catalog(
                     **source,
                     "role_id": role_id,
                     "permissions": grants,
+                    "system_managed": True,
                     "created_by": actor,
                     "created_on": now,
                     "updated_by": actor,
@@ -130,14 +131,18 @@ def synchronize_rbac_catalog(
             if str(permission).strip()
         }
         missing_grants = sorted(set(grants) - existing_grants)
-        if not missing_grants:
+        role_updates: dict[str, Any] = {}
+        if not bool(existing_role.get("system_managed", False)):
+            role_updates["system_managed"] = True
+        if not missing_grants and not role_updates:
             continue
+        role_updates.update({"updated_by": actor, "updated_on": now})
+        update: dict[str, Any] = {"$set": role_updates}
+        if missing_grants:
+            update["$addToSet"] = {"permissions": {"$each": missing_grants}}
         result = roles.update_one(
-            {"role_id": role_id},
-            {
-                "$addToSet": {"permissions": {"$each": missing_grants}},
-                "$set": {"updated_by": actor, "updated_on": now},
-            },
+            {"_id": existing_role["_id"]},
+            update,
             upsert=False,
         )
         if result.modified_count:

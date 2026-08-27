@@ -6,16 +6,13 @@ import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
+import { TimeDisplay } from "@/components/ui/time-display"
 import { TierBadge } from "@/lib/variant-ui"
-import { displayValue, fullDateTime } from "@/lib/detail-formatters"
+import { displayValue } from "@/lib/detail-formatters"
 import { sampleDetailPath } from "@/lib/sample-routing"
 
 function selectedCsq(variant: any) {
   return variant?.INFO?.selected_CSQ || {}
-}
-
-function humanDate(value: unknown) {
-  return fullDateTime(value)
 }
 
 function sampleName(row: any) {
@@ -103,7 +100,7 @@ export function TieredVariantContext() {
       id: "reported_on",
       header: "Reported",
       accessorFn: (row) => row.reported_on || row.created_on || row.time_created || "-",
-      cell: ({ row }) => <span className="text-xs text-muted-foreground">{humanDate(row.getValue("reported_on"))}</span>,
+      cell: ({ row }) => <TimeDisplay value={row.getValue("reported_on")} mode="full" className="text-xs text-muted-foreground" />,
     },
     {
       id: "tier",

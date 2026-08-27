@@ -95,7 +95,7 @@ def test_sync_rbac_catalog_preserves_custom_policy_and_adds_missing_grants():
         is True
     )
     assert (
-        database.permissions.find_one({"permission_id": "assay.config:view"})["is_active"] is True
+        database.permissions.find_one({"permission_id": "assay.config:view"})["is_active"] is False
     )
     assert (
         database.permissions.find_one({"permission_id": "assay.config:edit"})["system_managed"]
@@ -107,6 +107,7 @@ def test_sync_rbac_catalog_preserves_custom_policy_and_adds_missing_grants():
         "assay.config:edit",
         "center.custom:run",
     }
+    assert role["system_managed"] is True
 
     repeated = synchronize_rbac_catalog(
         database,
@@ -200,6 +201,7 @@ def test_sync_rbac_catalog_inserts_missing_bundled_role_without_removing_custom_
     assert database.roles.find_one({"role_id": "operations_viewer"})["permissions"] == [
         "app.controls:view"
     ]
+    assert database.roles.find_one({"role_id": "operations_viewer"})["system_managed"] is True
     assert database.roles.find_one({"role_id": "center_reviewer"})["permissions"] == [
         "center.custom:run"
     ]
@@ -220,6 +222,7 @@ def test_application_bootstrap_catalog_contains_canonical_permissions_and_roles(
 
     assert "notification.broadcast:create" in permission_ids
     assert all(doc.get("system_managed") is True for doc in permission_docs)
+    assert all(doc.get("system_managed") is True for doc in role_docs)
     assert {"user:list", "user:view", "user:create", "user:edit", "user:delete"} <= (permission_ids)
     assert {"user:manage", "user:role:edit", "user:group:edit"} <= permission_ids
     assert {

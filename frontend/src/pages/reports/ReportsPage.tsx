@@ -9,8 +9,8 @@ import { useTablePreferences } from "@/components/data-table/table-preferences"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { TableBadge } from "@/components/ui/table-badge"
+import { TimeDisplay } from "@/components/ui/time-display"
 import { api } from "@/lib/api"
-import { humanRelativeDate } from "@/lib/detail-formatters"
 import { apiPath } from "@/lib/runtime-paths"
 
 type ReportLibraryItem = {
@@ -124,7 +124,7 @@ export function ReportsPage() {
       id: "created",
       header: "Created",
       accessorFn: (row) => row.time_created || "",
-      cell: ({ row }) => <span title={row.original.time_created || undefined}>{humanRelativeDate(row.original.time_created)}</span>,
+      cell: ({ row }) => <TimeDisplay value={row.original.time_created} />,
     },
     {
       id: "actions",

@@ -14,6 +14,7 @@ from api.application.accounts.common import (
     normalize_permission_ids,
     utc_now,
 )
+from api.application.common.protected_records import reject_system_managed_delete
 from api.contracts.managed_resources import managed_resource_spec
 from api.contracts.schemas.registry import normalize_collection_document
 from api.domain.common.errors import api_error
@@ -135,6 +136,7 @@ class RoleManagementService:
         role["permissions"] = normalize_permission_ids(role.get("permissions"))
         role_id = lower(role.get("name"))
         role.setdefault("is_active", True)
+        role["system_managed"] = False
         role["role_id"] = role_id
         existing_role = self.roles_repository.get_role(role_id)
         if isinstance(existing_role, dict) and (
@@ -185,6 +187,7 @@ class RoleManagementService:
         updated_role["is_active"] = bool(role.get("is_active", True))
         updated_role["version"] = role.get("version", 1) + 1
         updated_role["role_id"] = role.get("role_id", role_id)
+        updated_role["system_managed"] = bool(role.get("system_managed"))
         updated_role.pop("_id", None)
         try:
             updated_role = normalize_collection_document(self._spec.collection, updated_role)
@@ -223,6 +226,7 @@ class RoleManagementService:
         role = self.roles_repository.get_role(role_id)
         if not role:
             raise api_error(404, "Role not found")
+        reject_system_managed_delete(role, resource="role")
         self.roles_repository.delete_role(role_id)
         return change_payload(resource="role", resource_id=role_id, action="delete")
 
