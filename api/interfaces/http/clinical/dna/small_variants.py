@@ -1,0 +1,811 @@
+"""Canonical DNA and variant router module."""
+
+from __future__ import annotations
+
+import httpx
+from fastapi import APIRouter, Body, Depends, Query, Request
+
+from api.app import http
+from api.app.container import store, util
+from api.app.deps.services import get_dna_service, get_resource_annotation_service
+from api.app.runtime_state import app as runtime_app
+from api.application.classification.variant_annotation import ResourceAnnotationService
+from api.application.common.change_payload import change_payload
+from api.application.dna.variant_analysis import DnaService
+from api.application.interpretation import annotation_enrichment
+from api.application.interpretation.report_summary import (
+    create_comment_doc,
+    generate_summary_text,
+)
+from api.config.database_versions import require_sample_vep_version
+from api.contracts.dna import (
+    DnaClinPgxPublicPayload,
+    DnaCsvExportContextPayload,
+    DnaOncoKbPublicPayload,
+    DnaPlotContextPayload,
+    DnaTranscriptSelectionRequest,
+    DnaVariantContextPayload,
+    DnaVariantsListPayload,
+)
+from api.contracts.samples import SampleChangePayload, SampleCommentSuggestionPayload
+from api.domain.core.dna import dna_filters
+from api.domain.core.dna.dna_variants import get_variant_nomenclature
+from api.domain.core.dna.varqueries import build_query
+from api.infra.knowledgebase.clinpgx_public import ClinPgxPublicClient
+from api.infra.knowledgebase.public_oncokb import PublicOncoKbClient
+from api.interfaces.http.clinical.common.change_helpers import comment_change, resource_change
+from api.interfaces.http.tags import TAG_DNA_VARIANTS
+from api.security.access import ApiUser, _get_sample_for_api, require_access
+
+router = APIRouter(tags=[TAG_DNA_VARIANTS])
+
+
+def get_filter_conseq_terms(checked: list[str], vep_version: str | int | None = None) -> list[str]:
+    """Resolve filter consequence terms using grouped VEP metadata from Mongo."""
+    return dna_filters.get_filter_conseq_terms(
+        checked,
+        store.vep_metadata_repository.get_consequence_group_map(
+            None if vep_version is None else str(vep_version)
+        ),
+    )
+
+
+def add_global_annotations(
+    variants: list[dict],
+    assay_group: str,
+    subpanel: str | None,
+) -> tuple[list[dict], list[dict]]:
+    """Apply common annotation enrichment using the router-bound annotation repository."""
+    return annotation_enrichment.add_global_annotations(
+        variants,
+        assay_group,
+        subpanel,
+        annotation_repository=store.annotation_repository,
+    )
+
+
+def add_alt_class(
+    variant: dict,
+    assay_group: str,
+    subpanel: str | None,
+) -> dict:
+    """Apply alternative classification enrichment using the router-bound repository."""
+    return annotation_enrichment.add_alt_class(
+        variant,
+        assay_group,
+        subpanel,
+        annotation_repository=store.annotation_repository,
+    )
+
+
+@router.get("/api/v1/samples/{sample_id}/small-variants", response_model=DnaVariantsListPayload)
+def list_dna_variants(
+    request: Request,
+    sample_id: str,
+    user: ApiUser = Depends(require_access()),
+    service: DnaService = Depends(get_dna_service),
+):
+    """List dna variants.
+
+    Args:
+        request (Request): Normalized ``request``.
+        sample_id (str): Normalized ``sample_id``.
+        user (ApiUser): Normalized ``user``.
+        service (DnaService): Normalized ``service``.
+
+    Returns:
+        Normalized return value.
+    """
+    sample = _get_sample_for_api(sample_id, user)
+    return util.common.convert_to_serializable(
+        service.list_variants_payload(
+            request=request,
+            sample=sample,
+            util_module=util,
+            add_global_annotations_fn=add_global_annotations,
+            generate_summary_text_fn=generate_summary_text,
+            build_query_fn=build_query,
+            get_filter_conseq_terms_fn=lambda values: get_filter_conseq_terms(
+                values, require_sample_vep_version(sample)
+            ),
+            assay_config_getter=http.get_formatted_assay_config,
+        )
+    )
+
+
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants/comment-suggestion",
+    response_model=SampleCommentSuggestionPayload,
+    summary="Generate a filtered DNA sample-comment suggestion",
+)
+def dna_sample_comment_suggestion(
+    request: Request,
+    sample_id: str,
+    user: ApiUser = Depends(require_access()),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Return the established DNA summary text for the current sample filters."""
+    sample = _get_sample_for_api(sample_id, user)
+    payload = service.list_variants_payload(
+        request=request,
+        sample=sample,
+        util_module=util,
+        add_global_annotations_fn=add_global_annotations,
+        generate_summary_text_fn=generate_summary_text,
+        build_query_fn=build_query,
+        get_filter_conseq_terms_fn=lambda values: get_filter_conseq_terms(
+            values, require_sample_vep_version(sample)
+        ),
+        assay_config_getter=http.get_formatted_assay_config,
+        paginate=False,
+    )
+    return util.common.convert_to_serializable(
+        {
+            "sample_id": str(sample.get("_id")),
+            "sample_name": str(sample.get("name") or sample_id),
+            "analysis": "dna",
+            "suggested_text": str(payload.get("ai_text") or ""),
+        }
+    )
+
+
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants/plot-context", response_model=DnaPlotContextPayload
+)
+def dna_plot_context(
+    sample_id: str,
+    user: ApiUser = Depends(require_access()),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Return plot context for DNA variant visualizations.
+
+    Args:
+        sample_id (str): Normalized ``sample_id``.
+        user (ApiUser): Normalized ``user``.
+        service (DnaService): Normalized ``service``.
+
+    Returns:
+        Normalized return value.
+    """
+    sample = _get_sample_for_api(sample_id, user)
+    return util.common.convert_to_serializable(
+        service.plot_context_payload(
+            sample=sample, assay_config_getter=http.get_formatted_assay_config
+        )
+    )
+
+
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}", response_model=DnaVariantContextPayload
+)
+def show_dna_variant(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access()),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Show dna variant.
+
+    Args:
+        sample_id (str): Normalized ``sample_id``.
+        var_id (str): Normalized ``var_id``.
+        user (ApiUser): Normalized ``user``.
+        service (DnaService): Normalized ``service``.
+
+    Returns:
+        Normalized return value.
+    """
+    sample = _get_sample_for_api(sample_id, user)
+    return util.common.convert_to_serializable(
+        service.variant_context_payload(
+            sample=sample,
+            var_id=var_id,
+            add_alt_class_fn=add_alt_class,
+            util_module=util,
+            assay_config_getter=http.get_formatted_assay_config,
+        )
+    )
+
+
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/oncokb-public",
+    response_model=DnaOncoKbPublicPayload,
+    summary="Fetch public OncoKB annotation for a small variant",
+)
+def show_dna_variant_public_oncokb(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access()),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Return an on-demand public OncoKB API annotation for a small variant."""
+    if not runtime_app.config.get("ONCOKB_PUBLIC_LOOKUPS_ENABLED", True):
+        return {
+            "status": "disabled",
+            "message": "Public OncoKB lookups are disabled by application controls.",
+            "query": {},
+            "response": None,
+        }
+    sample, variant = _require_variant_for_sample(sample_id, var_id, user, service)
+    client = PublicOncoKbClient(
+        base_url=runtime_app.config["ONCOKB_BASE_URL"],
+        timeout=float(runtime_app.config.get("ONCOKB_REQUEST_TIMEOUT_SECONDS", 3.0)),
+    )
+    try:
+        return util.common.convert_to_serializable(
+            client.annotate_variant(sample=sample, variant=variant)
+        )
+    except httpx.HTTPStatusError as exc:
+        raise http.api_error(
+            exc.response.status_code,
+            "Public OncoKB request failed",
+            details=exc.response.text[:500],
+        ) from exc
+    except httpx.HTTPError as exc:
+        raise http.api_error(
+            502,
+            "Public OncoKB is currently unavailable",
+            details=str(exc),
+        ) from exc
+
+
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/clinpgx-public",
+    response_model=DnaClinPgxPublicPayload,
+    summary="Fetch public ClinPGx gene context for a small variant",
+)
+def show_dna_variant_public_clinpgx(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access()),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Return an on-demand public ClinPGx API gene lookup for a small variant."""
+    if not runtime_app.config.get("CLINPGX_PUBLIC_LOOKUPS_ENABLED", True):
+        return {
+            "status": "disabled",
+            "message": "Public ClinPGx lookups are disabled by application controls.",
+            "query": {},
+            "local_record": None,
+            "response": None,
+        }
+    _sample, variant = _require_variant_for_sample(sample_id, var_id, user, service)
+    selected_csq = variant.get("INFO", {}).get("selected_CSQ", {}) or {}
+    symbol = str(selected_csq.get("SYMBOL") or "").strip()
+    repository = getattr(service, "clinpgx_public_repository", None)
+    getter = getattr(repository, "get_gene_record", None)
+    local_record = getter(symbol) if callable(getter) else None
+    clinpgx_id = str((local_record or {}).get("pharmgkb_accession_id") or "").strip()
+    if not symbol and not clinpgx_id:
+        return {
+            "status": "not_queried",
+            "message": "No gene symbol is available for this variant.",
+            "query": {},
+            "local_record": None,
+            "response": None,
+        }
+    client = ClinPgxPublicClient(
+        base_url=runtime_app.config["CLINPGX_BASE_URL"],
+        timeout=float(runtime_app.config.get("CLINPGX_REQUEST_TIMEOUT_SECONDS", 3.0)),
+    )
+
+    query = {"clinpgx_id": clinpgx_id, "symbol": symbol}
+    try:
+        response = client.get_gene_knowledge(clinpgx_id=clinpgx_id or None, symbol=symbol or None)
+    except httpx.HTTPStatusError as exc:
+        raise http.api_error(
+            exc.response.status_code,
+            "Public ClinPGx request failed",
+            details=exc.response.text[:500],
+        ) from exc
+    except httpx.HTTPError as exc:
+        raise http.api_error(
+            502,
+            "Public ClinPGx is currently unavailable",
+            details=str(exc),
+        ) from exc
+    return util.common.convert_to_serializable(
+        {
+            "status": "ok",
+            "source": "api.clinpgx.org",
+            "license": "CC BY-SA 4.0; subject to ClinPGx Data Usage Policy",
+            "query": query,
+            "local_record": local_record,
+            "response": response,
+        }
+    )
+
+
+@router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/selected-transcript",
+    response_model=SampleChangePayload,
+    summary="Select displayed transcript for a small variant",
+)
+def select_dna_variant_transcript(
+    sample_id: str,
+    var_id: str,
+    payload: DnaTranscriptSelectionRequest,
+    user: ApiUser = Depends(require_access(permission="snv:manage")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Select the transcript used as the primary UI/reporting anchor for a small variant."""
+    sample, _variant = _require_variant_for_sample(sample_id, var_id, user, service)
+    operation = service.select_variant_transcript(
+        sample=sample,
+        var_id=var_id,
+        feature_id=payload.feature_id,
+    )
+    if not operation.ok:
+        raise http.api_error(422, operation.error or "Transcript selection failed")
+    return util.common.convert_to_serializable(
+        change_payload(
+            sample_id=sample_id,
+            resource="variant",
+            resource_id=var_id,
+            action="select_transcript",
+            operation=operation,
+        )
+    )
+
+
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants/exports/snvs/context",
+    response_model=DnaCsvExportContextPayload,
+    summary="Build filtered SNV CSV export context",
+)
+def export_snv_csv_context(
+    request: Request,
+    sample_id: str,
+    user: ApiUser = Depends(require_access(permission="snv:download")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Build SNV export payload (filename + csv content)."""
+    sample = _get_sample_for_api(sample_id, user)
+    payload = service.list_variants_payload(
+        request=request,
+        sample=sample,
+        util_module=util,
+        add_global_annotations_fn=add_global_annotations,
+        generate_summary_text_fn=generate_summary_text,
+        build_query_fn=build_query,
+        get_filter_conseq_terms_fn=lambda values: get_filter_conseq_terms(
+            values, require_sample_vep_version(sample)
+        ),
+        assay_config_getter=http.get_formatted_assay_config,
+        paginate=False,
+    )
+    variants = payload.get("display_sections_data", {}).get("snvs", [])
+    rows = service.build_snv_export_rows(variants=variants)
+    content = service.export_rows_to_csv(rows)
+    filename = f"{sample.get('name', sample_id)}.filtered.snvs.csv"
+    return util.common.convert_to_serializable(
+        {"filename": filename, "content": content, "row_count": len(rows)}
+    )
+
+
+def _require_variant_for_sample(
+    sample_id: str, var_id: str, user: ApiUser, service: DnaService
+) -> tuple[dict, dict]:
+    """Load and validate the target variant for a sample."""
+    sample = _get_sample_for_api(sample_id, user)
+    variant = service.require_variant_for_sample(sample=sample, var_id=var_id)
+    return sample, variant
+
+
+@router.delete(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/false-positive",
+    response_model=SampleChangePayload,
+    summary="Remove false-positive flag from small variant",
+)
+def unmark_false_variant(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="snv:manage")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Remove the false-positive flag from a small variant."""
+    return resource_change(
+        sample_id,
+        var_id,
+        user,
+        service,
+        resource="variant",
+        action="unmark_false_positive",
+        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=False, flag="false_positive"),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
+    )
+
+
+@router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/false-positive",
+    response_model=SampleChangePayload,
+    summary="Mark small variant false-positive",
+)
+def mark_false_variant(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="snv:manage")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Mark a small variant as false positive."""
+    return resource_change(
+        sample_id,
+        var_id,
+        user,
+        service,
+        resource="variant",
+        action="mark_false_positive",
+        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=True, flag="false_positive"),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
+    )
+
+
+@router.delete(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/interesting",
+    response_model=SampleChangePayload,
+    summary="Remove interesting flag from small variant",
+)
+def unmark_interesting_variant(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="snv:manage")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Remove the interesting flag from a small variant."""
+    return resource_change(
+        sample_id,
+        var_id,
+        user,
+        service,
+        resource="variant",
+        action="unmark_interesting",
+        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=False, flag="interesting"),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
+    )
+
+
+@router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/interesting",
+    response_model=SampleChangePayload,
+    summary="Mark small variant interesting",
+)
+def mark_interesting_variant(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="snv:manage")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Mark a small variant as interesting."""
+    return resource_change(
+        sample_id,
+        var_id,
+        user,
+        service,
+        resource="variant",
+        action="mark_interesting",
+        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=True, flag="interesting"),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
+    )
+
+
+@router.delete(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/irrelevant",
+    response_model=SampleChangePayload,
+    summary="Remove irrelevant flag from small variant",
+)
+def unmark_irrelevant_variant(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="snv:manage")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Remove the irrelevant flag from a small variant."""
+    return resource_change(
+        sample_id,
+        var_id,
+        user,
+        service,
+        resource="variant",
+        action="unmark_irrelevant",
+        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=False, flag="irrelevant"),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
+    )
+
+
+@router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/irrelevant",
+    response_model=SampleChangePayload,
+    summary="Mark small variant irrelevant",
+)
+def mark_irrelevant_variant(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="snv:manage")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Mark a small variant as irrelevant."""
+    return resource_change(
+        sample_id,
+        var_id,
+        user,
+        service,
+        resource="variant",
+        action="mark_irrelevant",
+        mutate=lambda: service.set_variant_flag(var_id=var_id, apply=True, flag="irrelevant"),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
+    )
+
+
+@router.post(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/blacklist-entries",
+    response_model=SampleChangePayload,
+    summary="Create blacklist entry from small variant",
+)
+def add_variant_to_blacklist(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="snv:manage")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Create a blacklist entry from the selected small variant."""
+    sample, variant = _require_variant_for_sample(sample_id, var_id, user, service)
+    assay_config = http.get_formatted_assay_config(sample)
+    if not assay_config:
+        raise http.api_error(404, "Assay config not found for sample")
+    assay_group = assay_config.get("asp_group", "unknown")
+    operation = service.blacklist_variant(variant=variant, assay_group=assay_group)
+    return util.common.convert_to_serializable(
+        change_payload(
+            sample_id=sample_id,
+            resource="variant",
+            resource_id=var_id,
+            action="blacklist",
+            operation=operation,
+        )
+    )
+
+
+@router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/override-blacklist",
+    response_model=SampleChangePayload,
+    summary="Override blacklist for small variant",
+)
+def override_variant_blacklist(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="snv:manage")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Ignore blacklist status for a single small variant in the current sample."""
+    return resource_change(
+        sample_id,
+        var_id,
+        user,
+        service,
+        resource="variant",
+        action="override_blacklist",
+        mutate=lambda: service.set_variant_override_blacklist(var_id=var_id, override=True),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
+    )
+
+
+@router.delete(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/override-blacklist",
+    response_model=SampleChangePayload,
+    summary="Remove blacklist override from small variant",
+)
+def clear_variant_blacklist_override(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="snv:manage")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Remove the blacklist override flag from a single small variant."""
+    return resource_change(
+        sample_id,
+        var_id,
+        user,
+        service,
+        resource="variant",
+        action="clear_override_blacklist",
+        mutate=lambda: service.set_variant_override_blacklist(var_id=var_id, override=False),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
+    )
+
+
+@router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/comments/{comment_id}/hidden",
+    response_model=SampleChangePayload,
+    summary="Hide variant comment",
+)
+def hide_variant_comment(
+    sample_id: str,
+    var_id: str,
+    comment_id: str,
+    user: ApiUser = Depends(require_access(permission="variant.comment:hide")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Hide a comment on a small variant."""
+    return comment_change(
+        sample_id,
+        var_id,
+        comment_id,
+        user,
+        service,
+        resource="variant_comment",
+        action="hide",
+        mutate=lambda: service.set_variant_comment_hidden(
+            var_id=var_id, comment_id=comment_id, hidden=True
+        ),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
+    )
+
+
+@router.delete(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/comments/{comment_id}/hidden",
+    response_model=SampleChangePayload,
+    summary="Unhide variant comment",
+)
+def unhide_variant_comment(
+    sample_id: str,
+    var_id: str,
+    comment_id: str,
+    user: ApiUser = Depends(require_access(permission="variant.comment:unhide")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Unhide a comment on a small variant."""
+    return comment_change(
+        sample_id,
+        var_id,
+        comment_id,
+        user,
+        service,
+        resource="variant_comment",
+        action="unhide",
+        mutate=lambda: service.set_variant_comment_hidden(
+            var_id=var_id, comment_id=comment_id, hidden=False
+        ),
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
+    )
+
+
+@router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/flags/false-positive",
+    response_model=SampleChangePayload,
+    summary="Bulk false-positive small variant update",
+)
+def set_variant_false_positive_bulk(
+    sample_id: str,
+    apply: bool = Query(default=True),
+    resource_ids: list[str] = Query(default_factory=list),
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="snv:manage")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Set variant false positive bulk.
+
+    Args:
+        sample_id (str): Normalized ``sample_id``.
+        apply (bool): Normalized ``apply``.
+        resource_ids (list[str]): Normalized ``resource_ids``.
+        payload (dict): Normalized ``payload``.
+        user (ApiUser): Normalized ``user``.
+        service (DnaService): Normalized ``service``.
+
+    Returns:
+        Normalized return value.
+    """
+    _get_sample_for_api(sample_id, user)
+    payload_resource_ids = payload.get("resource_ids") if isinstance(payload, dict) else None
+    payload_variant_ids = payload.get("variant_ids") if isinstance(payload, dict) else None
+    if isinstance(payload_resource_ids, list):
+        resource_ids = payload_resource_ids
+    elif isinstance(payload_variant_ids, list):
+        resource_ids = payload_variant_ids
+    apply = service.coerce_bool(
+        payload.get("apply") if isinstance(payload, dict) else None, default=apply
+    )
+    operation = service.set_variant_bulk_flag(
+        resource_ids=resource_ids, apply=apply, flag="false_positive"
+    )
+    return util.common.convert_to_serializable(
+        change_payload(
+            sample_id=sample_id,
+            resource="variant_bulk",
+            resource_id="bulk",
+            action="set_false_positive_bulk",
+            operation=operation,
+        )
+    )
+
+
+@router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/flags/irrelevant",
+    response_model=SampleChangePayload,
+    summary="Bulk irrelevant small variant update",
+)
+def set_variant_irrelevant_bulk(
+    sample_id: str,
+    apply: bool = Query(default=True),
+    resource_ids: list[str] = Query(default_factory=list),
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="snv:manage")),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Set variant irrelevant bulk.
+
+    Args:
+        sample_id (str): Normalized ``sample_id``.
+        apply (bool): Normalized ``apply``.
+        resource_ids (list[str]): Normalized ``resource_ids``.
+        payload (dict): Normalized ``payload``.
+        user (ApiUser): Normalized ``user``.
+        service (DnaService): Normalized ``service``.
+
+    Returns:
+        Normalized return value.
+    """
+    _get_sample_for_api(sample_id, user)
+    payload_resource_ids = payload.get("resource_ids") if isinstance(payload, dict) else None
+    payload_variant_ids = payload.get("variant_ids") if isinstance(payload, dict) else None
+    if isinstance(payload_resource_ids, list):
+        resource_ids = payload_resource_ids
+    elif isinstance(payload_variant_ids, list):
+        resource_ids = payload_variant_ids
+    apply = service.coerce_bool(
+        payload.get("apply") if isinstance(payload, dict) else None, default=apply
+    )
+    operation = service.set_variant_bulk_flag(
+        resource_ids=resource_ids, apply=apply, flag="irrelevant"
+    )
+    return util.common.convert_to_serializable(
+        change_payload(
+            sample_id=sample_id,
+            resource="variant_bulk",
+            resource_id="bulk",
+            action="set_irrelevant_bulk",
+            operation=operation,
+        )
+    )
+
+
+@router.post(
+    "/api/v1/samples/{sample_id}/annotations",
+    response_model=SampleChangePayload,
+    status_code=201,
+    summary="Create sample annotation",
+)
+def add_variant_comment_change(
+    sample_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="variant.comment:add:own")),
+    service: ResourceAnnotationService = Depends(get_resource_annotation_service),
+):
+    """Create a sample annotation on a variant-like resource.
+
+    Args:
+        sample_id (str): Normalized ``sample_id``.
+        payload (dict): Normalized ``payload``.
+        user (ApiUser): Normalized ``user``.
+        service (ResourceAnnotationService): Normalized ``service``.
+
+    Returns:
+        Normalized return value.
+    """
+    _get_sample_for_api(sample_id, user)
+    target_id = str(payload.get("id", "unknown"))
+    form_data = payload.get("form_data", {})
+    resource = service.create_annotation(
+        form_data=form_data,
+        target_id=target_id,
+        get_variant_nomenclature_fn=get_variant_nomenclature,
+        create_comment_doc_fn=create_comment_doc,
+    )
+    return util.common.convert_to_serializable(
+        change_payload(
+            sample_id=sample_id,
+            resource=resource,
+            resource_id=target_id,
+            action="add_comment",
+        )
+    )

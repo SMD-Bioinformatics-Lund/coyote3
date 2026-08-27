@@ -2,9 +2,13 @@
 
 This document lists the main UI areas and the main user flows.
 
+!!! info "Column-level reference"
+
+    For detailed table column meanings, badge definitions, and page-by-page data dictionaries, see the [UI Page and Table Reference](ui_page_table_reference.md).
+
 ## System Interfaces
 
-The UI is split into domain-specific modules with separate blueprints and access rules.
+The UI is split into domain-specific React pages backed by FastAPI routers and permission rules.
 
 - **Dashboard and Global Search (`home`)**: sample overview and report access.
 - **DNA Interpretation (`dna`)**: SNV/Indel, CNV, and translocation review.
@@ -16,7 +20,8 @@ The UI is split into domain-specific modules with separate blueprints and access
 
 ## Support Architecture
 
-The documentation site is exposed through `HELP_CENTER_URL`. The UI links out to that site instead of rendering the docs inside the main application.
+The documentation site is exposed at `${PUBLIC_BASE_URL}${SCRIPT_NAME}/docs-site/`.
+The UI links out to that site instead of rendering the docs inside the main application.
 
 ## Standard User Workflows
 
@@ -30,6 +35,18 @@ DNA review usually follows this sequence:
 4. **Action Assignment**: Apply clinical classifications, toggle artifact flags, and append auditable review comments.
 5. **Structural Review**: Perform assessment of CNV and translocation findings within integrated structural views.
 6. **Report Generation**: Compile the finalized clinical report document or access existing reporting versions.
+
+Finding detail pages keep the sample context visible through a direct sample link in the header. Caller evidence is presented as individual badges, and finding-specific action buttons are constrained to the supported clinical state transitions for that finding type.
+
+!!! info "Sample URLs"
+
+    Sample-related UI routes use `samples.name` as the human-readable route key,
+    for example `/samples/CASE_DEMO`. Existing ObjectId-based sample URLs can be
+    resolved by the API and are replaced in the browser with the canonical sample
+    name after the sample context loads. Finding detail routes keep the finding
+    ObjectId in the final URL segment, for example
+    `/samples/CASE_DEMO/variant/<variant_oid>`, because findings are resolved by
+    their collection identifier.
 
 ### RNA Fusion Review and Reporting
 
@@ -51,4 +68,13 @@ Administrators manage the configuration layer:
 
 ## Interface Execution Logic
 
-The platform uses server-side rendering. User actions call backend API services and pass through permission checks. Error pages should show specific setup or validation messages instead of generic failures.
+The platform uses a React client with FastAPI JSON endpoints. User actions call backend API services and pass through permission checks. Error pages should show specific setup or validation messages instead of generic failures.
+
+Tables use a shared bordered header style and local CSV export for the loaded result set. Search screens that query cross-sample clinical knowledge require explicit submission so that displayed data always corresponds to a visible set of query controls.
+
+Sample overview distinguishes:
+
+- **Bundle ingest status**: whether the sample bundle loaded and passed ingest validation.
+- **Analysis availability**: whether each configured analysis domain has files, raw counts, or filtered result counts ready for review.
+
+This separation prevents a sample-level `ready` state from hiding missing or absent analysis-specific outputs.

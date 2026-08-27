@@ -6,16 +6,16 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException
 
-import api.services.accounts.permissions as perm_module
-import api.services.accounts.roles as role_module
-import api.services.accounts.users as user_module
-from api.extensions import util as shared_util
-from api.services.accounts.permissions import PermissionManagementService
-from api.services.accounts.roles import RoleManagementService
-from api.services.accounts.users import UserManagementService
-from shared.config_constants import ASP_GROUP_OPTIONS, AUTH_TYPE_OPTIONS, ENVIRONMENT_OPTIONS
+import api.application.accounts.permissions as perm_module
+import api.application.accounts.roles as role_module
+import api.application.accounts.users as user_module
+from api.app.container import util as shared_util
+from api.application.accounts.permissions import PermissionManagementService
+from api.application.accounts.roles import RoleManagementService
+from api.application.accounts.users import UserManagementService
+from api.config.constants import ASP_GROUP_OPTIONS, AUTH_TYPE_OPTIONS, ENVIRONMENT_OPTIONS
+from api.domain.core.exceptions import AppError
 
 
 class _Repo:
@@ -39,7 +39,7 @@ class _Repo:
 
     def search_permissions(self, *, q="", page=1, per_page=30, is_active=False):
         _ = (q, page, per_page, is_active)
-        return ([{"_id": "p1", "permission_id": "perm.read", "category": "General"}], 1)
+        return ([{"_id": "p1", "permission_id": "sample:view", "category": "General"}], 1)
 
     def get_role_colors(self):
         return {}
@@ -48,13 +48,13 @@ class _Repo:
         return ["dna"]
 
     def get_roles_policy_map(self):
-        return {"admin": {"permissions": ["perm.read"], "deny_permissions": []}}
+        return {"admin": {"permissions": ["sample:view"]}}
 
     def get_assay_group_map(self):
         return {"dna": ["WGS"]}
 
     def list_permission_policy_options(self):
-        return [{"value": "perm.read"}]
+        return [{"value": "sample:view"}]
 
     def get_role_names(self):
         return ["admin"]
@@ -71,12 +71,10 @@ class _Repo:
             "lastname": "User",
             "fullname": "Test User",
             "job_title": "Analyst",
-            "auth_type": "coyote3",
+            "auth_type": ["local"],
             "password": "hashed",
             "version": 1,
             "roles": ["admin"],
-            "permissions": [],
-            "deny_permissions": [],
             "assay_groups": [],
             "assays": [],
             "is_active": False,
@@ -96,17 +94,15 @@ class _Repo:
             "level": 100,
             "version": 1,
             "permissions": [],
-            "deny_permissions": [],
             "is_active": False,
         }
 
     def get_permission(self, permission_id):
-        if permission_id in {"missing", "perm.create"}:
+        if permission_id in {"missing", "sample:create"}:
             return None
         return {
             "_id": "oid-perm",
             "permission_id": permission_id,
-            "permission_name": permission_id,
             "label": permission_id,
             "category": "General",
             "tags": [],
@@ -148,22 +144,22 @@ class _Repo:
         self.deleted_role.append(role_id)
 
     @property
-    def user_handler(self):
+    def user_repository(self):
         return SimpleNamespace(user_exists=lambda **kwargs: kwargs.get("username") == "exists")
 
 
 def _build_store(repo: _Repo) -> SimpleNamespace:
     return SimpleNamespace(
-        user_handler=SimpleNamespace(
+        user_repository=SimpleNamespace(
             search_users=repo.search_users,
             user_with_id=repo.get_user,
             create_user=repo.create_user,
             update_user=repo.update_user,
             toggle_user_active=repo.set_user_active,
             delete_user=repo.delete_user,
-            user_exists=repo.user_handler.user_exists,
+            user_exists=repo.user_repository.user_exists,
         ),
-        roles_handler=SimpleNamespace(
+        roles_repository=SimpleNamespace(
             search_roles=repo.search_roles,
             get_role_colors=repo.get_role_colors,
             get_all_role_names=repo.get_role_names,
@@ -173,10 +169,10 @@ def _build_store(repo: _Repo) -> SimpleNamespace:
             toggle_role_active=repo.set_role_active,
             delete_role=repo.delete_role,
         ),
-        permissions_handler=SimpleNamespace(
+        permissions_repository=SimpleNamespace(
             search_permissions=repo.search_permissions,
             get_all_permissions=lambda is_active=True: [
-                {"permission_id": "perm.read", "category": "General"}
+                {"permission_id": "sample:view", "category": "General"}
             ],
             get_permission=repo.get_permission,
             create_new_policy=repo.create_permission,
@@ -184,7 +180,7 @@ def _build_store(repo: _Repo) -> SimpleNamespace:
             toggle_policy_active=repo.set_permission_active,
             delete_policy=repo.delete_permission,
         ),
-        assay_panel_handler=SimpleNamespace(
+        assay_panel_repository=SimpleNamespace(
             get_all_asp_groups=repo.get_asp_groups,
             get_all_asps=lambda is_active=None: [{"_id": "WGS", "asp_group": "dna"}],
         ),
@@ -201,10 +197,10 @@ def _patch_admin_stores(monkeypatch, repo: _Repo) -> None:
 def _user_service(repo: _Repo) -> UserManagementService:
     store = _build_store(repo)
     return UserManagementService(
-        user_handler=store.user_handler,
-        roles_handler=store.roles_handler,
-        permissions_handler=store.permissions_handler,
-        assay_panel_handler=store.assay_panel_handler,
+        user_repository=store.user_repository,
+        roles_repository=store.roles_repository,
+        permissions_repository=store.permissions_repository,
+        assay_panel_repository=store.assay_panel_repository,
         common_util=shared_util.common,
     )
 
@@ -212,14 +208,14 @@ def _user_service(repo: _Repo) -> UserManagementService:
 def _role_service(repo: _Repo) -> RoleManagementService:
     store = _build_store(repo)
     return RoleManagementService(
-        roles_handler=store.roles_handler,
-        permissions_handler=store.permissions_handler,
+        roles_repository=store.roles_repository,
+        permissions_repository=store.permissions_repository,
     )
 
 
 def _permission_service(repo: _Repo) -> PermissionManagementService:
     store = _build_store(repo)
-    return PermissionManagementService(permissions_handler=store.permissions_handler)
+    return PermissionManagementService(permissions_repository=store.permissions_repository)
 
 
 def test_admin_user_list_payload_contains_pagination(monkeypatch):
@@ -232,12 +228,12 @@ def test_admin_user_list_payload_contains_pagination(monkeypatch):
 def test_create_user_sanitizes_username_and_defaults_user_role(monkeypatch):
     repo = _Repo()
     store = _build_store(repo)
-    store.roles_handler.get_all_role_names = lambda: ["user", "admin"]
+    store.roles_repository.get_all_role_names = lambda: ["user", "admin"]
     service = UserManagementService(
-        user_handler=store.user_handler,
-        roles_handler=store.roles_handler,
-        permissions_handler=store.permissions_handler,
-        assay_panel_handler=store.assay_panel_handler,
+        user_repository=store.user_repository,
+        roles_repository=store.roles_repository,
+        permissions_repository=store.permissions_repository,
+        assay_panel_repository=store.assay_panel_repository,
         common_util=shared_util.common,
     )
     monkeypatch.setattr(user_module, "issue_password_token_for_user", lambda **_: {})
@@ -245,7 +241,7 @@ def test_create_user_sanitizes_username_and_defaults_user_role(monkeypatch):
     assert payload["form"]["fields"]["roles"]["default"] == ["user"]
     assert payload["form"]["fields"]["auth_type"]["options"] == list(AUTH_TYPE_OPTIONS)
     assert payload["form"]["fields"]["environments"]["options"] == list(ENVIRONMENT_OPTIONS)
-    assert payload["form"]["fields"]["assay_groups"]["options"] == list(ASP_GROUP_OPTIONS)
+    assert payload["form"]["fields"]["asp_groups"]["options"] == list(ASP_GROUP_OPTIONS)
 
     service.create_user(
         payload={
@@ -256,7 +252,7 @@ def test_create_user_sanitizes_username_and_defaults_user_role(monkeypatch):
                 "username": "Åsa Öberg",
                 "email": "asa@example.com",
                 "job_title": "Scientist",
-                "auth_type": "coyote3",
+                "auth_type": ["ldap"],
                 "password": "StrongPass!123",
                 "roles": ["user"],
             }
@@ -280,12 +276,10 @@ def test_update_user_keeps_existing_username(monkeypatch):
                 "username": "renamed-user",
                 "email": "tester@example.com",
                 "job_title": "Analyst",
-                "auth_type": "coyote3",
+                "auth_type": ["ldap"],
                 "roles": ["admin"],
-                "permissions": [],
-                "deny_permissions": [],
-                "assay_groups": [],
-                "assays": [],
+                "asp_groups": [],
+                "asp_ids": [],
                 "is_active": "true",
             }
         },
@@ -317,9 +311,6 @@ def test_admin_user_update_preserves_password_when_blank(monkeypatch):
     monkeypatch.setattr(user_module, "current_actor", lambda u: u)
     monkeypatch.setattr(user_module, "utc_now", lambda: datetime.now(timezone.utc))
     monkeypatch.setattr(
-        user_module, "inject_version_history", lambda **kwargs: kwargs["new_config"]
-    )
-    monkeypatch.setattr(
         user_module,
         "normalize_managed_form_payload",
         lambda _spec, _form: {
@@ -329,11 +320,9 @@ def test_admin_user_update_preserves_password_when_blank(monkeypatch):
             "lastname": "User",
             "fullname": "Test User",
             "job_title": "Analyst",
-            "auth_type": "coyote3",
+            "auth_type": ["local"],
             "password": "",
             "roles": ["admin"],
-            "permissions": [],
-            "deny_permissions": [],
         },
     )
 
@@ -350,7 +339,7 @@ def test_admin_user_update_preserves_password_when_blank(monkeypatch):
 def test_admin_user_update_raises_when_user_missing(monkeypatch):
     _patch_admin_stores(monkeypatch, _Repo())
     service = _user_service(_Repo())
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         service.update_user(user_id="missing", payload={"form_data": {}}, actor_username="actor")
     assert exc.value.status_code == 404
 
@@ -370,15 +359,13 @@ def test_admin_role_update_success(monkeypatch):
     monkeypatch.setattr(role_module, "current_actor", lambda u: u)
     monkeypatch.setattr(role_module, "utc_now", lambda: datetime.now(timezone.utc))
     monkeypatch.setattr(
-        role_module, "inject_version_history", lambda **kwargs: kwargs["new_config"]
-    )
-    monkeypatch.setattr(
         role_module,
         "normalize_managed_form_payload",
         lambda _spec, _form: {
             "name": "Admin",
             "label": "Admin",
             "color": "#1f2937",
+            "level": 99,
             "permissions": [],
         },
     )
@@ -389,7 +376,8 @@ def test_admin_role_update_success(monkeypatch):
 
     assert payload["action"] == "update"
     assert repo.updated_role[1]["role_id"] == "admin"
-    assert repo.updated_role[1]["level"] == 99999
+    assert repo.updated_role[1]["level"] == 99
+    assert "version_history" not in repo.updated_role[1]
 
 
 def test_admin_role_update_works_without_db_schema_dependency(monkeypatch):
@@ -399,15 +387,13 @@ def test_admin_role_update_works_without_db_schema_dependency(monkeypatch):
     monkeypatch.setattr(role_module, "current_actor", lambda u: u)
     monkeypatch.setattr(role_module, "utc_now", lambda: datetime.now(timezone.utc))
     monkeypatch.setattr(
-        role_module, "inject_version_history", lambda **kwargs: kwargs["new_config"]
-    )
-    monkeypatch.setattr(
         role_module,
         "normalize_managed_form_payload",
         lambda _spec, _form: {
             "name": "Admin",
             "label": "Admin",
             "color": "#1f2937",
+            "level": 99,
             "permissions": [],
         },
     )
@@ -424,41 +410,84 @@ def test_permission_create_and_update_success(monkeypatch):
     monkeypatch.setattr(perm_module, "current_actor", lambda u: u)
     monkeypatch.setattr(perm_module, "utc_now", lambda: datetime.now(timezone.utc))
     monkeypatch.setattr(
-        perm_module, "inject_version_history", lambda **kwargs: kwargs["new_config"]
-    )
-    monkeypatch.setattr(
         perm_module,
         "normalize_managed_form_payload",
         lambda _spec, form_data: {
-            "permission_name": form_data["permission_name"],
-            "label": form_data["permission_name"],
+            "permission_id": form_data["permission_id"],
+            "label": form_data["permission_id"],
             "category": "Analysis Actions",
             "tags": [],
         },
     )
 
     create_payload = service.create_permission(
-        payload={"form_data": {"permission_name": "perm.create"}}, actor_username="actor"
+        payload={"form_data": {"permission_id": "sample:create"}}, actor_username="actor"
     )
     update_payload = service.update_permission(
-        permission_id="perm.read",
-        payload={"form_data": {"permission_name": "perm.read"}},
+        permission_id="sample:view",
+        payload={"form_data": {"permission_id": "sample:view"}},
         actor_username="actor",
     )
 
-    assert create_payload["resource_id"] == "perm.create"
-    assert repo.created_permission["permission_id"] == "perm.create"
+    assert create_payload["resource_id"] == "sample:create"
+    assert repo.created_permission["permission_id"] == "sample:create"
+    assert repo.created_permission["system_managed"] is False
+    assert "version_history" not in repo.created_permission
     assert update_payload["action"] == "update"
-    assert repo.updated_permission[1]["permission_id"] == "perm.read"
+    assert repo.updated_permission[1]["permission_id"] == "sample:view"
+    assert "version_history" not in repo.updated_permission[1]
 
 
 def test_permission_context_and_delete_paths(monkeypatch):
     _patch_admin_stores(monkeypatch, _Repo())
     service = _permission_service(_Repo())
-    payload = service.context_payload(permission_id="perm.read")
-    deleted = service.delete_permission(permission_id="perm.read")
-    assert payload["permission"]["permission_id"] == "perm.read"
+    payload = service.context_payload(permission_id="sample:view")
+    deleted = service.delete_permission(permission_id="sample:view")
+    assert payload["permission"]["permission_id"] == "sample:view"
     assert deleted["action"] == "delete"
+
+
+@pytest.mark.parametrize("operation", ["update", "delete"])
+def test_system_managed_permissions_reject_mutation(monkeypatch, operation):
+    repo = _Repo()
+    repo.get_permission = lambda permission_id: {
+        "permission_id": permission_id,
+        "label": "View samples",
+        "category": "Sample Management",
+        "tags": [],
+        "version": 1,
+        "is_active": True,
+        "system_managed": True,
+    }
+    service = _permission_service(repo)
+
+    with pytest.raises(AppError) as error:
+        if operation == "update":
+            service.update_permission(
+                permission_id="sample:view",
+                payload={"form_data": {"permission_id": "sample:view"}},
+                actor_username="actor",
+            )
+        else:
+            service.delete_permission(permission_id="sample:view")
+
+    assert error.value.status_code == 409
+    assert "cannot be" in error.value.message
+
+
+def test_system_managed_permissions_can_be_deactivated(monkeypatch):
+    repo = _Repo()
+    repo.get_permission = lambda permission_id: {
+        "permission_id": permission_id,
+        "is_active": True,
+        "system_managed": True,
+    }
+    service = _permission_service(repo)
+
+    payload = service.toggle_permission(permission_id="sample:view")
+
+    assert payload["meta"]["is_active"] is False
+    assert repo.updated_permission == ("sample:view", False)
 
 
 def test_username_and_email_exists(monkeypatch):

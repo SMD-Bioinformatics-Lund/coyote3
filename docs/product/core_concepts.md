@@ -1,68 +1,89 @@
-# Core Concepts: The Coyote3 Worldview
+# Core Concepts
 
-To effectively use or develop for Coyote3, it is helpful to understand the underlying "Mental Model" of how clinical genomic data is organized within the platform. Coyote3 is not just a database; it is a **Clinical Workflow Engine**.
+Coyote3 organizes clinical genomics data around a small set of stable domain
+objects. Understanding their ownership and relationships makes the ingest,
+review, reporting, and administration workflows easier to follow.
 
----
+## Samples and Cases
 
-## 1. The Clinical Identity: Samples and Cases
+A **sample** is the application record for one analyzed DNA or RNA specimen. It
+contains the identifiers and metadata needed to resolve the assay configuration,
+available analyses, files, filters, and report context.
 
-In Coyote3, everything revolves around the **Sample**.
+A **case** is the clinical or laboratory context represented by that sample. A
+paired DNA analysis can include a case specimen and a normal control. Their
+identifiers and sequencing metadata remain distinct, while the sample record
+describes their relationship.
 
-*   **A Sample** is a physical aliquot of DNA or RNA.
-*   **A Case** is a diagnostic event. One Case might involve multiple Samples (e.g., a Tumor sample and a Germline/Normal control).
+Findings such as SNVs, CNVs, translocations, and fusions are stored in separate
+collections and linked to the sample. The sample name is the public routing and
+display identifier; MongoDB object IDs remain internal persistence identifiers.
 
-When you "ingest" data, you are telling Coyote3: *"Here is a sample, here is where it comes from, and here is its relationship to other biological material."*
+## ASP, ASPC, and ISGL
 
----
+Three configuration resources determine how an analysis is presented and
+interpreted.
 
-## 2. The Instruction Set: ASP and ASPC
+| Resource | Defines | Examples of owned information |
+| --- | --- | --- |
+| **ASP** | The assay design and sequencing context. | Omics layer, assay group, assay family, platform, panel gene scope, accreditation metadata. |
+| **ASPC** | The software behavior for an ASP, subpanel, and environment. | Available analysis types, intent-specific filters, report sections, default gene lists, reporting metadata. |
+| **ISGL** | A versioned in-silico gene list. | SNV, CNV, or fusion gene membership; compatible ASPs and assay groups; public and active state. |
 
-This is the most critical concept for understanding how Coyote3 "thinks."
+An ASP describes what was designed and sequenced. An ASPC describes how Coyote3
+must analyze and report that design in a particular operating context. An ISGL
+can narrow the effective gene scope without changing the physical assay design.
 
-### ASP (Assay Specific Panel)
-Think of an **ASP** as a **Physical Definition**. It describes the wet-lab reality of a test:
-*   Which genes were sequence?
-*   What kit was used?
-*   Is it DNA or RNA?
+At ingest, the active ASPC is resolved from `asp_id`, normalized `subpanel_id`, and
+`environment`. If no subpanel-specific configuration exists, the application
+may use the ASP's `base` configuration and displays that decision to the user.
 
-### ASPC (Assay Specific Configuration)
-Think of an **ASPC** as a **Virtual Definition** or "Software Profile." It describes how the software should *behave* when looking at that ASP:
-*   What are the default filter thresholds? (e.g., "Only show variants with >2% frequency")
-*   What gene lists should be active?
-*   What report template should be used?
+## Analysis Types and Intents
 
-**Why the split?** You might have one physical test (ASP) but use different software settings (ASPC) for a research project versus a clinical diagnostic run.
+Analysis types identify the data domain, such as SNV, CNV, fusion, coverage, or
+biomarker analysis. The ASPC controls which implemented analysis types are
+available for a sample and which of them contribute report sections.
 
----
+Analysis intent is separate from analysis type. SNV review can expose somatic
+and germline intents when the ASPC permits them. Each intent has its own filter
+configuration and result set. Other analysis types remain somatic-only unless
+the released application contract explicitly supports another intent.
 
-## 3. The Source of Truth: Data Contracts
+## Findings, Annotations, and Reports
 
-Coyote3 uses **Strictly Typed Contracts**. This means the system has a rigid definition of exactly what a "Variant" or a "User" looks like.
+Ingested findings are analysis results. Clinical interpretation is stored
+separately so that source findings remain stable while classifications,
+comments, and report decisions acquire their own history.
 
-*   If you send data that doesn't match the contract, the **API Engine** will reject it immediately.
-*   This prevents "Data Rot"—where old or malformed data breaks the system months later.
+The review lifecycle is:
 
----
+1. Ingest validates the manifest and every declared analysis resource.
+2. The API stores the sample and dependent findings only after the complete
+   required bundle succeeds.
+3. The reviewer applies ASPC filters and optional approved gene lists.
+4. The reviewer adds classifications, comments, and finding actions.
+5. Reporting prepares a temporary preview from the effective review state.
+6. Saving creates an immutable report record and finding snapshots.
 
-## 4. The Permissions Model: Resource-Oriented
+The saved report preserves the filter snapshot, configuration context, selected
+findings, generated text, and rendered artifacts needed for later review. It
+does not depend on recomputing the current mutable sample view.
 
-Coyote3 doesn't just have "Admins" and "Users." It uses a **Granular Permission System**.
+## Contracts and Authorization
 
-*   Permissions look like `sample:edit:own` or `snv:manage:global`.
-*   This allows a lab to give a technician permission to *edit their own samples* without giving them the ability to *delete the entire database*.
+Pydantic contracts define accepted request, response, and stored-document
+shapes. Application services validate writes before repositories persist them.
+Malformed or incomplete clinical data is rejected instead of being stored as a
+partially usable record.
 
----
+Authorization uses named permissions such as `sample:read` or `snv:manage`.
+Roles group those permissions, and user scope limits where they apply. The API
+enforces every access decision; UI visibility is a convenience and never the
+security boundary.
 
-## 5. The Interpretation Lifecycle
+## Related Reading
 
-Lastly, understand the state of a variant:
-
-1.  **Ingestion**: Raw data arrives.
-2.  **Triage**: A clinician looks at the findings.
-3.  **Annotation**: The clinician adds comments, classifications (Tiers), and flags (Interesting! False Positive!).
-4.  **Reporting**: A snapshot of all that work is "frozen" into a report. Even if the underlying database changes later, the report remains a permanent record of that moment in time.
-
----
-
-### Still have questions?
-Browse the [Workflow Chain Guide](workflow_dna_rna.md) for a deeper technical dive into these relationships.
+- [Clinical Data and Reporting Flow](../architecture/clinical_data_and_reporting_flow.md)
+- [DNA and RNA Workflow](workflow_dna_rna.md)
+- [Query and Filter Strategy](aspc_driven_query_strategy.md)
+- [Reporting and Variant Snapshots](reporting_workflow_and_variant_snapshots.md)

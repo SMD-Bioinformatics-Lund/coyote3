@@ -4,7 +4,7 @@ This guide starts a local Coyote3 stack and loads the demo data.
 
 ---
 
-## Step 1: Check Prerequisites
+## Step 1: Check prerequisites
 
 Make sure the required tools are installed.
 
@@ -16,9 +16,13 @@ docker compose version
 python3 --version
 ```
 
+Coyote3 uses MongoDB 8.2. The application always connects through `MONGO_URI`.
+That URI may point to a host-installed service, a managed service, or an
+independently deployed Docker service.
+
 ---
 
-## Step 2: Clone The Repository
+## Step 2: Clone the repository
 
 Clone the repository and create a local environment file.
 
@@ -27,131 +31,124 @@ git clone git@github.com:SMD-Bioinformatics-Lund/coyote3.git
 cd coyote3
 
 # Create your local environment file
-cp deploy/env/example.dev.env .coyote3_dev_env
+cp deploy/env/example.env .coyote3_dev_env
 ```
 
-> [!NOTE]
-> For local development, the default values in `.coyote3_dev_env` are enough.
-> For production, set all secrets explicitly.
+!!! note "Review the environment file"
+
+    The example values are suitable as a starting point for the development
+    Compose profile. Before starting the stack, review `MONGO_URI`, mounted data
+    paths, and every secret value. Production deployments must provide their own
+    generated secrets.
 
 ---
 
-## Step 3: Start The Stack
+## Step 3: Initialize the database
 
-Start the development stack. This brings up:
-- web
-- API
-- local MongoDB
-- Redis
+Start or select a MongoDB instance first. Set `MONGO_URI` to an endpoint that
+will be reachable from the API and worker containers. On Linux, the supplied
+Compose files resolve `host.docker.internal` to the Docker host, so a
+host-installed MongoDB can use that hostname. The supplied MongoDB Compose
+definition is also an independent infrastructure deployment.
+
+Run the database bootstrap from the repository checkout. It connects directly
+to MongoDB; it does not start Coyote3 services, call the API, or ingest a
+sample.
+
+```bash
+.venv/bin/python scripts/bootstrap_database.py \
+  --mongo-uri "$MONGO_URI" \
+  --db "${COYOTE3_DB:?COYOTE3_DB must be set}" \
+  --username "<first-superuser-username>" \
+  --email "<first-superuser-email>" \
+  --password "<generate-a-unique-password>"
+```
+
+This creates the first local superuser and initializes empty `permissions`,
+`roles`, `hgnc_genes`, and `vep_metadata` collections. It stops rather than
+mixing data into a partially initialized governance database. To install the
+synthetic ASP, ASPC, and ISGL demonstration catalog for a nonclinical local
+environment, add `--with-demo-center`.
+
+For a clinical deployment, import reviewed center-owned ASP, ASPC, and ISGL
+definitions after startup through the managed admin interfaces or approved
+collection-import procedure.
+
+---
+
+## Step 4: Start the stack
+
+The application stack brings up:
+
+- frontend;
+- documentation;
+- API;
+- Celery worker;
+- Celery beat scheduler;
+- Redis; and
+- reverse proxy.
+
+Create the external application network named in the environment file before
+starting the services:
+
+```bash
+set -a
+. ./.coyote3_dev_env
+set +a
+docker network create \
+  --driver bridge \
+  --subnet 172.29.110.32/28 \
+  --ip-range 172.29.110.32/28 \
+  --gateway 172.29.110.33 \
+  "$COYOTE3_APP_NETWORK"
+```
+
+Select another non-overlapping private subnet when this range is already routed
+on the host. Compose uses the existing network and does not create or own it.
 
 ```bash
 ./scripts/compose-with-version.sh \
   --env-file .coyote3_dev_env \
-  -f deploy/compose/docker-compose.dev.yml \
+  -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml \
   up -d --build
 ```
 
 ---
 
-## Step 4: Load Seed Data
-
-Once the stack is running, create the first superuser, load the baseline collections, and ingest the demo DNA sample.
-
-```bash
-scripts/center_first_run.sh \
-  --env-file .coyote3_dev_env \
-  --compose-file deploy/compose/docker-compose.dev.yml \
-  --api-base-url "http://localhost:6802" \
-  --admin-username "admin.coyote3" \
-  --admin-email "admin@coyote3.local" \
-  --admin-password "Coyote3.Admin" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --seed-data-pack tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
-  --with-optional
-```
-
-This command:
-1. checks the environment and seed inputs
-2. starts the compose stack
-3. bootstraps the first superuser
-4. seeds the baseline collections
-5. ingests the demo sample
-
-Ingest references:
-
-- Use [API / Sample YAML Guide](../api/sample_yaml.md) for the sample manifest contract.
-- Use [API / Sample Input Files](../api/sample_input_files.md) for the raw VCF and JSON file formats behind the demo ingest bundle.
-
-### Parameter Reference
-
-| Parameter | Required | Description |
-| --- | --- | --- |
-| `--env-file <path>` | Yes | Path to the environment file (e.g. `.coyote3_dev_env`). |
-| `--compose-file <path>` | Yes | Path to the Docker Compose file to use. |
-| `--api-base-url <url>` | Yes | Base URL of the API service (e.g. `http://localhost:6802`). |
-| `--admin-username <name>` | Yes | Username for the first superuser account. |
-| `--admin-email <email>` | Yes | Email address for the first superuser account. |
-| `--admin-password <password>` | Yes | Password for the first superuser account. |
-| `--with-mongo` | No | Enable the compose-managed MongoDB container (`with-mongo` profile). Use when `MONGO_URI` points to `coyote3_mongo`. |
-| `--with-proxy` | No | Enable the optional nginx reverse proxy (`with-proxy` profile). |
-| `--compose-profile <name>` | No | Activate an arbitrary Docker Compose profile. Can be repeated. |
-| `--seed-file <path>` | No | Path to the baseline collection seed directory. Default: `tests/fixtures/db_dummy/all_collections_dummy`. |
-| `--seed-data-pack <path>` | No | Path to a reference seed data directory (ASP, ASPC, ISGL definitions). Auto-detected from `tests/data/seed_data` if present. |
-| `--use-default-seed-data-pack` | No | Shorthand for `--seed-data-pack tests/data/seed_data`. |
-| `--yaml-file <path>` | No | YAML manifest for the demo sample ingest check. Default: `tests/data/ingest_demo/generic_case_control.yaml`. |
-| `--mongo-uri <uri>` | No | Override the `MONGO_URI` from the env file for the bootstrap step. |
-| `--with-optional` | No | Include optional collections during seeding. |
-| `--skip-existing` | No | Tolerate duplicate documents during seeding (enabled by default). |
-| `--strict-no-retry` | No | Fail immediately on first seed error with no retry. Must be combined with `--skip-existing`. |
-| `--teardown` | No | Tear down the compose stack (including volumes) after the run. Refused for production compose unless `COYOTE3_ALLOW_PROD_VOLUME_PRUNE=1` is set. |
-
----
-
-## Step 5: Open The Application
+## Step 5: Open the application
 
 Open:
-- UI: [http://localhost:6801](http://localhost:6801)
-- API health: [http://localhost:6802/api/v1/health](http://localhost:6802/api/v1/health)
 
-Login with:
-- username: `admin.coyote3`
-- email: `admin@coyote3.local`
-- password: `Coyote3.Admin`
+- UI: [http://localhost:6801/coyote3_dev/](http://localhost:6801/coyote3_dev/)
+- API health: [http://localhost:6801/coyote3_dev/api/v1/health](http://localhost:6801/coyote3_dev/api/v1/health)
+- Swagger UI: [http://localhost:6801/coyote3_dev/api/v1/docs](http://localhost:6801/coyote3_dev/api/v1/docs)
+- Documentation site: [http://localhost:6801/coyote3_dev/docs-site/](http://localhost:6801/coyote3_dev/docs-site/)
 
-You should see the demo DNA sample in the sample list.
+Sign in with the username and password supplied to the bootstrap command. The
+command deliberately requires these values at deployment time; no account
+credentials are stored in the repository.
 
----
+The application does not load a sample automatically. Use the ingest workspace
+or a validated sample manifest when you are ready to load data.
 
-## Prod-Like Local Run
-
-Use this when you want to test the production compose file locally with the Mongo container enabled.
-
-```bash
-scripts/center_first_run.sh \
-  --env-file .coyote3_env \
-  --compose-file deploy/compose/docker-compose.yml \
-  --with-mongo \
-  --api-base-url "http://localhost:5818" \
-  --admin-username "admin.coyote3" \
-  --admin-email "admin@coyote3.local" \
-  --admin-password "Coyote3.Admin" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --seed-data-pack tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
-  --with-optional
-```
+For direct API usage, create a session with
+`POST /api/v1/auth/sessions`. The API session token is returned as the
+configured session cookie and may also be sent as
+`Authorization: Bearer <token>` by API-only clients. See
+[API Authentication](../api/authentication.md) for exact examples.
 
 ---
 
-## Cleaning Up
+## Cleaning up
 
-When you are done with your session, you can spin down the environment:
+When the development session is complete, stop the environment:
 
 ```bash
-./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.yml down
+./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml down
 ```
 
-### Next Steps
+### Next steps
+
 - Developers: [Local Development](local_development.md)
 - Operations: [Deployment Guide](../operations/deployment_guide.md)
+- New installations: [First installation](first_installation.md)

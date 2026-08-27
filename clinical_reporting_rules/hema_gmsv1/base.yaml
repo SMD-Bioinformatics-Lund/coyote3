@@ -1,0 +1,73 @@
+rule_set:
+  name: Hematology GMSv1 base report text
+  version: 1
+  analyte: dna
+  asp_id: hema_gmsv1
+  subpanel_id: base
+
+document_rules:
+  - rule_id: hema_GMSv1_report_introduction
+    family: result_text
+    section: Report introduction
+    priority: 10
+    when: []
+    template: "{{ aspc.reporting.general_report_summary | dna_report_intro(sample, asp, applied_gene_lists) }}"
+    heading: false
+    stop: false
+  - rule_id: hema_GMSv1_unaccredited_conclusion
+    family: summary_text
+    section: Report conclusion
+    priority: 100
+    when:
+      - fact: asp.accredited
+        operator: eq
+        value: false
+    template: "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen."
+    heading: false
+    stop: true
+  - rule_id: hema_GMSv1_accredited_conclusion
+    family: summary_text
+    section: Report conclusion
+    priority: 200
+    when:
+      - fact: asp.accredited
+        operator: eq
+        value: true
+    template: "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport. "
+    heading: false
+    stop: true
+
+analyses:
+  SNV:
+    enabled: true
+    rules:
+      - rule_id: hema_GMSv1_tiered_snv_summary
+        family: result_text
+        section: Kliniskt relevanta SNVs och små INDELs
+        priority: 90
+        when:
+          - fact: aggregates.has_tiered_snvs
+            operator: eq
+            value: true
+        template: "{{ aggregates.tier_summaries | tier_summary }}"
+        heading: true
+        stop: false
+      - rule_id: hema_GMSv1_no_somatic_snv
+        family: result_text
+        section: Kliniskt relevanta SNVs och små INDELs
+        priority: 100
+        when:
+          - fact: aggregates.has_tiered_snvs
+            operator: eq
+            value: false
+        template: "Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats."
+        heading: true
+        stop: false
+  CNV: { enabled: false }
+  TRANSLOCATION: { enabled: false }
+  BIOMARKER: { enabled: false }
+  CNV_PROFILE: { enabled: false }
+  COVERAGE: { enabled: false }
+  FUSION: { enabled: false }
+  TMB: { enabled: false }
+  PGX: { enabled: false }

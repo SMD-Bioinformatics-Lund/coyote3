@@ -1,50 +1,84 @@
 # Coyote3 Clinical Genomics Platform
 
-This documentation covers how Coyote3 is built, configured, deployed, and used.
+This site explains how to install, operate, use, and extend Coyote3. The guides
+follow the same path as the application: configure an assay, ingest a sample,
+review findings, prepare a report, and preserve the resulting audit record.
 
-Coyote3 supports clinical genomics workflows from data ingestion through review and reporting. The docs are organized by task so teams can find deployment, product, and implementation details quickly.
+!!! info "Start here"
 
----
-
-## Platform Principles
-
-Coyote3 is built around three practical goals:
-
-1.  **Clinical Precision**: Use strict contracts and audit trails to keep clinical data reliable.
-2.  **Service Separation**: Keep the web layer and the API separate so UI work and analysis work can scale independently.
-3.  **Access Control**: Apply RBAC and scope rules consistently across API and UI.
-
----
-
-## System Architecture At A Glance
-
-The platform is split into separate services so compute-heavy API work does not block the web application.
-
-*   **The Interface (Coyote)**: The web application used for review and workflow management.
-*   **The API**: The backend service that handles business logic, analysis workflows, and persistence.
-*   **The Infrastructure**: MongoDB stores operational data, and Redis is used for session and cache support.
+    New production installations should follow
+    [Production deployment](start_here/production_deployment.md). Developers
+    evaluating Coyote3 locally should begin with the
+    [Quickstart](start_here/quickstart.md).
+    Clinical users should use the
+    [complete user manual](user_guide/complete_user_manual.md). Developers and
+    maintainers should use the
+    [complete developer manual](developer/complete_developer_manual.md).
 
 ---
 
-## How to Navigate this Manual
+## What Coyote3 Does
 
-This documentation is grouped by role and task.
+Coyote3 supports the clinical genomics workflow from validated analysis output
+to a saved report. It provides:
 
-### For Clinical & Laboratory Users
-*   **Getting Started**: [Quickstart Guide](start_here/quickstart.md) for a local first run.
-*   **Understanding Workflows**: [DNA and RNA Workflow Chain](product/workflow_dna_rna.md) and [UI User Flows](product/ui_map_and_user_flows.md).
-*   **Terminology**: [Clinical Semantics Reference](product/clinical_semantics_reference.md) for tiers and flags.
+- assay-aware sample ingestion and readiness checks;
+- separate DNA and RNA review workflows;
+- server-side filtering, sorting, tiering, comments, and finding actions;
+- report previews and immutable saved report snapshots;
+- role- and scope-based access control;
+- audit records for clinically and operationally significant actions; and
+- administration of assays, configurations, gene lists, users, and runtime controls.
 
-### For Software Engineers & Developers
-*   **Foundation**: [Local Development Setup](start_here/local_development.md) and [Configuration Model](start_here/configuration.md).
-*   **Architecture**: [System Architecture](architecture/system_overview.md) and [Request Lifecycle](architecture/request_lifecycle.md).
-*   **Ingestion Contracts**: [Sample YAML Guide](api/sample_yaml.md) and [Sample Input Files](api/sample_input_files.md).
-*   **Extending the Platform**: [Adding Features](developer/adding_features.md) and [Schema Contracts](developer/schema_contracts_and_versioning.md).
+---
 
-### For DevOps & System Administrators
-*   **Deployment**: [Deployment Guide](operations/deployment_guide.md) and [Initial Checklist](operations/initial_deployment_checklist.md).
-*   **Stability**: [Observability and SLOs](operations/observability_slos_and_alerts.md) and [Backup/Restore Procedures](operations/backup_restore_and_snapshots.md).
-*   **Base Requirements**: [Minimum Production Baseline](operations/minimum_production_baseline.md).
+## Runtime Architecture
+
+The platform separates browser, API, background, and persistence responsibilities:
+
+- **React frontend** presents clinical and administrative workflows.
+- **FastAPI service** validates requests, enforces authorization, and coordinates domain services.
+- **Celery workers and scheduler** run ingestion and maintenance work.
+- **MongoDB** stores clinical, configuration, identity, audit, and operational documents.
+- **Redis** supports background task delivery, sessions, and non-clinical caching.
+- **Reverse proxy** exposes the UI, API, and documentation through one public origin.
+
+---
+
+## Choose a Starting Point
+
+| Goal | Start here |
+| --- | --- |
+| Run Coyote3 locally | [Quickstart](start_here/quickstart.md) |
+| Install or update production | [Production deployment](start_here/production_deployment.md) |
+| Use the application | [Complete user manual](user_guide/complete_user_manual.md) |
+| Review a DNA or RNA sample | [Clinical Workflow](user_guide/clinical_workflow_guide.md) |
+| Understand ASP, ASPC, ISGL, and samples | [Core Concepts](product/core_concepts.md) |
+| Prepare a center deployment | [Center Deployment](operations/center_deployment_guide.md) |
+| Configure environment and center files | [Configuration](start_here/configuration.md) |
+| Integrate with the API | [API Organization](api/api_organization.md) |
+| Develop or test the application | [Complete developer manual](developer/complete_developer_manual.md) |
+| Diagnose an operational problem | [Operational Troubleshooting](operations/troubleshooting.md) |
+
+## Authoritative References
+
+Some guides summarize a workflow before linking to its full specification. Use
+the following pages as the authoritative source when behavior or configuration
+details differ from a summary:
+
+| Subject | Authoritative reference |
+| --- | --- |
+| Installation and center configuration | [Configuration](start_here/configuration.md) |
+| ASP, ASPC, ISGL, and sample relationships | [Core Concepts](product/core_concepts.md) |
+| DNA and RNA ingest manifests | [Sample YAML specification](api/sample_yaml.md) |
+| Clinical reporting rules | [Clinical Reporting Rules](product/clinical_reporting_rules.md) |
+| Collection fields and validation | [Generated Collection Contracts](api/collection_contracts.md) |
+| Authentication and authorization | [Security Model](architecture/security_model.md) |
+| Deployment and reverse proxy topology | [Deployment Guide](operations/deployment_guide.md) |
+| Release evidence and required checks | [Release Readiness](operations/release_readiness.md) |
+
+The collection-contract page is generated from Pydantic schemas. Edit the
+schema or its generator rather than editing that page directly.
 
 ---
 
@@ -54,5 +88,17 @@ This documentation is grouped by role and task.
 
 ---
 
-> [!TIP]
-> If you are troubleshooting an existing installation, start with the [Operations Troubleshooting Guide](operations/troubleshooting.md) or the [Developer Troubleshooting Reference](developer/troubleshooting_guide.md).
+## Interface Reference
+
+The [Interface Visual Reference](product/interface_visual_reference.md) contains
+sample-neutral screenshots of the login page, dashboard, sample list, assay
+catalog, variant search, administration workspace, and contact page.
+
+---
+
+!!! tip "Troubleshooting"
+
+    For an installed system, begin with the
+    [Operations Troubleshooting Guide](operations/troubleshooting.md). For a
+    local code or test failure, use the
+    [Developer Troubleshooting Guide](developer/troubleshooting_guide.md).

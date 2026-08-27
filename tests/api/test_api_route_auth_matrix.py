@@ -10,10 +10,11 @@ from typing import Iterable
 
 from fastapi.routing import APIRoute
 
-from api.main import app
+from api.app.main import app
 
 _OPEN_EXACT = {
     "/api/v1/health",
+    "/api/v1/auth/providers",
     "/api/v1/auth/sessions",
     "/api/v1/auth/sessions/current",
     "/api/v1/auth/password/reset/request",

@@ -6,26 +6,55 @@ This document defines how validation datasets and test fixtures are organized an
 
 Validation assets are organized into standardized repositories to support isolated testing requirements:
 
-- `tests/data/ingest_demo/`: Optimized clinical artifacts for end-to-end ingestion validation.
-- `tests/fixtures/db_dummy/`: Canonical document templates for all persistent collection contracts.
+- `demo_data/ingest/`: Optimized clinical artifacts for end-to-end ingestion validation.
+- `demo_data/collections/`: Canonical document templates for all persistent collection contracts.
 - `tests/fixtures/api/`: Programmatic fixture orchestrators and API payload snapshots.
 
 ## Canonical Ingestion Datasets
 
-The `tests/data/ingest_demo` repository contains strictly sanitized genomic artifacts used for validating analytic ingestion pipelines. These datasets consist of:
+The `demo_data/ingest` repository contains strictly sanitized genomic artifacts used for validating analytic ingestion pipelines. These datasets consist of:
+
 - Standardized VCF (Variant) structures.
 - Structural JSON definitions for CNV and Coverage segments.
 - Modeled visual assets (PNG) for reporting verification.
 - Validated YAML ingestion manifests.
 
-**Security Mandate**: All datasets maintained within the public repository must be purged of Protected Health Information (PHI) and clinical patient identifiers.
+**Repository rule**: Public test data must be synthetic or fully de-identified.
+It must not contain protected health information (PHI) or clinical patient
+identifiers.
 
-## Administrative Seeding Templates
+The pre-commit `sensitive-data` guard scans staged content before every commit.
+It blocks common credential formats, private environment and key files, known
+clinical sample identifiers, Swedish personal identity numbers, local user
+paths, and non-synthetic sample metadata in test data. It also reads compressed
+`.gz` fixtures. Run a full tracked-file scan with:
 
-The `db_dummy` repository provides the main diagnostic seed for bootstrap and test flows:
+```bash
+python3 scripts/check_staged_sensitive_data.py --all-files
+```
 
-- **Location**: `tests/fixtures/db_dummy/all_collections_dummy`
-- **Application**: Recommended as the initial configuration seed for external centers. It utilizes neutral assay nomenclature to prevent organizational configuration bias during the initial installation phase.
+The guard is part of the tracked Git hook chain. Enable that chain once per
+clone with `git config core.hooksPath .githooks && chmod +x .githooks/pre-commit`;
+do not use `pre-commit install`, which would replace the repository wrapper.
+
+The guard is a prevention control, not proof of de-identification. Fixture
+owners must still document synthetic provenance and reviewers must reject
+clinical source data even when it does not match a detection pattern.
+
+## Application Bootstrap And Demo Collections
+
+Application bootstrap and test fixtures have separate ownership:
+
+| Location | Purpose | Production bootstrap |
+| --- | --- | --- |
+| `api/config/bootstrap/rbac` | Application permissions and built-in roles | Yes; installed for an empty deployment |
+| `api/config/bootstrap/reference` | Compressed HGNC and VEP reference snapshots | Yes; each collection is loaded only when empty |
+| `api/config/bootstrap/demo_center` | Synthetic ASP, ASPC, and ISGL definitions | Optional validation baseline only |
+| `demo_data/collections/all_collections_dummy` | Synthetic documents spanning collection contracts | No; tests and demonstrations only |
+| `demo_data/ingest` | Synthetic DNA/RNA manifests and artifacts | No; ingest validation only |
+
+The first-deployment flow and empty-collection protection are described in
+[Initial Deployment Checklist](../operations/initial_deployment_checklist.md).
 
 ### Validation Commands
 
@@ -45,6 +74,7 @@ PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
 ```
 
 This protocol programmatically verifies:
+
 - Synchronization between Pydantic models and seeded document structures.
 - Relational consistency across Assay, ASP, and configuration resource sets.
 - Automatic regeneration of the standard Collection Contract documentation from the active backend logic.
@@ -56,4 +86,22 @@ Submissions to the fixture repository must adhere to the following engineering c
 1. **Minimize Footprint**: Limit fixture datasets to the smallest volume necessary to satisfy the specific test requirement.
 2. **Clinical Anonymization**: Absolute removal of all clinical identifiers is non-negotiable.
 3. **Structural Fidelity**: Preserve realistic data shapes, specifically within complex nested fields, to ensure valid contract testing.
-4. **Contract Verification**: All fixture updates must pass the full `check_contract_integrity.sh` protocol before being merged into the master branch.
+4. **Contract Verification**: All fixture updates must pass the full `check_contract_integrity.sh` protocol before being merged into the default integration branch.
+
+## Browser Validation Fixtures
+
+Maintain a small, approved fixture set that supports browser release checks
+without external network dependencies or patient data:
+
+| Fixture capability | Required for validating |
+| --- | --- |
+| Paired DNA sample with SNVs and indels | filtering, sorting, tiers, comments, reporting, and exports |
+| CNV sample with profile image | CNV table, resizable image pane, rotation, and reporting actions |
+| Coverage data with probes/exons | gene click-through, low coverage, and blacklist workflow |
+| Fusion/translocation sample | structural tables, detail context, and table-specific bulk actions |
+| Biomarker input | overview/header biomarker presentation and reporting sections |
+| Report template | preview, save, HTML, PDF, artifact metadata, and immutable snapshots |
+| Restricted/admin accounts | denied actions, role visibility, audit events, and application controls |
+
+The browser protocol and expected checks are defined in
+[Browser And Release Validation](browser_and_release_validation.md).

@@ -8,7 +8,13 @@ from typing import Any, Dict, Optional
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 
-from api.contracts.schemas.base import _DocBase, _StrictDocBase
+from api.contracts.schemas.base import (
+    _DocBase,
+    _FindingDocBase,
+    _StrictCollectionDocBase,
+    _StrictDocBase,
+)
+from api.contracts.schemas.normalizers import normalize_ampersand_terms
 
 
 class DnaFiltersDoc(_StrictDocBase):
@@ -28,13 +34,10 @@ class DnaFiltersDoc(_StrictDocBase):
     warn_cov: int = Field(default=100, ge=0)
     error_cov: int = Field(default=10, ge=0)
 
-    genelists: list[str] = Field(
-        validation_alias=AliasChoices("genelists", "small_variants_genelists"),
-        default_factory=list,
-    )
+    snvlists: list[str] = Field(default_factory=list)
     vep_consequences: list[str] = Field(default_factory=list)
     cnveffects: list[str] = Field(default_factory=lambda: ["gain", "loss"])
-    cnv_genelists: list[str] = Field(default_factory=list)
+    cnvlists: list[str] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod
@@ -59,11 +62,10 @@ class DnaFiltersDoc(_StrictDocBase):
             "error_cov",
         }
         list_defaults_to_restore = {
-            "genelists",
-            "small_variants_genelists",
+            "snvlists",
             "vep_consequences",
             "cnveffects",
-            "cnv_genelists",
+            "cnvlists",
         }
 
         for key in scalar_defaults_to_restore:
@@ -118,14 +120,18 @@ class VariantCsqDoc(_DocBase):
     INTRON: str | None = None
     EXON: str | None = None
     CANONICAL: str | None = None
-    MANE: str | None = None
     STRAND: str | None = None
     IMPACT: str | None = None
     CADD_PHRED: str | None = None
-    CLIN_SIG: str | None = None
+    CLIN_SIG: list[str] = Field(default_factory=list)
     VARIANT_CLASS: str | None = None
     HGVSc: str | None = None
     HGVSp: str | None = None
+
+    @field_validator("Consequence", "CLIN_SIG", mode="before")
+    @classmethod
+    def _normalize_term_lists(cls, value: Any) -> list[str]:
+        return normalize_ampersand_terms(value)
 
 
 class VariantInfoDoc(_DocBase):
@@ -142,14 +148,12 @@ class VariantInfoDoc(_DocBase):
     PON_VAFS_freebayes: str | None = None
     PON_FFPE_NUM_freebayes: str | None = None
     PON_FFPE_VAFS_freebayes: str | None = None
-    Annotation: str | None = None
     PON_FFPE_NUM_vardict: str | None = None
     PON_FFPE_VAFS_vardict: str | None = None
     CLNSIG: str | None = None
     CLNREVSTAT: str | None = None
     CLNACC: str | None = None
     SCOUT_CUSTOM: str | None = None
-    CSQ: list[VariantCsqDoc] = Field(default_factory=list)
     selected_CSQ: VariantCsqDoc
     selected_CSQ_criteria: str
 
@@ -168,7 +172,6 @@ class VariantInfoDoc(_DocBase):
         exclude_keys = {
             "selected_CSQ",
             "selected_CSQ_criteria",
-            "CSQ",
             "variant_callers",
         }
 
@@ -191,7 +194,7 @@ class VariantGtDoc(_DocBase):
     type: str
 
 
-class VariantsDoc(_DocBase):
+class VariantsDoc(_FindingDocBase):
     SAMPLE_ID: str
     CHROM: str
     POS: int
@@ -212,12 +215,30 @@ class VariantsDoc(_DocBase):
     transcripts: list[str] = Field(default_factory=list)
     HGVSc: list[str] = Field(default_factory=list)
     HGVSp: list[str] = Field(default_factory=list)
+    consequence_terms: list[str] = Field(default_factory=list)
     simple_id: str
     simple_id_hash: str
     cosmic_ids: list[str] = Field(default_factory=list)
     dbsnp_id: str | None = None
     pubmed_ids: list[str] = Field(default_factory=list)
     hotspots: list[dict[str, list[str]]] = Field(default_factory=list)
+    fp: str | bool = ""
+    irrelevant: str | bool = ""
+    interesting: str | bool = ""
+
+    @field_validator("consequence_terms", mode="before")
+    @classmethod
+    def _normalize_consequence_terms(cls, value: Any) -> list[str]:
+        if value in (None, ""):
+            return []
+        raw_values = value.split("&") if isinstance(value, str) else value
+        if not isinstance(raw_values, (list, tuple, set)):
+            raw_values = [raw_values]
+        return list(
+            dict.fromkeys(
+                term for item in raw_values for term in str(item or "").split("&") if term
+            )
+        )
 
     @field_validator(
         "gnomad_frequency",
@@ -271,7 +292,7 @@ class CnvGeneDoc(_DocBase):
         return self
 
 
-class CnvsDoc(_DocBase):
+class CnvsDoc(_FindingDocBase):
     SAMPLE_ID: str
     chr: str
     start: int
@@ -358,6 +379,7 @@ class TranslocationInfoDoc(_DocBase):
     MATE_BND_DEPTH: int | None = None  # 46
     PANEL: list[str] = Field(default_factory=list)  # fusion|somatic|one
     ANN: list[TranslocationInfoAnnDoc] = Field(default_factory=list)
+    MANE_ANN: TranslocationInfoAnnDoc | None = None
 
 
 class TranslocationGtDoc(_DocBase):
@@ -367,7 +389,7 @@ class TranslocationGtDoc(_DocBase):
     SR: str
 
 
-class TranslocationsDoc(_DocBase):
+class TranslocationsDoc(_FindingDocBase):
     SAMPLE_ID: str
     CHROM: str
     POS: int
@@ -378,7 +400,11 @@ class TranslocationsDoc(_DocBase):
     ID: str
     QUAL: Optional[float] = None
     GT: list[TranslocationGtDoc]
-    INFO: list[TranslocationInfoDoc]
+    INFO: TranslocationInfoDoc
+    fp: str | bool = ""
+    irrelevant: str | bool = ""
+    interesting: str | bool = ""
+    blacklisted: str | bool = ""
 
 
 class BiomarkersMsiDoc(_DocBase):
@@ -428,42 +454,104 @@ class BiomarkersDoc(_DocBase):
         return self
 
 
-class ReportedVariantsDoc(_DocBase):
+class PgxDoc(_DocBase):
+    """Sample-scoped PGX payload preserved from the declared ingest result."""
+
+    SAMPLE_ID: str
+
+
+class ReportedVariantsDoc(_StrictCollectionDocBase):
+    """Immutable, explicitly typed finding included in a saved report."""
+
     report_id: str
+    report_num: int | None = None
     sample_name: str
 
     report_oid: Any
     sample_oid: Any
-    var_oid: Any
-    annotation_oid: Any
-    annotation_text_oid: Any
-    sample_comment_oid: Any
+    assay: str | None = None
+    assay_group: str | None = None
+    subpanel: str | None = None
+    environment: str | None = None
+    analysis_type: str
+    analysis_intent: str | None = None
+    finding_type: str | None = None
+    var_oid: Any | None = None
+    annotation_oid: Any | None = None
+    annotation_text_oid: Any | None = None
+    sample_comment_oid: Any | None = None
 
     simple_id: str
     simple_id_hash: str
 
-    gene: str
-    transcript: str
-    hgvsc: str
-    hgvsp: str
-    variant: str
+    genes: list[str] = Field(default_factory=list)
+    gene: str | None = None
+    gene1: str | None = None
+    gene2: str | None = None
+    transcript: str | None = None
+    hgvsc: str | None = None
+    hgvsp: str | None = None
+    genomic: str | None = None
+    nomenclature: str | None = None
+    variant: str | None = None
 
-    var_type: str
-    tier: int
+    var_type: str | None = None
+    tier: int | None = None
+
+    # Copy-number snapshot fields.
+    region: str | None = None
+    chromosome: str | None = None
+    start: int | None = None
+    end: int | None = None
+    size: int | None = None
+    cnv_type: str | None = None
+    ratio: float | None = None
+    nprobes: int | None = None
+
+    # Structural-variant and fusion snapshot fields.
+    source_id: str | None = None
+    position: int | None = None
+    ref: str | None = None
+    alt: str | None = None
+    breakpoint: str | None = None
+    breakpoint_1: str | None = None
+    breakpoint_2: str | None = None
+    fusion: str | None = None
+    effect: Any | None = None
+    spanning_pairs: int | None = None
+    spanning_reads: int | None = None
+    longest_anchor: int | None = None
+    callers: list[str] = Field(default_factory=list)
+    classification: int | None = None
+    text: str | None = None
+
+    # Biomarker and pharmacogenomic snapshot fields.
+    biomarker: str | None = None
+    result: Any | None = None
+    pgx_result: Any | None = None
+    diplotype: str | None = None
+    phenotype: str | None = None
+    activity_score: Any | None = None
+    recommendation: Any | None = None
 
     created_by: str
     created_on: datetime
 
-    @field_validator("*", mode="before")
+    @model_validator(mode="before")
     @classmethod
-    def no_nulls_allowed(cls, v, info):
-        if v is None:
-            raise ValueError(f"{info.field_name} cannot be null")
-        return v
+    def reject_generic_finding_payload(cls, value: Any) -> Any:
+        if isinstance(value, dict) and "finding_data" in value:
+            raise ValueError(
+                "finding_data is not part of the reported finding contract; "
+                "store report-time values in their named fields"
+            )
+        return value
 
     @field_validator("tier")
     @classmethod
     def validate_tier(cls, v):
+        if v is None:
+            return v
         if v not in {1, 2, 3, 4}:
             raise ValueError("tier must be between 1–4")
         return v
@@ -471,7 +559,9 @@ class ReportedVariantsDoc(_DocBase):
     @field_validator("var_type")
     @classmethod
     def validate_var_type(cls, v):
-        allowed = {"SNV", "INDEL", "CNV", "FUSION"}
+        if v is None:
+            return v
+        allowed = {"SNV", "INDEL", "CNV", "FUSION", "TRANSLOCATION", "BIOMARKER", "PGX"}
         if v not in allowed:
             raise ValueError(f"var_type must be one of {allowed}")
         return v

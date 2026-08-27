@@ -1,9 +1,10 @@
 # UI Action Modal
 
 Use the shared layout action modal for any UI action that needs user
-confirmation. This keeps destructive flows consistent across Flask pages and
+confirmation. This keeps destructive flows consistent across frontend views and
 avoids mixing browser `confirm()` calls, page-local dialog markup, and
-inconsistent warning styles.
+inconsistent warning styles. API routes should return structured success/error
+payloads; the frontend owns notifications.
 
 ## When to use it
 
@@ -25,9 +26,9 @@ This is the simplest pattern and is still used by the admin list pages.
 <button
   type="button"
   onclick="showActionModal({
-    url: '{{ url_for('admin_bp.edit_user', user_id=user._id) }}',
+    url: `/admin/users/${user.id}/edit`,
     title: 'Edit user',
-    message: 'Open the edit screen for <b>{{ user.username }}</b>?',
+    message: `Open the edit screen for <b>${user.username}</b>?`,
     confirmText: 'Edit',
     confirmColor: 'blue'
   })"
@@ -45,7 +46,7 @@ blacklist flag.
 
 ```html
 <form
-  action="{{ url_for('dna_bp.override_variant_blacklist', sample_id=sample_id, var_id=variant._id) }}"
+  action="/api/v1/samples/{sample_id}/small-variants/{variant_id}/blacklist-override"
   method="post"
   data-action-modal-form
   data-action-modal-title="Override Blacklist"

@@ -5,10 +5,11 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException
 from pydantic import ValidationError
 
-from api.routers import samples
+from api.app.main import app as api_app
+from api.domain.core.exceptions import AppError
+from api.interfaces.http.clinical import samples
 from api.security.access import ApiUser
 from tests.fixtures.api import mock_collections as fx
 
@@ -32,12 +33,13 @@ def _route_test_user() -> ApiUser:
             "sample.comment:add",
             "sample.comment:hide",
             "sample.comment:unhide",
+            "coverage.blacklist:manage",
         ],
-        denied_permissions=[],
-        assays=["WGS"],
-        assay_groups=["dna"],
+        asp_ids=["WGS"],
+        asp_groups=["dna"],
         envs=["production"],
         asp_map={},
+        auth_type=["local"],
     )
 
 
@@ -53,6 +55,49 @@ def test_update_sample_filters_rejects_invalid_filters_payload():
     assert "Input should be a valid dictionary" in str(exc.value)
 
 
+def test_bam_service_lookup_is_sample_scoped():
+    """BAM-service lookup should be owned by the clinical sample API."""
+    paths = {route.path for route in api_app.routes}
+
+    assert "/api/v1/samples/{sample_name}/bam-files" in paths
+    assert "/api/v1/knowledgebases/bam-files" not in paths
+
+
+def test_sample_bam_files_read_returns_case_control_bam_paths(monkeypatch):
+    """Sample BAM endpoint should resolve a sample name to case/control BAM paths."""
+    service = SimpleNamespace(
+        bam_files_payload=lambda *, sample_ids: {
+            "query": {"sample_ids": sample_ids},
+            "bam_files": {sample_id: [f"/bam/{sample_id}.bam"] for sample_id in sample_ids},
+        }
+    )
+    sample = {
+        "name": "CASE_DEMO",
+        "case": {"id": "CASE1"},
+        "control": {"id": "CTRL1"},
+        "paired": True,
+    }
+    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_name, user: sample)
+    monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = samples.sample_bam_files_read(
+        sample_name="CASE_DEMO",
+        user=fx.api_user(),
+        service=service,
+    )
+
+    assert payload["sample"] == {
+        "name": "CASE_DEMO",
+        "case_id": "CASE1",
+        "control_id": "CTRL1",
+        "paired": True,
+    }
+    assert payload["bam_files"] == {
+        "CASE1": ["/bam/CASE1.bam"],
+        "CTRL1": ["/bam/CTRL1.bam"],
+    }
+
+
 def test_reset_sample_filters_requires_assay_config(monkeypatch):
     """Test reset sample filters requires assay config.
 
@@ -66,12 +111,40 @@ def test_reset_sample_filters_requires_assay_config(monkeypatch):
     monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(samples, "get_formatted_assay_config", lambda _sample: None)
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         samples.reset_sample_filters("S1", user=fx.api_user())
 
     assert exc.value.status_code == 422
     assert exc.value.detail["error"] == "ASPC could not be resolved for the sample"
     assert exc.value.detail["category"] == "setup"
+
+
+def test_apply_latest_aspc_replaces_a_sample_snapshot_explicitly(monkeypatch):
+    """The route delegates the deliberate latest-ASPC transition to the service."""
+    sample = {"_id": "sample-object-id", "name": "CASE_DEMO"}
+    calls = {}
+
+    def apply_latest_aspc(*, sample):
+        calls["sample"] = sample
+        return {"aspc_id": "hema_gmsv1_hem_production", "version": 3}
+
+    service = SimpleNamespace(apply_latest_aspc=apply_latest_aspc)
+    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = samples.apply_latest_sample_aspc(
+        "CASE_DEMO",
+        user=_route_test_user(),
+        service=service,
+    )
+
+    assert calls["sample"] is sample
+    assert payload["resource"] == "sample_aspc"
+    assert payload["action"] == "apply_latest"
+    assert payload["meta"]["applied_aspc"] == {
+        "aspc_id": "hema_gmsv1_hem_production",
+        "version": 3,
+    }
 
 
 def test_update_coverage_blacklist_gene_returns_change_payload(monkeypatch):
@@ -104,7 +177,8 @@ def test_remove_coverage_blacklist_returns_change_payload(monkeypatch):
     calls = {}
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
     service = SimpleNamespace(
-        remove_coverage_blacklist=lambda *, obj_id: calls.setdefault("obj_id", obj_id)
+        get_coverage_blacklist_entry=lambda *, obj_id: {"_id": obj_id, "group": "dna"},
+        remove_coverage_blacklist=lambda *, obj_id: calls.setdefault("obj_id", obj_id),
     )
 
     payload = samples.delete_coverage_blacklist_entry(

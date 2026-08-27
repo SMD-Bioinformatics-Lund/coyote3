@@ -1,0 +1,27 @@
+---
+name: demo_rna_sample
+assay: assay_rna_1
+subpanel: base
+profile: production
+genome_build: 38
+case_id: demo_rna_case
+control_id: null
+clarity_case_id: demo_rna_case_clarity
+clarity_case_pool_id: demo_rna_pool
+sample_no: 1
+paired: false
+sequencing_scope: wts
+omics_layer: rna
+sex: female
+sequencing_technology: Illumina
+read_mode: PE
+pipeline: RnaFusionPipeline
+pipeline_version: 1.0.0
+case_ffpe: false
+case_sequencing_run: demo_rna_run
+case_reads: 1000000
+case_purity: null
+fusion_files: ../collections/all_collections_dummy/fusions.json
+expression_path: ../collections/all_collections_dummy/rna_expression.json
+classification_path: ../collections/all_collections_dummy/rna_classification.json
+qc: ../collections/all_collections_dummy/rna_qc.json

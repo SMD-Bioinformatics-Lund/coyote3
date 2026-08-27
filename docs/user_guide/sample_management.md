@@ -1,37 +1,82 @@
-# User Guide: Sample Management and Navigation
+# Sample management
 
-The Sample List (accessible via the main navigation or assay-specific routes) is the central workspace for triaging incoming clinical cases. It is located at the `/samples/` route.
+The Samples page is the clinical worklist. It shows every sample visible to the
+current user after role, assay, group, environment, date, and search filters are
+applied.
 
-![Sample Management](../assets/screenshots/samples_list.png)
+![Coyote3 sample list](../assets/screenshots/samples.png)
 
-## Interface Overview
+## Find samples
 
-The sample management interface is designed to help you quickly locate and prioritize cases for review.
+| Control | Behavior |
+| --- | --- |
+| DNA/RNA menu | Restricts the worklist by omics layer, sequencing family, or assay group. |
+| Environment scope | Shows production only or all environments allowed for the user. |
+| Date added | Uses a preset or custom date range. |
+| Search | Searches supported sample and case identifiers on submission. |
+| Rows per page | Sets the page size; remaining matching samples stay available through pagination. |
+| Live samples | Shows samples still in the active review workflow. |
+| Reported samples | Shows samples with saved reports and includes the latest report date. |
 
-### 1. Global Filters and Search
-At the top of the page, you can narrow down the sample list using:
-*   **Profile Scope**: Toggle between "Production" (live clinical cases) and "All Profiles" (which includes validation and development samples).
-*   **Search Bar**: Search by Sample ID, Case ID, or Patient identifiers. The search is real-time and filters both "Live" and "Reported" tables.
+The worklist has **Classic** and **Modern** layouts. Classic shows both worklist
+sections on one page. Modern shows one section at a time. The choice is saved in
+the user profile.
 
-### 2. Live Samples Table
-This table lists all samples that currently require interpretation.
-*   **Status Indicators**: Small dots next to the ID indicate the "Priority" or "Urgency" of a sample.
-*   **Case Details**: View associated Case IDs, Control IDs, and the specific Assay/Panel used for the test.
-*   **Quick Actions**: If you have the necessary permissions, a **Gear icon** allows you to edit sample metadata or update clinical details (Clarity IDs, Diagnosis, etc.).
+## Table columns
 
-### 3. Reported Samples Table
-Once a report is finalized, the sample moves to this section. It serves as an archive of completed work.
-*   **Report History**: Click on the numbered badges (e.g., `1`, `2`) to download or view specific versions of the clinical report.
-*   **Audit Trail**: The "Last Report" column shows exactly when the diagnostic event was closed.
+| Column | Meaning |
+| --- | --- |
+| Sample | Canonical sample name and link to its workspace. |
+| Case ID | Case identifier supplied by the ingest manifest. |
+| Case clarity | Case identifier from the upstream LIMS when provided. |
+| Control | Control sample identifier for paired analyses. |
+| Control clarity | Control LIMS identifier when provided. |
+| Environment | Production, validation, testing, or development context. |
+| ASP | Assay panel used to resolve configuration. |
+| Subpanel | Requested in-silico subpanel or `base`. |
+| Pipeline | Pipeline name and version when supplied. |
+| Analysis | Current sample analysis state. |
+| Report | Reported or unreported state. |
+| Counts | Loaded analysis resources and finding counts. Green badges indicate loaded data; failed or partial resources use an error state. |
+| Added | Time the sample was added, shown in local time. |
+| Latest report | Most recent saved report time on the reported worklist. |
+| Actions | Opens the sample workspace. |
 
-## Data Integration Links
+Count badges are not sorted as one value because a cell can contain several
+analysis types.
 
-For each sample, Coyote3 provides direct links to the raw data and quality metrics:
-*   **BAM/BAI**: Direct links to download visualization files for external IGV review.
-*   **QC Metrics**: A percentage or read-count badge that link to a detailed Quality Control report, showing mapping stats and coverage per-base.
+## Open a sample
 
-## Entering Interpretation
+Select the sample name or action button. The workspace displays only analyses
+enabled by the sample omics layer and resolved ASPC.
 
-Clicking on a **Sample ID** will take you into the specialized interpretation environment for that data type:
-*   **DNA Samples**: Opens the SNV/CNV interpretation view.
-*   **RNA Samples**: Opens the Fusion and Expression analysis view.
+| Sample type | Possible pages |
+| --- | --- |
+| DNA | Overview, findings or separate SNV/CNV/translocation tabs, coverage, biomarkers, PGx when supported, and reports. |
+| RNA | Overview, fusions, expression/classification for enabled WTS workflows, QC, PGx when supported, and reports. |
+
+A missing analysis page means it is not enabled for that sample. It does not
+mean that the analysis ran and returned no findings.
+
+## Sorting and navigation state
+
+Server-backed tables sort the complete filtered result before pagination.
+Multiple columns may be added to the sort order. Supported table state is kept
+in the URL, so opening a finding and returning restores the active analysis,
+filters, sorting, search, and page.
+
+## Export
+
+**Export to CSV** includes the table's data columns and omits selection and
+action controls. Sample export includes identifiers, assay context, pipeline
+metadata, resource states, biomarker values, counts, and report dates where
+available.
+
+## Related guides
+
+| Task | Guide |
+| --- | --- |
+| Full workflow | [Complete user manual](complete_user_manual.md) |
+| DNA review | [DNA clinical review](clinical_review_dna.md) |
+| RNA review | [RNA clinical review](clinical_review_rna.md) |
+| Clinical workflow | [Clinical review workflow](clinical_workflow_guide.md) |

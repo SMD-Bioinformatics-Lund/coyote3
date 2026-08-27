@@ -1,0 +1,1212 @@
+"""
+SampleRepository module for Coyote3
+================================
+
+This module defines the `SampleRepository` class used for accessing and managing
+sample data in MongoDB.
+
+It is part of the MongoDB infrastructure layer.
+"""
+
+# -------------------------------------------------------------------------
+# Imports
+# -------------------------------------------------------------------------
+import re
+from typing import Any
+
+from bson.objectid import ObjectId
+
+from api.config.constants import DEFAULT_ENVIRONMENT
+from api.contracts.operations import OperationResult
+from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repository_utils import generate_sample_cache_key
+from api.infra.samples_cache import invalidate_samples_cache, samples_cache_version
+
+SAMPLE_LIST_SORT_FIELDS: dict[str, str] = {
+    "sample": "name",
+    "case_id": "case_id",
+    "case_clarity": "case.clarity_id",
+    "control": "control_id",
+    "control_clarity": "control.clarity_id",
+    "environment": "environment",
+    "asp_id": "asp_id",
+    "subpanel": "subpanel_id",
+    "pipeline": "pipeline",
+    "analysis": "ingest_status",
+    "added": "time_added",
+    "latest_reported": "latest_report_on",
+}
+
+
+# -------------------------------------------------------------------------
+# Class Definition
+# -------------------------------------------------------------------------
+class SampleRepository(BaseRepository):
+    """
+    SampleRepository is a class that provides an interface for interacting with the samples data in the MongoDB collection.
+
+    This class extends the BaseRepository class and provides methods for performing CRUD operations, querying sample data,
+    managing sample settings, handling comments, and generating statistics. It is designed to facilitate efficient
+    interaction with sample documents, including support for caching, filtering, and report management.
+    """
+
+    def __init__(self, adapter):
+        """
+        Initialize the repository with a given adapter and bind the collection.
+        """
+        super().__init__(adapter)
+        self.set_collection(self.adapter.samples_collection)
+
+    def ensure_indexes(self) -> None:
+        """
+        Create indexes used by dashboard and sample list/read paths.
+        """
+        col = self.get_collection()
+        col.create_index([("asp_id", 1)], name="asp_id_1", background=True)
+        col.create_index(
+            [("name", 1)],
+            name="name_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"name": {"$exists": True, "$type": "string"}},
+        )
+        col.create_index([("environment", 1)], name="environment_1", background=True)
+        col.create_index([("reported", 1)], name="reported_1", background=True)
+        col.create_index([("time_added", -1)], name="time_added_-1", background=True)
+        col.create_index(
+            [("reported", 1), ("latest_report_on", -1)],
+            name="reported_1_latest_report_on_-1",
+            background=True,
+        )
+        col.create_index([("paired", 1)], name="paired_1", background=True)
+        col.create_index(
+            [("asp_id", 1), ("environment", 1), ("reported", 1)],
+            name="asp_id_1_environment_1_reported_1",
+            background=True,
+        )
+        col.create_index(
+            [("asp_id", 1), ("environment", 1), ("time_added", -1)],
+            name="asp_id_1_environment_1_time_added_-1",
+            background=True,
+        )
+        col.create_index(
+            [
+                ("ingest_status", 1),
+                ("omics_layer", 1),
+                ("asp_id", 1),
+                ("environment", 1),
+            ],
+            name="ingest_status_1_omics_layer_1_asp_id_1_environment_1",
+            background=True,
+        )
+
+    @staticmethod
+    def _build_samples_query(
+        *,
+        user_assays: list | None,
+        user_envs: list | None,
+        report: bool,
+        search_str: str,
+        time_limit=None,
+        added_from=None,
+        added_until=None,
+    ) -> dict[str, Any]:
+        """Build the shared sample-list filter used for rows and totals."""
+        query: dict[str, Any] = {"ingest_status": "ready"}
+        if user_assays is not None:
+            query["asp_id"] = {"$in": user_assays}
+        if user_envs is not None:
+            query["environment"] = {"$in": user_envs}
+
+        clauses: list[dict[str, Any]] = []
+        if report:
+            query["reported"] = True
+            if time_limit:
+                query["latest_report_on"] = {"$gt": time_limit}
+        else:
+            clauses.append(
+                {
+                    "$or": [
+                        {"reported": {"$exists": False}},
+                        {"reported": False},
+                    ]
+                }
+            )
+
+        normalized_search = (search_str or "").strip()
+        if normalized_search:
+            literal_match = {"$regex": re.escape(normalized_search), "$options": "i"}
+            clauses.append(
+                {
+                    "$or": [
+                        {field: literal_match}
+                        for field in (
+                            "name",
+                            "case_id",
+                            "control_id",
+                            "case.id",
+                            "case.clarity_id",
+                            "control.id",
+                            "control.clarity_id",
+                        )
+                    ]
+                }
+            )
+
+        if clauses:
+            query["$and"] = clauses
+
+        if added_from is not None or added_until is not None:
+            added_range: dict[str, Any] = {}
+            if added_from is not None:
+                added_range["$gte"] = added_from
+            if added_until is not None:
+                added_range["$lt"] = added_until
+            query["time_added"] = added_range
+
+        return query
+
+    def _query_samples(
+        self,
+        user_assays: list | None,
+        user_envs: list | None,
+        report: bool,
+        search_str: str,
+        limit=None,
+        offset: int = 0,
+        time_limit=None,
+        added_from=None,
+        added_until=None,
+    ):
+        """
+        Query samples based on user groups, report status, search string, and optional time limit.
+        Args:
+            user_assays (list): List of user group identifiers to filter samples.
+            report (bool): Whether to include report-specific samples.
+            search_str (str): Search string to filter samples.
+            limit (int, optional): Maximum number of samples to return (default: None).
+            time_limit (datetime, optional): Time constraint for filtering samples (default: None).
+        Returns:
+            list: List of sample records matching the specified criteria.
+        Notes:
+            - If `report` is True, filters samples with reported = True.
+            - If `report` is False, filters samples with reported = False or not present.
+            - If `search_str` is provided, filters samples by name using regex.
+        """
+        query = self._build_samples_query(
+            user_assays=user_assays,
+            user_envs=user_envs,
+            report=report,
+            search_str=search_str,
+            time_limit=time_limit,
+            added_from=added_from,
+            added_until=added_until,
+        )
+
+        app_obj = self.adapter.app
+        getattr(app_obj, "home_logger", app_obj.logger).debug(f"Sample query: {query}")
+
+        cursor = self.get_collection().find(query).sort("time_added", -1)
+        if offset and offset > 0:
+            cursor = cursor.skip(offset)
+        if limit:
+            cursor = cursor.limit(limit)
+        return list(cursor)
+
+    def get_samples_page(
+        self,
+        *,
+        user_assays: list | None,
+        user_envs: list | None,
+        status: str,
+        report: bool,
+        search_str: str,
+        sort: str,
+        limit: int,
+        offset: int = 0,
+        time_limit=None,
+        added_from=None,
+        added_until=None,
+    ) -> dict[str, Any]:
+        """Return one sample page and its exact filtered total in one query."""
+        query = self._build_samples_query(
+            user_assays=user_assays,
+            user_envs=user_envs,
+            report=report,
+            search_str=search_str,
+            time_limit=time_limit,
+            added_from=added_from,
+            added_until=added_until,
+        )
+        app_obj = self.adapter.app
+        getattr(app_obj, "home_logger", app_obj.logger).debug(
+            "Sample page query (%s): %s", status, query
+        )
+        sort_spec: dict[str, int] = {}
+        for item in (sort or "").split(","):
+            field_id, _, direction = item.partition(":")
+            mongo_field = SAMPLE_LIST_SORT_FIELDS.get(field_id.strip())
+            if mongo_field:
+                sort_spec[mongo_field] = -1 if direction.strip().lower() == "desc" else 1
+        if not sort_spec:
+            sort_spec["latest_report_on" if report else "time_added"] = -1
+        if "_id" not in sort_spec:
+            sort_spec["_id"] = -1
+
+        result = list(
+            self.get_collection().aggregate(
+                [
+                    {"$match": query},
+                    {"$sort": sort_spec},
+                    {
+                        "$facet": {
+                            "items": [{"$skip": max(0, offset)}, {"$limit": limit}],
+                            "count": [{"$count": "total"}],
+                        }
+                    },
+                ]
+            )
+        )
+        page = result[0] if result else {}
+        count_rows = page.get("count") or []
+        total = int(count_rows[0].get("total") or 0) if count_rows else 0
+        return {"items": list(page.get("items") or []), "total": total}
+
+    def get_samples(
+        self,
+        user_assays: list | None,
+        user_envs: list | None = None,
+        status: str = "live",
+        report: bool = False,
+        search_str: str = "",
+        limit: int = None,
+        offset: int = 0,
+        time_limit=None,
+        added_from=None,
+        added_until=None,
+        use_cache: bool = True,
+        cache_timeout: int = 120,
+        reload: bool = False,
+    ) -> Any | list:
+        """
+        Retrieve sample records for the specified user groups, optionally using caching for performance.
+        Args:
+            user_assays (list): List of user group identifiers to filter samples.
+            status (str, optional): Status of the samples to retrieve (default: "live").
+            report (bool, optional): Whether to include report-specific samples (default: False).
+            search_str (str, optional): Search string to filter samples (default: "").
+            limit (int, optional): Maximum number of samples to return (default: None, returns all).
+            time_limit (optional): Time constraint for filtering samples (default: None).
+            use_cache (bool, optional): Whether to use cache for retrieving samples (default: True).
+            cache_timeout (int, optional): Cache timeout in seconds (default: 120).
+        Returns:
+            list: List of sample records matching the specified criteria.
+        Notes:
+            - Uses a cache key generated from user_assays, status, and search_str.
+            - If caching is enabled and a cache hit occurs, returns cached samples.
+            - On cache miss or if caching is disabled, queries the database and updates the cache.
+        """
+        app_obj = self.adapter.app
+        cache_timeout = app_obj.config.get("CACHE_DEFAULT_TIMEOUT", 0)
+        cache = getattr(app_obj, "cache", None)
+
+        cache_key = generate_sample_cache_key(
+            cache_version=samples_cache_version(app_obj),
+            user_assays=user_assays,
+            user_envs=user_envs,
+            status=status,
+            report=report,
+            search_str=search_str,
+            limit=limit,
+            offset=offset,
+            time_limit=time_limit,
+            added_from=added_from,
+            added_until=added_until,
+            cache_timeout=cache_timeout,
+            reload=reload,
+        )
+
+        if use_cache and cache is not None:
+            try:
+                samples = cache.get(cache_key)
+            except Exception as exc:
+                app_obj.logger.warning(
+                    "[SAMPLES CACHE ERROR] failed to read cache key %s: %s. Falling back to DB.",
+                    cache_key,
+                    exc,
+                )
+                samples = None
+
+            if samples and not reload:
+                app_obj.logger.debug("[SAMPLES CACHE HIT] %s", cache_key)
+                return samples
+            elif samples and reload:
+                app_obj.logger.debug(
+                    "[SAMPLES CACHE HIT] %s — but reloading from DB since reload is set to True.",
+                    cache_key,
+                )
+            else:
+                app_obj.logger.debug("[SAMPLES CACHE MISS] %s — fetching from DB.", cache_key)
+
+        # If no cache or use_cache=False, or cache miss
+        samples = self._query_samples(
+            user_assays=user_assays,
+            user_envs=user_envs,
+            report=report,
+            search_str=search_str,
+            limit=limit,
+            offset=offset,
+            time_limit=time_limit,
+            added_from=added_from,
+            added_until=added_until,
+        )
+
+        if use_cache and cache is not None:
+            try:
+                cache.set(cache_key, samples, timeout=cache_timeout)
+                app_obj.logger.debug(
+                    "[SAMPLES CACHE SET] %s (timeout=%ss)", cache_key, cache_timeout
+                )
+            except Exception as exc:
+                app_obj.logger.warning(
+                    "[SAMPLES CACHE ERROR] failed to set cache key %s: %s. Continuing without cache.",
+                    cache_key,
+                    exc,
+                )
+
+        return samples
+
+    def count_ready_samples_by_asp(
+        self,
+        *,
+        user_assays: list[str] | None,
+        user_envs: list[str] | None,
+    ) -> dict[str, int]:
+        """Return ready sample counts grouped by assay panel ID."""
+        query: dict[str, Any] = {"ingest_status": "ready"}
+        if user_assays is not None:
+            query["asp_id"] = {"$in": user_assays}
+        if user_envs is not None:
+            query["environment"] = {"$in": user_envs}
+
+        rows = self.get_collection().aggregate(
+            [
+                {"$match": query},
+                {"$group": {"_id": "$asp_id", "count": {"$sum": 1}}},
+            ]
+        )
+        return {str(row.get("_id")): int(row.get("count") or 0) for row in rows if row.get("_id")}
+
+    def get_gene_cohort_samples(
+        self,
+        *,
+        asp_ids: list[str] | None,
+        environments: list[str] | None,
+    ) -> list[dict[str, Any]]:
+        """Return ready samples with only fields needed for gene cohort denominators."""
+        query: dict[str, Any] = {"ingest_status": "ready"}
+        if asp_ids is not None:
+            query["asp_id"] = {"$in": asp_ids}
+        if environments is not None:
+            query["environment"] = {"$in": environments}
+        projection = {
+            "name": 1,
+            "asp_id": 1,
+            "subpanel_id": 1,
+            "environment": 1,
+            "sex": 1,
+            "filters": 1,
+            "analysis_intents": 1,
+            "omics_layer": 1,
+            "reported": 1,
+            "latest_report_id": 1,
+            "files": 1,
+        }
+        return list(self.get_collection().find(query, projection))
+
+    def get_sample(self, sample_key: str) -> dict:
+        """
+        Retrieve a sample document by its name or id.
+
+        This method fetches a sample document from the database using its name first,
+        and if not found, tries by its id.
+
+        Args:
+            sample_key (str): The name or id of the sample to retrieve.
+
+        Returns:
+            dict: The sample document if found, otherwise empty dict.
+        """
+        sample = self.get_sample_by_name(sample_key)
+        if not sample:
+            sample = self.get_sample_by_id(sample_key)
+        return sample if sample else {}
+
+    def get_sample_by_name(self, name: str) -> dict | None:
+        """
+        Retrieve a sample document by its name.
+
+        This method fetches a sample document from the database using its name.
+
+        Args:
+            name (str): The name of the sample to retrieve.
+
+        Returns:
+            dict | None: The sample document if found, otherwise None.
+        """
+        return self.get_collection().find_one({"name": name})
+
+    def get_sample_by_id(self, id: str) -> dict | None:
+        """
+        Retrieve a sample document by its unique identifier.
+
+        This method fetches a sample document from the database using its unique identifier.
+
+        Args:
+            id (str): The unique identifier (ObjectId) of the sample.
+
+        Returns:
+            dict | None: The sample document if found, otherwise None.
+        """
+        try:
+            sample = self.get_collection().find_one({"_id": ObjectId(id)})
+        except Exception as e:
+            self.adapter.app.logger.error("Error retrieving sample by id %s: %s", id, e)
+            sample = None
+        return sample
+
+    def get_sample_name(self, id: str) -> str | None:
+        """
+        Retrieve the name of a sample by its unique identifier.
+
+        Args:
+            id (str): The unique identifier (ObjectId) of the sample.
+
+        Returns:
+            str | None: The name of the sample if found, otherwise None.
+        """
+        sample = self.get_collection().find_one({"_id": ObjectId(id)})
+        return sample.get("name") if sample else None
+
+    def get_sample_by_oid(self, id: str) -> str | None:
+        """
+        Retrieve the name of a sample by its unique identifier.
+
+        Args:
+            id (ObjectId): The unique identifier (ObjectId) of the sample.
+
+        Returns:
+            dict | None: The sample doc if found, otherwise None.
+        """
+        return self.get_collection().find_one({"_id": id})
+
+    def get_samples_by_oids(self, sample_oids: list) -> Any:
+        """
+        Retrieve samples by their object IDs.
+
+        Args:
+          sample_oids (list): A list of ObjectId instances representing the sample IDs.
+
+        Returns:
+          Any: A cursor to the list of sample documents containing only the `name` field.
+        """
+        return self.get_collection().find(
+            {"_id": {"$in": sample_oids}},
+            {
+                "name": 1,
+                "asp_id": 1,
+                "subpanel_id": 1,
+                "environment": 1,
+                "case_id": 1,
+                "control_id": 1,
+            },
+        )
+
+    def reset_sample_settings(
+        self,
+        sample_id: str,
+        default_filters: dict,
+        *,
+        aspc: dict | None = None,
+        analysis_intents: list[str] | None = None,
+        aspc_resolution: dict | None = None,
+    ) -> Any:
+        """
+        Reset a sample to its default settings.
+
+        This method updates the `filters` field of a sample document in the database
+        to match the provided `default_filters` dictionary, excluding the
+        `use_diagnosis_genelist` key if present.
+
+        Args:
+            sample_id (str): The unique identifier of the sample to reset.
+            default_filters (dict): A dictionary containing the default filter settings.
+
+        Returns:
+            Any
+        """
+        default_filters = dict(default_filters or {})
+        default_filters.pop("_id", None)
+        default_filters.pop("id_", None)
+        update = {"filters": default_filters}
+        if isinstance(aspc, dict):
+            update["current_aspc_id"] = aspc.get("_id")
+            update["current_aspc_key"] = aspc.get("aspc_id")
+            update["current_aspc_version"] = aspc.get("version")
+        if analysis_intents is not None:
+            update["analysis_intents"] = analysis_intents
+        if aspc_resolution is not None:
+            update["aspc_resolution"] = aspc_resolution
+
+        self.get_collection().update_one(
+            {"_id": ObjectId(sample_id)},
+            {"$set": update},
+        )
+        invalidate_samples_cache(self.adapter)
+        self.invalidate_dashboard_summary()
+
+    def update_sample_filters(
+        self,
+        sample_id: str,
+        filters: dict,
+        *,
+        aspc: dict | None = None,
+        analysis_intents: list[str] | None = None,
+        aspc_resolution: dict | None = None,
+    ) -> None:
+        """
+        Update the filters of a sample document in the database.
+
+        This method updates the `filters` field of a sample document with the provided filters.
+
+        Args:
+            sample_id (str): The unique identifier (ObjectId) of the sample to update.
+            filters (dict): A dictionary containing the new filter settings.
+
+        Returns:
+            None
+        """
+        update = {"filters": filters}
+        if isinstance(aspc, dict):
+            update["current_aspc_id"] = aspc.get("_id")
+            update["current_aspc_key"] = aspc.get("aspc_id")
+            update["current_aspc_version"] = aspc.get("version")
+        if analysis_intents is not None:
+            update["analysis_intents"] = analysis_intents
+        if aspc_resolution is not None:
+            update["aspc_resolution"] = aspc_resolution
+        self.get_collection().update_one(
+            {"_id": ObjectId(sample_id)},
+            {"$set": update},
+        )
+        invalidate_samples_cache(self.adapter)
+        self.invalidate_dashboard_summary()
+
+    def update_sample(self, sample_id: ObjectId, sample_doc: dict) -> OperationResult:
+        """
+        Update sample document
+        """
+        result = self.get_collection().replace_one({"_id": sample_id}, sample_doc)
+        invalidate_samples_cache(self.adapter)
+        self.invalidate_dashboard_summary()
+        return OperationResult.from_update(result)
+
+    def add_sample_comment(self, sample_id: str, comment_doc: dict) -> None:
+        """
+        Add a comment to a sample.
+
+        This method adds a new comment to the specified sample by calling the `update_comment` method.
+
+        Args:
+            sample_id (str): The unique identifier of the sample to which the comment will be added.
+            comment_doc (dict): A dictionary containing the comment details, such as the text and metadata.
+
+        Returns:
+            None
+        """
+        sample = self.get_sample(sample_id)
+        self.adapter.sample_comment_repository.add_sample_comment(
+            sample=sample,
+            comment_doc=comment_doc,
+        )
+
+    def hide_sample_comment(self, id: str, comment_id: str) -> None:
+        """
+        Hide a sample comment.
+
+        This method hides a specific comment for a given sample by marking it as hidden in the database.
+
+        Args:
+            id (str): The unique identifier of the sample.
+            comment_id (str): The unique identifier of the comment to hide.
+
+        Returns:
+            None
+        """
+        self.adapter.sample_comment_repository.set_hidden(
+            sample_oid=id,
+            comment_id=comment_id,
+            hidden=True,
+        )
+
+    def unhide_sample_comment(self, id: str, comment_id: str) -> None:
+        """
+        Unhide a sample comment.
+
+        This method unhides a previously hidden comment for a specific sample.
+
+        Args:
+            id (str): The unique identifier of the sample.
+            comment_id (str): The unique identifier of the comment to unhide.
+
+        Returns:
+            None
+        """
+        self.adapter.sample_comment_repository.set_hidden(
+            sample_oid=id,
+            comment_id=comment_id,
+            hidden=False,
+        )
+
+    def hidden_sample_comments(self, id: str) -> bool:
+        """
+        Check if a sample has hidden comments.
+
+        Returns:
+            bool: True if the sample has hidden comments, otherwise False.
+        """
+        return self.adapter.sample_comment_repository.hidden_sample_comments(id)
+
+    def get_latest_sample_comment(self, sample_id: str) -> dict | None:
+        """
+        Retrieve the latest comment for a specific sample.
+
+        This method fetches the most recent comment added to the specified sample.
+
+        Args:
+            sample_id (str): The unique identifier of the sample.
+        Returns:
+            dict | None: The latest comment document if found, otherwise None.
+        """
+        return self.adapter.sample_comment_repository.get_latest_sample_comment(sample_id)
+
+    def get_all_sample_counts(self, report: bool | None = None) -> list:
+        """
+        Retrieve the total count of all samples in the database.
+
+        This method fetches the total number of samples, optionally filtered by their report status:
+        - If `report` is None, it retrieves the count of all samples.
+        - If `report` is True, it retrieves the count of samples with reports.
+        - If `report` is False, it retrieves the count of samples without reports.
+
+        Returns:
+            list: A list containing the total count of samples based on the specified criteria.
+        """
+        if report is None:
+            return self.get_collection().count_documents({})
+        if report:
+            return self.get_collection().count_documents({"reported": True})
+        return self.get_collection().count_documents(
+            {
+                "$or": [
+                    {"reported": False},
+                    {"reported": None},
+                    {"reported": {"$exists": False}},
+                ]
+            }
+        )
+
+    def user_sample_counts_by_assay(self, report: bool | None = None, assays: list = None) -> dict:
+        """
+        Retrieve the count of samples for each assay group.
+        This method aggregates sample counts by assay groups, returning a dictionary
+        where each key is an assay group and the value is the count of samples in that group.
+        Args:
+            assays (list, optional): A list of assay groups to filter the samples. If None, counts all samples.
+        Returns:
+            dict: A dictionary where each key is an assay group and the value is the count of samples in that group.
+        """
+        pipeline = [
+            {"$match": {"asp_id": {"$in": assays}}} if assays else {},
+            {"$group": {"_id": "$asp_id", "count": {"$sum": 1}}},
+            {"$project": {"_id": 0, "asp_id": "$_id", "count": 1}},
+        ]
+        if assays is None:
+            pipeline = [
+                {"$group": {"_id": "$asp_id", "count": {"$sum": 1}}},
+                {"$project": {"_id": 0, "asp_id": "$_id", "count": 1}},
+            ]
+        result = list(self.get_collection().aggregate(pipeline))
+        return {item["asp_id"]: item["count"] for item in result}
+
+    def get_dashboard_sample_rollup(self, asp_ids: list[str] | None = None) -> dict:
+        """
+        Aggregate all dashboard sample counters in a single query.
+        """
+        # asp_ids=None => unscoped (admin/all), asp_ids=[] => explicit no access (match nothing)
+        base_match = {"asp_id": {"$in": asp_ids}} if asp_ids is not None else {}
+        collection = self.get_collection()
+
+        pipeline: list[dict] = []
+        if base_match:
+            pipeline.append({"$match": base_match})
+        pipeline.append(
+            {
+                "$facet": {
+                    "totals": [
+                        {
+                            "$group": {
+                                "_id": None,
+                                "total_samples": {"$sum": 1},
+                                "analysed_samples": {"$sum": {"$cond": ["$reported", 1, 0]}},
+                            }
+                        },
+                        {"$project": {"_id": 0, "total_samples": 1, "analysed_samples": 1}},
+                    ],
+                    "by_assay": [
+                        {
+                            "$group": {
+                                "_id": "$asp_id",
+                                "total": {"$sum": 1},
+                                "analysed": {"$sum": {"$cond": ["$reported", 1, 0]}},
+                            }
+                        },
+                        {
+                            "$project": {
+                                "_id": 0,
+                                "asp_id": "$_id",
+                                "total": 1,
+                                "analysed": 1,
+                                "pending": {"$subtract": ["$total", "$analysed"]},
+                            }
+                        },
+                    ],
+                    "profiles": [
+                        {"$group": {"_id": "$environment", "count": {"$sum": 1}}},
+                        {"$project": {"_id": 0, "key": "$_id", "count": 1}},
+                    ],
+                    "omics_layers": [
+                        {"$group": {"_id": "$omics_layer", "count": {"$sum": 1}}},
+                        {"$project": {"_id": 0, "key": "$_id", "count": 1}},
+                    ],
+                    "sequencing_scopes": [
+                        {"$group": {"_id": "$sequencing_scope", "count": {"$sum": 1}}},
+                        {"$project": {"_id": 0, "key": "$_id", "count": 1}},
+                    ],
+                    "pair_counts": [
+                        {"$group": {"_id": "$paired", "count": {"$sum": 1}}},
+                        {"$project": {"_id": 0, "key": "$_id", "count": 1}},
+                    ],
+                    "ingest_statuses": [
+                        {"$group": {"_id": "$ingest_status", "count": {"$sum": 1}}},
+                        {"$project": {"_id": 0, "key": "$_id", "count": 1}},
+                    ],
+                    "pipelines": [
+                        {
+                            "$group": {
+                                "_id": {
+                                    "name": "$pipeline",
+                                    "version": "$pipeline_version",
+                                },
+                                "count": {"$sum": 1},
+                                "analysed": {"$sum": {"$cond": ["$reported", 1, 0]}},
+                                "ready": {
+                                    "$sum": {
+                                        "$cond": [
+                                            {"$eq": ["$ingest_status", "ready"]},
+                                            1,
+                                            0,
+                                        ]
+                                    }
+                                },
+                            }
+                        },
+                        {
+                            "$project": {
+                                "_id": 0,
+                                "name": {"$ifNull": ["$_id.name", "unknown"]},
+                                "version": {"$ifNull": ["$_id.version", None]},
+                                "count": 1,
+                                "analysed": 1,
+                                "ready": 1,
+                            }
+                        },
+                        {"$sort": {"count": -1, "name": 1, "version": 1}},
+                    ],
+                    "recent_samples": [
+                        {"$sort": {"time_added": -1, "_id": -1}},
+                        {"$limit": 5},
+                        {
+                            "$project": {
+                                "_id": 0,
+                                "id": {"$toString": "$_id"},
+                                "name": 1,
+                                "asp_id": 1,
+                                "subpanel_id": 1,
+                                "environment": 1,
+                                "reported": 1,
+                                "ingest_status": 1,
+                                "omics_layer": 1,
+                                "time_added": 1,
+                            }
+                        },
+                    ],
+                }
+            }
+        )
+
+        facet_result = list(collection.aggregate(pipeline, allowDiskUse=True))
+        facet_doc = facet_result[0] if facet_result else {}
+        totals = (facet_doc.get("totals") or [{}])[0]
+
+        total_samples = int(totals.get("total_samples", 0) or 0)
+        analysed_samples = int(totals.get("analysed_samples", 0) or 0)
+
+        user_samples_stats: dict[str, dict[str, int]] = {}
+        for row in facet_doc.get("by_assay", []) or []:
+            asp_id = row.get("asp_id")
+            if not asp_id:
+                continue
+            assay_total = int(row.get("total", 0) or 0)
+            assay_analysed = int(row.get("analysed", 0) or 0)
+            user_samples_stats[str(asp_id)] = {
+                "total": assay_total,
+                "analysed": assay_analysed,
+                "pending": max(int(row.get("pending", 0) or 0), 0),
+            }
+
+        def _kv_to_dict(items: list[dict]) -> dict:
+            """Kv to dict.
+
+            Args:
+                    items: Items.
+
+            Returns:
+                    The  kv to dict result.
+            """
+            out = {}
+            for row in items or []:
+                key = row.get("key")
+                if key is None:
+                    key = "unknown"
+                out[str(key)] = int(row.get("count", 0) or 0)
+            return out
+
+        pair_counts = {"paired": 0, "unpaired": 0, "unknown": 0}
+        for row in facet_doc.get("pair_counts", []) or []:
+            key = row.get("key")
+            count = int(row.get("count", 0) or 0)
+            if key is True:
+                pair_counts["paired"] = count
+            elif key is False:
+                pair_counts["unpaired"] = count
+            else:
+                pair_counts["unknown"] = count
+
+        return {
+            "total_samples": total_samples,
+            "analysed_samples": analysed_samples,
+            "pending_samples": max(total_samples - analysed_samples, 0),
+            "user_samples_stats": user_samples_stats,
+            "sample_stats": {
+                "profiles": _kv_to_dict(facet_doc.get("profiles", []) or []),
+                "omics_layers": _kv_to_dict(facet_doc.get("omics_layers", []) or []),
+                "sequencing_scopes": _kv_to_dict(facet_doc.get("sequencing_scopes", []) or []),
+                "pair_count": pair_counts,
+                "ingest_statuses": _kv_to_dict(facet_doc.get("ingest_statuses", []) or []),
+                "pipelines": list(facet_doc.get("pipelines", []) or []),
+            },
+            "recent_samples": list(facet_doc.get("recent_samples", []) or []),
+        }
+
+    def get_assay_specific_sample_stats(
+        self, assays: list = None, environment: str = DEFAULT_ENVIRONMENT
+    ) -> dict:
+        """
+        Retrieve assay-specific statistics.
+
+        This method calculates statistics for each assay group, including:
+        - Total number of samples.
+        - Number of samples with reports.
+        - Number of samples pending reports.
+
+        Returns:
+            dict: A dictionary where each key is an assay group, and the value is another dictionary containing:
+                - 'total': Total number of samples in the group.
+                - 'report': Number of samples with reports.
+                - 'pending': Number of samples without reports.
+        """
+        pipeline = []
+
+        if assays:
+            pipeline.append({"$match": {"asp_id": {"$in": assays}, "environment": environment}})
+
+        pipeline.append(
+            {
+                "$group": {
+                    "_id": {"asp_id": "$asp_id"},
+                    "total": {"$sum": 1},
+                    "analysed": {"$sum": {"$cond": ["$reported", 1, 0]}},
+                    "pending": {"$sum": {"$cond": ["$reported", 0, 1]}},
+                }
+            }
+        )
+
+        result = list(self.get_collection().aggregate(pipeline))
+
+        assay_group_stats = {}
+        for doc in result:
+            asp_id = doc["_id"]["asp_id"]
+            assay_group_stats[asp_id] = {
+                "total": doc.get("total", 0),
+                "analysed": doc.get("analysed", 0),
+                "pending": doc.get("pending", 0),
+            }
+
+        return assay_group_stats
+
+    def get_all_samples(self, assays=None, limit=None, search_str="") -> Any:
+        """
+        Retrieve all samples from the database.
+
+        This method fetches all sample records, optionally filtered by user assays and/or a search string.
+        It can also limit the number of results returned.
+
+        Args:
+            assays (list, optional): A list of user group identifiers to filter the samples. Defaults to None.
+            limit (int, optional): The maximum number of samples to return. If None, all matching samples are returned. Defaults to None.
+            search_str (str, optional): A search string to filter samples by name using regex. Defaults to an empty string.
+
+        Returns:
+            Any: A cursor to the list of sample documents matching the query.
+        """
+        query = {}
+
+        if assays:
+            query = {"asp_id": {"$in": assays}}
+
+        if len(search_str) > 0:
+            query["name"] = {"$regex": search_str}
+
+        if limit:
+            samples = self.get_collection().find(query).sort("time_added", -1).limit(limit)
+        else:
+            samples = self.get_collection().find(query).sort("time_added", -1)
+
+        return samples
+
+    def search_samples_for_admin(
+        self,
+        *,
+        asp_ids: list[str] | None = None,
+        search_str: str = "",
+        page: int = 1,
+        per_page: int = 30,
+        ready_only: bool = True,
+    ) -> tuple[list[dict], int]:
+        """Search samples in MongoDB for admin listings with pagination."""
+        query: dict[str, Any] = {"ingest_status": "ready"} if ready_only else {}
+        if asp_ids is not None:
+            query["asp_id"] = {"$in": asp_ids}
+        normalized_q = str(search_str or "").strip()
+        if normalized_q:
+            pattern = re.escape(normalized_q)
+            query["$or"] = [
+                {"name": {"$regex": pattern, "$options": "i"}},
+                {"case_id": {"$regex": pattern, "$options": "i"}},
+                {"control_id": {"$regex": pattern, "$options": "i"}},
+                {"asp_id": {"$regex": pattern, "$options": "i"}},
+                {"subpanel_id": {"$regex": pattern, "$options": "i"}},
+                {"environment": {"$regex": pattern, "$options": "i"}},
+            ]
+        page = max(1, int(page or 1))
+        per_page = max(1, min(int(per_page or 30), 200))
+        skip = (page - 1) * per_page
+        col = self.get_collection()
+        total = int(col.count_documents(query))
+        docs = list(col.find(query).sort("time_added", -1).skip(skip).limit(per_page))
+        return docs, total
+
+    def delete_sample(self, sample_oid: str) -> OperationResult:
+        """
+        Delete a sample from the database.
+
+        Args:
+            sample_oid (str): The unique identifier (ObjectId) of the sample to delete.
+
+        Returns:
+            Structured write result for the delete.
+        """
+        result = self.get_collection().delete_one({"_id": ObjectId(sample_oid)})
+        invalidate_samples_cache(self.adapter)
+        operation = OperationResult.from_delete(result)
+        self.invalidate_dashboard_summary()
+        return operation
+
+    def save_report(
+        self,
+        sample_id: str,
+        report_num: int,
+        report_id: str,
+        filepath: str,
+        pdf_filepath: str | None = None,
+        rule_provenance: dict | None = None,
+    ) -> bool | None:
+        """
+        Save a report to a sample document in the database.
+
+        Args:
+            sample_id (str): The unique identifier of the sample.
+            report_num (int): The current running report number.
+            report_id (str): The unique identifier of the report to save.
+            filepath (str): The file path where the report is stored.
+
+        Returns:
+            bool | None: Returns the result of the database update operation.
+        """
+        sample = self.get_sample(sample_id)
+        if not sample:
+            return None
+        return self.adapter.report_repository.save_report(
+            sample=sample,
+            report_num=report_num,
+            report_id=report_id,
+            filepath=filepath,
+            pdf_filepath=pdf_filepath,
+            rule_provenance=rule_provenance,
+        )
+
+    def get_report(self, sample_id: str, report_id: str) -> dict | None:
+        """
+        Retrieve a specific report from the `reports` array of a sample document.
+
+        Args:
+            sample_id (str): The unique identifier of the sample.
+            report_id (str): The unique identifier of the report to retrieve.
+
+        Returns:
+            dict | None: The report document if found, otherwise None.
+        """
+        return self.adapter.report_repository.get_report(sample_id, report_id)
+
+    def get_profile_counts(self) -> dict:
+        """
+        Retrieve the count of samples for each profile.
+
+        This method aggregates sample counts by profile groups, returning a dictionary
+        where each key is a profile and the value is the count of samples in that profile.
+
+        Returns:
+            dict: A dictionary where each key is a profile and the value is the count of samples in that profile.
+        """
+        pipeline = [
+            {"$group": {"_id": "$environment", "count": {"$sum": 1}}},
+            {"$project": {"_id": 0, "environment": "$_id", "count": 1}},
+        ]
+        result = list(self.get_collection().aggregate(pipeline))
+        return {item["environment"]: item["count"] for item in result}
+
+    def get_observed_software_versions(self, *, limit: int = 1000) -> dict[str, object]:
+        """Return bounded, de-duplicated pipeline and VEP versions for public metadata."""
+        pipelines: dict[str, set[str]] = {}
+        vep_versions: set[str] = set()
+        cursor = (
+            self.get_collection()
+            .find(
+                {},
+                {"pipeline": 1, "pipeline_version": 1, "database_versions.vep": 1},
+            )
+            .limit(limit)
+        )
+        for sample in cursor:
+            pipeline = str(sample.get("pipeline") or "").strip()
+            pipeline_version = str(sample.get("pipeline_version") or "").strip()
+            if pipeline:
+                pipelines.setdefault(pipeline, set())
+                if pipeline_version:
+                    pipelines[pipeline].add(pipeline_version)
+            vep_version = str((sample.get("database_versions") or {}).get("vep") or "").strip()
+            if vep_version:
+                vep_versions.add(vep_version)
+        return {
+            "pipelines": {key: sorted(values) for key, values in sorted(pipelines.items())},
+            "vep": sorted(vep_versions),
+        }
+
+    def get_observed_database_versions(self, *, limit: int = 1000) -> dict[str, list[str]]:
+        """Return bounded, de-duplicated sample database versions for public metadata."""
+        database_versions: dict[str, set[str]] = {}
+        cursor = (
+            self.get_collection()
+            .find(
+                {"database_versions": {"$type": "object"}},
+                {"database_versions": 1},
+            )
+            .limit(limit)
+        )
+        for sample in cursor:
+            for name, version in dict(sample.get("database_versions") or {}).items():
+                key = str(name).strip()
+                value = str(version).strip()
+                if key and value:
+                    database_versions.setdefault(key, set()).add(value)
+        return {key: sorted(values) for key, values in sorted(database_versions.items())}
+
+    def get_omics_counts(self) -> dict:
+        """
+        Retrieve the count of samples for each omics type.
+
+        This method aggregates sample counts by omics types, returning a dictionary
+        where each key is an omics type and the value is the count of samples in that omics type.
+
+        Returns:
+            dict: A dictionary where each key is an omics type and the value is the count of samples in that omics type.
+        """
+        pipeline = [
+            {"$group": {"_id": "$omics_layer", "count": {"$sum": 1}}},
+            {"$project": {"_id": 0, "omics_layer": "$_id", "count": 1}},
+        ]
+        result = list(self.get_collection().aggregate(pipeline))
+        return {item["omics_layer"]: item["count"] for item in result}
+
+    def get_sequencing_scope_counts(self) -> dict:
+        """
+        Retrieve the count of samples for each sequencing scope.
+
+        This method aggregates sample counts by sequencing scopes, returning a dictionary
+        where each key is a sequencing scope and the value is the count of samples in that scope.
+
+        Returns:
+            dict: A dictionary where each key is a sequencing scope and the value is the count of samples in that scope.
+        """
+        pipeline = [
+            {"$group": {"_id": "$sequencing_scope", "count": {"$sum": 1}}},
+            {"$project": {"_id": 0, "sequencing_scope": "$_id", "count": 1}},
+        ]
+        result = list(self.get_collection().aggregate(pipeline))
+        return {item["sequencing_scope"]: item["count"] for item in result}
+
+    def get_paired_sample_counts(self) -> dict:
+        """
+        Retrieve the count of paired, unpaired, and samples without a paired key.
+
+        This method aggregates sample counts based on the `paired` field, returning a dictionary
+        where each key is a boolean indicating whether the sample is paired (True) or unpaired (False),
+        and None for samples without a paired key.
+
+        Returns:
+            dict: A dictionary with keys True, False, and None representing paired, unpaired, and missing paired status.
+        """
+        pipeline = [{"$group": {"_id": "$paired", "count": {"$sum": 1}}}]
+        result = list(self.get_collection().aggregate(pipeline))
+        # Ensure all three keys (True, False, None) are present in the result
+        counts = {"paired": 0, "unpaired": 0, "unknown": 0}
+        for item in result:
+            if item["_id"] is True:
+                counts["paired"] = item["count"]
+            elif item["_id"] is False:
+                counts["unpaired"] = item["count"]
+            else:
+                counts["unknown"] = item["count"]
+
+        return counts

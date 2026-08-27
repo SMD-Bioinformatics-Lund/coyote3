@@ -8,25 +8,31 @@ version = "4.0.0"
 requires-python = ">=3.12"
 readme = "README.md"
 license = {file = "LICENSE.txt"}
-description = "A Bioinformatics Interpretation and Analysis Tool built for Section for Molecular Diagnostics, Region Skåne, Lund, Sweden"
+description = "A Bioinformatics Interpretation and Analysis Tool built by bioinformaticians at the Section for Molecular Diagnostics, Region Skåne, Lund, Sweden"
 authors = [
     {name = "Coyote3 Authors"},
 ]
+maintainers = [
+    {name = "SMD Bioinformatics Lund"},
+]
 keywords = [
     "bioinformatics",
+    "clinical-interpretation",
     "clinical-genomics",
+    "genomic-variants",
     "molecular-diagnostics",
-    "flask",
     "fastapi",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Healthcare Industry",
     "Intended Audience :: Science/Research",
-    "License :: Other/Proprietary License",
+    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
-    "Framework :: Flask",
+    "Operating System :: POSIX :: Linux",
+    "Natural Language :: English",
+    "Reporting Language :: English/Swedish",
     "Framework :: FastAPI",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
@@ -34,26 +40,16 @@ dependencies = [
     "arrow==1.4.0",
     "bleach==6.3.0",
     "Brotli==1.2.0",
+    "celery==5.5.3",
     "colorlog==6.10.1",
     "cffi==2.0.0",
     "click==8.3.2",
-    "cryptography==46.0.7",
     "cssselect2==0.9.0",
     "dnspython==2.8.0",
     "email_validator==2.3.0",
     "filelock==3.25.2",
-    "Flask==3.1.3",
-    "Flask-Caching==2.3.1",
-    "Flask-Cors==6.0.2",
-    "Flask-LDAPConn==0.10.2",
-    "Flask-Login==0.6.3",
-    "Flask-PyMongo==3.0.1",
-    "flask_weasyprint==1.2.0",
-    "Flask-WTF==1.2.2",
-    "flash==1.0.3",
     "fonttools==4.62.1",
     "json5==0.14.0",
-    "gunicorn==25.3.0",
     "ldap3==2.9.1",
     "itsdangerous==2.2.0",
     "Jinja2==3.1.6",
@@ -62,12 +58,13 @@ dependencies = [
     "pillow==12.2.0",
     "pydantic==2.13.0",
     "pydantic_core==2.46.0",
+    "casbin==1.36.1",
     "fastapi==0.135.3",
     "python-multipart==0.0.26",
     "uvicorn==0.44.0",
     "httpx==0.28.1",
     "pydyf==0.12.1",
-    "pymongo==4.16.0",
+    "pymongo==4.17.0",
     "pysam==0.23.3",
     "python-dateutil==2.9.0.post0",
     "python-dotenv==1.2.2",
@@ -75,17 +72,13 @@ dependencies = [
     "pytz==2026.1.post1",
     "PyYAML==6.0.3",
     "rich-click==1.9.7",
-    "sentinels==1.1.1",
-    "six==1.17.0",
     "tinycss2==1.5.1",
     "tinyhtml5==2.1.0",
     "toml==0.10.2",
-    "types-python-dateutil==2.9.0.20260408",
     "typing_extensions==4.15.0",
     "weasyprint==68.1",
     "webencodings==0.5.1",
     "Werkzeug==3.1.8",
-    "WTForms==3.2.1",
 ]
 
 [project.urls]
@@ -93,15 +86,22 @@ Homepage = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
 Repository = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
 Documentation = "https://smd-bioinformatics-lund.github.io/coyote3"
 "Bug Tracker" = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues"
+Source = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
+Security = "https://github.com/SMD-Bioinformatics-Lund/coyote3/security"
+Releases = "https://github.com/SMD-Bioinformatics-Lund/coyote3/releases"
 
 [project.optional-dependencies]
 dev = [
     "mypy==1.20.1",
     "mypy-extensions==1.1.0",
     "pre-commit==4.5.1",
+    "pip-audit==2.10.0",
     "shellcheck-py==0.11.0.1",
     "black==26.3.1",
     "ruff==0.15.10",
+    "flake8==7.1.0",
+    "isort==5.13.2",
+    "types-python-dateutil==2.9.0.20260408",
 ]
 test = [
     "pytest==9.0.3",
@@ -112,8 +112,7 @@ test = [
     "mongomock==4.3.0",
 ]
 docs = [
-    "mkdocs",
-    "mkdocs-readthedocs",
+    "mkdocs==1.6.1",
 ]
 
 [tool.ruff]
@@ -129,7 +128,7 @@ exclude = [
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "D", "TID"]
-# D1xx: missing docstrings — not enforced yet (too many to add at once; future work)
+# D1xx: incremental docstring adoption is tracked in .design/TODO.md.
 # D203/D213: conflict with Google style (D211/D212 selected by convention)
 # D400/D401/D415: first-line punctuation — too noisy for existing codebase
 ignore = [
@@ -166,7 +165,6 @@ convention = "google"
 "pymongo" = { msg = "Mongo driver imports are restricted to infra/common/script layers; keep UI and higher-level runtime code storage-agnostic." }
 "bson" = { msg = "Mongo BSON helpers are restricted to infra/common/script layers; use owned helper seams outside those layers." }
 "motor" = { msg = "Mongo driver imports are restricted to infra/common/script layers; keep UI and higher-level runtime code storage-agnostic." }
-"flask_pymongo" = { msg = "UI and runtime code must not talk to Mongo through Flask-PyMongo; use backend HTTP or infra handler seams instead." }
 
 [tool.ruff.lint.per-file-ignores]
 "api/**/*.py" = ["TID251"]
@@ -182,11 +180,39 @@ skip-magic-trailing-comma = false
 line-length = 100
 target-version = ["py312"]
 
+[tool.mypy]
+python_version = "3.12"
+strict = true
+follow_imports = "skip"
+ignore_missing_imports = true
+files = [
+    "api/security/auth_service.py",
+    "api/security/password_flows.py",
+    "api/infra/notifications/email.py",
+    "api/application/accounts/users.py",
+    "api/config/application_modules.py",
+    "api/domain/core/annotation_identity.py",
+    "api/domain/core/dna/variant_identity.py",
+    "api/domain/core/filter_capabilities.py",
+    "api/domain/core/workflows/contracts.py",
+    "api/domain/core/workflows/filter_normalization.py",
+    "api/infra/observability/operations.py",
+    "api/infra/observability/prometheus_metrics.py",
+    "api/domain/core/repository_protocols.py",
+]
+
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["api*", "coyote*", "shared*"]
+include = ["api*"]
 
 [tool.setuptools.package-data]
-coyote = ["templates/**/*.html", "static/**/*"]
+api = [
+    "config/center/*.md",
+    "config/center/*.toml",
+    "config/center/*.yaml",
+    "config/bootstrap/demo_center/*.json",
+    "config/bootstrap/rbac/*.ndjson",
+    "config/bootstrap/reference/*.ndjson.gz",
+]

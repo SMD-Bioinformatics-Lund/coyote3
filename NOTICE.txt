@@ -1,0 +1,14 @@
+Coyote3
+Copyright 2026 Coyote3 Authors
+
+Clinical-use notice
+-------------------
+Coyote3 is software for clinical genomics workflows. Deploying organizations
+are responsible for validating their configured pipelines, assay definitions,
+reporting rules, and operating procedures before using results for clinical
+decision-making. They are also responsible for meeting the applicable
+regulatory, privacy, security, quality-management, and professional-review
+requirements in their jurisdiction.
+
+The software does not provide medical advice and does not replace qualified
+clinical interpretation or local clinical governance.

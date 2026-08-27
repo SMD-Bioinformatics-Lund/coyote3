@@ -25,6 +25,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--username", help="Username or email for password mode")
     parser.add_argument("--password", help="Password for password mode")
+    parser.add_argument(
+        "--provider",
+        choices=("local", "ldap"),
+        help="Configured provider for password mode; verify availability with /api/v1/auth/providers",
+    )
     parser.add_argument("--token", help="Existing bearer/session token for token mode")
     parser.add_argument(
         "--print-token",
@@ -39,12 +44,13 @@ def main(argv: list[str]) -> int:
 
     args = build_parser().parse_args(argv)
     if args.mode == "password":
-        if not args.username or not args.password:
-            raise SystemExit("--username and --password are required in password mode")
+        if not args.username or not args.password or not args.provider:
+            raise SystemExit("--username, --password, and --provider are required in password mode")
         session = login_with_password(
             base_url=args.base_url,
             username=args.username,
             password=args.password,
+            provider=args.provider,
         )
     else:
         if not args.token:

@@ -6,7 +6,7 @@ import logging
 
 import pytest
 
-from shared.cache_backend import DisabledCacheBackend, RedisCacheBackend, create_cache_backend
+from api.infra.cache import DisabledCacheBackend, RedisCacheBackend, create_cache_backend
 
 
 class _FakeRedis:
@@ -62,15 +62,17 @@ class _FakeRedis:
         self._values[key] = value
         return True
 
+    def eval(self, _script: str, _key_count: int, key: str, ttl: int):
+        """Emulate the atomic fixed-window counter result."""
+        count = int(self._values.get(key, b"0")) + 1
+        self._values[key] = str(count).encode()
+        return [count, ttl]
 
-def test_cache_backend_disabled_by_config():
-    """Test cache backend disabled by config.
 
-    Returns:
-        The function result.
-    """
+def test_cache_backend_degrades_when_not_required_and_url_is_missing():
+    """An explicitly non-required cache degrades to a no-op when unavailable."""
     backend = create_cache_backend(
-        config={"CACHE_ENABLED": False},
+        config={"CACHE_REQUIRED": "0"},
         logger=logging.getLogger("test.cache"),
         namespace="api",
     )
@@ -105,10 +107,9 @@ def test_cache_backend_falls_back_when_redis_unavailable(monkeypatch: pytest.Mon
             """
             raise RuntimeError("boom")
 
-    monkeypatch.setattr("shared.cache_backend.redis.Redis", _NoRedis)
+    monkeypatch.setattr("api.infra.cache.redis.Redis", _NoRedis)
     backend = create_cache_backend(
         config={
-            "CACHE_ENABLED": True,
             "CACHE_REQUIRED": False,
             "CACHE_REDIS_URL": "redis://cache:6379/0",
         },
@@ -144,11 +145,10 @@ def test_cache_backend_required_raises_when_redis_unavailable(monkeypatch: pytes
             """
             raise RuntimeError("boom")
 
-    monkeypatch.setattr("shared.cache_backend.redis.Redis", _NoRedis)
+    monkeypatch.setattr("api.infra.cache.redis.Redis", _NoRedis)
     with pytest.raises(RuntimeError):
         create_cache_backend(
             config={
-                "CACHE_ENABLED": True,
                 "CACHE_REQUIRED": True,
                 "CACHE_REDIS_URL": "redis://cache:6379/0",
             },
@@ -184,11 +184,10 @@ def test_redis_cache_backend_roundtrip(monkeypatch: pytest.MonkeyPatch):
             """
             return fake
 
-    monkeypatch.setattr("shared.cache_backend.redis.Redis", _RedisFactory)
+    monkeypatch.setattr("api.infra.cache.redis.Redis", _RedisFactory)
 
     backend = create_cache_backend(
         config={
-            "CACHE_ENABLED": True,
             "CACHE_REQUIRED": True,
             "CACHE_REDIS_URL": "redis://cache:6379/0",
             "CACHE_KEY_PREFIX": "coyote3_cache",
@@ -202,3 +201,11 @@ def test_redis_cache_backend_roundtrip(monkeypatch: pytest.MonkeyPatch):
     assert backend.get("sample-key") is None
     assert backend.set("sample-key", {"k": 1}, timeout=10) is True
     assert backend.get("sample-key") == {"k": 1}
+    assert backend.increment_window("quota", window_seconds=30) == (1, 30)
+    assert backend.increment_window("quota", window_seconds=30) == (2, 30)
+
+
+def test_disabled_cache_rejects_distributed_counters():
+    """Rate limiting must fail closed when no distributed backend exists."""
+    with pytest.raises(RuntimeError, match="Redis is required"):
+        DisabledCacheBackend().increment_window("quota", window_seconds=60)

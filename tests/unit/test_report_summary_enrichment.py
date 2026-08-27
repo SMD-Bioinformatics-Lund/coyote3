@@ -2,24 +2,16 @@ from __future__ import annotations
 
 from bson import ObjectId
 
-from api.services.interpretation import report_summary
-
-
-class _FakeAnnotationCollection:
-    def __init__(self, docs):
-        self._docs = docs
-
-    def find(self, query):
-        wanted = set(query.get("_id", {}).get("$in", []))
-        return [doc for doc in self._docs if doc.get("_id") in wanted]
+from api.application.interpretation import report_summary
 
 
 class _FakeAnnotationHandler:
     def __init__(self, docs):
-        self._collection = _FakeAnnotationCollection(docs)
+        self._docs = docs
 
-    def get_collection(self):
-        return self._collection
+    def get_annotations_by_oids(self, oids):
+        wanted = set(oids)
+        return [doc for doc in self._docs if doc.get("_id") in wanted]
 
 
 class _FakeSampleHandler:
@@ -41,10 +33,10 @@ def test_enrich_reported_variant_docs_batches_samples_and_annotations(monkeypatc
     sample_docs = [
         {
             "_id": sample_oid,
-            "name": "26MD03268",
-            "profile": "production",
-            "assay": "hematology",
-            "subpanel": "Hem",
+            "name": "seed_sample",
+            "environment": "production",
+            "asp_id": "hematology",
+            "subpanel_id": "Hem",
             "case_id": "case",
             "control_id": "control",
             "paired": True,
@@ -53,12 +45,12 @@ def test_enrich_reported_variant_docs_batches_samples_and_annotations(monkeypatc
     annotation_docs = [{"_id": annotation_oid, "assay": "hematology", "subpanel": "Hem"}]
     enriched = report_summary.enrich_reported_variant_docs(
         docs,
-        sample_handler=_FakeSampleHandler(sample_docs),
-        annotation_handler=_FakeAnnotationHandler(annotation_docs),
+        sample_repository=_FakeSampleHandler(sample_docs),
+        annotation_repository=_FakeAnnotationHandler(annotation_docs),
     )
 
     assert len(enriched) == 2
-    assert enriched[0]["sample"]["sample_name"] == "26MD03268"
+    assert enriched[0]["sample"]["sample_name"] == "seed_sample"
     assert enriched[0]["annotation"]["assay"] == "hematology"
-    assert enriched[1]["sample"]["assay"] == "hematology"
+    assert enriched[1]["sample"]["asp_id"] == "hematology"
     assert enriched[1]["annotation"]["subpanel"] == "Hem"

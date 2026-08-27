@@ -16,7 +16,8 @@ SMTP availability differs between environments and cannot be assumed.
 
 ## Decision
 
-For local users (`auth_type=coyote3`), Coyote3 issues one-time password action
+For users whose provider list includes local auth (`auth_type` contains `local`),
+Coyote3 issues one-time password action
 tokens (invite/reset) and attempts email delivery through configured SMTP.
 
 When SMTP is unavailable or sending fails:

@@ -39,7 +39,7 @@ def build_fake_store() -> SimpleNamespace:
     fusion = fx.fusion_doc()
 
     return SimpleNamespace(
-        sample_handler=FakeHandler(
+        sample_repository=FakeHandler(
             {
                 "get_sample": lambda sample_id: sample,
                 "get_sample_by_id": lambda sample_id: sample,
@@ -48,7 +48,7 @@ def build_fake_store() -> SimpleNamespace:
                 "get_samples": lambda **kwargs: [sample],
             }
         ),
-        assay_panel_handler=FakeHandler(
+        assay_panel_repository=FakeHandler(
             {
                 "get_asp": lambda asp_name: {
                     "asp_id": "asp1",
@@ -59,26 +59,27 @@ def build_fake_store() -> SimpleNamespace:
                 "get_all_asps": lambda: [{"asp_id": "asp1", "asp_group": "dna"}],
             }
         ),
-        gene_list_handler=FakeHandler(
+        gene_list_repository=FakeHandler(
             {
                 "get_isgl": lambda _id, **kwargs: isgl,
                 "get_isgl_by_ids": lambda ids: {isgl["isgl_id"]: isgl},
                 "get_isgl_by_asp": lambda asp_name=None, assay=None, **kwargs: [isgl],
+                "get_isgl_for_scope": lambda **kwargs: [isgl],
             }
         ),
-        roles_handler=FakeHandler(
+        roles_repository=FakeHandler(
             {
                 "get_all_roles": lambda: [role],
                 "get_role": lambda role_id: role if role_id == role["_id"] else None,
             }
         ),
-        permissions_handler=FakeHandler(
+        permissions_repository=FakeHandler(
             {
                 "get_all_permissions": lambda **kwargs: [fx.permission_doc()],
                 "get": lambda perm_id: fx.permission_doc(),
             }
         ),
-        variant_handler=FakeHandler(
+        variant_repository=FakeHandler(
             {
                 "get_variant": lambda var_id: variant,
                 "get_case_variants": lambda query: [variant],
@@ -92,7 +93,7 @@ def build_fake_store() -> SimpleNamespace:
                 "get_variant_in_other_samples": lambda var: [],
             }
         ),
-        fusion_handler=FakeHandler(
+        fusion_repository=FakeHandler(
             {
                 "get_fusion": lambda fusion_id: fusion,
                 "get_sample_fusions": lambda query: [fusion],
@@ -105,15 +106,17 @@ def build_fake_store() -> SimpleNamespace:
                 "mark_irrelevant_bulk": lambda ids, apply: None,
             }
         ),
-        copy_number_variant_handler=FakeHandler({"get_sample_cnvs": lambda query: [fx.cnv_doc()]}),
-        biomarker_handler=FakeHandler(
+        copy_number_variant_repository=FakeHandler(
+            {"get_sample_cnvs": lambda query: [fx.cnv_doc()]}
+        ),
+        biomarker_repository=FakeHandler(
             {"get_sample_biomarkers": lambda sample_id: [{"_id": "b1", "name": "TMB"}]}
         ),
-        translocation_handler=FakeHandler({"get_sample_translocations": lambda sample_id: []}),
-        blacklist_handler=FakeHandler(
+        translocation_repository=FakeHandler({"get_sample_translocations": lambda sample_id: []}),
+        blacklist_repository=FakeHandler(
             {"add_blacklist_data": lambda variants, assay_group: variants}
         ),
-        annotation_handler=FakeHandler(
+        annotation_repository=FakeHandler(
             {
                 "get_global_annotations": lambda variant, assay_group, subpanel: (
                     [],
@@ -121,22 +124,28 @@ def build_fake_store() -> SimpleNamespace:
                     [],
                     [],
                 ),
+                "get_latest_transcript_classifications": lambda *args: {},
                 "find_variants_by_search_string": lambda **kwargs: [],
                 "get_tier_stats_by_search": lambda **kwargs: {"total": {}, "by_assay": {}},
+                "get_dashboard_classification_stats": lambda: {
+                    "total": {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0},
+                    "by_assay": {},
+                },
                 "get_annotation_text_by_oid": lambda oid: {"_id": oid, "text": "note"},
             }
         ),
-        reported_variant_handler=FakeHandler(
+        reported_variant_repository=FakeHandler(
             {"list_reported_variants": lambda query: [fx.reported_variant_doc()]}
         ),
-        hgnc_handler=FakeHandler(
+        hgnc_repository=FakeHandler(
             {
                 "get_metadata_by_symbol": lambda symbol: {"symbol": symbol},
+                "get_metadata_by_symbol_or_alias": lambda symbol: {"symbol": symbol},
                 "get_metadata_by_hgnc_id": lambda hgnc_id: {"hgnc_id": hgnc_id},
                 "get_metadata_by_symbols": lambda symbols: [{"symbol": s} for s in symbols],
             }
         ),
-        vep_metadata_handler=FakeHandler(
+        vep_metadata_repository=FakeHandler(
             {
                 "get_variant_class_translations": lambda vep: {},
                 "get_conseq_translations": lambda vep: {},
@@ -144,12 +153,12 @@ def build_fake_store() -> SimpleNamespace:
                 "get_consequence_group_options": lambda vep=None: [],
             }
         ),
-        bam_record_handler=FakeHandler({"get_bams": lambda sample_ids: []}),
-        oncokb_handler=FakeHandler(
+        bam_record_repository=FakeHandler({"get_bams": lambda sample_ids: []}),
+        oncokb_repository=FakeHandler(
             {"get_oncokb_action_gene": lambda symbol: {"Hugo Symbol": symbol}}
         ),
-        expression_handler=FakeHandler({"get_expression_data": lambda tx: []}),
-        rna_expression_handler=FakeHandler({"get_rna_expression": lambda sid: {}}),
-        rna_classification_handler=FakeHandler({"get_rna_classification": lambda sid: {}}),
-        rna_quality_handler=FakeHandler({"get_rna_qc": lambda sid: {}}),
+        expression_repository=FakeHandler({"get_expression_data": lambda tx: []}),
+        rna_expression_repository=FakeHandler({"get_rna_expression": lambda sid: {}}),
+        rna_classification_repository=FakeHandler({"get_rna_classification": lambda sid: {}}),
+        rna_quality_repository=FakeHandler({"get_rna_qc": lambda sid: {}}),
     )

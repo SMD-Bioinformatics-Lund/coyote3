@@ -1,11 +1,20 @@
 # Changelog
 
-## v4.0.0- Unreleased
-- Introduced the API-first backend architecture with the Flask/Tailwind frontend and containerized MongoDB workflow.
-- Improved coverage performance and stability by removing N+1 blacklist lookups and bootstrapping targeted indexes for hot collections.
-- Hardened DNA variant handling and comment persistence, including robust consequence parsing and correct SNV/CNV/translocation comment storage.
-- Refined dashboard visuals and behavior across charts, ISGL overlap views, workload rings, and logged-in summary cards.
-- Expanded developer, operations, and dashboard documentation around metrics, Mongo index strategy, and troubleshooting.
+## v4.0.0 - 2026-08-10
+
+Version 4 replaces the Flask/Jinja application with a production-oriented
+FastAPI and React platform while preserving its supported clinical workflows.
+
+- Added typed DNA and RNA ingestion, analysis, reporting, administration, public
+  catalog, and cohort-review workflows.
+- Added versioned data contracts, ASPC-driven filtering, reference annotations,
+  YAML reporting rules, and immutable report snapshots.
+- Added database-backed access control, authentication, auditing, notifications,
+  background processing, and operational controls.
+- Added secure container deployment, backup and restore tooling, automated tests,
+  and complete operator and clinical documentation.
+- Removed the legacy Flask application, compatibility paths, and automatic
+  first-run orchestration.
 
 ## v3.1.23
 - Added typed DNA CSV export row models (`SNV`/`CNV`) and API-backed export context endpoints for stable, contract-driven CSV formatting.
@@ -18,7 +27,7 @@
 
 ## v3.1.21
 - Fixed HGVS display/toggle behavior across DNA variant list, tiered search, and reported variants views (unique row IDs, stacked HGVS lines, and no blank indent when only one HGVS value exists).
-- Replaced legacy custom width utility usage (`max-w-15c` style) with Tailwind arbitrary values where used.
+- Replaced historical custom width utility usage (`max-w-15c` style) with Tailwind arbitrary values where used.
 - Removed deprecated DNA gene view routes/templates (`/gene_simple/<gene_name>`, `/gene/<gene_name>`).
 
 ## v3.1.20
@@ -26,7 +35,7 @@
 
 ## v3.1.19
 - Fixed Tailwind v4 dynamic class generation gaps by expanding template scan coverage (`.jinja/.jinja2`) and explicit inline source classes for semantic/admin color tokens.
-- Added Tailwind v4 border compatibility base layer and stabilized modal/button styling with Tailwind-safe static class mapping.
+- Added Tailwind v4 border base layer and stabilized modal/button styling with Tailwind-safe static class mapping.
 - Restored same-line live validation feedback in schema creation editor (inline line highlight + inline error widget).
 - Updated admin audit logs view to sort entries by parsed log timestamp in descending order (latest first).
 - Fixed subpath static asset behavior for containerized deployment under `SCRIPT_NAME` (e.g., `/coyote3`) by adding prefix-aware WSGI middleware and normalizing compose env formatting.
@@ -39,10 +48,10 @@
 - Updated dev container flow to build/watch Tailwind only in the dedicated dev Tailwind service, avoiding npm install dependency during `coyote3_dev_app` image build.
 - Added version-aware compose workflow:
   - `docker-compose*.yml` now use `COYOTE3_VERSION` image tags instead of hardcoded app versions.
-  - Added `scripts/compose-with-version.sh` to export version from `coyote/__version__.py` and run `docker compose`.
+  - Added `scripts/compose-with-version.sh` to export version from `api/version.py` and run `docker compose`.
 - Added npm package version sync from Python version source:
   - Added `scripts/sync-package-version.js`.
-  - Wired `postinstall`, `prebuild:css`, and `predev:css` to sync `package.json` version from `coyote/__version__.py`.
+  - Wired package version sync from `api/version.py`.
 - Reworked installation/deployment documentation to production-first, step-by-step runbooks in README and handbook.
 
 ## v3.1.17
@@ -85,7 +94,7 @@
 - Improved HGVS protein normalization to support complex clinical variants and enhanced backfill reliability using JSONL-based dry-run and bulk insert workflows.
 - Fixed gene links to correctly deep-link into tiered variant search with proper query parameters and assay filtering.
 
-## v3.1.5- Added CNV aftefct column from the legacy coyote
+## v3.1.5- Added CNV aftefct column from the historical coyote
 
 ## v3.1.4- Adjusted sample search behavior to remove the time limit for user-initiated searches, while keeping a default 90-day time filter for reported samples.
 - Changed the sample profile filter to hide non-production samples by default, with a toggle to show all samples.
@@ -109,7 +118,7 @@
 - Sample landing (settings/edit) page will now show the list of files associated with the sample and if they exist on the drive.
 - Added support for AdHoc Gene lists
 - Added a key 'adhoc and is_public' to indicate if the gene list is adhoc and public in the isgl schema.
-- Added a public facing assay catalog page to view assay related meta data, genelists, configs, etc. This is controlled by assay_catalog.yaml file along with APC and ASPC.
+- Added a public facing assay catalog page to view assay related metadata, gene lists, and configurations. Catalog presentation is controlled by center configuration together with ASP and ASPC records.
 - Updated dashboard stats to have total counts of variants instead of unique counts to reduce the loading time.
 - Report name format uses `Sample.name` instead of `Sample.case_id`, causing reports to be created with the same `case_id` but different `sample.name`.
 - Public “Assay Coverage Matrix” page with full modality → category → genelist grouping, ASP-aware gene override, and placeholder column support for empty services.
@@ -127,7 +136,7 @@
 - Fixed carry-over of protein changes between variants.
   The protein_changes list is now reinitialized inside the variant processing loop, ensuring each variant has its own independent protein change data.
   Previously, variants without explicit protein changes could inherit those from prior variants, causing incorrect annotations.
-- Added Config/coyote3_collections.toml file to repository for easier configuration management.
+- Added a repository collection-mapping configuration for easier deployment management.
 
 ## v3.0.8
 ### HotFix #117

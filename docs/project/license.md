@@ -1,14 +1,20 @@
-# License
+# License and Clinical Use
 
-Coyote3 licensing terms are defined in the repository root license file.
+Coyote3 is licensed under the Apache License 2.0.
 
-## Canonical file
+## Canonical Files
 
-- `LICENSE.txt`
+- [LICENSE.txt](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/master/LICENSE.txt)
+  contains the complete Apache License 2.0 terms.
+- [NOTICE.txt](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/master/NOTICE.txt)
+  records project attribution and the clinical-use notice.
 
-## Notes
+## Deployment Responsibilities
 
-- Review license obligations before redistributing builds.
-- Keep third-party dependency licenses compliant in packaged releases.
+The open-source license permits use, modification, and redistribution subject
+to its terms. It does not validate a deployment for clinical use. Each
+deploying organization remains responsible for local assay validation,
+clinical governance, privacy and security controls, regulatory obligations,
+and qualified review of clinical results.
 
-For exact legal text, always use `LICENSE.txt` as the source of truth.
+Keep third-party dependency licenses compliant in packaged releases.

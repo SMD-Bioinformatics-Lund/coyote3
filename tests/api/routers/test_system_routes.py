@@ -7,10 +7,42 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
+from starlette.requests import Request
 
-from api.routers import auth as auth_router
-from api.routers import health as health_router
+from api.interfaces.http.operations import auth as auth_router
+from api.interfaces.http.operations import health as health_router
 from tests.fixtures.api import mock_collections as fx
+
+
+def _http_request(*, scheme: str = "http", forwarded_scheme: str | None = None) -> Request:
+    """Build a minimal browser request for direct authentication-route tests."""
+    headers = [] if not forwarded_scheme else [(b"x-forwarded-proto", forwarded_scheme.encode())]
+    return Request(
+        {
+            "type": "http",
+            "scheme": scheme,
+            "headers": headers,
+            "server": ("testserver", 443 if scheme == "https" else 80),
+            "path": "/api/v1/auth/sessions",
+            "raw_path": b"/api/v1/auth/sessions",
+            "query_string": b"",
+        }
+    )
+
+
+def _cookie_request(cookie: str) -> Request:
+    """Build a minimal authenticated browser request."""
+    return Request(
+        {
+            "type": "http",
+            "scheme": "https",
+            "headers": [(b"cookie", cookie.encode())],
+            "server": ("testserver", 443),
+            "path": "/api/v1/auth/session",
+            "raw_path": b"/api/v1/auth/session",
+            "query_string": b"",
+        }
+    )
 
 
 def test_health_returns_ok():
@@ -22,18 +54,35 @@ def test_health_returns_ok():
     assert health_router.health() == {"status": "ok"}
 
 
-def test_docs_alias_vi_redirects_to_v1_docs():
-    """Test docs alias vi redirects to v1 docs.
+def test_auth_providers_returns_deployment_configured_providers(monkeypatch):
+    """Provider discovery follows deployment configuration, not LDAP connection state."""
+    monkeypatch.setattr(auth_router, "AUTH_TYPE_OPTIONS", ("local", "ldap"))
+    monkeypatch.setattr(auth_router.ldap_manager, "_server", None)
 
-    Returns:
-        The function result.
-    """
-    response = health_router.docs_alias_vi()
-    assert response.status_code == 307
-    assert response.headers["location"] == "/api/v1/docs"
+    assert auth_router.auth_providers_read() == {"providers": ["local", "ldap"]}
 
 
-def test_whoami_sorts_permission_lists():
+def test_auth_login_reports_unconfigured_enabled_ldap(monkeypatch):
+    """An enabled LDAP provider fails at login rather than application startup."""
+    monkeypatch.setattr(auth_router, "AUTH_TYPE_OPTIONS", ("local", "ldap"))
+    monkeypatch.setattr(auth_router.ldap_manager, "_server", None)
+
+    with pytest.raises(HTTPException) as exc:
+        auth_router.create_auth_session(
+            auth_router.ApiAuthLoginRequest(
+                username="user@example.org", password="secret", provider="ldap"
+            ),
+            _http_request(),
+        )
+
+    assert exc.value.status_code == 503
+    assert (
+        exc.value.detail["error"]
+        == "LDAP login is enabled but directory configuration is unavailable"
+    )
+
+
+def test_whoami_sorts_permission_list(monkeypatch):
     """Test whoami sorts permission lists.
 
     Returns:
@@ -41,12 +90,43 @@ def test_whoami_sorts_permission_lists():
     """
     user = fx.api_user()
     user.permissions = ["b", "a"]
-    user.denied_permissions = ["z", "y"]
 
-    payload = auth_router.whoami(user=user)
+    monkeypatch.setattr(
+        auth_router,
+        "get_request_api_session",
+        lambda _request: SimpleNamespace(csrf_token="csrf-test-token"),
+    )
+    payload = auth_router.whoami(request=SimpleNamespace(), user=user)
 
     assert payload["permissions"] == ["a", "b"]
-    assert payload["denied_permissions"] == ["y", "z"]
+    assert payload["ui_settings"] == {
+        "analysis_layout": "classic",
+        "sample_list_layout": "classic",
+        "analysis_modern_view_tried": False,
+        "sample_list_modern_view_tried": False,
+        "table_page_size": 50,
+    }
+    assert payload["csrf_token"] == "csrf-test-token"
+    assert "denied_permissions" not in payload
+
+
+def test_current_user_can_update_analysis_layout():
+    """The self-service settings route delegates a validated global layout value."""
+    user = fx.api_user()
+    service = SimpleNamespace(
+        update_own_ui_settings=lambda **kwargs: {
+            "status": "ok",
+            "ui_settings": {"analysis_layout": kwargs["payload"]["analysis_layout"]},
+        }
+    )
+
+    payload = auth_router.update_current_ui_settings(
+        auth_router.ApiUiSettingsUpdateRequest(analysis_layout="modern"),
+        user=user,
+        service=service,
+    )
+
+    assert payload == {"status": "ok", "ui_settings": {"analysis_layout": "modern"}}
 
 
 def test_auth_login_rejects_invalid_credentials(monkeypatch):
@@ -58,10 +138,13 @@ def test_auth_login_rejects_invalid_credentials(monkeypatch):
     Returns:
         The function result.
     """
-    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p: None)
+    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p, **_kwargs: None)
 
     with pytest.raises(HTTPException) as exc:
-        auth_router.create_auth_session(auth_router.ApiAuthLoginRequest(username="u", password="p"))
+        auth_router.create_auth_session(
+            auth_router.ApiAuthLoginRequest(username="u", password="p", provider="local"),
+            _http_request(),
+        )
 
     assert exc.value.status_code == 401
     assert exc.value.detail["error"] == "Invalid credentials"
@@ -79,14 +162,18 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
     user_doc = fx.user_doc()
     calls = {}
 
-    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p: user_doc)
+    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p, **_kwargs: user_doc)
     monkeypatch.setattr(
         auth_router,
         "update_user_last_login",
         lambda user_id: calls.setdefault("updated_user", user_id),
     )
     monkeypatch.setattr(
-        auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}"
+        auth_router,
+        "create_api_session",
+        lambda user_id, **_kwargs: SimpleNamespace(
+            token=f"session-{user_id}", csrf_token="csrf-token"
+        ),
     )
     monkeypatch.setattr(
         auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"}
@@ -98,11 +185,12 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
         raising=False,
     )
     monkeypatch.setattr(auth_router, "get_api_session_cookie_name", lambda: "api_session")
-    monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda: True)
+    monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda **_kwargs: True)
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
 
     response = auth_router.create_auth_session(
-        auth_router.ApiAuthLoginRequest(username=" tester ", password="p")
+        auth_router.ApiAuthLoginRequest(username=" tester ", password="p", provider="local"),
+        _http_request(scheme="https"),
     )
 
     assert response.status_code == 201
@@ -125,10 +213,14 @@ def test_create_auth_session_returns_201(monkeypatch):
     """
     user_doc = fx.user_doc()
 
-    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p: user_doc)
+    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p, **_kwargs: user_doc)
     monkeypatch.setattr(auth_router, "update_user_last_login", lambda user_id: None)
     monkeypatch.setattr(
-        auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}"
+        auth_router,
+        "create_api_session",
+        lambda user_id, **_kwargs: SimpleNamespace(
+            token=f"session-{user_id}", csrf_token="csrf-token"
+        ),
     )
     monkeypatch.setattr(
         auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"}
@@ -140,11 +232,12 @@ def test_create_auth_session_returns_201(monkeypatch):
         raising=False,
     )
     monkeypatch.setattr(auth_router, "get_api_session_cookie_name", lambda: "api_session")
-    monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda: True)
+    monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda **_kwargs: True)
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
 
     response = auth_router.create_auth_session(
-        auth_router.ApiAuthLoginRequest(username=" tester ", password="p")
+        auth_router.ApiAuthLoginRequest(username=" tester ", password="p", provider="local"),
+        _http_request(scheme="https"),
     )
 
     assert response.status_code == 201
@@ -163,14 +256,18 @@ def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
     user_doc["user_id"] = "coyote3.admin"
     calls = {}
 
-    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p: user_doc)
+    monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p, **_kwargs: user_doc)
     monkeypatch.setattr(
         auth_router,
         "update_user_last_login",
         lambda user_id: calls.setdefault("updated_user", user_id),
     )
     monkeypatch.setattr(
-        auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}"
+        auth_router,
+        "create_api_session",
+        lambda user_id, **_kwargs: SimpleNamespace(
+            token=f"session-{user_id}", csrf_token="csrf-token"
+        ),
     )
     monkeypatch.setattr(
         auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"}
@@ -182,11 +279,12 @@ def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
         raising=False,
     )
     monkeypatch.setattr(auth_router, "get_api_session_cookie_name", lambda: "api_session")
-    monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda: True)
+    monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda **_kwargs: True)
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
 
     response = auth_router.create_auth_session(
-        auth_router.ApiAuthLoginRequest(username="tester", password="p")
+        auth_router.ApiAuthLoginRequest(username="tester", password="p", provider="local"),
+        _http_request(scheme="https"),
     )
 
     assert response.status_code == 201
@@ -229,10 +327,18 @@ def test_auth_session_serializes_user(monkeypatch):
         raising=False,
     )
 
-    payload = auth_router.auth_session(user=fx.api_user())
+    monkeypatch.setattr(
+        auth_router,
+        "get_request_api_session",
+        lambda _request: SimpleNamespace(csrf_token="csrf-token"),
+    )
+    payload = auth_router.auth_session(
+        request=_cookie_request("api_session=session-token"), user=fx.api_user()
+    )
 
     assert payload["status"] == "ok"
     assert payload["user"]["username"] == "tester"
+    assert payload["csrf_token"] == "csrf-token"
 
 
 def test_change_password_rejects_weak_password():

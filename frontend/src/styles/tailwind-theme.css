@@ -1,0 +1,833 @@
+
+/* Tailwind v4 theme configuration. Keep all palette values and mode tokens here. */
+/* Dark mode is explicitly class-driven to match the application's theme toggle. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design-system contract
+ * ----------------------
+ * 1. Primitive/domain palettes are implementation details.
+ * 2. Components should prefer semantic tokens (background, card, border,
+ *    muted, status, surface-hover, row-selected, etc.).
+ * 3. Domain colors (tier, DNA/RNA, germline, CNV, environment, assay)
+ *    must never be reused as arbitrary structural UI colors.
+ * 4. Dense typography remains stable; responsiveness should primarily
+ *    change layout and spacing rather than continuously rescale small text.
+ * 5. Light and dark mode must preserve semantic meaning, not literal color.
+ * 6. Do not add component-specific tokens unless the semantic role is reused
+ *    across multiple parts of the application.
+ */
+
+/*
+ * Fluid-scaling contract
+ * ----------------------
+ * Coyote3 is a workstation application. UI density scales continuously with
+ * available viewport width instead of relying on discrete device classes.
+ *
+ * Fluid: typography, page gutters, card padding, section gaps, table padding,
+ * control height, radii, and optional icon sizing.
+ *
+ * Structural breakpoints still control grid/column reflow. Very wide displays
+ * are capped only from 2560 CSS px upward; normal 1920 and 2560 workstations
+ * should use the available width.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-link: var(--link);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-chrome-foreground: var(--chrome-foreground);
+  --color-chrome-muted-foreground: var(--chrome-muted-foreground);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+  --color-surface-selected: var(--surface-selected);
+  --color-row-hover: var(--row-hover);
+  --color-row-selected: var(--row-selected);
+  --color-disabled-background: var(--disabled-background);
+  --color-disabled-foreground: var(--disabled-foreground);
+  --color-disabled-border: var(--disabled-border);
+  --color-table-border: var(--table-border);
+  --color-table-border-strong: var(--table-border-strong);
+  --color-table-row-alt: var(--table-row-alt);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Durable motion and layout tokens */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+
+  /*
+   * Fluid workstation layout:
+   * - laptops and normal monitors use the available width
+   * - very wide displays are capped for readability
+   */
+  --content-narrow: 48rem;
+  --content-default: 80rem;
+  --content-wide: 96rem;
+  --content-ultrawide: 192rem; /* 3072px */
+
+  /* Ultra-wide behavior begins at 2560 CSS px. */
+  --breakpoint-3xl: 160rem;
+
+  /* Subtle UI palettes */
+  --color-brown-50: #f5f5ef;
+  --color-brown-100: #e2d6c0;
+  --color-brown-200: #caae80;
+  --color-brown-300: #b08d57;
+  --color-brown-400: #926a3d;
+  --color-brown-500: #79553a;
+  --color-brown-600: #604330;
+  --color-brown-700: #4d3526;
+  --color-brown-800: #3d2a1e;
+  --color-brown-900: #312218;
+  --color-brown-950: #1f140f;
+
+  --color-olive-50: #fafdf5;
+  --color-olive-100: #e3edcd;
+  --color-olive-200: #ccdbae;
+  --color-olive-300: #b2c48c;
+  --color-olive-400: #99ad6b;
+  --color-olive-500: #7d9151;
+  --color-olive-600: #667741;
+  --color-olive-700: #515f34;
+  --color-olive-800: #3d4927;
+  --color-olive-900: #2f391d;
+  --color-olive-950: #1e2412;
+
+  --color-sage-50: #f6faf8;
+  --color-sage-100: #e7f0ec;
+  --color-sage-200: #cedfd7;
+  --color-sage-300: #adc8bc;
+  --color-sage-400: #88ad9d;
+  --color-sage-500: #6e9383;
+  --color-sage-600: #587767;
+  --color-sage-700: #475f53;
+  --color-sage-800: #394d44;
+  --color-sage-900: #2f4039;
+
+  --color-sand-50: #fdfbf7;
+  --color-sand-100: #f7f1e7;
+  --color-sand-200: #ede1cc;
+  --color-sand-300: #dfcbab;
+  --color-sand-400: #d1b58a;
+  --color-sand-500: #b89a6d;
+  --color-sand-600: #967e57;
+  --color-sand-700: #796648;
+  --color-sand-800: #62523c;
+  --color-sand-900: #524535;
+
+  --color-mist-50: #f8fafb;
+  --color-mist-100: #eef2f4;
+  --color-mist-200: #dce3e8;
+  --color-mist-300: #c3ced6;
+  --color-mist-400: #a4b3bf;
+  --color-mist-500: #889aa8;
+  --color-mist-600: #6e7f8d;
+  --color-mist-700: #596771;
+  --color-mist-800: #4a555c;
+  --color-mist-900: #40474e;
+
+  /* Semantic single colors */
+  --color-production: #3e7067;
+  --color-development: #3b5ba0;
+  --color-testing: #857d88;
+  --color-validation: #a37c27;
+  --color-pass: #4d765b;
+  --color-germline: #b5761b;
+  --color-germline-risk: #9b3d12;
+  --color-warn: #c17c00;
+  --color-fail: #8c1d1d;
+  --color-tier1: #af6246;
+  --color-tier2: #ae8540;
+  --color-tier3: #4f7d9f;
+  --color-tier4: #4b8b76;
+  --color-tier999: #666666;
+  --color-tierother: #999999;
+  --color-tier-header1: rgb(213 94 0 / 50%);
+  --color-tier-header2: rgb(230 159 0 / 50%);
+  --color-tier-header3: rgb(0 114 178 / 50%);
+  --color-tier-header4: rgb(0 158 115 / 50%);
+  --color-tier-header999: rgb(102 102 102 / 50%);
+  --color-melanoma: #b86f70;
+  --color-cns: #5f9881;
+  --color-lung: #b76f82;
+  --color-colon: #8a929b;
+  --color-gi: #b98068;
+  --color-dna: #b77e59;
+  --color-rna: #a76676;
+  --color-genelist: #729aa0;
+  --color-fusionlist: #8db79d;
+  --color-cnvlist: #c9a47a;
+  --color-panel: #4d78aa;
+  --color-wts: #a76676;
+  --color-wgs: #3e8276;
+  --color-paired: #009e73;
+  --color-unpaired: #e69f00;
+  --color-unknown: #6b7280;
+}
+
+/*
+ * Semantic typography roles. Repeated interface text should use these roles
+ * instead of choosing font size and weight independently in each page.
+ */
+@utility type-page-eyebrow {
+  font-size: clamp(0.60rem, 0.57rem + 0.10vw, 0.66rem);
+  line-height: 1.25;
+  @apply font-semibold;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+@utility type-page-title {
+  font-size: clamp(1.30rem, 1.12rem + 0.55vw, 1.70rem);
+  line-height: 1.15;
+  @apply font-normal;
+}
+
+@utility type-hero-title {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  line-height: 1.02;
+  @apply font-bold;
+  letter-spacing: 0;
+}
+
+@utility type-card-title {
+  font-size: clamp(0.88rem, 0.84rem + 0.12vw, 1rem);
+  line-height: 1.35;
+  @apply font-semibold;
+  letter-spacing: 0;
+}
+
+@utility type-numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility type-section-title {
+  font-size: clamp(0.75rem, 0.72rem + 0.10vw, 0.82rem);
+  line-height: 1.35;
+  @apply font-semibold;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+@utility type-table-header {
+  @apply font-semibold text-muted-foreground;
+  font-size: clamp(0.70rem, 0.68rem + 0.07vw, 0.76rem);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+
+@utility type-table-cell {
+  @apply font-normal;
+  font-size: clamp(0.80rem, 0.77rem + 0.10vw, 0.875rem);
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+@utility type-table-value {
+  @apply font-normal;
+  font-size: clamp(0.80rem, 0.77rem + 0.10vw, 0.875rem);
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+@utility type-table-value-emphasis {
+  @apply font-semibold;
+  font-size: clamp(0.80rem, 0.77rem + 0.10vw, 0.875rem);
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+@utility type-allele-frequency {
+  font-variant-numeric: tabular-nums;
+  @apply font-semibold;
+  color: var(--foreground);
+}
+
+@utility type-label {
+  font-size: clamp(0.62rem, 0.60rem + 0.06vw, 0.67rem);
+  line-height: 1.3;
+  @apply font-semibold;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+@utility type-body {
+  font-size: clamp(0.76rem, 0.73rem + 0.10vw, 0.82rem);
+  line-height: 1.5;
+  @apply font-normal;
+  letter-spacing: 0;
+}
+
+@utility type-body-sm {
+  font-size: clamp(0.71rem, 0.69rem + 0.08vw, 0.76rem);
+  line-height: 1.45;
+  @apply font-normal;
+  letter-spacing: 0;
+}
+
+@utility type-meta {
+  font-size: clamp(0.67rem, 0.65rem + 0.06vw, 0.72rem);
+  line-height: 1.35;
+  @apply font-medium;
+  letter-spacing: 0;
+}
+
+@utility type-badge {
+  @apply inline-flex items-center justify-center font-semibold;
+
+  font-size: clamp(0.68rem, 0.66rem + 0.05vw, 0.72rem);
+  line-height: 1;
+
+  padding: 0.28rem 0.5rem;
+  border-radius: 9999px;
+
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+
+@utility type-info-badge {
+  font-size: 0.4375rem;
+  line-height: 1;
+  @apply font-semibold;
+  letter-spacing: 0;
+}
+
+
+/*
+ * Responsive density helpers.
+ * These keep shared UI surfaces compact on smaller screens without requiring
+ * every component to define its own typography and spacing rules.
+ */
+@utility responsive-page-padding {
+  padding-inline: var(--space-page-x);
+}
+
+/*
+ * Base page-shell behavior:
+ * - Small/medium: use the available viewport width.
+ * - Laptop / normal desktop / 2560px workstation: use available width.
+ * - Ultra-wide: constrain and center only from the 3xl (2560px) breakpoint.
+ * - Ultra-wide content cap: 192rem / 3072px.
+ *
+ * This utility intentionally does NOT set max-width or margin-inline.
+ * PageShell owns those structural decisions responsively.
+ */
+@utility page-shell-fluid {
+  width: 100%;
+  max-width: none;
+}
+
+@utility responsive-card-padding {
+  padding: var(--space-card);
+}
+
+@utility responsive-section-gap {
+  gap: var(--space-section);
+}
+
+@utility responsive-control-height {
+  min-height: var(--control-height);
+}
+
+@utility responsive-table-cell-x {
+  padding-inline: var(--space-table-x);
+}
+
+@utility responsive-table-cell-y {
+  padding-block: var(--space-table-y);
+}
+
+
+/* Shared interaction behavior */
+@utility theme-transition {
+  transition:
+    background-color 160ms var(--ease-standard),
+    border-color 160ms var(--ease-standard),
+    color 140ms var(--ease-standard),
+    box-shadow 160ms var(--ease-standard);
+}
+
+@utility interaction-transition {
+  transition:
+    background-color 120ms var(--ease-standard),
+    border-color 120ms var(--ease-standard),
+    color 120ms var(--ease-standard),
+    box-shadow 120ms var(--ease-standard),
+    transform 100ms var(--ease-standard);
+}
+
+@utility focus-ring {
+  outline: none;
+  box-shadow:
+    0 0 0 1px var(--focus-ring),
+    0 0 0 4px var(--focus-ring-soft);
+}
+
+@utility touch-target {
+  min-height: 2rem;
+  min-width: 2rem;
+}
+
+@utility viewport-height {
+  min-height: 100dvh;
+}
+
+@utility responsive-icon {
+  width: clamp(0.9rem, 0.82rem + 0.18vw, 1.15rem);
+  height: clamp(0.9rem, 0.82rem + 0.18vw, 1.15rem);
+}
+
+@utility content-narrow {
+  max-width: var(--content-narrow);
+}
+
+@utility content-default {
+  max-width: var(--content-default);
+}
+
+@utility content-wide {
+  max-width: var(--content-wide);
+}
+
+@utility content-ultrawide {
+  max-width: var(--content-ultrawide);
+}
+
+@utility shadow-surface-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+@utility shadow-surface-md {
+  box-shadow: var(--shadow-md);
+}
+
+@utility shadow-surface-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+@media (pointer: coarse) {
+  .touch-target {
+    min-height: 2.5rem;
+    min-width: 2.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+:root {
+  color-scheme: light;
+
+  /*
+   * Coordinated fluid UI density.
+   * The application becomes slightly denser on compact viewports and
+   * slightly more spacious on large workstation displays.
+   */
+  --ui-scale: clamp(0.90, 0.84 + 0.005vw, 1.08);
+
+  --space-page-x: clamp(0.5rem, 0.25rem + 0.35vw, 0.75rem);
+  --space-card: clamp(0.70rem, 0.54rem + 0.42vw, 1.05rem);
+  --space-section: clamp(0.70rem, 0.50rem + 0.45vw, 1.15rem);
+
+  --space-table-x: clamp(0.40rem, 0.30rem + 0.22vw, 0.75rem);
+  --space-table-y: clamp(0.32rem, 0.26rem + 0.15vw, 0.50rem);
+
+  --control-height: clamp(2rem, 1.85rem + 0.25vw, 2.35rem);
+
+  --surface-hover: oklch(0.89 0.008 255);
+  --surface-active: oklch(0.865 0.012 275);
+  --surface-selected: oklch(0.88 0.018 285);
+  --row-hover: oklch(0.94 0.005 255);
+  --row-selected: oklch(0.91 0.016 285);
+
+  --focus-ring: oklch(0.52 0.12 302);
+  --focus-ring-soft: oklch(0.52 0.12 302 / 22%);
+
+  --disabled-background: oklch(0.91 0.003 255);
+  --disabled-foreground: oklch(0.54 0.006 255);
+  --disabled-border: oklch(0.82 0.006 255);
+
+  --table-border: oklch(0.82 0.006 255);
+  --table-border-strong: oklch(0.75 0.009 255);
+  --table-row-alt: oklch(0.945 0.003 255 / 55%);
+
+  --shadow-sm: 0 1px 2px rgb(40 50 70 / 5%);
+  --shadow-md:
+    0 2px 6px rgb(40 50 70 / 7%),
+    0 1px 2px rgb(40 50 70 / 5%);
+  --shadow-lg:
+    0 8px 24px rgb(40 50 70 / 10%),
+    0 2px 6px rgb(40 50 70 / 6%);
+
+  --background: oklch(0.925 0.003 255);
+  --foreground: oklch(0.235 0.006 255);
+  --card: oklch(0.965 0.003 255);
+  --card-foreground: oklch(0.235 0.006 255);
+  --popover: oklch(0.975 0.003 255);
+  --popover-foreground: oklch(0.235 0.006 255);
+  --primary: oklch(0.45 0.105 302);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.905 0.005 255);
+  --secondary-foreground: oklch(0.235 0.006 255);
+  --muted: oklch(0.895 0.004 255);
+  --muted-foreground: oklch(0.405 0.007 255);
+  --accent: oklch(0.885 0.012 255);
+  --accent-foreground: oklch(0.235 0.007 255);
+  --destructive: oklch(0.55 0.15 25);
+  --border: oklch(0.79 0.007 255);
+  --input: oklch(0.895 0.006 255);
+  --ring: oklch(0.45 0.105 302);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: clamp(0.65rem, 0.55rem + 0.20vw, 0.90rem);
+  --sidebar: oklch(0.94 0.004 255);
+  --sidebar-foreground: oklch(0.235 0.006 255);
+  --sidebar-primary: oklch(0.45 0.105 302);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.885 0.018 255);
+  --sidebar-accent-foreground: oklch(0.235 0.008 255);
+  --sidebar-border: oklch(0.79 0.007 255);
+  --sidebar-ring: oklch(0.45 0.105 302);
+  /* Physical-paper materials provide the shared surface hierarchy. */
+  --paper-surface: oklch(0.945 0.004 255);
+  --paper-raised: oklch(0.973 0.003 255);
+  --paper-inset: oklch(0.905 0.006 255);
+  --paper-edge: oklch(0.79 0.009 255);
+  --paper-layer: oklch(0.845 0.012 255);
+  --header-surface: oklch(0.885 0.01 255);
+  --table-header-surface: oklch(0.86 0.012 280);
+  --control-surface: oklch(0.90 0.01 255);
+  --matrix-mod-surface: oklch(0.90 0.01 255);
+  --matrix-group-surface: oklch(0.92 0.008 255);
+  --matrix-assay-surface: oklch(0.94 0.006 255);
+  --matrix-list-surface: oklch(0.96 0.003 255);
+  --paper-shadow: rgb(52 66 93 / 9%);
+  --paper-shadow-deep: rgb(52 66 93 / 15%);
+  --paper-highlight: rgb(255 255 255 / 48%);
+  --link: #2c679f;
+  --link-hover: #1d4f7d;
+  --badge-info-border: #90aabe;
+  --badge-info-background: #e2ebf1;
+  --badge-info-foreground: #365f7b;
+  --badge-success-border: #91ae9a;
+  --badge-success-background: #e4eee6;
+  --badge-success-foreground: #315f43;
+  --badge-warning-border: #c7a36a;
+  --badge-warning-background: #f3ead9;
+  --badge-warning-foreground: #805d1e;
+  --badge-danger-border: #c89a96;
+  --badge-danger-background: #f3e3e1;
+  --badge-danger-foreground: #823b3c;
+  --badge-signal-border: #b596ae;
+  --badge-signal-background: #f0e5ed;
+  --badge-signal-foreground: #774766;
+  --badge-pgx-border: #bc91b0;
+  --badge-pgx-background: #f3e4ef;
+  --badge-pgx-foreground: #7a3c6c;
+  --badge-neutral-border: #abb4bd;
+  --badge-neutral-background: #e8ebee;
+  --badge-neutral-foreground: #5b6670;
+  --badge-production-border: #87aaa1;
+  --badge-production-background: #e1eeea;
+  --badge-production-foreground: #285e57;
+
+  /* General-purpose status surfaces. Domain colors remain separate. */
+  --status-info: #4f7d9f;
+  --status-info-soft: #e2ebf1;
+  --status-info-foreground: #365f7b;
+  --status-success: #4d765b;
+  --status-success-soft: #e4eee6;
+  --status-success-foreground: #315f43;
+  --status-warning: #aa8040;
+  --status-warning-soft: #f3ead9;
+  --status-warning-foreground: #805d1e;
+  --status-danger: #a75c5c;
+  --status-danger-soft: #f3e3e1;
+  --status-danger-foreground: #823b3c;
+  --coverage-exon: #c9d0d6;
+  --coverage-low: #d89b9b;
+  --coverage-cds: #91ae9a;
+  --coverage-probe: #90aabe;
+  --coverage-unavailable: #59636c;
+  --chart-tooltip-cursor: rgb(92 79 148 / 9%);
+  --login-cloud: #5e93ac;
+  --accent-red: #a75c5c;
+  --accent-blue: var(--color-tier3);
+  --accent-yellow: #aa8040;
+  --accent-indigo: #6d6699;
+  --accent-green: var(--color-pass);
+  --accent-purple: #875f82;
+  --accent-brown: #8b6849;
+  --accent-gray: #64748b;
+  --brand-start: oklch(0.5 0.115 302);
+  --brand-end: oklch(0.66 0.13 58);
+  --brand-gradient: linear-gradient(135deg, var(--brand-start), var(--brand-end));
+  --chrome-top: linear-gradient(
+    105deg,
+    color-mix(in srgb, var(--brand-start) 82%, #2d2535),
+    color-mix(in srgb, var(--brand-end) 68%, var(--brand-start))
+  );
+  --chrome-side: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--brand-start) 76%, #2d2535),
+    color-mix(in srgb, var(--brand-start) 58%, #25212b)
+  );
+  --chrome-foreground: oklch(0.97 0.006 75);
+  --chrome-muted-foreground: oklch(0.84 0.018 75);
+  --chrome-border: rgb(255 255 255 / 18%);
+  --chrome-control: rgb(255 255 255 / 8%);
+  --chrome-control-hover: rgb(255 255 255 / 15%);
+  --chrome-active: rgb(255 255 255 / 20%);
+  --chrome-active-border: rgb(255 255 255 / 32%);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --surface-hover: oklch(0.29 0.006 255);
+  --surface-active: oklch(0.32 0.012 285);
+  --surface-selected: oklch(0.325 0.02 290);
+  --row-hover: oklch(0.275 0.006 255);
+  --row-selected: oklch(0.30 0.018 290);
+
+  --focus-ring: oklch(0.70 0.105 302);
+  --focus-ring-soft: oklch(0.70 0.105 302 / 28%);
+
+  --disabled-background: oklch(0.235 0.004 255);
+  --disabled-foreground: oklch(0.58 0.006 255);
+  --disabled-border: oklch(0.39 0.006 255);
+
+  --table-border: oklch(0.39 0.006 255);
+  --table-border-strong: oklch(0.48 0.008 255);
+  --table-row-alt: oklch(0.245 0.004 255 / 55%);
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 22%);
+  --shadow-md:
+    0 3px 8px rgb(0 0 0 / 28%),
+    0 1px 2px rgb(0 0 0 / 20%);
+  --shadow-lg:
+    0 10px 28px rgb(0 0 0 / 38%),
+    0 3px 8px rgb(0 0 0 / 24%);
+
+  --background: oklch(0.205 0.004 255);
+  --foreground: oklch(0.925 0.004 255);
+  --card: oklch(0.255 0.005 255);
+  --card-foreground: oklch(0.935 0.004 255);
+  --popover: oklch(0.27 0.005 255);
+  --popover-foreground: oklch(0.945 0.004 255);
+  --primary: oklch(0.65 0.1 302);
+  --primary-foreground: oklch(0.985 0.002 250);
+  --secondary: oklch(0.28 0.005 255);
+  --secondary-foreground: oklch(0.925 0.004 255);
+  --muted: oklch(0.245 0.004 255);
+  --muted-foreground: oklch(0.78 0.006 255);
+  --accent: oklch(0.3 0.006 255);
+  --accent-foreground: oklch(0.94 0.004 255);
+  --destructive: oklch(0.65 0.11 25);
+  --border: oklch(0.5 0.006 255 / 58%);
+  --input: oklch(0.23 0.004 255);
+  --ring: oklch(0.65 0.1 302);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.225 0.004 255);
+  --sidebar-foreground: oklch(0.915 0.004 255);
+  --sidebar-primary: oklch(0.65 0.1 302);
+  --sidebar-primary-foreground: oklch(0.985 0.002 250);
+  --sidebar-accent: oklch(0.29 0.006 255);
+  --sidebar-accent-foreground: oklch(0.93 0.004 255);
+  --sidebar-border: oklch(0.5 0.006 255 / 58%);
+  --sidebar-ring: oklch(0.65 0.1 302);
+  --paper-surface: oklch(0.255 0.005 255);
+  --paper-raised: oklch(0.275 0.005 255);
+  --paper-inset: oklch(0.23 0.004 255);
+  --paper-edge: oklch(0.48 0.006 255 / 76%);
+  --paper-layer: oklch(0.3 0.006 255);
+  --header-surface: oklch(0.315 0.007 255);
+  --table-header-surface: oklch(0.315 0.012 285);
+  --control-surface: oklch(0.27 0.005 255);
+  --matrix-mod-surface: oklch(0.285 0.006 255);
+  --matrix-group-surface: oklch(0.28 0.005 255);
+  --matrix-assay-surface: oklch(0.275 0.005 255);
+  --matrix-list-surface: oklch(0.27 0.005 255);
+  --paper-shadow: rgb(0 0 0 / 36%);
+  --paper-shadow-deep: rgb(0 0 0 / 52%);
+  --paper-highlight: rgb(255 255 255 / 10%);
+  --link: #8dbce5;
+  --link-hover: #b4d8f3;
+  --badge-info-border: #416879;
+  --badge-info-background: #203541;
+  --badge-info-foreground: #a9cbe0;
+  --badge-success-border: #4f725a;
+  --badge-success-background: #24362a;
+  --badge-success-foreground: #b4d0bb;
+  --badge-warning-border: #7c653a;
+  --badge-warning-background: #3d301e;
+  --badge-warning-foreground: #e2c78c;
+  --badge-danger-border: #7d4d51;
+  --badge-danger-background: #3c2629;
+  --badge-danger-foreground: #e0aeb0;
+  --badge-signal-border: #76566e;
+  --badge-signal-background: #382b36;
+  --badge-signal-foreground: #d8b6cf;
+  --badge-pgx-border: #79536f;
+  --badge-pgx-background: #3b2837;
+  --badge-pgx-foreground: #e1b8d8;
+  --badge-neutral-border: #5c6670;
+  --badge-neutral-background: #30363b;
+  --badge-neutral-foreground: #c1c9d0;
+  --badge-production-border: #47736b;
+  --badge-production-background: #203834;
+  --badge-production-foreground: #b3d7ce;
+
+  --status-info: #7fa6c4;
+  --status-info-soft: #203541;
+  --status-info-foreground: #a9cbe0;
+  --status-success: #86ac91;
+  --status-success-soft: #24362a;
+  --status-success-foreground: #b4d0bb;
+  --status-warning: #c89a56;
+  --status-warning-soft: #3d301e;
+  --status-warning-foreground: #e2c78c;
+  --status-danger: #c97979;
+  --status-danger-soft: #3c2629;
+  --status-danger-foreground: #e0aeb0;
+  --coverage-exon: #5d666f;
+  --coverage-low: #9c6267;
+  --coverage-cds: #5f8769;
+  --coverage-probe: #62859b;
+  --coverage-unavailable: #9aa3aa;
+  --chart-tooltip-cursor: rgb(171 157 222 / 14%);
+  --login-cloud: #a5b7cf;
+  --brand-start: oklch(0.63 0.105 302);
+  --brand-end: oklch(0.69 0.12 62);
+  --brand-gradient: linear-gradient(135deg, var(--brand-start), var(--brand-end));
+  --chrome-top: linear-gradient(105deg, oklch(0.3 0.055 302), oklch(0.31 0.045 35));
+  --chrome-side: linear-gradient(180deg, oklch(0.275 0.05 302), oklch(0.235 0.032 302));
+  --chrome-foreground: oklch(0.94 0.008 75);
+  --chrome-muted-foreground: oklch(0.76 0.016 75);
+  --chrome-border: rgb(255 255 255 / 15%);
+  --chrome-control: rgb(255 255 255 / 7%);
+  --chrome-control-hover: rgb(255 255 255 / 13%);
+  --chrome-active: rgb(255 255 255 / 18%);
+  --chrome-active-border: rgb(255 255 255 / 28%);
+
+  --color-production: #86aaa2;
+  --color-development: #8ba6e8;
+  --color-testing: #b0a9b5;
+  --color-validation: #cfa85b;
+  --color-pass: #86ac91;
+  --color-germline: #d4a053;
+  --color-germline-risk: #d98b65;
+  --color-warn: #d69a3a;
+  --color-fail: #d56f6f;
+  --color-tier1: #d98245;
+  --color-tier2: #d5a23a;
+  --color-tier3: #64a6d8;
+  --color-tier4: #63b99a;
+  --color-tier999: #a8a8a8;
+  --color-tierother: #b0b0b0;
+  --color-tier-header1: rgb(217 130 69 / 24%);
+  --color-tier-header2: rgb(213 162 58 / 24%);
+  --color-tier-header3: rgb(100 166 216 / 24%);
+  --color-tier-header4: rgb(99 185 154 / 24%);
+  --color-tier-header999: rgb(168 168 168 / 20%);
+  --color-dna: #d79a61;
+  --color-rna: #c98992;
+  --color-panel: #7fa6ee;
+  --color-wts: #c98992;
+  --color-wgs: #6bb7a9;
+}
+
+
+::selection {
+  background: oklch(0.72 0.08 302 / 35%);
+  color: var(--foreground);
+}
+
+.dark ::selection {
+  background: oklch(0.64 0.09 302 / 42%);
+  color: var(--foreground);
+}
+
+
+/*
+ * High-contrast / forced-colors support.
+ * Critical meaning must never rely on color alone; borders, text, labels,
+ * icons and state indicators should remain present in markup.
+ */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+    box-shadow: none !important;
+  }
+
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea,
+  [role="checkbox"],
+  [role="radio"],
+  [role="switch"] {
+    border: 1px solid ButtonText;
+  }
+
+  [aria-disabled="true"],
+  :disabled {
+    color: GrayText;
+    border-color: GrayText;
+  }
+}

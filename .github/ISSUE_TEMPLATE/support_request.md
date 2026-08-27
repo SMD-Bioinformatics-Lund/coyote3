@@ -1,28 +1,25 @@
 ---
-name: "Support Request"
-about: "Ask for help, clarification, or assistance with Coyote3"
+name: Support request
+about: Ask for help with setup, access, configuration, or operation
 title: "[Support]: "
 labels: ["support"]
 assignees: ""
-projects: ["SMD-Bioinformatics-Lund/22"]
-type: "support"
 ---
 
-## What do you need help with?
-Describe your question or support need clearly.
+## Request
 
----
+State the question or assistance needed.
 
-## Relevant Context
-Explain where you encountered the issue (module, page, configuration, etc.)
+## Context
 
----
+- Coyote3 version:
+- Deployment environment:
+- Affected page, API route, or service:
+- What has already been tried:
 
-## Screenshots or Logs (optional)
-> **Do not include any patient-identifiable information**
-Attach clean logs or screenshots if they help.
+## Diagnostics
 
----
+Add a redacted error message or log excerpt when relevant.
 
-## Additional Information
-Add any extra context that may help us assist you.
+> Do not include credentials, sample identifiers, patient information, or clinical
+> production data.

@@ -1,34 +1,34 @@
 """
-OnkoKBHandler module for Coyote3
+OnkoKBRepository module for Coyote3
 ================================
 
-This module defines the `OnkoKBHandler` class used for accessing and managing
+This module defines the `OnkoKBRepository` class used for accessing and managing
 OncoKB data in MongoDB.
 
-It is part of the `coyote.db` package and extends the base handler functionality.
+It is part of the MongoDB infrastructure layer.
 """
 
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.infra.mongo.handlers.base import BaseHandler
+from api.infra.mongo.repositories.base import BaseRepository
 
 
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class OnkoKBHandler(BaseHandler):
+class OnkoKBRepository(BaseRepository):
     """
-    OnkoKBHandler is a class that provides an interface for interacting with the OncoKB data stored in MongoDB collections.
+    OnkoKBRepository is a class that provides an interface for interacting with the OncoKB data stored in MongoDB collections.
 
-    This class extends the BaseHandler class and includes methods for retrieving annotations, actionable data, and gene
+    This class extends the BaseRepository class and includes methods for retrieving annotations, actionable data, and gene
     information from various OncoKB collections. It is designed to facilitate efficient querying and management of
-    OncoKB-related data, enabling seamless integration with other components of the `coyote.db` package.
+    OncoKB-related data, enabling seamless integration with other infrastructure components.
     """
 
     def __init__(self, adapter):
         """
-        Initialize the handler with a given adapter and bind the collection.
+        Initialize the repository with a given adapter and bind the collection.
         """
         super().__init__(adapter)
         self.set_collection(self.adapter.oncokb_collection)
@@ -113,6 +113,37 @@ class OnkoKBHandler(BaseHandler):
             dict: The OncoKB gene document if found, otherwise None.
         """
         return self.adapter.oncokb_genes_collection.find_one({"name": gene})
+
+    def get_oncokb_gene_records(self, genes: list[str]) -> dict[str, dict]:
+        """Return local OncoKB gene records keyed by symbol."""
+        normalized = sorted({str(gene).strip() for gene in genes if str(gene).strip()})
+        if not normalized:
+            return {}
+        records = self.adapter.oncokb_genes_collection.find({"name": {"$in": normalized}})
+        return {record.get("name"): record for record in records if record.get("name")}
+
+    def get_oncokb_action_gene_records(self, genes: list[str]) -> dict[str, dict]:
+        """Return local actionable OncoKB records keyed by gene symbol."""
+        normalized = sorted({str(gene).strip() for gene in genes if str(gene).strip()})
+        if not normalized:
+            return {}
+        records = self.adapter.oncokb_actionable_collection.find(
+            {"Hugo Symbol": {"$in": normalized}},
+            {
+                "Hugo Symbol": 1,
+                "Entrez Gene ID": 1,
+                "Alteration": 1,
+                "Drugs(s)": 1,
+                "Level": 1,
+                "Cancer Type": 1,
+                "PMIDs for drug": 1,
+            },
+        )
+        return {
+            str(record.get("Hugo Symbol")): record
+            for record in records
+            if record.get("Hugo Symbol")
+        }
 
     def get_oncokb_action_gene(self, gene: str) -> dict:
         """

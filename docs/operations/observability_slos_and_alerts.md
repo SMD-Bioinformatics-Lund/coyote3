@@ -1,13 +1,46 @@
-# Observability SLOs And Alerts
+# Observability SLOs and Alerts
 
-This guide turns Coyote3 auth/mail telemetry into practical SLO dashboards and alert rules.
+This guide turns Coyote3 API, authentication, mail, task, ingest, and maintenance
+telemetry into practical service-level dashboards and alert rules.
 
-## Telemetry signals available now
+## API process model
+
+The supported container configuration runs one Uvicorn process per API
+container. The internal Prometheus counters are held in process memory, so this
+keeps each metrics endpoint complete for its container. A center that scales to
+multiple API containers must scrape every instance and aggregate by service in
+Prometheus. Increasing `API_WORKERS` inside one container would expose only the
+worker reached by a metrics request and is therefore not a supported monitoring
+topology.
+
+## Available Telemetry Signals
 
 The API emits structured log lines with stable prefixes:
 
 - `auth_metric ...`
 - `mail_metric ...`
+
+Operational state is also available to authorized administrators on
+**Admin > Application Controls**. The page combines configured task/module
+switches with a live Celery control-inspection response:
+
+| Runtime field | Meaning | Interpretation |
+| --- | --- | --- |
+| Status | Whether at least one Celery worker replied to inspection. | `online` means a worker answered; it is not a proof that every task can complete. |
+| Workers | Number of responding worker nodes. | Zero or `unavailable` requires worker/broker investigation. |
+| Active | Tasks currently executing. | Sustained growth can indicate slow processing or blocked workers. |
+| Reserved | Tasks received by workers but not executing. | Sustained growth indicates queue pressure or insufficient concurrency. |
+| Scheduled | Worker-side ETA/countdown tasks. | This is distinct from periodic Beat entries. |
+| Registered | Unique task names advertised by responding workers. | Confirms worker image/task registration consistency. |
+| Beat entries | Periodic tasks configured in the active Celery application. | Confirms configured schedule only; inspect task history/audit records to prove execution. |
+| Queues | Queues reported by active workers. | Confirms worker consumption topology. |
+
+!!! warning "Configured versus observed state"
+
+    Application Controls can prevent new task-family executions. They do not
+    stop already-running tasks, and an enabled switch does not prove a worker,
+    broker, file mount, or external dependency is healthy. Use both the
+    configured controls and observed runtime state during incident response.
 
 Primary emitters:
 
@@ -43,6 +76,13 @@ Use your log platform query language (Loki, Elasticsearch, Splunk, etc.) to impl
 2. `TokenConsumeFailureSpike`: token consume failures > 5 in 10 minutes.
 3. `MailDeliveryDegradation`: mail send success ratio < 95% for 30 minutes.
 4. `MailDeliveryUnavailable`: any `send_skipped reason=smtp_not_configured` in production.
+5. `CeleryWorkerUnavailable`: no worker replies to inspection for five minutes.
+6. `CeleryQueueBacklog`: reserved task count grows for 15 minutes without a
+   corresponding active-task increase.
+7. `IngestFailureBurst`: two or more `ingest.watch.failed` or
+   `ingest.bundle.failed` audit events within 15 minutes.
+8. `MaintenanceFailure`: a scheduled maintenance task fails or no successful
+   retention maintenance evidence appears within the expected nightly window.
 
 Severity guidance:
 
@@ -69,11 +109,14 @@ sum(rate({container="coyote3_api"} |= "mail_metric" |= "metric=send_result"[15m]
 
 When an alert fires:
 
-1. Validate runtime config in active env file (`SMTP_*`, `WEB_APP_BASE_URL`, `CACHE_*`).
+1. Validate runtime config in the active env file (`SMTP_*`, `PUBLIC_BASE_URL`) and confirm Redis connectivity from the API container.
 2. Check API logs for recent `mail_metric` and `auth_metric` spikes.
 3. Confirm connectivity to SMTP relay/host from API container network.
 4. Verify fallback behavior in UI/admin flows (warning + manual setup URL still present).
 5. Document incident + center-specific thresholds update if needed.
+6. For Celery issues, compare the Application Controls runtime view with
+   `docker compose ps`, worker/Beat logs, broker connectivity, and the
+   internal task-status endpoint for a known task id.
 
 ## Ownership
 

@@ -4,33 +4,133 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
-from typing import Dict, Literal
+from typing import Any, Dict, Literal
 
 from pydantic import Field, field_validator, model_validator
 
-from api.contracts.schemas.base import _DocBase
+from api.contracts.schemas.base import _DocBase, _StrictCollectionDocBase
+from api.contracts.schemas.normalizers import normalize_ampersand_terms
+from api.domain.core.annotation_identity import (
+    NOMENCLATURE_FIELDS,
+    NOMENCLATURE_REQUIRED_FIELDS,
+)
 
 
-class AnnotationDoc(_DocBase):
+class AnnotationDoc(_StrictCollectionDocBase):
     variant: str
-    gene: str
+    hgvsp: str | None = None
+    hgvsc: str | None = None
+    genomic: str | None = None
+    genomic_hash: str | None = None
+    gene: str | None = None
+    gene1: str | None = None
+    gene2: str | None = None
     assay: str
     subpanel: str
     author: str
-    nomenclature: Literal["p", "g", "c", "f"]
-    transcript: str
+    nomenclature: Literal["p", "g", "c", "f", "cn", "t"]
+    transcript: str | None = None
     time_created: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class_: int | None = Field(default=None, alias="class")
     text: str | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_unrelated_identity_fields(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        nomenclature = str(value.get("nomenclature") or "").strip().lower()
+        allowed = NOMENCLATURE_FIELDS.get(nomenclature)
+        if allowed is None:
+            return value
+        identity_fields = set().union(*NOMENCLATURE_FIELDS.values())
+        identity_fields.update({"cnv", "fusion", "translocation"})
+        unrelated = sorted(field for field in value if field in identity_fields - allowed)
+        if unrelated:
+            raise ValueError(
+                f"nomenclature '{nomenclature}' does not allow: {', '.join(unrelated)}"
+            )
+        return value
+
     @model_validator(mode="after")
-    def validate_class_xor_text(self):
+    def validate_annotation_shape(self):
         if (self.class_ is None and self.text is None) or (
             self.class_ is not None and self.text is not None
         ):
             raise ValueError("Exactly one of 'class' or 'text' must be provided")
+
+        values = {
+            "variant": self.variant,
+            "hgvsp": self.hgvsp,
+            "hgvsc": self.hgvsc,
+            "genomic": self.genomic,
+            "genomic_hash": self.genomic_hash,
+            "gene": self.gene,
+            "gene1": self.gene1,
+            "gene2": self.gene2,
+            "transcript": self.transcript,
+        }
+        required = NOMENCLATURE_REQUIRED_FIELDS[self.nomenclature]
+        allowed = NOMENCLATURE_FIELDS[self.nomenclature]
+        missing = sorted(field for field in required if field not in self.model_fields_set)
+        if missing:
+            raise ValueError(
+                f"nomenclature '{self.nomenclature}' requires keys: {', '.join(missing)}"
+            )
+        unrelated = sorted(
+            field for field in values if field not in allowed and field in self.model_fields_set
+        )
+        if unrelated:
+            raise ValueError(
+                f"nomenclature '{self.nomenclature}' does not allow: {', '.join(unrelated)}"
+            )
         return self
+
+
+class VepAnnoTranscriptDoc(_DocBase):
+    """Parsed VEP transcript consequence used by the versioned annotation vault."""
+
+    Feature: str | None = None
+    HGNC_ID: str | None = None
+    SYMBOL: str | None = None
+    HGVSc: str | None = None
+    HGVSp: str | None = None
+    Consequence: list[str] = Field(default_factory=list)
+    IMPACT: str | None = None
+    EXON: str | None = None
+    INTRON: str | None = None
+    BIOTYPE: str | None = None
+    ENSP: str | None = None
+    CANONICAL: str | None = None
+    MANE_SELECT: str | None = None
+    MANE_PLUS_CLINICAL: str | None = None
+    SIFT: str | None = None
+    PolyPhen: str | None = None
+    CADD_PHRED: str | float | int | None = None
+    CLIN_SIG: list[str] = Field(default_factory=list)
+    VARIANT_CLASS: str | None = None
+
+    @field_validator("Consequence", "CLIN_SIG", mode="before")
+    @classmethod
+    def normalize_term_lists(cls, value: Any) -> list[str]:
+        return normalize_ampersand_terms(value)
+
+
+class AnnoVepDoc(_DocBase):
+    """Immutable transcript consequence vault keyed by variant identity and VEP version."""
+
+    simple_id: str
+    simple_id_hash: str
+    vep_version: str
+    variant_class: str | None = None
+    CSQ: list[VepAnnoTranscriptDoc] = Field(default_factory=list)
+
+    @field_validator("vep_version", mode="before")
+    @classmethod
+    def normalize_vep_version(cls, value: Any) -> str:
+        """Store VEP versions as plain version numbers."""
+        return str(value or "").strip().lstrip("vV")
 
 
 class BrcaExchangeDoc(_DocBase):
@@ -174,15 +274,16 @@ class CivicVariantsDoc(_DocBase):
 class CosmicDoc(_DocBase):
     id: str
 
-    chr: int
+    chr: str
     start: int
     end: int
 
     cnt: Dict[str, int]
 
-    @field_validator("chr")
+    @field_validator("chr", mode="before")
     @classmethod
     def validate_chr(cls, v):
+        v = str(v).strip().upper().removeprefix("CHR")
         allowed = {str(i) for i in range(1, 23)} | {"X", "Y", "MT", "M"}
         if v not in allowed:
             raise ValueError(f"Invalid chromosome: {v}")
@@ -248,6 +349,7 @@ class HgncGenesDoc(_DocBase):
 
     ensembl_mane_select: str
     refseq_mane_select: str
+    ensembl_mane_plus_clinical: list[str] = Field(default_factory=list)
 
     chromosome: str
     other_chromosome: str | None = None
@@ -361,9 +463,101 @@ class OncoKbGenesDoc(_DocBase):
     description: str
 
 
-class RefSeqCanonicalDoc(_DocBase):
+class OncoKbPublicDoc(_DocBase):
+    query_hash: str
     gene: str
-    canonical: str
+    alteration: str | None = None
+    reference_genome: str | None = None
+    public_api: bool = True
+    therapeutic_data_included: bool = False
+    source: str | None = None
+    license: str | None = None
+    query: dict | None = None
+    response: dict | None = None
+    data_version: str | None = None
+    gene_exist: bool | None = None
+    variant_exist: bool | None = None
+    variant_ids: list[str] = Field(default_factory=list)
+    sample_ids: list[str] = Field(default_factory=list)
+    sample_names: list[str] = Field(default_factory=list)
+
+
+class OncoKbGenesPublicDoc(_DocBase):
+    gene: str
+    source: str | None = None
+    public_api: bool = True
+    therapeutic_data_included: bool = False
+    data_version: str | None = None
+    gene_exist: bool | None = None
+    gene_summary: str | None = None
+    background: str | None = None
+    setting: str | None = None
+    entrez_gene_id: int | None = None
+    gene_type: str | None = None
+    highest_sensitive_level: str | None = None
+    highest_resistance_level: str | None = None
+    grch37_refseq: str | None = None
+    grch37_isoform: str | None = None
+    grch38_refseq: str | None = None
+    grch38_isoform: str | None = None
+    hgnc_id: str | None = None
+    previous_symbols: list[str] = Field(default_factory=list)
+    alias_symbols: list[str] = Field(default_factory=list)
+
+
+class OncoKbCancerGenesPublicDoc(_DocBase):
+    """Public OncoKB cancer-gene list record from /utils/cancerGeneList."""
+
+    gene: str
+    source: str | None = None
+    public_api: bool = True
+    therapeutic_data_included: bool = False
+    data_version: str | None = None
+    hgnc_id: str | None = None
+    previous_symbols: list[str] = Field(default_factory=list)
+    alias_symbols: list[str] = Field(default_factory=list)
+    entrez_gene_id: int | None = None
+    gene_type: str | None = None
+    occurrence_count: int | None = None
+    oncokb_annotated: bool | None = None
+    sanger_cgc: bool | None = None
+    vogelstein: bool | None = None
+    foundation: bool | None = None
+    foundation_heme: bool | None = None
+    msk_impact: bool | None = None
+    msk_heme: bool | None = None
+    grch37_refseq: str | None = None
+    grch37_isoform: str | None = None
+    grch38_refseq: str | None = None
+    grch38_isoform: str | None = None
+
+
+class ClinPgxGenesPublicDoc(_DocBase):
+    """Public ClinPGx gene cache record imported from genes.tsv."""
+
+    pharmgkb_accession_id: str
+    ncbi_gene_id: int | None = None
+    hgnc_id: str | None = None
+    ensembl_id: str | None = None
+    name: str | None = None
+    symbol: str
+    alternate_names: list[str] = Field(default_factory=list)
+    alternate_symbols: list[str] = Field(default_factory=list)
+    is_vip: bool = False
+    has_variant_annotation: bool = False
+    has_cpic_dosing_guideline: bool = False
+    cross_references: list[str] = Field(default_factory=list)
+    chromosome: str | None = None
+    grch37_start: int | None = None
+    grch37_stop: int | None = None
+    grch38_start: int | None = None
+    grch38_stop: int | None = None
+    source: str | None = None
+    source_file: str | None = None
+    source_reference: str | None = None
+    source_created: str | None = None
+    public_api: bool = True
+    last_seen_at: datetime | None = None
 
 
 class VepDbInfoDoc(_DocBase):

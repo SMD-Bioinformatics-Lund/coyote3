@@ -19,7 +19,11 @@ Checks:
 Quick probe:
 
 ```bash
-docker logs coyote3_api_${COYOTE3_VERSION:-local} 2>&1 | rg "dashboard|cache|redis"
+./scripts/compose-with-version.sh \
+  --env-file .coyote3_dev_env \
+  -f deploy/compose/docker-compose.yml \
+  -f deploy/compose/docker-compose.dev.yml \
+  logs api 2>&1 | rg "dashboard|cache|redis"
 ```
 
 ## Login failure for mixed auth users
@@ -33,7 +37,7 @@ Symptoms:
 Checks:
 
 1. Confirm user doc exists in DB.
-2. Confirm `login_type` value is correct (`coyote3` or `ldap`).
+2. Confirm `auth_type` is a provider list, for example `["ldap"]`, `["local"]`, or `["local", "ldap"]`.
 3. Verify LDAP connectivity for LDAP users.
 4. Verify password hash and local auth flow for local users.
 5. Verify local-user email/username shape:
@@ -62,8 +66,8 @@ Symptoms:
 
 Checks:
 
-1. Verify `HELP_CENTER_URL` env value.
-2. Verify docs container is healthy and published on configured port.
+1. Verify `PUBLIC_BASE_URL` and `SCRIPT_NAME` in the active env file.
+2. Open `${PUBLIC_BASE_URL}${SCRIPT_NAME}/docs-site/` and verify the docs container is healthy.
 3. Rebuild docs image after nav/content updates.
 
 ## Use the operations guide when needed

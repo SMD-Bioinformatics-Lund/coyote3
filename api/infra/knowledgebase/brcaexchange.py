@@ -1,33 +1,33 @@
 """
-BRCAHandler module for Coyote3
+BRCARepository module for Coyote3
 ==============================
 
-This module defines the `BRCAHandler` class used for accessing and managing
+This module defines the `BRCARepository` class used for accessing and managing
 BRCA data in MongoDB.
-It is part of the `coyote.db` package and extends the base handler functionality.
+It is part of the MongoDB infrastructure layer.
 """
 
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.infra.mongo.handlers.base import BaseHandler
+from api.infra.mongo.repositories.base import BaseRepository
 
 
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class BRCAHandler(BaseHandler):
+class BRCARepository(BaseRepository):
     """
-    The `BRCAHandler` class provides functionality for accessing and managing
+    The `BRCARepository` class provides functionality for accessing and managing
     BRCA-related data stored in the `brcaexchange` collection of MongoDB.
 
-    This class extends the `BaseHandler` and includes methods for querying
+    This class extends the `BaseRepository` and includes methods for querying
     BRCA variant data based on specific assay types.
     """
 
     def __init__(self, adapter):
         """
-        Initialize the handler with a given adapter and bind the collection.
+        Initialize the repository with a given adapter and bind the collection.
         """
         super().__init__(adapter)
         self.set_collection(self.adapter.brcaexchange_collection)

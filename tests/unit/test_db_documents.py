@@ -9,10 +9,14 @@ from pathlib import Path
 
 import pytest
 
+from api.config.database_versions import normalize_database_versions, require_sample_vep_version
 from api.contracts.managed_resources import managed_resource_spec
 from api.contracts.managed_ui_schemas import build_form_spec
-from api.contracts.schemas.dna import CnvsDoc, VariantsDoc
-from api.contracts.schemas.governance import UsersDoc
+from api.contracts.schemas.app_controls import AppControlsDoc
+from api.contracts.schemas.assay import InsilicoGenelistsDoc
+from api.contracts.schemas.dna import CnvsDoc, VariantCsqDoc, VariantsDoc
+from api.contracts.schemas.governance import RolesDoc, UsersDoc
+from api.contracts.schemas.reference import VepAnnoTranscriptDoc
 from api.contracts.schemas.registry import (
     normalize_collection_document,
     supported_collections,
@@ -21,18 +25,37 @@ from api.contracts.schemas.registry import (
 from api.contracts.schemas.samples import SampleCaseControlDoc, SamplesDoc
 
 
+def test_isgl_diagnosis_is_the_canonical_multi_subpanel_scope():
+    """ISGL diagnosis accepts comma/newline tags without a duplicate subpanel field."""
+    doc = InsilicoGenelistsDoc.model_validate(
+        {
+            "isgl_id": "solid_scope",
+            "name": "Solid scope",
+            "displayname": "Solid scope",
+            "diagnosis": "endometrie, breast\ncolon, breast",
+            "list_type": ["snv"],
+            "asp_groups": ["solid"],
+            "asp_ids": ["solid_gmsv3"],
+        }
+    )
+
+    assert doc.diagnosis == ["endometrie", "breast", "colon"]
+    assert "subpanel_id" not in doc.model_dump()
+
+
 def _load_seed_list(path: Path) -> list[dict]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _load_reference_seed_list(filename: str) -> list[dict]:
-    base = Path("tests/data/seed_data")
+    base = (
+        Path("api/config/bootstrap/rbac")
+        if filename.startswith(("permissions.", "roles."))
+        else Path("api/config/bootstrap/reference")
+    )
     path = base / filename
     if not path.exists() and filename.endswith(".gz"):
-        plain_name = filename[:-3]
-        plain_path = base / plain_name
-        if plain_path.exists():
-            path = plain_path
+        path = base / filename[:-3]
     docs: list[dict] = []
     opener = gzip.open if path.suffix == ".gz" else open
     with opener(path, "rt", encoding="utf-8") as handle:
@@ -44,7 +67,7 @@ def _load_reference_seed_list(filename: str) -> list[dict]:
 
 
 def test_variant_info_accepts_selected_csq_fields():
-    """INFO should parse nested CSQ docs and selected-CSQ fields."""
+    """Variant documents retain only the selected transcript summary."""
     payload = {
         "SAMPLE_ID": "S1",
         "CHROM": "1",
@@ -55,18 +78,43 @@ def test_variant_info_accepts_selected_csq_fields():
         "QUAL": 99.0,
         "INFO": {
             "variant_callers": ["tnscope"],
-            "CSQ": [{"Feature": "ENST1", "SYMBOL": "TP53"}],
             "selected_CSQ": {"Feature": "ENST1", "SYMBOL": "TP53"},
-            "selected_CSQ_criteria": "db",
+            "selected_CSQ_criteria": "ncbi_mane_plus_clinical",
         },
         "simple_id": "1_100_A_G",
         "simple_id_hash": hashlib.md5("1_100_A_G".encode("utf-8")).hexdigest(),
     }
     doc = VariantsDoc.model_validate(payload)
-    assert doc.INFO.CSQ[0].SYMBOL == "TP53"
     assert doc.INFO.selected_CSQ is not None
     assert doc.INFO.selected_CSQ.SYMBOL == "TP53"
-    assert doc.INFO.selected_CSQ_criteria == "db"
+    assert doc.INFO.selected_CSQ_criteria == "ncbi_mane_plus_clinical"
+
+
+def test_variant_contract_preserves_review_state() -> None:
+    """Small-variant curation flags are authoritative persisted fields."""
+    payload = {
+        "SAMPLE_ID": "S1",
+        "CHROM": "1",
+        "POS": 100,
+        "REF": "A",
+        "ALT": "G",
+        "ID": ".",
+        "INFO": {
+            "selected_CSQ": {"Feature": "ENST1", "SYMBOL": "TP53"},
+            "selected_CSQ_criteria": "first_available",
+        },
+        "simple_id": "1_100_A_G",
+        "simple_id_hash": hashlib.md5("1_100_A_G".encode("utf-8")).hexdigest(),
+        "fp": True,
+        "irrelevant": False,
+        "interesting": True,
+    }
+
+    dumped = VariantsDoc.model_validate(payload).model_dump(by_alias=True)
+
+    assert dumped["fp"] is True
+    assert dumped["irrelevant"] is False
+    assert dumped["interesting"] is True
 
 
 def test_variant_info_normalizes_variant_callers_string():
@@ -81,16 +129,52 @@ def test_variant_info_normalizes_variant_callers_string():
         "QUAL": 99.0,
         "INFO": {
             "variant_callers": "tnscope|strelka",
-            "CSQ": [{"Feature": "ENST1", "SYMBOL": "TP53"}],
             "selected_CSQ": {"Feature": "ENST1", "SYMBOL": "TP53"},
-            "selected_CSQ_criteria": "db",
+            "selected_CSQ_criteria": "ncbi_mane_plus_clinical",
         },
         "simple_id": "1_100_A_G",
         "simple_id_hash": hashlib.md5("1_100_A_G".encode("utf-8")).hexdigest(),
     }
     doc = VariantsDoc.model_validate(payload)
     assert doc.INFO.variant_callers == ["tnscope", "strelka"]
-    assert len(doc.INFO.CSQ) == 1
+    assert doc.INFO.selected_CSQ.Feature == "ENST1"
+
+
+def test_variant_consequence_terms_normalize_all_transcript_terms() -> None:
+    payload = {
+        "SAMPLE_ID": "S1",
+        "CHROM": "1",
+        "POS": 100,
+        "REF": "A",
+        "ALT": "G",
+        "ID": ".",
+        "INFO": {
+            "selected_CSQ": {"Feature": "ENST1", "SYMBOL": "TP53"},
+            "selected_CSQ_criteria": "first_available",
+        },
+        "consequence_terms": ["missense_variant&splice_region_variant", "missense_variant"],
+        "simple_id": "1_100_A_G",
+        "simple_id_hash": hashlib.md5("1_100_A_G".encode("utf-8")).hexdigest(),
+    }
+
+    doc = VariantsDoc.model_validate(payload)
+
+    assert doc.consequence_terms == ["missense_variant", "splice_region_variant"]
+
+
+@pytest.mark.parametrize("model", [VariantCsqDoc, VepAnnoTranscriptDoc])
+def test_variant_clinical_significance_normalizes_to_distinct_terms(model) -> None:
+    """Persist CLIN_SIG as a list regardless of VEP's scalar or list representation."""
+    doc = model.model_validate(
+        {
+            "CLIN_SIG": [
+                "uncertain_significance&likely_pathogenic",
+                "likely_pathogenic",
+            ]
+        }
+    )
+
+    assert doc.CLIN_SIG == ["uncertain_significance", "likely_pathogenic"]
 
 
 def test_collection_validator_accepts_hgnc_genes_shape():
@@ -121,14 +205,42 @@ def test_collection_validator_rejects_vep_groups_with_unknown_terms():
 
 def test_collection_validator_accepts_oncokb_actionable_shape():
     """OncoKB actionable strict model should accept curated fixture docs."""
-    fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/oncokb_actionable.json")
+    fixture = Path("demo_data/collections/all_collections_dummy/oncokb_actionable.json")
     payload = _load_seed_list(fixture)[0]
     validate_collection_document("oncokb_actionable", payload)
 
 
+def test_collection_validator_accepts_public_oncokb_cancer_gene_shape():
+    """Public OncoKB cancer-gene list records should validate as public markers."""
+    validate_collection_document(
+        "oncokb_cancer_genes_public",
+        {
+            "gene": "TP53",
+            "source": "public.api.oncokb.org",
+            "public_api": True,
+            "therapeutic_data_included": False,
+            "hgnc_id": "HGNC:11998",
+            "previous_symbols": ["P53"],
+            "alias_symbols": ["BCC7"],
+            "entrez_gene_id": 7157,
+            "gene_type": "TSG",
+            "occurrence_count": 100,
+            "oncokb_annotated": True,
+            "sanger_cgc": True,
+            "vogelstein": True,
+            "foundation": True,
+            "foundation_heme": True,
+            "msk_impact": True,
+            "msk_heme": True,
+            "grch37_refseq": "NM_000546.5",
+            "grch38_refseq": "NM_000546.6",
+        },
+    )
+
+
 def test_collection_validator_accepts_nested_sample_shape():
     """samples collection should validate nested case/control/filter/comment/report blocks."""
-    fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/samples.json")
+    fixture = Path("demo_data/collections/all_collections_dummy/samples.json")
     payload = _load_seed_list(fixture)[0]
     validate_collection_document("samples", payload)
 
@@ -157,10 +269,10 @@ def test_samples_doc_keeps_filters_unset_until_initialized():
     dna_doc = SamplesDoc.model_validate(
         {
             "name": "S1",
-            "assay": "assay_1",
-            "subpanel": "hem",
-            "profile": "production",
-            "case_id": "CASE_DEMO",
+            "asp_id": "assay_1",
+            "subpanel_id": "hem",
+            "environment": "production",
+            "case_id": "seed_case",
             "sample_no": 1,
             "sequencing_scope": "panel",
             "omics_layer": "dna",
@@ -170,15 +282,16 @@ def test_samples_doc_keeps_filters_unset_until_initialized():
         }
     )
     assert dna_doc.filters is None
+    assert dna_doc.ingest_status == "loading"
     assert isinstance(dna_doc.case, SampleCaseControlDoc)
     assert "filters" not in dna_doc.model_dump(exclude_none=True)
 
     rna_doc = SamplesDoc.model_validate(
         {
             "name": "S2",
-            "assay": "fusion_assay",
-            "subpanel": "rna",
-            "profile": "production",
+            "asp_id": "fusion_assay",
+            "subpanel_id": "rna",
+            "environment": "production",
             "case_id": "CASE_RNA",
             "sample_no": 1,
             "sequencing_scope": "wts",
@@ -190,6 +303,159 @@ def test_samples_doc_keeps_filters_unset_until_initialized():
     )
     assert rna_doc.filters is None
     assert isinstance(rna_doc.case, SampleCaseControlDoc)
+
+
+def test_samples_doc_accepts_only_persisted_ingest_states():
+    payload = {
+        "name": "S1",
+        "asp_id": "assay_1",
+        "subpanel_id": "base",
+        "environment": "production",
+        "case_id": "seed_case",
+        "sample_no": 1,
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
+        "pipeline": "SomaticPanelPipeline",
+        "pipeline_version": "1.0.0",
+        "files": {"vcf_files": {"path": "x"}},
+        "ingest_status": "ready",
+    }
+
+    assert SamplesDoc.model_validate(payload).ingest_status == "ready"
+
+    payload["ingest_status"] = "failed"
+    with pytest.raises(ValueError, match="ingest_status"):
+        SamplesDoc.model_validate(payload)
+
+
+def test_samples_doc_preserves_nullable_pipeline_version_for_persistence():
+    payload = {
+        "name": "S1",
+        "asp_id": "assay_1",
+        "subpanel_id": "base",
+        "environment": "production",
+        "case_id": "seed_case",
+        "sample_no": 1,
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
+        "pipeline": "SomaticPanelPipeline",
+        "pipeline_version": "not provided",
+        "files": {"vcf_files": {"path": "x"}},
+    }
+
+    sample = SamplesDoc.model_validate(payload)
+
+    assert sample.pipeline_version is None
+    assert "pipeline_version" not in sample.model_dump(exclude_none=True)
+    assert "pipeline_version" in sample.to_persistence_document()
+    assert sample.to_persistence_document()["pipeline_version"] is None
+
+
+def test_sample_persistence_document_keeps_nullable_nested_metadata():
+    sample = SamplesDoc.model_validate(
+        {
+            "name": "S1",
+            "asp_id": "assay_1",
+            "subpanel_id": "base",
+            "environment": "production",
+            "case_id": "seed_case",
+            "sample_no": 1,
+            "sequencing_scope": "panel",
+            "omics_layer": "dna",
+            "pipeline": "SomaticPanelPipeline",
+            "files": {"vcf_files": {"path": "x"}},
+        }
+    )
+
+    document = sample.to_persistence_document()
+
+    assert document["pipeline_version"] is None
+    assert document["control"] is None
+    assert document["case"]["sequencing_run"] is None
+    assert document["case"]["reads"] is None
+    assert document["case"]["purity"] is None
+    assert document["files"]["vcf_files"]["checksum"] is None
+
+
+def test_samples_doc_normalizes_one_sample_level_sex_value():
+    payload = {
+        "name": "S1",
+        "asp_id": "assay_1",
+        "subpanel_id": "base",
+        "environment": "production",
+        "case_id": "seed_case",
+        "sample_no": 1,
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
+        "sex": " Female ",
+        "pipeline": "SomaticPanelPipeline",
+        "files": {"vcf_files": {"path": "x"}},
+    }
+
+    sample = SamplesDoc.model_validate(payload)
+
+    assert sample.sex == "female"
+    assert "sex" not in sample.case.model_dump(exclude_none=True)
+
+    payload["sex"] = "F"
+    with pytest.raises(ValueError, match="sex"):
+        SamplesDoc.model_validate(payload)
+
+
+def test_sample_database_versions_use_only_canonical_nested_keys():
+    """Sample VEP metadata belongs only in database_versions.vep."""
+    assert normalize_database_versions({"vep": "v103", "clinvar": 202008, "cosmic": "null"}) == {
+        "vep": "103",
+        "clinvar": "202008",
+    }
+
+    with pytest.raises(ValueError, match="database_versions keys"):
+        normalize_database_versions({"VEP": "103"})
+
+    with pytest.raises(ValueError, match="database_versions.vep"):
+        require_sample_vep_version({"database_versions": {}})
+
+    payload = {
+        "name": "S1",
+        "assay": "assay_1",
+        "subpanel": "hem",
+        "profile": "production",
+        "case_id": "seed_case",
+        "sample_no": 1,
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
+        "pipeline": "SomaticPanelPipeline",
+        "pipeline_version": "1.0.0",
+        "vcf_files": "x",
+        "vep_version": "103",
+    }
+    with pytest.raises(ValueError, match="Retired sample fields"):
+        SamplesDoc.model_validate(payload)
+
+
+def test_platform_derives_read_technology_and_rejects_invalid_read_mode():
+    """Platform capability is software-owned and cannot be contradicted in a sample."""
+    payload = {
+        "name": "S1",
+        "asp_id": "assay_1",
+        "subpanel_id": "base",
+        "environment": "production",
+        "case_id": "seed_case",
+        "sample_no": 1,
+        "sequencing_scope": "panel",
+        "omics_layer": "dna",
+        "platform": "illumina",
+        "read_mode": "PE",
+        "pipeline": "SomaticPanelPipeline",
+        "pipeline_version": "1.0.0",
+        "files": {"vcf_files": {"path": "x"}},
+    }
+    sample = SamplesDoc.model_validate(payload)
+    assert sample.read_technology == "short_read"
+
+    payload["platform"] = "iontorrent"
+    with pytest.raises(ValueError, match="read_mode 'PE' is not supported"):
+        SamplesDoc.model_validate(payload)
 
 
 def test_collection_validator_rejects_dna_sample_with_rna_keys():
@@ -230,7 +496,7 @@ def test_collection_validator_rejects_rna_sample_with_dna_keys():
 
 def test_collection_validator_accepts_nested_panel_coverage_shape():
     """panel_coverage strict model should accept curated fixture docs."""
-    fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/panel_coverage.json")
+    fixture = Path("demo_data/collections/all_collections_dummy/panel_coverage.json")
     payload = _load_seed_list(fixture)[0]
     validate_collection_document("panel_coverage", payload)
 
@@ -250,6 +516,47 @@ def test_users_doc_rejects_non_canonical_username_characters():
         )
 
 
+def test_users_doc_validates_one_global_analysis_layout_preference():
+    """User analysis layout is global and limited to the supported presentation modes."""
+    payload = {
+        "email": "tester@example.com",
+        "username": "tester",
+        "firstname": "Test",
+        "lastname": "User",
+        "fullname": "Test User",
+        "job_title": "Scientist",
+    }
+
+    assert UsersDoc.model_validate(payload).ui_settings.analysis_layout == "classic"
+    assert UsersDoc.model_validate(payload).ui_settings.sample_list_layout == "classic"
+    assert UsersDoc.model_validate(payload).ui_settings.analysis_modern_view_tried is False
+    assert UsersDoc.model_validate(payload).ui_settings.sample_list_modern_view_tried is False
+    assert UsersDoc.model_validate(payload).ui_settings.table_page_size == 50
+    with pytest.raises(ValueError, match="analysis_layout must be one of"):
+        UsersDoc.model_validate({**payload, "ui_settings": {"analysis_layout": "dna_tabs"}})
+    with pytest.raises(ValueError, match="sample_list_layout must be one of"):
+        UsersDoc.model_validate({**payload, "ui_settings": {"sample_list_layout": "combined"}})
+    with pytest.raises(ValueError, match="table_page_size must be one of"):
+        UsersDoc.model_validate({**payload, "ui_settings": {"table_page_size": 500}})
+
+
+def test_app_controls_doc_accepts_persisted_created_timestamp():
+    """Persisted app controls should validate after Mongo adds created_on."""
+    doc = AppControlsDoc.model_validate(
+        {
+            "control_id": "default",
+            "celery": {"enabled": True},
+            "retention": {"audit_events_days": 730, "notification_days": 180},
+            "modules": {"dna_analysis_enabled": True},
+            "created_on": "2026-07-17T16:02:06.074000Z",
+            "updated_on": "2026-07-17T16:02:06.074000Z",
+            "updated_by": "coyote3.admin",
+        }
+    )
+    assert doc.created_on is not None
+    assert doc.control_id == "default"
+
+
 def test_managed_user_form_exposes_environment_options_and_username_readonly_on_edit():
     """User form metadata should expose fixed environment choices and edit-time username lock."""
     form = build_form_spec(managed_resource_spec("user"))
@@ -260,6 +567,57 @@ def test_managed_user_form_exposes_environment_options_and_username_readonly_on_
         "validation",
     ]
     assert form["fields"]["username"]["readonly_mode"] == ["edit"]
+    assert form["fields"]["ui_settings"]["display_type"] == "user-settings"
+    assert form["sections"]["user settings"] == ["ui_settings"]
+
+
+def test_managed_role_form_exposes_runtime_color_picker():
+    form = build_form_spec(managed_resource_spec("role"))
+
+    assert form["fields"]["color"]["display_type"] == "color"
+    assert form["fields"]["color"]["placeholder"] == "#4f46e5"
+
+
+def test_role_color_normalizes_hex_and_preserves_legacy_names():
+    base = {
+        "role_id": "reviewer",
+        "name": "reviewer",
+        "label": "Reviewer",
+        "level": 20,
+    }
+
+    assert RolesDoc.model_validate({**base, "color": " #DC2626 "}).color == "#dc2626"
+    assert RolesDoc.model_validate({**base, "color": "Slate"}).color == "slate"
+    with pytest.raises(ValueError, match="six-digit"):
+        RolesDoc.model_validate({**base, "color": "#fff"})
+
+
+def test_managed_clinical_forms_expose_system_metadata_read_only_after_create():
+    """Clinical configuration provenance is visible but cannot be edited."""
+    expected_metadata = {
+        "version",
+        "supersedes_id",
+        "created_by",
+        "created_on",
+        "updated_by",
+        "updated_on",
+        "retired_by",
+        "retired_on",
+        "retired_reason",
+    }
+
+    for resource_key in ("asp", "aspc_dna", "aspc_rna", "isgl"):
+        form = build_form_spec(managed_resource_spec(resource_key))
+        metadata_fields = set(form["sections"]["system metadata"])
+        assert expected_metadata <= metadata_fields
+        for field_name in expected_metadata:
+            field = form["fields"][field_name]
+            assert field["readonly"] is True
+            assert field["hidden_mode"] == ["create"]
+
+    aspc_form = build_form_spec(managed_resource_spec("aspc_dna"))
+    assert aspc_form["fields"]["platform"]["readonly"] is True
+    assert {"aspc_id", "platform"} <= set(aspc_form["sections"]["configuration scope"])
 
 
 def test_managed_isgl_form_uses_predefined_list_type_choices():
@@ -267,9 +625,30 @@ def test_managed_isgl_form_uses_predefined_list_type_choices():
     form = build_form_spec(managed_resource_spec("isgl"))
     assert form["fields"]["list_type"]["display_type"] == "checkbox-group"
     assert form["fields"]["list_type"]["options"] == [
-        "small_variant_genelist",
-        "cnv_genelist",
-        "fusion_genelist",
+        "snv",
+        "cnv",
+        "fusion",
+        "expression",
+        "pgx",
+        "adhoc_snv",
+        "adhoc_cnv",
+        "adhoc_fusion",
+        "adhoc_expression",
+        "adhoc_pgx",
+    ]
+    assert form["fields"]["list_type"]["conditional_options"]["falsy"] == [
+        "snv",
+        "cnv",
+        "fusion",
+        "expression",
+        "pgx",
+    ]
+    assert form["fields"]["list_type"]["conditional_options"]["truthy"] == [
+        "adhoc_snv",
+        "adhoc_cnv",
+        "adhoc_fusion",
+        "adhoc_expression",
+        "adhoc_pgx",
     ]
 
 
@@ -283,21 +662,21 @@ def test_supported_collections_exposes_expected_core_names():
         "asp_configs",
         "assay_specific_panels",
         "insilico_genelists",
-        "refseq_canonical",
         "hgnc_genes",
     ):
         assert required in names
 
 
-def test_collection_validator_rejects_invalid_aspc_id_environment_mismatch():
-    """asp_configs must keep aspc_id aligned with assay_name/environment fields."""
+def test_collection_validator_rejects_invalid_aspc_identifier():
+    """asp_configs should use simple generated identifiers, not compound punctuation keys."""
     with pytest.raises(ValueError):
         validate_collection_document(
             "asp_configs",
             {
                 "aspc_id": "assay_1:production",
-                "assay_name": "assay_1",
-                "environment": "development",
+                "asp_id": "assay_1",
+                "subpanel_id": "base",
+                "environment": "production",
                 "asp_group": "hematology",
             },
         )
@@ -336,22 +715,29 @@ def test_collection_validator_rejects_unknown_platform():
         )
 
 
-def test_collection_validator_normalizes_aspc_analysis_aliases():
-    """asp_configs should normalize biomarker-related and CNV-profile aliases."""
+def test_collection_validator_requires_canonical_aspc_analysis_types():
+    """asp_configs should accept canonical analysis-type values."""
     payload = normalize_collection_document(
         "asp_configs",
         {
-            "aspc_id": "assay_1:development",
-            "assay_name": "assay_1",
+            "aspc_id": "assay_1_base_development",
+            "asp_id": "assay_1",
+            "subpanel_id": "base",
             "environment": "development",
             "asp_group": "hematology",
             "asp_category": "dna",
-            "analysis_types": ["snv", "tmb", "pgx", "cnv profile"],
+            "analysis_types": ["SNV", "TMB", "PGX", "CNV_PROFILE", "COVERAGE"],
             "display_name": "Assay 1 Dev",
-            "filters": {"vep_consequences": ["missense"], "cnveffects": ["gain", "loss"]},
-            "query": {},
+            "analysis_intents": ["somatic"],
+            "filters": {
+                "somatic": {
+                    "snv": {"vep_consequences": ["missense"]},
+                    "cnv": {"cnveffects": ["gain", "loss"]},
+                    "coverage": {"warn_cov": 500, "error_cov": 100},
+                }
+            },
             "reporting": {
-                "report_sections": ["tmb", "cnv-profile"],
+                "report_sections": ["TMB", "CNV_PROFILE"],
                 "report_header": "Header",
                 "report_method": "Method",
                 "report_description": "Description",
@@ -362,12 +748,45 @@ def test_collection_validator_normalizes_aspc_analysis_aliases():
         },
     )
 
-    assert payload["analysis_types"] == ["SNV", "TMB", "PGX", "CNV_PROFILE"]
+    assert payload["analysis_types"] == ["SNV", "TMB", "PGX", "CNV_PROFILE", "COVERAGE"]
     assert payload["reporting"]["report_sections"] == ["TMB", "CNV_PROFILE"]
+    assert "analysis" not in payload["reporting"]
 
 
-def test_collection_validator_normalizes_user_assay_groups_to_known_values():
-    """User assay-group scope should use the fixed assay-group vocabulary."""
+def test_collection_validator_requires_translocation_filter_scope() -> None:
+    """A translocation-enabled ASPC must define its independent gene-scope block."""
+    with pytest.raises(
+        ValueError,
+        match=r"analysis_types includes TRANSLOCATION but filters\.somatic\.translocation is missing",
+    ):
+        normalize_collection_document(
+            "asp_configs",
+            {
+                "aspc_id": "assay_1_base_development",
+                "asp_id": "assay_1",
+                "subpanel_id": "base",
+                "environment": "development",
+                "asp_group": "hematology",
+                "asp_category": "dna",
+                "analysis_types": ["SNV", "TRANSLOCATION"],
+                "display_name": "Assay 1 Dev",
+                "analysis_intents": ["somatic"],
+                "filters": {"somatic": {"snv": {"vep_consequences": ["missense"]}}},
+                "reporting": {
+                    "report_sections": ["SNV"],
+                    "report_header": "Header",
+                    "report_method": "Method",
+                    "report_description": "Description",
+                    "general_report_summary": "Summary",
+                    "plots_path": "/tmp",
+                    "report_folder": "reports",
+                },
+            },
+        )
+
+
+def test_collection_validator_normalizes_user_asp_groups_to_known_values():
+    """User ASP-group scope should use the fixed assay-group vocabulary."""
     payload = normalize_collection_document(
         "users",
         {
@@ -378,12 +797,12 @@ def test_collection_validator_normalizes_user_assay_groups_to_known_values():
             "fullname": "Admin Center",
             "job_title": "Administrator",
             "roles": ["admin"],
-            "environments": ["prod"],
-            "assay_groups": [" Hematology ", "solid"],
+            "environments": ["production"],
+            "asp_groups": [" Hematology ", "solid"],
         },
     )
 
-    assert payload["assay_groups"] == ["hematology", "solid"]
+    assert payload["asp_groups"] == ["hematology", "solid"]
 
 
 def test_collection_validator_rejects_unknown_permission_category():
@@ -393,7 +812,6 @@ def test_collection_validator_rejects_unknown_permission_category():
             "permissions",
             {
                 "permission_id": "sample:inspect",
-                "permission_name": "sample:inspect",
                 "label": "Inspect sample",
                 "category": "Custom Category",
                 "tags": [],
@@ -407,7 +825,6 @@ def test_collection_validator_applies_default_expected_files_for_dna_asp():
         "assay_specific_panels",
         {
             "asp_id": "assay_1",
-            "assay_name": "assay_1",
             "asp_group": "hematology",
             "asp_family": "panel-dna",
             "asp_category": "dna",
@@ -421,6 +838,7 @@ def test_collection_validator_applies_default_expected_files_for_dna_asp():
         "cov",
         "transloc",
         "biomarkers",
+        "pgx",
     ]
     assert payload["required_files"] == []
 
@@ -474,14 +892,13 @@ def test_collection_validator_rejects_user_without_role():
 
 def test_collection_validator_accepts_strict_ready_fixture_subset():
     """Strict-ready fixture collections should pass validation end-to-end."""
-    fixture_dir = Path("tests/fixtures/db_dummy/all_collections_dummy")
+    fixture_dir = Path("demo_data/collections/all_collections_dummy")
     payload = {
         file.stem: json.loads(file.read_text(encoding="utf-8"))
         for file in sorted(fixture_dir.glob("*.json"))
     }
     payload["permissions"] = _load_reference_seed_list("permissions.seed.ndjson.gz")
     payload["roles"] = _load_reference_seed_list("roles.seed.ndjson.gz")
-    payload["refseq_canonical"] = _load_reference_seed_list("refseq_canonical.seed.ndjson.gz")
     payload["hgnc_genes"] = _load_reference_seed_list("hgnc_genes.seed.ndjson.gz")
     payload["vep_metadata"] = _load_reference_seed_list("vep_metadata.seed.ndjson.gz")
     strict_ready = {
@@ -489,7 +906,6 @@ def test_collection_validator_accepts_strict_ready_fixture_subset():
         "mane_select",
         "oncokb_genes",
         "permissions",
-        "refseq_canonical",
         "roles",
         "samples",
         "vep_metadata",

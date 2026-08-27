@@ -14,8 +14,14 @@ user populations changed.
 
 Authentication provider is resolved from persisted user data:
 
-- `user.auth_type = coyote3` -> local password authentication
-- `user.auth_type = ldap` -> LDAP authentication
+- `user.auth_type = ["local"]` -> local password authentication by username
+- `user.auth_type = ["ldap"]` -> LDAP authentication by email
+- `user.auth_type = ["local", "ldap"]` -> both login paths are allowed
+
+Human center accounts default to `["ldap"]`. They may be explicitly configured
+as `["local", "ldap"]` when both center LDAP login and Coyote3-managed local
+password login are required. Coyote service accounts (`coyote3.admin` and
+`coyote3.*`) default to `["local"]`.
 
 No environment-based local-user allowlist is used for provider selection.
 
@@ -25,12 +31,13 @@ Positive:
 
 - Per-user provider behavior is explicit, versionable, and auditable.
 - Center onboarding is simpler (no local-user env sync required).
-- UI behavior can rely on the same source of truth (`auth_type`).
+- UI behavior can rely on the same source of truth (`auth_type`) and render
+  one badge per configured provider.
 
 Trade-offs:
 
 - User data quality is now critical for auth routing.
-- Migration paths must ensure legacy users get explicit/default `auth_type`.
+- Migration paths must ensure historical users get explicit/default `auth_type`.
 
 ## Follow-ups
 

@@ -5,40 +5,36 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
+from pydantic import Field, computed_field, field_validator, model_validator
 
-from api.contracts.schemas.base import VersionHistoryEntryDoc, _DocBase, _StrictDocBase
-from api.contracts.schemas.dna import DnaFiltersDoc
-from api.contracts.schemas.rna import RnaFiltersDoc
-from shared.config_constants import (
+from api.config.constants import (
     ALL_SAMPLE_FILE_KEYS,
     DNA_ANALYSIS_TYPE_OPTIONS,
+    GENELIST_ADHOC_TYPE_OPTIONS,
+    GENELIST_STANDARD_TYPE_OPTIONS,
+    GENELIST_TYPE_OPTIONS,
     RNA_ANALYSIS_TYPE_OPTIONS,
     SAMPLE_FILE_KEYS,
+    SUBPANEL_BASE_ID,
     expected_file_keys,
+    normalize_analysis_type,
     normalize_asp_category,
     normalize_asp_family,
     normalize_asp_group,
+    normalize_clinical_identifier,
     normalize_environment,
+    normalize_genelist_type,
     normalize_platform,
-    validate_identifier,
+    normalize_read_mode,
 )
+from api.config.sequencing import derived_read_technology, validate_platform_read_mode
+from api.contracts.schemas.base import _DocBase, _StrictCollectionDocBase, _StrictDocBase
+from api.contracts.schemas.filter_profiles import DnaFilterProfilesDoc, RnaFilterProfilesDoc
+from api.domain.common.sample_filters import normalize_analysis_intents, normalize_sample_filters
 
 DNA_EXPECTED_FILE_OPTIONS: tuple[str, ...] = SAMPLE_FILE_KEYS["dna"]
 RNA_EXPECTED_FILE_OPTIONS: tuple[str, ...] = SAMPLE_FILE_KEYS["rna"]
 ALL_EXPECTED_FILE_OPTIONS: tuple[str, ...] = ALL_SAMPLE_FILE_KEYS
-
-
-def _normalize_analysis_option(value: Any) -> str:
-    raw = str(value or "").strip().upper().replace(" ", "_")
-    aliases = {
-        "BIOMARKERS": "BIOMARKER",
-        "CNVPROFILE": "CNV_PROFILE",
-        "CNV_PROFILE": "CNV_PROFILE",
-        "CNV-PROFILE": "CNV_PROFILE",
-        "CNV__PROFILE": "CNV_PROFILE",
-    }
-    return aliases.get(raw, raw)
 
 
 class AssayPanelToAssayGroupMappingDoc(_DocBase):
@@ -87,30 +83,38 @@ class AspcReportingDoc(_StrictDocBase):
         if value is None:
             return []
         values = value if isinstance(value, list) else [value]
-        normalized = [
-            _normalize_analysis_option(item) for item in values if str(item or "").strip()
-        ]
+        normalized = [normalize_analysis_type(item) for item in values if str(item or "").strip()]
         return list(dict.fromkeys(normalized))
 
 
-class AspcQueryDoc(BaseModel):
-    """ASPC query override buckets by domain."""
+class AspcCatalogDoc(_StrictDocBase):
+    """Public visibility control for one ASPC environment/subpanel tuple."""
 
-    model_config = ConfigDict(extra="forbid")
+    is_public: bool = True
 
-    snv: dict[str, Any] = Field(default_factory=dict)
-    cnv: dict[str, Any] = Field(default_factory=dict)
-    fusion: dict[str, Any] = Field(default_factory=dict)
-    transloc: dict[str, Any] = Field(default_factory=dict)
+    @model_validator(mode="before")
+    @classmethod
+    def _retain_visibility_only(cls, value: Any) -> dict[str, Any]:
+        """Discard retired catalog presentation fields from older ASPC revisions.
+
+        Public presentation is owned by the center catalog YAML. ASPC only decides
+        whether an otherwise active configuration can be exposed publicly.
+        """
+        if isinstance(value, dict):
+            return {"is_public": value.get("is_public", True)}
+        return {"is_public": True}
 
 
-class AspConfigDoc(_StrictDocBase):
+class AspConfigDoc(_StrictCollectionDocBase):
     aspc_id: str
-    assay_name: str
+    asp_id: str
+    subpanel_id: str = SUBPANEL_BASE_ID
     environment: str
     asp_group: str
     asp_category: str
     analysis_types: list[str] = Field(default_factory=list)
+    analysis_intents: list[str] = Field(default_factory=lambda: ["somatic"])
+    system_managed: bool = False
     is_active: bool = True
     display_name: str
     description: str | None = None
@@ -119,17 +123,19 @@ class AspConfigDoc(_StrictDocBase):
     verification_samples: dict[str, list[int]] = Field(default_factory=dict)
     use_diagnosis_genelist: bool = False
 
-    filters: DnaFiltersDoc | RnaFiltersDoc
-    query: AspcQueryDoc = Field(default_factory=AspcQueryDoc)
+    filters: DnaFilterProfilesDoc | RnaFilterProfilesDoc
     reporting: AspcReportingDoc
+    catalog: AspcCatalogDoc = Field(default_factory=AspcCatalogDoc)
 
-    # Versioning
     version: int = 1
     created_by: str | None = None
     created_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_by: str | None = None
     updated_on: datetime | None = None
-    version_history: list[VersionHistoryEntryDoc] = Field(default_factory=list)
+    supersedes_id: Any | None = None
+    retired_by: str | None = None
+    retired_on: datetime | None = None
+    retired_reason: str | None = None
 
     @field_validator("environment", mode="before")
     @classmethod
@@ -149,14 +155,20 @@ class AspConfigDoc(_StrictDocBase):
     @field_validator("aspc_id")
     @classmethod
     def _validate_aspc_id(cls, value: str) -> str:
-        if ":" not in value:
-            raise ValueError("aspc_id must use assay:environment format")
-        return value
+        return normalize_clinical_identifier(value, label="aspc_id")
 
-    @field_validator("assay_name", mode="before")
+    @field_validator("asp_id", mode="before")
     @classmethod
-    def _validate_assay_name(cls, value: Any) -> str:
-        return validate_identifier(value, label="assay_name")
+    def _validate_asp_id(cls, value: Any) -> str:
+        return normalize_clinical_identifier(value, label="asp_id")
+
+    @field_validator("subpanel_id", mode="before")
+    @classmethod
+    def _validate_subpanel_id(cls, value: Any) -> str:
+        raw = str(value or "").strip()
+        if not raw:
+            return SUBPANEL_BASE_ID
+        return normalize_clinical_identifier(raw, label="subpanel_id")
 
     @field_validator("asp_group", mode="before")
     @classmethod
@@ -164,32 +176,12 @@ class AspConfigDoc(_StrictDocBase):
         return normalize_asp_group(value)
 
     @model_validator(mode="after")
-    def _validate_aspc_match(self) -> "AspConfigDoc":
-        assay, environment = self.aspc_id.split(":", 1)
-        aliases = {
-            "prod": "production",
-            "production": "production",
-            "dev": "development",
-            "development": "development",
-            "test": "testing",
-            "testing": "testing",
-            "validation": "validation",
-            "stage": "validation",
-            "staging": "validation",
-        }
-        if assay != self.assay_name:
-            raise ValueError("aspc_id assay segment must match assay_name")
-        if (
-            aliases.get(environment.strip().lower(), environment.strip().lower())
-            != self.environment
-        ):
-            raise ValueError("aspc_id environment segment must match environment")
+    def _validate_filter_contract(self) -> "AspConfigDoc":
+        if self.asp_category == "dna" and not isinstance(self.filters, DnaFilterProfilesDoc):
+            raise ValueError("filters must be DnaFilterProfilesDoc when asp_category='dna'")
 
-        if self.asp_category == "dna" and not isinstance(self.filters, DnaFiltersDoc):
-            raise ValueError("filters must be AspcDnaFiltersDoc when asp_category='dna'")
-
-        if self.asp_category == "rna" and not isinstance(self.filters, RnaFiltersDoc):
-            raise ValueError("filters must be AspcRnaFiltersDoc when asp_category='rna'")
+        if self.asp_category == "rna" and not isinstance(self.filters, RnaFilterProfilesDoc):
+            raise ValueError("filters must be RnaFilterProfilesDoc when asp_category='rna'")
 
         return self
 
@@ -199,10 +191,18 @@ class AspConfigDoc(_StrictDocBase):
         if value is None:
             return []
         values = value if isinstance(value, list) else [value]
-        normalized = [
-            _normalize_analysis_option(item) for item in values if str(item or "").strip()
-        ]
+        normalized = [normalize_analysis_type(item) for item in values if str(item or "").strip()]
         return list(dict.fromkeys(normalized))
+
+    @field_validator("analysis_intents", mode="before")
+    @classmethod
+    def _normalize_analysis_intents(cls, value: Any) -> list[str]:
+        values = value if isinstance(value, list) else [value]
+        return list(
+            dict.fromkeys(
+                str(item or "").strip().lower() for item in values if str(item or "").strip()
+            )
+        ) or ["somatic"]
 
     @model_validator(mode="after")
     def _validate_analysis_and_reporting_options(self) -> "AspConfigDoc":
@@ -226,12 +226,51 @@ class AspConfigDoc(_StrictDocBase):
                 f"report_sections contains invalid values: {invalid_report_sections}. "
                 f"Allowed values are: {sorted(allowed_analysis)}"
             )
+        if not self.analysis_types:
+            raise ValueError("analysis_types must include at least one enabled analysis")
+        self.analysis_intents = normalize_analysis_intents(
+            self.analysis_intents, omics_layer=self.asp_category
+        )
+        if "germline" in self.analysis_intents and "SNV" not in self.analysis_types:
+            raise ValueError("germline analysis requires SNV in analysis_types")
+        if not self.reporting.report_sections:
+            raise ValueError("reporting.report_sections must include at least one report section")
+        unavailable_sections = [
+            value for value in self.reporting.report_sections if value not in self.analysis_types
+        ]
+        if unavailable_sections:
+            raise ValueError(
+                "reporting.report_sections must be enabled in analysis_types: "
+                f"{unavailable_sections}"
+            )
+        filter_profiles = self.filters.model_dump(exclude_none=True)
+        normalize_sample_filters(
+            filter_profiles,
+            omics_layer=self.asp_category,
+            analysis_intents=self.analysis_intents,
+            canonical=True,
+        )
+        somatic = filter_profiles.get("somatic") or {}
+        required_sections = {
+            "SNV": "snv",
+            "CNV": "cnv",
+            "TRANSLOCATION": "translocation",
+            "COVERAGE": "coverage",
+            "FUSION": "fusion",
+        }
+        for analysis_type, section in required_sections.items():
+            if analysis_type in self.analysis_types and not somatic.get(section):
+                raise ValueError(
+                    f"analysis_types includes {analysis_type} but filters.somatic.{section} is missing"
+                )
+        if "germline" in self.analysis_intents:
+            if not (filter_profiles.get("germline") or {}).get("snv"):
+                raise ValueError("germline analysis requires filters.germline.snv")
         return self
 
 
-class AssaySpecificPanelsDoc(_StrictDocBase):
+class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
     asp_id: str
-    assay_name: str
     asp_group: str
     asp_family: str
     asp_category: str
@@ -247,26 +286,26 @@ class AssaySpecificPanelsDoc(_StrictDocBase):
     kit_version: str | None = None
     platform: str | None = None
     read_mode: str | None = None
+    read_technology: str | None = None
     read_length: int | None = None
     capture_method: str | None = None
     target_region_size: int | None = None
+    system_managed: bool = False
     is_active: bool = True
     version: int = 1
     created_by: str | None = None
     created_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_by: str | None = None
     updated_on: datetime | None = None
-    version_history: list[VersionHistoryEntryDoc] = Field(default_factory=list)
+    supersedes_id: Any | None = None
+    retired_by: str | None = None
+    retired_on: datetime | None = None
+    retired_reason: str | None = None
 
     @field_validator("asp_id", mode="before")
     @classmethod
     def _validate_asp_id(cls, value: Any) -> str:
-        return validate_identifier(value, label="asp_id")
-
-    @field_validator("assay_name", mode="before")
-    @classmethod
-    def _validate_assay_name(cls, value: Any) -> str:
-        return validate_identifier(value, label="assay_name")
+        return normalize_clinical_identifier(value, label="asp_id")
 
     @field_validator("asp_category", mode="before")
     @classmethod
@@ -287,6 +326,11 @@ class AssaySpecificPanelsDoc(_StrictDocBase):
     @classmethod
     def _normalize_platform(cls, value: Any) -> str | None:
         return normalize_platform(value)
+
+    @field_validator("read_mode", mode="before")
+    @classmethod
+    def _normalize_read_mode(cls, value: Any) -> str | None:
+        return normalize_read_mode(value)
 
     @field_validator("expected_files", mode="before")
     @classmethod
@@ -345,6 +389,17 @@ class AssaySpecificPanelsDoc(_StrictDocBase):
             )
         return self
 
+    @model_validator(mode="after")
+    def _derive_platform_capabilities(self) -> "AssaySpecificPanelsDoc":
+        validate_platform_read_mode(self.platform, self.read_mode)
+        derived = derived_read_technology(self.platform)
+        if self.read_technology and self.read_technology != derived:
+            raise ValueError(
+                "read_technology is derived from platform and cannot be set independently"
+            )
+        self.read_technology = derived
+        return self
+
     @property
     @computed_field
     def covered_genes_count(self) -> int:
@@ -356,48 +411,90 @@ class AssaySpecificPanelsDoc(_StrictDocBase):
         return len(self.germline_genes)
 
 
-class InsilicoGenelistsDoc(_StrictDocBase):
+class InsilicoGenelistsDoc(_StrictCollectionDocBase):
+    """One-gene-per-entry list shared by SNV, CNV, and fusion filtering."""
+
     isgl_id: str
     diagnosis: list[str] = Field(default_factory=list)
     name: str
     displayname: str
-    list_type: list[str] = Field(
-        default_factory=lambda: ["small_variant_genelist", "cnv_genelist", "fusion_genelist"]
-    )
+    list_type: list[str] = Field(default_factory=lambda: list(GENELIST_TYPE_OPTIONS))
     adhoc: bool = False
     is_public: bool = False
+    system_managed: bool = False
     is_active: bool = True
-    assay_groups: list[str] = Field(default_factory=list)
+    asp_groups: list[str] = Field(default_factory=list)
     genes: list[str] = Field(default_factory=list)
-    assays: list[str] = Field(default_factory=list)
+    germline_genes: list[str] = Field(default_factory=list)
+    asp_ids: list[str] = Field(default_factory=list)
     version: int = 1
     created_by: str | None = None
     created_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_by: str | None = None
     updated_on: datetime | None = None
-    version_history: list[VersionHistoryEntryDoc] = Field(default_factory=list)
+    supersedes_id: Any | None = None
+    retired_by: str | None = None
+    retired_on: datetime | None = None
+    retired_reason: str | None = None
+
+    @field_validator("isgl_id", mode="before")
+    @classmethod
+    def _validate_isgl_id(cls, value: Any) -> str:
+        return normalize_clinical_identifier(value, label="isgl_id")
 
     @field_validator("diagnosis", mode="before")
     @classmethod
     def _normalize_diagnosis(cls, value: Any) -> list[str]:
         if isinstance(value, str):
-            value = [value]
+            value = value.replace(",", "\n").splitlines()
         if not value:
             return []
-        return [str(item).strip() for item in value if str(item).strip()]
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            for token in str(item).replace(",", "\n").splitlines():
+                diagnosis = token.strip()
+                if diagnosis:
+                    diagnosis_id = normalize_clinical_identifier(
+                        diagnosis, label="diagnosis/subpanel identifier"
+                    )
+                    if diagnosis_id not in seen:
+                        normalized.append(diagnosis_id)
+                        seen.add(diagnosis_id)
+        return normalized
 
-    @field_validator("assays")
+    @field_validator("list_type", mode="before")
     @classmethod
-    def _validate_assays(cls, value: list[str]) -> list[str]:
-        if not value:
-            raise ValueError("assays must include at least one assay id")
-        return value
+    def _normalize_list_type(cls, value: Any) -> list[str]:
+        if value is None:
+            return list(GENELIST_TYPE_OPTIONS)
+        values = value if isinstance(value, list) else [value]
+        normalized = [normalize_genelist_type(item) for item in values if str(item or "").strip()]
+        return list(dict.fromkeys(normalized))
 
-    @field_validator("assay_groups")
+    @model_validator(mode="after")
+    def _validate_adhoc_list_types(self) -> "InsilicoGenelistsDoc":
+        allowed = GENELIST_ADHOC_TYPE_OPTIONS if self.adhoc else GENELIST_STANDARD_TYPE_OPTIONS
+        invalid = [value for value in self.list_type if value not in allowed]
+        if invalid:
+            mode = "adhoc" if self.adhoc else "standard"
+            raise ValueError(
+                f"{mode} genelists may only use list_type values: {', '.join(allowed)}"
+            )
+        return self
+
+    @field_validator("asp_ids")
     @classmethod
-    def _validate_assay_groups(cls, value: list[str]) -> list[str]:
+    def _validate_asp_ids(cls, value: list[str]) -> list[str]:
         if not value:
-            raise ValueError("assay_groups must include at least one assay group")
+            raise ValueError("asp_ids must include at least one ASP identifier")
+        return [normalize_clinical_identifier(item, label="asp_ids") for item in value]
+
+    @field_validator("asp_groups")
+    @classmethod
+    def _validate_asp_groups(cls, value: list[str]) -> list[str]:
+        if not value:
+            raise ValueError("asp_groups must include at least one ASP group")
         normalized: list[str] = []
         seen: set[str] = set()
         for item in value:
@@ -412,8 +509,13 @@ class InsilicoGenelistsDoc(_StrictDocBase):
     def gene_count(self) -> int:
         return len(self.genes)
 
+    @computed_field
+    @property
+    def germline_gene_count(self) -> int:
+        return len(self.germline_genes)
 
-class BlacklistDoc(_StrictDocBase):
+
+class BlacklistDoc(_StrictCollectionDocBase):
     pos: str
     assay_group: str | None = None
     in_normal_perc: float | None = None

@@ -21,8 +21,8 @@ class DnaVariantsListPayload(BaseModel):
     assay_panel_doc: dict[str, Any] | None = None
     assay_panels: list[dict[str, Any]]
     all_panel_genelist_names: list[Any]
-    checked_genelists: list[Any]
-    checked_genelists_dict: dict[str, Any]
+    checked_snvlists: list[Any]
+    checked_snvlists_dict: dict[str, Any]
     filter_genes: list[str]
     sample_ids: dict[str, str]
     bam_id: Any
@@ -30,6 +30,11 @@ class DnaVariantsListPayload(BaseModel):
     vep_var_class_translations: dict[str, Any]
     vep_conseq_translations: dict[str, Any]
     oncokb_genes: list[str]
+    oncokb_gene_map: dict[str, Any] = {}
+    oncokb_actionable_genes: list[str] = []
+    oncokb_actionable_gene_map: dict[str, Any] = {}
+    clinpgx_genes: list[str] = []
+    clinpgx_gene_map: dict[str, Any] = {}
     verification_sample_used: str | None = None
     variants: list[dict[str, Any]]
     display_sections_data: dict[str, Any]
@@ -59,6 +64,7 @@ class DnaVariantContextPayload(BaseModel):
     sample: dict[str, Any]
     sample_summary: dict[str, Any]
     variant: dict[str, Any]
+    transcripts: list[dict[str, Any]]
     annotations: list[dict[str, Any]]
     latest_classification: dict[str, Any] | None = None
     other_classifications: list[dict[str, Any]]
@@ -73,6 +79,7 @@ class DnaVariantContextPayload(BaseModel):
     oncokb: Any
     oncokb_action: Any
     oncokb_gene: Any
+    clinpgx_gene: Any = None
     brca_exchange: Any
     iarc_tp53: Any
     assay_group: str
@@ -113,6 +120,8 @@ class DnaTranslocationsPayload(BaseModel):
 
     sample: dict[str, Any]
     meta: dict[str, Any]
+    filters: dict[str, Any]
+    vep_conseq_translations: dict[str, Any]
     translocations: list[dict[str, Any]]
 
 
@@ -193,6 +202,35 @@ class DnaTranslocExportRow(BaseModel):
     latest_comment: str = ""
     latest_comment_author: str = ""
     latest_comment_time: str = ""
+
+
+class DnaOncoKbPublicPayload(BaseModel):
+    """Represent an on-demand public OncoKB annotation lookup."""
+
+    status: str
+    source: str | None = None
+    license: str | None = None
+    message: str | None = None
+    query: dict[str, Any]
+    response: Any = None
+
+
+class DnaClinPgxPublicPayload(BaseModel):
+    """Represent an on-demand public ClinPGx gene knowledge lookup."""
+
+    status: str
+    source: str | None = None
+    license: str | None = None
+    message: str | None = None
+    query: dict[str, Any]
+    local_record: dict[str, Any] | None = None
+    response: Any = None
+
+
+class DnaTranscriptSelectionRequest(BaseModel):
+    """Request to change the displayed transcript for a small variant."""
+
+    feature_id: str
 
 
 class DnaCsvExportContextPayload(BaseModel):

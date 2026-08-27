@@ -1,0 +1,52 @@
+[
+  {
+    "vep_id": "103",
+    "created_by": "system",
+    "created_on": "2026-01-01T10:00:00+00:00",
+    "source": "https://www.ensembl.org/info/docs/tools/vep/",
+    "vc_translation_source": "https://www.ensembl.org/info/genome/variation/prediction/classification.html",
+    "conseq_translation_source": "https://www.ensembl.org/info/genome/variation/prediction/predicted_data.html",
+    "db_info": {
+      "GRCh38": {
+        "assembly_name": "GRCh38",
+        "assembly_accession": "GCA_000001405.15",
+        "genome_assembly": "GRCh38.p13",
+        "genome_build": "GRCh38",
+        "ensembl_version": 103,
+        "gencode": "37",
+        "refseq": "2020-09-29",
+        "regulatory_build": "1.0",
+        "polyphen": "2.2.2",
+        "sift": "5.2.2",
+        "dbsnp": "154",
+        "cosmic": "92",
+        "hgmd_public": "2019.4",
+        "clinvar": "2020-08",
+        "1000_genomes": "Phase 3",
+        "nhlbi_esp": "V2-SSA137",
+        "gnomad": "r2.1"
+      }
+    },
+    "variant_class_translations": {
+      "SNV": {
+        "short": "SNV",
+        "desc": "Single nucleotide variant.",
+        "displayname": "SNV",
+        "so_term": "SO:0001483"
+      }
+    },
+    "conseq_translations": {
+      "missense_variant": {
+        "short": "missense",
+        "display": "Missense",
+        "desc": "A sequence change that alters one amino acid.",
+        "impact": "MODERATE",
+        "so_term": "SO:0001583",
+        "group": "missense"
+      }
+    },
+    "consequence_groups": {
+      "missense": ["missense_variant"]
+    }
+  }
+]

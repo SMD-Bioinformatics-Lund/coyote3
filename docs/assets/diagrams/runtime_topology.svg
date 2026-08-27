@@ -1,47 +1,48 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="980" height="320" viewBox="0 0 980 320" role="img" aria-labelledby="title desc">
-  <title id="title">Coyote3 Runtime Topology</title>
-  <desc id="desc">Flow from browser to Flask UI to FastAPI and then MongoDB and Redis.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">Coyote3 runtime topology</title>
+  <desc id="desc">Deployment topology showing the external reverse proxy, the single Coyote3 proxy port, React, FastAPI, documentation, MongoDB, Redis, Celery worker and scheduler, mounted data, and external services.</desc>
   <defs>
     <style>
-      .canvas { fill: #f8fafc; }
-      .title-band { fill: #e2e8f0; }
-      .title { font: 700 22px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
-      .label { font: 700 15px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
-      .sub { font: 12px 'Segoe UI', Arial, sans-serif; fill: #334155; }
-      .box { stroke: #334155; stroke-width: 1.8; rx: 12; ry: 12; }
-      .arrow { stroke: #334155; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
+      .canvas{fill:#f8fafc}.band{fill:#e2e8f0}.lane{fill:#ffffff;stroke:#94a3b8;stroke-width:1.4}.edge{fill:#dbeafe}.app{fill:#e0e7ff}.data{fill:#dcfce7}.task{fill:#fef3c7}.external{fill:#fce7f3}.title{font:700 23px Inter,'Segoe UI',Arial,sans-serif;fill:#0f172a}.lane-title{font:700 13px Inter,'Segoe UI',Arial,sans-serif;fill:#475569}.label{font:700 14px Inter,'Segoe UI',Arial,sans-serif;fill:#0f172a}.sub{font:12px Inter,'Segoe UI',Arial,sans-serif;fill:#334155}.note{font:11px Inter,'Segoe UI',Arial,sans-serif;fill:#475569}.arrow{stroke:#475569;stroke-width:2.1;fill:none;marker-end:url(#a)}.async{stroke:#b45309;stroke-width:2.1;fill:none;stroke-dasharray:7 5;marker-end:url(#b)}
     </style>
-    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
-      <polygon points="0,0 10,4 0,8" fill="#334155"/>
-    </marker>
+    <marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#475569"/></marker>
+    <marker id="b" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#b45309"/></marker>
   </defs>
+  <rect width="1200" height="620" class="canvas"/>
+  <rect x="20" y="18" width="1160" height="48" rx="10" class="band"/>
+  <text x="40" y="49" class="title">Coyote3 runtime topology</text>
 
-  <rect x="0" y="0" width="980" height="320" class="canvas"/>
-  <rect x="20" y="16" width="940" height="36" rx="10" class="title-band"/>
-  <text x="40" y="40" class="title">Coyote3 Runtime Topology</text>
+  <rect x="28" y="88" width="1144" height="112" rx="14" class="lane"/>
+  <text x="46" y="110" class="lane-title">PUBLIC ENTRY AND ROUTING</text>
+  <rect x="60" y="128" width="180" height="52" rx="10" class="edge"/><text x="150" y="150" text-anchor="middle" class="label">Browser / API client</text><text x="150" y="169" text-anchor="middle" class="sub">SCRIPT_NAME-prefixed URL</text>
+  <rect x="320" y="128" width="200" height="52" rx="10" class="edge"/><text x="420" y="150" text-anchor="middle" class="label">Site reverse proxy</text><text x="420" y="169" text-anchor="middle" class="sub">TLS + deployment prefix</text>
+  <rect x="610" y="118" width="240" height="72" rx="10" class="edge"/><text x="730" y="143" text-anchor="middle" class="label">Coyote3 Nginx proxy</text><text x="730" y="163" text-anchor="middle" class="sub">one published port</text><text x="730" y="180" text-anchor="middle" class="note">UI · /api/v1 · /docs-site</text>
+  <path d="M240 154 H320" class="arrow"/><path d="M520 154 H610" class="arrow"/>
 
-  <rect x="40" y="96" width="180" height="74" class="box" fill="#dbeafe"/>
-  <text x="130" y="123" text-anchor="middle" class="label">User Browser</text>
-  <text x="130" y="142" text-anchor="middle" class="sub">UI interactions</text>
+  <rect x="28" y="218" width="1144" height="145" rx="14" class="lane"/>
+  <text x="46" y="240" class="lane-title">APPLICATION SERVICES</text>
+  <rect x="70" y="267" width="230" height="70" rx="11" class="app"/><text x="185" y="291" text-anchor="middle" class="label">React + Vite frontend</text><text x="185" y="312" text-anchor="middle" class="sub">routes, React Query, tables</text><text x="185" y="329" text-anchor="middle" class="note">development: HMR · production: static build</text>
+  <rect x="382" y="257" width="260" height="90" rx="11" class="app"/><text x="512" y="282" text-anchor="middle" class="label">FastAPI application</text><text x="512" y="303" text-anchor="middle" class="sub">middleware · contracts · services</text><text x="512" y="323" text-anchor="middle" class="sub">RBAC/ABAC · repositories · audit</text><text x="512" y="340" text-anchor="middle" class="note">OpenAPI: /api/v1/docs</text>
+  <rect x="730" y="267" width="200" height="70" rx="11" class="app"/><text x="830" y="291" text-anchor="middle" class="label">Documentation site</text><text x="830" y="312" text-anchor="middle" class="sub">MkDocs static output</text><text x="830" y="329" text-anchor="middle" class="note">/docs-site</text>
+  <path d="M730 190 L185 267" class="arrow"/><path d="M730 190 L512 257" class="arrow"/><path d="M730 190 L830 267" class="arrow"/><path d="M300 302 H382" class="arrow"/>
 
-  <rect x="290" y="96" width="220" height="74" class="box" fill="#e0f2fe"/>
-  <text x="400" y="123" text-anchor="middle" class="label">Flask UI (`coyote`)</text>
-  <text x="400" y="142" text-anchor="middle" class="sub">Routes and templates</text>
+  <rect x="28" y="381" width="1144" height="151" rx="14" class="lane"/>
+  <text x="46" y="403" class="lane-title">STATE, BACKGROUND EXECUTION, AND FILES</text>
+  <rect x="64" y="432" width="190" height="72" rx="11" class="data"/><text x="159" y="456" text-anchor="middle" class="label">MongoDB</text><text x="159" y="477" text-anchor="middle" class="sub">clinical + configuration</text><text x="159" y="495" text-anchor="middle" class="note">source of truth</text>
+  <rect x="300" y="432" width="170" height="72" rx="11" class="data"/><text x="385" y="456" text-anchor="middle" class="label">Redis</text><text x="385" y="477" text-anchor="middle" class="sub">cache · broker · results</text><text x="385" y="495" text-anchor="middle" class="note">non-clinical state</text>
+  <rect x="520" y="432" width="190" height="72" rx="11" class="task"/><text x="615" y="456" text-anchor="middle" class="label">Celery worker</text><text x="615" y="477" text-anchor="middle" class="sub">ingest + maintenance</text><text x="615" y="495" text-anchor="middle" class="note">ingest/default queues</text>
+  <rect x="755" y="432" width="170" height="72" rx="11" class="task"/><text x="840" y="456" text-anchor="middle" class="label">Celery beat</text><text x="840" y="477" text-anchor="middle" class="sub">watch + retention</text><text x="840" y="495" text-anchor="middle" class="note">scheduled dispatch</text>
+  <rect x="970" y="432" width="165" height="72" rx="11" class="data"/><text x="1052" y="456" text-anchor="middle" class="label">Mounted files</text><text x="1052" y="477" text-anchor="middle" class="sub">manifests · VCF · QC</text><text x="1052" y="495" text-anchor="middle" class="note">host paths preserved</text>
+  <path d="M470 347 V372 H159 V432" class="arrow"/>
+  <path d="M512 347 V382 H385 V432" class="arrow"/>
+  <path d="M554 347 V392 H615 V432" class="async"/>
+  <path d="M840 432 V414 H385 V432" class="async"/>
+  <path d="M710 486 V518 H1052 V504" class="arrow"/>
+  <path d="M520 468 H470" class="arrow"/>
+  <path d="M580 504 V520 H159 V504" class="arrow"/>
 
-  <rect x="580" y="96" width="230" height="74" class="box" fill="#dcfce7"/>
-  <text x="695" y="123" text-anchor="middle" class="label">FastAPI (`api`)</text>
-  <text x="695" y="142" text-anchor="middle" class="sub">Contracts and logic</text>
-
-  <rect x="560" y="222" width="170" height="70" class="box" fill="#fef3c7"/>
-  <text x="645" y="248" text-anchor="middle" class="label">MongoDB</text>
-  <text x="645" y="267" text-anchor="middle" class="sub">Persistent data</text>
-
-  <rect x="780" y="222" width="150" height="70" class="box" fill="#fbcfe8"/>
-  <text x="855" y="248" text-anchor="middle" class="label">Redis</text>
-  <text x="855" y="267" text-anchor="middle" class="sub">Cache/session</text>
-
-  <path d="M220 133 L290 133" class="arrow"/>
-  <path d="M510 133 L580 133" class="arrow"/>
-  <path d="M695 170 L645 222" class="arrow"/>
-  <path d="M730 170 L840 222" class="arrow"/>
+  <rect x="28" y="550" width="1144" height="48" rx="12" class="external"/>
+  <text x="48" y="579" class="lane-title">OPTIONAL EXTERNAL SERVICES</text>
+  <text x="260" y="579" class="sub">LDAP · SMTP · OncoKB Public · ClinPGx Public · BAM service · monitoring scraper</text>
+  <path d="M620 347 V372 H720 V550" class="arrow"/>
 </svg>

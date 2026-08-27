@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from api import settings
+from api.config import runtime
 
 
 def test_configure_process_env_is_noop(monkeypatch: pytest.MonkeyPatch):
@@ -16,9 +16,9 @@ def test_configure_process_env_is_noop(monkeypatch: pytest.MonkeyPatch):
     Returns:
         The function result.
     """
-    monkeypatch.setenv("TESTING", "1")
+    monkeypatch.setenv("ENV_NAME", "testing")
 
-    settings.configure_process_env()
+    runtime.configure_process_env()
 
 
 def test_production_requires_explicit_secret_key():
@@ -28,10 +28,9 @@ def test_production_requires_explicit_secret_key():
         The function result.
     """
     with pytest.MonkeyPatch.context() as mp:
-        mp.delenv("TESTING", raising=False)
-        mp.delenv("DEVELOPMENT", raising=False)
+        mp.setenv("ENV_NAME", "production")
         with pytest.raises(RuntimeError, match="SECRET_KEY"):
-            settings.get_api_secret_key({})
+            runtime.get_api_secret_key({})
 
 
 def test_production_requires_explicit_internal_api_token():
@@ -41,23 +40,9 @@ def test_production_requires_explicit_internal_api_token():
         The function result.
     """
     with pytest.MonkeyPatch.context() as mp:
-        mp.delenv("TESTING", raising=False)
-        mp.delenv("DEVELOPMENT", raising=False)
+        mp.setenv("ENV_NAME", "production")
         with pytest.raises(RuntimeError, match="INTERNAL_API_TOKEN"):
-            settings.get_internal_api_token({"SECRET_KEY": "x"})
-
-
-def test_production_requires_explicit_session_salt():
-    """Test production requires explicit session salt.
-
-    Returns:
-        The function result.
-    """
-    with pytest.MonkeyPatch.context() as mp:
-        mp.delenv("TESTING", raising=False)
-        mp.delenv("DEVELOPMENT", raising=False)
-        with pytest.raises(RuntimeError, match="API_SESSION_SALT"):
-            settings.get_api_session_salt({"SECRET_KEY": "x", "INTERNAL_API_TOKEN": "y"})
+            runtime.get_internal_api_token({"SECRET_KEY": "x"})
 
 
 def test_non_production_allows_dev_fallbacks():
@@ -66,12 +51,11 @@ def test_non_production_allows_dev_fallbacks():
     Returns:
         The function result.
     """
-    config = {"TESTING": True}
+    config = {"ENV_NAME": "testing"}
 
-    assert settings.get_api_secret_key(config) == "coyote3-api-dev-only"
-    assert settings.get_internal_api_token(config) == ""
-    assert settings.get_api_session_salt(config) == "coyote3-api-session-v1-dev-only"
-    assert settings.get_api_session_cookie_secure(config) is False
+    assert runtime.get_api_secret_key(config) == "coyote3-api-dev-only"
+    assert runtime.get_internal_api_token(config) == ""
+    assert runtime.get_api_session_cookie_secure(config) is False
 
 
 def test_production_session_cookie_secure_defaults_true():
@@ -81,23 +65,24 @@ def test_production_session_cookie_secure_defaults_true():
         The function result.
     """
     with pytest.MonkeyPatch.context() as mp:
-        mp.delenv("TESTING", raising=False)
-        mp.delenv("DEVELOPMENT", raising=False)
-        assert settings.get_api_session_cookie_secure({}) is True
+        mp.setenv("ENV_NAME", "production")
+        assert runtime.get_api_session_cookie_secure({}) is True
 
 
-def test_production_rejects_placeholder_secret_and_token_and_salt():
+def test_session_cookie_secure_follows_browser_facing_scheme():
+    """HTTPS uses a secure cookie while explicit local HTTP can proceed."""
+    assert runtime.get_api_session_cookie_secure({}, request_scheme="https") is True
+    assert runtime.get_api_session_cookie_secure({}, request_scheme="http") is False
+
+
+def test_production_rejects_placeholder_secret_and_token():
     """Production mode rejects known CI/dev placeholder values."""
     with pytest.MonkeyPatch.context() as mp:
-        mp.delenv("TESTING", raising=False)
-        mp.delenv("DEVELOPMENT", raising=False)
+        mp.setenv("ENV_NAME", "production")
         with pytest.raises(RuntimeError, match="Insecure production setting for SECRET_KEY"):
-            settings.get_api_secret_key({"SECRET_KEY": "ci-test-secret-key"})
+            runtime.get_api_secret_key({"SECRET_KEY": "ci-test-secret-key"})
 
         with pytest.raises(
             RuntimeError, match="Insecure production setting for INTERNAL_API_TOKEN"
         ):
-            settings.get_internal_api_token({"INTERNAL_API_TOKEN": "ci-test-internal-token"})
-
-        with pytest.raises(RuntimeError, match="Insecure production setting for API_SESSION_SALT"):
-            settings.get_api_session_salt({"API_SESSION_SALT": "coyote3-api-session-v1-dev-only"})
+            runtime.get_internal_api_token({"INTERNAL_API_TOKEN": "ci-test-internal-token"})

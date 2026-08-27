@@ -20,8 +20,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -52,6 +52,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+frontend/coverage/
 *.cover
 *.py,cover
 .hypothesis/
@@ -148,10 +149,11 @@ run_dev.py
 *.backup*
 *.backup_default
 app.log*
-test
+/test/
 logs/
 example_dev*
-migration_scripts
+/migration_scripts/*
+!/migration_scripts/README.md
 /reports/
 ./bugs
 .ruff_cache
@@ -180,3 +182,35 @@ MIGRATION_PLAN_DNA_RNA_SHARED_SERVICE.md
 
 # Coverage HTML artifact folder used by local scripts
 .coverage_html/
+.design/
+.claude
+.agents
+
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+test-results/
+playwright-report/
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

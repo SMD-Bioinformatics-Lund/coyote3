@@ -4,6 +4,8 @@ This page summarizes how to contribute safely and efficiently.
 
 ## Basic contribution flow
 
+![Feature delivery flow](../assets/diagrams/feature_delivery.svg)
+
 1. Sync your branch with latest mainline.
 2. Implement focused change(s) with tests.
 3. Run local quality gates.
@@ -17,6 +19,14 @@ PYTHONPATH=. ruff check api coyote tests scripts
 PYTHONPATH=. black --check --line-length 100 api coyote tests scripts
 PYTHONPATH=. pytest -q
 ```
+
+## Shared editor settings
+
+The tracked `.vscode/settings.json` file contains only
+shared, non-personal defaults: Python formatting, trailing-whitespace cleanup,
+test discovery, and the frontend Vitest/Playwright roots. It does not select an
+interpreter, contain credentials, or encode a local path. Personal editor
+settings remain untracked.
 
 ## Documentation requirement
 

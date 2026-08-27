@@ -39,7 +39,6 @@ ENV_ALIASES = {
 REQUIRED_BASELINE_COLLECTIONS = (
     "permissions",
     "roles",
-    "refseq_canonical",
     "hgnc_genes",
     "vep_metadata",
     "asp_configs",
@@ -61,7 +60,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--reference-seed-data",
-        help="Optional directory with compressed NDJSON seed packs",
+        action="append",
+        default=[],
+        help="Reference seed directory; repeat for multiple application-owned packs",
     )
     parser.add_argument(
         "--validate-all-contracts",
@@ -96,19 +97,18 @@ def _load_reference_seed_pack(path: str) -> dict[str, Any]:
     required_pack = {
         "hgnc_genes": "hgnc_genes.seed.ndjson",
         "permissions": "permissions.seed.ndjson",
-        "refseq_canonical": "refseq_canonical.seed.ndjson",
         "roles": "roles.seed.ndjson",
         "vep_metadata": "vep_metadata.seed.ndjson",
     }
 
-    def _resolve_reference_file(base_dir: Path, stem_name: str) -> Path:
+    def _resolve_reference_file(base_dir: Path, stem_name: str) -> Path | None:
         plain_path = base_dir / stem_name
         if plain_path.exists():
             return plain_path
         gzip_path = base_dir / f"{stem_name}.gz"
         if gzip_path.exists():
             return gzip_path
-        raise SystemExit(f"Missing reference seed file: {plain_path} or {gzip_path}")
+        return None
 
     def _load_ndjson(file_path: Path) -> list[dict[str, Any]]:
         docs: list[dict[str, Any]] = []
@@ -129,7 +129,16 @@ def _load_reference_seed_pack(path: str) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     for collection, filename in required_pack.items():
         file_path = _resolve_reference_file(reference_path, filename)
+        if file_path is None:
+            continue
         payload[collection] = _load_ndjson(file_path)
+
+    if not payload:
+        expected = ", ".join(required_pack.values())
+        raise SystemExit(
+            f"Reference seed data directory contains no supported files: {reference_path}. "
+            f"Expected one or more of: {expected} (optionally gzip-compressed)."
+        )
 
     return payload
 
@@ -237,21 +246,17 @@ def _known_assays(seed: dict[str, Any]) -> set[str]:
     assays: set[str] = set()
     for doc in seed.get("asp_configs", []):
         if isinstance(doc, dict):
-            name = _norm(doc.get("assay_name", ""))
+            name = _norm(doc.get("asp_id") or "")
             if name:
                 assays.add(name)
-            aspc_id = _norm(doc.get("aspc_id", ""))
-            if ":" in aspc_id:
-                assays.add(_norm(aspc_id.split(":", 1)[0]))
     for doc in seed.get("assay_specific_panels", []):
         if isinstance(doc, dict):
-            for key in ("asp_id", "assay_name"):
-                value = _norm(doc.get(key, ""))
-                if value:
-                    assays.add(value)
+            value = _norm(doc.get("asp_id", ""))
+            if value:
+                assays.add(value)
     for doc in seed.get("insilico_genelists", []):
         if isinstance(doc, dict):
-            for assay in doc.get("assays", []) or []:
+            for assay in doc.get("asp_ids", []) or []:
                 value = _norm(assay)
                 if value:
                     assays.add(value)
@@ -268,7 +273,7 @@ def _known_assay_groups(seed: dict[str, Any]) -> set[str]:
                     groups.add(value)
     for doc in seed.get("insilico_genelists", []):
         if isinstance(doc, dict):
-            for group in doc.get("assay_groups", []) or []:
+            for group in doc.get("asp_groups", []) or []:
                 value = _norm(group)
                 if value:
                     groups.add(value)
@@ -281,24 +286,18 @@ def _collect_references(seed: dict[str, Any]) -> tuple[set[str], set[str]]:
 
     for doc in seed.get("samples", []):
         if isinstance(doc, dict):
-            value = _norm(doc.get("assay", ""))
-            if value:
-                assays.add(value)
-
-    for doc in seed.get("blacklist", []):
-        if isinstance(doc, dict):
-            value = _norm(doc.get("assay", ""))
+            value = _norm(doc.get("asp_id", ""))
             if value:
                 assays.add(value)
 
     for doc in seed.get("insilico_genelists", []):
         if not isinstance(doc, dict):
             continue
-        for assay in doc.get("assays", []) or []:
+        for assay in doc.get("asp_ids", []) or []:
             value = _norm(assay)
             if value:
                 assays.add(value)
-        for group in doc.get("assay_groups", []) or []:
+        for group in doc.get("asp_groups", []) or []:
             value = _norm(group)
             if value:
                 groups.add(value)
@@ -316,12 +315,12 @@ def _validate_lowercase_business_ids(seed: dict[str, Any]) -> list[str]:
     field_rules: dict[str, tuple[str, ...]] = {
         "permissions": ("permission_id",),
         "roles": ("role_id",),
-        "users": ("username", "email", "roles", "assay_groups", "assays"),
-        "asp_configs": ("aspc_id", "assay_name", "asp_group"),
-        "assay_specific_panels": ("asp_id", "assay_name", "asp_group"),
-        "insilico_genelists": ("isgl_id", "diagnosis", "assay_groups", "assays"),
+        "users": ("username", "email", "roles", "asp_groups", "asp_ids"),
+        "asp_configs": ("aspc_id", "asp_id", "subpanel_id", "asp_group"),
+        "assay_specific_panels": ("asp_id", "asp_group"),
+        "insilico_genelists": ("isgl_id", "diagnosis", "asp_groups", "asp_ids"),
         "blacklist": ("assay_group", "assay"),
-        "samples": ("assay", "subpanel"),
+        "samples": ("asp_id", "subpanel_id"),
     }
 
     def _append_error(collection: str, idx: int, field: str, value: str) -> None:
@@ -353,7 +352,7 @@ def _collect_assay_group_map(seed: dict[str, Any]) -> dict[str, set[str]]:
         for doc in seed.get(collection, []):
             if not isinstance(doc, dict):
                 continue
-            assay = _norm(doc.get("assay_name") or doc.get("asp_id") or "")
+            assay = _norm(doc.get("asp_id") or "")
             group = _norm(doc.get("asp_group", ""))
             if assay and group:
                 mapping.setdefault(assay, set()).add(group)
@@ -363,45 +362,50 @@ def _collect_assay_group_map(seed: dict[str, Any]) -> dict[str, set[str]]:
 def _validate_aspc(seed: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     seen_ids: set[str] = set()
+    seen_active_keys: set[tuple[str, str, str]] = set()
     for idx, doc in enumerate(seed.get("asp_configs", [])):
         if not isinstance(doc, dict):
             errors.append(f"asp_configs[{idx}] must be an object")
             continue
         aspc_id = _norm(doc.get("aspc_id", ""))
-        assay_name = _norm(doc.get("assay_name", ""))
+        asp_id = _norm(doc.get("asp_id", ""))
+        subpanel_id = _norm(doc.get("subpanel_id", "base"))
         environment = _normalize_env(doc.get("environment", ""))
 
-        if not aspc_id or ":" not in aspc_id:
-            errors.append(
-                f"asp_configs[{idx}] has invalid aspc_id '{aspc_id}' (expected assay:environment)"
-            )
+        if not aspc_id:
+            errors.append(f"asp_configs[{idx}] must include aspc_id")
             continue
-
-        assay_from_id, env_from_id = aspc_id.split(":", 1)
-        assay_from_id = _norm(assay_from_id)
-        env_from_id = _normalize_env(env_from_id)
+        if ":" in aspc_id:
+            errors.append(
+                f"asp_configs[{idx}] has invalid aspc_id '{aspc_id}' "
+                "(expected asp_id_subpanel_id_environment)"
+            )
+        if not asp_id:
+            errors.append(f"asp_configs[{idx}] must include asp_id")
+        if not subpanel_id:
+            errors.append(f"asp_configs[{idx}] must include subpanel_id")
 
         if aspc_id in seen_ids:
             errors.append(f"Duplicate asp_configs.aspc_id '{aspc_id}'")
         seen_ids.add(aspc_id)
 
-        if assay_name and assay_name != assay_from_id:
+        expected_aspc_id = _norm(f"{asp_id}_{subpanel_id}_{environment}")
+        if asp_id and subpanel_id and environment and aspc_id != expected_aspc_id:
             errors.append(
-                f"asp_configs[{idx}] mismatch: assay_name '{assay_name}' != aspc_id assay '{assay_from_id}'"
-            )
-        if environment and environment != env_from_id:
-            errors.append(
-                f"asp_configs[{idx}] mismatch: environment '{environment}' != aspc_id environment '{env_from_id}'"
+                f"asp_configs[{idx}] mismatch: aspc_id '{aspc_id}' != expected '{expected_aspc_id}'"
             )
 
-        if env_from_id not in VALID_ENVIRONMENTS:
-            errors.append(
-                f"asp_configs[{idx}] invalid environment '{env_from_id}' in aspc_id '{aspc_id}'"
-            )
         if environment and environment not in VALID_ENVIRONMENTS:
             errors.append(f"asp_configs[{idx}] invalid environment '{environment}'")
         if "is_active" not in doc or not isinstance(doc.get("is_active"), bool):
             errors.append(f"asp_configs[{idx}] must include boolean is_active")
+        if doc.get("is_active") is True and asp_id and subpanel_id and environment:
+            active_key = (asp_id, subpanel_id, environment)
+            if active_key in seen_active_keys:
+                errors.append(
+                    f"Duplicate active ASPC for asp_id/subpanel_id/environment '{active_key}'"
+                )
+            seen_active_keys.add(active_key)
     return errors
 
 
@@ -425,15 +429,15 @@ def _validate_isgl(
         if not isinstance(doc, dict):
             errors.append(f"insilico_genelists[{idx}] must be an object")
             continue
-        assays = [_norm(a) for a in (doc.get("assays", []) or []) if _norm(a)]
-        groups = [_norm(g) for g in (doc.get("assay_groups", []) or []) if _norm(g)]
+        assays = [_norm(a) for a in (doc.get("asp_ids", []) or []) if _norm(a)]
+        groups = [_norm(g) for g in (doc.get("asp_groups", []) or []) if _norm(g)]
         if "is_active" not in doc or not isinstance(doc.get("is_active"), bool):
             errors.append(f"insilico_genelists[{idx}] must include boolean is_active")
 
         if not assays:
-            errors.append(f"insilico_genelists[{idx}] has empty assays list")
+            errors.append(f"insilico_genelists[{idx}] has empty asp_ids list")
         if not groups:
-            errors.append(f"insilico_genelists[{idx}] has empty assay_groups list")
+            errors.append(f"insilico_genelists[{idx}] has empty asp_groups list")
 
         for assay in assays:
             if assay not in known_assays:
@@ -501,10 +505,10 @@ def _validate_bootstrap_dependencies(seed: dict[str, Any]) -> list[str]:
             normalized_role = _norm(role)
             if normalized_role and normalized_role not in role_ids:
                 errors.append(f"users[{idx}] references unknown role '{normalized_role}'")
-        for group in user_doc.get("assay_groups", []) or []:
+        for group in user_doc.get("asp_groups", []) or []:
             if _norm(group) and _norm(group) not in assay_groups:
                 errors.append(f"users[{idx}] references unknown assay_group '{_norm(group)}'")
-        for assay in user_doc.get("assays", []) or []:
+        for assay in user_doc.get("asp_ids", []) or []:
             if _norm(assay) and _norm(assay) not in assays:
                 errors.append(f"users[{idx}] references unknown assay '{_norm(assay)}'")
 
@@ -514,8 +518,8 @@ def _validate_bootstrap_dependencies(seed: dict[str, Any]) -> list[str]:
 def main() -> int:
     args = parse_args()
     seed = _load_seed(args.seed_file)
-    if args.reference_seed_data:
-        seed.update(_load_reference_seed_pack(args.reference_seed_data))
+    for reference_dir in args.reference_seed_data:
+        seed.update(_load_reference_seed_pack(reference_dir))
     shape_errors = _validate_contract_shaping(seed)
     if shape_errors:
         raise SystemExit("Seed contract-shape errors:\n- " + "\n- ".join(shape_errors))

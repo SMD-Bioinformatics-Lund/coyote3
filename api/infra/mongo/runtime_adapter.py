@@ -3,41 +3,91 @@ MongoAdapter module for Coyote3
 ===============================
 
 This module defines the `MongoAdapter` class used for managing database connections
-and initializing handlers for MongoDB operations.
+and initializing repositories for MongoDB operations.
 
-It is part of the `coyote.db` package.
+It is part of the MongoDB infrastructure layer.
 """
 
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+import time
+from typing import Any
+
 import pymongo
 from pymongo.errors import OperationFailure
+from pymongo.read_concern import ReadConcern
+from pymongo.write_concern import WriteConcern
 
-from api.infra.knowledgebase.plugins import enabled_knowledgebase_plugins
-from api.infra.mongo.handlers.annotations import AnnotationsHandler
-from api.infra.mongo.handlers.assay_configurations import ASPConfigHandler
-from api.infra.mongo.handlers.assay_panels import ASPHandler
-from api.infra.mongo.handlers.bam_records import BamServiceHandler
-from api.infra.mongo.handlers.biomarkers import BiomarkerHandler
-from api.infra.mongo.handlers.blacklist import BlacklistHandler
-from api.infra.mongo.handlers.copy_number_variants import CNVsHandler
-from api.infra.mongo.handlers.coverage import CoverageHandler
-from api.infra.mongo.handlers.expression import ExpressionHandler
-from api.infra.mongo.handlers.fusions import FusionsHandler
-from api.infra.mongo.handlers.gene_lists import ISGLHandler
-from api.infra.mongo.handlers.grouped_coverage import GroupCoverageHandler
-from api.infra.mongo.handlers.permissions import PermissionsHandler
-from api.infra.mongo.handlers.reported_variants import ReportedVariantsHandler
-from api.infra.mongo.handlers.rna_classification import RNAClassificationHandler
-from api.infra.mongo.handlers.rna_expression import RNAExpressionHandler
-from api.infra.mongo.handlers.rna_quality import RNAQCHandler
-from api.infra.mongo.handlers.roles import RolesHandler
-from api.infra.mongo.handlers.samples import SampleHandler
-from api.infra.mongo.handlers.translocations import TranslocsHandler
-from api.infra.mongo.handlers.users import UsersHandler
-from api.infra.mongo.handlers.variants import VariantsHandler
-from api.infra.mongo.handlers.vep_metadata import VEPMetaHandler
+from api.infra.knowledgebase.clinpgx_public import ClinPgxPublicRepository
+from api.infra.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
+from api.infra.knowledgebase.plugins import BUILTIN_KNOWLEDGEBASE_REPOSITORIES
+from api.infra.mongo.repositories.anno_vep import AnnoVepRepository
+from api.infra.mongo.repositories.annotations import AnnotationsRepository
+from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
+from api.infra.mongo.repositories.assay_panels import ASPRepository
+from api.infra.mongo.repositories.bam_records import BamServiceRepository
+from api.infra.mongo.repositories.biomarkers import BiomarkerRepository
+from api.infra.mongo.repositories.blacklist import BlacklistRepository
+from api.infra.mongo.repositories.copy_number_variants import CNVsRepository
+from api.infra.mongo.repositories.coverage import CoverageRepository
+from api.infra.mongo.repositories.dashboard_metrics import DashboardMetricsRepository
+from api.infra.mongo.repositories.expression import ExpressionRepository
+from api.infra.mongo.repositories.finding_comments import FindingCommentsRepository
+from api.infra.mongo.repositories.fusions import FusionsRepository
+from api.infra.mongo.repositories.gene_lists import ISGLRepository
+from api.infra.mongo.repositories.grouped_coverage import GroupCoverageRepository
+from api.infra.mongo.repositories.notifications import NotificationsRepository
+from api.infra.mongo.repositories.permissions import PermissionsRepository
+from api.infra.mongo.repositories.pgx import PgxRepository
+from api.infra.mongo.repositories.reported_variants import ReportedVariantsRepository
+from api.infra.mongo.repositories.reports import ReportRepository
+from api.infra.mongo.repositories.rna_classification import RNAClassificationRepository
+from api.infra.mongo.repositories.rna_expression import RNAExpressionRepository
+from api.infra.mongo.repositories.rna_quality import RNAQCRepository
+from api.infra.mongo.repositories.roles import RolesRepository
+from api.infra.mongo.repositories.sample_comments import SampleCommentsRepository
+from api.infra.mongo.repositories.samples import SampleRepository
+from api.infra.mongo.repositories.translocations import TranslocsRepository
+from api.infra.mongo.repositories.users import UsersRepository
+from api.infra.mongo.repositories.variants import VariantsRepository
+from api.infra.mongo.repositories.vep_metadata import VEPMetaRepository
+from api.infra.observability.prometheus_metrics import observe_operation
+
+CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
+    ("translocation_repository", TranslocsRepository, "translocs"),
+    ("copy_number_variant_repository", CNVsRepository, "cnvs"),
+    ("variant_repository", VariantsRepository, "variants"),
+    ("anno_vep_repository", AnnoVepRepository, "anno_vep"),
+    ("annotation_repository", AnnotationsRepository, "annotations"),
+    ("sample_repository", SampleRepository, "samples"),
+    ("sample_comment_repository", SampleCommentsRepository, "sample_comments"),
+    ("finding_comment_repository", FindingCommentsRepository, "finding_comments"),
+    ("assay_panel_repository", ASPRepository, "asp"),
+    ("blacklist_repository", BlacklistRepository, "blacklist"),
+    ("expression_repository", ExpressionRepository, "expression"),
+    ("bam_record_repository", BamServiceRepository, "bam_service"),
+    ("user_repository", UsersRepository, "users"),
+    ("fusion_repository", FusionsRepository, "fusions"),
+    ("biomarker_repository", BiomarkerRepository, "biomarkers"),
+    ("pgx_repository", PgxRepository, "pgx"),
+    ("coverage_repository", CoverageRepository, "coverage"),
+    ("grouped_coverage_repository", GroupCoverageRepository, "groupcov"),
+    ("assay_configuration_repository", ASPConfigRepository, "aspc"),
+    ("roles_repository", RolesRepository, "roles"),
+    ("permissions_repository", PermissionsRepository, "permissions"),
+    ("notification_repository", NotificationsRepository, "notifications"),
+    ("vep_metadata_repository", VEPMetaRepository, "vep_meta"),
+    ("gene_list_repository", ISGLRepository, "isgl"),
+    ("rna_expression_repository", RNAExpressionRepository, "rna_expression"),
+    ("rna_classification_repository", RNAClassificationRepository, "rna_classification"),
+    ("rna_quality_repository", RNAQCRepository, "rna_qc"),
+    ("reported_variant_repository", ReportedVariantsRepository, "reported_variants"),
+    ("report_repository", ReportRepository, "reports"),
+    ("dashboard_metrics_repository", DashboardMetricsRepository, "dashboard_metrics"),
+    ("oncokb_public_cache_repository", OncoKbPublicCacheRepository, "oncokb_public_cache"),
+    ("clinpgx_public_repository", ClinPgxPublicRepository, "clinpgx_public"),
+)
 
 
 # -------------------------------------------------------------------------
@@ -47,8 +97,8 @@ class MongoAdapter:
     """
     MongoAdapter Class
 
-    This class manages database connections and initializes various handlers for database operations in a Flask application.
-    It provides methods to set up database clients, configure collections, and initialize handlers for interacting with
+    This class manages database connections and initializes repositories for database operations in the API runtime.
+    It provides methods to set up database clients, configure collections, and initialize repositories for interacting with
     different database collections.
     """
 
@@ -61,23 +111,24 @@ class MongoAdapter:
         self.client = client
         if self.client:
             self._setup_dbs(self.client)
-            self._setup_handlers()  # Initialize handlers here only if client is provided
+            self._setup_repositories()  # Initialize repositories here only if client is provided
 
     def init_from_app(self, app) -> None:
         """
         Initialize the adapter using the application configuration.
 
         This method retrieves the MongoDB client using the `MONGO_URI` from the app's configuration,
-        sets up the databases, and initializes the necessary handlers for database operations.
+        sets up the databases, and initializes the necessary repositories for database operations.
 
         Args:
-            app: The Flask application instance containing the configuration.
+            app: Runtime object containing the API configuration.
         """
-        self.client = self._get_mongoclient(app.config["MONGO_URI"])
         self.app = app
+        self.client = self._get_mongoclient(app.config["MONGO_URI"])
         self._setup_dbs(self.client)
         self.setup()
-        self._setup_handlers()
+        self._setup_repositories(ensure_indexes=False)
+        self.verify_index_contracts()
 
     def get_db_name(self) -> str:
         """
@@ -98,7 +149,16 @@ class MongoAdapter:
         Returns:
          pymongo.MongoClient: A MongoDB client instance connected to the specified URI.
         """
-        return pymongo.MongoClient(mongo_uri)
+        return pymongo.MongoClient(
+            mongo_uri,
+            maxPoolSize=int(self.app.config.get("MONGO_MAX_POOL_SIZE", 100)),
+            minPoolSize=int(self.app.config.get("MONGO_MIN_POOL_SIZE", 0)),
+            connectTimeoutMS=int(self.app.config.get("MONGO_CONNECT_TIMEOUT_MS", 10_000)),
+            serverSelectionTimeoutMS=int(
+                self.app.config.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", 30_000)
+            ),
+            waitQueueTimeoutMS=int(self.app.config.get("MONGO_WAIT_QUEUE_TIMEOUT_MS", 10_000)),
+        )
 
     def _setup_dbs(self, client: pymongo.MongoClient) -> None:
         """
@@ -112,8 +172,21 @@ class MongoAdapter:
             bam_db: The BAM service database, initialized using the `BAM_DB` from the app's config.
         """
         # No, set the db names from config:
-        self.coyote_db = client[self.app.config["COYOTE3_DB"]]
-        self.bam_db = client[self.app.config["BAM_DB"]]
+        read_concern = ReadConcern(
+            level=str(self.app.config.get("MONGO_READ_CONCERN_LEVEL", "majority"))
+        )
+        configured_w = self.app.config.get("MONGO_WRITE_CONCERN_W", "majority")
+        write_w = int(configured_w) if str(configured_w).isdigit() else configured_w
+        write_concern = WriteConcern(
+            w=write_w,
+            j=bool(self.app.config.get("MONGO_WRITE_CONCERN_JOURNAL", True)),
+        )
+        self.coyote_db = client.get_database(self.app.config["COYOTE3_DB"]).with_options(
+            read_concern=read_concern, write_concern=write_concern
+        )
+        self.bam_db = client.get_database(self.app.config["BAM_DB"]).with_options(
+            read_concern=read_concern, write_concern=write_concern
+        )
 
     def setup(self) -> None:
         """
@@ -147,107 +220,93 @@ class MongoAdapter:
         ):
             setattr(self, bam_collection_name, self.bam_db[bam_collection_value])
 
-    def _setup_handlers(self):
+    def _setup_repositories(self, *, ensure_indexes: bool = True):
         """
-        Setup database operations handlers
+        Setup database operations repositories
 
-        This method initializes various database operation handlers as attributes of the `MongoAdapter` instance.
-        Each handler is responsible for managing a specific collection or set of operations in the database.
+        This method initializes various database operation repositories as attributes of the `MongoAdapter` instance.
+        Each repository is responsible for managing a specific collection or set of operations in the database.
         """
-        self.translocation_handler = TranslocsHandler(self)
-        self.copy_number_variant_handler = CNVsHandler(self)
-        self.variant_handler = VariantsHandler(self)
-        self.annotation_handler = AnnotationsHandler(self)
-        self.sample_handler = SampleHandler(self)
-        self.assay_panel_handler = ASPHandler(self)
-        self.blacklist_handler = BlacklistHandler(self)
-        self.expression_handler = ExpressionHandler(self)
-        self.bam_record_handler = BamServiceHandler(self)
-        self.user_handler = UsersHandler(self)
-        self.fusion_handler = FusionsHandler(self)
-        self.biomarker_handler = BiomarkerHandler(self)
-        self.coverage_handler = CoverageHandler(self)
-        self.grouped_coverage_handler = GroupCoverageHandler(self)
-        self.assay_configuration_handler = ASPConfigHandler(self)
-        self.roles_handler = RolesHandler(self)
-        self.permissions_handler = PermissionsHandler(self)
-        self.vep_metadata_handler = VEPMetaHandler(self)
-        self.gene_list_handler = ISGLHandler(self)
-        self.rna_expression_handler = RNAExpressionHandler(self)
-        self.rna_classification_handler = RNAClassificationHandler(self)
-        self.rna_quality_handler = RNAQCHandler(self)
-        self.reported_variant_handler = ReportedVariantsHandler(self)
-        for plugin in enabled_knowledgebase_plugins(self.app.config):
-            setattr(self, plugin.handler_attr, plugin.handler_cls(self))
-        self._ensure_handler_indexes("users", self.user_handler)
-        self._ensure_handler_indexes("roles", self.roles_handler)
-        self._ensure_handler_indexes("permissions", self.permissions_handler)
-        self._ensure_handler_indexes("asp", self.assay_panel_handler)
-        self._ensure_handler_indexes("aspc", self.assay_configuration_handler)
-        self._ensure_handler_indexes("isgl", self.gene_list_handler)
-        self._ensure_handler_indexes("samples", self.sample_handler)
-        self._ensure_handler_indexes("annotations", self.annotation_handler)
-        self._ensure_handler_indexes("variants", self.variant_handler)
-        self._ensure_handler_indexes("biomarkers", self.biomarker_handler)
-        self._ensure_handler_indexes("cnvs", self.copy_number_variant_handler)
-        self._ensure_handler_indexes("translocs", self.translocation_handler)
-        self._ensure_handler_indexes("fusions", self.fusion_handler)
-        self._ensure_handler_indexes("blacklist", self.blacklist_handler)
-        self._ensure_handler_indexes("coverage", self.coverage_handler)
-        self._ensure_handler_indexes("groupcov", self.grouped_coverage_handler)
-        self._ensure_handler_indexes("reported_variants", self.reported_variant_handler)
-        self._ensure_handler_indexes("vep_meta", self.vep_metadata_handler)
-        self._ensure_handler_indexes("bam_service", self.bam_record_handler)
-        self._ensure_handler_indexes("rna_expression", self.rna_expression_handler)
-        self._ensure_handler_indexes("rna_classification", self.rna_classification_handler)
-        self._ensure_handler_indexes("rna_qc", self.rna_quality_handler)
-        self._ensure_handler_indexes("expression", self.expression_handler)
-        for plugin in enabled_knowledgebase_plugins(self.app.config):
-            self._ensure_handler_indexes(plugin.index_name, getattr(self, plugin.handler_attr))
-        self._ensure_dashboard_metrics_indexes()
+        self.index_setup_conflicts: list[dict[str, str]] = []
+        for repository_attr, repository_cls, _index_name in CORE_REPOSITORIES:
+            setattr(self, repository_attr, repository_cls(self))
+        for plugin in BUILTIN_KNOWLEDGEBASE_REPOSITORIES:
+            setattr(self, plugin.repository_attr, plugin.repository_cls(self))
+        if ensure_indexes:
+            self.ensure_repository_indexes()
 
-    def _ensure_handler_indexes(self, handler_name: str, handler: object) -> None:
-        """Create indexes for a handler while tolerating legacy index-name conflicts."""
+    def iter_repositories(self):
+        """Yield registered repository names and instances in deterministic order."""
+        for repository_attr, _repository_cls, index_name in CORE_REPOSITORIES:
+            yield index_name, getattr(self, repository_attr)
+        for plugin in BUILTIN_KNOWLEDGEBASE_REPOSITORIES:
+            yield plugin.index_name, getattr(self, plugin.repository_attr)
+
+    def ensure_repository_indexes(self) -> None:
+        """Apply every registered repository's idempotent index contract."""
+        for index_name, repository in self.iter_repositories():
+            self._ensure_repository_indexes(index_name, repository)
+
+    def verify_index_contracts(self) -> None:
+        """Inspect required indexes without creating, changing, or dropping them."""
+        from api.infra.mongo.index_management import build_index_plan
+
+        findings = [item for item in build_index_plan(self) if item["state"] != "present"]
+        self.index_setup_conflicts = findings
+        for item in findings:
+            self.app.logger.warning(
+                "Mongo index requires operator action repository=%s collection=%s "
+                "index=%s state=%s. Run scripts/manage_mongo_indexes.py plan and apply "
+                "during an approved maintenance window.",
+                item["repository"],
+                item["collection"],
+                item["name"],
+                item["state"],
+            )
+
+    def _ensure_repository_indexes(self, repository_name: str, repository: object) -> None:
+        """Create indexes for a repository while tolerating historical index-name conflicts."""
+        started = time.perf_counter()
         try:
-            handler.ensure_indexes()
+            repository.ensure_indexes()
         except OperationFailure as exc:
             code = getattr(exc, "code", None)
-            # pymongo 4 raises code 85 when index spec exists with another name.
-            if code == 85:
+            # MongoDB can report either IndexOptionsConflict (85) or
+            # IndexKeySpecsConflict (86) when an existing deployment already has
+            # a same-name or same-key index with different options. Do not block
+            # API startup, but make the reconciliation action visible to ops.
+            if code in {85, 86}:
+                self.index_setup_conflicts.append(
+                    {
+                        "repository": repository_name,
+                        "code": str(code),
+                        "message": str(exc),
+                    }
+                )
                 self.app.logger.warning(
-                    "Skipping index-name conflict for handler=%s: %s",
-                    handler_name,
+                    (
+                        "Mongo index conflict for repository=%s was tolerated at startup. "
+                        "Review docs/operations/troubleshooting.md#mongo-index-conflicts, "
+                        "compare db.<collection>.getIndexes(), then reconcile the index definition "
+                        "during a maintenance window. Mongo error: %s"
+                    ),
+                    repository_name,
                     exc,
                 )
+                observe_operation(
+                    operation=f"mongo_index_reconcile.{repository_name}",
+                    outcome="conflict",
+                    duration_ms=(time.perf_counter() - started) * 1000.0,
+                )
                 return
+            observe_operation(
+                operation=f"mongo_index_reconcile.{repository_name}",
+                outcome="failure",
+                duration_ms=(time.perf_counter() - started) * 1000.0,
+            )
             raise
-
-    def _ensure_dashboard_metrics_indexes(self) -> None:
-        """Ensure dashboard snapshot retention indexes."""
-        ttl_seconds = int(
-            self.app.config.get("DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS", 604800) or 0
+        observe_operation(
+            operation=f"mongo_index_reconcile.{repository_name}",
+            outcome="success",
+            duration_ms=(time.perf_counter() - started) * 1000.0,
         )
-        if ttl_seconds <= 0:
-            self.app.logger.info(
-                "Dashboard snapshot TTL disabled (DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS=%s).",
-                ttl_seconds,
-            )
-            return
-
-        collection = self.coyote_db["dashboard_metrics"]
-        try:
-            collection.create_index(
-                [("updated_at", pymongo.ASCENDING)],
-                name="updated_at_ttl_1",
-                expireAfterSeconds=ttl_seconds,
-                background=True,
-            )
-        except OperationFailure as exc:
-            code = getattr(exc, "code", None)
-            if code == 85:
-                self.app.logger.warning(
-                    "Skipping dashboard_metrics TTL index conflict: %s",
-                    exc,
-                )
-                return
-            raise

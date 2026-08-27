@@ -4,23 +4,25 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from api.routers import samples
-from api.services.sample.catalog import SampleCatalogService
+from api.application.sample.catalog import SampleCatalogService
+from api.interfaces.http.clinical import samples
 from tests.fixtures.api import mock_collections as fx
 from tests.fixtures.api.fake_store import build_fake_store
 
 
 def _catalog_service(fake_store) -> SampleCatalogService:
     return SampleCatalogService(
-        sample_handler=fake_store.sample_handler,
-        gene_list_handler=fake_store.gene_list_handler,
-        assay_panel_handler=fake_store.assay_panel_handler,
-        variant_handler=fake_store.variant_handler,
-        copy_number_variant_handler=fake_store.copy_number_variant_handler,
-        fusion_handler=fake_store.fusion_handler,
-        translocation_handler=fake_store.translocation_handler,
-        biomarker_handler=fake_store.biomarker_handler,
-        grouped_coverage_handler=getattr(fake_store, "grouped_coverage_handler", SimpleNamespace()),
+        sample_repository=fake_store.sample_repository,
+        gene_list_repository=fake_store.gene_list_repository,
+        assay_panel_repository=fake_store.assay_panel_repository,
+        variant_repository=fake_store.variant_repository,
+        copy_number_variant_repository=fake_store.copy_number_variant_repository,
+        fusion_repository=fake_store.fusion_repository,
+        translocation_repository=fake_store.translocation_repository,
+        biomarker_repository=fake_store.biomarker_repository,
+        grouped_coverage_repository=getattr(
+            fake_store, "grouped_coverage_repository", SimpleNamespace()
+        ),
     )
 
 

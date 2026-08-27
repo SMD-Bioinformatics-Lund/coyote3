@@ -6,7 +6,11 @@ cd "$ROOT_DIR"
 
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "$PYTHON_BIN" ]]; then
-  if command -v python3 >/dev/null 2>&1; then
+  if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
+    PYTHON_BIN="$ROOT_DIR/.venv/bin/python"
+  elif command -v python3.12 >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python3.12)"
+  elif command -v python3 >/dev/null 2>&1; then
     PYTHON_BIN="$(command -v python3)"
   elif command -v python >/dev/null 2>&1; then
     PYTHON_BIN="$(command -v python)"
@@ -24,63 +28,48 @@ if rg -n "api\\.contracts\\.db_documents|from api\\.contracts import db_document
 fi
 
 echo "[check] forbid stdout debug prints in runtime code"
-if rg -n "^[[:space:]]*print\\(" api coyote \
-  --glob '**/*.py' \
-  --glob '!coyote/static/vendor/**' \
-  --glob '!coyote/__version__.py' >/dev/null; then
+if rg -n "^[[:space:]]*print\\(" api \
+  --glob '**/*.py' >/dev/null; then
   echo "ERROR: runtime code contains print() statements; use structured logging instead." >&2
-  rg -n "^[[:space:]]*print\\(" api coyote \
-    --glob '**/*.py' \
-    --glob '!coyote/static/vendor/**' \
-    --glob '!coyote/__version__.py' >&2
+  rg -n "^[[:space:]]*print\\(" api --glob '**/*.py' >&2
   exit 1
 fi
 
 echo "[check] forbid generic catch-all log messages"
-if rg -n "An error occurred" api coyote \
-  --glob '**/*.py' \
-  --glob '!coyote/static/**' \
-  --glob '!coyote/templates/**' >/dev/null; then
+if rg -n "An error occurred" api --glob '**/*.py' >/dev/null; then
   echo "ERROR: generic error log message found; include operation/collection context." >&2
-  rg -n "An error occurred" api coyote \
-    --glob '**/*.py' \
-    --glob '!coyote/static/**' \
-    --glob '!coyote/templates/**' >&2
+  rg -n "An error occurred" api --glob '**/*.py' >&2
   exit 1
 fi
 
 echo "[check] forbid hardcoded user-home paths in runtime code"
-if rg -n "/home/[A-Za-z0-9._-]+/" api coyote \
+if rg -n "/home/[A-Za-z0-9._-]+/" api \
   --glob '**/*.py' \
   --glob '!**/tests/**' >/dev/null; then
   echo "ERROR: hardcoded user-home path found in runtime code." >&2
-  rg -n "/home/[A-Za-z0-9._-]+/" api coyote \
+  rg -n "/home/[A-Za-z0-9._-]+/" api \
     --glob '**/*.py' \
     --glob '!**/tests/**' >&2
   exit 1
 fi
 
-echo "[check] flag compatibility-shim markers in runtime code"
-if rg -n "compatibility shim|compat shim|legacy fallback shim" api coyote \
-  --glob '**/*.py' \
-  --glob '!coyote/static/**' \
-  --glob '!coyote/templates/**' >/dev/null; then
-  echo "ERROR: compatibility shim marker found in runtime code." >&2
-  rg -n "compatibility shim|compat shim|legacy fallback shim" api coyote \
-    --glob '**/*.py' \
-    --glob '!coyote/static/**' \
-    --glob '!coyote/templates/**' >&2
+echo "[check] flag prohibited transitional markers in runtime code"
+if rg -n "hidden bridging layer|fallback transitional helper" api --glob '**/*.py' >/dev/null; then
+  echo "ERROR: transitional marker found in runtime code." >&2
+  rg -n "hidden bridging layer|fallback transitional helper" api --glob '**/*.py' >&2
   exit 1
 fi
 
 echo "[check] validate seed bundle contract and assay consistency"
 seed_check_args=(
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy
+  --seed-file demo_data/collections/all_collections_dummy
+  --reference-seed-data api/config/bootstrap/rbac
+  --reference-seed-data api/config/bootstrap/reference
 )
-if [[ -d tests/data/seed_data ]]; then
-  seed_check_args+=(--reference-seed-data tests/data/seed_data)
-fi
 "$PYTHON_BIN" scripts/validate_assay_consistency.py "${seed_check_args[@]}"
+
+echo "[check] dependency exports match pyproject.toml"
+"$PYTHON_BIN" scripts/check_dependency_consistency.py
 
 echo "[check] shell script static analysis"
 bash scripts/check_shell_quality.sh
@@ -91,8 +80,8 @@ echo "[check] docs internal links"
 echo "[check] regenerate collection contracts doc"
 preexisting_doc_changes=0
 if command -v git >/dev/null 2>&1; then
-  if ! git diff --quiet -- docs/api/collection-contracts.md || \
-     ! git diff --cached --quiet -- docs/api/collection-contracts.md; then
+  if ! git diff --quiet -- docs/api/collection_contracts.md || \
+     ! git diff --cached --quiet -- docs/api/collection_contracts.md; then
     preexisting_doc_changes=1
   fi
 fi
@@ -100,12 +89,35 @@ fi
 
 if command -v git >/dev/null 2>&1; then
   if [[ "$preexisting_doc_changes" -eq 1 ]]; then
-    echo "[warn] docs/api/collection-contracts.md had preexisting local changes; skip clean-tree diff check."
+    echo "[warn] docs/api/collection_contracts.md had preexisting local changes; skip clean-tree diff check."
   else
     echo "[check] collection contract doc is committed"
-    if ! git diff --quiet -- docs/api/collection-contracts.md; then
-      echo "ERROR: docs/api/collection-contracts.md changed. Commit regenerated contracts." >&2
-      git --no-pager diff -- docs/api/collection-contracts.md >&2 || true
+    if ! git diff --quiet -- docs/api/collection_contracts.md; then
+      echo "ERROR: docs/api/collection_contracts.md changed. Commit regenerated contracts." >&2
+      git --no-pager diff -- docs/api/collection_contracts.md >&2 || true
+      exit 1
+    fi
+  fi
+fi
+
+echo "[check] regenerate system permission catalog"
+preexisting_permission_doc_changes=0
+if command -v git >/dev/null 2>&1; then
+  if ! git diff --quiet -- docs/developer/permission_catalog.md || \
+     ! git diff --cached --quiet -- docs/developer/permission_catalog.md; then
+    preexisting_permission_doc_changes=1
+  fi
+fi
+"$PYTHON_BIN" scripts/export_permissions_reference.py
+
+if command -v git >/dev/null 2>&1; then
+  if [[ "$preexisting_permission_doc_changes" -eq 1 ]]; then
+    echo "[warn] docs/developer/permission_catalog.md had preexisting local changes; skip clean-tree diff check."
+  else
+    echo "[check] system permission catalog is committed"
+    if ! git diff --quiet -- docs/developer/permission_catalog.md; then
+      echo "ERROR: docs/developer/permission_catalog.md changed. Commit the regenerated catalog." >&2
+      git --no-pager diff -- docs/developer/permission_catalog.md >&2 || true
       exit 1
     fi
   fi

@@ -1,0 +1,25 @@
+[
+  {
+    "SAMPLE_ID": "sample_oid_seed",
+    "sample": "seed_sample",
+    "genes": {
+      "EGFR": {
+        "covered_by_panel": true,
+        "transcript": {
+          "chr": "7",
+          "start": 55019017,
+          "end": 55019100,
+          "transcript_id": "ENST00000275493"
+        },
+        "probes": {
+          "7_55019017_55019100": {
+            "chr": "7",
+            "start": 55019017,
+            "end": 55019100,
+            "cov": 120.0
+          }
+        }
+      }
+    }
+  }
+]

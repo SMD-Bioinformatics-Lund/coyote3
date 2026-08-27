@@ -1,0 +1,85 @@
+[
+  {
+    "name": "seed_sample",
+    "asp_id": "assay_1",
+    "subpanel_id": "base",
+    "environment": "testing",
+    "current_aspc_id": "assay_1_base_testing",
+    "current_aspc_key": "assay_1:base:testing",
+    "current_aspc_version": 1,
+    "genome_build": 38,
+    "database_versions": {
+      "vep": "103",
+      "gnomad": "placeholder"
+    },
+    "case_id": "seed_case",
+    "control_id": "seed_control",
+    "sample_no": 2,
+    "sequencing_scope": "panel",
+    "omics_layer": "dna",
+    "sex": "female",
+    "platform": "illumina",
+    "read_technology": "short_read",
+    "pipeline": "SomaticPanelPipeline",
+    "pipeline_version": "0.0.1",
+    "files": {
+      "vcf_files": {
+        "path": "/data/seed/sample.vcf"
+      },
+      "cnv": {
+        "path": "/data/seed/sample.cnv.json"
+      },
+      "cov": {
+        "path": "/data/seed/sample.cov.json"
+      }
+    },
+    "paired": true,
+    "case": {
+      "id": "seed_case",
+      "clarity_id": "seed_case_clarity",
+      "clarity_pool_id": "seed_pool",
+      "ffpe": false,
+      "sequencing_run": "seed_run",
+      "reads": 123456,
+      "purity": null
+    },
+    "control": {
+      "id": "seed_control",
+      "clarity_id": "seed_control_clarity",
+      "clarity_pool_id": "seed_pool",
+      "ffpe": false,
+      "sequencing_run": "seed_run",
+      "reads": 120000,
+      "purity": null
+    },
+    "filters": {
+      "somatic": {
+        "snv": {
+          "min_depth": 100,
+          "max_popfreq": 0.01,
+          "vep_consequences": [
+            "missense"
+          ],
+          "snvlists": [
+            "seed_snv_list"
+          ]
+        },
+        "cnv": {
+          "cnveffects": [
+            "gain",
+            "loss"
+          ]
+        },
+        "coverage": {
+          "warn_cov": 500,
+          "error_cov": 100
+        }
+      }
+    },
+    "reported": false,
+    "version": 1,
+    "analysis_intents": [
+      "somatic"
+    ]
+  }
+]

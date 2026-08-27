@@ -2,29 +2,38 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException
 
-from api.extensions import store
-from api.routers import samples
-from api.services.sample import catalog as sample_catalog_service_module
-from api.services.sample.catalog import SampleCatalogService
+from api.app.container import store
+from api.application.sample import catalog as sample_catalog_service_module
+from api.application.sample.catalog import SampleCatalogService
+from api.domain.core.exceptions import AppError
+from api.interfaces.http.clinical import samples
 from tests.fixtures.api import mock_collections as fx
 
 
 def _sample_catalog_service() -> SampleCatalogService:
     return SampleCatalogService(
-        sample_handler=store.sample_handler,
-        gene_list_handler=store.gene_list_handler,
-        assay_panel_handler=store.assay_panel_handler,
-        variant_handler=store.variant_handler,
-        copy_number_variant_handler=store.copy_number_variant_handler,
-        fusion_handler=store.fusion_handler,
-        translocation_handler=store.translocation_handler,
-        biomarker_handler=store.biomarker_handler,
-        grouped_coverage_handler=store.grouped_coverage_handler,
+        sample_repository=store.sample_repository,
+        gene_list_repository=store.gene_list_repository,
+        assay_panel_repository=store.assay_panel_repository,
+        variant_repository=store.variant_repository,
+        copy_number_variant_repository=store.copy_number_variant_repository,
+        fusion_repository=store.fusion_repository,
+        translocation_repository=store.translocation_repository,
+        biomarker_repository=SimpleNamespace(
+            get_sample_biomarkers=lambda sample_id: [],
+            get_samples_biomarkers=lambda sample_ids: {
+                str(sample_id): [] for sample_id in sample_ids
+            },
+        ),
+        grouped_coverage_repository=store.grouped_coverage_repository,
+        sample_comment_repository=SimpleNamespace(
+            list_sample_comments=lambda sample_id: [],
+        ),
     )
 
 
@@ -41,7 +50,7 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
     calls = []
     service = _sample_catalog_service()
 
-    def _get_samples(**kwargs):
+    def _get_samples_page(**kwargs):
         """Get samples.
 
         Args:
@@ -52,17 +61,17 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
         """
         calls.append(kwargs)
         if kwargs.get("report"):
-            return [{"_id": "d1", "reports": [{"time_created": 123}]}, {"_id": "d2"}]
-        return [{"_id": "l1"}, {"_id": "l2"}]
+            return {
+                "items": [{"_id": "d1", "reports": [{"time_created": 123}]}],
+                "total": 3,
+            }
+        return {"items": [{"_id": "l1"}], "total": 3}
 
-    monkeypatch.setattr(
-        sample_catalog_service_module,
-        "runtime_app",
-        type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})(),
-    )
-    monkeypatch.setattr(service.sample_handler, "get_samples", _get_samples)
+    monkeypatch.setattr(service.sample_repository, "get_samples_page", _get_samples_page)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
+    added_from = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    added_until = datetime(2026, 8, 4, tzinfo=timezone.utc)
     payload = samples.list_samples_read(
         status="live",
         search_mode="both",
@@ -74,6 +83,10 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
         live_per_page=1,
         done_per_page=1,
         profile_scope="production",
+        added_from=added_from,
+        added_until=added_until,
+        live_sort="",
+        reported_sort="latest_reported:desc",
         user=user,
         service=service,
     )
@@ -84,10 +97,16 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
     assert payload["done_page"] == 2
     assert payload["live_per_page"] == 1
     assert payload["done_per_page"] == 1
+    assert payload["live_total"] == 3
+    assert payload["done_total"] == 3
     assert payload["profile_scope"] == "production"
     assert payload["has_next_live"] is True
     assert payload["has_next_done"] is True
     assert all(call["offset"] == 1 for call in calls)
+    assert all(call["added_from"] == added_from for call in calls)
+    assert all(call["added_until"] == added_until for call in calls)
+    assert next(call for call in calls if call["report"] is False)["sort"] == ""
+    assert next(call for call in calls if call["report"] is True)["sort"] == "latest_reported:desc"
 
 
 def test_home_samples_read_always_fetches_both_tables(monkeypatch):
@@ -103,7 +122,7 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
     calls = []
     service = _sample_catalog_service()
 
-    def _get_samples(**kwargs):
+    def _get_samples_page(**kwargs):
         """Get samples.
 
         Args:
@@ -113,14 +132,9 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
                 The  get samples result.
         """
         calls.append(kwargs)
-        return [{"_id": "d1", "reports": [{"time_created": 123}]}]
+        return {"items": [{"_id": "d1", "reports": [{"time_created": 123}]}], "total": 1}
 
-    monkeypatch.setattr(
-        sample_catalog_service_module,
-        "runtime_app",
-        type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})(),
-    )
-    monkeypatch.setattr(service.sample_handler, "get_samples", _get_samples)
+    monkeypatch.setattr(service.sample_repository, "get_samples_page", _get_samples_page)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = samples.list_samples_read(
@@ -134,6 +148,8 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
         live_per_page=30,
         done_per_page=30,
         profile_scope="all",
+        live_sort="",
+        reported_sort="",
         user=user,
         service=service,
     )
@@ -151,21 +167,16 @@ def test_home_samples_read_superuser_is_unscoped(monkeypatch):
     """Superusers should fetch all samples without assay or environment restrictions."""
     user = fx.api_user()
     user.roles = ["superuser"]
-    user.assays = ["WGS"]
+    user.asp_ids = ["WGS"]
     user.envs = ["production"]
     calls = []
     service = _sample_catalog_service()
 
-    def _get_samples(**kwargs):
+    def _get_samples_page(**kwargs):
         calls.append(kwargs)
-        return []
+        return {"items": [], "total": 0}
 
-    monkeypatch.setattr(
-        sample_catalog_service_module,
-        "runtime_app",
-        type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})(),
-    )
-    monkeypatch.setattr(service.sample_handler, "get_samples", _get_samples)
+    monkeypatch.setattr(service.sample_repository, "get_samples_page", _get_samples_page)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = samples.list_samples_read(
@@ -179,6 +190,8 @@ def test_home_samples_read_superuser_is_unscoped(monkeypatch):
         live_per_page=30,
         done_per_page=30,
         profile_scope="all",
+        live_sort="",
+        reported_sort="",
         user=user,
         service=service,
     )
@@ -200,13 +213,68 @@ def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
     """
     monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         samples.sample_apply_genelists_change(
             "S1", payload={"isgl_ids": "bad"}, user=fx.api_user(), service=_sample_catalog_service()
         )
 
     assert exc.value.status_code == 400
     assert exc.value.detail["error"] == "Invalid isgl_ids payload"
+
+
+def test_home_apply_isgl_rejects_list_for_different_analysis_type(monkeypatch):
+    """The API must reject an SNV-only list submitted to the CNV filter section."""
+    sample = fx.sample_doc()
+    service = _sample_catalog_service()
+    monkeypatch.setattr(
+        service.gene_list_repository,
+        "get_isgl_by_ids",
+        lambda ids: {"SNV_ONLY": {"list_type": ["snv"], "genes": ["TP53"]}},
+    )
+
+    with pytest.raises(AppError) as exc:
+        service.apply_genelists(
+            sample=sample,
+            payload={"isgl_ids": ["SNV_ONLY"]},
+            sample_id="S1",
+            target="cnv",
+        )
+
+    assert exc.value.status_code == 400
+    assert exc.value.detail["error"] == ("Gene list(s) do not support CNV analysis: SNV_ONLY")
+
+
+def test_replace_sample_filters_rejects_snv_list_in_cnv_section(monkeypatch):
+    """Full filter updates must enforce the same analysis-specific ISGL boundary."""
+    sample = fx.sample_doc()
+    service = _sample_catalog_service()
+    submitted = {
+        "somatic": {
+            "snv": {"snvlists": []},
+            "cnv": {"cnvlists": ["SNV_ONLY"]},
+        }
+    }
+    monkeypatch.setattr(
+        service,
+        "_get_formatted_assay_config",
+        lambda sample_doc: {"filters": submitted},
+    )
+    monkeypatch.setattr(
+        service.gene_list_repository,
+        "get_isgl_by_ids",
+        lambda ids: {"SNV_ONLY": {"list_type": ["snv"], "genes": ["TP53"]}} if ids else {},
+    )
+    monkeypatch.setattr(
+        service.sample_repository,
+        "update_sample_filters",
+        lambda sample_id, filters: pytest.fail("invalid filters must not be persisted"),
+    )
+
+    with pytest.raises(AppError) as exc:
+        service.replace_sample_filters(sample=sample, filters=submitted)
+
+    assert exc.value.status_code == 400
+    assert exc.value.detail["error"] == ("Gene list(s) do not support CNV analysis: SNV_ONLY")
 
 
 def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
@@ -236,7 +304,7 @@ def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
         """
         calls["filters"] = filters
 
-    monkeypatch.setattr(service.sample_handler, "update_sample_filters", _update_sample_filters)
+    monkeypatch.setattr(service.sample_repository, "update_sample_filters", _update_sample_filters)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = samples.sample_save_adhoc_genes_change(
@@ -249,8 +317,12 @@ def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
     assert payload["action"] == "save_adhoc_genes"
     assert payload["gene_count"] == 3
     assert payload["list_type"] == "cnv"
-    assert calls["filters"]["adhoc_genes"]["cnv"]["genes"] == ["IDH1", "NPM1", "TP53"]
-    assert calls["filters"]["adhoc_genes"]["cnv"]["label"] == "focus"
+    assert calls["filters"]["somatic"]["cnv"]["adhoc_genes"]["genes"] == [
+        "IDH1",
+        "NPM1",
+        "TP53",
+    ]
+    assert calls["filters"]["somatic"]["cnv"]["adhoc_genes"]["label"] == "focus"
 
 
 def test_edit_context_payload_includes_analysis_counts(monkeypatch):
@@ -258,33 +330,40 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
     sample = fx.sample_doc()
     sample["_id"] = "s1"
     sample["omics_layer"] = "dna"
-    sample["filters"]["genelists"] = ["gl1"]
-    sample["filters"]["cnv_genelists"] = ["gl1"]
-    sample["filters"]["adhoc_genes"] = {}
+    sample["filters"]["somatic"]["snv"]["snvlists"] = ["gl1"]
+    sample["filters"]["somatic"]["cnv"]["cnvlists"] = ["gl1"]
+    sample["filters"]["somatic"]["snv"]["adhoc_genes"] = {}
     service = _sample_catalog_service()
 
     monkeypatch.setattr(
-        service.assay_panel_handler,
+        service.assay_panel_repository,
         "get_asp",
         lambda assay: {"asp_group": "dna", "covered_genes": ["TP53", "NPM1"]},
     )
     monkeypatch.setattr(
         sample_catalog_service_module,
         "get_formatted_assay_config",
-        lambda sample_doc: {"filters": dict(sample_doc.get("filters") or {})},
+        lambda sample_doc, **_kwargs: {"filters": dict(sample_doc.get("filters") or {})},
     )
     monkeypatch.setattr(
-        service.assay_panel_handler,
+        service.assay_panel_repository,
         "get_asp_genes",
         lambda assay: (["TP53", "NPM1"], []),
     )
     monkeypatch.setattr(
-        service.gene_list_handler,
+        service.gene_list_repository,
         "get_isgl_by_ids",
-        lambda ids: {"gl1": {"genes": ["TP53"]}},
+        lambda ids: {
+            "gl1": {
+                "genes": ["TP53"],
+                "list_type": ["snv", "cnv"],
+                "is_active": True,
+            }
+        },
     )
+    monkeypatch.setattr(service.gene_list_repository, "get_isgl_for_scope", lambda **kwargs: [])
     monkeypatch.setattr(
-        service.variant_handler,
+        service.variant_repository,
         "get_variant_stats",
         lambda sample_id, genes=None: {
             "variants": 10 if genes is None else 4,
@@ -294,7 +373,7 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
         },
     )
     monkeypatch.setattr(
-        service.copy_number_variant_handler,
+        service.copy_number_variant_repository,
         "get_sample_cnvs",
         lambda query: [
             {"genes": [{"gene": "TP53"}]},
@@ -302,7 +381,7 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
         ],
     )
     monkeypatch.setattr(
-        service.translocation_handler,
+        service.translocation_repository,
         "get_sample_translocations",
         lambda sample_id: [
             {"INFO": [{"ANN": [{"Gene_Name": "TP53&ABL1"}]}]},
@@ -310,12 +389,12 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
         ],
     )
     monkeypatch.setattr(
-        service.fusion_handler,
+        service.fusion_repository,
         "get_sample_fusions",
         lambda query: [],
     )
     monkeypatch.setattr(
-        service.biomarker_handler,
+        service.biomarker_repository,
         "get_sample_biomarkers",
         lambda sample_id: [{"name": "TMB"}],
     )
@@ -349,33 +428,40 @@ def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
     monkeypatch.setattr(
         sample_catalog_service_module,
         "get_formatted_assay_config",
-        lambda sample_doc: {"filters": {"genelists": ["gl1"]}},
+        lambda sample_doc, **_kwargs: {"filters": {"somatic": {"snv": {"snvlists": ["gl1"]}}}},
     )
     monkeypatch.setattr(
-        service.assay_panel_handler,
+        service.assay_panel_repository,
         "get_asp",
         lambda assay: {"asp_group": "dna", "covered_genes": ["TP53", "NPM1"]},
     )
     monkeypatch.setattr(
-        service.assay_panel_handler,
+        service.assay_panel_repository,
         "get_asp_genes",
         lambda assay: (["TP53", "NPM1"], []),
     )
     monkeypatch.setattr(
-        service.gene_list_handler,
+        service.gene_list_repository,
         "get_isgl_by_ids",
-        lambda ids: {"gl1": {"genes": ["TP53"]}},
+        lambda ids: {
+            "gl1": {
+                "genes": ["TP53"],
+                "list_type": ["snv"],
+                "is_active": True,
+            }
+        },
     )
-    service.sample_handler = SimpleNamespace(
-        reset_sample_settings=lambda sample_id, filters: None,
+    monkeypatch.setattr(service.gene_list_repository, "get_isgl_for_scope", lambda **kwargs: [])
+    service.sample_repository = SimpleNamespace(
+        reset_sample_settings=lambda sample_id, filters, **_kwargs: None,
         get_sample=lambda sample_id: {
             **sample,
             "_id": sample_id,
-            "filters": {"genelists": ["gl1"]},
+            "filters": {"somatic": {"snv": {"snvlists": ["gl1"]}}},
         },
     )
     monkeypatch.setattr(
-        service.variant_handler,
+        service.variant_repository,
         "get_variant_stats",
         lambda sample_id, genes=None: {
             "variants": 6 if genes is None else 2,
@@ -384,14 +470,14 @@ def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
             "false_positives": 0,
         },
     )
-    monkeypatch.setattr(service.copy_number_variant_handler, "get_sample_cnvs", lambda query: [])
+    monkeypatch.setattr(service.copy_number_variant_repository, "get_sample_cnvs", lambda query: [])
     monkeypatch.setattr(
-        service.translocation_handler, "get_sample_translocations", lambda sample_id: []
+        service.translocation_repository, "get_sample_translocations", lambda sample_id: []
     )
-    monkeypatch.setattr(service.fusion_handler, "get_sample_fusions", lambda query: [])
-    monkeypatch.setattr(service.biomarker_handler, "get_sample_biomarkers", lambda sample_id: [])
+    monkeypatch.setattr(service.fusion_repository, "get_sample_fusions", lambda query: [])
+    monkeypatch.setattr(service.biomarker_repository, "get_sample_biomarkers", lambda sample_id: [])
 
     payload = service.edit_context_payload(sample=sample)
 
-    assert payload["sample"]["filters"]["genelists"] == ["gl1"]
+    assert payload["sample"]["filters"]["somatic"]["snv"]["snvlists"] == ["gl1"]
     assert payload["analysis_counts_filtered"]["snv"] == 2

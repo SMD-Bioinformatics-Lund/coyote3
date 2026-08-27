@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from api.services.classification.tiering import ResourceClassificationService
-from api.services.classification.variant_annotation import ResourceAnnotationService
+from api.application.classification.tiering import ResourceClassificationService
+from api.application.classification.variant_annotation import ResourceAnnotationService
 
 
 class _AnnotationHandlerStub:
@@ -186,19 +186,63 @@ class _VariantHandlerStub:
         """
         self.variant_comment = (variant_id, comment)
 
+    def get_variant(self, variant_id: str) -> dict:
+        """Return a small variant fixture for classification tests."""
+        return {
+            "_id": variant_id,
+            "SAMPLE_ID": "S1",
+            "CHROM": "17",
+            "POS": 76736896,
+            "REF": "T",
+            "ALT": "C",
+            "simple_id": "17_76736896_T_C",
+            "simple_id_hash": "029e8e74947bc798c060013909b9e2da",
+            "INFO": {
+                "selected_CSQ": {
+                    "Feature": "ENST00000359995",
+                    "SYMBOL": "SRSF2",
+                    "HGVSp": "p.Met89Val",
+                    "HGVSc": "c.265A>G",
+                    "Consequence": "missense_variant",
+                }
+            },
+        }
+
 
 class _RepoStub:
     """Provide  RepoStub behavior."""
 
     def __init__(self) -> None:
         """__init__."""
-        self.annotation_handler = _AnnotationHandlerStub()
-        self.fusion_handler = _FusionHandlerStub()
-        self.copy_number_variant_handler = _CnvHandlerStub()
-        self.translocation_handler = _TranslocHandlerStub()
-        self.variant_handler = _VariantHandlerStub()
-        self.oncokb_handler = type(
+        self.annotation_repository = _AnnotationHandlerStub()
+        self.fusion_repository = _FusionHandlerStub()
+        self.copy_number_variant_repository = _CnvHandlerStub()
+        self.translocation_repository = _TranslocHandlerStub()
+        self.variant_repository = _VariantHandlerStub()
+        self.oncokb_repository = type(
             "_OncoKB", (), {"get_oncokb_gene": staticmethod(lambda gene: None)}
+        )()
+        self.assay_configuration_repository = type(
+            "_Aspc",
+            (),
+            {
+                "get_aspc_no_meta": staticmethod(
+                    lambda assay, profile, subpanel: {
+                        "_id": "aspc-oid",
+                        "aspc_id": "assay:production:base",
+                        "asp_id": "assay",
+                        "asp_group": "dna",
+                        "subpanel_id": subpanel or "base",
+                        "environment": profile,
+                        "version": 2,
+                    }
+                )
+            },
+        )()
+        self.assay_panel_repository = type(
+            "_Asp",
+            (),
+            {"get_asp": staticmethod(lambda asp_id: {"asp_id": asp_id, "asp_group": "dna"})},
         )()
 
 
@@ -211,13 +255,7 @@ def _nomenclature(form_data: dict) -> tuple[str, str]:
     Returns:
             The  nomenclature result.
     """
-    if form_data.get("fusionpoints"):
-        return "f", form_data["fusionpoints"]
-    if form_data.get("translocpoints"):
-        return "t", form_data["translocpoints"]
-    if form_data.get("cnvvar"):
-        return "cn", form_data["cnvvar"]
-    return "p", form_data["var_p"]
+    return form_data["nomenclature"], form_data["variant"]
 
 
 def _comment_doc(form_data: dict, *, nomenclature: str, variant: str) -> dict:
@@ -249,28 +287,30 @@ def _classification_doc(
     Returns:
             The  classification doc result.
     """
+    assert "source" not in kwargs
     return {
         "variant": variant,
         "nomenclature": nomenclature,
         "class": class_num,
         "variant_data": variant_data,
         "text": kwargs.get("text"),
-        "source": kwargs.get("source"),
     }
 
 
 def _classification_service(repo: _RepoStub) -> ResourceClassificationService:
     return ResourceClassificationService(
-        annotation_handler=repo.annotation_handler,
-        variant_handler=repo.variant_handler,
-        oncokb_handler=repo.oncokb_handler,
-        fusion_handler=repo.fusion_handler,
-        copy_number_variant_handler=repo.copy_number_variant_handler,
-        translocation_handler=repo.translocation_handler,
+        annotation_repository=repo.annotation_repository,
+        variant_repository=repo.variant_repository,
+        oncokb_repository=repo.oncokb_repository,
+        fusion_repository=repo.fusion_repository,
+        copy_number_variant_repository=repo.copy_number_variant_repository,
+        translocation_repository=repo.translocation_repository,
+        assay_panel_repository=repo.assay_panel_repository,
+        assay_configuration_repository=repo.assay_configuration_repository,
     )
 
 
-def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_handler(
+def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_repository(
     monkeypatch,
 ):
     """Test resource annotation service routes cnv comment to copy-number-variant handler.
@@ -281,27 +321,27 @@ def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_h
     _ = monkeypatch
     repo = _RepoStub()
     service = ResourceAnnotationService(
-        annotation_handler=repo.annotation_handler,
-        fusion_handler=repo.fusion_handler,
-        translocation_handler=repo.translocation_handler,
-        copy_number_variant_handler=repo.copy_number_variant_handler,
-        variant_handler=repo.variant_handler,
+        annotation_repository=repo.annotation_repository,
+        fusion_repository=repo.fusion_repository,
+        translocation_repository=repo.translocation_repository,
+        copy_number_variant_repository=repo.copy_number_variant_repository,
+        variant_repository=repo.variant_repository,
     )
 
     resource = service.create_annotation(
-        form_data={"text": "note", "cnvvar": "7:10-20"},
+        form_data={"text": "note", "nomenclature": "cn", "variant": "7:10-20"},
         target_id="cnv-1",
         get_variant_nomenclature_fn=_nomenclature,
         create_comment_doc_fn=_comment_doc,
     )
 
     assert resource == "cnv_comment"
-    assert repo.copy_number_variant_handler.comments == [
+    assert repo.copy_number_variant_repository.comments == [
         ("cnv-1", {"text": "note", "nomenclature": "cn", "variant": "7:10-20"})
     ]
 
 
-def test_resource_annotation_service_routes_translocation_comment_to_translocation_handler(
+def test_resource_annotation_service_routes_translocation_comment_to_translocation_repository(
     monkeypatch,
 ):
     """Test resource annotation service routes translocation comment to translocation handler.
@@ -312,22 +352,22 @@ def test_resource_annotation_service_routes_translocation_comment_to_translocati
     _ = monkeypatch
     repo = _RepoStub()
     service = ResourceAnnotationService(
-        annotation_handler=repo.annotation_handler,
-        fusion_handler=repo.fusion_handler,
-        translocation_handler=repo.translocation_handler,
-        copy_number_variant_handler=repo.copy_number_variant_handler,
-        variant_handler=repo.variant_handler,
+        annotation_repository=repo.annotation_repository,
+        fusion_repository=repo.fusion_repository,
+        translocation_repository=repo.translocation_repository,
+        copy_number_variant_repository=repo.copy_number_variant_repository,
+        variant_repository=repo.variant_repository,
     )
 
     resource = service.create_annotation(
-        form_data={"text": "note", "translocpoints": "1:100^2:200"},
+        form_data={"text": "note", "nomenclature": "t", "variant": "1:100^2:200"},
         target_id="tl-1",
         get_variant_nomenclature_fn=_nomenclature,
         create_comment_doc_fn=_comment_doc,
     )
 
     assert resource == "translocation_comment"
-    assert repo.translocation_handler.comments[0][0] == "tl-1"
+    assert repo.translocation_repository.comments[0][0] == "tl-1"
 
 
 def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatch):
@@ -340,11 +380,9 @@ def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatc
     service = _classification_service(repo)
 
     service.set_tier_bulk(
-        sample={"_id": "S1"},
+        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
         resource_type="fusion",
         resource_ids=["fus-1"],
-        assay_group="rna",
-        subpanel=None,
         apply=True,
         class_num=2,
         create_annotation_text_fn=lambda gene, consequence, assay_group, gene_oncokb=None: (
@@ -353,13 +391,97 @@ def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatc
         create_classified_variant_doc_fn=_classification_doc,
     )
 
-    docs = repo.annotation_handler.inserted_bulk
+    docs = repo.annotation_repository.inserted_bulk
     assert docs is not None
-    assert len(docs) == 2
+    assert len(docs) == 1
     assert docs[0]["nomenclature"] == "f"
     assert docs[0]["variant"] == "2:100^2:200"
     assert docs[0]["variant_data"]["gene1"] == "EML4"
     assert docs[0]["variant_data"]["gene2"] == "ALK"
+    assert set(docs[0]["variant_data"]) == {
+        "assay_group",
+        "subpanel",
+        "gene1",
+        "gene2",
+    }
+
+
+def test_resource_classification_service_generates_text_only_for_tier_three_snvs():
+    """Tier 3 SNV bulk classification creates one class and one narrative document."""
+    repo = _RepoStub()
+    service = _classification_service(repo)
+
+    service.set_tier_bulk(
+        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
+        resource_type="small_variant",
+        resource_ids=["var-1"],
+        apply=True,
+        class_num=3,
+        create_annotation_text_fn=lambda gene, consequence, assay_group, gene_oncokb=None: (
+            f"Tier III text for {gene}"
+        ),
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+
+    docs = repo.annotation_repository.inserted_bulk
+    assert docs is not None
+    assert len(docs) == 2
+    assert docs[0]["class"] == 3
+    assert docs[0]["text"] is None
+    assert docs[0]["variant_data"]["hgvsp"] == "p.Met89Val"
+    assert docs[0]["variant_data"]["hgvsc"] == "c.265A>G"
+    assert docs[0]["variant_data"]["genomic"] == "17_76736896_T_C"
+    assert docs[0]["variant_data"]["genomic_hash"] == "029e8e74947bc798c060013909b9e2da"
+    assert "simple_id" not in docs[0]["variant_data"]
+    assert docs[1]["text"] == "Tier III text for SRSF2"
+
+
+def test_resource_classification_service_does_not_generate_text_for_other_snv_tiers():
+    """Non-Tier 3 SNV bulk classification persists only the classification document."""
+    repo = _RepoStub()
+    service = _classification_service(repo)
+
+    def unexpected_text_generation(*args, **kwargs):
+        raise AssertionError("Non-Tier 3 classification must not generate narrative text")
+
+    service.set_tier_bulk(
+        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
+        resource_type="small_variant",
+        resource_ids=["var-1"],
+        apply=True,
+        class_num=2,
+        create_annotation_text_fn=unexpected_text_generation,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+
+    docs = repo.annotation_repository.inserted_bulk
+    assert docs is not None
+    assert len(docs) == 1
+    assert docs[0]["class"] == 2
+    assert docs[0]["text"] is None
+
+
+def test_non_tier_three_removal_does_not_delete_tier_three_narrative():
+    """Removing another tier must not match the approved Tier 3 narrative document."""
+    repo = _RepoStub()
+    service = _classification_service(repo)
+
+    def unexpected_text_generation(*args, **kwargs):
+        raise AssertionError("Non-Tier 3 removal must not generate narrative text")
+
+    service.set_tier_bulk(
+        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
+        resource_type="small_variant",
+        resource_ids=["var-1"],
+        apply=False,
+        class_num=2,
+        create_annotation_text_fn=unexpected_text_generation,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+
+    assert len(repo.annotation_repository.deleted) == 1
+    assert repo.annotation_repository.deleted[0]["class_num"] == 2
+    assert repo.annotation_repository.deleted[0]["annotation_text"] is None
 
 
 def test_resource_classification_service_supports_translocation_bulk_removal(monkeypatch):
@@ -372,11 +494,14 @@ def test_resource_classification_service_supports_translocation_bulk_removal(mon
     service = _classification_service(repo)
 
     service.set_tier_bulk(
-        sample={"_id": "S1"},
+        sample={
+            "_id": "S1",
+            "asp_id": "assay",
+            "environment": "production",
+            "subpanel_id": "solid",
+        },
         resource_type="translocation",
         resource_ids=["tl-1"],
-        assay_group="dna",
-        subpanel="solid",
         apply=False,
         class_num=3,
         create_annotation_text_fn=lambda gene, consequence, assay_group, gene_oncokb=None: (
@@ -385,6 +510,6 @@ def test_resource_classification_service_supports_translocation_bulk_removal(mon
         create_classified_variant_doc_fn=_classification_doc,
     )
 
-    assert len(repo.annotation_handler.deleted) == 1
-    assert repo.annotation_handler.deleted[0]["nomenclature"] == "t"
-    assert repo.annotation_handler.deleted[0]["variant"] == "1:100^2:200"
+    assert len(repo.annotation_repository.deleted) == 1
+    assert repo.annotation_repository.deleted[0]["nomenclature"] == "t"
+    assert repo.annotation_repository.deleted[0]["variant"] == "1:100^2:200"

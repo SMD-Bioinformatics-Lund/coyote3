@@ -3,14 +3,15 @@
 Use this guide when adding a new analysis area such as methylation, MSI, or a
 new reference-data collection.
 
-## Current backend pattern
+## Backend Structure
 
-The backend now uses this structure:
+The backend uses the following ownership boundaries:
 
-- `api/infra/mongo/handlers/*`: collection-scoped persistence
-- `api/services/*`: orchestration and use-case logic
-- `api/deps/services.py`: service factory layer
-- `api/routers/*`: HTTP boundary
+- `api/infra/mongo/repositories/*`: collection-scoped persistence
+- `api/application/*`: orchestration and use-case logic
+- `api/app/deps/services.py`: service factory layer
+- `api/interfaces/http/{clinical,admin,public,operations,knowledgebase}`: HTTP boundary
+- `api/interfaces/http/clinical/{dna,rna,reporting,common}`: clinical route subcategories
 
 ## Option A: add a new analysis domain
 
@@ -20,9 +21,9 @@ Example: DNA methylation.
 
 ```text
 api/contracts/schemas/dna.py              # extend or add schema
-api/infra/mongo/handlers/methylation.py   # collection handler
-api/services/dna/methylation.py           # application service
-api/routers/methylation.py                # HTTP routes
+api/infra/mongo/repositories/methylation.py   # collection repository
+api/application/dna/methylation.py           # application service
+api/interfaces/http/clinical/dna/methylation.py   # HTTP routes
 tests/unit/test_methylation_service.py
 tests/api/routers/test_methylation_routes.py
 ```
@@ -35,24 +36,24 @@ Register the collection in `api/contracts/schemas/registry.py`.
 COLLECTION_MODEL_ADAPTERS["methylation"] = TypeAdapter(MethylationDoc)
 ```
 
-### 2. Add the handler
+### 2. Add the repository
 
 ```python
-# api/infra/mongo/handlers/methylation.py
-from api.infra.mongo.handlers.base import BaseHandler
+# api/infra/mongo/repositories/methylation.py
+from api.infra.mongo.repositories.base import BaseRepository
 
 
-class MethylationHandler(BaseHandler):
+class MethylationRepository(BaseRepository):
     def get_sample_methylation(self, *, sample_id: str) -> list[dict]:
-        return list(self.handler_collection.find({"SAMPLE_ID": sample_id}))
+        return list(self.get_collection().find({"SAMPLE_ID": sample_id}))
 ```
 
-### 3. Register the handler at runtime
+### 3. Register the repository at runtime
 
 Add it to `api/infra/mongo/runtime_adapter.py`.
 
 ```python
-self.methylation_handler = MethylationHandler(self)
+self.methylation_repository = MethylationRepository(self)
 ```
 
 ### 4. Add the service
@@ -64,15 +65,15 @@ from typing import Any
 
 
 class MethylationService:
-    def __init__(self, *, methylation_handler: Any) -> None:
-        self.methylation_handler = methylation_handler
+    def __init__(self, *, methylation_repository: Any) -> None:
+        self.methylation_repository = methylation_repository
 
     @classmethod
     def from_store(cls, store: Any) -> "MethylationService":
-        return cls(methylation_handler=store.methylation_handler)
+        return cls(methylation_repository=store.methylation_repository)
 ```
 
-If the domain becomes large, keep `api/services/dna/methylation.py` as the public entrypoint
+If the domain becomes large, keep `api/application/dna/methylation.py` as the public entrypoint
 and split support logic into nearby modules such as `methylation_reads.py`,
 `methylation_writes.py`, or `methylation_exports.py`.
 
@@ -86,7 +87,7 @@ def get_methylation_service() -> MethylationService:
 ### 6. Add the router
 
 ```python
-@router.get("/api/v1/methylation/{sample_id}")
+@router.get("/api/v1/samples/{sample_id}/methylation")
 def list_methylation(
     sample_id: str,
     service: MethylationService = Depends(get_methylation_service),
@@ -101,19 +102,19 @@ If the collection is reference data or a support collection:
 
 1. add the schema to `api/contracts/schemas/*`
 2. register it in `api/contracts/schemas/registry.py`
-3. add a collection handler
+3. add a collection repository
 4. register it in `api/infra/mongo/runtime_adapter.py`
 5. add service methods only if a route or workflow needs them
 
-## How things are wired now
+## Runtime Wiring
 
 ### Runtime boot
 
-- `api/main.py` starts the app
+- `api/app/main.py` starts the app
 - `api/lifecycle.py` runs startup
-- `api/runtime_setup.py` configures runtime pieces
-- `api/extensions.py` exposes the shared `store`
-- `api/infra/mongo/runtime_adapter.py` attaches handlers to `store`
+- `api/app/runtime_setup.py` configures runtime pieces
+- `api/app/container.py` exposes the shared `store`
+- `api/infra/mongo/runtime_adapter.py` attaches repositories to `store`
 
 ### Request path
 
@@ -124,22 +125,22 @@ router -> Depends(get_service) -> Service.from_store(get_store()) -> handler met
 ### Example
 
 ```python
-# api/deps/services.py
+# api/app/deps/services.py
 def get_sample_catalog_service() -> SampleCatalogService:
     return SampleCatalogService.from_store(get_store())
 ```
 
 ```python
-# api/services/sample/catalog.py
+# api/application/sample/catalog.py
 class SampleCatalogService:
     @classmethod
     def from_store(cls, store):
         return cls(
-            sample_handler=store.sample_handler,
-            gene_list_handler=store.gene_list_handler,
-            assay_panel_handler=store.assay_panel_handler,
-            variant_handler=store.variant_handler,
-            grouped_coverage_handler=store.grouped_coverage_handler,
+            sample_repository=store.sample_repository,
+            gene_list_repository=store.gene_list_repository,
+            assay_panel_repository=store.assay_panel_repository,
+            variant_repository=store.variant_repository,
+            grouped_coverage_repository=store.grouped_coverage_repository,
         )
 ```
 
@@ -148,8 +149,8 @@ class SampleCatalogService:
 - One handler owns one collection
 - Services may combine many handlers
 - Routers should depend on services, not `store`
-- `api/core` should stay pure and reusable
-- Do not reintroduce repository facades or compatibility layers
+- `api/domain/core` should stay pure and reusable
+- Do not reintroduce repository facades or hidden bridging layers
 - Do not pass raw Mongo collections through the app layer unless you are at the infra/composition boundary
 
 ## Quality checks

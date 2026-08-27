@@ -7,6 +7,8 @@ repos:
     rev: v5.0.0
     hooks:
     -   id: check-yaml
+        # Docker Compose merge directives such as !reset are not standard YAML tags.
+        exclude: ^deploy/compose/docker-compose\.dev\.yml$
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
     -   id: check-toml
@@ -22,6 +24,12 @@ repos:
 
 -   repo: local
     hooks:
+    -   id: sensitive-data
+        name: sensitive data and secret guard
+        entry: python3 scripts/check_staged_sensitive_data.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
     -   id: contract-integrity
         name: contract integrity checks
         entry: bash scripts/check_contract_integrity.sh

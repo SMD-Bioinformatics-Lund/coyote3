@@ -15,10 +15,14 @@ class WhoamiPayload(BaseModel):
     """Represent the whoami payload."""
 
     username: str
+    firstname: str = ""
+    fullname: str = ""
+    roles: list[str]
     role: str
     access_level: int
     permissions: list[str]
-    denied_permissions: list[str]
+    ui_settings: dict[str, str | bool | int]
+    csrf_token: str
 
 
 class AuthUserEnvelope(BaseModel):
@@ -31,4 +35,4 @@ class AuthUserEnvelope(BaseModel):
 class AuthLoginEnvelope(AuthUserEnvelope):
     """Provide the auth login envelope type."""
 
-    pass
+    csrf_token: str

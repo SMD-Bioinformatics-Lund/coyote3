@@ -1,47 +1,70 @@
-# Platform Governance and Maintenance Protocol
+# Maintainer guide
 
-This document defines the governance policies and maintenance procedures for the Coyote3 platform. Maintainers are responsible for enforcing these standards to ensure the long-term integrity and reliability of the diagnostic pipeline.
+Maintainers protect the stability of the clinical workflow, data contracts,
+security boundaries, and release process.
 
-## Change Management Policy
+## Change rules
 
-1. **Behavioral Stability**: Existing platform behaviors must remain stable unless a modification is explicitly documented and justified through the architectural review process.
-2. **Explicit Contracts**: All system interactions must rely on explicit data contracts; reliance on implicit assumptions or side-effects is prohibited.
-3. **Validation Requirements**: Every bug fix or feature change must include tests that cover the critical path.
-4. **Continuous Integration**: The master branch must remain in a stable, validated state at all times. Automated CI cascades must pass 100% of checks before merge operations.
-5. **Security Uncompromising**: Security boundaries and authorization gates must never be absolute for development convenience.
+| Rule | Required practice |
+| --- | --- |
+| Preserve behavior | Change an existing workflow only when the change is intentional, tested, and documented. |
+| Use explicit contracts | Validate API and MongoDB boundaries with declared models. Do not depend on undocumented document shapes. |
+| Keep one source of truth | Do not copy configurable values or fixed vocabularies into feature modules. |
+| Test risk | Cover the success path, failure path, and permission boundary affected by the change. |
+| Protect security | Never bypass authentication, authorization, CSRF, audit, or secret handling for development convenience. |
+| Keep the branch healthy | Required CI checks must pass before merge. |
 
-## Mandated Pull Request Protocol
+## Pull request sequence
 
-Contributions must follow a structured implementation sequence to maintain architectural alignment:
+1. Define or update the domain behavior.
+2. Update application services and persistence contracts.
+3. Expose the behavior through the HTTP interface when required.
+4. Update the frontend through shared API and UI components.
+5. Add focused tests at each changed boundary.
+6. Update the authoritative documentation.
+7. Run the affected quality checks.
 
-1. **Domain Definition**: Implement core logic modifications within `api/core` and `api/services`.
-2. **Contract Synchronization**: Update the corresponding API contracts and router interfaces.
-3. **Validation Suite**: Submit the associated `tests/unit` and `tests/api` suites.
-4. **Manual Documentation**: Update the technical documentation tree to reflect the updated platform behavior.
-5. **Quality Gates**: Verify that all linting, family coverage, and contract integrity gates are satisfied.
+The [complete developer manual](../developer/complete_developer_manual.md)
+explains where each responsibility belongs.
 
-## Pre-Push Operational Verification
+## Review checklist
 
-Maintainers must execute the following local validation baseline before pushing changes to the upstream repository:
+| Area | Review question |
+| --- | --- |
+| Correctness | Does the implementation satisfy the stated behavior for positive and negative cases? |
+| Clinical state | Can saved classifications, filters, comments, and reports still be reconstructed? |
+| Access | Are route permissions, target-resource scope, and delegated administration enforced? |
+| Persistence | Do repositories and Pydantic contracts own database access and validation? |
+| Failure handling | Does failure leave the sample or resource in a valid state and create the required audit evidence? |
+| Performance | Are indexes, pagination, caching, and query cardinality appropriate for production data? |
+| Tests | Do tests prove behavior rather than internal implementation details? |
+| Documentation | Is the current behavior described without release-note language? |
+
+## Local verification
 
 ```bash
-# Verify static analysis compliance
-PYTHONPATH=. python -m ruff check api coyote tests scripts
-
-# Execute functional and integration validation
-PYTHONPATH=. python -m pytest -q
-
-# Verify family coverage thresholds
+PYTHONPATH=. ruff check api tests scripts
+PYTHONPATH=. pytest -q
 PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_gates.sh
+npm --prefix frontend run lint
+npm --prefix frontend run test:unit
+npm --prefix frontend run build
+npm run docs:lint
+.venv/bin/python -m mkdocs build --strict
 ```
 
-## Review Criteria for System Contributions
+Run affected Playwright suites for user-facing changes. Run disposable
+full-stack validation for changes to ingest, deployment, authentication,
+background tasks, or reporting.
 
-All code reviews must evaluate the following professional metrics:
-- **System Integrity**: Assessment of regression risks and fundamental correctness.
-- **Access Governance**: Strict verification of permission models and security boundaries.
-- **Reliability and Observability**: Evaluation of logging quality, telemetry emission, and failure-mode handling.
-- **Validation Depth**: Verification that the provided tests sufficiently cover the target logic.
-- **Documentation Parity**: Ensuring the technical manuals accurately describe the modified system state.
+## Merge and release
 
-Through the enforcement of these protocols, maintainers preserve the platform's status as a clinical-grade genomics diagnostic resource.
+- Require the protected quality check.
+- Resolve review comments before merge.
+- Keep commits coherent and avoid unrelated generated-file changes.
+- Use versioned immutable images for releases.
+- Record user-visible changes in the changelog.
+- Retain the evidence required by the release-readiness guide.
+
+See [release readiness](../operations/release_readiness.md) for the complete
+release decision.

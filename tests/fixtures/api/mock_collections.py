@@ -1,105 +1,10 @@
-"""Collection-shaped fixture documents backed by read-only DB snapshots.
-
-Source of truth:
-- prod latest docs for all collections
-- dev latest docs scoped to RNA/WGS patterns for RNA/WGS-sensitive fixtures
-
-Fallback defaults are preserved so tests remain deterministic when snapshot docs
-are missing specific fields.
-"""
+"""Deterministic collection-shaped documents for API tests."""
 
 from __future__ import annotations
 
-import json
 from copy import deepcopy
-from pathlib import Path
-from typing import Any
 
 from api.security.access import ApiUser
-
-SNAPSHOT_DIR = Path(__file__).resolve().parent / "db_snapshots"
-PROD_SNAPSHOT_PATH = SNAPSHOT_DIR / "prod_latest.json"
-DEV_RNA_WGS_SNAPSHOT_PATH = SNAPSHOT_DIR / "dev_rna_wgs_latest.json"
-
-
-def _load_snapshot(path: Path) -> dict[str, Any]:
-    """Load snapshot.
-
-    Args:
-            path: Path.
-
-    Returns:
-            The  load snapshot result.
-    """
-    if not path.exists():
-        return {}
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        return payload.get("collections", {})
-    except Exception:
-        return {}
-
-
-_PROD = _load_snapshot(PROD_SNAPSHOT_PATH)
-_DEV_RNA_WGS = _load_snapshot(DEV_RNA_WGS_SNAPSHOT_PATH)
-
-
-def _latest_doc(
-    collection_alias: str, *, prefer_dev_rna_wgs: bool = False
-) -> dict[str, Any] | None:
-    """Latest doc.
-
-    Args:
-            collection_alias: Collection alias.
-            prefer_dev_rna_wgs: Prefer dev rna wgs. Keyword-only argument.
-
-    Returns:
-            The  latest doc result.
-    """
-    pools = [_DEV_RNA_WGS, _PROD] if prefer_dev_rna_wgs else [_PROD, _DEV_RNA_WGS]
-    for pool in pools:
-        meta = pool.get(collection_alias) or {}
-        docs = meta.get("docs")
-        if isinstance(docs, list) and docs and isinstance(docs[0], dict):
-            return deepcopy(docs[0])
-        latest = meta.get("latest")
-        if isinstance(latest, dict):
-            return deepcopy(latest)
-    return None
-
-
-def _with_defaults(doc: dict[str, Any] | None, defaults: dict[str, Any]) -> dict[str, Any]:
-    """With defaults.
-
-    Args:
-            doc: Doc.
-            defaults: Defaults.
-
-    Returns:
-            The  with defaults result.
-    """
-    merged = deepcopy(defaults)
-    if not isinstance(doc, dict):
-        return merged
-
-    def rec(dst: dict[str, Any], src: dict[str, Any]) -> None:
-        """Rec.
-
-        Args:
-            dst (dict[str, Any]): Value for ``dst``.
-            src (dict[str, Any]): Value for ``src``.
-
-        Returns:
-            None.
-        """
-        for k, v in src.items():
-            if isinstance(v, dict) and isinstance(dst.get(k), dict):
-                rec(dst[k], v)
-            else:
-                dst[k] = v
-
-    rec(merged, doc)
-    return merged
 
 
 def user_doc() -> dict:
@@ -116,15 +21,13 @@ def user_doc() -> dict:
         "roles": ["admin", "superuser"],
         "role": "admin",
         "access_level": 99999,
-        "permissions": ["report:preview", "report:create", "role:view", "sample:edit:own"],
-        "deny_permissions": [],
-        "assays": ["WGS", "RNA_PANEL"],
-        "assay_groups": ["dna", "rna"],
+        "asp_ids": ["wgs", "rna_panel"],
+        "asp_groups": ["dna", "rna"],
         "envs": ["production"],
-        "asp_map": {"DNA": {"PANEL": {"dna": ["WGS"]}}},
+        "asp_map": {"DNA": {"PANEL": {"dna": ["wgs"]}}},
     }
     # users are sourced through roles/users collections; keep stable defaults.
-    return _with_defaults(None, defaults)
+    return defaults
 
 
 def api_user() -> ApiUser:
@@ -142,20 +45,20 @@ def api_user() -> ApiUser:
         roles=list(doc.get("roles") or [str(doc.get("role") or "admin")]),
         role=str(doc.get("role") or "admin"),
         access_level=int(doc.get("access_level") or 99),
-        permissions=list(doc.get("permissions") or []),
-        denied_permissions=list(doc.get("deny_permissions") or []),
-        assays=list(doc.get("assays") or []),
-        assay_groups=list(doc.get("assay_groups") or []),
+        permissions=list(
+            doc.get("permissions")
+            or ["report:preview", "report:create", "role:view", "sample:edit:own"]
+        ),
+        asp_ids=list(doc.get("asp_ids") or []),
+        asp_groups=list(doc.get("asp_groups") or []),
         envs=list(doc.get("envs") or []),
         asp_map=deepcopy(doc.get("asp_map") or {}),
+        auth_type=list(doc.get("auth_type") or ["local"]),
     )
 
 
-def sample_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
+def sample_doc() -> dict:
     """Sample doc.
-
-    Args:
-        prefer_dev_rna_wgs (bool): Value for ``prefer_dev_rna_wgs``.
 
     Returns:
         dict: The function result.
@@ -163,41 +66,41 @@ def sample_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
     defaults = {
         "_id": "s1",
         "name": "SAMPLE_001",
-        "assay": "WGS",
-        "profile": "production",
+        "asp_id": "wgs",
+        "environment": "production",
         "sequencing_scope": "panel",
         "omics_layer": "dna",
         "case_id": "CASE001",
         "control_id": "CTRL001",
-        "subpanel": "myeloid",
-        "vep_version": "110",
+        "subpanel_id": "myeloid",
+        "database_versions": {"vep": "110"},
         "report_num": 2,
         "reports": [{"_id": "r1", "report_id": "RID1", "report_num": 1, "time_created": 1}],
         "case": {"clarity_id": "CLARITY_CASE_001"},
         "control": {"clarity_id": "CLARITY_CTRL_001"},
+        "analysis_intents": ["somatic"],
         "filters": {
-            "max_freq": 1.0,
-            "min_freq": 0.05,
-            "max_control_freq": 0.2,
-            "min_depth": 100,
-            "min_alt_reads": 5,
-            "max_popfreq": 0.01,
-            "vep_consequences": ["missense_variant"],
-            "genelists": ["gl1"],
-            "cnv_genelists": ["gl1"],
-            "fusionlists": ["gl1"],
-            "adhoc_genes": {"snv": {"label": "focus", "genes": ["TP53", "NPM1"]}},
+            "somatic": {
+                "snv": {
+                    "max_freq": 1.0,
+                    "min_freq": 0.05,
+                    "max_control_freq": 0.2,
+                    "min_depth": 100,
+                    "min_alt_reads": 5,
+                    "max_popfreq": 0.01,
+                    "vep_consequences": ["missense_variant"],
+                    "snvlists": ["gl1"],
+                    "adhoc_genes": {"label": "focus", "genes": ["TP53", "NPM1"]},
+                },
+                "cnv": {"cnvlists": ["gl1"]},
+            }
         },
     }
-    doc = _latest_doc("samples_collection", prefer_dev_rna_wgs=prefer_dev_rna_wgs)
-    return _with_defaults(doc, defaults)
+    return defaults
 
 
-def assay_config_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
+def assay_config_doc() -> dict:
     """Assay config doc.
-
-    Args:
-        prefer_dev_rna_wgs (bool): Value for ``prefer_dev_rna_wgs``.
 
     Returns:
         dict: The function result.
@@ -206,19 +109,15 @@ def assay_config_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
         "_id": "aspc1",
         "asp_group": "dna",
         "analysis_types": ["SNV", "CNV", "BIOMARKER"],
-        "filters": deepcopy(sample_doc(prefer_dev_rna_wgs=prefer_dev_rna_wgs).get("filters", {})),
+        "filters": deepcopy(sample_doc().get("filters", {})),
         "reporting": {"report_path": "dna_report.html", "plots_path": "reports/plots"},
         "verification_samples": {"SAMPLE": ["1:1:A:T"]},
     }
-    doc = _latest_doc("aspc_collection", prefer_dev_rna_wgs=prefer_dev_rna_wgs)
-    return _with_defaults(doc, defaults)
+    return defaults
 
 
-def variant_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
+def variant_doc() -> dict:
     """Variant doc.
-
-    Args:
-        prefer_dev_rna_wgs (bool): Value for ``prefer_dev_rna_wgs``.
 
     Returns:
         dict: The function result.
@@ -243,8 +142,7 @@ def variant_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
             }
         },
     }
-    doc = _latest_doc("variants_collection", prefer_dev_rna_wgs=prefer_dev_rna_wgs)
-    return _with_defaults(doc, defaults)
+    return defaults
 
 
 def cnv_doc() -> dict:
@@ -260,15 +158,11 @@ def cnv_doc() -> dict:
         "cnv_type": "gain",
         "interesting": True,
     }
-    doc = _latest_doc("cnvs_collection")
-    return _with_defaults(doc, defaults)
+    return defaults
 
 
-def fusion_doc(*, prefer_dev_rna_wgs: bool = True) -> dict:
+def fusion_doc() -> dict:
     """Fusion doc.
-
-    Args:
-        prefer_dev_rna_wgs (bool): Value for ``prefer_dev_rna_wgs``.
 
     Returns:
         dict: The function result.
@@ -283,8 +177,7 @@ def fusion_doc(*, prefer_dev_rna_wgs: bool = True) -> dict:
         "calls": [{"selected": 1, "breakpoint1": "2:42522694", "breakpoint2": "2:29443657"}],
         "classification": {"class": 2},
     }
-    doc = _latest_doc("fusions_collection", prefer_dev_rna_wgs=prefer_dev_rna_wgs)
-    return _with_defaults(doc, defaults)
+    return defaults
 
 
 def reported_variant_doc() -> dict:
@@ -306,8 +199,7 @@ def reported_variant_doc() -> dict:
         "simple_id_hash": "862b46287a08e369aa99f8f3777f44b9",
         "tier": 2,
     }
-    doc = _latest_doc("reported_variants_collection")
-    return _with_defaults(doc, defaults)
+    return defaults
 
 
 def role_doc() -> dict:
@@ -321,11 +213,9 @@ def role_doc() -> dict:
         "role_id": "admin",
         "label": "Administrator",
         "permissions": ["role:view", "role:create"],
-        "deny_permissions": [],
         "level": 99999,
     }
-    doc = _latest_doc("roles_collection")
-    return _with_defaults(doc, defaults)
+    return defaults
 
 
 def permission_doc() -> dict:
@@ -341,8 +231,7 @@ def permission_doc() -> dict:
         "category": "RBAC",
         "is_active": True,
     }
-    doc = _latest_doc("permissions_collection")
-    return _with_defaults(doc, defaults)
+    return defaults
 
 
 def schema_doc() -> dict:
@@ -359,15 +248,13 @@ def schema_doc() -> dict:
         "version": 1,
         "fields": {
             "permissions": {"options": [], "default": []},
-            "deny_permissions": {"options": [], "default": []},
             "created_by": {"default": None},
             "created_on": {"default": None},
             "updated_by": {"default": None},
             "updated_on": {"default": None},
         },
     }
-    doc = _latest_doc("schemas_collection")
-    return _with_defaults(doc, defaults)
+    return defaults
 
 
 def isgl_doc() -> dict:
@@ -385,8 +272,7 @@ def isgl_doc() -> dict:
         "gene_count": 2,
         "genes": ["TP53", "NPM1"],
         "assays": ["WGS"],
-        "list_type": ["small_variant_genelist", "cnv_genelist", "fusion_genelist"],
+        "list_type": ["snv", "cnv", "fusion"],
         "is_active": True,
     }
-    doc = _latest_doc("insilico_genelist_collection")
-    return _with_defaults(doc, defaults)
+    return defaults

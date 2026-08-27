@@ -2,41 +2,283 @@ name: quality
 
 on:
   pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
   push:
-    branches:
-      - main
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint-and-test:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     env:
       TESTING: "1"
       DEVELOPMENT: "0"
-      COYOTE3_FERNET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       SECRET_KEY: ci-test-secret-key
       INTERNAL_API_TOKEN: ci-test-internal-token
+      PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine validation scope
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+        run: |
+          backend=false
+          frontend=false
+          docs=false
+          label_only=false
+
+          if [[ "$EVENT_NAME" == "pull_request" && \
+                ( "$EVENT_ACTION" == "labeled" || "$EVENT_ACTION" == "unlabeled" ) ]]; then
+            label_only=true
+          fi
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            backend=true
+            frontend=true
+            docs=true
+            git ls-files > /tmp/coyote3_changed_files.txt
+          else
+            base_sha="$PUSH_BASE_SHA"
+            if [[ "$EVENT_NAME" == "pull_request" ]]; then
+              base_sha="$PR_BASE_SHA"
+            fi
+            if [[ -z "$base_sha" || "$base_sha" =~ ^0+$ ]] || \
+               ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
+              base_sha="$(git rev-parse HEAD^)"
+            fi
+            git diff --name-only "$base_sha" "$GITHUB_SHA" > /tmp/coyote3_changed_files.txt
+          fi
+
+          if [[ "$label_only" != "true" ]]; then
+            while IFS= read -r path; do
+              case "$path" in
+                .github/workflows/*)
+                  backend=true
+                  frontend=true
+                  docs=true
+                  ;;
+                api/contracts/*|api/interfaces/http/*)
+                  backend=true
+                  frontend=true
+                  ;;
+                deploy/*|docker/*)
+                  backend=true
+                  frontend=true
+                  docs=true
+                  ;;
+                api/*|tests/*|scripts/*|clinical_reporting_rules/*|demo_data/*|pyproject.toml|requirements*.txt|.coveragerc)
+                  backend=true
+                  ;;
+                frontend/*)
+                  frontend=true
+                  ;;
+                *.md|docs/*|mkdocs.yml|package.json|package-lock.json|.markdownlint-cli2.yaml)
+                  docs=true
+                  ;;
+              esac
+            done < /tmp/coyote3_changed_files.txt
+          fi
+
+          echo "backend=$backend" >> "$GITHUB_OUTPUT"
+          echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
+          echo "docs=$docs" >> "$GITHUB_OUTPUT"
+          echo "Changed files:"
+          cat /tmp/coyote3_changed_files.txt
+          echo "Validation scope: backend=$backend frontend=$frontend docs=$docs"
+
+      - name: Sensitive data guard
+        run: python3 scripts/check_staged_sensitive_data.py --all-files
+
+      - name: Require changelog entry
+        if: github.event_name == 'pull_request' && !contains(env.PR_LABELS, 'skip-changelog-update')
+        run: |
+          if ! grep -Fxq "CHANGELOG.md" /tmp/coyote3_changed_files.txt; then
+            echo "CHANGELOG.md must be updated for this pull request." >&2
+            echo "Apply the skip-changelog-update label only for changes that have no release impact." >&2
+            exit 1
+          fi
 
       - name: Setup Python
+        if: steps.scope.outputs.backend == 'true' || steps.scope.outputs.docs == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "pip"
-          cache-dependency-path: "requirements.txt"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            requirements-docs.txt
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
+      - name: Install backend quality dependencies
+        if: steps.scope.outputs.backend == 'true'
+        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
+
+      - name: Install documentation dependencies
+        if: steps.scope.outputs.docs == 'true'
+        run: python -m pip install --disable-pip-version-check -r requirements-docs.txt
 
       - name: Ruff check
-        run: PYTHONPATH=. ruff check api coyote tests scripts
+        if: steps.scope.outputs.backend == 'true'
+        run: PYTHONPATH=. ruff check api tests scripts
 
       - name: Ruff format check
-        run: PYTHONPATH=. ruff format --check api coyote tests scripts
+        if: steps.scope.outputs.backend == 'true'
+        run: PYTHONPATH=. ruff format --check api tests scripts
 
-      - name: Full test suite
-        run: PYTHONPATH=. pytest -q
+      - name: Strict type check
+        if: steps.scope.outputs.backend == 'true'
+        run: PYTHONPATH=. mypy
+
+      - name: Audit Python runtime dependencies
+        if: steps.scope.outputs.backend == 'true'
+        run: pip-audit -r requirements.txt
+
+      - name: Full backend tests and unified coverage
+        if: steps.scope.outputs.backend == 'true'
+        run: >-
+          PYTHONPATH=. pytest -q tests/unit tests/api tests/integration
+          --cov=api
+          --cov-config=.coveragerc
+          --cov-report=term-missing
+          --cov-report=xml:coverage.xml
+
+      - name: Clinical family coverage gates
+        if: steps.scope.outputs.backend == 'true'
+        run: >-
+          PYTHON_BIN="$(command -v python)" PYTHONPATH=.
+          bash scripts/run_family_coverage_gates.sh --from-existing
+
+      - name: Contract and repository checks
+        if: steps.scope.outputs.backend == 'true'
+        run: PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
+
+      - name: Upload backend coverage report
+        if: always() && steps.scope.outputs.backend == 'true' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: coverage.xml
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Setup Node
+        if: steps.scope.outputs.frontend == 'true' || steps.scope.outputs.docs == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Install documentation lint tooling
+        if: steps.scope.outputs.docs == 'true'
+        run: npm ci --ignore-scripts
+
+      - name: Lint repository Markdown
+        if: steps.scope.outputs.docs == 'true'
+        run: npm run docs:lint
+
+      - name: Validate documentation links
+        if: steps.scope.outputs.docs == 'true' && steps.scope.outputs.backend != 'true'
+        run: python scripts/check_markdown_links.py
+
+      - name: Build documentation in strict mode
+        if: steps.scope.outputs.docs == 'true'
+        run: python -m mkdocs build --strict --site-dir /tmp/coyote3-docs-ci
+
+      - name: Install frontend dependencies
+        if: steps.scope.outputs.frontend == 'true'
+        working-directory: frontend
+        run: npm ci --ignore-scripts
+
+      - name: Audit frontend runtime dependencies
+        if: steps.scope.outputs.frontend == 'true'
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Frontend lint, unit coverage, and production build
+        if: steps.scope.outputs.frontend == 'true'
+        working-directory: frontend
+        run: |
+          npm run lint
+          npm run test:coverage
+          npm run build
+
+      - name: Cache Playwright browser
+        if: steps.scope.outputs.frontend == 'true'
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Install Playwright browser and system dependencies
+        if: steps.scope.outputs.frontend == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system dependencies
+        if: steps.scope.outputs.frontend == 'true' && steps.playwright-cache.outputs.cache-hit == 'true'
+        working-directory: frontend
+        run: npx playwright install-deps chromium
+
+      - name: Frontend browser route checks
+        if: steps.scope.outputs.frontend == 'true'
+        working-directory: frontend
+        run: npm run test:e2e
+
+      - name: Upload frontend coverage report
+        if: always() && steps.scope.outputs.frontend == 'true' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: |
+            frontend/coverage/lcov.info
+            frontend/coverage/coverage-summary.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  container-scan:
+    if: >-
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+      github.event.pull_request.draft == false &&
+      contains(github.event.pull_request.labels.*.name, 'security-scan'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build API image for scanning
+        run: docker build -f docker/Dockerfile --target coyote3_api -t coyote3-api:scan .
+
+      - name: Scan API image
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: coyote3-api:scan
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: 1

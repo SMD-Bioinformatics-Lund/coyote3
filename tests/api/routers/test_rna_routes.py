@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-import pytest
-from fastapi import HTTPException
+from types import SimpleNamespace
 
-from api.extensions import store
-from api.main import app as api_app
-from api.routers import fusions as rna
-from api.services.common.change_payload import change_payload
-from api.services.rna import expression_analysis as rna_service_module
-from api.services.rna.expression_analysis import RnaService
+import pytest
+
+from api.app.container import store
+from api.app.main import app as api_app
+from api.application.common.change_payload import change_payload
+from api.application.rna import expression_analysis as rna_service_module
+from api.application.rna.expression_analysis import RnaService
+from api.domain.core.exceptions import AppError
+from api.interfaces.http.clinical.rna import fusions as rna
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -27,15 +29,16 @@ class _Req:
 
 def _rna_service() -> RnaService:
     return RnaService(
-        assay_panel_handler=store.assay_panel_handler,
-        gene_list_handler=store.gene_list_handler,
-        sample_handler=store.sample_handler,
-        fusion_handler=store.fusion_handler,
-        rna_expression_handler=store.rna_expression_handler,
-        rna_classification_handler=store.rna_classification_handler,
-        rna_quality_handler=store.rna_quality_handler,
-        annotation_handler=store.annotation_handler,
-        reported_variant_handler=store.reported_variant_handler,
+        assay_panel_repository=store.assay_panel_repository,
+        gene_list_repository=store.gene_list_repository,
+        sample_repository=store.sample_repository,
+        fusion_repository=store.fusion_repository,
+        rna_expression_repository=store.rna_expression_repository,
+        rna_classification_repository=store.rna_classification_repository,
+        rna_quality_repository=store.rna_quality_repository,
+        annotation_repository=store.annotation_repository,
+        reported_variant_repository=store.reported_variant_repository,
+        report_repository=store.report_repository,
     )
 
 
@@ -60,7 +63,7 @@ def test_list_rna_fusions_success(monkeypatch):
     Returns:
         The function result.
     """
-    sample = fx.sample_doc()
+    sample = {**fx.sample_doc(), "omics_layer": "rna"}
     assay_config = {**fx.assay_config_doc(), "asp_group": "rna", "analysis_types": ["FUSION"]}
     merged_sample = {**sample, "filters": {"min_spanning_reads": 3, "min_spanning_pairs": 2}}
     filter_context = {
@@ -79,21 +82,21 @@ def test_list_rna_fusions_success(monkeypatch):
         lambda self, s, a, sid, lists: (merged_sample, merged_sample["filters"]),
     )
     monkeypatch.setattr(
-        store.assay_panel_handler,
+        store.assay_panel_repository,
         "get_asp",
         lambda asp_name: {"asp_id": "asp1", "asp_group": "rna"},
     )
     monkeypatch.setattr(
-        store.gene_list_handler,
+        store.gene_list_repository,
         "get_isgl_by_asp",
-        lambda assay, is_active=True, list_type=None: [fx.isgl_doc()],
+        lambda assay, is_active=True, list_type=None, adhoc=None: [fx.isgl_doc()],
     )
     monkeypatch.setattr(
         rna.util.common,
         "get_case_and_control_sample_ids",
         lambda s: {"case": "C1", "control": "C2"},
     )
-    monkeypatch.setattr(store.sample_handler, "hidden_sample_comments", lambda oid: False)
+    monkeypatch.setattr(store.sample_repository, "hidden_sample_comments", lambda oid: False)
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
         "compute_filter_context",
@@ -104,11 +107,16 @@ def test_list_rna_fusions_success(monkeypatch):
         "build_fusion_list_query",
         lambda self, **kwargs: {"query": "ok"},
     )
-    monkeypatch.setattr(store.fusion_handler, "get_sample_fusions", lambda query: fusions)
+    monkeypatch.setattr(store.fusion_repository, "get_sample_fusions", lambda query: fusions)
+    monkeypatch.setattr(
+        store.fusion_repository,
+        "hydrate_finding_comments_many",
+        lambda findings: findings,
+    )
     monkeypatch.setattr(
         rna_service_module,
         "add_global_annotations",
-        lambda fusions, assay_group, subpanel, annotation_handler=None: (fusions, fusions),
+        lambda fusions, assay_group, subpanel, annotation_repository=None: (fusions, fusions),
     )
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
@@ -126,6 +134,46 @@ def test_list_rna_fusions_success(monkeypatch):
     assert payload["ai_text"] == "summary"
 
 
+def test_list_rna_fusions_rejects_dna_samples(monkeypatch):
+    """RNA fusion endpoints return a clear client error for DNA samples."""
+    service = _rna_service()
+    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+
+    with pytest.raises(AppError) as exc:
+        rna.list_rna_fusions(_Req(), "S1", user=fx.api_user(), service=service)
+
+    assert exc.value.status_code == 422
+    assert exc.value.detail["error"] == "RNA fusion analysis is unavailable for this sample"
+
+
+def test_rna_sample_comment_suggestion_uses_filtered_summary(monkeypatch):
+    """The sample-comment suggestion exposes the existing filtered RNA summary."""
+    sample = {**fx.sample_doc(), "_id": "sample-1", "name": "S1", "omics_layer": "rna"}
+    captured = {}
+    service = SimpleNamespace(
+        list_fusions_payload=lambda **kwargs: (
+            captured.update(kwargs) or {"ai_text": "Filtered fusion summary"}
+        )
+    )
+    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(rna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = rna.rna_sample_comment_suggestion(
+        request=_Req(),
+        sample_id="S1",
+        user=fx.api_user(),
+        service=service,
+    )
+
+    assert captured["paginate"] is False
+    assert payload == {
+        "sample_id": "sample-1",
+        "sample_name": "S1",
+        "analysis": "rna",
+        "suggested_text": "Filtered fusion summary",
+    }
+
+
 def test_show_rna_fusion_not_found_raises_404(monkeypatch):
     """Test show rna fusion not found raises 404.
 
@@ -137,9 +185,9 @@ def test_show_rna_fusion_not_found_raises_404(monkeypatch):
     """
     service = _rna_service()
     monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
-    monkeypatch.setattr(store.fusion_handler, "get_fusion", lambda fusion_id: None)
+    monkeypatch.setattr(store.fusion_repository, "get_fusion", lambda fusion_id: None)
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         rna.show_rna_fusion("S1", "F404", user=fx.api_user(), service=service)
 
     assert exc.value.status_code == 404
@@ -160,3 +208,59 @@ def test_restful_rna_mutation_routes_are_registered():
     assert "/api/v1/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/hidden" in paths
     assert "/api/v1/samples/{sample_id}/fusions/flags/false-positive" in paths
     assert "/api/v1/samples/{sample_id}/fusions/flags/irrelevant" in paths
+    assert "/api/v1/samples/{sample_id}/fusions/flags/blacklisted" in paths
+    assert "/api/v1/samples/{sample_id}/fusions/{fusion_id}/flags/blacklisted" in paths
+    assert "/api/v1/samples/{sample_id}/fusions/comment-suggestion" in paths
+    assert "/api/v1/samples/{sample_id}/rna-analysis" in paths
+
+
+def test_read_rna_analysis_returns_independent_records(monkeypatch):
+    """The WTS views read expression, classification, and QC by sample ObjectId."""
+    sample = {**fx.sample_doc(), "_id": "sample-oid", "name": "RNA_1", "omics_layer": "rna"}
+    service = SimpleNamespace(
+        rna_analysis_payload=lambda **kwargs: {
+            "sample_id": "sample-oid",
+            "sample_name": "RNA_1",
+            "expression": {"sample": [{"hgnc_symbol": "CD19", "z": 2.5}]},
+            "classification": {"classifier_results": [{"class": "DUX4-high", "score": 0.8}]},
+            "quality": {"mapped_pct": 97.4},
+        }
+    )
+    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(rna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = rna.read_rna_analysis("RNA_1", user=fx.api_user(), service=service)
+
+    assert payload["sample_id"] == "sample-oid"
+    assert payload["expression"]["sample"][0]["hgnc_symbol"] == "CD19"
+    assert payload["classification"]["classifier_results"][0]["class"] == "DUX4-high"
+
+
+def test_rna_analysis_service_reads_each_sample_owned_repository(monkeypatch):
+    """RNA analysis aggregation uses the canonical repository methods."""
+    service = _rna_service()
+    calls: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        store.rna_expression_repository,
+        "get_rna_expression",
+        lambda sample_id: calls.append(("expression", sample_id)) or {"sample": []},
+    )
+    monkeypatch.setattr(
+        store.rna_classification_repository,
+        "get_rna_classification",
+        lambda sample_id: calls.append(("classification", sample_id)) or {"classifier_results": []},
+    )
+    monkeypatch.setattr(
+        store.rna_quality_repository,
+        "get_rna_qc",
+        lambda sample_id: calls.append(("quality", sample_id)) or {"mapped_pct": 98.2},
+    )
+
+    payload = service.rna_analysis_payload(sample={"_id": "rna-oid", "name": "RNA_1"})
+
+    assert calls == [
+        ("expression", "rna-oid"),
+        ("classification", "rna-oid"),
+        ("quality", "rna-oid"),
+    ]
+    assert payload["quality"]["mapped_pct"] == 98.2

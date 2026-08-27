@@ -1,25 +1,25 @@
 """
-CivicHandler module for Coyote3
+CivicRepository module for Coyote3
 ===============================
 
-This module defines the `CivicHandler` class used for accessing and managing
+This module defines the `CivicRepository` class used for accessing and managing
 CIViC variant and gene data in MongoDB.
 
-It is part of the `coyote.db` package and extends the base handler functionality.
+It is part of the MongoDB infrastructure layer.
 """
 
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.infra.mongo.handlers.base import BaseHandler
+from api.infra.mongo.repositories.base import BaseRepository
 
 
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class CivicHandler(BaseHandler):
+class CivicRepository(BaseRepository):
     """
-    CivicHandler class for managing CIViC variant and gene data.
+    CivicRepository class for managing CIViC variant and gene data.
 
     This class provides methods to interact with the CIViC data stored in MongoDB,
     including retrieving variant and gene information. It is designed to work
@@ -28,7 +28,7 @@ class CivicHandler(BaseHandler):
 
     def __init__(self, adapter):
         """
-        Initialize the handler with a given adapter and bind the collection.
+        Initialize the repository with a given adapter and bind the collection.
         """
         super().__init__(adapter)
         self.set_collection(self.adapter.civic_variants_collection)

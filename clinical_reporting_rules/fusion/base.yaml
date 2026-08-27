@@ -1,0 +1,24 @@
+rule_set:
+  name: Fusion base report text
+  version: 1
+  analyte: rna
+  asp_id: fusion
+  subpanel_id: base
+document_rules: []
+analyses:
+  FUSION:
+    enabled: true
+    rules:
+      - rule_id: fusion_report_summary
+        family: result_text
+        section: Report summary
+        priority: 100
+        when: []
+        template: |-
+          RNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar hela mRNA transkriptomet och avser detektion av fusionsgener.{{ findings | fusion_summary }}För ytterligare information om utförd analys och beskrivning av eventuellt funna fusionsgener, var god se bifogad rapport. RNA-seq-analys har gjorts som led i ett utvecklingsarbete och har ej debiterats. Analysen omfattas inte av ackrediteringen.
+        heading: false
+        stop: true
+  EXPRESSION: { enabled: false }
+  CLASSIFICATION: { enabled: false }
+  QC: { enabled: false }
+  PGX: { enabled: false }

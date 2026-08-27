@@ -1,4 +1,4 @@
-"""Shared helpers for dashboard summary cache/snapshot invalidation."""
+"""Common helpers for dashboard summary cache/snapshot invalidation."""
 
 from __future__ import annotations
 
@@ -11,8 +11,11 @@ def invalidate_dashboard_summary_cache(adapter) -> None:
     logger = getattr(app_obj, "logger", None)
 
     try:
-        adapter.coyote_db["dashboard_metrics"].delete_many(
-            {"_id": {"$regex": r"^dashboard_summary_v2:"}}
+        from datetime import datetime, timezone
+
+        adapter.coyote_db["dashboard_metrics"].update_many(
+            {"_id": {"$regex": r"^dashboard_summary_v[0-9]+:"}},
+            {"$set": {"dirty_since": datetime.now(timezone.utc)}},
         )
     except Exception as exc:  # pragma: no cover - defensive fallback
         if logger is not None:

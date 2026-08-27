@@ -1,0 +1,24 @@
+[
+  {
+    "gene": "EGFR",
+    "source": "public.api.oncokb.org",
+    "public_api": true,
+    "therapeutic_data_included": false,
+    "data_version": "demo",
+    "hgnc_id": "HGNC:3236",
+    "previous_symbols": [],
+    "alias_symbols": ["ERBB1"],
+    "entrez_gene_id": 1956,
+    "gene_type": "ONCOGENE",
+    "occurrence_count": 1,
+    "oncokb_annotated": true,
+    "sanger_cgc": true,
+    "vogelstein": true,
+    "foundation": true,
+    "foundation_heme": false,
+    "msk_impact": true,
+    "msk_heme": false,
+    "grch38_refseq": "NM_005228.5",
+    "grch38_isoform": "ENST00000275493.7"
+  }
+]

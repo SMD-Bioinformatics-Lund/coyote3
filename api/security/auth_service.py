@@ -2,15 +2,35 @@
 
 from __future__ import annotations
 
-from api.core.models.user import UserModel
-from api.deps.handlers import get_assay_panel_handler, get_roles_handler, get_user_handler
-from api.extensions import ldap_manager
-from api.observability.auth_metrics import emit_auth_metric
-from api.runtime_state import app
+from typing import Any
+
+from api.app.container import ldap_manager
+from api.app.deps.repositories import (
+    get_assay_panel_repository,
+    get_roles_repository,
+    get_user_repository,
+)
+from api.app.runtime_state import app
+from api.config.constants import (
+    AUTH_PROVIDER_LDAP,
+    AUTH_PROVIDER_LOCAL,
+    DEFAULT_AUTH_PROVIDER,
+    normalize_auth_types,
+)
+from api.domain.core.models.user import UserModel
+from api.infra.observability.auth_metrics import emit_auth_metric
 
 
-def _lookup_user_doc(login_identifier: str) -> dict | None:
-    """Lookup user doc.
+def _login_provider(login_identifier: str) -> str:
+    """Return provider selected by submitted login identifier."""
+    provider = AUTH_PROVIDER_LDAP if "@" in str(login_identifier or "") else AUTH_PROVIDER_LOCAL
+    return str(provider)
+
+
+def _lookup_user_doc(
+    login_identifier: str, *, provider: str | None = None
+) -> dict[str, Any] | None:
+    """Lookup user doc by provider-specific login key.
 
     Args:
             login_identifier: Login identifier.
@@ -21,19 +41,32 @@ def _lookup_user_doc(login_identifier: str) -> dict | None:
     normalized = str(login_identifier).strip().lower()
     if not normalized:
         return None
-    user_handler = get_user_handler()
-    return user_handler.user(normalized)
+    user_repository = get_user_repository()
+    selected_provider = provider or _login_provider(normalized)
+    if selected_provider == AUTH_PROVIDER_LDAP:
+        result = user_repository.user_by_email(normalized)
+    elif selected_provider == AUTH_PROVIDER_LOCAL:
+        result = user_repository.user_by_username(normalized)
+    else:
+        return None
+    return dict(result) if isinstance(result, dict) else None
 
 
-def _load_user_access_context(user_doc: dict) -> tuple[list[dict], list[dict]]:
+def _load_user_access_context(
+    user_doc: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Return the role documents and active assay panels for a user document."""
-    roles_handler = get_roles_handler()
+    roles_repository = get_roles_repository()
     role_docs = [
-        role_doc
+        dict(role_doc)
         for role_id in (user_doc.get("roles") or [])
-        if (role_doc := roles_handler.get_role(role_id))
+        if (role_doc := roles_repository.get_role(role_id)) and isinstance(role_doc, dict)
     ]
-    assay_panels = list(get_assay_panel_handler().get_all_asps(is_active=True) or [])
+    assay_panels = [
+        dict(item)
+        for item in (get_assay_panel_repository().get_all_asps(is_active=True) or [])
+        if isinstance(item, dict)
+    ]
     return role_docs, assay_panels
 
 
@@ -57,7 +90,7 @@ def _ldap_authenticate(username: str, password: str) -> bool:
     )
 
 
-def build_user_session_payload(user_doc: dict) -> dict:
+def build_user_session_payload(user_doc: dict[str, Any]) -> dict[str, Any]:
     """Build the canonical API session payload for a user document.
 
     Args:
@@ -68,10 +101,11 @@ def build_user_session_payload(user_doc: dict) -> dict:
     """
     role_docs, asp_docs = _load_user_access_context(user_doc)
     user_model = UserModel.from_auth_payload(user_doc, role_docs, asp_docs)
-    return user_model.to_dict()
+    payload = user_model.to_dict()
+    return dict(payload) if isinstance(payload, dict) else {}
 
 
-def resolve_user_identity(user_doc: dict) -> str:
+def resolve_user_identity(user_doc: dict[str, Any]) -> str:
     """Return the canonical user identity for session and update flows.
 
     Args:
@@ -83,7 +117,12 @@ def resolve_user_identity(user_doc: dict) -> str:
     return str(user_doc.get("username") or "").strip()
 
 
-def authenticate_credentials(username: str, password: str) -> dict | None:
+def authenticate_credentials(
+    username: str,
+    password: str,
+    *,
+    provider: str | None = None,
+) -> dict[str, Any] | None:
     """Authenticate a username/password pair against local or LDAP auth.
 
     Args:
@@ -93,7 +132,8 @@ def authenticate_credentials(username: str, password: str) -> dict | None:
     Returns:
         The authenticated user document, or ``None`` when authentication fails.
     """
-    user_doc = _lookup_user_doc(username)
+    selected_provider = provider or _login_provider(username)
+    user_doc = _lookup_user_doc(username, provider=selected_provider)
     if not user_doc:
         emit_auth_metric("login_attempt", outcome="failed", reason="user_not_found")
         return None
@@ -101,8 +141,16 @@ def authenticate_credentials(username: str, password: str) -> dict | None:
         emit_auth_metric("login_attempt", outcome="failed", reason="inactive_user")
         return None
 
-    auth_type = str(user_doc.get("auth_type") or "coyote3").strip().lower()
-    use_internal = auth_type == "coyote3"
+    auth_types = normalize_auth_types(user_doc.get("auth_type") or [DEFAULT_AUTH_PROVIDER])
+    if selected_provider not in auth_types:
+        emit_auth_metric(
+            "login_attempt",
+            outcome="failed",
+            auth_type=selected_provider,
+            reason="provider_not_enabled",
+        )
+        return None
+    use_internal = selected_provider == AUTH_PROVIDER_LOCAL
     valid = (
         UserModel.validate_login(user_doc.get("password", ""), password)
         if use_internal
@@ -110,10 +158,13 @@ def authenticate_credentials(username: str, password: str) -> dict | None:
     )
     if not valid:
         emit_auth_metric(
-            "login_attempt", outcome="failed", auth_type=auth_type, reason="invalid_credentials"
+            "login_attempt",
+            outcome="failed",
+            auth_type=selected_provider,
+            reason="invalid_credentials",
         )
         return None
-    emit_auth_metric("login_attempt", outcome="success", auth_type=auth_type)
+    emit_auth_metric("login_attempt", outcome="success", auth_type=selected_provider)
     return user_doc
 
 
@@ -126,4 +177,4 @@ def update_user_last_login(user_id: str) -> None:
     Returns:
         ``None``.
     """
-    get_user_handler().update_user_last_login(user_id)
+    get_user_repository().update_user_last_login(user_id)

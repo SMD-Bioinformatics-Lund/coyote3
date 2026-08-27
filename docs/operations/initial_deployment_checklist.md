@@ -1,362 +1,146 @@
-# Initial Deployment Checklist
+# Initial deployment checklist
 
-Use this checklist for a first deployment.
+**Last verified:** 13 August 2026
 
-For a shorter command reference, see:
-[Maintenance And Quality](maintenance_and_quality.md).
+Use this procedure for a new Coyote3 installation. Database provisioning,
+database bootstrap, application deployment, and clinical data ingest are
+separate deliberate operations.
 
-## Scope
+!!! info
+    The complete operator procedure, including production installation,
+    acceptance, backup, subsequent deployment, and rollback, is maintained in
+    [Production deployment](../start_here/production_deployment.md). This page
+    is a concise operational checklist.
 
-- Bring up stack
-- Validate environment and secrets
-- Validate ingest payloads
-- Execute ingest check
-- Confirm UI/API behavior
-- Capture handoff evidence
+## Before you begin
 
-## 0. Preconditions
+- Prepare an environment file from `deploy/env/example.env`.
+- Set `MONGO_URI` to the MongoDB service chosen by the center.
+- Create the MongoDB application user with read/write access to the Coyote3
+  database.
+- Replace every placeholder secret in the environment file.
+- Keep approved center ASP, ASPC, and ISGL definitions in the center's private
+  deployment configuration.
 
-- Docker and Docker Compose available
-- Repo cloned
-- Environment file prepared from `deploy/env/example.*.env`
-- Real values set for all `CHANGE_ME_*` entries
+The repository bootstrap catalogs contain no patient data, samples, reports, or
+credentials:
 
-Use the repository seed as the baseline:
+| Catalog | Collections | Purpose |
+| --- | --- | --- |
+| `api/config/bootstrap/rbac` | `permissions`, `roles` | Application-owned system permissions and built-in roles. |
+| `api/config/bootstrap/reference` | `hgnc_genes`, `vep_metadata` | Bundled reference snapshot used by the initial empty database. |
+| `api/config/bootstrap/demo_center` | ASP, ASPC, ISGL | Optional synthetic configuration for a nonclinical demonstration only. |
 
-- `tests/fixtures/db_dummy/all_collections_dummy`
-- `tests/data/seed_data` (when passed via `--reference-seed-data`)
-- Replace placeholders such as `assay_1` and `hematology` with center-specific values
-- Keep those edited seed values under version control in your deployment repository
+## 1. Provision MongoDB
 
-Seed source split:
-
-- `all_collections_dummy` provides demo/runtime collections (including `asp_configs`, `assay_specific_panels`, and demo data payload collections).
-- `seed_data` provides compressed baseline reference/RBAC collections (`permissions`, `roles`, `refseq_canonical`, `hgnc_genes`, `vep_metadata`).
-
-## 1. Preflight
+MongoDB is independent from the Coyote3 application Compose stack. The center
+may use an existing MongoDB deployment, a managed service, or the supplied
+standalone MongoDB Compose definition. Confirm that the URI is reachable from
+the future API and worker containers before continuing.
 
 ```bash
-scripts/center_preflight.sh \
-  --env-file .coyote3_stage_env \
-  --compose-file deploy/compose/docker-compose.stage.yml \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --reference-seed-data tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml
+mongosh "$MONGO_URI" --eval 'db.runCommand({ping: 1})'
 ```
 
-Expected: `[ok] preflight passed`.
+See [MongoDB deployment and recovery](mongodb_deployment_and_recovery.md) for
+the standalone Docker and replica-set procedure.
 
-## 2. Start stack
+## 2. Initialize the empty application database
+
+Run the direct bootstrap command from a checkout with the Python dependencies
+installed. The command does not start Docker Compose, call HTTP endpoints, or
+ingest any sample.
 
 ```bash
+.venv/bin/python scripts/bootstrap_database.py \
+  --mongo-uri "$MONGO_URI" \
+  --db "${COYOTE3_DB:?COYOTE3_DB must be set}" \
+  --username "admin.coyote3" \
+  --email "admin@your-center.org" \
+  --password "<GENERATED_ADMIN_PASSWORD>"
+```
+
+It creates the first local `superuser` and loads the bundled `permissions`,
+`roles`, `hgnc_genes`, and `vep_metadata` records into their empty
+collections. A partially initialized governance database is rejected rather
+than modified. A database that already has a superuser is reported and left
+unchanged.
+
+For a nonclinical local demonstration, add `--with-demo-center`. This loads
+only the synthetic ASP, ASPC, and ISGL documents. It does not ingest a sample.
+
+## 3. Start the Coyote3 services
+
+Validate the environment and Compose definition, then start the services.
+
+```bash
+bash scripts/center_preflight.sh \
+  --env-file .coyote3_env \
+  --compose-file deploy/compose/docker-compose.yml
+
 ./scripts/compose-with-version.sh \
-  --env-file .coyote3_stage_env \
-  -f deploy/compose/docker-compose.stage.yml \
-  up -d --build
-```
-
-Check status:
-
-```bash
-docker compose --env-file .coyote3_stage_env \
-  -f deploy/compose/docker-compose.stage.yml ps
-```
-
-If the stack uses the compose-managed Mongo service, add:
-
-```bash
---profile with-mongo
-```
-
-Example:
-
-```bash
-docker compose \
   --env-file .coyote3_env \
   -f deploy/compose/docker-compose.yml \
-  --profile with-mongo \
   up -d --build
 ```
 
-If Mongo volume was pre-existing, bootstrap/rotate app DB user:
+The application Compose stack starts the proxy, UI, API, worker, Beat, Redis,
+and documentation services. It does not provision or seed MongoDB.
+
+## 4. Verify service availability
+
+Use the externally exposed URL, including `SCRIPT_NAME` when configured.
 
 ```bash
-${PYTHON_BIN:-python} scripts/mongo_bootstrap_users.py \
-  --mongo-uri "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/admin?authSource=admin" \
-  --app-db "${COYOTE3_DB:-coyote3}" \
-  --app-user "${MONGO_APP_USER}" \
-  --app-password "${MONGO_APP_PASSWORD}"
+APP_URL="${PUBLIC_BASE_URL%/}${SCRIPT_NAME}"
+curl -fsS "$APP_URL/api/v1/health"
+docker compose --env-file .coyote3_env \
+  -f deploy/compose/docker-compose.yml ps
 ```
 
-## 3. Health checks
+Sign in using the account created in step 2. Create additional users through
+the Users administration area after login.
 
-- API: `http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}/api/v1/health`
-- UI: `http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_WEB_PORT:-8805}`
+## 5. Import center clinical configuration
 
-Command-line API check:
+Before clinical sample ingest, import reviewed ASP, ASPC, and ISGL documents
+through the managed administration interface or an approved controlled
+collection-import process. The required active configuration is:
 
-```bash
-curl -fsS "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}/api/v1/health"
-```
+| Collection | Required purpose |
+| --- | --- |
+| `assay_specific_panels` | Panel metadata, assay group, platform, and covered-gene scope. |
+| `asp_configs` | Active assay, subpanel, environment, analysis, filter, and reporting configuration. |
+| `insilico_genelists` | Optional analysis-specific gene-list selection. |
 
-## 4. Bootstrap first API superuser
+An active ASPC must contain the appropriate `analysis_types`, `filters`, and
+`reporting` configuration. These documents are center clinical configuration;
+the demonstration catalog is not suitable for clinical use.
 
-Email format note for bootstrap:
+## 6. Validate and ingest controlled data
 
-- Local/private domains are supported (for example `admin@coyote3.local`).
-- Minimum requirement is valid `local@domain` shape.
-- Invalid examples: `admin`, `@domain`, `admin@`.
-
-Role level note:
-
-- `superuser` is the unrestricted bootstrap role.
-- `admin` remains permission-bound and should not be treated as unrestricted.
-- Recommended full baseline:
-  - `external=1`
-  - `viewer=5`
-  - `intern=7`
-  - `user=9`
-  - `manager=99`
-  - `developer=9999`
-  - `admin=99999`
-  - `superuser=1000000`
+Validate every manifest before placing it in the ingest watch directory.
 
 ```bash
-${PYTHON_BIN:-python} scripts/bootstrap_local_admin.py \
-  --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
-  --db "${COYOTE3_DB:-coyote3}" \
-  --username "admin" \
-  --email "admin@your-center.org" \
-  --password "CHANGE_ME_ADMIN_PASSWORD" \
-  --role-id "superuser" \
-  --assay-group "hematology" \
-  --assay "assay_1"
-```
-
-Guardrail:
-
-- `bootstrap_local_admin.py` fails fast if any CLI value still contains `CHANGE_ME`.
-- This prevents accidental first-user creation with placeholder secrets.
-- `bootstrap_local_admin.py` may create only the first `superuser`.
-- If a `superuser` already exists, the bootstrap script refuses to create another one.
-- Additional superusers must be created by an authenticated existing superuser.
-
-## 5. Initialize baseline collections (strict order)
-
-Required order before first DNA/RNA sample ingest:
-
-1. `permissions`
-2. `roles`
-3. `refseq_canonical` (required for DNA canonical transcript selection)
-4. `hgnc_genes` (required for gene metadata endpoints/UI)
-5. `vep_metadata` (required reference metadata for variant interpretation)
-6. `asp_configs`
-7. `assay_specific_panels`
-
-Notes:
-
-- `bootstrap_center_collections.sh` intentionally skips `users`.
-- First superuser bootstrap is handled in step 4 (`bootstrap_local_admin.py`).
-- Local-admin bootstrap writes user audit metadata: `created_by`, `created_on`, `updated_by`, `updated_on`.
-- Collection bootstrap also stamps all seeded documents with runtime audit metadata:
-  - `created_by`/`updated_by` = bootstrap superuser
-  - `created_on`/`updated_on` = current UTC timestamp at seed execution
-- `asp_configs` must include `is_active=true` (otherwise sample views can return "Assay config not found for sample").
-- `asp_configs` must include valid `filters` and `reporting` objects.
-- DNA SNV base strategy is defined by `asp_configs.filters` threshold/consequence fields.
-- DNA assay-specific SNV operator rules are defined by `asp_configs.query.snv`.
-- DNA CNV strategy is defined by `asp_configs.filters.cnv_*` fields.
-- RNA fusion strategy is defined by `asp_configs.filters.fusion_*` fields.
-- Managed admin forms (ASP/ASPC/ISGL/users/roles/permissions) are rendered from backend contracts, not DB `schemas` JSON.
-- Baseline seed includes a complete out-of-the-box RBAC baseline (`permissions` + `roles`) so user creation dropdowns and role policy mapping are immediately available on first bootstrap.
-- Non-RBAC admin baseline collections (`asp_configs`, `assay_specific_panels`, `insilico_genelists`) remain demo-safe first-run data (`assay_1`, `hematology`) and should be replaced with center-specific values during deployment.
-- `asp_configs` and `assay_specific_panels` are demo/bootstrap collections
-  sourced from `--seed-file`; compressed files in `tests/data/seed_data` are optional overrides.
-- `permissions`, `roles`, `refseq_canonical`, `hgnc_genes`, and `vep_metadata`
-  are sourced from `--reference-seed-data` when that argument is provided.
-
-Optional collections:
-
-1. `insilico_genelists` (focused gene-list filtering)
-2. `civic_genes`
-3. `civic_variants`
-4. `cosmic`
-5. `hpaexpr`
-6. `iarc_tp53`
-7. `oncokb_actionable`
-8. `oncokb_genes`
-
-Seed through internal collection insert endpoints documented in
-[API / Ingestion API](../api/ingestion_api.md).
-Use `GET /api/v1/internal/ingest/collections` to list the currently supported
-validated collection names.
-
-Recommended one-shot command:
-
-```bash
-scripts/bootstrap_center_collections.sh \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
-  --username "admin@your-center.org" \
-  --password "CHANGE_ME" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --reference-seed-data tests/data/seed_data \
-  --with-optional
-```
-
-General first-run command shape:
-
-```bash
-scripts/center_first_run.sh \
-  --env-file <ENV_FILE> \
-  --compose-file <COMPOSE_FILE> \
-  [--with-mongo] \
-  [--with-proxy] \
-  [--compose-profile <PROFILE>] \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:<API_PORT>" \
-  --admin-username "admin.coyote3" \
-  --admin-email "admin@your-center.org" \
-  --admin-password "<ADMIN_PASSWORD>" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --seed-data-pack tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
-  --with-optional
-```
-
-Prod-like local Docker command with compose-managed Mongo:
-
-```bash
-scripts/center_first_run.sh \
-  --env-file .coyote3_env \
-  --compose-file deploy/compose/docker-compose.yml \
-  --with-mongo \
-  --api-base-url "http://localhost:5818" \
-  --admin-username "admin.coyote3" \
-  --admin-email "admin@coyote3.local" \
-  --admin-password "Coyote3.Admin" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --seed-data-pack tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
-  --with-optional
-```
-
-Credential source rule:
-
-- For `scripts/center_first_run.sh`, always pass:
-  - `--admin-username`
-  - `--admin-email`
-  - `--admin-password`
-
-Execution mode notes:
-
-- Default mode retries one failed collection seed once with `ignore_duplicates=true`.
-- `--skip-existing` enables duplicate-tolerant seeding from the first attempt.
-- `--strict-no-retry` disables retry and fails immediately on first collection error.
-- In `center_first_run.sh`, combine `--strict-no-retry` with `--skip-existing`
-  because the first-user bootstrap creates RBAC documents before seeding.
-
-Before running, adapt `tests/fixtures/db_dummy/all_collections_dummy` to
-your local assay names/groups. The bootstrap flow validates schema, ASPC, ASP,
-and ISGL consistency before writing collections.
-
-## 6. Validate and ingest demo sample
-
-```bash
-${PYTHON_BIN:-python} scripts/validate_ingest_spec.py \
-  --yaml tests/data/ingest_demo/generic_case_control.yaml \
+.venv/bin/python scripts/validate_ingest_spec.py \
+  --yaml <SAMPLE_MANIFEST.yaml> \
   --check-files
 ```
 
-```bash
-scripts/center_check.sh \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
-  --username "admin@your-center.org" \
-  --password "CHANGE_ME" \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml
-```
+Use [Sample YAML](../api/sample_yaml.md) and [Sample input files](../api/sample_input_files.md)
+for the required formats. Ingest is a separate workflow; no deployment command
+queues a sample automatically.
 
-Notes:
+## 7. Record the deployment handoff
 
-- `center_check.sh` sets `increment=true` in the submitted YAML payload to avoid duplicate-sample failures on reruns.
-- On local Docker deployments (`localhost` API), the script auto-stages ingest input files into the API container when needed.
-- In general, ingest file paths in YAML must be readable from inside the API runtime (container/host where API runs), not only from your shell machine.
-- Use [API / Sample YAML Guide](../api/sample_yaml.md) for the manifest contract and [API / Sample Input Files](../api/sample_input_files.md) for the raw file formats behind that manifest.
+Record the MongoDB target, application release, environment file location,
+health-check result, bootstrap operator, first-superuser account owner, and the
+approved ASP/ASPC/ISGL release identifiers. Keep this information in the
+center's controlled operational records.
 
-If you are upgrading an older deployment, run this one-time repair before the ingest check:
+## Existing installations
 
-```bash
-${PYTHON_BIN:-python} scripts/repair_center_seed_baseline.py \
-  --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
-  --db "${COYOTE3_DB:-coyote3}"
-```
-
-## 7. Functional verification
-
-- Login via UI using center-provisioned account
-- Find ingested sample in sample listing
-- Open variant/CNV/fusion views
-- Open report pages and verify render succeeds
-
-Admin verification matrix:
-
-1. Users:
-   - Create user (role dropdown populated from seeded `roles`)
-   - Confirm role-derived permissions are shown
-   - Confirm explicit user allow/deny overrides are saved
-2. Roles:
-   - Create role with allow/deny permissions
-   - Verify role appears in user-create role dropdown
-3. Permissions:
-   - Create permission and confirm it appears in role/user permission lists
-4. ASP:
-   - Create assay panel and verify it appears in ASP list
-5. ASPC (DNA/RNA):
-   - Create config and verify `assay_name` dropdown is populated from ASP
-6. ISGL:
-   - Create genelist and verify assay-group and assay assignment behavior
-
-Automated verification baseline:
-
-```bash
-PYTHONPATH=. python -m pytest -q tests/unit/test_admin_services.py tests/unit/test_services_admin_workflows_extended.py
-```
-
-## 8. Handoff artifacts
-
-Record and store:
-
-- Env file path used (not secret values)
-- Compose file used
-- `docker compose ps` output
-- Health check output
-- Ingest check result and seeded-collection order execution record
-- Known follow-up items
-
-## 9. Rollback and cleanup
-
-Stop services:
-
-```bash
-docker compose --env-file .coyote3_stage_env \
-  -f deploy/compose/docker-compose.stage.yml down
-```
-
-If data reset is required, follow backup/restore procedures in
-[Backup Restore And Snapshots](backup_restore_and_snapshots.md).
-
-## 10. One-command equivalent
-
-For fully automated initial setup:
-
-```bash
-scripts/center_first_run.sh \
-  --env-file .coyote3_stage_env \
-  --compose-file deploy/compose/docker-compose.stage.yml \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
-  --admin-email "admin@your-center.org" \
-  --admin-password "CHANGE_ME" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
-  --with-optional \
-  --skip-existing \
-  --strict-no-retry
-```
+Do not run `bootstrap_database.py` to update populated reference or clinical
+collections. Use the documented RBAC synchronization, reference-data release,
+and ASP/ASPC/ISGL managed revision procedures instead. See
+[Maintenance and quality](maintenance_and_quality.md).

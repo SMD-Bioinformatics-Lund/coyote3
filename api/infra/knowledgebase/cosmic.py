@@ -1,25 +1,25 @@
 """
-CosmicHandler module for Coyote3
+CosmicRepository module for Coyote3
 ================================
 
-This module defines the `CosmicHandler` class used for accessing and managing
+This module defines the `CosmicRepository` class used for accessing and managing
 COSMIC (Catalogue Of Somatic Mutations In Cancer) data in MongoDB.
 
-It is part of the `coyote.db` package and extends the base handler functionality.
+It is part of the MongoDB infrastructure layer.
 """
 
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.infra.mongo.handlers.base import BaseHandler
+from api.infra.mongo.repositories.base import BaseRepository
 
 
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class CosmicHandler(BaseHandler):
+class CosmicRepository(BaseRepository):
     """
-    The `CosmicHandler` class is responsible for managing and retrieving data
+    The `CosmicRepository` class is responsible for managing and retrieving data
     from the `cosmic` collection in the MongoDB database. It provides methods
     to fetch cosmic IDs and variants based on specific criteria, such as
     chromosome filters. This class ensures efficient querying and serves as
@@ -28,7 +28,7 @@ class CosmicHandler(BaseHandler):
 
     def __init__(self, adapter):
         """
-        Initialize the handler with a given adapter and bind the collection.
+        Initialize the repository with a given adapter and bind the collection.
         """
         super().__init__(adapter)
         self.set_collection(self.adapter.cosmic_collection)

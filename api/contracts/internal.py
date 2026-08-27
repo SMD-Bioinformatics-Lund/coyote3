@@ -25,34 +25,6 @@ class IsglMetaPayload(BaseModel):
     display_name: str | None = None
 
 
-class InternalIngestDependentsRequest(BaseModel):
-    """Represent internal dependent-data ingest request payload."""
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "sample_id": "65f0c0ffee00000000000001",
-                "sample_name": "DEMO_SAMPLE_001",
-                "delete_existing": True,
-                "preload": {"cnvs": [{"chr": "7", "start": 1, "end": 2}]},
-            }
-        }
-    )
-
-    sample_id: str
-    sample_name: str
-    delete_existing: bool = False
-    preload: dict[str, Any]
-
-
-class InternalIngestDependentsPayload(BaseModel):
-    """Represent internal dependent-data ingest response payload."""
-
-    status: str
-    sample_id: str
-    written: dict[str, int]
-
-
 class InternalIngestSampleBundleRequest(BaseModel):
     sample: SamplesDoc | None = None
     yaml_content: str | None = None
@@ -68,6 +40,27 @@ class InternalIngestSampleBundlePayload(BaseModel):
     sample_name: str
     written: dict[str, int]
     data_counts: dict[str, int | bool]
+
+
+class InternalTaskSubmitPayload(BaseModel):
+    """Represent an enqueued internal background task."""
+
+    status: str
+    task_id: str
+    task_name: str
+    queue: str
+
+
+class InternalTaskStatusPayload(BaseModel):
+    """Represent Celery task state and optional result metadata."""
+
+    status: str
+    task_id: str
+    state: str
+    ready: bool
+    successful: bool | None = None
+    result: dict[str, Any] | list[Any] | str | int | float | bool | None = None
+    error: str | None = None
 
 
 class InternalCollectionInsertRequest(BaseModel):
@@ -99,10 +92,9 @@ class InternalCollectionBulkInsertRequest(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "collection": "refseq_canonical",
+                "collection": "permissions",
                 "documents": [
-                    {"gene": "EGFR", "canonical": "NM_005228"},
-                    {"gene": "TP53", "canonical": "NM_000546"},
+                    {"permission_id": "samples:read", "label": "Read samples"},
                 ],
                 "ignore_duplicates": True,
             }
@@ -130,12 +122,14 @@ class InternalCollectionUpsertRequest(BaseModel):
         json_schema_extra={
             "example": {
                 "collection": "asp_configs",
-                "match": {"aspc_id": "assay_1:production"},
+                "match": {"aspc_id": "assay_1_base_production"},
                 "document": {
-                    "aspc_id": "assay_1:production",
-                    "assay_name": "assay_1",
+                    "aspc_id": "assay_1_base_production",
+                    "asp_id": "assay_1",
+                    "subpanel_id": "base",
                     "environment": "production",
                     "asp_group": "hematology",
+                    "asp_category": "dna",
                     "is_active": True,
                 },
                 "upsert": False,
@@ -164,6 +158,15 @@ class InternalCollectionSupportPayload(BaseModel):
 
     status: str
     collections: list[str]
+
+
+class InternalCollectionStatusPayload(BaseModel):
+    """Represent collection occupancy for first-deployment bootstrap decisions."""
+
+    status: str
+    collection: str
+    document_count: int
+    empty: bool
 
 
 class InternalCollectionUploadPayload(BaseModel):

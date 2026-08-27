@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
+
+from api.config.constants import DEFAULT_ENVIRONMENT
 
 
 class HomeSamplesPayload(BaseModel):
@@ -12,10 +15,12 @@ class HomeSamplesPayload(BaseModel):
 
     live_samples: list[dict[str, Any]]
     done_samples: list[dict[str, Any]]
+    live_total: int = Field(default=0, ge=0)
+    done_total: int = Field(default=0, ge=0)
     status: str
     search_mode: str
     sample_view: str = "all"
-    profile_scope: str = "production"
+    profile_scope: str = DEFAULT_ENVIRONMENT
     page: int = 1
     per_page: int = 30
     live_page: int = 1
@@ -27,12 +32,21 @@ class HomeSamplesPayload(BaseModel):
     panel_type: str | None = None
     panel_tech: str | None = None
     assay_group: str | None = None
+    added_from: datetime | None = None
+    added_until: datetime | None = None
 
 
 class HomeItemsPayload(BaseModel):
     """Represent the home items payload."""
 
     items: list[Any]
+
+
+class SampleNavigationCountsPayload(BaseModel):
+    """Represent visible ready-sample counts grouped for assay navigation."""
+
+    counts: dict[str, int] = Field(default_factory=dict)
+    profile_scope: str = DEFAULT_ENVIRONMENT
 
 
 class HomeEffectiveGenesPayload(HomeItemsPayload):
@@ -45,12 +59,22 @@ class HomeEditContextPayload(BaseModel):
     """Represent the home edit context payload."""
 
     sample: dict[str, Any]
+    comments: list[dict[str, Any]] = Field(default_factory=list)
     asp: dict[str, Any]
     sample_expected_files: list[dict[str, Any]] = Field(default_factory=list)
+    snv_genelist_options: list[dict[str, Any]] = Field(default_factory=list)
+    cnvlist_options: list[dict[str, Any]] = Field(default_factory=list)
+    fusionlist_options: list[dict[str, Any]] = Field(default_factory=list)
+    fusion_caller_options: list[str] = Field(default_factory=list)
+    fusion_annotation_metadata: dict[str, list[str]] = Field(default_factory=dict)
+    selected_gene_panels: dict[str, Any] = Field(default_factory=dict)
+    analysis_sections: list[str] = Field(default_factory=list)
     analysis_counts_raw: dict[str, int] = Field(default_factory=dict)
     analysis_counts_filtered: dict[str, int] = Field(default_factory=dict)
     variant_stats_raw: Any = None
     variant_stats_filtered: Any = None
+    biomarkers: list[dict[str, Any]] = Field(default_factory=list)
+    aspc_update: dict[str, Any] = Field(default_factory=dict)
 
 
 class HomeChangeStatusPayload(BaseModel):
@@ -72,3 +96,13 @@ class HomeReportContextPayload(BaseModel):
     report_id: str
     report_name: str | None = None
     filepath: str | None = None
+    pdf_report_name: str | None = None
+    pdf_filepath: str | None = None
+    asp_id: str | None = None
+    subpanel_id: str | None = None
+    environment: str | None = None
+    author: str | None = None
+    time_created: datetime | None = None
+    finding_count: int = 0
+    analysis_counts: dict[str, int] = Field(default_factory=dict)
+    findings: list[dict[str, Any]] = Field(default_factory=list)

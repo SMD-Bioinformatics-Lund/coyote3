@@ -2,14 +2,41 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
 
-from api import middleware
+from api.app import middleware
 from api.security.access import ApiUser
+
+
+class _CounterBackend:
+    """Provide deterministic distributed-counter semantics without Redis."""
+
+    def __init__(self) -> None:
+        self.counts: dict[str, int] = {}
+
+    def increment_window(self, key: str, *, window_seconds: int) -> tuple[int, int]:
+        self.counts[key] = self.counts.get(key, 0) + 1
+        return self.counts[key], window_seconds
+
+
+@pytest.fixture(autouse=True)
+def _enabled_application_modules(monkeypatch: pytest.MonkeyPatch):
+    """Keep module-governed routes enabled unless a test overrides the service."""
+    from api.app.deps import services as service_dependencies
+
+    class _Controls:
+        @staticmethod
+        def module_enabled(_module_key: str) -> bool:
+            return True
+
+    monkeypatch.setattr(service_dependencies, "get_app_controls_service", lambda: _Controls())
+    middleware.runtime_app.cache = _CounterBackend()
+    middleware.runtime_app.config["API_CSRF_ENABLED"] = False
 
 
 def _user() -> ApiUser:
@@ -23,11 +50,11 @@ def _user() -> ApiUser:
         roles=["user"],
         access_level=9,
         permissions=[],
-        denied_permissions=[],
-        assays=["DNA"],
-        assay_groups=[],
+        asp_ids=["DNA"],
+        asp_groups=[],
         envs=["production"],
         asp_map={},
+        auth_type=["local"],
     )
 
 
@@ -133,3 +160,45 @@ async def test_successful_health_route_is_suppressed_from_api_access_log(
 
     assert response.status_code == 200
     assert logged == []
+
+
+@pytest.mark.asyncio
+async def test_disabled_application_module_returns_structured_503_before_route_handler(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """A disabled module must be enforced independently of frontend navigation."""
+    from api.app.deps import services as service_dependencies
+
+    class _Controls:
+        @staticmethod
+        def module_enabled(module_key: str) -> bool:
+            return module_key != "reports"
+
+    monkeypatch.setattr(middleware, "ensure_runtime_initialized", lambda **_: None)
+    monkeypatch.setattr(middleware, "resolve_request_user", lambda _request: _user())
+    monkeypatch.setattr(middleware, "emit_request_event", lambda **_: None)
+    monkeypatch.setattr(service_dependencies, "get_app_controls_service", lambda: _Controls())
+    middleware.runtime_app.config["API_RATE_LIMIT_ENABLED"] = False
+    middleware._API_LIMITER = None
+    middleware._API_LIMITER_CFG = None
+    route_called = False
+
+    auth_mw = middleware.build_authentication_middleware(testing=True, development=False)
+
+    async def _call_next(_request: Request) -> JSONResponse:
+        nonlocal route_called
+        route_called = True
+        return JSONResponse(status_code=200, content={"status": "ok"})
+
+    response = await auth_mw(
+        _request(path="/api/v1/samples/CASE_001/reports/dna/preview"),
+        _call_next,
+    )
+    payload = json.loads(response.body)
+
+    assert response.status_code == 503
+    assert response.headers["Retry-After"] == "60"
+    assert payload["category"] == "module_disabled"
+    assert payload["module"] == "reports"
+    assert "temporarily unavailable" in payload["error"]
+    assert route_called is False

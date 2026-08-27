@@ -52,15 +52,16 @@ def login_with_password(
     base_url: str,
     username: str,
     password: str,
+    provider: str,
     timeout: float = 30.0,
     cookie_name: str = "coyote3_api_session",
 ) -> ApiLoginSession:
-    """Authenticate with username/password and return session details."""
+    """Authenticate with an explicit configured provider and return session details."""
     normalized = _normalize_base_url(base_url)
     with httpx.Client(timeout=timeout) as client:
         response = client.post(
             f"{normalized}/api/v1/auth/sessions",
-            json={"username": username, "password": password},
+            json={"username": username, "password": password, "provider": provider},
         )
         response.raise_for_status()
         body = response.json()

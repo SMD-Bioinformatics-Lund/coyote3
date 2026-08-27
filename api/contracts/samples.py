@@ -13,6 +13,15 @@ class SampleCommentCreateRequest(BaseModel):
     form_data: dict[str, Any] = Field(default_factory=dict)
 
 
+class SampleCommentSuggestionPayload(BaseModel):
+    """Represent generated text available to the sample comment editor."""
+
+    sample_id: str
+    sample_name: str
+    analysis: str
+    suggested_text: str
+
+
 class SampleFiltersUpdateRequest(BaseModel):
     """Represent the sample filters update request payload."""
 
@@ -38,6 +47,14 @@ class SampleChangePayload(BaseModel):
     resource_id: str
     action: str
     meta: dict[str, Any]
+
+
+class SampleBamFilesPayload(BaseModel):
+    """Represent BAM-service file mappings for a resolved sample."""
+
+    query: dict[str, Any]
+    sample: dict[str, Any]
+    bam_files: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class CoverageBlacklistStatusPayload(BaseModel):

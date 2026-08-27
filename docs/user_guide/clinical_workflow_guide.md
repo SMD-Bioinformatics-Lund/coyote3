@@ -1,80 +1,115 @@
-# Clinical Interpretation Workflow Guide
+# Clinical review workflow
 
-This guide provides a step-by-step walkthrough of the clinical analysis process in Coyote3—from the initial sample triage to variant classification and reporting.
+This guide covers the normal path from finding a sample to saving its report.
+For every screen, field, and action, use the
+[complete user manual](complete_user_manual.md).
 
----
+## 1. Find the sample
 
-## 1. Entering the Analysis Workspace
+Open **Samples**, select the date range and assay scope, then search by sample
+or case identifier. Select the sample name to open its workspace.
 
-Every clinical analysis starts at the **Sample List**.
+![Coyote3 sample list](../assets/screenshots/samples.png)
 
-![Sample List](../assets/screenshots/samples_list.png)
+| Sample state | Meaning |
+| --- | --- |
+| Ready | All declared inputs were validated and stored. |
+| Unreported | No saved report has completed the sample workflow. |
+| Reported | At least one report has been saved. |
+| Base configuration | No subpanel-specific ASPC was active, so the base ASPC was resolved. |
 
-1.  **Locate Your Sample**: Use the search bar or filters to find the target patient or case.
-2.  **Access the View**: Click on the **Sample ID** (blue link).
-    *   **DNA Samples**: Opens the SNV/Indel and CNV interpretation view.
-    *   **RNA Samples**: Opens the Fusion and Expression analysis view.
+## 2. Check the overview
 
----
+Before reviewing findings, confirm the sample identity, case and control
+metadata, assay, ASPC, pipeline, loaded files, and analysis status. Stop if these
+details do not match the submitted case.
 
-## 2. Navigating the Interpretation Interface
+The available pages come from the sample omics layer and resolved ASPC. A
+missing page normally means that the analysis is not enabled for the sample; it
+does not mean that the result set is empty.
 
-The analysis page is divided into three functional zones:
-*   **Central Workspace**: Displays clinical metadata, active gene panels, and interactive variant tables (SNV, CNV, Translocation).
-*   **Global Navigation Sidebar (Left)**: Vertical links to jump between sections (SNV, CNV, BIOMARKER, SUMMARY) or access the **Coverage Analytics** and **Report Preview**.
-*   **Action & Filter Sidebar (Right)**: The command center for fine-tuning data visualization and performing batch operations.
+## 3. Choose a layout
 
----
+| Layout | Behavior |
+| --- | --- |
+| Classic | Shows all enabled finding sections on one page. Each section has its own filter button. |
+| Modern | Shows one enabled analysis at a time in tabs. |
 
-## 3. Mastering Analytical Filters
+The selected layout is saved in the user profile and reused at the next login.
 
-The **Right Sidebar** contains real-time filters that allow you to narrow down thousands of sequencing artifacts to a handful of clinically significant variants.
+## 4. Apply filters
 
-### SNV Filters
-*   **Min Depth & Alt Count**: Set minimum sequencing sensitivity (e.g., Depth ≥ 500x).
-*   **Frequency Control (VAF)**: Adjust the minimum and maximum Allelic Fraction (e.g., 0.05 to 1.0).
-*   **Population Frequency (PopFreq)**: Filter out common polymorphisms using GnomAD frequency thresholds (e.g., ≤ 0.01).
-*   **Consequence & Gene Lists**: Use the dropdowns to focus only on specific variant types (e.g., Missense, Nonsense) or specific virtual panels (ISGL).
+Open **Filters** for the analysis being reviewed. The panel contains only
+controls valid for that sample and analysis type.
 
-### CNV Filters
-*   **Ratio Thresholds**: Adjust Gain/Loss ratios to detect large genomic events.
-*   **Size Filtering**: Limit the view to large chromosomal shifts or focal gene-level events.
+| Analysis | Common controls |
+| --- | --- |
+| Somatic SNVs | Depth, alternate reads, VAF, population frequency, consequences, and SNV gene lists. |
+| Germline SNVs | Germline policy, frequency, consequence, and germline gene scope. |
+| CNVs | Size, gain/loss cutoffs, effect, caller evidence, and CNV gene lists. |
+| DNA translocations | Gene lists and configured structural-event conditions. |
+| RNA fusions | Spanning evidence, caller, effect, evidence descriptions, and fusion gene lists. |
+| Coverage | Coverage cutoff, gene search, and blacklist controls. |
 
----
+Applying a filter runs a backend query against the complete matching set. It is
+not limited to the rows on the current page.
 
-## 4. Variant Classification (Tiering)
+## 5. Review and classify findings
 
-Coyote3 supports a standardized classification workflow based on ACMG/AMP and Comper guidelines.
+Open a finding to inspect its evidence, transcripts, annotations, comments, and
+external references. Table actions and detail-page actions update the same
+persisted finding state.
 
-### Individual Tiering
-1.  Click the **View** button next to any variant to see the detailed evidence page.
-2.  Click the **Tier** button in the variant header to open the classification modal.
-3.  Assign the **Tier (I-IV)** and select the specific evidence criteria (e.g., PM1, BA1).
-4.  **Save**: The classification persists across all clinical views and propagates to the final report.
+| State | Use |
+| --- | --- |
+| Tier | Clinical classification stored in the annotation collection. |
+| False positive | Technical or calling artifact. |
+| Irrelevant | Valid finding outside the current clinical question. |
+| Interesting | Review marker; it does not by itself include a finding in a report. |
+| Blacklisted | Finding excluded through the governed blacklist workflow. |
 
-### Bulk Operations (Batch Actions)
-For high-efficiency triage, use the **Bulk Action Bar**:
-1.  Select multiple variants using the checkboxes in the SNV table.
-2.  In the **Right Sidebar**, under "Modify Variants," select the desired status (e.g., **False Positive** or **Irrelevant**).
-3.  Click **Apply**: All selected variants are updated simultaneously, drastically reducing review time.
+Bulk actions require row selection and confirmation. Available actions depend
+on the analysis type and the user's permissions.
 
----
+## 6. Add comments
 
-## 5. Clinical Dialogue and Reporting
+Use sample comments for report-level interpretation and finding comments for a
+specific event. Global annotations are shared across matching findings and
+should be used only when the text is valid beyond one sample.
 
-### Adding Comments
-*   **Variant Narrative**: Click the **Chat Bubble** icon on any variant to record professional narratives or internal laboratory notes.
-*   **Privacy**: You can "Hide" developer or technical feedback from the clinical interface to maintain a clean workspace.
+Hidden comments are inactive. Users with the required permission can reveal
+them with **Show hidden comments** and restore them when appropriate.
 
-### Final Summary
-At the bottom of the page, the **SUMMARY** section allows you to draft the overall clinical interpretation.
-*   This text uses a Markdown editor for rich-text formatting.
-*   The summary enters the final PDF report exactly as rendered here.
+## 7. Prepare the report
 
----
+Open **Reports** and review the temporary preview. The report text uses the
+latest visible sample comment; no comment produces an empty summary. Reported
+finding rows are built from the current reportable findings and enabled report
+sections.
 
-## 6. Visual Evidence Tools
+Saving a report stores:
 
-*   **CNV Profile Plot**: View the interactive chromosome profile. Use the **90° Rotate** toggle in the CNV header for closer inspection of focal events.
-*   **IGV (Integrative Genomics Viewer)**: Click any **Chr:Pos** link to trigger the web-based IGV. This loads the raw alignment data (BAM) for per-base evidence verification.
-*   **Gens Integration**: Deep links are available to open cases in the Gens visualize tool for advanced copy-number and BAF assessment.
+- the rendered report and artifacts;
+- the resolved ASPC and reporting-rule identity;
+- the effective filter snapshot;
+- typed reported-finding snapshots; and
+- author and creation time.
+
+Review the saved output before treating the sample as complete.
+
+## 8. Return to a table
+
+Sorting, search, page, page size, and active analysis are kept in the URL where
+the workflow supports it. Opening a detail page and going back should restore
+the previous table state.
+
+## Related guides
+
+| Task | Guide |
+| --- | --- |
+| Full UI reference | [Complete user manual](complete_user_manual.md) |
+| DNA findings | [DNA clinical review](clinical_review_dna.md) |
+| RNA findings | [RNA clinical review](clinical_review_rna.md) |
+| Coverage | [Coverage review](coverage_analytics.md) |
+| Sample list | [Sample management](sample_management.md) |
+| Reporting logic | [Clinical reporting rules](../product/clinical_reporting_rules.md) |

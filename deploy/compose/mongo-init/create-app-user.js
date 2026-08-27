@@ -1,10 +1,14 @@
-/* Initialize per-database app user for compose-managed Mongo instances.
+/* Initialize the per-database app user for the repository-managed Docker Mongo instance.
  * Runs only on first initialization of an empty /data/db volume.
  */
-const appDbName = process.env.COYOTE3_DB || "coyote3";
-const bamDbName = process.env.BAM_DB || "BAM_Service";
+const appDbName = process.env.COYOTE3_DB;
+const bamDbName = process.env.BAM_DB;
 const appUser = process.env.MONGO_APP_USER;
 const appPassword = process.env.MONGO_APP_PASSWORD;
+
+if (!appDbName || !bamDbName) {
+  throw new Error("COYOTE3_DB and BAM_DB must be configured explicitly");
+}
 
 if (!appUser || !appPassword) {
   print("[mongo-init] MONGO_APP_USER or MONGO_APP_PASSWORD is missing; skipping app user creation");

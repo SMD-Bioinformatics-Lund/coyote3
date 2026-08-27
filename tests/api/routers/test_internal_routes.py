@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 from io import BytesIO
 from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
 
-from api.routers import internal
+from api.interfaces.http.operations import internal
 
 
 def _admin_user():
@@ -18,17 +17,17 @@ def _admin_user():
         roles=["superuser"],
         access_level=99999,
         permissions=["sample:edit:own"],
-        denied_permissions=[],
         is_superuser=True,
     )
 
 
 class _FakeUpload:
-    """Minimal async upload stub for internal upload-route tests."""
+    """Minimal upload stub for internal upload-route tests."""
 
     def __init__(self, filename: str, payload: bytes):
         self.filename = filename
         self._buffer = BytesIO(payload)
+        self.file = self._buffer
 
     async def read(self, size: int = -1) -> bytes:
         return self._buffer.read(size)
@@ -62,11 +61,11 @@ def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
         SimpleNamespace(convert_to_serializable=lambda payload: payload),
         raising=False,
     )
-    roles_handler = SimpleNamespace(
+    roles_repository = SimpleNamespace(
         get_all_roles=lambda: [{"role_id": "admin", "level": 99}, {"role_id": "viewer"}]
     )
 
-    payload = internal.get_role_levels_internal(request=object(), roles_handler=roles_handler)
+    payload = internal.get_role_levels_internal(request=object(), roles_repository=roles_repository)
 
     assert calls["token"] == 1
     assert payload["status"] == "ok"
@@ -93,13 +92,13 @@ def test_get_isgl_meta_internal_reads_adhoc_and_display_name(monkeypatch):
         SimpleNamespace(convert_to_serializable=lambda payload: payload),
         raising=False,
     )
-    gene_list_handler = SimpleNamespace(
+    gene_list_repository = SimpleNamespace(
         is_isgl_adhoc=lambda _isgl_id: True,
         get_isgl_display_name=lambda _isgl_id: "Focus Panel",
     )
 
     payload = internal.get_isgl_meta_internal(
-        "isgl123", request=object(), gene_list_handler=gene_list_handler
+        "isgl123", request=object(), gene_list_repository=gene_list_repository
     )
 
     assert calls["token"] == 1
@@ -137,9 +136,9 @@ def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
     payload = internal.InternalIngestSampleBundleRequest(
         sample={
             "name": "S1",
-            "assay": "assay_1",
-            "subpanel": None,
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "subpanel_id": None,
+            "environment": "testing",
             "genome_build": 38,
             "case_id": "CASE_1",
             "sample_no": 1,
@@ -160,7 +159,7 @@ def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
 
     assert calls["payload"]["name"] == "S1"
     assert calls["payload"]["genome_build"] == 38
-    assert calls["payload"]["vcf_files"] == "/tmp/a.vcf"
+    assert calls["payload"]["files"]["vcf_files"]["path"] == "/tmp/a.vcf"
     assert calls["increment"] is True
     assert response["status"] == "ok"
 
@@ -214,9 +213,9 @@ def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
     dual_payload = internal.InternalIngestSampleBundleRequest(
         sample={
             "name": "X",
-            "assay": "assay_1",
-            "subpanel": None,
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "subpanel_id": None,
+            "environment": "testing",
             "case_id": "CASE_X",
             "sample_no": 1,
             "paired": False,
@@ -245,9 +244,7 @@ def test_ingest_sample_bundle_internal_requires_sample_edit_own_permission_for_u
     monkeypatch.setattr(
         internal,
         "_enforce_access",
-        lambda _user, permission=None, min_level=None, min_role=None: calls.__setitem__(
-            "enforced", 1
-        ),
+        lambda _user, permission=None, context=None: calls.__setitem__("enforced", 1),
     )
     monkeypatch.setattr(
         internal.util,
@@ -269,9 +266,9 @@ def test_ingest_sample_bundle_internal_requires_sample_edit_own_permission_for_u
     payload = internal.InternalIngestSampleBundleRequest(
         sample={
             "name": "S3",
-            "assay": "assay_1",
-            "subpanel": None,
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "subpanel_id": None,
+            "environment": "testing",
             "case_id": "CASE_3",
             "sample_no": 1,
             "paired": False,
@@ -422,8 +419,8 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
         "parse_yaml_payload",
         lambda _text: {
             "name": "UPLOAD_SAMPLE",
-            "assay": "assay_1",
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "environment": "testing",
             "genome_build": 38,
             "case_id": "CASE_UPLOAD",
             "sample_no": 1,
@@ -452,8 +449,8 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
     ingest_service = _ingest_service_stub(
         parse_yaml_payload=lambda _text: {
             "name": "UPLOAD_SAMPLE",
-            "assay": "assay_1",
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "environment": "testing",
             "genome_build": 38,
             "case_id": "CASE_UPLOAD",
             "sample_no": 1,
@@ -462,8 +459,10 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
             "omics_layer": "dna",
             "pipeline": "pipeline",
             "pipeline_version": "v1",
-            "vcf_files": "generic_case_control.final.filtered.vcf",
-            "cnv": "generic_case_control.cnvs.merged.json",
+            "files": {
+                "vcf_files": {"path": "generic_case_control.final.filtered.vcf"},
+                "cnv": {"path": "generic_case_control.cnvs.merged.json"},
+            },
         },
         _assay_file_policy=lambda **_: ({"vcf_files", "cnv"}, {"vcf_files", "cnv"}),
         ingest_sample_bundle=_ingest,
@@ -481,15 +480,13 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
         ),
     ]
 
-    response = asyncio.run(
-        internal.ingest_sample_bundle_upload_internal(
-            yaml_file=yaml_upload,
-            data_files=files,
-            update_existing=False,
-            increment=True,
-            user=_admin_user(),
-            ingest_service=ingest_service,
-        )
+    response = internal.ingest_sample_bundle_upload_internal(
+        yaml_file=yaml_upload,
+        data_files=files,
+        update_existing=False,
+        increment=True,
+        user=_admin_user(),
+        ingest_service=ingest_service,
     )
     assert response["status"] == "ok"
     payload = calls["payload"]
@@ -511,8 +508,8 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
     ingest_service = _ingest_service_stub(
         parse_yaml_payload=lambda _text: {
             "name": "UPLOAD_SAMPLE",
-            "assay": "assay_1",
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "environment": "testing",
             "genome_build": 38,
             "case_id": "CASE_UPLOAD",
             "sample_no": 1,
@@ -528,15 +525,13 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
 
     yaml_upload = _FakeUpload(filename="ingest.yaml", payload=b"name: UPLOAD_SAMPLE")
     with pytest.raises(HTTPException) as exc_info:
-        asyncio.run(
-            internal.ingest_sample_bundle_upload_internal(
-                yaml_file=yaml_upload,
-                data_files=[],
-                update_existing=False,
-                increment=True,
-                user=_admin_user(),
-                ingest_service=ingest_service,
-            )
+        internal.ingest_sample_bundle_upload_internal(
+            yaml_file=yaml_upload,
+            data_files=[],
+            update_existing=False,
+            increment=True,
+            user=_admin_user(),
+            ingest_service=ingest_service,
         )
     assert exc_info.value.status_code == 400
     assert "Missing files for YAML references" in str(exc_info.value)
@@ -568,8 +563,8 @@ def test_ingest_sample_bundle_upload_internal_ignores_missing_optional_file(monk
     ingest_service = _ingest_service_stub(
         parse_yaml_payload=lambda _text: {
             "name": "UPLOAD_SAMPLE",
-            "assay": "assay_1",
-            "profile": "testing",
+            "asp_id": "assay_1",
+            "environment": "testing",
             "genome_build": 38,
             "case_id": "CASE_UPLOAD",
             "sample_no": 1,
@@ -588,15 +583,13 @@ def test_ingest_sample_bundle_upload_internal_ignores_missing_optional_file(monk
     yaml_upload = _FakeUpload(filename="ingest.yaml", payload=b"name: UPLOAD_SAMPLE")
     files = [_FakeUpload(filename="required.vcf", payload=b"##fileformat=VCFv4.2\n")]
 
-    response = asyncio.run(
-        internal.ingest_sample_bundle_upload_internal(
-            yaml_file=yaml_upload,
-            data_files=files,
-            update_existing=False,
-            increment=True,
-            user=_admin_user(),
-            ingest_service=ingest_service,
-        )
+    response = internal.ingest_sample_bundle_upload_internal(
+        yaml_file=yaml_upload,
+        data_files=files,
+        update_existing=False,
+        increment=True,
+        user=_admin_user(),
+        ingest_service=ingest_service,
     )
 
     assert response["status"] == "ok"
@@ -626,15 +619,13 @@ def test_ingest_collection_upload_internal_insert(monkeypatch):
         filename="users.json",
         payload=b'{"username":"analyst1","email":"analyst@example.org"}',
     )
-    response = asyncio.run(
-        internal.ingest_collection_upload_internal(
-            collection="users",
-            mode="insert",
-            documents_file=upload,
-            match_json=None,
-            user=_admin_user(),
-            ingest_service=ingest_service,
-        )
+    response = internal.ingest_collection_upload_internal(
+        collection="users",
+        mode="insert",
+        documents_file=upload,
+        match_json=None,
+        user=_admin_user(),
+        ingest_service=ingest_service,
     )
     assert response["status"] == "ok"
     assert response["collection"] == "users"
@@ -662,15 +653,13 @@ def test_ingest_collection_upload_internal_bulk(monkeypatch):
         filename="roles.json",
         payload=b'[{"role_id":"viewer","level":10},{"role_id":"analyst","level":20}]',
     )
-    response = asyncio.run(
-        internal.ingest_collection_upload_internal(
-            collection="roles",
-            mode="bulk",
-            documents_file=upload,
-            match_json=None,
-            user=_admin_user(),
-            ingest_service=ingest_service,
-        )
+    response = internal.ingest_collection_upload_internal(
+        collection="roles",
+        mode="bulk",
+        documents_file=upload,
+        match_json=None,
+        user=_admin_user(),
+        ingest_service=ingest_service,
     )
     assert response["status"] == "ok"
     assert response["collection"] == "roles"
@@ -691,15 +680,13 @@ def test_ingest_collection_upload_internal_upsert_requires_match_json(monkeypatc
         payload=b'{"permission_id":"sample:edit:own","name":"Edit sample"}',
     )
     with pytest.raises(HTTPException) as exc_info:
-        asyncio.run(
-            internal.ingest_collection_upload_internal(
-                collection="permissions",
-                mode="upsert",
-                documents_file=upload,
-                match_json=None,
-                user=_admin_user(),
-                ingest_service=_ingest_service_stub(),
-            )
+        internal.ingest_collection_upload_internal(
+            collection="permissions",
+            mode="upsert",
+            documents_file=upload,
+            match_json=None,
+            user=_admin_user(),
+            ingest_service=_ingest_service_stub(),
         )
     assert exc_info.value.status_code == 400
     assert "match_json" in str(exc_info.value)

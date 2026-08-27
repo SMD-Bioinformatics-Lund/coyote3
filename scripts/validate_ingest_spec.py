@@ -16,20 +16,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-REQUIRED_ONE_OF = (("vcf_files", "fusion_files"),)
-
-FILE_FIELDS = (
-    "vcf_files",
-    "cnv",
-    "cov",
-    "transloc",
-    "biomarkers",
-    "fusion_files",
-    "expression_path",
-    "classification_path",
-    "qc",
-)
-
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Validate Coyote3 ingest spec YAML")
@@ -44,10 +30,17 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print normalized payload as JSON",
     )
+    parser.add_argument(
+        "--list-files",
+        action="store_true",
+        help="Print resolved paths for every declared input file",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
+    from api.application.ingest.collection_writes import parse_yaml_payload
+    from api.config.constants import ALL_SAMPLE_FILE_KEYS
     from api.contracts.schemas.samples import SamplesDoc
 
     args = parse_args()
@@ -55,31 +48,36 @@ def main() -> int:
     if not spec_path.exists():
         raise SystemExit(f"YAML file not found: {spec_path}")
 
-    payload = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
+    yaml_content = spec_path.read_text(encoding="utf-8")
+    payload = yaml.safe_load(yaml_content)
     if not isinstance(payload, dict):
         raise SystemExit("YAML must decode to an object")
 
-    for choices in REQUIRED_ONE_OF:
-        if not any(payload.get(k) for k in choices):
-            raise SystemExit(f"At least one of {choices} is required")
-
     try:
-        model = SamplesDoc.model_validate(payload)
-    except ValidationError as exc:
+        model = SamplesDoc.model_validate(parse_yaml_payload(yaml_content))
+    except (ValidationError, ValueError) as exc:
         raise SystemExit(f"Spec validation failed:\n{exc}") from exc
 
+    resolved_files: list[tuple[str, Path]] = []
+    for field in ALL_SAMPLE_FILE_KEYS:
+        resource = model.files.get(field)
+        if resource is None:
+            continue
+        path = Path(resource.path)
+        if not path.is_absolute():
+            path = spec_path.parent / path
+        resolved_files.append((field, path.resolve()))
+
     if args.check_files:
-        missing: list[str] = []
-        for field in FILE_FIELDS:
-            value = getattr(model, field, None)
-            if value in (None, ""):
-                continue
-            path = Path(str(value))
-            if not path.exists():
-                missing.append(f"{field}: {value}")
+        missing = [f"{field}: {path}" for field, path in resolved_files if not path.exists()]
         if missing:
             joined = "\n".join(missing)
             raise SystemExit(f"Referenced files missing:\n{joined}")
+
+    if args.list_files:
+        for _field, path in resolved_files:
+            print(path)
+        return 0
 
     print("[ok] ingest spec is valid")
     if args.json:

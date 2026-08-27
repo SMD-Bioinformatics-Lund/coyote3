@@ -1,11 +1,10 @@
-"""Shared DB document contract primitives."""
+"""Common DB document contract primitives."""
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class _DocBase(BaseModel):
@@ -38,25 +37,25 @@ class _DocBase(BaseModel):
 
 
 class _StrictDocBase(_DocBase):
-    """Strict base for collections where we want full key-level contract lock."""
+    """Strict base for embedded documents with a fixed key-level contract."""
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
-    id_: Any | None = Field(default=None, alias="_id")
 
 
-class VersionHistoryEntryDoc(_DocBase):
-    version: int | float | None = None
-    user: str | None = None
-    date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    diff: dict[str, Any] | None = None
-    delta: dict[str, Any] | None = None
-    hash: str | None = None
-    initial: bool | None = None
+class _FindingDocBase(_DocBase):
+    """Finding document base that prevents embedded comment persistence."""
 
-    @field_validator("date", "timestamp", mode="before")
+    @model_validator(mode="before")
     @classmethod
-    def _normalize_datetime_value(cls, value: Any) -> Any:
-        if isinstance(value, dict) and "$date" in value:
-            return value.get("$date")
-        return value
+    def _remove_embedded_comments(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        normalized = dict(data)
+        normalized.pop("comments", None)
+        return normalized
+
+
+class _StrictCollectionDocBase(_StrictDocBase):
+    """Strict base for top-level MongoDB collection documents."""
+
+    id_: Any | None = Field(default=None, alias="_id")

@@ -1,0 +1,113 @@
+rule_set:
+  name: Solid DNA GMSv3 endometrie report text
+  version: 1
+  analyte: dna
+  asp_id: solid_gmsv3
+  subpanel_id: endometrie
+
+document_rules:
+  - rule_id: endometrie_report_introduction
+    family: result_text
+    section: Report introduction
+    priority: 10
+    when: []
+    template: "{{ aspc.reporting.general_report_summary | dna_report_intro(sample, asp, applied_gene_lists) }}"
+    heading: false
+    stop: false
+  - rule_id: endometrie_unaccredited_conclusion
+    family: summary_text
+    section: Report conclusion
+    priority: 100
+    when: []
+    template: "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen."
+    heading: false
+    stop: true
+
+analyses:
+  SNV:
+    enabled: true
+    rules:
+      - rule_id: endometrie_pole_exonuclease_domain
+        family: finding_text
+        section: Molecular classification
+        priority: 10
+        when:
+          - fact: finding.kind
+            operator: eq
+            value: snv
+          - fact: finding.gene
+            operator: eq
+            value: POLE
+          - fact: finding.exon
+            operator: overlaps
+            value: ["9", "10", "11", "12", "13", "14"]
+        template: "Varianter i exonukleasdomänen av POLE (exon 9-14) är klassificerande samt riskstratifierande vid endometriecancer (WHO 5th ed./NVP 2026)."
+        heading: false
+        stop: true
+      - rule_id: endometrie_pole_outside_exonuclease_domain
+        family: finding_text
+        section: Molecular classification
+        priority: 20
+        when:
+          - fact: finding.kind
+            operator: eq
+            value: snv
+          - fact: finding.gene
+            operator: eq
+            value: POLE
+          - fact: finding.exon
+            operator: overlaps
+            value: ["1", "2", "3", "4", "5", "6", "7", "8", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49"]
+        template: "Varianter i  POLE  är vanligt förekommande vid endometriecancer. Notera att varianten i POLE ligger utanför exonukleasdomänen."
+        heading: false
+        stop: true
+      - rule_id: endometrie_tp53
+        family: finding_text
+        section: Molecular classification
+        priority: 30
+        when:
+          - fact: finding.kind
+            operator: eq
+            value: snv
+          - fact: finding.gene
+            operator: eq
+            value: TP53
+        template: "Varianter i TP53 är klassificerande samt riskstratifierande vid endometriecancer (WHO 5th ed./NVP 2026)."
+        heading: false
+        stop: true
+      - rule_id: endometrie_mmr_genes
+        family: finding_text
+        section: Supporting findings
+        priority: 40
+        when:
+          - fact: finding.kind
+            operator: eq
+            value: snv
+          - fact: finding.gene
+            operator: in
+            value: [MLH1, MSH2, MSH6, PMS2]
+        template: "Varianter i {{ finding.gene }} är vanligt förekommande vid endometriecancer, ofta tillsammans med MSI-H (WHO 5th ed./NVP 2026)."
+        heading: false
+        stop: true
+      - rule_id: endometrie_supporting_genes
+        family: finding_text
+        section: Supporting findings
+        priority: 50
+        when:
+          - fact: finding.kind
+            operator: eq
+            value: snv
+          - fact: finding.gene
+            operator: in
+            value: [PTEN, PIK3CA, PIK3R1, CTNNB1, ARID1A, KRAS, CTCF, RPL22, FGFR2, ARID5B, PPP2R1A, FBXW7, CHD4]
+        template: "Varianter i {{ finding.gene }} är vanligt förekommande vid endometriecancer, de är inte klassificerande eller riskstratifierande men kan understödja diagnos (WHO 5th ed./PMID: 35117373)."
+        heading: false
+        stop: true
+  CNV: { enabled: false }
+  TRANSLOCATION: { enabled: false }
+  BIOMARKER: { enabled: false }
+  CNV_PROFILE: { enabled: false }
+  COVERAGE: { enabled: false }
+  FUSION: { enabled: false }
+  TMB: { enabled: false }
+  PGX: { enabled: false }

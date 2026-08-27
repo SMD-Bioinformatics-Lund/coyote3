@@ -6,8 +6,7 @@ from datetime import datetime, timezone
 
 from fastapi import Request
 
-from api.runtime_state import current_request_id
-from shared.logging import emit_audit_event
+from api.app.runtime_state import current_request_id
 
 
 def request_ip(request: Request | None) -> str:
@@ -54,8 +53,6 @@ def emit_access_event(
     roles: list[str] | None = None,
     role: str | None = None,
     permission: str | None = None,
-    min_level: int | None = None,
-    min_role: str | None = None,
     sample_id: str | None = None,
     extra: dict | None = None,
 ) -> None:
@@ -69,14 +66,14 @@ def emit_access_event(
         roles: Authenticated role identifiers.
         role: Effective user role.
         permission: Required permission, when applicable.
-        min_level: Minimum required access level.
-        min_role: Minimum required role name.
         sample_id: Sample identifier associated with the check.
         extra: Additional structured metadata to emit.
     """
     normalized_status = (
         "failed" if status == "denied" else ("success" if status in {"allowed", "ok"} else status)
     )
+    if normalized_status != "failed":
+        return
     event = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "reason": reason,
@@ -91,18 +88,30 @@ def emit_access_event(
         "sample_id": str(sample_id) if sample_id is not None else None,
         "required": {
             "permission": permission,
-            "min_level": min_level,
-            "min_role": min_role,
         },
         "extra": extra or {},
     }
-    emit_audit_event(
-        source="api",
-        action="access_check",
-        status=normalized_status,
-        severity="warning" if normalized_status == "failed" else "info",
-        **event,
-    )
+    from api.app.deps.services import get_audit_service
+
+    audit = get_audit_service()
+    if audit is not None:
+        audit.record(
+            "security.access.denied",
+            reason,
+            severity="warning",
+            category="security",
+            outcome="denied",
+            actor=username or "anonymous",
+            resource_type="sample" if sample_id else None,
+            resource_id=str(sample_id) if sample_id is not None else None,
+            tags=["authorization", "access-check"],
+            metadata={
+                "required": event["required"],
+                "roles": list(roles or []),
+                "role": role,
+                **(extra or {}),
+            },
+        )
 
 
 def emit_mutation_event(
@@ -127,30 +136,45 @@ def emit_mutation_event(
     derived_status = (
         "error" if int(status_code) >= 500 else ("failed" if int(status_code) >= 400 else "success")
     )
-    event = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "status_code": int(status_code),
-        "method": request.method,
-        "path": str(request.url.path),
-        "ip": request_ip(request),
-        "request_id": request_id(request),
-        "user": username,
-        "username": username,
-        "target": target,
-        "mutation_action": action,
-        "extra": extra or {},
-    }
-    emit_audit_event(
-        source="api",
-        action="mutation",
-        status=derived_status,
-        severity=(
-            "error"
-            if derived_status == "error"
-            else ("warning" if derived_status == "failed" else "info")
-        ),
-        **event,
-    )
+    from api.app.deps.services import get_audit_service
+
+    audit = get_audit_service()
+    if audit is not None:
+        audit_resource = getattr(request.state, "audit_resource", {}) or {}
+        resource_type = audit_resource.get("type") or "api_route"
+        resource_id = audit_resource.get("id") or target
+        resource_name = audit_resource.get("name")
+        resource_metadata = audit_resource.get("metadata") or {}
+        audit.record(
+            "api.mutation.succeeded" if derived_status == "success" else "api.mutation.failed",
+            str(audit_resource.get("message") or f"{action} {target}"),
+            severity=(
+                "error"
+                if derived_status == "error"
+                else ("warning" if derived_status == "failed" else "info")
+            ),
+            category="activity",
+            outcome="success" if derived_status == "success" else "failure",
+            actor=username or "anonymous",
+            resource_type=resource_type,
+            resource_id=resource_id,
+            resource_name=resource_name,
+            tags=["api", "mutation", action.lower()],
+            metadata={
+                "status_code": int(status_code),
+                "method": request.method,
+                "path": str(request.url.path),
+                "ip": request_ip(request),
+                "request_id": request_id(request),
+                **resource_metadata,
+                **(extra or {}),
+            },
+            retention_class=(
+                "traceability"
+                if audit_resource.get("retention_class") == "traceability"
+                else "operational"
+            ),
+        )
 
 
 def emit_request_event(
@@ -173,26 +197,31 @@ def emit_request_event(
     derived_status = (
         "error" if int(status_code) >= 500 else ("failed" if int(status_code) >= 400 else "success")
     )
-    event = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "status_code": int(status_code),
-        "duration_ms": round(float(duration_ms), 2),
-        "method": request.method,
-        "path": str(request.url.path),
-        "ip": request_ip(request),
-        "request_id": request_id(request),
-        "user": username,
-        "username": username,
-        "extra": extra or {},
-    }
-    emit_audit_event(
-        source="api",
-        action="request",
-        status=derived_status,
-        severity=(
-            "error"
-            if derived_status == "error"
-            else ("warning" if derived_status == "failed" else "info")
-        ),
-        **event,
-    )
+    from api.app.deps.services import get_audit_service
+
+    audit = get_audit_service()
+    if audit is not None:
+        audit.record(
+            "api.request.completed",
+            f"{request.method} {request.url.path}",
+            severity=(
+                "error"
+                if derived_status == "error"
+                else ("warning" if derived_status == "failed" else "info")
+            ),
+            category="request",
+            outcome="success" if derived_status == "success" else "failure",
+            actor=username or "anonymous",
+            resource_type="api_route",
+            resource_id=str(request.url.path),
+            tags=["api", "request", request.method.lower()],
+            metadata={
+                "status_code": int(status_code),
+                "duration_ms": round(float(duration_ms), 2),
+                "method": request.method,
+                "path": str(request.url.path),
+                "ip": request_ip(request),
+                "request_id": request_id(request),
+                **(extra or {}),
+            },
+        )

@@ -1,16 +1,21 @@
 # Center Deployment Guide
 
+**Last verified:** 6 August 2026
+
 This page is the entry point for deployment.
 Use the checklist for the full procedure.
 
 ## Deployment Flow
 
-1. Prepare environment and secrets.
-2. Start the stack.
-3. Bootstrap the first superuser.
-4. Seed baseline collections in strict order.
-5. Validate and ingest the demo sample.
-6. Verify UI/API and admin flows.
+![URL and reverse-proxy request flow](../assets/diagrams/url_request_flow.svg)
+
+![First-deployment bootstrap data flow](../assets/diagrams/bootstrap_data_flow.svg)
+
+1. Provision or select MongoDB and create its application user.
+2. Run the explicit database bootstrap command.
+3. Start the API, worker, UI, proxy, and documentation services.
+4. Verify UI/API and administrative access.
+5. Import approved center configuration and ingest data when ready.
 
 ## Authoritative Procedure
 
@@ -20,12 +25,12 @@ Use the checklist as the source of truth for the exact commands and execution or
 - [Initial Deployment Checklist](initial_deployment_checklist.md)
 
 The checklist defines:
+
 - exact commands and command order
 - required collection order
 - seed-source policy
-- ingest verification
-- rollback and handoff
-- compose profile usage
+- application verification
+- deployment handoff
 
 ## Required Baseline Collections
 
@@ -33,71 +38,86 @@ Before first sample ingest, ensure these are seeded:
 
 1. `permissions`
 2. `roles`
-3. `refseq_canonical`
-4. `hgnc_genes`
-5. `vep_metadata`
+3. `hgnc_genes`
+4. `vep_metadata`
+5. `assay_specific_panels`
 6. `asp_configs`
-7. `assay_specific_panels`
+7. `insilico_genelists` when the center uses in-silico gene-list filtering
 
-`users` are intentionally not bulk-seeded by `bootstrap_center_collections.sh`; create the first superuser with `bootstrap_local_admin.py`.
+The explicit database bootstrap installs the application-owned RBAC catalog,
+creates one local superuser, and imports the bundled HGNC and VEP snapshot. It
+runs only against empty governance collections.
 
 ## Seed Source Policy
 
-- `--seed-file` is the primary source for demo/bootstrap runtime collections.
-- `--reference-seed-data` provides compressed baseline packs for core reference/RBAC data.
-- `asp_configs` and `assay_specific_panels` are seeded from bootstrap/demo input (default `--seed-file`).
-- `permissions`, `roles`, `refseq_canonical`, `hgnc_genes`, and `vep_metadata` are loaded from `--reference-seed-data` only when that argument is provided.
+- `api/config/bootstrap/rbac` is the application-owned permission and role catalog.
+- Bundled permission documents are installed with `system_managed: true`; their
+  definitions are immutable at runtime but remain assignable through roles.
+- `api/config/bootstrap/demo_center` contains synthetic ASP, ASPC, and ISGL documents for installation checks.
+- `api/config/bootstrap/reference` contains the release-bundled HGNC and VEP
+  snapshots loaded by the direct bootstrap command when their collections are
+  empty.
+- Normal application startup does not seed or synchronize governance documents.
 
-## First-Run Method
+## Database bootstrap method
 
-- Use `scripts/center_first_run.sh` for first-time bootstrap.
-- Pass admin identity explicitly:
-  - `--admin-username`
-  - `--admin-email`
-  - `--admin-password`
-- `center_first_run.sh` bootstraps a `superuser`, not an `admin`.
-- The bootstrap script may create only the first superuser. Additional superusers must be created by an existing authenticated superuser.
+- Run `scripts/bootstrap_database.py` before application services are started.
+- Pass the first local superuser identity explicitly:
+  - `--username`
+  - `--email`
+  - `--password`
+- The bootstrap command assigns `superuser`, not `admin`, by default.
+- A complete existing installation is left unchanged. Partial governance data
+  without a superuser is rejected for manual review.
+- Additional superusers must be created by an existing authenticated superuser.
 
 Standard command shape:
 
 ```bash
-scripts/center_first_run.sh \
-  --env-file <ENV_FILE> \
-  --compose-file <COMPOSE_FILE> \
-  [--with-mongo] \
-  [--with-proxy] \
-  [--compose-profile <PROFILE>] \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:<API_PORT>" \
-  --admin-username "admin.coyote3" \
-  --admin-email "admin@your-center.org" \
-  --admin-password "<ADMIN_PASSWORD>" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --seed-data-pack tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
-  --with-optional
+.venv/bin/python scripts/bootstrap_database.py \
+  --mongo-uri "$MONGO_URI" \
+  --db "$COYOTE3_DB" \
+  --username "admin.coyote3" \
+  --email "admin@your-center.org" \
+  --password "<ADMIN_PASSWORD>"
 ```
 
-If `MONGO_URI` points to `coyote3_mongo`, include:
+Configure `MONGO_URI` for the independently operated database before this
+command. If the supplied MongoDB Compose definition is used, its persistent
+host resources are `COYOTE3_MONGO_DATA_HOST_ROOT`,
+`COYOTE3_MONGO_BACKUP_HOST_ROOT`, and `COYOTE3_MONGO_KEYFILE_HOST_PATH`.
+Set `COYOTE3_LOGS_HOST_ROOT` for every deployment; it is mounted at `/app/logs`
+in the API, worker, and Beat containers.
+
+!!! warning "Existing named-volume installations"
+
+    A bind-mounted Mongo data directory does not automatically receive data
+    from a Docker named volume used by an older deployment. Back up and restore
+    that database, or copy it using an approved MongoDB maintenance procedure,
+    before removing the old named volume. Start the new Mongo container only
+    after the selected host data directory contains the intended database.
+
+## Packaged configuration location
+
+The API configuration package is `api/config` in the repository and
+`/app/api/config` in the API image. It must be present because it contains typed
+software settings, center configuration, and the first-deployment RBAC catalog.
+Current Dockerfiles do not copy or mount a separate `/app/config` directory. If
+that directory appears in a running container, the container was built from an
+older image or an external deployment mount; rebuild and recreate the container
+from the current Compose definition.
+
+For a nonclinical local demonstration, add `--with-demo-center`. The flag
+loads only the bundled synthetic ASP, ASPC, and ISGL documents; it does not
+create samples or run ingest.
+
+Start Coyote3 after database bootstrap:
 
 ```bash
---with-mongo
-```
-
-Prod-like local Docker command:
-
-```bash
-scripts/center_first_run.sh \
+./scripts/compose-with-version.sh \
   --env-file .coyote3_env \
-  --compose-file deploy/compose/docker-compose.yml \
-  --with-mongo \
-  --api-base-url "http://localhost:5818" \
-  --admin-username "admin.coyote3" \
-  --admin-email "admin@coyote3.local" \
-  --admin-password "Coyote3.Admin" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
-  --seed-data-pack tests/data/seed_data \
-  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
-  --with-optional
+  -f deploy/compose/docker-compose.yml \
+  up -d --build
 ```
 
 For environment-specific values and full verification gates, use:
@@ -115,7 +135,10 @@ Sample manifest reference:
 
 - Use [API / Sample YAML Guide](../api/sample_yaml.md) for the required DNA/RNA YAML shape.
 - Use [API / Sample Input Files](../api/sample_input_files.md) for the raw VCF and JSON payload formats consumed by the ingest parsers.
-- Ensure the YAML `vep_version` matches a seeded `vep_metadata.vep_id` value before first sample ingest.
+- Ensure the DNA pipeline writes the VEP version into each VCF `##VEP=` header
+  and seed the matching `vep_metadata.vep_id` value before DNA interpretation
+  or reporting. A YAML `database_versions.vep` override is supported only for
+  an explicit correction or a pipeline that cannot emit the header value.
 
 ASPC contract rule for first-load data:
 

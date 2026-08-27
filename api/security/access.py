@@ -2,40 +2,45 @@
 
 from __future__ import annotations
 
+import secrets
 from collections.abc import Generator
-from dataclasses import dataclass
-from functools import lru_cache
+from dataclasses import dataclass, field
 
 from fastapi import HTTPException, Request
-from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
-from api.core.models.user import UserModel
-from api.deps.handlers import (
-    get_roles_handler,
-    get_sample_handler,
-    get_user_handler,
+from api.app.deps.repositories import (
+    get_permissions_repository,
+    get_roles_repository,
+    get_sample_repository,
+    get_user_repository,
 )
-from api.runtime_state import app as runtime_app
-from api.runtime_state import reset_current_user, set_current_user
-from api.security.audit_events import emit_access_event
-from api.security.auth_service import _load_user_access_context
-from api.settings import (
-    get_api_secret_key,
-    get_api_session_salt,
-    get_internal_api_token,
-)
-from api.settings import (
+from api.app.deps.services import get_api_session_repository
+from api.app.runtime_state import app as runtime_app
+from api.app.runtime_state import reset_current_user, set_current_user
+from api.config.constants import DEFAULT_AUTH_PROVIDER, DEFAULT_TABLE_PAGE_SIZE
+from api.config.security import (
     get_api_session_cookie_name as settings_session_cookie_name,
 )
-from api.settings import (
+from api.config.security import (
+    get_api_session_cookie_samesite as settings_session_cookie_samesite,
+)
+from api.config.security import (
     get_api_session_cookie_secure as settings_session_cookie_secure,
 )
-from api.settings import (
+from api.config.security import (
     get_api_session_ttl_seconds as settings_session_ttl_seconds,
 )
+from api.config.security import (
+    get_internal_api_token,
+)
+from api.domain.core.models.user import UserModel
+from api.security.audit_events import emit_access_event
+from api.security.auth_service import _load_user_access_context
+from api.security.policy import build_access_policy
 
 PUBLIC_API_EXACT_PATHS = {
     "/api/v1/health",
+    "/api/v1/auth/providers",
     "/api/v1/auth/sessions",
     "/api/v1/auth/sessions/current",
     "/api/v1/auth/password/reset/request",
@@ -47,6 +52,14 @@ PUBLIC_API_EXACT_PATHS = {
 PUBLIC_API_PREFIX_PATHS = (
     "/api/v1/public/",
     "/api/v1/internal/",
+)
+
+CSRF_EXEMPT_MUTATIONS = frozenset(
+    {
+        ("POST", "/api/v1/auth/sessions"),
+        ("POST", "/api/v1/auth/password/reset/request"),
+        ("POST", "/api/v1/auth/password/reset/confirm"),
+    }
 )
 
 
@@ -62,13 +75,24 @@ class ApiUser:
     role: str
     access_level: int
     permissions: list[str]
-    denied_permissions: list[str]
-    assays: list[str]
-    assay_groups: list[str]
+    asp_ids: list[str]
+    asp_groups: list[str]
     envs: list[str]
     asp_map: dict
-    auth_type: str = "coyote3"
+    auth_type: list[str]
     must_change_password: bool = False
+    firstname: str = ""
+    lastname: str = ""
+    job_title: str = ""
+    ui_settings: dict[str, str | bool | int] = field(
+        default_factory=lambda: {
+            "analysis_layout": "classic",
+            "sample_list_layout": "classic",
+            "analysis_modern_view_tried": False,
+            "sample_list_modern_view_tried": False,
+            "table_page_size": DEFAULT_TABLE_PAGE_SIZE,
+        }
+    )
 
     @property
     def is_superuser(self) -> bool:
@@ -124,6 +148,14 @@ def is_public_api_path(path: str) -> bool:
     return False
 
 
+def requires_csrf_validation(method: str, path: str) -> bool:
+    """Return whether a state-changing request must carry a CSRF token."""
+    normalized_method = str(method or "GET").upper()
+    if normalized_method not in {"POST", "PUT", "PATCH", "DELETE"}:
+        return False
+    return (normalized_method, path) not in CSRF_EXEMPT_MUTATIONS
+
+
 def _http_exception_message(exc: HTTPException) -> str:
     """Extract a log-friendly message from an ``HTTPException``.
 
@@ -146,8 +178,6 @@ def _audit_access_event(
     request: Request | None = None,
     user: ApiUser | None = None,
     permission: str | None = None,
-    min_level: int | None = None,
-    min_role: str | None = None,
     sample_id: str | None = None,
     extra: dict | None = None,
 ) -> None:
@@ -159,8 +189,6 @@ def _audit_access_event(
         request: Active request, when available.
         user: Authenticated user, when available.
         permission: Required permission, when applicable.
-        min_level: Minimum required access level.
-        min_role: Minimum required role.
         sample_id: Related sample identifier.
         extra: Additional structured metadata to emit.
     """
@@ -172,19 +200,8 @@ def _audit_access_event(
         roles=user.roles if user else None,
         role=user.role if user else None,
         permission=permission,
-        min_level=min_level,
-        min_role=min_role,
         sample_id=sample_id,
         extra=extra,
-    )
-
-
-@lru_cache(maxsize=1)
-def _api_session_serializer() -> URLSafeTimedSerializer:
-    """Return the serializer used for signed API session tokens."""
-    return URLSafeTimedSerializer(
-        secret_key=get_api_secret_key(runtime_app.config),
-        salt=get_api_session_salt(runtime_app.config),
     )
 
 
@@ -206,38 +223,45 @@ def get_api_session_ttl_seconds() -> int:
     return settings_session_ttl_seconds(runtime_app.config)
 
 
-def get_api_session_cookie_secure() -> bool:
+def get_api_session_cookie_secure(*, request_scheme: str | None = None) -> bool:
     """Return whether the API session cookie must be secure.
 
     Returns:
         bool: ``True`` when the cookie must only be sent over HTTPS.
     """
-    return settings_session_cookie_secure(runtime_app.config)
+    return settings_session_cookie_secure(runtime_app.config, request_scheme=request_scheme)
 
 
-def create_api_session_token(username: str) -> str:
-    """Create a signed API session token for a user.
+def get_api_session_cookie_samesite() -> str:
+    """Return the API session cookie SameSite policy."""
+    return settings_session_cookie_samesite(runtime_app.config)
+
+
+def create_api_session(username: str, *, provider: str | None = None):
+    """Create and return a Mongo-backed API session for a user.
 
     Args:
         username: Username to embed in the token.
 
     Returns:
-        str: Signed session token.
+        ApiSession: Opaque session credentials and authenticated user.
     """
-    return str(_api_session_serializer().dumps({"uid": str(username).strip().lower()}))
+    user_doc = get_user_repository().user_with_id(str(username).strip().lower())
+    if not user_doc or not user_doc.get("is_active", True):
+        raise _api_error(401, "Login required")
+    user = api_user_from_user_doc(user_doc)
+    session_provider = provider or (user.auth_type[0] if user.auth_type else "ldap")
+    session = get_api_session_repository().create(user, provider=session_provider)
+    return session
 
 
-def _role_levels() -> dict[str, int]:
-    """Return access levels keyed by role identifier."""
-    roles_handler = get_roles_handler()
-    return {
-        role.get("role_id"): role.get("level", 0)
-        for role in (roles_handler.get_all_roles() or [])
-        if role.get("role_id")
-    }
+def delete_api_session_token(token: str | None) -> None:
+    """Delete an opaque API session token when present."""
+    if token:
+        get_api_session_repository().delete(token)
 
 
-def _api_user_from_doc(user_doc: dict) -> ApiUser:
+def api_user_from_user_doc(user_doc: dict) -> ApiUser:
     """Build an ``ApiUser`` from the stored user document.
 
     Args:
@@ -252,18 +276,30 @@ def _api_user_from_doc(user_doc: dict) -> ApiUser:
         id=str(user_model.username),
         email=user_model.email,
         fullname=user_model.fullname,
+        firstname=user_model.firstname,
+        lastname=user_model.lastname,
+        job_title=user_model.job_title or "",
         username=user_model.username,
         roles=list(user_model.roles),
         role=user_model.role,
         access_level=user_model.access_level,
         permissions=list(user_model.permissions),
-        denied_permissions=list(user_model.denied_permissions),
-        assays=list(user_model.assays),
-        assay_groups=list(user_model.assay_groups),
+        asp_ids=list(user_model.asp_ids),
+        asp_groups=list(user_model.asp_groups),
         envs=list(user_model.envs),
         asp_map=dict(user_model.asp_map),
-        auth_type=str(getattr(user_model, "auth_type", "coyote3") or "coyote3"),
+        auth_type=list(
+            getattr(user_model, "auth_type", [DEFAULT_AUTH_PROVIDER]) or [DEFAULT_AUTH_PROVIDER]
+        ),
         must_change_password=bool(getattr(user_model, "must_change_password", False)),
+        ui_settings={
+            "analysis_layout": "classic",
+            "sample_list_layout": "classic",
+            "analysis_modern_view_tried": False,
+            "sample_list_modern_view_tried": False,
+            "table_page_size": DEFAULT_TABLE_PAGE_SIZE,
+            **dict(user_doc.get("ui_settings") or {}),
+        },
     )
 
 
@@ -280,14 +316,17 @@ def serialize_api_user(user: ApiUser) -> dict:
         "_id": user.username,
         "email": user.email,
         "fullname": user.fullname,
+        "firstname": user.firstname,
+        "lastname": user.lastname,
+        "job_title": user.job_title,
         "username": user.username,
         "roles": sorted(user.roles),
         "role": user.role,
         "access_level": user.access_level,
         "permissions": sorted(user.permissions),
-        "denied_permissions": sorted(user.denied_permissions),
-        "assays": sorted(user.assays),
-        "assay_groups": sorted(user.assay_groups),
+        "ui_settings": dict(user.ui_settings),
+        "asp_ids": sorted(user.asp_ids),
+        "asp_groups": sorted(user.asp_groups),
         "envs": sorted(user.envs),
         "asp_map": user.asp_map,
         "auth_type": user.auth_type,
@@ -312,6 +351,19 @@ def _extract_api_session_token(request: Request) -> str | None:
     return request.cookies.get(get_api_session_cookie_name())
 
 
+def _get_cached_api_session(request: Request, token: str | None):
+    """Load an API session once and reuse it for the current request."""
+    if not token:
+        return None
+    cached_token = getattr(request.state, "api_session_token", None)
+    if cached_token == token and hasattr(request.state, "api_session"):
+        return request.state.api_session
+    session = get_api_session_repository().get(token)
+    request.state.api_session_token = token
+    request.state.api_session = session
+    return session
+
+
 def _decode_session_user(request: Request) -> ApiUser:
     """Decode and validate the authenticated API user.
 
@@ -323,63 +375,50 @@ def _decode_session_user(request: Request) -> ApiUser:
     """
     api_token = _extract_api_session_token(request)
     if api_token:
-        try:
-            token_data = _api_session_serializer().loads(
-                api_token,
-                max_age=get_api_session_ttl_seconds(),
-            )
-        except SignatureExpired:
+        session = _get_cached_api_session(request, api_token)
+        if session is None:
             raise _api_error(401, "Login required")
-        except BadSignature:
-            raise _api_error(401, "Login required")
-
-        username = token_data.get("uid")
-        if not username:
-            raise _api_error(401, "Login required")
-
-        user_doc = get_user_handler().user_with_id(str(username))
-        if not user_doc or not user_doc.get("is_active", True):
-            raise _api_error(401, "Login required")
-        return _api_user_from_doc(user_doc)
+        return session.user
     raise _api_error(401, "Login required")
 
 
 def _enforce_access(
     user: ApiUser,
     permission: str | None = None,
-    min_level: int | None = None,
-    min_role: str | None = None,
+    context: dict | None = None,
 ) -> None:
-    """Enforce permission, level, or role requirements for a user.
+    """Enforce permission and optional resource-scope requirements for a user.
 
     Args:
         user: Authenticated user to evaluate.
         permission: Required permission, when applicable.
-        min_level: Minimum required access level.
-        min_role: Minimum required role.
+        context: Resource attributes for ABAC scope checks.
     """
-    resolved_role_level = 0
     if user.is_superuser:
         return
-    if min_role:
-        resolved_role_level = _role_levels().get(min_role, 0)
+    if not permission and not context:
+        return
 
-    permission_ok = (
-        permission is not None
-        and permission in user.permissions
-        and permission not in user.denied_permissions
+    policy = build_access_policy(
+        user=user,
+        roles_repository=get_roles_repository(),
+        permissions_repository=get_permissions_repository(),
     )
-    level_ok = min_level is not None and user.access_level >= min_level
-    role_ok = min_role is not None and user.access_level >= resolved_role_level
 
-    if permission or min_level is not None or min_role:
-        if not (permission_ok or level_ok or role_ok):
-            raise _api_error(
-                403,
-                "Access denied",
-                "You do not satisfy the required permission, role, or access-level policy.",
-                category="auth",
-            )
+    if permission and not policy.permission_allowed(user, permission, context=context):
+        raise _api_error(
+            403,
+            "Access denied",
+            "You do not satisfy the required permission policy.",
+            category="auth",
+        )
+    if context and not policy.scope_allowed(user, context):
+        raise _api_error(
+            403,
+            "Access denied",
+            "You do not satisfy the required attribute-scope policy.",
+            category="scope",
+        )
 
 
 def require_authenticated(request: Request) -> ApiUser:
@@ -400,17 +439,37 @@ def resolve_request_user(request: Request) -> ApiUser | None:
         return None
 
 
-def require_access(
-    permission: str | None = None,
-    min_level: int | None = None,
-    min_role: str | None = None,
-):
+def validate_request_csrf(request: Request) -> bool:
+    """Validate the CSRF token for cookie-authenticated state changes.
+
+    Bearer-authenticated API clients are not vulnerable to ambient cookie
+    submission and therefore do not require this browser-specific token.
+    """
+    auth_header = (request.headers.get("Authorization") or "").strip()
+    if auth_header.lower().startswith("bearer "):
+        return True
+    token = request.cookies.get(get_api_session_cookie_name())
+    if not token:
+        return False
+    session = _get_cached_api_session(request, token)
+    supplied = str(request.headers.get("X-CSRF-Token") or "")
+    return bool(session and supplied and secrets.compare_digest(session.csrf_token, supplied))
+
+
+def get_request_api_session(request: Request):
+    """Resolve the server-side session associated with the request cookie."""
+    token = request.cookies.get(get_api_session_cookie_name())
+    session = _get_cached_api_session(request, token)
+    if session is None:
+        raise _api_error(401, "Login required")
+    return session
+
+
+def require_access(permission: str | None = None):
     """Build a dependency that enforces route-level access requirements.
 
     Args:
         permission: Required permission, when applicable.
-        min_level: Minimum required access level.
-        min_role: Minimum required role.
 
     Returns:
         Callable: FastAPI dependency that yields the authenticated user.
@@ -428,7 +487,7 @@ def require_access(
         user: ApiUser | None = None
         try:
             user = _decode_session_user(request)
-            _enforce_access(user, permission=permission, min_level=min_level, min_role=min_role)
+            _enforce_access(user, permission=permission)
         except HTTPException as exc:
             _audit_access_event(
                 status="denied",
@@ -436,8 +495,6 @@ def require_access(
                 request=request,
                 user=user,
                 permission=permission,
-                min_level=min_level,
-                min_role=min_role,
             )
             raise
         _audit_access_event(
@@ -446,8 +503,6 @@ def require_access(
             request=request,
             user=user,
             permission=permission,
-            min_level=min_level,
-            min_role=min_role,
         )
         token = set_current_user(user)
         try:
@@ -469,10 +524,10 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
     Returns:
         dict: Sample payload authorized for the user.
     """
-    sample_handler = get_sample_handler()
-    sample = sample_handler.get_sample(sample_id)
+    sample_repository = get_sample_repository()
+    sample = sample_repository.get_sample(sample_id)
     if not sample:
-        sample = sample_handler.get_sample_by_id(sample_id)
+        sample = sample_repository.get_sample_by_id(sample_id)
     if not sample:
         _audit_access_event(
             status="denied",
@@ -484,8 +539,23 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
         )
         raise _api_error(404, "Sample not found", category="not_found")
 
-    sample_assay = sample.get("assay", "")
-    if sample_assay not in set(user.assays or []) and not user.is_superuser:
+    sample_assay = sample.get("asp_id", "")
+    if not user.is_superuser:
+        policy = build_access_policy(
+            user=user,
+            roles_repository=get_roles_repository(),
+            permissions_repository=get_permissions_repository(),
+        )
+        sample_scope = {
+            "asp_id": sample_assay,
+            "environment": sample.get("environment"),
+            "asp_group": sample.get("asp_group"),
+        }
+        scope_allowed = policy.scope_allowed(user, sample_scope)
+    else:
+        scope_allowed = True
+
+    if not scope_allowed and sample_assay not in set(user.asp_ids or []):
         _audit_access_event(
             status="denied",
             reason="Forbidden",
@@ -503,6 +573,26 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
             ),
             category="scope",
             hint="Ask an administrator to assign the assay to your user, or use a superuser account.",
+        )
+    if not scope_allowed:
+        _audit_access_event(
+            status="denied",
+            reason="Forbidden",
+            request=request,
+            user=user,
+            sample_id=sample_id,
+            extra={
+                "sample_assay": sample_assay,
+                "sample_profile": sample.get("environment") or sample.get("environment"),
+                "sample_assay_group": sample.get("assay_group"),
+            },
+        )
+        raise _api_error(
+            403,
+            f"Sample '{sample_id}' is outside your access scope",
+            "The sample attributes do not match your assigned assay, environment, or assay-group scope.",
+            category="scope",
+            hint="Ask an administrator to update your sample access scope.",
         )
     return sample
 

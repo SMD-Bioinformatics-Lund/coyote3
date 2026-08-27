@@ -1,0 +1,481 @@
+"""
+ASPRepository module for Coyote3
+================================
+
+This module defines the `ASPRepository` class used for accessing and managing
+assay specific panel data in MongoDB.
+
+It is part of the MongoDB infrastructure layer.
+
+"""
+
+# -------------------------------------------------------------------------
+# Imports
+# -------------------------------------------------------------------------
+import re
+
+from api.config.constants import normalize_clinical_identifier
+from api.contracts.operations import OperationResult
+from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
+
+
+# -------------------------------------------------------------------------
+# Class Definition
+# -------------------------------------------------------------------------
+class ASPRepository(BaseRepository):
+    """
+    Coyote assay specific asp database repository.
+
+    The `ASPRepository` class provides a comprehensive interface for managing
+    assay specific panel data stored in a MongoDB database. It extends the functionality
+    of the `BaseRepository` class and is designed to be used by the API runtime.
+
+    This class includes methods for performing CRUD (Create, Read, Update, Delete)
+    operations on gene panel data, as well as advanced queries and calculations
+    such as retrieving unique gene counts, toggling panel statuses, and fetching
+    distinct panel groups or assay names.
+
+    It is a core MongoDB repository component, facilitating efficient
+    and organized access to assay specific panel information.
+    """
+
+    def __init__(self, adapter):
+        """
+        Initialize the repository with a given adapter and bind the collection.
+        """
+        super().__init__(adapter)
+        self.set_collection(self.adapter.asp_collection)
+
+    def ensure_indexes(self) -> None:
+        """
+        Create minimal indexes for ASP dashboard/admin queries.
+        """
+        col = self.get_collection()
+        col.create_index(
+            [("asp_id", 1), ("is_active", 1)],
+            name="asp_id_active_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={
+                "asp_id": {"$exists": True, "$type": "string"},
+                "is_active": True,
+            },
+        )
+        col.create_index(
+            [("is_active", 1), ("created_on", -1)],
+            name="is_active_created_on",
+            background=True,
+        )
+        col.create_index(
+            [("is_active", 1), ("asp_id", 1)],
+            name="is_active_asp_id",
+            background=True,
+        )
+        col.create_index(
+            [("is_active", 1), ("asp_group", 1)],
+            name="is_active_asp_group",
+            background=True,
+        )
+        col.create_index(
+            [("asp_id", 1), ("version", 1)],
+            name="asp_id_version_1",
+            unique=True,
+            background=True,
+        )
+
+    @staticmethod
+    def _normalize_asp_id(asp_id: str | None) -> str | None:
+        """Normalize asp id.
+
+        Args:
+                asp_id: Asp id.
+
+        Returns:
+                The  normalize asp id result.
+        """
+        if asp_id is None:
+            return None
+        return normalize_clinical_identifier(asp_id, label="asp_id")
+
+    def _asp_lookup_query(self, asp_id: str) -> dict:
+        """Asp lookup query.
+
+        Args:
+                asp_id: Asp id.
+
+        Returns:
+                The  asp lookup query result.
+        """
+        normalized = self._normalize_asp_id(asp_id)
+        return {"asp_id": normalized}
+
+    def ensure_asp_id(self, data: dict) -> dict:
+        """Ensure an ASP payload carries a normalized business key."""
+        if not isinstance(data, dict):
+            return data
+        normalized = self._normalize_asp_id(data.get("asp_id"))
+        if normalized:
+            data["asp_id"] = normalized
+            return data
+        raise ValueError("assay_specific_panels.asp_id is required in strict business-key mode")
+
+    def count_asps(self, is_active: bool | None = None) -> int:
+        """
+        Count ASPs with an optional active-status filter.
+        """
+        query = {}
+        if is_active is not None:
+            query["is_active"] = is_active
+        return int(self.get_collection().count_documents(query))
+
+    def get_asp(self, asp_name: str) -> dict | None:
+        """
+        Retrieve an assay specific panel (ASP) by its name or ID.
+
+        This method queries the database collection to find a single document
+        that matches the provided `asp_name` or `asp_id`.
+
+        Args:
+            asp_name (str): The unique name or identifier of the panel to retrieve.
+
+        Returns:
+            dict: A dictionary representing the panel document, or None if no
+            document is found.
+        """
+        return self.get_collection().find_one(
+            {**self._asp_lookup_query(asp_name), "is_active": True}
+        )
+
+    def resolve_active_asp_ids_for_scope(self, asp_ids: list[str], groups: list[str]) -> list[str]:
+        """
+        Resolve active ASP ids that match assay/group scope values.
+        """
+        assay_values = [
+            normalize_clinical_identifier(value, label="asp_id")
+            for value in (asp_ids or [])
+            if str(value).strip()
+        ]
+        group_values = [str(value).strip() for value in (groups or []) if str(value).strip()]
+        if not assay_values and not group_values:
+            return []
+
+        matchers: list[dict] = []
+        if group_values:
+            matchers.append({"asp_group": {"$in": group_values}})
+        if assay_values:
+            matchers.append({"asp_id": {"$in": assay_values}})
+
+        query: dict = {"is_active": True}
+        if matchers:
+            query["$or"] = matchers
+
+        return [
+            str(doc.get("asp_id"))
+            for doc in self.get_collection().find(query, {"_id": 0, "asp_id": 1})
+            if doc.get("asp_id")
+        ]
+
+    def get_all_asps(self, is_active: bool | None = None) -> list:
+        """
+        Retrieve all assay specific asp (ASPs), optionally filtered by active status.
+
+        This method fetches all panel documents from the database collection,
+        excluding the `covered_genes` field for efficiency.
+        If `is_active` is specified, only asps matching the active status are returned.
+        The results are sorted in descending order by the `created_on` field.
+
+        Args:
+            is_active (bool | None): If provided, filters asp by their active status.
+
+        Returns:
+            list: A list of panel documents from the database.
+        """
+        query = {}
+        if is_active is not None:
+            query["is_active"] = is_active
+
+        cursor = self.get_collection().find(query, {"covered_genes": 0}).sort("created_on", -1)
+        return list(cursor)
+
+    def search_asps(
+        self,
+        *,
+        q: str = "",
+        page: int = 1,
+        per_page: int = 30,
+        is_active: bool | None = True,
+    ) -> tuple[list[dict], int]:
+        """Search assay panels directly in MongoDB and return paged results."""
+        query: dict = {}
+        if is_active is not None:
+            query["is_active"] = is_active
+        normalized_q = str(q or "").strip()
+        if normalized_q:
+            pattern = re.escape(normalized_q)
+            query["$or"] = [
+                {"asp_id": {"$regex": pattern, "$options": "i"}},
+                {"display_name": {"$regex": pattern, "$options": "i"}},
+                {"asp_group": {"$regex": pattern, "$options": "i"}},
+                {"asp_family": {"$regex": pattern, "$options": "i"}},
+                {"asp_category": {"$regex": pattern, "$options": "i"}},
+                {"platform": {"$regex": pattern, "$options": "i"}},
+            ]
+        page = max(1, int(page or 1))
+        per_page = max(1, min(int(per_page or 30), 200))
+        skip = (page - 1) * per_page
+        projection = {"covered_genes": 0}
+        col = self.get_collection()
+        total = int(col.count_documents(query))
+        docs = list(col.find(query, projection).sort("created_on", -1).skip(skip).limit(per_page))
+        return docs, total
+
+    def create_panel(self, data: dict) -> OperationResult:
+        """
+        Insert an assay specific panel into the database.
+
+        This method adds a new assay specific panel document to the database collection.
+
+        Args:
+            data (dict): A dictionary containing the asp data to be inserted.
+
+        Returns:
+            Structured write result for the insert.
+        """
+        operation = OperationResult.from_insert_one(
+            self.get_collection().insert_one(self.ensure_asp_id(dict(data)))
+        )
+        self.invalidate_dashboard_summary()
+        return operation
+
+    def rotate_asp(
+        self,
+        asp_id: str,
+        asp_data: dict,
+        *,
+        expected_version: int,
+        retire_fields: dict,
+    ) -> OperationResult:
+        """Retire the active ASP revision and insert its successor."""
+        operation = rotate_active_revision(
+            self.get_collection(),
+            selector=self._asp_lookup_query(asp_id),
+            expected_version=expected_version,
+            new_document=self.ensure_asp_id(dict(asp_data)),
+            retire_fields=retire_fields,
+        )
+        self.invalidate_dashboard_summary()
+        return operation
+
+    def toggle_asp_active(self, asp_id: str, active_status: bool) -> OperationResult:
+        """
+        Toggle the active status of an assay specific panel (ASP) in the database.
+
+        This method updates the `is_active` field of a specific ASP document
+        identified by `asp_id`.
+
+        Args:
+            asp_id (str): The unique identifier of the ASP.
+            active_status (bool): The desired active status to set.
+
+        Returns:
+            Structured write result for the update.
+        """
+        collection = self.get_collection()
+        target = collection.find_one(
+            {
+                **self._asp_lookup_query(asp_id),
+                "is_active": not active_status,
+            },
+            sort=[("version", -1), ("created_on", -1)],
+        )
+        operation = OperationResult.from_update(
+            collection.update_one(
+                {"_id": target["_id"]} if target else {"_id": None},
+                {"$set": {"is_active": active_status}},
+            )
+        )
+        self.invalidate_dashboard_summary()
+        return operation
+
+    def delete_panel(self, asp_id: str) -> OperationResult:
+        """
+        Delete a panel from the database by its unique ID.
+
+        This method removes a single document from the database collection
+        that matches the provided `panel_id`.
+
+        Args:
+            asp_id (str): The unique identifier of the panel to be deleted.
+
+        Returns:
+            Structured write result for the delete.
+        """
+        operation = OperationResult.from_update(
+            self.get_collection().update_one(
+                {**self._asp_lookup_query(asp_id), "is_active": True},
+                {"$set": {"is_active": False}},
+            )
+        )
+        self.invalidate_dashboard_summary()
+        return operation
+
+    def get_all_asps_unique_gene_count(self) -> int:
+        """
+        Calculate the total number of unique genes across all asp.
+
+        This method queries the database collection to retrieve the `covered_genes` field
+        for all documents. It then aggregates all the genes into a set to ensure uniqueness
+        and calculates the total count of unique genes.
+
+        Returns:
+            int: The total count of unique genes across all asp.
+        """
+        docs = self.get_collection().find({"is_active": True}, {"covered_genes": 1})
+        all_genes = set()
+        for doc in docs:
+            genes = doc.get("covered_genes", [])
+            if isinstance(genes, list):
+                all_genes.update(str(gene).strip() for gene in genes if str(gene).strip())
+        return len(all_genes)
+
+    def get_all_asp_gene_counts(self) -> list[dict]:
+        """
+        Get a dictionary mapping assay panel names to gene counts and metadata.
+
+        This method queries the database collection to retrieve information about
+        each assay panel, including the number of genes covered (`covered_genes`),
+        the display name (`display_name`), and the panel group (`asp_group`).
+        It returns a dictionary where each key is a panel name (`panel_name`),
+        and the value is another dictionary containing:
+            - `gene_count`: The number of genes covered by the panel.
+            - `display_name`: The display name of the panel.
+            - `asp_group`: The group to which the panel belongs.
+
+        Returns:
+            dict: A dictionary mapping panel names to their gene counts and metadata.
+        """
+        return list(
+            self.get_collection().aggregate(
+                [
+                    {"$match": {"is_active": True}},
+                    {
+                        "$project": {
+                            "_id": 0,
+                            "asp_id": 1,
+                            "display_name": 1,
+                            "asp_group": 1,
+                            "asp_category": 1,
+                            "asp_family": 1,
+                            "accredited": 1,
+                            "covered_genes_count": {
+                                "$size": {
+                                    "$cond": [
+                                        {"$isArray": "$covered_genes"},
+                                        "$covered_genes",
+                                        [],
+                                    ]
+                                }
+                            },
+                            "germline_genes_count": {
+                                "$size": {
+                                    "$cond": [
+                                        {"$isArray": "$germline_genes"},
+                                        "$germline_genes",
+                                        [],
+                                    ]
+                                }
+                            },
+                        }
+                    },
+                    {"$sort": {"asp_group": 1, "display_name": 1, "asp_id": 1}},
+                ],
+                allowDiskUse=True,
+            )
+        )
+
+    def get_all_asp_groups(self) -> list:
+        """
+        Fetch distinct groups across all assay specific asp.
+
+        This method queries the database collection to retrieve a list of unique
+        values for the `asp_group` field, which represents the grouping of asp.
+
+        Returns:
+            list: A list of unique panel group names.
+        """
+        return self.get_collection().distinct("asp_group")
+
+    def get_all_assays(self, is_active: bool | None = None) -> list:
+        """
+        Fetch distinct assay names across all assay specific asp.
+
+        Returns:
+            list: A list of unique assay names (`asp_id`) from the database.
+        """
+        if is_active is None:
+            return self.get_collection().distinct("asp_id")
+        else:
+            return self.get_collection().find({"is_active": is_active}).distinct("asp_id")
+
+    def get_asp_genes(self, asp_id: str) -> tuple:
+        """
+        Retrieve the genes associated with a specific panel.
+
+        This method queries the database collection to find a single document
+        that matches the provided `asp_id`. It then extracts and returns a tuple
+        containing the `covered_genes` and `germline_genes` fields from the document.
+
+        Args:
+            asp_id (str): The unique identifier of the panel whose genes are to be retrieved.
+
+        Returns:
+            tuple: A tuple containing two lists:
+                - The first list contains genes in the `covered_genes` field.
+                - The second list contains genes in the `germline_genes` field.
+            If the panel is not found, both lists are empty.
+        """
+        doc = self.get_collection().find_one(self._asp_lookup_query(asp_id))
+        if not doc:
+            return [], []
+        return doc.get("covered_genes", []), doc.get("germline_genes", [])
+
+    def get_asps_for_gene_scope(self, asp_ids: list[str] | None = None) -> dict[str, dict]:
+        """Return active ASP metadata required to determine whether a gene was profiled."""
+        query: dict = {"is_active": True}
+        if asp_ids is not None:
+            query["asp_id"] = {"$in": asp_ids}
+        projection = {
+            "asp_id": 1,
+            "display_name": 1,
+            "asp_group": 1,
+            "asp_category": 1,
+            "covered_genes": 1,
+        }
+        return {
+            str(doc["asp_id"]): doc
+            for doc in self.get_collection().find(query, projection)
+            if doc.get("asp_id")
+        }
+
+    def get_asp_group_mappings(self) -> dict:
+        """
+        Retrieves a dictionary mapping assay IDs to their respective assay groups.
+
+        This method queries the collection to fetch all documents, extracting the `asp_id`
+        and `asp_group` fields. It then constructs a dictionary where the keys are
+        assay IDs (`asp_id`) and the values are their corresponding assay groups.
+
+        Returns:
+            dict: A dictionary mapping assay IDs to assay groups.
+        """
+        result = self.get_collection().find({}, {"asp_id": 1, "asp_group": 1})
+
+        mappings = {}
+        if result:
+            for assay in result:
+                assay_id = assay.get("asp_id")
+                if assay_id and assay_id not in mappings:
+                    mappings[assay_id] = assay.get("asp_group")
+
+        return mappings

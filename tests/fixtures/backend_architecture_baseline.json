@@ -1,0 +1,11 @@
+{
+  "generated_at_utc": "2026-04-04T00:00:00+00:00",
+  "mongo_leak_usage_by_file": {},
+  "mongo_leak_usage_total": 0,
+  "store_usage_by_file": {
+    "api/interfaces/http/clinical/dna/cnvs.py": 2,
+    "api/interfaces/http/clinical/dna/small_variants.py": 3,
+    "api/interfaces/http/clinical/dna/translocations.py": 2
+  },
+  "store_usage_total": 7
+}

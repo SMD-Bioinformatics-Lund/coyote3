@@ -2,33 +2,42 @@
 
 ## Route Layout
 
-The backend exposes REST JSON endpoints grouped by domain under `api/routers/`:
+The backend exposes REST JSON endpoints under stable `/api/v1/...` URLs.
+Swagger groups those endpoints by clinical or operational responsibility:
+clinical samples, DNA findings, RNA findings, coverage, reporting,
+knowledgebases, public catalog, admin operations, access control, and internal
+ingest/maintenance.
 
-- `auth.py`: Authentication, token exchange, and password management.
-- `samples.py`: Sample retrieval and update routes.
-- `small_variants.py`: SNV and Indel-based read operations.
-- `cnvs.py`: Copy Number Variant retrieval contexts.
-- `translocations.py`: Broad structural translocation queries.
-- `fusions.py`: Transcribed RNA fusion boundary endpoints.
-- `biomarkers.py`: Genomic-level diagnostic indicator endpoints.
-- `reports.py`: Report preview and save routes.
-- `users.py`, `roles.py`, `permissions.py`: Administrative routes for access control.
-- `dashboard.py`, `coverage.py`, `public.py`: Dashboard, coverage, and public-facing routes.
-- `internal.py`: Internal service and ingest routes.
+Python router modules are physically grouped under
+`api/interfaces/http/{clinical,admin,public,operations,knowledgebase}`. The
+OpenAPI groups describe the product API and are intentionally kept stable even
+if Python module names change. See [API Organization](api_organization.md) for
+the full grouping model.
 
 ## Health Endpoint
 
 Use the health endpoint to check that the API is up:
 
 ```bash
-curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_API_PORT:-5818}/api/v1/health"
+curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}/api/v1/health"
 ```
+
+## Authentication
+
+Protected API routes accept the Coyote3 API session token through either the
+configured HTTP-only session cookie or `Authorization: Bearer <token>`. API-only
+clients obtain that token by creating a session with
+`POST /api/v1/auth/sessions` and reading the `Set-Cookie` response header.
+
+See [API Authentication](authentication.md) for Swagger usage, cookie-jar
+examples, bearer-token examples, and prefix-aware URLs.
 
 ## Common Request Patterns
 
 ### Read Flows
 
 A typical read flow looks like this:
+
 1. Resolve the sample through `samples.py`.
 2. Query the relevant finding collections such as variants, CNVs, or fusions.
 3. Build the response payload from those results and the matching configuration data.
@@ -36,15 +45,24 @@ A typical read flow looks like this:
 ### Write Flows
 
 For write operations:
-1. Systems transport targeted actions or classifications through structured Pydantic body definitions.
-2. Required authorization policies validate standard execution permissions automatically derived through token extraction.
-3. Successful validation leads to database updates and audit events.
+
+1. The client submits the action or classification through a typed request
+   body.
+2. The API authenticates the caller and checks the permission required by the
+   endpoint.
+3. The application service validates the operation and writes through the
+   repository layer.
+4. Clinically or operationally significant changes produce an audit event.
 
 ## Engineering Standards
 
 When adding or changing routes:
-1. Implement or extend strictly typed input schemas within `api/contracts/`.
-2. Map endpoints natively through FastAPI router modules linking to authorization interceptors.
-3. Decouple domain functions via constructor-injected implementations within standard Service structures.
-4. Expand targeted unit and integration suites located inside explicit `tests/api` suites before submission.
-5. Run the relevant automated checks before submitting the change.
+
+1. Pick a canonical OpenAPI tag from `api/interfaces/http/tags.py`.
+2. Implement or extend typed request and response schemas in `api/contracts/`.
+3. Add the endpoint to the appropriate FastAPI router and apply its explicit
+   authentication and permission dependencies.
+4. Put use-case coordination in an application service and inject its
+   repository dependencies through the runtime container.
+5. Add focused unit tests and API contract tests under `tests/`.
+6. Run the relevant automated checks before submitting the change.

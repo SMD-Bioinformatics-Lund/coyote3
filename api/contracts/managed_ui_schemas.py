@@ -9,9 +9,8 @@ from typing import Any, Literal, Union, get_args, get_origin
 from pydantic import BaseModel
 from pydantic.fields import PydanticUndefined
 
-from api.contracts.managed_resources import ManagedResourceSpec
-from api.contracts.schemas import COLLECTION_MODEL_ADAPTERS
-from shared.config_constants import (
+from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
+from api.config.constants import (
     ALL_SAMPLE_FILE_KEYS,
     ASP_CATEGORY_OPTIONS,
     ASP_FAMILY_OPTIONS,
@@ -19,11 +18,18 @@ from shared.config_constants import (
     AUTH_TYPE_OPTIONS,
     DNA_ANALYSIS_TYPE_OPTIONS,
     ENVIRONMENT_OPTIONS,
-    PERMISSION_CATEGORY_OPTIONS,
+    GENELIST_ADHOC_TYPE_OPTIONS,
+    GENELIST_STANDARD_TYPE_OPTIONS,
+    GENELIST_TYPE_OPTIONS,
     PLATFORM_OPTIONS,
     RNA_ANALYSIS_TYPE_OPTIONS,
     SAMPLE_FILE_KEYS,
+    SUBPANEL_BASE_ID,
 )
+from api.config.contracts.governance import PERMISSION_CATALOG
+from api.config.sequencing import PLATFORM_CAPABILITIES
+from api.contracts.managed_resources import ManagedResourceSpec
+from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 
 
 def _unwrap_optional(annotation: Any) -> Any:
@@ -94,7 +100,6 @@ RESOURCE_EXTRA_FIELDS: dict[str, dict[str, dict[str, Any]]] = {
 
 RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     "asp": {
-        "assay_name": {"display_type": "input"},
         "asp_group": {"display_type": "select", "options": list(ASP_GROUP_OPTIONS)},
         "asp_family": {
             "display_type": "select",
@@ -102,29 +107,72 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         },
         "asp_category": {"display_type": "select", "options": list(ASP_CATEGORY_OPTIONS)},
         "platform": {"display_type": "select", "options": list(PLATFORM_OPTIONS)},
+        "read_mode": {
+            "display_type": "select",
+            "options_by_field": {
+                "field": "platform",
+                "values": {
+                    platform: list(capability["read_modes"])
+                    for platform, capability in PLATFORM_CAPABILITIES.items()
+                },
+            },
+            "help": "Read mode is limited to modes supported by the selected platform. It is not applicable to platforms without a selectable mode.",
+        },
+        "read_technology": {
+            "readonly": True,
+            "help": "Derived from the selected sequencing platform.",
+        },
         "display_name": {"display_type": "input"},
         "description": {"display_type": "textarea"},
         "expected_files": {
             "display_type": "checkbox-group",
             "options": list(ALL_SAMPLE_FILE_KEYS),
             "category_options": {key: list(values) for key, values in SAMPLE_FILE_KEYS.items()},
+            "help": "Files the assay is able to ingest. A declared file must be successfully loaded before the sample becomes ready.",
         },
         "required_files": {
             "display_type": "checkbox-group",
             "options": list(ALL_SAMPLE_FILE_KEYS),
             "category_options": {key: list(values) for key, values in SAMPLE_FILE_KEYS.items()},
+            "help": "Minimum files required for this assay. A manifest missing one of these files fails ingest.",
         },
-        "covered_genes": {"display_type": "jsoneditor-or-upload"},
-        "germline_genes": {"display_type": "jsoneditor-or-upload"},
+        "covered_genes": {
+            "display_type": "jsoneditor-or-upload",
+            "help": "Assay-level targeted genes. Use canonical HGNC symbols and one symbol per entry.",
+        },
+        "germline_genes": {
+            "display_type": "jsoneditor-or-upload",
+            "help": "Genes for which the assay applies its configured germline review statement.",
+        },
         "is_active": {"display_type": "checkbox", "default": True},
-        "created_by": {"readonly": True},
-        "created_on": {"readonly": True},
-        "updated_by": {"readonly": True},
-        "updated_on": {"readonly": True},
-        "version": {"readonly": True},
+        "created_by": {"readonly": True, "hidden_mode": ["create"]},
+        "created_on": {"readonly": True, "hidden_mode": ["create"]},
+        "updated_by": {"readonly": True, "hidden_mode": ["create"]},
+        "updated_on": {"readonly": True, "hidden_mode": ["create"]},
+        "version": {"readonly": True, "hidden_mode": ["create"]},
+        "supersedes_id": {
+            "readonly": True,
+            "hidden_mode": ["create"],
+            "label": "Supersedes Record ID",
+        },
+        "retired_by": {"readonly": True, "hidden_mode": ["create"]},
+        "retired_on": {"readonly": True, "hidden_mode": ["create"]},
+        "retired_reason": {"readonly": True, "hidden_mode": ["create"]},
     },
     "aspc_dna": {
-        "assay_name": {"display_type": "select"},
+        "asp_id": {
+            "display_type": "select",
+            "label": "ASP",
+            "dynamic_options": {"resource": "asp", "value": "asp_id", "label": "display_name"},
+        },
+        "subpanel_id": {
+            "display_type": "select",
+            "label": "Subpanel",
+            "options": [SUBPANEL_BASE_ID],
+            "default": SUBPANEL_BASE_ID,
+            "help": "Select one ASPC subpanel identity derived from the diagnosis tags of gene lists linked to the selected ASP. Use base for an assay-wide configuration.",
+        },
+        "aspc_id": {"readonly": True, "derive_from": ["asp_id", "subpanel_id", "environment"]},
         "asp_group": {"readonly": True},
         "asp_category": {"readonly": True},
         "platform": {"readonly": True},
@@ -142,32 +190,74 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "options": list(DNA_ANALYSIS_TYPE_OPTIONS),
             "default": ["SNV", "CNV"],
         },
-        "filters": {
+        "analysis_intents": {
+            "display_type": "checkbox-group",
+            "options": ["somatic", "germline"],
+            "default": ["somatic"],
+            "help": "Germline review is currently supported for SNV only. Select both to maintain separate somatic and germline SNV thresholds.",
+        },
+        "catalog": {
             "data_type": "json",
-            "label": "Filters (SNV and CNV strategy)",
-            "display_type": "filters-structured",
-            "placeholder": "Configure threshold keys for SNV/CNV filtering",
+            "label": "Public Catalog",
+            "display_type": "catalog-structured",
+            "help": "Controls whether this active configuration is available in the public catalog. Catalog labels and descriptive content are maintained in the center catalog configuration.",
             "groups": [
                 {
-                    "title": "SNV Thresholds",
+                    "title": "Visibility",
                     "fields": [
                         {
-                            "key": "min_alt_reads",
+                            "key": "is_public",
+                            "label": "Show In Public Catalog",
+                            "type": "checkbox",
+                            "default": True,
+                        },
+                    ],
+                },
+            ],
+        },
+        "filters": {
+            "data_type": "json",
+            "label": "Clinical Filter Profiles",
+            "display_type": "filters-structured",
+            "placeholder": "Configure only the enabled intent and analysis profiles",
+            "groups": [
+                {
+                    "title": "Somatic SNV Thresholds",
+                    "requires_analysis": ["SNV"],
+                    "requires_intent": ["somatic"],
+                    "fields": [
+                        {
+                            "key": "somatic.snv.min_alt_reads",
                             "label": "Min Alt Reads",
                             "type": "int",
                             "default": 5,
                         },
-                        {"key": "min_depth", "label": "Min Depth", "type": "int", "default": 100},
-                        {"key": "min_freq", "label": "Min AF", "type": "float", "default": 0.03},
-                        {"key": "max_freq", "label": "Max AF", "type": "float", "default": 1.0},
                         {
-                            "key": "max_control_freq",
+                            "key": "somatic.snv.min_depth",
+                            "label": "Min Depth",
+                            "type": "int",
+                            "default": 100,
+                        },
+                        {
+                            "key": "somatic.snv.min_freq",
+                            "label": "Min AF",
+                            "type": "float",
+                            "default": 0.03,
+                        },
+                        {
+                            "key": "somatic.snv.max_freq",
+                            "label": "Max AF",
+                            "type": "float",
+                            "default": 1.0,
+                        },
+                        {
+                            "key": "somatic.snv.max_control_freq",
                             "label": "Max Control AF",
                             "type": "float",
                             "default": 0.05,
                         },
                         {
-                            "key": "max_popfreq",
+                            "key": "somatic.snv.max_popfreq",
                             "label": "Max Population AF",
                             "type": "float",
                             "default": 0.01,
@@ -175,61 +265,162 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                     ],
                 },
                 {
-                    "title": "CNV Thresholds",
+                    "title": "Germline SNV Thresholds",
+                    "requires_analysis": ["SNV"],
+                    "requires_intent": ["germline"],
                     "fields": [
                         {
-                            "key": "min_cnv_size",
+                            "key": "germline.snv.min_alt_reads",
+                            "label": "Min Alt Reads",
+                            "type": "int",
+                            "default": 5,
+                        },
+                        {
+                            "key": "germline.snv.min_depth",
+                            "label": "Min Depth",
+                            "type": "int",
+                            "default": 100,
+                        },
+                        {
+                            "key": "germline.snv.min_freq",
+                            "label": "Min AF",
+                            "type": "float",
+                            "default": 0.03,
+                        },
+                        {
+                            "key": "germline.snv.max_freq",
+                            "label": "Max AF",
+                            "type": "float",
+                            "default": 1.0,
+                        },
+                        {
+                            "key": "germline.snv.max_popfreq",
+                            "label": "Max Population AF",
+                            "type": "float",
+                            "default": 0.01,
+                        },
+                    ],
+                },
+                {
+                    "title": "Somatic CNV Thresholds",
+                    "requires_analysis": ["CNV"],
+                    "requires_intent": ["somatic"],
+                    "fields": [
+                        {
+                            "key": "somatic.cnv.min_cnv_size",
                             "label": "Min CNV Size",
                             "type": "int",
                             "default": 100,
                         },
                         {
-                            "key": "max_cnv_size",
+                            "key": "somatic.cnv.max_cnv_size",
                             "label": "Max CNV Size",
                             "type": "int",
                             "default": 1000000,
                         },
                         {
-                            "key": "cnv_loss_cutoff",
+                            "key": "somatic.cnv.cnv_loss_cutoff",
                             "label": "CNV Loss Cutoff",
                             "type": "float",
                             "default": -0.3,
                         },
                         {
-                            "key": "cnv_gain_cutoff",
+                            "key": "somatic.cnv.cnv_gain_cutoff",
                             "label": "CNV Gain Cutoff",
                             "type": "float",
                             "default": 0.3,
                         },
+                    ],
+                },
+                {
+                    "title": "Somatic SNV Scope And Consequences",
+                    "requires_analysis": ["SNV"],
+                    "requires_intent": ["somatic"],
+                    "fields": [
                         {
-                            "key": "warn_cov",
+                            "key": "somatic.snv.vep_consequences",
+                            "label": "VEP Consequences",
+                            "type": "checkbox-group",
+                            "options": [],
+                            "dynamic_options": {"resource": "vep_consequence_groups"},
+                        },
+                        {
+                            "key": "somatic.snv.snvlists",
+                            "label": "SNV Gene Lists",
+                            "type": "checkbox-group",
+                            "options": [],
+                        },
+                    ],
+                },
+                {
+                    "title": "Germline SNV Scope And Consequences",
+                    "requires_analysis": ["SNV"],
+                    "requires_intent": ["germline"],
+                    "fields": [
+                        {
+                            "key": "germline.snv.vep_consequences",
+                            "label": "VEP Consequences",
+                            "type": "checkbox-group",
+                            "options": [],
+                            "dynamic_options": {"resource": "vep_consequence_groups"},
+                        },
+                        {
+                            "key": "germline.snv.snvlists",
+                            "label": "SNV Gene Lists",
+                            "type": "checkbox-group",
+                            "options": [],
+                        },
+                    ],
+                },
+                {
+                    "title": "Somatic CNV Scope",
+                    "requires_analysis": ["CNV"],
+                    "requires_intent": ["somatic"],
+                    "fields": [
+                        {
+                            "key": "somatic.cnv.cnvlists",
+                            "label": "CNV Gene Lists",
+                            "type": "checkbox-group",
+                            "options": [],
+                        },
+                        {
+                            "key": "somatic.cnv.cnveffects",
+                            "label": "CNV Effects (gain/loss)",
+                            "type": "checkbox-group",
+                            "options": ["gain", "loss"],
+                            "default": ["gain", "loss"],
+                        },
+                    ],
+                },
+                {
+                    "title": "Somatic DNA Fusion And Translocation Scope",
+                    "requires_analysis": ["TRANSLOCATION"],
+                    "requires_intent": ["somatic"],
+                    "fields": [
+                        {
+                            "key": "somatic.translocation.fusionlists",
+                            "label": "Fusion/Translocation Gene Lists",
+                            "type": "checkbox-group",
+                            "options": [],
+                        },
+                    ],
+                },
+                {
+                    "title": "Somatic Coverage Thresholds",
+                    "requires_analysis": ["COVERAGE"],
+                    "requires_intent": ["somatic"],
+                    "fields": [
+                        {
+                            "key": "somatic.coverage.warn_cov",
                             "label": "Warn Coverage",
                             "type": "int",
                             "default": 500,
                         },
                         {
-                            "key": "error_cov",
+                            "key": "somatic.coverage.error_cov",
                             "label": "Error Coverage",
                             "type": "int",
                             "default": 100,
-                        },
-                    ],
-                },
-                {
-                    "title": "Gene Scope And Consequences",
-                    "fields": [
-                        {
-                            "key": "vep_consequences",
-                            "label": "VEP Consequences",
-                            "type": "checkbox-group",
-                            "options": [],
-                        },
-                        {
-                            "key": "cnveffects",
-                            "label": "CNV Effects (gain/loss)",
-                            "type": "checkbox-group",
-                            "options": ["gain", "loss"],
-                            "default": ["gain", "loss"],
                         },
                     ],
                 },
@@ -247,7 +438,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "type": "checkbox-group",
                             "options": list(DNA_ANALYSIS_TYPE_OPTIONS),
                             "default": ["SNV", "CNV"],
-                        }
+                        },
                     ],
                 },
                 {
@@ -298,22 +489,36 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                 },
             ],
         },
-        "query": {
-            "label": "Query Overrides",
-            "display_type": "jsoneditor",
-            "placeholder": "Optional Mongo query overrides. Keys: snv/cnv/fusion/transloc",
-            "default": {},
-        },
         "verification_samples": {"display_type": "jsoneditor"},
         "is_active": {"display_type": "checkbox", "default": True},
-        "created_by": {"readonly": True},
-        "created_on": {"readonly": True},
-        "updated_by": {"readonly": True},
-        "updated_on": {"readonly": True},
-        "version": {"readonly": True},
+        "created_by": {"readonly": True, "hidden_mode": ["create"]},
+        "created_on": {"readonly": True, "hidden_mode": ["create"]},
+        "updated_by": {"readonly": True, "hidden_mode": ["create"]},
+        "updated_on": {"readonly": True, "hidden_mode": ["create"]},
+        "version": {"readonly": True, "hidden_mode": ["create"]},
+        "supersedes_id": {
+            "readonly": True,
+            "hidden_mode": ["create"],
+            "label": "Supersedes Record ID",
+        },
+        "retired_by": {"readonly": True, "hidden_mode": ["create"]},
+        "retired_on": {"readonly": True, "hidden_mode": ["create"]},
+        "retired_reason": {"readonly": True, "hidden_mode": ["create"]},
     },
     "aspc_rna": {
-        "assay_name": {"display_type": "select"},
+        "asp_id": {
+            "display_type": "select",
+            "label": "ASP",
+            "dynamic_options": {"resource": "asp", "value": "asp_id", "label": "display_name"},
+        },
+        "subpanel_id": {
+            "display_type": "select",
+            "label": "Subpanel",
+            "options": [SUBPANEL_BASE_ID],
+            "default": SUBPANEL_BASE_ID,
+            "help": "Select one ASPC subpanel identity derived from the diagnosis tags of gene lists linked to the selected ASP. Use base for an assay-wide configuration.",
+        },
+        "aspc_id": {"readonly": True, "derive_from": ["asp_id", "subpanel_id", "environment"]},
         "asp_group": {"readonly": True},
         "asp_category": {"readonly": True},
         "platform": {"readonly": True},
@@ -331,23 +536,43 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "options": list(RNA_ANALYSIS_TYPE_OPTIONS),
             "default": ["FUSION"],
         },
+        "catalog": {
+            "data_type": "json",
+            "label": "Public Catalog",
+            "display_type": "catalog-structured",
+            "help": "Controls whether this active configuration is available in the public catalog. Catalog labels and descriptive content are maintained in the center catalog configuration.",
+            "groups": [
+                {
+                    "title": "Visibility",
+                    "fields": [
+                        {
+                            "key": "is_public",
+                            "label": "Show In Public Catalog",
+                            "type": "checkbox",
+                            "default": True,
+                        },
+                    ],
+                },
+            ],
+        },
         "filters": {
             "data_type": "json",
-            "label": "Filters (Fusion strategy)",
+            "label": "Clinical Filter Profiles",
             "display_type": "filters-structured",
             "placeholder": "Configure RNA thresholds and fusion_* strategy keys",
             "groups": [
                 {
-                    "title": "Fusion Thresholds",
+                    "title": "Somatic Fusion Thresholds",
+                    "requires_analysis": ["FUSION"],
                     "fields": [
                         {
-                            "key": "min_spanning_reads",
+                            "key": "somatic.fusion.min_spanning_reads",
                             "label": "Min Spanning Reads",
                             "type": "int",
                             "default": 5,
                         },
                         {
-                            "key": "min_spanning_pairs",
+                            "key": "somatic.fusion.min_spanning_pairs",
                             "label": "Min Spanning Pairs",
                             "type": "int",
                             "default": 5,
@@ -355,21 +580,28 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                     ],
                 },
                 {
-                    "title": "Fusion Lists",
+                    "title": "Somatic Fusion Scope",
+                    "requires_analysis": ["FUSION"],
                     "fields": [
                         {
-                            "key": "fusion_callers",
+                            "key": "somatic.fusion.fusion_callers",
                             "label": "Fusion Callers",
                             "type": "checkbox-group",
-                            "options": ["arriba", "starfusion", "fusioncatcher"],
+                            "options": list(CLINICAL_VOCABULARY.fusion_callers),
                             "default": ["arriba", "starfusion"],
                         },
                         {
-                            "key": "fusion_effects",
+                            "key": "somatic.fusion.fusion_effects",
                             "label": "Fusion Effects",
                             "type": "checkbox-group",
                             "options": ["in-frame", "out-of-frame"],
                             "default": ["in-frame", "out-of-frame"],
+                        },
+                        {
+                            "key": "somatic.fusion.fusionlists",
+                            "label": "Fusion Gene Lists",
+                            "type": "checkbox-group",
+                            "options": [],
                         },
                     ],
                 },
@@ -387,7 +619,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "type": "checkbox-group",
                             "options": list(RNA_ANALYSIS_TYPE_OPTIONS),
                             "default": ["FUSION"],
-                        }
+                        },
                     ],
                 },
                 {
@@ -438,44 +670,79 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                 },
             ],
         },
-        "query": {
-            "label": "Query Overrides",
-            "display_type": "jsoneditor",
-            "placeholder": "Optional Mongo query overrides. Keys: snv/cnv/fusion/transloc",
-            "default": {},
-        },
         "is_active": {"display_type": "checkbox", "default": True},
-        "created_by": {"readonly": True},
-        "created_on": {"readonly": True},
-        "updated_by": {"readonly": True},
-        "updated_on": {"readonly": True},
-        "version": {"readonly": True},
+        "created_by": {"readonly": True, "hidden_mode": ["create"]},
+        "created_on": {"readonly": True, "hidden_mode": ["create"]},
+        "updated_by": {"readonly": True, "hidden_mode": ["create"]},
+        "updated_on": {"readonly": True, "hidden_mode": ["create"]},
+        "version": {"readonly": True, "hidden_mode": ["create"]},
+        "supersedes_id": {
+            "readonly": True,
+            "hidden_mode": ["create"],
+            "label": "Supersedes Record ID",
+        },
+        "retired_by": {"readonly": True, "hidden_mode": ["create"]},
+        "retired_on": {"readonly": True, "hidden_mode": ["create"]},
+        "retired_reason": {"readonly": True, "hidden_mode": ["create"]},
     },
     "isgl": {
         "list_type": {
             "display_type": "checkbox-group",
-            "options": [
-                "small_variant_genelist",
-                "cnv_genelist",
-                "fusion_genelist",
-            ],
+            "options": list(GENELIST_TYPE_OPTIONS),
+            "conditional_options": {
+                "field": "adhoc",
+                "truthy": list(GENELIST_ADHOC_TYPE_OPTIONS),
+                "falsy": list(GENELIST_STANDARD_TYPE_OPTIONS),
+            },
+            "help": "Choose the clinical analysis domain. Ad-hoc lists expose only ad-hoc list types; curated lists expose only standard list types.",
         },
-        "diagnosis": {"display_type": "textarea"},
-        "assay_groups": {"display_type": "checkbox-group", "options": list(ASP_GROUP_OPTIONS)},
-        "assays": {"display_type": "checkbox-group"},
-        "genes": {"display_type": "jsoneditor-or-upload"},
+        "diagnosis": {
+            "label": "Diagnosis / Subpanel IDs",
+            "display_type": "textarea",
+            "placeholder": "endometrie, breast, colon",
+            "help": "Clinical diagnosis or in-silico subpanel identifiers. Enter multiple values separated by commas or new lines.",
+        },
+        "asp_groups": {
+            "display_type": "checkbox-group",
+            "options": list(ASP_GROUP_OPTIONS),
+            "help": "Select one or more assay groups to expose the ASPs that may use this gene list.",
+        },
+        "asp_ids": {
+            "display_type": "checkbox-group",
+            "help": "Select one or more assay groups first, then select the specific ASPs that may use this gene list.",
+        },
+        "genes": {
+            "display_type": "jsoneditor-or-upload",
+            "help": "Curated gene symbols for the selected clinical list type, one per entry.",
+        },
+        "germline_genes": {
+            "display_type": "jsoneditor-or-upload",
+            "help": "Optional germline subset associated with this curated list.",
+        },
         "adhoc": {"display_type": "checkbox"},
         "is_public": {"display_type": "checkbox"},
         "is_active": {"display_type": "checkbox", "default": True},
-        "created_by": {"readonly": True},
-        "created_on": {"readonly": True},
-        "updated_by": {"readonly": True},
-        "updated_on": {"readonly": True},
-        "version": {"readonly": True},
+        "created_by": {"readonly": True, "hidden_mode": ["create"]},
+        "created_on": {"readonly": True, "hidden_mode": ["create"]},
+        "updated_by": {"readonly": True, "hidden_mode": ["create"]},
+        "updated_on": {"readonly": True, "hidden_mode": ["create"]},
+        "version": {"readonly": True, "hidden_mode": ["create"]},
+        "supersedes_id": {
+            "readonly": True,
+            "hidden_mode": ["create"],
+            "label": "Supersedes Record ID",
+        },
+        "retired_by": {"readonly": True, "hidden_mode": ["create"]},
+        "retired_on": {"readonly": True, "hidden_mode": ["create"]},
+        "retired_reason": {"readonly": True, "hidden_mode": ["create"]},
     },
     "role": {
+        "color": {
+            "display_type": "color",
+            "placeholder": "#4f46e5",
+            "help": "Badge color stored as a six-digit hexadecimal value and applied immediately throughout the UI.",
+        },
         "permissions": {"display_type": "checkbox-group"},
-        "deny_permissions": {"display_type": "checkbox-group"},
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
         "created_on": {"readonly": True},
@@ -484,18 +751,25 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "version": {"readonly": True},
     },
     "user": {
-        "auth_type": {"display_type": "select", "options": list(AUTH_TYPE_OPTIONS)},
+        "ui_settings": {
+            "label": "Interface layouts",
+            "display_type": "user-settings",
+            "help": "Presentation preferences stored for this user and restored on later sessions.",
+        },
+        "auth_type": {"display_type": "checkbox-group", "options": list(AUTH_TYPE_OPTIONS)},
         "roles": {"display_type": "checkbox-group"},
         "username": {"readonly_mode": ["edit"]},
-        "password": {"display_type": "password"},
+        "password": {
+            "display_type": "password",
+            "readonly_mode": ["edit"],
+            "help": "Passwords are changed only through invite, reset, or authenticated password flows.",
+        },
         "environments": {
             "display_type": "checkbox-group",
             "options": list(ENVIRONMENT_OPTIONS),
         },
-        "assay_groups": {"display_type": "checkbox-group", "options": list(ASP_GROUP_OPTIONS)},
-        "assays": {"display_type": "checkbox-group"},
-        "permissions": {"display_type": "checkbox-group"},
-        "deny_permissions": {"display_type": "checkbox-group"},
+        "asp_groups": {"display_type": "checkbox-group", "options": list(ASP_GROUP_OPTIONS)},
+        "asp_ids": {"display_type": "checkbox-group"},
         "must_change_password": {"display_type": "checkbox"},
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
@@ -505,8 +779,14 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "version": {"readonly": True},
     },
     "permission": {
-        "category": {"display_type": "select", "options": list(PERMISSION_CATEGORY_OPTIONS)},
+        "category": {"display_type": "select", "options": list(PERMISSION_CATALOG.categories)},
         "tags": {"display_type": "textarea"},
+        "system_managed": {
+            "display_type": "checkbox",
+            "readonly": True,
+            "default": False,
+            "help": "Bundled application permissions are system-managed and assigned through roles.",
+        },
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
         "created_on": {"readonly": True},
@@ -519,80 +799,158 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
 RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
     "asp": [
         (
-            "identity",
+            "assay identity",
             [
-                "assay_name",
+                "asp_id",
                 "display_name",
                 "asp_group",
                 "asp_family",
                 "asp_category",
                 "platform",
+                "read_mode",
+                "read_technology",
                 "description",
+            ],
+        ),
+        (
+            "ingest contract",
+            [
                 "expected_files",
                 "required_files",
             ],
         ),
-        ("gene_content", ["covered_genes", "germline_genes"]),
-        ("status", ["is_active"]),
-        ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
+        ("clinical gene scope", ["covered_genes", "germline_genes"]),
+        ("lifecycle", ["system_managed", "is_active"]),
+        (
+            "system metadata",
+            [
+                "version",
+                "supersedes_id",
+                "created_by",
+                "created_on",
+                "updated_by",
+                "updated_on",
+                "retired_by",
+                "retired_on",
+                "retired_reason",
+            ],
+        ),
     ],
     "aspc_dna": [
-        ("identity", ["assay_name", "environment", "asp_group"]),
-        ("analysis", ["analysis_types"]),
-        ("filters", ["filters"]),
-        ("query", ["query"]),
-        ("reporting", ["reporting", "verification_samples"]),
-        ("status", ["is_active"]),
-        ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
+        (
+            "configuration scope",
+            [
+                "aspc_id",
+                "asp_id",
+                "subpanel_id",
+                "environment",
+                "asp_group",
+                "asp_category",
+                "platform",
+            ],
+        ),
+        ("enabled analysis", ["analysis_types"]),
+        ("analytical filters", ["filters"]),
+        ("clinical reporting", ["reporting"]),
+        ("public catalog", ["catalog"]),
+        ("verification", ["verification_samples"]),
+        ("lifecycle", ["system_managed", "is_active"]),
+        (
+            "system metadata",
+            [
+                "version",
+                "supersedes_id",
+                "created_by",
+                "created_on",
+                "updated_by",
+                "updated_on",
+                "retired_by",
+                "retired_on",
+                "retired_reason",
+            ],
+        ),
     ],
     "aspc_rna": [
-        ("identity", ["assay_name", "environment", "asp_group"]),
-        ("analysis", ["analysis_types"]),
-        ("filters", ["filters"]),
-        ("query", ["query"]),
-        ("reporting", ["reporting"]),
-        ("status", ["is_active"]),
-        ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
+        (
+            "configuration scope",
+            [
+                "aspc_id",
+                "asp_id",
+                "subpanel_id",
+                "environment",
+                "asp_group",
+                "asp_category",
+                "platform",
+            ],
+        ),
+        ("enabled analysis", ["analysis_types"]),
+        ("analytical filters", ["filters"]),
+        ("clinical reporting", ["reporting"]),
+        ("public catalog", ["catalog"]),
+        ("lifecycle", ["system_managed", "is_active"]),
+        (
+            "system metadata",
+            [
+                "version",
+                "supersedes_id",
+                "created_by",
+                "created_on",
+                "updated_by",
+                "updated_on",
+                "retired_by",
+                "retired_on",
+                "retired_reason",
+            ],
+        ),
     ],
     "isgl": [
-        ("identity", ["name", "displayname", "list_type", "diagnosis"]),
-        ("assignment", ["assay_groups", "assays"]),
-        ("gene_content", ["genes"]),
-        ("status", ["adhoc", "is_public", "is_active"]),
-        ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
+        ("list identity", ["name", "displayname", "list_type", "diagnosis"]),
+        ("clinical scope", ["asp_groups", "asp_ids"]),
+        ("curated gene content", ["genes", "germline_genes"]),
+        ("availability", ["adhoc", "is_public", "system_managed", "is_active"]),
+        (
+            "system metadata",
+            [
+                "version",
+                "supersedes_id",
+                "created_by",
+                "created_on",
+                "updated_by",
+                "updated_on",
+                "retired_by",
+                "retired_on",
+                "retired_reason",
+            ],
+        ),
     ],
     "user": [
         ("identity", ["firstname", "lastname", "fullname", "username", "email", "job_title"]),
         ("auth", ["auth_type", "password", "must_change_password"]),
-        ("role_access", ["roles", "permissions", "deny_permissions"]),
-        ("scope", ["environments", "assay_groups", "assays"]),
-        ("status", ["is_active"]),
+        ("role_access", ["roles"]),
+        ("scope", ["environments", "asp_groups", "asp_ids"]),
+        ("user settings", ["ui_settings"]),
+        ("status", ["system_managed", "is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "role": [
         ("identity", ["name", "label", "description", "color", "level"]),
-        ("permissions", ["permissions", "deny_permissions"]),
-        ("status", ["is_active"]),
+        ("permissions", ["permissions"]),
+        ("status", ["system_managed", "is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
     "permission": [
-        ("identity", ["permission_name", "label", "category", "description", "tags"]),
-        ("status", ["is_active"]),
+        ("identity", ["permission_id", "label", "category", "description", "tags"]),
+        ("status", ["system_managed", "is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),
     ],
 }
 
 RESOURCE_EXCLUDED_FIELDS: dict[str, set[str]] = {
-    "asp": {"asp_id", "version_history"},
-    "aspc_dna": {"aspc_id", "id_", "version_history"},
-    "aspc_rna": {
-        "aspc_id",
-        "id_",
-        "version_history",
-    },
-    "isgl": {"isgl_id", "version_history"},
+    "asp": {"asp_id"},
+    "aspc_dna": {"id_"},
+    "aspc_rna": {"id_"},
+    "isgl": {"isgl_id"},
     "user": {
-        "version_history",
         "password_updated_on",
         "password_action_token_hash",
         "password_action_purpose",
@@ -600,8 +958,7 @@ RESOURCE_EXCLUDED_FIELDS: dict[str, set[str]] = {
         "password_action_issued_at",
         "password_action_issued_by",
     },
-    "role": {"role_id", "version_history"},
-    "permission": {"permission_id", "version_history"},
+    "role": {"role_id"},
 }
 
 
@@ -682,6 +1039,18 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
     for field_name, override in RESOURCE_FIELD_OVERRIDES.get(spec.key, {}).items():
         if field_name in fields:
             fields[field_name].update(deepcopy(override))
+
+    if "system_managed" in fields:
+        fields["system_managed"].update(
+            {
+                "readonly": True,
+                "hidden_mode": ["create"],
+                "help": (
+                    "Set by first-installation bootstrap. System-installed records "
+                    "can be deactivated where supported, but cannot be deleted."
+                ),
+            }
+        )
 
     sections = _section_payload(spec.key, fields)
 

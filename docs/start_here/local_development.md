@@ -4,7 +4,7 @@ This document describes the standard local development setup for Coyote3.
 
 ## Virtual Environment
 
-Use a project-local virtual environment. Do not run the application from a system Python installation.
+Use the project's virtual environment for Python commands.
 
 ```bash
 # Create the local environment
@@ -32,16 +32,16 @@ python -m pytest -q
 python -m mkdocs build --strict
 ```
 
-## Running The Services Directly
+## Running the services directly
 
 If you want to debug outside Docker, you can run the main services directly:
 
 ```bash
 # API
-PYTHONPATH=. python -m uvicorn api.main:app --reload --port 8001
+PYTHONPATH=. python -m uvicorn api.app.main:app --reload --port 8001
 
 # Web UI
-PYTHONPATH=. python -m wsgi
+cd frontend && npm run dev
 ```
 
 ## Development Loop
@@ -61,11 +61,12 @@ PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
 
 ## Git Hooks
 
-The repository uses `pre-commit` hooks to enforce basic quality checks before a commit is created.
+The repository uses `.githooks/pre-commit` to enforce quality checks before a commit is created.
 
 ```bash
 # Install hooks once per clone
-bash scripts/setup_git_hooks.sh
+git config core.hooksPath .githooks
+chmod +x .githooks/pre-commit
 
 # Run hooks manually across the repository
 python -m pre_commit run --all-files

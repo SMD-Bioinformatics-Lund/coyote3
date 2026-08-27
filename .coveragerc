@@ -2,13 +2,13 @@
 branch = True
 source =
     api
-    coyote
 omit =
     */tests/*
     */__pycache__/*
     */site-packages/*
 
 [report]
+fail_under = 75
 skip_covered = False
 show_missing = True
 precision = 2

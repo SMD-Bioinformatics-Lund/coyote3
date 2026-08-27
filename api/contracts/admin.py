@@ -202,9 +202,52 @@ class AdminSamplesListPayload(BaseModel):
 
     samples: list[dict[str, Any]]
     pagination: AdminListPagePayload
+    filter_options: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class AdminSampleContextPayload(BaseModel):
     """Represent the admin sample context payload."""
 
     sample: dict[str, Any]
+
+
+class AdminSampleUpdatePayload(BaseModel):
+    """Represent a complete sample document submitted by the admin JSON editor."""
+
+    sample: dict[str, Any]
+
+
+class AdminSchemasPayload(BaseModel):
+    """Represent registered document schema contracts for admin inspection."""
+
+    schemas: list[dict[str, Any]]
+    total: int
+
+
+class AdminAuditPayload(BaseModel):
+    """Represent audit log rows read from configured audit log files."""
+
+    events: list[dict[str, Any]]
+    total: int
+    log_dir: str | None = None
+
+
+class AdminAppControlsPayload(BaseModel):
+    """Represent current application controls and their defaults."""
+
+    controls: dict[str, Any]
+    defaults: dict[str, Any]
+    runtime: dict[str, Any] = Field(default_factory=dict)
+
+
+class AdminAppControlsUpdatePayload(BaseModel):
+    """Represent an application-controls update request."""
+
+    controls: dict[str, Any]
+
+
+class AdminMaintenanceRunPayload(BaseModel):
+    """Represent a manually queued operational task."""
+
+    status: str
+    task_id: str | None = None

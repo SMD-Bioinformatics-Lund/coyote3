@@ -1,0 +1,31 @@
+[
+  {
+    "email": "demo@example.org",
+    "username": "demo.user",
+    "firstname": "Demo",
+    "lastname": "User",
+    "fullname": "Demo User",
+    "job_title": "Clinical Scientist",
+    "auth_type": [
+      "ldap"
+    ],
+    "must_change_password": false,
+    "roles": [
+      "admin"
+    ],
+    "is_active": true,
+    "environments": [
+      "production",
+      "development",
+      "testing",
+      "validation"
+    ],
+    "version": 1,
+    "asp_ids": [
+      "assay_1"
+    ],
+    "asp_groups": [
+      "hematology"
+    ]
+  }
+]

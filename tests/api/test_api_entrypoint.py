@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.main import app
+from api.app.main import app
 
 
 def test_canonical_api_entrypoint_serves_health():

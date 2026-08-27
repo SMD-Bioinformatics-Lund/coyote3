@@ -8,8 +8,31 @@ import pytest
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
 
-from api import middleware
+from api.app import middleware
+from api.app.deps import services
 from api.security.access import ApiUser
+
+
+class _EnabledModuleControls:
+    """Provide enabled module state to isolated middleware tests."""
+
+    @staticmethod
+    def module_enabled(_module_key: str) -> bool:
+        return True
+
+
+@pytest.fixture(autouse=True)
+def _enable_application_modules(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep module availability independent from request-audit assertions."""
+    monkeypatch.setattr(
+        services,
+        "get_app_controls_service",
+        lambda: _EnabledModuleControls(),
+    )
+    middleware.runtime_app.config["API_RATE_LIMIT_ENABLED"] = False
+    middleware.runtime_app.config["API_CSRF_ENABLED"] = False
+    middleware._API_LIMITER = None
+    middleware._API_LIMITER_CFG = None
 
 
 def _user(level: int = 9) -> ApiUser:
@@ -23,11 +46,11 @@ def _user(level: int = 9) -> ApiUser:
         roles=["user"],
         access_level=level,
         permissions=[],
-        denied_permissions=[],
-        assays=["DNA", "RNA"],
-        assay_groups=[],
+        asp_ids=["DNA", "RNA"],
+        asp_groups=[],
         envs=["production"],
         asp_map={},
+        auth_type=["local"],
     )
 
 
@@ -105,3 +128,52 @@ async def test_mutation_event_emits_request_id_user_and_target(monkeypatch: pyte
     assert captured["action"] == "POST"
     assert captured["target"] == "/api/v1/coverage/blacklist/entries"
     assert captured["request"].headers.get("X-Request-ID") == "rid-456"
+
+
+@pytest.mark.asyncio
+async def test_successful_read_does_not_emit_request_audit_noise(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Successful read requests should not be persisted as durable audit events."""
+    captured: list[dict[str, Any]] = []
+
+    monkeypatch.setattr(middleware, "ensure_runtime_initialized", lambda **_: None)
+    monkeypatch.setattr(middleware, "resolve_request_user", lambda _request: _user(level=9))
+    monkeypatch.setattr(
+        middleware,
+        "emit_request_event",
+        lambda **kwargs: captured.append(kwargs),
+    )
+    monkeypatch.setattr(middleware, "emit_mutation_event", lambda **_: None)
+
+    auth_mw = middleware.build_authentication_middleware(testing=True, development=False)
+
+    async def _call_next(_request: Request) -> JSONResponse:
+        return JSONResponse(status_code=200, content={"status": "ok"})
+
+    response = await auth_mw(_request(path="/api/v1/samples", method="GET"), _call_next)
+
+    assert response.status_code == 200
+    assert captured == []
+
+
+@pytest.mark.asyncio
+async def test_failed_read_emits_request_audit_event(monkeypatch: pytest.MonkeyPatch):
+    """Failed reads remain auditable because they are operational/security signals."""
+    captured: dict[str, Any] = {}
+
+    monkeypatch.setattr(middleware, "ensure_runtime_initialized", lambda **_: None)
+    monkeypatch.setattr(middleware, "resolve_request_user", lambda _request: _user(level=9))
+    monkeypatch.setattr(middleware, "emit_request_event", lambda **kwargs: captured.update(kwargs))
+    monkeypatch.setattr(middleware, "emit_mutation_event", lambda **_: None)
+
+    auth_mw = middleware.build_authentication_middleware(testing=True, development=False)
+
+    async def _call_next(_request: Request) -> JSONResponse:
+        return JSONResponse(status_code=500, content={"error": "failed"})
+
+    response = await auth_mw(_request(path="/api/v1/samples", method="GET"), _call_next)
+
+    assert response.status_code == 500
+    assert captured["username"] == "user1"
+    assert captured["status_code"] == 500

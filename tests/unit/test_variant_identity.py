@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.core.dna.variant_identity import (
+from api.domain.core.dna.variant_identity import (
     build_simple_id,
     build_simple_id_hash_from_simple_id,
     ensure_variant_identity_fields,
@@ -35,9 +35,9 @@ def test_large_alleles_generate_stable_hash() -> None:
     assert len(digest) == 32
 
 
-def test_legacy_document_can_be_backfilled_safely() -> None:
-    legacy = {"CHROM": " chr17 ", "POS": "7579472", "REF": " c ", "ALT": " t "}
-    normalized = ensure_variant_identity_fields(legacy)
+def test_historical_document_can_be_backfilled_safely() -> None:
+    historical = {"CHROM": " chr17 ", "POS": "7579472", "REF": " c ", "ALT": " t "}
+    normalized = ensure_variant_identity_fields(historical)
 
     assert normalized["simple_id"] == "17_7579472_C_T"
     assert normalized["simple_id_hash"] == "862b46287a08e369aa99f8f3777f44b9"
