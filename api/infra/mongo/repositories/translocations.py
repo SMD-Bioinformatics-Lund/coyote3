@@ -15,12 +15,13 @@ from bson.objectid import ObjectId
 
 from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repositories.finding_comment_owner import FindingCommentOwnerMixin
 
 
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class TranslocsRepository(BaseRepository):
+class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
     """
     TranslocsRepository is a class for managing translocation data in the database.
 
@@ -29,6 +30,8 @@ class TranslocsRepository(BaseRepository):
     It also includes utility methods for retrieving annotations, counting unique translocations,
     and deleting translocations associated with a sample.
     """
+
+    finding_type = "translocation"
 
     def __init__(self, adapter):
         """
@@ -89,7 +92,8 @@ class TranslocsRepository(BaseRepository):
             rows = list(self.get_collection().find(sample_id))
         else:
             rows = list(self.get_collection().find({"SAMPLE_ID": sample_id}))
-        return [self._normalize_info_shape(row) for row in rows]
+        normalized = [self._normalize_info_shape(row) for row in rows]
+        return self.hydrate_finding_comments_many(normalized)
 
     def get_interesting_sample_translocations(
         self, sample_id: str, interesting: bool = True
@@ -122,8 +126,10 @@ class TranslocsRepository(BaseRepository):
         Raises:
             bson.errors.InvalidId: If the provided `transloc_id` is not a valid ObjectId.
         """
-        return self._normalize_info_shape(
-            self.get_collection().find_one({"_id": ObjectId(transloc_id)})
+        return self._hydrate_finding_comments(
+            self._normalize_info_shape(
+                self.get_collection().find_one({"_id": ObjectId(transloc_id)})
+            )
         )
 
     def get_transloc_annotations(self, tl: dict) -> list:
@@ -223,7 +229,7 @@ class TranslocsRepository(BaseRepository):
         Returns:
             None
         """
-        self.hide_comment(transloc_id, comment_id)
+        self._set_finding_comment_hidden(transloc_id, comment_id, True)
 
     def unhide_transloc_comment(self, transloc_id: str, comment_id: str) -> None:
         """
@@ -239,7 +245,7 @@ class TranslocsRepository(BaseRepository):
         Returns:
             None
         """
-        self.unhide_comment(transloc_id, comment_id)
+        self._set_finding_comment_hidden(transloc_id, comment_id, False)
 
     def add_transloc_comment(self, transloc_id: str, comment: dict) -> None:
         """
@@ -255,7 +261,7 @@ class TranslocsRepository(BaseRepository):
         Returns:
             None
         """
-        self.update_comment(transloc_id, comment)
+        self._add_finding_comment(transloc_id, comment)
 
     def hidden_transloc_comments(self, id: str) -> bool:
         """
@@ -270,7 +276,7 @@ class TranslocsRepository(BaseRepository):
         Returns:
             bool: Returns `True` if there are hidden comments, otherwise `False`.
         """
-        return self.hidden_comments(id)
+        return self._has_hidden_finding_comments(id)
 
     def get_total_transloc_count(self) -> int:
         """

@@ -17,12 +17,13 @@ from bson.objectid import ObjectId
 
 from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repositories.finding_comment_owner import FindingCommentOwnerMixin
 
 
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class FusionsRepository(BaseRepository):
+class FusionsRepository(FindingCommentOwnerMixin, BaseRepository):
     """
     A repository class for managing fusion data in the database.
 
@@ -34,6 +35,8 @@ class FusionsRepository(BaseRepository):
     The class is designed to extend the base repository functionality and provide
     specialized methods for fusion-related data management.
     """
+
+    finding_type = "fusion"
 
     def __init__(self, adapter):
         """
@@ -185,7 +188,7 @@ class FusionsRepository(BaseRepository):
         Returns:
             dict: The fusion variant document if found, otherwise None.
         """
-        return self.get_collection().find_one({"_id": ObjectId(id)})
+        return self._hydrate_finding_comments(self.get_collection().find_one({"_id": ObjectId(id)}))
 
     def get_total_fusion_count(self) -> int:
         """
@@ -298,7 +301,7 @@ class FusionsRepository(BaseRepository):
         Returns:
             None
         """
-        self.hide_comment(id, comment_id)
+        self._set_finding_comment_hidden(id, comment_id, True)
 
     def unhide_fus_comment(self, id: str, comment_id: str) -> None:
         """
@@ -314,7 +317,7 @@ class FusionsRepository(BaseRepository):
         Returns:
             None
         """
-        self.unhide_comment(id, comment_id)
+        self._set_finding_comment_hidden(id, comment_id, False)
 
     def add_fusion_comment(self, id: str, comment: dict) -> None:
         """
@@ -330,7 +333,7 @@ class FusionsRepository(BaseRepository):
         Returns:
             None
         """
-        self.update_comment(id, comment)
+        self._add_finding_comment(id, comment)
 
     def delete_sample_fusions(self, sample_oid: str) -> OperationResult:
         """
@@ -361,7 +364,7 @@ class FusionsRepository(BaseRepository):
         Returns:
             bool: True if there are hidden comments, False otherwise.
         """
-        return self.hidden_comments(fus_id)
+        return self._has_hidden_finding_comments(fus_id)
 
     def get_fusion_in_other_samples(self, fusion: dict) -> list:
         """

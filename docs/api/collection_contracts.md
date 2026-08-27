@@ -302,6 +302,32 @@ Required keys:
 Optional keys:
 - None
 
+## `finding_comments`
+
+Required keys:
+- `sample_oid` (Any)
+- `finding_oid` (Any)
+- `finding_type` (Literal['small_variant', 'cnv', 'fusion', 'translocation'])
+- `author` (str)
+- `text` (str)
+
+Optional keys:
+- `sample_name` (str | None)
+- `nomenclature` (Literal['p', 'c', 'g', 'cn', 'f', 't'] | None)
+- `variant` (str | None)
+- `hgvsp` (str | None)
+- `hgvsc` (str | None)
+- `genomic` (str | None)
+- `genomic_hash` (str | None)
+- `gene` (str | None)
+- `transcript` (str | None)
+- `gene1` (str | None)
+- `gene2` (str | None)
+- `hidden` (int | bool)
+- `hidden_by` (str | None)
+- `time_created` (datetime.datetime | None)
+- `time_hidden` (datetime.datetime | None)
+
 ## `fusions`
 
 Required keys:

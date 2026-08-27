@@ -70,6 +70,44 @@ class SampleCommentRecordDoc(_DocBase):
     time_hidden: datetime | None = None
 
 
+class FindingCommentRecordDoc(_DocBase):
+    sample_oid: Any
+    sample_name: str | None = None
+    finding_oid: Any
+    finding_type: Literal["small_variant", "cnv", "fusion", "translocation"]
+    nomenclature: Literal["p", "c", "g", "cn", "f", "t"] | None = None
+    variant: str | None = None
+    hgvsp: str | None = None
+    hgvsc: str | None = None
+    genomic: str | None = None
+    genomic_hash: str | None = None
+    gene: str | None = None
+    transcript: str | None = None
+    gene1: str | None = None
+    gene2: str | None = None
+    author: str
+    text: str
+    hidden: int | bool = 0
+    hidden_by: str | None = None
+    time_created: datetime | None = None
+    time_hidden: datetime | None = None
+
+    @field_validator("author", mode="before")
+    @classmethod
+    def _normalize_author(cls, value: Any) -> str:
+        normalized = str(value or "").strip()
+        if not normalized:
+            raise ValueError("author must be a non-empty string")
+        return normalized
+
+    @field_validator("text", mode="before")
+    @classmethod
+    def _validate_text(cls, value: Any) -> str:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("text must be a non-empty string")
+        return value
+
+
 class SampleReportRecordDoc(_DocBase):
     sample_oid: Any
     sample_name: str | None = None

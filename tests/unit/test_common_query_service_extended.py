@@ -96,6 +96,10 @@ def _service(**overrides) -> CommonQueryService:
                 "hgnc_id": "HGNC:11998",
                 "hgnc_symbol": "TP53" if symbol == "P53" else symbol,
             },
+            get_metadata_by_symbol=lambda symbol: {
+                "hgnc_id": "HGNC:11998",
+                "hgnc_symbol": symbol,
+            },
         ),
         "oncokb_repository": SimpleNamespace(
             get_oncokb_gene=lambda gene: {"gene": gene} if gene else None,
@@ -475,6 +479,25 @@ def test_gene_cohort_uses_effective_scope_latest_report_and_visible_samples() ->
     assert result["denominator"]["duplicate_report_observations_removed"] == 0
 
 
+def test_gene_cohort_requires_an_exact_approved_gene_symbol() -> None:
+    service = _service(
+        hgnc_repository=SimpleNamespace(
+            get_metadata_by_hgnc_id=lambda hgnc_id: None,
+            get_metadata_by_symbol=lambda symbol: None,
+        )
+    )
+
+    with pytest.raises(AppError) as exc_info:
+        service.gene_cohort_payload(
+            gene_id="TP",
+            visible_asp_ids=None,
+            visible_environments=None,
+        )
+
+    assert exc_info.value.status_code == 404
+    assert "matches 'TP' exactly" in exc_info.value.message
+
+
 def test_gene_cohort_history_counts_each_sample_mutation_once() -> None:
     sample = {
         "_id": "sample-1",
@@ -491,6 +514,7 @@ def test_gene_cohort_history_counts_each_sample_mutation_once() -> None:
             "sample_oid": "sample-1",
             "sample_name": "S1",
             "report_oid": "new-report",
+            "analysis_type": "SNV",
             "gene": "TP53",
             "tier": 2,
             "hgvsp": "p.Arg175His",
@@ -501,6 +525,7 @@ def test_gene_cohort_history_counts_each_sample_mutation_once() -> None:
             "sample_oid": "sample-1",
             "sample_name": "S1",
             "report_oid": "old-report",
+            "analysis_type": "SNV",
             "gene": "TP53",
             "tier": 1,
             "hgvsp": "p.Arg175His",
@@ -511,6 +536,7 @@ def test_gene_cohort_history_counts_each_sample_mutation_once() -> None:
             "sample_oid": "sample-1",
             "sample_name": "S1",
             "report_oid": "old-report",
+            "analysis_type": "SNV",
             "gene": "TP53",
             "tier": 3,
             "hgvsp": "p.Arg248Gln",
@@ -561,6 +587,17 @@ def test_gene_cohort_history_counts_each_sample_mutation_once() -> None:
     assert result["tier_counts"] == {"1": 0, "2": 1, "3": 1, "4": 0}
     assert result["denominator"]["report_scope"] == "historical"
     assert result["denominator"]["duplicate_report_observations_removed"] == 1
+    recurrent_by_identity = {row["identity"]: row for row in result["recurrent_findings"]}
+    assert recurrent_by_identity["p.Arg175His"]["latest_tiers"] == [2]
+    assert recurrent_by_identity["p.Arg175His"]["historical_tiers"] == [1]
+    sample_findings = result["samples"][0]["finding_details"]
+    assert sample_findings[0] == {
+        "identity": "p.Arg175His",
+        "analysis_type": "SNV",
+        "nomenclature": None,
+        "latest_tier": 2,
+        "tiers": [2, 1],
+    }
 
 
 def test_gene_cohort_combines_target_scoped_cnv_and_fusion_findings() -> None:

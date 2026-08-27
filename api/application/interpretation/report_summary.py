@@ -81,24 +81,31 @@ def create_comment_doc(
         dict: Comment document ready for persistence.
     """
     author = current_username()
+    identity = {
+        key: value
+        for key, value in {
+            "variant": variant,
+            "nomenclature": nomenclature,
+        }.items()
+        if value not in (None, "")
+    }
+    identity.update(annotation_context_fields(nomenclature=nomenclature, source=data))
+    identity.update(
+        annotation_identity_fields(
+            variant=variant,
+            nomenclature=nomenclature,
+            source=data,
+        )
+    )
     if data.get("global", None) == "global":
         doc = {
             "text": data.get(key),
             "author": author,
             "time_created": utc_now(),
-            "variant": variant,
-            "nomenclature": nomenclature,
             "assay": data.get("assay_group", None),
             "subpanel": data.get("subpanel", None),
+            **identity,
         }
-        doc.update(annotation_context_fields(nomenclature=nomenclature, source=data))
-        doc.update(
-            annotation_identity_fields(
-                variant=variant,
-                nomenclature=nomenclature,
-                source=data,
-            )
-        )
     else:
         doc = {
             "_id": new_object_id(),
@@ -106,6 +113,7 @@ def create_comment_doc(
             "text": data.get(key),
             "author": author,
             "time_created": utc_now(),
+            **identity,
         }
     return doc
 

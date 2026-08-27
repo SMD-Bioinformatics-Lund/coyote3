@@ -458,6 +458,11 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
     )
     monkeypatch.setattr(store.variant_repository, "get_case_variants", lambda query: [])
     monkeypatch.setattr(
+        store.variant_repository,
+        "hydrate_finding_comments_many",
+        lambda variants: variants,
+    )
+    monkeypatch.setattr(
         store.blacklist_repository,
         "add_blacklist_data",
         lambda variants, assay_group: variants,

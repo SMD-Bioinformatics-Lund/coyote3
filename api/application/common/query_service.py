@@ -13,6 +13,7 @@ from api.domain.common.assay_filters import (
 )
 from api.domain.common.errors import api_error
 from api.domain.common.sample_filters import normalize_sample_filters
+from api.domain.core.annotation_identity import NOMENCLATURE_FIELDS
 from api.domain.core.clinical_finding import (
     finding_analysis_type,
     finding_dedup_key,
@@ -105,6 +106,31 @@ class CommonQueryService:
             ),
         }
         return gene, query
+
+    def _resolve_cohort_gene(self, gene_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Resolve cohort searches by exact approved symbol or HGNC identifier."""
+        normalized_gene_id = str(gene_id or "").strip()
+        if not normalized_gene_id:
+            raise api_error(400, "A gene symbol or HGNC identifier is required")
+
+        if normalized_gene_id.isnumeric() or normalized_gene_id.upper().startswith("HGNC:"):
+            gene = self.hgnc_repository.get_metadata_by_hgnc_id(hgnc_id=normalized_gene_id)
+        else:
+            gene = self.hgnc_repository.get_metadata_by_symbol(symbol=normalized_gene_id)
+        if not gene:
+            raise api_error(
+                404,
+                f"No approved HGNC gene matches '{normalized_gene_id}' exactly",
+            )
+
+        symbol = str(gene.get("hgnc_symbol") or gene.get("symbol") or "").strip().upper()
+        if not symbol:
+            raise api_error(404, "The matched HGNC record has no approved gene symbol")
+        return gene, {
+            "input": normalized_gene_id,
+            "resolved_symbol": symbol,
+            "symbol_changed": False,
+        }
 
     @staticmethod
     def _source_present(value: Any) -> bool:
@@ -307,10 +333,22 @@ class CommonQueryService:
             "sample_name": resolved_name,
             "name": resolved_name,
             "asp_id": (sample_doc or {}).get("asp_id"),
+            "assay_group": (sample_doc or {}).get("assay_group"),
             "subpanel_id": (sample_doc or {}).get("subpanel_id"),
             "environment": (sample_doc or {}).get("environment"),
             "report_oids": {},
+            "latest_report_num": None,
         }
+
+    @staticmethod
+    def _report_number(value: Any) -> int | str | None:
+        """Return a stable report label while preserving non-numeric identifiers."""
+        if value is None or value == "":
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return str(value)
 
     @measured_operation("query.tiered_variants")
     def tiered_variant_search_payload(
@@ -321,16 +359,22 @@ class CommonQueryService:
         include_annotation_text: bool,
         assays: list[str] | None,
         limit_entries: int,
+        nomenclatures: list[str] | None = None,
     ) -> dict[str, Any]:
         """Search tiered variants and related annotations across reports."""
         assay_choices = list(self.assay_panel_repository.get_all_asp_groups() or [])
         effective_assays = assays if assays else None
+        nomenclature_choices = sorted(NOMENCLATURE_FIELDS)
+        effective_nomenclatures = [
+            value for value in (nomenclatures or []) if value in NOMENCLATURE_FIELDS
+        ] or None
         docs_found = list(
             self.annotation_repository.find_variants_by_search_string(
                 search_str=search_str,
                 search_mode=search_mode,
                 include_annotation_text=include_annotation_text,
                 asp_ids=effective_assays,
+                nomenclatures=effective_nomenclatures,
                 limit=limit_entries,
             )
             or []
@@ -340,6 +384,7 @@ class CommonQueryService:
                 search_str=search_str or "",
                 search_mode=search_mode,
                 asp_ids=effective_assays,
+                nomenclatures=effective_nomenclatures,
                 limit=limit_entries,
             )
             or []
@@ -352,6 +397,7 @@ class CommonQueryService:
                 search_mode=search_mode,
                 include_annotation_text=include_annotation_text,
                 asp_ids=effective_assays,
+                nomenclatures=effective_nomenclatures,
             )
 
         sample_tagged_docs = []
@@ -360,6 +406,7 @@ class CommonQueryService:
 
         for doc in docs_found:
             merged_doc = deepcopy(doc)
+            merged_doc.setdefault("assay_group", merged_doc.get("assay"))
             if include_annotation_text and not merged_doc.get("text"):
                 merged_doc["text"] = self.annotation_repository.get_matching_annotation_text(
                     merged_doc
@@ -381,7 +428,7 @@ class CommonQueryService:
                 report_id = reported_doc.get("report_id")
                 sample_doc = self.sample_repository.get_sample_by_oid(sample_oid)
                 sample_name = reported_doc.get("sample_name") or (sample_doc or {}).get("name")
-                report_num = reported_doc.get("report_num")
+                report_num = self._report_number(reported_doc.get("report_num"))
 
                 if sample_oid:
                     sample_key = str(sample_oid)
@@ -395,6 +442,12 @@ class CommonQueryService:
                         report_oids = sample_oids.get(sample_key, {}).get("report_oids", {})
                         if report_id not in report_oids:
                             sample_oids[sample_key]["report_oids"][report_id] = report_num
+                        numeric_report_num = report_num if isinstance(report_num, int) else None
+                        current_latest = sample_oids[sample_key].get("latest_report_num")
+                        if numeric_report_num is not None and (
+                            current_latest is None or numeric_report_num > current_latest
+                        ):
+                            sample_oids[sample_key]["latest_report_num"] = numeric_report_num
 
                 if include_annotation_text and annotation_text_oid:
                     associated_annotation_text_oids.add(annotation_text_oid)
@@ -404,6 +457,30 @@ class CommonQueryService:
 
             merged_doc["reported_docs"] = reported_docs
             merged_doc["samples"] = sample_oids
+            assay_groups = list(
+                dict.fromkeys(
+                    str(value).strip()
+                    for value in [
+                        *(sample.get("assay_group") for sample in sample_oids.values()),
+                        merged_doc.get("assay_group"),
+                    ]
+                    if value and str(value).strip()
+                )
+            )
+            subpanels = list(
+                dict.fromkeys(
+                    str(value).strip()
+                    for value in [
+                        *(sample.get("subpanel_id") for sample in sample_oids.values()),
+                        merged_doc.get("subpanel"),
+                    ]
+                    if value and str(value).strip()
+                )
+            )
+            merged_doc["assay_groups"] = assay_groups
+            merged_doc["subpanels"] = subpanels
+            merged_doc["assay_group"] = assay_groups[0] if len(assay_groups) == 1 else None
+            merged_doc["subpanel"] = subpanels[0] if len(subpanels) == 1 else None
             merged_doc.update(finding_display_fields(merged_doc))
 
             if merged_doc.get("_id") not in associated_annotation_text_oids:
@@ -430,7 +507,7 @@ class CommonQueryService:
                 or "UNKNOWN_SAMPLE"
             )
             report_id = reported_doc.get("report_id")
-            report_num = reported_doc.get("report_num")
+            report_num = self._report_number(reported_doc.get("report_num"))
             sample_key = str(sample_oid) if sample_oid is not None else reported_doc_id
 
             merged_doc = {
@@ -446,10 +523,23 @@ class CommonQueryService:
                             sample_name=sample_name,
                         ),
                         "report_oids": {report_id: report_num} if report_id else {},
+                        "latest_report_num": report_num,
                     }
                 },
                 "reported_docs": [reported_doc],
             }
+            merged_doc["assay_group"] = (
+                (sample_doc or {}).get("assay_group")
+                or merged_doc.get("assay_group")
+                or merged_doc.get("assay")
+            )
+            merged_doc["subpanel"] = (sample_doc or {}).get("subpanel_id") or merged_doc.get(
+                "subpanel"
+            )
+            merged_doc["assay_groups"] = (
+                [merged_doc["assay_group"]] if merged_doc.get("assay_group") else []
+            )
+            merged_doc["subpanels"] = [merged_doc["subpanel"]] if merged_doc.get("subpanel") else []
             merged_doc.update(finding_display_fields(merged_doc))
             if include_annotation_text and reported_doc.get("annotation_text_oid"):
                 merged_doc["text"] = self.annotation_repository.get_annotation_text_by_oid(
@@ -469,6 +559,8 @@ class CommonQueryService:
             "tier_stats": tier_stats,
             "assays": assays,
             "assay_choices": assay_choices,
+            "nomenclatures": nomenclatures,
+            "nomenclature_choices": nomenclature_choices,
         }
 
     @staticmethod
@@ -515,7 +607,7 @@ class CommonQueryService:
         finding_limit: int = 10_000,
     ) -> dict[str, Any]:
         """Build prevalence and recurrent-finding statistics for one gene."""
-        gene, query = self._resolve_gene(gene_id)
+        gene, query = self._resolve_cohort_gene(gene_id)
         symbol = str(query.get("resolved_symbol") or "").strip().upper()
         if not symbol:
             raise api_error(400, "A gene symbol or HGNC identifier is required")
@@ -617,6 +709,20 @@ class CommonQueryService:
             normalized_row["sample_name"] = sample_name
             scoped_findings.append(normalized_row)
 
+        history_by_sample_finding: dict[tuple[Any, ...], list[int]] = {}
+        finding_order: dict[tuple[Any, ...], int] = {}
+        sample_order: dict[str, int] = {}
+        for index, row in enumerate(scoped_findings):
+            sample_name = str(row.get("sample_name"))
+            key = (sample_name, *finding_dedup_key(row))
+            finding_order.setdefault(key, index)
+            sample_order.setdefault(sample_name, index)
+            tier = int(row.get("tier") or 0)
+            if tier in range(1, 5):
+                tier_history = history_by_sample_finding.setdefault(key, [])
+                if tier not in tier_history:
+                    tier_history.append(tier)
+
         duplicate_report_observations_removed = 0
         findings = scoped_findings
         if include_history:
@@ -663,12 +769,16 @@ class CommonQueryService:
                     "genomic": row.get("genomic"),
                     "transcript": row.get("transcript"),
                     "sample_names": set(),
-                    "tiers": set(),
+                    "latest_tiers": set(),
+                    "historical_tiers": set(),
                     "observation_count": 0,
                 },
             )
             entry["sample_names"].add(sample_name)
-            entry["tiers"].add(tier)
+            if tier in range(1, 5):
+                entry["latest_tiers"].add(tier)
+            history = history_by_sample_finding.get((sample_name, *dedup_key), [])
+            entry["historical_tiers"].update(history[1:])
             entry["observation_count"] += 1
 
         recurrent_findings = sorted(
@@ -687,7 +797,8 @@ class CommonQueryService:
                     "transcript": entry["transcript"],
                     "sample_count": len(entry["sample_names"]),
                     "observation_count": entry["observation_count"],
-                    "tiers": sorted(tier for tier in entry["tiers"] if tier),
+                    "latest_tiers": sorted(entry["latest_tiers"]),
+                    "historical_tiers": sorted(entry["historical_tiers"]),
                 }
                 for entry in variant_map.values()
             ),
@@ -696,7 +807,7 @@ class CommonQueryService:
                 -entry["observation_count"],
                 entry["identity"],
             ),
-        )[:25]
+        )
 
         def prevalence(numerator: int, denominator: int) -> float | None:
             return round((numerator / denominator) * 100, 2) if denominator else None
@@ -741,9 +852,16 @@ class CommonQueryService:
             )
 
         sample_rows = []
-        for sample_name in sorted(finding_sample_names):
+        for sample_name in sorted(finding_sample_names, key=lambda name: sample_order.get(name, 0)):
             sample = sample_map.get(sample_name, {})
             rows = sample_findings.get(sample_name, [])
+            rows = sorted(
+                rows,
+                key=lambda row: finding_order.get(
+                    (sample_name, *finding_dedup_key(row)),
+                    0,
+                ),
+            )
             sample_rows.append(
                 {
                     "sample_name": sample_name,
@@ -751,9 +869,19 @@ class CommonQueryService:
                     "subpanel_id": sample.get("subpanel_id"),
                     "environment": sample.get("environment"),
                     "sex": sample.get("sex"),
-                    "tiers": sorted({int(row.get("tier")) for row in rows if row.get("tier")}),
-                    "findings": sorted({finding_identity(row) for row in rows}),
-                    "finding_types": sorted({finding_analysis_type(row) for row in rows}),
+                    "finding_details": [
+                        {
+                            "identity": finding_identity(row),
+                            "analysis_type": finding_analysis_type(row),
+                            "nomenclature": row.get("nomenclature"),
+                            "latest_tier": int(row.get("tier") or 0),
+                            "tiers": history_by_sample_finding.get(
+                                (sample_name, *finding_dedup_key(row)),
+                                [],
+                            ),
+                        }
+                        for row in rows
+                    ],
                 }
             )
 
@@ -782,8 +910,8 @@ class CommonQueryService:
             "assays": assay_rows,
             "sex_distribution": sex_rows,
             "recurrent_findings": recurrent_findings,
-            "samples": sample_rows[:200],
-            "truncated": len(raw_findings) >= finding_limit or len(sample_rows) > 200,
+            "samples": sample_rows,
+            "truncated": len(raw_findings) >= finding_limit,
         }
 
 

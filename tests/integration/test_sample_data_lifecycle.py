@@ -13,12 +13,13 @@ from api.contracts.operations import OperationResult
 
 
 class _CollectionDeleteRepository:
-    def __init__(self, collection, method_name: str) -> None:
+    def __init__(self, collection, method_name: str, key: str = "SAMPLE_ID") -> None:
         self.collection = collection
+        self.key = key
         setattr(self, method_name, self._delete)
 
     def _delete(self, sample_id: str) -> OperationResult:
-        return OperationResult.from_delete(self.collection.delete_many({"SAMPLE_ID": sample_id}))
+        return OperationResult.from_delete(self.collection.delete_many({self.key: sample_id}))
 
 
 class _SampleRepository:
@@ -114,18 +115,28 @@ def test_delete_all_sample_traces_removes_every_owned_document() -> None:
             "delete_sample_classification",
         ),
         "rna_quality_repository": ("rna_qc", "delete_sample_qc"),
-        "sample_comment_repository": ("sample_comments", "delete_sample_comments"),
-        "report_repository": ("reports", "delete_sample_reports"),
+        "sample_comment_repository": ("sample_comments", "delete_sample_comments", "SAMPLE_ID"),
+        "finding_comment_repository": (
+            "finding_comments",
+            "delete_sample_finding_comments",
+            "sample_oid",
+        ),
+        "report_repository": ("reports", "delete_sample_reports", "SAMPLE_ID"),
         "reported_variant_repository": (
             "reported_variants",
             "delete_sample_reported_variants",
+            "SAMPLE_ID",
         ),
     }
+    repository_specs = {
+        name: spec if len(spec) == 3 else (*spec, "SAMPLE_ID")
+        for name, spec in repository_specs.items()
+    }
     repositories = {}
-    for argument_name, (collection_name, method_name) in repository_specs.items():
-        database[collection_name].insert_one({"SAMPLE_ID": sample_id, "value": collection_name})
+    for argument_name, (collection_name, method_name, key) in repository_specs.items():
+        database[collection_name].insert_one({key: sample_id, "value": collection_name})
         repositories[argument_name] = _CollectionDeleteRepository(
-            database[collection_name], method_name
+            database[collection_name], method_name, key
         )
     database.oncokb_public.insert_one({"sample_ids": [sample_id], "sample_names": [sample_name]})
 
@@ -138,7 +149,7 @@ def test_delete_all_sample_traces_removes_every_owned_document() -> None:
 
     assert summary["sample_name"] == sample_name
     assert database.samples.count_documents({"_id": sample_id}) == 0
-    for collection_name, _method_name in repository_specs.values():
-        assert database[collection_name].count_documents({"SAMPLE_ID": sample_id}) == 0
+    for collection_name, _method_name, key in repository_specs.values():
+        assert database[collection_name].count_documents({key: sample_id}) == 0
     assert database.oncokb_public.count_documents({"sample_ids": sample_id}) == 0
     assert all(result["ok"] for result in summary["results"])

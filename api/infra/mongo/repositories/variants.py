@@ -23,12 +23,13 @@ from api.domain.core.dna.variant_identity import (
     normalize_simple_id,
 )
 from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repositories.finding_comment_owner import FindingCommentOwnerMixin
 
 
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class VariantsRepository(BaseRepository):
+class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
     """
     VariantsRepository is a class for managing variant data in the database.
 
@@ -37,6 +38,8 @@ class VariantsRepository(BaseRepository):
     It also includes utility methods for retrieving annotations, counting unique variants,
     and deleting variants associated with a sample.
     """
+
+    finding_type = "small_variant"
 
     def __init__(self, adapter):
         """
@@ -215,7 +218,7 @@ class VariantsRepository(BaseRepository):
         Returns:
             dict: A dictionary representing the variant document, or None if not found.
         """
-        return self.get_collection().find_one({"_id": ObjectId(id)})
+        return self._hydrate_finding_comments(self.get_collection().find_one({"_id": ObjectId(id)}))
 
     def update_selected_transcript(
         self,
@@ -592,7 +595,7 @@ class VariantsRepository(BaseRepository):
         Returns:
             Any: The result of the hide operation.
         """
-        self.hide_comment(id, comment_id)
+        self._set_finding_comment_hidden(id, comment_id, True)
 
     def unhide_variant_comment(self, id: str, comment_id: str) -> Any:
         """
@@ -607,7 +610,7 @@ class VariantsRepository(BaseRepository):
         Returns:
             Any: The result of the unhide operation.
         """
-        self.unhide_comment(id, comment_id)
+        self._set_finding_comment_hidden(id, comment_id, False)
 
     def add_var_comment(self, id: str, comment: dict) -> Any:
         """
@@ -622,7 +625,7 @@ class VariantsRepository(BaseRepository):
         Returns:
             Any: The result of the update operation.
         """
-        self.update_comment(id, comment)
+        self._add_finding_comment(id, comment)
 
     def hidden_var_comments(self, id: str) -> bool:
         """
@@ -636,7 +639,7 @@ class VariantsRepository(BaseRepository):
         Returns:
             bool: True if there are hidden comments, False otherwise.
         """
-        return self.hidden_comments(id)
+        return self._has_hidden_finding_comments(id)
 
     def get_total_variant_counts(self) -> int:
         """

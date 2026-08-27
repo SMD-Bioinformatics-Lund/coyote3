@@ -41,6 +41,7 @@ class ResourceSampleService:
             rna_classification_repository=store.rna_classification_repository,
             rna_quality_repository=store.rna_quality_repository,
             sample_comment_repository=store.sample_comment_repository,
+            finding_comment_repository=store.finding_comment_repository,
             report_repository=store.report_repository,
             reported_variant_repository=store.reported_variant_repository,
             oncokb_public_cache_repository=store.oncokb_public_cache_repository,
@@ -62,6 +63,7 @@ class ResourceSampleService:
         rna_classification_repository: Any,
         rna_quality_repository: Any,
         sample_comment_repository: Any,
+        finding_comment_repository: Any,
         report_repository: Any,
         reported_variant_repository: Any,
         oncokb_public_cache_repository: Any,
@@ -80,6 +82,7 @@ class ResourceSampleService:
         self.rna_classification_repository = rna_classification_repository
         self.rna_quality_repository = rna_quality_repository
         self.sample_comment_repository = sample_comment_repository
+        self.finding_comment_repository = finding_comment_repository
         self.report_repository = report_repository
         self.reported_variant_repository = reported_variant_repository
         self.oncokb_public_cache_repository = oncokb_public_cache_repository
@@ -211,6 +214,7 @@ class ResourceSampleService:
             rna_classification_repository=self.rna_classification_repository,
             rna_quality_repository=self.rna_quality_repository,
             sample_comment_repository=self.sample_comment_repository,
+            finding_comment_repository=self.finding_comment_repository,
             report_repository=self.report_repository,
             reported_variant_repository=self.reported_variant_repository,
             oncokb_public_cache_repository=self.oncokb_public_cache_repository,

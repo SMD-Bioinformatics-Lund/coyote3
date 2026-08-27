@@ -24,7 +24,7 @@ from api.domain.core.annotation_identity import (
 )
 from api.domain.core.dna.variant_identity import build_simple_id
 from api.infra.mongo.repositories.base import BaseRepository
-from api.infra.mongo.repository_utils import utc_now
+from api.infra.mongo.repository_utils import literal_text_query, utc_now
 from api.infra.request_context import current_username
 
 
@@ -47,12 +47,16 @@ def _annotation_search_query(
     search_mode: str,
     include_annotation_text: bool,
     asp_ids: list | None = None,
+    nomenclatures: list[str] | None = None,
 ) -> dict[str, Any] | None:
     """Build the annotation search query used by tiered-variant search."""
     if not search_str:
         return None
 
-    regex = {"$regex": search_str, "$options": "i"}
+    exact = str(search_str).strip()
+    gene_exact = exact.upper()
+    subpanel_exact = exact.lower()
+    contains = literal_text_query(search_str, contains=True)
     mode = str(search_mode or "variant").lower()
     variant_fields = (
         "variant",
@@ -65,40 +69,38 @@ def _annotation_search_query(
     if mode == "gene":
         query: dict[str, Any] = {
             "$or": [
-                {"gene": regex},
-                {"gene1": regex},
-                {"gene2": regex},
+                {"gene": gene_exact},
+                {"gene1": gene_exact},
+                {"gene2": gene_exact},
             ]
         }
     elif mode == "transcript":
-        query = {"$or": [{"transcript": regex}]}
+        query = {"$or": [{"transcript": exact}]}
     elif mode == "hgvsp":
-        query = {"$or": [{"hgvsp": regex}]}
+        query = {"$or": [{"hgvsp": exact}]}
     elif mode == "hgvsc":
-        query = {"$or": [{"hgvsc": regex}]}
+        query = {"$or": [{"hgvsc": exact}]}
     elif mode == "genomic":
-        query = {"$or": [{"genomic": regex}, {"genomic_hash": regex}]}
-    elif mode == "nomenclature":
-        query = {"nomenclature": regex}
+        query = {"$or": [{"genomic": exact}, {"genomic_hash": exact}]}
     elif mode == "variant":
-        query = {"$or": [{field: regex} for field in variant_fields]}
+        query = {"$or": [{field: exact} for field in variant_fields]}
     elif mode == "author":
-        query = {"author": regex}
+        query = {"author": contains}
     elif mode == "subpanel":
-        query = {"subpanel": regex}
+        query = {"subpanel": subpanel_exact}
     elif mode == "annotation":
-        query = {"text": regex}
+        query = {"text": contains}
     elif mode == "all":
         query = {
             "$or": [
-                {"gene": regex},
-                {"transcript": regex},
-                {"author": regex},
-                {"subpanel": regex},
-                {"text": regex},
-                {"gene1": regex},
-                {"gene2": regex},
-                *[{field: regex} for field in variant_fields],
+                {"gene": gene_exact},
+                {"transcript": exact},
+                {"author": contains},
+                {"subpanel": subpanel_exact},
+                {"text": contains},
+                {"gene1": gene_exact},
+                {"gene2": gene_exact},
+                *[{field: exact} for field in variant_fields],
             ]
         }
     else:
@@ -110,6 +112,8 @@ def _annotation_search_query(
 
     if asp_ids:
         query_parts.append({"assay": {"$in": asp_ids}})
+    if nomenclatures:
+        query_parts.append({"nomenclature": {"$in": nomenclatures}})
 
     if len(query_parts) == 1:
         return query_parts[0]
@@ -763,6 +767,7 @@ class AnnotationsRepository(BaseRepository):
         search_mode: str,
         include_annotation_text: bool,
         asp_ids: list | None = None,
+        nomenclatures: list[str] | None = None,
         limit: int | None = None,
     ) -> list:
         """
@@ -787,6 +792,7 @@ class AnnotationsRepository(BaseRepository):
             search_mode=search_mode,
             include_annotation_text=include_annotation_text,
             asp_ids=asp_ids,
+            nomenclatures=nomenclatures,
         )
         if query is None:
             return []
@@ -803,6 +809,7 @@ class AnnotationsRepository(BaseRepository):
         search_mode: str,
         include_annotation_text: bool,
         asp_ids: Optional[List[str]] = None,
+        nomenclatures: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Return tier stats for the given search filter.
@@ -831,6 +838,7 @@ class AnnotationsRepository(BaseRepository):
             search_mode=search_mode,
             include_annotation_text=include_annotation_text,
             asp_ids=asp_ids,
+            nomenclatures=nomenclatures,
         )
         if query is None:
             return {"total": {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0}, "by_assay": {}}

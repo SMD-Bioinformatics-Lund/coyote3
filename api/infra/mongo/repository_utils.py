@@ -3,11 +3,23 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from hashlib import md5
 from typing import Any
 
 from api.domain.core.dna.variant_identity import build_simple_id, normalize_simple_id
+
+
+def literal_text_query(value: object, *, contains: bool = False) -> dict[str, str]:
+    """Build a case-insensitive query from literal user text.
+
+    Identity searches are anchored to the complete stored value. Text searches may
+    opt into literal substring matching; regex metacharacters are never executed.
+    """
+    escaped = re.escape(str(value or "").strip())
+    pattern = escaped if contains else f"^{escaped}$"
+    return {"$regex": pattern, "$options": "i"}
 
 
 def utc_now() -> datetime:

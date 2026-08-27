@@ -20,6 +20,34 @@ def test_create_comment_doc_sample_specific_shape(monkeypatch):
     }
 
 
+def test_create_comment_doc_sample_specific_preserves_variant_identity(monkeypatch):
+    monkeypatch.setattr(report_summary, "current_username", lambda: "tester")
+    monkeypatch.setattr(report_summary, "utc_now", lambda: "2026-03-17T00:00:00Z")
+    monkeypatch.setattr(report_summary, "new_object_id", lambda: "cid-1")
+
+    doc = report_summary.create_comment_doc(
+        {
+            "text": "reviewed",
+            "gene": "SRSF2",
+            "transcript": "NM_003016.4",
+            "hgvsp": "p.Met89Val",
+            "hgvsc": "c.265A>G",
+            "genomic": "17:76736896:T/C",
+        },
+        nomenclature="p",
+        variant="p.Met89Val",
+    )
+
+    assert doc["nomenclature"] == "p"
+    assert doc["variant"] == "p.Met89Val"
+    assert doc["gene"] == "SRSF2"
+    assert doc["transcript"] == "NM_003016.4"
+    assert doc["hgvsp"] == "p.Met89Val"
+    assert doc["hgvsc"] == "c.265A>G"
+    assert doc["genomic"] == "17_76736896_T_C"
+    assert len(doc["genomic_hash"]) == 32
+
+
 def test_create_comment_doc_global_annotation_has_flat_variant_identities(monkeypatch):
     monkeypatch.setattr(report_summary, "current_username", lambda: "tester")
     monkeypatch.setattr(report_summary, "utc_now", lambda: "2026-03-17T00:00:00Z")

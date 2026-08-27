@@ -9,6 +9,7 @@ from pydantic import Field, field_validator
 from api.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from api.contracts.schemas.base import (
     _DocBase,
+    _FindingDocBase,
     _StrictDocBase,
     model_validator,
 )
@@ -81,7 +82,7 @@ class FusionCallDoc(_DocBase):
         return v
 
 
-class FusionsDoc(_DocBase):
+class FusionsDoc(_FindingDocBase):
     SAMPLE_ID: str
 
     gene1: str

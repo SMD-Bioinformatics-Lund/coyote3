@@ -382,6 +382,7 @@ def common_tiered_variant_search_read(
     include_annotation_text: bool = False,
     assays: list[str] | None = Query(default=None),
     assay: list[str] | None = Query(default=None),
+    nomenclatures: list[str] | None = Query(default=None),
     limit_entries: int | None = None,
     user: ApiUser = Depends(require_access(permission="gene.annotation:view")),
     service: CommonQueryService = Depends(get_common_query_service),
@@ -397,6 +398,7 @@ def common_tiered_variant_search_read(
             search_mode=search_mode,
             include_annotation_text=include_annotation_text,
             assays=selected_assays,
+            nomenclatures=nomenclatures,
             limit_entries=limit_entries,
         )
     )

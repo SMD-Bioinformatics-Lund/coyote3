@@ -256,7 +256,9 @@ class RnaService:
             asp_id=str(sample.get("asp_id") or ""),
             subpanel_id=str(sample.get("subpanel_id") or "base"),
         )
-        fusions = list(self.fusion_repository.get_sample_fusions(query))
+        fusions = self.fusion_repository.hydrate_finding_comments_many(
+            list(self.fusion_repository.get_sample_fusions(query))
+        )
         fusions, tiered_fusions = add_global_annotations(
             fusions,
             assay_group,

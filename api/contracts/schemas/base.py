@@ -42,6 +42,19 @@ class _StrictDocBase(_DocBase):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
+class _FindingDocBase(_DocBase):
+    """Finding document base that prevents embedded comment persistence."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _remove_embedded_comments(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        normalized = dict(data)
+        normalized.pop("comments", None)
+        return normalized
+
+
 class _StrictCollectionDocBase(_StrictDocBase):
     """Strict base for top-level MongoDB collection documents."""
 

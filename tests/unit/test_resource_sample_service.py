@@ -75,6 +75,7 @@ def build_service() -> tuple[ResourceSampleService, SampleRepository, list[objec
             "rna_classification",
             "rna_quality",
             "sample_comments",
+            "finding_comments",
             "reports",
             "reported_variants",
             "oncokb_public_cache",
@@ -93,9 +94,10 @@ def build_service() -> tuple[ResourceSampleService, SampleRepository, list[objec
         rna_classification_repository=dependencies[8],
         rna_quality_repository=dependencies[9],
         sample_comment_repository=dependencies[10],
-        report_repository=dependencies[11],
-        reported_variant_repository=dependencies[12],
-        oncokb_public_cache_repository=dependencies[13],
+        finding_comment_repository=dependencies[11],
+        report_repository=dependencies[12],
+        reported_variant_repository=dependencies[13],
+        oncokb_public_cache_repository=dependencies[14],
         assay_panel_repository=AssayPanelRepository(),
     )
     return service, sample_repository, dependencies
@@ -139,6 +141,7 @@ def test_from_store_wires_all_repositories() -> None:
             "rna_classification_repository",
             "rna_quality_repository",
             "sample_comment_repository",
+            "finding_comment_repository",
             "report_repository",
             "reported_variant_repository",
             "oncokb_public_cache_repository",
@@ -295,9 +298,10 @@ def test_delete_delegates_all_repositories_and_returns_summary(
         rna_classification_repository=dependencies[8],
         rna_quality_repository=dependencies[9],
         sample_comment_repository=dependencies[10],
-        report_repository=dependencies[11],
-        reported_variant_repository=dependencies[12],
-        oncokb_public_cache_repository=dependencies[13],
+        finding_comment_repository=dependencies[11],
+        report_repository=dependencies[12],
+        reported_variant_repository=dependencies[13],
+        oncokb_public_cache_repository=dependencies[14],
     )
     assert result["meta"]["sample_name"] == "synthetic-sample"
     assert result["meta"]["sample_oid"] == "sample-oid"

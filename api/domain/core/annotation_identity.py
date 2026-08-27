@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Mapping
+from typing import Any, Literal, Mapping
 
 from api.domain.core.dna.variant_identity import (
     build_simple_id,
@@ -158,6 +158,65 @@ def annotation_context_fields(*, nomenclature: Any, source: Mapping[str, Any]) -
     }
 
 
+def finding_comment_identity(
+    finding: Mapping[str, Any],
+    finding_type: Literal["small_variant", "cnv", "fusion", "translocation"],
+) -> dict[str, Any]:
+    """Return the immutable display identity captured with a finding comment."""
+    if finding_type == "small_variant":
+        selected = _selected_csq(finding)
+        source = {
+            **dict(finding),
+            "hgvsp": selected.get("HGVSp") or finding.get("hgvsp"),
+            "hgvsc": selected.get("HGVSc") or finding.get("hgvsc"),
+            "gene": selected.get("SYMBOL") or finding.get("gene"),
+            "transcript": selected.get("Feature") or finding.get("transcript"),
+        }
+        genomic = _canonical_genomic(source, None)
+        variant = _text(source.get("hgvsp")) or _text(source.get("hgvsc")) or genomic
+        nomenclature = "p" if source.get("hgvsp") else "c" if source.get("hgvsc") else "g"
+        snapshot: dict[str, Any] = {
+            "nomenclature": nomenclature,
+            "variant": variant,
+            **annotation_context_fields(nomenclature=nomenclature, source=source),
+            **annotation_identity_fields(
+                variant=variant,
+                nomenclature=nomenclature,
+                source=source,
+            ),
+        }
+        return {key: value for key, value in snapshot.items() if value not in (None, "")}
+
+    if finding_type == "cnv":
+        chromosome = finding.get("chr") or finding.get("CHROM")
+        start = finding.get("start") or finding.get("START")
+        end = finding.get("end") or finding.get("END")
+        variant = (
+            f"{chromosome}:{start}-{end}"
+            if all(value not in (None, "") for value in (chromosome, start, end))
+            else _text(finding.get("variant"))
+        )
+        return {"nomenclature": "cn", "variant": variant} if variant else {"nomenclature": "cn"}
+
+    genes = finding.get("genes")
+    if isinstance(genes, str):
+        gene_values = [value.strip() for value in genes.split("^") if value.strip()]
+    elif isinstance(genes, (list, tuple)):
+        gene_values = [str(value).strip() for value in genes if str(value).strip()]
+    else:
+        gene_values = []
+    gene1 = _text(finding.get("gene1")) or (gene_values[0] if gene_values else None)
+    gene2 = _text(finding.get("gene2")) or (gene_values[1] if len(gene_values) > 1 else None)
+    nomenclature = "f" if finding_type == "fusion" else "t"
+    snapshot = {
+        "nomenclature": nomenclature,
+        "variant": _text(finding.get("variant")),
+        "gene1": gene1,
+        "gene2": gene2,
+    }
+    return {key: value for key, value in snapshot.items() if value not in (None, "")}
+
+
 def enrich_annotation_identity(
     document: Mapping[str, Any],
     *,
@@ -218,4 +277,5 @@ __all__ = [
     "annotation_context_fields",
     "annotation_identity_fields",
     "enrich_annotation_identity",
+    "finding_comment_identity",
 ]

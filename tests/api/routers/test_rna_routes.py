@@ -109,6 +109,11 @@ def test_list_rna_fusions_success(monkeypatch):
     )
     monkeypatch.setattr(store.fusion_repository, "get_sample_fusions", lambda query: fusions)
     monkeypatch.setattr(
+        store.fusion_repository,
+        "hydrate_finding_comments_many",
+        lambda findings: findings,
+    )
+    monkeypatch.setattr(
         rna_service_module,
         "add_global_annotations",
         lambda fusions, assay_group, subpanel, annotation_repository=None: (fusions, fusions),

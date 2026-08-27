@@ -33,6 +33,8 @@ class CommonTieredVariantSearchPayload(BaseModel):
     tier_stats: dict[str, Any]
     assays: list[str] | None = None
     assay_choices: list[str]
+    nomenclatures: list[str] | None = None
+    nomenclature_choices: list[str]
 
 
 class GeneCohortBreakdown(BaseModel):
@@ -91,7 +93,18 @@ class GeneCohortFinding(BaseModel):
     transcript: str | None = None
     sample_count: int
     observation_count: int
-    tiers: list[int]
+    latest_tiers: list[int]
+    historical_tiers: list[int]
+
+
+class GeneCohortSampleFinding(BaseModel):
+    """Represent one sample finding with its latest and historical tiers."""
+
+    identity: str
+    analysis_type: str
+    nomenclature: str | None = None
+    latest_tier: int
+    tiers: list[int] = Field(default_factory=list)
 
 
 class GeneCohortSample(BaseModel):
@@ -102,9 +115,7 @@ class GeneCohortSample(BaseModel):
     subpanel_id: str | None = None
     environment: str | None = None
     sex: str | None = None
-    tiers: list[int]
-    findings: list[str]
-    finding_types: list[str] = Field(default_factory=list)
+    finding_details: list[GeneCohortSampleFinding] = Field(default_factory=list)
 
 
 class CommonGeneCohortPayload(BaseModel):

@@ -116,7 +116,7 @@ def test_all_search_includes_identity_and_context_fields():
     assert "text" not in query
 
 
-def test_variant_search_uses_entered_regex_pattern_and_ignores_empty_assays():
+def test_variant_search_treats_identity_as_literal_exact_text_and_ignores_empty_assays():
     query = _annotation_search_query(
         search_str="p\\.",
         search_mode="variant",
@@ -125,7 +125,7 @@ def test_variant_search_uses_entered_regex_pattern_and_ignores_empty_assays():
     )
 
     assert query is not None
-    assert _first_or_clause(query)[0]["variant"] == {"$regex": "p\\.", "$options": "i"}
+    assert _first_or_clause(query)[0]["variant"] == "p\\."
     assert {"assay": {"$in": []}} not in _and_parts(query)
 
 
@@ -139,6 +139,7 @@ def test_gene_search_uses_only_flat_annotation_gene_fields():
     assert query is not None
     fields = {next(iter(item)) for item in _first_or_clause(query)}
     assert fields == {"gene", "gene1", "gene2"}
+    assert all(next(iter(item.values())) == "TP53" for item in _first_or_clause(query))
     assert {"$or": [{"text": {"$exists": False}}, {"text": None}, {"text": ""}]} in _and_parts(
         query
     )
@@ -154,9 +155,7 @@ def test_reported_variant_search_includes_report_snapshot_identity_fields():
     assert query is not None
     fields = _or_fields(query)
     assert {"variant", "hgvsp", "hgvsc", "simple_id"}.issubset(fields)
-    assert {
-        "$or": [{"assay": {"$in": ["hema_gmsv1"]}}, {"assay_group": {"$in": ["hema_gmsv1"]}}]
-    } in _and_parts(query)
+    assert {"assay_group": {"$in": ["hema_gmsv1"]}} in _and_parts(query)
 
 
 def test_reported_variant_gene_search_uses_only_flat_snapshot_fields():
@@ -169,9 +168,28 @@ def test_reported_variant_gene_search_uses_only_flat_snapshot_fields():
     assert query is not None
     fields = {next(iter(item)) for item in _first_or_clause(query)}
     assert fields == {"gene", "genes", "gene1", "gene2"}
-    assert {
-        "$or": [{"assay": {"$in": ["hema_gmsv1"]}}, {"assay_group": {"$in": ["hema_gmsv1"]}}]
-    } in _and_parts(query)
+    assert {"assay_group": {"$in": ["hema_gmsv1"]}} in _and_parts(query)
+    assert all(next(iter(item.values())) == "TP53" for item in _first_or_clause(query))
+
+
+def test_exact_modes_normalize_gene_and_subpanel_but_keep_hgvs_case():
+    gene_query = _annotation_search_query(
+        search_str="tp53",
+        search_mode="gene",
+        include_annotation_text=True,
+    )
+    subpanel_query = _reported_variant_search_query(
+        search_str="Hem-Snabb",
+        search_mode="subpanel",
+    )
+    hgvsp_query = _reported_variant_search_query(
+        search_str="p.Arg248Gln",
+        search_mode="hgvsp",
+    )
+
+    assert gene_query == {"$or": [{"gene": "TP53"}, {"gene1": "TP53"}, {"gene2": "TP53"}]}
+    assert subpanel_query == {"subpanel": "hem-snabb"}
+    assert hgvsp_query == {"$or": [{"hgvsp": "p.Arg248Gln"}]}
 
 
 def test_reported_variant_annotation_text_mode_is_annotation_only():

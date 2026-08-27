@@ -579,7 +579,9 @@ def build_dna_report_payload(
         ),
     )
 
-    variants = list(variant_repository.get_case_variants(query) or [])
+    variants = variant_repository.hydrate_finding_comments_many(
+        list(variant_repository.get_case_variants(query) or [])
+    )
     variants = blacklist_repository.add_blacklist_data(variants, assay=assay_group)
 
     variants, tiered_variants = shared_add_global_annotations(
@@ -635,7 +637,9 @@ def build_dna_report_payload(
             ),
             intent="germline",
         )
-        germline_variants = list(variant_repository.get_case_variants(germline_query) or [])
+        germline_variants = variant_repository.hydrate_finding_comments_many(
+            list(variant_repository.get_case_variants(germline_query) or [])
+        )
         germline_variants = blacklist_repository.add_blacklist_data(
             germline_variants, assay=assay_group
         )

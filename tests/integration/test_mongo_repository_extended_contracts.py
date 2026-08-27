@@ -13,6 +13,7 @@ from api.infra.mongo.repositories.assay_configurations import ASPConfigRepositor
 from api.infra.mongo.repositories.assay_panels import ASPRepository
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.copy_number_variants import CNVsRepository
+from api.infra.mongo.repositories.finding_comments import FindingCommentsRepository
 from api.infra.mongo.repositories.fusions import FusionsRepository
 from api.infra.mongo.repositories.gene_lists import ISGLRepository
 from api.infra.mongo.repositories.permissions import PermissionsRepository
@@ -67,10 +68,13 @@ def _adapter():
         "samples_collection": "samples",
         "users_collection": "users",
         "variants_collection": "variants",
+        "finding_comments_collection": "finding_comments",
     }
     adapter = SimpleNamespace(app=app, coyote_db=database)
     for attribute, collection_name in names.items():
         setattr(adapter, attribute, database[collection_name])
+    adapter.sample_repository = SampleRepository(adapter)
+    adapter.finding_comment_repository = FindingCommentsRepository(adapter)
     return adapter
 
 
@@ -104,30 +108,18 @@ class _ReportRepository:
         return {"sample_id": sample_id, "report_id": report_id}
 
 
-def test_base_repository_mutations_bulk_validation_and_comments(monkeypatch) -> None:
+def test_base_repository_mutations_bulk_validation_and_global_comments() -> None:
     adapter = _adapter()
     repository = BaseRepository(adapter)
     collection = adapter.coyote_db["findings"]
     repository.set_collection(collection)
-    comment_id = ObjectId()
-    finding_id = collection.insert_one(
-        {
-            "comments": [
-                {"_id": comment_id, "hidden": 0, "time_created": datetime(2025, 1, 1)},
-                {"_id": ObjectId(), "hidden": 1, "time_created": datetime(2025, 1, 2)},
-            ]
-        }
-    ).inserted_id
-    monkeypatch.setattr("api.infra.mongo.repositories.base.current_username", lambda: "curator")
+    finding_id = collection.insert_one({}).inserted_id
 
     assert repository.mark_false_positive(str(finding_id), True).modified_count == 1
     assert repository.mark_interesting(str(finding_id), True).modified_count == 1
     assert repository.mark_irrelevant(str(finding_id), True).modified_count == 1
     assert repository.mark_blacklisted(str(finding_id), True).modified_count == 1
     assert repository.mark_noteworthy(str(finding_id), True).modified_count == 1
-    assert repository.hidden_comments(str(finding_id)) is True
-    assert repository.get_latest_comment(str(finding_id))["hidden"] == 1
-
     for method, field in (
         (repository.mark_false_positive_bulk, "fp"),
         (repository.mark_irrelevant_bulk, "irrelevant"),
@@ -141,12 +133,146 @@ def test_base_repository_mutations_bulk_validation_and_comments(monkeypatch) -> 
 
     inserted = repository.add_comment({"text": "global"})
     assert inserted.inserted_id is not None
-    assert repository.update_comment(str(finding_id), {"text": "sample"}).modified_count == 1
-    assert repository.hidden_comments(str(collection.insert_one({}).inserted_id)) is False
-    assert (
-        repository.get_latest_comment(str(collection.insert_one({"comments": []}).inserted_id))
-        is None
+
+
+def test_finding_comments_repository_persists_hydrates_visibility_and_deletes(
+    monkeypatch,
+) -> None:
+    adapter = _adapter()
+    repository = adapter.finding_comment_repository
+    repository.ensure_indexes()
+    sample_id = adapter.samples_collection.insert_one({"name": "A"}).inserted_id
+    finding_id = adapter.variants_collection.insert_one(
+        {
+            "SAMPLE_ID": str(sample_id),
+            "CHROM": "7",
+            "POS": 140453136,
+            "REF": "A",
+            "ALT": "T",
+            "INFO": {
+                "selected_CSQ": {
+                    "SYMBOL": "BRAF",
+                    "Feature": "NM_004333.6",
+                    "HGVSc": "c.1799T>A",
+                    "HGVSp": "p.Val600Glu",
+                }
+            },
+        }
+    ).inserted_id
+    monkeypatch.setattr(
+        "api.infra.mongo.repositories.finding_comments.current_username", lambda: "curator"
     )
+
+    comment_id = repository.add_finding_comment(
+        finding=adapter.variants_collection.find_one({"_id": finding_id}),
+        finding_type="small_variant",
+        comment_doc={"text": "reviewed"},
+    )
+
+    assert "comments" not in adapter.variants_collection.find_one({"_id": finding_id})
+    hydrated = repository.attach_comments(
+        adapter.variants_collection.find_one({"_id": finding_id}), "small_variant"
+    )
+    assert hydrated["comments"][0]["author"] == "curator"
+    assert hydrated["comments"][0]["sample_name"] == "A"
+    assert hydrated["comments"][0]["nomenclature"] == "p"
+    assert hydrated["comments"][0]["variant"] == "p.Val600Glu"
+    assert hydrated["comments"][0]["gene"] == "BRAF"
+    assert hydrated["comments"][0]["transcript"] == "NM_004333.6"
+    assert hydrated["comments"][0]["hgvsc"] == "c.1799T>A"
+    assert hydrated["comments"][0]["hgvsp"] == "p.Val600Glu"
+    assert hydrated["comments"][0]["genomic"] == "7_140453136_A_T"
+    assert len(hydrated["comments"][0]["genomic_hash"]) == 32
+
+    repository.set_hidden(
+        finding_oid=str(finding_id),
+        finding_type="small_variant",
+        comment_id=str(comment_id),
+        hidden=True,
+    )
+    assert repository.has_hidden_comments(finding_oid=str(finding_id), finding_type="small_variant")
+    assert (
+        repository.list_comments(
+            finding_oid=finding_id,
+            finding_type="small_variant",
+            include_hidden=False,
+        )
+        == []
+    )
+
+    repository.set_hidden(
+        finding_oid=str(finding_id),
+        finding_type="small_variant",
+        comment_id=str(comment_id),
+        hidden=False,
+    )
+    visible = repository.attach_comments_many(
+        [adapter.variants_collection.find_one({"_id": finding_id})], "small_variant"
+    )[0]["comments"][0]
+    assert visible["hidden"] == 0
+    assert "hidden_by" not in visible and "time_hidden" not in visible
+    assert repository.delete_sample_finding_comments(str(sample_id)).deleted_count == 1
+
+
+@pytest.mark.parametrize(
+    ("finding_type", "collection_name", "finding", "expected_identity"),
+    [
+        (
+            "cnv",
+            "copy_number_variants",
+            {"chr": "3", "start": 100, "end": 240},
+            {"nomenclature": "cn", "variant": "3:100-240"},
+        ),
+        (
+            "fusion",
+            "fusions",
+            {"gene1": "BCR", "gene2": "ABL1", "variant": "BCR--ABL1"},
+            {
+                "nomenclature": "f",
+                "variant": "BCR--ABL1",
+                "gene1": "BCR",
+                "gene2": "ABL1",
+            },
+        ),
+        (
+            "translocation",
+            "translocations",
+            {"genes": ["ETV6", "RUNX1"], "variant": "ETV6--RUNX1"},
+            {
+                "nomenclature": "t",
+                "variant": "ETV6--RUNX1",
+                "gene1": "ETV6",
+                "gene2": "RUNX1",
+            },
+        ),
+    ],
+)
+def test_finding_comments_capture_typed_finding_identity(
+    monkeypatch,
+    finding_type,
+    collection_name,
+    finding,
+    expected_identity,
+) -> None:
+    adapter = _adapter()
+    sample_id = adapter.samples_collection.insert_one({"name": "IDENTITY_SAMPLE"}).inserted_id
+    collection = adapter.coyote_db[collection_name]
+    finding_id = collection.insert_one({**finding, "SAMPLE_ID": str(sample_id)}).inserted_id
+    monkeypatch.setattr(
+        "api.infra.mongo.repositories.finding_comments.current_username", lambda: "curator"
+    )
+
+    adapter.finding_comment_repository.add_finding_comment(
+        finding=collection.find_one({"_id": finding_id}),
+        finding_type=finding_type,
+        comment_doc={"text": "typed identity"},
+    )
+
+    stored = adapter.finding_comments_collection.find_one({"finding_oid": finding_id})
+    assert stored is not None
+    assert {key: stored[key] for key in expected_identity} == expected_identity
+    assert stored["sample_oid"] == sample_id
+    assert stored["sample_name"] == "IDENTITY_SAMPLE"
 
 
 def test_base_repository_requires_a_bound_collection() -> None:
@@ -274,7 +400,6 @@ def test_fusion_repository_selection_annotations_matching_and_mutations(monkeypa
                 },
                 {"selected": 0, "breakpoint1": "1:11:+", "breakpoint2": "2:21:-"},
             ],
-            "comments": [],
         }
     ).inserted_id
     adapter.fusions_collection.insert_one(
@@ -342,21 +467,21 @@ def test_structural_repositories_normalize_query_and_mutate_records() -> None:
     translocations = TranslocsRepository(adapter)
     cnvs.ensure_indexes()
     translocations.ensure_indexes()
+    sample_id = adapter.samples_collection.insert_one({"name": "sample"}).inserted_id
     cnv_id = adapter.copy_number_variants_collection.insert_one(
-        {"SAMPLE_ID": "sample", "genes": ["MYC"], "comments": [], "interesting": True}
+        {"SAMPLE_ID": str(sample_id), "genes": ["MYC"], "interesting": True}
     ).inserted_id
     translocation_id = adapter.translocations_collection.insert_one(
         {
-            "SAMPLE_ID": "sample",
+            "SAMPLE_ID": str(sample_id),
             "INFO": [{"CSQ": [{"SYMBOL": "NTRK1"}]}],
-            "comments": [],
             "interesting": True,
         }
     ).inserted_id
 
     assert cnvs.get_cnv(str(cnv_id))["genes"] == ["MYC"]
-    assert cnvs.get_sample_cnvs({"SAMPLE_ID": "sample"})[0]["genes"] == ["MYC"]
-    assert len(list(cnvs.get_interesting_sample_cnvs("sample"))) == 1
+    assert cnvs.get_sample_cnvs({"SAMPLE_ID": str(sample_id)})[0]["genes"] == ["MYC"]
+    assert len(list(cnvs.get_interesting_sample_cnvs(str(sample_id)))) == 1
     assert cnvs.get_total_cnv_count() == 1 and cnvs.get_unique_cnv_count() == 1
     cnvs.mark_interesting_cnv(str(cnv_id), False)
     cnvs.mark_false_positive_cnv(str(cnv_id), True)
@@ -367,9 +492,10 @@ def test_structural_repositories_normalize_query_and_mutate_records() -> None:
     normalized = translocations.get_transloc(str(translocation_id))
     assert isinstance(normalized["INFO"], dict)
     assert (
-        translocations.get_sample_translocations("sample")[0]["INFO"]["CSQ"][0]["SYMBOL"] == "NTRK1"
+        translocations.get_sample_translocations(str(sample_id))[0]["INFO"]["CSQ"][0]["SYMBOL"]
+        == "NTRK1"
     )
-    assert len(list(translocations.get_interesting_sample_translocations("sample"))) == 1
+    assert len(list(translocations.get_interesting_sample_translocations(str(sample_id)))) == 1
     assert translocations.get_total_transloc_count() == 1
     assert translocations.get_unique_transloc_count() == 1
     translocations.mark_interesting_transloc(str(translocation_id), False)
@@ -942,7 +1068,6 @@ def test_variants_repository_identity_cross_sample_mutations_metrics_and_stats(m
             "HGVSc": ["c.1799T>A"],
             "variant_class": "SNV",
             "GT": [{"type": "case", "AF": 0.2}],
-            "comments": [],
             "fp": False,
         }
     ).inserted_id

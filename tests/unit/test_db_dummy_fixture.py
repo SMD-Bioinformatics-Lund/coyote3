@@ -5,9 +5,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 import yaml
+from pydantic import ValidationError
 
-from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS, validate_collection_document
+from api.contracts.schemas.registry import (
+    COLLECTION_MODEL_ADAPTERS,
+    normalize_collection_document,
+    validate_collection_document,
+)
 from api.contracts.schemas.samples import SamplesDoc
 
 
@@ -49,6 +55,45 @@ def test_variant_transcript_annotations_use_the_versioned_collection() -> None:
     assert annotation["simple_id_hash"] == variant["simple_id_hash"]
     assert annotation["vep_version"]
     assert annotation["CSQ"]
+
+
+def test_finding_contracts_discard_embedded_comments() -> None:
+    payload = _load_fixture_bundle(Path("demo_data/collections/all_collections_dummy"))
+
+    for collection in ("variants", "cnvs", "fusions", "translocations"):
+        finding = {
+            **payload[collection][0],
+            "comments": [
+                {
+                    "author": "fixture.user",
+                    "text": "This must not be persisted on the finding.",
+                }
+            ],
+        }
+
+        normalized = normalize_collection_document(collection, finding)
+
+        assert "comments" not in normalized
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"author": "", "text": "reviewed"},
+        {"author": "curator", "text": "   "},
+    ],
+)
+def test_finding_comment_contract_rejects_blank_required_content(payload) -> None:
+    with pytest.raises(ValidationError):
+        normalize_collection_document(
+            "finding_comments",
+            {
+                "sample_oid": "507f1f77bcf86cd799439011",
+                "finding_oid": "507f1f77bcf86cd799439012",
+                "finding_type": "small_variant",
+                **payload,
+            },
+        )
 
 
 def test_assay_panel_fixture_includes_required_files() -> None:

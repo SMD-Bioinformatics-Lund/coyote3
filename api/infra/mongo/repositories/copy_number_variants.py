@@ -15,12 +15,13 @@ from bson.objectid import ObjectId
 
 from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repositories.finding_comment_owner import FindingCommentOwnerMixin
 
 
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class CNVsRepository(BaseRepository):
+class CNVsRepository(FindingCommentOwnerMixin, BaseRepository):
     """
     CNVsRepository class for managing CNV data in MongoDB.
 
@@ -29,6 +30,8 @@ class CNVsRepository(BaseRepository):
     It also supports operations like marking CNVs as interesting, false positives,
     or noteworthy, and managing comments and annotations.
     """
+
+    finding_type = "cnv"
 
     def __init__(self, adapter):
         """
@@ -69,7 +72,7 @@ class CNVsRepository(BaseRepository):
         Returns:
             list[dict | None]: A list of CNVs matching the query, or an empty list if none are found.
         """
-        return list(self.get_collection().find(query))
+        return self.hydrate_finding_comments_many(list(self.get_collection().find(query)))
 
     def get_cnv(self, cnv_id: str) -> dict | None:
         """
@@ -81,7 +84,9 @@ class CNVsRepository(BaseRepository):
         Returns:
             dict | None: The CNV document if found, otherwise None.
         """
-        return self.get_collection().find_one({"_id": ObjectId(cnv_id)})
+        return self._hydrate_finding_comments(
+            self.get_collection().find_one({"_id": ObjectId(cnv_id)})
+        )
 
     def get_interesting_sample_cnvs(
         self, sample_id: str, interesting: bool = True
@@ -218,7 +223,7 @@ class CNVsRepository(BaseRepository):
         Returns:
             None
         """
-        self.hide_comment(cnv_id, comment_id)
+        self._set_finding_comment_hidden(cnv_id, comment_id, True)
 
     def unhide_cnvs_comment(self, cnv_id: str, comment_id: str) -> None:
         """
@@ -231,7 +236,7 @@ class CNVsRepository(BaseRepository):
         Returns:
             None
         """
-        self.unhide_comment(cnv_id, comment_id)
+        self._set_finding_comment_hidden(cnv_id, comment_id, False)
 
     def add_cnv_comment(self, cnv_id: str, comment_doc: dict) -> None:
         """
@@ -244,7 +249,7 @@ class CNVsRepository(BaseRepository):
         Returns:
             None
         """
-        self.update_comment(cnv_id, comment_doc)
+        self._add_finding_comment(cnv_id, comment_doc)
 
     def hidden_cnv_comments(self, id: str) -> bool:
         """
@@ -256,7 +261,7 @@ class CNVsRepository(BaseRepository):
         Returns:
             bool: True if there are hidden comments, False otherwise.
         """
-        return self.hidden_comments(id)
+        return self._has_hidden_finding_comments(id)
 
     def get_total_cnv_count(self) -> int:
         """

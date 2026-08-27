@@ -29,6 +29,7 @@ from api.contracts.operations import OperationResult
 from api.contracts.schemas.dna import ReportedVariantsDoc
 from api.domain.core.dna.variant_identity import build_simple_id_hash_from_simple_id
 from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repository_utils import literal_text_query
 
 
 def _reported_variant_search_query(
@@ -36,12 +37,16 @@ def _reported_variant_search_query(
     search_str: str,
     search_mode: str,
     asp_ids: list | None = None,
+    nomenclatures: list[str] | None = None,
 ) -> dict[str, Any] | None:
     """Build the reported-variant snapshot search query."""
     if not search_str:
         return None
 
-    regex = {"$regex": search_str, "$options": "i"}
+    exact = str(search_str).strip()
+    gene_exact = exact.upper()
+    subpanel_exact = exact.lower()
+    contains = literal_text_query(search_str, contains=True)
     mode = str(search_mode or "variant").lower()
     variant_fields = [
         "variant",
@@ -55,58 +60,56 @@ def _reported_variant_search_query(
     if mode == "gene":
         query: dict[str, Any] = {
             "$or": [
-                {"gene": regex},
-                {"genes": regex},
-                {"gene1": regex},
-                {"gene2": regex},
+                {"gene": gene_exact},
+                {"genes": gene_exact},
+                {"gene1": gene_exact},
+                {"gene2": gene_exact},
             ]
         }
     elif mode == "transcript":
         query = {
             "$or": [
-                {"transcript": regex},
+                {"transcript": exact},
             ]
         }
     elif mode == "hgvsp":
         query = {
             "$or": [
-                {"hgvsp": regex},
+                {"hgvsp": exact},
             ]
         }
     elif mode == "hgvsc":
         query = {
             "$or": [
-                {"hgvsc": regex},
+                {"hgvsc": exact},
             ]
         }
     elif mode == "genomic":
         query = {
             "$or": [
-                {"simple_id": regex},
-                {"simple_id_hash": regex},
-                {"variant": regex},
-                {"genomic": regex},
+                {"simple_id": exact},
+                {"simple_id_hash": exact},
+                {"variant": exact},
+                {"genomic": exact},
             ]
         }
-    elif mode == "nomenclature":
-        query = {"nomenclature": regex}
     elif mode == "variant":
-        query = {"$or": [{field: regex} for field in variant_fields]}
+        query = {"$or": [{field: exact} for field in variant_fields]}
     elif mode == "author":
-        query = {"created_by": regex}
+        query = {"created_by": contains}
     elif mode == "subpanel":
-        query = {"subpanel": regex}
+        query = {"subpanel": subpanel_exact}
     elif mode == "all":
         query = {
             "$or": [
-                {"gene": regex},
-                {"genes": regex},
-                {"gene1": regex},
-                {"gene2": regex},
-                {"transcript": regex},
-                {"created_by": regex},
-                {"subpanel": regex},
-                *[{field: regex} for field in variant_fields],
+                {"gene": gene_exact},
+                {"genes": gene_exact},
+                {"gene1": gene_exact},
+                {"gene2": gene_exact},
+                {"transcript": exact},
+                {"created_by": contains},
+                {"subpanel": subpanel_exact},
+                *[{field: exact} for field in variant_fields],
             ]
         }
     elif mode == "annotation":
@@ -114,19 +117,12 @@ def _reported_variant_search_query(
     else:
         return None
 
+    query_parts = [query]
     if asp_ids:
-        return {
-            "$and": [
-                query,
-                {
-                    "$or": [
-                        {"assay": {"$in": asp_ids}},
-                        {"assay_group": {"$in": asp_ids}},
-                    ]
-                },
-            ]
-        }
-    return query
+        query_parts.append({"assay_group": {"$in": asp_ids}})
+    if nomenclatures:
+        query_parts.append({"nomenclature": {"$in": nomenclatures}})
+    return query_parts[0] if len(query_parts) == 1 else {"$and": query_parts}
 
 
 # -------------------------------------------------------------------------
@@ -290,6 +286,7 @@ class ReportedVariantsRepository(BaseRepository):
         search_str: str,
         search_mode: str,
         asp_ids: list | None = None,
+        nomenclatures: list[str] | None = None,
         limit: int | None = None,
     ) -> list:
         """Search reported variant snapshots by normalized report-time fields."""
@@ -297,6 +294,7 @@ class ReportedVariantsRepository(BaseRepository):
             search_str=search_str,
             search_mode=search_mode,
             asp_ids=asp_ids,
+            nomenclatures=nomenclatures,
         )
         if query is None:
             return []

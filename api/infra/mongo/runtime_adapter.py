@@ -33,6 +33,7 @@ from api.infra.mongo.repositories.copy_number_variants import CNVsRepository
 from api.infra.mongo.repositories.coverage import CoverageRepository
 from api.infra.mongo.repositories.dashboard_metrics import DashboardMetricsRepository
 from api.infra.mongo.repositories.expression import ExpressionRepository
+from api.infra.mongo.repositories.finding_comments import FindingCommentsRepository
 from api.infra.mongo.repositories.fusions import FusionsRepository
 from api.infra.mongo.repositories.gene_lists import ISGLRepository
 from api.infra.mongo.repositories.grouped_coverage import GroupCoverageRepository
@@ -61,6 +62,7 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("annotation_repository", AnnotationsRepository, "annotations"),
     ("sample_repository", SampleRepository, "samples"),
     ("sample_comment_repository", SampleCommentsRepository, "sample_comments"),
+    ("finding_comment_repository", FindingCommentsRepository, "finding_comments"),
     ("assay_panel_repository", ASPRepository, "asp"),
     ("blacklist_repository", BlacklistRepository, "blacklist"),
     ("expression_repository", ExpressionRepository, "expression"),

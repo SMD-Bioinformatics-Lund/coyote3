@@ -119,6 +119,7 @@ _SAMPLE_LINKED_COLLECTIONS: frozenset[str] = frozenset(
     {
         "samples",
         "sample_comments",
+        "finding_comments",
         "reports",
         "variants",
         "cnvs",

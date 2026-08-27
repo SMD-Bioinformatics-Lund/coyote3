@@ -433,8 +433,8 @@ class SampleCatalogFiltersMixin:
         transloc_rows = list(
             self.translocation_repository.get_sample_translocations(sample_id) or []
         )
-        fusion_rows = list(
-            self.fusion_repository.get_sample_fusions({"SAMPLE_ID": sample_id}) or []
+        fusion_rows = self.fusion_repository.hydrate_finding_comments_many(
+            list(self.fusion_repository.get_sample_fusions({"SAMPLE_ID": sample_id}) or [])
         )
         biomarker_rows = list(self.biomarker_repository.get_sample_biomarkers(sample_id) or [])
 

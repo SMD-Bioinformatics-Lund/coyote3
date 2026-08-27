@@ -450,7 +450,9 @@ class RNAWorkflowService:
             raise ValueError("RNA report input is missing the canonical sample asp_id.")
         reporting_config = assay_config["reporting"]
         fusion_query = {"SAMPLE_ID": str(sample["_id"])}
-        fusions = list(self.fusion_repository.get_sample_fusions(fusion_query) or [])
+        fusions = self.fusion_repository.hydrate_finding_comments_many(
+            list(self.fusion_repository.get_sample_fusions(fusion_query) or [])
+        )
 
         for fus_idx, fusion in enumerate(fusions):
             (

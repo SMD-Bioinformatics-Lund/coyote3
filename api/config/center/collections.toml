@@ -12,6 +12,7 @@
     annotations_collection = "annotation"
     samples_collection = "samples"
     sample_comments_collection = "sample_comments"
+    finding_comments_collection = "finding_comments"
     reports_collection = "reports"
     variants_collection = "variants"
     anno_vep_collection = "anno_vep"

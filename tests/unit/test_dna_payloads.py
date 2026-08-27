@@ -31,7 +31,10 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
             get_isgl_by_ids=lambda ids: {},
             get_isgl_by_asp=lambda assay, is_active=True: [],
         ),
-        variant_repository=SimpleNamespace(get_case_variants=lambda query: variants),
+        variant_repository=SimpleNamespace(
+            get_case_variants=lambda query: variants,
+            hydrate_finding_comments_many=lambda findings: findings,
+        ),
         blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay_group: rows),
         bam_record_repository=SimpleNamespace(get_bams=lambda sample_ids: {}),
         vep_metadata_repository=SimpleNamespace(
@@ -87,7 +90,10 @@ def test_paginated_small_variant_list_only_enriches_the_current_page() -> None:
         gene_list_repository=SimpleNamespace(
             get_isgl_by_ids=lambda ids: {}, get_isgl_by_asp=lambda assay, is_active=True: []
         ),
-        variant_repository=SimpleNamespace(get_case_variants=lambda query: variants),
+        variant_repository=SimpleNamespace(
+            get_case_variants=lambda query: variants,
+            hydrate_finding_comments_many=lambda findings: findings,
+        ),
         blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay_group: rows),
         bam_record_repository=SimpleNamespace(get_bams=lambda sample_ids: {}),
         vep_metadata_repository=SimpleNamespace(
@@ -142,7 +148,10 @@ def test_list_variants_payload_maps_tmb_and_pgx_to_biomarker_section() -> None:
             get_isgl_by_ids=lambda ids: {},
             get_isgl_by_asp=lambda assay, is_active=True: [],
         ),
-        variant_repository=SimpleNamespace(get_case_variants=lambda query: []),
+        variant_repository=SimpleNamespace(
+            get_case_variants=lambda query: [],
+            hydrate_finding_comments_many=lambda findings: findings,
+        ),
         blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay_group: rows),
         bam_record_repository=SimpleNamespace(get_bams=lambda sample_ids: {}),
         vep_metadata_repository=SimpleNamespace(

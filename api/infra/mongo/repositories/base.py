@@ -10,7 +10,6 @@ repository operations.
 # Imports
 # -------------------------------------------------------------------------
 import logging
-from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
 
@@ -19,8 +18,6 @@ from bson.objectid import ObjectId
 
 from api.contracts.operations import OperationResult
 from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
-from api.infra.mongo.repository_utils import utc_now
-from api.infra.request_context import current_username
 
 
 # -------------------------------------------------------------------------
@@ -55,59 +52,6 @@ class BaseRepository:
         adapter = getattr(self, "adapter", None)
         if adapter is not None:
             invalidate_dashboard_summary_cache(adapter)
-
-    def hide_comment(self, var_id: str, comment_id: str) -> Any:
-        """
-        Hide a comment for a variant, translocation, or CNV.
-
-        This method updates the `comments` array of a document in the collection
-        to mark a specific comment as hidden. It also records the user who hid
-        the comment and the timestamp of the action.
-
-        Args:
-            var_id (str): The unique identifier of the variant or document.
-            comment_id (str): The unique identifier of the comment to hide.
-
-        Returns:
-            Any: The result of the update operation.
-        """
-        return OperationResult.from_update(
-            self.get_collection().update_one(
-                {"_id": ObjectId(var_id), "comments._id": ObjectId(comment_id)},
-                {
-                    "$set": {
-                        "comments.$.hidden": 1,
-                        "comments.$.hidden_by": current_username(),
-                        "comments.$.time_hidden": utc_now(),
-                    }
-                },
-            )
-        )
-
-    def unhide_comment(self, var_id: str, comment_id: str) -> Any:
-        """
-        Unhide a comment for a variant, translocation, or CNV.
-
-        This method updates the `comments` array of a document in the collection
-        to mark a specific comment as visible again.
-
-        Args:
-            var_id (str): The unique identifier of the variant or document.
-            comment_id (str): The unique identifier of the comment to unhide.
-
-        Returns:
-            Any: The result of the update operation.
-        """
-        return OperationResult.from_update(
-            self.get_collection().update_one(
-                {"_id": ObjectId(var_id), "comments._id": ObjectId(comment_id)},
-                {
-                    "$set": {
-                        "comments.$.hidden": 0,
-                    }
-                },
-            )
-        )
 
     def mark_false_positive(self, var_id: str, fp: bool) -> Any:
         """
@@ -316,46 +260,6 @@ class BaseRepository:
         """
         return OperationResult.from_insert_one(self.get_collection().insert_one(comment_doc))
 
-    def update_comment(self, id: str, comment_doc: dict) -> Any:
-        """
-        Update a comment for a variant.
-
-        This method updates an existing comment in the collection associated with the handler.
-        The comment is identified by its unique `_id`, and the provided `comment_doc` contains
-        the updated details.
-
-        Args:
-            id (str): The unique identifier of the comment to update.
-            comment_doc (dict): A dictionary containing the updated comment details.
-
-        Returns:
-            Any: The result of the update operation.
-        """
-        return OperationResult.from_update(
-            self.get_collection().update_one(
-                {"_id": ObjectId(id)},
-                {"$push": {"comments": comment_doc}},
-            )
-        )
-
-    def hidden_comments(self, id: str) -> bool:
-        """
-        Retrieve hidden comments for a document.
-
-        This method checks the `comments` array of a document in the collection to determine
-        if any comments are marked as hidden.
-
-        Args:
-            id (str): The unique identifier of the document to check.
-
-        Returns:
-            bool: `True` if there are hidden comments, `False` otherwise.
-        """
-        data = self.get_collection().find_one({"_id": ObjectId(id)}).get("comments")
-        if data:
-            return any(comment.get("hidden") for comment in data)
-        return False
-
     def toggle_active(self, doc_id: str, active: bool) -> Any:
         """
         Toggle the active status of a document.
@@ -373,25 +277,3 @@ class BaseRepository:
         return OperationResult.from_update(
             self.get_collection().update_one({"_id": doc_id}, {"$set": {"active": active}})
         )
-
-    def get_latest_comment(self, doc_id: str) -> dict | None:
-        """
-        Retrieve the latest comment for a document.
-
-        This method fetches the most recent comment from the `comments` array
-        of a document in the collection based on the `time_created` field.
-
-        Args:
-            doc_id (str): The unique identifier of the document.
-
-        Returns:
-            dict | None: The latest comment document if found, otherwise None.
-        """
-        doc = self.get_collection().find_one({"_id": ObjectId(doc_id)}, {"comments": 1})
-        if doc and "comments" in doc:
-            comments = doc["comments"]
-            if comments:
-                # Sort comments by time_created in descending order and return the latest
-                latest_comment = max(comments, key=lambda x: x.get("time_created", datetime.min))
-                return latest_comment
-        return None

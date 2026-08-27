@@ -12,6 +12,7 @@ It is part of the MongoDB infrastructure layer.
 # Imports
 # -------------------------------------------------------------------------
 from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repository_utils import literal_text_query
 
 
 # -------------------------------------------------------------------------
@@ -86,7 +87,7 @@ class HGNCRepository(BaseRepository):
         Returns:
             dict: The metadata of the gene.
         """
-        return self.get_collection().find_one({"hgnc_symbol": symbol})
+        return self.get_collection().find_one({"hgnc_symbol": literal_text_query(symbol)})
 
     def get_metadata_by_symbol_or_alias(self, symbol: str) -> dict:
         """Return HGNC metadata by approved symbol, previous symbol, or alias symbol."""
@@ -96,9 +97,9 @@ class HGNCRepository(BaseRepository):
         return self.get_collection().find_one(
             {
                 "$or": [
-                    {"hgnc_symbol": normalized},
-                    {"prev_symbol": normalized},
-                    {"alias_symbol": normalized},
+                    {"hgnc_symbol": literal_text_query(normalized)},
+                    {"prev_symbol": literal_text_query(normalized)},
+                    {"alias_symbol": literal_text_query(normalized)},
                 ]
             }
         )

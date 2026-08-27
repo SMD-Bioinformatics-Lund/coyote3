@@ -84,6 +84,7 @@ class MongoStore:
     roles_repository: Any
     sample_repository: SampleRepositoryProtocol
     sample_comment_repository: Any
+    finding_comment_repository: Any
     translocation_repository: Any
     user_repository: Any
     variant_repository: VariantsRepositoryProtocol
@@ -120,6 +121,7 @@ class MongoStore:
         "roles_repository",
         "sample_repository",
         "sample_comment_repository",
+        "finding_comment_repository",
         "translocation_repository",
         "user_repository",
         "variant_repository",
@@ -165,6 +167,7 @@ class MongoStore:
         self.roles_repository = _LazyRepositoryProxy()
         self.sample_repository = _LazyRepositoryProxy()
         self.sample_comment_repository = _LazyRepositoryProxy()
+        self.finding_comment_repository = _LazyRepositoryProxy()
         self.translocation_repository = _LazyRepositoryProxy()
         self.user_repository = _LazyRepositoryProxy()
         self.variant_repository = _LazyRepositoryProxy()

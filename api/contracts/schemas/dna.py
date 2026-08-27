@@ -8,7 +8,12 @@ from typing import Any, Dict, Optional
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 
-from api.contracts.schemas.base import _DocBase, _StrictCollectionDocBase, _StrictDocBase
+from api.contracts.schemas.base import (
+    _DocBase,
+    _FindingDocBase,
+    _StrictCollectionDocBase,
+    _StrictDocBase,
+)
 from api.contracts.schemas.normalizers import normalize_ampersand_terms
 
 
@@ -189,7 +194,7 @@ class VariantGtDoc(_DocBase):
     type: str
 
 
-class VariantsDoc(_DocBase):
+class VariantsDoc(_FindingDocBase):
     SAMPLE_ID: str
     CHROM: str
     POS: int
@@ -287,7 +292,7 @@ class CnvGeneDoc(_DocBase):
         return self
 
 
-class CnvsDoc(_DocBase):
+class CnvsDoc(_FindingDocBase):
     SAMPLE_ID: str
     chr: str
     start: int
@@ -384,7 +389,7 @@ class TranslocationGtDoc(_DocBase):
     SR: str
 
 
-class TranslocationsDoc(_DocBase):
+class TranslocationsDoc(_FindingDocBase):
     SAMPLE_ID: str
     CHROM: str
     POS: int

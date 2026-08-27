@@ -507,7 +507,9 @@ def list_variants_payload(
         intent=intent,
     )
 
-    variants = list(service.variant_repository.get_case_variants(query))
+    variants = service.variant_repository.hydrate_finding_comments_many(
+        list(service.variant_repository.get_case_variants(query))
+    )
     variants = service.blacklist_repository.add_blacklist_data(variants, assay_group)
     variants = hotspot_variant(variants)
     variants = sorted(variants, key=_variant_case_af_value, reverse=True)
