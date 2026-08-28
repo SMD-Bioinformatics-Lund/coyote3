@@ -383,7 +383,7 @@ class TranslocationInfoDoc(_DocBase):
 
 
 class TranslocationGtDoc(_DocBase):
-    UR: float
+    UR: float | None = None
     sample: str
     PR: str
     SR: str

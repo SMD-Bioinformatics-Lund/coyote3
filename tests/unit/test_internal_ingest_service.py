@@ -1055,6 +1055,20 @@ def test_normalize_historical_transloc_doc():
     assert out["INFO"]["PANEL"] == ["genefuse"]
 
 
+def test_normalize_translocation_preserves_missing_ur_and_qual():
+    from api.application.ingest.parsers import _normalize_transloc_doc
+
+    out = _normalize_transloc_doc(
+        {
+            "QUAL": "",
+            "GT": [{"UR": "", "_sample_id": "S1", "PR": "0,1", "SR": "2,3"}],
+        }
+    )
+
+    assert out["QUAL"] is None
+    assert out["GT"] == [{"UR": None, "sample": "S1", "PR": "0,1", "SR": "2,3"}]
+
+
 def test_parse_yaml_payload():
     service = ingest.InternalIngestService(
         collection_gateway=IngestCollectionGateway(

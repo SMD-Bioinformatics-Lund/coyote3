@@ -647,10 +647,14 @@ def _normalize_transloc_doc(doc: dict[str, Any]) -> dict[str, Any]:
         gt_doc["sample"] = str(gt_doc.get("sample") or gt_doc.get("_sample_id") or "")
         gt_doc["PR"] = str(gt_doc.get("PR") or "")
         gt_doc["SR"] = str(gt_doc.get("SR") or "")
-        gt_doc["UR"] = float(gt_doc.get("UR") or 0)
+        raw_ur = gt_doc.get("UR")
+        gt_doc["UR"] = None if raw_ur in (None, "", ".") else float(raw_ur)
         gt_doc.pop("_sample_id", None)
         normalized_gt.append(gt_doc)
     normalized["GT"] = normalized_gt
+
+    raw_qual = normalized.get("QUAL")
+    normalized["QUAL"] = None if raw_qual in (None, "", ".") else float(raw_qual)
 
     info = normalized.get("INFO")
     if isinstance(info, list):
