@@ -42,6 +42,16 @@ class InternalIngestSampleBundlePayload(BaseModel):
     data_counts: dict[str, int | bool]
 
 
+class InternalIngestAcknowledgementPayload(BaseModel):
+    """Represent the terminal acknowledgement used by externally managed manifests."""
+
+    status: str
+    sample_name: str | None = None
+    sample_id: str | None = None
+    message: str
+    result: InternalIngestSampleBundlePayload | None = None
+
+
 class InternalTaskSubmitPayload(BaseModel):
     """Represent an enqueued internal background task."""
 

@@ -747,7 +747,7 @@ function Detail({ label, value }: { label: string; value: string | null | undefi
 
 export function AdminIngestPage() {
   const [yamlFile, setYamlFile] = useState<File | null>(null)
-  const [dataFiles, setDataFiles] = useState<File[]>([])
+  const [dataArchive, setDataArchive] = useState<File | null>(null)
   const [updateExisting, setUpdateExisting] = useState(false)
   const [increment, setIncrement] = useState(false)
   const [taskId, setTaskId] = useState("")
@@ -763,7 +763,7 @@ export function AdminIngestPage() {
       if (!yamlFile) throw new Error("Select a coyote3 YAML manifest before submitting.")
       const formData = new FormData()
       formData.append("yaml_file", yamlFile)
-      dataFiles.forEach((file) => formData.append("data_files", file))
+      if (dataArchive) formData.append("data_archive", dataArchive)
       formData.append("update_existing", String(updateExisting))
       formData.append("increment", String(increment))
       return api.post("/internal/ingest/sample-bundle/upload/async", formData).then((res) => res.data)
@@ -803,13 +803,16 @@ export function AdminIngestPage() {
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-semibold uppercase text-muted-foreground">Referenced data files</span>
+              <span className="text-xs font-semibold uppercase text-muted-foreground">Referenced data archive</span>
               <input
                 type="file"
-                multiple
-                onChange={(event) => setDataFiles(Array.from(event.target.files || []))}
+                accept=".zip,application/zip"
+                onChange={(event) => setDataArchive(event.target.files?.[0] || null)}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               />
+              <span className="block text-xs text-muted-foreground">
+                Optional when the manifest paths are already readable. Otherwise upload one ZIP containing every declared data file.
+              </span>
             </label>
             <div className="grid gap-2 sm:grid-cols-2">
               <label className="flex items-center gap-2 rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold">

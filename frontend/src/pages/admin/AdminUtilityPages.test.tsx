@@ -217,14 +217,14 @@ describe("AdminIngestPage", () => {
     mocks.get.mockResolvedValue({ data: { state: "SUCCESS", ready: true, successful: true, result: { sample: "SYNTHETIC_001" } } })
   })
 
-  it("requires a manifest and submits all files and options as multipart data", async () => {
+  it("requires a manifest and submits an optional data archive with multipart options", async () => {
     const user = userEvent.setup()
     renderPage(<AdminIngestPage />)
     const queue = screen.getByRole("button", { name: "Queue ingest" })
     expect(queue).toBeDisabled()
     const inputs = document.querySelectorAll<HTMLInputElement>('input[type="file"]')
     await user.upload(inputs[0], new File(["name: SYNTHETIC_001"], "sample.yaml", { type: "application/yaml" }))
-    await user.upload(inputs[1], [new File(["VCF"], "sample.vcf"), new File(["{}"], "sample.cnv.json")])
+    await user.upload(inputs[1], new File(["ZIP"], "sample-bundle.zip", { type: "application/zip" }))
     await user.click(screen.getByLabelText("Update existing sample"))
     await user.click(screen.getByLabelText("Increment sample name"))
     await user.click(queue)
@@ -234,7 +234,7 @@ describe("AdminIngestPage", () => {
     expect(url).toBe("/internal/ingest/sample-bundle/upload/async")
     expect(body).toBeInstanceOf(FormData)
     expect((body as FormData).get("yaml_file")).toBeInstanceOf(File)
-    expect((body as FormData).getAll("data_files")).toHaveLength(2)
+    expect((body as FormData).get("data_archive")).toBeInstanceOf(File)
     expect((body as FormData).get("update_existing")).toBe("true")
     expect((body as FormData).get("increment")).toBe("true")
     expect(await screen.findByText("TASK_1")).toBeVisible()

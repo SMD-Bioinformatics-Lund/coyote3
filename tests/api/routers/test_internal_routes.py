@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from io import BytesIO
 from types import SimpleNamespace
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
 from fastapi import HTTPException
@@ -34,6 +35,15 @@ class _FakeUpload:
 
     async def close(self) -> None:
         return None
+
+
+def _zip_upload(*entries: tuple[str, bytes]) -> _FakeUpload:
+    """Build an in-memory ZIP upload for sample-bundle tests."""
+    payload = BytesIO()
+    with ZipFile(payload, "w", compression=ZIP_DEFLATED) as archive:
+        for name, content in entries:
+            archive.writestr(name, content)
+    return _FakeUpload(filename="bundle.zip", payload=payload.getvalue())
 
 
 def _ingest_service_stub(**methods):
@@ -469,20 +479,14 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
     )
 
     yaml_upload = _FakeUpload(filename="ingest.yaml", payload=b"name: UPLOAD_SAMPLE")
-    files = [
-        _FakeUpload(
-            filename="generic_case_control.final.filtered.vcf",
-            payload=b"##fileformat=VCFv4.2\n",
-        ),
-        _FakeUpload(
-            filename="generic_case_control.cnvs.merged.json",
-            payload=b"[]",
-        ),
-    ]
+    archive = _zip_upload(
+        ("generic_case_control.final.filtered.vcf", b"##fileformat=VCFv4.2\n"),
+        ("generic_case_control.cnvs.merged.json", b"[]"),
+    )
 
     response = internal.ingest_sample_bundle_upload_internal(
         yaml_file=yaml_upload,
-        data_files=files,
+        data_archive=archive,
         update_existing=False,
         increment=True,
         user=_admin_user(),
@@ -518,7 +522,7 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
             "omics_layer": "dna",
             "pipeline": "pipeline",
             "pipeline_version": "v1",
-            "vcf_files": "required.vcf",
+            "vcf_files": "/unavailable/required.vcf",
         },
         _assay_file_policy=lambda **_: ({"vcf_files"}, {"vcf_files"}),
     )
@@ -527,18 +531,19 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(monkeypatch):
     with pytest.raises(HTTPException) as exc_info:
         internal.ingest_sample_bundle_upload_internal(
             yaml_file=yaml_upload,
-            data_files=[],
+            data_archive=None,
             update_existing=False,
             increment=True,
+            acknowledge=False,
             user=_admin_user(),
             ingest_service=ingest_service,
         )
     assert exc_info.value.status_code == 400
-    assert "Missing files for YAML references" in str(exc_info.value)
+    assert "Missing required files for YAML references" in str(exc_info.value)
 
 
-def test_ingest_sample_bundle_upload_internal_ignores_missing_optional_file(monkeypatch):
-    """Optional YAML file refs should not block upload ingest when the ASP does not require them."""
+def test_ingest_sample_bundle_upload_internal_rejects_missing_declared_optional_file(monkeypatch):
+    """Every YAML-declared file must resolve, even when the ASP marks it optional."""
     calls: dict[str, object] = {}
 
     monkeypatch.setattr(
@@ -573,29 +578,61 @@ def test_ingest_sample_bundle_upload_internal_ignores_missing_optional_file(monk
             "omics_layer": "dna",
             "pipeline": "pipeline",
             "pipeline_version": "v1",
-            "vcf_files": "required.vcf",
-            "transloc": "optional.vcf",
+            "vcf_files": "/unavailable/required.vcf",
+            "transloc": "/unavailable/optional.vcf",
         },
         _assay_file_policy=lambda **_: ({"vcf_files", "transloc"}, {"vcf_files"}),
         ingest_sample_bundle=_ingest,
     )
 
     yaml_upload = _FakeUpload(filename="ingest.yaml", payload=b"name: UPLOAD_SAMPLE")
-    files = [_FakeUpload(filename="required.vcf", payload=b"##fileformat=VCFv4.2\n")]
+    archive = _zip_upload(("required.vcf", b"##fileformat=VCFv4.2\n"))
+
+    with pytest.raises(HTTPException) as exc_info:
+        internal.ingest_sample_bundle_upload_internal(
+            yaml_file=yaml_upload,
+            data_archive=archive,
+            update_existing=False,
+            increment=True,
+            acknowledge=False,
+            user=_admin_user(),
+            ingest_service=ingest_service,
+        )
+    assert exc_info.value.status_code == 400
+    assert "Missing declared files for YAML references" in str(exc_info.value)
+
+
+def test_ingest_sample_bundle_upload_internal_acknowledges_failures(monkeypatch):
+    """Cron callers can request a terminal JSON acknowledgement instead of HTTP 400."""
+    ingest_service = _ingest_service_stub(
+        parse_yaml_payload=lambda _text: {
+            "name": "UPLOAD_SAMPLE",
+            "asp_id": "assay_1",
+            "omics_layer": "dna",
+            "vcf_files": "required.vcf",
+        },
+        _assay_file_policy=lambda **_: ({"vcf_files"}, {"vcf_files"}),
+    )
+    yaml_upload = _FakeUpload(filename="ingest.yaml", payload=b"name: UPLOAD_SAMPLE")
 
     response = internal.ingest_sample_bundle_upload_internal(
         yaml_file=yaml_upload,
-        data_files=files,
+        data_archive=None,
+        acknowledge=True,
         update_existing=False,
-        increment=True,
+        increment=False,
         user=_admin_user(),
         ingest_service=ingest_service,
     )
 
-    assert response["status"] == "ok"
-    payload = calls["payload"]
-    assert "transloc" not in payload
-    assert payload["_runtime_files"]["vcf_files"].endswith("required.vcf")
+    assert response == {
+        "status": "failed",
+        "sample_name": None,
+        "sample_id": None,
+        "message": "Missing required files for YAML references: vcf_files:required.vcf. "
+        "Provide one ZIP containing matching files or make the manifest paths readable.",
+        "result": None,
+    }
 
 
 def test_ingest_collection_upload_internal_insert(monkeypatch):

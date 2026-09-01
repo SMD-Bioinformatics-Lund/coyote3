@@ -20,6 +20,7 @@ from api.app.deps.repositories import get_gene_list_repository, get_roles_reposi
 from api.app.deps.services import get_internal_ingest_service
 from api.application.ingest.parsers import runtime_file_path
 from api.application.ingest.service import InternalIngestService
+from api.application.ingest.upload_archive import UploadedFileIndex, extract_uploaded_archive
 from api.celery_app import celery_app
 from api.config.paths import INGEST_STAGING_DIR
 from api.config.runtime_settings import DefaultConfig
@@ -32,6 +33,7 @@ from api.contracts.internal import (
     InternalCollectionUploadPayload,
     InternalCollectionUpsertPayload,
     InternalCollectionUpsertRequest,
+    InternalIngestAcknowledgementPayload,
     InternalIngestSampleBundlePayload,
     InternalIngestSampleBundleRequest,
     InternalTaskStatusPayload,
@@ -217,10 +219,11 @@ def get_ingest_collection_status_internal(
 
 @router.post(
     "/api/v1/internal/ingest/sample-bundle",
-    response_model=InternalIngestSampleBundlePayload,
+    response_model=InternalIngestSampleBundlePayload | InternalIngestAcknowledgementPayload,
 )
 def ingest_sample_bundle_internal(
     payload: InternalIngestSampleBundleRequest,
+    acknowledge: bool = False,
     user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
     ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
@@ -251,11 +254,14 @@ def ingest_sample_bundle_internal(
             increment=payload.increment,
         )
     except (ValueError, FileNotFoundError) as exc:
+        if acknowledge:
+            return _ingest_acknowledgement(error=exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc
-    return util.common.convert_to_serializable(result)
+    serialized = util.common.convert_to_serializable(result)
+    return _ingest_acknowledgement(result=serialized) if acknowledge else serialized
 
 
 def _save_upload(upload: UploadFile, destination: Path) -> str:
@@ -270,23 +276,118 @@ def _save_upload(upload: UploadFile, destination: Path) -> str:
     return digest.hexdigest()
 
 
-def _remove_manifest_file_reference(payload: dict, key: str) -> None:
-    """Remove a file declaration from canonical and pipeline manifest shapes."""
-    payload.pop(key, None)
-    files = payload.get("files")
-    if isinstance(files, dict):
-        files.pop(key, None)
+def _ingest_acknowledgement(
+    *,
+    result: dict | None = None,
+    error: Exception | None = None,
+) -> dict:
+    """Return a stable terminal result for cron-managed manifest handoff."""
+    if error is not None:
+        return {
+            "status": "failed",
+            "sample_name": None,
+            "sample_id": None,
+            "message": str(error),
+            "result": None,
+        }
+    payload = dict(result or {})
+    return {
+        "status": "ok",
+        "sample_name": payload.get("sample_name"),
+        "sample_id": payload.get("sample_id"),
+        "message": "Sample bundle ingested successfully",
+        "result": payload,
+    }
+
+
+def _prepare_uploaded_bundle(
+    *,
+    yaml_file: UploadFile,
+    data_archive: UploadFile | None,
+    staging_dir: Path,
+    ingest_service: InternalIngestService,
+) -> dict:
+    """Parse a manifest and resolve declared paths against one uploaded ZIP archive."""
+    yaml_content = yaml_file.file.read().decode("utf-8")
+    source_payload = ingest_service.parse_yaml_payload(yaml_content)
+    expected_keys, required_keys = ingest_service._assay_file_policy(
+        assay_name=source_payload.get("asp_id"),
+        omics_layer=source_payload.get("omics_layer"),
+    )
+
+    archive_index = UploadedFileIndex(exact={}, basename={}, checksums={})
+    if data_archive is not None:
+        if not data_archive.filename:
+            raise ValueError("data_archive must include a filename")
+        archive_path = staging_dir / Path(str(data_archive.filename)).name
+        _save_upload(data_archive, archive_path)
+        archive_index = extract_uploaded_archive(
+            archive_path=archive_path,
+            destination=staging_dir / "files",
+        )
+
+    runtime_files: dict[str, str] = {}
+    checksums: dict[str, str] = {}
+    missing: list[str] = []
+    ambiguous: list[str] = []
+    for key in SAMPLE_SOURCE_PATH_KEYS:
+        raw_value = runtime_file_path(source_payload, key)
+        if not raw_value or not raw_value.strip():
+            continue
+        path_value = raw_value.strip()
+        if key not in expected_keys:
+            raise ValueError(
+                f"Manifest declares '{key}', but ASP '{source_payload.get('asp_id')}' does not accept it"
+            )
+        resolved = archive_index.exact.get(path_value)
+        if not resolved:
+            basename = Path(path_value).name
+            if basename in archive_index.basename and archive_index.basename[basename] is None:
+                ambiguous.append(f"{key}:{path_value}")
+                continue
+            resolved = archive_index.basename.get(basename)
+        if resolved:
+            runtime_files[key] = resolved
+            checksum = archive_index.checksums.get(resolved)
+            if checksum:
+                checksums[key] = checksum
+            continue
+        if os.path.exists(path_value):
+            runtime_files[key] = path_value
+            continue
+        missing.append(f"{key}:{path_value}")
+
+    if ambiguous:
+        raise ValueError(
+            "Ambiguous archive filenames for YAML references: "
+            + ", ".join(sorted(ambiguous))
+            + ". Use unique basenames or archive paths matching the YAML values."
+        )
+    if missing:
+        required_missing = [entry for entry in missing if entry.split(":", 1)[0] in required_keys]
+        label = "Missing required files" if required_missing else "Missing declared files"
+        raise ValueError(
+            f"{label} for YAML references: "
+            + ", ".join(sorted(missing))
+            + ". Provide one ZIP containing matching files or make the manifest paths readable."
+        )
+    if runtime_files:
+        source_payload["_runtime_files"] = runtime_files
+    if checksums:
+        source_payload["_uploaded_file_checksums"] = checksums
+    return source_payload
 
 
 @router.post(
     "/api/v1/internal/ingest/sample-bundle/upload",
-    response_model=InternalIngestSampleBundlePayload,
+    response_model=InternalIngestSampleBundlePayload | InternalIngestAcknowledgementPayload,
 )
 def ingest_sample_bundle_upload_internal(
     yaml_file: UploadFile = File(...),
-    data_files: list[UploadFile] = File(default_factory=list),
+    data_archive: UploadFile | None = File(None),
     update_existing: bool = Form(False),
     increment: bool = Form(False),
+    acknowledge: bool = Form(False),
     user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
     ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
@@ -298,105 +399,15 @@ def ingest_sample_bundle_upload_internal(
         )
 
     staging_dir = Path(tempfile.mkdtemp(prefix="coyote3_ingest_upload_"))
-    uploads_by_exact: dict[str, str] = {}
-    uploads_by_basename: dict[str, str | None] = {}
-    uploaded_sha256_by_path: dict[str, str] = {}
-    upload_refs: list[UploadFile] = [yaml_file, *data_files]
+    upload_refs: list[UploadFile] = [yaml_file, *([data_archive] if data_archive else [])]
     try:
         _enforce_sample_ingest_permission(user)
-        yaml_bytes = yaml_file.file.read()
-        yaml_content = yaml_bytes.decode("utf-8")
-        source_payload = ingest_service.parse_yaml_payload(yaml_content)
-        expected_keys, required_keys = ingest_service._assay_file_policy(
-            assay_name=source_payload.get("asp_id"),
-            omics_layer=source_payload.get("omics_layer"),
+        source_payload = _prepare_uploaded_bundle(
+            yaml_file=yaml_file,
+            data_archive=data_archive,
+            staging_dir=staging_dir,
+            ingest_service=ingest_service,
         )
-
-        for upload in data_files:
-            if not upload.filename:
-                continue
-            original_name = str(upload.filename).strip()
-            if not original_name:
-                continue
-            base_name = Path(original_name).name
-            if not base_name:
-                continue
-
-            destination = staging_dir / base_name
-            suffix = 1
-            while destination.exists():
-                destination = staging_dir / f"{destination.stem}_{suffix}{destination.suffix}"
-                suffix += 1
-            checksum = _save_upload(upload, destination)
-            uploaded_sha256_by_path[str(destination)] = checksum
-
-            uploads_by_exact[original_name] = str(destination)
-            existing = uploads_by_basename.get(base_name)
-            if existing and existing != str(destination):
-                uploads_by_basename[base_name] = None
-            elif existing is None and base_name in uploads_by_basename:
-                pass
-            else:
-                uploads_by_basename[base_name] = str(destination)
-
-        runtime_files: dict[str, str] = {}
-        missing: list[str] = []
-        ambiguous: list[str] = []
-        for key in SAMPLE_SOURCE_PATH_KEYS:
-            raw_value = runtime_file_path(source_payload, key)
-            if not raw_value or not raw_value.strip():
-                continue
-            if key not in expected_keys:
-                _remove_manifest_file_reference(source_payload, key)
-                continue
-            path_value = raw_value.strip()
-            resolved = uploads_by_exact.get(path_value)
-            if not resolved:
-                base_name = Path(path_value).name
-                if base_name in uploads_by_basename and uploads_by_basename[base_name] is None:
-                    ambiguous.append(f"{key}:{path_value}")
-                    continue
-                resolved = uploads_by_basename.get(base_name)
-            if not resolved:
-                if os.path.exists(path_value):
-                    runtime_files[key] = path_value
-                else:
-                    if key in required_keys:
-                        missing.append(f"{key}:{path_value}")
-                    else:
-                        _remove_manifest_file_reference(source_payload, key)
-                continue
-            runtime_files[key] = resolved
-
-        if ambiguous:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    "Ambiguous uploaded filenames for YAML references: "
-                    + ", ".join(sorted(ambiguous))
-                    + ". Provide unique basenames or exact filename matches."
-                ),
-            )
-        if missing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    "Missing files for YAML references: "
-                    + ", ".join(sorted(missing))
-                    + ". Upload matching files with the request."
-                ),
-            )
-
-        if runtime_files:
-            source_payload["_runtime_files"] = runtime_files
-            checksums: dict[str, str] = {}
-            for source_key, resolved_path in runtime_files.items():
-                uploaded_checksum: str | None = uploaded_sha256_by_path.get(resolved_path)
-                if uploaded_checksum:
-                    checksums[source_key] = uploaded_checksum
-            if checksums:
-                source_payload["_uploaded_file_checksums"] = checksums
-
         if update_existing:
             _enforce_sample_ingest_permission(user)
         result = ingest_service.ingest_sample_bundle(
@@ -404,10 +415,13 @@ def ingest_sample_bundle_upload_internal(
             allow_update=update_existing,
             increment=increment,
         )
-        return util.common.convert_to_serializable(result)
+        serialized = util.common.convert_to_serializable(result)
+        return _ingest_acknowledgement(result=serialized) if acknowledge else serialized
     except HTTPException:
         raise
     except (ValueError, FileNotFoundError, UnicodeDecodeError) as exc:
+        if acknowledge:
+            return _ingest_acknowledgement(error=exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
@@ -474,13 +488,13 @@ def enqueue_ingest_sample_bundle_internal(
 )
 def enqueue_ingest_sample_bundle_upload_internal(
     yaml_file: UploadFile = File(...),
-    data_files: list[UploadFile] = File(default_factory=list),
+    data_archive: UploadFile | None = File(None),
     update_existing: bool = Form(False),
     increment: bool = Form(False),
     user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
     ingest_service: InternalIngestService = Depends(get_internal_ingest_service),
 ):
-    """Upload YAML + data files, stage them durably, and enqueue sample-bundle ingest."""
+    """Upload a YAML + optional ZIP archive, stage it durably, and queue ingest."""
     if not yaml_file.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -490,104 +504,16 @@ def enqueue_ingest_sample_bundle_upload_internal(
     staging_root = INGEST_STAGING_DIR
     staging_root.mkdir(parents=True, exist_ok=True)
     staging_dir = Path(tempfile.mkdtemp(prefix="sample_bundle_", dir=str(staging_root)))
-    uploads_by_exact: dict[str, str] = {}
-    uploads_by_basename: dict[str, str | None] = {}
-    uploaded_sha256_by_path: dict[str, str] = {}
-    upload_refs: list[UploadFile] = [yaml_file, *data_files]
+    upload_refs: list[UploadFile] = [yaml_file, *([data_archive] if data_archive else [])]
     task_enqueued = False
     try:
         _enforce_sample_ingest_permission(user)
-        yaml_bytes = yaml_file.file.read()
-        yaml_content = yaml_bytes.decode("utf-8")
-        source_payload = ingest_service.parse_yaml_payload(yaml_content)
-        expected_keys, required_keys = ingest_service._assay_file_policy(
-            assay_name=source_payload.get("asp_id"),
-            omics_layer=source_payload.get("omics_layer"),
+        source_payload = _prepare_uploaded_bundle(
+            yaml_file=yaml_file,
+            data_archive=data_archive,
+            staging_dir=staging_dir,
+            ingest_service=ingest_service,
         )
-
-        for upload in data_files:
-            if not upload.filename:
-                continue
-            original_name = str(upload.filename).strip()
-            if not original_name:
-                continue
-            base_name = Path(original_name).name
-            if not base_name:
-                continue
-
-            destination = staging_dir / base_name
-            suffix = 1
-            while destination.exists():
-                destination = staging_dir / f"{destination.stem}_{suffix}{destination.suffix}"
-                suffix += 1
-            checksum = _save_upload(upload, destination)
-            uploaded_sha256_by_path[str(destination)] = checksum
-
-            uploads_by_exact[original_name] = str(destination)
-            existing = uploads_by_basename.get(base_name)
-            if existing and existing != str(destination):
-                uploads_by_basename[base_name] = None
-            elif existing is None and base_name in uploads_by_basename:
-                pass
-            else:
-                uploads_by_basename[base_name] = str(destination)
-
-        runtime_files: dict[str, str] = {}
-        missing: list[str] = []
-        ambiguous: list[str] = []
-        for key in SAMPLE_SOURCE_PATH_KEYS:
-            raw_value = source_payload.get(key)
-            if not isinstance(raw_value, str) or not raw_value.strip():
-                continue
-            if key not in expected_keys:
-                source_payload.pop(key, None)
-                continue
-            path_value = raw_value.strip()
-            resolved = uploads_by_exact.get(path_value)
-            if not resolved:
-                base_name = Path(path_value).name
-                if base_name in uploads_by_basename and uploads_by_basename[base_name] is None:
-                    ambiguous.append(f"{key}:{path_value}")
-                    continue
-                resolved = uploads_by_basename.get(base_name)
-            if not resolved:
-                if os.path.exists(path_value):
-                    runtime_files[key] = path_value
-                elif key in required_keys:
-                    missing.append(f"{key}:{path_value}")
-                else:
-                    source_payload.pop(key, None)
-                continue
-            runtime_files[key] = resolved
-
-        if ambiguous:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    "Ambiguous uploaded filenames for YAML references: "
-                    + ", ".join(sorted(ambiguous))
-                    + ". Provide unique basenames or exact filename matches."
-                ),
-            )
-        if missing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    "Missing files for YAML references: "
-                    + ", ".join(sorted(missing))
-                    + ". Upload matching files with the request."
-                ),
-            )
-
-        if runtime_files:
-            source_payload["_runtime_files"] = runtime_files
-            checksums: dict[str, str] = {}
-            for source_key, resolved_path in runtime_files.items():
-                uploaded_checksum: str | None = uploaded_sha256_by_path.get(resolved_path)
-                if uploaded_checksum:
-                    checksums[source_key] = uploaded_checksum
-            if checksums:
-                source_payload["_uploaded_file_checksums"] = checksums
 
         queue = DefaultConfig.CELERY_INGEST_QUEUE
         task = ingest_sample_bundle_task.apply_async(

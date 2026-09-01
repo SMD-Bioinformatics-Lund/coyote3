@@ -88,7 +88,7 @@ curl -sS "${BASE_URL}/api/v1/internal/tasks/${TASK_ID}" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}"
 ```
 
-The async upload route stores uploaded YAML/data files in a durable staging
+The async upload route stores the uploaded YAML and ZIP archive contents in a durable staging
 directory before enqueueing the task. The worker removes that staging directory
 after the ingest task finishes or fails.
 
@@ -98,7 +98,7 @@ The Admin Ingest Workspace is a UI wrapper around the async upload endpoint.
 Operators provide:
 
 - one `coyote3.yaml` / `*.coyote3.yaml` manifest
-- optional data files referenced by the manifest
+- one optional ZIP archive containing the files referenced by the manifest
 - `update_existing` when the manifest should replace data for an existing sample
 - `increment` when a new unique sample name should be generated from the case id
 
@@ -116,6 +116,52 @@ GET /api/v1/internal/tasks/{task_id}
 
 and displays worker state, completion status, errors, and the final ingest result.
 This is the supported browser workflow for manual operator-triggered ingestion.
+
+## Remote manifest acknowledgement
+
+Use the synchronous upload endpoint with `acknowledge=true` when a remote
+pipeline owns the manifest directory and the application may only read it. The
+caller uploads the YAML, receives a terminal JSON response, and is responsible
+for writing its own acknowledgement file or renaming the manifest.
+
+When the paths in the YAML are readable by the API container, no archive is
+required:
+
+```bash
+curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/sample-bundle/upload" \
+  -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
+  -F "yaml_file=@/pipeline/outgoing/coyote3.yaml;type=text/yaml" \
+  -F "acknowledge=true"
+```
+
+The response is always a terminal acknowledgement for ingest validation or
+write failures handled by the route:
+
+```json
+{
+  "status": "ok",
+  "sample_name": "example_sample",
+  "sample_id": "…",
+  "message": "Sample bundle ingested successfully",
+  "result": { "written": { "variants": 12 } }
+}
+```
+
+or:
+
+```json
+{
+  "status": "failed",
+  "sample_name": null,
+  "sample_id": null,
+  "message": "Missing declared files for YAML references: …",
+  "result": null
+}
+```
+
+Authentication and authorization failures still use their normal HTTP status
+codes. A caller should write its own `.done` or `.failed` marker only after
+checking the acknowledgement `status`.
 
 ## Folder watcher ingest
 
@@ -516,7 +562,7 @@ PY
 JSON
 ```
 
-### 4) Ingest fresh sample + analysis bundle (upload YAML + data files)
+### 4) Ingest fresh sample + analysis bundle (upload YAML + ZIP archive)
 
 Route:
 
@@ -525,13 +571,16 @@ Route:
 Command (multipart upload mode):
 
 ```bash
+zip -j sample_bundle.zip \
+  demo_data/ingest/generic_case_control.final.filtered.vcf \
+  demo_data/ingest/generic_case_control.cnvs.merged.json \
+  demo_data/ingest/generic_case_control.cov.json \
+  demo_data/ingest/generic_case_control.modeled.png
+
 curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/sample-bundle/upload" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   -F "yaml_file=@demo_data/ingest/generic_case_control.yaml;type=text/yaml" \
-  -F "data_files=@demo_data/ingest/generic_case_control.final.filtered.vcf" \
-  -F "data_files=@demo_data/ingest/generic_case_control.cnvs.merged.json" \
-  -F "data_files=@demo_data/ingest/generic_case_control.cov.json" \
-  -F "data_files=@demo_data/ingest/generic_case_control.modeled.png" \
+  -F "data_archive=@sample_bundle.zip;type=application/zip" \
   -F "increment=true" \
   -F "update_existing=false"
 ```
@@ -540,9 +589,13 @@ Rules:
 
 - Keep flat file path values in YAML (`vcf_files`, `cnv`, `cov`,
   `fusion_files`, etc.) as source paths.
-- Upload matching files in the same request using `data_files`.
-- Matching is done by exact filename value from YAML or by basename.
+- Upload one `.zip` archive using `data_archive`. Every declared YAML file
+  must either be available at its original path or resolve to one archive member.
+- Matching uses the exact YAML path when it is present in the archive, then a
+  unique basename. Ambiguous basenames are rejected.
 - Backend stages uploaded files temporarily, parses them, ingests to DB, and removes staged files after request completion.
+- The source path in the YAML remains the path stored in MongoDB; staging paths
+  are used only for the ingest worker.
 - Uploaded runtime files are hashed (`sha256`) and persisted on the sample as `uploaded_file_checksums`.
 
 ### 4b) Internal metrics endpoint (Prometheus text format)
@@ -604,7 +657,7 @@ Use this order for a clean deployment at a new center.
      `brcaexchange`, `iarc_tp53`, `cosmic`, `hpaexpr`
 6. Ingest sample data.
    - `POST /api/v1/internal/ingest/sample-bundle` for fresh sample + analysis data
-   - `POST /api/v1/internal/ingest/sample-bundle/upload` for fresh sample + uploaded data files
+   - `POST /api/v1/internal/ingest/sample-bundle/upload` for fresh sample + uploaded ZIP archive
    - use a complete sample bundle with `update_existing=true` to replace an existing sample's declared analysis data
 
 ## Collection bootstrapping via API

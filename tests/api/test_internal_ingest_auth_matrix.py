@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 from types import SimpleNamespace
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
 from fastapi import HTTPException
@@ -71,6 +72,14 @@ class _Upload:
 
     async def close(self):
         self.closed = True
+
+
+def _zip_upload(*entries: tuple[str, bytes]) -> _Upload:
+    payload = io.BytesIO()
+    with ZipFile(payload, "w", compression=ZIP_DEFLATED) as archive:
+        for name, content in entries:
+            archive.writestr(name, content)
+    return _Upload(filename="bundle.zip", content=payload.getvalue())
 
 
 def test_internal_ingest_collection_requires_auth_and_admin(monkeypatch):
@@ -310,7 +319,7 @@ def test_internal_ingest_async_sample_bundle_upload_stages_files(monkeypatch, tm
         filename="sample.yaml",
         content=b"name: SAMPLE_1\nassay: assay_1\nvcf_files: case.vcf\n",
     )
-    data_upload = _Upload(filename="case.vcf", content=b"##fileformat=VCFv4.2\n")
+    data_archive = _zip_upload(("case.vcf", b"##fileformat=VCFv4.2\n"))
     service = SimpleNamespace(
         parse_yaml_payload=lambda _raw: {
             "name": "SAMPLE_1",
@@ -323,7 +332,7 @@ def test_internal_ingest_async_sample_bundle_upload_stages_files(monkeypatch, tm
 
     response = internal_router.enqueue_ingest_sample_bundle_upload_internal(
         yaml_file=yaml_upload,
-        data_files=[data_upload],
+        data_archive=data_archive,
         update_existing=False,
         increment=False,
         user=_user(role="developer", level=50, permissions=["sample:edit:own"]),
