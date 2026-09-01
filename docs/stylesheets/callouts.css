@@ -1,0 +1,28 @@
+/*
+ * Documentation callouts use standard Markdown blockquotes so that GitHub
+ * renders them without extensions. The stock Read the Docs MkDocs theme does
+ * not distinguish blockquotes visually, so make the shared form explicit.
+ */
+.rst-content blockquote {
+  margin: 1.5rem 0;
+  padding: 0.9rem 1.1rem;
+  border-left: 0.3rem solid #6b7280;
+  background: #f3f6f9;
+  color: #263445;
+}
+
+.rst-content blockquote p {
+  margin: 0.35rem 0;
+}
+
+.rst-content blockquote p:first-child {
+  margin-top: 0;
+}
+
+.rst-content blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+.rst-content blockquote strong:first-child {
+  color: #334e68;
+}
