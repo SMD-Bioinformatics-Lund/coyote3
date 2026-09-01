@@ -1,7 +1,5 @@
 [
   {
-    "SAMPLE_ID": "sample_oid_seed",
-    "sample": "seed_sample",
     "genes": {
       "EGFR": {
         "covered_by_panel": true,
@@ -19,8 +17,12 @@
             "nbr": 21,
             "cov": 110.0
           }
-        }
+        },
+        "CDS": {},
+        "probes": {}
       }
-    }
+    },
+    "SAMPLE_ID": "sample_oid_seed",
+    "sample": "seed_sample"
   }
 ]

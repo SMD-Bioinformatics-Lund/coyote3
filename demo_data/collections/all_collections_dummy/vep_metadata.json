@@ -46,7 +46,9 @@
       }
     },
     "consequence_groups": {
-      "missense": ["missense_variant"]
+      "missense": [
+        "missense_variant"
+      ]
     }
   }
 ]

@@ -30,7 +30,7 @@ This page documents the main runtime relationships in Coyote3, grounded in the c
       |
       -?> [ISGL: insilico_genelists]
              key: isgl_id
-             linked by: assays[] and assay_groups[]
+             linked by: asp_ids[] and asp_groups[]
              owns: optional curated gene subsets
 ```
 
@@ -50,7 +50,7 @@ One ASP
 
 One ASP
   -?> zero or many ISGLs
-      matched by assays[] and assay_groups[]
+      matched by asp_ids[] and asp_groups[]
 
 One ASPC
   -?> may suggest or seed defaults
@@ -282,7 +282,7 @@ Create ASPC
 ```text
 Create ISGL
   -> independent resource creation
-  -> stores assays[] / assay_groups[] targeting metadata
+  -> stores asp_ids[] / asp_groups[] targeting metadata
   -> becomes available to samples only when assay scope matches
 ```
 

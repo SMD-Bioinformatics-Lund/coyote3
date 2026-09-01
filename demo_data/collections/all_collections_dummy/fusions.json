@@ -4,6 +4,10 @@
     "gene1": "BCR",
     "gene2": "ABL1",
     "genes": "BCR-ABL1",
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": "",
     "calls": [
       {
         "selected": 1,

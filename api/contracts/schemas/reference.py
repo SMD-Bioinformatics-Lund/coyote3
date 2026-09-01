@@ -184,8 +184,14 @@ class CivicGenesDoc(_DocBase):
     @field_validator("last_review_date", mode="before")
     @classmethod
     def parse_datetime(cls, v):
-        # Example: "2017-03-06 00:00:15 UTC"
-        return datetime.strptime(v, "%Y-%m-%d %H:%M:%S %Z")
+        if isinstance(v, datetime):
+            return v
+        value = str(v).strip()
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            # Preserve support for legacy CIViC exports.
+            return datetime.strptime(value, "%Y-%m-%d %H:%M:%S %Z")
 
     @field_validator("gene_civic_url")
     @classmethod
@@ -251,7 +257,14 @@ class CivicVariantsDoc(_DocBase):
     @field_validator("last_review_date", mode="before")
     @classmethod
     def parse_datetime(cls, v):
-        return datetime.strptime(v, "%Y-%m-%d %H:%M:%S %Z")
+        if isinstance(v, datetime):
+            return v
+        value = str(v).strip()
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            # Preserve support for legacy CIViC exports.
+            return datetime.strptime(value, "%Y-%m-%d %H:%M:%S %Z")
 
     @field_validator("variant_civic_url")
     @classmethod

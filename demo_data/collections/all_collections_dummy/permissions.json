@@ -4,7 +4,10 @@
     "label": "View samples",
     "category": "Sample Management",
     "description": "View samples available to the current account.",
-    "tags": ["sample", "view"],
+    "tags": [
+      "sample",
+      "view"
+    ],
     "system_managed": true,
     "is_active": true,
     "version": 1,

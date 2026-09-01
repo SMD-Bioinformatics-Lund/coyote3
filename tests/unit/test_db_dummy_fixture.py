@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -26,6 +27,15 @@ def _load_fixture_bundle(source: Path) -> dict[str, list[dict]]:
     return json.loads(source.read_text(encoding="utf-8"))
 
 
+def _json_persistence_shape(document: dict) -> dict:
+    return json.loads(
+        json.dumps(
+            document,
+            default=lambda value: value.isoformat() if isinstance(value, datetime) else str(value),
+        )
+    )
+
+
 def test_all_collections_dummy_fixture_validates():
     fixture_path = Path("demo_data/collections/all_collections_dummy")
     payload = _load_fixture_bundle(fixture_path)
@@ -41,6 +51,15 @@ def test_all_collections_dummy_fixture_validates():
         assert docs, f"Demo collection fixture '{collection}' must not be empty"
         for doc in docs:
             validate_collection_document(collection, doc)
+
+
+def test_all_collection_fixtures_use_canonical_persistence_shape() -> None:
+    payload = _load_fixture_bundle(Path("demo_data/collections/all_collections_dummy"))
+
+    for collection, docs in payload.items():
+        for document in docs:
+            normalized = normalize_collection_document(collection, document)
+            assert _json_persistence_shape(normalized) == document
 
 
 def test_variant_transcript_annotations_use_the_versioned_collection() -> None:
@@ -103,8 +122,12 @@ def test_assay_panel_fixture_includes_required_files() -> None:
 
     assert isinstance(assay_panels, list)
     assert assay_panels
+    expected_required_files = {
+        "dna": ["vcf_files"],
+        "rna": ["fusion_files"],
+    }
     for doc in assay_panels:
-        assert doc.get("required_files") == ["vcf_files"]
+        assert doc.get("required_files") == expected_required_files[doc["asp_category"]]
         validate_collection_document("assay_specific_panels", doc)
 
 

@@ -1,7 +1,5 @@
 [
   {
-    "SAMPLE_ID": "sample_oid_seed",
-    "expression_version": "1.0.0",
     "sample": [
       {
         "hgnc_symbol": "WT1",
@@ -22,12 +20,16 @@
         "reference_sd": 1.0,
         "reference_mean": 8.0,
         "reference_median": 7.8,
-        "q01": 6.8,
-        "q05": 7.0,
-        "q50": 7.8,
-        "q95": 9.0,
-        "q99": 9.2
+        "quant_values": {
+          "q01": 6.8,
+          "q05": 7.0,
+          "q50": 7.8,
+          "q95": 9.0,
+          "q99": 9.2
+        }
       }
-    ]
+    ],
+    "expression_version": "1.0.0",
+    "SAMPLE_ID": "sample_oid_seed"
   }
 ]

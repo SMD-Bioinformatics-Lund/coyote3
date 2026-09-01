@@ -1,7 +1,5 @@
 [
   {
-    "SAMPLE_ID": "sample_oid_seed",
-    "sample_id": "seed_sample",
     "tot_reads": 1000000,
     "mapped_pct": 95.0,
     "multimap_pct": 3.0,
@@ -22,6 +20,8 @@
       "SNP2": "AG"
     },
     "provider_called_genotypes": 2,
-    "flendist": 250
+    "flendist": 250,
+    "sample_id": "seed_sample",
+    "SAMPLE_ID": "sample_oid_seed"
   }
 ]

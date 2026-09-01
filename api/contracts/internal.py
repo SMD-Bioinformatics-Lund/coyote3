@@ -79,11 +79,12 @@ class InternalCollectionInsertRequest(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "collection": "users",
+                "collection": "permissions",
                 "document": {
-                    "email": "admin@your-center.org",
-                    "fullname": "Center Admin",
-                    "role": "admin",
+                    "permission_id": "sample:read",
+                    "label": "View samples",
+                    "category": "Sample Management",
+                    "description": "Allows the user to view samples within their assigned scope.",
                     "is_active": True,
                 },
                 "ignore_duplicate": True,
@@ -104,7 +105,11 @@ class InternalCollectionBulkInsertRequest(BaseModel):
             "example": {
                 "collection": "permissions",
                 "documents": [
-                    {"permission_id": "samples:read", "label": "Read samples"},
+                    {
+                        "permission_id": "sample:read",
+                        "label": "View samples",
+                        "category": "Sample Management",
+                    },
                 ],
                 "ignore_duplicates": True,
             }
@@ -131,15 +136,12 @@ class InternalCollectionUpsertRequest(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "collection": "asp_configs",
-                "match": {"aspc_id": "assay_1_base_production"},
+                "collection": "permissions",
+                "match": {"permission_id": "sample:read"},
                 "document": {
-                    "aspc_id": "assay_1_base_production",
-                    "asp_id": "assay_1",
-                    "subpanel_id": "base",
-                    "environment": "production",
-                    "asp_group": "hematology",
-                    "asp_category": "dna",
+                    "permission_id": "sample:read",
+                    "label": "View samples",
+                    "category": "Sample Management",
                     "is_active": True,
                 },
                 "upsert": False,

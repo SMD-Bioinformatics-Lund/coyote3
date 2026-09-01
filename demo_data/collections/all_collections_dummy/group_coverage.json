@@ -1,7 +1,5 @@
 [
   {
-    "SAMPLE_ID": "sample_oid_seed",
-    "sample": "seed_sample",
     "genes": {
       "EGFR": {
         "covered_by_panel": true,
@@ -11,6 +9,8 @@
           "end": 55019100,
           "transcript_id": "ENST00000275493"
         },
+        "exons": {},
+        "CDS": {},
         "probes": {
           "7_55019017_55019100": {
             "chr": "7",
@@ -20,6 +20,8 @@
           }
         }
       }
-    }
+    },
+    "SAMPLE_ID": "sample_oid_seed",
+    "sample": "seed_sample"
   }
 ]

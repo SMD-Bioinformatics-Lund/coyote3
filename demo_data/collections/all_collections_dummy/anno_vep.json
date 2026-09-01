@@ -11,14 +11,21 @@
         "SYMBOL": "EGFR",
         "HGVSc": "c.2573T>G",
         "HGVSp": "p.Leu858Arg",
-        "Consequence": ["missense_variant"],
+        "Consequence": [
+          "missense_variant"
+        ],
         "IMPACT": "MODERATE",
         "EXON": "21/28",
+        "INTRON": null,
         "BIOTYPE": "protein_coding",
+        "ENSP": null,
+        "CANONICAL": null,
         "MANE_SELECT": "NM_005228.5",
+        "MANE_PLUS_CLINICAL": null,
         "SIFT": "deleterious(0.01)",
         "PolyPhen": "probably_damaging(0.99)",
         "CADD_PHRED": 35.0,
+        "CLIN_SIG": [],
         "VARIANT_CLASS": "SNV"
       }
     ]

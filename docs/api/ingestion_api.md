@@ -383,7 +383,7 @@ This validator checks:
 - rejection of Mongo Extended JSON wrappers (`$date`, `$oid`) in seed files
 - required baseline governance/config presence (`roles`, `permissions`)
 - `asp_configs` (`aspc_id` format, assay/environment consistency)
-- `insilico_genelists` (`assays` and `assay_groups` consistency)
+- `insilico_genelists` (`asp_ids` and `asp_groups` consistency)
 - bootstrap dependencies (`roles -> permissions`, `users -> roles`)
 
 Discover supported collection-ingest contracts:
@@ -418,12 +418,26 @@ curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection" \
     "analysis_types": ["SNV", "CNV"],
     "display_name": "assay_1 production",
     "filters": {
-      "min_freq": 0.05,
-      "max_freq": 1.0,
-      "max_control_freq": 0.05,
-      "max_popfreq": 0.01,
-      "snvlists": [],
-      "cnvlists": []
+      "somatic": {
+        "snv": {
+          "min_freq": 0.05,
+          "max_freq": 1.0,
+          "max_control_freq": 0.05,
+          "max_popfreq": 0.01,
+          "min_depth": 100,
+          "min_alt_reads": 5,
+          "vep_consequences": [],
+          "snvlists": []
+        },
+        "cnv": {
+          "min_cnv_size": 100,
+          "max_cnv_size": 50000000,
+          "cnv_loss_cutoff": -0.3,
+          "cnv_gain_cutoff": 0.3,
+          "cnveffects": ["gain", "loss"],
+          "cnvlists": []
+        }
+      }
     },
     "reporting": {
       "report_sections": ["SNV", "CNV"],
@@ -439,6 +453,12 @@ curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection" \
 }
 JSON
 ```
+
+For a DNA ASPC, `filters.somatic` contains only the enabled DNA analysis
+profiles. `filters.germline.snv` is required only when `analysis_intents`
+includes `germline`. RNA ASPCs instead use `filters.somatic.fusion`. Each
+enabled `SNV`, `CNV`, `TRANSLOCATION`, `COVERAGE`, or `FUSION` analysis type
+requires its matching filter profile.
 
 ### 2) Seed many documents (bulk)
 
@@ -456,7 +476,13 @@ curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/collection/bulk" \
 {
   "collection": "permissions",
   "documents": [
-    {"permission_id": "samples:read", "label": "Read samples"}
+    {
+      "permission_id": "sample:read",
+      "label": "View samples",
+      "category": "Sample Management",
+      "description": "View samples available within the user's access scope.",
+      "is_active": true
+    }
   ]
 }
 JSON
@@ -488,12 +514,26 @@ curl -sS -X PUT "${BASE_URL}/api/v1/internal/ingest/collection" \
     "analysis_types": ["SNV", "CNV"],
     "display_name": "assay_1 production",
     "filters": {
-      "min_freq": 0.05,
-      "max_freq": 1.0,
-      "max_control_freq": 0.05,
-      "max_popfreq": 0.01,
-      "snvlists": [],
-      "cnvlists": []
+      "somatic": {
+        "snv": {
+          "min_freq": 0.05,
+          "max_freq": 1.0,
+          "max_control_freq": 0.05,
+          "max_popfreq": 0.01,
+          "min_depth": 100,
+          "min_alt_reads": 5,
+          "vep_consequences": [],
+          "snvlists": []
+        },
+        "cnv": {
+          "min_cnv_size": 100,
+          "max_cnv_size": 50000000,
+          "cnv_loss_cutoff": -0.3,
+          "cnv_gain_cutoff": 0.3,
+          "cnveffects": ["gain", "loss"],
+          "cnvlists": []
+        }
+      }
     },
     "reporting": {
       "report_sections": ["SNV", "CNV"],
@@ -682,8 +722,8 @@ Use this as the minimum deployment contract:
 | `roles` | `role_id`, `level`, `permissions[]` | RBAC role resolution |
 | `users` | `username`, `email`, `roles[]`, `environments[]` | Login + authorization subject (the first superuser is created by `bootstrap_database.py`) |
 | `asp_configs` | `aspc_id`, `asp_id`, `subpanel_id`, `environment`, `asp_group`, `asp_category`, `analysis_types[]`, `display_name`, `filters{...}`, `reporting{...}`, `is_active`, `version` | Assay+subpanel+environment runtime config |
-| `assay_specific_panels` | `asp_id`, `assay_name`, `asp_group`, `is_active` | Assay metadata/UI wiring |
-| `insilico_genelists` | `isgl_id`, `diagnosis`, `assays[]`, `assay_groups[]`, `genes[]`, `is_active` | Panel/list filtering logic |
+| `assay_specific_panels` | `asp_id`, `asp_group`, `asp_family`, `asp_category`, `display_name`, `expected_files[]`, `required_files[]`, `is_active` | Assay metadata and declared file requirements |
+| `insilico_genelists` | `isgl_id`, `diagnosis[]`, `asp_ids[]`, `asp_groups[]`, `list_type[]`, `genes[]`, `is_active` | In-silico gene-list filtering logic |
 | `hgnc_genes` | `hgnc_id`, `hgnc_symbol` | Gene metadata and symbol mapping |
 
 Managed-admin form source:
@@ -700,7 +740,7 @@ Assay-group contract:
 - `asp_group` is a fixed software taxonomy defined in
   `api/config/assay_groups.py`.
 - Allowed values are `tumwgs`, `wts`, `hematology`, `myeloid`, `lymphoid`,
-  `solid`, `fusion`, `fusionrna`, and `pgx`.
+  `solid`, `fusion`, and `pgx`.
 - `asp_family` is separate: use `panel-dna`, `panel-rna`, `wgs`, or `wts` for
   sequencing-design classification. `asp_category` is separately `dna` or
   `rna`, and `subpanel_id` identifies the in-silico target subset within the
@@ -755,32 +795,26 @@ Other fixed admin/runtime vocabularies:
 
 ## Sample bundle request modes
 
-### Mode 1: structured spec
+### YAML content
 
 ```json
 {
-  "spec": {
-    "name": "seed_sample",
-    "assay": "assay_1",
-    "profile": "test",
-    "genome_build": 38,
-    "vcf_files": "/data/demo.vcf",
-    "cnv": "/data/demo.cnv.json",
-    "cov": "/data/demo.cov.json",
-    "increment": false
-  },
-  "update_existing": false
+  "yaml_content": "name: seed_sample\nassay: assay_1\nsubpanel: base\nprofile: production\n...",
+  "update_existing": false,
+  "increment": false
 }
 ```
 
-### Mode 2: YAML content
+Use the raw, flat pipeline manifest format documented in the DNA and RNA
+manifest sections. The service resolves `assay`, `subpanel`, and `profile` to
+the active ASPC, then validates every declared file before creating the sample.
 
-```json
-{
-  "yaml_content": "name: seed_sample\nassay: assay_1\n...",
-  "update_existing": false
-}
-```
+### Uploaded archive
+
+`POST /api/v1/internal/ingest/sample-bundle/upload` accepts one ZIP archive.
+It must contain one supported YAML manifest and every file declared by that
+manifest. File paths remain the manifest's declared paths in MongoDB; archive
+members are matched by basename while the request is processed.
 
 ## Collection insert examples
 
@@ -788,15 +822,13 @@ Other fixed admin/runtime vocabularies:
 
 ```json
 {
-  "collection": "variants",
+  "collection": "permissions",
   "document": {
-    "SAMPLE_ID": "sample_oid_seed",
-    "CHROM": "7",
-    "POS": 140453136,
-    "REF": "A",
-    "ALT": "T",
-    "INFO": {"variant_callers": ["tnscope"], "CSQ": []},
-    "GT": []
+    "permission_id": "sample:read",
+    "label": "View samples",
+    "category": "Sample Management",
+    "description": "View samples available within the user's access scope.",
+    "is_active": true
   }
 }
 ```
@@ -805,10 +837,22 @@ Other fixed admin/runtime vocabularies:
 
 ```json
 {
-  "collection": "cnvs",
+  "collection": "permissions",
   "documents": [
-    {"SAMPLE_ID": "sample_oid_seed", "chr": "7", "start": 1, "end": 2},
-    {"SAMPLE_ID": "sample_oid_seed", "chr": "12", "start": 3, "end": 4}
+    {
+      "permission_id": "sample:read",
+      "label": "View samples",
+      "category": "Sample Management",
+      "description": "View samples available within the user's access scope.",
+      "is_active": true
+    },
+    {
+      "permission_id": "sample:manage",
+      "label": "Manage samples",
+      "category": "Sample Management",
+      "description": "Create, update, and manage samples within the user's access scope.",
+      "is_active": true
+    }
   ]
 }
 ```
@@ -831,22 +875,17 @@ Core collections typically seeded first:
 ## Client example (Python)
 
 ```python
+from pathlib import Path
+
 import httpx
 
 base = "http://localhost:6801"
 headers = {"Authorization": "Bearer YOUR_API_BEARER_TOKEN"}
 
 payload = {
-    "spec": {
-        "name": "seed_sample",
-        "assay": "assay_1",
-        "profile": "test",
-        "genome_build": 38,
-        "vcf_files": "/app/demo_data/ingest/generic_case_control.final.filtered.vcf",
-        "cnv": "/app/demo_data/ingest/generic_case_control.cnvs.merged.json",
-        "cov": "/app/demo_data/ingest/generic_case_control.cov.json",
-    },
+    "yaml_content": Path("demo_data/ingest/generic_case_control.yaml").read_text(),
     "update_existing": False,
+    "increment": False,
 }
 
 response = httpx.post(
@@ -866,7 +905,7 @@ print(response.json())
 | `Seed contract-shape errors` | Seed files contain invalid document shape/metadata typing | Keep each collection file as `list[object]`, use ISO-8601 datetimes, numeric `version`, and plain JSON scalar values |
 | `Unknown assay references in seed` | Seed collections use assay IDs not present in ASPC/panel/ISGL docs | Align assay IDs across `asp_configs`, `assay_specific_panels`, `insilico_genelists` |
 | `Bootstrap dependency errors` | Missing required baseline collection docs or broken refs | Populate required collections in onboarding order |
-| `Assay config not found for sample` | `asp_configs` doc missing, inactive, or mismatched `aspc_id`/profile | Ensure `aspc_id=assay:profile`, set `is_active=true`, and keep `sample.profile` aligned |
+| `Assay config not found for sample` | `asp_configs` doc missing, inactive, or mismatched ASP/subpanel/environment | Ensure the active ASPC has the matching `asp_id`, `subpanel_id`, and `environment`, then keep the manifest `assay`, `subpanel`, and `profile` aligned |
 | `No DB document model registered` | Unsupported collection name in ingest request | Use `/api/v1/internal/ingest/collections` and correct `collection` |
 | `diagnosis must include at least one value` | ISGL payload missing diagnosis | Provide non-empty `diagnosis` list/string |
 | `aspc_id environment segment must match environment` | `aspc_id` and `environment` mismatch | Use the center ASPC identifier format and keep `environment`, `asp_id`, and `subpanel_id` aligned with the document identity |

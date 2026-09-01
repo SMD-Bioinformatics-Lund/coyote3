@@ -9,23 +9,43 @@
     "auth_type": [
       "ldap"
     ],
+    "password": null,
+    "last_login": null,
     "must_change_password": false,
+    "password_updated_on": null,
+    "password_action_token_hash": null,
+    "password_action_purpose": null,
+    "password_action_expires_at": null,
+    "password_action_issued_at": null,
+    "password_action_issued_by": null,
     "roles": [
       "admin"
     ],
-    "is_active": true,
     "environments": [
       "production",
       "development",
       "testing",
       "validation"
     ],
-    "version": 1,
     "asp_ids": [
       "assay_1"
     ],
     "asp_groups": [
       "hematology"
-    ]
+    ],
+    "ui_settings": {
+      "analysis_layout": "classic",
+      "sample_list_layout": "classic",
+      "analysis_modern_view_tried": false,
+      "sample_list_modern_view_tried": false,
+      "table_page_size": 50
+    },
+    "system_managed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": null,
+    "created_on": "2026-01-01T18:13:16.932982+00:00",
+    "updated_by": null,
+    "updated_on": null
   }
 ]

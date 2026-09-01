@@ -231,12 +231,12 @@ def ingest_sample_bundle_internal(
     if not payload.sample and not payload.yaml_content:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Provide either `spec` or `yaml_content`",
+            detail="Provide either `sample` or `yaml_content`",
         )
     if payload.sample and payload.yaml_content:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Provide only one of `spec` or `yaml_content`",
+            detail="Provide only one of `sample` or `yaml_content`",
         )
 
     try:
@@ -449,12 +449,12 @@ def enqueue_ingest_sample_bundle_internal(
     if not payload.sample and not payload.yaml_content:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Provide either `spec` or `yaml_content`",
+            detail="Provide either `sample` or `yaml_content`",
         )
     if payload.sample and payload.yaml_content:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Provide only one of `spec` or `yaml_content`",
+            detail="Provide only one of `sample` or `yaml_content`",
         )
 
     try:

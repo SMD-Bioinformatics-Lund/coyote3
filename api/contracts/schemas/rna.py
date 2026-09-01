@@ -127,7 +127,20 @@ class ExpressionReferenceEntryDoc(_DocBase):
             "reference_median",
         }
 
-        quant_values = {key: float(value) for key, value in data.items() if key not in fixed_fields}
+        supplied_quant_values = data.get("quant_values")
+        if supplied_quant_values is not None and not isinstance(supplied_quant_values, dict):
+            raise ValueError("quant_values must be an object when provided")
+
+        quant_values = {
+            str(key): float(value) for key, value in (supplied_quant_values or {}).items()
+        }
+        quant_values.update(
+            {
+                key: float(value)
+                for key, value in data.items()
+                if key not in fixed_fields and key != "quant_values"
+            }
+        )
 
         cleaned = {key: data[key] for key in fixed_fields if key in data}
         cleaned["quant_values"] = quant_values

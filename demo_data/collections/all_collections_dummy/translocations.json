@@ -24,19 +24,49 @@
       }
     ],
     "INFO": {
+      "SVTYPE": null,
+      "MATEID": null,
+      "SVINSLEN": null,
+      "SVINSSEQ": null,
+      "EVENT": null,
       "SOMATIC": true,
+      "SOMATICSCORE": null,
+      "JUNCTION_SOMATICSCORE": null,
+      "BND_DEPTH": null,
+      "MATE_BND_DEPTH": null,
+      "PANEL": [],
       "ANN": [
         {
           "Allele": "N",
           "Annotation": [
             "gene_fusion"
           ],
+          "Annotation_Impact": null,
           "Gene_Name": "BCR&ABL1",
           "Gene_ID": "ENSG00000186716&ENSG00000097007",
           "Feature_Type": "CUSTOM",
-          "Feature_ID": "BCR_ENSG00000186716&ABL1_ENSG00000097007"
+          "Feature_ID": "BCR_ENSG00000186716&ABL1_ENSG00000097007",
+          "Transcript_BioType": null,
+          "Rank": null,
+          "HGVSc": null,
+          "HGVSp": null,
+          "cDNApos": null,
+          "cDNAlength": null,
+          "CDSpos": null,
+          "CDSlength": null,
+          "AApos": null,
+          "AAlength": null,
+          "Distance": null,
+          "ERRORS": null,
+          "WARNINGS": null,
+          "INFO": null
         }
-      ]
-    }
+      ],
+      "MANE_ANN": null
+    },
+    "fp": "",
+    "irrelevant": "",
+    "interesting": "",
+    "blacklisted": ""
   }
 ]

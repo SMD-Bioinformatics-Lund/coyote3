@@ -288,7 +288,6 @@ ambiguous historical data.
 | `lymphoid` | Lymphoid haematology workflow | Lymphoid-specific assay designs and clinical logic | A sequencing family. |
 | `solid` | Solid-tumour workflow | Solid tumour panel designs and their annotations/query behaviour | A subpanel such as endometrial or breast. |
 | `fusion` | Fusion workflow | RNA fusion assay designs | A particular RNA design panel. |
-| `fusionrna` | Fusion/exon-skipping workflow | RNA fusion plus exon-skipping designs | A particular RNA design panel. |
 | `pgx` | Pharmacogenomic workflow | PGX assay designs and their annotations/query behaviour | The `PGX` analysis type. |
 
 The related fields have different responsibilities:

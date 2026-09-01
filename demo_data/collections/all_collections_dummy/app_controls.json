@@ -22,6 +22,14 @@
       "ingest_workspace_enabled": true,
       "assay_catalog_enabled": true
     },
+    "curation": {
+      "tiering": {
+        "small_variant_enabled": true,
+        "cnv_enabled": false,
+        "fusion_enabled": true,
+        "translocation_enabled": false
+      }
+    },
     "created_on": "2026-01-01T10:00:00+00:00",
     "updated_by": "system",
     "updated_on": "2026-01-01T10:00:00+00:00"

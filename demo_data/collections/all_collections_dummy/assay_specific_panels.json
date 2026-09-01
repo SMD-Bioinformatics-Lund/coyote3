@@ -6,6 +6,17 @@
     "asp_category": "dna",
     "display_name": "Hema GMS v1",
     "description": "Demo DNA assay panel for first-run validation",
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "biomarkers"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
     "covered_genes": [
       "UBA1",
       "APOB",
@@ -21,17 +32,71 @@
     "germline_genes": [
       "BRCA1"
     ],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
     "is_active": true,
+    "version": 1,
+    "created_by": null,
+    "created_on": "2026-01-01T18:13:16.917246+00:00",
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null
+  },
+  {
+    "asp_id": "assay_rna_1",
+    "asp_group": "wts",
+    "asp_family": "wts",
+    "asp_category": "rna",
+    "display_name": "Demo RNA WTS",
+    "description": "Demo RNA WTS assay panel for first-run validation",
     "expected_files": [
-      "vcf_files",
-      "cnv",
-      "cnvprofile",
-      "cov",
-      "transloc",
-      "biomarkers"
+      "fusion_files",
+      "expression_path",
+      "classification_path",
+      "qc"
     ],
     "required_files": [
-      "vcf_files"
-    ]
+      "fusion_files"
+    ],
+    "covered_genes": [
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": null,
+    "created_on": "2026-01-01T18:36:29.603207+00:00",
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null
   }
 ]

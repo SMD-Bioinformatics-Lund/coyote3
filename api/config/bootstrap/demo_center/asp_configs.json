@@ -71,5 +71,56 @@
     "analysis_intents": [
       "somatic"
     ]
+  },
+  {
+    "aspc_id": "assay_rna_1_base_production",
+    "display_name": "Demo RNA WTS",
+    "asp_group": "wts",
+    "asp_category": "rna",
+    "description": "Demo ASP configuration for first-run RNA WTS workflows",
+    "reference_genome": "GRCh38",
+    "platform": "Illumina",
+    "environment": "production",
+    "version": 1,
+    "is_active": true,
+    "analysis_types": [
+      "FUSION",
+      "EXPRESSION",
+      "CLASSIFICATION",
+      "QC"
+    ],
+    "filters": {
+      "somatic": {
+        "fusion": {
+          "fusion_callers": [],
+          "fusion_descriptions": [],
+          "fusion_effects": [],
+          "fusionlists": [],
+          "min_spanning_pairs": 0,
+          "min_spanning_reads": 0,
+          "adhoc_genes": {}
+        }
+      }
+    },
+    "reporting": {
+      "report_sections": [
+        "FUSION",
+        "EXPRESSION",
+        "CLASSIFICATION",
+        "QC"
+      ],
+      "report_header": "Demo RNA report header",
+      "report_method": "Demo RNA method",
+      "report_description": "RNA WTS summary report for assay_rna_1",
+      "general_report_summary": "Automated RNA summary generated from curated panel filters.",
+      "plots_path": "/tmp",
+      "report_folder": "demo-rna"
+    },
+    "verification_samples": {},
+    "asp_id": "assay_rna_1",
+    "subpanel_id": "base",
+    "analysis_intents": [
+      "somatic"
+    ]
   }
 ]

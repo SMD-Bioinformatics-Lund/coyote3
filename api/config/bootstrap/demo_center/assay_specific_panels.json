@@ -33,5 +33,30 @@
     "required_files": [
       "vcf_files"
     ]
+  },
+  {
+    "asp_id": "assay_rna_1",
+    "asp_group": "wts",
+    "asp_family": "wts",
+    "asp_category": "rna",
+    "display_name": "Demo RNA WTS",
+    "description": "Demo RNA WTS assay panel for first-run validation",
+    "covered_genes": [
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [],
+    "is_active": true,
+    "expected_files": [
+      "fusion_files",
+      "expression_path",
+      "classification_path",
+      "qc"
+    ],
+    "required_files": [
+      "fusion_files"
+    ]
   }
 ]

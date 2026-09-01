@@ -6,7 +6,9 @@
     "status": "Approved",
     "locus": "7p11.2",
     "locus_sortable": "07p11.2",
-    "alias_symbol": ["ERBB1"],
+    "alias_symbol": [
+      "ERBB1"
+    ],
     "alias_name": [],
     "prev_symbol": [],
     "prev_name": [],
@@ -16,9 +18,15 @@
     "date_modified": "2025-01-01T00:00:00+00:00",
     "entrez_id": 1956,
     "ensembl_gene_id": "ENSG00000146648",
-    "refseq_accession": ["NM_005228"],
-    "cosmic": ["EGFR"],
-    "omim_id": [131550],
+    "refseq_accession": [
+      "NM_005228"
+    ],
+    "cosmic": [
+      "EGFR"
+    ],
+    "omim_id": [
+      131550
+    ],
     "pseudogene_org": [],
     "imgt": null,
     "lncrnadb": null,
@@ -33,7 +41,9 @@
     "gene_gc_content": 51.2,
     "gene_description": "Receptor tyrosine kinase used as a synthetic reference example.",
     "ensembl_canonical": true,
-    "gene_type": ["protein_coding"],
+    "gene_type": [
+      "protein_coding"
+    ],
     "refseq_mane_plus_clinical": [],
     "addtional_transcript_info": {}
   }

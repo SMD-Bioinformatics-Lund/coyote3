@@ -124,7 +124,7 @@ startup.
 > Assay groups are not center configuration. They define persisted access,
 > annotation, query, ASP, ASPC, and ISGL scope. The supported identifiers are
 > `hematology`, `solid`, `pgx`, `tumwgs`, `wts`, `myeloid`, `lymphoid`,
-> `fusion`, and `fusionrna`. Assay family (`panel-dna`, `wgs`, `panel-rna`,
+> `fusion`, and `pgx`. Assay family (`panel-dna`, `wgs`, `panel-rna`,
 > `wts`) and subpanel (for example `endometrie` or `breast`) are separate
 > concepts.
 >

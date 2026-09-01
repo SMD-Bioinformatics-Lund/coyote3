@@ -7,13 +7,25 @@
     "public_api": true,
     "therapeutic_data_included": false,
     "source": "public.api.oncokb.org",
-    "query": {"hgvs": "7:g.140453136A>T"},
-    "response": {"geneExist": true, "variantExist": true},
+    "license": null,
+    "query": {
+      "hgvs": "7:g.140453136A>T"
+    },
+    "response": {
+      "geneExist": true,
+      "variantExist": true
+    },
     "data_version": "demo",
     "gene_exist": true,
     "variant_exist": true,
-    "variant_ids": ["7_140453136_A_T"],
-    "sample_ids": ["sample_oid_seed"],
-    "sample_names": ["demo_dna_sample"]
+    "variant_ids": [
+      "7_140453136_A_T"
+    ],
+    "sample_ids": [
+      "sample_oid_seed"
+    ],
+    "sample_names": [
+      "demo_dna_sample"
+    ]
   }
 ]

@@ -1,24 +1,31 @@
 [
   {
     "aspc_id": "assay_1_base_production",
-    "display_name": "Hema GMS v1",
+    "asp_id": "assay_1",
+    "subpanel_id": "base",
+    "environment": "production",
     "asp_group": "hematology",
     "asp_category": "dna",
-    "description": "Demo ASP config for first-run DNA sample workflows",
-    "reference_genome": "GRCh38",
-    "platform": "Illumina",
-    "environment": "production",
-    "version": 1,
-    "is_active": true,
     "analysis_types": [
       "SNV",
       "CNV",
       "COVERAGE"
     ],
+    "analysis_intents": [
+      "somatic"
+    ],
+    "system_managed": false,
+    "is_active": true,
+    "display_name": "Hema GMS v1",
+    "description": "Demo ASP config for first-run DNA sample workflows",
+    "reference_genome": "GRCh38",
+    "platform": "illumina",
+    "verification_samples": {},
+    "use_diagnosis_genelist": false,
     "filters": {
       "somatic": {
         "snv": {
-          "max_freq": 1,
+          "max_freq": 1.0,
           "min_freq": 0.03,
           "max_control_freq": 0.05,
           "max_popfreq": 0.01,
@@ -34,7 +41,8 @@
             "missense",
             "other_coding"
           ],
-          "snvlists": []
+          "snvlists": [],
+          "adhoc_genes": {}
         },
         "cnv": {
           "min_cnv_size": 100,
@@ -45,13 +53,16 @@
             "gain",
             "loss"
           ],
-          "cnvlists": []
+          "cnvlists": [],
+          "adhoc_genes": {}
         },
+        "translocation": null,
         "coverage": {
           "warn_cov": 500,
           "error_cov": 100
         }
-      }
+      },
+      "germline": null
     },
     "reporting": {
       "report_sections": [
@@ -65,33 +76,46 @@
       "plots_path": "/tmp",
       "report_folder": "demo"
     },
-    "verification_samples": {},
-    "asp_id": "assay_1",
-    "subpanel_id": "base",
-    "analysis_intents": [
-      "somatic"
-    ]
+    "catalog": {
+      "is_public": true
+    },
+    "version": 1,
+    "created_by": null,
+    "created_on": "2026-01-01T18:13:16.916174+00:00",
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null
   },
   {
     "aspc_id": "assay_1_base_testing",
-    "display_name": "Hema GMS v1",
+    "asp_id": "assay_1",
+    "subpanel_id": "base",
+    "environment": "testing",
     "asp_group": "hematology",
     "asp_category": "dna",
-    "description": "Demo ASP config for test profile",
-    "reference_genome": "GRCh38",
-    "platform": "Illumina",
-    "environment": "testing",
-    "version": 1,
-    "is_active": true,
     "analysis_types": [
       "SNV",
       "CNV",
       "COVERAGE"
     ],
+    "analysis_intents": [
+      "somatic"
+    ],
+    "system_managed": false,
+    "is_active": true,
+    "display_name": "Hema GMS v1",
+    "description": "Demo ASP config for test profile",
+    "reference_genome": "GRCh38",
+    "platform": "illumina",
+    "verification_samples": {},
+    "use_diagnosis_genelist": false,
     "filters": {
       "somatic": {
         "snv": {
-          "max_freq": 1,
+          "max_freq": 1.0,
           "min_freq": 0.03,
           "max_control_freq": 0.05,
           "max_popfreq": 0.01,
@@ -107,7 +131,8 @@
             "missense",
             "other_coding"
           ],
-          "snvlists": []
+          "snvlists": [],
+          "adhoc_genes": {}
         },
         "cnv": {
           "min_cnv_size": 100,
@@ -118,13 +143,16 @@
             "gain",
             "loss"
           ],
-          "cnvlists": []
+          "cnvlists": [],
+          "adhoc_genes": {}
         },
+        "translocation": null,
         "coverage": {
           "warn_cov": 500,
           "error_cov": 100
         }
-      }
+      },
+      "germline": null
     },
     "reporting": {
       "report_sections": [
@@ -138,11 +166,81 @@
       "plots_path": "/tmp",
       "report_folder": "demo"
     },
-    "verification_samples": {},
-    "asp_id": "assay_1",
+    "catalog": {
+      "is_public": true
+    },
+    "version": 1,
+    "created_by": null,
+    "created_on": "2026-01-01T18:13:16.916381+00:00",
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null
+  },
+  {
+    "aspc_id": "assay_rna_1_base_production",
+    "asp_id": "assay_rna_1",
     "subpanel_id": "base",
+    "environment": "production",
+    "asp_group": "wts",
+    "asp_category": "rna",
+    "analysis_types": [
+      "FUSION",
+      "EXPRESSION",
+      "CLASSIFICATION",
+      "QC"
+    ],
     "analysis_intents": [
       "somatic"
-    ]
+    ],
+    "system_managed": false,
+    "is_active": true,
+    "display_name": "Demo RNA WTS",
+    "description": "Demo ASP configuration for first-run RNA WTS workflows",
+    "reference_genome": "GRCh38",
+    "platform": "illumina",
+    "verification_samples": {},
+    "use_diagnosis_genelist": false,
+    "filters": {
+      "somatic": {
+        "fusion": {
+          "fusion_callers": [],
+          "fusion_descriptions": [],
+          "fusion_effects": [],
+          "fusionlists": [],
+          "min_spanning_pairs": 0,
+          "min_spanning_reads": 0,
+          "adhoc_genes": {}
+        }
+      }
+    },
+    "reporting": {
+      "report_sections": [
+        "FUSION",
+        "EXPRESSION",
+        "CLASSIFICATION",
+        "QC"
+      ],
+      "report_header": "Demo RNA report header",
+      "report_method": "Demo RNA method",
+      "report_description": "RNA WTS summary report for assay_rna_1",
+      "general_report_summary": "Automated RNA summary generated from curated panel filters.",
+      "plots_path": "/tmp",
+      "report_folder": "demo-rna"
+    },
+    "catalog": {
+      "is_public": true
+    },
+    "version": 1,
+    "created_by": null,
+    "created_on": "2026-01-01T18:36:29.602575+00:00",
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null
   }
 ]

@@ -6,6 +6,11 @@ collection registered by the application contract registry.
 These documents are synthetic examples for contract, integration, and UI
 validation. They are not imported by the production first-deployment workflow.
 
+Each JSON document uses the canonical persisted shape produced by
+`normalize_collection_document`. The separate `demo_data/ingest/*.yaml` files
+remain raw pipeline manifests: they intentionally use flat top-level file and
+case/control keys because that is the external ingest contract.
+
 Purpose:
 
 - provide a single, reusable source for integration and contract tests,

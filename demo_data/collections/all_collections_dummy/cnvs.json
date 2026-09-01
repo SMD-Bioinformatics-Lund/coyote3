@@ -6,6 +6,7 @@
     "end": 56000000,
     "size": 1000000,
     "ratio": 0.4,
+    "type": null,
     "nprobes": 100,
     "genes": [
       {

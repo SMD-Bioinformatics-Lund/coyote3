@@ -7,16 +7,24 @@
     "name": "epidermal growth factor receptor",
     "symbol": "EGFR",
     "alternate_names": [],
-    "alternate_symbols": ["ERBB1"],
+    "alternate_symbols": [
+      "ERBB1"
+    ],
     "is_vip": false,
     "has_variant_annotation": true,
     "has_cpic_dosing_guideline": false,
-    "cross_references": ["HGNC:3236"],
+    "cross_references": [
+      "HGNC:3236"
+    ],
     "chromosome": "7",
+    "grch37_start": null,
+    "grch37_stop": null,
     "grch38_start": 55019017,
     "grch38_stop": 55211628,
     "source": "ClinPGx",
     "source_file": "synthetic-demo.tsv",
+    "source_reference": null,
+    "source_created": null,
     "public_api": true,
     "last_seen_at": "2026-01-01T10:00:00+00:00"
   }

@@ -13,6 +13,7 @@
     ],
     "adhoc": false,
     "is_public": true,
+    "system_managed": false,
     "is_active": true,
     "asp_groups": [
       "hematology"
@@ -29,8 +30,18 @@
       "GNB1",
       "TP53"
     ],
+    "germline_genes": [],
     "asp_ids": [
       "assay_1"
-    ]
+    ],
+    "version": 1,
+    "created_by": null,
+    "created_on": "2026-01-01T18:13:16.924558+00:00",
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null
   }
 ]

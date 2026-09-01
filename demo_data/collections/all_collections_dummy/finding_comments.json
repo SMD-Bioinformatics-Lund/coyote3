@@ -1,6 +1,5 @@
 [
   {
-    "_id": "finding_comment_oid_seed",
     "sample_oid": "sample_oid_seed",
     "sample_name": "seed_sample",
     "finding_oid": "variant_oid_seed",
@@ -13,9 +12,14 @@
     "genomic_hash": "4aa9ac62e43950e3daaa4a54c1a6bd4e",
     "gene": "BRAF",
     "transcript": "NM_004333.6",
+    "gene1": null,
+    "gene2": null,
     "author": "coyote3.user",
     "text": "Synthetic sample-specific finding comment.",
     "hidden": 0,
-    "time_created": "2026-01-01T10:00:00Z"
+    "hidden_by": null,
+    "time_created": "2026-01-01T10:00:00+00:00",
+    "time_hidden": null,
+    "_id": "finding_comment_oid_seed"
   }
 ]

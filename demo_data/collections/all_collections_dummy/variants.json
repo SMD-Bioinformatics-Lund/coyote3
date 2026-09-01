@@ -20,10 +20,20 @@
         "Feature": "ENST00000288602",
         "HGNC_ID": "HGNC:3236",
         "SYMBOL": "EGFR",
+        "PolyPhen": null,
+        "SIFT": null,
         "Consequence": [
           "missense_variant"
         ],
+        "ENSP": null,
+        "BIOTYPE": null,
+        "INTRON": null,
+        "EXON": null,
+        "CANONICAL": null,
+        "STRAND": null,
         "IMPACT": "MODERATE",
+        "CADD_PHRED": null,
+        "CLIN_SIG": [],
         "VARIANT_CLASS": "SNV",
         "HGVSc": "c.2573T>G",
         "HGVSp": "p.Leu858Arg"
@@ -48,6 +58,11 @@
         "type": "control"
       }
     ],
+    "gnomad_frequency": 0.0,
+    "gnomad_max": 0.0,
+    "exac_frequency": 0.0,
+    "thousandG_frequency": 0.0,
+    "variant_class": "SNV",
     "selected_csq_feature": "ENST00000288602",
     "genes": [
       "EGFR"
@@ -61,9 +76,9 @@
     "HGVSp": [
       "p.Leu858Arg"
     ],
+    "consequence_terms": [],
     "simple_id": "7_140453136_A_T",
     "simple_id_hash": "4aa9ac62e43950e3daaa4a54c1a6bd4e",
-    "variant_class": "SNV",
     "cosmic_ids": [
       "COSM6240"
     ],
@@ -71,16 +86,15 @@
     "pubmed_ids": [
       "12345678"
     ],
-    "gnomad_frequency": 0.0,
-    "gnomad_max": 0.0,
-    "exac_frequency": 0.0,
-    "thousandG_frequency": 0.0,
     "hotspots": [
       {
         "lu": [
           "HS_DEMO_1"
         ]
       }
-    ]
+    ],
+    "fp": "",
+    "irrelevant": "",
+    "interesting": ""
   }
 ]

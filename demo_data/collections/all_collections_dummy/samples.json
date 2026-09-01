@@ -7,6 +7,7 @@
     "current_aspc_id": "assay_1_base_testing",
     "current_aspc_key": "assay_1:base:testing",
     "current_aspc_version": 1,
+    "aspc_resolution": null,
     "genome_build": 38,
     "database_versions": {
       "vep": "103",
@@ -15,25 +16,75 @@
     "case_id": "seed_case",
     "control_id": "seed_control",
     "sample_no": 2,
+    "paired": true,
     "sequencing_scope": "panel",
     "omics_layer": "dna",
     "sex": "female",
     "platform": "illumina",
+    "read_mode": null,
     "read_technology": "short_read",
     "pipeline": "SomaticPanelPipeline",
     "pipeline_version": "0.0.1",
     "files": {
       "vcf_files": {
-        "path": "/data/seed/sample.vcf"
+        "path": "/data/seed/sample.vcf",
+        "checksum": null,
+        "size_bytes": null,
+        "registered_on": null
       },
       "cnv": {
-        "path": "/data/seed/sample.cnv.json"
+        "path": "/data/seed/sample.cnv.json",
+        "checksum": null,
+        "size_bytes": null,
+        "registered_on": null
       },
       "cov": {
-        "path": "/data/seed/sample.cov.json"
+        "path": "/data/seed/sample.cov.json",
+        "checksum": null,
+        "size_bytes": null,
+        "registered_on": null
       }
     },
-    "paired": true,
+    "analysis_intents": [
+      "somatic"
+    ],
+    "filters": {
+      "somatic": {
+        "snv": {
+          "max_freq": 1.0,
+          "min_freq": 0.0,
+          "max_control_freq": 0.05,
+          "max_popfreq": 0.01,
+          "min_depth": 100,
+          "min_alt_reads": 5,
+          "vep_consequences": [
+            "missense"
+          ],
+          "snvlists": [
+            "seed_snv_list"
+          ],
+          "adhoc_genes": {}
+        },
+        "cnv": {
+          "min_cnv_size": 100,
+          "max_cnv_size": 50000000,
+          "cnv_loss_cutoff": -0.3,
+          "cnv_gain_cutoff": 0.3,
+          "cnveffects": [
+            "gain",
+            "loss"
+          ],
+          "cnvlists": [],
+          "adhoc_genes": {}
+        },
+        "translocation": null,
+        "coverage": {
+          "warn_cov": 500,
+          "error_cov": 100
+        }
+      },
+      "germline": null
+    },
     "case": {
       "id": "seed_case",
       "clarity_id": "seed_case_clarity",
@@ -52,34 +103,11 @@
       "reads": 120000,
       "purity": null
     },
-    "filters": {
-      "somatic": {
-        "snv": {
-          "min_depth": 100,
-          "max_popfreq": 0.01,
-          "vep_consequences": [
-            "missense"
-          ],
-          "snvlists": [
-            "seed_snv_list"
-          ]
-        },
-        "cnv": {
-          "cnveffects": [
-            "gain",
-            "loss"
-          ]
-        },
-        "coverage": {
-          "warn_cov": 500,
-          "error_cov": 100
-        }
-      }
-    },
+    "ingest_status": "loading",
     "reported": false,
-    "version": 1,
-    "analysis_intents": [
-      "somatic"
-    ]
+    "latest_report_id": null,
+    "latest_report_on": null,
+    "time_added": "2026-01-01T18:13:16.931552+00:00",
+    "version": 1
   }
 ]

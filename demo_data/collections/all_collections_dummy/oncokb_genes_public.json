@@ -7,12 +7,20 @@
     "data_version": "demo",
     "gene_exist": true,
     "gene_summary": "Synthetic public gene summary.",
+    "background": null,
+    "setting": null,
     "entrez_gene_id": 1956,
     "gene_type": "ONCOGENE",
+    "highest_sensitive_level": null,
+    "highest_resistance_level": null,
+    "grch37_refseq": null,
+    "grch37_isoform": null,
     "grch38_refseq": "NM_005228.5",
     "grch38_isoform": "ENST00000275493.7",
     "hgnc_id": "HGNC:3236",
     "previous_symbols": [],
-    "alias_symbols": ["ERBB1"]
+    "alias_symbols": [
+      "ERBB1"
+    ]
   }
 ]
