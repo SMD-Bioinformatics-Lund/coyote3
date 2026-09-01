@@ -89,13 +89,15 @@ host resources are `COYOTE3_MONGO_DATA_HOST_ROOT`,
 Set `COYOTE3_LOGS_HOST_ROOT` for every deployment; it is mounted at `/app/logs`
 in the API, worker, and Beat containers.
 
-!!! warning "Existing named-volume installations"
-
-    A bind-mounted Mongo data directory does not automatically receive data
-    from a Docker named volume used by an older deployment. Back up and restore
-    that database, or copy it using an approved MongoDB maintenance procedure,
-    before removing the old named volume. Start the new Mongo container only
-    after the selected host data directory contains the intended database.
+> **Warning: Existing named-volume installations**
+>
+>
+> A bind-mounted Mongo data directory does not automatically receive data
+> from a Docker named volume used by an older deployment. Back up and restore
+> that database, or copy it using an approved MongoDB maintenance procedure,
+> before removing the old named volume. Start the new Mongo container only
+> after the selected host data directory contains the intended database.
+>
 
 ## Packaged configuration location
 

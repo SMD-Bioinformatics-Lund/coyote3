@@ -20,11 +20,13 @@ same MongoDB 8.2 single-member replica-set configuration documented for a new
 deployment. Isolation comes from local project names, ports, credentials, and
 temporary host paths rather than different application code.
 
-!!! warning "Synthetic data only"
-
-    Use only the synthetic files under `demo_data/`. Do not copy clinical
-    samples, patient identifiers, production credentials, or a production
-    database archive into this environment.
+> **Warning: Synthetic data only**
+>
+>
+> Use only the synthetic files under `demo_data/`. Do not copy clinical
+> samples, patient identifiers, production credentials, or a production
+> database archive into this environment.
+>
 
 ## Validation boundary
 

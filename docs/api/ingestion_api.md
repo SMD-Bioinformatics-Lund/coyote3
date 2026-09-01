@@ -220,7 +220,7 @@ Seed source policy for a new deployment:
 
 - The application-owned RBAC catalog is `api/config/bootstrap/rbac`. It installs
   every bundled permission policy and built-in role only during explicit
-  direct bootstrap or explicit upgrade synchronization.
+  direct bootstrap or explicit catalog synchronization.
 - `api/config/bootstrap/demo_center` provides synthetic ASP, ASPC, and ISGL
   records for installation verification. Replace these with reviewed center
   definitions before clinical use.
@@ -260,17 +260,19 @@ small variant:
 - The global `anno_vep` vault stores all parsed transcript summaries by
   `simple_id_hash` and `vep_version`.
 
-!!! info "Transcript vault"
-
-    `anno_vep` is version tagged. A manual transcript change for a variant
-    reads from the exact VEP version recorded on the sample and then updates the
-    sample-local display anchor. This keeps transcript switching deterministic
-    across VEP releases while keeping the variant table compact.
-
-    The vault key is `(simple_id_hash, vep_version)`. A repeated ingest for the
-    same identity and release is an insert no-op and cannot replace existing
-    evidence. Ingesting the same identity with another VEP release writes a
-    separate vault document, and each sample reads its own recorded release.
+> **Info: Transcript vault**
+>
+>
+> `anno_vep` is version tagged. A manual transcript change for a variant
+> reads from the exact VEP version recorded on the sample and then updates the
+> sample-local display anchor. This keeps transcript switching deterministic
+> across VEP releases while keeping the variant table compact.
+>
+> The vault key is `(simple_id_hash, vep_version)`. A repeated ingest for the
+> same identity and release is an insert no-op and cannot replace existing
+> evidence. Ingesting the same identity with another VEP release writes a
+> separate vault document, and each sample reads its own recorded release.
+>
 
 The selected anchor is deliberately compact. It retains display fields such as
 the transcript feature, normalized gene and HGNC identifiers, HGVS,

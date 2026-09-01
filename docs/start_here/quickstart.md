@@ -34,12 +34,14 @@ cd coyote3
 cp deploy/env/example.env .coyote3_dev_env
 ```
 
-!!! note "Review the environment file"
-
-    The example values are suitable as a starting point for the development
-    Compose profile. Before starting the stack, review `MONGO_URI`, mounted data
-    paths, and every secret value. Production deployments must provide their own
-    generated secrets.
+> **Note: Review the environment file**
+>
+>
+> The example values are suitable as a starting point for the development
+> Compose profile. Before starting the stack, review `MONGO_URI`, mounted data
+> paths, and every secret value. Production deployments must provide their own
+> generated secrets.
+>
 
 ---
 

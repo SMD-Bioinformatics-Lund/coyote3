@@ -6,9 +6,11 @@ instead of loading complete clinical collections into the browser.
 
 ![Coyote3 operational dashboard](../assets/screenshots/dashboard.png)
 
-!!! info
-    Dashboard counts respect the user's role, assay, and environment scope.
-    Two users can therefore see different totals from the same deployment.
+> **Info**
+>
+> Dashboard counts respect the user's role, assay, and environment scope.
+> Two users can therefore see different totals from the same deployment.
+>
 
 ## Operational Snapshot
 
@@ -141,8 +143,9 @@ The background schedule uses half of
 seconds. `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS` controls snapshot retention,
 and `DASHBOARD_SUMMARY_CACHE_TTL_SECONDS` controls only the Redis copy.
 
-!!! note
-    A displayed zero is a real count only when the corresponding aggregate was
-    calculated successfully. A new installation can briefly return a
-    preparation message until the first background snapshot is complete.
-    Refresh failures leave the previous snapshot available and marked stale.
+> **Note**
+>
+> A displayed zero is a real count only when the corresponding aggregate was
+> calculated successfully. A new installation can briefly return a
+> preparation message until the first background snapshot is complete.
+> Refresh failures leave the previous snapshot available and marked stale.

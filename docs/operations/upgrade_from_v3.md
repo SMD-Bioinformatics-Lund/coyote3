@@ -1,60 +1,44 @@
-# Upgrading from v3.x to v4.0.0
+# Migrate an existing Coyote v3 installation
 
-**Prepared:** 2026-08-10
+Use this procedure only when moving an existing Coyote v3 database and its
+clinical records to Coyote3. It is not part of a first installation. For an
+empty database, follow [first installation](../start_here/first_installation.md)
+instead.
 
-!!! caution "This is a full-stack replacement"
-    v4.0.0 replaces the entire Flask/Jinja/Tailwind application with a FastAPI
-    backend and a React/Vite frontend. This is **not** a routine patch upgrade.
-    Follow this guide in full before going live. Do not attempt an in-place
-    container swap without completing the pre-upgrade checklist.
+> **Caution**
+>
+> Migration changes configuration and identity documents to the Coyote3
+> contract. Complete the procedure during a maintenance window, beginning with
+> a verified backup and ending with documented validation evidence.
 
-## What changed
+## Migration scope
 
-| Area | v3.x (Flask) | v4.0.0 (FastAPI/React) |
-|------|-------------|----------------------|
-| Backend | Flask + Jinja2 blueprints | FastAPI + Pydantic v2 routers |
-| Frontend | Server-rendered Jinja templates + Tailwind | React 19 + TypeScript + Vite |
-| Auth | Flask session | Session-cookie + Bearer-token; Casbin RBAC |
-| Workers | Celery (same) | Celery (same, new task contracts) |
-| Database | MongoDB (same collections, evolved schema) | MongoDB (same collections, evolved schema) |
-| Config | Flask env + JSON schema files | FastAPI env + TOML/YAML center config |
-| Entrypoint | `wsgi.py` (Gunicorn/WSGI) | `asgi.py` (Uvicorn/ASGI) |
-| Compose | Root-level Dockerfiles | `docker/` Dockerfiles; `deploy/compose/` files |
+The migration preserves clinical finding, comment, report, and audit data while
+normalizing the configuration and identity records required by Coyote3.
 
-### Collections: same names, evolved documents
-
-All MongoDB collection names are unchanged from v3.x (controlled by
-`api/config/center/collections.toml`). Documents in core clinical collections
-(`samples`, `variants`, `cnvs`, `fusions`, `translocations`, `annotation`,
-`reports`, `reported_variants`) remain readable by the v4.0.0 application
-without a bulk rewrite.
-
-The following structural changes **do** require a migration run before the
-application will operate correctly:
-
-| Document type | Change | Migration required |
-|--------------|--------|--------------------|
-| ASP / ASPC / ISGL | Keys renamed to `asp_id`, `subpanel_id`, `environment`, `asp_ids`, `asp_groups` | Yes — see Step 4 |
-| Sample filter profiles | Flat filter dict promoted to intent profiles (`somatic` / `germline`) | Yes — see Step 4 |
-| Users and roles | RBAC catalog replaced; existing users kept but roles must be re-synced | Yes — see Step 5 |
-| Permissions | Application-owned catalog replaces ad-hoc records | Yes — see Step 5 |
+| Document type | Required destination contract | Procedure |
+| --- | --- | --- |
+| ASP, ASPC, and ISGL | `asp_id`, `subpanel_id`, `environment`, `asp_ids`, and `asp_groups` | Normalize configuration records in step 4. |
+| Sample filters | Intent-specific `somatic` and `germline` filter profiles | Preserve the stored filter snapshot while normalizing its structure in step 4. |
+| Users and roles | Application permission identifiers and role grants | Synchronize bundled permissions and roles in step 5. |
+| Permissions | System-managed application permission catalog | Synchronize in step 5; preserve centre-defined records. |
 
 ---
 
-## Pre-upgrade checklist
+## Preconditions
 
 Work through this list before starting. Do not proceed if any item cannot be satisfied.
 
 - [ ] Archive backup of the full database taken and verified
       (`scripts/mongo_backup_archive.sh`)
-- [ ] Current v3.x stack confirmed healthy (all samples accessible, reports rendering)
-- [ ] New v4.0.0 image builds succeed on a staging host
-- [ ] Center configuration files reviewed against the v4.0.0 contract
+- [ ] Source installation confirmed healthy: samples and saved reports can be read
+- [ ] Target Coyote3 images build successfully in a controlled environment
+- [ ] Center configuration files reviewed against the Coyote3 contract
       (`api/config/center/` — see [Center Configuration Files](center_configuration_files.md))
 - [ ] `deploy/env/example.env` reviewed; every `CHANGE_ME` value replaced in
       the center env file
 - [ ] Maintenance window scheduled and clinical users notified
-- [ ] Rollback plan confirmed (see [Rollback](#rollback))
+- [ ] Rollback plan confirmed (see [Roll back safely](#roll-back-safely))
 
 ---
 
@@ -70,19 +54,18 @@ Verify the archive is non-empty and readable before continuing.
 
 ---
 
-## Step 2 — Stop the v3.x stack
+## Step 2 — Stop the source application
 
 ```bash
-# Bring down all v3.x containers (do NOT use -v — keep volumes)
+# Stop source containers without deleting volumes.
 docker compose -f <your-v3-compose-file> down
 ```
 
 ---
 
-## Step 3 — Deploy the v4.0.0 stack
+## Step 3 — Start the Coyote3 application
 
-Build and start the new stack. Use the appropriate compose file for your
-environment.
+Build and start the target stack using the centre environment file.
 
 ```bash
 ./scripts/compose-with-version.sh \
@@ -98,24 +81,28 @@ Wait for all services to report healthy:
 curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}/api/v1/health"
 ```
 
-!!! note
-    The API performs **read-only index verification** on startup. It does not
-    create or retire indexes automatically. If the startup log reports missing
-    indexes, run `scripts/manage_mongo_indexes.py` as documented in
-    [Maintenance and Quality](maintenance_and_quality.md).
+> **Note**
+>
+> The API performs **read-only index verification** on startup. It does not
+> create or retire indexes automatically. If the startup log reports missing
+> indexes, run `scripts/manage_mongo_indexes.py` as documented in
+> [Maintenance and Quality](maintenance_and_quality.md).
+>
 
 ---
 
-## Step 4 — Run the clinical configuration migration
+## Step 4 — Normalize clinical configuration
 
-This step normalizes ASP, ASPC, ISGL, sample, and user scope documents to the
-v4.0.0 field contract. Place the script in `migration_scripts/` (ignored by
-git) and run with `--dry-run` first.
+This step normalizes ASP, ASPC, ISGL, sample, and user-scope documents to the
+Coyote3 field contract. Place the reviewed migration script in
+`migration_scripts/` (ignored by Git) and run it with `--dry-run` first.
 
-!!! caution
-    Run `--dry-run` and inspect the output completely before applying.
-    The script removes retired keys after writing the normalized replacement.
-    Restore the backup from Step 1 to roll back.
+> **Caution**
+>
+> Run `--dry-run` and inspect the output completely before applying.
+> The script removes retired keys after writing the normalized replacement.
+> Restore the backup from Step 1 to roll back.
+>
 
 ```bash
 # Dry run — inspect output before applying
@@ -134,11 +121,11 @@ The script resolves collection names from `api/config/center/collections.toml`.
 
 ---
 
-## Step 5 — Synchronize RBAC catalog
+## Step 5 — Synchronize permissions and roles
 
-v4.0.0 ships an application-owned permission and role catalog. Sync it against
-the existing database to insert any missing built-in policies and grants without
-touching center-defined roles:
+Coyote3 ships an application-owned permission and role catalog. Synchronize it
+against the database to add missing system policies and grants without changing
+centre-defined roles:
 
 ```bash
 python scripts/sync_rbac_catalog.py \
@@ -157,10 +144,10 @@ role assignments are intact.
 
 ---
 
-## Step 6 — Seed new reference collections
+## Step 6 — Prepare reference collections when required
 
-v4.0.0 introduces collections that did not exist in v3.x. Seed them before
-clinical ingest:
+An empty target database requires the bundled reference collections and first
+local administrator before clinical ingest:
 
 ```bash
 .venv/bin/python scripts/bootstrap_database.py \
@@ -171,10 +158,9 @@ clinical ingest:
   --password "<GENERATED_ADMIN_PASSWORD>"
 ```
 
-Run this only for a new empty v4 database. It skips populated reference
-collections and rejects partially initialized governance data. For an existing
-v4 database, use the dedicated RBAC and reference-data maintenance procedures
-instead of first-deployment bootstrap.
+Run this only against an empty target database. It skips populated reference
+collections and rejects partially initialized governance data. Use the dedicated
+RBAC and reference-data maintenance procedures for a populated database.
 
 ---
 
@@ -207,28 +193,26 @@ cd frontend && npm run test:e2e:real
 
 ---
 
-## Step 8 — Post-upgrade tasks
+## Step 8 — Complete operational validation
 
-These items do not block go-live but should be completed within the first week:
+Record the following checks before the target installation is accepted for
+clinical use:
 
-- [ ] Review and update center-owned ASPC definitions to use the v4.0.0
+- [ ] Review centre-owned ASPC definitions for the Coyote3
       intent-profile filter fields (`somatic` / `germline`)
 - [ ] Verify that notification delivery is working (test with a broadcast from
       Admin → Notifications)
 - [ ] Confirm audit log entries are appearing for clinical actions
       (Admin → Audit Logs)
-- [ ] Update your internal runbooks to reference the new compose files
-      (`deploy/compose/` not the repo root)
-- [ ] Remove the retired root-level `Dockerfile`, `Dockerfile.dev`, and
-      `Dockerfile.redis` from any CI/CD pipelines that referenced them directly
+- [ ] Update internal runbooks to reference the deployed Compose files
 
 ---
 
-## Rollback
+## Roll back safely
 
-If the upgrade must be aborted after Step 3:
+If the migration must be aborted after step 3:
 
-1. Stop the v4.0.0 stack:
+1. Stop the target Coyote3 stack:
 
    ```bash
    ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml down
@@ -244,27 +228,25 @@ If the upgrade must be aborted after Step 3:
      --confirm RESTORE_PATIENT_DATA
    ```
 
-3. Restart the v3.x stack:
+3. Restart the source application:
 
    ```bash
    docker compose -f <your-v3-compose-file> up -d
    ```
 
-4. Verify v3.x is operational before notifying users.
+4. Verify that the source application is operational before notifying users.
 
 ---
 
-## Known differences after upgrade
+## Operational consequences
 
-| Behavior | v3.x | v4.0.0 |
-|----------|------|--------|
-| Sample URLs | ObjectId-based (`/sample/<id>`) | Name-based (`/sample/<name>`) — existing bookmarks will break |
-| Report filenames | Flask-generated with legacy timestamp format | Backend-generated with UTC compact timestamp |
-| Timestamp display | Server timezone | UTC storage; center-configured local time zone in UI |
-| API documentation | None | `/api/v1/docs` (OpenAPI / Swagger UI) |
-| Tailwind CSS pipeline | Separate build step | Embedded in Vite bundle — no separate build needed |
-| Background workers | Same Celery | Same Celery but task contracts updated — old queued tasks will fail; drain the queue before upgrade |
-| Auth cookies | Flask `session` cookie | New `coyote3_session` cookie — users will need to log in again |
+| Area | Required operator action |
+| --- | --- |
+| Saved browser links | Update links to use Coyote3 name-based sample routes. |
+| Browser sessions | Ask users to sign in again after the migration. |
+| Queued background work | Drain source queues before the cut-over; do not transfer source queued tasks to the target worker. |
+| Timestamps | Confirm the centre local-time-zone setting before reviewing UI dates. |
+| API consumers | Point supported clients to `/api/v1/docs` and validate authentication before enabling integrations. |
 
 ---
 

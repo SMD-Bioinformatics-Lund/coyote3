@@ -5,12 +5,14 @@ Each Coyote3 deployment keeps center-owned configuration under
 application. They define local terminology, data-source names, public contact
 details, and presentation metadata without changing Python or React code.
 
-!!! warning "Deploy the directory as one configuration unit"
-
-    API, Celery worker, beat scheduler, and frontend-facing public endpoints
-    must use the same revision of `api/config/center/`. Change the files in
-    source control, review the change, then restart API and worker services
-    together.
+> **Warning: Deploy the directory as one configuration unit**
+>
+>
+> API, Celery worker, beat scheduler, and frontend-facing public endpoints
+> must use the same revision of `api/config/center/`. Change the files in
+> source control, review the change, then restart API and worker services
+> together.
+>
 
 ## Ownership Boundary
 
@@ -58,12 +60,14 @@ The complete environment-variable table is maintained in
 [Configuration and Environments](../start_here/configuration.md). This page
 documents the center-owned TOML and YAML files.
 
-!!! note "Keep referenced identifiers stable"
-
-    An identifier referenced by an ASP, ASPC, ISGL, sample manifest, report,
-    or historical sample is part of the clinical record. Do not rename it for
-    presentation purposes. Create a reviewed replacement and plan a migration
-    when a meaning must change.
+> **Note: Keep referenced identifiers stable**
+>
+>
+> An identifier referenced by an ASP, ASPC, ISGL, sample manifest, report,
+> or historical sample is part of the clinical record. Do not rename it for
+> presentation purposes. Create a reviewed replacement and plan a migration
+> when a meaning must change.
+>
 
 ## `contact.toml`
 
@@ -114,14 +118,16 @@ file. The transcript selector names are implemented software contracts, but
 their released order is center configuration and is validated strictly at
 startup.
 
-!!! important "Assay groups are software-defined"
-
-    Assay groups are not center configuration. They define persisted access,
-    annotation, query, ASP, ASPC, and ISGL scope. The supported identifiers are
-    `hematology`, `solid`, `pgx`, `tumwgs`, `wts`, `myeloid`, `lymphoid`,
-    `fusion`, and `fusionrna`. Assay family (`panel-dna`, `wgs`, `panel-rna`,
-    `wts`) and subpanel (for example `endometrie` or `breast`) are separate
-    concepts.
+> **Important: Assay groups are software-defined**
+>
+>
+> Assay groups are not center configuration. They define persisted access,
+> annotation, query, ASP, ASPC, and ISGL scope. The supported identifiers are
+> `hematology`, `solid`, `pgx`, `tumwgs`, `wts`, `myeloid`, `lymphoid`,
+> `fusion`, and `fusionrna`. Assay family (`panel-dna`, `wgs`, `panel-rna`,
+> `wts`) and subpanel (for example `endometrie` or `breast`) are separate
+> concepts.
+>
 
 ## `clinical_query_policy.toml`
 
@@ -623,11 +629,13 @@ At least one clinical match field is required for every exception. The policy
 cannot name an arbitrary MongoDB field, operator, aggregation expression, or
 JavaScript fragment.
 
-!!! warning "Release discipline"
-
-    Any change to this file can change finding visibility. Validate it with a
-    representative fixture and documented expected count before deploying it
-    with API, worker, and beat.
+> **Warning: Release discipline**
+>
+>
+> Any change to this file can change finding visibility. Validate it with a
+> representative fixture and documented expected count before deploying it
+> with API, worker, and beat.
+>
 
 ### Field-Level Contract
 
@@ -671,12 +679,14 @@ JavaScript fragment.
 | `CLASSIFICATION` | Classifier result | RNA only. |
 | `QC` | Quality-control payload | RNA only. |
 
-!!! warning "Manifest, ASPC, and source-file agreement"
-
-    A file may be omitted only when it is neither required by assay family nor
-    declared for an enabled analysis. If the manifest declares a file for an
-    analysis, ingest must load it successfully. A missing or unreadable
-    declared file fails the ingest instead of producing a partly ready sample.
+> **Warning: Manifest, ASPC, and source-file agreement**
+>
+>
+> A file may be omitted only when it is neither required by assay family nor
+> declared for an enabled analysis. If the manifest declares a file for an
+> analysis, ingest must load it successfully. A missing or unreadable
+> declared file fails the ingest instead of producing a partly ready sample.
+>
 
 ## `collections.toml`
 
@@ -707,11 +717,13 @@ does not define a document schema and it does not move data.
 | Reference annotations | `hgnc_collection`, `vep_metadata_collection`, `cosmic_collection` | HGNC identity/transcript data, VEP metadata, and COSMIC data. |
 | Knowledgebases | `civic_variants_collection`, `civic_gene_collection`, `oncokb_collection`, `oncokb_actionable_collection`, `oncokb_genes_collection`, `oncokb_public_collection`, `oncokb_genes_public_collection`, `oncokb_cancer_genes_public_collection`, `clinpgx_genes_public_collection`, `brcaexchange_collection`, `iarc_tp53_collection` | Local knowledgebase imports and public reference material used for clinical markers and detail views. |
 
-!!! caution "Changing names is not a migration"
-
-    A collection mapping change redirects future reads and writes only. It does
-    not copy documents, indexes, report links, or audit history. Create and
-    validate the destination collection before changing a production mapping.
+> **Caution: Changing names is not a migration**
+>
+>
+> A collection mapping change redirects future reads and writes only. It does
+> not copy documents, indexes, report links, or audit history. Create and
+> validate the destination collection before changing a production mapping.
+>
 
 ## `assay_catalog.yaml`
 
@@ -764,13 +776,15 @@ requirements, or report behavior.
 | `gene_lists[].subpanel_id`, `list_type` | No | Existing subpanel ID or ISGL list type | List-specific context overrides. |
 | `gene_lists[].tat`, `input_material`, `sample_modes`, `analysis` | No | Same forms as the category keys | List-level values override the corresponding category value. |
 
-!!! info "Use ASP, ASPC, and ISGL for clinical truth"
-
-    Catalog YAML is appropriate for descriptions, turnaround-time wording,
-    public input labels, and display order. Use ASP, ASPC, and ISGL records for
-    active assay behavior, required files, analytical settings, and genes.
-    ASPC contributes only `catalog.is_public` to the public catalog. All other
-    public catalog wording and presentation values belong in this YAML file.
+> **Info: Use ASP, ASPC, and ISGL for clinical truth**
+>
+>
+> Catalog YAML is appropriate for descriptions, turnaround-time wording,
+> public input labels, and display order. Use ASP, ASPC, and ISGL records for
+> active assay behavior, required files, analytical settings, and genes.
+> ASPC contributes only `catalog.is_public` to the public catalog. All other
+> public catalog wording and presentation values belong in this YAML file.
+>
 
 ## `filter_flag_metadata.yaml`
 
@@ -820,9 +834,10 @@ application behavior and changing them requires a software change.
 6. Verify one representative public page and one representative ingest or
    report workflow affected by the change.
 
-!!! tip "When not to edit a configuration file"
-
-    Do not use center configuration to introduce a new analysis type, parser,
-    authentication protocol, permission semantic, or report rule evaluator.
-    Those are software capabilities and require a typed implementation,
-    contracts, tests, and documentation update.
+> **Tip: When not to edit a configuration file**
+>
+>
+> Do not use center configuration to introduce a new analysis type, parser,
+> authentication protocol, permission semantic, or report rule evaluator.
+> Those are software capabilities and require a typed implementation,
+> contracts, tests, and documentation update.

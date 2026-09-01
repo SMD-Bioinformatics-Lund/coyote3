@@ -13,28 +13,36 @@ markdown_extensions:
   - fenced_code
   - tables
   - sane_lists
-  - admonition
   - attr_list
 
 nav:
-  - Overview: index.md
-  - Getting started:
+  - Home: index.md
+  - Start here:
       - Quickstart: start_here/quickstart.md
-      - First installation: start_here/first_installation.md
-      - Configuration: start_here/configuration.md
-      - Production deployment: start_here/production_deployment.md
       - Local development: start_here/local_development.md
-  - User manual:
+      - First installation: start_here/first_installation.md
+      - Center configuration: start_here/configuration.md
+      - Production deployment: start_here/production_deployment.md
+  - Use Coyote3:
       - Complete user manual: user_guide/complete_user_manual.md
       - Clinical workflow: user_guide/clinical_workflow_guide.md
-      - Operational dashboard: user_guide/operational_dashboard.md
       - Sample management: user_guide/sample_management.md
       - DNA clinical review: user_guide/clinical_review_dna.md
       - RNA clinical review: user_guide/clinical_review_rna.md
       - Coverage review: user_guide/coverage_analytics.md
+      - Operational dashboard: user_guide/operational_dashboard.md
       - Pages and table columns: product/ui_page_table_reference.md
       - Interface visual reference: product/interface_visual_reference.md
-  - Clinical concepts:
+  - Administer Coyote3:
+      - Management guide: user_guide/management_guide.md
+      - Administration UI map: product/ui_map_and_user_flows.md
+      - Permissions and access: developer/permissions_naming.md
+      - System permission catalog: developer/permission_catalog.md
+      - Audit and logging: operations/audit-and-logging.md
+      - Backup and recovery: operations/backup_restore_and_snapshots.md
+      - Operational troubleshooting: operations/troubleshooting.md
+  - Reference:
+      - Reference guide: reference/index.md
       - System overview: product/complete_application_manual.md
       - Core concepts: product/core_concepts.md
       - DNA and RNA workflow: product/workflow_dna_rna.md
@@ -45,64 +53,53 @@ nav:
       - Domain reference: product/application_reference_by_domain.md
       - UI actions and effects: product/ui_action_effects_reference.md
       - Functional matrix: product/ui_functionality_matrix.md
+      - Clinical vocabulary: operations/clinical_vocabulary.md
       - OncoKB integration: product/oncokb_integration.md
       - ClinPGx integration: product/clinpgx_integration.md
-  - Administration:
-      - Management guide: user_guide/management_guide.md
-      - UI map and navigation: product/ui_map_and_user_flows.md
+      - Sample YAML manifest: api/sample_yaml.md
+      - Sample input files: api/sample_input_files.md
+      - Collection contracts: api/collection_contracts.md
+  - Develop Coyote3:
+      - Complete developer manual: developer/complete_developer_manual.md
+      - Application architecture: architecture/current_application_context.md
+      - System relationships: architecture/system_relationships.md
+      - Runtime data contracts: architecture/data_contracts.md
+      - Clinical data lifecycle: architecture/data_ingest_storage_and_retrieval.md
       - Configuration identity and audit: architecture/configuration_identity_and_audit.md
-      - Permissions and access: developer/permissions_naming.md
-      - System permission catalog: developer/permission_catalog.md
-  - Deployment and operations:
-      - Release readiness: operations/release_readiness.md
-      - Target-center acceptance: operations/target_center_acceptance.md
-      - Center deployment: operations/center_deployment_guide.md
-      - Initial deployment checklist: operations/initial_deployment_checklist.md
-      - Upgrade from v3.x: operations/upgrade_from_v3.md
-      - Center configuration files: operations/center_configuration_files.md
-      - Clinical vocabulary: operations/clinical_vocabulary.md
-      - Environment and secrets: operations/environments_and_secrets.md
-      - Data requirements: operations/deployment_data_requirements.md
-      - Deployment reference: operations/deployment_guide.md
-      - Minimum production baseline: operations/minimum_production_baseline.md
-      - Observability and alerts: operations/observability_slos_and_alerts.md
-      - Audit and logging: operations/audit-and-logging.md
-      - MongoDB deployment and recovery: operations/mongodb_deployment_and_recovery.md
-      - Backup and recovery: operations/backup_restore_and_snapshots.md
-      - Maintenance and quality: operations/maintenance_and_quality.md
-      - Repository scripts: operations/script_reference.md
-      - Troubleshooting: operations/troubleshooting.md
-  - API reference:
+      - Security model: architecture/security_model.md
       - API organization: api/api_organization.md
       - Authentication: api/authentication.md
       - Versioning and compatibility: api/versioning_and_compatibility.md
       - Routes and workflows: api/reference_and_workflows.md
       - Ingestion API: api/ingestion_api.md
-      - Sample YAML manifest: api/sample_yaml.md
-      - Sample input files: api/sample_input_files.md
       - Collection permissions: api/collection_operations_and_permissions.md
-  - Generated reference:
-      - Collection contracts: api/collection_contracts.md
-  - Architecture:
-      - Application architecture: architecture/current_application_context.md
-      - System relationships: architecture/system_relationships.md
-      - Runtime data contracts: architecture/data_contracts.md
-      - Clinical data lifecycle: architecture/data_ingest_storage_and_retrieval.md
-      - Security model: architecture/security_model.md
-      - Architecture decisions:
-          - Authentication provider resolution: architecture/adr_0001_auth_provider_resolution.md
-          - Local password lifecycle: architecture/adr_0002_local_user_password_lifecycle_and_mail_fallback.md
-          - Synchronous HTTP and MongoDB: architecture/adr_0003_sync_http_and_mongodb_execution.md
-  - Development:
-      - Complete developer manual: developer/complete_developer_manual.md
       - Engineering commands: maintainers/developer_guide.md
       - Add a domain or collection: developer/adding_a_domain.md
       - Schema contracts and versioning: developer/schema_contracts_and_versioning.md
       - Plotting and chart export: frontend/plotting.md
       - Action dialogs: developer/ui_modals.md
       - Refactoring standards: maintainers/refactor_guidelines.md
-      - Troubleshooting: developer/troubleshooting_guide.md
-  - Testing:
+      - Developer troubleshooting: developer/troubleshooting_guide.md
+      - Architecture decisions:
+          - Authentication provider resolution: architecture/adr_0001_auth_provider_resolution.md
+          - Local password lifecycle: architecture/adr_0002_local_user_password_lifecycle_and_mail_fallback.md
+          - Synchronous HTTP and MongoDB: architecture/adr_0003_sync_http_and_mongodb_execution.md
+  - Deploy and operate Coyote3:
+      - Release readiness: operations/release_readiness.md
+      - Target-center acceptance: operations/target_center_acceptance.md
+      - Center deployment: operations/center_deployment_guide.md
+      - Initial deployment checklist: operations/initial_deployment_checklist.md
+      - Migrate an existing Coyote v3 installation: operations/upgrade_from_v3.md
+      - Center configuration files: operations/center_configuration_files.md
+      - Environment and secrets: operations/environments_and_secrets.md
+      - Data requirements: operations/deployment_data_requirements.md
+      - Deployment reference: operations/deployment_guide.md
+      - Minimum production baseline: operations/minimum_production_baseline.md
+      - Observability and alerts: operations/observability_slos_and_alerts.md
+      - MongoDB deployment and recovery: operations/mongodb_deployment_and_recovery.md
+      - Maintenance and quality: operations/maintenance_and_quality.md
+      - Repository scripts: operations/script_reference.md
+  - Test and validate Coyote3:
       - Test strategy and quality gates: testing/testing_and_quality.md
       - Local disposable full-stack validation: testing/disposable_full_stack_validation.md
       - Browser and release validation: testing/browser_and_release_validation.md

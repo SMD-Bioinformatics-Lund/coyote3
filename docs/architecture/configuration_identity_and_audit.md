@@ -9,9 +9,11 @@ This page describes the production architecture. It is intended for clinical
 administrators, developers, and operators who maintain ASP, ASPC, and ISGL
 configuration.
 
-!!! info
-    Application timestamps are stored in UTC. The user interface renders them
-    in the deployment's configured local time zone.
+> **Info**
+>
+> Application timestamps are stored in UTC. The user interface renders them
+> in the deployment's configured local time zone.
+>
 
 ## Identity Model
 
@@ -115,10 +117,12 @@ ingest success or failure, sample deletion, report creation, and variant
 curation. This provides an operational timeline without making audit records a
 replacement for clinical report snapshots.
 
-!!! caution
-    Audit metadata must not include passwords, session tokens, API tokens, or
-    unrestricted source-file content. Error details are sanitized before they
-    are persisted or presented to users.
+> **Caution**
+>
+> Audit metadata must not include passwords, session tokens, API tokens, or
+> unrestricted source-file content. Error details are sanitized before they
+> are persisted or presented to users.
+>
 
 ASP, ASPC, and ISGL mutations are stored as `traceability` audit events. These
 events have `immutable: true`, do not receive `expires_at`, and are excluded

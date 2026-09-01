@@ -1,6 +1,10 @@
 # Management guide
 
-The Management suite is designed for platform administrators, laboratory leads, and data managers to govern the Coyote3 environment. It covers identity management, clinical resource configuration, and system-wide audit oversight for users granted `audit_log:view`.
+This is the administrative guide for Coyote3. It explains how platform
+administrators, laboratory leads, and data managers manage identities,
+clinical resource configuration, runtime controls, and audit oversight. Each
+administrative action requires the corresponding permission; `audit_log:view`
+is required to review audit records.
 
 ![Coyote3 administration workspace](../assets/screenshots/admin.png)
 
@@ -118,18 +122,22 @@ active/reserved/scheduled tasks, registered task names, Beat schedules, and
 startup index conflicts. A configured switch does not prove that a Celery
 worker or Beat process is running; use the observed state for that distinction.
 
-!!! caution
-    Role and permission-policy editing can change what every user is allowed to
-    do. Keep `role:edit` and `permission.policy:edit` within the security
-    administration team. User-management delegates generally need `user:*`
-    permissions only.
+> **Caution**
+>
+> Role and permission-policy editing can change what every user is allowed to
+> do. Keep `role:edit` and `permission.policy:edit` within the security
+> administration team. User-management delegates generally need `user:*`
+> permissions only.
+>
 
-!!! info
-    `user:edit` permits account administration without exposing password
-    mutation. Password creation, reset, and change remain dedicated security
-    workflows. A delegated account manager may edit ordinary account fields,
-    roles, scopes, providers, and active state, but only a signed-in superuser
-    may grant or remove `superuser`, disable a superuser, or delete one.
+> **Info**
+>
+> `user:edit` permits account administration without exposing password
+> mutation. Password creation, reset, and change remain dedicated security
+> workflows. A delegated account manager may edit ordinary account fields,
+> roles, scopes, providers, and active state, but only a signed-in superuser
+> may grant or remove `superuser`, disable a superuser, or delete one.
+>
 
 Every authenticated user can edit their own safe profile fields without
 receiving user-administration permissions:
@@ -193,11 +201,13 @@ same import mechanism without requiring an intermediate file download.
 | ASPC | Create a configuration for another profile/environment or a related panel/subpanel. | Change the ASP, subpanel, or environment as appropriate. The server derives a new `aspc_id` from these fields. Review enabled analyses, filters, report sections, and defaults. |
 | ISGL | Start a related curated or ad-hoc gene list. | Change `isgl_id` and name. Review list type, member genes, ASP/assay-group scope, diagnosis tags, and visibility. |
 
-!!! warning
-    Importing JSON is a convenience for creating a new configuration. It does
-    not update the exported source record, bypass a required field, or make an
-    identifier reusable. A duplicate `asp_id`, derived `aspc_id`, or `isgl_id`
-    is rejected when the form is saved.
+> **Warning**
+>
+> Importing JSON is a convenience for creating a new configuration. It does
+> not update the exported source record, bypass a required field, or make an
+> identifier reusable. A duplicate `asp_id`, derived `aspc_id`, or `isgl_id`
+> is rejected when the form is saved.
+>
 
 ---
 
@@ -229,12 +239,14 @@ lock marker and omits edit and delete actions for system policies. The status
 control remains available. The API enforces the same lifecycle for direct
 requests.
 
-!!! info
-    Application upgrades may introduce new system permissions. An operator runs
-    `scripts/sync_rbac_catalog.py` after deployment to insert missing policies,
-    mark all bundled policy identifiers as system-managed, and add newly bundled
-    grants to matching built-in roles without deleting center roles or extra
-    grants.
+> **Info**
+>
+> When a deployed application version contains additional system permissions,
+> an operator runs `scripts/sync_rbac_catalog.py` to insert missing policies,
+> mark all bundled policy identifiers as system-managed, and add newly bundled
+> grants to matching built-in roles without deleting center roles or extra
+> grants.
+>
 
 ---
 
@@ -270,7 +282,7 @@ The **Ingest** workspace allows administrators to queue validated sample bundles
 The **UI Route Audit** page is an administrative inventory, not a second route
 configuration screen. It lists every application page registered by the
 frontend together with its module, required permission, API dependencies, and
-payload fields. Use it after an upgrade or configuration change to find:
+payload fields. Use it after a deployment or configuration change to find:
 
 | Result | Meaning | Operator action |
 | --- | --- | --- |

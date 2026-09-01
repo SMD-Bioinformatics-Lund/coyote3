@@ -1,9 +1,11 @@
 # Plotting And Chart Export
 
-!!! info
-    Coyote3 uses React-native chart components for application plots. The
-    plotting layer is centralized so dashboard, QC, reporting, and coverage
-    views share the same behavior.
+> **Info**
+>
+> Coyote3 uses React-native chart components for application plots. The
+> plotting layer is centralized so dashboard, QC, reporting, and coverage
+> views share the same behavior.
+>
 
 ## Design
 
@@ -24,14 +26,18 @@ Charts can export:
 - SVG for vector output.
 - CSV for the underlying plotted rows.
 
-!!! tip
-    Prefer CSV export for clinical review or audit discussions. PNG and SVG are
-    visual snapshots; CSV preserves the data that produced the chart.
+> **Tip**
+>
+> Prefer CSV export for clinical review or audit discussions. PNG and SVG are
+> visual snapshots; CSV preserves the data that produced the chart.
+>
 
-!!! caution
-    Browser-generated PNG export serializes the current SVG chart and draws it to
-    a canvas. Browser security restrictions can block this if future chart
-    components embed cross-origin images.
+> **Caution**
+>
+> Browser-generated PNG export serializes the current SVG chart and draws it to
+> a canvas. Browser security restrictions can block this if future chart
+> components embed cross-origin images.
+>
 
 ## Implementation Rules
 

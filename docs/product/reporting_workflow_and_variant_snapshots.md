@@ -110,17 +110,21 @@ is generated. It provides a versioned, read-only context containing:
 The report composer receives this prepared set. It does not load raw findings
 or independently decide which findings are reportable.
 
-!!! info
-    The prepared context is a handoff contract. Upstream services own data
-    retrieval, transcript selection, HGNC normalization, analytical filters,
-    gene-list scope, annotation matching, blacklist/false-positive/irrelevant
-    exclusion, and tier reportability.
+> **Info**
+>
+> The prepared context is a handoff contract. Upstream services own data
+> retrieval, transcript selection, HGNC normalization, analytical filters,
+> gene-list scope, annotation matching, blacklist/false-positive/irrelevant
+> exclusion, and tier reportability.
+>
 
-!!! warning
-    A future configurable text rules engine may select and render clinical
-    wording from this context. It must not query MongoDB, apply filters, assign
-    tiers, choose transcripts, call external knowledgebases, or mutate clinical
-    data.
+> **Warning**
+>
+> A future configurable text rules engine may select and render clinical
+> wording from this context. It must not query MongoDB, apply filters, assign
+> tiers, choose transcripts, call external knowledgebases, or mutate clinical
+> data.
+>
 
 ## Report Preview
 
@@ -665,7 +669,7 @@ This design gives Coyote3:
 - a path to regenerate previews without mutating historical evidence
 - reproducibility for clinical sign-out review
 
-## Current Implementation Notes
+## Operational behaviour
 
 - SNV, CNV, fusion, translocation, biomarker, and PGx findings share one typed,
   report-scoped snapshot collection and are displayed in separate preview tables.

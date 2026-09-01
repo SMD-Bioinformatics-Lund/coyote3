@@ -62,11 +62,13 @@ workflow, and change protocol. See
 [Clinical Vocabulary Configuration](../operations/clinical_vocabulary.md) for
 the detailed manifest-key and analysis-binding contract.
 
-!!! info "One environment selector"
-
-    `ENV_NAME` is the environment selector. Use values such as `development`,
-    `testing`, `staging`, or `production`. Coyote3 does not use separate
-    `DEVELOPMENT=1` or `TESTING=1` flags.
+> **Info: One environment selector**
+>
+>
+> `ENV_NAME` is the environment selector. Use values such as `development`,
+> `testing`, `staging`, or `production`. Coyote3 does not use separate
+> `DEVELOPMENT=1` or `TESTING=1` flags.
+>
 
 ## Browser Entry Points
 
@@ -99,11 +101,13 @@ the mounted browser URLs are:
 When a local nginx proxy is accessed directly, the same paths are available on
 `http://localhost:${COYOTE3_PORT}`.
 
-!!! note "Internal service URLs"
-
-    Redis, Celery broker/result URLs, API health paths, and docs upstream URLs
-    are internal service wiring. They are fixed in the application or Compose
-    files and are not configured in the center environment file.
+> **Note: Internal service URLs**
+>
+>
+> Redis, Celery broker/result URLs, API health paths, and docs upstream URLs
+> are internal service wiring. They are fixed in the application or Compose
+> files and are not configured in the center environment file.
+>
 
 ## Data Mounts
 
@@ -130,13 +134,15 @@ Pipeline manifests may use either paths relative to the manifest, absolute
 paths are retained in sample file records so persisted provenance matches the
 pipeline output.
 
-!!! info "Container path contract"
-
-    The Compose deployment mounts `COYOTE3_DATA_HOST_ROOT` at both `/data` and
-    its original absolute path. Report output, upload staging, and watched
-    manifests use fixed `/data/coyote3/...` locations. Pipeline-declared source
-    files retain their original host paths and are readable through the
-    identical-path mount.
+> **Info: Container path contract**
+>
+>
+> The Compose deployment mounts `COYOTE3_DATA_HOST_ROOT` at both `/data` and
+> its original absolute path. Report output, upload staging, and watched
+> manifests use fixed `/data/coyote3/...` locations. Pipeline-declared source
+> files retain their original host paths and are readable through the
+> identical-path mount.
+>
 
 ## Environment Variable Reference
 
@@ -150,13 +156,15 @@ collection configuration. `COYOTE3_DB` is bound to the `[primary]` mapping in
 `center/collections.toml`, and `BAM_DB` is bound to `[bam]`. The physical
 collection names themselves remain TOML values.
 
-!!! warning "HTTPS session cookies"
-
-    Session cookies are HTTPS-only whenever the request uses HTTPS. Coyote3
-    reads `X-Forwarded-Proto` when it is deployed behind a reverse proxy. Plain
-    HTTP remains available only as a local-development fallback and emits an
-    API runtime warning. There is no environment variable that can weaken this
-    policy in a deployed HTTPS environment.
+> **Warning: HTTPS session cookies**
+>
+>
+> Session cookies are HTTPS-only whenever the request uses HTTPS. Coyote3
+> reads `X-Forwarded-Proto` when it is deployed behind a reverse proxy. Plain
+> HTTP remains available only as a local-development fallback and emits an
+> API runtime warning. There is no environment variable that can weaken this
+> policy in a deployed HTTPS environment.
+>
 
 Built-in Mongo-backed knowledgebases are always registered. Their collections
 may be empty when a center has not loaded reference data, but repository
@@ -276,11 +284,13 @@ the Celery queues (`default` and `ingest`), and the public API roots for
 OncoKB and ClinPGx. They are defined in the application configuration so every
 deployment uses the same supported service behavior.
 
-!!! tip "Generating secrets"
-
-    Generate each secret independently. A practical local command is
-    `openssl rand -hex 32`. Use longer token-safe values if your center policy
-    requires them. Do not reuse the same value across environments.
+> **Tip: Generating secrets**
+>
+>
+> Generate each secret independently. A practical local command is
+> `openssl rand -hex 32`. Use longer token-safe values if your center policy
+> requires them. Do not reuse the same value across environments.
+>
 
 ## Values Not Stored In Env Files
 
@@ -306,12 +316,14 @@ before showing absolute dates, detailed audit timestamps, comment timestamps,
 report dates, and admin table dates. Relative labels such as `7 d ago` are
 calculated from the same UTC instant.
 
-!!! info "Timezone value"
-
-    Use an IANA timezone name, for example `Europe/Stockholm`. Do not store
-    local wall-clock timestamps in MongoDB. If an ingest source emits an ISO
-    timestamp without a timezone suffix, Coyote3 treats it as UTC and converts it
-    for display.
+> **Info: Timezone value**
+>
+>
+> Use an IANA timezone name, for example `Europe/Stockholm`. Do not store
+> local wall-clock timestamps in MongoDB. If an ingest source emits an ISO
+> timestamp without a timezone suffix, Coyote3 treats it as UTC and converts it
+> for display.
+>
 
 ## Center Contact Configuration
 
@@ -340,24 +352,30 @@ email = "clinical-support@example.org"
 
 ```
 
-!!! info "Organization identity"
+> **Info: Organization identity**
+>
+>
+> `ORGANIZATION_NAME` is authoritative for the organization display name.
+> The contact TOML stores richer public contact details.
+>
 
-    `ORGANIZATION_NAME` is authoritative for the organization display name.
-    The contact TOML stores richer public contact details.
+> **Tip: Named contacts**
+>
+>
+> Add one `[[contacts.people]]` table for each recipient. The Contact and
+> About pages render each person on a separate line as `Name (email)`, with
+> the complete line linked using `mailto:`. This avoids ambiguous shared
+> mailbox strings and keeps each support route readable.
+>
 
-!!! tip "Named contacts"
-
-    Add one `[[contacts.people]]` table for each recipient. The Contact and
-    About pages render each person on a separate line as `Name (email)`, with
-    the complete line linked using `mailto:`. This avoids ambiguous shared
-    mailbox strings and keeps each support route readable.
-
-!!! info "Product links"
-
-    Bug reports, feature requests, and support requests are product/repository
-    links, not deployment secrets or center settings. They are defined once in
-    `api/config/application_metadata.py`; the About page, Contact page, and
-    user dropdown receive the same generated links.
+> **Info: Product links**
+>
+>
+> Bug reports, feature requests, and support requests are product/repository
+> links, not deployment secrets or center settings. They are defined once in
+> `api/config/application_metadata.py`; the About page, Contact page, and
+> user dropdown receive the same generated links.
+>
 
 ## Configuration Boundaries
 

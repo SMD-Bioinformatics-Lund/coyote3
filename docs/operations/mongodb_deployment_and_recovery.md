@@ -20,8 +20,10 @@ Docker network and starts a single-member replica set.
 
 The first member is a normal MongoDB primary, not a high-availability cluster. It provides replica-set semantics needed for consistent oplog backups and gives a controlled path to add secondaries later.
 
-!!! warning
-    A one-member replica set has no failover protection. If its server is unavailable, Coyote3 cannot read or write clinical data. Use tested backups and add two separate-host secondary members when availability requirements justify the operational cost.
+> **Warning**
+>
+> A one-member replica set has no failover protection. If its server is unavailable, Coyote3 cannot read or write clinical data. Use tested backups and add two separate-host secondary members when availability requirements justify the operational cost.
+>
 
 ## First-time setup
 

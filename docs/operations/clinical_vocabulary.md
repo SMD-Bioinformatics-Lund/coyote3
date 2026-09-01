@@ -5,12 +5,14 @@ It is loaded and validated when the API or a worker starts. A malformed
 configuration prevents startup rather than allowing an ingest or login flow to
 run with an ambiguous contract.
 
-!!! info "Configuration boundary"
-
-    TOML configures names and enabled choices that differ between centers.
-    Python implements the workflow and typed persistence. This TOML file owns
-    the selectable values, manifest vocabulary, and center policy labels used
-    by those workflows.
+> **Info: Configuration boundary**
+>
+>
+> TOML configures names and enabled choices that differ between centers.
+> Python implements the workflow and typed persistence. This TOML file owns
+> the selectable values, manifest vocabulary, and center policy labels used
+> by those workflows.
+>
 
 ## File Layout
 
@@ -328,12 +330,14 @@ parsed data still writes to the software-owned `panel_coverage` collection.
 6. Ingest a representative non-production sample and verify the source-file
    card, parsed collection, analysis tab, and report section.
 
-!!! warning "Renaming an active manifest key"
-
-    Existing sample documents retain their historical `files` keys. Plan a
-    controlled data migration or retain the old data until historical samples
-    no longer require it. Do not change the TOML while active workers are
-    ingesting the same watch directory.
+> **Warning: Renaming an active manifest key**
+>
+>
+> Existing sample documents retain their historical `files` keys. Plan a
+> controlled data migration or retain the old data until historical samples
+> no longer require it. Do not change the TOML while active workers are
+> ingesting the same watch directory.
+>
 
 ## Authorization Model
 

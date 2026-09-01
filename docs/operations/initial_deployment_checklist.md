@@ -6,11 +6,13 @@ Use this procedure for a new Coyote3 installation. Database provisioning,
 database bootstrap, application deployment, and clinical data ingest are
 separate deliberate operations.
 
-!!! info
-    The complete operator procedure, including production installation,
-    acceptance, backup, subsequent deployment, and rollback, is maintained in
-    [Production deployment](../start_here/production_deployment.md). This page
-    is a concise operational checklist.
+> **Info**
+>
+> The complete operator procedure, including production installation,
+> acceptance, backup, subsequent deployment, and rollback, is maintained in
+> [Production deployment](../start_here/production_deployment.md). This page
+> is a concise operational checklist.
+>
 
 ## Before you begin
 

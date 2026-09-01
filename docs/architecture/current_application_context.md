@@ -11,12 +11,14 @@ and clinical review workflows.
 
 Coyote3 is a clinical genomics review and reporting platform. It receives validated sample manifests and analysis files, persists normalized MongoDB documents, applies assay-specific configuration, exposes sample review workflows in React, and stores report and audit snapshots so clinical decisions can be reconstructed later.
 
-!!! info "Architecture reference"
-
-    For a concise end-to-end map, use the
-    [system overview](../product/complete_application_manual.md). For
-    implementation guidance, use the
-    [complete developer manual](../developer/complete_developer_manual.md).
+> **Info: Architecture reference**
+>
+>
+> For a concise end-to-end map, use the
+> [system overview](../product/complete_application_manual.md). For
+> implementation guidance, use the
+> [complete developer manual](../developer/complete_developer_manual.md).
+>
 
 The application is organized around a few stable principles:
 
@@ -65,12 +67,14 @@ complete filtered result set before pagination. This ensures that sorting by
 case VAF, control VAF, population frequency, tier, gene, or any other supported
 column ranks all matching rows, not only the visible page.
 
-!!! tip "Table invalidation"
-
-    Mutations that alter persisted finding state should invalidate the affected
-    React Query family, such as the current sample small-variant, CNV, fusion,
-    or translocation query. The next view then refreshes from MongoDB while
-    unchanged table states can still use short-lived cached results.
+> **Tip: Table invalidation**
+>
+>
+> Mutations that alter persisted finding state should invalidate the affected
+> React Query family, such as the current sample small-variant, CNV, fusion,
+> or translocation query. The next view then refreshes from MongoDB while
+> unchanged table states can still use short-lived cached results.
+>
 
 ## Configuration Model
 
@@ -117,9 +121,11 @@ case in a recognized header label are normalized during ingest before being
 saved under the canonical key. Explicit manifest values take precedence for the
 same key.
 
-!!! warning "Configuration boundary"
-
-    Keep secrets, infrastructure endpoints, and mount paths in environment configuration. Use Admin application controls only for runtime behavior switches and retention policy.
+> **Warning: Configuration boundary**
+>
+>
+> Keep secrets, infrastructure endpoints, and mount paths in environment configuration. Use Admin application controls only for runtime behavior switches and retention policy.
+>
 
 Public content is controlled through explicit files under
 `api/config/center/` instead of scattered UI copy. `contact.toml` drives the
@@ -145,9 +151,11 @@ api/config/center/collections.toml
 
 The application should not hardcode clinical collection names in services or routes. Exceptions are operational singleton collections such as `app_controls`, API sessions, and audit events where the name is explicitly configured or intentionally fixed.
 
-!!! tip "Adding collections"
-
-    Add collection names through `api/config/center/collections.toml`, then bind them through repositories and typed contracts. Avoid hardcoded collection names in routes or domain services.
+> **Tip: Adding collections**
+>
+>
+> Add collection names through `api/config/center/collections.toml`, then bind them through repositories and typed contracts. Avoid hardcoded collection names in routes or domain services.
+>
 
 ## Document Contracts
 
@@ -229,9 +237,11 @@ coyote3.yaml
 
 The Celery worker can ingest explicitly queued bundles or scan the configured watch directory. The watch task should rename successfully processed manifests with the configured `.done` suffix and failed manifests with the configured failure suffix.
 
-!!! caution "Ingest safety"
-
-    Ingest changes can affect sample availability, reportability, and downstream search. Validate required files, ASPC resolution, and dependent collection counts before treating a migration or parser change as complete.
+> **Caution: Ingest safety**
+>
+>
+> Ingest changes can affect sample availability, reportability, and downstream search. Validate required files, ASPC resolution, and dependent collection counts before treating a migration or parser change as complete.
+>
 
 ## Sample Review Flow
 
@@ -300,9 +310,11 @@ Saving a report persists:
 
 This means later searches can answer which samples reported a gene/variant/tier and which filters/configuration were in force at report time. Report snapshots are not just display data; they are part of the clinical reconstruction model.
 
-!!! warning "Report reconstruction"
-
-    Saved reports must carry the reportable finding snapshot, filter snapshot, and ASPC context. Do not rely on current mutable sample filters to explain an old report.
+> **Warning: Report reconstruction**
+>
+>
+> Saved reports must carry the reportable finding snapshot, filter snapshot, and ASPC context. Do not rely on current mutable sample filters to explain an old report.
+>
 
 ## Comments And Annotations
 
@@ -413,9 +425,11 @@ center's current UI workflow from the persisted clinical identity contract.
 
 Disabling a Celery task family prevents new executions from doing work. It does not resize the worker pool or terminate tasks already running. Capacity is effectively returned as tasks stop being queued or return early.
 
-!!! info "Task controls"
-
-    Application controls gate behavior. Worker process count and CPU capacity are controlled by deployment settings, not by toggling a task family off.
+> **Info: Task controls**
+>
+>
+> Application controls gate behavior. Worker process count and CPU capacity are controlled by deployment settings, not by toggling a task family off.
+>
 
 ## Audit, Logs, And Retention
 
@@ -480,9 +494,11 @@ Route-level contract coverage should verify every page in `frontend/src/lib/rout
 - permission/error state rendering
 - export/download behavior when the route offers it
 
-!!! info "Frontend contract tests"
-
-    The route registry is the source checklist for page-level API contract tests. When a frontend test runner is added, each route entry should have a matching test that mocks the listed API dependencies and verifies the fields listed in `dataUsed`.
+> **Info: Frontend contract tests**
+>
+>
+> The route registry is the source checklist for page-level API contract tests. When a frontend test runner is added, each route entry should have a matching test that mocks the listed API dependencies and verifies the fields listed in `dataUsed`.
+>
 
 ## Developer Rules
 

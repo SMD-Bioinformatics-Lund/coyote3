@@ -2,9 +2,11 @@
 
 This page describes the information shown by each Coyote3 screen, how the major tables are read, and which badges or compact symbols can appear in each data area.
 
-!!! info "Scope"
-
-    This reference documents the React application as a clinical review surface. It describes what the user sees, what each table column means, and how badges should be interpreted. API contracts, collection schemas, and deployment details are documented separately in the API and operations sections.
+> **Info: Scope**
+>
+>
+> This reference documents the React application as a clinical review surface. It describes what the user sees, what each table column means, and how badges should be interpreted. API contracts, collection schemas, and deployment details are documented separately in the API and operations sections.
+>
 
 ## General Table Rules
 
@@ -37,23 +39,27 @@ general controls are upgraded by the same global tooltip layer. Semantic titles
 required for embedded report frames remain accessibility labels and are not
 treated as hover hints.
 
-!!! info "Table caching and refresh"
+> **Info: Table caching and refresh**
+>
+>
+> Table requests are cached by their clinical query state: sample, page, page size,
+> search text, sort columns, and sort directions. Revisiting the same query state
+> can reuse cached data for a short time. Paged table state is also reflected
+> in the URL so opening a detail page and returning to the sample restores the
+> same tab, search, page size, page, and sorting context. Applying filters or
+> changing finding state, such as false positive, blacklist, irrelevant,
+> interesting, or tier, invalidates the relevant table queries so the next view
+> reflects persisted backend state. Smaller client-side tables use the same
+> multi-column sort component. When a page controls the table state, the
+> sort order is reflected in the URL; otherwise only search and sort settings
+> are stored in browser session storage. Row data is not duplicated there.
+>
 
-    Table requests are cached by their clinical query state: sample, page, page size,
-    search text, sort columns, and sort directions. Revisiting the same query state
-    can reuse cached data for a short time. Paged table state is also reflected
-    in the URL so opening a detail page and returning to the sample restores the
-    same tab, search, page size, page, and sorting context. Applying filters or
-    changing finding state, such as false positive, blacklist, irrelevant,
-    interesting, or tier, invalidates the relevant table queries so the next view
-    reflects persisted backend state. Smaller client-side tables use the same
-    multi-column sort component. When a page controls the table state, the
-    sort order is reflected in the URL; otherwise only search and sort settings
-    are stored in browser session storage. Row data is not duplicated there.
-
-!!! tip "Clinical table reading"
-
-    Start from the left side of a row. The status column tells you whether the finding has review flags, knowledgebase evidence, comments, or pharmacogenomic context before you read the biological columns.
+> **Tip: Clinical table reading**
+>
+>
+> Start from the left side of a row. The status column tells you whether the finding has review flags, knowledgebase evidence, comments, or pharmacogenomic context before you read the biological columns.
+>
 
 ## Badge Reference
 
@@ -72,9 +78,11 @@ These appear in the compact status column of variant-like tables.
 | `Rx` | Historical local OncoKB actionable evidence exists for the gene or alteration. This is local evidence only and can include drug-level fields from historical center data. | Status column, knowledgebase cards |
 | `PGx` | The gene is present in the ClinPGx public gene cache. This links to ClinPGx public gene information when available. Detail pages can fetch richer public API knowledge on demand. | Status column, knowledgebase cards |
 
-!!! warning "Badge placement"
-
-    OncoKB and ClinPGx markers are not displayed beside the gene name. They are displayed in the status/evidence column so the gene symbol remains biologically faithful to the source finding.
+> **Warning: Badge placement**
+>
+>
+> OncoKB and ClinPGx markers are not displayed beside the gene name. They are displayed in the status/evidence column so the gene symbol remains biologically faithful to the source finding.
+>
 
 ### Tier Badges
 
@@ -141,9 +149,11 @@ The dashboard is the operational entry point. It summarizes work that a reviewer
 | Panel analysis capability | Active targeted-panel ASPCs grouped by analysis type, comparing configurations where the analysis is enabled with configurations where it is reportable. WGS and WTS are excluded. |
 | Resource health | Operational counts and configuration coverage that help identify stale or missing setup. |
 
-!!! info "Dashboard performance"
-
-    Dashboard panels should use aggregate backend endpoints instead of loading full clinical tables. The page is intended to answer "what needs attention?" without triggering heavy review queries.
+> **Info: Dashboard performance**
+>
+>
+> Dashboard panels should use aggregate backend endpoints instead of loading full clinical tables. The page is intended to answer "what needs attention?" without triggering heavy review queries.
+>
 
 ## Samples Page
 
@@ -217,9 +227,11 @@ The overview tab mirrors the sample settings and sample-level context needed bef
 | Gene settings | Selected SNV/CNV gene lists, ad-hoc gene lists, and effective gene scope. |
 | Biomarkers | MSI, HRD, and other configured biomarkers loaded for the sample. |
 
-!!! caution "Raw payloads"
-
-    Normal clinical views should not expose raw JSON payloads. Raw inspectors belong only in explicit diagnostics or developer/admin debug screens.
+> **Caution: Raw payloads**
+>
+>
+> Normal clinical views should not expose raw JSON payloads. Raw inspectors belong only in explicit diagnostics or developer/admin debug screens.
+>
 
 ### Small Variants
 
@@ -250,13 +262,15 @@ state such as false positive, irrelevant, or interesting, adding blacklist
 entries, overriding blacklist, and clearing blacklist overrides. Bulk actions
 require confirmation and update the table in place after success.
 
-!!! warning "Tier annotation text"
-
-    Bulk Tier 3 assignment creates the approved automatic Tier III annotation
-    text for each selected small variant. Tier 1, Tier 2, and Tier 4 assignments
-    do not create automatic text. Templates for those tiers must not be added
-    until their wording has been reviewed and approved by the responsible
-    genetics team.
+> **Warning: Tier annotation text**
+>
+>
+> Bulk Tier 3 assignment creates the approved automatic Tier III annotation
+> text for each selected small variant. Tier 1, Tier 2, and Tier 4 assignments
+> do not create automatic text. Templates for those tiers must not be added
+> until their wording has been reviewed and approved by the responsible
+> genetics team.
+>
 
 Small-variant sorting is performed after all active filters and search terms have
 been applied and before the page slice is returned. Frequency columns, including
@@ -454,9 +468,11 @@ back to DNA small-variant fields. Missing canonical fusion fields therefore
 surface as report contract errors instead of producing a partially populated
 preview.
 
-!!! warning "Temporary snapshot"
-
-    The report preview is temporary until saved. When a report is saved, Coyote3 stores the report document and reported finding snapshots so future searches can reproduce exactly what was reported.
+> **Warning: Temporary snapshot**
+>
+>
+> The report preview is temporary until saved. When a report is saved, Coyote3 stores the report document and reported finding snapshots so future searches can reproduce exactly what was reported.
+>
 
 ## Finding Detail Pages
 
@@ -484,9 +500,11 @@ Detail pages put the review decision, comments, and evidence around the finding.
 | Knowledgebase | One consolidated card with collapsible sections for CIViC, BRCA Exchange, TP53/IARC, local OncoKB cancer gene/actionable evidence, public OncoKB lookup, and ClinPGx local/API context. ClinPGx local context stays compact; fetched API context can include VIP summary, guideline annotations, labels, top connected drugs, pathways, and variant annotation examples. |
 | Seen in other samples | Other samples with the same genomic identity, with assay group, case VAF, and the newest tier resolved in each sample's assay scope. |
 
-!!! info "Transcript selection"
-
-    Small variant display selects NCBI MANE Plus Clinical first, followed by Ensembl MANE Plus Clinical, NCBI MANE Select, Ensembl MANE Select, VEP canonical protein-coding, the first protein-coding transcript, and finally the first available transcript. HGNC normalization uses HGNC ID when possible and resolves previous symbols or aliases to the same approved HGNC record. Manual transcript changes use the versioned `anno_vep` vault for the sample's VEP version and refresh the selected transcript in place.
+> **Info: Transcript selection**
+>
+>
+> Small variant display selects NCBI MANE Plus Clinical first, followed by Ensembl MANE Plus Clinical, NCBI MANE Select, Ensembl MANE Select, VEP canonical protein-coding, the first protein-coding transcript, and finally the first available transcript. HGNC normalization uses HGNC ID when possible and resolves previous symbols or aliases to the same approved HGNC record. Manual transcript changes use the versioned `anno_vep` vault for the sample's VEP version and refresh the selected transcript in place.
+>
 
 The transcript table can show the following compact badges in the **Transcript**
 column:
@@ -604,12 +622,14 @@ sample. Reported observations and returned sample details are bounded. The page
 shows a truncation warning if either response limit is reached; figures from a
 truncated result must not be used as complete cohort statistics.
 
-!!! important "Clinical interpretation"
-
-    This value is an application cohort prevalence, not population incidence.
-    It depends on access scope, available samples, applied gene lists, assay
-    coverage, and saved clinical reports. Compare assay and sex groups only when
-    their sample counts and selection context are suitable for that comparison.
+> **Important: Clinical interpretation**
+>
+>
+> This value is an application cohort prevalence, not population incidence.
+> It depends on access scope, available samples, applied gene lists, assay
+> coverage, and saved clinical reports. Compare assay and sex groups only when
+> their sample counts and selection context are suitable for that comparison.
+>
 
 ## Reports Page And Saved Reports
 
@@ -727,9 +747,11 @@ Normal administration workflows use typed forms generated from explicit contract
 | Assay group/family/platform | Constants-backed assay group, family, sequencing platform, and read-mode badges. |
 | Permission group | Compact permission labels grouped by domain; hover shows the exact permission key such as `samples:edit`. |
 
-!!! caution "Governance changes"
-
-    Clinical configuration resources such as ASP, ASPC, and ISGL follow append-only/versioned governance rules. User, role, and permission records are edited through audited updates rather than raw document mutation.
+> **Caution: Governance changes**
+>
+>
+> Clinical configuration resources such as ASP, ASPC, and ISGL follow append-only/versioned governance rules. User, role, and permission records are edited through audited updates rather than raw document mutation.
+>
 
 ### Application control behavior
 

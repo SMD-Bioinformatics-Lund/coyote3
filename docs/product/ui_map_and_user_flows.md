@@ -2,9 +2,11 @@
 
 This document lists the main UI areas and the main user flows.
 
-!!! info "Column-level reference"
-
-    For detailed table column meanings, badge definitions, and page-by-page data dictionaries, see the [UI Page and Table Reference](ui_page_table_reference.md).
+> **Info: Column-level reference**
+>
+>
+> For detailed table column meanings, badge definitions, and page-by-page data dictionaries, see the [UI Page and Table Reference](ui_page_table_reference.md).
+>
 
 ## System Interfaces
 
@@ -38,15 +40,17 @@ DNA review usually follows this sequence:
 
 Finding detail pages keep the sample context visible through a direct sample link in the header. Caller evidence is presented as individual badges, and finding-specific action buttons are constrained to the supported clinical state transitions for that finding type.
 
-!!! info "Sample URLs"
-
-    Sample-related UI routes use `samples.name` as the human-readable route key,
-    for example `/samples/CASE_DEMO`. Existing ObjectId-based sample URLs can be
-    resolved by the API and are replaced in the browser with the canonical sample
-    name after the sample context loads. Finding detail routes keep the finding
-    ObjectId in the final URL segment, for example
-    `/samples/CASE_DEMO/variant/<variant_oid>`, because findings are resolved by
-    their collection identifier.
+> **Info: Sample URLs**
+>
+>
+> Sample-related UI routes use `samples.name` as the human-readable route key,
+> for example `/samples/CASE_DEMO`. Existing ObjectId-based sample URLs can be
+> resolved by the API and are replaced in the browser with the canonical sample
+> name after the sample context loads. Finding detail routes keep the finding
+> ObjectId in the final URL segment, for example
+> `/samples/CASE_DEMO/variant/<variant_oid>`, because findings are resolved by
+> their collection identifier.
+>
 
 ### RNA Fusion Review and Reporting
 

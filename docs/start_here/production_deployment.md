@@ -6,10 +6,12 @@ application deployment starts the proxy, frontend, API, worker, scheduler,
 Redis, and documentation services; it does not create, seed, stop, or replace
 MongoDB.
 
-!!! warning
-    Use reviewed center configuration and synthetic acceptance data until the
-    installation has passed the center's release checks. Never use the bundled
-    demonstration ASP, ASPC, or ISGL records for clinical work.
+> **Warning**
+>
+> Use reviewed center configuration and synthetic acceptance data until the
+> installation has passed the center's release checks. Never use the bundled
+> demonstration ASP, ASPC, or ISGL records for clinical work.
+>
 
 ## Deployment model
 

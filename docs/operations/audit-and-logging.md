@@ -181,11 +181,13 @@ remove disabled navigation before a user opens it. API middleware independently
 checks every governed request, so a stale browser, bookmarked route, or direct
 API caller cannot bypass a disabled module.
 
-!!! tip "Operational interpretation"
-
-    Use the editable switches to control whether work is allowed. Use the observed runtime state to
-    confirm whether workers are actually connected and doing work. Use container orchestration,
-    systemd, or Docker Compose settings to change process count, memory, and CPU allocation.
+> **Tip: Operational interpretation**
+>
+>
+> Use the editable switches to control whether work is allowed. Use the observed runtime state to
+> confirm whether workers are actually connected and doing work. Use container orchestration,
+> systemd, or Docker Compose settings to change process count, memory, and CPU allocation.
+>
 
 ## Retention Maintenance
 

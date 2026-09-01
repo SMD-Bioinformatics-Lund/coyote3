@@ -21,9 +21,11 @@ A completed YAML manifest is the ingest declaration. Pipeline keys such as assay
 7. If a dependent write fails, the service restores the earlier dependent state for an update or removes staged records for a new sample. A failed ingest cannot leave a ready sample.
 8. The manifest receives its configured done or failed suffix and an ingest audit event. Optional public knowledgebase enrichment is separate from readiness.
 
-!!! info "Pipeline paths"
-
-    Manifests retain pipeline host paths. API and Celery containers must be able to read those paths through their mounts. The paths are preserved in the sample document so the originating artifact remains identifiable.
+> **Info: Pipeline paths**
+>
+>
+> Manifests retain pipeline host paths. API and Celery containers must be able to read those paths through their mounts. The paths are preserved in the sample document so the originating artifact remains identifiable.
+>
 
 ## Configured file ownership
 
@@ -136,14 +138,16 @@ relevant term on an alternate transcript remains queryable while the selected
 transcript remains stable for display. The compound index on
 `SAMPLE_ID, consequence_terms` supports that query shape.
 
-!!! warning "Existing DNA records"
-
-    Existing records must be backfilled or re-ingested before consequence
-    filtering is enabled for them. The local, ignored migration tool
-    Fresh v4 ingestion derives `consequence_terms` from the parsed VEP records
-    only from the matching `anno_vep` record for the sample's VEP version. It
-    leaves a row untouched when that evidence is absent and reports it for
-    review; it does not infer terms from the selected transcript.
+> **Warning: Existing DNA records**
+>
+>
+> Records without `consequence_terms` must be backfilled or re-ingested before
+> consequence filtering can include them. Coyote3 ingestion derives
+> `consequence_terms` from the parsed VEP records
+> only from the matching `anno_vep` record for the sample's VEP version. It
+> leaves a row untouched when that evidence is absent and reports it for
+> review; it does not infer terms from the selected transcript.
+>
 
 The sample stores VCF-derived database versions under database_versions. Database_versions.vep is the only sample-level VEP version field.
 
@@ -158,16 +162,18 @@ The small-variant document contains gnomad_frequency, gnomad_max, exac_frequency
 | exac_frequency | ExAC_MAF | Frequency paired with the ALT allele in the first CSQ entry |
 | thousandG_frequency | GMAF | Frequency paired with the ALT allele in the first CSQ entry |
 
-!!! warning "Current population-frequency behavior"
-
-    In the current parser, these values are taken from the first transient parsed
-    CSQ entry before display-transcript selection. The temporary `INFO.CSQ`
-    payload is moved to `anno_vep` before the compact variant record is saved.
-    These values are not calculated from the selected transcript or aggregated
-    across all applicable transcripts. The source VCF must therefore use a
-    stable CSQ order. A future parser revision should resolve allele-level
-    values across applicable CSQs deterministically before this becomes an
-    assay-independent clinical protocol.
+> **Warning: Current population-frequency behavior**
+>
+>
+> In the current parser, these values are taken from the first transient parsed
+> CSQ entry before display-transcript selection. The temporary `INFO.CSQ`
+> payload is moved to `anno_vep` before the compact variant record is saved.
+> These values are not calculated from the selected transcript or aggregated
+> across all applicable transcripts. The source VCF must therefore use a
+> stable CSQ order. A future parser revision should resolve allele-level
+> values across applicable CSQs deterministically before this becomes an
+> assay-independent clinical protocol.
+>
 
 ### CNVs
 
@@ -193,9 +199,11 @@ The fusions table filters only by an applied fusion gene list. A fusion matches 
 
 Expression, classification, and QC files are JSON documents held in separate sample-linked collections. They are normally enabled only for WTS-style ASPCs. Their tabs appear only when the sample ASPC enables the analysis and the declared file has been ingested.
 
-!!! info "Missing RNA tabs"
-
-    A missing expression, classification, or QC tab normally means that analysis is not enabled for the sample. It does not mean an enabled analysis returned an empty result.
+> **Info: Missing RNA tabs**
+>
+>
+> A missing expression, classification, or QC tab normally means that analysis is not enabled for the sample. It does not mean an enabled analysis returned an empty result.
+>
 
 ### File-only resources
 

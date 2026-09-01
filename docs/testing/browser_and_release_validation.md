@@ -22,11 +22,13 @@ Browser validation remains necessary because it exercises the deployed bundle,
 reverse proxy, browser history, viewport behavior, tooltips, file rendering,
 and the actual request lifecycle.
 
-!!! caution "Clinical safety"
-
-    Do not use production patient data for browser or release validation.
-    Validate report text and PDF structure with approved synthetic fixtures or
-    formally de-identified cases only.
+> **Caution: Clinical safety**
+>
+>
+> Do not use production patient data for browser or release validation.
+> Validate report text and PDF structure with approved synthetic fixtures or
+> formally de-identified cases only.
+>
 
 ## Automated Release Gate
 

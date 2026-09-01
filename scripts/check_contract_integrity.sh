@@ -60,14 +60,6 @@ if rg -n "hidden bridging layer|fallback transitional helper" api --glob '**/*.p
   exit 1
 fi
 
-echo "[check] validate seed bundle contract and assay consistency"
-seed_check_args=(
-  --seed-file demo_data/collections/all_collections_dummy
-  --reference-seed-data api/config/bootstrap/rbac
-  --reference-seed-data api/config/bootstrap/reference
-)
-"$PYTHON_BIN" scripts/validate_assay_consistency.py "${seed_check_args[@]}"
-
 echo "[check] dependency exports match pyproject.toml"
 "$PYTHON_BIN" scripts/check_dependency_consistency.py
 

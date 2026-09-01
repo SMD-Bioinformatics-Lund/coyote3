@@ -32,6 +32,16 @@ settings remain untracked.
 
 If you change behavior, configuration, deployment, or API contracts, update corresponding docs in `docs/` in the same PR.
 
+Write documentation from the reader's perspective. Describe the supported
+behaviour, configuration, and limits. Keep change notes in release notes and
+keep data-transition instructions in a dedicated migration procedure.
+
+Use standard Markdown callouts so they render in both GitHub and MkDocs:
+
+> **Important**
+>
+> Keep the callout short and place it directly beside the rule it qualifies.
+
 ## Canonical file
 
 The authoritative contribution policy is in `CONTRIBUTING.md` at repository root.

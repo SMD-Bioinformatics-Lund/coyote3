@@ -83,15 +83,19 @@ an ergonomic reflection of the session payload.
 
 ![RBAC and scoped access decision](../assets/diagrams/rbac_access_decision.svg)
 
-!!! info
-    Keep policy decisions close to `api/security` and persistence details close
-    to `api/infra/security`. This makes authorization auditable and keeps
-    storage changes from silently changing access behavior.
+> **Info**
+>
+> Keep policy decisions close to `api/security` and persistence details close
+> to `api/infra/security`. This makes authorization auditable and keeps
+> storage changes from silently changing access behavior.
+>
 
-!!! warning
-    Do not add user-level allow/deny overrides or ad-hoc role gates in route
-    handlers. A route should declare the required permission id and let the
-    Casbin-backed policy decide whether the current user satisfies it.
+> **Warning**
+>
+> Do not add user-level allow/deny overrides or ad-hoc role gates in route
+> handlers. A route should declare the required permission id and let the
+> Casbin-backed policy decide whether the current user satisfies it.
+>
 
 ## Role permissions
 
@@ -149,15 +153,15 @@ The application ships the canonical policy and built-in role catalogs in
 `api/config/bootstrap/rbac`. They are installed explicitly during first
 deployment into an empty governance database. After initialization, MongoDB is
 the runtime source of truth. Normal startup never replaces center role grants or
-permission documents. Application upgrades that add a policy use the explicit
-`scripts/sync_rbac_catalog.py` maintenance command.
+permission documents. When a deployed application version contains a new
+policy, use the explicit `scripts/sync_rbac_catalog.py` maintenance command.
 
 The synchronization operation is a union. It inserts missing bundled
 permissions and roles, marks bundled permissions active and system-managed, and
 adds missing bundled grants to matching roles. It does not delete center-created
 permissions or roles, remove extra grants, or replace role metadata. This makes
-the command suitable after an application upgrade introduces new authorization
-capabilities.
+the command suitable when a deployed application version introduces new
+authorization capabilities.
 
 Bundled permission documents carry `system_managed: true`. They form the stable
 authorization vocabulary required by application routes and therefore cannot
@@ -213,11 +217,13 @@ The seed catalog is validated against route declarations by the API security
 test suite. A route cannot introduce an undeployable permission identifier
 without causing that validation to fail.
 
-!!! warning
-    `role:edit` and `permission.policy:edit` can change authorization policy.
-    Assign them only to trusted security administrators. A manager who only
-    maintains users normally needs selected `user:*` permissions and should not
-    receive role or permission-policy editing rights.
+> **Warning**
+>
+> `role:edit` and `permission.policy:edit` can change authorization policy.
+> Assign them only to trusted security administrators. A manager who only
+> maintains users normally needs selected `user:*` permissions and should not
+> receive role or permission-policy editing rights.
+>
 
 ### Notification authorization
 

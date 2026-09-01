@@ -1,9 +1,15 @@
 # Complete user manual
 
-This manual explains the Coyote3 clinical and operational interface. It is
-written for clinical reviewers, laboratory staff, managers, and administrators.
-Developer and deployment procedures are in the
-[complete developer manual](../developer/complete_developer_manual.md).
+This is the authoritative guide to the Coyote3 interface for clinical
+reviewers, laboratory staff, managers, and administrators. It explains what
+each page does, which data it uses, and how actions affect clinical records.
+Developer and deployment procedures are documented separately in the
+[complete developer manual](../developer/complete_developer_manual.md) and
+[deployment guides](../start_here/first_installation.md).
+
+Read this guide in order when learning the application. The linked DNA, RNA,
+coverage, reporting, and administration guides provide the full reference for
+specialised workflows.
 
 ## What Coyote3 does
 

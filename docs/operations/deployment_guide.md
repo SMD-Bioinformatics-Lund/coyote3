@@ -2,20 +2,23 @@
 
 **Procedure verified:** 6 August 2026.
 
-This guide covers deployment and routine upgrade work for Coyote3.
+This guide is the deployment command and runtime reference for an installed
+Coyote3 environment. It covers normal release deployment and maintenance.
 
 For the complete step-by-step production procedure, begin with
 [Production deployment](../start_here/production_deployment.md). This page is
 the deployment command and architecture reference.
 
-!!! important "Upgrading from v3.x?"
-    v4.0.0 is a full-stack replacement of the Flask application. Routine
-    container swap instructions do not apply. Follow the dedicated
-    [Upgrade from v3.x guide](upgrade_from_v3.md) instead.
+> **Important: migrating existing Coyote v3 data**
+>
+> A centre moving an existing Coyote v3 database must follow the dedicated
+> [v3 data migration procedure](upgrade_from_v3.md). Do not use the standard
+> deployment sequence as a substitute for that procedure.
+>
 
 ## Scope
 
-- **Standard Deployment**: Repeatable container-based deployment and upgrades.
+- **Standard deployment**: Repeatable container-based release deployment.
 - **Initial Provisioning**: For first-time environment setup, refer to the [Center Deployment Guide](center_deployment_guide.md) and the [Initial Deployment Checklist](initial_deployment_checklist.md).
 
 ## Release Metadata

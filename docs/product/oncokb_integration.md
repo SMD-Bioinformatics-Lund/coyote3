@@ -1,9 +1,11 @@
 # OncoKB Integration
 
-!!! info
-    OncoKB is used as a clinical knowledgebase signal in Coyote3. Dense tables
-    show compact OncoKB markers in the row status column rather than beside the
-    gene symbol or in a permanent wide table column.
+> **Info**
+>
+> OncoKB is used as a clinical knowledgebase signal in Coyote3. Dense tables
+> show compact OncoKB markers in the row status column rather than beside the
+> gene symbol or in a permanent wide table column.
+>
 
 ## Purpose
 
@@ -58,11 +60,13 @@ sample variant table
   -> React renders compact public OncoKB and actionable-evidence markers
 ```
 
-!!! warning
-    Do not call the external OncoKB API once per rendered table row or during
-    sample ingest. Use the explicit administrator refresh or explicit
-    detail-page action. Per-row live calls create latency, rate-limit exposure,
-    and non-reproducible review behavior.
+> **Warning**
+>
+> Do not call the external OncoKB API once per rendered table row or during
+> sample ingest. Use the explicit administrator refresh or explicit
+> detail-page action. Per-row live calls create latency, rate-limit exposure,
+> and non-reproducible review behavior.
+>
 
 ## Public Cache Collections
 
@@ -109,35 +113,41 @@ This endpoint returns curated gene metadata such as `hugoSymbol`, `entrezGeneId`
 reference transcripts. Coyote3 stores normalized fields in
 `oncokb_genes_public`; it does not store a duplicate raw response blob there.
 
-!!! info "Historical local collections"
-    `oncokb_actionable` is not the same data as `/utils/cancerGeneList`.
-    The historical collection contains treatment/actionability-style rows such
-    as alteration, drugs, level, cancer type, PMIDs, and protein change. Because
-    the public API excludes therapeutic data, those historical rows remain useful
-    as the center's local drug-evidence source. Dense tables show a separate
-    compact actionable marker for genes represented in this collection. They are
-    not used to decide whether a gene receives a current public OncoKB cancer-gene
-    marker.
+> **Info: Historical local collections**
+>
+> `oncokb_actionable` is not the same data as `/utils/cancerGeneList`.
+> The historical collection contains treatment/actionability-style rows such
+> as alteration, drugs, level, cancer type, PMIDs, and protein change. Because
+> the public API excludes therapeutic data, those historical rows remain useful
+> as the center's local drug-evidence source. Dense tables show a separate
+> compact actionable marker for genes represented in this collection. They are
+> not used to decide whether a gene receives a current public OncoKB cancer-gene
+> marker.
+>
 
-!!! info "Cancer-gene cache refresh"
-    `oncokb_cancer_genes_public` and `oncokb_genes_public` are maintained by a
-    manually queued Celery maintenance task. The task reads the populated
-    `hgnc_genes` collection, matches approved, previous, and alias symbols,
-    fetches each public catalogue endpoint once, then reconciles the local
-    public-cache records.
-    A failed API call or empty HGNC catalogue fails the task and records an audit
-    event; it never silently replaces the cache with an empty result.
+> **Info: Cancer-gene cache refresh**
+>
+> `oncokb_cancer_genes_public` and `oncokb_genes_public` are maintained by a
+> manually queued Celery maintenance task. The task reads the populated
+> `hgnc_genes` collection, matches approved, previous, and alias symbols,
+> fetches each public catalogue endpoint once, then reconciles the local
+> public-cache records.
+> A failed API call or empty HGNC catalogue fails the task and records an audit
+> event; it never silently replaces the cache with an empty result.
+>
 
-!!! info "Transcript selection"
-    During DNA VCF ingest, Coyote3 selects the displayed `selected_CSQ`
-    transcript using HGNC metadata. Transcript records are resolved by HGNC ID
-    first, then by approved symbol, previous symbol, or alias symbol. MANE Plus
-    Clinical has highest priority, followed by MANE Select, then the center
-    VEP canonical protein-coding,
-    protein-coding transcript, and finally the first available transcript. The
-    selected gene symbol is normalized to the approved HGNC symbol. The raw
-    VEP symbol remains part of the immutable VEP evidence in `anno_vep`; it is
-    not copied into mutable variant display state.
+> **Info: Transcript selection**
+>
+> During DNA VCF ingest, Coyote3 selects the displayed `selected_CSQ`
+> transcript using HGNC metadata. Transcript records are resolved by HGNC ID
+> first, then by approved symbol, previous symbol, or alias symbol. MANE Plus
+> Clinical has highest priority, followed by MANE Select, then the center
+> VEP canonical protein-coding,
+> protein-coding transcript, and finally the first available transcript. The
+> selected gene symbol is normalized to the approved HGNC symbol. The raw
+> VEP symbol remains part of the immutable VEP evidence in `anno_vep`; it is
+> not copied into mutable variant display state.
+>
 
 ## Public API Notes
 
@@ -186,10 +196,12 @@ Coyote3 exposes deployment controls for this integration:
 The public API root is a fixed application contract:
 `https://public.api.oncokb.org/api/v1`.
 
-!!! caution
-    Public OncoKB responses exclude therapeutic data. They are useful for gene,
-    variant, mutation-effect, diagnostic, and prognostic context where available,
-    but they should not be presented as a therapy recommendation source.
+> **Caution**
+>
+> Public OncoKB responses exclude therapeutic data. They are useful for gene,
+> variant, mutation-effect, diagnostic, and prognostic context where available,
+> but they should not be presented as a therapy recommendation source.
+>
 
 ## UI Rules
 

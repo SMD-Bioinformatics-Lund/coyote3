@@ -5,10 +5,12 @@ deployment validation, and product documentation. The images show the current
 React application style: glass surfaces, bordered clinical tables, compact
 badges, contextual navigation, and the public information pages.
 
-!!! info "Sample-neutral screenshots"
-
-    The screenshots are documentation fixtures. They are intended to explain the
-    interface layout and should not contain real clinical identifiers.
+> **Info: Sample-neutral screenshots**
+>
+>
+> The screenshots are documentation fixtures. They are intended to explain the
+> interface layout and should not contain real clinical identifiers.
+>
 
 ## Login And Public Entry
 

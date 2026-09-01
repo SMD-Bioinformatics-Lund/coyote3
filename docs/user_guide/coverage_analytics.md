@@ -65,10 +65,12 @@ Authorized users can add a low CDS or probe interval to the assay-group scoped
 coverage blacklist. The action records the genomic region, gene, and relevant
 sample context through the coverage blacklist API.
 
-!!! warning
-    Blacklisting changes how a region is handled in subsequent review. Apply
-    it only under the laboratory's approved quality procedure and confirm the
-    action when prompted.
+> **Warning**
+>
+> Blacklisting changes how a region is handled in subsequent review. Apply
+> it only under the laboratory's approved quality procedure and confirm the
+> action when prompted.
+>
 
 ## Interpreting Missing Information
 

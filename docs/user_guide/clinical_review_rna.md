@@ -22,10 +22,12 @@ Classic places Fusions and Expression & Classification together on the
 Findings page when both are enabled. Modern presents them separately in tabs. The
 same account preference controls DNA and RNA workspaces.
 
-!!! info "Analysis availability"
-
-    A missing analysis area normally means that the analysis is not enabled for that
-    sample; it does not indicate an empty result set.
+> **Info: Analysis availability**
+>
+>
+> A missing analysis area normally means that the analysis is not enabled for that
+> sample; it does not indicate an empty result set.
+>
 
 ## Fusion Table
 
@@ -47,10 +49,12 @@ result set rather than only the rows visible on the current page.
 | Callers | The tools that reported the fusion. |
 | Actions | Permitted curation actions and a link to the fusion detail page. |
 
-!!! info
-    Evidence counts are displayed as supplied by the pipeline. Their clinical
-    interpretation depends on the assay, caller, and validated laboratory
-    thresholds.
+> **Info**
+>
+> Evidence counts are displayed as supplied by the pipeline. Their clinical
+> interpretation depends on the assay, caller, and validated laboratory
+> thresholds.
+>
 
 ## Search, Sort, and Export
 

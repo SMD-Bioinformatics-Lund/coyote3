@@ -1,10 +1,12 @@
 # ClinPGx Integration
 
-!!! info
-    ClinPGx is used as a pharmacogenomics knowledgebase signal in Coyote3.
-    Dense tables use a local `clinpgx_genes_public` cache for speed. Detail
-    pages use the public ClinPGx API on demand for guideline, label, drug,
-    pathway, and variant annotation context.
+> **Info**
+>
+> ClinPGx is used as a pharmacogenomics knowledgebase signal in Coyote3.
+> Dense tables use a local `clinpgx_genes_public` cache for speed. Detail
+> pages use the public ClinPGx API on demand for guideline, label, drug,
+> pathway, and variant annotation context.
+>
 
 ## Purpose
 
@@ -21,10 +23,12 @@ The ClinPGx table signal is gene-level:
 - The public API action fetches the current ClinPGx knowledge summary for the
   selected variant gene without storing that API response in MongoDB.
 
-!!! warning
-    ClinPGx content is a knowledgebase context signal. It does not replace
-    clinical interpretation, reporting policy, or local laboratory sign-out
-    workflows.
+> **Warning**
+>
+> ClinPGx content is a knowledgebase context signal. It does not replace
+> clinical interpretation, reporting policy, or local laboratory sign-out
+> workflows.
+>
 
 ## Data Sources
 
@@ -70,10 +74,12 @@ https://api.clinpgx.org/v1/report/connectedObjects/{id}/Pathway
 The identifier route is preferred when the local cache has a
 `pharmgkb_accession_id`. Symbol query is used only as a fallback.
 
-!!! caution
-    ClinPGx asks API clients to limit requests to 2 requests per second. Coyote3
-    therefore does not call the external ClinPGx API for each rendered table row.
-    External requests are made only through explicit user actions on detail pages.
+> **Caution**
+>
+> ClinPGx asks API clients to limit requests to 2 requests per second. Coyote3
+> therefore does not call the external ClinPGx API for each rendered table row.
+> External requests are made only through explicit user actions on detail pages.
+>
 
 ## Review Flow
 
@@ -101,11 +107,13 @@ python scripts/seed_clinpgx_genes_public.py \
 The seed is an upsert by approved symbol. It does not contain sample identifiers
 and it does not mutate variant, sample, report, or annotation collections.
 
-!!! tip
-    Re-run the seed after replacing the ClinPGx export zip with a newer official
-    file. The importer updates `last_seen_at` and refreshes the public gene
-    flags while preserving existing Mongo object identifiers for unchanged
-    symbols.
+> **Tip**
+>
+> Re-run the seed after replacing the ClinPGx export zip with a newer official
+> file. The importer updates `last_seen_at` and refreshes the public gene
+> flags while preserving existing Mongo object identifiers for unchanged
+> symbols.
+>
 
 ## UI Rules
 

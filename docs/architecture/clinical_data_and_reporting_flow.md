@@ -12,9 +12,11 @@ The intended audience is:
 - administrators who configure ASP, ASPC, and gene lists;
 - operators who investigate incomplete ingest or report generation.
 
-!!! info
-    Coyote3 stores timestamps in UTC. The UI converts timestamps to the
-    deployment's configured local timezone for display.
+> **Info**
+>
+> Coyote3 stores timestamps in UTC. The UI converts timestamps to the
+> deployment's configured local timezone for display.
+>
 
 ## 1. Responsibility Model
 
@@ -116,13 +118,15 @@ reviewed repository YAML
   -> saved report context and provenance
 ```
 
-!!! warning
-    Current operational reads resolve the exact active ASPC by ASP, subpanel,
-    and environment. When a legacy sample has no subpanel-specific ASPC, the
-    active `base` ASPC is attached and `samples.aspc_resolution` records the
-    requested and resolved subpanel IDs plus an explicit warning. The analysis
-    and overview pages display that warning. A saved report preserves the
-    resolved ASPC identity and filter snapshot.
+> **Warning**
+>
+> Current operational reads resolve the exact active ASPC by ASP, subpanel,
+> and environment. When a legacy sample has no subpanel-specific ASPC, the
+> active `base` ASPC is attached and `samples.aspc_resolution` records the
+> requested and resolved subpanel IDs plus an explicit warning. The analysis
+> and overview pages display that warning. A saved report preserves the
+> resolved ASPC identity and filter snapshot.
+>
 
 ### 2.3 ISGL: in-silico gene lists
 
@@ -167,10 +171,12 @@ is evaluated as follows:
 6. The sample anchor is made available only after all declared resources and
    required dependent data have completed successfully.
 
-!!! caution
-    A partially ingested sample must not appear as ready. Failure must preserve
-    enough audit context to identify the sample name, declared resource, parser
-    stage, and underlying error without exposing secrets.
+> **Caution**
+>
+> A partially ingested sample must not appear as ready. Failure must preserve
+> enough audit context to identify the sample name, declared resource, parser
+> stage, and underlying error without exposing secrets.
+>
 
 ### 3.2 Canonical sample anchor
 
@@ -295,10 +301,12 @@ spanning-read, and ad-hoc-gene settings.
   assay, subpanel, and environment.
 - Saved reports retain their own filter snapshot and are not changed.
 
-!!! tip
-    The table search box filters the already returned table rows. Analytical
-    filters in the sidebar change the backend query and therefore change the
-    reportable data set.
+> **Tip**
+>
+> The table search box filters the already returned table rows. Analytical
+> filters in the sidebar change the backend query and therefore change the
+> reportable data set.
+>
 
 ## 5. Small-Variant Preparation
 
@@ -506,10 +514,12 @@ The CNV profile is an image artifact, not a CNV call and not coverage data.
 - An image alone does not provide a structured result such as `normal` or
   `complex_abnormal`.
 
-!!! warning
-    Clinical text must not match on an interpreted CNV-profile status until a
-    typed status, authoritative producer, allowed values, and provenance are
-    implemented.
+> **Warning**
+>
+> Clinical text must not match on an interpreted CNV-profile status until a
+> typed status, authoritative producer, allowed values, and provenance are
+> implemented.
+>
 
 ### 6.3 Fusions and translocations
 
@@ -532,10 +542,12 @@ The report context can carry biomarker data when `BIOMARKER` is enabled.
 Visible report text requires an explicit template or a validated clinical text
 rule.
 
-!!! caution
-    Thresholds, units, and missing-value behavior must be defined before a
-    biomarker can drive conditional clinical wording. A workbook label is not
-    a machine-readable result.
+> **Caution**
+>
+> Thresholds, units, and missing-value behavior must be defined before a
+> biomarker can drive conditional clinical wording. A workbook label is not
+> a machine-readable result.
+>
 
 ### 6.5 Coverage
 

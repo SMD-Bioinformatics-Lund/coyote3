@@ -167,13 +167,15 @@ COMPOSE_ENV_FILE=deploy/env/example.env \
 bash scripts/run_quality_suite.sh
 ```
 
-!!! tip "Browser validation"
-
-    This command verifies source and build behavior. Before promotion, follow
-    the [Local disposable full-stack validation](disposable_full_stack_validation.md)
-    procedure against an empty isolated database, followed by the separate
-    [Browser and release validation](browser_and_release_validation.md)
-    procedure against the intended deployment and approved synthetic fixtures.
+> **Tip: Browser validation**
+>
+>
+> This command verifies source and build behavior. Before promotion, follow
+> the [Local disposable full-stack validation](disposable_full_stack_validation.md)
+> procedure against an empty isolated database, followed by the separate
+> [Browser and release validation](browser_and_release_validation.md)
+> procedure against the intended deployment and approved synthetic fixtures.
+>
 
 ## Running GitHub checks locally
 
@@ -243,13 +245,15 @@ for seven days to keep storage use bounded. The backend XML is the
 repository-wide observation report; family gates remain the release controls
 for clinically important boundaries.
 
-!!! note "Why the repository-wide percentage is not the clinical gate"
-
-    A repository-wide percentage mixes clinical decisions with generated
-    adapters, deployment helpers, administrative forms, and rarely used error
-    paths. The quality gate therefore measures the clinical query policy as its
-    own accountable unit. Broader family gates remain in place for application
-    and HTTP code.
+> **Note: Why the repository-wide percentage is not the clinical gate**
+>
+>
+> A repository-wide percentage mixes clinical decisions with generated
+> adapters, deployment helpers, administrative forms, and rarely used error
+> paths. The quality gate therefore measures the clinical query policy as its
+> own accountable unit. Broader family gates remain in place for application
+> and HTTP code.
+>
 
 ## Continuous Integration
 

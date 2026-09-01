@@ -89,9 +89,11 @@ Sample-bound DNA operations reject a missing VEP version instead of selecting
 the newest `vep_metadata` release. Repository methods that intentionally expose
 generic metadata without a sample may still request the latest release.
 
-!!! info
-    ASP file policy adds stricter runtime requirements. A file can be valid for
-    the DNA contract but still be required or disallowed by the selected ASP.
+> **Info**
+>
+> ASP file policy adds stricter runtime requirements. A file can be valid for
+> the DNA contract but still be required or disallowed by the selected ASP.
+>
 
 ## Configuration Contracts
 
@@ -160,10 +162,12 @@ for the complete producer/consumer protocol.
   consequence mappings.
 - Evolve contracts intentionally and keep all writes contract-valid.
 
-!!! caution
-    A schema version does not by itself make historical output reproducible.
-    Saved reports must retain the exact configuration, filters, and finding
-    snapshots used at creation time.
+> **Caution**
+>
+> A schema version does not by itself make historical output reproducible.
+> Saved reports must retain the exact configuration, filters, and finding
+> snapshots used at creation time.
+>
 
 ## Fixture-driven validation
 

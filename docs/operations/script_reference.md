@@ -43,7 +43,7 @@ started through `bootstrap_database.py`.
 | --- | --- | --- | --- |
 | `run_quality_suite.sh` | Orchestrator | Developer and release workflow | Runs backend, frontend, contract, documentation, and browser quality stages |
 | `run_family_coverage_gates.sh` | Automated | CI; `run_quality_suite.sh` | Enforces backend coverage thresholds by source family; `--from-existing` reuses the unified `.coverage` database so the complete backend suite runs once |
-| `check_contract_integrity.sh` | Automated | pre-commit; quality suite | Coordinates generated-contract, assay, shell, and documentation integrity checks |
+| `check_contract_integrity.sh` | Automated | pre-commit; quality suite | Coordinates repository-local dependency, shell, generated-contract, permission-catalog, and documentation checks. It does not connect to an API or database. |
 | `check_shell_quality.sh` | Internal helper | `check_contract_integrity.sh` | Runs syntax and ShellCheck validation for tracked shell scripts |
 | `check_markdown_links.py` | Internal helper | `check_contract_integrity.sh`; tests | Rejects broken repository-local Markdown links |
 | `check_staged_sensitive_data.py` | Automated | pre-commit and CI | Blocks staged secrets, clinical identifiers, and unsafe fixture content |
@@ -78,7 +78,8 @@ started through `bootstrap_database.py`.
 5. Run `check_shell_quality.sh`, focused script tests, contract integrity, and strict MkDocs.
 6. Record the retirement in the changelog when it changes deployment or operator behavior.
 
-!!! warning
-    A script with no automatic caller is not necessarily unused. Database
-    restore and reference import scripts are intentionally operator-invoked;
-    their documented procedure is the supported entry point.
+> **Warning**
+>
+> A script with no automatic caller is not necessarily unused. Database
+> restore and reference import scripts are intentionally operator-invoked;
+> their documented procedure is the supported entry point.

@@ -38,11 +38,13 @@ and FastAPI `root_path` expose those routes under the public prefix.
 | Admin: Users | User-account management, invites, provider state, and profile metadata. |
 | Admin: Roles & Permissions | Role and permission policy management. |
 
-!!! info "Stable URLs, clearer documentation"
-
-    The grouping changes how endpoints are presented in Swagger. It does not
-    change endpoint URLs, request bodies, response contracts, or permission
-    checks.
+> **Info: Stable URLs, clearer documentation**
+>
+>
+> The grouping changes how endpoints are presented in Swagger. It does not
+> change endpoint URLs, request bodies, response contracts, or permission
+> checks.
+>
 
 ## OpenAPI Visibility Policy
 
@@ -116,19 +118,23 @@ Clinical routes are grouped by the biological workflow that owns the data.
 | `clinical.rna.fusions` | RNA fusion finding review. | `/api/v1/samples/{sample_id}/fusions` |
 | `clinical.reporting.reports` | Access-scoped saved-report library plus sample-owned preview, save, HTML, and PDF artifacts. | `/api/v1/reports`, `/api/v1/samples/{sample_id}/reports` |
 
-!!! info "Export route ownership"
+> **Info: Export route ownership**
+>
+>
+> Export endpoints live under the finding type they export. CNV export
+> context belongs under `/cnvs`, translocation export context belongs under
+> `/translocations`, and SNV/small-indel export context belongs under
+> `/small-variants`. This keeps permissions, Swagger groups, and UI actions
+> aligned with the clinical workflow.
+>
 
-    Export endpoints live under the finding type they export. CNV export
-    context belongs under `/cnvs`, translocation export context belongs under
-    `/translocations`, and SNV/small-indel export context belongs under
-    `/small-variants`. This keeps permissions, Swagger groups, and UI actions
-    aligned with the clinical workflow.
-
-!!! info "Stable path contract"
-
-    Python module paths can change as code ownership improves. Browser URLs,
-    API client paths, response contracts, and permission names are the stable
-    contract.
+> **Info: Stable path contract**
+>
+>
+> Python module paths can change as code ownership improves. Browser URLs,
+> API client paths, response contracts, and permission names are the stable
+> contract.
+>
 
 ## UI Route Contracts
 
@@ -173,19 +179,23 @@ by one finding type.
 the resolved sample's case and control IDs. The path uses the sample name because
 this is a sample workflow, not a standalone knowledgebase query.
 
-!!! info "Gene and variant sources"
+> **Info: Gene and variant sources**
+>
+>
+> Gene-level endpoints use HGNC normalization first, including previous
+> symbols and aliases where the HGNC repository supports them. Variant-level
+> evidence requires explicit genomic coordinates and selected transcript
+> notation because BRCA Exchange, IARC TP53, CIViC, and historical OncoKB
+> records are variant-specific.
+>
 
-    Gene-level endpoints use HGNC normalization first, including previous
-    symbols and aliases where the HGNC repository supports them. Variant-level
-    evidence requires explicit genomic coordinates and selected transcript
-    notation because BRCA Exchange, IARC TP53, CIViC, and historical OncoKB
-    records are variant-specific.
-
-!!! warning "BAM-service endpoint"
-
-    `GET /api/v1/samples/{sample_name}/bam-files` returns paths registered by
-    the connected BAM-service database. It does not read BAM content and does
-    not verify that every returned path is currently mounted on the API host.
+> **Warning: BAM-service endpoint**
+>
+>
+> `GET /api/v1/samples/{sample_name}/bam-files` returns paths registered by
+> the connected BAM-service database. It does not read BAM content and does
+> not verify that every returned path is currently mounted on the API host.
+>
 
 ## Adding A New Endpoint
 
@@ -198,8 +208,9 @@ When adding a route:
 4. Add route tests for authorization, empty state, and representative payloads.
 5. Run the OpenAPI tag guardrail test.
 
-!!! warning "Avoid ad-hoc groups"
-
-    Do not use file-level tags such as `resource-aspc`, `admin-users`, or
-    `internal` in new routers. The OpenAPI schema is a user-facing API map, not
-    a mirror of the Python module tree.
+> **Warning: Avoid ad-hoc groups**
+>
+>
+> Do not use file-level tags such as `resource-aspc`, `admin-users`, or
+> `internal` in new routers. The OpenAPI schema is a user-facing API map, not
+> a mirror of the Python module tree.

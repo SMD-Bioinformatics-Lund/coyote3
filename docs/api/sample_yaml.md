@@ -81,11 +81,13 @@ external source roots read-only unless the application must write there.
 | Absolute or relative symlink resolving outside the mounted root | Broken inside container unless target root is mounted | Bind-mount the target root at the same absolute path. |
 | Target file does not exist or lacks container read permission | Ingest fails | Restore file or permissions before retry. |
 
-!!! warning "Do not rewrite pipeline provenance"
-
-    Do not replace host source paths with `/data/...` merely to make a manifest
-    work. The identical-path bind mount exists specifically so the stored sample
-    record preserves the source path emitted by the pipeline.
+> **Warning: Do not rewrite pipeline provenance**
+>
+>
+> Do not replace host source paths with `/data/...` merely to make a manifest
+> work. The identical-path bind mount exists specifically so the stored sample
+> record preserves the source path emitted by the pipeline.
+>
 
 ## Sample filter initialization
 
@@ -205,19 +207,23 @@ cov: /srv/coyote3-data/coyote3/incoming/case_coverage.json
 | `<file_key>` | When required by ASP/ASPC | A source path readable from API and worker containers. It may be manifest-relative or under the identically mounted `COYOTE3_DATA_HOST_ROOT`. |
 | `uploaded_file_checksums` | No | Optional mapping of file key to checksum, persisted with sample file metadata. |
 
-!!! info "Declared optional files"
+> **Info: Declared optional files**
+>
+>
+> Optional files may be omitted. If an optional flat file key is declared, it becomes part of the ingest transaction. The sample is not marked `ready` unless that declared file can be read, parsed, and written successfully.
+>
 
-    Optional files may be omitted. If an optional flat file key is declared, it becomes part of the ingest transaction. The sample is not marked `ready` unless that declared file can be read, parsed, and written successfully.
-
-!!! warning "Enabled analyses require complete data"
-
-    The active ASPC is resolved from normalized `asp_id`, `subpanel_id`, and
-    `environment`. Every analysis enabled in `analysis_types` requires its
-    corresponding file resource. For example, `CNV`, `CNV_PROFILE`, and
-    `COVERAGE` require `cnv`, `cnvprofile`, and `cov` respectively. The ASP
-    must declare those keys in `expected_files`, and the manifest must provide
-    them. A configuration mismatch or failed resource prevents the sample from
-    entering the `samples` collection as `ready`.
+> **Warning: Enabled analyses require complete data**
+>
+>
+> The active ASPC is resolved from normalized `asp_id`, `subpanel_id`, and
+> `environment`. Every analysis enabled in `analysis_types` requires its
+> corresponding file resource. For example, `CNV`, `CNV_PROFILE`, and
+> `COVERAGE` require `cnv`, `cnvprofile`, and `cov` respectively. The ASP
+> must declare those keys in `expected_files`, and the manifest must provide
+> them. A configuration mismatch or failed resource prevents the sample from
+> entering the `samples` collection as `ready`.
+>
 
 ## DNA sample YAML
 

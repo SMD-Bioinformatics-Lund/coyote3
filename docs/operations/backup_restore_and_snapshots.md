@@ -21,8 +21,10 @@ database data directory and cannot become a database server. Docker removes it
 when the command exits. The actual MongoDB primary remains in the independent
 database stack throughout the backup.
 
-!!! important
-    Copy completed archives and their `.meta` files to storage independent of the MongoDB host. Local archives alone do not protect against host or storage loss.
+> **Important**
+>
+> Copy completed archives and their `.meta` files to storage independent of the MongoDB host. Local archives alone do not protect against host or storage loss.
+>
 
 ## Restore
 

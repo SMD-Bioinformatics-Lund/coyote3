@@ -1,9 +1,14 @@
 # Complete developer manual
 
-This manual explains how to change Coyote3 without breaking its clinical,
-security, or data contracts. It is for backend developers, frontend developers,
+This is the authoritative engineering guide for Coyote3. It explains how to
+change the application without breaking clinical, security, API, configuration,
+or persistence contracts. It is for backend developers, frontend developers,
 test engineers, and maintainers. Deployment operators should also read the
 [deployment guide](../operations/center_deployment_guide.md).
+
+Use this manual to choose the correct layer and workflow before changing code.
+The linked architecture, contract, API, testing, and operations pages define
+the detailed rules for each area.
 
 ## Development rules
 

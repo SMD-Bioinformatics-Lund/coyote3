@@ -1,19 +1,22 @@
 # Coyote3 Clinical Genomics Platform
 
-This site explains how to install, operate, use, and extend Coyote3. The guides
-follow the same path as the application: configure an assay, ingest a sample,
-review findings, prepare a report, and preserve the resulting audit record.
+This is the public, authoritative documentation for Coyote3. It covers clinical
+use, administration, deployment, data contracts, APIs, and engineering. The
+site is organised by the work being done: start, use, administer, reference,
+develop, operate, and validate.
 
-!!! info "Start here"
-
-    New production installations should follow
-    [Production deployment](start_here/production_deployment.md). Developers
-    evaluating Coyote3 locally should begin with the
-    [Quickstart](start_here/quickstart.md).
-    Clinical users should use the
-    [complete user manual](user_guide/complete_user_manual.md). Developers and
-    maintainers should use the
-    [complete developer manual](developer/complete_developer_manual.md).
+> **Info: Start here**
+>
+>
+> New production installations should follow
+> [Production deployment](start_here/production_deployment.md). Developers
+> evaluating Coyote3 locally should begin with the
+> [Quickstart](start_here/quickstart.md).
+> Clinical users should use the
+> [complete user manual](user_guide/complete_user_manual.md). Developers and
+> maintainers should use the
+> [complete developer manual](developer/complete_developer_manual.md).
+>
 
 ---
 
@@ -45,7 +48,7 @@ The platform separates browser, API, background, and persistence responsibilitie
 
 ---
 
-## Choose a Starting Point
+## Find the right guide
 
 | Goal | Start here |
 | --- | --- |
@@ -60,11 +63,37 @@ The platform separates browser, API, background, and persistence responsibilitie
 | Develop or test the application | [Complete developer manual](developer/complete_developer_manual.md) |
 | Diagnose an operational problem | [Operational Troubleshooting](operations/troubleshooting.md) |
 
-## Authoritative References
+### Use Coyote3
 
-Some guides summarize a workflow before linking to its full specification. Use
-the following pages as the authoritative source when behavior or configuration
-details differ from a summary:
+Read the [complete user manual](user_guide/complete_user_manual.md) first,
+then use the DNA, RNA, coverage, report, and table-reference guides while
+working. These pages describe user-visible behaviour and the meaning of
+clinical controls; they do not require knowledge of implementation details.
+
+### Administer and operate Coyote3
+
+For a new centre, follow [first installation](start_here/first_installation.md)
+and [production deployment](start_here/production_deployment.md) in order.
+Use the [management guide](user_guide/management_guide.md) to administer
+users, roles, permissions, ASPs, ASPCs, ISGLs, and application controls. The
+operations section is the reference for configuration, backup, recovery,
+monitoring, and incident response.
+
+### Develop Coyote3
+
+Start with the [complete developer manual](developer/complete_developer_manual.md).
+It defines the repository boundaries, contracts, test expectations, and change
+process. The architecture, API, generated collection-contract, and testing
+sections provide the detailed technical reference.
+
+## Reference pages
+
+The manuals explain workflows. The [reference guide](reference/index.md)
+collects the canonical pages for configuration keys, collection fields, API
+routes, and rule grammar. It is shared by clinical users, administrators, and
+developers, while each audience keeps a separate workflow guide.
+
+The following pages define the most commonly used reference material:
 
 | Subject | Authoritative reference |
 | --- | --- |
@@ -77,8 +106,8 @@ details differ from a summary:
 | Deployment and reverse proxy topology | [Deployment Guide](operations/deployment_guide.md) |
 | Release evidence and required checks | [Release Readiness](operations/release_readiness.md) |
 
-The collection-contract page is generated from Pydantic schemas. Edit the
-schema or its generator rather than editing that page directly.
+The collection-contract page is generated from Pydantic schemas. Change the
+schema and regenerate the reference rather than editing that page directly.
 
 ---
 
@@ -96,9 +125,10 @@ catalog, variant search, administration workspace, and contact page.
 
 ---
 
-!!! tip "Troubleshooting"
-
-    For an installed system, begin with the
-    [Operations Troubleshooting Guide](operations/troubleshooting.md). For a
-    local code or test failure, use the
-    [Developer Troubleshooting Guide](developer/troubleshooting_guide.md).
+> **Tip: Troubleshooting**
+>
+>
+> For an installed system, begin with the
+> [Operations Troubleshooting Guide](operations/troubleshooting.md). For a
+> local code or test failure, use the
+> [Developer Troubleshooting Guide](developer/troubleshooting_guide.md).

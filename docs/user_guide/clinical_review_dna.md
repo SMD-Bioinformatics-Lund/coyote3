@@ -2,9 +2,11 @@
 
 The DNA review workspace is the main clinical area for reviewing sample findings, assigning tiers, writing comments, and preparing report previews. The page is driven by the sample ASPC, so only analyses enabled for that sample's assay, subpanel, and environment are shown.
 
-!!! info "Detailed UI reference"
-
-    This guide explains the DNA review workflow. For a complete page-by-page table and badge dictionary, see the [UI Page and Table Reference](../product/ui_page_table_reference.md).
+> **Info: Detailed UI reference**
+>
+>
+> This guide explains the DNA review workflow. For a complete page-by-page table and badge dictionary, see the [UI Page and Table Reference](../product/ui_page_table_reference.md).
+>
 
 ## Review Workspace
 
@@ -24,9 +26,11 @@ The sample detail page is organized around a persistent sample header and a sele
 
 In Classic, use the **Filters** button beside a finding section to open the right filter panel and connect it to that section. Select the same button again to collapse that section's filter panel. When collapsed, the right rail keeps a separate vertical tab visible for every filterable finding section; selecting one opens that section's controls. Filter choices and table state remain analysis-specific; selecting the CNV filter panel does not apply SNV filters to CNVs.
 
-!!! caution "Raw payloads"
-
-    Clinical users should not need raw JSON payloads. Raw inspection belongs in explicit diagnostic/admin views only.
+> **Caution: Raw payloads**
+>
+>
+> Clinical users should not need raw JSON payloads. Raw inspection belongs in explicit diagnostic/admin views only.
+>
 
 ## Small Variants
 
@@ -63,9 +67,11 @@ The Small Variants table is the primary DNA review table for SNVs and indels.
 | `Rx` | Historical local OncoKB actionable evidence exists. |
 | `PGx` | Gene exists in the ClinPGx public gene cache. |
 
-!!! warning "Knowledgebase evidence"
-
-    Public OncoKB access excludes therapeutic data. The `Rx` badge is based on historical local actionable evidence, while the public OncoKB API card can be fetched from the detail page for current public summaries.
+> **Warning: Knowledgebase evidence**
+>
+>
+> Public OncoKB access excludes therapeutic data. The `Rx` badge is based on historical local actionable evidence, while the public OncoKB API card can be fetched from the detail page for current public summaries.
+>
 
 ### Bulk Actions
 
@@ -79,15 +85,17 @@ Bulk actions operate on selected rows and are sent as one request.
 
 Successful actions update the table in place and create audit/notification context. Failure notifications should explain the clinical resource and action that failed.
 
-!!! warning "Automatic classification text is limited to Tier 3"
-
-    Bulk assignment of Tier 3 to a small variant creates both the classification
-    record and the approved automatic Tier III annotation text. Tier 1, Tier 2,
-    and Tier 4 assignments create classification records only. They do not
-    generate narrative text because no center-approved templates have been
-    defined for those tiers. Reviewers must add any required narrative manually.
-    Additional automatic templates require clinical review and approval by the
-    responsible genetics team before implementation.
+> **Warning: Automatic classification text is limited to Tier 3**
+>
+>
+> Bulk assignment of Tier 3 to a small variant creates both the classification
+> record and the approved automatic Tier III annotation text. Tier 1, Tier 2,
+> and Tier 4 assignments create classification records only. They do not
+> generate narrative text because no center-approved templates have been
+> defined for those tiers. Reviewers must add any required narrative manually.
+> Additional automatic templates require clinical review and approval by the
+> responsible genetics team before implementation.
+>
 
 Every bulk action opens a confirmation dialog that identifies the selected
 operation and the number of affected findings. The mutation is sent only after
@@ -147,6 +155,7 @@ The Reports tab previews clinical report output from the current filter state an
 | Save report | Stores the report, filter snapshot, ASPC identifier, and reported finding snapshots. |
 | Export/PDF | Produces report output for downstream clinical use when enabled. |
 
-!!! tip "Why report snapshots matter"
-
-    Saved report snapshots let Coyote3 reproduce exactly what was reported, search reported variants across samples, and connect later evidence back to a stable clinical decision.
+> **Tip: Why report snapshots matter**
+>
+>
+> Saved report snapshots let Coyote3 reproduce exactly what was reported, search reported variants across samples, and connect later evidence back to a stable clinical decision.

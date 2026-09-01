@@ -18,11 +18,13 @@ The cookie name is environment-specific. In the development environment it is
 commonly `coyote3_dev_api_session`. Production and test deployments can use
 different names through `API_SESSION_COOKIE_NAME`.
 
-!!! info "Same token, two transports"
-
-    `ApiSessionCookie` and `BearerAuth` are not two separate credential systems.
-    Both carry the same opaque session token. The API first checks the bearer
-    header and then falls back to the configured session cookie.
+> **Info: Same token, two transports**
+>
+>
+> `ApiSessionCookie` and `BearerAuth` are not two separate credential systems.
+> Both carry the same opaque session token. The API first checks the bearer
+> header and then falls back to the configured session cookie.
+>
 
 ## Getting A Session For API-Only Use
 
@@ -63,11 +65,13 @@ For LDAP users, submit the email address in the `username` field. For local
 users, submit the local username. The `provider` value must be enabled by the
 center's vocabulary configuration.
 
-!!! warning "Handle session tokens as secrets"
-
-    The session token gives the holder the same permissions as the logged-in
-    user until the token expires or is deleted. Do not store it in source code,
-    shell history, notebooks, tickets, screenshots, or documentation.
+> **Warning: Handle session tokens as secrets**
+>
+>
+> The session token gives the holder the same permissions as the logged-in
+> user until the token expires or is deleted. Do not store it in source code,
+> shell history, notebooks, tickets, screenshots, or documentation.
+>
 
 ## Calling The API With A Cookie Jar
 
@@ -153,12 +157,14 @@ Recommended workflow:
 You can also call `POST /api/v1/auth/sessions` from Swagger itself. A successful
 response sets the session cookie for that browser origin.
 
-!!! caution "Manual cookie authorization"
-
-    Browsers do not allow JavaScript clients to set arbitrary `Cookie` headers.
-    If the Swagger authorization dialog displays `ApiSessionCookie`, normal use
-    is still to create a session first and let the browser carry the cookie.
-    Use `BearerAuth` for manually pasted API-only tokens.
+> **Caution: Manual cookie authorization**
+>
+>
+> Browsers do not allow JavaScript clients to set arbitrary `Cookie` headers.
+> If the Swagger authorization dialog displays `ApiSessionCookie`, normal use
+> is still to create a session first and let the browser carry the cookie.
+> Use `BearerAuth` for manually pasted API-only tokens.
+>
 
 ## Session Validation And Logout
 

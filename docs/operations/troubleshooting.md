@@ -159,8 +159,9 @@ filter.
 
 5. Run `status` again and confirm every required contract is `present`.
 
-!!! warning "Index maintenance safety"
-
-    Normal API startup never retires indexes. Do not drop all indexes from
-    clinical collections. Retire only the exact index identified by `plan`,
-    after checking the release contract and current query usage.
+> **Warning: Index maintenance safety**
+>
+>
+> Normal API startup never retires indexes. Do not drop all indexes from
+> clinical collections. Retire only the exact index identified by `plan`,
+> after checking the release contract and current query usage.

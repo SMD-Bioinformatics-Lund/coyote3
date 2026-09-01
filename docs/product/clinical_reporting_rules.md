@@ -14,10 +14,12 @@ included in the report.
 
 ![Clinical report generation flow](../assets/diagrams/report_generation_flow.svg)
 
-!!! info
-    The report text is clinical content. Changes to a rule file are reviewed
-    and released with the application source. They are not edited in MongoDB
-    and are not copied into ASPC documents.
+> **Info**
+>
+> The report text is clinical content. Changes to a rule file are reviewed
+> and released with the application source. They are not edited in MongoDB
+> and are not copied into ASPC documents.
+>
 
 ## Scope Resolution
 
@@ -220,23 +222,25 @@ Conditions are AND-combined. Each condition has the following form:
   value: TP53
 ```
 
-!!! important
-    A rule does not support a general `OR` group between different conditions.
-    This is deliberate. Clinical rules are evaluated in priority order and a
-    matching rule can stop later rules in the same family. Allowing nested
-    `AND`/`OR` expressions without a separately designed precedence model
-    would make it difficult to determine which approved sentence won and why.
-
-    Use `in`, `not_in`, or `overlaps` when the alternatives concern the same
-    fact. For example, `finding.tier in [1, 2]` means Tier I **or** Tier II.
-    Do not duplicate a rule merely to simulate an alternative across different
-    facts, such as `finding.gene == TP53 OR asp.accredited == true`. That can
-    create overlapping matches and unclear `stop` behavior. Add a reviewed
-    condition-group capability to the rule contract, evaluator, validation,
-    documentation, and exact-output tests before authoring that type of rule.
-
-    Negation is supported without an `OR` group: use `ne`, `not_in`, or
-    `exists: false` as appropriate.
+> **Important**
+>
+> A rule does not support a general `OR` group between different conditions.
+> This is deliberate. Clinical rules are evaluated in priority order and a
+> matching rule can stop later rules in the same family. Allowing nested
+> `AND`/`OR` expressions without a separately designed precedence model
+> would make it difficult to determine which approved sentence won and why.
+>
+> Use `in`, `not_in`, or `overlaps` when the alternatives concern the same
+> fact. For example, `finding.tier in [1, 2]` means Tier I **or** Tier II.
+> Do not duplicate a rule merely to simulate an alternative across different
+> facts, such as `finding.gene == TP53 OR asp.accredited == true`. That can
+> create overlapping matches and unclear `stop` behavior. Add a reviewed
+> condition-group capability to the rule contract, evaluator, validation,
+> documentation, and exact-output tests before authoring that type of rule.
+>
+> Negation is supported without an `OR` group: use `ne`, `not_in`, or
+> `exists: false` as appropriate.
+>
 
 | Key | Meaning |
 | --- | --- |
@@ -268,11 +272,13 @@ value handling. A template can only use the root objects and filters listed in
 this section. It cannot import Python modules, query MongoDB, call web
 services, access the filesystem, or use arbitrary Jinja globals.
 
-!!! warning
-    A value that is not present in the prepared context produces a rendering
-    error. Do not use informal worksheet labels or raw database keys in a
-    template. Add a typed prepared fact, registry entry, and test first when a
-    new clinical datum is required.
+> **Warning**
+>
+> A value that is not present in the prepared context produces a rendering
+> error. Do not use informal worksheet labels or raw database keys in a
+> template. Add a typed prepared fact, registry entry, and test first when a
+> new clinical datum is required.
+>
 
 ### Available template roots
 

@@ -54,26 +54,32 @@ exposes the RNA fusion tab. The RNA fusion API also validates the modality and
 returns a client-visible configuration error if it is called for a non-RNA
 sample; it does not attempt to interpret DNA filter profiles as RNA filters.
 
-!!! important
-    Hidden tabs are not mounted in the React tree. This prevents background
-    requests for analyses that are unavailable for the sample. A sample page
-    opened on the overview tab therefore does not query SNVs, CNVs,
-    translocations, coverage, fusions, expression, classification, or RNA
-    quality until the user opens the relevant available tab.
+> **Important**
+>
+> Hidden tabs are not mounted in the React tree. This prevents background
+> requests for analyses that are unavailable for the sample. A sample page
+> opened on the overview tab therefore does not query SNVs, CNVs,
+> translocations, coverage, fusions, expression, classification, or RNA
+> quality until the user opens the relevant available tab.
+>
 
-!!! info "RNA expression and classification share one workspace"
-    The shared RNA tab is shown when either `EXPRESSION` or `CLASSIFICATION`
-    is enabled and the corresponding result is present. It can therefore show
-    expression only, classification only, or both. A missing tab means the
-    sample does not have an enabled and ingested RNA analysis; it does not mean
-    that an enabled analysis returned zero rows.
+> **Info: RNA expression and classification share one workspace**
+>
+> The shared RNA tab is shown when either `EXPRESSION` or `CLASSIFICATION`
+> is enabled and the corresponding result is present. It can therefore show
+> expression only, classification only, or both. A missing tab means the
+> sample does not have an enabled and ingested RNA analysis; it does not mean
+> that an enabled analysis returned zero rows.
+>
 
-!!! note "PGX is not yet a sample-review workflow"
-    `PGX` is a valid configuration analysis type, but it currently has no
-    sample-detail tab, filter form, table query, or report renderer. Enabling
-    it in an ASPC does not cause the client to request a PGX endpoint. This is
-    deliberately explicit so configuration does not imply an implemented
-    clinical workflow.
+> **Note: PGX is not yet a sample-review workflow**
+>
+> `PGX` is a valid configuration analysis type, but it currently has no
+> sample-detail tab, filter form, table query, or report renderer. Enabling
+> it in an ASPC does not cause the client to request a PGX endpoint. This is
+> deliberately explicit so configuration does not imply an implemented
+> clinical workflow.
+>
 
 ### Intent-specific SNV review
 
@@ -305,16 +311,18 @@ evidence model and narrowly typed, analysis-specific exception branches under
 `snv`, `cnv`, `translocation`, `fusion`, and `pgx`. A rule written under one
 namespace cannot affect another analysis.
 
-!!! important "Use the configuration reference when editing this file"
-
-    This strategy guide explains how the query policy affects retrieval. The
-    authoritative authoring contract is the
-    [Center Configuration Reference](../operations/center_configuration_files.md#clinical_query_policytoml).
-    Consult that reference before changing the TOML file. It defines every
-    permitted block heading and key, required fields, allowed values, bracket
-    syntax, condition-combination rules, compatible policy and exception
-    modes, validation failures, complete examples, and the safe release
-    protocol.
+> **Important: Use the configuration reference when editing this file**
+>
+>
+> This strategy guide explains how the query policy affects retrieval. The
+> authoritative authoring contract is the
+> [Center Configuration Reference](../operations/center_configuration_files.md#clinical_query_policytoml).
+> Consult that reference before changing the TOML file. It defines every
+> permitted block heading and key, required fields, allowed values, bracket
+> syntax, condition-combination rules, compatible policy and exception
+> modes, validation failures, complete examples, and the safe release
+> protocol.
+>
 
 TOML block punctuation is part of the contract. `[snv]` and
 `[snv.assay_group_policies]` are single named tables. Each
@@ -418,27 +426,31 @@ consequence gate. An `exception_only` policy evaluates only its matching
 ordering is fixed in code; TOML order never changes which findings are
 returned.
 
-!!! important "Policy exceptions do not replace ASPC configuration"
-
-    ASPC `analysis_types` determine which sample workspace tabs are available.
-    `samples.filters` determines thresholds, selected ISGLs, ad-hoc genes, and
-    review-state controls for an individual sample. The query-policy file can
-    add only the documented typed admissions and exclusions for SNV, CNV, DNA
-    translocation, and RNA fusion. It cannot enable an analysis, define an ASPC
-    threshold, select a gene list, configure expression, classification, or
-    coverage retrieval, or supply raw MongoDB predicates. The `pgx` namespace
-    is validated but remains non-executable until the application has a
-    persisted PGX finding workflow.
+> **Important: Policy exceptions do not replace ASPC configuration**
+>
+>
+> ASPC `analysis_types` determine which sample workspace tabs are available.
+> `samples.filters` determines thresholds, selected ISGLs, ad-hoc genes, and
+> review-state controls for an individual sample. The query-policy file can
+> add only the documented typed admissions and exclusions for SNV, CNV, DNA
+> translocation, and RNA fusion. It cannot enable an analysis, define an ASPC
+> threshold, select a gene list, configure expression, classification, or
+> coverage retrieval, or supply raw MongoDB predicates. The `pgx` namespace
+> is validated but remains non-executable until the application has a
+> persisted PGX finding workflow.
+>
 
 For configuration changes, use the linked center reference as the source of
 truth rather than deriving syntax from the abbreviated examples on this page.
 
-!!! caution "Clinical review requirement"
-
-    An exception changes clinical finding visibility. Add a precise biological
-    rationale, representative fixtures, before/after result counts, expected
-    report impact, and unit tests. Do not encode query fragments in ASPC, ISGL,
-    or the user interface.
+> **Caution: Clinical review requirement**
+>
+>
+> An exception changes clinical finding visibility. Add a precise biological
+> rationale, representative fixtures, before/after result counts, expected
+> report impact, and unit tests. Do not encode query fragments in ASPC, ISGL,
+> or the user interface.
+>
 
 ### CNV, Translocation, and Fusion Queries
 

@@ -5,15 +5,17 @@ used clinically. It covers required MongoDB collections, optional enhancement
 collections, ingest inputs, and the storage flow from manifest to review and
 reporting.
 
-!!! info "Configuration ownership"
-
-    Runtime endpoints and secrets are environment configuration. Collection
-    names are API configuration in `api/config/center/collections.toml`.
-    Public organization, service-hour, and contact-card text is center content
-    in `api/config/center/contact.toml`. Repository links and the product description
-    are application metadata in `api/config/application_metadata.py`.
-    Public assay-catalog narrative text is center content in
-    `api/config/center/assay_catalog.yaml`.
+> **Info: Configuration ownership**
+>
+>
+> Runtime endpoints and secrets are environment configuration. Collection
+> names are API configuration in `api/config/center/collections.toml`.
+> Public organization, service-hour, and contact-card text is center content
+> in `api/config/center/contact.toml`. Repository links and the product description
+> are application metadata in `api/config/application_metadata.py`.
+> Public assay-catalog narrative text is center content in
+> `api/config/center/assay_catalog.yaml`.
+>
 
 ## Minimum Collections
 
@@ -36,11 +38,13 @@ review, and reporting.
 | Finding comments | `finding_comments` | Comments tied to one sample finding. Each record identifies its sample, finding, and finding type. |
 | Audit and sessions | `audit_events`, `api_sessions` | Security, mutation, and session records. |
 
-!!! tip "Collection names"
-
-    The names above are defaults. The application does not hardcode them in
-    domain services; it resolves them from `api/config/center/collections.toml`
-    for the active database.
+> **Tip: Collection names**
+>
+>
+> The names above are defaults. The application does not hardcode them in
+> domain services; it resolves them from `api/config/center/collections.toml`
+> for the active database.
+>
 
 ## Optional Enhancement Collections
 
@@ -64,12 +68,14 @@ richness of the UI.
 | `group_coverage` | Aggregated coverage metrics used by coverage views and dashboard summaries. |
 | `hpaexpr`, `rna_expression`, `rna_qc`, `rna_classification` | RNA/expression review and quality-control support. |
 
-!!! warning "External data licensing"
-
-    Public API data and locally imported licensed datasets are different data
-    sources. Public OncoKB access excludes therapeutic data. If a center imports
-    licensed or historical local datasets, the UI labels the source separately
-    from public API results.
+> **Warning: External data licensing**
+>
+>
+> Public API data and locally imported licensed datasets are different data
+> sources. Public OncoKB access excludes therapeutic data. If a center imports
+> licensed or historical local datasets, the UI labels the source separately
+> from public API results.
+>
 
 ## Ingest Manifest
 
@@ -93,12 +99,14 @@ Minimum DNA manifest fields:
 | Control fields | The corresponding flat control fields for paired samples. Omit them for unpaired samples. |
 | Analysis files | Flat configured file keys such as `vcf_files`, `cnv`, `cnvprofile`, `cov`, `transloc`, or `biomarkers`. Do not author a nested `files` block. |
 
-!!! caution "Container-readable paths"
-
-    File paths in manifests must be readable from the API and Celery worker
-    containers. Compose mounts `COYOTE3_DATA_HOST_ROOT` both at `/data` and at
-    the same absolute host path inside API and Celery containers. Pipeline source
-    paths below that root remain valid and are persisted unchanged.
+> **Caution: Container-readable paths**
+>
+>
+> File paths in manifests must be readable from the API and Celery worker
+> containers. Compose mounts `COYOTE3_DATA_HOST_ROOT` both at `/data` and at
+> the same absolute host path inside API and Celery containers. Pipeline source
+> paths below that root remain valid and are persisted unchanged.
+>
 
 ## Ingest Flow
 
@@ -160,10 +168,11 @@ The public contact page uses `api/config/center/contact.toml`. A center can
 maintain a dedicated deployment revision of the `center/` directory for each
 laboratory section.
 
-!!! tip "Multi-section deployment"
-
-    For multiple laboratory sections, build one image and run separate env files,
-    databases, data roots, `SCRIPT_NAME` values, and reviewed `center/`
-    configuration directories. This keeps the code identical while allowing each
-    center or section to own its local routing, contacts, assays, and retention
-    policy.
+> **Tip: Multi-section deployment**
+>
+>
+> For multiple laboratory sections, build one image and run separate env files,
+> databases, data roots, `SCRIPT_NAME` values, and reviewed `center/`
+> configuration directories. This keeps the code identical while allowing each
+> center or section to own its local routing, contacts, assays, and retention
+> policy.

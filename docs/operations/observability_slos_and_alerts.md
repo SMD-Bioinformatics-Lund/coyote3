@@ -35,12 +35,14 @@ switches with a live Celery control-inspection response:
 | Beat entries | Periodic tasks configured in the active Celery application. | Confirms configured schedule only; inspect task history/audit records to prove execution. |
 | Queues | Queues reported by active workers. | Confirms worker consumption topology. |
 
-!!! warning "Configured versus observed state"
-
-    Application Controls can prevent new task-family executions. They do not
-    stop already-running tasks, and an enabled switch does not prove a worker,
-    broker, file mount, or external dependency is healthy. Use both the
-    configured controls and observed runtime state during incident response.
+> **Warning: Configured versus observed state**
+>
+>
+> Application Controls can prevent new task-family executions. They do not
+> stop already-running tasks, and an enabled switch does not prove a worker,
+> broker, file mount, or external dependency is healthy. Use both the
+> configured controls and observed runtime state during incident response.
+>
 
 Primary emitters:
 
