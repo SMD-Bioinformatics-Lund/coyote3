@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="980" height="360" viewBox="0 0 980 360" role="img" aria-labelledby="title desc">
   <title id="title">Dashboard Metric Path</title>
-  <desc id="desc">Dashboard request uses service then Redis and Mongo to build response for UI.</desc>
+  <desc id="desc">Background tasks aggregate source collections into a MongoDB materialized summary that the dashboard API reads.</desc>
   <defs>
     <style>
       .canvas { fill: #f8fafc; }
@@ -30,15 +30,15 @@
 
   <rect x="560" y="96" width="220" height="68" class="box" fill="#dcfce7"/>
   <text x="670" y="122" text-anchor="middle" class="label">Dashboard service</text>
-  <text x="670" y="140" text-anchor="middle" class="sub">compose metrics</text>
+  <text x="670" y="140" text-anchor="middle" class="sub">read materialized summary</text>
 
-  <rect x="530" y="234" width="170" height="68" class="box" fill="#fbcfe8"/>
-  <text x="615" y="260" text-anchor="middle" class="label">Redis cache</text>
-  <text x="615" y="278" text-anchor="middle" class="sub">hot path read/write</text>
+  <rect x="500" y="234" width="200" height="68" class="box" fill="#dcfce7"/>
+  <text x="600" y="260" text-anchor="middle" class="label">Celery refresh task</text>
+  <text x="600" y="278" text-anchor="middle" class="sub">aggregate source collections</text>
 
-  <rect x="750" y="234" width="170" height="68" class="box" fill="#fef3c7"/>
-  <text x="835" y="260" text-anchor="middle" class="label">Mongo aggregate</text>
-  <text x="835" y="278" text-anchor="middle" class="sub">source-of-truth query</text>
+  <rect x="740" y="234" width="190" height="68" class="box" fill="#fef3c7"/>
+  <text x="835" y="260" text-anchor="middle" class="label">MongoDB summary</text>
+  <text x="835" y="278" text-anchor="middle" class="sub">one document per scope</text>
 
   <rect x="790" y="96" width="150" height="68" class="box" fill="#ddd6fe"/>
   <text x="865" y="122" text-anchor="middle" class="label">UI render</text>
@@ -47,8 +47,6 @@
   <path d="M230 130 L290 130" class="arrow"/>
   <path d="M500 130 L560 130" class="arrow"/>
   <path d="M760 130 L790 130" class="arrow"/>
-  <path d="M650 164 L615 234" class="arrow"/>
-  <path d="M695 164 L835 234" class="arrow"/>
-  <path d="M700 268 L790 146" class="arrow"/>
-  <path d="M750 268 L820 164" class="arrow"/>
+  <path d="M670 164 L835 234" class="arrow"/>
+  <path d="M700 268 L740 268" class="arrow"/>
 </svg>

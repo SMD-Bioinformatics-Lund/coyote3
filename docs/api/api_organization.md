@@ -118,6 +118,29 @@ Clinical routes are grouped by the biological workflow that owns the data.
 | `clinical.rna.fusions` | RNA fusion finding review. | `/api/v1/samples/{sample_id}/fusions` |
 | `clinical.reporting.reports` | Access-scoped saved-report library plus sample-owned preview, save, HTML, and PDF artifacts. | `/api/v1/reports`, `/api/v1/samples/{sample_id}/reports` |
 
+### Bulk classification request
+
+`PATCH /api/v1/samples/{sample_id}/classifications/tier` accepts the finding
+type, selected resource identifiers, target tier, and whether the tier is being
+applied or removed. The optional `include_automatic_text` flag is supported
+only when applying Tier III to small variants.
+
+```json
+{
+  "resource_type": "small_variant",
+  "resource_ids": ["<variant-object-id>"],
+  "tier": 3,
+  "apply": true,
+  "include_automatic_text": true
+}
+```
+
+When that flag is true, the service stores the Tier III classification and a
+separate annotation produced by `create_annotation_text_from_gene`. Omitting
+the flag or setting it to false stores only the classification. The flag has no
+effect for Tier I, II, or IV, or for a finding type other than `small_variant`.
+The generator does not read ASPC report wording or clinical reporting YAML.
+
 > **Info: Export route ownership**
 >
 >

@@ -16,6 +16,12 @@ by the sample's recorded ASPC revision and coverage data was ingested for the sa
 Changing the cutoff requests a new server-side coverage result. The displayed
 counts and low-coverage lists therefore use the same cutoff.
 
+Coverage uses the assay panel's covered-gene scope. If the ASP defines
+`covered_genes`, the workspace evaluates those genes. If it does not, the
+workspace evaluates every gene present in the sample's coverage data. Gene
+lists selected for SNV, CNV, fusion, or translocation review do not change
+coverage scope.
+
 ## Summary Metrics
 
 The top of the workspace shows:
@@ -46,9 +52,16 @@ rows.
 
 ## Gene Coverage View
 
-The gene view draws the transcript interval and the available exon, CDS, and
-probe records. Hover a region to read its exact coordinates and measured
-coverage. The legend distinguishes:
+The gene view uses separate genomic tracks for probes, exon design, and CDS
+coverage. A shared position ruler keeps features aligned without placing exon,
+CDS, and coordinate labels on top of one another. Hover over a feature, or move
+keyboard focus to it, to open the inspector below the plot. The inspector shows
+the feature type and identifier, exact genomic coordinates, interval length,
+and measured coverage.
+
+Use the zoom controls to change the genomic scale. At higher magnification,
+scroll horizontally inside the plot to inspect the complete transcript
+interval. Reset returns the viewer to its initial scale. The legend distinguishes:
 
 - coverage below the current cutoff;
 - passing probe coverage;
@@ -62,8 +75,25 @@ CDS, and probe tables for the selected gene.
 ## Coverage Blacklist
 
 Authorized users can add a low CDS or probe interval to the assay-group scoped
-coverage blacklist. The action records the genomic region, gene, and relevant
-sample context through the coverage blacklist API.
+coverage blacklist. Coverage blacklist entries are stored in the MongoDB
+`group_coverage` collection. They are separate from finding blacklist entries
+stored in the general `blacklist` collection.
+
+| Entry | Stored fields | Scope and effect |
+| --- | --- | --- |
+| Gene | `group`, `gene`, and `region: gene` | Excludes the gene from low-coverage results for that assay group. |
+| Region | `group`, `gene`, `region`, and `coord` | Excludes only the matching exon, CDS, or probe interval for that assay group. |
+
+The `group` value is the sample's assay group. Region coordinates are stored in
+a normalized form in which `:` and `-` are replaced by `_`. The combination of
+assay group, gene, region type, and coordinate identifies a region entry.
+
+Adding an entry uses `POST /api/v1/coverage/blacklist/entries`; removing one
+uses `DELETE /api/v1/coverage/blacklist/entries/{id}`. Both operations require
+the `coverage.blacklist:manage` permission and access to the affected assay
+group. The coverage service applies these entries when it builds subsequent
+low-coverage gene and region results. The original ingested coverage
+measurements are not changed.
 
 > **Warning**
 >
@@ -76,8 +106,8 @@ sample context through the coverage blacklist API.
 
 - **Coverage tab absent:** coverage is not enabled for the sample's recorded ASPC revision, the
   module is disabled, or no coverage resource is available for the sample.
-- **No low-covered genes:** no returned measurement is below the selected
-  cutoff and applied gene-list scope.
+- **No low-covered genes:** no eligible measurement is below the selected
+  cutoff.
 - **No design:** the payload contains a feature without a numeric coverage
   measurement.
 - **Missing exon or probe details:** the ingest source did not provide that

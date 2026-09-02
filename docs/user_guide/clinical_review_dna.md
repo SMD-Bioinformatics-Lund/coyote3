@@ -85,16 +85,15 @@ Bulk actions operate on selected rows and are sent as one request.
 
 Successful actions update the table in place and create audit/notification context. Failure notifications should explain the clinical resource and action that failed.
 
-> **Warning: Automatic classification text is limited to Tier 3**
+> **Note: automatic Tier III text**
 >
->
-> Bulk assignment of Tier 3 to a small variant creates both the classification
-> record and the approved automatic Tier III annotation text. Tier 1, Tier 2,
-> and Tier 4 assignments create classification records only. They do not
-> generate narrative text because no center-approved templates have been
-> defined for those tiers. Reviewers must add any required narrative manually.
-> Additional automatic templates require clinical review and approval by the
-> responsible genetics team before implementation.
+> When bulk-classifying small variants as Tier III, the confirmation dialog
+> can also add the established automatic Tier III annotation. The text is
+> generated from the selected consequence, gene, assay group, and locally
+> stored OncoKB gene status. Leave the option clear to save only the Tier III
+> classification. Tier I, II, and IV do not have automatic annotation text.
+> Add narrative through the comment editor when it is needed for clinical
+> review or reporting.
 >
 
 Every bulk action opens a confirmation dialog that identifies the selected
@@ -119,7 +118,7 @@ The variant detail page arranges decision-making cards around the finding.
 | Transcript consequences | Selected and alternate transcript rows with consequence, impact, and the newest tier assigned to that exact transcript in the current assay scope. |
 | Prediction and clinical signals | SIFT, PolyPhen, population frequency, germline risk, or other configured signals. |
 | PON evidence | Separate panel-of-normals rows per tool/source. |
-| Knowledgebase | A single collapsible evidence card for CIViC, BRCA Exchange, IARC TP53, local/public OncoKB, and ClinPGx local/API context. |
+| Knowledgebase | Default-expanded sections for CIViC variant and gene evidence, BRCA Exchange coordinate evidence, IARC TP53 evidence for TP53 variants, and HPA transcript expression. The same card contains local/public OncoKB and ClinPGx local/API context. |
 | Seen in other samples | Other samples with the same genomic finding, including assay group, case VAF, and the newest tier in that sample's assay scope. |
 
 ## CNVs, Fusions, And Translocations

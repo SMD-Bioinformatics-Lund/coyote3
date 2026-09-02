@@ -140,6 +140,7 @@ The dashboard is the operational entry point. It summarizes work that a reviewer
 | --- | --- |
 | Sample totals | Total samples, analyzed samples, pending samples, and available variants. |
 | Variant review | SNV, CNV, fusion, translocation, false-positive, blacklist, pathogenic, VUS, and tier distribution summaries. |
+| Top tiered genes | Up to 15 genes ranked by current Tier 1-4 annotation identities across all supported nomenclatures, with tier counts and links to Gene Cohort Explorer. |
 | Workflow queues | Ingest status, report readiness, and review state summaries. |
 | Sample profiles | Production and non-production profile distribution. |
 | Pipeline distribution | Visible samples grouped by their recorded pipeline and pipeline version, with analysed progress per group. |
@@ -262,14 +263,14 @@ state such as false positive, irrelevant, or interesting, adding blacklist
 entries, overriding blacklist, and clearing blacklist overrides. Bulk actions
 require confirmation and update the table in place after success.
 
-> **Warning: Tier annotation text**
+> **Note: automatic Tier III text**
 >
->
-> Bulk Tier 3 assignment creates the approved automatic Tier III annotation
-> text for each selected small variant. Tier 1, Tier 2, and Tier 4 assignments
-> do not create automatic text. Templates for those tiers must not be added
-> until their wording has been reviewed and approved by the responsible
-> genetics team.
+> The small-variant Tier III bulk action can optionally save the established
+> automatic Tier III annotation alongside the classification. This generator
+> uses the selected consequence, gene, assay group, and locally stored OncoKB
+> gene status. It does not read report wording from the ASPC. Tier I, II, and
+> IV bulk actions save only the classification. Add narrative through the
+> comment editor when it is needed for clinical review or reporting.
 >
 
 Small-variant sorting is performed after all active filters and search terms have
@@ -435,6 +436,11 @@ not shown in this menu.
 
 The coverage tab shows DNA sample quality coverage and gene-level coverage context. It appears when the sample's recorded ASPC revision enables `COVERAGE` and the DNA sample has a successfully ingested `cov` resource. Coverage is independent of both CNV calls and the CNV profile image.
 
+Coverage scope comes only from the active ASP. When `ASP.covered_genes` is
+populated, only those genes are evaluated. When it is empty, every gene in the
+sample's coverage record is evaluated. SNV, CNV, fusion, and other selected
+ISGLs do not restrict coverage.
+
 | Area | Information shown |
 | --- | --- |
 | Summary | Coverage thresholds, pass/warning/error counts, and overall coverage state. |
@@ -497,7 +503,7 @@ Detail pages put the review decision, comments, and evidence around the finding.
 | Transcript consequences | Selected and alternative transcripts, transcript provenance badges, canonical-source status, cDNA/protein notation, consequence, exon/intron, impact, and the newest tier for the exact transcript in the current assay scope. Alternate rows can be promoted to the primary display transcript when the selected transcript better represents the clinical review. |
 | Prediction cards | SIFT, PolyPhen, and other configured prediction signals. |
 | PON evidence | Separate rows by PON tool/source. |
-| Knowledgebase | One consolidated card with collapsible sections for CIViC, BRCA Exchange, TP53/IARC, local OncoKB cancer gene/actionable evidence, public OncoKB lookup, and ClinPGx local/API context. ClinPGx local context stays compact; fetched API context can include VIP summary, guideline annotations, labels, top connected drugs, pathways, and variant annotation examples. |
+| Knowledgebase | Default-expanded source sections for CIViC variant and gene evidence, BRCA Exchange coordinate evidence, IARC TP53 evidence for TP53 variants, and HPA transcript expression. The same card also contains local OncoKB cancer gene/actionable evidence, public OncoKB lookup, and ClinPGx local/API context. ClinPGx local context stays compact; fetched API context can include VIP summary, guideline annotations, labels, top connected drugs, pathways, and variant annotation examples. |
 | Seen in other samples | Other samples with the same genomic identity, with assay group, case VAF, and the newest tier resolved in each sample's assay scope. |
 
 > **Info: Transcript selection**

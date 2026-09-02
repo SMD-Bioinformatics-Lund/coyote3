@@ -54,6 +54,14 @@ documents. Solid-tumor retrieval additionally constrains the classification by
 subpanel. Clients do not supply authoritative assay context; the API derives it
 from the sample's recorded ASPC revision.
 
+Classification and report narration are independent workflows. A bulk Tier
+III classification can optionally create an accompanying text annotation for
+a small variant by calling `create_annotation_text_from_gene`. Its inputs are
+the selected transcript consequence, gene, sample assay group, and locally
+stored OncoKB gene status. Tier I, II, and IV classifications are stored
+without generated text. This workflow does not evaluate ASPC report wording or
+the static clinical reporting rule files.
+
 ## 3. Filter and Logic Domains
 
 ### Persistent DNA Filter Specifications

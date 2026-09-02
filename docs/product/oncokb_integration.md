@@ -149,7 +149,7 @@ reference transcripts. Coyote3 stores normalized fields in
 > not copied into mutable variant display state.
 >
 
-## Public API Notes
+## Public API lookup
 
 Coyote3 uses the public OncoKB API host:
 
@@ -157,36 +157,31 @@ Coyote3 uses the public OncoKB API host:
 https://public.api.oncokb.org/api/v1
 ```
 
-This public endpoint does not require a commercial or production OncoKB license
-and does not require an API token. It provides public API access across genes,
-excluding therapeutic data.
+An on-demand small-variant lookup uses the exact genomic-change API, not a
+protein or transcript-derived fallback. The lookup is therefore independent of
+the transcript currently selected in Coyote3.
 
-The public API includes endpoints for mutation, copy-number, structural-variant,
-HGVSg, cancer-gene, level, and info lookups. Coyote3 uses HGVSg as the primary
-small-variant annotation key for explicit on-demand detail lookups:
+| Sample analysis intent | Public endpoint |
+| --- | --- |
+| Somatic | `GET /annotate/mutations/byGenomicChange` |
+| Germline | `GET /annotate/germline/mutations/byGenomicChange` |
 
-```text
-POST /annotate/mutations/byHGVSg
-```
+For every recorded supported intent, Coyote3 sends:
 
-Each query sends `hgvsg`, `referenceGenome`, `evidenceTypes`, and the Coyote3
-variant identifier. HGVSg is preferred because it is genomic and
-transcript-independent. This avoids false misses when the displayed transcript
-protein change differs from the canonical isoform expected by OncoKB.
+| Parameter | Source |
+| --- | --- |
+| `referenceGenome` | The sample genome build, normalized to `GRCh37` or `GRCh38`. |
+| `genomicLocation` | The stored VCF `CHROM`, `POS`, `REF`, and first `ALT`, formatted as `chromosome,start,end,referenceAllele,variantAllele`. |
 
-When VEP has already supplied `HGVSg`, Coyote3 uses that value. If it is absent,
-Coyote3 constructs HGVSg only for simple SNVs from `CHROM`, `POS`, `REF`, and
-`ALT`. Complex insertions, deletions, and delins events are not hand-normalized
-from raw VCF fields; they use VEP-provided `HGVSg` when present, otherwise the
-system falls back to:
+Chromosome prefixes are removed and mitochondrial `M` is normalized to `MT`.
+The end position is derived from the reference-allele length. If a complete
+genomic identity is unavailable, Coyote3 returns `not_queried`; it does not
+attempt an HGVSg, protein-change, or selected-transcript fallback.
 
-```text
-POST /annotate/mutations/byProteinChange
-```
-
-The protein-change fallback sends the selected gene symbol, one-letter protein
-alteration, reference genome, and evidence types. It is intentionally secondary
-because protein-change annotation can be isoform-sensitive.
+Somatic and germline requests are independent. The detail page displays each
+successful response under its intent and identifies an individual intent when a
+request fails. A partial failure does not discard a successful response for the
+other intent.
 
 Coyote3 exposes deployment controls for this integration:
 
@@ -202,6 +197,11 @@ The public API root is a fixed application contract:
 > variant, mutation-effect, diagnostic, and prognostic context where available,
 > but they should not be presented as a therapy recommendation source.
 >
+
+`IARC TP53` remains a local curated knowledgebase lookup. It applies only to
+TP53 and does not issue a live external request. `ClinPGx` is a separate
+gene-level public lookup for pharmacogenomic context; it is not substituted for
+OncoKB evidence.
 
 ## UI Rules
 

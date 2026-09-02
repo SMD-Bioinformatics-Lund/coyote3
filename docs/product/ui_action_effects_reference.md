@@ -17,7 +17,7 @@ This reference maps UI controls to backend endpoints, persistent state changes, 
 |---|---|---|---|---|
 | **Apply (Filters)** | Discovery Sidebar | `PUT /samples/{id}/filters` | `samples.filters` (DNA) | Recalculation of findings within active review tables. |
 | **Reset** | Discovery Sidebar | `DELETE /samples/{id}/filters` | `samples.filters` (Defaults) | Re-initialization of assay-original thresholds. |
-| **Apply (Bulk)** | Bulk Action Panel | Bulk patch endpoint | Multi-document Tier/Flag updates | Update clinical state across selected cohorts. |
+| **Apply (Bulk)** | Bulk Action Panel | `PATCH /api/v1/samples/{id}/classifications/tier` | Classification annotations and, when requested for Tier III small variants, a generated text annotation | Update the selected findings without changing report-rule configuration. |
 | **Finalize Report** | Report Preview | Report creation endpoint | `reported_variants` snapshots | Generation of immutable clinical report record. |
 
 ## Finding-Level Clinical Interactions (SNV, CNV, SV)
@@ -52,6 +52,19 @@ Comment behavior is intentionally different between sample-level review and find
 - Hide/unhide controls mutate visibility; hidden comments remain auditable but are visually de-emphasized.
 
 Global finding annotations and sample-specific finding annotations are shown in separate cards so reviewers can distinguish center-wide interpretation knowledge from comments tied to the active sample.
+
+### Bulk classification text
+
+Bulk classification always stores the requested Tier I-IV classification.
+For Tier III small variants, the confirmation dialog also offers **Include
+automatic text**. When selected, the backend calls
+`create_annotation_text_from_gene` and stores its result as a separate text
+annotation for each eligible variant. The generator uses the selected
+consequence, gene, assay group, and local OncoKB gene status.
+
+The option is unavailable for CNVs, fusions, and translocations, and for Tier
+I, II, and IV. Those actions store the classification only. ASPC reporting
+fields and clinical reporting YAML are not inputs to this annotation generator.
 
 ## RNA Interpretation Actions
 

@@ -21,6 +21,17 @@ included in the report.
 > and are not copied into ASPC documents.
 >
 
+> **Important: classification annotations are separate**
+>
+> The report rules engine does not generate text while a finding is being
+> classified. Bulk Tier III classification of small variants may optionally
+> invoke the application generator `create_annotation_text_from_gene`. That
+> generator uses the selected consequence, gene, assay group, and locally
+> stored OncoKB gene status. It does not read ASPC reporting fields or a
+> clinical reporting YAML file. Tier I, II, and IV classifications do not have
+> automatic annotation text.
+>
+
 ## Scope Resolution
 
 Rule sources live in the repository with one predictable layout:

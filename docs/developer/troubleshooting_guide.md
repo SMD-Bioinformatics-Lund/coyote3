@@ -11,10 +11,10 @@ Symptoms:
 
 Checks:
 
-1. Verify Redis is reachable from API container.
-2. Confirm dashboard cache keys are being read/written.
-3. Confirm invalidation hooks run after data mutations.
-4. Check Mongo indexes used by dashboard aggregations.
+1. Confirm the Celery worker and beat scheduler are running.
+2. Confirm mutation hooks mark the MongoDB dashboard summary as dirty.
+3. Confirm the scheduled refresh task replaces dirty or expired summaries.
+4. Check MongoDB indexes used by dashboard aggregations.
 
 Quick probe:
 
@@ -23,7 +23,7 @@ Quick probe:
   --env-file .coyote3_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \
-  logs api 2>&1 | rg "dashboard|cache|redis"
+  logs api worker beat 2>&1 | rg "dashboard|summary|refresh"
 ```
 
 ## Login failure for mixed auth users
