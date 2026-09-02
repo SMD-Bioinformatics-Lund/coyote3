@@ -6,6 +6,7 @@ from copy import deepcopy
 from typing import Any
 
 from api.application.common.assay_config import get_formatted_assay_config
+from api.application.interpretation.report_summary import create_annotation_text_from_gene
 from api.domain.common.errors import api_error
 
 
@@ -18,12 +19,12 @@ class ResourceClassificationService:
         return cls(
             annotation_repository=store.annotation_repository,
             variant_repository=store.variant_repository,
-            oncokb_repository=store.oncokb_repository,
             fusion_repository=store.fusion_repository,
             copy_number_variant_repository=store.copy_number_variant_repository,
             translocation_repository=store.translocation_repository,
             assay_panel_repository=store.assay_panel_repository,
             assay_configuration_repository=store.assay_configuration_repository,
+            oncokb_repository=store.oncokb_repository,
         )
 
     def __init__(
@@ -31,22 +32,22 @@ class ResourceClassificationService:
         *,
         annotation_repository: Any,
         variant_repository: Any,
-        oncokb_repository: Any,
         fusion_repository: Any,
         copy_number_variant_repository: Any,
         translocation_repository: Any,
         assay_panel_repository: Any,
         assay_configuration_repository: Any,
+        oncokb_repository: Any,
     ) -> None:
         """Build the classification service with explicit persistence dependencies."""
         self.annotation_repository = annotation_repository
         self.variant_repository = variant_repository
-        self.oncokb_repository = oncokb_repository
         self.fusion_repository = fusion_repository
         self.copy_number_variant_repository = copy_number_variant_repository
         self.translocation_repository = translocation_repository
         self.assay_panel_repository = assay_panel_repository
         self.assay_configuration_repository = assay_configuration_repository
+        self.oncokb_repository = oncokb_repository
 
     def classification_context(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Resolve immutable assay context for a finding classification."""
@@ -67,7 +68,7 @@ class ResourceClassificationService:
 
     @staticmethod
     def _consequence_list(value: object) -> list[str]:
-        """Normalize selected_CSQ consequence values into list form."""
+        """Normalize a selected transcript's consequence value."""
         if isinstance(value, str):
             return [part.strip() for part in value.split("&") if part.strip()]
         if isinstance(value, (list, tuple, set)):
@@ -106,8 +107,6 @@ class ResourceClassificationService:
         resource_type: str,
         resource_id: str,
         classification_context: dict[str, Any],
-        create_annotation_text_fn,
-        create_automatic_text: bool,
     ) -> dict[str, Any] | None:
         """Load the identity payload needed for resource classification.
 
@@ -116,15 +115,14 @@ class ResourceClassificationService:
             resource_type: Resource type to classify.
             resource_id: Resource identifier to load.
             classification_context: Server-resolved ASPC context.
-            create_annotation_text_fn: Helper used to build default annotation text.
-            create_automatic_text: Whether to generate the approved Tier 3 SNV narrative.
-
         Returns:
             dict[str, Any] | None: Classification identity payload, when the resource exists.
         """
         normalized_type = self.normalize_resource_type(resource_type)
-        assay_group = classification_context.get("assay_group")
-        base_context = dict(classification_context)
+        base_context = {
+            "assay_group": classification_context["assay_group"],
+            "subpanel": classification_context["subpanel"],
+        }
         if normalized_type == "small_variant":
             var = self.variant_repository.get_variant(str(resource_id))
             if not var or str(var.get("SAMPLE_ID")) != str(sample.get("_id")):
@@ -136,14 +134,6 @@ class ResourceClassificationService:
             hgvs_p = selected_csq.get("HGVSp")
             hgvs_c = selected_csq.get("HGVSc")
             hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
-            consequence = self._consequence_list(selected_csq.get("Consequence"))
-            text = None
-            if create_automatic_text:
-                gene_oncokb = self.oncokb_repository.get_oncokb_gene(gene)
-                text = create_annotation_text_fn(
-                    gene, consequence, assay_group, gene_oncokb=gene_oncokb
-                )
-
             nomenclature = "p"
             if hgvs_p not in {"", None}:
                 variant = hgvs_p
@@ -157,7 +147,10 @@ class ResourceClassificationService:
             return {
                 "variant": variant,
                 "nomenclature": nomenclature,
-                "text": text,
+                "automatic_text_context": {
+                    "gene": gene,
+                    "consequence": selected_csq.get("Consequence"),
+                },
                 "variant_data": {
                     **base_context,
                     "gene": gene,
@@ -181,7 +174,6 @@ class ResourceClassificationService:
             return {
                 "variant": f"{selected_call.get('breakpoint1', '')}^{selected_call.get('breakpoint2', '')}",
                 "nomenclature": "f",
-                "text": None,
                 "variant_data": {
                     **base_context,
                     "gene1": gene1,
@@ -196,7 +188,6 @@ class ResourceClassificationService:
             return {
                 "variant": f"{cnv.get('chr')}:{cnv.get('start')}-{cnv.get('end')}",
                 "nomenclature": "cn",
-                "text": None,
                 "variant_data": base_context,
             }
 
@@ -222,7 +213,6 @@ class ResourceClassificationService:
             return {
                 "variant": f"{transloc.get('CHROM')}:{transloc.get('POS')}^{transloc.get('ALT')}",
                 "nomenclature": "t",
-                "text": None,
                 "variant_data": {
                     **base_context,
                     "gene1": gene1,
@@ -240,8 +230,8 @@ class ResourceClassificationService:
         resource_ids: list[str],
         apply: bool,
         class_num: int,
-        create_annotation_text_fn,
         create_classified_variant_doc_fn,
+        include_automatic_text: bool = False,
     ) -> None:
         """Apply or remove tier classifications in bulk.
 
@@ -251,24 +241,35 @@ class ResourceClassificationService:
             resource_ids: Resource identifiers to update.
             apply: Whether to add or remove the classification.
             class_num: Target tier/class number.
-            create_annotation_text_fn: Helper used to build default annotation text.
             create_classified_variant_doc_fn: Helper used to build classification documents.
+            include_automatic_text: Whether to add supported application-generated text.
         """
         bulk_docs: list[dict[str, Any]] = []
         classification_context = self.classification_context(sample)
         normalized_type = self.normalize_resource_type(resource_type)
-        create_automatic_text = normalized_type == "small_variant" and class_num == 3
         for resource_id in resource_ids:
             identity = self._load_resource_identity(
                 sample=sample,
                 resource_type=resource_type,
                 resource_id=str(resource_id),
                 classification_context=classification_context,
-                create_annotation_text_fn=create_annotation_text_fn,
-                create_automatic_text=create_automatic_text,
             )
             if not identity:
                 continue
+
+            automatic_text = None
+            if class_num == 3 and normalized_type == "small_variant":
+                text_context = identity["automatic_text_context"]
+                gene = str(text_context.get("gene") or "").strip()
+                if gene:
+                    consequence = self._consequence_list(text_context.get("consequence"))
+                    if consequence:
+                        automatic_text = create_annotation_text_from_gene(
+                            gene,
+                            consequence,
+                            classification_context["assay_group"],
+                            gene_oncokb=self.oncokb_repository.get_oncokb_gene(gene),
+                        )
 
             if not apply:
                 self.annotation_repository.delete_classified_variant(
@@ -276,7 +277,7 @@ class ResourceClassificationService:
                     nomenclature=identity["nomenclature"],
                     variant_data=identity["variant_data"],
                     class_num=class_num,
-                    annotation_text=identity["text"] if create_automatic_text else None,
+                    annotation_text=automatic_text,
                 )
                 continue
 
@@ -290,7 +291,7 @@ class ResourceClassificationService:
                     )
                 )
             )
-            if create_automatic_text:
+            if include_automatic_text and automatic_text:
                 bulk_docs.append(
                     deepcopy(
                         create_classified_variant_doc_fn(
@@ -298,11 +299,10 @@ class ResourceClassificationService:
                             nomenclature=identity["nomenclature"],
                             class_num=class_num,
                             variant_data=identity["variant_data"],
-                            text=identity["text"],
+                            text=automatic_text,
                         )
                     )
                 )
-
         if bulk_docs:
             self.annotation_repository.insert_annotation_bulk(bulk_docs)
 

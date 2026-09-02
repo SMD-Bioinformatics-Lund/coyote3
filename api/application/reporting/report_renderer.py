@@ -725,7 +725,7 @@ def _format_tier(value: Any) -> str:
 
 
 def _format_comment(value: Any) -> str:
-    """Render markdown comments safely for report output."""
+    """Render a stored comment safely for report output."""
     text = str(value or "")
     html = markdown.markdown(text, extensions=["extra", "sane_lists"])
     return bleach.clean(

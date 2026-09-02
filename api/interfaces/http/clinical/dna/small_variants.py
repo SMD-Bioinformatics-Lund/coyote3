@@ -224,7 +224,8 @@ def show_dna_variant_public_oncokb(
             "status": "disabled",
             "message": "Public OncoKB lookups are disabled by application controls.",
             "query": {},
-            "response": None,
+            "responses": {},
+            "failures": {},
         }
     sample, variant = _require_variant_for_sample(sample_id, var_id, user, service)
     client = PublicOncoKbClient(

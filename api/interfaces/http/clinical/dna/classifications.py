@@ -8,7 +8,6 @@ from api.app.container import util
 from api.app.deps.services import get_classification_service
 from api.application.classification.tiering import ResourceClassificationService
 from api.application.common.change_payload import change_payload
-from api.application.interpretation.report_summary import create_annotation_text_from_gene
 from api.contracts.samples import SampleChangePayload
 from api.domain.core.dna.dna_variants import get_variant_nomenclature
 from api.interfaces.http.tags import TAG_KNOWLEDGEBASE
@@ -47,7 +46,7 @@ def set_resource_tier_bulk(
             resource_ids=resource_ids,
             apply=bool(apply),
             class_num=class_num,
-            create_annotation_text_fn=create_annotation_text_from_gene,
+            include_automatic_text=bool(payload.get("include_automatic_text", False)),
             create_classified_variant_doc_fn=util.common.create_classified_variant_doc,
         )
 

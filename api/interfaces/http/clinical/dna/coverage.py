@@ -37,7 +37,6 @@ def coverage_sample_read(
         service.sample_payload(
             sample=sample,
             cov_cutoff=cov_cutoff,
-            effective_genes_resolver=util.common.get_sample_effective_genes,
         )
     )
 

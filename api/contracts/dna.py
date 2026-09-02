@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DnaVariantsListPayload(BaseModel):
@@ -212,7 +212,10 @@ class DnaOncoKbPublicPayload(BaseModel):
     license: str | None = None
     message: str | None = None
     query: dict[str, Any]
-    response: Any = None
+    analysis_context: dict[str, Any] | None = None
+    query_method: str | None = None
+    responses: dict[str, Any] = Field(default_factory=dict)
+    failures: dict[str, str] = Field(default_factory=dict)
 
 
 class DnaClinPgxPublicPayload(BaseModel):

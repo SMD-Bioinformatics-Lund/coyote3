@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from api.application.dna.export import consequence_list
-
 
 def set_variant_tier_bulk(
     service,
@@ -16,12 +14,10 @@ def set_variant_tier_bulk(
     subpanel: str | None,
     apply: bool,
     class_num: int,
-    create_annotation_text_fn,
     create_classified_variant_doc_fn,
 ) -> None:
     """Apply or remove variant classifications in bulk."""
     bulk_docs: list[dict[str, object]] = []
-    create_automatic_text = class_num == 3
     for variant_id in resource_ids:
         var = service.variant_repository.get_variant(str(variant_id))
         if not var:
@@ -35,14 +31,6 @@ def set_variant_tier_bulk(
         hgvs_p = selected_csq.get("HGVSp")
         hgvs_c = selected_csq.get("HGVSc")
         hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
-        consequence = consequence_list(selected_csq.get("Consequence"))
-        gene_oncokb = service.oncokb_repository.get_oncokb_gene(gene)
-        text = None
-        if create_automatic_text:
-            text = create_annotation_text_fn(
-                gene, consequence, assay_group, gene_oncokb=gene_oncokb
-            )
-
         nomenclature = "p"
         if hgvs_p not in {"", None}:
             variant = hgvs_p
@@ -70,7 +58,7 @@ def set_variant_tier_bulk(
                 nomenclature=nomenclature,
                 variant_data=variant_data,
                 class_num=class_num,
-                annotation_text=text if create_automatic_text else None,
+                annotation_text=None,
             )
             continue
 
@@ -84,19 +72,6 @@ def set_variant_tier_bulk(
                 )
             )
         )
-        if create_automatic_text:
-            bulk_docs.append(
-                deepcopy(
-                    create_classified_variant_doc_fn(
-                        variant=variant,
-                        nomenclature=nomenclature,
-                        class_num=class_num,
-                        variant_data=variant_data,
-                        text=text,
-                    )
-                )
-            )
-
     if bulk_docs:
         service.annotation_repository.insert_annotation_bulk(bulk_docs)
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from collections import defaultdict
 
 from api.config.application_metadata import oncokb_gene_url
@@ -13,8 +12,6 @@ from api.domain.core.annotation_identity import (
 )
 from api.infra.mongo.persistence import new_object_id
 from api.infra.request_context import current_username
-
-logger = logging.getLogger(__name__)
 
 
 def process_gene_annotations(annotations: dict) -> dict:
@@ -37,33 +34,21 @@ def process_gene_annotations(annotations: dict) -> dict:
 
 
 def create_annotation_text_from_gene(gene: str, csq: list, assay_group: str, **kwargs) -> str:
-    """Build default annotation text for a gene-level finding.
-
-    Args:
-        gene: Gene symbol for the finding.
-        csq: Consequence values describing the finding.
-        assay_group: Assay-group context used for wording.
-        **kwargs: Optional metadata such as OncoKB flags.
-
-    Returns:
-        str: Suggested annotation text.
-    """
-    first_csq = str(csq[0])
-    consequence = first_csq.replace("_", " ")
+    """Build the established automatic Tier III small-variant annotation."""
+    consequence = str(csq[0]).replace("_", " ")
     tumor_type = ""
-    if assay_group == "myeloid":
+    if assay_group in {"hematology", "myeloid"}:
         tumor_type = "hematologiska"
     elif assay_group == "solid":
         tumor_type = "solida"
 
-    text = f"Analysen påvisar en {consequence}. Mutationen är klassad som Tier III då mutationer i {gene} är sällsynta men förekommer i {tumor_type} maligniteter."
-    gene_oncokb = kwargs.get("gene_oncokb", None)
-    if gene_oncokb:
-        text += f" För ytterligare information om {gene} se {oncokb_gene_url(gene)}."
-    else:
-        text += f" {gene} finns ej beskriven i https://www.oncokb.org."
-    logger.debug(text)
-    return text
+    text = (
+        f"Analysen påvisar en {consequence}. Mutationen är klassad som Tier III då "
+        f"mutationer i {gene} är sällsynta men förekommer i {tumor_type} maligniteter."
+    )
+    if kwargs.get("gene_oncokb"):
+        return f"{text} För ytterligare information om {gene} se {oncokb_gene_url(gene)}."
+    return f"{text} {gene} finns ej beskriven i https://www.oncokb.org."
 
 
 def create_comment_doc(

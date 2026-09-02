@@ -75,12 +75,12 @@ def _classification_service() -> classification_router.ResourceClassificationSer
     return classification_router.ResourceClassificationService(
         annotation_repository=store.annotation_repository,
         variant_repository=store.variant_repository,
-        oncokb_repository=store.oncokb_repository,
         fusion_repository=store.fusion_repository,
         copy_number_variant_repository=store.copy_number_variant_repository,
         translocation_repository=store.translocation_repository,
         assay_panel_repository=assay_panel_repository,
         assay_configuration_repository=assay_configuration_repository,
+        oncokb_repository=store.oncokb_repository,
     )
 
 
@@ -620,8 +620,8 @@ def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
     assert calls["unmark"] == ["V9"]
 
 
-def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
-    """Test set variant tier bulk apply inserts class and text docs.
+def test_set_variant_tier_bulk_apply_defaults_to_classification_only(monkeypatch):
+    """Test that Tier III bulk apply does not add text unless requested.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -653,12 +653,6 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
         classification_router, "_get_sample_for_api", lambda sample_id, user: sample
     )
     monkeypatch.setattr(store.variant_repository, "get_variant", lambda variant_id: variant)
-    monkeypatch.setattr(store.oncokb_repository, "get_oncokb_gene", lambda gene: None)
-    monkeypatch.setattr(
-        classification_router,
-        "create_annotation_text_from_gene",
-        lambda *args, **kwargs: "AUTO_TEXT",
-    )
     monkeypatch.setattr(
         classification_router.util.common,
         "create_classified_variant_doc",
@@ -699,9 +693,8 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
 
     assert payload["status"] == "ok"
     assert captured["docs"] is not None
-    assert len(captured["docs"]) == 2
+    assert len(captured["docs"]) == 1
     assert any(doc.get("class") == 3 for doc in captured["docs"])
-    assert any(doc.get("text") == "AUTO_TEXT" for doc in captured["docs"])
     assert set(captured["docs"][0]["variant_data"]) == {
         "assay_group",
         "subpanel",
@@ -716,8 +709,8 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
     assert captured["docs"][0]["variant_data"]["hgvsc"] is None
 
 
-def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatch):
-    """Test set variant tier bulk remove deletes class and matching text.
+def test_set_variant_tier_bulk_remove_deletes_requested_classification(monkeypatch):
+    """Test removal of the requested classification.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -749,12 +742,6 @@ def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatc
         classification_router, "_get_sample_for_api", lambda sample_id, user: sample
     )
     monkeypatch.setattr(store.variant_repository, "get_variant", lambda variant_id: variant)
-    monkeypatch.setattr(store.oncokb_repository, "get_oncokb_gene", lambda gene: None)
-    monkeypatch.setattr(
-        classification_router,
-        "create_annotation_text_from_gene",
-        lambda *args, **kwargs: "AUTO_TEXT",
-    )
     monkeypatch.setattr(
         store.annotation_repository,
         "delete_classified_variant",
@@ -786,7 +773,7 @@ def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatc
     assert payload["status"] == "ok"
     assert len(captured) == 1
     assert captured[0]["class_num"] == 3
-    assert captured[0]["annotation_text"] == "AUTO_TEXT"
+    assert captured[0]["annotation_text"] is None
 
 
 def test_bulk_flag_routes_use_non_colliding_paths():

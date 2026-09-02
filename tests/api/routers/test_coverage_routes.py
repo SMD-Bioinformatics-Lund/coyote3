@@ -18,7 +18,6 @@ def _coverage_service() -> CoverageService:
     return CoverageService(
         assay_configuration_repository=store.assay_configuration_repository,
         assay_panel_repository=store.assay_panel_repository,
-        gene_list_repository=store.gene_list_repository,
         coverage_repository=store.coverage_repository,
         grouped_coverage_repository=store.grouped_coverage_repository,
     )
@@ -40,6 +39,7 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
     sample["environment"] = "production"
     service = _coverage_service()
     requested_subpanels: list[str] = []
+    requested_gene_scopes: list[list[str]] = []
 
     monkeypatch.setattr(coverage, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(
@@ -56,14 +56,6 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
         lambda asp_name=None, **_kwargs: {"asp_id": "wgs", "covered_genes": ["TP53", "NPM1"]},
     )
     monkeypatch.setattr(
-        coverage.util.common,
-        "get_sample_effective_genes",
-        lambda sample, assay_panel_doc, checked_snvlists_genes_dict: (["TP53", "NPM1"], ["TP53"]),
-    )
-    monkeypatch.setattr(
-        service.gene_list_repository, "get_isgl_by_ids", lambda ids: {"GL1": {"genes": ["TP53"]}}
-    )
-    monkeypatch.setattr(
         service.coverage_repository,
         "get_sample_coverage",
         lambda sample_id: {"_id": "cov1", "TP53": {"mean": 700}},
@@ -71,7 +63,9 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
         "filter_genes_from_form",
-        lambda cov_dict, filter_genes, assay_group, *, grouped_coverage_repository=None: cov_dict,
+        lambda cov_dict, filter_genes, assay_group, *, grouped_coverage_repository=None: (
+            requested_gene_scopes.append(filter_genes) or cov_dict
+        ),
     )
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
@@ -98,9 +92,10 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
 
     assert payload["cov_cutoff"] == 500
     assert payload["smp_grp"] == "dna"
-    assert payload["snvlists"] == ["GL1"]
+    assert payload["gene_scope"] == ["TP53", "NPM1"]
     assert payload["cov_table"]["TP53"]["1"]["cov"] == 700
     assert requested_subpanels == ["myeloid", "base"]
+    assert requested_gene_scopes == [["TP53", "NPM1"]]
 
 
 def test_coverage_blacklisted_read_denies_non_member_group():
@@ -169,14 +164,6 @@ def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
         service.assay_panel_repository,
         "get_asp",
         lambda asp_name=None, **_kwargs: {"asp_id": "wgs", "covered_genes": ["TP53", "NPM1"]},
-    )
-    monkeypatch.setattr(
-        coverage.util.common,
-        "get_sample_effective_genes",
-        lambda sample, assay_panel_doc, checked_snvlists_genes_dict: (["TP53", "NPM1"], ["TP53"]),
-    )
-    monkeypatch.setattr(
-        service.gene_list_repository, "get_isgl_by_ids", lambda ids: {"GL1": {"genes": ["TP53"]}}
     )
     monkeypatch.setattr(
         service.coverage_repository,

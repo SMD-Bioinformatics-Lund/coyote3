@@ -10,9 +10,8 @@ from api.infra.knowledgebase.civic import CivicRepository
 from api.infra.knowledgebase.oncokb import OnkoKBRepository
 from api.infra.knowledgebase.public_oncokb import (
     PublicOncoKbClient,
-    hgvsg_from_variant,
-    normalize_hgvsg_for_oncokb,
-    protein_alteration_from_hgvsp,
+    analysis_context_from_sample,
+    genomic_location_from_variant,
 )
 
 
@@ -62,50 +61,43 @@ def test_get_civic_data_returns_materialized_documents():
     assert "$or" in handler.get_collection().last_query
 
 
-def test_public_oncokb_protein_alteration_from_hgvsp():
-    assert protein_alteration_from_hgvsp("ENSP00000269305:p.Arg175His") == "R175H"
-    assert protein_alteration_from_hgvsp("p.Val600Glu") == "V600E"
+@pytest.mark.parametrize(
+    ("variant", "expected"),
+    [
+        (
+            {"CHROM": "chr7", "POS": 140753336, "REF": "A", "ALT": ["T"]},
+            "7,140753336,140753336,A,T",
+        ),
+        (
+            {"CHROM": "1", "POS": 100, "REF": "AT", "ALT": "A"},
+            "1,100,101,AT,A",
+        ),
+    ],
+)
+def test_public_oncokb_builds_exact_genomic_location(variant, expected):
+    assert genomic_location_from_variant(variant) == expected
 
 
-def test_public_oncokb_hgvsg_from_variant_prefers_vep_hgvsg():
-    variant = {
-        "CHROM": "7",
-        "POS": 140753336,
-        "REF": "A",
-        "ALT": "T",
-        "INFO": {"selected_CSQ": {"HGVSg": "7:g.140753336A>T"}},
+def test_public_oncokb_requires_complete_genomic_identity():
+    assert genomic_location_from_variant({"CHROM": "7", "POS": 140753336}) == ""
+
+
+def test_public_oncokb_uses_recorded_intents_with_somatic_default():
+    assert analysis_context_from_sample({"analysis_intents": ["germline", "somatic", "other"]}) == {
+        "analysis_intents": ["germline", "somatic"]
     }
-
-    assert hgvsg_from_variant(variant) == "7:g.140753336A>T"
-
-
-def test_public_oncokb_normalizes_hgvsg_prefixes_to_chromosome_label():
-    assert normalize_hgvsg_for_oncokb("chr7:g.140453136A>T") == "7:g.140453136A>T"
-    assert normalize_hgvsg_for_oncokb("NC_000007.14:g.140453136A>T") == "7:g.140453136A>T"
-    assert normalize_hgvsg_for_oncokb("NC_000023.11:g.153296777C>T") == "X:g.153296777C>T"
+    assert analysis_context_from_sample({}) == {"analysis_intents": ["somatic"]}
 
 
-def test_public_oncokb_hgvsg_from_variant_constructs_simple_snv():
-    variant = {
-        "CHROM": "chr7",
-        "POS": 140753336,
-        "REF": "A",
-        "ALT": ["T"],
-        "INFO": {"selected_CSQ": {}},
-    }
-
-    assert hgvsg_from_variant(variant) == "7:g.140753336A>T"
-
-
-def test_public_oncokb_client_prefers_public_hgvsg(monkeypatch):
-    captured = {}
+def test_public_oncokb_client_queries_exact_genomic_change_per_intent(monkeypatch):
+    captured: dict[str, object] = {"requests": []}
 
     class _Response:
         def raise_for_status(self):
             return None
 
         def json(self):
-            return [{"geneExist": True, "variantExist": True, "dataVersion": "public-test"}]
+            return {"geneExist": True, "variantExist": True, "dataVersion": "public-test"}
 
     class _Client:
         def __init__(self, timeout):
@@ -117,175 +109,80 @@ def test_public_oncokb_client_prefers_public_hgvsg(monkeypatch):
         def __exit__(self, exc_type, exc, tb):
             return False
 
-        def post(self, url, json, headers):
-            captured["url"] = url
-            captured["json"] = json
-            captured["headers"] = headers
+        def get(self, url, params, headers):
+            captured["requests"].append((url, params, headers))
             return _Response()
 
     monkeypatch.setattr("api.infra.knowledgebase.public_oncokb.httpx.Client", _Client)
     client = PublicOncoKbClient(base_url="https://public.api.oncokb.org/api/v1", timeout=2.5)
     result = client.annotate_variant(
-        sample={"genome_build": 38},
+        sample={"genome_build": 38, "analysis_intents": ["somatic", "germline"]},
         variant={
             "_id": "v1",
             "CHROM": "7",
             "POS": 140753336,
             "REF": "A",
             "ALT": ["T"],
-            "INFO": {
-                "selected_CSQ": {
-                    "SYMBOL": "BRAF",
-                    "HGVSp": "ENSP00000288602:p.Val600Glu",
-                }
-            },
         },
     )
 
     assert result["status"] == "ok"
     assert result["source"] == "public.api.oncokb.org"
-    assert result["query_method"] == "hgvsg"
-    assert result["response"]["dataVersion"] == "public-test"
-    assert captured["url"] == "https://public.api.oncokb.org/api/v1/annotate/mutations/byHGVSg"
-    assert captured["json"][0]["hgvsg"] == "7:g.140753336A>T"
-    assert captured["json"][0]["referenceGenome"] == "GRCh38"
+    assert result["query_method"] == "genomic_change"
+    assert result["analysis_context"] == {"analysis_intents": ["germline", "somatic"]}
+    assert set(result["responses"]) == {"germline", "somatic"}
+    assert all(
+        response["dataVersion"] == "public-test" for response in result["responses"].values()
+    )
+    requests = captured["requests"]
+    assert [request[0] for request in requests] == [
+        "https://public.api.oncokb.org/api/v1/annotate/germline/mutations/byGenomicChange",
+        "https://public.api.oncokb.org/api/v1/annotate/mutations/byGenomicChange",
+    ]
+    assert all(
+        request[1]
+        == {
+            "referenceGenome": "GRCh38",
+            "genomicLocation": "7,140753336,140753336,A,T",
+        }
+        for request in requests
+    )
 
 
-def test_public_oncokb_client_falls_back_to_public_protein_change(monkeypatch):
-    captured = {}
+def test_public_oncokb_client_keeps_intent_failure_explicit(monkeypatch):
+    class _Client:
+        def __init__(self, timeout):
+            self.timeout = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def get(self, url, params, headers):
+            if "/germline/" in url:
+                raise httpx.ReadTimeout("OncoKB timed out", request=httpx.Request("GET", url))
+            return _Response()
 
     class _Response:
         def raise_for_status(self):
             return None
 
         def json(self):
-            return [{"geneExist": True, "variantExist": True, "dataVersion": "public-test"}]
-
-    class _Client:
-        def __init__(self, timeout):
-            captured["timeout"] = timeout
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb):
-            return False
-
-        def post(self, url, json, headers):
-            captured["url"] = url
-            captured["json"] = json
-            captured["headers"] = headers
-            return _Response()
-
-    monkeypatch.setattr("api.infra.knowledgebase.public_oncokb.httpx.Client", _Client)
-    client = PublicOncoKbClient(base_url="https://public.api.oncokb.org/api/v1", timeout=2.5)
-    result = client.annotate_variant(
-        sample={"genome_build": 38},
-        variant={
-            "_id": "v1",
-            "CHROM": "7",
-            "POS": 140753336,
-            "REF": "AT",
-            "ALT": ["A"],
-            "INFO": {
-                "selected_CSQ": {
-                    "SYMBOL": "BRAF",
-                    "HGVSp": "ENSP00000288602:p.Val600Glu",
-                }
-            },
-        },
-    )
-
-    assert result["status"] == "ok"
-    assert result["query_method"] == "protein_change"
-    assert (
-        captured["url"] == "https://public.api.oncokb.org/api/v1/annotate/mutations/byProteinChange"
-    )
-    assert captured["json"][0]["gene"]["hugoSymbol"] == "BRAF"
-    assert captured["json"][0]["alteration"] == "V600E"
-
-
-def test_public_oncokb_client_rejects_http_failure_without_silently_caching_result(monkeypatch):
-    """Public API errors must remain explicit to the ingest/detail workflow."""
-
-    class _Response:
-        def raise_for_status(self):
-            request = httpx.Request(
-                "POST", "https://public.api.oncokb.org/api/v1/annotate/mutations/byHGVSg"
-            )
-            response = httpx.Response(429, request=request, json={"message": "rate limited"})
-            raise httpx.HTTPStatusError("rate limited", request=request, response=response)
-
-    class _Client:
-        def __init__(self, timeout):
-            self.timeout = timeout
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb):
-            return False
-
-        def post(self, url, json, headers):
-            return _Response()
-
-    monkeypatch.setattr("api.infra.knowledgebase.public_oncokb.httpx.Client", _Client)
-    client = PublicOncoKbClient(base_url="https://public.api.oncokb.org/api/v1")
-
-    with pytest.raises(httpx.HTTPStatusError) as error:
-        client.annotate_hgvsgs([{"hgvsg": "17:g.76736896T>C", "referenceGenome": "GRCh38"}])
-
-    assert error.value.response.status_code == 429
-
-
-def test_public_oncokb_client_discards_non_json_contract_payload(monkeypatch):
-    """Unexpected public payload shapes cannot be interpreted as an annotation."""
-
-    class _Response:
-        def raise_for_status(self):
-            return None
-
-        def json(self):
-            return "not-an-annotation"
-
-    class _Client:
-        def __init__(self, timeout):
-            self.timeout = timeout
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb):
-            return False
-
-        def post(self, url, json, headers):
-            return _Response()
-
-    monkeypatch.setattr("api.infra.knowledgebase.public_oncokb.httpx.Client", _Client)
-    client = PublicOncoKbClient(base_url="https://public.api.oncokb.org/api/v1")
-
-    assert client.annotate_hgvsgs([{"hgvsg": "17:g.76736896T>C"}]) == []
-
-
-def test_public_oncokb_client_propagates_timeout_without_annotation(monkeypatch):
-    class _Client:
-        def __init__(self, timeout):
-            self.timeout = timeout
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb):
-            return False
-
-        def post(self, url, json, headers):
-            raise httpx.ReadTimeout("OncoKB timed out", request=httpx.Request("POST", url))
+            return {"geneExist": True, "variantExist": True}
 
     monkeypatch.setattr("api.infra.knowledgebase.public_oncokb.httpx.Client", _Client)
     client = PublicOncoKbClient(base_url="https://public.api.oncokb.org/api/v1", timeout=0.25)
 
-    with pytest.raises(httpx.ReadTimeout):
-        client.annotate_hgvsgs([{"hgvsg": "17:g.76736896T>C", "referenceGenome": "GRCh38"}])
+    result = client.annotate_variant(
+        sample={"analysis_intents": ["somatic", "germline"]},
+        variant={"CHROM": "17", "POS": 7674220, "REF": "C", "ALT": "T"},
+    )
+
+    assert result["status"] == "ok"
+    assert result["responses"] == {"somatic": {"geneExist": True, "variantExist": True}}
+    assert "OncoKB timed out" in result["failures"]["germline"]
 
 
 def test_public_oncokb_client_fetches_cancer_gene_list(monkeypatch):

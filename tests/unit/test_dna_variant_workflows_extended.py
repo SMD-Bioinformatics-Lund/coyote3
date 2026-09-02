@@ -64,7 +64,7 @@ def _variant(variant_id: str, *, sample_id: str = "sample-1", **csq) -> dict:
     }
 
 
-def test_bulk_tiering_skips_missing_and_foreign_variants_and_adds_tier_three_text() -> None:
+def test_bulk_tiering_skips_missing_and_foreign_variants() -> None:
     annotations = Recorder()
     variants = {
         "owned": _variant("owned"),
@@ -72,10 +72,8 @@ def test_bulk_tiering_skips_missing_and_foreign_variants_and_adds_tier_three_tex
     }
     service = SimpleNamespace(
         variant_repository=Recorder(get_variant=lambda variant_id: variants.get(variant_id)),
-        oncokb_repository=Recorder(get_oncokb_gene={"gene": "TP53"}),
         annotation_repository=annotations,
     )
-    text_calls = []
 
     def make_doc(**kwargs):
         return kwargs
@@ -88,19 +86,14 @@ def test_bulk_tiering_skips_missing_and_foreign_variants_and_adds_tier_three_tex
         subpanel="myeloid",
         apply=True,
         class_num=3,
-        create_annotation_text_fn=lambda *args, **kwargs: (
-            text_calls.append((args, kwargs)) or "automatic text"
-        ),
         create_classified_variant_doc_fn=make_doc,
     )
 
     inserted = annotations.calls[-1][1][0]
-    assert len(inserted) == 2
+    assert len(inserted) == 1
     assert inserted[0]["variant"] == "p.Arg1Cys"
     assert inserted[0]["nomenclature"] == "p"
-    assert inserted[1]["text"] == "automatic text"
     assert inserted[0]["variant_data"]["genomic_hash"] == "hash"
-    assert text_calls[0][1]["gene_oncokb"] == {"gene": "TP53"}
 
 
 @pytest.mark.parametrize(
@@ -116,7 +109,6 @@ def test_bulk_tiering_uses_coding_then_genomic_nomenclature(
     annotations = Recorder()
     service = SimpleNamespace(
         variant_repository=Recorder(get_variant=_variant("owned", **csq)),
-        oncokb_repository=Recorder(get_oncokb_gene=None),
         annotation_repository=annotations,
     )
     set_variant_tier_bulk(
@@ -127,7 +119,6 @@ def test_bulk_tiering_uses_coding_then_genomic_nomenclature(
         subpanel=None,
         apply=True,
         class_num=2,
-        create_annotation_text_fn=lambda *args, **kwargs: "unused",
         create_classified_variant_doc_fn=lambda **kwargs: kwargs,
     )
     doc = annotations.calls[-1][1][0][0]
@@ -137,11 +128,10 @@ def test_bulk_tiering_uses_coding_then_genomic_nomenclature(
     )
 
 
-def test_bulk_tiering_removes_classification_and_automatic_text() -> None:
+def test_bulk_tiering_removes_classification() -> None:
     annotations = Recorder()
     service = SimpleNamespace(
         variant_repository=Recorder(get_variant=_variant("owned")),
-        oncokb_repository=Recorder(get_oncokb_gene=None),
         annotation_repository=annotations,
     )
     set_variant_tier_bulk(
@@ -152,12 +142,11 @@ def test_bulk_tiering_removes_classification_and_automatic_text() -> None:
         subpanel="colon",
         apply=False,
         class_num=3,
-        create_annotation_text_fn=lambda *args, **kwargs: "automatic text",
         create_classified_variant_doc_fn=lambda **kwargs: kwargs,
     )
     name, _, kwargs = annotations.calls[-1]
     assert name == "delete_classified_variant"
-    assert kwargs["annotation_text"] == "automatic text"
+    assert kwargs["annotation_text"] is None
     assert kwargs["class_num"] == 3
 
 

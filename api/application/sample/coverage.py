@@ -9,7 +9,6 @@ from typing import Any
 from api.application.common.assay_config import get_formatted_assay_config
 from api.application.coverage.processing import CoverageProcessingService
 from api.domain.common.errors import forbidden_error, setup_error
-from api.domain.common.sample_filters import sample_filter_section
 
 
 class CoverageService:
@@ -21,7 +20,6 @@ class CoverageService:
         return cls(
             assay_configuration_repository=store.assay_configuration_repository,
             assay_panel_repository=store.assay_panel_repository,
-            gene_list_repository=store.gene_list_repository,
             coverage_repository=store.coverage_repository,
             grouped_coverage_repository=store.grouped_coverage_repository,
         )
@@ -31,27 +29,21 @@ class CoverageService:
         *,
         assay_configuration_repository: Any,
         assay_panel_repository: Any,
-        gene_list_repository: Any,
         coverage_repository: Any,
         grouped_coverage_repository: Any,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.assay_configuration_repository = assay_configuration_repository
         self.assay_panel_repository = assay_panel_repository
-        self.gene_list_repository = gene_list_repository
         self.coverage_repository = coverage_repository
         self.grouped_coverage_repository = grouped_coverage_repository
 
-    def sample_payload(
-        self, *, sample: dict, cov_cutoff: int, effective_genes_resolver
-    ) -> dict[str, Any]:
+    def sample_payload(self, *, sample: dict, cov_cutoff: int) -> dict[str, Any]:
         """Return coverage data for a sample.
 
         Args:
             sample: Sample payload to inspect.
             cov_cutoff: Coverage threshold for low-coverage detection.
-            effective_genes_resolver: Helper used to resolve effective genes.
-
         Returns:
             dict[str, Any]: Coverage payload for charts and tables.
         """
@@ -73,33 +65,13 @@ class CoverageService:
 
         assay_group = assay_config.get("asp_group", "unknown")
         assay_panel_doc = self.assay_panel_repository.get_asp(asp_name=sample_assay)
-        sample_filters = sample_filter_section(
-            sample.get("filters"),
-            "snv",
-            omics_layer=str(sample.get("omics_layer") or "dna"),
-        )
-        checked_snvlists = sample_filters.get("snvlists", [])
-
-        if checked_snvlists:
-            checked_snvlists_genes_dict = self.gene_list_repository.get_isgl_by_ids(
-                checked_snvlists
+        if not assay_panel_doc:
+            raise setup_error(
+                f"ASP not registered for assay '{sample_assay}'",
+                f"No active ASP exists for sample '{sample.get('name', sample.get('_id'))}'.",
+                hint="Create and activate the matching ASP before opening coverage pages.",
             )
-            _genes_covered_in_panel, filter_genes = effective_genes_resolver(
-                sample,
-                assay_panel_doc,
-                checked_snvlists_genes_dict,
-            )
-        else:
-            asp_id = assay_panel_doc.get("asp_id")
-            if not asp_id:
-                raise setup_error(
-                    f"ASP for assay '{sample_assay}' is incomplete",
-                    "The ASP exists but is missing the required 'asp_id' field used by coverage views.",
-                    hint="Repair the ASP document and ensure asp_id is populated.",
-                    status_code=500,
-                )
-            checked_snvlists = [asp_id]
-            filter_genes = assay_panel_doc.get("covered_genes", [])
+        gene_scope = list(assay_panel_doc.get("covered_genes") or [])
 
         cov_dict = self.coverage_repository.get_sample_coverage(str(sample["_id"])) or {}
         cov_dict = deepcopy(cov_dict)
@@ -109,7 +81,7 @@ class CoverageService:
 
         filtered_dict = CoverageProcessingService.filter_genes_from_form(
             cov_dict,
-            filter_genes,
+            gene_scope,
             assay_group,
             grouped_coverage_repository=self.grouped_coverage_repository,
         )
@@ -126,7 +98,7 @@ class CoverageService:
             "coverage": filtered_dict,
             "cov_cutoff": cov_cutoff,
             "sample": sample_payload,
-            "snvlists": checked_snvlists,
+            "gene_scope": gene_scope,
             "smp_grp": assay_group,
             "cov_table": cov_table,
         }

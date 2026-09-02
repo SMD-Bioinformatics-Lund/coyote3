@@ -34,19 +34,6 @@ def test_process_annotations_rejects_rows_without_required_context() -> None:
         report_summary.process_gene_annotations([{"class": 2, "variant": "v2"}])
 
 
-def test_gene_annotation_text_handles_assay_wording_and_oncokb() -> None:
-    myeloid = report_summary.create_annotation_text_from_gene(
-        "SRSF2", ["missense_variant"], "myeloid", gene_oncokb=True
-    )
-    solid = report_summary.create_annotation_text_from_gene(
-        "BRAF", ["splice_region_variant"], "solid"
-    )
-    other = report_summary.create_annotation_text_from_gene("GENE", ["intron_variant"], "other")
-    assert "hematologiska" in myeloid and "/SRSF2" in myeloid
-    assert "solida" in solid and "finns ej beskriven" in solid
-    assert "intron variant" in other
-
-
 def test_global_structural_comment_shapes(monkeypatch) -> None:
     monkeypatch.setattr(report_summary, "current_username", lambda: "tester")
     monkeypatch.setattr(report_summary, "utc_now", lambda: "now")

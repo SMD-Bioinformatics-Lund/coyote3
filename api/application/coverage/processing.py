@@ -130,7 +130,8 @@ class CoverageProcessingService:
 
         Args:
             cov_dict: Coverage payload to filter.
-            filter_genes: Genes selected by the user.
+            filter_genes: Genes covered by the ASP. An empty list means that
+                every gene in the coverage payload is eligible.
             smp_grp: Assay group used for blacklist lookups.
 
         Returns:
@@ -143,7 +144,7 @@ class CoverageProcessingService:
             grouped_coverage_repository.get_regions_per_group(smp_grp)
         )
         for gene, gene_cov in genes.items():
-            if gene in filter_set and gene not in gene_blacklist:
+            if (not filter_set or gene in filter_set) and gene not in gene_blacklist:
                 filtered_dict["genes"][gene] = gene_cov
         return filtered_dict
 

@@ -246,7 +246,6 @@ class DnaService:
         subpanel: str | None,
         apply: bool,
         class_num: int,
-        create_annotation_text_fn,
         create_classified_variant_doc_fn,
     ) -> None:
         """Apply or remove variant classifications in bulk.
@@ -254,11 +253,10 @@ class DnaService:
         Args:
             sample: Sample payload containing ownership context.
             resource_ids: Variant identifiers to update.
-            assay_group: Assay-group context for annotation text.
+            assay_group: Assay-group context for the classification identity.
             subpanel: Optional subpanel context.
             apply: Whether to add or remove the classification.
             class_num: Target tier/class number.
-            create_annotation_text_fn: Helper used to build default annotation text.
             create_classified_variant_doc_fn: Helper used to build classification documents.
         """
         variant_classification.set_variant_tier_bulk(
@@ -269,7 +267,6 @@ class DnaService:
             subpanel=subpanel,
             apply=apply,
             class_num=class_num,
-            create_annotation_text_fn=create_annotation_text_fn,
             create_classified_variant_doc_fn=create_classified_variant_doc_fn,
         )
 
